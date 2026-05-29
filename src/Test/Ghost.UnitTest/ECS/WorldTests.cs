@@ -11,11 +11,13 @@ public class WorldTests
     private struct CompB : IComponentData { public int value; }
 
     private World _world = null!;
+    private EntityManager _entityManager;
 
     [TestInitialize]
     public void Setup()
     {
-        _world = World.Create(null, 64);
+        _world = World.Create(entityCapacity: 128);
+        _entityManager = _world.EntityManager;
     }
 
     [TestCleanup]

@@ -54,18 +54,6 @@ public class ShaderLibraryTest
         }
     }
 
-    [TestInitialize]
-    public void Setup()
-    {
-        // AllocationManager.Initialize(AllocationManagerDesc.Default);
-    }
-
-    [TestCleanup]
-    public void Cleanup()
-    {
-        // AllocationManager.Dispose();
-    }
-
     [TestMethod]
     public unsafe void TestInvalidateShaderCache_EvictsPipelinesAndClearsCache()
     {

@@ -4,6 +4,9 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ include file="Helpers.ttinclude" #>
+using System.Runtime.CompilerServices;
+using Ghost.Core;
+
 namespace Ghost.Entities;
 
 public unsafe partial struct EntityQuery
@@ -42,12 +45,12 @@ public unsafe partial struct EntityQuery
 
         var changedCompCount = 0;
 
-        var it = _mask.writeAccess.GetIterator();
-        while (it.Next(out var id))
+        var writeIt = _mask.writeAccess.GetIterator();
+        while (writeIt.Next(out var id))
         {
-            for (var i =0; i < <#= i #>; i++)
+            for (var idx = 0; idx < <#= i #>; idx++)
             {
-                if (id == compTypeIDs[i])
+                if (id == compTypeIDs[idx])
                 {
                     changedCompIDs[changedCompCount] = id;
                     changedCompCount++;
@@ -56,30 +59,72 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        for (var i = 0; i < _matchingArchetypes.Count; i++)
+        var reqOffsets = stackalloc int[16];
+        var reqDisOffsets = stackalloc int[16];
+        var rejOffsets = stackalloc int[16];
+
+        for (var archIndex = 0; archIndex < _matchingArchetypes.Count; archIndex++)
         {
-            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
+            ref var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[archIndex]);
             var hasAllComponents = true;
-            for (var index = 0; index < <#= i #>; index++)
+<# for (var index = 0; index < i; index++) { #>
+            if (ComponentTypeID<T<#= index #>>.IsShared)
             {
-                var layoutResult = archetype.GetLayout(compTypeIDs[index]);
-                if (!layoutResult)
-                {
-                    hasAllComponents = false;
-                    break;
-                }
-
-                offsets[index] = layoutResult.Value.offset;
+                var layoutResult = archetype.GetSharedLayout(compTypeIDs[<#= index #>]);
+                if (!layoutResult) { hasAllComponents = false; goto skipArchetype; }
+                offsets[<#= index #>] = layoutResult.Value.offset;
             }
-
+            else
+            {
+                var layoutResult = archetype.GetLayout(compTypeIDs[<#= index #>]);
+                if (!layoutResult) { hasAllComponents = false; goto skipArchetype; }
+                offsets[<#= index #>] = layoutResult.Value.offset;
+            }
+<# } #>
+        skipArchetype:
             if (!hasAllComponents)
             {
                 continue;
             }
 
+            var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
+            
+            var reqCount = 0;
+            var reqDisCount = 0;
+            var rejCount = 0;
+
+            if (requiresFiltering)
+            {
+                var itE = _mask.requireEnabled.GetIterator();
+                while (itE.Next(out var id) && reqCount < 16)
+                {
+                    var layoutResult = archetype.GetLayout(id);
+                    if (layoutResult.Error == Error.None && layoutResult.Value.enableBitsOffset != -1)
+                        reqOffsets[reqCount++] = layoutResult.Value.enableBitsOffset;
+                }
+
+                itE = _mask.requireDisabled.GetIterator();
+                while (itE.Next(out var id) && reqDisCount < 16)
+                {
+                    var layoutResult = archetype.GetLayout(id);
+                    if (layoutResult.Error == Error.None && layoutResult.Value.enableBitsOffset != -1)
+                        reqDisOffsets[reqDisCount++] = layoutResult.Value.enableBitsOffset;
+                }
+
+                itE = _mask.rejectIfEnabled.GetIterator();
+                while (itE.Next(out var id) && rejCount < 16)
+                {
+                    var layoutResult = archetype.GetLayout(id);
+                    if (layoutResult.Error == Error.None && layoutResult.Value.enableBitsOffset != -1)
+                        rejOffsets[rejCount++] = layoutResult.Value.enableBitsOffset;
+                }
+            }
+
             for (var chunkIndex = 0; chunkIndex < archetype.ChunkCount; chunkIndex++)
             {
                 ref var chunk = ref archetype.GetChunkReference(chunkIndex);
+                if (chunk._count == 0) continue;
+
                 var pChunkData = chunk.GetUnsafePtr();
 
                 for (var j = 0; j < changedCompCount; j++)
@@ -87,28 +132,70 @@ public unsafe partial struct EntityQuery
                     archetype.MarkChanged(chunkIndex, changedCompIDs[j], globalVersion);
                 }
 
-                for (var index = 0; index < <#= i #>; index++)
+<# for (var index = 0; index < i; index++) { #>
+                if (ComponentTypeID<T<#= index #>>.IsShared)
                 {
-                    basePtrs[index] = pChunkData + offsets[index];
+                    var sharedSpan = archetype._chunkGroups[chunk._groupIndex].sharedData.AsSpan();
+                    basePtrs[<#= index #>] = (byte*)Unsafe.AsPointer(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(sharedSpan)) + offsets[<#= index #>];
                 }
-
-                for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
+                else
                 {
-                    if (!IsEntityValid(pChunkData, entityIndex, in archetype, in _mask))
-                    {
-                        continue;
-                    }
-
-<# for (var localIndex = 0; localIndex < i; localIndex++) { #>
-                    var pComp<#= localIndex #> = (T<#= localIndex #>*)(basePtrs[<#= localIndex #>] + (sizeof(T<#= localIndex #>) * entityIndex));
+                    basePtrs[<#= index #>] = pChunkData + offsets[<#= index #>];
+                }
 <# } #>
+
+                if (!requiresFiltering)
+                {
+                    for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
+                    {
+<# if (isForEachWithEntity) { #>
+                        var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
+<# } #>
+                        action(<# if (isForEachWithEntity) { #>*pEntity, <# } #>
+<# for (var localIndex = 0; localIndex < i; localIndex++) { #>
+                            ref (ComponentTypeID<T<#= localIndex #>>.IsShared ? ref ((T<#= localIndex #>*)basePtrs[<#= localIndex #>])[0] : ref ((T<#= localIndex #>*)basePtrs[<#= localIndex #>])[entityIndex])<#= localIndex < i - 1 ? "," : "" #>
+<# } #>);
+                    }
+                }
+                else
+                {
+                    var ulongCount = (chunk._count + 63) / 64;
+                    for (var block = 0; block < ulongCount; block++)
+                    {
+                        var validMask = ulong.MaxValue;
+                        var remaining = chunk._count - (block * 64);
+                        if (remaining < 64) validMask = (1UL << remaining) - 1UL;
+
+                        for (var h = 0; h < reqCount; h++)
+                        {
+                            validMask &= ((ulong*)(pChunkData + reqOffsets[h]))[block];
+                        }
+
+                        for (var h = 0; h < reqDisCount; h++)
+                        {
+                            validMask &= ~((ulong*)(pChunkData + reqDisOffsets[h]))[block];
+                        }
+
+                        for (var h = 0; h < rejCount; h++)
+                        {
+                            validMask &= ~((ulong*)(pChunkData + rejOffsets[h]))[block];
+                        }
+
+                        while (validMask != 0)
+                        {
+                            var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
+                            var entityIndex = (block * 64) + bit;
 
 <# if (isForEachWithEntity) { #>
-                    var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                    action(*pEntity, <#= AppendParameters(i, "ref *pComp{0}") #>);
-<# } else { #>
-                    action(<#= AppendParameters(i, "ref *pComp{0}") #>);
+                            var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
 <# } #>
+                            action(<# if (isForEachWithEntity) { #>*pEntity, <# } #>
+<# for (var localIndex = 0; localIndex < i; localIndex++) { #>
+                                ref (ComponentTypeID<T<#= localIndex #>>.IsShared ? ref ((T<#= localIndex #>*)basePtrs[<#= localIndex #>])[0] : ref ((T<#= localIndex #>*)basePtrs[<#= localIndex #>])[entityIndex])<#= localIndex < i - 1 ? "," : "" #>
+<# } #>);
+                            validMask ^= (1UL << bit);
+                        }
+                    }
                 }
             }
         }

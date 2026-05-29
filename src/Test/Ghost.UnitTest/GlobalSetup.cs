@@ -1,5 +1,7 @@
 using Misaki.HighPerformance.LowLevel.Buffer;
 
+[assembly: DoNotParallelize]
+
 namespace Ghost.UnitTest;
 
 [TestClass]

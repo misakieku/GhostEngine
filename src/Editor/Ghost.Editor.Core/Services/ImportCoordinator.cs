@@ -56,7 +56,14 @@ internal sealed partial class ImportCoordinator : IDisposable
 
     public ValueTask EnqueueAsync(ImportJob job, CancellationToken token = default)
     {
-        return _importChannel.Writer.WriteAsync(job, token);
+        try
+        {
+            return _importChannel.Writer.WriteAsync(job, token);
+        }
+        catch (ChannelClosedException)
+        {
+            return ValueTask.CompletedTask;
+        }
     }
 
     private async Task WorkerLoop(CancellationToken token)
@@ -209,6 +216,15 @@ internal sealed partial class ImportCoordinator : IDisposable
     {
         _importChannel.Writer.TryComplete();
         _cts.Cancel();
+
+        try
+        {
+            Task.WaitAll(_workers);
+        }
+        catch (AggregateException)
+        {
+        }
+
         _cts.Dispose();
     }
 }

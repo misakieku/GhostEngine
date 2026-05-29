@@ -2,7 +2,6 @@ using Ghost.Editor.Core;
 using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.Services;
 using Ghost.Engine.Streaming;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -20,47 +19,20 @@ public class MeshAssetHandlerTests
     }
 
     private string _projectRoot = null!;
-    private string _previousCurrentDirectory = null!;
 
     [TestInitialize]
     public void Setup()
     {
-        AllocationManager.Initialize(AllocationManagerDesc.Default);
-
-        _previousCurrentDirectory = Environment.CurrentDirectory;
         _projectRoot = Path.Combine(Path.GetTempPath(), "GhostEngineTests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(_projectRoot);
         EditorApplication.Initialize(new EmptyServiceProvider(), _projectRoot, "MeshImportTest");
-    }
-
-    [TestCleanup]
-    public void Cleanup()
-    {
-        AllocationManager.Dispose();
-        Environment.CurrentDirectory = _previousCurrentDirectory;
-
-        if (Directory.Exists(_projectRoot))
-        {
-            try
-            {
-                Directory.Delete(_projectRoot, true);
-            }
-            catch (IOException)
-            {
-                Thread.Sleep(100);
-                if (Directory.Exists(_projectRoot))
-                {
-                    Directory.Delete(_projectRoot, true);
-                }
-            }
-        }
     }
 
     [TestMethod]
     public async Task FBXAssetHandler_ImportsObjAsManifestAndMeshSubAssets()
     {
         var sourcePath = Path.Combine(EditorApplication.AssetsFolderPath, "kit.obj");
-        await File.WriteAllTextAsync(sourcePath, CreateTwoObjectObj());
+        await File.WriteAllTextAsync(sourcePath, CreateTwoObjectObj(), TestContext.CancellationToken);
 
         var parentGuid = Guid.NewGuid();
         var targetPath = ImportCoordinator.GetImportedAssetPath(parentGuid);

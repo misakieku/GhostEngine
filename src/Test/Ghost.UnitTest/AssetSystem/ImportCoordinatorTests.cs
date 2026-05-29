@@ -26,21 +26,15 @@ public class ImportCoordinatorTests
     [TestCleanup]
     public void Cleanup()
     {
-        SqliteConnection.ClearAllPools();
-        var dir = Path.GetDirectoryName(_libraryRoot);
-        if (dir != null && Directory.Exists(dir))
+        var connectionString = new SqliteConnectionStringBuilder
         {
-            try
-            {
-                Directory.Delete(dir, true);
-            }
-            catch (IOException)
-            {
-                Thread.Sleep(100);
-                if (Directory.Exists(dir))
-                    Directory.Delete(dir, true);
-            }
-        }
+            DataSource = _dbPath,
+            ForeignKeys = true,
+            Pooling = true
+        }.ToString();
+
+        using var connection = new SqliteConnection(connectionString);
+        SqliteConnection.ClearPool(connection);
     }
 
     [TestMethod]

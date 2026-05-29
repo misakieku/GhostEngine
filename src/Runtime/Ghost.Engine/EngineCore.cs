@@ -23,9 +23,9 @@ public sealed partial class EngineCore : IDisposable
     private readonly RenderSystem _renderSystem;
     private readonly AssetManager _assetManager;
 
-    internal JobScheduler JobScheduler => _jobScheduler;
-    internal RenderSystem RenderSystem => _renderSystem;
-    internal AssetManager AssetManager => _assetManager;
+    public JobScheduler JobScheduler => _jobScheduler;
+    public RenderSystem RenderSystem => _renderSystem;
+    public AssetManager AssetManager => _assetManager;
 
     public EngineCore(IContentProvider contentProvider, IShaderCompilationBridge? shaderCompilationBridge = null)
     {

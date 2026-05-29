@@ -34,8 +34,6 @@ public class SceneSerializationTests
     [TestInitialize]
     public void Setup()
     {
-        AllocationManager.Initialize(AllocationManagerDesc.Default);
-
         _previousCurrentDirectory = Environment.CurrentDirectory;
         _projectRoot = Path.Combine(Path.GetTempPath(), "GhostEngineTests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(_projectRoot);
@@ -51,7 +49,6 @@ public class SceneSerializationTests
     {
         _worldService.Dispose();
 
-        AllocationManager.Dispose();
         Environment.CurrentDirectory = _previousCurrentDirectory;
 
         if (Directory.Exists(_projectRoot))

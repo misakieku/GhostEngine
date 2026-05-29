@@ -1,6 +1,8 @@
 using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
@@ -8,6 +10,22 @@ public interface IJobEntity<T0>
     where T0 : unmanaged, IComponent
 {
     void Execute(Entity entity, ref T0 component0, ref readonly JobExecutionContext ctx);
+}
+
+internal unsafe struct JobBatchContext1
+{
+    public byte* chunk;
+    public uint* chunkVersions;
+    public byte* sharedDataBlob;
+    public int chunkCount;
+    public int entityOffset;
+
+    public int offset0;
+    public int enableOff0;
+    public int versionIndex0;
+
+    public int hiddenEnableCount;
+    public fixed int hiddenEnableOffsets[16];
 }
 
 internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
@@ -18,47 +36,66 @@ internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
     public fixed bool componentRW[1];
 
     public TJob userJob;
-
-    public UnsafeList<IntPtr> chunks;
-    public UnsafeList<IntPtr> chunkVersions;
-    public UnsafeList<int> chunkCount;
-    public UnsafeList<int> entityOffset;
-
-    public UnsafeList<int> offsets0;
-    public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionIndices0;
-
+    public UnsafeList<JobBatchContext1> batches;
+    public EntityQueryMask mask;
     public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
-        // 1. Get the specific pChunk for this thread
-        var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (uint*)chunkVersions[loopIndex];
-        var count = chunkCount[loopIndex];
+        ref var batch = ref ((JobBatchContext1*)batches.GetUnsafePtr())[loopIndex];
 
-        var off0 = offsets0[loopIndex];
-        var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionIndices0[loopIndex];
+        var pChunk = batch.chunk;
+        var pVersions = batch.chunkVersions;
+        var pSharedBlob = batch.sharedDataBlob;
+        var count = batch.chunkCount;
 
-        var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
-        var ptr0 = (T0*)(pChunk + off0);
+        var off0 = batch.offset0;
+        var enableOff0 = batch.enableOff0;
+        var versionIndex0 = batch.versionIndex0;
 
-        // 2. Update versions for RW components
+        var pEntity = (Entity*)(pChunk + batch.entityOffset);
+
+        var ptr0 = (T0*)(ComponentTypeID<T0>.IsShared ? (pSharedBlob + off0) : (pChunk + off0));
+
         if (componentRW[0])
         {
             pVersions[versionIndex0] = version;
         }
 
-        // 3. Iterate all entities in this chunk
-        for (var i = 0; i < count; i++)
+
+        // Execute batch
+        var ulongCount = (count + 63) / 64;
+        for (var block = 0; block < ulongCount; block++)
         {
-            if (enableOff0 != -1 && !EntityQuery.CheckBit(pChunk + enableOff0, i))
+            var validMask = ulong.MaxValue;
+            var remaining = count - (block * 64);
+            if (remaining < 64) validMask = (1UL << remaining) - 1UL;
+
+            // Enforce enableable bits checking based on components required by Job Signature
+            if (enableOff0 != -1)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + enableOff0);
+                validMask &= pMask[block];
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], in ctx);
+            // Enforce EntityQuery Mask hidden enableable constraints
+            for (var h = 0; h < batch.hiddenEnableCount; h++)
+            {
+                var pMask = (ulong*)(pChunk + batch.hiddenEnableOffsets[h]);
+                validMask &= pMask[block];
+            }
+
+            while (validMask != 0)
+            {
+                var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
+                var i_ent = (block * 64) + bit;
+
+                userJob.Execute(pEntity[i_ent], 
+                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent])
+, in ctx);
+
+                validMask ^= (1UL << bit);
+            }
         }
     }
 }
@@ -70,6 +107,26 @@ public interface IJobEntity<T0, T1>
     void Execute(Entity entity, ref T0 component0, ref T1 component1, ref readonly JobExecutionContext ctx);
 }
 
+internal unsafe struct JobBatchContext2
+{
+    public byte* chunk;
+    public uint* chunkVersions;
+    public byte* sharedDataBlob;
+    public int chunkCount;
+    public int entityOffset;
+
+    public int offset0;
+    public int enableOff0;
+    public int versionIndex0;
+
+    public int offset1;
+    public int enableOff1;
+    public int versionIndex1;
+
+    public int hiddenEnableCount;
+    public fixed int hiddenEnableOffsets[16];
+}
+
 internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
     where TJob : unmanaged, IJobEntity<T0, T1>
     where T0 : unmanaged, IComponent
@@ -79,42 +136,31 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
     public fixed bool componentRW[2];
 
     public TJob userJob;
-
-    public UnsafeList<IntPtr> chunks;
-    public UnsafeList<IntPtr> chunkVersions;
-    public UnsafeList<int> chunkCount;
-    public UnsafeList<int> entityOffset;
-
-    public UnsafeList<int> offsets0;
-    public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionIndices0;
-
-    public UnsafeList<int> offsets1;
-    public UnsafeList<int> bitsOffsets1;
-    public UnsafeList<int> versionIndices1;
-
+    public UnsafeList<JobBatchContext2> batches;
+    public EntityQueryMask mask;
     public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
-        // 1. Get the specific pChunk for this thread
-        var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (uint*)chunkVersions[loopIndex];
-        var count = chunkCount[loopIndex];
+        ref var batch = ref ((JobBatchContext2*)batches.GetUnsafePtr())[loopIndex];
 
-        var off0 = offsets0[loopIndex];
-        var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionIndices0[loopIndex];
+        var pChunk = batch.chunk;
+        var pVersions = batch.chunkVersions;
+        var pSharedBlob = batch.sharedDataBlob;
+        var count = batch.chunkCount;
 
-        var off1 = offsets1[loopIndex];
-        var enableOff1 = bitsOffsets1[loopIndex];
-        var versionIndex1 = versionIndices1[loopIndex];
+        var off0 = batch.offset0;
+        var enableOff0 = batch.enableOff0;
+        var versionIndex0 = batch.versionIndex0;
+        var off1 = batch.offset1;
+        var enableOff1 = batch.enableOff1;
+        var versionIndex1 = batch.versionIndex1;
 
-        var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
-        var ptr0 = (T0*)(pChunk + off0);
-        var ptr1 = (T1*)(pChunk + off1);
+        var pEntity = (Entity*)(pChunk + batch.entityOffset);
 
-        // 2. Update versions for RW components
+        var ptr0 = (T0*)(ComponentTypeID<T0>.IsShared ? (pSharedBlob + off0) : (pChunk + off0));
+        var ptr1 = (T1*)(ComponentTypeID<T1>.IsShared ? (pSharedBlob + off1) : (pChunk + off1));
+
         if (componentRW[0])
         {
             pVersions[versionIndex0] = version;
@@ -125,20 +171,46 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
             pVersions[versionIndex1] = version;
         }
 
-        // 3. Iterate all entities in this chunk
-        for (var i = 0; i < count; i++)
+
+        // Execute batch
+        var ulongCount = (count + 63) / 64;
+        for (var block = 0; block < ulongCount; block++)
         {
-            if (enableOff0 != -1 && !EntityQuery.CheckBit(pChunk + enableOff0, i))
+            var validMask = ulong.MaxValue;
+            var remaining = count - (block * 64);
+            if (remaining < 64) validMask = (1UL << remaining) - 1UL;
+
+            // Enforce enableable bits checking based on components required by Job Signature
+            if (enableOff0 != -1)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + enableOff0);
+                validMask &= pMask[block];
+            }
+            if (enableOff1 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff1);
+                validMask &= pMask[block];
             }
 
-            if (enableOff1 != -1 && !EntityQuery.CheckBit(pChunk + enableOff1, i))
+            // Enforce EntityQuery Mask hidden enableable constraints
+            for (var h = 0; h < batch.hiddenEnableCount; h++)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + batch.hiddenEnableOffsets[h]);
+                validMask &= pMask[block];
             }
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], in ctx);
+            while (validMask != 0)
+            {
+                var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
+                var i_ent = (block * 64) + bit;
+
+                userJob.Execute(pEntity[i_ent], 
+                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
+                    ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent])
+, in ctx);
+
+                validMask ^= (1UL << bit);
+            }
         }
     }
 }
@@ -151,6 +223,30 @@ public interface IJobEntity<T0, T1, T2>
     void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref readonly JobExecutionContext ctx);
 }
 
+internal unsafe struct JobBatchContext3
+{
+    public byte* chunk;
+    public uint* chunkVersions;
+    public byte* sharedDataBlob;
+    public int chunkCount;
+    public int entityOffset;
+
+    public int offset0;
+    public int enableOff0;
+    public int versionIndex0;
+
+    public int offset1;
+    public int enableOff1;
+    public int versionIndex1;
+
+    public int offset2;
+    public int enableOff2;
+    public int versionIndex2;
+
+    public int hiddenEnableCount;
+    public fixed int hiddenEnableOffsets[16];
+}
+
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
     where TJob : unmanaged, IJobEntity<T0, T1, T2>
     where T0 : unmanaged, IComponent
@@ -161,51 +257,35 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
     public fixed bool componentRW[3];
 
     public TJob userJob;
-
-    public UnsafeList<IntPtr> chunks;
-    public UnsafeList<IntPtr> chunkVersions;
-    public UnsafeList<int> chunkCount;
-    public UnsafeList<int> entityOffset;
-
-    public UnsafeList<int> offsets0;
-    public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionIndices0;
-
-    public UnsafeList<int> offsets1;
-    public UnsafeList<int> bitsOffsets1;
-    public UnsafeList<int> versionIndices1;
-
-    public UnsafeList<int> offsets2;
-    public UnsafeList<int> bitsOffsets2;
-    public UnsafeList<int> versionIndices2;
-
+    public UnsafeList<JobBatchContext3> batches;
+    public EntityQueryMask mask;
     public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
-        // 1. Get the specific pChunk for this thread
-        var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (uint*)chunkVersions[loopIndex];
-        var count = chunkCount[loopIndex];
+        ref var batch = ref ((JobBatchContext3*)batches.GetUnsafePtr())[loopIndex];
 
-        var off0 = offsets0[loopIndex];
-        var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionIndices0[loopIndex];
+        var pChunk = batch.chunk;
+        var pVersions = batch.chunkVersions;
+        var pSharedBlob = batch.sharedDataBlob;
+        var count = batch.chunkCount;
 
-        var off1 = offsets1[loopIndex];
-        var enableOff1 = bitsOffsets1[loopIndex];
-        var versionIndex1 = versionIndices1[loopIndex];
+        var off0 = batch.offset0;
+        var enableOff0 = batch.enableOff0;
+        var versionIndex0 = batch.versionIndex0;
+        var off1 = batch.offset1;
+        var enableOff1 = batch.enableOff1;
+        var versionIndex1 = batch.versionIndex1;
+        var off2 = batch.offset2;
+        var enableOff2 = batch.enableOff2;
+        var versionIndex2 = batch.versionIndex2;
 
-        var off2 = offsets2[loopIndex];
-        var enableOff2 = bitsOffsets2[loopIndex];
-        var versionIndex2 = versionIndices2[loopIndex];
+        var pEntity = (Entity*)(pChunk + batch.entityOffset);
 
-        var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
-        var ptr0 = (T0*)(pChunk + off0);
-        var ptr1 = (T1*)(pChunk + off1);
-        var ptr2 = (T2*)(pChunk + off2);
+        var ptr0 = (T0*)(ComponentTypeID<T0>.IsShared ? (pSharedBlob + off0) : (pChunk + off0));
+        var ptr1 = (T1*)(ComponentTypeID<T1>.IsShared ? (pSharedBlob + off1) : (pChunk + off1));
+        var ptr2 = (T2*)(ComponentTypeID<T2>.IsShared ? (pSharedBlob + off2) : (pChunk + off2));
 
-        // 2. Update versions for RW components
         if (componentRW[0])
         {
             pVersions[versionIndex0] = version;
@@ -221,25 +301,52 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
             pVersions[versionIndex2] = version;
         }
 
-        // 3. Iterate all entities in this chunk
-        for (var i = 0; i < count; i++)
+
+        // Execute batch
+        var ulongCount = (count + 63) / 64;
+        for (var block = 0; block < ulongCount; block++)
         {
-            if (enableOff0 != -1 && !EntityQuery.CheckBit(pChunk + enableOff0, i))
+            var validMask = ulong.MaxValue;
+            var remaining = count - (block * 64);
+            if (remaining < 64) validMask = (1UL << remaining) - 1UL;
+
+            // Enforce enableable bits checking based on components required by Job Signature
+            if (enableOff0 != -1)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + enableOff0);
+                validMask &= pMask[block];
+            }
+            if (enableOff1 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff1);
+                validMask &= pMask[block];
+            }
+            if (enableOff2 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff2);
+                validMask &= pMask[block];
             }
 
-            if (enableOff1 != -1 && !EntityQuery.CheckBit(pChunk + enableOff1, i))
+            // Enforce EntityQuery Mask hidden enableable constraints
+            for (var h = 0; h < batch.hiddenEnableCount; h++)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + batch.hiddenEnableOffsets[h]);
+                validMask &= pMask[block];
             }
 
-            if (enableOff2 != -1 && !EntityQuery.CheckBit(pChunk + enableOff2, i))
+            while (validMask != 0)
             {
-                continue;
-            }
+                var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
+                var i_ent = (block * 64) + bit;
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], in ctx);
+                userJob.Execute(pEntity[i_ent], 
+                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
+                    ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
+                    ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent])
+, in ctx);
+
+                validMask ^= (1UL << bit);
+            }
         }
     }
 }
@@ -253,6 +360,34 @@ public interface IJobEntity<T0, T1, T2, T3>
     void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref readonly JobExecutionContext ctx);
 }
 
+internal unsafe struct JobBatchContext4
+{
+    public byte* chunk;
+    public uint* chunkVersions;
+    public byte* sharedDataBlob;
+    public int chunkCount;
+    public int entityOffset;
+
+    public int offset0;
+    public int enableOff0;
+    public int versionIndex0;
+
+    public int offset1;
+    public int enableOff1;
+    public int versionIndex1;
+
+    public int offset2;
+    public int enableOff2;
+    public int versionIndex2;
+
+    public int offset3;
+    public int enableOff3;
+    public int versionIndex3;
+
+    public int hiddenEnableCount;
+    public fixed int hiddenEnableOffsets[16];
+}
+
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
     where TJob : unmanaged, IJobEntity<T0, T1, T2, T3>
     where T0 : unmanaged, IComponent
@@ -264,60 +399,39 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
     public fixed bool componentRW[4];
 
     public TJob userJob;
-
-    public UnsafeList<IntPtr> chunks;
-    public UnsafeList<IntPtr> chunkVersions;
-    public UnsafeList<int> chunkCount;
-    public UnsafeList<int> entityOffset;
-
-    public UnsafeList<int> offsets0;
-    public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionIndices0;
-
-    public UnsafeList<int> offsets1;
-    public UnsafeList<int> bitsOffsets1;
-    public UnsafeList<int> versionIndices1;
-
-    public UnsafeList<int> offsets2;
-    public UnsafeList<int> bitsOffsets2;
-    public UnsafeList<int> versionIndices2;
-
-    public UnsafeList<int> offsets3;
-    public UnsafeList<int> bitsOffsets3;
-    public UnsafeList<int> versionIndices3;
-
+    public UnsafeList<JobBatchContext4> batches;
+    public EntityQueryMask mask;
     public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
-        // 1. Get the specific pChunk for this thread
-        var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (uint*)chunkVersions[loopIndex];
-        var count = chunkCount[loopIndex];
+        ref var batch = ref ((JobBatchContext4*)batches.GetUnsafePtr())[loopIndex];
 
-        var off0 = offsets0[loopIndex];
-        var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionIndices0[loopIndex];
+        var pChunk = batch.chunk;
+        var pVersions = batch.chunkVersions;
+        var pSharedBlob = batch.sharedDataBlob;
+        var count = batch.chunkCount;
 
-        var off1 = offsets1[loopIndex];
-        var enableOff1 = bitsOffsets1[loopIndex];
-        var versionIndex1 = versionIndices1[loopIndex];
+        var off0 = batch.offset0;
+        var enableOff0 = batch.enableOff0;
+        var versionIndex0 = batch.versionIndex0;
+        var off1 = batch.offset1;
+        var enableOff1 = batch.enableOff1;
+        var versionIndex1 = batch.versionIndex1;
+        var off2 = batch.offset2;
+        var enableOff2 = batch.enableOff2;
+        var versionIndex2 = batch.versionIndex2;
+        var off3 = batch.offset3;
+        var enableOff3 = batch.enableOff3;
+        var versionIndex3 = batch.versionIndex3;
 
-        var off2 = offsets2[loopIndex];
-        var enableOff2 = bitsOffsets2[loopIndex];
-        var versionIndex2 = versionIndices2[loopIndex];
+        var pEntity = (Entity*)(pChunk + batch.entityOffset);
 
-        var off3 = offsets3[loopIndex];
-        var enableOff3 = bitsOffsets3[loopIndex];
-        var versionIndex3 = versionIndices3[loopIndex];
+        var ptr0 = (T0*)(ComponentTypeID<T0>.IsShared ? (pSharedBlob + off0) : (pChunk + off0));
+        var ptr1 = (T1*)(ComponentTypeID<T1>.IsShared ? (pSharedBlob + off1) : (pChunk + off1));
+        var ptr2 = (T2*)(ComponentTypeID<T2>.IsShared ? (pSharedBlob + off2) : (pChunk + off2));
+        var ptr3 = (T3*)(ComponentTypeID<T3>.IsShared ? (pSharedBlob + off3) : (pChunk + off3));
 
-        var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
-        var ptr0 = (T0*)(pChunk + off0);
-        var ptr1 = (T1*)(pChunk + off1);
-        var ptr2 = (T2*)(pChunk + off2);
-        var ptr3 = (T3*)(pChunk + off3);
-
-        // 2. Update versions for RW components
         if (componentRW[0])
         {
             pVersions[versionIndex0] = version;
@@ -338,30 +452,58 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
             pVersions[versionIndex3] = version;
         }
 
-        // 3. Iterate all entities in this chunk
-        for (var i = 0; i < count; i++)
+
+        // Execute batch
+        var ulongCount = (count + 63) / 64;
+        for (var block = 0; block < ulongCount; block++)
         {
-            if (enableOff0 != -1 && !EntityQuery.CheckBit(pChunk + enableOff0, i))
+            var validMask = ulong.MaxValue;
+            var remaining = count - (block * 64);
+            if (remaining < 64) validMask = (1UL << remaining) - 1UL;
+
+            // Enforce enableable bits checking based on components required by Job Signature
+            if (enableOff0 != -1)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + enableOff0);
+                validMask &= pMask[block];
+            }
+            if (enableOff1 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff1);
+                validMask &= pMask[block];
+            }
+            if (enableOff2 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff2);
+                validMask &= pMask[block];
+            }
+            if (enableOff3 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff3);
+                validMask &= pMask[block];
             }
 
-            if (enableOff1 != -1 && !EntityQuery.CheckBit(pChunk + enableOff1, i))
+            // Enforce EntityQuery Mask hidden enableable constraints
+            for (var h = 0; h < batch.hiddenEnableCount; h++)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + batch.hiddenEnableOffsets[h]);
+                validMask &= pMask[block];
             }
 
-            if (enableOff2 != -1 && !EntityQuery.CheckBit(pChunk + enableOff2, i))
+            while (validMask != 0)
             {
-                continue;
-            }
+                var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
+                var i_ent = (block * 64) + bit;
 
-            if (enableOff3 != -1 && !EntityQuery.CheckBit(pChunk + enableOff3, i))
-            {
-                continue;
-            }
+                userJob.Execute(pEntity[i_ent], 
+                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
+                    ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
+                    ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
+                    ref (ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent])
+, in ctx);
 
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], in ctx);
+                validMask ^= (1UL << bit);
+            }
         }
     }
 }
@@ -376,6 +518,38 @@ public interface IJobEntity<T0, T1, T2, T3, T4>
     void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref readonly JobExecutionContext ctx);
 }
 
+internal unsafe struct JobBatchContext5
+{
+    public byte* chunk;
+    public uint* chunkVersions;
+    public byte* sharedDataBlob;
+    public int chunkCount;
+    public int entityOffset;
+
+    public int offset0;
+    public int enableOff0;
+    public int versionIndex0;
+
+    public int offset1;
+    public int enableOff1;
+    public int versionIndex1;
+
+    public int offset2;
+    public int enableOff2;
+    public int versionIndex2;
+
+    public int offset3;
+    public int enableOff3;
+    public int versionIndex3;
+
+    public int offset4;
+    public int enableOff4;
+    public int versionIndex4;
+
+    public int hiddenEnableCount;
+    public fixed int hiddenEnableOffsets[16];
+}
+
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFor
     where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4>
     where T0 : unmanaged, IComponent
@@ -388,69 +562,43 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFo
     public fixed bool componentRW[5];
 
     public TJob userJob;
-
-    public UnsafeList<IntPtr> chunks;
-    public UnsafeList<IntPtr> chunkVersions;
-    public UnsafeList<int> chunkCount;
-    public UnsafeList<int> entityOffset;
-
-    public UnsafeList<int> offsets0;
-    public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionIndices0;
-
-    public UnsafeList<int> offsets1;
-    public UnsafeList<int> bitsOffsets1;
-    public UnsafeList<int> versionIndices1;
-
-    public UnsafeList<int> offsets2;
-    public UnsafeList<int> bitsOffsets2;
-    public UnsafeList<int> versionIndices2;
-
-    public UnsafeList<int> offsets3;
-    public UnsafeList<int> bitsOffsets3;
-    public UnsafeList<int> versionIndices3;
-
-    public UnsafeList<int> offsets4;
-    public UnsafeList<int> bitsOffsets4;
-    public UnsafeList<int> versionIndices4;
-
+    public UnsafeList<JobBatchContext5> batches;
+    public EntityQueryMask mask;
     public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
-        // 1. Get the specific pChunk for this thread
-        var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (uint*)chunkVersions[loopIndex];
-        var count = chunkCount[loopIndex];
+        ref var batch = ref ((JobBatchContext5*)batches.GetUnsafePtr())[loopIndex];
 
-        var off0 = offsets0[loopIndex];
-        var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionIndices0[loopIndex];
+        var pChunk = batch.chunk;
+        var pVersions = batch.chunkVersions;
+        var pSharedBlob = batch.sharedDataBlob;
+        var count = batch.chunkCount;
 
-        var off1 = offsets1[loopIndex];
-        var enableOff1 = bitsOffsets1[loopIndex];
-        var versionIndex1 = versionIndices1[loopIndex];
+        var off0 = batch.offset0;
+        var enableOff0 = batch.enableOff0;
+        var versionIndex0 = batch.versionIndex0;
+        var off1 = batch.offset1;
+        var enableOff1 = batch.enableOff1;
+        var versionIndex1 = batch.versionIndex1;
+        var off2 = batch.offset2;
+        var enableOff2 = batch.enableOff2;
+        var versionIndex2 = batch.versionIndex2;
+        var off3 = batch.offset3;
+        var enableOff3 = batch.enableOff3;
+        var versionIndex3 = batch.versionIndex3;
+        var off4 = batch.offset4;
+        var enableOff4 = batch.enableOff4;
+        var versionIndex4 = batch.versionIndex4;
 
-        var off2 = offsets2[loopIndex];
-        var enableOff2 = bitsOffsets2[loopIndex];
-        var versionIndex2 = versionIndices2[loopIndex];
+        var pEntity = (Entity*)(pChunk + batch.entityOffset);
 
-        var off3 = offsets3[loopIndex];
-        var enableOff3 = bitsOffsets3[loopIndex];
-        var versionIndex3 = versionIndices3[loopIndex];
+        var ptr0 = (T0*)(ComponentTypeID<T0>.IsShared ? (pSharedBlob + off0) : (pChunk + off0));
+        var ptr1 = (T1*)(ComponentTypeID<T1>.IsShared ? (pSharedBlob + off1) : (pChunk + off1));
+        var ptr2 = (T2*)(ComponentTypeID<T2>.IsShared ? (pSharedBlob + off2) : (pChunk + off2));
+        var ptr3 = (T3*)(ComponentTypeID<T3>.IsShared ? (pSharedBlob + off3) : (pChunk + off3));
+        var ptr4 = (T4*)(ComponentTypeID<T4>.IsShared ? (pSharedBlob + off4) : (pChunk + off4));
 
-        var off4 = offsets4[loopIndex];
-        var enableOff4 = bitsOffsets4[loopIndex];
-        var versionIndex4 = versionIndices4[loopIndex];
-
-        var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
-        var ptr0 = (T0*)(pChunk + off0);
-        var ptr1 = (T1*)(pChunk + off1);
-        var ptr2 = (T2*)(pChunk + off2);
-        var ptr3 = (T3*)(pChunk + off3);
-        var ptr4 = (T4*)(pChunk + off4);
-
-        // 2. Update versions for RW components
         if (componentRW[0])
         {
             pVersions[versionIndex0] = version;
@@ -476,35 +624,64 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFo
             pVersions[versionIndex4] = version;
         }
 
-        // 3. Iterate all entities in this chunk
-        for (var i = 0; i < count; i++)
+
+        // Execute batch
+        var ulongCount = (count + 63) / 64;
+        for (var block = 0; block < ulongCount; block++)
         {
-            if (enableOff0 != -1 && !EntityQuery.CheckBit(pChunk + enableOff0, i))
+            var validMask = ulong.MaxValue;
+            var remaining = count - (block * 64);
+            if (remaining < 64) validMask = (1UL << remaining) - 1UL;
+
+            // Enforce enableable bits checking based on components required by Job Signature
+            if (enableOff0 != -1)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + enableOff0);
+                validMask &= pMask[block];
+            }
+            if (enableOff1 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff1);
+                validMask &= pMask[block];
+            }
+            if (enableOff2 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff2);
+                validMask &= pMask[block];
+            }
+            if (enableOff3 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff3);
+                validMask &= pMask[block];
+            }
+            if (enableOff4 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff4);
+                validMask &= pMask[block];
             }
 
-            if (enableOff1 != -1 && !EntityQuery.CheckBit(pChunk + enableOff1, i))
+            // Enforce EntityQuery Mask hidden enableable constraints
+            for (var h = 0; h < batch.hiddenEnableCount; h++)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + batch.hiddenEnableOffsets[h]);
+                validMask &= pMask[block];
             }
 
-            if (enableOff2 != -1 && !EntityQuery.CheckBit(pChunk + enableOff2, i))
+            while (validMask != 0)
             {
-                continue;
-            }
+                var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
+                var i_ent = (block * 64) + bit;
 
-            if (enableOff3 != -1 && !EntityQuery.CheckBit(pChunk + enableOff3, i))
-            {
-                continue;
-            }
+                userJob.Execute(pEntity[i_ent], 
+                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
+                    ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
+                    ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
+                    ref (ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent]),
+                    ref (ComponentTypeID<T4>.IsShared ? ref ptr4[0] : ref ptr4[i_ent])
+, in ctx);
 
-            if (enableOff4 != -1 && !EntityQuery.CheckBit(pChunk + enableOff4, i))
-            {
-                continue;
+                validMask ^= (1UL << bit);
             }
-
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], in ctx);
         }
     }
 }
@@ -520,6 +697,42 @@ public interface IJobEntity<T0, T1, T2, T3, T4, T5>
     void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5, ref readonly JobExecutionContext ctx);
 }
 
+internal unsafe struct JobBatchContext6
+{
+    public byte* chunk;
+    public uint* chunkVersions;
+    public byte* sharedDataBlob;
+    public int chunkCount;
+    public int entityOffset;
+
+    public int offset0;
+    public int enableOff0;
+    public int versionIndex0;
+
+    public int offset1;
+    public int enableOff1;
+    public int versionIndex1;
+
+    public int offset2;
+    public int enableOff2;
+    public int versionIndex2;
+
+    public int offset3;
+    public int enableOff3;
+    public int versionIndex3;
+
+    public int offset4;
+    public int enableOff4;
+    public int versionIndex4;
+
+    public int offset5;
+    public int enableOff5;
+    public int versionIndex5;
+
+    public int hiddenEnableCount;
+    public fixed int hiddenEnableOffsets[16];
+}
+
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParallelFor
     where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4, T5>
     where T0 : unmanaged, IComponent
@@ -533,78 +746,47 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParall
     public fixed bool componentRW[6];
 
     public TJob userJob;
-
-    public UnsafeList<IntPtr> chunks;
-    public UnsafeList<IntPtr> chunkVersions;
-    public UnsafeList<int> chunkCount;
-    public UnsafeList<int> entityOffset;
-
-    public UnsafeList<int> offsets0;
-    public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionIndices0;
-
-    public UnsafeList<int> offsets1;
-    public UnsafeList<int> bitsOffsets1;
-    public UnsafeList<int> versionIndices1;
-
-    public UnsafeList<int> offsets2;
-    public UnsafeList<int> bitsOffsets2;
-    public UnsafeList<int> versionIndices2;
-
-    public UnsafeList<int> offsets3;
-    public UnsafeList<int> bitsOffsets3;
-    public UnsafeList<int> versionIndices3;
-
-    public UnsafeList<int> offsets4;
-    public UnsafeList<int> bitsOffsets4;
-    public UnsafeList<int> versionIndices4;
-
-    public UnsafeList<int> offsets5;
-    public UnsafeList<int> bitsOffsets5;
-    public UnsafeList<int> versionIndices5;
-
+    public UnsafeList<JobBatchContext6> batches;
+    public EntityQueryMask mask;
     public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
-        // 1. Get the specific pChunk for this thread
-        var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (uint*)chunkVersions[loopIndex];
-        var count = chunkCount[loopIndex];
+        ref var batch = ref ((JobBatchContext6*)batches.GetUnsafePtr())[loopIndex];
 
-        var off0 = offsets0[loopIndex];
-        var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionIndices0[loopIndex];
+        var pChunk = batch.chunk;
+        var pVersions = batch.chunkVersions;
+        var pSharedBlob = batch.sharedDataBlob;
+        var count = batch.chunkCount;
 
-        var off1 = offsets1[loopIndex];
-        var enableOff1 = bitsOffsets1[loopIndex];
-        var versionIndex1 = versionIndices1[loopIndex];
+        var off0 = batch.offset0;
+        var enableOff0 = batch.enableOff0;
+        var versionIndex0 = batch.versionIndex0;
+        var off1 = batch.offset1;
+        var enableOff1 = batch.enableOff1;
+        var versionIndex1 = batch.versionIndex1;
+        var off2 = batch.offset2;
+        var enableOff2 = batch.enableOff2;
+        var versionIndex2 = batch.versionIndex2;
+        var off3 = batch.offset3;
+        var enableOff3 = batch.enableOff3;
+        var versionIndex3 = batch.versionIndex3;
+        var off4 = batch.offset4;
+        var enableOff4 = batch.enableOff4;
+        var versionIndex4 = batch.versionIndex4;
+        var off5 = batch.offset5;
+        var enableOff5 = batch.enableOff5;
+        var versionIndex5 = batch.versionIndex5;
 
-        var off2 = offsets2[loopIndex];
-        var enableOff2 = bitsOffsets2[loopIndex];
-        var versionIndex2 = versionIndices2[loopIndex];
+        var pEntity = (Entity*)(pChunk + batch.entityOffset);
 
-        var off3 = offsets3[loopIndex];
-        var enableOff3 = bitsOffsets3[loopIndex];
-        var versionIndex3 = versionIndices3[loopIndex];
+        var ptr0 = (T0*)(ComponentTypeID<T0>.IsShared ? (pSharedBlob + off0) : (pChunk + off0));
+        var ptr1 = (T1*)(ComponentTypeID<T1>.IsShared ? (pSharedBlob + off1) : (pChunk + off1));
+        var ptr2 = (T2*)(ComponentTypeID<T2>.IsShared ? (pSharedBlob + off2) : (pChunk + off2));
+        var ptr3 = (T3*)(ComponentTypeID<T3>.IsShared ? (pSharedBlob + off3) : (pChunk + off3));
+        var ptr4 = (T4*)(ComponentTypeID<T4>.IsShared ? (pSharedBlob + off4) : (pChunk + off4));
+        var ptr5 = (T5*)(ComponentTypeID<T5>.IsShared ? (pSharedBlob + off5) : (pChunk + off5));
 
-        var off4 = offsets4[loopIndex];
-        var enableOff4 = bitsOffsets4[loopIndex];
-        var versionIndex4 = versionIndices4[loopIndex];
-
-        var off5 = offsets5[loopIndex];
-        var enableOff5 = bitsOffsets5[loopIndex];
-        var versionIndex5 = versionIndices5[loopIndex];
-
-        var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
-        var ptr0 = (T0*)(pChunk + off0);
-        var ptr1 = (T1*)(pChunk + off1);
-        var ptr2 = (T2*)(pChunk + off2);
-        var ptr3 = (T3*)(pChunk + off3);
-        var ptr4 = (T4*)(pChunk + off4);
-        var ptr5 = (T5*)(pChunk + off5);
-
-        // 2. Update versions for RW components
         if (componentRW[0])
         {
             pVersions[versionIndex0] = version;
@@ -635,40 +817,70 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParall
             pVersions[versionIndex5] = version;
         }
 
-        // 3. Iterate all entities in this chunk
-        for (var i = 0; i < count; i++)
+
+        // Execute batch
+        var ulongCount = (count + 63) / 64;
+        for (var block = 0; block < ulongCount; block++)
         {
-            if (enableOff0 != -1 && !EntityQuery.CheckBit(pChunk + enableOff0, i))
+            var validMask = ulong.MaxValue;
+            var remaining = count - (block * 64);
+            if (remaining < 64) validMask = (1UL << remaining) - 1UL;
+
+            // Enforce enableable bits checking based on components required by Job Signature
+            if (enableOff0 != -1)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + enableOff0);
+                validMask &= pMask[block];
+            }
+            if (enableOff1 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff1);
+                validMask &= pMask[block];
+            }
+            if (enableOff2 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff2);
+                validMask &= pMask[block];
+            }
+            if (enableOff3 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff3);
+                validMask &= pMask[block];
+            }
+            if (enableOff4 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff4);
+                validMask &= pMask[block];
+            }
+            if (enableOff5 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff5);
+                validMask &= pMask[block];
             }
 
-            if (enableOff1 != -1 && !EntityQuery.CheckBit(pChunk + enableOff1, i))
+            // Enforce EntityQuery Mask hidden enableable constraints
+            for (var h = 0; h < batch.hiddenEnableCount; h++)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + batch.hiddenEnableOffsets[h]);
+                validMask &= pMask[block];
             }
 
-            if (enableOff2 != -1 && !EntityQuery.CheckBit(pChunk + enableOff2, i))
+            while (validMask != 0)
             {
-                continue;
-            }
+                var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
+                var i_ent = (block * 64) + bit;
 
-            if (enableOff3 != -1 && !EntityQuery.CheckBit(pChunk + enableOff3, i))
-            {
-                continue;
-            }
+                userJob.Execute(pEntity[i_ent], 
+                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
+                    ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
+                    ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
+                    ref (ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent]),
+                    ref (ComponentTypeID<T4>.IsShared ? ref ptr4[0] : ref ptr4[i_ent]),
+                    ref (ComponentTypeID<T5>.IsShared ? ref ptr5[0] : ref ptr5[i_ent])
+, in ctx);
 
-            if (enableOff4 != -1 && !EntityQuery.CheckBit(pChunk + enableOff4, i))
-            {
-                continue;
+                validMask ^= (1UL << bit);
             }
-
-            if (enableOff5 != -1 && !EntityQuery.CheckBit(pChunk + enableOff5, i))
-            {
-                continue;
-            }
-
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i], in ctx);
         }
     }
 }
@@ -685,6 +897,46 @@ public interface IJobEntity<T0, T1, T2, T3, T4, T5, T6>
     void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5, ref T6 component6, ref readonly JobExecutionContext ctx);
 }
 
+internal unsafe struct JobBatchContext7
+{
+    public byte* chunk;
+    public uint* chunkVersions;
+    public byte* sharedDataBlob;
+    public int chunkCount;
+    public int entityOffset;
+
+    public int offset0;
+    public int enableOff0;
+    public int versionIndex0;
+
+    public int offset1;
+    public int enableOff1;
+    public int versionIndex1;
+
+    public int offset2;
+    public int enableOff2;
+    public int versionIndex2;
+
+    public int offset3;
+    public int enableOff3;
+    public int versionIndex3;
+
+    public int offset4;
+    public int enableOff4;
+    public int versionIndex4;
+
+    public int offset5;
+    public int enableOff5;
+    public int versionIndex5;
+
+    public int offset6;
+    public int enableOff6;
+    public int versionIndex6;
+
+    public int hiddenEnableCount;
+    public fixed int hiddenEnableOffsets[16];
+}
+
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobParallelFor
     where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4, T5, T6>
     where T0 : unmanaged, IComponent
@@ -699,87 +951,51 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobPa
     public fixed bool componentRW[7];
 
     public TJob userJob;
-
-    public UnsafeList<IntPtr> chunks;
-    public UnsafeList<IntPtr> chunkVersions;
-    public UnsafeList<int> chunkCount;
-    public UnsafeList<int> entityOffset;
-
-    public UnsafeList<int> offsets0;
-    public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionIndices0;
-
-    public UnsafeList<int> offsets1;
-    public UnsafeList<int> bitsOffsets1;
-    public UnsafeList<int> versionIndices1;
-
-    public UnsafeList<int> offsets2;
-    public UnsafeList<int> bitsOffsets2;
-    public UnsafeList<int> versionIndices2;
-
-    public UnsafeList<int> offsets3;
-    public UnsafeList<int> bitsOffsets3;
-    public UnsafeList<int> versionIndices3;
-
-    public UnsafeList<int> offsets4;
-    public UnsafeList<int> bitsOffsets4;
-    public UnsafeList<int> versionIndices4;
-
-    public UnsafeList<int> offsets5;
-    public UnsafeList<int> bitsOffsets5;
-    public UnsafeList<int> versionIndices5;
-
-    public UnsafeList<int> offsets6;
-    public UnsafeList<int> bitsOffsets6;
-    public UnsafeList<int> versionIndices6;
-
+    public UnsafeList<JobBatchContext7> batches;
+    public EntityQueryMask mask;
     public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
-        // 1. Get the specific pChunk for this thread
-        var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (uint*)chunkVersions[loopIndex];
-        var count = chunkCount[loopIndex];
+        ref var batch = ref ((JobBatchContext7*)batches.GetUnsafePtr())[loopIndex];
 
-        var off0 = offsets0[loopIndex];
-        var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionIndices0[loopIndex];
+        var pChunk = batch.chunk;
+        var pVersions = batch.chunkVersions;
+        var pSharedBlob = batch.sharedDataBlob;
+        var count = batch.chunkCount;
 
-        var off1 = offsets1[loopIndex];
-        var enableOff1 = bitsOffsets1[loopIndex];
-        var versionIndex1 = versionIndices1[loopIndex];
+        var off0 = batch.offset0;
+        var enableOff0 = batch.enableOff0;
+        var versionIndex0 = batch.versionIndex0;
+        var off1 = batch.offset1;
+        var enableOff1 = batch.enableOff1;
+        var versionIndex1 = batch.versionIndex1;
+        var off2 = batch.offset2;
+        var enableOff2 = batch.enableOff2;
+        var versionIndex2 = batch.versionIndex2;
+        var off3 = batch.offset3;
+        var enableOff3 = batch.enableOff3;
+        var versionIndex3 = batch.versionIndex3;
+        var off4 = batch.offset4;
+        var enableOff4 = batch.enableOff4;
+        var versionIndex4 = batch.versionIndex4;
+        var off5 = batch.offset5;
+        var enableOff5 = batch.enableOff5;
+        var versionIndex5 = batch.versionIndex5;
+        var off6 = batch.offset6;
+        var enableOff6 = batch.enableOff6;
+        var versionIndex6 = batch.versionIndex6;
 
-        var off2 = offsets2[loopIndex];
-        var enableOff2 = bitsOffsets2[loopIndex];
-        var versionIndex2 = versionIndices2[loopIndex];
+        var pEntity = (Entity*)(pChunk + batch.entityOffset);
 
-        var off3 = offsets3[loopIndex];
-        var enableOff3 = bitsOffsets3[loopIndex];
-        var versionIndex3 = versionIndices3[loopIndex];
+        var ptr0 = (T0*)(ComponentTypeID<T0>.IsShared ? (pSharedBlob + off0) : (pChunk + off0));
+        var ptr1 = (T1*)(ComponentTypeID<T1>.IsShared ? (pSharedBlob + off1) : (pChunk + off1));
+        var ptr2 = (T2*)(ComponentTypeID<T2>.IsShared ? (pSharedBlob + off2) : (pChunk + off2));
+        var ptr3 = (T3*)(ComponentTypeID<T3>.IsShared ? (pSharedBlob + off3) : (pChunk + off3));
+        var ptr4 = (T4*)(ComponentTypeID<T4>.IsShared ? (pSharedBlob + off4) : (pChunk + off4));
+        var ptr5 = (T5*)(ComponentTypeID<T5>.IsShared ? (pSharedBlob + off5) : (pChunk + off5));
+        var ptr6 = (T6*)(ComponentTypeID<T6>.IsShared ? (pSharedBlob + off6) : (pChunk + off6));
 
-        var off4 = offsets4[loopIndex];
-        var enableOff4 = bitsOffsets4[loopIndex];
-        var versionIndex4 = versionIndices4[loopIndex];
-
-        var off5 = offsets5[loopIndex];
-        var enableOff5 = bitsOffsets5[loopIndex];
-        var versionIndex5 = versionIndices5[loopIndex];
-
-        var off6 = offsets6[loopIndex];
-        var enableOff6 = bitsOffsets6[loopIndex];
-        var versionIndex6 = versionIndices6[loopIndex];
-
-        var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
-        var ptr0 = (T0*)(pChunk + off0);
-        var ptr1 = (T1*)(pChunk + off1);
-        var ptr2 = (T2*)(pChunk + off2);
-        var ptr3 = (T3*)(pChunk + off3);
-        var ptr4 = (T4*)(pChunk + off4);
-        var ptr5 = (T5*)(pChunk + off5);
-        var ptr6 = (T6*)(pChunk + off6);
-
-        // 2. Update versions for RW components
         if (componentRW[0])
         {
             pVersions[versionIndex0] = version;
@@ -815,45 +1031,76 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobPa
             pVersions[versionIndex6] = version;
         }
 
-        // 3. Iterate all entities in this chunk
-        for (var i = 0; i < count; i++)
+
+        // Execute batch
+        var ulongCount = (count + 63) / 64;
+        for (var block = 0; block < ulongCount; block++)
         {
-            if (enableOff0 != -1 && !EntityQuery.CheckBit(pChunk + enableOff0, i))
+            var validMask = ulong.MaxValue;
+            var remaining = count - (block * 64);
+            if (remaining < 64) validMask = (1UL << remaining) - 1UL;
+
+            // Enforce enableable bits checking based on components required by Job Signature
+            if (enableOff0 != -1)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + enableOff0);
+                validMask &= pMask[block];
+            }
+            if (enableOff1 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff1);
+                validMask &= pMask[block];
+            }
+            if (enableOff2 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff2);
+                validMask &= pMask[block];
+            }
+            if (enableOff3 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff3);
+                validMask &= pMask[block];
+            }
+            if (enableOff4 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff4);
+                validMask &= pMask[block];
+            }
+            if (enableOff5 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff5);
+                validMask &= pMask[block];
+            }
+            if (enableOff6 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff6);
+                validMask &= pMask[block];
             }
 
-            if (enableOff1 != -1 && !EntityQuery.CheckBit(pChunk + enableOff1, i))
+            // Enforce EntityQuery Mask hidden enableable constraints
+            for (var h = 0; h < batch.hiddenEnableCount; h++)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + batch.hiddenEnableOffsets[h]);
+                validMask &= pMask[block];
             }
 
-            if (enableOff2 != -1 && !EntityQuery.CheckBit(pChunk + enableOff2, i))
+            while (validMask != 0)
             {
-                continue;
-            }
+                var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
+                var i_ent = (block * 64) + bit;
 
-            if (enableOff3 != -1 && !EntityQuery.CheckBit(pChunk + enableOff3, i))
-            {
-                continue;
-            }
+                userJob.Execute(pEntity[i_ent], 
+                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
+                    ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
+                    ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
+                    ref (ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent]),
+                    ref (ComponentTypeID<T4>.IsShared ? ref ptr4[0] : ref ptr4[i_ent]),
+                    ref (ComponentTypeID<T5>.IsShared ? ref ptr5[0] : ref ptr5[i_ent]),
+                    ref (ComponentTypeID<T6>.IsShared ? ref ptr6[0] : ref ptr6[i_ent])
+, in ctx);
 
-            if (enableOff4 != -1 && !EntityQuery.CheckBit(pChunk + enableOff4, i))
-            {
-                continue;
+                validMask ^= (1UL << bit);
             }
-
-            if (enableOff5 != -1 && !EntityQuery.CheckBit(pChunk + enableOff5, i))
-            {
-                continue;
-            }
-
-            if (enableOff6 != -1 && !EntityQuery.CheckBit(pChunk + enableOff6, i))
-            {
-                continue;
-            }
-
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i], ref ptr6[i], in ctx);
         }
     }
 }
@@ -871,6 +1118,50 @@ public interface IJobEntity<T0, T1, T2, T3, T4, T5, T6, T7>
     void Execute(Entity entity, ref T0 component0, ref T1 component1, ref T2 component2, ref T3 component3, ref T4 component4, ref T5 component5, ref T6 component6, ref T7 component7, ref readonly JobExecutionContext ctx);
 }
 
+internal unsafe struct JobBatchContext8
+{
+    public byte* chunk;
+    public uint* chunkVersions;
+    public byte* sharedDataBlob;
+    public int chunkCount;
+    public int entityOffset;
+
+    public int offset0;
+    public int enableOff0;
+    public int versionIndex0;
+
+    public int offset1;
+    public int enableOff1;
+    public int versionIndex1;
+
+    public int offset2;
+    public int enableOff2;
+    public int versionIndex2;
+
+    public int offset3;
+    public int enableOff3;
+    public int versionIndex3;
+
+    public int offset4;
+    public int enableOff4;
+    public int versionIndex4;
+
+    public int offset5;
+    public int enableOff5;
+    public int versionIndex5;
+
+    public int offset6;
+    public int enableOff6;
+    public int versionIndex6;
+
+    public int offset7;
+    public int enableOff7;
+    public int versionIndex7;
+
+    public int hiddenEnableCount;
+    public fixed int hiddenEnableOffsets[16];
+}
+
 internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJobParallelFor
     where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4, T5, T6, T7>
     where T0 : unmanaged, IComponent
@@ -886,96 +1177,55 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJ
     public fixed bool componentRW[8];
 
     public TJob userJob;
-
-    public UnsafeList<IntPtr> chunks;
-    public UnsafeList<IntPtr> chunkVersions;
-    public UnsafeList<int> chunkCount;
-    public UnsafeList<int> entityOffset;
-
-    public UnsafeList<int> offsets0;
-    public UnsafeList<int> bitsOffsets0;
-    public UnsafeList<int> versionIndices0;
-
-    public UnsafeList<int> offsets1;
-    public UnsafeList<int> bitsOffsets1;
-    public UnsafeList<int> versionIndices1;
-
-    public UnsafeList<int> offsets2;
-    public UnsafeList<int> bitsOffsets2;
-    public UnsafeList<int> versionIndices2;
-
-    public UnsafeList<int> offsets3;
-    public UnsafeList<int> bitsOffsets3;
-    public UnsafeList<int> versionIndices3;
-
-    public UnsafeList<int> offsets4;
-    public UnsafeList<int> bitsOffsets4;
-    public UnsafeList<int> versionIndices4;
-
-    public UnsafeList<int> offsets5;
-    public UnsafeList<int> bitsOffsets5;
-    public UnsafeList<int> versionIndices5;
-
-    public UnsafeList<int> offsets6;
-    public UnsafeList<int> bitsOffsets6;
-    public UnsafeList<int> versionIndices6;
-
-    public UnsafeList<int> offsets7;
-    public UnsafeList<int> bitsOffsets7;
-    public UnsafeList<int> versionIndices7;
-
+    public UnsafeList<JobBatchContext8> batches;
+    public EntityQueryMask mask;
     public uint version;
 
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
-        // 1. Get the specific pChunk for this thread
-        var pChunk = (byte*)chunks[loopIndex];
-        var pVersions = (uint*)chunkVersions[loopIndex];
-        var count = chunkCount[loopIndex];
+        ref var batch = ref ((JobBatchContext8*)batches.GetUnsafePtr())[loopIndex];
 
-        var off0 = offsets0[loopIndex];
-        var enableOff0 = bitsOffsets0[loopIndex];
-        var versionIndex0 = versionIndices0[loopIndex];
+        var pChunk = batch.chunk;
+        var pVersions = batch.chunkVersions;
+        var pSharedBlob = batch.sharedDataBlob;
+        var count = batch.chunkCount;
 
-        var off1 = offsets1[loopIndex];
-        var enableOff1 = bitsOffsets1[loopIndex];
-        var versionIndex1 = versionIndices1[loopIndex];
+        var off0 = batch.offset0;
+        var enableOff0 = batch.enableOff0;
+        var versionIndex0 = batch.versionIndex0;
+        var off1 = batch.offset1;
+        var enableOff1 = batch.enableOff1;
+        var versionIndex1 = batch.versionIndex1;
+        var off2 = batch.offset2;
+        var enableOff2 = batch.enableOff2;
+        var versionIndex2 = batch.versionIndex2;
+        var off3 = batch.offset3;
+        var enableOff3 = batch.enableOff3;
+        var versionIndex3 = batch.versionIndex3;
+        var off4 = batch.offset4;
+        var enableOff4 = batch.enableOff4;
+        var versionIndex4 = batch.versionIndex4;
+        var off5 = batch.offset5;
+        var enableOff5 = batch.enableOff5;
+        var versionIndex5 = batch.versionIndex5;
+        var off6 = batch.offset6;
+        var enableOff6 = batch.enableOff6;
+        var versionIndex6 = batch.versionIndex6;
+        var off7 = batch.offset7;
+        var enableOff7 = batch.enableOff7;
+        var versionIndex7 = batch.versionIndex7;
 
-        var off2 = offsets2[loopIndex];
-        var enableOff2 = bitsOffsets2[loopIndex];
-        var versionIndex2 = versionIndices2[loopIndex];
+        var pEntity = (Entity*)(pChunk + batch.entityOffset);
 
-        var off3 = offsets3[loopIndex];
-        var enableOff3 = bitsOffsets3[loopIndex];
-        var versionIndex3 = versionIndices3[loopIndex];
+        var ptr0 = (T0*)(ComponentTypeID<T0>.IsShared ? (pSharedBlob + off0) : (pChunk + off0));
+        var ptr1 = (T1*)(ComponentTypeID<T1>.IsShared ? (pSharedBlob + off1) : (pChunk + off1));
+        var ptr2 = (T2*)(ComponentTypeID<T2>.IsShared ? (pSharedBlob + off2) : (pChunk + off2));
+        var ptr3 = (T3*)(ComponentTypeID<T3>.IsShared ? (pSharedBlob + off3) : (pChunk + off3));
+        var ptr4 = (T4*)(ComponentTypeID<T4>.IsShared ? (pSharedBlob + off4) : (pChunk + off4));
+        var ptr5 = (T5*)(ComponentTypeID<T5>.IsShared ? (pSharedBlob + off5) : (pChunk + off5));
+        var ptr6 = (T6*)(ComponentTypeID<T6>.IsShared ? (pSharedBlob + off6) : (pChunk + off6));
+        var ptr7 = (T7*)(ComponentTypeID<T7>.IsShared ? (pSharedBlob + off7) : (pChunk + off7));
 
-        var off4 = offsets4[loopIndex];
-        var enableOff4 = bitsOffsets4[loopIndex];
-        var versionIndex4 = versionIndices4[loopIndex];
-
-        var off5 = offsets5[loopIndex];
-        var enableOff5 = bitsOffsets5[loopIndex];
-        var versionIndex5 = versionIndices5[loopIndex];
-
-        var off6 = offsets6[loopIndex];
-        var enableOff6 = bitsOffsets6[loopIndex];
-        var versionIndex6 = versionIndices6[loopIndex];
-
-        var off7 = offsets7[loopIndex];
-        var enableOff7 = bitsOffsets7[loopIndex];
-        var versionIndex7 = versionIndices7[loopIndex];
-
-        var pEntity = (Entity*)(pChunk + entityOffset[loopIndex]);
-        var ptr0 = (T0*)(pChunk + off0);
-        var ptr1 = (T1*)(pChunk + off1);
-        var ptr2 = (T2*)(pChunk + off2);
-        var ptr3 = (T3*)(pChunk + off3);
-        var ptr4 = (T4*)(pChunk + off4);
-        var ptr5 = (T5*)(pChunk + off5);
-        var ptr6 = (T6*)(pChunk + off6);
-        var ptr7 = (T7*)(pChunk + off7);
-
-        // 2. Update versions for RW components
         if (componentRW[0])
         {
             pVersions[versionIndex0] = version;
@@ -1016,50 +1266,82 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJ
             pVersions[versionIndex7] = version;
         }
 
-        // 3. Iterate all entities in this chunk
-        for (var i = 0; i < count; i++)
+
+        // Execute batch
+        var ulongCount = (count + 63) / 64;
+        for (var block = 0; block < ulongCount; block++)
         {
-            if (enableOff0 != -1 && !EntityQuery.CheckBit(pChunk + enableOff0, i))
+            var validMask = ulong.MaxValue;
+            var remaining = count - (block * 64);
+            if (remaining < 64) validMask = (1UL << remaining) - 1UL;
+
+            // Enforce enableable bits checking based on components required by Job Signature
+            if (enableOff0 != -1)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + enableOff0);
+                validMask &= pMask[block];
+            }
+            if (enableOff1 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff1);
+                validMask &= pMask[block];
+            }
+            if (enableOff2 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff2);
+                validMask &= pMask[block];
+            }
+            if (enableOff3 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff3);
+                validMask &= pMask[block];
+            }
+            if (enableOff4 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff4);
+                validMask &= pMask[block];
+            }
+            if (enableOff5 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff5);
+                validMask &= pMask[block];
+            }
+            if (enableOff6 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff6);
+                validMask &= pMask[block];
+            }
+            if (enableOff7 != -1)
+            {
+                var pMask = (ulong*)(pChunk + enableOff7);
+                validMask &= pMask[block];
             }
 
-            if (enableOff1 != -1 && !EntityQuery.CheckBit(pChunk + enableOff1, i))
+            // Enforce EntityQuery Mask hidden enableable constraints
+            for (var h = 0; h < batch.hiddenEnableCount; h++)
             {
-                continue;
+                var pMask = (ulong*)(pChunk + batch.hiddenEnableOffsets[h]);
+                validMask &= pMask[block];
             }
 
-            if (enableOff2 != -1 && !EntityQuery.CheckBit(pChunk + enableOff2, i))
+            while (validMask != 0)
             {
-                continue;
-            }
+                var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
+                var i_ent = (block * 64) + bit;
 
-            if (enableOff3 != -1 && !EntityQuery.CheckBit(pChunk + enableOff3, i))
-            {
-                continue;
-            }
+                userJob.Execute(pEntity[i_ent], 
+                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
+                    ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
+                    ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
+                    ref (ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent]),
+                    ref (ComponentTypeID<T4>.IsShared ? ref ptr4[0] : ref ptr4[i_ent]),
+                    ref (ComponentTypeID<T5>.IsShared ? ref ptr5[0] : ref ptr5[i_ent]),
+                    ref (ComponentTypeID<T6>.IsShared ? ref ptr6[0] : ref ptr6[i_ent]),
+                    ref (ComponentTypeID<T7>.IsShared ? ref ptr7[0] : ref ptr7[i_ent])
+, in ctx);
 
-            if (enableOff4 != -1 && !EntityQuery.CheckBit(pChunk + enableOff4, i))
-            {
-                continue;
+                validMask ^= (1UL << bit);
             }
-
-            if (enableOff5 != -1 && !EntityQuery.CheckBit(pChunk + enableOff5, i))
-            {
-                continue;
-            }
-
-            if (enableOff6 != -1 && !EntityQuery.CheckBit(pChunk + enableOff6, i))
-            {
-                continue;
-            }
-
-            if (enableOff7 != -1 && !EntityQuery.CheckBit(pChunk + enableOff7, i))
-            {
-                continue;
-            }
-
-            userJob.Execute(pEntity[i], ref ptr0[i], ref ptr1[i], ref ptr2[i], ref ptr3[i], ref ptr4[i], ref ptr5[i], ref ptr6[i], ref ptr7[i], in ctx);
         }
     }
 }
@@ -1068,26 +1350,11 @@ public unsafe partial struct EntityQuery
 {
     private struct DisposeJobEntity1 : IJob
     {
-        public UnsafeList<IntPtr> chunks;
-        public UnsafeList<IntPtr> chunkVersions;
-        public UnsafeList<int> chunkEntityCounts;
-        public UnsafeList<int> entityOffsets;
-
-        public UnsafeList<int> offsets0;
-        public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionIndices0;
+        public UnsafeList<JobBatchContext1> batches;
 
         public void Execute(ref readonly JobExecutionContext ctx)
         {
-            chunks.Dispose();
-            chunkVersions.Dispose();
-            chunkEntityCounts.Dispose();
-            entityOffsets.Dispose();
-
-            offsets0.Dispose();
-            bitsOffsets0.Dispose();
-            versionIndices0.Dispose();
-
+            batches.Dispose();
         }
     }
 
@@ -1106,17 +1373,9 @@ public unsafe partial struct EntityQuery
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
         }
 
-        // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var batches = new UnsafeList<JobBatchContext1>(128, TempJobAllocator.AllocationHandle);
+        var hiddenOffsets = stackalloc int[16];
 
-        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
             ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
@@ -1126,39 +1385,81 @@ public unsafe partial struct EntityQuery
                 continue;
             }
 
-            // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
-
-            // Add all chunks from this archetype
-            for (var i = 0; i < arch.ChunkCount; i++)
+            int off0;
+            int enableOff0;
+            int versionIdx0;
+            if (ComponentTypeID<T0>.IsShared)
             {
-                ref var chunkRef = ref arch.GetChunkReference(i);
+                var layout = arch.GetSharedLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = -1;
+                versionIdx0 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = layout.enableBitsOffset;
+                versionIdx0 = layout.versionIndex;
+            }
 
-                chunks.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkVersions.Add((IntPtr)chunkRef.GetVersionUnsafePtr());
-                chunkEntityCounts.Add(chunkRef._count);
-                entityOffsets.Add(arch.EntityIDsOffset);
+            var hiddenCount = 0;
+            var itE = _mask.requireEnabled.GetIterator();
+            while (itE.Next(out var id) && hiddenCount < 16)
+            {
+                var found = false;
+                if (id == ComponentTypeID<T0>.Value) found = true;
+                if (!found)
+                {
+                    var layout = arch.GetLayout(id);
+                    if (layout.Error == Error.None && layout.Value.enableBitsOffset != -1)
+                    {
+                        hiddenOffsets[hiddenCount++] = layout.Value.enableBitsOffset;
+                    }
+                }
+            }
 
-                offsets0.Add(layout0.offset);
-                bitsOffsets0.Add(layout0.enableBitsOffset);
-                versionIndices0.Add(layout0.versionIndex);
+            for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
+            {
+                ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
+                
+                byte* pSharedBlob = null;
+                if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
+                {
+                    var sharedSpan = arch._chunkGroups[chunkRef._groupIndex].sharedData;
+                    if (sharedSpan.IsCreated)
+                    {
+                        pSharedBlob = (byte*)sharedSpan.GetUnsafePtr();
+                    }
+                }
 
+                var ctx = new JobBatchContext1
+                {
+                    chunk = chunkRef.GetUnsafePtr(),
+                    chunkVersions = chunkRef.GetVersionUnsafePtr(),
+                    chunkCount = chunkRef._count,
+                    entityOffset = arch.EntityIDsOffset,
+                    sharedDataBlob = pSharedBlob,
+
+                    offset0 = off0,
+                    enableOff0 = enableOff0,
+                    versionIndex0 = versionIdx0,
+                    hiddenEnableCount = hiddenCount,
+                };
+
+                for (var h = 0; h < hiddenCount; h++)
+                {
+                    ctx.hiddenEnableOffsets[h] = hiddenOffsets[h];
+                }
+                batches.Add(ctx);
             }
         }
 
-        // 2. Create the Runner
         var runner = new JobEntityBatch<TJob, T0>
         {
             userJob = jobData,
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkCount = chunkEntityCounts,
-            entityOffset = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
+            batches = batches,
+            mask = _mask,
             version = world.Version,
         };
 
@@ -1167,30 +1468,21 @@ public unsafe partial struct EntityQuery
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var idx = 0; idx < 1; idx++)
             {
-                if (id == runner.componentIDs[i])
+                if (id == runner.componentIDs[idx])
                 {
-                    runner.componentRW[i] = true;
+                    runner.componentRW[idx] = true;
                     break;
                 }
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity1
         {
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkEntityCounts = chunkEntityCounts,
-            entityOffsets = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
+            batches = batches,
         };
 
         world.JobScheduler.Schedule(ref disposeJob, jobHandle);
@@ -1200,34 +1492,11 @@ public unsafe partial struct EntityQuery
 
     private struct DisposeJobEntity2 : IJob
     {
-        public UnsafeList<IntPtr> chunks;
-        public UnsafeList<IntPtr> chunkVersions;
-        public UnsafeList<int> chunkEntityCounts;
-        public UnsafeList<int> entityOffsets;
-
-        public UnsafeList<int> offsets0;
-        public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionIndices0;
-
-        public UnsafeList<int> offsets1;
-        public UnsafeList<int> bitsOffsets1;
-        public UnsafeList<int> versionIndices1;
+        public UnsafeList<JobBatchContext2> batches;
 
         public void Execute(ref readonly JobExecutionContext ctx)
         {
-            chunks.Dispose();
-            chunkVersions.Dispose();
-            chunkEntityCounts.Dispose();
-            entityOffsets.Dispose();
-
-            offsets0.Dispose();
-            bitsOffsets0.Dispose();
-            versionIndices0.Dispose();
-
-            offsets1.Dispose();
-            bitsOffsets1.Dispose();
-            versionIndices1.Dispose();
-
+            batches.Dispose();
         }
     }
 
@@ -1247,21 +1516,9 @@ public unsafe partial struct EntityQuery
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
         }
 
-        // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var batches = new UnsafeList<JobBatchContext2>(128, TempJobAllocator.AllocationHandle);
+        var hiddenOffsets = stackalloc int[16];
 
-        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
             ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
@@ -1271,84 +1528,126 @@ public unsafe partial struct EntityQuery
                 continue;
             }
 
-            // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
-
-            // Add all chunks from this archetype
-            for (var i = 0; i < arch.ChunkCount; i++)
+            int off0;
+            int enableOff0;
+            int versionIdx0;
+            if (ComponentTypeID<T0>.IsShared)
             {
-                ref var chunkRef = ref arch.GetChunkReference(i);
+                var layout = arch.GetSharedLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = -1;
+                versionIdx0 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = layout.enableBitsOffset;
+                versionIdx0 = layout.versionIndex;
+            }
+            int off1;
+            int enableOff1;
+            int versionIdx1;
+            if (ComponentTypeID<T1>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+                off1 = layout.offset;
+                enableOff1 = -1;
+                versionIdx1 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+                off1 = layout.offset;
+                enableOff1 = layout.enableBitsOffset;
+                versionIdx1 = layout.versionIndex;
+            }
 
-                chunks.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkVersions.Add((IntPtr)chunkRef.GetVersionUnsafePtr());
-                chunkEntityCounts.Add(chunkRef._count);
-                entityOffsets.Add(arch.EntityIDsOffset);
+            var hiddenCount = 0;
+            var itE = _mask.requireEnabled.GetIterator();
+            while (itE.Next(out var id) && hiddenCount < 16)
+            {
+                var found = false;
+                if (id == ComponentTypeID<T0>.Value) found = true;
+                if (id == ComponentTypeID<T1>.Value) found = true;
+                if (!found)
+                {
+                    var layout = arch.GetLayout(id);
+                    if (layout.Error == Error.None && layout.Value.enableBitsOffset != -1)
+                    {
+                        hiddenOffsets[hiddenCount++] = layout.Value.enableBitsOffset;
+                    }
+                }
+            }
 
-                offsets0.Add(layout0.offset);
-                bitsOffsets0.Add(layout0.enableBitsOffset);
-                versionIndices0.Add(layout0.versionIndex);
+            for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
+            {
+                ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
+                
+                byte* pSharedBlob = null;
+                if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
+                {
+                    var sharedSpan = arch._chunkGroups[chunkRef._groupIndex].sharedData;
+                    if (sharedSpan.IsCreated)
+                    {
+                        pSharedBlob = (byte*)sharedSpan.GetUnsafePtr();
+                    }
+                }
 
-                offsets1.Add(layout1.offset);
-                bitsOffsets1.Add(layout1.enableBitsOffset);
-                versionIndices1.Add(layout1.versionIndex);
+                var ctx = new JobBatchContext2
+                {
+                    chunk = chunkRef.GetUnsafePtr(),
+                    chunkVersions = chunkRef.GetVersionUnsafePtr(),
+                    chunkCount = chunkRef._count,
+                    entityOffset = arch.EntityIDsOffset,
+                    sharedDataBlob = pSharedBlob,
 
+                    offset0 = off0,
+                    enableOff0 = enableOff0,
+                    versionIndex0 = versionIdx0,
+                    offset1 = off1,
+                    enableOff1 = enableOff1,
+                    versionIndex1 = versionIdx1,
+                    hiddenEnableCount = hiddenCount,
+                };
+
+                for (var h = 0; h < hiddenCount; h++)
+                {
+                    ctx.hiddenEnableOffsets[h] = hiddenOffsets[h];
+                }
+                batches.Add(ctx);
             }
         }
 
-        // 2. Create the Runner
         var runner = new JobEntityBatch<TJob, T0, T1>
         {
             userJob = jobData,
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkCount = chunkEntityCounts,
-            entityOffset = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
-            offsets1 = offsets1,
-            bitsOffsets1 = bitsOffsets1,
-            versionIndices1 = versionIndices1,
-
+            batches = batches,
+            mask = _mask,
             version = world.Version,
         };
 
         runner.componentIDs[0] = ComponentTypeID<T0>.Value;
+        runner.componentIDs[1] = ComponentTypeID<T1>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var idx = 0; idx < 2; idx++)
             {
-                if (id == runner.componentIDs[i])
+                if (id == runner.componentIDs[idx])
                 {
-                    runner.componentRW[i] = true;
+                    runner.componentRW[idx] = true;
                     break;
                 }
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity2
         {
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkEntityCounts = chunkEntityCounts,
-            entityOffsets = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
-            offsets1 = offsets1,
-            bitsOffsets1 = bitsOffsets1,
-            versionIndices1 = versionIndices1,
-
+            batches = batches,
         };
 
         world.JobScheduler.Schedule(ref disposeJob, jobHandle);
@@ -1358,42 +1657,11 @@ public unsafe partial struct EntityQuery
 
     private struct DisposeJobEntity3 : IJob
     {
-        public UnsafeList<IntPtr> chunks;
-        public UnsafeList<IntPtr> chunkVersions;
-        public UnsafeList<int> chunkEntityCounts;
-        public UnsafeList<int> entityOffsets;
-
-        public UnsafeList<int> offsets0;
-        public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionIndices0;
-
-        public UnsafeList<int> offsets1;
-        public UnsafeList<int> bitsOffsets1;
-        public UnsafeList<int> versionIndices1;
-
-        public UnsafeList<int> offsets2;
-        public UnsafeList<int> bitsOffsets2;
-        public UnsafeList<int> versionIndices2;
+        public UnsafeList<JobBatchContext3> batches;
 
         public void Execute(ref readonly JobExecutionContext ctx)
         {
-            chunks.Dispose();
-            chunkVersions.Dispose();
-            chunkEntityCounts.Dispose();
-            entityOffsets.Dispose();
-
-            offsets0.Dispose();
-            bitsOffsets0.Dispose();
-            versionIndices0.Dispose();
-
-            offsets1.Dispose();
-            bitsOffsets1.Dispose();
-            versionIndices1.Dispose();
-
-            offsets2.Dispose();
-            bitsOffsets2.Dispose();
-            versionIndices2.Dispose();
-
+            batches.Dispose();
         }
     }
 
@@ -1414,25 +1682,9 @@ public unsafe partial struct EntityQuery
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
         }
 
-        // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var batches = new UnsafeList<JobBatchContext3>(128, TempJobAllocator.AllocationHandle);
+        var hiddenOffsets = stackalloc int[16];
 
-        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
             ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
@@ -1442,97 +1694,148 @@ public unsafe partial struct EntityQuery
                 continue;
             }
 
-            // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
-
-            // Add all chunks from this archetype
-            for (var i = 0; i < arch.ChunkCount; i++)
+            int off0;
+            int enableOff0;
+            int versionIdx0;
+            if (ComponentTypeID<T0>.IsShared)
             {
-                ref var chunkRef = ref arch.GetChunkReference(i);
+                var layout = arch.GetSharedLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = -1;
+                versionIdx0 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = layout.enableBitsOffset;
+                versionIdx0 = layout.versionIndex;
+            }
+            int off1;
+            int enableOff1;
+            int versionIdx1;
+            if (ComponentTypeID<T1>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+                off1 = layout.offset;
+                enableOff1 = -1;
+                versionIdx1 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+                off1 = layout.offset;
+                enableOff1 = layout.enableBitsOffset;
+                versionIdx1 = layout.versionIndex;
+            }
+            int off2;
+            int enableOff2;
+            int versionIdx2;
+            if (ComponentTypeID<T2>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+                off2 = layout.offset;
+                enableOff2 = -1;
+                versionIdx2 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+                off2 = layout.offset;
+                enableOff2 = layout.enableBitsOffset;
+                versionIdx2 = layout.versionIndex;
+            }
 
-                chunks.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkVersions.Add((IntPtr)chunkRef.GetVersionUnsafePtr());
-                chunkEntityCounts.Add(chunkRef._count);
-                entityOffsets.Add(arch.EntityIDsOffset);
+            var hiddenCount = 0;
+            var itE = _mask.requireEnabled.GetIterator();
+            while (itE.Next(out var id) && hiddenCount < 16)
+            {
+                var found = false;
+                if (id == ComponentTypeID<T0>.Value) found = true;
+                if (id == ComponentTypeID<T1>.Value) found = true;
+                if (id == ComponentTypeID<T2>.Value) found = true;
+                if (!found)
+                {
+                    var layout = arch.GetLayout(id);
+                    if (layout.Error == Error.None && layout.Value.enableBitsOffset != -1)
+                    {
+                        hiddenOffsets[hiddenCount++] = layout.Value.enableBitsOffset;
+                    }
+                }
+            }
 
-                offsets0.Add(layout0.offset);
-                bitsOffsets0.Add(layout0.enableBitsOffset);
-                versionIndices0.Add(layout0.versionIndex);
+            for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
+            {
+                ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
+                
+                byte* pSharedBlob = null;
+                if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
+                {
+                    var sharedSpan = arch._chunkGroups[chunkRef._groupIndex].sharedData;
+                    if (sharedSpan.IsCreated)
+                    {
+                        pSharedBlob = (byte*)sharedSpan.GetUnsafePtr();
+                    }
+                }
 
-                offsets1.Add(layout1.offset);
-                bitsOffsets1.Add(layout1.enableBitsOffset);
-                versionIndices1.Add(layout1.versionIndex);
+                var ctx = new JobBatchContext3
+                {
+                    chunk = chunkRef.GetUnsafePtr(),
+                    chunkVersions = chunkRef.GetVersionUnsafePtr(),
+                    chunkCount = chunkRef._count,
+                    entityOffset = arch.EntityIDsOffset,
+                    sharedDataBlob = pSharedBlob,
 
-                offsets2.Add(layout2.offset);
-                bitsOffsets2.Add(layout2.enableBitsOffset);
-                versionIndices2.Add(layout2.versionIndex);
+                    offset0 = off0,
+                    enableOff0 = enableOff0,
+                    versionIndex0 = versionIdx0,
+                    offset1 = off1,
+                    enableOff1 = enableOff1,
+                    versionIndex1 = versionIdx1,
+                    offset2 = off2,
+                    enableOff2 = enableOff2,
+                    versionIndex2 = versionIdx2,
+                    hiddenEnableCount = hiddenCount,
+                };
 
+                for (var h = 0; h < hiddenCount; h++)
+                {
+                    ctx.hiddenEnableOffsets[h] = hiddenOffsets[h];
+                }
+                batches.Add(ctx);
             }
         }
 
-        // 2. Create the Runner
         var runner = new JobEntityBatch<TJob, T0, T1, T2>
         {
             userJob = jobData,
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkCount = chunkEntityCounts,
-            entityOffset = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
-            offsets1 = offsets1,
-            bitsOffsets1 = bitsOffsets1,
-            versionIndices1 = versionIndices1,
-
-            offsets2 = offsets2,
-            bitsOffsets2 = bitsOffsets2,
-            versionIndices2 = versionIndices2,
-
+            batches = batches,
+            mask = _mask,
             version = world.Version,
         };
 
         runner.componentIDs[0] = ComponentTypeID<T0>.Value;
+        runner.componentIDs[1] = ComponentTypeID<T1>.Value;
+        runner.componentIDs[2] = ComponentTypeID<T2>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var idx = 0; idx < 3; idx++)
             {
-                if (id == runner.componentIDs[i])
+                if (id == runner.componentIDs[idx])
                 {
-                    runner.componentRW[i] = true;
+                    runner.componentRW[idx] = true;
                     break;
                 }
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity3
         {
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkEntityCounts = chunkEntityCounts,
-            entityOffsets = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
-            offsets1 = offsets1,
-            bitsOffsets1 = bitsOffsets1,
-            versionIndices1 = versionIndices1,
-
-            offsets2 = offsets2,
-            bitsOffsets2 = bitsOffsets2,
-            versionIndices2 = versionIndices2,
-
+            batches = batches,
         };
 
         world.JobScheduler.Schedule(ref disposeJob, jobHandle);
@@ -1542,50 +1845,11 @@ public unsafe partial struct EntityQuery
 
     private struct DisposeJobEntity4 : IJob
     {
-        public UnsafeList<IntPtr> chunks;
-        public UnsafeList<IntPtr> chunkVersions;
-        public UnsafeList<int> chunkEntityCounts;
-        public UnsafeList<int> entityOffsets;
-
-        public UnsafeList<int> offsets0;
-        public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionIndices0;
-
-        public UnsafeList<int> offsets1;
-        public UnsafeList<int> bitsOffsets1;
-        public UnsafeList<int> versionIndices1;
-
-        public UnsafeList<int> offsets2;
-        public UnsafeList<int> bitsOffsets2;
-        public UnsafeList<int> versionIndices2;
-
-        public UnsafeList<int> offsets3;
-        public UnsafeList<int> bitsOffsets3;
-        public UnsafeList<int> versionIndices3;
+        public UnsafeList<JobBatchContext4> batches;
 
         public void Execute(ref readonly JobExecutionContext ctx)
         {
-            chunks.Dispose();
-            chunkVersions.Dispose();
-            chunkEntityCounts.Dispose();
-            entityOffsets.Dispose();
-
-            offsets0.Dispose();
-            bitsOffsets0.Dispose();
-            versionIndices0.Dispose();
-
-            offsets1.Dispose();
-            bitsOffsets1.Dispose();
-            versionIndices1.Dispose();
-
-            offsets2.Dispose();
-            bitsOffsets2.Dispose();
-            versionIndices2.Dispose();
-
-            offsets3.Dispose();
-            bitsOffsets3.Dispose();
-            versionIndices3.Dispose();
-
+            batches.Dispose();
         }
     }
 
@@ -1607,29 +1871,9 @@ public unsafe partial struct EntityQuery
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
         }
 
-        // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var batches = new UnsafeList<JobBatchContext4>(128, TempJobAllocator.AllocationHandle);
+        var hiddenOffsets = stackalloc int[16];
 
-        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
             ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
@@ -1639,110 +1883,170 @@ public unsafe partial struct EntityQuery
                 continue;
             }
 
-            // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
-
-            // Add all chunks from this archetype
-            for (var i = 0; i < arch.ChunkCount; i++)
+            int off0;
+            int enableOff0;
+            int versionIdx0;
+            if (ComponentTypeID<T0>.IsShared)
             {
-                ref var chunkRef = ref arch.GetChunkReference(i);
+                var layout = arch.GetSharedLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = -1;
+                versionIdx0 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = layout.enableBitsOffset;
+                versionIdx0 = layout.versionIndex;
+            }
+            int off1;
+            int enableOff1;
+            int versionIdx1;
+            if (ComponentTypeID<T1>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+                off1 = layout.offset;
+                enableOff1 = -1;
+                versionIdx1 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+                off1 = layout.offset;
+                enableOff1 = layout.enableBitsOffset;
+                versionIdx1 = layout.versionIndex;
+            }
+            int off2;
+            int enableOff2;
+            int versionIdx2;
+            if (ComponentTypeID<T2>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+                off2 = layout.offset;
+                enableOff2 = -1;
+                versionIdx2 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+                off2 = layout.offset;
+                enableOff2 = layout.enableBitsOffset;
+                versionIdx2 = layout.versionIndex;
+            }
+            int off3;
+            int enableOff3;
+            int versionIdx3;
+            if (ComponentTypeID<T3>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
+                off3 = layout.offset;
+                enableOff3 = -1;
+                versionIdx3 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
+                off3 = layout.offset;
+                enableOff3 = layout.enableBitsOffset;
+                versionIdx3 = layout.versionIndex;
+            }
 
-                chunks.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkVersions.Add((IntPtr)chunkRef.GetVersionUnsafePtr());
-                chunkEntityCounts.Add(chunkRef._count);
-                entityOffsets.Add(arch.EntityIDsOffset);
+            var hiddenCount = 0;
+            var itE = _mask.requireEnabled.GetIterator();
+            while (itE.Next(out var id) && hiddenCount < 16)
+            {
+                var found = false;
+                if (id == ComponentTypeID<T0>.Value) found = true;
+                if (id == ComponentTypeID<T1>.Value) found = true;
+                if (id == ComponentTypeID<T2>.Value) found = true;
+                if (id == ComponentTypeID<T3>.Value) found = true;
+                if (!found)
+                {
+                    var layout = arch.GetLayout(id);
+                    if (layout.Error == Error.None && layout.Value.enableBitsOffset != -1)
+                    {
+                        hiddenOffsets[hiddenCount++] = layout.Value.enableBitsOffset;
+                    }
+                }
+            }
 
-                offsets0.Add(layout0.offset);
-                bitsOffsets0.Add(layout0.enableBitsOffset);
-                versionIndices0.Add(layout0.versionIndex);
+            for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
+            {
+                ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
+                
+                byte* pSharedBlob = null;
+                if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
+                {
+                    var sharedSpan = arch._chunkGroups[chunkRef._groupIndex].sharedData;
+                    if (sharedSpan.IsCreated)
+                    {
+                        pSharedBlob = (byte*)sharedSpan.GetUnsafePtr();
+                    }
+                }
 
-                offsets1.Add(layout1.offset);
-                bitsOffsets1.Add(layout1.enableBitsOffset);
-                versionIndices1.Add(layout1.versionIndex);
+                var ctx = new JobBatchContext4
+                {
+                    chunk = chunkRef.GetUnsafePtr(),
+                    chunkVersions = chunkRef.GetVersionUnsafePtr(),
+                    chunkCount = chunkRef._count,
+                    entityOffset = arch.EntityIDsOffset,
+                    sharedDataBlob = pSharedBlob,
 
-                offsets2.Add(layout2.offset);
-                bitsOffsets2.Add(layout2.enableBitsOffset);
-                versionIndices2.Add(layout2.versionIndex);
+                    offset0 = off0,
+                    enableOff0 = enableOff0,
+                    versionIndex0 = versionIdx0,
+                    offset1 = off1,
+                    enableOff1 = enableOff1,
+                    versionIndex1 = versionIdx1,
+                    offset2 = off2,
+                    enableOff2 = enableOff2,
+                    versionIndex2 = versionIdx2,
+                    offset3 = off3,
+                    enableOff3 = enableOff3,
+                    versionIndex3 = versionIdx3,
+                    hiddenEnableCount = hiddenCount,
+                };
 
-                offsets3.Add(layout3.offset);
-                bitsOffsets3.Add(layout3.enableBitsOffset);
-                versionIndices3.Add(layout3.versionIndex);
-
+                for (var h = 0; h < hiddenCount; h++)
+                {
+                    ctx.hiddenEnableOffsets[h] = hiddenOffsets[h];
+                }
+                batches.Add(ctx);
             }
         }
 
-        // 2. Create the Runner
         var runner = new JobEntityBatch<TJob, T0, T1, T2, T3>
         {
             userJob = jobData,
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkCount = chunkEntityCounts,
-            entityOffset = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
-            offsets1 = offsets1,
-            bitsOffsets1 = bitsOffsets1,
-            versionIndices1 = versionIndices1,
-
-            offsets2 = offsets2,
-            bitsOffsets2 = bitsOffsets2,
-            versionIndices2 = versionIndices2,
-
-            offsets3 = offsets3,
-            bitsOffsets3 = bitsOffsets3,
-            versionIndices3 = versionIndices3,
-
+            batches = batches,
+            mask = _mask,
             version = world.Version,
         };
 
         runner.componentIDs[0] = ComponentTypeID<T0>.Value;
+        runner.componentIDs[1] = ComponentTypeID<T1>.Value;
+        runner.componentIDs[2] = ComponentTypeID<T2>.Value;
+        runner.componentIDs[3] = ComponentTypeID<T3>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var idx = 0; idx < 4; idx++)
             {
-                if (id == runner.componentIDs[i])
+                if (id == runner.componentIDs[idx])
                 {
-                    runner.componentRW[i] = true;
+                    runner.componentRW[idx] = true;
                     break;
                 }
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity4
         {
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkEntityCounts = chunkEntityCounts,
-            entityOffsets = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
-            offsets1 = offsets1,
-            bitsOffsets1 = bitsOffsets1,
-            versionIndices1 = versionIndices1,
-
-            offsets2 = offsets2,
-            bitsOffsets2 = bitsOffsets2,
-            versionIndices2 = versionIndices2,
-
-            offsets3 = offsets3,
-            bitsOffsets3 = bitsOffsets3,
-            versionIndices3 = versionIndices3,
-
+            batches = batches,
         };
 
         world.JobScheduler.Schedule(ref disposeJob, jobHandle);
@@ -1752,58 +2056,11 @@ public unsafe partial struct EntityQuery
 
     private struct DisposeJobEntity5 : IJob
     {
-        public UnsafeList<IntPtr> chunks;
-        public UnsafeList<IntPtr> chunkVersions;
-        public UnsafeList<int> chunkEntityCounts;
-        public UnsafeList<int> entityOffsets;
-
-        public UnsafeList<int> offsets0;
-        public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionIndices0;
-
-        public UnsafeList<int> offsets1;
-        public UnsafeList<int> bitsOffsets1;
-        public UnsafeList<int> versionIndices1;
-
-        public UnsafeList<int> offsets2;
-        public UnsafeList<int> bitsOffsets2;
-        public UnsafeList<int> versionIndices2;
-
-        public UnsafeList<int> offsets3;
-        public UnsafeList<int> bitsOffsets3;
-        public UnsafeList<int> versionIndices3;
-
-        public UnsafeList<int> offsets4;
-        public UnsafeList<int> bitsOffsets4;
-        public UnsafeList<int> versionIndices4;
+        public UnsafeList<JobBatchContext5> batches;
 
         public void Execute(ref readonly JobExecutionContext ctx)
         {
-            chunks.Dispose();
-            chunkVersions.Dispose();
-            chunkEntityCounts.Dispose();
-            entityOffsets.Dispose();
-
-            offsets0.Dispose();
-            bitsOffsets0.Dispose();
-            versionIndices0.Dispose();
-
-            offsets1.Dispose();
-            bitsOffsets1.Dispose();
-            versionIndices1.Dispose();
-
-            offsets2.Dispose();
-            bitsOffsets2.Dispose();
-            versionIndices2.Dispose();
-
-            offsets3.Dispose();
-            bitsOffsets3.Dispose();
-            versionIndices3.Dispose();
-
-            offsets4.Dispose();
-            bitsOffsets4.Dispose();
-            versionIndices4.Dispose();
-
+            batches.Dispose();
         }
     }
 
@@ -1826,33 +2083,9 @@ public unsafe partial struct EntityQuery
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
         }
 
-        // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var batches = new UnsafeList<JobBatchContext5>(128, TempJobAllocator.AllocationHandle);
+        var hiddenOffsets = stackalloc int[16];
 
-        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
             ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
@@ -1862,123 +2095,192 @@ public unsafe partial struct EntityQuery
                 continue;
             }
 
-            // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
-            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
-
-            // Add all chunks from this archetype
-            for (var i = 0; i < arch.ChunkCount; i++)
+            int off0;
+            int enableOff0;
+            int versionIdx0;
+            if (ComponentTypeID<T0>.IsShared)
             {
-                ref var chunkRef = ref arch.GetChunkReference(i);
+                var layout = arch.GetSharedLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = -1;
+                versionIdx0 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = layout.enableBitsOffset;
+                versionIdx0 = layout.versionIndex;
+            }
+            int off1;
+            int enableOff1;
+            int versionIdx1;
+            if (ComponentTypeID<T1>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+                off1 = layout.offset;
+                enableOff1 = -1;
+                versionIdx1 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+                off1 = layout.offset;
+                enableOff1 = layout.enableBitsOffset;
+                versionIdx1 = layout.versionIndex;
+            }
+            int off2;
+            int enableOff2;
+            int versionIdx2;
+            if (ComponentTypeID<T2>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+                off2 = layout.offset;
+                enableOff2 = -1;
+                versionIdx2 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+                off2 = layout.offset;
+                enableOff2 = layout.enableBitsOffset;
+                versionIdx2 = layout.versionIndex;
+            }
+            int off3;
+            int enableOff3;
+            int versionIdx3;
+            if (ComponentTypeID<T3>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
+                off3 = layout.offset;
+                enableOff3 = -1;
+                versionIdx3 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
+                off3 = layout.offset;
+                enableOff3 = layout.enableBitsOffset;
+                versionIdx3 = layout.versionIndex;
+            }
+            int off4;
+            int enableOff4;
+            int versionIdx4;
+            if (ComponentTypeID<T4>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
+                off4 = layout.offset;
+                enableOff4 = -1;
+                versionIdx4 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
+                off4 = layout.offset;
+                enableOff4 = layout.enableBitsOffset;
+                versionIdx4 = layout.versionIndex;
+            }
 
-                chunks.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkVersions.Add((IntPtr)chunkRef.GetVersionUnsafePtr());
-                chunkEntityCounts.Add(chunkRef._count);
-                entityOffsets.Add(arch.EntityIDsOffset);
+            var hiddenCount = 0;
+            var itE = _mask.requireEnabled.GetIterator();
+            while (itE.Next(out var id) && hiddenCount < 16)
+            {
+                var found = false;
+                if (id == ComponentTypeID<T0>.Value) found = true;
+                if (id == ComponentTypeID<T1>.Value) found = true;
+                if (id == ComponentTypeID<T2>.Value) found = true;
+                if (id == ComponentTypeID<T3>.Value) found = true;
+                if (id == ComponentTypeID<T4>.Value) found = true;
+                if (!found)
+                {
+                    var layout = arch.GetLayout(id);
+                    if (layout.Error == Error.None && layout.Value.enableBitsOffset != -1)
+                    {
+                        hiddenOffsets[hiddenCount++] = layout.Value.enableBitsOffset;
+                    }
+                }
+            }
 
-                offsets0.Add(layout0.offset);
-                bitsOffsets0.Add(layout0.enableBitsOffset);
-                versionIndices0.Add(layout0.versionIndex);
+            for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
+            {
+                ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
+                
+                byte* pSharedBlob = null;
+                if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
+                {
+                    var sharedSpan = arch._chunkGroups[chunkRef._groupIndex].sharedData;
+                    if (sharedSpan.IsCreated)
+                    {
+                        pSharedBlob = (byte*)sharedSpan.GetUnsafePtr();
+                    }
+                }
 
-                offsets1.Add(layout1.offset);
-                bitsOffsets1.Add(layout1.enableBitsOffset);
-                versionIndices1.Add(layout1.versionIndex);
+                var ctx = new JobBatchContext5
+                {
+                    chunk = chunkRef.GetUnsafePtr(),
+                    chunkVersions = chunkRef.GetVersionUnsafePtr(),
+                    chunkCount = chunkRef._count,
+                    entityOffset = arch.EntityIDsOffset,
+                    sharedDataBlob = pSharedBlob,
 
-                offsets2.Add(layout2.offset);
-                bitsOffsets2.Add(layout2.enableBitsOffset);
-                versionIndices2.Add(layout2.versionIndex);
+                    offset0 = off0,
+                    enableOff0 = enableOff0,
+                    versionIndex0 = versionIdx0,
+                    offset1 = off1,
+                    enableOff1 = enableOff1,
+                    versionIndex1 = versionIdx1,
+                    offset2 = off2,
+                    enableOff2 = enableOff2,
+                    versionIndex2 = versionIdx2,
+                    offset3 = off3,
+                    enableOff3 = enableOff3,
+                    versionIndex3 = versionIdx3,
+                    offset4 = off4,
+                    enableOff4 = enableOff4,
+                    versionIndex4 = versionIdx4,
+                    hiddenEnableCount = hiddenCount,
+                };
 
-                offsets3.Add(layout3.offset);
-                bitsOffsets3.Add(layout3.enableBitsOffset);
-                versionIndices3.Add(layout3.versionIndex);
-
-                offsets4.Add(layout4.offset);
-                bitsOffsets4.Add(layout4.enableBitsOffset);
-                versionIndices4.Add(layout4.versionIndex);
-
+                for (var h = 0; h < hiddenCount; h++)
+                {
+                    ctx.hiddenEnableOffsets[h] = hiddenOffsets[h];
+                }
+                batches.Add(ctx);
             }
         }
 
-        // 2. Create the Runner
         var runner = new JobEntityBatch<TJob, T0, T1, T2, T3, T4>
         {
             userJob = jobData,
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkCount = chunkEntityCounts,
-            entityOffset = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
-            offsets1 = offsets1,
-            bitsOffsets1 = bitsOffsets1,
-            versionIndices1 = versionIndices1,
-
-            offsets2 = offsets2,
-            bitsOffsets2 = bitsOffsets2,
-            versionIndices2 = versionIndices2,
-
-            offsets3 = offsets3,
-            bitsOffsets3 = bitsOffsets3,
-            versionIndices3 = versionIndices3,
-
-            offsets4 = offsets4,
-            bitsOffsets4 = bitsOffsets4,
-            versionIndices4 = versionIndices4,
-
+            batches = batches,
+            mask = _mask,
             version = world.Version,
         };
 
         runner.componentIDs[0] = ComponentTypeID<T0>.Value;
+        runner.componentIDs[1] = ComponentTypeID<T1>.Value;
+        runner.componentIDs[2] = ComponentTypeID<T2>.Value;
+        runner.componentIDs[3] = ComponentTypeID<T3>.Value;
+        runner.componentIDs[4] = ComponentTypeID<T4>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var idx = 0; idx < 5; idx++)
             {
-                if (id == runner.componentIDs[i])
+                if (id == runner.componentIDs[idx])
                 {
-                    runner.componentRW[i] = true;
+                    runner.componentRW[idx] = true;
                     break;
                 }
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity5
         {
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkEntityCounts = chunkEntityCounts,
-            entityOffsets = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
-            offsets1 = offsets1,
-            bitsOffsets1 = bitsOffsets1,
-            versionIndices1 = versionIndices1,
-
-            offsets2 = offsets2,
-            bitsOffsets2 = bitsOffsets2,
-            versionIndices2 = versionIndices2,
-
-            offsets3 = offsets3,
-            bitsOffsets3 = bitsOffsets3,
-            versionIndices3 = versionIndices3,
-
-            offsets4 = offsets4,
-            bitsOffsets4 = bitsOffsets4,
-            versionIndices4 = versionIndices4,
-
+            batches = batches,
         };
 
         world.JobScheduler.Schedule(ref disposeJob, jobHandle);
@@ -1988,66 +2290,11 @@ public unsafe partial struct EntityQuery
 
     private struct DisposeJobEntity6 : IJob
     {
-        public UnsafeList<IntPtr> chunks;
-        public UnsafeList<IntPtr> chunkVersions;
-        public UnsafeList<int> chunkEntityCounts;
-        public UnsafeList<int> entityOffsets;
-
-        public UnsafeList<int> offsets0;
-        public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionIndices0;
-
-        public UnsafeList<int> offsets1;
-        public UnsafeList<int> bitsOffsets1;
-        public UnsafeList<int> versionIndices1;
-
-        public UnsafeList<int> offsets2;
-        public UnsafeList<int> bitsOffsets2;
-        public UnsafeList<int> versionIndices2;
-
-        public UnsafeList<int> offsets3;
-        public UnsafeList<int> bitsOffsets3;
-        public UnsafeList<int> versionIndices3;
-
-        public UnsafeList<int> offsets4;
-        public UnsafeList<int> bitsOffsets4;
-        public UnsafeList<int> versionIndices4;
-
-        public UnsafeList<int> offsets5;
-        public UnsafeList<int> bitsOffsets5;
-        public UnsafeList<int> versionIndices5;
+        public UnsafeList<JobBatchContext6> batches;
 
         public void Execute(ref readonly JobExecutionContext ctx)
         {
-            chunks.Dispose();
-            chunkVersions.Dispose();
-            chunkEntityCounts.Dispose();
-            entityOffsets.Dispose();
-
-            offsets0.Dispose();
-            bitsOffsets0.Dispose();
-            versionIndices0.Dispose();
-
-            offsets1.Dispose();
-            bitsOffsets1.Dispose();
-            versionIndices1.Dispose();
-
-            offsets2.Dispose();
-            bitsOffsets2.Dispose();
-            versionIndices2.Dispose();
-
-            offsets3.Dispose();
-            bitsOffsets3.Dispose();
-            versionIndices3.Dispose();
-
-            offsets4.Dispose();
-            bitsOffsets4.Dispose();
-            versionIndices4.Dispose();
-
-            offsets5.Dispose();
-            bitsOffsets5.Dispose();
-            versionIndices5.Dispose();
-
+            batches.Dispose();
         }
     }
 
@@ -2071,37 +2318,9 @@ public unsafe partial struct EntityQuery
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
         }
 
-        // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var batches = new UnsafeList<JobBatchContext6>(128, TempJobAllocator.AllocationHandle);
+        var hiddenOffsets = stackalloc int[16];
 
-        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
             ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
@@ -2111,136 +2330,214 @@ public unsafe partial struct EntityQuery
                 continue;
             }
 
-            // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
-            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
-            var layout5 = arch.GetLayout(ComponentTypeID<T5>.Value).GetValueOrThrow();
-
-            // Add all chunks from this archetype
-            for (var i = 0; i < arch.ChunkCount; i++)
+            int off0;
+            int enableOff0;
+            int versionIdx0;
+            if (ComponentTypeID<T0>.IsShared)
             {
-                ref var chunkRef = ref arch.GetChunkReference(i);
+                var layout = arch.GetSharedLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = -1;
+                versionIdx0 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = layout.enableBitsOffset;
+                versionIdx0 = layout.versionIndex;
+            }
+            int off1;
+            int enableOff1;
+            int versionIdx1;
+            if (ComponentTypeID<T1>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+                off1 = layout.offset;
+                enableOff1 = -1;
+                versionIdx1 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+                off1 = layout.offset;
+                enableOff1 = layout.enableBitsOffset;
+                versionIdx1 = layout.versionIndex;
+            }
+            int off2;
+            int enableOff2;
+            int versionIdx2;
+            if (ComponentTypeID<T2>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+                off2 = layout.offset;
+                enableOff2 = -1;
+                versionIdx2 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+                off2 = layout.offset;
+                enableOff2 = layout.enableBitsOffset;
+                versionIdx2 = layout.versionIndex;
+            }
+            int off3;
+            int enableOff3;
+            int versionIdx3;
+            if (ComponentTypeID<T3>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
+                off3 = layout.offset;
+                enableOff3 = -1;
+                versionIdx3 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
+                off3 = layout.offset;
+                enableOff3 = layout.enableBitsOffset;
+                versionIdx3 = layout.versionIndex;
+            }
+            int off4;
+            int enableOff4;
+            int versionIdx4;
+            if (ComponentTypeID<T4>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
+                off4 = layout.offset;
+                enableOff4 = -1;
+                versionIdx4 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
+                off4 = layout.offset;
+                enableOff4 = layout.enableBitsOffset;
+                versionIdx4 = layout.versionIndex;
+            }
+            int off5;
+            int enableOff5;
+            int versionIdx5;
+            if (ComponentTypeID<T5>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T5>.Value).GetValueOrThrow();
+                off5 = layout.offset;
+                enableOff5 = -1;
+                versionIdx5 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T5>.Value).GetValueOrThrow();
+                off5 = layout.offset;
+                enableOff5 = layout.enableBitsOffset;
+                versionIdx5 = layout.versionIndex;
+            }
 
-                chunks.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkVersions.Add((IntPtr)chunkRef.GetVersionUnsafePtr());
-                chunkEntityCounts.Add(chunkRef._count);
-                entityOffsets.Add(arch.EntityIDsOffset);
+            var hiddenCount = 0;
+            var itE = _mask.requireEnabled.GetIterator();
+            while (itE.Next(out var id) && hiddenCount < 16)
+            {
+                var found = false;
+                if (id == ComponentTypeID<T0>.Value) found = true;
+                if (id == ComponentTypeID<T1>.Value) found = true;
+                if (id == ComponentTypeID<T2>.Value) found = true;
+                if (id == ComponentTypeID<T3>.Value) found = true;
+                if (id == ComponentTypeID<T4>.Value) found = true;
+                if (id == ComponentTypeID<T5>.Value) found = true;
+                if (!found)
+                {
+                    var layout = arch.GetLayout(id);
+                    if (layout.Error == Error.None && layout.Value.enableBitsOffset != -1)
+                    {
+                        hiddenOffsets[hiddenCount++] = layout.Value.enableBitsOffset;
+                    }
+                }
+            }
 
-                offsets0.Add(layout0.offset);
-                bitsOffsets0.Add(layout0.enableBitsOffset);
-                versionIndices0.Add(layout0.versionIndex);
+            for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
+            {
+                ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
+                
+                byte* pSharedBlob = null;
+                if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
+                {
+                    var sharedSpan = arch._chunkGroups[chunkRef._groupIndex].sharedData;
+                    if (sharedSpan.IsCreated)
+                    {
+                        pSharedBlob = (byte*)sharedSpan.GetUnsafePtr();
+                    }
+                }
 
-                offsets1.Add(layout1.offset);
-                bitsOffsets1.Add(layout1.enableBitsOffset);
-                versionIndices1.Add(layout1.versionIndex);
+                var ctx = new JobBatchContext6
+                {
+                    chunk = chunkRef.GetUnsafePtr(),
+                    chunkVersions = chunkRef.GetVersionUnsafePtr(),
+                    chunkCount = chunkRef._count,
+                    entityOffset = arch.EntityIDsOffset,
+                    sharedDataBlob = pSharedBlob,
 
-                offsets2.Add(layout2.offset);
-                bitsOffsets2.Add(layout2.enableBitsOffset);
-                versionIndices2.Add(layout2.versionIndex);
+                    offset0 = off0,
+                    enableOff0 = enableOff0,
+                    versionIndex0 = versionIdx0,
+                    offset1 = off1,
+                    enableOff1 = enableOff1,
+                    versionIndex1 = versionIdx1,
+                    offset2 = off2,
+                    enableOff2 = enableOff2,
+                    versionIndex2 = versionIdx2,
+                    offset3 = off3,
+                    enableOff3 = enableOff3,
+                    versionIndex3 = versionIdx3,
+                    offset4 = off4,
+                    enableOff4 = enableOff4,
+                    versionIndex4 = versionIdx4,
+                    offset5 = off5,
+                    enableOff5 = enableOff5,
+                    versionIndex5 = versionIdx5,
+                    hiddenEnableCount = hiddenCount,
+                };
 
-                offsets3.Add(layout3.offset);
-                bitsOffsets3.Add(layout3.enableBitsOffset);
-                versionIndices3.Add(layout3.versionIndex);
-
-                offsets4.Add(layout4.offset);
-                bitsOffsets4.Add(layout4.enableBitsOffset);
-                versionIndices4.Add(layout4.versionIndex);
-
-                offsets5.Add(layout5.offset);
-                bitsOffsets5.Add(layout5.enableBitsOffset);
-                versionIndices5.Add(layout5.versionIndex);
-
+                for (var h = 0; h < hiddenCount; h++)
+                {
+                    ctx.hiddenEnableOffsets[h] = hiddenOffsets[h];
+                }
+                batches.Add(ctx);
             }
         }
 
-        // 2. Create the Runner
         var runner = new JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5>
         {
             userJob = jobData,
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkCount = chunkEntityCounts,
-            entityOffset = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
-            offsets1 = offsets1,
-            bitsOffsets1 = bitsOffsets1,
-            versionIndices1 = versionIndices1,
-
-            offsets2 = offsets2,
-            bitsOffsets2 = bitsOffsets2,
-            versionIndices2 = versionIndices2,
-
-            offsets3 = offsets3,
-            bitsOffsets3 = bitsOffsets3,
-            versionIndices3 = versionIndices3,
-
-            offsets4 = offsets4,
-            bitsOffsets4 = bitsOffsets4,
-            versionIndices4 = versionIndices4,
-
-            offsets5 = offsets5,
-            bitsOffsets5 = bitsOffsets5,
-            versionIndices5 = versionIndices5,
-
+            batches = batches,
+            mask = _mask,
             version = world.Version,
         };
 
         runner.componentIDs[0] = ComponentTypeID<T0>.Value;
+        runner.componentIDs[1] = ComponentTypeID<T1>.Value;
+        runner.componentIDs[2] = ComponentTypeID<T2>.Value;
+        runner.componentIDs[3] = ComponentTypeID<T3>.Value;
+        runner.componentIDs[4] = ComponentTypeID<T4>.Value;
+        runner.componentIDs[5] = ComponentTypeID<T5>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var idx = 0; idx < 6; idx++)
             {
-                if (id == runner.componentIDs[i])
+                if (id == runner.componentIDs[idx])
                 {
-                    runner.componentRW[i] = true;
+                    runner.componentRW[idx] = true;
                     break;
                 }
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity6
         {
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkEntityCounts = chunkEntityCounts,
-            entityOffsets = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
-            offsets1 = offsets1,
-            bitsOffsets1 = bitsOffsets1,
-            versionIndices1 = versionIndices1,
-
-            offsets2 = offsets2,
-            bitsOffsets2 = bitsOffsets2,
-            versionIndices2 = versionIndices2,
-
-            offsets3 = offsets3,
-            bitsOffsets3 = bitsOffsets3,
-            versionIndices3 = versionIndices3,
-
-            offsets4 = offsets4,
-            bitsOffsets4 = bitsOffsets4,
-            versionIndices4 = versionIndices4,
-
-            offsets5 = offsets5,
-            bitsOffsets5 = bitsOffsets5,
-            versionIndices5 = versionIndices5,
-
+            batches = batches,
         };
 
         world.JobScheduler.Schedule(ref disposeJob, jobHandle);
@@ -2250,74 +2547,11 @@ public unsafe partial struct EntityQuery
 
     private struct DisposeJobEntity7 : IJob
     {
-        public UnsafeList<IntPtr> chunks;
-        public UnsafeList<IntPtr> chunkVersions;
-        public UnsafeList<int> chunkEntityCounts;
-        public UnsafeList<int> entityOffsets;
-
-        public UnsafeList<int> offsets0;
-        public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionIndices0;
-
-        public UnsafeList<int> offsets1;
-        public UnsafeList<int> bitsOffsets1;
-        public UnsafeList<int> versionIndices1;
-
-        public UnsafeList<int> offsets2;
-        public UnsafeList<int> bitsOffsets2;
-        public UnsafeList<int> versionIndices2;
-
-        public UnsafeList<int> offsets3;
-        public UnsafeList<int> bitsOffsets3;
-        public UnsafeList<int> versionIndices3;
-
-        public UnsafeList<int> offsets4;
-        public UnsafeList<int> bitsOffsets4;
-        public UnsafeList<int> versionIndices4;
-
-        public UnsafeList<int> offsets5;
-        public UnsafeList<int> bitsOffsets5;
-        public UnsafeList<int> versionIndices5;
-
-        public UnsafeList<int> offsets6;
-        public UnsafeList<int> bitsOffsets6;
-        public UnsafeList<int> versionIndices6;
+        public UnsafeList<JobBatchContext7> batches;
 
         public void Execute(ref readonly JobExecutionContext ctx)
         {
-            chunks.Dispose();
-            chunkVersions.Dispose();
-            chunkEntityCounts.Dispose();
-            entityOffsets.Dispose();
-
-            offsets0.Dispose();
-            bitsOffsets0.Dispose();
-            versionIndices0.Dispose();
-
-            offsets1.Dispose();
-            bitsOffsets1.Dispose();
-            versionIndices1.Dispose();
-
-            offsets2.Dispose();
-            bitsOffsets2.Dispose();
-            versionIndices2.Dispose();
-
-            offsets3.Dispose();
-            bitsOffsets3.Dispose();
-            versionIndices3.Dispose();
-
-            offsets4.Dispose();
-            bitsOffsets4.Dispose();
-            versionIndices4.Dispose();
-
-            offsets5.Dispose();
-            bitsOffsets5.Dispose();
-            versionIndices5.Dispose();
-
-            offsets6.Dispose();
-            bitsOffsets6.Dispose();
-            versionIndices6.Dispose();
-
+            batches.Dispose();
         }
     }
 
@@ -2342,41 +2576,9 @@ public unsafe partial struct EntityQuery
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
         }
 
-        // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var batches = new UnsafeList<JobBatchContext7>(128, TempJobAllocator.AllocationHandle);
+        var hiddenOffsets = stackalloc int[16];
 
-        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets6 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets6 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices6 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
             ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
@@ -2386,149 +2588,236 @@ public unsafe partial struct EntityQuery
                 continue;
             }
 
-            // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
-            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
-            var layout5 = arch.GetLayout(ComponentTypeID<T5>.Value).GetValueOrThrow();
-            var layout6 = arch.GetLayout(ComponentTypeID<T6>.Value).GetValueOrThrow();
-
-            // Add all chunks from this archetype
-            for (var i = 0; i < arch.ChunkCount; i++)
+            int off0;
+            int enableOff0;
+            int versionIdx0;
+            if (ComponentTypeID<T0>.IsShared)
             {
-                ref var chunkRef = ref arch.GetChunkReference(i);
+                var layout = arch.GetSharedLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = -1;
+                versionIdx0 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = layout.enableBitsOffset;
+                versionIdx0 = layout.versionIndex;
+            }
+            int off1;
+            int enableOff1;
+            int versionIdx1;
+            if (ComponentTypeID<T1>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+                off1 = layout.offset;
+                enableOff1 = -1;
+                versionIdx1 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+                off1 = layout.offset;
+                enableOff1 = layout.enableBitsOffset;
+                versionIdx1 = layout.versionIndex;
+            }
+            int off2;
+            int enableOff2;
+            int versionIdx2;
+            if (ComponentTypeID<T2>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+                off2 = layout.offset;
+                enableOff2 = -1;
+                versionIdx2 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+                off2 = layout.offset;
+                enableOff2 = layout.enableBitsOffset;
+                versionIdx2 = layout.versionIndex;
+            }
+            int off3;
+            int enableOff3;
+            int versionIdx3;
+            if (ComponentTypeID<T3>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
+                off3 = layout.offset;
+                enableOff3 = -1;
+                versionIdx3 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
+                off3 = layout.offset;
+                enableOff3 = layout.enableBitsOffset;
+                versionIdx3 = layout.versionIndex;
+            }
+            int off4;
+            int enableOff4;
+            int versionIdx4;
+            if (ComponentTypeID<T4>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
+                off4 = layout.offset;
+                enableOff4 = -1;
+                versionIdx4 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
+                off4 = layout.offset;
+                enableOff4 = layout.enableBitsOffset;
+                versionIdx4 = layout.versionIndex;
+            }
+            int off5;
+            int enableOff5;
+            int versionIdx5;
+            if (ComponentTypeID<T5>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T5>.Value).GetValueOrThrow();
+                off5 = layout.offset;
+                enableOff5 = -1;
+                versionIdx5 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T5>.Value).GetValueOrThrow();
+                off5 = layout.offset;
+                enableOff5 = layout.enableBitsOffset;
+                versionIdx5 = layout.versionIndex;
+            }
+            int off6;
+            int enableOff6;
+            int versionIdx6;
+            if (ComponentTypeID<T6>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T6>.Value).GetValueOrThrow();
+                off6 = layout.offset;
+                enableOff6 = -1;
+                versionIdx6 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T6>.Value).GetValueOrThrow();
+                off6 = layout.offset;
+                enableOff6 = layout.enableBitsOffset;
+                versionIdx6 = layout.versionIndex;
+            }
 
-                chunks.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkVersions.Add((IntPtr)chunkRef.GetVersionUnsafePtr());
-                chunkEntityCounts.Add(chunkRef._count);
-                entityOffsets.Add(arch.EntityIDsOffset);
+            var hiddenCount = 0;
+            var itE = _mask.requireEnabled.GetIterator();
+            while (itE.Next(out var id) && hiddenCount < 16)
+            {
+                var found = false;
+                if (id == ComponentTypeID<T0>.Value) found = true;
+                if (id == ComponentTypeID<T1>.Value) found = true;
+                if (id == ComponentTypeID<T2>.Value) found = true;
+                if (id == ComponentTypeID<T3>.Value) found = true;
+                if (id == ComponentTypeID<T4>.Value) found = true;
+                if (id == ComponentTypeID<T5>.Value) found = true;
+                if (id == ComponentTypeID<T6>.Value) found = true;
+                if (!found)
+                {
+                    var layout = arch.GetLayout(id);
+                    if (layout.Error == Error.None && layout.Value.enableBitsOffset != -1)
+                    {
+                        hiddenOffsets[hiddenCount++] = layout.Value.enableBitsOffset;
+                    }
+                }
+            }
 
-                offsets0.Add(layout0.offset);
-                bitsOffsets0.Add(layout0.enableBitsOffset);
-                versionIndices0.Add(layout0.versionIndex);
+            for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
+            {
+                ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
+                
+                byte* pSharedBlob = null;
+                if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
+                {
+                    var sharedSpan = arch._chunkGroups[chunkRef._groupIndex].sharedData;
+                    if (sharedSpan.IsCreated)
+                    {
+                        pSharedBlob = (byte*)sharedSpan.GetUnsafePtr();
+                    }
+                }
 
-                offsets1.Add(layout1.offset);
-                bitsOffsets1.Add(layout1.enableBitsOffset);
-                versionIndices1.Add(layout1.versionIndex);
+                var ctx = new JobBatchContext7
+                {
+                    chunk = chunkRef.GetUnsafePtr(),
+                    chunkVersions = chunkRef.GetVersionUnsafePtr(),
+                    chunkCount = chunkRef._count,
+                    entityOffset = arch.EntityIDsOffset,
+                    sharedDataBlob = pSharedBlob,
 
-                offsets2.Add(layout2.offset);
-                bitsOffsets2.Add(layout2.enableBitsOffset);
-                versionIndices2.Add(layout2.versionIndex);
+                    offset0 = off0,
+                    enableOff0 = enableOff0,
+                    versionIndex0 = versionIdx0,
+                    offset1 = off1,
+                    enableOff1 = enableOff1,
+                    versionIndex1 = versionIdx1,
+                    offset2 = off2,
+                    enableOff2 = enableOff2,
+                    versionIndex2 = versionIdx2,
+                    offset3 = off3,
+                    enableOff3 = enableOff3,
+                    versionIndex3 = versionIdx3,
+                    offset4 = off4,
+                    enableOff4 = enableOff4,
+                    versionIndex4 = versionIdx4,
+                    offset5 = off5,
+                    enableOff5 = enableOff5,
+                    versionIndex5 = versionIdx5,
+                    offset6 = off6,
+                    enableOff6 = enableOff6,
+                    versionIndex6 = versionIdx6,
+                    hiddenEnableCount = hiddenCount,
+                };
 
-                offsets3.Add(layout3.offset);
-                bitsOffsets3.Add(layout3.enableBitsOffset);
-                versionIndices3.Add(layout3.versionIndex);
-
-                offsets4.Add(layout4.offset);
-                bitsOffsets4.Add(layout4.enableBitsOffset);
-                versionIndices4.Add(layout4.versionIndex);
-
-                offsets5.Add(layout5.offset);
-                bitsOffsets5.Add(layout5.enableBitsOffset);
-                versionIndices5.Add(layout5.versionIndex);
-
-                offsets6.Add(layout6.offset);
-                bitsOffsets6.Add(layout6.enableBitsOffset);
-                versionIndices6.Add(layout6.versionIndex);
-
+                for (var h = 0; h < hiddenCount; h++)
+                {
+                    ctx.hiddenEnableOffsets[h] = hiddenOffsets[h];
+                }
+                batches.Add(ctx);
             }
         }
 
-        // 2. Create the Runner
         var runner = new JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6>
         {
             userJob = jobData,
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkCount = chunkEntityCounts,
-            entityOffset = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
-            offsets1 = offsets1,
-            bitsOffsets1 = bitsOffsets1,
-            versionIndices1 = versionIndices1,
-
-            offsets2 = offsets2,
-            bitsOffsets2 = bitsOffsets2,
-            versionIndices2 = versionIndices2,
-
-            offsets3 = offsets3,
-            bitsOffsets3 = bitsOffsets3,
-            versionIndices3 = versionIndices3,
-
-            offsets4 = offsets4,
-            bitsOffsets4 = bitsOffsets4,
-            versionIndices4 = versionIndices4,
-
-            offsets5 = offsets5,
-            bitsOffsets5 = bitsOffsets5,
-            versionIndices5 = versionIndices5,
-
-            offsets6 = offsets6,
-            bitsOffsets6 = bitsOffsets6,
-            versionIndices6 = versionIndices6,
-
+            batches = batches,
+            mask = _mask,
             version = world.Version,
         };
 
         runner.componentIDs[0] = ComponentTypeID<T0>.Value;
+        runner.componentIDs[1] = ComponentTypeID<T1>.Value;
+        runner.componentIDs[2] = ComponentTypeID<T2>.Value;
+        runner.componentIDs[3] = ComponentTypeID<T3>.Value;
+        runner.componentIDs[4] = ComponentTypeID<T4>.Value;
+        runner.componentIDs[5] = ComponentTypeID<T5>.Value;
+        runner.componentIDs[6] = ComponentTypeID<T6>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var idx = 0; idx < 7; idx++)
             {
-                if (id == runner.componentIDs[i])
+                if (id == runner.componentIDs[idx])
                 {
-                    runner.componentRW[i] = true;
+                    runner.componentRW[idx] = true;
                     break;
                 }
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity7
         {
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkEntityCounts = chunkEntityCounts,
-            entityOffsets = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
-            offsets1 = offsets1,
-            bitsOffsets1 = bitsOffsets1,
-            versionIndices1 = versionIndices1,
-
-            offsets2 = offsets2,
-            bitsOffsets2 = bitsOffsets2,
-            versionIndices2 = versionIndices2,
-
-            offsets3 = offsets3,
-            bitsOffsets3 = bitsOffsets3,
-            versionIndices3 = versionIndices3,
-
-            offsets4 = offsets4,
-            bitsOffsets4 = bitsOffsets4,
-            versionIndices4 = versionIndices4,
-
-            offsets5 = offsets5,
-            bitsOffsets5 = bitsOffsets5,
-            versionIndices5 = versionIndices5,
-
-            offsets6 = offsets6,
-            bitsOffsets6 = bitsOffsets6,
-            versionIndices6 = versionIndices6,
-
+            batches = batches,
         };
 
         world.JobScheduler.Schedule(ref disposeJob, jobHandle);
@@ -2538,82 +2827,11 @@ public unsafe partial struct EntityQuery
 
     private struct DisposeJobEntity8 : IJob
     {
-        public UnsafeList<IntPtr> chunks;
-        public UnsafeList<IntPtr> chunkVersions;
-        public UnsafeList<int> chunkEntityCounts;
-        public UnsafeList<int> entityOffsets;
-
-        public UnsafeList<int> offsets0;
-        public UnsafeList<int> bitsOffsets0;
-        public UnsafeList<int> versionIndices0;
-
-        public UnsafeList<int> offsets1;
-        public UnsafeList<int> bitsOffsets1;
-        public UnsafeList<int> versionIndices1;
-
-        public UnsafeList<int> offsets2;
-        public UnsafeList<int> bitsOffsets2;
-        public UnsafeList<int> versionIndices2;
-
-        public UnsafeList<int> offsets3;
-        public UnsafeList<int> bitsOffsets3;
-        public UnsafeList<int> versionIndices3;
-
-        public UnsafeList<int> offsets4;
-        public UnsafeList<int> bitsOffsets4;
-        public UnsafeList<int> versionIndices4;
-
-        public UnsafeList<int> offsets5;
-        public UnsafeList<int> bitsOffsets5;
-        public UnsafeList<int> versionIndices5;
-
-        public UnsafeList<int> offsets6;
-        public UnsafeList<int> bitsOffsets6;
-        public UnsafeList<int> versionIndices6;
-
-        public UnsafeList<int> offsets7;
-        public UnsafeList<int> bitsOffsets7;
-        public UnsafeList<int> versionIndices7;
+        public UnsafeList<JobBatchContext8> batches;
 
         public void Execute(ref readonly JobExecutionContext ctx)
         {
-            chunks.Dispose();
-            chunkVersions.Dispose();
-            chunkEntityCounts.Dispose();
-            entityOffsets.Dispose();
-
-            offsets0.Dispose();
-            bitsOffsets0.Dispose();
-            versionIndices0.Dispose();
-
-            offsets1.Dispose();
-            bitsOffsets1.Dispose();
-            versionIndices1.Dispose();
-
-            offsets2.Dispose();
-            bitsOffsets2.Dispose();
-            versionIndices2.Dispose();
-
-            offsets3.Dispose();
-            bitsOffsets3.Dispose();
-            versionIndices3.Dispose();
-
-            offsets4.Dispose();
-            bitsOffsets4.Dispose();
-            versionIndices4.Dispose();
-
-            offsets5.Dispose();
-            bitsOffsets5.Dispose();
-            versionIndices5.Dispose();
-
-            offsets6.Dispose();
-            bitsOffsets6.Dispose();
-            versionIndices6.Dispose();
-
-            offsets7.Dispose();
-            bitsOffsets7.Dispose();
-            versionIndices7.Dispose();
-
+            batches.Dispose();
         }
     }
 
@@ -2639,45 +2857,9 @@ public unsafe partial struct EntityQuery
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
         }
 
-        // 1. Flatten the World
-        var chunks = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkVersions = new UnsafeList<IntPtr>(128, TempJobAllocator.AllocationHandle);
-        var chunkEntityCounts = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var entityOffsets = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
+        var batches = new UnsafeList<JobBatchContext8>(128, TempJobAllocator.AllocationHandle);
+        var hiddenOffsets = stackalloc int[16];
 
-        var offsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices0 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices1 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices2 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices3 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices4 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices5 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets6 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets6 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices6 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        var offsets7 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var bitsOffsets7 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-        var versionIndices7 = new UnsafeList<int>(128, TempJobAllocator.AllocationHandle);
-
-        // Iterate the Query's matching archetypes
         foreach (var archID in _matchingArchetypes)
         {
             ref var arch = ref world.ComponentManager.GetArchetypeReference(archID);
@@ -2687,162 +2869,258 @@ public unsafe partial struct EntityQuery
                 continue;
             }
 
-            // Get offsets ONCE per archetype
-            var layout0 = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
-            var layout1 = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
-            var layout2 = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
-            var layout3 = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
-            var layout4 = arch.GetLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
-            var layout5 = arch.GetLayout(ComponentTypeID<T5>.Value).GetValueOrThrow();
-            var layout6 = arch.GetLayout(ComponentTypeID<T6>.Value).GetValueOrThrow();
-            var layout7 = arch.GetLayout(ComponentTypeID<T7>.Value).GetValueOrThrow();
-
-            // Add all chunks from this archetype
-            for (var i = 0; i < arch.ChunkCount; i++)
+            int off0;
+            int enableOff0;
+            int versionIdx0;
+            if (ComponentTypeID<T0>.IsShared)
             {
-                ref var chunkRef = ref arch.GetChunkReference(i);
+                var layout = arch.GetSharedLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = -1;
+                versionIdx0 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T0>.Value).GetValueOrThrow();
+                off0 = layout.offset;
+                enableOff0 = layout.enableBitsOffset;
+                versionIdx0 = layout.versionIndex;
+            }
+            int off1;
+            int enableOff1;
+            int versionIdx1;
+            if (ComponentTypeID<T1>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+                off1 = layout.offset;
+                enableOff1 = -1;
+                versionIdx1 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T1>.Value).GetValueOrThrow();
+                off1 = layout.offset;
+                enableOff1 = layout.enableBitsOffset;
+                versionIdx1 = layout.versionIndex;
+            }
+            int off2;
+            int enableOff2;
+            int versionIdx2;
+            if (ComponentTypeID<T2>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+                off2 = layout.offset;
+                enableOff2 = -1;
+                versionIdx2 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T2>.Value).GetValueOrThrow();
+                off2 = layout.offset;
+                enableOff2 = layout.enableBitsOffset;
+                versionIdx2 = layout.versionIndex;
+            }
+            int off3;
+            int enableOff3;
+            int versionIdx3;
+            if (ComponentTypeID<T3>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
+                off3 = layout.offset;
+                enableOff3 = -1;
+                versionIdx3 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T3>.Value).GetValueOrThrow();
+                off3 = layout.offset;
+                enableOff3 = layout.enableBitsOffset;
+                versionIdx3 = layout.versionIndex;
+            }
+            int off4;
+            int enableOff4;
+            int versionIdx4;
+            if (ComponentTypeID<T4>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
+                off4 = layout.offset;
+                enableOff4 = -1;
+                versionIdx4 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T4>.Value).GetValueOrThrow();
+                off4 = layout.offset;
+                enableOff4 = layout.enableBitsOffset;
+                versionIdx4 = layout.versionIndex;
+            }
+            int off5;
+            int enableOff5;
+            int versionIdx5;
+            if (ComponentTypeID<T5>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T5>.Value).GetValueOrThrow();
+                off5 = layout.offset;
+                enableOff5 = -1;
+                versionIdx5 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T5>.Value).GetValueOrThrow();
+                off5 = layout.offset;
+                enableOff5 = layout.enableBitsOffset;
+                versionIdx5 = layout.versionIndex;
+            }
+            int off6;
+            int enableOff6;
+            int versionIdx6;
+            if (ComponentTypeID<T6>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T6>.Value).GetValueOrThrow();
+                off6 = layout.offset;
+                enableOff6 = -1;
+                versionIdx6 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T6>.Value).GetValueOrThrow();
+                off6 = layout.offset;
+                enableOff6 = layout.enableBitsOffset;
+                versionIdx6 = layout.versionIndex;
+            }
+            int off7;
+            int enableOff7;
+            int versionIdx7;
+            if (ComponentTypeID<T7>.IsShared)
+            {
+                var layout = arch.GetSharedLayout(ComponentTypeID<T7>.Value).GetValueOrThrow();
+                off7 = layout.offset;
+                enableOff7 = -1;
+                versionIdx7 = -1;
+            }
+            else
+            {
+                var layout = arch.GetLayout(ComponentTypeID<T7>.Value).GetValueOrThrow();
+                off7 = layout.offset;
+                enableOff7 = layout.enableBitsOffset;
+                versionIdx7 = layout.versionIndex;
+            }
 
-                chunks.Add((IntPtr)chunkRef.GetUnsafePtr());
-                chunkVersions.Add((IntPtr)chunkRef.GetVersionUnsafePtr());
-                chunkEntityCounts.Add(chunkRef._count);
-                entityOffsets.Add(arch.EntityIDsOffset);
+            var hiddenCount = 0;
+            var itE = _mask.requireEnabled.GetIterator();
+            while (itE.Next(out var id) && hiddenCount < 16)
+            {
+                var found = false;
+                if (id == ComponentTypeID<T0>.Value) found = true;
+                if (id == ComponentTypeID<T1>.Value) found = true;
+                if (id == ComponentTypeID<T2>.Value) found = true;
+                if (id == ComponentTypeID<T3>.Value) found = true;
+                if (id == ComponentTypeID<T4>.Value) found = true;
+                if (id == ComponentTypeID<T5>.Value) found = true;
+                if (id == ComponentTypeID<T6>.Value) found = true;
+                if (id == ComponentTypeID<T7>.Value) found = true;
+                if (!found)
+                {
+                    var layout = arch.GetLayout(id);
+                    if (layout.Error == Error.None && layout.Value.enableBitsOffset != -1)
+                    {
+                        hiddenOffsets[hiddenCount++] = layout.Value.enableBitsOffset;
+                    }
+                }
+            }
 
-                offsets0.Add(layout0.offset);
-                bitsOffsets0.Add(layout0.enableBitsOffset);
-                versionIndices0.Add(layout0.versionIndex);
+            for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
+            {
+                ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
+                
+                byte* pSharedBlob = null;
+                if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
+                {
+                    var sharedSpan = arch._chunkGroups[chunkRef._groupIndex].sharedData;
+                    if (sharedSpan.IsCreated)
+                    {
+                        pSharedBlob = (byte*)sharedSpan.GetUnsafePtr();
+                    }
+                }
 
-                offsets1.Add(layout1.offset);
-                bitsOffsets1.Add(layout1.enableBitsOffset);
-                versionIndices1.Add(layout1.versionIndex);
+                var ctx = new JobBatchContext8
+                {
+                    chunk = chunkRef.GetUnsafePtr(),
+                    chunkVersions = chunkRef.GetVersionUnsafePtr(),
+                    chunkCount = chunkRef._count,
+                    entityOffset = arch.EntityIDsOffset,
+                    sharedDataBlob = pSharedBlob,
 
-                offsets2.Add(layout2.offset);
-                bitsOffsets2.Add(layout2.enableBitsOffset);
-                versionIndices2.Add(layout2.versionIndex);
+                    offset0 = off0,
+                    enableOff0 = enableOff0,
+                    versionIndex0 = versionIdx0,
+                    offset1 = off1,
+                    enableOff1 = enableOff1,
+                    versionIndex1 = versionIdx1,
+                    offset2 = off2,
+                    enableOff2 = enableOff2,
+                    versionIndex2 = versionIdx2,
+                    offset3 = off3,
+                    enableOff3 = enableOff3,
+                    versionIndex3 = versionIdx3,
+                    offset4 = off4,
+                    enableOff4 = enableOff4,
+                    versionIndex4 = versionIdx4,
+                    offset5 = off5,
+                    enableOff5 = enableOff5,
+                    versionIndex5 = versionIdx5,
+                    offset6 = off6,
+                    enableOff6 = enableOff6,
+                    versionIndex6 = versionIdx6,
+                    offset7 = off7,
+                    enableOff7 = enableOff7,
+                    versionIndex7 = versionIdx7,
+                    hiddenEnableCount = hiddenCount,
+                };
 
-                offsets3.Add(layout3.offset);
-                bitsOffsets3.Add(layout3.enableBitsOffset);
-                versionIndices3.Add(layout3.versionIndex);
-
-                offsets4.Add(layout4.offset);
-                bitsOffsets4.Add(layout4.enableBitsOffset);
-                versionIndices4.Add(layout4.versionIndex);
-
-                offsets5.Add(layout5.offset);
-                bitsOffsets5.Add(layout5.enableBitsOffset);
-                versionIndices5.Add(layout5.versionIndex);
-
-                offsets6.Add(layout6.offset);
-                bitsOffsets6.Add(layout6.enableBitsOffset);
-                versionIndices6.Add(layout6.versionIndex);
-
-                offsets7.Add(layout7.offset);
-                bitsOffsets7.Add(layout7.enableBitsOffset);
-                versionIndices7.Add(layout7.versionIndex);
-
+                for (var h = 0; h < hiddenCount; h++)
+                {
+                    ctx.hiddenEnableOffsets[h] = hiddenOffsets[h];
+                }
+                batches.Add(ctx);
             }
         }
 
-        // 2. Create the Runner
         var runner = new JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7>
         {
             userJob = jobData,
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkCount = chunkEntityCounts,
-            entityOffset = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
-            offsets1 = offsets1,
-            bitsOffsets1 = bitsOffsets1,
-            versionIndices1 = versionIndices1,
-
-            offsets2 = offsets2,
-            bitsOffsets2 = bitsOffsets2,
-            versionIndices2 = versionIndices2,
-
-            offsets3 = offsets3,
-            bitsOffsets3 = bitsOffsets3,
-            versionIndices3 = versionIndices3,
-
-            offsets4 = offsets4,
-            bitsOffsets4 = bitsOffsets4,
-            versionIndices4 = versionIndices4,
-
-            offsets5 = offsets5,
-            bitsOffsets5 = bitsOffsets5,
-            versionIndices5 = versionIndices5,
-
-            offsets6 = offsets6,
-            bitsOffsets6 = bitsOffsets6,
-            versionIndices6 = versionIndices6,
-
-            offsets7 = offsets7,
-            bitsOffsets7 = bitsOffsets7,
-            versionIndices7 = versionIndices7,
-
+            batches = batches,
+            mask = _mask,
             version = world.Version,
         };
 
         runner.componentIDs[0] = ComponentTypeID<T0>.Value;
+        runner.componentIDs[1] = ComponentTypeID<T1>.Value;
+        runner.componentIDs[2] = ComponentTypeID<T2>.Value;
+        runner.componentIDs[3] = ComponentTypeID<T3>.Value;
+        runner.componentIDs[4] = ComponentTypeID<T4>.Value;
+        runner.componentIDs[5] = ComponentTypeID<T5>.Value;
+        runner.componentIDs[6] = ComponentTypeID<T6>.Value;
+        runner.componentIDs[7] = ComponentTypeID<T7>.Value;
 
         var it = _mask.writeAccess.GetIterator();
         while (it.Next(out var id))
         {
-            for (var i = 0; i < 1; i++)
+            for (var idx = 0; idx < 8; idx++)
             {
-                if (id == runner.componentIDs[i])
+                if (id == runner.componentIDs[idx])
                 {
-                    runner.componentRW[i] = true;
+                    runner.componentRW[idx] = true;
                     break;
                 }
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, chunks.Count, batchSize, dependency);
+        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        // 3. Dispose the temp lists
         var disposeJob = new DisposeJobEntity8
         {
-            chunks = chunks,
-            chunkVersions = chunkVersions,
-            chunkEntityCounts = chunkEntityCounts,
-            entityOffsets = entityOffsets,
-
-            offsets0 = offsets0,
-            bitsOffsets0 = bitsOffsets0,
-            versionIndices0 = versionIndices0,
-
-            offsets1 = offsets1,
-            bitsOffsets1 = bitsOffsets1,
-            versionIndices1 = versionIndices1,
-
-            offsets2 = offsets2,
-            bitsOffsets2 = bitsOffsets2,
-            versionIndices2 = versionIndices2,
-
-            offsets3 = offsets3,
-            bitsOffsets3 = bitsOffsets3,
-            versionIndices3 = versionIndices3,
-
-            offsets4 = offsets4,
-            bitsOffsets4 = bitsOffsets4,
-            versionIndices4 = versionIndices4,
-
-            offsets5 = offsets5,
-            bitsOffsets5 = bitsOffsets5,
-            versionIndices5 = versionIndices5,
-
-            offsets6 = offsets6,
-            bitsOffsets6 = bitsOffsets6,
-            versionIndices6 = versionIndices6,
-
-            offsets7 = offsets7,
-            bitsOffsets7 = bitsOffsets7,
-            versionIndices7 = versionIndices7,
-
+            batches = batches,
         };
 
         world.JobScheduler.Schedule(ref disposeJob, jobHandle);

@@ -59,6 +59,14 @@ public unsafe partial struct EntityQuery
             private readonly VirtualStack.Scope _scope;
             private UnsafeList<int> _changedComponentIDs;
 
+            private int _reqCount;
+            private fixed int _reqOffsets[16];
+            private int _reqDisCount;
+            private fixed int _reqDisOffsets[16];
+            private int _rejCount;
+            private fixed int _rejOffsets[16];
+            private bool _requiresFiltering;
+
             private ref Archetype _currentArchetype;
             private ref Chunk _currentChunk;
             private byte* _chunkBasePtr;
@@ -102,12 +110,49 @@ public unsafe partial struct EntityQuery
 <# if (i > 1) { #>
             public QueryItem Current => new(
 <# for (var j = 0; j < i; j++) { #>
-                ref *(T<#= j #>*)(_compBasePtrs[<#= j #>] + _currentEntityIndex * sizeof(T<#= j #>))<#= j < i - 1 ? "," : "" #>
+                ref (ComponentTypeID<T<#= j #>>.IsShared ? ref ((T<#= j #>*)_compBasePtrs[<#= j #>])[0] : ref ((T<#= j #>*)_compBasePtrs[<#= j #>])[_currentEntityIndex])<#= j < i - 1 ? "," : "" #>
 <# } #>
             );
 <# } else { #>
-            public ref T0 Current => ref *(T0*)(_compBasePtrs[0] + _currentEntityIndex * sizeof(T0));
+            public ref T0 Current => ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)_compBasePtrs[0])[0] : ref ((T0*)_compBasePtrs[0])[_currentEntityIndex]);
 <# } #>
+
+            private void SetArchetype(int index)
+            {
+                _currentArchetypeIndex = index;
+                _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[index]);
+                
+                _requiresFiltering = RequiresEnableableFiltering(in _currentArchetype, in _mask);
+                if (_requiresFiltering)
+                {
+                    _reqCount = 0;
+                    var itE = _mask.requireEnabled.GetIterator();
+                    while (itE.Next(out var id) && _reqCount < 16)
+                    {
+                        var layoutResult = _currentArchetype.GetLayout(id);
+                        if (layoutResult.Error == Error.None && layoutResult.Value.enableBitsOffset != -1)
+                            _reqOffsets[_reqCount++] = layoutResult.Value.enableBitsOffset;
+                    }
+
+                    _reqDisCount = 0;
+                    itE = _mask.requireDisabled.GetIterator();
+                    while (itE.Next(out var id) && _reqDisCount < 16)
+                    {
+                        var layoutResult = _currentArchetype.GetLayout(id);
+                        if (layoutResult.Error == Error.None && layoutResult.Value.enableBitsOffset != -1)
+                            _reqDisOffsets[_reqDisCount++] = layoutResult.Value.enableBitsOffset;
+                    }
+
+                    _rejCount = 0;
+                    itE = _mask.rejectIfEnabled.GetIterator();
+                    while (itE.Next(out var id) && _rejCount < 16)
+                    {
+                        var layoutResult = _currentArchetype.GetLayout(id);
+                        if (layoutResult.Error == Error.None && layoutResult.Value.enableBitsOffset != -1)
+                            _rejOffsets[_rejCount++] = layoutResult.Value.enableBitsOffset;
+                    }
+                }
+            }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private void SetChunk(int chunkIndex)
@@ -116,13 +161,21 @@ public unsafe partial struct EntityQuery
                 _chunkBasePtr = _currentChunk.GetUnsafePtr();
                 _currentChunkEntityCount = _currentChunk._count;
 
-                for (var index = 0; index < <#= i #>; index++)
+<# for (var index = 0; index < i; index++) { #>
+                if (ComponentTypeID<T<#= index #>>.IsShared)
                 {
-                    var layout = _currentArchetype.GetLayout(_compTypeIDs[index])
-                        .GetValueOrThrow();
-                    _offsets[index] = layout.offset;
-                    _compBasePtrs[index] = (long)(_chunkBasePtr + _offsets[index]);
+                    var layout = _currentArchetype.GetSharedLayout(_compTypeIDs[<#= index #>]).GetValueOrThrow();
+                    _offsets[<#= index #>] = layout.offset;
+                    var sharedSpan = _currentArchetype._chunkGroups[_currentChunk._groupIndex].sharedData.AsSpan();
+                    _compBasePtrs[<#= index #>] = (long)Unsafe.AsPointer(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(sharedSpan)) + _offsets[<#= index #>];
                 }
+                else
+                {
+                    var layout = _currentArchetype.GetLayout(_compTypeIDs[<#= index #>]).GetValueOrThrow();
+                    _offsets[<#= index #>] = layout.offset;
+                    _compBasePtrs[<#= index #>] = (long)(_chunkBasePtr + _offsets[<#= index #>]);
+                }
+<# } #>
 
                 for (var i = 0; i < _changedComponentIDs.Count; i++)
                 {
@@ -138,12 +191,29 @@ public unsafe partial struct EntityQuery
                     if (_currentEntityIndex < _currentChunk._count)
                     {
                         var pChunkData = _currentChunk.GetUnsafePtr();
-                        if (IsEntityValid(pChunkData, _currentEntityIndex, in _currentArchetype, in _mask))
+                        if (!_requiresFiltering)
                         {
                             return true;
                         }
 
-                        continue;
+                        var valid = true;
+                        for (var h = 0; h < _reqCount; h++)
+                        {
+                            if (!CheckBit(pChunkData + _reqOffsets[h], _currentEntityIndex)) { valid = false; break; }
+                        }
+                        if (!valid) continue;
+
+                        for (var h = 0; h < _reqDisCount; h++)
+                        {
+                            if (CheckBit(pChunkData + _reqDisOffsets[h], _currentEntityIndex)) { valid = false; break; }
+                        }
+                        if (!valid) continue;
+
+                        for (var h = 0; h < _rejCount; h++)
+                        {
+                            if (CheckBit(pChunkData + _rejOffsets[h], _currentEntityIndex)) { valid = false; break; }
+                        }
+                        if (valid) return true;
                     }
 
                     _currentChunkIndex++;
@@ -158,7 +228,7 @@ public unsafe partial struct EntityQuery
                     _currentArchetypeIndex++;
                     if (_currentArchetypeIndex < _matchingArchetypes.Count)
                     {
-                        _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[_currentArchetypeIndex]);
+                        SetArchetype(_currentArchetypeIndex);
 
                         _currentChunkIndex = 0;
                         if (_currentArchetype.ChunkCount > 0)
@@ -187,7 +257,7 @@ public unsafe partial struct EntityQuery
 
                 if (_matchingArchetypes.Count > 0)
                 {
-                    _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[0]);
+                    SetArchetype(0);
                     if (_currentArchetype.ChunkCount > 0)
                     {
                         SetChunk(0);

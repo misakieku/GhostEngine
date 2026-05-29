@@ -10,4 +10,7 @@ public interface IInspectable
     UIElement? CreateHeader();
 
     IInspectorModel CreateInspectorModel();
+
+    // void OnSelected();
+    // void OnDeselected();
 }

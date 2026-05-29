@@ -293,6 +293,8 @@ internal unsafe struct Archetype : IDisposable
 
         if (sharedInfos.Count > 0)
         {
+            sharedInfos.AsSpan().Sort(static (a, b) => a.id.Value.CompareTo(b.id.Value));
+
             var offset = 0;
 
             _sharedLayouts = new UnsafeArray<SharedComponentLayout>(sharedInfos.Count, AllocationHandle.Persistent);
@@ -431,7 +433,7 @@ internal unsafe struct Archetype : IDisposable
         for (var i = 0; i < _chunkGroups.Count; i++)
         {
             var group = _chunkGroups[i];
-            if (group.sharedDataHash == sharedDataHash)
+            if (group.sharedDataHash == sharedDataHash && group.sharedData.AsSpan().SequenceEqual(sharedData))
             {
                 groupIndex = i;
                 group.refCount++;
@@ -499,7 +501,7 @@ internal unsafe struct Archetype : IDisposable
         for (var i = 0; i < _chunkGroups.Count; i++)
         {
             var group = _chunkGroups[i];
-            if (group.sharedDataHash == sharedDataHash)
+            if (group.sharedDataHash == sharedDataHash && group.sharedData.AsSpan().SequenceEqual(sharedData))
             {
                 groupIndex = i;
                 group.refCount++;

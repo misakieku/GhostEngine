@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Entities;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.InteropServices;
 
 namespace Ghost.UnitTest.ECS;
@@ -53,11 +54,11 @@ public class SharedComponentTests
         var sharedValue = new SharedGroup { groupID = groupID };
 
         // Build shared data blob: SharedGroup is the only shared component.
-        Span<byte> sharedData = stackalloc byte[sizeof(SharedGroup)];
-        MemoryMarshal.Write(sharedData, sharedValue);
+        using var sharedSet = new SharedComponentSet(sizeof(SharedGroup), AllocationHandle.Persistent);
+        sharedSet.With(sharedValue);
 
         Identifier<IComponent>[] ids = [ComponentTypeID<Tag>.Value, ComponentTypeID<SharedGroup>.Value];
-        var set = new ComponentSetView(ids, sharedData);
+        var set = new ComponentSetView(ids, sharedSet);
 
         Span<Entity> result = stackalloc Entity[1];
         _world.EntityManager.CreateEntities(result, set);
@@ -463,5 +464,38 @@ public class SharedComponentTests
         }
 
         Assert.IsTrue(groups.ContainsKey(2) && groups[2] == 1, "Group 2 entity should be untouched.");
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 9. Canonical Ordering
+    // ══════════════════════════════════════════════════════════════════════════
+
+    [TestMethod]
+    public void CanonicalOrdering_SharedComponentSet_IndependentOfInsertionOrder()
+    {
+        using var sharedSet1 = new SharedComponentSet(64, AllocationHandle.Temp);
+        sharedSet1.With(new SharedGroup { groupID = 42 });
+        sharedSet1.With(new SharedGroup2 { subID = 99 });
+
+        using var sharedSet2 = new SharedComponentSet(64, AllocationHandle.Temp);
+        sharedSet2.With(new SharedGroup2 { subID = 99 });
+        sharedSet2.With(new SharedGroup { groupID = 42 });
+
+        Identifier<IComponent>[] ids1 = [ComponentTypeID<Tag>.Value, ComponentTypeID<SharedGroup>.Value, ComponentTypeID<SharedGroup2>.Value];
+        var set1 = new ComponentSetView(ids1, sharedSet1);
+
+        Identifier<IComponent>[] ids2 = [ComponentTypeID<Tag>.Value, ComponentTypeID<SharedGroup2>.Value, ComponentTypeID<SharedGroup>.Value];
+        var set2 = new ComponentSetView(ids2, sharedSet2);
+
+        Span<Entity> result1 = stackalloc Entity[1];
+        _world.EntityManager.CreateEntities(result1, set1);
+
+        Span<Entity> result2 = stackalloc Entity[1];
+        _world.EntityManager.CreateEntities(result2, set2);
+
+        var groups = CollectGroupCounts();
+        
+        Assert.AreEqual(1, groups.Count, "Expected exactly 1 chunk group due to canonical sorting of SharedComponentSet.");
+        Assert.AreEqual(2, groups[42], "Both entities should be grouped under groupID 42.");
     }
 }

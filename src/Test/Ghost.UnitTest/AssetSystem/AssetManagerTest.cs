@@ -32,8 +32,6 @@ public class AssetManagerTest
     [TestInitialize]
     public void Setup()
     {
-        // AllocationManager.Initialize(AllocationManagerDesc.Default);
-
         _graphicsEngine = new MockingGraphicsEngine();
         _commandBuffer = (MockingCommandBuffer)_graphicsEngine.CreateCommandBuffer();
         _provider = new MockingContentProvider();
@@ -62,8 +60,6 @@ public class AssetManagerTest
         _copyPipeline.Dispose();
         _commandBuffer.Dispose();
         _graphicsEngine.Dispose();
-
-        // AllocationManager.Dispose();
     }
 
     [TestMethod]

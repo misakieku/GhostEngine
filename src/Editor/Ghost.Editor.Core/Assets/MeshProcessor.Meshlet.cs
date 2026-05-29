@@ -14,6 +14,7 @@ using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using TerraFX.Interop.Windows;
 
 namespace Ghost.Editor.Core.Assets;
 
@@ -785,15 +786,14 @@ internal static unsafe partial class MeshProcessor
 
 internal static partial class MeshProcessor
 {
-
-    private struct MeshletBuildJob : IJob
+    private class MeshletBuildJob
     {
         public ClodConfig clodConfig;
         public ClodMesh clodMesh;
 
         public MeshletContext context;
 
-        public readonly void Execute(ref readonly JobExecutionContext ctx)
+        public void Execute()
         {
             Build(in clodConfig, in clodMesh, context, MeshletOutputCallback);
         }
@@ -804,9 +804,7 @@ internal static partial class MeshProcessor
     /// Each <see cref="MaterialPartInfo"/> describes a material partition's index range within the unified buffer.
     /// Meshlets are built per-part and tagged with the corresponding <c>localMaterialIndex</c>.
     /// </summary>
-    public static async Task<DisposablePtr<MeshletMeshData>> BuildMeshletsAsync(JobScheduler jobScheduler,
-        ReadOnlyView<Vertex> vertices, ReadOnlyView<uint> indices, ReadOnlyView<MaterialPartInfo> parts,
-        CancellationToken token)
+    public static async Task<DisposablePtr<MeshletMeshData>> BuildMeshletsAsync(ReadOnlyView<Vertex> vertices, ReadOnlyView<uint> indices, ReadOnlyView<MaterialPartInfo> parts, CancellationToken token)
     {
         Logger.DebugAssert(vertices.Count > 0, "Mesh must have vertices to build meshlets.");
         Logger.DebugAssert(indices.Count > 0, "Mesh must have indices to build meshlets.");
@@ -836,8 +834,6 @@ internal static partial class MeshProcessor
             simplifyFallbackSloppy = true,
         };
 
-        var jobs = new MeshletBuildJob[parts.Length];
-
         IntPtr meshletData;
         unsafe
         {
@@ -851,6 +847,7 @@ internal static partial class MeshProcessor
             for (var i = 0; i < parts.Length; i++)
             {
                 ref readonly var part = ref parts[i];
+                MeshletBuildJob job;
 
                 unsafe
                 {
@@ -874,21 +871,15 @@ internal static partial class MeshProcessor
                         materialIndex = part.materialIndex
                     };
 
-                    var job = new MeshletBuildJob
+                    job = new MeshletBuildJob
                     {
                         clodConfig = config,
                         clodMesh = clodMesh,
                         context = context
                     };
-
-                    jobs[i] = job;
                 }
-            }
 
-            foreach (var job in jobs)
-            {
-                var handle = jobScheduler.Schedule(in job);
-                await jobScheduler.WaitAsync(handle, token);
+                await Task.Run(job.Execute, token);
             }
 
             unsafe
@@ -1176,20 +1167,19 @@ internal static partial class MeshProcessor
         }
     }
 
-    private unsafe struct BuildClusterLodHierarchyJob : IJob
+    private unsafe class BuildClusterLodHierarchyJob
     {
         public MeshletMeshData* meshletData;
 
-        public readonly void Execute(ref readonly JobExecutionContext ctx)
+        public void Execute()
         {
-            using var scope = AllocationManager.CreateStackScope();
-            using var meshletIndices = new UnsafeArray<int>(meshletData->meshletCount, scope.AllocationHandle);
+            using var meshletIndices = new UnsafeArray<int>(meshletData->meshletCount, AllocationHandle.TLSF);
             for (var i = 0; i < meshletData->meshletCount; i++)
             {
                 meshletIndices[i] = i;
             }
 
-            var binaryNodes = new UnsafeList<TempBinaryNode>(meshletData->meshletCount * 2, scope.AllocationHandle);
+            var binaryNodes = new UnsafeList<TempBinaryNode>(meshletData->meshletCount * 2, AllocationHandle.TLSF);
 
             try
             {
@@ -1240,14 +1230,13 @@ internal static partial class MeshProcessor
     /// Builds a cluster LOD hierarchy from the input meshlet data.
     /// </summary>
     /// <param name="meshletData">The meshlet data.</param>
-    public static async Task BuildClusterLodHierarchyAsync(JobScheduler jobScheduler, SharedPtr<MeshletMeshData> meshletData, CancellationToken token)
+    public static Task BuildClusterLodHierarchyAsync(SharedPtr<MeshletMeshData> meshletData, CancellationToken token)
     {
         if (meshletData.GetRef().meshletCount == 0)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        JobHandle handle;
         unsafe
         {
             var job = new BuildClusterLodHierarchyJob
@@ -1255,9 +1244,7 @@ internal static partial class MeshProcessor
                 meshletData = meshletData.Get()
             };
 
-            handle = jobScheduler.Schedule(in job);
+            return Task.Run(job.Execute, token);
         }
-
-        await jobScheduler.WaitAsync(handle, token);
     }
 }

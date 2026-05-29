@@ -1,6 +1,7 @@
 using Ghost.Editor.Core.Utilities;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Ghost.Editor.Core;
 
@@ -89,12 +90,25 @@ public static class EditorApplication
     public static T GetService<T>()
         where T : class
     {
-        if (s_serviceProvider?.GetService(typeof(T)) is not T service)
+        if (TryGetService<T>(out var service))
         {
-            throw new ArgumentException($"{typeof(T)} needs to be registered in ConfigureServices.");
+            return service;
         }
 
-        return service;
+        throw new ArgumentException("Requested service of type " + typeof(T).FullName + " is not registered.");
+    }
+
+    public static bool TryGetService<T>([NotNullWhen(true)] out T? service)
+        where T : class
+    {
+        if (s_serviceProvider?.GetService(typeof(T)) is T resolvedService)
+        {
+            service = resolvedService;
+            return true;
+        }
+
+        service = null;
+        return false;
     }
 
     internal static void Shutdown()

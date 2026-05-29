@@ -209,8 +209,6 @@ internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    private readonly JobScheduler _jobScheduler = EditorApplication.GetService<EngineCore>().JobScheduler;
-
     public IAssetSettings? CreateDefaultSettings(string ext)
     {
         if (string.Equals(ext, ".obj", StringComparison.OrdinalIgnoreCase))
@@ -264,10 +262,12 @@ internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
             var meshSettings = ResolveSettings(sourcePath, settings);
 
             using var root = new MeshNode();
+            var result = await MeshProcessor.ParseMeshAsync(root, sourcePath, AllocationHandle.TLSF, meshSettings, token).ConfigureAwait(false);
 
-            var parseJob = new MeshParsingJob(root, sourcePath, AllocationHandle.Persistent, meshSettings);
-            var handle = _jobScheduler.Schedule(in parseJob);
-            await _jobScheduler.WaitAsync(handle, token);
+            if (result.IsFailure)
+            {
+                return Result.Failure(result.Message);
+            }
 
             var manifest = new ModelManifest
             {
@@ -376,8 +376,8 @@ internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
 
     private async ValueTask<(int materialSlotCount, int lodLevelCount)> WriteMeshContentAsync(string targetPath, GeometryMeshNode geometry, CancellationToken token)
     {
-        using var meshletData = await MeshProcessor.BuildMeshletsAsync(_jobScheduler, geometry.Vertices, geometry.Indices, geometry.MaterialParts, token).ConfigureAwait(false);
-        await MeshProcessor.BuildClusterLodHierarchyAsync(_jobScheduler, meshletData.Share(), token).ConfigureAwait(false);
+        using var meshletData = await MeshProcessor.BuildMeshletsAsync(geometry.Vertices, geometry.Indices, geometry.MaterialParts, token).ConfigureAwait(false);
+        await MeshProcessor.BuildClusterLodHierarchyAsync(meshletData.Share(), token).ConfigureAwait(false);
 
         var bounds = ComputeBounds(geometry.Vertices);
         var header = new MeshContentHeader

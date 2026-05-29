@@ -4,7 +4,6 @@ using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
 using Ghost.MeshOptimizer;
 using Ghost.Ufbx;
-using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -15,7 +14,7 @@ using System.Text;
 
 namespace Ghost.Editor.Core.Assets;
 
-internal readonly unsafe struct MeshParsingJob : IJob
+internal unsafe class MeshParsingJob
 {
     private struct GeometryPart : IDisposable
     {
@@ -38,12 +37,18 @@ internal readonly unsafe struct MeshParsingJob : IJob
     private readonly AllocationHandle _allocationHandle;
     private readonly MeshAssetSettings _settings;
 
+    private readonly TaskCompletionSource<Result> _taskCompletionSource;
+
+    public Task<Result> Task => _taskCompletionSource.Task;
+
     public MeshParsingJob(MeshNode rootNode, string filePath, AllocationHandle allocationHandle, MeshAssetSettings settings)
     {
         _rootNode = rootNode;
         _filePath = filePath;
         _allocationHandle = allocationHandle;
         _settings = settings;
+
+        _taskCompletionSource = new TaskCompletionSource<Result>(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -319,7 +324,7 @@ internal readonly unsafe struct MeshParsingJob : IJob
         };
     }
 
-    public void Execute(ref readonly JobExecutionContext context)
+    public Result Execute()
     {
         var error = new ufbx_error();
         var load_Opts = new ufbx_load_opts
@@ -352,15 +357,20 @@ internal readonly unsafe struct MeshParsingJob : IJob
         using var scene = new DisposablePtr<ufbx_scene>(ufbx_scene.LoadFile((sbyte*)str.GetUnsafePtr(), &load_Opts, &error));
         if (scene.Get() == null)
         {
-            Logger.Error(error.description.ToString());
-            return;
+            return Result.Failure(error.description.ToString());
         }
 
         ParseHierarchy(scene.Get()->root_node, _rootNode, AllocationHandle.TLSF);
+
+        return Result.Success();
     }
 }
 
-internal partial class MeshProcessor
+internal static partial class MeshProcessor
 {
-
+    public static Task<Result> ParseMeshAsync(MeshNode root, string sourcePath, AllocationHandle allocationHandle, MeshAssetSettings meshSettings, CancellationToken token = default)
+    {
+        var parseJob = new MeshParsingJob(root, sourcePath, allocationHandle, meshSettings);
+        return Task.Run(parseJob.Execute, token);
+    }
 }

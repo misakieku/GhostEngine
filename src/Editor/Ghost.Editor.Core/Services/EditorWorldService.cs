@@ -3,6 +3,7 @@ using Ghost.Editor.Core.SceneGraph;
 using Ghost.Engine;
 using Ghost.Engine.Core;
 using Ghost.Entities;
+using Misaki.HighPerformance.Jobs;
 using System.Collections.ObjectModel;
 
 namespace Ghost.Editor.Core.Services;
@@ -25,9 +26,9 @@ public class EditorWorldService : IDisposable
     public event Action<Entity, string>? EntityNameChanged;
     public event Action? SceneGraphRebuilt;
 
-    public EditorWorldService(EngineCore engineCore)
+    public EditorWorldService(JobScheduler? jobScheduler = null)
     {
-        EditorWorld = World.Create(engineCore.JobScheduler, 1024);
+        EditorWorld = World.Create(jobScheduler, 1024);
     }
 
     public Entity CreateEntity(string name, ushort sceneID, Entity parent = default)

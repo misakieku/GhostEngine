@@ -38,7 +38,15 @@ internal struct ComponentInfo
 public static class ComponentTypeID<T>
     where T : unmanaged, IComponent
 {
-    public static readonly Identifier<IComponent> Value = ComponentRegistry.GetOrRegisterComponentID<T>();
+    public static readonly Identifier<IComponent> Value;
+    public static readonly bool IsShared = typeof(ISharedComponent).IsAssignableFrom(typeof(T));
+    public static readonly bool IsEnableable = typeof(IEnableableComponent).IsAssignableFrom(typeof(T));
+    public static readonly bool IsCleanup = typeof(ICleanupComponent).IsAssignableFrom(typeof(T));
+
+    static ComponentTypeID()
+    {
+        Value = ComponentRegistry.GetOrRegisterComponentID<T>();
+    }
 }
 
 internal static class ComponentRegistry
@@ -341,32 +349,97 @@ public partial class ComponentManager : IDisposable
 
 public struct SharedComponentSet : IDisposable
 {
+    private struct Element : IComparable<Element>
+    {
+        public int componentID;
+        public int offset;
+        public int size;
+
+        public readonly int CompareTo(Element other) => componentID.CompareTo(other.componentID);
+    }
+
     private BufferWriter _writer;
+    private UnsafeList<Element> _elements;
+    private bool _isSorted;
 
     public SharedComponentSet(int capacity, AllocationHandle allocationHandle)
     {
         _writer = new BufferWriter(capacity, allocationHandle);
+        _elements = new UnsafeList<Element>(4, allocationHandle);
+        _isSorted = true;
     }
 
     public void With<T>(scoped in T data)
         where T : unmanaged, ISharedComponent
     {
+        var id = ComponentTypeID<T>.Value.Value;
+        var offset = _writer.Position;
+        int size;
+        unsafe
+        {
+            size = sizeof(T);
+        }
+
+        if (_elements.Count > 0 && _elements[_elements.Count - 1].componentID > id)
+        {
+            _isSorted = false;
+        }
+
+        _elements.Add(new Element
+        {
+            componentID = id,
+            offset = offset,
+            size = size
+        });
+
         _writer.Write(in data);
     }
 
-    public readonly ReadOnlySpan<byte> AsSpan()
+    public ReadOnlySpan<byte> AsSpan()
     {
+        if (!_isSorted && _elements.Count > 1)
+        {
+            SortData();
+        }
+
         return _writer.AsSpan();
+    }
+
+    private void SortData()
+    {
+        _elements.AsSpan().Sort();
+
+        using var tempBuffer = new UnsafeArray<byte>(_writer.Position, AllocationHandle.Temp);
+        var srcSpan = _writer.AsSpan();
+        var dstSpan = tempBuffer.AsSpan();
+
+        var currentOffset = 0;
+        for (var i = 0; i < _elements.Count; i++)
+        {
+            var el = _elements[i];
+            srcSpan.Slice(el.offset, el.size).CopyTo(dstSpan.Slice(currentOffset, el.size));
+            
+            el.offset = currentOffset;
+            _elements[i] = el;
+
+            currentOffset += el.size;
+        }
+
+        dstSpan.CopyTo(srcSpan);
+        _isSorted = true;
     }
 
     public void Reset()
     {
         _writer.Reset();
+        _elements.Clear();
+        _isSorted = true;
     }
 
     public void Dispose()
     {
         _writer.Dispose();
+        _elements.Dispose();
     }
 }
 
@@ -415,26 +488,24 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
     {
         _components = new UnsafeArray<Identifier<IComponent>>(components.Length, allocationHandle);
         components.CopyTo(_components.AsSpan());
-
-        _hashCode = -1;
-        _sharedHashCode = -1;
-    }
-
-    public ComponentSet(AllocationHandle allocationHandle, ReadOnlySpan<Identifier<IComponent>> components, ReadOnlySpan<byte> sharedData)
-    {
-        _components = new UnsafeArray<Identifier<IComponent>>(components.Length, allocationHandle);
-        components.CopyTo(_components.AsSpan());
-
-        _sharedData = new UnsafeArray<byte>(sharedData.Length, allocationHandle);
-        sharedData.CopyTo(_sharedData);
+        _components.AsSpan().Sort(static (a, b) => a.Value.CompareTo(b.Value));
 
         _hashCode = -1;
         _sharedHashCode = -1;
     }
 
     public ComponentSet(AllocationHandle allocationHandle, ReadOnlySpan<Identifier<IComponent>> components, SharedComponentSet sharedComponentSet)
-        : this(allocationHandle, components, sharedComponentSet.AsSpan())
     {
+        _components = new UnsafeArray<Identifier<IComponent>>(components.Length, allocationHandle);
+        components.CopyTo(_components.AsSpan());
+        _components.AsSpan().Sort(static (a, b) => a.Value.CompareTo(b.Value));
+
+        var sharedData = sharedComponentSet.AsSpan();
+        _sharedData = new UnsafeArray<byte>(sharedData.Length, allocationHandle);
+        sharedData.CopyTo(_sharedData);
+
+        _hashCode = -1;
+        _sharedHashCode = -1;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -445,7 +516,7 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
 
     public readonly bool Equals(ComponentSet other)
     {
-        return _hashCode == other._hashCode && _sharedHashCode == other._sharedHashCode;
+        return _hashCode == other._hashCode && _sharedHashCode == other._sharedHashCode && _components.AsSpan().SequenceEqual(other._components.AsSpan()) && _sharedData.AsSpan().SequenceEqual(other._sharedData.AsSpan());
     }
 
     public override int GetHashCode()
@@ -520,6 +591,10 @@ public ref struct ComponentSetView : IEquatable<ComponentSetView>
         }
     }
 
+    /// <summary>
+    /// Creates a new instance of <see cref="ComponentSetView"/> with the specified component identifiers and no shared component data.
+    /// </summary>
+    /// <param name="components">The collection of component identifiers.</param>
     public ComponentSetView(ReadOnlySpan<Identifier<IComponent>> components)
     {
         _components = components;
@@ -527,6 +602,14 @@ public ref struct ComponentSetView : IEquatable<ComponentSetView>
         _sharedHashCode = -1;
     }
 
+    /// <summary>
+    /// Create a new instance of <see cref="ComponentSetView"/> with the specified component identifiers and shared component data.
+    /// </summary>
+    /// <remarks>
+    /// This API does not sort the shared component data internally. Which means [A, B] is different from [B, A] during chunk grouping.
+    /// </remarks>
+    /// <param name="components">The collection of component identifiers.</param>
+    /// <param name="sharedData">The shared component data.</param>
     public ComponentSetView(ReadOnlySpan<Identifier<IComponent>> components, ReadOnlySpan<byte> sharedData)
     {
         _components = components;
@@ -535,6 +618,11 @@ public ref struct ComponentSetView : IEquatable<ComponentSetView>
         _sharedHashCode = -1;
     }
 
+    /// <summary>
+    /// Creates a new instance of <see cref="ComponentSetView"/> with the specified component identifiers and shared component set.
+    /// </summary>
+    /// <param name="components">The collection of component identifiers.</param>
+    /// <param name="sharedComponentSet">The shared component set.</param>
     public ComponentSetView(ReadOnlySpan<Identifier<IComponent>> components, SharedComponentSet sharedComponentSet)
         : this(components, sharedComponentSet.AsSpan())
     {
@@ -542,7 +630,7 @@ public ref struct ComponentSetView : IEquatable<ComponentSetView>
 
     public readonly bool Equals(ComponentSetView other)
     {
-        return _hashCode == other._hashCode && _sharedHashCode == other._sharedHashCode;
+        return _hashCode == other._hashCode && _sharedHashCode == other._sharedHashCode && _components.SequenceEqual(other._components) && _sharedData.SequenceEqual(other._sharedData);
     }
 
     public override int GetHashCode()
