@@ -3,7 +3,6 @@ using Ghost.Core.Graphics;
 using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Utilities;
-using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Collections.Concurrent;
@@ -24,11 +23,11 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
     public event ShaderVariantCompiledHandler? OnShaderVariantCompiled;
     public event Action<ulong>? OnShaderInvalidated;
 
-    public EditorShaderCompilerBridge(IAssetRegistry assetRegistry, IServiceProvider serviceProvider)
+    public EditorShaderCompilerBridge(IAssetRegistry assetRegistry, IServiceProvider serviceProvider, IShaderCompiler shaderCompiler)
     {
         _assetRegistry = assetRegistry;
         _serviceProvider = serviceProvider;
-        _compiler = new DXCShaderCompiler();
+        _compiler = shaderCompiler;
 
         _assetRegistry.OnAssetImported += OnAssetImported;
     }

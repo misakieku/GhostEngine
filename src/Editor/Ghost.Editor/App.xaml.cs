@@ -7,6 +7,7 @@ using Ghost.Editor.ViewModels.Windows;
 using Ghost.Editor.Views.Windows;
 using Ghost.Engine;
 using Ghost.Engine.Streaming;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -64,10 +65,11 @@ public partial class App : Application
                 services.AddSingleton<IInspectorService, InspectorService>();
                 services.AddSingleton<IPreviewService, PreviewService>();
                 services.AddSingleton<IAssetRegistry, AssetRegistry>();
-                services.AddSingleton<InspectorSyncService>();
+                services.AddSingleton<IShaderCompiler, DXCShaderCompiler>();
+                services.AddSingleton<IEditorWorldService, EditorWorldService>();
 
+                services.AddSingleton<InspectorSyncService>();
                 services.AddSingleton<EditorTickEngine>();
-                services.AddSingleton<EditorWorldService>();
                 services.AddSingleton<SceneSerializationService>();
                 services.AddSingleton<SceneGraphSyncService>();
 

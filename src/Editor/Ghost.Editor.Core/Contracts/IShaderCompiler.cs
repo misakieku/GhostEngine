@@ -60,7 +60,7 @@ public enum ShaderStage
     Library // For ray tracing shaders or work graph shaders that don't fit into the traditional shader stages
 }
 
-public interface IShaderCompiler : IDisposable
+internal interface IShaderCompiler : IDisposable
 {
     Result<UnsafeArray<byte>> Compile(ref readonly ShaderCompilationConfig config, AllocationHandle handle);
 }

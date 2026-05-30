@@ -13,8 +13,8 @@ namespace Ghost.Editor.Views.Controls;
 public sealed partial class Hierarchy : UserControl
 {
     private readonly IInspectorService _inspectorService;
+    private readonly IEditorWorldService _worldService;
     private readonly SceneGraphSyncService _syncService;
-    private readonly EditorWorldService _worldService;
     private EntityNode? _draggedNode;
 
     public Hierarchy()
@@ -27,7 +27,7 @@ public sealed partial class Hierarchy : UserControl
         // This ensures the singleton hooks into EditorWorldService events and starts populating RootNodes.
         _syncService = App.GetService<SceneGraphSyncService>();
 
-        _worldService = App.GetService<EditorWorldService>();
+        _worldService = App.GetService<IEditorWorldService>();
 
         SceneTreeView.ItemsSource = _worldService.RootNodes;
 

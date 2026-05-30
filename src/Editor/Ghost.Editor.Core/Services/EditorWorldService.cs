@@ -4,20 +4,46 @@ using Ghost.Engine;
 using Ghost.Engine.Core;
 using Ghost.Entities;
 using Misaki.HighPerformance.Jobs;
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 
 namespace Ghost.Editor.Core.Services;
 
-public class EditorWorldService : IDisposable
+public interface IEditorWorldService : IDisposable
 {
-    private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _deferredActions = new();
-    private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _pendingEvents = new();
+    World EditorWorld { get; }
+    ObservableCollection<SceneNode> RootNodes { get; }
+
+    event Action<Entity, string, ushort>? EntityCreated;
+    event Action<Entity>? EntityDestroyed;
+    event Action<Entity, Entity, Entity>? EntityParentChanged;
+    event Action<Entity, string>? EntityNameChanged;
+    event Action? SceneGraphRebuilt;
+
+    void ChangeEntityScene(Entity entity, ushort sceneID);
+    void CreateDefaultScene();
+    void CreateEntity(string name, ushort sceneID, Entity parent = default);
+    void Defer(Action action);
+    void DestroyEntity(Entity entity);
+    void FirePendingEvents();
+    void FlushCommands();
+    ushort GetEntitySceneID(Entity entity);
+    void RebuildSceneGraph(Dictionary<Entity, string>? initialNames = null);
+    Error RemoveParent(Entity child);
+    void RenameEntity(Entity entity, string newName);
+    Error SetParent(Entity child, Entity parent);
+}
+
+public class EditorWorldService : IEditorWorldService
+{
+    private readonly ConcurrentQueue<Action> _deferredActions = new();
+    private readonly ConcurrentQueue<Action> _pendingEvents = new();
 
     public World EditorWorld
     {
         get;
     }
-    
+
     public ObservableCollection<SceneNode> RootNodes
     {
         get;
@@ -79,7 +105,7 @@ public class EditorWorldService : IDisposable
             }
 
             EditorWorld.AdvanceVersion();
-            
+
             _pendingEvents.Enqueue(() =>
             {
                 EntityCreated?.Invoke(entity, name, sceneID);
@@ -256,10 +282,10 @@ public class EditorWorldService : IDisposable
     }
     public void RebuildSceneGraph(Dictionary<Entity, string>? initialNames = null)
     {
-        Defer(() => 
+        Defer(() =>
         {
             var sceneNodes = SceneGraphBuilder.Build(EditorWorld, initialNames);
-            _pendingEvents.Enqueue(() => 
+            _pendingEvents.Enqueue(() =>
             {
                 RootNodes.Clear();
                 foreach (var node in sceneNodes)

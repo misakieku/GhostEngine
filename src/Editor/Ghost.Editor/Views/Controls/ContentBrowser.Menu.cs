@@ -75,6 +75,6 @@ internal partial class ContentBrowser
         var sceneSerializationService = App.GetService<SceneSerializationService>();
         sceneSerializationService.SaveSceneFromEditorWorld(newScenePath, tempScene);
 
-        SceneManager.DestroyScene(tempScene, App.GetService<EditorWorldService>().EditorWorld);
+        SceneManager.DestroyScene(tempScene, App.GetService<IEditorWorldService>().EditorWorld);
     }
 }
