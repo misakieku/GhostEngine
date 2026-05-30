@@ -10,6 +10,7 @@
     <SupportedOSPlatformVersion>10.0.20348.0</SupportedOSPlatformVersion>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <NoWarn>$(NoWarn);MVVMTK0050</NoWarn>
     <Configurations>Debug;Release;Debug_Editor;Release_Editor</Configurations>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />

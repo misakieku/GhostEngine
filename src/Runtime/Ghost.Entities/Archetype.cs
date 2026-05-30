@@ -425,6 +425,36 @@ internal unsafe struct Archetype : IDisposable
         return newChunk;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private readonly ComponentMemoryLayout GetLayoutUnsafe(int componentID)
+    {
+        return _layouts[_componentIDToLayoutIndex[componentID]];
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ref Chunk GetChunkReference(int index)
+    {
+        return ref _chunks[index];
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Result<ComponentMemoryLayout, Error> GetLayout(int componentID)
+    {
+        if (componentID >= _componentIDToLayoutIndex.Count)
+        {
+            return Error.InvalidArgument;
+        }
+
+        var layoutIndex = _componentIDToLayoutIndex[componentID];
+        if (layoutIndex == -1)
+        {
+            return Error.NotFound;
+        }
+
+        return _layouts[layoutIndex];
+    }
+
     public void AllocateEntity(ReadOnlySpan<byte> sharedData, int sharedDataHash, out int chunkIndex, out int rowIndex)
     {
         var world = World.GetWorldUncheck(_worldID);
@@ -605,13 +635,12 @@ internal unsafe struct Archetype : IDisposable
         }
 #endif
 
-        var r = GetLayout(componentID);
-        if (r.Error != Error.None)
+        if (!_signature.IsSet(componentID))
         {
-            return r.Error;
+            return Error.InvalidArgument;
         }
 
-        var offset = r.Value.offset;
+        var offset = GetLayoutUnsafe(componentID).offset;
         ref var chunk = ref _chunks[chunkIndex];
 
         var chunkBase = chunk.GetUnsafePtr();
@@ -636,45 +665,17 @@ internal unsafe struct Archetype : IDisposable
         }
 #endif
 
-        var r = GetLayout(componentID);
-        if (r.Error != Error.None)
+        if (!_signature.IsSet(componentID))
         {
             return null;
         }
 
-        var offset = r.Value.offset;
+        var offset = GetLayoutUnsafe(componentID).offset;
         var chunk = _chunks[chunkIndex];
 
         var chunkBase = chunk.GetUnsafePtr();
         var size = ComponentRegistry.GetComponentInfo(componentID).size;
         return chunkBase + offset + (size * rowIndex);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ref Chunk GetChunkReference(int index)
-    {
-        return ref _chunks[index];
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Result<ComponentMemoryLayout, Error> GetLayout(int componentID)
-    {
-#if GHOST_SAFETY_CHECKS
-        if (componentID >= _componentIDToLayoutIndex.Count)
-        {
-            return Error.InvalidArgument;
-        }
-
-        var layoutIndex = _componentIDToLayoutIndex[componentID];
-        if (layoutIndex == -1)
-        {
-            return Error.NotFound;
-        }
-
-        return _layouts[layoutIndex];
-#else
-        return _layouts[_componentIDToLayoutIndex[componentID]];
-#endif
     }
 
     /// <summary>Returns the shared component layout for the given component ID, or an error if not found.</summary>
@@ -695,14 +696,13 @@ internal unsafe struct Archetype : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Error MarkChanged(int chunkIndex, int componentTypeId, uint globalVersion)
     {
-        var layoutResult = GetLayout(componentTypeId);
-        if (layoutResult.IsFailure)
+        if (!_signature.IsSet(componentTypeId))
         {
-            return layoutResult.Error;
+            return Error.InvalidArgument;
         }
 
         ref var chunk = ref _chunks[chunkIndex];
-        chunk.GetVersionUnsafePtr()[layoutResult.Value.versionIndex] = globalVersion;
+        chunk.GetVersionUnsafePtr()[GetLayoutUnsafe(componentTypeId).versionIndex] = globalVersion;
 
         return Error.None;
     }
@@ -710,14 +710,13 @@ internal unsafe struct Archetype : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Result<uint, Error> GetVersion(int chunkIndex, int componentTypeId)
     {
-        var layoutResult = GetLayout(componentTypeId);
-        if (layoutResult.Error != Error.None)
+        if (!_signature.IsSet(componentTypeId))
         {
-            return layoutResult.Error;
+            return Error.InvalidArgument;
         }
 
         ref var chunk = ref _chunks[chunkIndex];
-        return chunk.GetVersionUnsafePtr()[layoutResult.Value.versionIndex];
+        return chunk.GetVersionUnsafePtr()[GetLayoutUnsafe(componentTypeId).versionIndex];
     }
 
     public Error RemoveEntity(int chunkIndex, int rowIndex)

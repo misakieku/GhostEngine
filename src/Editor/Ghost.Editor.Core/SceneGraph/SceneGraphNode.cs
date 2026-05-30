@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using Ghost.Core;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Entities;
 using Microsoft.UI.Xaml;
@@ -7,7 +8,8 @@ using System.Collections.ObjectModel;
 
 namespace Ghost.Editor.Core.SceneGraph;
 
-public abstract partial class SceneGraphNode : ObservableObject, IInspectable
+[ObservableObject]
+public abstract partial class SceneGraphNode : GhostObject, IInspectable
 {
     [ObservableProperty]
     public partial string Name
@@ -29,6 +31,16 @@ public abstract partial class SceneGraphNode : ObservableObject, IInspectable
     {
         World = world;
         Name = name;
+    }
+
+    public override void SerializeState(BinaryWriter writer)
+    {
+        writer.Write(Name);
+    }
+
+    public override void DeserializeState(BinaryReader reader)
+    {
+        Name = reader.ReadString();
     }
 
     public virtual IconSource? CreateIcon()

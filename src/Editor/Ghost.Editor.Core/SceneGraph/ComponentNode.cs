@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Editor.Core.Inspector;
 using Ghost.Entities;
 using System.Text.Json;
@@ -18,10 +19,11 @@ public class ComponentNode
     public PropertyNode[] Properties { get; }
     public string Name => Descriptor.DisplayName;
 
-    public ComponentNode(World world, Entity entity, Type componentType, ComponentDescriptor descriptor)
+    internal ComponentNode(World world, Entity entity, Type componentType, ComponentDescriptor descriptor)
     {
         _world = world;
         _entity = entity;
+
         ComponentType = componentType;
         Descriptor = descriptor;
 
@@ -43,6 +45,8 @@ public class ComponentNode
             }
         }
     }
+
+
 
     // --- Data Access ---
 
@@ -66,7 +70,7 @@ public class ComponentNode
 
     public void SetFieldValue<T>(PropertyDescriptor field, T value) where T : unmanaged
     {
-        EditorApplication.GetService<Services.EditorWorldService>().Defer(() =>
+        EditorApplication.GetService<Services.IEditorWorldService>().Defer(() =>
         {
             unsafe
             {

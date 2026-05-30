@@ -34,7 +34,7 @@ public interface IEditorWorldService : IDisposable
     Error SetParent(Entity child, Entity parent);
 }
 
-public class EditorWorldService : IEditorWorldService
+internal class EditorWorldService : IEditorWorldService
 {
     private readonly ConcurrentQueue<Action> _deferredActions = new();
     private readonly ConcurrentQueue<Action> _pendingEvents = new();

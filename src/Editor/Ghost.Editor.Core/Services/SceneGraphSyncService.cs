@@ -5,12 +5,12 @@ using Ghost.Entities;
 
 namespace Ghost.Editor.Core.Services;
 
-public class SceneGraphSyncService : IDisposable
+internal class SceneGraphSyncService : IDisposable
 {
-    private readonly EditorWorldService _worldService;
+    private readonly IEditorWorldService _worldService;
     private readonly Dictionary<Entity, EntityNode> _nodeMap = new();
 
-    public SceneGraphSyncService(EditorWorldService worldService)
+    public SceneGraphSyncService(IEditorWorldService worldService)
     {
         _worldService = worldService;
 

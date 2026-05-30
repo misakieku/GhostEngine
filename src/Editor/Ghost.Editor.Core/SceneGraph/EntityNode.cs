@@ -13,7 +13,7 @@ public sealed partial class EntityNode : SceneGraphNode
     }
     public List<ComponentNode> Components { get; } = new();
 
-    public EntityNode(World world, Entity entity, string name)
+    internal EntityNode(World world, Entity entity, string name)
         : base(world, name)
     {
         Entity = entity;

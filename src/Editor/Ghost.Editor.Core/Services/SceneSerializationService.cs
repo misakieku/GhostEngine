@@ -69,11 +69,11 @@ internal class SceneSerializationService : IDisposable
         }
     }
 
-    private readonly EditorWorldService _worldService;
+    private readonly IEditorWorldService _worldService;
     private readonly IAssetRegistry _assetRegistry;
     private readonly SceneGraphSyncService _syncService;
 
-    public SceneSerializationService(EditorWorldService worldService, IAssetRegistry assetRegistry, SceneGraphSyncService syncService)
+    public SceneSerializationService(IEditorWorldService worldService, IAssetRegistry assetRegistry, SceneGraphSyncService syncService)
     {
         _worldService = worldService;
         _assetRegistry = assetRegistry;

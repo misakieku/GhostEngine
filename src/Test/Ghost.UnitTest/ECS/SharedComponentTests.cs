@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Entities;
 using Misaki.HighPerformance.LowLevel.Buffer;
-using System.Runtime.InteropServices;
 
 namespace Ghost.UnitTest.ECS;
 
@@ -494,7 +493,7 @@ public class SharedComponentTests
         _world.EntityManager.CreateEntities(result2, set2);
 
         var groups = CollectGroupCounts();
-        
+
         Assert.AreEqual(1, groups.Count, "Expected exactly 1 chunk group due to canonical sorting of SharedComponentSet.");
         Assert.AreEqual(2, groups[42], "Both entities should be grouped under groupID 42.");
     }

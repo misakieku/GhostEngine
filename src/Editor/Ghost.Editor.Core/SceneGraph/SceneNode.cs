@@ -13,7 +13,7 @@ public sealed partial class SceneNode : SceneGraphNode
         get;
     }
 
-    public SceneNode(World world, Scene scene, string name)
+    internal SceneNode(World world, Scene scene, string name)
         : base(world, name)
     {
         Scene = scene;

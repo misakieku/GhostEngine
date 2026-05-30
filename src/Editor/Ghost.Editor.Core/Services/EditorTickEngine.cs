@@ -6,8 +6,8 @@ namespace Ghost.Editor.Core.Services;
 
 public sealed class EditorTickEngine : IDisposable
 {
-    private readonly EditorWorldService _worldService;
-    private DispatcherQueueTimer? _timer;
+    private readonly IEditorWorldService _worldService;
+    private readonly DispatcherQueueTimer _timer;
     private bool _isStarted;
 
     // Time data
@@ -20,9 +20,13 @@ public sealed class EditorTickEngine : IDisposable
     public event Action? OnInspectorSync;
     public event Action? OnFireEvents;
 
-    public EditorTickEngine(EditorWorldService worldService)
+    public EditorTickEngine(IEditorWorldService worldService)
     {
         _worldService = worldService;
+
+        _timer = EditorApplication.DispatcherQueue.CreateTimer();
+        _timer.Interval = TimeSpan.FromMilliseconds(16); // ~60Hz
+        _timer.Tick += OnTick;
     }
 
     public void Start()
@@ -31,10 +35,6 @@ public sealed class EditorTickEngine : IDisposable
         {
             return;
         }
-
-        _timer = EditorApplication.DispatcherQueue.CreateTimer();
-        _timer.Interval = TimeSpan.FromMilliseconds(16); // ~60Hz
-        _timer.Tick += OnTick;
 
         _startTimestamp = Stopwatch.GetTimestamp();
         _lastFrameTimestamp = _startTimestamp;
