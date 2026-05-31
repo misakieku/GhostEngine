@@ -9,20 +9,13 @@ internal class EntityDrawer : PropertyDrawer<Entity>
 {
     public override FrameworkElement CreateControlT(PropertyNode<Entity> model)
     {
-        var field = new ReferenceField
-        {
-            TypeLabel = "Entity",
-            IconGlyph = "\uF158",
-            Margin = new Thickness(0, 2, 0, 2)
-        };
-
-        Action<Entity> updateUI = (val) =>
+        static void UpdateUI(Entity val, ReferenceField field)
         {
             if (val.IsValid)
             {
                 field.HasValue = true;
 
-                // For now, just display the Entity ID. We could resolve its SceneGraph Node name in the future.
+                // TODO: For now, just display the Entity ID. We could resolve its SceneGraph Node name in the future.
                 field.DisplayText = $"Entity {val.ID}:{val.Generation}";
             }
             else
@@ -30,28 +23,33 @@ internal class EntityDrawer : PropertyDrawer<Entity>
                 field.HasValue = false;
                 field.DisplayText = "None (Entity)";
             }
-        };
+        }
 
-        field.ValidateDrop = (args) =>
+        var field = new ReferenceField
         {
-            // TODO: Implement drag and drop for entities from the hierarchy
-            return false;
+            TypeLabel = "Entity",
+            IconGlyph = "\uF158",
+            Margin = new Thickness(0, 2, 0, 2),
+            ValidateDrop = (args) =>
+            {
+                // TODO: Implement drag and drop for entities from the hierarchy
+                return false;
+            },
         };
 
         field.OnClearClicked = () =>
         {
             model.SetValueFromUI(Entity.Invalid);
-            model.FlushToECS();
-            updateUI(Entity.Invalid);
+            UpdateUI(Entity.Invalid, field);
         };
 
-        updateUI(model.Value);
+        UpdateUI(model.Value, field);
 
         model.OnValueChanged += (val) =>
         {
             field.DispatcherQueue.TryEnqueue(() =>
             {
-                updateUI(val);
+                UpdateUI(val, field);
             });
         };
 

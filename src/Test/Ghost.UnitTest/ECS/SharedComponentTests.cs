@@ -8,8 +8,6 @@ namespace Ghost.UnitTest.ECS;
 [DoNotParallelize]
 public class SharedComponentTests
 {
-    // ── Test components ────────────────────────────────────────────────────────
-
     private struct Tag : IComponentData { }
 
     private struct Tag2 : IComponentData { }
@@ -29,7 +27,6 @@ public class SharedComponentTests
         public int subID;
     }
 
-    // ── Fixture ────────────────────────────────────────────────────────────────
 
     private World _world = null!;
 
@@ -45,7 +42,6 @@ public class SharedComponentTests
         _world.Dispose();
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
 
     /// <summary>Creates an entity that carries Tag + SharedGroup(groupID).</summary>
     private unsafe Entity CreateWithSharedGroup(int groupID)

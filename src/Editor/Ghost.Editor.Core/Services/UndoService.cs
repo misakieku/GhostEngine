@@ -26,6 +26,7 @@ public abstract class UndoOperation
 {
     public int GroupId { get; set; }
     public string ActionName { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
     // Creates an operation that holds the *current* state, so it can be pushed to Redo.
     public abstract UndoOperation CreateReciprocal(IEditorWorldService worldService);
@@ -134,7 +135,20 @@ public class EntityComponentOperation : UndoOperation
     {
         if (other is EntityComponentOperation op)
         {
-            return op.Entity == Entity && op.ComponentId == ComponentId && op.GroupId == GroupId;
+            if (op.Entity == Entity && op.ComponentId == ComponentId)
+            {
+                // Explicit transaction merge
+                if (op.GroupId != 0 && op.GroupId == GroupId)
+                {
+                    return true;
+                }
+                
+                // Time-based merge fallback for non-transactional continuous edits (e.g. 500ms)
+                if (op.GroupId == 0)
+                {
+                    return Math.Abs((op.Timestamp - Timestamp).TotalMilliseconds) < 500;
+                }
+            }
         }
         return false;
     }
@@ -230,61 +244,20 @@ public class EntityStructureOperation : UndoOperation
 
             if (locRes.Value.archetypeID != archId)
             {
-                // We need to move the entity to the correct archetype and chunk group.
-                // Ghost.Entities might not have an easy "MoveEntityToArchetypeAndChunkGroup"
-                // The easiest way is to destroy and recreate the entity with the same ID,
-                // but since EntityManager doesn't expose CreateEntity(Entity), we might have to rely on
-                // AddComponent/RemoveComponent to migrate it, or use internal methods.
-                // For now, we will add/remove components to match the target archetype signature.
-                // 
-                // Alternatively, we can use a structural backdoor if available, but for now we'll do our best:
-                ref var currentArchetype = ref world.ComponentManager.GetArchetypeReference(locRes.Value.archetypeID);
                 ref var targetArchetype = ref world.ComponentManager.GetArchetypeReference(archId);
 
-                // Determine components to add and remove
-                var it = currentArchetype._signature.GetIterator();
-                var toRemove = new List<int>();
+                // Build ComponentSetView from the target archetype
+                var it = targetArchetype._signature.GetIterator();
+                var components = new List<Identifier<IComponent>>();
                 while (it.Next(out var compId))
                 {
-                    if (!targetArchetype._signature.IsSet(compId))
-                    {
-                        toRemove.Add(compId);
-                    }
+                    components.Add(new Identifier<IComponent>(compId));
                 }
 
-                it = targetArchetype._signature.GetIterator();
-                var toAdd = new List<int>();
-                while (it.Next(out var compId))
-                {
-                    if (!currentArchetype._signature.IsSet(compId))
-                    {
-                        toAdd.Add(compId);
-                    }
-                }
-
-                foreach (var id in toRemove)
-                {
-                    world.EntityManager.RemoveComponent(targetEntity, new Identifier<IComponent>(id));
-                }
-
-                foreach (var id in toAdd)
-                {
-                    // Add default component, we will overwrite its memory shortly.
-                    unsafe
-                    {
-                        var info = ComponentRegistry.GetComponentInfo(new Identifier<IComponent>(id));
-                        var defaultData = new byte[info.size];
-                        fixed (byte* p = defaultData)
-                        {
-                            world.EntityManager.AddComponent(targetEntity, new Identifier<IComponent>(id), p);
-                        }
-                    }
-                }
+                var set = new ComponentSetView(components.ToArray(), sharedData ?? Array.Empty<byte>());
+                world.EntityManager.MigrateEntity(targetEntity, set);
             }
 
-            // By now the entity should be in the correct archetype, but maybe not the correct shared data group.
-            // We need to overwrite the shared data if needed.
-            // (Assuming there are APIs to set shared data based on the recorded bytes).
 
             // Overwrite unmanaged memory
             locRes = world.EntityManager.GetEntityLocation(targetEntity);
@@ -418,20 +391,20 @@ public class UndoService : IUndoService
 
     private void PushOperation(UndoOperation op)
     {
-        if (_activeGroupId != 0)
-        {
-            op.GroupId = _activeGroupId;
-        }
-        else
-        {
-            op.GroupId = _nextGroupId++;
-        }
+        bool isTransaction = _activeGroupId != 0;
+        op.GroupId = isTransaction ? _activeGroupId : 0;
 
         UndoOperation? top = _undoStack.Count > 0 ? _undoStack.Peek() : null;
-        if (_activeGroupId != 0 && top != null && op.CanMerge(top))
+        if (top != null && op.CanMerge(top))
         {
-            // Skip recording if we are in a transaction and the same object was already recorded
+            // Extend the merge window by updating the timestamp
+            top.Timestamp = op.Timestamp;
             return;
+        }
+
+        if (!isTransaction)
+        {
+            op.GroupId = _nextGroupId++;
         }
 
         _undoStack.Push(op);
@@ -454,23 +427,13 @@ public class UndoService : IUndoService
 
     public void RecordEntityComponent(ComponentNode node, string actionName)
     {
-        // Internal getter logic goes here or we use the Node's existing pointer method
-        var entityNodeField = typeof(ComponentNode).GetField("_entityNode", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         var op = new EntityComponentOperation
         {
             ActionName = actionName,
-            Entity = typeof(ComponentNode).GetField("_entity", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(node) as Entity? ?? default,
-            ComponentId = node.Descriptor.ComponentId
+            Entity = node.Entity,
+            ComponentId = node.Descriptor.ComponentId,
+            InstanceID = node.EntityNode.InstanceID
         };
-        // We assume we can get the InstanceID if we pass the EntityNode along, or we can look it up.
-        // Wait, ComponentNode doesn't have an EntityNode reference. We can resolve it via Entity.
-        // Let's just find the first EntityNode that has this Entity.
-        // Actually, let's assume we can inject it or just use the Entity directly for now.
-        // Actually since we have GhostObject.Find, maybe not.
-        // Let's pass the EntityNode InstanceID. Wait, I'll use a reflection trick to find it if possible, or just leave it empty if we can't.
-        // Or better yet, we can ask the registry.
-        // Actually, we can just leave it as Guid.Empty if not known, but let's try to get it.
-        op.InstanceID = Guid.Empty;
 
         unsafe
         {
@@ -483,6 +446,7 @@ public class UndoService : IUndoService
             }
             op.ComponentData = data;
         }
+
         PushOperation(op);
     }
 

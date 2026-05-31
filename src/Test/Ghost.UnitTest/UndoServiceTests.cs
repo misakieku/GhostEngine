@@ -25,8 +25,8 @@ public class UndoServiceTests
         }
     }
 
-    private EditorWorldService _worldService;
-    private UndoService _undoService;
+    private EditorWorldService _worldService = null!;
+    private UndoService _undoService = null!;
 
     [TestInitialize]
     public void Setup()

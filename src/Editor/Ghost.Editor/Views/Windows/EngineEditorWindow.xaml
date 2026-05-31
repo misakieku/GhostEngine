@@ -22,6 +22,11 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Modifiers="Control" Key="Z" Invoked="Undo_Invoked" />
+            <KeyboardAccelerator Modifiers="Control" Key="Y" Invoked="Redo_Invoked" />
+        </Grid.KeyboardAccelerators>
+
         <!--  Title Bar  -->
         <StackPanel
             x:Name="TitleBar"

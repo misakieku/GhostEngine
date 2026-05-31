@@ -1,6 +1,7 @@
-using Ghost.Core;
 using Ghost.Editor.Core.Inspector;
+using Ghost.Editor.Core.Services;
 using Ghost.Entities;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Text.Json;
 
 namespace Ghost.Editor.Core.SceneGraph;
@@ -9,20 +10,31 @@ namespace Ghost.Editor.Core.SceneGraph;
 /// Represents a single component on an entity within the Editor's scene graph.
 /// Acts as the middleware between the Inspector's PropertyModels and the actual ECS memory.
 /// </summary>
-public class ComponentNode
+public unsafe class ComponentNode
 {
+    private readonly IUndoService _undoService;
+    private readonly IEditorWorldService _worldService;
+
+    private readonly Dictionary<string, int> _propertyIndices;
     protected readonly World _world;
-    protected readonly Entity _entity;
+
+    public EntityNode EntityNode { get; }
+    public Entity Entity => EntityNode.Entity;
 
     public Type ComponentType { get; }
     public ComponentDescriptor Descriptor { get; }
     public PropertyNode[] Properties { get; }
     public string Name => Descriptor.DisplayName;
 
-    internal ComponentNode(World world, Entity entity, Type componentType, ComponentDescriptor descriptor)
+    internal ComponentNode(World world, EntityNode entityNode, Type componentType, ComponentDescriptor descriptor)
     {
+        _undoService = EditorApplication.GetService<IUndoService>();
+        _worldService = EditorApplication.GetService<IEditorWorldService>();
+
+        _propertyIndices = new Dictionary<string, int>(descriptor.Properties.Length);
         _world = world;
-        _entity = entity;
+
+        EntityNode = entityNode;
 
         ComponentType = componentType;
         Descriptor = descriptor;
@@ -30,143 +42,187 @@ public class ComponentNode
         Properties = new PropertyNode[descriptor.Properties.Length];
         for (var i = 0; i < descriptor.Properties.Length; i++)
         {
+            _propertyIndices[descriptor.Properties[i].Name] = i;
+
+            // TODO: We should use a registry/factory for different PropertyNode types instead of hardcoding HandlePropertyNode here. This is just a quick solution for handles for now.
             var prop = descriptor.Properties[i];
-            if (prop.FieldType.IsGenericType && prop.FieldType.GetGenericTypeDefinition() == typeof(Ghost.Core.Handle<>))
+            if (prop.ValueType.IsGenericType && prop.ValueType.GetGenericTypeDefinition() == typeof(Ghost.Core.Handle<>))
             {
-                var nodeType = typeof(HandlePropertyNode<>).MakeGenericType(prop.FieldType.GetGenericArguments()[0]);
+                var nodeType = typeof(HandlePropertyNode<>).MakeGenericType(prop.ValueType.GetGenericArguments()[0]);
                 Properties[i] = (PropertyNode)Activator.CreateInstance(nodeType, prop, this)!;
             }
             else
             {
                 // Create a standard PropertyNode<T> for non-handle types
                 // We use MakeGenericType to create the correct PropertyNode<T> based on FieldType
-                var nodeType = typeof(PropertyNode<>).MakeGenericType(prop.FieldType);
+                var nodeType = typeof(PropertyNode<>).MakeGenericType(prop.ValueType);
                 Properties[i] = (PropertyNode)Activator.CreateInstance(nodeType, prop, this, null)!;
             }
         }
     }
 
-
-
-    // --- Data Access ---
-
-    public object ReadBoxedValue(PropertyDescriptor field)
+    public void SetPropertyValue<T>(PropertyDescriptor property, T value)
+        where T : unmanaged
     {
-        unsafe
+        if (property.ValueType != typeof(T))
         {
-            var pComponent = GetComponentPointer();
-            return field.ReadBoxed(pComponent);
+            throw new ArgumentException("Property type does not match value type");
         }
-    }
 
-    public T GetFieldValue<T>(PropertyDescriptor field) where T : unmanaged
-    {
-        unsafe
+        _undoService.RecordEntityComponent(this, $"Edit property {property.DisplayName} on {Descriptor.DisplayName}");
+        _worldService.Defer(() =>
         {
-            var pComponent = GetComponentPointer();
-            return field.Read<T>(pComponent);
-        }
-    }
-
-    public void SetFieldValue<T>(PropertyDescriptor field, T value) where T : unmanaged
-    {
-        EditorApplication.GetService<Services.IEditorWorldService>().Defer(() =>
-        {
-            unsafe
+            if (Descriptor.IsShared)
             {
-                if (Descriptor.IsShared)
+                var ptr = _world.EntityManager.GetSharedComponent(Entity, Descriptor.ComponentId);
+                if (ptr != null)
                 {
-                    var ptr = _world.EntityManager.GetSharedComponent(_entity, Descriptor.ComponentId);
-                    if (ptr != null)
-                    {
-                        using var scope = Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.CreateStackScope();
-                        using var buffer = new Misaki.HighPerformance.LowLevel.Buffer.MemoryBlock((nuint)Descriptor.Size, 16, scope.AllocationHandle);
-                        System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.GetUnsafePtr(), ptr, (uint)Descriptor.Size);
-                        field.Write<T>(buffer.GetUnsafePtr(), value);
-                        _world.EntityManager.SetSharedComponent(_entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
-                    }
+                    using var scope = AllocationManager.CreateStackScope();
+                    using var buffer = new MemoryBlock((nuint)Descriptor.Size, 16, scope.AllocationHandle);
+                    System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.GetUnsafePtr(), ptr, (uint)Descriptor.Size);
+                    property.Write(buffer.GetUnsafePtr(), value);
+                    _world.EntityManager.SetSharedComponent(Entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
                 }
-                else
-                {
-                    var pComponent = GetComponentPointer();
-                    field.Write<T>(pComponent, value);
-                }
+            }
+            else
+            {
+                var pComponent = GetComponentPointer();
+                property.Write(pComponent, value);
             }
         });
     }
 
-    // --- Serialization ---
+    public void SetComponent<T>(T value)
+        where T : unmanaged
+    {
+        if (typeof(T) != ComponentType)
+        {
+            throw new ArgumentException("Value type does not match component type");
+        }
+
+        _undoService.RecordEntityComponent(this, $"Edit component {Descriptor.DisplayName}");
+        _worldService.Defer(() =>
+        {
+            if (Descriptor.IsShared)
+            {
+                using var scope = AllocationManager.CreateStackScope();
+                using var buffer = new MemoryBlock((nuint)Descriptor.Size, 16, scope.AllocationHandle);
+                buffer.GetElementAt<T>(0) = value;
+                _world.EntityManager.SetSharedComponent(Entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
+            }
+            else
+            {
+                var pComponent = GetComponentPointer();
+                *(T*)pComponent = value;
+            }
+        });
+    }
+
+    public PropertyNode GetProperty(string propertyName)
+    {
+        if (_propertyIndices.TryGetValue(propertyName, out var index))
+        {
+            return Properties[index];
+        }
+
+        throw new ArgumentException($"Property '{propertyName}' not found in component '{Name}'");
+    }
+
+    public PropertyNode<T> GetProperty<T>(string propertyName)
+        where T : unmanaged
+    {
+        var prop = GetProperty(propertyName);
+        if (prop is PropertyNode<T> typedProp)
+        {
+            return typedProp;
+        }
+
+        throw new ArgumentException($"Property '{propertyName}' is not of type {typeof(T).Name}");
+    }
+
+    public void* GetComponentPointer()
+    {
+        if (Descriptor.IsShared)
+        {
+            return _world.EntityManager.GetSharedComponent(Entity, Descriptor.ComponentId);
+        }
+        else
+        {
+            return _world.EntityManager.GetComponent(Entity, Descriptor.ComponentId);
+        }
+    }
+
+    public ref T GetComponent<T>()
+        where T : unmanaged
+    {
+        if (typeof(T) != ComponentType)
+        {
+            throw new ArgumentException("Field type does not match component type");
+        }
+
+        var pComponent = GetComponentPointer();
+        return ref *(T*)pComponent;
+    }
+
+    public ref T GetPropertyValue<T>(PropertyDescriptor field)
+        where T : unmanaged
+    {
+        var pComponent = GetComponentPointer();
+        return ref field.Read<T>(pComponent);
+    }
 
     /// <summary>Serialize this component to JSON. Base reads from ECS directly.</summary>
     public virtual void Serialize(Utf8JsonWriter writer, JsonSerializerOptions options, Action<object>? preSerialize = null)
     {
-        unsafe
+        var boxed = System.Runtime.InteropServices.Marshal.PtrToStructure((nint)GetComponentPointer(), ComponentType);
+        if (boxed != null)
         {
-            var boxed = System.Runtime.InteropServices.Marshal.PtrToStructure((nint)GetComponentPointer(), ComponentType);
-            if (boxed != null)
+            preSerialize?.Invoke(boxed);
+
+            var jsonString = JsonSerializer.Serialize(boxed, ComponentType, options);
+            using var doc = JsonDocument.Parse(jsonString);
+            var root = System.Text.Json.Nodes.JsonObject.Create(doc.RootElement);
+            if (root != null)
             {
-                preSerialize?.Invoke(boxed);
-
-                var jsonString = JsonSerializer.Serialize(boxed, ComponentType, options);
-                using var doc = JsonDocument.Parse(jsonString);
-                var root = System.Text.Json.Nodes.JsonObject.Create(doc.RootElement);
-                if (root != null)
+                foreach (var prop in Properties)
                 {
-                    foreach (var prop in Properties)
-                    {
-                        prop.SerializeOverride(root, boxed);
-                    }
-                    root.WriteTo(writer, options);
-                    return;
+                    prop.SerializeOverride(root, boxed);
                 }
-
-                JsonSerializer.Serialize(writer, boxed, ComponentType, options);
+                root.WriteTo(writer, options);
+                return;
             }
+
+            JsonSerializer.Serialize(writer, boxed, ComponentType, options);
         }
     }
 
     /// <summary>Deserialize from JSON and apply to ECS. Base writes to ECS directly.</summary>
     public virtual void Deserialize(JsonElement element, JsonSerializerOptions options, Action<object>? postDeserialize = null)
     {
-        unsafe
+        var boxed = element.Deserialize(ComponentType, options);
+        if (boxed != null)
         {
-            var boxed = element.Deserialize(ComponentType, options);
-            if (boxed != null)
+            postDeserialize?.Invoke(boxed);
+
+            foreach (var prop in Properties)
             {
-                postDeserialize?.Invoke(boxed);
-
-                foreach (var prop in Properties)
-                {
-                    prop.DeserializeOverride(element, boxed);
-                }
-
-                EditorApplication.GetService<Services.EditorWorldService>().Defer(() =>
-                {
-                    if (Descriptor.IsShared)
-                    {
-                        using var scope = Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.CreateStackScope();
-                        using var buffer = new Misaki.HighPerformance.LowLevel.Buffer.MemoryBlock((nuint)Descriptor.Size, 16, scope.AllocationHandle);
-                        System.Runtime.InteropServices.Marshal.StructureToPtr(boxed, (nint)buffer.GetUnsafePtr(), false);
-                        _world.EntityManager.SetSharedComponent(_entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
-                    }
-                    else
-                    {
-                        System.Runtime.InteropServices.Marshal.StructureToPtr(boxed, (nint)GetComponentPointer(), false);
-                    }
-                });
+                prop.DeserializeOverride(element, boxed);
             }
-        }
-    }
 
-    public unsafe void* GetComponentPointer()
-    {
-        if (Descriptor.IsShared)
-        {
-            return _world.EntityManager.GetSharedComponent(_entity, Descriptor.ComponentId);
-        }
-        else
-        {
-            return _world.EntityManager.GetComponent(_entity, Descriptor.ComponentId);
+            _worldService.Defer(() =>
+            {
+                if (Descriptor.IsShared)
+                {
+                    using var scope = AllocationManager.CreateStackScope();
+                    using var buffer = new MemoryBlock((nuint)Descriptor.Size, 16, scope.AllocationHandle);
+                    System.Runtime.InteropServices.Marshal.StructureToPtr(boxed, (nint)buffer.GetUnsafePtr(), false);
+                    _world.EntityManager.SetSharedComponent(Entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
+                }
+                else
+                {
+                    System.Runtime.InteropServices.Marshal.StructureToPtr(boxed, (nint)GetComponentPointer(), false);
+                }
+            });
         }
     }
 }

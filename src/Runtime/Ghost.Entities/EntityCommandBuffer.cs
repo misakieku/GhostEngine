@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
@@ -19,6 +20,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
         AddSharedComponent,
         RemoveSharedComponent,
         SetSharedComponent,
+        MigrateEntity,
     }
 
     private BufferWriter _writer;
@@ -40,10 +42,23 @@ public unsafe struct EntityCommandBuffer : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void CreateEntities(Span<Entity> entities)
+    {
+        _writer.Write(ECBOpCode.CreateEntity);
+        _writer.Write(entities.Length);
+
+        for (int i = 0; i < entities.Length; i++)
+        {
+            var tempId = _nextTempId--;
+            entities[i] = new Entity(tempId, -1);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CreateEntities(int count)
     {
         _writer.Write(ECBOpCode.CreateEntity);
-        _writer.Write(count);
+        _writer.Write(-count); // Negative count indicates multiple entities without returning temp IDs.
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -57,6 +72,35 @@ public unsafe struct EntityCommandBuffer : IDisposable
         _writer.WriteSpan(set.SharedComponentData);
         var tempId = _nextTempId--;
         return new Entity(tempId, -1);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void CreateEntities(Span<Entity> entities, ComponentSetView set)
+    {
+        _writer.Write(ECBOpCode.CreateEntityWithComponents);
+        _writer.Write(entities.Length);
+        _writer.Write(set.Components.Length);
+        _writer.WriteSpan(set.Components);
+        _writer.Write(set.SharedComponentData.Length);
+        _writer.WriteSpan(set.SharedComponentData);
+
+        for (int i = 0; i < entities.Length; i++)
+        {
+            var tempId = _nextTempId--;
+            entities[i] = new Entity(tempId, -1);
+        }
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void CreateEntities(int count, ComponentSetView set)
+    {
+        _writer.Write(ECBOpCode.CreateEntityWithComponents);
+        _writer.Write(-count); // Negative count indicates multiple entities without returning temp IDs.
+        _writer.Write(set.Components.Length);
+        _writer.WriteSpan(set.Components);
+        _writer.Write(set.SharedComponentData.Length);
+        _writer.WriteSpan(set.SharedComponentData);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -142,16 +186,28 @@ public unsafe struct EntityCommandBuffer : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Entity MapEntity(Entity entity, ref Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Entity> map)
+    public void MigrateEntity(Entity entity, ComponentSetView set)
+    {
+        _writer.Write(ECBOpCode.MigrateEntity);
+        _writer.Write(entity);
+        _writer.Write(set.Components.Length);
+        _writer.WriteSpan(set.Components);
+        _writer.Write(set.SharedComponentData.Length);
+        _writer.WriteSpan(set.SharedComponentData);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Entity MapEntity(Entity entity, UnsafeList<Entity>* map)
     {
         if (entity.ID < 0)
         {
             int index = (-entity.ID) - 1;
-            if (index >= 0 && index < map.Count)
+            if (index >= 0 && index < map->Count)
             {
-                return map[index];
+                return ((Entity*)map->GetUnsafePtr())[index];
             }
         }
+
         return entity;
     }
 
@@ -160,7 +216,8 @@ public unsafe struct EntityCommandBuffer : IDisposable
         var reader = _writer.AsReader();
 
         using var scope = AllocationManager.CreateStackScope();
-        var tempMap = new Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Entity>(16, scope.AllocationHandle);
+        using var tempMap = new UnsafeList<Entity>(16, scope.AllocationHandle);
+        using var tempEntities = new UnsafeList<Entity>(16, scope.AllocationHandle);
 
         while (reader.RemainingBytes > 0)
         {
@@ -170,19 +227,31 @@ public unsafe struct EntityCommandBuffer : IDisposable
             {
                 case ECBOpCode.CreateEntity:
                     var count = reader.Read<int>();
-                    if (count == 1)
+                    var needRemap = count > 0;
+                    count = count < 0 ? -count : count;
+
+                    if (needRemap)
                     {
-                        var e = entityManager.CreateEntity();
-                        tempMap.Add(e);
+                        if (tempEntities.Capacity < count)
+                        {
+                            tempEntities.Resize(count);
+                        }
+
+                        tempEntities.UnsafeSetCount(count);
+                        entityManager.CreateEntities(tempEntities);
+                        tempMap.AddRange(tempEntities);
                     }
                     else
                     {
                         entityManager.CreateEntities(count);
                     }
+
                     break;
 
                 case ECBOpCode.CreateEntityWithComponents:
                     var entityCount = reader.Read<int>();
+                    var entityNeedRemap = entityCount > 0;
+                    entityCount = entityCount < 0 ? -entityCount : entityCount;
 
                     var compCount = reader.Read<int>();
                     var components = reader.ReadSpan<Identifier<IComponent>>(compCount);
@@ -191,20 +260,27 @@ public unsafe struct EntityCommandBuffer : IDisposable
 
                     var set = new ComponentSetView(components, sharedData);
                     
-                    if (entityCount == 1)
+                    if (entityNeedRemap)
                     {
-                        var e = entityManager.CreateEntity(set);
-                        tempMap.Add(e);
+                        if (tempEntities.Capacity < entityCount)
+                        {
+                            tempEntities.Resize(entityCount);
+                        }
+
+                        tempEntities.UnsafeSetCount(entityCount);
+                        entityManager.CreateEntities(tempEntities, set);
+                        tempMap.AddRange(tempEntities);
                     }
                     else
                     {
                         entityManager.CreateEntities(entityCount, set);
                     }
+
                     break;
 
                 case ECBOpCode.DestroyEntity:
                     var entityToDestroy = reader.Read<Entity>();
-                    entityManager.DestroyEntity(MapEntity(entityToDestroy, ref tempMap));
+                    entityManager.DestroyEntity(MapEntity(entityToDestroy, &tempMap));
                     break;
 
                 case ECBOpCode.DestroyEntities:
@@ -214,7 +290,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
                     // but we map them just in case.
                     for (int i = 0; i < removeCount; i++)
                     {
-                        entityManager.DestroyEntity(MapEntity(entitiesToRemove[i], ref tempMap));
+                        entityManager.DestroyEntity(MapEntity(entitiesToRemove[i], &tempMap));
                     }
                     break;
 
@@ -222,42 +298,54 @@ public unsafe struct EntityCommandBuffer : IDisposable
                     var entityToAdd = reader.Read<Entity>();
                     var addCompTypeID = reader.Read<Identifier<IComponent>>();
                     var pAddCompData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(addCompTypeID).size);
-                    entityManager.AddComponent(MapEntity(entityToAdd, ref tempMap), addCompTypeID, pAddCompData);
+                    entityManager.AddComponent(MapEntity(entityToAdd, &tempMap), addCompTypeID, pAddCompData);
                     break;
 
                 case ECBOpCode.RemoveComponent:
                     var entityToRemove = reader.Read<Entity>();
                     var removeCompTypeID = reader.Read<Identifier<IComponent>>();
-                    entityManager.RemoveComponent(MapEntity(entityToRemove, ref tempMap), removeCompTypeID);
+                    entityManager.RemoveComponent(MapEntity(entityToRemove, &tempMap), removeCompTypeID);
                     break;
 
                 case ECBOpCode.SetComponent:
                     var entityToSet = reader.Read<Entity>();
                     var setCompTypeID = reader.Read<Identifier<IComponent>>();
                     var pSetCompData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(setCompTypeID).size);
-                    entityManager.SetComponent(MapEntity(entityToSet, ref tempMap), setCompTypeID, pSetCompData);
+                    entityManager.SetComponent(MapEntity(entityToSet, &tempMap), setCompTypeID, pSetCompData);
                     break;
 
                 case ECBOpCode.AddSharedComponent:
                     var entityToAddShared = reader.Read<Entity>();
                     var addSharedTypeID = reader.Read<Identifier<IComponent>>();
                     var pAddSharedData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(addSharedTypeID).size);
-                    entityManager.AddSharedComponent(MapEntity(entityToAddShared, ref tempMap), addSharedTypeID, pAddSharedData);
+                    entityManager.AddSharedComponent(MapEntity(entityToAddShared, &tempMap), addSharedTypeID, pAddSharedData);
                     break;
 
                 case ECBOpCode.RemoveSharedComponent:
                     var entityToRemoveShared = reader.Read<Entity>();
                     var removeSharedTypeID = reader.Read<Identifier<IComponent>>();
-                    entityManager.RemoveSharedComponent(MapEntity(entityToRemoveShared, ref tempMap), removeSharedTypeID);
+                    entityManager.RemoveSharedComponent(MapEntity(entityToRemoveShared, &tempMap), removeSharedTypeID);
                     break;
 
                 case ECBOpCode.SetSharedComponent:
                     var entityToSetShared = reader.Read<Entity>();
                     var setSharedTypeID = reader.Read<Identifier<IComponent>>();
                     var pSetSharedData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(setSharedTypeID).size);
-                    entityManager.SetSharedComponent(MapEntity(entityToSetShared, ref tempMap), setSharedTypeID, pSetSharedData);
+                    entityManager.SetSharedComponent(MapEntity(entityToSetShared, &tempMap), setSharedTypeID, pSetSharedData);
+                    break;
+
+                case ECBOpCode.MigrateEntity:
+                    var entityToMigrate = reader.Read<Entity>();
+                    var migrateCompCount = reader.Read<int>();
+                    var migrateComponents = reader.ReadSpan<Identifier<IComponent>>(migrateCompCount);
+                    var migrateSharedDataLength = reader.Read<int>();
+                    var migrateSharedData = reader.ReadSpan<byte>(migrateSharedDataLength);
+                    var migrateSet = new ComponentSetView(migrateComponents, migrateSharedData);
+                    entityManager.MigrateEntity(MapEntity(entityToMigrate, &tempMap), migrateSet);
                     break;
             }
+
+            tempEntities.Clear();
         }
     }
 

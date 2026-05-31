@@ -43,7 +43,7 @@ public sealed partial class EntityNode : SceneGraphNode
                 }
 
                 var compDescriptor = Inspector.ComponentDescriptor.Create(type);
-                Components.Add(new ComponentNode(World, Entity, type, compDescriptor));
+                Components.Add(new ComponentNode(World, this, type, compDescriptor));
             }
         }
     }

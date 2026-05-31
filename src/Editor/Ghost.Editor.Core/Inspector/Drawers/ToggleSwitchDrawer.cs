@@ -5,7 +5,7 @@ namespace Ghost.Editor.Core.Inspector.Drawers;
 
 public sealed class ToggleSwitchDrawer : PropertyDrawer<bool>
 {
-    public override FrameworkElement CreateControlT(Ghost.Editor.Core.SceneGraph.PropertyNode<bool> model)
+    public override FrameworkElement CreateControlT(SceneGraph.PropertyNode<bool> model)
     {
         var toggle = new ToggleSwitch
         {

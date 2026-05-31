@@ -65,29 +65,11 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
         {
             foreach (var prop in comp.Properties)
             {
-                prop.SyncFromECS();
+                prop.Sync();
             }
         }
     }
 
-    /// <summary>
-    /// Write dirty model values -> ECS.
-    /// </summary>
-    public void FlushToECS()
-    {
-        if (!_world.EntityManager.Exists(_entity))
-        {
-            return;
-        }
-
-        foreach (var comp in _components)
-        {
-            foreach (var prop in comp.Properties)
-            {
-                prop.FlushToECS();
-            }
-        }
-    }
 
     private void RebuildComponentList()
     {
@@ -123,14 +105,18 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
 
     public void Sync()
     {
-        if (!_world.EntityManager.Exists(_entity)) return;
+        if (!_world.EntityManager.Exists(_entity))
+        {
+            return;
+        }
+
         RefreshStructure();
         SyncFromECS();
+        
         foreach (var editor in _activeCustomEditors)
         {
             editor.SyncBindings();
         }
-        FlushToECS();
     }
 
     public UIElement BuildUI()
@@ -141,6 +127,7 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
 
         foreach (var compNode in _components)
         {
+            // TODO: Use a more compact UI for components
             var expander = new Expander
             {
                 Header = compNode.Descriptor.DisplayName,
@@ -157,8 +144,7 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
                 var editor = ComponentEditorRegistry.CreateCustomEditor(compNode.ComponentType);
                 if (editor != null)
                 {
-                    var compObject = new ComponentObject(_world, _entity);
-                    editor.Initialize(compObject);
+                    editor.Initialize(compNode);
                     editor.Create(propertiesPanel);
                     _activeCustomEditors.Add(editor);
                 }
@@ -180,7 +166,7 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
 
     private static void BuildPropertyUI(PropertyNode propNode, Panel container)
     {
-        var drawer = PropertyDrawerRegistry.GetDrawer(propNode.Descriptor.FieldType);
+        var drawer = PropertyDrawerRegistry.GetDrawer(propNode.Descriptor.ValueType);
         var control = drawer.CreateControl(propNode);
 
         var propertyField = new Controls.PropertyField

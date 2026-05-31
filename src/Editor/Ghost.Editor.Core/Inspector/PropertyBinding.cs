@@ -1,4 +1,5 @@
 using Ghost.Editor.Core.Controls;
+using Ghost.Editor.Core.SceneGraph;
 
 namespace Ghost.Editor.Core.Inspector;
 
@@ -10,31 +11,31 @@ internal interface IPropertyBinding
 internal sealed class PropertyBinding<T> : IPropertyBinding
 {
     private readonly ValueControl<T> _control;
-    private readonly ComponentObject _componentObject;
-    private readonly Func<ComponentObject, T> _getter;
-    private readonly Action<ComponentObject, T> _setter;
+    private readonly ComponentNode _componentNode;
+    private readonly Func<ComponentNode, T> _getter;
+    private readonly Action<ComponentNode, T> _setter;
 
     public PropertyBinding(
         ValueControl<T> control,
-        ComponentObject componentObject,
-        Func<ComponentObject, T> getter,
-        Action<ComponentObject, T> setter)
+        ComponentNode componentNode,
+        Func<ComponentNode, T> getter,
+        Action<ComponentNode, T> setter)
     {
         _control = control;
-        _componentObject = componentObject;
+        _componentNode = componentNode;
         _getter = getter;
         _setter = setter;
 
         // Wire user edits -> ECS write
         _control.OnValueChanged += (_, args) =>
         {
-            _setter(_componentObject, args.NewValue!);
+            _setter(_componentNode, args.NewValue);
         };
     }
 
     public void Sync()
     {
-        var current = _getter(_componentObject);
+        var current = _getter(_componentNode);
         _control.SetValueWithoutNotifying(current);
     }
 }

@@ -12,7 +12,7 @@ public sealed class PropertyDescriptor
 {
     public string Name { get; }
     public string DisplayName { get; }
-    public Type FieldType { get; }
+    public Type ValueType { get; }
     public int OffsetInComponent { get; }
     public bool IsReadOnly { get; }
 
@@ -23,7 +23,7 @@ public sealed class PropertyDescriptor
     internal PropertyDescriptor(FieldInfo fieldInfo, int parentOffset)
     {
         Name = fieldInfo.Name;
-        FieldType = fieldInfo.FieldType;
+        ValueType = fieldInfo.FieldType;
         OffsetInComponent = parentOffset + (int)Marshal.OffsetOf(fieldInfo.DeclaringType!, fieldInfo.Name);
 
         IsReadOnly = fieldInfo.GetCustomAttribute<ReadOnlyInInspectorAttribute>() != null;
@@ -32,12 +32,12 @@ public sealed class PropertyDescriptor
         DisplayName = nameAttr?.Name ?? FormatName(Name);
 
         // Handle nested structs if this is an unmanaged struct that is not a primitive or common vector type we have custom drawers for.
-        if (FieldType.IsValueType && !FieldType.IsPrimitive && !FieldType.IsEnum)
+        if (ValueType.IsValueType && !ValueType.IsPrimitive && !ValueType.IsEnum)
         {
-            if (!PropertyDrawerRegistry.HasCustomDrawer(FieldType))
+            if (!PropertyDrawerRegistry.HasCustomDrawer(ValueType))
             {
                 var children = new List<PropertyDescriptor>();
-                var fields = FieldType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                var fields = ValueType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 foreach (var nestedField in fields)
                 {
                     if (!nestedField.IsPublic &&
@@ -60,7 +60,7 @@ public sealed class PropertyDescriptor
     {
         Name = name;
         DisplayName = FormatName(name);
-        FieldType = type;
+        ValueType = type;
         OffsetInComponent = offset;
         IsReadOnly = isReadOnly;
         Children = children;
@@ -89,7 +89,7 @@ public sealed class PropertyDescriptor
     public unsafe object ReadBoxed(void* pComponent)
     {
         var src = (byte*)pComponent + OffsetInComponent;
-        return Marshal.PtrToStructure((nint)src, FieldType)!;
+        return Marshal.PtrToStructure((nint)src, ValueType)!;
     }
 
     public unsafe void WriteBoxed(void* pComponent, object value)

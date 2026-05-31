@@ -104,8 +104,6 @@ internal class EditorWorldService : IEditorWorldService
                 HierarchyUtility.SetParent(EditorWorld, entity, parent);
             }
 
-            EditorWorld.AdvanceVersion();
-
             _pendingEvents.Enqueue(() =>
             {
                 EntityCreated?.Invoke(entity, name, sceneID);
@@ -123,7 +121,6 @@ internal class EditorWorldService : IEditorWorldService
         {
             if (!entity.IsValid) return;
             DestroyEntityRecursive(entity);
-            EditorWorld.AdvanceVersion();
         });
     }
 
@@ -175,7 +172,6 @@ internal class EditorWorldService : IEditorWorldService
             if (!entity.IsValid) return;
 
             UpdateSceneIDRecursive(entity, sceneID);
-            EditorWorld.AdvanceVersion();
             _pendingEvents.Enqueue(() => EntityParentChanged?.Invoke(entity, Entity.Invalid, Entity.Invalid));
         });
     }
@@ -232,7 +228,6 @@ internal class EditorWorldService : IEditorWorldService
                 }
             }
 
-            EditorWorld.AdvanceVersion();
             _pendingEvents.Enqueue(() => EntityParentChanged?.Invoke(child, oldParent, parent));
         });
 

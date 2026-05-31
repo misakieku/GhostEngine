@@ -29,7 +29,7 @@ public sealed class NumberBoxDrawer<T> : PropertyDrawer<T>
         return new NumberBoxDrawer<T>(0, double.CreateTruncating(T.MinValue), double.CreateTruncating(T.MaxValue));
     }
 
-    public override FrameworkElement CreateControlT(Ghost.Editor.Core.SceneGraph.PropertyNode<T> model)
+    public override FrameworkElement CreateControlT(SceneGraph.PropertyNode<T> model)
     {
         var box = new NumberBox
         {

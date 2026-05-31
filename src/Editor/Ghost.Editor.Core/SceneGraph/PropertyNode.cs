@@ -23,12 +23,8 @@ public abstract class PropertyNode
     /// <summary>
     /// Synchronize the cached value from the ECS backend.
     /// </summary>
-    public abstract void SyncFromECS();
+    public abstract void Sync();
 
-    /// <summary>
-    /// Flush any dirty UI changes back to the ECS backend.
-    /// </summary>
-    public abstract void FlushToECS();
 
     // --- Serialization Hooks ---
 
@@ -42,5 +38,51 @@ public abstract class PropertyNode
 
     public virtual void Validate(object boxedComponent)
     {
+    }
+}
+
+public class PropertyNode<T>
+    : PropertyNode where T : unmanaged
+{
+    private T _value;
+    public T Value => _value;
+
+    /// <summary>
+    /// Event fired when the value is updated from ECS. UI controls bind to this.
+    /// </summary>
+    public event Action<T>? OnValueChanged;
+
+    public PropertyNode(PropertyDescriptor descriptor, ComponentNode parent, PropertyNode[]? children = null)
+        : base(descriptor, parent)
+    {
+        Children = children;
+    }
+
+    public override void Sync()
+    {
+        var newValue = Parent.GetPropertyValue<T>(Descriptor);
+
+        if (!EqualityComparer<T>.Default.Equals(_value, newValue))
+        {
+            _value = newValue;
+            OnValueChanged?.Invoke(newValue);
+        }
+
+        if (Children != null)
+        {
+            foreach (var child in Children)
+            {
+                child.Sync();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Called by the UI when the user edits the value.
+    /// </summary>
+    public void SetValueFromUI(T newValue)
+    {
+        _value = newValue;
+        Parent.SetPropertyValue(Descriptor, newValue);
     }
 }

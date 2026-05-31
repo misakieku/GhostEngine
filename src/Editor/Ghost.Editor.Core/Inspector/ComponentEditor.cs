@@ -1,4 +1,6 @@
+using Ghost.Core;
 using Ghost.Editor.Core.Controls;
+using Ghost.Editor.Core.SceneGraph;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Ghost.Editor.Core.Inspector;
@@ -10,22 +12,23 @@ public abstract class ComponentEditor
     /// </summary>
     private readonly List<IPropertyBinding> _bindings = new();
 
-    protected ComponentObject ComponentObject { get; private set; }
+    protected ComponentNode? ComponentNode { get; private set; }
 
-    internal void Initialize(ComponentObject componentObject)
+    internal void Initialize(ComponentNode componentNode)
     {
-        ComponentObject = componentObject;
+        ComponentNode = componentNode;
     }
 
     /// <summary>
-    /// Declarative two-way binding. Replaces manual Update().
+    /// Declarative two-way binding.
     /// </summary>
     protected void Bind<T>(
         ValueControl<T> control,
-        Func<ComponentObject, T> getter,
-        Action<ComponentObject, T> setter)
+        Func<ComponentNode, T> getter,
+        Action<ComponentNode, T> setter)
     {
-        var binding = new PropertyBinding<T>(control, ComponentObject, getter, setter);
+        Logger.DebugAssert(ComponentNode != null);
+        var binding = new PropertyBinding<T>(control, ComponentNode, getter, setter);
         _bindings.Add(binding);
     }
 

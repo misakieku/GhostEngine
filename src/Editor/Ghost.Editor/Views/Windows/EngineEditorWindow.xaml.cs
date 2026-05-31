@@ -50,4 +50,18 @@ internal sealed partial class EngineEditorWindow : WindowEx
         ContentFrame.Navigate(pageType, null, new SlideNavigationTransitionInfo() { Effect = slideNavigationTransitionEffect });
         _previousSelectedIndex = currentSelectedIndex;
     }
+
+    private void Undo_Invoked(Microsoft.UI.Xaml.Input.KeyboardAccelerator sender, Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+    {
+        var undoService = Ghost.Editor.Core.EditorApplication.GetService<Ghost.Editor.Core.Services.IUndoService>();
+        undoService.PerformUndo();
+        args.Handled = true;
+    }
+
+    private void Redo_Invoked(Microsoft.UI.Xaml.Input.KeyboardAccelerator sender, Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs args)
+    {
+        var undoService = Ghost.Editor.Core.EditorApplication.GetService<Ghost.Editor.Core.Services.IUndoService>();
+        undoService.PerformRedo();
+        args.Handled = true;
+    }
 }

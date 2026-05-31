@@ -26,42 +26,47 @@ internal class LocalToWorldEditor : ComponentEditor
         container.Children.Add(new PropertyField() { Label = "Scale", Content = _scaleField });
 
         Bind(_translationField,
-            getter: obj =>
+            getter: node =>
             {
-                obj.GetData<LocalToWorld>().matrix.GetTRS(out var position, out _, out _);
-                return position;
+                return node.GetComponent<LocalToWorld>().matrix.c3.xyz;
             },
-            setter: (obj, val) =>
+            setter: (node, val) =>
             {
-                ref var data = ref obj.GetData<LocalToWorld>();
+                var data = node.GetComponent<LocalToWorld>();
                 data.matrix.c3.xyz = val;
+                node.SetComponent(data);
             });
 
         Bind(_rotationField,
-            getter: obj =>
+            getter: node =>
             {
-                obj.GetData<LocalToWorld>().matrix.GetTRS(out _, out var rotation, out _);
+                node.GetComponent<LocalToWorld>().matrix.GetTRS(out _, out var rotation, out _);
                 return math.degrees(math.EulerXYZ(rotation));
             },
-            setter: (obj, val) =>
+            setter: (node, val) =>
             {
-                ref var data = ref obj.GetData<LocalToWorld>();
+                var data = node.GetComponent<LocalToWorld>();
                 var newRotation = quaternion.EulerXYZ(val * math.TORADIANS);
                 data.matrix.GetTRS(out var oldTranslation, out _, out var oldScale);
                 data.matrix = float4x4.TRS(oldTranslation, newRotation, oldScale);
+                node.SetComponent(data);
             });
 
         Bind(_scaleField,
-            getter: obj =>
+            getter: node =>
             {
-                obj.GetData<LocalToWorld>().matrix.GetTRS(out _, out _, out var scale);
-                return scale;
+                var matrix = node.GetComponent<LocalToWorld>().matrix;
+                var scaleX = math.length(matrix.c0.xyz);
+                var scaleY = math.length(matrix.c1.xyz);
+                var scaleZ = math.length(matrix.c2.xyz);
+                return new float3(scaleX, scaleY, scaleZ);
             },
-            setter: (obj, val) =>
+            setter: (node, val) =>
             {
-                ref var data = ref obj.GetData<LocalToWorld>();
+                var data = node.GetComponent<LocalToWorld>();
                 data.matrix.GetTRS(out var oldTranslation, out var oldRotation, out _);
                 data.matrix = float4x4.TRS(oldTranslation, oldRotation, val);
+                node.SetComponent(data);
             });
     }
 }

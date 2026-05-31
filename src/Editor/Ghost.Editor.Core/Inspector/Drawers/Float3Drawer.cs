@@ -7,20 +7,20 @@ namespace Ghost.Editor.Core.Inspector.Drawers;
 
 public sealed class Float3Drawer : PropertyDrawer<float3>
 {
-    public override FrameworkElement CreateControlT(Ghost.Editor.Core.SceneGraph.PropertyNode<float3> model)
+    public override FrameworkElement CreateControlT(SceneGraph.PropertyNode<float3> node)
     {
         var field = new Float3Field
         {
-            IsEnabled = !model.Descriptor.IsReadOnly,
-            Value = model.Value
+            IsEnabled = !node.Descriptor.IsReadOnly,
+            Value = node.Value
         };
 
         field.OnValueChanged += (s, e) =>
         {
-            model.SetValueFromUI(e.NewValue);
+            node.SetValueFromUI(e.NewValue);
         };
 
-        model.OnValueChanged += (newVal) =>
+        node.OnValueChanged += (newVal) =>
         {
             field.Value = newVal;
         };

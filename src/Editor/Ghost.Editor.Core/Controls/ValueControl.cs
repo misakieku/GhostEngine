@@ -1,6 +1,7 @@
 using Ghost.Editor.Core.Event;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Editor.Core.Controls;
 
@@ -59,6 +60,7 @@ public partial class ValueControl<T> : Control
     /// Sets the value of the control.
     /// </summary>
     /// <param name="value">The new value to set.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetValue(T value)
     {
         Value = value;
@@ -73,7 +75,7 @@ public partial class ValueControl<T> : Control
     public void SetValueWithoutNotifying(T value)
     {
         _suppressChangedEvent = true;
-        SetValue(ValueProperty, value);
+        SetValue(value);
         _suppressChangedEvent = false;
     }
 }

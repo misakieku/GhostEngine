@@ -138,4 +138,30 @@ public class EntityCommandBufferTests
 
         Assert.IsFalse(_world.EntityManager.HasComponent<SharedComp>(entity));
     }
+
+    [TestMethod]
+    public void TestECB_TempEntity()
+    {
+        using var ecb = new EntityCommandBuffer(1024, AllocationHandle.Persistent);
+        var tempEntity = ecb.CreateEntity();
+
+        Assert.IsLessThan(0, tempEntity.ID); // Temp entities should have negative IDs
+        Assert.IsLessThan(0, tempEntity.Generation);  // Temp entities should have negative generations
+
+        ecb.AddComponent(tempEntity, new CompA { value = 123 });
+
+        ecb.Playback(_world.EntityManager);
+
+        var queryID = QueryBuilder.New().WithAll<CompA>().Build(_world);
+        ref readonly var query = ref _world.ComponentManager.GetEntityQueryReference(queryID);
+        var found = false;
+
+        foreach (var (entity, compA) in query.GetEntityComponentIterator<CompA>())
+        {
+            Assert.AreEqual(123, compA.Get().value);
+            found = true;
+        }
+
+        Assert.IsTrue(found);
+    }
 }

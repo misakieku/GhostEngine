@@ -63,7 +63,6 @@ public sealed partial class Float3Field : ValueControl<float3>
             (float)(_yComponent?.Value ?? 0),
             (float)(_zComponent?.Value ?? 0));
 
-        RiseChangedEvent(Value, newValue);
         Value = newValue;
     }
 }

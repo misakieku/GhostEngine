@@ -29,7 +29,7 @@ public readonly record struct Entity
     public bool IsValid
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Generation > 0;
+        get => Generation != 0; // Temp entities have negative generation, valid entities have positive generation, invalid entities have 0 generation
     }
 
     public static Entity Invalid

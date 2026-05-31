@@ -59,20 +59,22 @@ public sealed class EditorTickEngine : IDisposable
 
         _lastFrameTimestamp = now;
 
-        // Phase 1: Safe Zone (Drain Commands & ECB)
+        // Safe Zone (Drain Commands & ECB)
         _worldService.FlushCommands();
         OnSafeZone?.Invoke();
 
-        // Phase 2: Editor Systems
+        // Editor Systems
         _worldService.EditorWorld.SystemManager.UpdateAll(_timeData);
         OnSystemUpdate?.Invoke();
 
-        // Phase 3: Inspector Sync
+        // Inspector Sync
         OnInspectorSync?.Invoke();
 
-        // Phase 4: Fire Events
+        // Fire Events
         _worldService.FirePendingEvents();
         OnFireEvents?.Invoke();
+
+        _worldService.EditorWorld.AdvanceVersion();
     }
 
     public void Dispose()

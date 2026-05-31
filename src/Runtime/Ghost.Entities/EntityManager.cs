@@ -877,6 +877,82 @@ public unsafe partial class EntityManager : IDisposable
     {
         return RemoveComponent(entity, ComponentTypeID<T>.Value);
     }
+    /// <summary>
+    /// Migrate the specified entity to a new structural state defined by the component set.
+    /// </summary>
+    /// <param name="entity">The entity to migrate.</param>
+    /// <param name="set">The target component set view defining the new structural state.</param>
+    /// <returns>The result status of the operation.</returns>
+    public Error MigrateEntity(Entity entity, ComponentSetView set)
+    {
+        ref var location = ref _entityLocations.GetElementReferenceAt(entity.ID, entity.Generation, out var exist);
+        if (!exist)
+        {
+            return Error.NotFound;
+        }
+
+        var hash = set.ComponentHashCode;
+        var newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(hash);
+
+        if (newArcID.IsInvalid)
+        {
+            newArcID = _world.ComponentManager.CreateArchetype(set.Components, hash);
+        }
+
+        if (location.archetypeID == newArcID)
+        {
+            ref var currentArchetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+            
+            // Check if shared data is exactly the same
+            if (currentArchetype._sharedLayouts.Count > 0)
+            {
+                var sharedHash = set.SharedDataHashCode;
+                var currentChunk = currentArchetype.GetChunkReference(location.chunkIndex);
+                if (currentChunk._groupIndex >= 0)
+                {
+                    var currentGroup = currentArchetype._chunkGroups[currentChunk._groupIndex];
+                    if (currentGroup.sharedDataHash == sharedHash && currentGroup.sharedData.AsSpan().SequenceEqual(set.SharedComponentData))
+                    {
+                        // Completely identical structure and shared group, no migration needed!
+                        return Error.None;
+                    }
+                }
+            }
+            else
+            {
+                // No shared data, and archetype matches. No migration needed!
+                return Error.None;
+            }
+        }
+
+        ref var oldArchetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+        ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
+
+        // Allocate the entity in the new archetype
+        newArchetype.AllocateEntity(set.SharedComponentData, set.SharedDataHashCode, out var newChunkIndex, out var newRowIndex);
+
+        // Copy overlapping data from old to new
+        CopyData(ref oldArchetype, location.chunkIndex, location.rowIndex,
+                 ref newArchetype, newChunkIndex, newRowIndex);
+
+        // Set entity identity in the new chunk
+        newArchetype.SetEntity(newChunkIndex, newRowIndex, entity);
+
+        // Remove from the old archetype
+        var r = oldArchetype.RemoveEntity(location.chunkIndex, location.rowIndex);
+        Logger.DebugAssert(r == Error.None);
+        if (r != Error.None)
+        {
+            return r;
+        }
+
+        // Update location
+        location.archetypeID = newArcID;
+        location.chunkIndex = newChunkIndex;
+        location.rowIndex = newRowIndex;
+
+        return Error.None;
+    }
 
     /// <summary>
     /// Set the component data for the specified entity.
