@@ -1,16 +1,17 @@
 using Ghost.Editor.Core;
 using Ghost.Editor.Core.Services;
 using Ghost.Editor.Core.Utilities;
+using Ghost.Editor.Views.Controls;
 using Ghost.Engine.Core;
 
-namespace Ghost.Editor.Views.Controls;
+namespace Ghost.Editor.ContextMenu;
 
-internal partial class ContentBrowser
+internal static class ContentBrowserContextMenu
 {
     [ContextMenuItem("project-browser", "Show in Explorer")]
     private static void ShowInExplorer()
     {
-        var path = LastFocused?.ViewModel.CurrentDirectoryPath;
+        var path = ContentBrowser.LastFocused?.ViewModel.CurrentDirectoryPath;
         if (!Directory.Exists(path))
         {
             return;
@@ -29,7 +30,7 @@ internal partial class ContentBrowser
     {
         // TODO: Use AssetService
 
-        var viewModel = LastFocused?.ViewModel;
+        var viewModel = ContentBrowser.LastFocused?.ViewModel;
         if (viewModel is null)
         {
             return;
@@ -57,7 +58,7 @@ internal partial class ContentBrowser
     [ContextMenuItem("project-browser", "Create/Asset/Scene")]
     private static void CreateSceneAsset()
     {
-        var viewModel = LastFocused?.ViewModel;
+        var viewModel = ContentBrowser.LastFocused?.ViewModel;
         if (viewModel is null)
         {
             return;

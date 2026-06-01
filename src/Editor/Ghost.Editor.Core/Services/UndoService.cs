@@ -9,6 +9,9 @@ public enum LifecycleEvent { Created, Destroyed }
 
 public interface IUndoService
 {
+    IEnumerable<UndoOperation> UndoOperations { get; }
+    IEnumerable<UndoOperation> RedoOperations { get; }
+
     event Action? UndoRedoPerformed;
 
     void RecordObject(GhostObject obj, string actionName);
@@ -355,7 +358,7 @@ public class EntityLifecycleOperation : UndoOperation
     }
 }
 
-public class UndoService : IUndoService
+internal class UndoService : IUndoService
 {
     public event Action? UndoRedoPerformed;
 
@@ -365,6 +368,9 @@ public class UndoService : IUndoService
 
     private int _nextGroupId = 1;
     private int _activeGroupId = 0;
+
+    public IEnumerable<UndoOperation> UndoOperations => _undoStack;
+    public IEnumerable<UndoOperation> RedoOperations => _redoStack;
 
     public UndoService(IEditorWorldService worldService)
     {

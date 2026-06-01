@@ -203,7 +203,6 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="ContextMenu\" />
     <Folder Include="ViewModels\Pages\" />
     <Folder Include="Views\Pages\" />
   </ItemGroup>

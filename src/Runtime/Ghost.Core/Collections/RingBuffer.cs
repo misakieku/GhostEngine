@@ -1,13 +1,47 @@
-using System;
+using System.Collections;
 
 namespace Ghost.Core.Collections;
 
-public class RingBuffer<T>
+public class RingBuffer<T> : IEnumerable<T>
 {
+    public struct Enumerator : IEnumerator<T>
+    {
+        private readonly RingBuffer<T> _ringBuffer;
+        private int _index;
+        public Enumerator(RingBuffer<T> ringBuffer)
+        {
+            _ringBuffer = ringBuffer;
+            _index = -1;
+        }
+
+        public readonly T Current => _ringBuffer._buffer[(_ringBuffer._head + _index) % _ringBuffer._buffer.Length];
+        readonly object? IEnumerator.Current => Current;
+        
+        public bool MoveNext()
+        {
+            if (_index + 1 >= _ringBuffer._count)
+            {
+                return false;
+            }
+            _index++;
+            return true;
+        }
+
+        public void Reset()
+        {
+            _index = -1;
+        }
+
+        public readonly void Dispose()
+        {
+            // No resources to dispose
+        }
+    }
+
     private readonly T[] _buffer;
     private int _head;
     private int _count;
-    
+
     public int Count => _count;
 
     public RingBuffer(int capacity)
@@ -45,7 +79,7 @@ public class RingBuffer<T>
             item = default;
             return false;
         }
-        
+
         _count--;
         item = _buffer[(_head + _count) % _buffer.Length];
         _buffer[(_head + _count) % _buffer.Length] = default!; // Clear reference
@@ -75,5 +109,15 @@ public class RingBuffer<T>
         _head = 0;
         _count = 0;
         Array.Clear(_buffer, 0, _buffer.Length);
+    }
+
+    public IEnumerator<T> GetEnumerator()
+    {
+        return new Enumerator(this);
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
     }
 }

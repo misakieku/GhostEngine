@@ -181,7 +181,7 @@
                         </DataTemplate>
                     </GridView.ItemTemplate>
                     <GridView.ContextFlyout>
-                        <ghost:ContextFlyout Tag="project-browser" />
+                        <ghost:ContextFlyout ContextMenuTag="project-browser" />
                     </GridView.ContextFlyout>
                 </GridView>
 

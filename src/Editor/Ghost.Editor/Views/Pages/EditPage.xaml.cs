@@ -1,5 +1,6 @@
 using Ghost.Editor.Views.Controls;
 using Microsoft.UI.Xaml.Controls;
+using System.Reflection;
 
 namespace Ghost.Editor.Views.Pages;
 
@@ -13,6 +14,17 @@ public sealed partial class EditPage : Page
         InitializeComponent();
 
         ContentBrowserPresenter.Content = GetContentBrowser();
+    }
+
+    private static MenuFlyoutItem CreateNewMenuItem(string name, MethodInfo methodInfo)
+    {
+        var menuItem = new MenuFlyoutItem { Text = name };
+        menuItem.Click += (s, e) =>
+        {
+            methodInfo.Invoke(null, null);
+        };
+
+        return menuItem;
     }
 
     private ContentBrowser GetContentBrowser()

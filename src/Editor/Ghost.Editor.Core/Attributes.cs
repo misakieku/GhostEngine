@@ -50,10 +50,16 @@ public sealed class ContextMenuItemAttribute : DiscoverableAttributeBase
         get;
     }
 
-    public ContextMenuItemAttribute(string tag, string name, int group = 0)
+    public int Priority
+    {
+        get;
+    }
+
+    public ContextMenuItemAttribute(string tag, string name, int group = 0, int priority = 0)
     {
         Tag = tag;
         Name = name;
         Group = group;
+        Priority = priority;
     }
 }
