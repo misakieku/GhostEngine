@@ -1,6 +1,8 @@
 using Ghost.Editor.Core;
 using Ghost.Editor.Core.Controls;
 using Ghost.Editor.Core.Inspector;
+using Ghost.Editor.Core.SceneGraph;
+using Ghost.Editor.Core.Utilities;
 using Ghost.Engine.Components;
 using Ghost.Engine.Utilities;
 using Microsoft.UI.Xaml.Controls;
@@ -15,47 +17,49 @@ internal class LocalToWorldEditor : ComponentEditor
     private Float3Field _rotationField = null!;
     private Float3Field _scaleField = null!;
 
-    public override void Create(Panel container)
+    public override void Create(Panel root, ComponentNode componentNode)
     {
         _translationField = new Float3Field();
         _rotationField = new Float3Field();
         _scaleField = new Float3Field();
 
-        container.Children.Add(new PropertyField() { Label = "Position", Content = _translationField });
-        container.Children.Add(new PropertyField() { Label = "Rotation", Content = _rotationField });
-        container.Children.Add(new PropertyField() { Label = "Scale", Content = _scaleField });
+        root.Children.Add(new PropertyField() { Label = "Position", Content = _translationField });
+        root.Children.Add(new PropertyField() { Label = "Rotation", Content = _rotationField });
+        root.Children.Add(new PropertyField() { Label = "Scale", Content = _scaleField });
 
-        Bind(_translationField,
+        var property = componentNode.GetProperty<float4x4>(nameof(LocalToWorld.matrix));
+
+        _translationField.BindTwoWay(property,
             getter: node =>
             {
-                return node.GetComponent<LocalToWorld>().matrix.c3.xyz;
+                return node.Value.c3.xyz;
             },
             setter: (node, val) =>
             {
-                var data = node.GetComponent<LocalToWorld>();
-                data.matrix.c3.xyz = val;
-                node.SetComponent(data);
+                var data = node.Value;
+                data.c3.xyz = val;
+                node.SetValueFromUI(data);
             });
 
-        Bind(_rotationField,
+        _rotationField.BindTwoWay(property,
             getter: node =>
             {
-                node.GetComponent<LocalToWorld>().matrix.GetTRS(out _, out var rotation, out _);
+                node.Value.GetTRS(out _, out var rotation, out _);
                 return math.degrees(math.EulerXYZ(rotation));
             },
             setter: (node, val) =>
             {
-                var data = node.GetComponent<LocalToWorld>();
+                var data = node.Value;
                 var newRotation = quaternion.EulerXYZ(val * math.TORADIANS);
-                data.matrix.GetTRS(out var oldTranslation, out _, out var oldScale);
-                data.matrix = float4x4.TRS(oldTranslation, newRotation, oldScale);
-                node.SetComponent(data);
+                data.GetTRS(out var oldTranslation, out _, out var oldScale);
+                data = float4x4.TRS(oldTranslation, newRotation, oldScale);
+                node.SetValueFromUI(data);
             });
 
-        Bind(_scaleField,
+        _scaleField.BindTwoWay(property,
             getter: node =>
             {
-                var matrix = node.GetComponent<LocalToWorld>().matrix;
+                var matrix = node.Value;
                 var scaleX = math.length(matrix.c0.xyz);
                 var scaleY = math.length(matrix.c1.xyz);
                 var scaleZ = math.length(matrix.c2.xyz);
@@ -63,10 +67,10 @@ internal class LocalToWorldEditor : ComponentEditor
             },
             setter: (node, val) =>
             {
-                var data = node.GetComponent<LocalToWorld>();
-                data.matrix.GetTRS(out var oldTranslation, out var oldRotation, out _);
-                data.matrix = float4x4.TRS(oldTranslation, oldRotation, val);
-                node.SetComponent(data);
+                var data = node.Value;
+                data.GetTRS(out var oldTranslation, out var oldRotation, out _);
+                data = float4x4.TRS(oldTranslation, oldRotation, val);
+                node.SetValueFromUI(data);
             });
     }
 }

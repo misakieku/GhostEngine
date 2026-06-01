@@ -25,9 +25,6 @@ public abstract class PropertyNode
     /// </summary>
     public abstract void Sync();
 
-
-    // --- Serialization Hooks ---
-
     public virtual void SerializeOverride(JsonObject jsonRoot, object boxedComponent)
     {
     }
@@ -41,8 +38,8 @@ public abstract class PropertyNode
     }
 }
 
-public class PropertyNode<T>
-    : PropertyNode where T : unmanaged
+public class PropertyNode<T> : PropertyNode
+    where T : unmanaged
 {
     private T _value;
     public T Value => _value;
@@ -55,6 +52,7 @@ public class PropertyNode<T>
     public PropertyNode(PropertyDescriptor descriptor, ComponentNode parent, PropertyNode[]? children = null)
         : base(descriptor, parent)
     {
+        _value = parent.GetPropertyValue<T>(descriptor);
         Children = children;
     }
 

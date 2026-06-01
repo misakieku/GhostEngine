@@ -82,26 +82,24 @@ public class EntityComponentOperation : UndoOperation
     public int ComponentId { get; set; }
     public byte[] ComponentData { get; set; } = Array.Empty<byte>();
 
-    public override UndoOperation CreateReciprocal(IEditorWorldService worldService)
+    public unsafe override UndoOperation CreateReciprocal(IEditorWorldService worldService)
     {
         var node = GhostObject.Find(InstanceID) as EntityNode;
         var targetEntity = node?.Entity ?? Entity;
 
         var reciprocal = new EntityComponentOperation { GroupId = GroupId, ActionName = ActionName, Entity = targetEntity, InstanceID = InstanceID, ComponentId = ComponentId };
-        unsafe
+        var pComp = worldService.EditorWorld.EntityManager.GetComponent(targetEntity, new Identifier<IComponent>(ComponentId));
+        if (pComp != null)
         {
-            var pComp = worldService.EditorWorld.EntityManager.GetComponent(targetEntity, new Identifier<IComponent>(ComponentId));
-            if (pComp != null)
+            var size = ComponentRegistry.GetComponentInfo(new Identifier<IComponent>(ComponentId)).size;
+            var data = new byte[size];
+            fixed (byte* pDst = data)
             {
-                var size = ComponentRegistry.GetComponentInfo(new Identifier<IComponent>(ComponentId)).size;
-                var data = new byte[size];
-                fixed (byte* pDst = data)
-                {
-                    Buffer.MemoryCopy(pComp, pDst, size, size);
-                }
-                reciprocal.ComponentData = data;
+                Buffer.MemoryCopy(pComp, pDst, size, size);
             }
+            reciprocal.ComponentData = data;
         }
+
         return reciprocal;
     }
 
@@ -142,7 +140,7 @@ public class EntityComponentOperation : UndoOperation
                 {
                     return true;
                 }
-                
+
                 // Time-based merge fallback for non-transactional continuous edits (e.g. 500ms)
                 if (op.GroupId == 0)
                 {
@@ -163,7 +161,7 @@ public class EntityStructureOperation : UndoOperation
     public byte[] SharedData { get; set; } = Array.Empty<byte>();
     public int SharedDataHash { get; set; }
 
-    public static EntityStructureOperation Capture(IEditorWorldService worldService, EntityNode node)
+    public unsafe static EntityStructureOperation Capture(IEditorWorldService worldService, EntityNode node)
     {
         var entity = node.Entity;
         var op = new EntityStructureOperation { Entity = entity, InstanceID = node.InstanceID };
@@ -171,38 +169,35 @@ public class EntityStructureOperation : UndoOperation
         if (locRes.IsSuccess)
         {
             op.ArchetypeID = locRes.Value.archetypeID;
-            unsafe
-            {
-                ref var archetype = ref worldService.EditorWorld.ComponentManager.GetArchetypeReference(op.ArchetypeID);
-                ref var chunk = ref archetype.GetChunkReference(locRes.Value.chunkIndex);
+            ref var archetype = ref worldService.EditorWorld.ComponentManager.GetArchetypeReference(op.ArchetypeID);
+            ref var chunk = ref archetype.GetChunkReference(locRes.Value.chunkIndex);
 
-                // Compute size of all unmanaged components
-                var totalSize = 0;
+            // Compute size of all unmanaged components
+            var totalSize = 0;
+            for (var i = 0; i < archetype._layouts.Count; i++)
+            {
+                totalSize += archetype._layouts[i].size;
+            }
+
+            var data = new byte[totalSize];
+            fixed (byte* pDst = data)
+            {
+                var offset = 0;
                 for (var i = 0; i < archetype._layouts.Count; i++)
                 {
-                    totalSize += archetype._layouts[i].size;
+                    var layout = archetype._layouts[i];
+                    var pSrc = chunk.GetUnsafePtr() + layout.offset + (layout.size * locRes.Value.rowIndex);
+                    Buffer.MemoryCopy(pSrc, pDst + offset, layout.size, layout.size);
+                    offset += layout.size;
                 }
+            }
+            op.ComponentData = data;
 
-                var data = new byte[totalSize];
-                fixed (byte* pDst = data)
-                {
-                    var offset = 0;
-                    for (var i = 0; i < archetype._layouts.Count; i++)
-                    {
-                        var layout = archetype._layouts[i];
-                        var pSrc = chunk.GetUnsafePtr() + layout.offset + (layout.size * locRes.Value.rowIndex);
-                        Buffer.MemoryCopy(pSrc, pDst + offset, layout.size, layout.size);
-                        offset += layout.size;
-                    }
-                }
-                op.ComponentData = data;
-
-                if (chunk._groupIndex >= 0 && chunk._groupIndex < archetype._chunkGroups.Count)
-                {
-                    var group = archetype._chunkGroups[chunk._groupIndex];
-                    op.SharedData = group.sharedData.AsSpan().ToArray();
-                    op.SharedDataHash = group.sharedDataHash;
-                }
+            if (chunk._groupIndex >= 0 && chunk._groupIndex < archetype._chunkGroups.Count)
+            {
+                var group = archetype._chunkGroups[chunk._groupIndex];
+                op.SharedData = group.sharedData.AsSpan().ToArray();
+                op.SharedDataHash = group.sharedDataHash;
             }
         }
         return op;
@@ -221,7 +216,7 @@ public class EntityStructureOperation : UndoOperation
         return reciprocal;
     }
 
-    public override void Revert(IEditorWorldService worldService)
+    public unsafe override void Revert(IEditorWorldService worldService)
     {
         var instId = InstanceID;
         var fallbackEntity = Entity;
@@ -263,21 +258,18 @@ public class EntityStructureOperation : UndoOperation
             locRes = world.EntityManager.GetEntityLocation(targetEntity);
             if (locRes.IsSuccess)
             {
-                unsafe
-                {
-                    ref var archetype = ref world.ComponentManager.GetArchetypeReference(locRes.Value.archetypeID);
-                    ref var chunk = ref archetype.GetChunkReference(locRes.Value.chunkIndex);
+                ref var archetype = ref world.ComponentManager.GetArchetypeReference(locRes.Value.archetypeID);
+                ref var chunk = ref archetype.GetChunkReference(locRes.Value.chunkIndex);
 
-                    fixed (byte* pSrcBase = compData)
+                fixed (byte* pSrcBase = compData)
+                {
+                    var offset = 0;
+                    for (var i = 0; i < archetype._layouts.Count; i++)
                     {
-                        var offset = 0;
-                        for (var i = 0; i < archetype._layouts.Count; i++)
-                        {
-                            var layout = archetype._layouts[i];
-                            var pDst = chunk.GetUnsafePtr() + layout.offset + (layout.size * locRes.Value.rowIndex);
-                            Buffer.MemoryCopy(pSrcBase + offset, pDst, layout.size, layout.size);
-                            offset += layout.size;
-                        }
+                        var layout = archetype._layouts[i];
+                        var pDst = chunk.GetUnsafePtr() + layout.offset + (layout.size * locRes.Value.rowIndex);
+                        Buffer.MemoryCopy(pSrcBase + offset, pDst, layout.size, layout.size);
+                        offset += layout.size;
                     }
                 }
             }
@@ -425,7 +417,7 @@ public class UndoService : IUndoService
         PushOperation(op);
     }
 
-    public void RecordEntityComponent(ComponentNode node, string actionName)
+    public unsafe void RecordEntityComponent(ComponentNode node, string actionName)
     {
         var op = new EntityComponentOperation
         {
@@ -435,17 +427,16 @@ public class UndoService : IUndoService
             InstanceID = node.EntityNode.InstanceID
         };
 
-        unsafe
+        var pComp = node.GetComponentPointer();
+        var size = node.Descriptor.Size;
+        var data = new byte[size];
+
+        fixed (byte* pDst = data)
         {
-            var pComp = node.GetComponentPointer();
-            var size = node.Descriptor.Size;
-            var data = new byte[size];
-            fixed (byte* pDst = data)
-            {
-                Buffer.MemoryCopy(pComp, pDst, size, size);
-            }
-            op.ComponentData = data;
+            Buffer.MemoryCopy(pComp, pDst, size, size);
         }
+
+        op.ComponentData = data;
 
         PushOperation(op);
     }

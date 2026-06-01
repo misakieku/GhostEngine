@@ -1,4 +1,5 @@
 using Ghost.Editor.Core.Controls;
+using Ghost.Editor.Core.Utilities;
 using Microsoft.UI.Xaml;
 
 using Misaki.HighPerformance.Mathematics;
@@ -15,15 +16,7 @@ public sealed class Float3Drawer : PropertyDrawer<float3>
             Value = node.Value
         };
 
-        field.OnValueChanged += (s, e) =>
-        {
-            node.SetValueFromUI(e.NewValue);
-        };
-
-        node.OnValueChanged += (newVal) =>
-        {
-            field.Value = newVal;
-        };
+        field.BindTwoWay(node);
 
         return field;
     }

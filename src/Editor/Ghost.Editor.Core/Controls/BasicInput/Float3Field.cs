@@ -35,7 +35,9 @@ public sealed partial class Float3Field : ValueControl<float3>
         _yComponent = GetTemplateChild("YComponent") as NumberBox;
         _zComponent = GetTemplateChild("ZComponent") as NumberBox;
 
+        SuppressChangedEvent = true;
         SyncFromValue();
+        SuppressChangedEvent = false;
 
         _xComponent?.ValueChanged += OnComponentChanged;
         _yComponent?.ValueChanged += OnComponentChanged;
@@ -44,11 +46,9 @@ public sealed partial class Float3Field : ValueControl<float3>
 
     private void SyncFromValue()
     {
-        SuppressChangedEvent = true;
         _xComponent?.Value = Value.x;
         _yComponent?.Value = Value.y;
         _zComponent?.Value = Value.z;
-        SuppressChangedEvent = false;
     }
 
     private void OnComponentChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)

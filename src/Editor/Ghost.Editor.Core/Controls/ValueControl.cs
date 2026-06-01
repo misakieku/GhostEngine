@@ -5,7 +5,16 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Editor.Core.Controls;
 
-public partial class ValueControl<T> : Control
+public interface INotifyValueChanged<T>
+{
+    T Value { get; set; }
+
+    event ValueChangedEventHandler<T>? OnValueChanged;
+
+    void SetValueWithoutNotify(T value);
+}
+
+public abstract class ValueControl<T> : Control, INotifyValueChanged<T>
 {
     private bool _suppressChangedEvent;
 
@@ -40,7 +49,7 @@ public partial class ValueControl<T> : Control
         {
             valueControl.ValueChanged((T)e.OldValue, (T)e.NewValue);
 
-            if (!valueControl._suppressChangedEvent)
+            if (!valueControl.SuppressChangedEvent)
             {
                 valueControl.OnValueChanged?.Invoke(valueControl, new((T)e.OldValue, (T)e.NewValue));
             }
@@ -72,10 +81,10 @@ public partial class ValueControl<T> : Control
     /// <param name="value">The new _value to set.</param>
     /// <remarks>This method only suppresses the change event notification, not the <see cref="ValueChanged(T, T)"/> method.
     /// Useful when you need to change the _value programmatically without triggering the change event.</remarks>
-    public void SetValueWithoutNotifying(T value)
+    public void SetValueWithoutNotify(T value)
     {
-        _suppressChangedEvent = true;
+        SuppressChangedEvent = true;
         SetValue(value);
-        _suppressChangedEvent = false;
+        SuppressChangedEvent = false;
     }
 }

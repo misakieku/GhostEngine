@@ -16,6 +16,7 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
     private readonly Entity _entity;
     private EntityNode? _entityNode;
     private readonly List<ComponentNode> _components = new();
+    private readonly List<ComponentEditor> _activeCustomEditors = new();
     private int _lastArchetypeId = -1;
 
     public World World => _world;
@@ -27,49 +28,6 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
         _world = world;
         _entity = entity;
     }
-
-    /// <summary>
-    /// Called when entity archetype may have changed.
-    /// Returns true if structure was rebuilt (components added/removed).
-    /// </summary>
-    public bool RefreshStructure()
-    {
-        var locationResult = _world.EntityManager.GetEntityLocation(_entity);
-        if (locationResult.IsFailure)
-        {
-            return false;
-        }
-
-        var location = locationResult.Value;
-        if (location.archetypeID == _lastArchetypeId)
-        {
-            return false;
-        }
-
-        _lastArchetypeId = location.archetypeID;
-        RebuildComponentList();
-        return true;
-    }
-
-    /// <summary>
-    /// Read all component values from ECS -> model.
-    /// </summary>
-    public void SyncFromECS()
-    {
-        if (!_world.EntityManager.Exists(_entity))
-        {
-            return;
-        }
-
-        foreach (var comp in _components)
-        {
-            foreach (var prop in comp.Properties)
-            {
-                prop.Sync();
-            }
-        }
-    }
-
 
     private void RebuildComponentList()
     {
@@ -101,7 +59,72 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
         }
     }
 
-    private readonly List<ComponentEditor> _activeCustomEditors = new();
+    /// <summary>
+    /// Called when entity archetype may have changed.
+    /// Returns true if structure was rebuilt (components added/removed).
+    /// </summary>
+    public bool RefreshStructure()
+    {
+        var locationResult = _world.EntityManager.GetEntityLocation(_entity);
+        if (locationResult.IsFailure)
+        {
+            return false;
+        }
+
+        var location = locationResult.Value;
+        if (location.archetypeID == _lastArchetypeId)
+        {
+            return false;
+        }
+
+        _lastArchetypeId = location.archetypeID;
+        RebuildComponentList();
+        return true;
+    }
+
+    private static void BuildPropertyUI(PropertyNode propNode, Panel container)
+    {
+        var drawer = PropertyDrawerRegistry.GetDrawer(propNode.Descriptor.ValueType);
+        var control = drawer.CreateControl(propNode);
+
+        var propertyField = new Controls.PropertyField
+        {
+            Label = propNode.Descriptor.DisplayName,
+            Content = control,
+            IsEditable = !propNode.Descriptor.IsReadOnly
+        };
+
+        container.Children.Add(propertyField);
+
+        if (propNode.Children != null && propNode.Children.Length > 0)
+        {
+            var childrenPanel = new StackPanel { Spacing = 4, Margin = new Thickness(12, 4, 0, 0) };
+            foreach (var child in propNode.Children)
+            {
+                BuildPropertyUI(child, childrenPanel);
+            }
+            container.Children.Add(childrenPanel);
+        }
+    }
+
+    /// <summary>
+    /// Read all component values from ECS -> model.
+    /// </summary>
+    public void SyncFromECS()
+    {
+        if (!_world.EntityManager.Exists(_entity))
+        {
+            return;
+        }
+
+        foreach (var comp in _components)
+        {
+            foreach (var prop in comp.Properties)
+            {
+                prop.Sync();
+            }
+        }
+    }
 
     public void Sync()
     {
@@ -112,12 +135,9 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
 
         RefreshStructure();
         SyncFromECS();
-        
-        foreach (var editor in _activeCustomEditors)
-        {
-            editor.SyncBindings();
-        }
     }
+
+    // TODO: Deselect is not supported yet.
 
     public UIElement BuildUI()
     {
@@ -144,8 +164,7 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
                 var editor = ComponentEditorRegistry.CreateCustomEditor(compNode.ComponentType);
                 if (editor != null)
                 {
-                    editor.Initialize(compNode);
-                    editor.Create(propertiesPanel);
+                    editor.Create(propertiesPanel, compNode);
                     _activeCustomEditors.Add(editor);
                 }
             }
@@ -162,31 +181,6 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
         }
 
         return container;
-    }
-
-    private static void BuildPropertyUI(PropertyNode propNode, Panel container)
-    {
-        var drawer = PropertyDrawerRegistry.GetDrawer(propNode.Descriptor.ValueType);
-        var control = drawer.CreateControl(propNode);
-
-        var propertyField = new Controls.PropertyField
-        {
-            Label = propNode.Descriptor.DisplayName,
-            Content = control,
-            IsEditable = !propNode.Descriptor.IsReadOnly
-        };
-
-        container.Children.Add(propertyField);
-
-        if (propNode.Children != null && propNode.Children.Length > 0)
-        {
-            var childrenPanel = new StackPanel { Spacing = 4, Margin = new Thickness(12, 4, 0, 0) };
-            foreach (var child in propNode.Children)
-            {
-                BuildPropertyUI(child, childrenPanel);
-            }
-            container.Children.Add(childrenPanel);
-        }
     }
 
     public void Dispose()

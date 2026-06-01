@@ -152,7 +152,7 @@ public unsafe class ComponentNode
         }
     }
 
-    public ref T GetComponent<T>()
+    public T GetComponent<T>()
         where T : unmanaged
     {
         if (typeof(T) != ComponentType)
@@ -161,14 +161,14 @@ public unsafe class ComponentNode
         }
 
         var pComponent = GetComponentPointer();
-        return ref *(T*)pComponent;
+        return *(T*)pComponent;
     }
 
-    public ref T GetPropertyValue<T>(PropertyDescriptor field)
+    public T GetPropertyValue<T>(PropertyDescriptor field)
         where T : unmanaged
     {
         var pComponent = GetComponentPointer();
-        return ref field.Read<T>(pComponent);
+        return field.Read<T>(pComponent);
     }
 
     /// <summary>Serialize this component to JSON. Base reads from ECS directly.</summary>

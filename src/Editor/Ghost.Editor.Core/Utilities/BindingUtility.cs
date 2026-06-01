@@ -6,31 +6,51 @@ namespace Ghost.Editor.Core.Utilities;
 
 public static class BindingUtility
 {
-    public static void BindTwoWay<T>(this ValueControl<T> control, PropertyNode<T> model)
+    public static void BindTwoWay<T>(this INotifyValueChanged<T> control, PropertyNode<T> node)
         where T : unmanaged
     {
-        control.OnValueChanged += (s, e) => model.SetValueFromUI(e.NewValue);
-        model.OnValueChanged += control.SetValue;
+        control.SetValueWithoutNotify(node.Value);
+        control.OnValueChanged += (s, e) => node.SetValueFromUI(e.NewValue);
+        node.OnValueChanged += control.SetValueWithoutNotify;
     }
 
-    public static void BindOneWay<T>(this ValueControl<T> control, PropertyNode<T> model)
-        where T : unmanaged
+    public static void BindTwoWay<T, U>(this INotifyValueChanged<T> control, PropertyNode<U> node, Func<PropertyNode<U>, T> getter, Action<PropertyNode<U>, T> setter)
+        where U : unmanaged
     {
-        model.OnValueChanged += control.SetValue;
-    }
-
-    public static void BindOneWay<T>(this FrameworkElement element, DependencyProperty dp, PropertyNode<T> model)
-        where T : unmanaged
-    {
-        model.OnValueChanged += (newVal) =>
+        control.SetValueWithoutNotify(getter(node));
+        control.OnValueChanged += (_, args) =>
         {
-            element.SetValue(dp, newVal);
+            setter(node, args.NewValue);
+        };
+
+        node.OnValueChanged += (newVal) =>
+        {
+            control.SetValueWithoutNotify(getter(node));
         };
     }
 
-    public static void BindOneWay<T>(this FrameworkElement element, PropertyNode<T> model, Action<T> action)
+    public static void BindOneWay<T>(this INotifyValueChanged<T> control, PropertyNode<T> node)
         where T : unmanaged
     {
-        model.OnValueChanged += action;
+        control.SetValueWithoutNotify(node.Value);
+        node.OnValueChanged += control.SetValueWithoutNotify;
+    }
+
+    public static void BindOneWay<T, U>(this INotifyValueChanged<T> control, PropertyNode<U> node, Func<PropertyNode<U>, T> getter)
+        where U : unmanaged
+    {
+        node.OnValueChanged += (newVal) =>
+        {
+            control.SetValueWithoutNotify(getter(node));
+        };
+    }
+
+    public static void BindOneWay<T>(this FrameworkElement element, DependencyProperty dp, PropertyNode<T> node)
+        where T : unmanaged
+    {
+        node.OnValueChanged += (newVal) =>
+        {
+            element.SetValue(dp, newVal);
+        };
     }
 }
