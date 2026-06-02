@@ -294,7 +294,7 @@ public static class Logger
     public static void DebugAssert([DoesNotReturnIf(false)] bool condition, [CallerArgumentExpression(nameof(condition))] string? message = null)
     {
         s_logger.Assert(condition, message?.ToString() ?? "null");
-#if DEBUG || GHOST_EDITOR
+#if DEBUG
         if (!condition)
         {
             throw new Exception(message ?? "Assertion failed.");

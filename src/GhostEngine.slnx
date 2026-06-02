@@ -47,7 +47,6 @@
   </Folder>
   <Folder Name="/Test/">
     <Project Path="Test/Ghost.MicroTest/Ghost.MicroTest.csproj" Id="8c8ffa4b-e1e4-46a1-9221-7b508a109edd" />
-    <Project Path="Test/Ghost.Shader.Test/Ghost.Shader.Test.csproj" />
     <Project Path="Test/Ghost.TestCore/Ghost.TestCore.csproj" />
     <Project Path="Test/Ghost.UnitTest/Ghost.UnitTest.csproj" Id="4da45668-456b-4dcc-acd8-6bfe154e6837">
       <Platform Solution="*|ARM64" Project="ARM64" />

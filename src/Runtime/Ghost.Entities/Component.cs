@@ -58,7 +58,7 @@ internal static class ComponentRegistry
     // NOTE: Can we remove the lock? Ideally all the component registeration will happend during module init, way before the first get.
     private static readonly Lock s_registerLock = new();
 
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
     internal static readonly Dictionary<int, Type> s_runtimeIDToType = new();
 #endif
 
@@ -91,7 +91,7 @@ internal static class ComponentRegistry
 
             s_typeHandleToID[typeHandle] = newID;
             s_nameToRuntimeID[stableName] = newID;
-#if DEBUG || GHOST_EDITOR
+#if GHOST_EDITOR
             s_runtimeIDToType[newID.Value] = typeof(T);
 #endif
 

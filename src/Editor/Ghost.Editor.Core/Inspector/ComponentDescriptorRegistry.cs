@@ -3,6 +3,8 @@ using Ghost.Entities;
 
 namespace Ghost.Editor.Core.Inspector;
 
+// TODO: We can use source generator to directly generate ComponentDescriptor on each component type and avoid reflection and caching altogether. This is just a quick solution for now.
+
 /// <summary>
 /// Thread-safe cache of ComponentDescriptor per component type.
 /// </summary>
@@ -30,12 +32,6 @@ public static class ComponentDescriptorRegistry
 
     public static ComponentDescriptor GetOrCreate(Identifier<IComponent> componentId)
     {
-#if DEBUG || GHOST_EDITOR
-        if (ComponentRegistry.s_runtimeIDToType.TryGetValue(componentId.Value, out var type))
-        {
-            return GetOrCreate(type);
-        }
-#endif
-        throw new InvalidOperationException($"Cannot resolve ComponentDescriptor for component ID {componentId.Value}. Type mapping not available.");
+        return GetOrCreate(ComponentRegistry.s_runtimeIDToType[componentId.Value]);
     }
 }
