@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.SceneGraph;
 using Ghost.Engine;
 using Ghost.Engine.Core;
@@ -28,6 +29,8 @@ public interface IEditorWorldService : IDisposable
     void FirePendingEvents();
     void FlushCommands();
     ushort GetEntitySceneID(Entity entity);
+    SceneAsset? GetAssetForScene(ushort sceneID);
+    void RegisterSceneAsset(ushort sceneID, SceneAsset asset);
     void RebuildSceneGraph(Dictionary<Entity, string>? initialNames = null);
     Error RemoveParent(Entity child);
     void RenameEntity(Entity entity, string newName);
@@ -38,6 +41,7 @@ internal class EditorWorldService : IEditorWorldService
 {
     private readonly ConcurrentQueue<Action> _deferredActions = new();
     private readonly ConcurrentQueue<Action> _pendingEvents = new();
+    private readonly ConcurrentDictionary<ushort, SceneAsset> _sceneAssetMap = new();
 
     public World EditorWorld
     {
@@ -259,6 +263,17 @@ internal class EditorWorldService : IEditorWorldService
         }
 
         return Scene.INVALID_ID;
+    }
+
+    public SceneAsset? GetAssetForScene(ushort sceneID)
+    {
+        _sceneAssetMap.TryGetValue(sceneID, out var asset);
+        return asset;
+    }
+
+    public void RegisterSceneAsset(ushort sceneID, SceneAsset asset)
+    {
+        _sceneAssetMap[sceneID] = asset;
     }
 
     public void RenameEntity(Entity entity, string newName)

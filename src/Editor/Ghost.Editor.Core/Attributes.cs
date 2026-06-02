@@ -1,3 +1,5 @@
+using Windows.System;
+
 namespace Ghost.Editor.Core;
 
 /// <summary>
@@ -61,5 +63,24 @@ public sealed class ContextMenuItemAttribute : DiscoverableAttributeBase
         Name = name;
         Group = group;
         Priority = priority;
+    }
+}
+
+public sealed class ShortcutAttribute : DiscoverableAttributeBase
+{
+    public VirtualKey Key
+    {
+        get;
+    }
+
+    public VirtualKeyModifiers Modifiers
+    {
+        get;
+    }
+
+    public ShortcutAttribute(VirtualKey key, VirtualKeyModifiers modifiers = VirtualKeyModifiers.None)
+    {
+        Key = key;
+        Modifiers = modifiers;
     }
 }

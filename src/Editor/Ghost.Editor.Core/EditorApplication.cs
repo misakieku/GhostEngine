@@ -5,6 +5,14 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Ghost.Editor.Core;
 
+public enum EditorState
+{
+    Idle,
+    Playing,
+    Paused,
+    Compiling,
+}
+
 public static class EditorApplication
 {
     public const string ASSETS_FOLDER_NAME = "Assets";
@@ -54,6 +62,11 @@ public static class EditorApplication
             return s_dispatcherQueue;
         }
     }
+
+    public static EditorState State
+    {
+        get; internal set;
+    } = EditorState.Idle;
 
     internal static void Initialize(IServiceProvider serviceProvider, string projectPath, string projectName)
     {

@@ -1,4 +1,6 @@
-namespace Ghost.Core;
+using Ghost.Editor.Core.Contracts;
+
+namespace Ghost.Editor.Core;
 
 /// <summary>
 /// The base class for all objects that can be tracked and recorded by the Undo system.
@@ -14,9 +16,17 @@ public abstract class GhostObject : IDisposable
     // Use WeakReference so we don't prevent Garbage Collection of dead objects
     private static readonly Dictionary<Guid, WeakReference<GhostObject>> s_objectRegistry = new();
 
+    public static event Action<GhostObject>? OnObjectModified;
+
     protected GhostObject()
     {
         InstanceID = Guid.NewGuid();
+        s_objectRegistry[InstanceID] = new WeakReference<GhostObject>(this);
+    }
+
+    protected GhostObject(Guid instanceID)
+    {
+        InstanceID = instanceID;
         s_objectRegistry[InstanceID] = new WeakReference<GhostObject>(this);
     }
 
@@ -38,6 +48,21 @@ public abstract class GhostObject : IDisposable
             }
         }
         return null;
+    }
+
+    /// <summary>
+    /// Called before mutating state.
+    /// Hooks into the Undo and Dirty Tracking systems.
+    /// </summary>
+    public virtual void Modify()
+    {
+        OnObjectModified?.Invoke(this);
+
+        // TODO: Unify RecordObject in future sessions. For now, we skip IUndoService.RecordObject here
+        // since specialized methods are still required in UndoService.
+
+        // Mark dirty for persistence directly
+        EditorApplication.GetService<IDirtyTrackerService>().MarkDirty(this);
     }
 
     /// <summary>

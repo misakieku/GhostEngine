@@ -1,5 +1,0 @@
-feat(editor): implement MenuContextBar and add Priority support to ContextMenuItem
-
-- Refactored ContextFlyout menu building logic into MenuUtility.
-- Implemented MenuContextBar to render root nodes as MenuBarItems and children as drop-down submenus.
-- Added Priority to ContextMenuItemAttribute to allow controlling the sorting order of items within the same group.

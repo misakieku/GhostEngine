@@ -11,13 +11,13 @@ namespace Ghost.Editor.Core.SceneGraph;
 public abstract class PropertyNode
 {
     public PropertyDescriptor Descriptor { get; }
-    public ComponentNode Parent { get; }
+    public ComponentNode ComponentNode { get; }
     public PropertyNode[]? Children { get; protected set; }
 
     protected PropertyNode(PropertyDescriptor descriptor, ComponentNode parent)
     {
         Descriptor = descriptor;
-        Parent = parent;
+        ComponentNode = parent;
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public class PropertyNode<T> : PropertyNode
 
     public override void Sync()
     {
-        var newValue = Parent.GetPropertyValue<T>(Descriptor);
+        var newValue = ComponentNode.GetPropertyValue<T>(Descriptor);
 
         if (!EqualityComparer<T>.Default.Equals(_value, newValue))
         {
@@ -81,6 +81,6 @@ public class PropertyNode<T> : PropertyNode
     public void SetValueFromUI(T newValue)
     {
         _value = newValue;
-        Parent.SetPropertyValue(Descriptor, newValue);
+        ComponentNode.SetPropertyValue(Descriptor, newValue);
     }
 }

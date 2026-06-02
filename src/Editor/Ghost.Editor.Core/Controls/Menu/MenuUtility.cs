@@ -1,6 +1,7 @@
 using Ghost.Editor.Core.Utilities;
 using Microsoft.UI.Xaml.Controls;
 using System.Reflection;
+using Windows.System;
 
 namespace Ghost.Editor.Core.Controls;
 
@@ -41,6 +42,16 @@ internal class MenuNode
     {
         get; set;
     }
+
+    public VirtualKey ShortCut
+    {
+        get; set;
+    } = VirtualKey.None;
+
+    public VirtualKeyModifiers ShortCutModifiers
+    {
+        get; set;
+    } = VirtualKeyModifiers.None;
 }
 
 internal static class MenuUtility
@@ -131,6 +142,15 @@ internal static class MenuUtility
                     methodToInvoke?.Invoke(null, null);
                 };
 
+                if (node.ShortCut != VirtualKey.None)
+                {
+                    menuItem.KeyboardAccelerators.Add(new Microsoft.UI.Xaml.Input.KeyboardAccelerator
+                    {
+                        Key = node.ShortCut,
+                        Modifiers = node.ShortCutModifiers
+                    });
+                }
+
                 targetCollection.Add(menuItem);
             }
         }
@@ -197,6 +217,13 @@ internal static class MenuUtility
                     currentNode.Method = method;
                     currentNode.RawGroup = attr.Group;
                     currentNode.RawPriority = attr.Priority;
+
+                    var shortCutAttr = method.GetCustomAttribute<ShortcutAttribute>();
+                    if (shortCutAttr != null)
+                    {
+                        currentNode.ShortCut = shortCutAttr.Key;
+                        currentNode.ShortCutModifiers = shortCutAttr.Modifiers;
+                    }
                 }
 
                 currentLevel = currentNode.Children;

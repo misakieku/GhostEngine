@@ -19,6 +19,8 @@ public sealed partial class SceneNode : SceneGraphNode
         Scene = scene;
     }
 
+    public override SceneNode? GetOwningSceneNode() => this;
+
     public override IconSource? CreateIcon()
     {
         return new FontIconSource

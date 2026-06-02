@@ -67,11 +67,12 @@ internal class SceneGraphSyncService : IDisposable
             return;
         }
 
-        var node = new EntityNode(_worldService.EditorWorld, entity, name);
-        _nodeMap[entity] = node;
-
         // By default, add to the scene's root collection
         var sceneNode = FindOrCreateSceneNode(sceneID);
+
+        var node = new EntityNode(_worldService.EditorWorld, entity, name, sceneNode);
+        _nodeMap[entity] = node;
+
         sceneNode.Children.Add(node);
     }
 

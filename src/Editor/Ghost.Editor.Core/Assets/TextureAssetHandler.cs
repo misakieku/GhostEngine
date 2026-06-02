@@ -54,21 +54,12 @@ public unsafe class TextureAsset : IAsset
 {
     public const string GUID = "27965FFF-860C-40EF-9123-1874D7DE9CDC";
 
-    private static readonly Guid s_typeID = Guid.Parse(GUID);
-
-    private readonly Guid _id;
-    private readonly IAssetSettings _settings;
-
     private readonly IntPtr _textureData;
     private readonly uint _width;
     private readonly uint _height;
     private readonly uint _depth;
     private readonly uint _colorComponents;
     private readonly uint _dimension;
-
-    public Guid ID => _id;
-    public Guid TypeID => typeof(TextureAsset).GUID;
-    public IAssetSettings Settings => _settings;
 
     public IntPtr TextureData => _textureData;
     public uint Width => _width;
@@ -78,10 +69,8 @@ public unsafe class TextureAsset : IAsset
     public uint ColorComponents => _colorComponents;
 
     internal TextureAsset([OwnershipTransfer] IntPtr data, TextureContentHeader header, Guid id, IAssetSettings settings)
+        : base(id, typeof(TextureAsset).GUID, settings)
     {
-        _id = id;
-        _settings = settings;
-
         _textureData = data;
         _width = header.width;
         _height = header.height;
@@ -90,15 +79,9 @@ public unsafe class TextureAsset : IAsset
         _colorComponents = header.colorComponents;
     }
 
-    ~TextureAsset()
-    {
-        Dispose();
-    }
-
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
         StbIApi.ImageFree((void*)_textureData);
-        GC.SuppressFinalize(this);
     }
 }
 

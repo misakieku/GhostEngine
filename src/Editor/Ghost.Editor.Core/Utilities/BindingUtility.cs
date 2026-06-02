@@ -10,7 +10,11 @@ public static class BindingUtility
         where T : unmanaged
     {
         control.SetValueWithoutNotify(node.Value);
-        control.OnValueChanged += (s, e) => node.SetValueFromUI(e.NewValue);
+        control.OnValueChanged += (s, e) =>
+        {
+            node.ComponentNode.EntityNode.Modify();
+            node.SetValueFromUI(e.NewValue);
+        };
         node.OnValueChanged += control.SetValueWithoutNotify;
     }
 
@@ -20,6 +24,7 @@ public static class BindingUtility
         control.SetValueWithoutNotify(getter(node));
         control.OnValueChanged += (_, args) =>
         {
+            node.ComponentNode.EntityNode.Modify();
             setter(node, args.NewValue);
         };
 

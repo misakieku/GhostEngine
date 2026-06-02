@@ -13,11 +13,16 @@ public sealed partial class EntityNode : SceneGraphNode
     }
     public List<ComponentNode> Components { get; } = new();
 
-    internal EntityNode(World world, Entity entity, string name)
+    public SceneNode? SceneNode { get; }
+
+    internal EntityNode(World world, Entity entity, string name, SceneNode? sceneNode)
         : base(world, name)
     {
         Entity = entity;
+        SceneNode = sceneNode;
     }
+
+    public override SceneNode? GetOwningSceneNode() => SceneNode;
 
     public void BuildComponents()
     {

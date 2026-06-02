@@ -1,11 +1,9 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
 using Ghost.Editor.Core.Services;
-using Ghost.Engine;
 using Ghost.Engine.Streaming;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
-using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
@@ -71,53 +69,24 @@ public sealed class ModelManifestMetadata
 
 internal sealed class ImportedModelAsset : IAsset
 {
-    public Guid ID
-    {
-        get;
-    }
-
-    public Guid TypeID => typeof(MeshAsset).GUID;
-
-    public IAssetSettings? Settings
-    {
-        get;
-    }
-
     public ModelManifest Manifest
     {
         get;
     }
 
     public ImportedModelAsset(Guid id, IAssetSettings? settings, ModelManifest manifest)
+        : base(id, typeof(ModelAsset).GUID, settings)
     {
-        ID = id;
-        Settings = settings;
         Manifest = manifest;
-    }
-
-    public void Dispose()
-    {
     }
 }
 
 [Guid(GUID)]
-public abstract class MeshAsset : IAsset
+public abstract class ModelAsset : IAsset
 {
     public const string GUID = "B99CA68E-EE7A-4822-BF1C-AA0A5120C36A";
 
     private MeshNode _root;
-
-    public Guid ID
-    {
-        get;
-    }
-
-    public IAssetSettings Settings
-    {
-        get;
-    }
-
-    public Guid TypeID => typeof(MeshAsset).GUID;
 
     public MeshNode Root
     {
@@ -129,17 +98,18 @@ public abstract class MeshAsset : IAsset
         }
     }
 
-    internal MeshAsset(MeshNode root, Guid id, MeshAssetSettings settings)
+    internal ModelAsset(MeshNode root, Guid id, ModelAssetSettings settings)
+        : base(id, typeof(ModelAsset).GUID, settings)
     {
         _root = root;
-
-        ID = id;
-        Settings = settings;
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
-        _root?.Dispose();
+        if (disposing)
+        {
+            _root?.Dispose();
+        }
     }
 }
 
@@ -160,7 +130,7 @@ public enum VertexDataSource
     ComputedIfMissing
 }
 
-public class MeshAssetSettings : IAssetSettings
+public class ModelAssetSettings : IAssetSettings
 {
     public VertexDataSource NormalDataSource
     {
@@ -173,7 +143,7 @@ public class MeshAssetSettings : IAssetSettings
     } = VertexDataSource.ComputedIfMissing;
 }
 
-internal class ObjAssetSettings : MeshAssetSettings
+internal class ObjAssetSettings : ModelAssetSettings
 {
     public CoordinateAxis ObjectUpAxis
     {
@@ -196,12 +166,12 @@ internal class ObjAssetSettings : MeshAssetSettings
     } = 1.0f;
 }
 
-internal class FbxAssetSettings : MeshAssetSettings
+internal class FbxAssetSettings : ModelAssetSettings
 {
 }
 
-[CustomAssetHandler(AssetTypeId = MeshAsset.GUID, RuntimeAssetType = AssetType.Mesh, Extensions = new[] { ".fbx", ".obj" })]
-internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
+[CustomAssetHandler(AssetTypeId = ModelAsset.GUID, RuntimeAssetType = AssetType.Mesh, Extensions = new[] { ".fbx", ".obj" })]
+internal class ModelAssetHandler : IImportableAssetHandler, IPackableAssetHandler
 {
     private static readonly JsonSerializerOptions s_jsonOptions = new JsonSerializerOptions
     {
@@ -295,9 +265,9 @@ internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
         return ValueTask.FromResult(Result.Failure("Packing model assets is not supported yet."));
     }
 
-    private static MeshAssetSettings ResolveSettings(string sourcePath, IAssetSettings? settings)
+    private static ModelAssetSettings ResolveSettings(string sourcePath, IAssetSettings? settings)
     {
-        if (settings is MeshAssetSettings meshSettings)
+        if (settings is ModelAssetSettings meshSettings)
         {
             return meshSettings;
         }
@@ -354,7 +324,7 @@ internal class MeshAssetHandler : IImportableAssetHandler, IPackableAssetHandler
                 node.Name,
                 stablePath,
                 $"{sourcePath}#Mesh/{stablePath}",
-                typeof(MeshAsset).GUID));
+                typeof(ModelAsset).GUID));
         }
         else if (node is LightMeshNode)
         {

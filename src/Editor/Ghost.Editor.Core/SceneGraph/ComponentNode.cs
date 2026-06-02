@@ -19,7 +19,6 @@ public unsafe class ComponentNode
     protected readonly World _world;
 
     public EntityNode EntityNode { get; }
-    public Entity Entity => EntityNode.Entity;
 
     public Type ComponentType { get; }
     public ComponentDescriptor Descriptor { get; }
@@ -74,14 +73,14 @@ public unsafe class ComponentNode
         {
             if (Descriptor.IsShared)
             {
-                var ptr = _world.EntityManager.GetSharedComponent(Entity, Descriptor.ComponentId);
+                var ptr = _world.EntityManager.GetSharedComponent(EntityNode.Entity, Descriptor.ComponentId);
                 if (ptr != null)
                 {
                     using var scope = AllocationManager.CreateStackScope();
                     using var buffer = new MemoryBlock((nuint)Descriptor.Size, 16, scope.AllocationHandle);
                     System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.GetUnsafePtr(), ptr, (uint)Descriptor.Size);
                     property.Write(buffer.GetUnsafePtr(), value);
-                    _world.EntityManager.SetSharedComponent(Entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
+                    _world.EntityManager.SetSharedComponent(EntityNode.Entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
                 }
             }
             else
@@ -108,7 +107,7 @@ public unsafe class ComponentNode
                 using var scope = AllocationManager.CreateStackScope();
                 using var buffer = new MemoryBlock((nuint)Descriptor.Size, 16, scope.AllocationHandle);
                 buffer.GetElementAt<T>(0) = value;
-                _world.EntityManager.SetSharedComponent(Entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
+                _world.EntityManager.SetSharedComponent(EntityNode.Entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
             }
             else
             {
@@ -144,11 +143,11 @@ public unsafe class ComponentNode
     {
         if (Descriptor.IsShared)
         {
-            return _world.EntityManager.GetSharedComponent(Entity, Descriptor.ComponentId);
+            return _world.EntityManager.GetSharedComponent(EntityNode.Entity, Descriptor.ComponentId);
         }
         else
         {
-            return _world.EntityManager.GetComponent(Entity, Descriptor.ComponentId);
+            return _world.EntityManager.GetComponent(EntityNode.Entity, Descriptor.ComponentId);
         }
     }
 
@@ -216,7 +215,7 @@ public unsafe class ComponentNode
                     using var scope = AllocationManager.CreateStackScope();
                     using var buffer = new MemoryBlock((nuint)Descriptor.Size, 16, scope.AllocationHandle);
                     System.Runtime.InteropServices.Marshal.StructureToPtr(boxed, (nint)buffer.GetUnsafePtr(), false);
-                    _world.EntityManager.SetSharedComponent(Entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
+                    _world.EntityManager.SetSharedComponent(EntityNode.Entity, Descriptor.ComponentId, buffer.GetUnsafePtr());
                 }
                 else
                 {

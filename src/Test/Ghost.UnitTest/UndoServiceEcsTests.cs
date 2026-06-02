@@ -37,7 +37,7 @@ public class UndoServiceEcsTests
         ref var compA = ref world.EntityManager.GetComponent<CompA>(e);
         compA.value = 10;
 
-        var node = new EntityNode(world, e, "TestEntity");
+        var node = new EntityNode(world, e, "TestEntity", null);
 
         _undoService.BeginTransaction("Add CompB");
         _undoService.RecordEntityStructure(node, "Before Add CompB");
@@ -79,7 +79,7 @@ public class UndoServiceEcsTests
         var e = world.EntityManager.CreateEntity();
         world.EntityManager.AddComponent<CompA>(e);
         world.EntityManager.GetComponent<CompA>(e).value = 42;
-        var node = new EntityNode(world, e, "TestEntity");
+        var node = new EntityNode(world, e, "TestEntity", null);
 
         _undoService.BeginTransaction("Create Entity");
         _undoService.RecordEntityLifecycle(node, LifecycleEvent.Created);

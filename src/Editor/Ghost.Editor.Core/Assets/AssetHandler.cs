@@ -32,21 +32,29 @@ public sealed class CustomAssetHandlerAttribute : Attribute
     } = true;
 }
 
-public interface IAsset : IDisposable
+public abstract class IAsset : GhostObject
 {
-    Guid ID
+    public Guid ID
     {
         get;
     }
 
-    Guid TypeID
+    public Guid TypeID
     {
         get;
     }
 
-    IAssetSettings? Settings
+    public IAssetSettings? Settings
     {
         get;
+    }
+
+    protected IAsset(Guid id, Guid typeId, IAssetSettings? settings)
+        :base(id)
+    {
+        ID = id;
+        TypeID = typeId;
+        Settings = settings;
     }
 }
 

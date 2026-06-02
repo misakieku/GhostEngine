@@ -36,6 +36,14 @@ public struct Scene : IEquatable<Scene>
         _id = id;
     }
 
+    /// <summary>
+    /// Creates a Scene instance from a raw ID. Use with caution.
+    /// </summary>
+    public static Scene FromID(ushort id)
+    {
+        return new Scene(id);
+    }
+
     public readonly bool Equals(Scene other)
     {
         return ID == other.ID;

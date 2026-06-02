@@ -12,6 +12,8 @@ public interface IUndoService
     IEnumerable<UndoOperation> UndoOperations { get; }
     IEnumerable<UndoOperation> RedoOperations { get; }
 
+    int GlobalVersion { get; }
+
     event Action? UndoRedoPerformed;
 
     void RecordObject(GhostObject obj, string actionName);
@@ -341,7 +343,7 @@ public class EntityLifecycleOperation : UndoOperation
                 // Fix the Node reference
                 if (GhostObject.Find(InstanceID) is not EntityNode node)
                 {
-                    node = new EntityNode(worldService.EditorWorld, newEntity, "Resurrected");
+                    node = new EntityNode(worldService.EditorWorld, newEntity, "Resurrected", null);
                     // Force the InstanceID using backing field
                     var backingField = typeof(EntityNode).GetField("<InstanceID>k__BackingField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                                        ?? typeof(SceneGraphNode).GetField("<InstanceID>k__BackingField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
@@ -368,6 +370,8 @@ internal class UndoService : IUndoService
 
     private int _nextGroupId = 1;
     private int _activeGroupId = 0;
+
+    public int GlobalVersion { get; private set; } = 0;
 
     public IEnumerable<UndoOperation> UndoOperations => _undoStack;
     public IEnumerable<UndoOperation> RedoOperations => _redoStack;
@@ -407,11 +411,12 @@ internal class UndoService : IUndoService
 
         _undoStack.Push(op);
         _redoStack.Clear(); // Any new action clears the redo stack
+        GlobalVersion++;
     }
 
     public void RecordObject(GhostObject obj, string actionName)
     {
-        var op = new ObjectStateOperation
+        var op = new ObjectStateOperation()
         {
             ActionName = actionName,
             InstanceID = obj.InstanceID
@@ -423,12 +428,13 @@ internal class UndoService : IUndoService
         PushOperation(op);
     }
 
+    // TODO: We may want to have unified api RecordObject that can handle everything.
     public unsafe void RecordEntityComponent(ComponentNode node, string actionName)
     {
         var op = new EntityComponentOperation
         {
             ActionName = actionName,
-            Entity = node.Entity,
+            Entity = node.EntityNode.Entity,
             ComponentId = node.Descriptor.ComponentId,
             InstanceID = node.EntityNode.InstanceID
         };
@@ -513,6 +519,8 @@ internal class UndoService : IUndoService
             _redoStack.Push(op);
         }
 
+        GlobalVersion--;
+
         // Flush ECS commands before UI updates
         _worldService.FlushCommands();
 
@@ -549,6 +557,8 @@ internal class UndoService : IUndoService
         {
             _undoStack.Push(op);
         }
+
+        GlobalVersion++;
 
         _worldService.FlushCommands();
 

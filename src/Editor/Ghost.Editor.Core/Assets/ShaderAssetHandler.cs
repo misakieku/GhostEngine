@@ -11,31 +11,15 @@ public sealed partial class GraphicsShaderAsset : IAsset
 {
     public const string GUID = "7BD4591C-B017-4814-AA0B-3F30EB3E727E";
 
-    public Guid ID
-    {
-        get;
-    }
-
-    public IAssetSettings? Settings
-    {
-        get;
-    }
-
-    public Guid TypeID => typeof(GraphicsShaderAsset).GUID;
-
     public GraphicsShaderDescriptor Descriptor
     {
         get;
     }
 
     internal GraphicsShaderAsset(GraphicsShaderDescriptor descriptor, Guid id)
+        : base(id, typeof(GraphicsShaderAsset).GUID, null)
     {
-        ID = id;
         Descriptor = descriptor;
-    }
-
-    public void Dispose()
-    {
     }
 }
 
@@ -44,31 +28,15 @@ public sealed partial class ComputeShaderAsset : IAsset
 {
     public const string GUID = "EA881979-CD8D-4088-B568-D42645F18C2A";
 
-    public Guid ID
-    {
-        get;
-    }
-
-    public IAssetSettings? Settings
-    {
-        get;
-    }
-
-    public Guid TypeID => typeof(ComputeShaderAsset).GUID;
-
     public ComputeShaderDescriptor Descriptor
     {
         get;
     }
 
     internal ComputeShaderAsset(ComputeShaderDescriptor descriptor, Guid id)
+        : base(id, typeof(ComputeShaderAsset).GUID, null)
     {
-        ID = id;
         Descriptor = descriptor;
-    }
-
-    public void Dispose()
-    {
     }
 }
 

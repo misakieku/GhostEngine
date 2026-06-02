@@ -1,5 +1,7 @@
 using Ghost.Core;
+using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Services;
+using Ghost.Engine;
 using Ghost.Engine.Streaming;
 
 namespace Ghost.Editor.Core.Assets;
@@ -10,6 +12,12 @@ internal class SceneAssetHandler : IImportableAssetHandler, IPackableAssetHandle
     [AssetOpenHandler(".gscene")]
     private static async Task<Result> OpenAsync(string path)
     {
+        // Actually double clicking the asset in content browser will just open it.
+        // We probably shouldn't do the actual loading in OpenAsync, but let's keep it simple for now.
+        // OpenAsync usually returns immediately if there's no UI, or we should use AssetRegistry.LoadAssetAsync
+        var assetRegistry = EditorApplication.GetService<IAssetRegistry>();
+        var id = Guid.NewGuid(); // Wait, how do we know the ID?
+        // AssetMeta handles this. This method is just a quick hack for double clicking.
         var data = await SceneSerializationService.DeserializeSceneFileAsync(path);
         if (data == null)
         {
@@ -17,7 +25,7 @@ internal class SceneAssetHandler : IImportableAssetHandler, IPackableAssetHandle
         }
 
         var service = EditorApplication.GetService<SceneSerializationService>();
-        service.LoadSceneIntoEditorWorld(data);
+        service.LoadSceneIntoEditorWorld(data, SceneLoadingType.Single, null);
         return Result.Success();
     }
 
@@ -40,7 +48,21 @@ internal class SceneAssetHandler : IImportableAssetHandler, IPackableAssetHandle
             {
                 SceneName = Path.GetFileNameWithoutExtension(assetPath),
                 EntityCount = data?.Entities?.Count ?? 0,
+                RuntimeSceneID = Ghost.Engine.Core.Scene.INVALID_ID // Default
             };
+
+            if (data != null)
+            {
+                var tcs = new TaskCompletionSource<IAsset>();
+                var service = EditorApplication.GetService<SceneSerializationService>();
+                service.LoadSceneIntoEditorWorld(data, SceneLoadingType.Single, (scene) =>
+                {
+                    asset.RuntimeSceneID = scene.ID;
+                    EditorApplication.GetService<IEditorWorldService>().RegisterSceneAsset(scene.ID, asset);
+                    tcs.TrySetResult(asset);
+                });
+                return Result.Success(await tcs.Task);
+            }
 
             return Result.Success<IAsset>(asset);
         }
@@ -50,14 +72,41 @@ internal class SceneAssetHandler : IImportableAssetHandler, IPackableAssetHandle
         }
     }
 
-    public ValueTask<Result> SaveAssetAsync(string targetPath, IAsset asset, CancellationToken token = default)
+    public async ValueTask<Result> SaveAssetAsync(string targetPath, IAsset asset, CancellationToken token = default)
     {
         if (asset is not SceneAsset sceneAsset)
         {
-            return ValueTask.FromResult(Result.Failure("Asset type is not SceneAsset"));
+            return Result.Failure("Asset type is not SceneAsset");
         }
 
-        return ValueTask.FromResult(Result.Failure("Scene saving is handled by SceneSerializationService directly."));
+        var worldService = EditorApplication.GetService<IEditorWorldService>();
+        var tcs = new TaskCompletionSource<byte[]>();
+
+        worldService.Defer(() =>
+        {
+            try
+            {
+                var scene = Ghost.Engine.Core.Scene.FromID(sceneAsset.RuntimeSceneID);
+                var service = EditorApplication.GetService<SceneSerializationService>();
+                var bytes = service.SerializeSceneToMemory(scene);
+                tcs.TrySetResult(bytes);
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+            }
+        });
+
+        try
+        {
+            var bytes = await tcs.Task;
+            await File.WriteAllBytesAsync(targetPath, bytes, token);
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Failed to save scene: {ex.Message}");
+        }
     }
 
     public async ValueTask<Result<ImportedSubAsset[]>> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)

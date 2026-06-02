@@ -1,4 +1,4 @@
-using Ghost.Core;
+using Ghost.Editor.Core;
 using Ghost.Editor.Core.Services;
 
 namespace Ghost.UnitTest;

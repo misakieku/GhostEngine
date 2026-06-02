@@ -83,7 +83,7 @@ public static class SceneGraphBuilder
         foreach (var rootEntity in roots)
         {
             var name = initialNames != null && initialNames.TryGetValue(rootEntity, out var n) ? n : "Entity";
-            var entityNode = new EntityNode(parentNode.World, rootEntity, name);
+            var entityNode = new EntityNode(parentNode.World, rootEntity, name, parentNode.GetOwningSceneNode());
             parentNode.Children.Add(entityNode);
             BuildSubtree(entityNode, childrenByParent, initialNames);
         }
@@ -102,7 +102,7 @@ public static class SceneGraphBuilder
             foreach (var childEntity in childList)
             {
                 var name = initialNames != null && initialNames.TryGetValue(childEntity, out var n) ? n : "Entity";
-                var childNode = new EntityNode(parentNode.World, childEntity, name);
+                var childNode = new EntityNode(parentNode.World, childEntity, name, parentNode.SceneNode);
                 parentNode.Children.Add(childNode);
                 BuildSubtree(childNode, childrenByParent, initialNames);
             }
@@ -116,7 +116,7 @@ public static class SceneGraphBuilder
             if (childList.Contains(sibling))
             {
                 var name = initialNames != null && initialNames.TryGetValue(sibling, out var n) ? n : "Entity";
-                var childNode = new EntityNode(parentNode.World, sibling, name);
+                var childNode = new EntityNode(parentNode.World, sibling, name, parentNode.SceneNode);
                 parentNode.Children.Add(childNode);
                 BuildSubtree(childNode, childrenByParent, initialNames);
             }

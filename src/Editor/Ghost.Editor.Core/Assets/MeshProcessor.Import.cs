@@ -35,13 +35,13 @@ internal unsafe class MeshParsingJob
 
     private readonly string _filePath;
     private readonly AllocationHandle _allocationHandle;
-    private readonly MeshAssetSettings _settings;
+    private readonly ModelAssetSettings _settings;
 
     private readonly TaskCompletionSource<Result> _taskCompletionSource;
 
     public Task<Result> Task => _taskCompletionSource.Task;
 
-    public MeshParsingJob(MeshNode rootNode, string filePath, AllocationHandle allocationHandle, MeshAssetSettings settings)
+    public MeshParsingJob(MeshNode rootNode, string filePath, AllocationHandle allocationHandle, ModelAssetSettings settings)
     {
         _rootNode = rootNode;
         _filePath = filePath;
@@ -368,7 +368,7 @@ internal unsafe class MeshParsingJob
 
 internal static partial class MeshProcessor
 {
-    public static Task<Result> ParseMeshAsync(MeshNode root, string sourcePath, AllocationHandle allocationHandle, MeshAssetSettings meshSettings, CancellationToken token = default)
+    public static Task<Result> ParseMeshAsync(MeshNode root, string sourcePath, AllocationHandle allocationHandle, ModelAssetSettings meshSettings, CancellationToken token = default)
     {
         var parseJob = new MeshParsingJob(root, sourcePath, allocationHandle, meshSettings);
         return Task.Run(parseJob.Execute, token);

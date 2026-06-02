@@ -288,7 +288,7 @@ internal class SceneSerializationService : IDisposable
 
     #region Load Scene into Editor World
 
-    public unsafe void LoadSceneIntoEditorWorld(SceneSaveData data, SceneLoadingType loadingType = SceneLoadingType.Single)
+    public unsafe void LoadSceneIntoEditorWorld(SceneSaveData data, SceneLoadingType loadingType = SceneLoadingType.Single, Action<Scene>? onComplete = null)
     {
         _worldService.Defer(() =>
         {
@@ -429,6 +429,7 @@ internal class SceneSerializationService : IDisposable
                 }
             }
             _worldService.RebuildSceneGraph(initialNames);
+            onComplete?.Invoke(activeScene);
         });
     }
 
@@ -458,18 +459,18 @@ internal class SceneSerializationService : IDisposable
 
     public unsafe void SaveSceneFromEditorWorld(string filePath, Scene scene)
     {
+        var bytes = SerializeSceneToMemory(scene);
+        File.WriteAllBytes(filePath, bytes);
+    }
+
+    public unsafe byte[] SerializeSceneToMemory(Scene scene)
+    {
         var world = _worldService.EditorWorld;
 
         using var scope = AllocationManager.CreateStackScope();
-        using var sceneEntities = SceneManager.GetSceneEntities(world, scene, scope.AllocationHandle);
+        using var entities = SceneManager.GetSceneEntities(world, scene, scope.AllocationHandle);
 
-        var entities = new List<Entity>(sceneEntities.Count);
-        for (var i = 0; i < sceneEntities.Count; i++)
-        {
-            entities.Add(sceneEntities[i]);
-        }
-
-        var sorted = SortEntitiesByHierarchy(world, entities);
+        using var sorted = SortEntitiesByHierarchy(world, entities, scope.AllocationHandle);
 
         var reverseMap = new Dictionary<Entity, int>();
         for (var i = 0; i < sorted.Count; i++)
@@ -567,57 +568,71 @@ internal class SceneSerializationService : IDisposable
         writer.WriteEndObject();
         writer.Flush();
 
-        File.WriteAllBytes(filePath, stream.ToArray());
+        return stream.ToArray();
     }
 
-    private static List<Entity> SortEntitiesByHierarchy(World world, List<Entity> entities)
+    private static UnsafeList<Entity> SortEntitiesByHierarchy(World world, ReadOnlySpan<Entity> entities, AllocationHandle allocationHandle)
     {
-        var entitySet = new HashSet<Entity>(entities);
-        var roots = new List<Entity>();
-        var childrenMap = new Dictionary<Entity, List<Entity>>();
+        using var scope = AllocationManager.CreateStackScope();
 
-        foreach (var entity in entities)
+        using var entitySet = new UnsafeHashSet<Entity>(entities.Length, scope.AllocationHandle);
+        using var roots = new UnsafeList<Entity>(32, scope.AllocationHandle);
+        var childrenMap = new UnsafeHashMap<Entity, UnsafeList<Entity>>(32, scope.AllocationHandle);
+
+        try
         {
-            if (!world.EntityManager.HasComponent<Hierarchy>(entity))
+            foreach (var entity in entities)
             {
-                roots.Add(entity);
-                continue;
-            }
-
-            ref var hierarchy = ref world.EntityManager.GetComponent<Hierarchy>(entity);
-            if (hierarchy.parent.IsValid && entitySet.Contains(hierarchy.parent))
-            {
-                if (!childrenMap.TryGetValue(hierarchy.parent, out var list))
+                if (!world.EntityManager.HasComponent<Hierarchy>(entity))
                 {
-                    list = new List<Entity>();
-                    childrenMap[hierarchy.parent] = list;
+                    roots.Add(entity);
+                    continue;
                 }
 
-                list.Add(entity);
+                ref var hierarchy = ref world.EntityManager.GetComponent<Hierarchy>(entity);
+                if (hierarchy.parent.IsValid && entitySet.Contains(hierarchy.parent))
+                {
+                    ref var list = ref childrenMap.GetValueRefOrAddDefault(hierarchy.parent, out var exist);
+                    if (!exist)
+                    {
+                        list = new UnsafeList<Entity>(4, allocationHandle);
+                    }
+
+                    list.Add(entity);
+                }
+                else
+                {
+                    roots.Add(entity);
+                }
             }
-            else
+
+            var sorted = new UnsafeList<Entity>(entities.Length, allocationHandle);
+            foreach (var root in roots)
             {
-                roots.Add(entity);
+                AddEntityAndDescendants(ref sorted, root, in childrenMap);
             }
-        }
 
-        var sorted = new List<Entity>(entities.Count);
-        foreach (var root in roots)
+            return sorted;
+        }
+        finally
         {
-            AddEntityAndDescendants(sorted, root, childrenMap);
-        }
+            foreach (var kvp in childrenMap)
+            {
+                kvp.Value.Dispose();
+            }
 
-        return sorted;
+            childrenMap.Dispose();
+        }
     }
 
-    private static void AddEntityAndDescendants(List<Entity> sorted, Entity entity, Dictionary<Entity, List<Entity>> childrenMap)
+    private static void AddEntityAndDescendants(ref UnsafeList<Entity> sorted, Entity entity, ref readonly UnsafeHashMap<Entity, UnsafeList<Entity>> childrenMap)
     {
         sorted.Add(entity);
         if (childrenMap.TryGetValue(entity, out var children))
         {
             foreach (var child in children)
             {
-                AddEntityAndDescendants(sorted, child, childrenMap);
+                AddEntityAndDescendants(ref sorted, child, in childrenMap);
             }
         }
     }

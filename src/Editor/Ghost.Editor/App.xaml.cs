@@ -68,6 +68,7 @@ public partial class App : Application
                 services.AddSingleton<IShaderCompiler, DXCShaderCompiler>();
                 services.AddSingleton<IEditorWorldService, EditorWorldService>();
                 services.AddSingleton<IUndoService, UndoService>();
+                services.AddSingleton<IDirtyTrackerService, DirtyTrackerService>();
 
                 services.AddSingleton<InspectorSyncService>();
                 services.AddSingleton<EditorTickEngine>();

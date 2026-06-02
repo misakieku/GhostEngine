@@ -36,7 +36,7 @@ public class MeshAssetHandlerTests
 
         var parentGuid = Guid.NewGuid();
         var targetPath = ImportCoordinator.GetImportedAssetPath(parentGuid);
-        var handler = new MeshAssetHandler();
+        var handler = new ModelAssetHandler();
 
         var result = await handler.ImportAsync(sourcePath, targetPath, parentGuid, new ObjAssetSettings(), TestContext.CancellationToken);
 

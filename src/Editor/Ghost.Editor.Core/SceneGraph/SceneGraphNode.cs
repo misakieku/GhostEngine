@@ -1,10 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using Ghost.Core;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Entities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System.Collections.ObjectModel;
+using Ghost.Editor.Core.Services;
 
 namespace Ghost.Editor.Core.SceneGraph;
 
@@ -56,6 +56,27 @@ public abstract partial class SceneGraphNode : GhostObject, IInspectable
             foreach (SceneGraphNode newItem in e.NewItems)
             {
                 newItem.Parent = this;
+            }
+        }
+    }
+
+    public virtual SceneNode? GetOwningSceneNode()
+    {
+        return null;
+    }
+
+    public override void Modify()
+    {
+        base.Modify(); // Marks this node dirty via base GhostObject logic
+
+        var sceneNode = GetOwningSceneNode();
+        if (sceneNode != null)
+        {
+            var worldService = EditorApplication.GetService<IEditorWorldService>();
+            var sceneAsset = worldService.GetAssetForScene(sceneNode.Scene.ID);
+            if (sceneAsset != null)
+            {
+                EditorApplication.GetService<IDirtyTrackerService>().MarkDirty(sceneAsset);
             }
         }
     }

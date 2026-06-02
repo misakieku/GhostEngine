@@ -7,18 +7,9 @@ public sealed class SceneAsset : IAsset
 {
     public const string GUID = "1B5E3F2A-8D91-4C67-BE32-A0F9C6D4E781";
 
-    private static readonly Guid s_typeID = Guid.Parse(GUID);
-
-    public Guid ID
+    public ushort RuntimeSceneID
     {
-        get;
-    }
-
-    public Guid TypeID => s_typeID;
-
-    public IAssetSettings? Settings
-    {
-        get;
+        get; set;
     }
 
     public string SceneName
@@ -32,15 +23,10 @@ public sealed class SceneAsset : IAsset
     }
 
     public SceneAsset(Guid id, IAssetSettings? settings)
+        : base(id, typeof(SceneAsset).GUID, settings)
     {
-        ID = id;
-        Settings = settings;
         SceneName = string.Empty;
         EntityCount = 0;
-    }
-
-    public void Dispose()
-    {
     }
 }
 
