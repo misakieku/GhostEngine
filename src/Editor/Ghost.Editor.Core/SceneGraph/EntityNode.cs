@@ -24,6 +24,199 @@ public sealed partial class EntityNode : SceneGraphNode
 
     public override SceneNode? GetOwningSceneNode() => SceneNode;
 
+    public unsafe override void SerializeState(BinaryWriter writer)
+    {
+        base.SerializeState(writer);
+
+        var isAlive = World.EntityManager.Exists(Entity);
+        writer.Write(isAlive);
+
+        if (!isAlive)
+        {
+            return;
+        }
+
+        var locRes = World.EntityManager.GetEntityLocation(Entity);
+        if (!locRes.IsSuccess)
+        {
+            writer.Write(0);
+            return;
+        }
+
+        var archetypeId = locRes.Value.archetypeID;
+        ref var archetype = ref World.ComponentManager.GetArchetypeReference(archetypeId);
+        ref var chunk = ref archetype.GetChunkReference(locRes.Value.chunkIndex);
+
+        EditorApplication.TryGetService<Services.SceneGraphSyncService>(out var syncService);
+
+        writer.Write(archetype._layouts.Count);
+
+        for (var i = 0; i < archetype._layouts.Count; i++)
+        {
+            var layout = archetype._layouts[i];
+            var typeId = new Ghost.Core.Identifier<IComponent>(layout.componentID);
+
+            writer.Write(typeId.Value);
+            writer.Write(layout.size);
+
+            var pSrc = chunk.GetUnsafePtr() + layout.offset + (layout.size * locRes.Value.rowIndex);
+
+            // Copy to temp buffer
+            var buffer = new byte[layout.size];
+            fixed (byte* pDst = buffer)
+            {
+                Buffer.MemoryCopy(pSrc, pDst, layout.size, layout.size);
+            }
+
+            // Reference Translation
+            var entityOffsets = Services.EntityFieldTracker.GetEntityOffsets(typeId.Value);
+            foreach (var offset in entityOffsets)
+            {
+                Entity oldEntity;
+                fixed (byte* pBuf = buffer)
+                {
+                    oldEntity = *(Entity*)(pBuf + offset);
+                }
+
+                Guid targetGuid = Guid.Empty;
+                if (syncService != null && syncService.TryGetNode(oldEntity, out var targetNode))
+                {
+                    targetGuid = targetNode.InstanceID;
+                }
+
+                writer.Write(true);
+                writer.Write(offset);
+                writer.Write(targetGuid.ToByteArray());
+            }
+            writer.Write(false); // End of patch records
+
+            // Write patched bytes
+            writer.Write(buffer);
+        }
+
+        // Shared Data
+        if (chunk._groupIndex >= 0 && chunk._groupIndex < archetype._chunkGroups.Count)
+        {
+            var group = archetype._chunkGroups[chunk._groupIndex];
+            writer.Write(true);
+            writer.Write(group.sharedDataHash);
+            writer.Write(group.sharedData.Length);
+            writer.Write(group.sharedData.AsSpan().ToArray());
+        }
+        else
+        {
+            writer.Write(false);
+        }
+    }
+
+    public unsafe override void DeserializeState(BinaryReader reader)
+    {
+        base.DeserializeState(reader);
+
+        var isAlive = reader.ReadBoolean();
+        var currentlyAlive = World.EntityManager.Exists(Entity);
+
+        if (isAlive && !currentlyAlive)
+        {
+            // Resurrect
+            var newEntity = World.EntityManager.CreateEntity();
+            
+            // Update the Entity property via reflection
+            var entityField = typeof(EntityNode).GetField("<Entity>k__BackingField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            entityField?.SetValue(this, newEntity);
+        }
+        else if (!isAlive && currentlyAlive)
+        {
+            // Destroy
+            World.EntityManager.DestroyEntity(Entity);
+            return;
+        }
+        else if (!isAlive && !currentlyAlive)
+        {
+            return;
+        }
+
+        var componentCount = reader.ReadInt32();
+        var componentsToRestore = new List<Ghost.Core.Identifier<IComponent>>();
+        var componentDataMap = new Dictionary<int, byte[]>();
+
+        EditorApplication.TryGetService<Services.SceneGraphSyncService>(out var syncService);
+
+        for (var i = 0; i < componentCount; i++)
+        {
+            var typeIdVal = reader.ReadInt32();
+            var size = reader.ReadInt32();
+            var typeId = new Ghost.Core.Identifier<IComponent>(typeIdVal);
+            componentsToRestore.Add(typeId);
+
+            var patchRecords = new List<(int offset, Guid guid)>();
+            while (reader.ReadBoolean())
+            {
+                var offset = reader.ReadInt32();
+                var guidBytes = reader.ReadBytes(16);
+                patchRecords.Add((offset, new Guid(guidBytes)));
+            }
+
+            var buffer = reader.ReadBytes(size);
+
+            // Apply patch records
+            foreach (var record in patchRecords)
+            {
+                Entity newEntity = Entity.Invalid;
+                if (record.guid != Guid.Empty)
+                {
+                    if (GhostObject.Find(record.guid) is EntityNode targetNode)
+                    {
+                        newEntity = targetNode.Entity;
+                    }
+                }
+
+                fixed (byte* pBuf = buffer)
+                {
+                    *(Entity*)(pBuf + record.offset) = newEntity;
+                }
+            }
+
+            componentDataMap[typeIdVal] = buffer;
+        }
+
+        var hasSharedData = reader.ReadBoolean();
+        int sharedDataHash = 0;
+        byte[] sharedData = Array.Empty<byte>();
+
+        if (hasSharedData)
+        {
+            sharedDataHash = reader.ReadInt32();
+            var sharedSize = reader.ReadInt32();
+            sharedData = reader.ReadBytes(sharedSize);
+        }
+
+        // Migrate entity to match snapshot archetype
+        var view = new Ghost.Entities.ComponentSetView(componentsToRestore.ToArray(), sharedData);
+        World.EntityManager.MigrateEntity(Entity, view);
+
+        // Restore unmanaged data
+        var locRes = World.EntityManager.GetEntityLocation(Entity);
+        if (locRes.IsSuccess)
+        {
+            ref var archetype = ref World.ComponentManager.GetArchetypeReference(locRes.Value.archetypeID);
+            ref var chunk = ref archetype.GetChunkReference(locRes.Value.chunkIndex);
+
+            for (var i = 0; i < archetype._layouts.Count; i++)
+            {
+                var layout = archetype._layouts[i];
+                if (componentDataMap.TryGetValue(layout.componentID, out var buffer))
+                {
+                    var pDst = chunk.GetUnsafePtr() + layout.offset + (layout.size * locRes.Value.rowIndex);
+                    fixed (byte* pSrc = buffer)
+                    {
+                        Buffer.MemoryCopy(pSrc, pDst, layout.size, layout.size);
+                    }
+                }
+            }
+        }
+    }
+
     public void BuildComponents()
     {
         Components.Clear();

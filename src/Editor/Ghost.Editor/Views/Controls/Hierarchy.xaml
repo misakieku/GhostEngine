@@ -23,6 +23,7 @@
                 <TreeViewItem.ContextFlyout>
                     <MenuFlyout>
                         <MenuFlyoutItem Click="OnCreateEntityClick" Text="Create Entity" />
+                        <MenuFlyoutItem Click="OnSaveSceneClick" Text="Save Scene" />
                     </MenuFlyout>
                 </TreeViewItem.ContextFlyout>
                 <StackPanel Orientation="Horizontal">

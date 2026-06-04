@@ -68,7 +68,7 @@ public unsafe class ComponentNode
             throw new ArgumentException("Property type does not match value type");
         }
 
-        _undoService.RecordEntityComponent(this, $"Edit property {property.DisplayName} on {Descriptor.DisplayName}");
+        _undoService.RecordObject(EntityNode, $"Edit property {property.DisplayName} on {Descriptor.DisplayName}");
         _worldService.Defer(() =>
         {
             if (Descriptor.IsShared)
@@ -99,7 +99,7 @@ public unsafe class ComponentNode
             throw new ArgumentException("Value type does not match component type");
         }
 
-        _undoService.RecordEntityComponent(this, $"Edit component {Descriptor.DisplayName}");
+        _undoService.RecordObject(EntityNode, $"Edit component {Descriptor.DisplayName}");
         _worldService.Defer(() =>
         {
             if (Descriptor.IsShared)

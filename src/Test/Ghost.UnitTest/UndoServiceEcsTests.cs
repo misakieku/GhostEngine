@@ -40,7 +40,7 @@ public class UndoServiceEcsTests
         var node = new EntityNode(world, e, "TestEntity", null);
 
         _undoService.BeginTransaction("Add CompB");
-        _undoService.RecordEntityStructure(node, "Before Add CompB");
+        _undoService.RecordObject(node, "Before Add CompB");
 
         // Modify structure
         world.EntityManager.AddComponent<CompB>(e);
@@ -82,7 +82,7 @@ public class UndoServiceEcsTests
         var node = new EntityNode(world, e, "TestEntity", null);
 
         _undoService.BeginTransaction("Create Entity");
-        _undoService.RecordEntityLifecycle(node, LifecycleEvent.Created);
+        _undoService.RegisterCreatedObjectUndo(node, "Create Entity");
         _undoService.EndTransaction();
 
         // Undo Creation (Expect destruction)
@@ -100,7 +100,7 @@ public class UndoServiceEcsTests
 
         // Step 2: Destroy Entity
         _undoService.BeginTransaction("Destroy Entity");
-        _undoService.RecordEntityLifecycle(node, LifecycleEvent.Destroyed);
+        _undoService.RecordObject(node, "Destroy Entity");
         world.EntityManager.DestroyEntity(resurrectedEntity);
         _undoService.EndTransaction();
 

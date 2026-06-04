@@ -165,6 +165,12 @@ public sealed partial class Hierarchy : UserControl
         }
     }
 
+    private async void OnSaveSceneClick(object sender, RoutedEventArgs e)
+    {
+        var assetRegistry = App.GetService<IAssetRegistry>();
+        await assetRegistry.SaveDirtyAssetsAsync();
+    }
+
     private void OnCreateChildClick(object sender, RoutedEventArgs e)
     {
         if (sender is MenuFlyoutItem menuItem && menuItem.DataContext is EntityNode entityNode)
