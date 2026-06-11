@@ -1,42 +1,9 @@
-using Ghost.Core;
 using Ghost.Core.Collections;
-using Ghost.Editor.Core.SceneGraph;
-using Ghost.Entities;
+using Ghost.Editor.Core.Contracts;
 
 namespace Ghost.Editor.Core.Services;
 
 public enum LifecycleEvent { Created, Destroyed }
-
-public interface IUndoService
-{
-    IEnumerable<UndoOperation> UndoOperations { get; }
-    IEnumerable<UndoOperation> RedoOperations { get; }
-
-    int GlobalVersion { get; }
-
-    event Action? UndoRedoPerformed;
-
-    void RecordObject(GhostObject obj, string actionName);
-    void RegisterCreatedObjectUndo(GhostObject obj, string actionName);
-
-    void BeginTransaction(string name);
-    void EndTransaction();
-    void PerformUndo();
-    void PerformRedo();
-}
-
-public abstract class UndoOperation
-{
-    public int GroupId { get; set; }
-    public string ActionName { get; set; } = string.Empty;
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-
-    // Creates an operation that holds the *current* state, so it can be pushed to Redo.
-    public abstract UndoOperation CreateReciprocal(IEditorWorldService worldService);
-    public abstract void Revert(IEditorWorldService worldService);
-
-    public virtual bool CanMerge(UndoOperation other) => false;
-}
 
 public class ObjectStateOperation : UndoOperation
 {
@@ -51,6 +18,7 @@ public class ObjectStateOperation : UndoOperation
         {
             using var ms = new MemoryStream();
             using var writer = new BinaryWriter(ms);
+
             obj.SerializeState(writer);
             reciprocal.State = ms.ToArray();
         }
@@ -112,10 +80,10 @@ internal class UndoService : IUndoService
 
     private void PushOperation(UndoOperation op)
     {
-        bool isTransaction = _activeGroupId != 0;
+        var isTransaction = _activeGroupId != 0;
         op.GroupId = isTransaction ? _activeGroupId : 0;
 
-        UndoOperation? top = _undoStack.Count > 0 ? _undoStack.Peek() : null;
+        var top = _undoStack.Count > 0 ? _undoStack.Peek() : null;
         if (top != null && op.CanMerge(top))
         {
             // Extend the merge window by updating the timestamp
@@ -161,15 +129,10 @@ internal class UndoService : IUndoService
         // During Undo, DeserializeState will read this and destroy the object.
         using var ms = new MemoryStream();
         using var writer = new BinaryWriter(ms);
-        if (obj is SceneGraph.SceneGraphNode sgn)
-        {
-            writer.Write(sgn.Name);
-        }
-        else
-        {
-            writer.Write("");
-        }
+
+        writer.Write(obj.Name);
         writer.Write(false); // IsAlive = false
+
         op.State = ms.ToArray();
         PushOperation(op);
     }

@@ -192,7 +192,7 @@ public sealed partial class EntityNode : SceneGraphNode
         }
 
         // Migrate entity to match snapshot archetype
-        var view = new Ghost.Entities.ComponentSetView(componentsToRestore.ToArray(), sharedData);
+        var view = new ComponentSetView(componentsToRestore.ToArray(), sharedData);
         World.EntityManager.MigrateEntity(Entity, view);
 
         // Restore unmanaged data

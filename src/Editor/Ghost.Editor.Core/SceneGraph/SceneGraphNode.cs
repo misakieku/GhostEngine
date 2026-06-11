@@ -1,22 +1,14 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.Editor.Core.Contracts;
+using Ghost.Editor.Core.Services;
 using Ghost.Entities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System.Collections.ObjectModel;
-using Ghost.Editor.Core.Services;
 
 namespace Ghost.Editor.Core.SceneGraph;
 
-[ObservableObject]
 public abstract partial class SceneGraphNode : GhostObject, IInspectable
 {
-    [ObservableProperty]
-    public partial string Name
-    {
-        get; set;
-    }
-
     public World World
     {
         get;

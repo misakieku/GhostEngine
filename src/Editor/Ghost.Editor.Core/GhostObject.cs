@@ -1,22 +1,39 @@
 using Ghost.Editor.Core.Contracts;
+using System.ComponentModel;
 
 namespace Ghost.Editor.Core;
 
 /// <summary>
 /// The base class for all objects that can be tracked and recorded by the Undo system.
 /// </summary>
-public abstract class GhostObject : IDisposable
+public abstract class GhostObject : INotifyPropertyChanged, INotifyPropertyChanging, IDisposable
 {
+    // Use WeakReference so we don't prevent Garbage Collection of dead objects
+    private static readonly Dictionary<Guid, WeakReference<GhostObject>> s_objectRegistry = new();
+
+    public static event Action<GhostObject>? OnObjectModified;
+    public event PropertyChangedEventHandler? PropertyChanged;
+    public event PropertyChangingEventHandler? PropertyChanging;
+
     /// <summary>
     /// A persistent unique identifier used to track this object across Undo/Redo operations,
     /// even if the underlying object is destroyed and resurrected.
     /// </summary>
     public Guid InstanceID { get; protected set; }
 
-    // Use WeakReference so we don't prevent Garbage Collection of dead objects
-    private static readonly Dictionary<Guid, WeakReference<GhostObject>> s_objectRegistry = new();
-
-    public static event Action<GhostObject>? OnObjectModified;
+    public string Name
+    {
+        get;
+        set
+        {
+            if (value != Name)
+            {
+                PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(Name));
+                field = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)));
+            }
+        }
+    } = string.Empty;
 
     protected GhostObject()
     {
@@ -24,9 +41,10 @@ public abstract class GhostObject : IDisposable
         s_objectRegistry[InstanceID] = new WeakReference<GhostObject>(this);
     }
 
-    protected GhostObject(Guid instanceID)
+    protected GhostObject(Guid instanceID, string name = "")
     {
         InstanceID = instanceID;
+        Name = name;
         s_objectRegistry[InstanceID] = new WeakReference<GhostObject>(this);
     }
 
@@ -54,12 +72,12 @@ public abstract class GhostObject : IDisposable
     /// Called before mutating state.
     /// Hooks into the Undo and Dirty Tracking systems.
     /// </summary>
-    public virtual void Modify()
+    public virtual void Modify(string? actionName = null)
     {
         OnObjectModified?.Invoke(this);
 
-        // TODO: Unify RecordObject in future sessions. For now, we skip IUndoService.RecordObject here
-        // since specialized methods are still required in UndoService.
+        // TODO: This does not record the creation/destruction of objects, only modifications to existing ones.
+        EditorApplication.GetService<IUndoService>().RecordObject(this, actionName ?? $"Modify {GetType().Name} '{Name}'");
 
         // Mark dirty for persistence directly
         EditorApplication.GetService<IDirtyTrackerService>().MarkDirty(this);
