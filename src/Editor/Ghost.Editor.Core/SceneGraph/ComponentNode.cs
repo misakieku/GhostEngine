@@ -1,5 +1,5 @@
+using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Inspector;
-using Ghost.Editor.Core.Services;
 using Ghost.Entities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Text.Json;
@@ -12,7 +12,6 @@ namespace Ghost.Editor.Core.SceneGraph;
 /// </summary>
 public unsafe class ComponentNode
 {
-    private readonly IUndoService _undoService;
     private readonly IEditorWorldService _worldService;
 
     private readonly Dictionary<string, int> _propertyIndices;
@@ -27,7 +26,6 @@ public unsafe class ComponentNode
 
     internal ComponentNode(World world, EntityNode entityNode, Type componentType, ComponentDescriptor descriptor)
     {
-        _undoService = EditorApplication.GetService<IUndoService>();
         _worldService = EditorApplication.GetService<IEditorWorldService>();
 
         _propertyIndices = new Dictionary<string, int>(descriptor.Properties.Length);
@@ -68,7 +66,8 @@ public unsafe class ComponentNode
             throw new ArgumentException("Property type does not match value type");
         }
 
-        _undoService.RecordObject(EntityNode, $"Edit property {property.DisplayName} on {Descriptor.DisplayName}");
+        EntityNode.Modify($"Edit property {property.DisplayName} on {Descriptor.DisplayName}");
+        
         _worldService.Defer(() =>
         {
             if (Descriptor.IsShared)
@@ -99,7 +98,7 @@ public unsafe class ComponentNode
             throw new ArgumentException("Value type does not match component type");
         }
 
-        _undoService.RecordObject(EntityNode, $"Edit component {Descriptor.DisplayName}");
+        EntityNode.Modify($"Edit component {Descriptor.DisplayName}");
         _worldService.Defer(() =>
         {
             if (Descriptor.IsShared)

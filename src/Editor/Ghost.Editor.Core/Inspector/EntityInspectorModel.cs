@@ -147,14 +147,16 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
 
         foreach (var compNode in _components)
         {
-            // TODO: Use a more compact UI for components
-            var expander = new Expander
+            var expander = new Controls.ComponentExpander
             {
-                Header = compNode.Descriptor.DisplayName,
+                Title = compNode.Descriptor.DisplayName,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                HorizontalContentAlignment = HorizontalAlignment.Stretch,
-                IsExpanded = true,
                 Margin = new Thickness(4, 2, 4, 2)
+            };
+
+            expander.RemoveRequested += (s, e) =>
+            {
+                compNode.EntityNode.RemoveComponent(compNode.ComponentType);
             };
 
             var propertiesPanel = new StackPanel { Spacing = 8 };
@@ -176,9 +178,75 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
                 }
             }
 
-            expander.Content = propertiesPanel;
+            expander.ExpandedContent = propertiesPanel;
             container.Children.Add(expander);
         }
+
+        var addComponentBtn = new Button
+        {
+            Content = "+ Add Component",
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Margin = new Thickness(4, 12, 4, 4)
+        };
+
+        var flyout = new Flyout();
+        var flyoutContent = new StackPanel { Spacing = 4, Width = 250 };
+        
+        var searchBox = new AutoSuggestBox { PlaceholderText = "Search components..." };
+        var listView = new ListView { MaxHeight = 300 };
+
+        void UpdateList(string query)
+        {
+            var items = new List<Type>();
+            var lowerQuery = query.ToLowerInvariant();
+            foreach (var kvp in ComponentRegistry.s_runtimeIDToType)
+            {
+                var type = kvp.Value;
+                if (_components.Any(c => c.ComponentType == type)) continue;
+                
+                var info = ComponentRegistry.GetComponentInfo(new Ghost.Core.Identifier<IComponent>(kvp.Key));
+                if (info.isCleanup) continue;
+
+                if (string.IsNullOrEmpty(query) || type.Name.ToLowerInvariant().Contains(lowerQuery))
+                {
+                    items.Add(type);
+                }
+            }
+            listView.ItemsSource = items.Select(t => new TextBlock { Text = t.Name, Tag = t }).ToList();
+        }
+
+        searchBox.TextChanged += (s, args) =>
+        {
+            if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
+            {
+                UpdateList(searchBox.Text);
+            }
+        };
+
+        listView.ItemClick += (s, args) =>
+        {
+            if (args.ClickedItem is TextBlock tb && tb.Tag is Type t)
+            {
+                _entityNode?.AddComponent(t);
+                flyout.Hide();
+            }
+        };
+        listView.IsItemClickEnabled = true;
+        listView.SelectionMode = ListViewSelectionMode.None;
+
+        flyout.Opened += (s, e) =>
+        {
+            searchBox.Text = "";
+            UpdateList("");
+            searchBox.Focus(FocusState.Programmatic);
+        };
+
+        flyoutContent.Children.Add(searchBox);
+        flyoutContent.Children.Add(listView);
+        flyout.Content = flyoutContent;
+
+        addComponentBtn.Flyout = flyout;
+        container.Children.Add(addComponentBtn);
 
         return container;
     }

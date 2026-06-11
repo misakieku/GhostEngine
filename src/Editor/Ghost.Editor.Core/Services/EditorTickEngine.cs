@@ -1,6 +1,7 @@
 using Ghost.Entities;
 using Microsoft.UI.Dispatching;
 using System.Diagnostics;
+using Ghost.Editor.Core.Contracts;
 
 namespace Ghost.Editor.Core.Services;
 

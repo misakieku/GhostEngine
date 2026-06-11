@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Editor.Core.Assets;
+using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.SceneGraph;
 using Ghost.Engine;
 using Ghost.Engine.Core;
@@ -9,33 +10,6 @@ using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 
 namespace Ghost.Editor.Core.Services;
-
-public interface IEditorWorldService : IDisposable
-{
-    World EditorWorld { get; }
-    ObservableCollection<SceneNode> RootNodes { get; }
-
-    event Action<Entity, string, ushort>? EntityCreated;
-    event Action<Entity>? EntityDestroyed;
-    event Action<Entity, Entity, Entity>? EntityParentChanged;
-    event Action<Entity, string>? EntityNameChanged;
-    event Action? SceneGraphRebuilt;
-
-    void ChangeEntityScene(Entity entity, ushort sceneID);
-    void CreateDefaultScene();
-    void CreateEntity(string name, ushort sceneID, Entity parent = default);
-    void Defer(Action action);
-    void DestroyEntity(Entity entity);
-    void FirePendingEvents();
-    void FlushCommands();
-    ushort GetEntitySceneID(Entity entity);
-    SceneAsset? GetAssetForScene(ushort sceneID);
-    void RegisterSceneAsset(ushort sceneID, SceneAsset asset);
-    void RebuildSceneGraph(Dictionary<Entity, string>? initialNames = null);
-    Error RemoveParent(Entity child);
-    void RenameEntity(Entity entity, string newName);
-    Error SetParent(Entity child, Entity parent);
-}
 
 internal class EditorWorldService : IEditorWorldService
 {
@@ -184,7 +158,7 @@ internal class EditorWorldService : IEditorWorldService
     {
         if (!child.IsValid) return Error.InvalidArgument;
 
-        Error err = Error.None;
+        var err = Error.None;
         if (parent.IsValid)
         {
             err = HierarchyUtility.IsValidParent(EditorWorld, child, parent);

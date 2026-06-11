@@ -57,9 +57,9 @@ public abstract partial class SceneGraphNode : GhostObject, IInspectable
         return null;
     }
 
-    public override void Modify()
+    public override void Modify(string? actionName = null)
     {
-        base.Modify(); // Marks this node dirty via base GhostObject logic
+        base.Modify(actionName); // Marks this node dirty via base GhostObject logic
 
         var sceneNode = GetOwningSceneNode();
         if (sceneNode != null)

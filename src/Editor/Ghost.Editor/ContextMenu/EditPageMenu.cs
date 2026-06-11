@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Editor.Core;
 using Ghost.Editor.Core.Services;
+using Ghost.Editor.Core.Contracts;
 using Windows.System;
 
 namespace Ghost.Editor.ContextMenu;

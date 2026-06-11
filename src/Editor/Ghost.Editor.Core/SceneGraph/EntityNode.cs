@@ -246,6 +246,46 @@ public sealed partial class EntityNode : SceneGraphNode
         }
     }
 
+    public void AddComponent(Type componentType)
+    {
+        Modify($"Add component {componentType.Name}");
+        var componentId = ComponentRegistry.GetComponentID(componentType);
+        if (componentId.IsInvalid) return;
+
+        var compInfo = ComponentRegistry.GetComponentInfo(componentId);
+
+        var worldService = EditorApplication.GetService<IEditorWorldService>();
+        worldService.Defer(() =>
+        {
+            unsafe
+            {
+                var pData = System.Runtime.InteropServices.Marshal.AllocHGlobal(compInfo.size);
+                try
+                {
+                    System.Runtime.InteropServices.Marshal.StructureToPtr(Activator.CreateInstance(componentType)!, pData, false);
+                    World.EntityManager.AddComponent(Entity, componentId, (void*)pData);
+                }
+                finally
+                {
+                    System.Runtime.InteropServices.Marshal.FreeHGlobal(pData);
+                }
+            }
+        });
+    }
+
+    public void RemoveComponent(Type componentType)
+    {
+        Modify($"Remove component {componentType.Name}");
+        var componentId = ComponentRegistry.GetComponentID(componentType);
+        if (componentId.IsInvalid) return;
+
+        var worldService = EditorApplication.GetService<IEditorWorldService>();
+        worldService.Defer(() =>
+        {
+            World.EntityManager.RemoveComponent(Entity, componentId);
+        });
+    }
+
     public override IconSource? CreateIcon()
     {
         return new FontIconSource

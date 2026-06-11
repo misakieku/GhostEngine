@@ -2,6 +2,7 @@ using Ghost.Editor.Core.SceneGraph;
 using Ghost.Engine.Components;
 using Ghost.Engine.Core;
 using Ghost.Entities;
+using Ghost.Editor.Core.Contracts;
 
 namespace Ghost.Editor.Core.Services;
 
