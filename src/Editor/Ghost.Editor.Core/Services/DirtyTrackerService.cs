@@ -34,7 +34,7 @@ internal class DirtyTrackerService : IDirtyTrackerService
 
         _trackedObjects.Add(obj);
 
-        if (obj is IAsset asset)
+        if (obj is Asset asset)
         {
             EditorApplication.GetService<IAssetRegistry>().SetAssetDirty(asset.ID);
         }

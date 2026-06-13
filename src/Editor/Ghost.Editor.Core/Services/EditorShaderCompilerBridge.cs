@@ -53,7 +53,7 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ulong ExtractNameHash(IAsset asset)
+    private static ulong ExtractNameHash(Asset asset)
     {
         if (asset is GraphicsShaderAsset graphicsAsset)
         {
@@ -115,7 +115,7 @@ internal sealed class EditorShaderCompilerBridge : IShaderCompilationBridge
         return tcs.Task;
     }
 
-    private void BuildKeywordMappings(IAsset asset, Guid assetId)
+    private void BuildKeywordMappings(Asset asset, Guid assetId)
     {
         if (asset is GraphicsShaderAsset graphicsAsset)
         {

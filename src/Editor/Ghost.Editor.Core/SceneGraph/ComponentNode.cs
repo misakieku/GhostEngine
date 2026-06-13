@@ -1,5 +1,6 @@
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Inspector;
+using Ghost.Engine.Components;
 using Ghost.Entities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Text.Json;
@@ -172,6 +173,11 @@ public unsafe class ComponentNode
     /// <summary>Serialize this component to JSON. Base reads from ECS directly.</summary>
     public virtual void Serialize(Utf8JsonWriter writer, JsonSerializerOptions options, Action<object>? preSerialize = null)
     {
+        if (ComponentType == typeof(SceneID))
+        {
+            return; // Don't serialize SceneID components since they are only relevant to the runtime.
+        }
+
         var boxed = System.Runtime.InteropServices.Marshal.PtrToStructure((nint)GetComponentPointer(), ComponentType);
         if (boxed != null)
         {

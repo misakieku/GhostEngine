@@ -41,6 +41,18 @@
     <Content Remove="Assets\MeshNode.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Controls\BasicInput\MatrixField.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>MatrixField.tt</DependentUpon>
+    </None>
+    <None Include="Controls\BasicInput\VectorField.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>VectorField.tt</DependentUpon>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="FluentIcons.WinUI" Version="2.1.328" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1839" />
@@ -61,11 +73,67 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Controls\BasicInput\MatrixField.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>MatrixField.cs</LastGenOutput>
+    </None>
+    <None Update="Controls\BasicInput\MatrixFieldTemplate.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>MatrixFieldTemplate.xaml</LastGenOutput>
+    </None>
+    <None Update="Controls\BasicInput\MatrixFieldTemplate.xaml">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>MatrixFieldTemplate.tt</DependentUpon>
+    </None>
+    <None Update="Controls\BasicInput\VectorFieldTemplate.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>VectorFieldTemplate.xaml</LastGenOutput>
+    </None>
+    <None Update="Controls\BasicInput\ValueFieldTemplate.xaml">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ValueFieldTemplate.tt</DependentUpon>
+    </None>
+    <None Update="Controls\BasicInput\VectorField.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>VectorField.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="Controls\BasicInput\MatrixFieldTemplate.xaml">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>MatrixFieldTemplate.tt</DependentUpon>
+    </Page>
     <Page Update="Controls\BasicInput\PropertyField.xaml">
       <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Controls\BasicInput\VectorFieldTemplate.xaml">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>VectorFieldTemplate.tt</DependentUpon>
     </Page>
     <Page Update="Controls\BasicInput\Vector3Field.xaml">
       <SubType>Designer</SubType>
     </Page>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Controls\BasicInput\MatrixField.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>MatrixField.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Controls\BasicInput\VectorField.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>VectorField.tt</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>

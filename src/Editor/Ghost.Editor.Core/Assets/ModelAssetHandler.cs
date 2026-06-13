@@ -67,7 +67,7 @@ public sealed class ModelManifestMetadata
     } = string.Empty;
 }
 
-internal sealed class ImportedModelAsset : IAsset
+internal sealed class ImportedModelAsset : Asset
 {
     public ModelManifest Manifest
     {
@@ -82,7 +82,7 @@ internal sealed class ImportedModelAsset : IAsset
 }
 
 [Guid(GUID)]
-public abstract class ModelAsset : IAsset
+public abstract class ModelAsset : Asset
 {
     public const string GUID = "B99CA68E-EE7A-4822-BF1C-AA0A5120C36A";
 
@@ -193,12 +193,12 @@ internal class ModelAssetHandler : IImportableAssetHandler, IPackableAssetHandle
         return null;
     }
 
-    public async ValueTask<Result<IAsset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
+    public async ValueTask<Result<Asset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
     {
         var importedPath = ImportCoordinator.GetImportedAssetPath(id);
         if (!File.Exists(importedPath))
         {
-            return Result.Failure<IAsset>("Imported model manifest does not exist.");
+            return Result.Failure<Asset>("Imported model manifest does not exist.");
         }
 
         try
@@ -206,16 +206,16 @@ internal class ModelAssetHandler : IImportableAssetHandler, IPackableAssetHandle
             await using var stream = new FileStream(importedPath, FileMode.Open, FileAccess.Read, FileShare.Read);
             var manifest = await JsonSerializer.DeserializeAsync<ModelManifest>(stream, s_jsonOptions, token).ConfigureAwait(false);
             return manifest != null
-                ? Result.Success<IAsset>(new ImportedModelAsset(id, settings, manifest))
-                : Result.Failure<IAsset>("Failed to deserialize model manifest.");
+                ? Result.Success<Asset>(new ImportedModelAsset(id, settings, manifest))
+                : Result.Failure<Asset>("Failed to deserialize model manifest.");
         }
         catch (Exception ex)
         {
-            return Result.Failure<IAsset>(ex.Message);
+            return Result.Failure<Asset>(ex.Message);
         }
     }
 
-    public ValueTask<Result> SaveAssetAsync(string targetPath, IAsset asset, CancellationToken token = default)
+    public ValueTask<Result> SaveAssetAsync(string targetPath, Asset asset, CancellationToken token = default)
     {
         return ValueTask.FromResult(Result.Failure("Saving model assets is not supported yet."));
     }

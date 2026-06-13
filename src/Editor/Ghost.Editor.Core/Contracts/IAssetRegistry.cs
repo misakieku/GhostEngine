@@ -50,12 +50,12 @@ public interface IAssetRegistry : IDisposable
 
     ValueTask<Result<Guid>> ImportAssetAsync(string sourceFilePath, string targetAssetPath, CancellationToken token = default);
     ValueTask<Result> ReimportAssetAsync(Guid assetId, string sourceFilePath, CancellationToken token = default);
-    ValueTask<Result<IAsset>> LoadAssetAsync(Guid id, CancellationToken token = default);
-    ValueTask<Result> SaveAssetAsync(IAsset asset, CancellationToken token = default);
+    ValueTask<Result<Asset>> LoadAssetAsync(Guid id, CancellationToken token = default);
+    ValueTask<Result> SaveAssetAsync(Asset asset, CancellationToken token = default);
     ValueTask<Result> SaveAssetAsync(Guid id, CancellationToken token = default);
 
     void SetAssetDirty(Guid id);
-    ValueTask<Result> SaveAssetIfDirtyAsync(IAsset asset, CancellationToken token = default);
+    ValueTask<Result> SaveAssetIfDirtyAsync(Asset asset, CancellationToken token = default);
     ValueTask<Result> SaveAssetIfDirtyAsync(Guid id, CancellationToken token = default);
     ValueTask<Result[]> SaveDirtyAssetsAsync();
 

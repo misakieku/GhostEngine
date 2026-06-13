@@ -36,7 +36,8 @@ internal sealed class EntitySaveData
     {
         get; set;
     } = "Entity";
-
+    
+    // TODO: Maybe we can store the component data directly instead of the json element.
     public Dictionary<string, JsonElement> Components
     {
         get; set;

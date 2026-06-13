@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Ghost.Editor.Core.Assets;
 
 [Guid(GUID)]
-public sealed partial class GraphicsShaderAsset : IAsset
+public sealed partial class GraphicsShaderAsset : Asset
 {
     public const string GUID = "7BD4591C-B017-4814-AA0B-3F30EB3E727E";
 
@@ -24,7 +24,7 @@ public sealed partial class GraphicsShaderAsset : IAsset
 }
 
 [Guid(GUID)]
-public sealed partial class ComputeShaderAsset : IAsset
+public sealed partial class ComputeShaderAsset : Asset
 {
     public const string GUID = "EA881979-CD8D-4088-B568-D42645F18C2A";
 
@@ -49,7 +49,7 @@ internal class GraphicsShaderAssetHandler : IPackableAssetHandler
         return null;
     }
 
-    public async ValueTask<Result<IAsset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
+    public async ValueTask<Result<Asset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
     {
         try
         {
@@ -67,7 +67,7 @@ internal class GraphicsShaderAssetHandler : IPackableAssetHandler
         }
     }
 
-    public ValueTask<Result> SaveAssetAsync(string targetPath, IAsset asset, CancellationToken token = default)
+    public ValueTask<Result> SaveAssetAsync(string targetPath, Asset asset, CancellationToken token = default)
     {
         return new ValueTask<Result>(Result.Failure("Saving shader assets is not supported yet as it's read-only. Please edit the shader source file directly if you need to modify it."));
     }
@@ -86,7 +86,7 @@ internal class ComputeShaderAssetHandler : IPackableAssetHandler
         return null;
     }
 
-    public async ValueTask<Result<IAsset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
+    public async ValueTask<Result<Asset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
     {
         try
         {
@@ -104,7 +104,7 @@ internal class ComputeShaderAssetHandler : IPackableAssetHandler
         }
     }
 
-    public ValueTask<Result> SaveAssetAsync(string targetPath, IAsset asset, CancellationToken token = default)
+    public ValueTask<Result> SaveAssetAsync(string targetPath, Asset asset, CancellationToken token = default)
     {
         return new ValueTask<Result>(Result.Failure("Saving shader assets is not supported yet as it's read-only. Please edit the shader source file directly if you need to modify it."));
     }

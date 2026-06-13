@@ -7,7 +7,7 @@ public class ConcurrentHashSet<T> : IDisposable
     public struct Enumerator : IEnumerator<T>
     {
         private readonly ConcurrentHashSet<T> _set;
-        private readonly HashSet<T>.Enumerator _enumerator;
+        private HashSet<T>.Enumerator _enumerator;
 
         public Enumerator(ConcurrentHashSet<T> set)
         {

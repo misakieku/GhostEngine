@@ -165,7 +165,7 @@ public sealed partial class EntityNode : SceneGraphNode
                 Entity newEntity = Entity.Invalid;
                 if (record.guid != Guid.Empty)
                 {
-                    if (GhostObject.Find(record.guid) is EntityNode targetNode)
+                    if (Find(record.guid) is EntityNode targetNode)
                     {
                         newEntity = targetNode.Entity;
                     }

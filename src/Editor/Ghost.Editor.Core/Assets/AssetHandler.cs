@@ -32,7 +32,7 @@ public sealed class CustomAssetHandlerAttribute : Attribute
     } = true;
 }
 
-public abstract class IAsset : GhostObject
+public abstract class Asset : GhostObject
 {
     public Guid ID
     {
@@ -49,7 +49,7 @@ public abstract class IAsset : GhostObject
         get;
     }
 
-    protected IAsset(Guid id, Guid typeId, IAssetSettings? settings)
+    protected Asset(Guid id, Guid typeId, IAssetSettings? settings)
         :base(id)
     {
         ID = id;
@@ -64,8 +64,8 @@ public interface IAssetHandler
 {
     IAssetSettings? CreateDefaultSettings(string ext);
 
-    ValueTask<Result<IAsset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default);
-    ValueTask<Result> SaveAssetAsync(string targetPath, IAsset asset, CancellationToken token = default);
+    ValueTask<Result<Asset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default);
+    ValueTask<Result> SaveAssetAsync(string targetPath, Asset asset, CancellationToken token = default);
 }
 
 public interface IImportableAssetHandler : IAssetHandler

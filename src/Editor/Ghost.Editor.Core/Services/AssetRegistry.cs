@@ -17,7 +17,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
     private readonly ImportCoordinator _importCoordinator;
     private readonly FileSystemWatcher _watcher;
 
-    private readonly ConcurrentDictionary<Guid, WeakReference<IAsset>> _loadedAssets;
+    private readonly ConcurrentDictionary<Guid, WeakReference<Asset>> _loadedAssets;
     private readonly SemaphoreSlim _loadLock;
 
     private readonly ConcurrentDictionary<string, bool> _ignoreMetaWrites;
@@ -38,7 +38,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         _catalog = new AssetCatalog(dbPath);
         _importCoordinator = new ImportCoordinator(_catalog);
 
-        _loadedAssets = new ConcurrentDictionary<Guid, WeakReference<IAsset>>();
+        _loadedAssets = new ConcurrentDictionary<Guid, WeakReference<Asset>>();
         _loadLock = new SemaphoreSlim(1, 1);
 
         _ignoreMetaWrites = new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
@@ -294,7 +294,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         return Result.Success();
     }
 
-    public async ValueTask<Result<IAsset>> LoadAssetAsync(Guid id, CancellationToken token = default)
+    public async ValueTask<Result<Asset>> LoadAssetAsync(Guid id, CancellationToken token = default)
     {
         if (_loadedAssets.TryGetValue(id, out var weakRef) && weakRef.TryGetTarget(out var asset))
         {
@@ -339,7 +339,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         }
     }
 
-    public async ValueTask<Result> SaveAssetAsync(IAsset asset, CancellationToken token = default)
+    public async ValueTask<Result> SaveAssetAsync(Asset asset, CancellationToken token = default)
     {
         try
         {
@@ -380,7 +380,7 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
         _dirtyAssets.Add(id);
     }
 
-    public async ValueTask<Result> SaveAssetIfDirtyAsync(IAsset asset, CancellationToken token = default)
+    public async ValueTask<Result> SaveAssetIfDirtyAsync(Asset asset, CancellationToken token = default)
     {
         if (_dirtyAssets.Contains(asset.ID))
         {
@@ -419,8 +419,10 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
             tasks[i++] = SaveAssetIfDirtyAsync(id).AsTask();
         }
 
+        var results = await Task.WhenAll(tasks);
         _dirtyAssets.Clear();
-        return await Task.WhenAll(tasks);
+
+        return results;
     }
 
     public Task<Result> OpenAssetAsync(Guid id)

@@ -1,11 +1,9 @@
 using Ghost.Editor.Core;
+using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Services;
 using Ghost.Editor.Core.Utilities;
-using Ghost.Editor.Core.Assets;
-using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Views.Controls;
 using Ghost.Engine.Core;
-using Windows.System;
 
 namespace Ghost.Editor.ContextMenu;
 

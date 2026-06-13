@@ -50,7 +50,7 @@ public enum MipmapFilter : uint
 }
 
 [Guid(GUID)]
-public unsafe class TextureAsset : IAsset
+public unsafe class TextureAsset : Asset
 {
     public const string GUID = "27965FFF-860C-40EF-9123-1874D7DE9CDC";
 
@@ -332,7 +332,7 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
         }
     }
 
-    public ValueTask<Result<IAsset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
+    public ValueTask<Result<Asset>> LoadAssetAsync(string assetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
     {
         try
         {
@@ -340,7 +340,7 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
             var infoResult = GetImageInfo(assetPath, textureSettings);
             if (infoResult.IsFailure)
             {
-                return ValueTask.FromResult(Result<IAsset>.Failure(infoResult.Message));
+                return ValueTask.FromResult(Result<Asset>.Failure(infoResult.Message));
             }
 
             var info = infoResult.Value;
@@ -353,11 +353,11 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
                 dimension = (uint)GetTextureDimension(textureSettings),
             };
 
-            return ValueTask.FromResult(Result.Success<IAsset>(new TextureAsset(info.pixelData, contentHeader, id, textureSettings)));
+            return ValueTask.FromResult(Result.Success<Asset>(new TextureAsset(info.pixelData, contentHeader, id, textureSettings)));
         }
         catch (Exception ex)
         {
-            return ValueTask.FromResult(Result<IAsset>.Failure(ex.Message));
+            return ValueTask.FromResult(Result<Asset>.Failure(ex.Message));
         }
     }
 
@@ -369,7 +369,7 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
         stream.Write(buffer);
     }
 
-    public async ValueTask<Result> SaveAssetAsync(string targetPath, IAsset asset, CancellationToken token = default)
+    public async ValueTask<Result> SaveAssetAsync(string targetPath, Asset asset, CancellationToken token = default)
     {
         if (asset is not TextureAsset textureAsset)
         {
