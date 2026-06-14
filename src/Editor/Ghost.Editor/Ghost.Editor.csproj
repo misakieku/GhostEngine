@@ -224,8 +224,7 @@
 
   <!-- Publish Properties -->
   <PropertyGroup>
-    <PublishReadyToRun Condition="'$(Configuration)'=='Debug_Editor'">False</PublishReadyToRun>
-    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug' And '$(Configuration)' != 'Debug_Editor'">True</PublishReadyToRun>
     <Nullable>enable</Nullable>
     <SupportedOSPlatformVersion>10.0.20348.0</SupportedOSPlatformVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
