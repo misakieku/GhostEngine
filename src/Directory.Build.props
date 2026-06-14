@@ -1,10 +1,11 @@
 <Project>
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug_Editor'">
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <DefineConstants>$(DefineConstants);DEBUG;TRACE;GHOST_EDITOR;GHOST_SAFETY_CHECKS;</DefineConstants>
     <Optimize>false</Optimize>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>portable</DebugType>
     <TieredCompilation>false</TieredCompilation>
+    <PublishReadyToRun>false</PublishReadyToRun>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release_Editor'">
     <DefineConstants>$(DefineConstants);GHOST_EDITOR;GHOST_SAFETY_CHECKS;</DefineConstants>

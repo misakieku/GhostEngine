@@ -4,685 +4,721 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Ghost.Editor.Core.Controls">
 
+
     <Style TargetType="local:Float2x2Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Float2x2Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Float2Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Float2Field x:Name="C1Component" Grid.Column="1" />
+                        <local:Float2Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Float2Field x:Name="C1Component" Grid.Row="1" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Double2x2Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Double2x2Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Double2Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Double2Field x:Name="C1Component" Grid.Column="1" />
+                        <local:Double2Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Double2Field x:Name="C1Component" Grid.Row="1" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Int2x2Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Int2x2Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Int2Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Int2Field x:Name="C1Component" Grid.Column="1" />
+                        <local:Int2Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Int2Field x:Name="C1Component" Grid.Row="1" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Uint2x2Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Uint2x2Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Uint2Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Uint2Field x:Name="C1Component" Grid.Column="1" />
+                        <local:Uint2Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Uint2Field x:Name="C1Component" Grid.Row="1" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Float2x3Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Float2x3Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Float2Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Float2Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Float2Field x:Name="C2Component" Grid.Column="2" />
+                        <local:Float2Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Float2Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Float2Field x:Name="C2Component" Grid.Row="2" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Double2x3Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Double2x3Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Double2Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Double2Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Double2Field x:Name="C2Component" Grid.Column="2" />
+                        <local:Double2Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Double2Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Double2Field x:Name="C2Component" Grid.Row="2" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Int2x3Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Int2x3Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Int2Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Int2Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Int2Field x:Name="C2Component" Grid.Column="2" />
+                        <local:Int2Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Int2Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Int2Field x:Name="C2Component" Grid.Row="2" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Uint2x3Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Uint2x3Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Uint2Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Uint2Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Uint2Field x:Name="C2Component" Grid.Column="2" />
+                        <local:Uint2Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Uint2Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Uint2Field x:Name="C2Component" Grid.Row="2" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Float2x4Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Float2x4Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Float2Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Float2Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Float2Field x:Name="C2Component" Grid.Column="2" />
-                        <local:Float2Field x:Name="C3Component" Grid.Column="3" />
+                        <local:Float2Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Float2Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Float2Field x:Name="C2Component" Grid.Row="2" />
+                        <local:Float2Field x:Name="C3Component" Grid.Row="3" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Double2x4Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Double2x4Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Double2Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Double2Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Double2Field x:Name="C2Component" Grid.Column="2" />
-                        <local:Double2Field x:Name="C3Component" Grid.Column="3" />
+                        <local:Double2Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Double2Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Double2Field x:Name="C2Component" Grid.Row="2" />
+                        <local:Double2Field x:Name="C3Component" Grid.Row="3" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Int2x4Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Int2x4Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Int2Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Int2Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Int2Field x:Name="C2Component" Grid.Column="2" />
-                        <local:Int2Field x:Name="C3Component" Grid.Column="3" />
+                        <local:Int2Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Int2Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Int2Field x:Name="C2Component" Grid.Row="2" />
+                        <local:Int2Field x:Name="C3Component" Grid.Row="3" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Uint2x4Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Uint2x4Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Uint2Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Uint2Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Uint2Field x:Name="C2Component" Grid.Column="2" />
-                        <local:Uint2Field x:Name="C3Component" Grid.Column="3" />
+                        <local:Uint2Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Uint2Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Uint2Field x:Name="C2Component" Grid.Row="2" />
+                        <local:Uint2Field x:Name="C3Component" Grid.Row="3" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Float3x2Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Float3x2Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Float3Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Float3Field x:Name="C1Component" Grid.Column="1" />
+                        <local:Float3Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Float3Field x:Name="C1Component" Grid.Row="1" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Double3x2Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Double3x2Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Double3Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Double3Field x:Name="C1Component" Grid.Column="1" />
+                        <local:Double3Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Double3Field x:Name="C1Component" Grid.Row="1" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Int3x2Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Int3x2Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Int3Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Int3Field x:Name="C1Component" Grid.Column="1" />
+                        <local:Int3Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Int3Field x:Name="C1Component" Grid.Row="1" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Uint3x2Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Uint3x2Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Uint3Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Uint3Field x:Name="C1Component" Grid.Column="1" />
+                        <local:Uint3Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Uint3Field x:Name="C1Component" Grid.Row="1" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Float3x3Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Float3x3Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Float3Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Float3Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Float3Field x:Name="C2Component" Grid.Column="2" />
+                        <local:Float3Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Float3Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Float3Field x:Name="C2Component" Grid.Row="2" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Double3x3Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Double3x3Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Double3Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Double3Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Double3Field x:Name="C2Component" Grid.Column="2" />
+                        <local:Double3Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Double3Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Double3Field x:Name="C2Component" Grid.Row="2" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Int3x3Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Int3x3Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Int3Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Int3Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Int3Field x:Name="C2Component" Grid.Column="2" />
+                        <local:Int3Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Int3Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Int3Field x:Name="C2Component" Grid.Row="2" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Uint3x3Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Uint3x3Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Uint3Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Uint3Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Uint3Field x:Name="C2Component" Grid.Column="2" />
+                        <local:Uint3Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Uint3Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Uint3Field x:Name="C2Component" Grid.Row="2" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Float3x4Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Float3x4Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Float3Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Float3Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Float3Field x:Name="C2Component" Grid.Column="2" />
-                        <local:Float3Field x:Name="C3Component" Grid.Column="3" />
+                        <local:Float3Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Float3Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Float3Field x:Name="C2Component" Grid.Row="2" />
+                        <local:Float3Field x:Name="C3Component" Grid.Row="3" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Double3x4Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Double3x4Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Double3Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Double3Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Double3Field x:Name="C2Component" Grid.Column="2" />
-                        <local:Double3Field x:Name="C3Component" Grid.Column="3" />
+                        <local:Double3Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Double3Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Double3Field x:Name="C2Component" Grid.Row="2" />
+                        <local:Double3Field x:Name="C3Component" Grid.Row="3" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Int3x4Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Int3x4Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Int3Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Int3Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Int3Field x:Name="C2Component" Grid.Column="2" />
-                        <local:Int3Field x:Name="C3Component" Grid.Column="3" />
+                        <local:Int3Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Int3Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Int3Field x:Name="C2Component" Grid.Row="2" />
+                        <local:Int3Field x:Name="C3Component" Grid.Row="3" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Uint3x4Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Uint3x4Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Uint3Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Uint3Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Uint3Field x:Name="C2Component" Grid.Column="2" />
-                        <local:Uint3Field x:Name="C3Component" Grid.Column="3" />
+                        <local:Uint3Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Uint3Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Uint3Field x:Name="C2Component" Grid.Row="2" />
+                        <local:Uint3Field x:Name="C3Component" Grid.Row="3" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Float4x2Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Float4x2Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Float4Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Float4Field x:Name="C1Component" Grid.Column="1" />
+                        <local:Float4Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Float4Field x:Name="C1Component" Grid.Row="1" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Double4x2Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Double4x2Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Double4Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Double4Field x:Name="C1Component" Grid.Column="1" />
+                        <local:Double4Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Double4Field x:Name="C1Component" Grid.Row="1" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Int4x2Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Int4x2Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Int4Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Int4Field x:Name="C1Component" Grid.Column="1" />
+                        <local:Int4Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Int4Field x:Name="C1Component" Grid.Row="1" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Uint4x2Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Uint4x2Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Uint4Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Uint4Field x:Name="C1Component" Grid.Column="1" />
+                        <local:Uint4Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Uint4Field x:Name="C1Component" Grid.Row="1" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Float4x3Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Float4x3Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Float4Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Float4Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Float4Field x:Name="C2Component" Grid.Column="2" />
+                        <local:Float4Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Float4Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Float4Field x:Name="C2Component" Grid.Row="2" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Double4x3Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Double4x3Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Double4Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Double4Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Double4Field x:Name="C2Component" Grid.Column="2" />
+                        <local:Double4Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Double4Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Double4Field x:Name="C2Component" Grid.Row="2" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Int4x3Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Int4x3Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Int4Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Int4Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Int4Field x:Name="C2Component" Grid.Column="2" />
+                        <local:Int4Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Int4Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Int4Field x:Name="C2Component" Grid.Row="2" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Uint4x3Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Uint4x3Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Uint4Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Uint4Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Uint4Field x:Name="C2Component" Grid.Column="2" />
+                        <local:Uint4Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Uint4Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Uint4Field x:Name="C2Component" Grid.Row="2" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Float4x4Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Float4x4Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Float4Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Float4Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Float4Field x:Name="C2Component" Grid.Column="2" />
-                        <local:Float4Field x:Name="C3Component" Grid.Column="3" />
+                        <local:Float4Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Float4Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Float4Field x:Name="C2Component" Grid.Row="2" />
+                        <local:Float4Field x:Name="C3Component" Grid.Row="3" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Double4x4Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Double4x4Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Double4Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Double4Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Double4Field x:Name="C2Component" Grid.Column="2" />
-                        <local:Double4Field x:Name="C3Component" Grid.Column="3" />
+                        <local:Double4Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Double4Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Double4Field x:Name="C2Component" Grid.Row="2" />
+                        <local:Double4Field x:Name="C3Component" Grid.Row="3" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Int4x4Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Int4x4Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Int4Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Int4Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Int4Field x:Name="C2Component" Grid.Column="2" />
-                        <local:Int4Field x:Name="C3Component" Grid.Column="3" />
+                        <local:Int4Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Int4Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Int4Field x:Name="C2Component" Grid.Row="2" />
+                        <local:Int4Field x:Name="C3Component" Grid.Row="3" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
     <Style TargetType="local:Uint4x4Field">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:Uint4x4Field">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                        <local:Uint4Field x:Name="C0Component" Grid.Column="0" />
-                        <local:Uint4Field x:Name="C1Component" Grid.Column="1" />
-                        <local:Uint4Field x:Name="C2Component" Grid.Column="2" />
-                        <local:Uint4Field x:Name="C3Component" Grid.Column="3" />
+                        <local:Uint4Field x:Name="C0Component" Grid.Row="0" />
+                        <local:Uint4Field x:Name="C1Component" Grid.Row="1" />
+                        <local:Uint4Field x:Name="C2Component" Grid.Row="2" />
+                        <local:Uint4Field x:Name="C3Component" Grid.Row="3" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>

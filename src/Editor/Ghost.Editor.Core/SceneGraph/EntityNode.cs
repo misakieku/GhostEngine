@@ -2,6 +2,7 @@ using Ghost.Editor.Core.Contracts;
 using Ghost.Entities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using System.Diagnostics;
 
 namespace Ghost.Editor.Core.SceneGraph;
 
@@ -230,6 +231,7 @@ public sealed partial class EntityNode : SceneGraphNode
         ref var archetype = ref World.ComponentManager.GetArchetypeReference(location.archetypeID);
 
         var it = archetype._signature.GetIterator();
+        Debug.WriteLine(archetype._signature.ToString());
         while (it.Next(out var componentID))
         {
             if (ComponentRegistry.s_runtimeIDToType.TryGetValue(componentID, out var type))

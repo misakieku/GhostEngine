@@ -17,12 +17,10 @@
 
   <PropertyGroup Condition="'$(Configuration)'=='Release_Editor'">
     <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS</DefineConstants>
-    <Optimize>True</Optimize>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release_Dev'">
     <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS</DefineConstants>
-    <Optimize>True</Optimize>
   </PropertyGroup>
 
   <ItemGroup>

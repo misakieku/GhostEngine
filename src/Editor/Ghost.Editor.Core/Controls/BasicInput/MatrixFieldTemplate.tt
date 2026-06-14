@@ -24,19 +24,20 @@ for (int r = 2; r <= 4; r++)
             var dataType = $"{primitive}{r}x{c}";
             var cTypeName = char.ToUpper(primitive[0]) + primitive.Substring(1) + r + "Field";
             var typeName = char.ToUpper(primitive[0]) + primitive.Substring(1) + r + "x" + c + "Field"; #>
+
     <Style TargetType="local:<#= typeName #>">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:<#= typeName #>">
-                    <Grid ColumnSpacing="4">
-                        <Grid.ColumnDefinitions>
+                    <Grid RowSpacing="4">
+                        <Grid.RowDefinitions>
 <# for (int k = 0; k < c; k++) { #>
-                            <ColumnDefinition Width="*" />
+                            <RowDefinition Height="*" />
 <# } #>
-                        </Grid.ColumnDefinitions>
+                        </Grid.RowDefinitions>
 
 <# for (int k = 0; k < c; k++) { #>
-                        <local:<#= cTypeName #> x:Name="<#= componentNames[k] #>Component" Grid.Column="<#= k #>" />
+                        <local:<#= cTypeName #> x:Name="<#= componentNames[k] #>Component" Grid.Row="<#= k #>" />
 <# } #>
                     </Grid>
                 </ControlTemplate>

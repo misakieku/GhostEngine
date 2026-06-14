@@ -38,8 +38,6 @@ public static class PropertyDrawerRegistry
             s_drawers[typeof(byte)] = NumberBoxDrawer<byte>.CreateInteger();
             s_drawers[typeof(bool)] = new ToggleSwitchDrawer();
 
-            s_drawers[typeof(float3)] = new Float3Drawer();
-
             s_drawers[typeof(Entity)] = new EntityDrawer();
 
             // Discover user-defined drawers via TypeCache

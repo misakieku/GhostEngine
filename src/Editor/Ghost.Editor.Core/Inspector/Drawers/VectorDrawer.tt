@@ -1,0 +1,76 @@
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using Ghost.Editor.Core.Controls;
+using Ghost.Editor.Core.Utilities;
+using Microsoft.UI.Xaml;
+
+using Misaki.HighPerformance.Mathematics;
+
+namespace Ghost.Editor.Core.Inspector.Drawers;
+
+<#
+var componentNames = new[] { "X", "Y", "Z", "W" };
+var primitives = new[] { "float", "double", "int", "uint" };
+
+for (int i = 0; i < primitives.Length; i++)
+{
+    var primitive = primitives[i];
+    var typeName = char.ToUpper(primitive[0]) + primitive.Substring(1);
+    for (int j = 2; j <= 4; j++)
+    { #>
+
+[CustomPropertyDrawer(typeof(<#= primitive #><#= j #>))]
+public sealed class <#= typeName #><#= j #>Drawer : PropertyDrawer<<#= primitive #><#= j #>>
+{
+    public override FrameworkElement CreateControlT(SceneGraph.PropertyNode<<#= primitive #><#= j #>> node)
+    {
+        var field = new <#= typeName #><#= j #>Field
+        {
+            IsEnabled = !node.Descriptor.IsReadOnly,
+            Value = node.Value
+        };
+
+        field.BindTwoWay(node);
+
+        return field;
+    }
+}
+    <# } #>
+<# } #>
+
+<#
+componentNames = new[] { "C0", "C1", "C2", "C3" };
+
+for (int r = 2; r <= 4; r++)
+{
+    for (int c = 2; c <= 4; c++)
+    {
+        for (int i = 0; i < primitives.Length; i++)
+        {
+            var primitive = primitives[i];
+            var dataType = $"{primitive}{r}x{c}";
+            var cTypeName = char.ToUpper(primitive[0]) + primitive.Substring(1) + r + "Field";
+            var typeName = char.ToUpper(primitive[0]) + primitive.Substring(1) + r + "x" + c + "Field"; #>
+
+[CustomPropertyDrawer(typeof(<#= dataType #>))]
+public sealed class <#= typeName #>Drawer : PropertyDrawer<<#= dataType #>>
+{
+    public override FrameworkElement CreateControlT(SceneGraph.PropertyNode<<#= dataType #>> node)
+    {
+        var field = new <#= typeName #>
+        {
+            IsEnabled = !node.Descriptor.IsReadOnly,
+            Value = node.Value
+        };
+
+        field.BindTwoWay(node);
+        return field;
+    }
+}
+        <# } #>
+    <# } #>
+<# } #>

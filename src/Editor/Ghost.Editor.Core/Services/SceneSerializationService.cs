@@ -8,6 +8,7 @@ using Ghost.Engine.Streaming;
 using Ghost.Entities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -45,6 +46,7 @@ internal sealed class EntitySaveData
 }
 
 // TODO: Serialize shared components.
+// TODO: This is a bit chaos now.
 internal class SceneSerializationService : IDisposable
 {
     private static readonly Dictionary<Type, FieldInfo[]> s_entityFieldsCache = new();
@@ -493,6 +495,7 @@ internal class SceneSerializationService : IDisposable
 
         foreach (var entity in sorted)
         {
+            Debug.WriteLine(entity);
             var locationResult = world.EntityManager.GetEntityLocation(entity);
             if (!locationResult.IsSuccess)
             {
@@ -521,6 +524,11 @@ internal class SceneSerializationService : IDisposable
                 foreach (var compNode in node.Components)
                 {
                     var type = compNode.ComponentType;
+                    if (type == typeof(SceneID))
+                    {
+                        continue;
+                    }
+
                     var fullName = type.FullName ?? type.Name;
                     writer.WritePropertyName(fullName);
                     compNode.Serialize(writer, s_jsonOptions, (boxed) =>

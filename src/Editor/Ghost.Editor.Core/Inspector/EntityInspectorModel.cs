@@ -10,7 +10,7 @@ namespace Ghost.Editor.Core.Inspector;
 /// Model for an entire entity being inspected.
 /// Discovers components from archetype, builds ComponentModels.
 /// </summary>
-public sealed class EntityInspectorModel : ISyncableInspectorModel
+internal sealed class EntityInspectorModel : ISyncableInspectorModel
 {
     private readonly World _world;
     private readonly Entity _entity;
@@ -18,6 +18,14 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
     private readonly List<ComponentNode> _components = new();
     private readonly List<ComponentEditor> _activeCustomEditors = new();
     private int _lastArchetypeId = -1;
+
+    // Master-Detail UI State
+    private StackPanel? _rootContainer;
+    private ListView? _masterListView;
+    private StackPanel? _detailContainer;
+    private AutoSuggestBox? _masterSearchBox;
+    private bool _isUpdatingSelection = false;
+    private HashSet<Type> _knownComponentTypes = new();
 
     public World World => _world;
     public Entity Entity => _entity;
@@ -133,33 +141,182 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
             return;
         }
 
-        RefreshStructure();
+        if (RefreshStructure())
+        {
+            UpdateMasterListView(false);
+        }
+
         SyncFromECS();
     }
-
-    // TODO: Deselect is not supported yet.
 
     public UIElement BuildUI()
     {
         RefreshStructure();
 
-        var container = new StackPanel { Spacing = 4 };
-
-        foreach (var compNode in _components)
+        if (_rootContainer == null)
         {
-            var expander = new Controls.ComponentExpander
+            _rootContainer = new StackPanel { Spacing = 8 };
+
+            // --- Master Section ---
+            var masterContainer = new StackPanel { Spacing = 4 };
+            
+            _masterSearchBox = new AutoSuggestBox { PlaceholderText = "Filter components..." };
+            _masterSearchBox.TextChanged += (s, args) =>
             {
-                Title = compNode.Descriptor.DisplayName,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = new Thickness(4, 2, 4, 2)
+                if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
+                {
+                    UpdateMasterListView(false);
+                }
             };
 
-            expander.RemoveRequested += (s, e) =>
+            _masterListView = new ListView
+            {
+                SelectionMode = ListViewSelectionMode.Extended,
+                MaxHeight = 300,
+                CornerRadius = new CornerRadius(4),
+                BorderThickness = new Thickness(1),
+                BorderBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"]
+            };
+            _masterListView.SelectionChanged += (s, e) =>
+            {
+                RebuildDetailView();
+            };
+
+            masterContainer.Children.Add(_masterSearchBox);
+            masterContainer.Children.Add(_masterListView);
+
+            var addComponentBtn = new Button
+            {
+                Content = "+ Add Component",
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(0, 4, 0, 0)
+            };
+            SetupAddComponentFlyout(addComponentBtn);
+            masterContainer.Children.Add(addComponentBtn);
+
+            _rootContainer.Children.Add(masterContainer);
+
+            // --- Detail Section ---
+            _detailContainer = new StackPanel { Spacing = 8 };
+            _rootContainer.Children.Add(_detailContainer);
+        }
+
+        UpdateMasterListView(true);
+        return _rootContainer;
+    }
+
+    private void UpdateMasterListView(bool isInitialLoad)
+    {
+        if (_masterListView == null) return;
+
+        var query = _masterSearchBox?.Text?.ToLowerInvariant() ?? "";
+        var oldSelectedTypes = _masterListView.SelectedItems.Cast<TextBlock>().Select(tb => ((ComponentNode)tb.Tag).ComponentType).ToHashSet();
+
+        var items = new List<TextBlock>();
+        foreach (var compNode in _components)
+        {
+            if (string.IsNullOrEmpty(query) || compNode.Descriptor.DisplayName.ToLowerInvariant().Contains(query))
+            {
+                var tb = new TextBlock 
+                { 
+                    Text = compNode.Descriptor.DisplayName, 
+                    Tag = compNode,
+                    Margin = new Thickness(0, 4, 0, 4)
+                };
+
+                var flyout = new MenuFlyout();
+                var removeMenuItem = new MenuFlyoutItem { Text = "Remove Component", Icon = new FontIcon { Glyph = "\uE74D" } };
+                removeMenuItem.Click += (s, e) =>
+                {
+                    compNode.EntityNode.RemoveComponent(compNode.ComponentType);
+                };
+                flyout.Items.Add(removeMenuItem);
+                tb.ContextFlyout = flyout;
+
+                items.Add(tb);
+            }
+        }
+
+        _isUpdatingSelection = true;
+        _masterListView.ItemsSource = items;
+
+        foreach (var item in items)
+        {
+            var type = ((ComponentNode)item.Tag).ComponentType;
+            bool shouldSelect = false;
+
+            if (isInitialLoad)
+            {
+                shouldSelect = true;
+                _knownComponentTypes.Add(type);
+            }
+            else
+            {
+                if (!_knownComponentTypes.Contains(type))
+                {
+                    shouldSelect = true;
+                    _knownComponentTypes.Add(type);
+                }
+                else if (oldSelectedTypes.Contains(type))
+                {
+                    shouldSelect = true;
+                }
+            }
+
+            if (shouldSelect)
+            {
+                _masterListView.SelectedItems.Add(item);
+            }
+        }
+
+        var currentTypes = _components.Select(c => c.ComponentType).ToHashSet();
+        _knownComponentTypes.RemoveWhere(t => !currentTypes.Contains(t));
+
+        _isUpdatingSelection = false;
+        RebuildDetailView();
+    }
+
+    private void RebuildDetailView()
+    {
+        if (_isUpdatingSelection || _detailContainer == null || _masterListView == null) return;
+
+        _activeCustomEditors.Clear();
+        _detailContainer.Children.Clear();
+
+        var selectedNodes = _masterListView.SelectedItems.Cast<TextBlock>().Select(tb => (ComponentNode)tb.Tag).ToList();
+
+        foreach (var compNode in selectedNodes)
+        {
+            var compHeader = new Border
+            {
+                Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["LayerFillColorDefaultBrush"],
+                BorderBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8, 6, 8, 6),
+                Margin = new Thickness(0, 8, 0, 4)
+            };
+
+            var headerText = new TextBlock
+            {
+                Text = compNode.Descriptor.DisplayName,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var flyout = new MenuFlyout();
+            var removeMenuItem = new MenuFlyoutItem { Text = "Remove Component", Icon = new FontIcon { Glyph = "\uE74D" } };
+            removeMenuItem.Click += (s, e) =>
             {
                 compNode.EntityNode.RemoveComponent(compNode.ComponentType);
             };
+            flyout.Items.Add(removeMenuItem);
+            compHeader.ContextFlyout = flyout;
 
-            var propertiesPanel = new StackPanel { Spacing = 8 };
+            compHeader.Child = headerText;
+            _detailContainer.Children.Add(compHeader);
+
+            var propertiesPanel = new StackPanel { Spacing = 8, Margin = new Thickness(8, 0, 8, 8) };
 
             if (ComponentEditorRegistry.HasCustomEditor(compNode.ComponentType))
             {
@@ -178,17 +335,12 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
                 }
             }
 
-            expander.ExpandedContent = propertiesPanel;
-            container.Children.Add(expander);
+            _detailContainer.Children.Add(propertiesPanel);
         }
+    }
 
-        var addComponentBtn = new Button
-        {
-            Content = "+ Add Component",
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            Margin = new Thickness(4, 12, 4, 4)
-        };
-
+    private void SetupAddComponentFlyout(Button addComponentBtn)
+    {
         var flyout = new Flyout();
         var flyoutContent = new StackPanel { Spacing = 4, Width = 250 };
         
@@ -246,9 +398,6 @@ public sealed class EntityInspectorModel : ISyncableInspectorModel
         flyout.Content = flyoutContent;
 
         addComponentBtn.Flyout = flyout;
-        container.Children.Add(addComponentBtn);
-
-        return container;
     }
 
     public void Dispose()

@@ -6,6 +6,7 @@ using Ghost.Engine.Streaming;
 
 namespace Ghost.Editor.Core.Assets;
 
+// FIX: This is broken in many ways.
 [CustomAssetHandler(AssetTypeId = SceneAsset.GUID, RuntimeAssetType = AssetType.Scene, Extensions = new[] { ".gscene" })]
 internal class SceneAssetHandler : IImportableAssetHandler, IPackableAssetHandler
 {
@@ -16,16 +17,25 @@ internal class SceneAssetHandler : IImportableAssetHandler, IPackableAssetHandle
         // We probably shouldn't do the actual loading in OpenAsync, but let's keep it simple for now.
         // OpenAsync usually returns immediately if there's no UI, or we should use AssetRegistry.LoadAssetAsync
         var assetRegistry = EditorApplication.GetService<IAssetRegistry>();
-        await assetRegistry.LoadAssetAsync(assetRegistry.GetAssetGuid(path));
-        // AssetMeta handles this. This method is just a quick hack for double clicking.
-        //var data = await SceneSerializationService.DeserializeSceneFileAsync(path);
-        //if (data == null)
-        //{
-        //    return Result.Failure("Failed to load scene.");
-        //}
+        var result = await assetRegistry.LoadAssetAsync(assetRegistry.GetAssetGuid(path));
+        if (result.IsFailure)
+        {
+            return result;
+        }
 
-        //var service = EditorApplication.GetService<SceneSerializationService>();
-        //service.LoadSceneIntoEditorWorld(data, SceneLoadingType.Single, null);
+        // AssetMeta handles this. This method is just a quick hack for double clicking.
+        var data = await SceneSerializationService.DeserializeSceneFileAsync(path);
+        if (data == null)
+        {
+            return Result.Failure("Failed to load scene.");
+        }
+
+        var service = EditorApplication.GetService<SceneSerializationService>();
+        service.LoadSceneIntoEditorWorld(data, SceneLoadingType.Single, (scene) =>
+        {
+            ((SceneAsset)result.Value).RuntimeSceneID = scene.ID;
+            EditorApplication.GetService<IEditorWorldService>().RegisterSceneAsset(scene.ID, (SceneAsset)result.Value);
+        });
         return Result.Success();
     }
 
@@ -51,18 +61,18 @@ internal class SceneAssetHandler : IImportableAssetHandler, IPackableAssetHandle
                 RuntimeSceneID = Engine.Core.Scene.INVALID_ID // Default
             };
 
-            if (data != null)
-            {
-                var tcs = new TaskCompletionSource<Asset>();
-                var service = EditorApplication.GetService<SceneSerializationService>();
-                service.LoadSceneIntoEditorWorld(data, SceneLoadingType.Single, (scene) =>
-                {
-                    asset.RuntimeSceneID = scene.ID;
-                    EditorApplication.GetService<IEditorWorldService>().RegisterSceneAsset(scene.ID, asset);
-                    tcs.TrySetResult(asset);
-                });
-                return Result.Success(await tcs.Task);
-            }
+            //if (data != null)
+            //{
+            //    var tcs = new TaskCompletionSource<Asset>();
+            //    var service = EditorApplication.GetService<SceneSerializationService>();
+            //    service.LoadSceneIntoEditorWorld(data, SceneLoadingType.Single, (scene) =>
+            //    {
+            //        asset.RuntimeSceneID = scene.ID;
+            //        EditorApplication.GetService<IEditorWorldService>().RegisterSceneAsset(scene.ID, asset);
+            //        tcs.TrySetResult(asset);
+            //    });
+            //    return Result.Success(await tcs.Task);
+            //}
 
             return Result.Success<Asset>(asset);
         }

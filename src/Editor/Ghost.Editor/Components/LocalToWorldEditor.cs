@@ -10,7 +10,7 @@ using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Editor.Components;
 
-[CustomEditor(typeof(LocalToWorld))]
+//[CustomEditor(typeof(LocalToWorld))]
 internal class LocalToWorldEditor : ComponentEditor
 {
     private Float3Field _translationField = null!;

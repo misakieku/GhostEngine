@@ -13,30 +13,6 @@
     <NoWarn>$(NoWarn);MVVMTK0050</NoWarn>
     <Configurations>Debug;Release;Debug_Editor;Release_Editor</Configurations>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Editor|x64'">
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Editor|ARM64'">
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Editor|x64'">
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Editor|ARM64'">
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
   <ItemGroup>
     <Content Remove="Assets\MeshNode.cs" />
   </ItemGroup>
@@ -50,6 +26,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>VectorField.tt</DependentUpon>
+    </None>
+    <None Include="Inspector\Drawers\VectorDrawer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>VectorDrawer.tt</DependentUpon>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -99,6 +80,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>VectorField.cs</LastGenOutput>
     </None>
+    <None Update="Inspector\Drawers\VectorDrawer.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>VectorDrawer.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -134,6 +119,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>VectorField.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Inspector\Drawers\VectorDrawer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>VectorDrawer.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 </Project>

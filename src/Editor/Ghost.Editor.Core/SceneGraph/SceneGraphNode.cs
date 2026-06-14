@@ -1,5 +1,4 @@
 using Ghost.Editor.Core.Contracts;
-using Ghost.Editor.Core.Services;
 using Ghost.Entities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;

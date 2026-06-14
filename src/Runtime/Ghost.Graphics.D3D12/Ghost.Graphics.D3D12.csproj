@@ -11,10 +11,6 @@
     <IsTrimmable>True</IsTrimmable>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Editor|AnyCPU'">
-    <Optimize>True</Optimize>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="3.1.0.1" />
   </ItemGroup>
