@@ -1,4 +1,3 @@
-using Ghost.Core;
 using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.Contracts;
 
@@ -20,7 +19,7 @@ internal class DirtyTrackerService : IDirtyTrackerService
         // When marked dirty, we just ensure it is tracked.
         // Its "clean version" remains whatever it was (or 0 if it was never saved).
         // If it was never saved and just got modified, its clean version is assumed to be 0 (or something that won't match GlobalVersion).
-        
+
         if (!_cleanVersions.ContainsKey(obj.InstanceID))
         {
             // If we've never seen it, and it's being marked dirty, 
@@ -46,7 +45,7 @@ internal class DirtyTrackerService : IDirtyTrackerService
         {
             return cleanVersion != _undoService.GlobalVersion;
         }
-        
+
         // If it's not tracked, it's clean.
         return false;
     }
@@ -60,7 +59,7 @@ internal class DirtyTrackerService : IDirtyTrackerService
     public IReadOnlyList<GhostObject> GetDirtyObjects()
     {
         var dirtyObjects = new List<GhostObject>();
-        
+
         // Remove dead references
         _trackedObjects.RemoveWhere(obj => GhostObject.Find(obj.InstanceID) == null);
 

@@ -107,13 +107,13 @@ internal abstract class AssetEntry : IAssetEntry
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetLoadJobHandle(JobHandle handle)
+    internal void SetLoadJobHandle(JobHandle handle)
     {
         _loadJobHandle = handle;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetPendingReimport()
+    internal void SetPendingReimport()
     {
         Volatile.Write(ref _pendingReimport, 1);
     }
@@ -149,12 +149,16 @@ internal abstract class AssetEntry : IAssetEntry
         return newRefCount;
     }
 
-    public virtual void OnReleaseResource()
+    public abstract void ReadAssetData(Span<byte> dst);
+    public abstract void ReadAssetData<T>(ref T dst)
+        where T : struct;
+
+    protected virtual void OnReleaseResource()
     {
     }
 }
 
-internal interface IAssetEntry
+public interface IAssetEntry
 {
     Guid AssetId { get; }
     AssetType AssetType { get; }
@@ -164,6 +168,9 @@ internal interface IAssetEntry
 
     void AddRef();
     int Release();
+    void ReadAssetData(Span<byte> dst);
+    public abstract void ReadAssetData<T>(ref T dst)
+        where T : struct;
 }
 
 internal interface ILoadableAssetEntry : IAssetEntry

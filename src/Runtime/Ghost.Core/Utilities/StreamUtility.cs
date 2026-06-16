@@ -67,7 +67,7 @@ public static class StreamUtility
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MemoryBlock ReadMemory(this Stream stream, long length, AllocationHandle allocationHandle)
     {
-        var alignedLength = MemoryUtility.AlignUp((nuint)length, 16);
+        var alignedLength = SpanUtility.AlignUp((nuint)length, 16);
         var memory = new MemoryBlock(alignedLength, 16, allocationHandle);
 
         // C# built-in collections use int for indexing, so we need to ensure that the buffer size does not exceed int.MaxValue

@@ -264,6 +264,7 @@ internal class EditorWorldService : IEditorWorldService
         var scene = SceneManager.CreateScene();
         CreateEntity("Entity", scene.ID);
     }
+
     public void RebuildSceneGraph(Dictionary<Entity, string>? initialNames = null)
     {
         Defer(() =>

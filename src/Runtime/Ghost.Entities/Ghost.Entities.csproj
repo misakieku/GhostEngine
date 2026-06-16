@@ -8,6 +8,14 @@
     <Configurations>Debug;Release;Debug_Editor;Release_Editor</Configurations>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <IsAotCompatible>True</IsAotCompatible>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Editor|AnyCPU'">
+    <IsAotCompatible>True</IsAotCompatible>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="Templates\EntityQuery.ForEach.gen.cs">
       <DesignTime>True</DesignTime>

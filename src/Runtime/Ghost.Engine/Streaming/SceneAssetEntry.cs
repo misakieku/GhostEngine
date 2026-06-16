@@ -138,4 +138,15 @@ internal class SceneAssetEntry : AssetEntry
         : base(manager, resourceDatabase, resourceManager, assetId, AssetType.Scene, dependencies)
     {
     }
+
+    public override void ReadAssetData(Span<byte> dst)
+    {
+        // Should we write anything here?
+        throw new NotImplementedException();
+    }
+
+    public override void ReadAssetData<T>(ref T dst)
+    {
+        throw new NotImplementedException();
+    }
 }

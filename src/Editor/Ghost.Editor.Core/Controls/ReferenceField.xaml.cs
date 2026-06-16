@@ -52,10 +52,10 @@ public sealed partial class ReferenceField : UserControl
         set => SetValue(IsReadOnlyProperty, value);
     }
 
-    public Func<DragEventArgs, bool>? ValidateDrop;
-    public Action<DragEventArgs>? OnDropAccepted;
-    public Action? OnClearClicked;
-    public Action? OnGotoClicked;
+    public event Func<DragEventArgs, bool>? ValidateDrop;
+    public event Action<DragEventArgs>? OnDropAccepted;
+    public event Action? OnClearClicked;
+    public event Action? OnGotoClicked;
 
     private readonly SolidColorBrush _accentBrush;
     private readonly SolidColorBrush _errorBrush;

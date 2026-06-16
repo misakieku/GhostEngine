@@ -1,11 +1,14 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Ghost.Engine.Streaming;
 using Ghost.Graphics;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Ghost.UnitTest.MockingEnvironment;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using System.Runtime.InteropServices;
 
 namespace Ghost.UnitTest.AssetSystem;
 
@@ -68,7 +71,8 @@ public class AssetManagerTest
         var assetID = Guid.NewGuid();
         _provider.AddMockTexture(assetID, readDelayMs: Random.Shared.Next(10, 50));
 
-        var handle = _assetManager.ResolveTexture(assetID);
+        var handle = Handle<GPUTexture>.Invalid;
+        _assetManager.ResolveAsset(assetID).ReadAssetData(ref handle);
         Assert.IsTrue(handle.IsValid);
 
         Assert.IsTrue(_assetManager.TryGetEntry(assetID, out var entry));
@@ -112,7 +116,8 @@ public class AssetManagerTest
         var assetID = Guid.NewGuid();
         _provider.AddMockMesh(assetID, readDelayMs: Random.Shared.Next(10, 50));
 
-        var handle = _assetManager.ResolveMesh(assetID);
+        var handle = Handle<Mesh>.Invalid;
+        _assetManager.ResolveAsset(assetID).ReadAssetData(ref handle);
         Assert.IsTrue(handle.IsValid);
 
         Assert.IsTrue(_assetManager.TryGetEntry(assetID, out var entry));
@@ -161,7 +166,8 @@ public class AssetManagerTest
         var assetID = Guid.NewGuid();
         _provider.AddMockMesh(assetID);
 
-        var handle = _assetManager.ResolveMesh(assetID);
+        var handle = Handle<Mesh>.Invalid;
+        _assetManager.ResolveAsset(assetID).ReadAssetData(ref handle);
         await Task.Delay(1000, TestContext.CancellationToken);
 
         var ctx = new ResourceStreamingContext
@@ -186,8 +192,9 @@ public class AssetManagerTest
         _processor.ProcessPendingUploads(ctx);
         _processor.ProcessPendingUploads(ctx);
 
-        var reimportedHandle = _assetManager.ResolveMesh(assetID);
-        Assert.AreEqual(handle, reimportedHandle);
+        var reimportedEntry = Handle<Mesh>.Invalid;
+        _assetManager.ResolveAsset(assetID).ReadAssetData(ref reimportedEntry);
+        Assert.AreEqual(handle, reimportedEntry);
         Assert.AreEqual(AssetState.Ready, entry.State);
     }
 }

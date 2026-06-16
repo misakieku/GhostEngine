@@ -5,6 +5,7 @@ using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Ghost.Graphics.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Streaming;
@@ -26,37 +27,6 @@ public struct TextureContentHeader
     public uint colorComponents;
 }
 
-public partial class AssetManager
-{
-    public Handle<GPUTexture> ResolveTexture(Guid assetID)
-    {
-        if (assetID == Guid.Empty)
-        {
-            return Handle<GPUTexture>.Invalid;
-        }
-
-        var entry = GetOrCreateEntry(assetID);
-        Logger.DebugAssert(entry.AssetType == AssetType.Texture);
-
-        return ((TextureAssetEntry)entry).TextureHandle;
-    }
-
-    public int ReleaseTexture(Guid assetID)
-    {
-        if (assetID == Guid.Empty)
-        {
-            return 0;
-        }
-
-        if (!_entries.TryGetValue(assetID, out var entry) || entry.AssetType != AssetType.Texture)
-        {
-            return 0;
-        }
-
-        return entry.Release();
-    }
-}
-
 internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUploadableAssetEntry
 {
     private Handle<GPUTexture> _actualHandle;
@@ -64,8 +34,6 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
 
     private TextureDesc _desc;
     private MemoryBlock _textureData;
-
-    public Handle<GPUTexture> TextureHandle => _actualHandle;
 
     public TextureAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies)
         : base(manager, resourceDatabase, resourceManager, assetId, AssetType.Texture, dependencies)
@@ -102,7 +70,24 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
         };
     }
 
-    public override void OnReleaseResource()
+    public override void ReadAssetData(Span<byte> dst)
+    {
+        Logger.DebugAssert(dst.Length == sizeof(Handle<GPUTexture>));
+        Logger.DebugAssert(_actualHandle.IsValid);
+
+        ref var address = ref MemoryMarshal.GetReference(dst);
+        Unsafe.WriteUnaligned(ref address, _actualHandle);
+    }
+
+    public override void ReadAssetData<T>(ref T dst)
+    {
+        Logger.DebugAssert(typeof(T) == typeof(Handle<GPUTexture>));
+        Logger.DebugAssert(_actualHandle.IsValid);
+
+        dst = Unsafe.BitCast<Handle<GPUTexture>, T>(_actualHandle);
+    }
+
+    protected override void OnReleaseResource()
     {
         ResourceDatabase.ReleaseResource(_actualHandle.AsResource());
         if (_tempHandle.IsValid)

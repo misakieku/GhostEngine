@@ -8,6 +8,7 @@ using Ghost.Graphics.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Streaming;
@@ -55,37 +56,6 @@ internal struct MeshContentMaterialPart
     public int vertexCount;
 }
 
-public partial class AssetManager
-{
-    public Handle<Mesh> ResolveMesh(Guid assetID)
-    {
-        if (assetID == Guid.Empty)
-        {
-            return Handle<Mesh>.Invalid;
-        }
-
-        var entry = GetOrCreateEntry(assetID);
-        Logger.DebugAssert(entry.AssetType == AssetType.Mesh);
-
-        return ((MeshAssetEntry)entry).MeshHandle;
-    }
-
-    public int ReleaseMesh(Guid assetID)
-    {
-        if (assetID == Guid.Empty)
-        {
-            return 0;
-        }
-
-        if (!_entries.TryGetValue(assetID, out var entry) || entry.AssetType != AssetType.Mesh)
-        {
-            return 0;
-        }
-
-        return entry.Release();
-    }
-}
-
 internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploadableAssetEntry
 {
     private Handle<Mesh> _actualHandle;
@@ -101,8 +71,6 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
     private byte* _pMeshletHierarchyNodes;
     private byte* _pMeshletVertices;
     private byte* _pMeshletTriangles;
-
-    public Handle<Mesh> MeshHandle => _actualHandle;
 
     public MeshAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies)
         : base(manager, resourceDatabase, resourceManager, assetId, AssetType.Mesh, dependencies)
@@ -121,13 +89,30 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         _actualHandle = resourceManager.RegisterMesh(ref mesh);
     }
 
-    public override void OnReleaseResource()
+    protected override void OnReleaseResource()
     {
         ResourceManager.ReleaseMesh(_actualHandle);
         if (_tempHandle.IsValid)
         {
             ResourceManager.ReleaseMesh(_tempHandle);
         }
+    }
+
+    public override void ReadAssetData(Span<byte> dst)
+    {
+        Logger.DebugAssert(dst.Length == sizeof(Handle<Mesh>));
+        Logger.DebugAssert(_actualHandle.IsValid);
+
+        ref var address = ref MemoryMarshal.GetReference(dst);
+        Unsafe.WriteUnaligned(ref address, _actualHandle);
+    }
+
+    public override void ReadAssetData<T>(ref T dst)
+    {
+        Logger.DebugAssert(typeof(T) == typeof(Handle<Mesh>));
+        Logger.DebugAssert(_actualHandle.IsValid);
+
+        dst = Unsafe.BitCast<Handle<Mesh>, T>(_actualHandle);
     }
 
     public Result OnLoadContent(Stream contentStream)

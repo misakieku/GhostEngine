@@ -431,6 +431,7 @@ internal class SceneSerializationService : IDisposable
                     initialNames[entity] = data.Entities[fileIndex].Name;
                 }
             }
+
             _worldService.RebuildSceneGraph(initialNames);
             onComplete?.Invoke(activeScene);
         });

@@ -25,13 +25,13 @@ internal class HandleDrawer<T> : PropertyDrawer<Handle<T>> where T : unmanaged
         var handleNode = model as HandlePropertyNode<T>;
         Logger.DebugAssert(handleNode != null);
 
-        field.ValidateDrop = (args) =>
+        field.ValidateDrop += (args) =>
         {
             // For now, assume payload has standard string Guid or we implement format
             return args.DataView.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.Text);
         };
 
-        field.OnDropAccepted = async (args) =>
+        field.OnDropAccepted += async (args) =>
         {
             if (handleNode == null)
             {
@@ -46,7 +46,7 @@ internal class HandleDrawer<T> : PropertyDrawer<Handle<T>> where T : unmanaged
             }
         };
 
-        field.OnClearClicked = () =>
+        field.OnClearClicked += () =>
         {
             if (handleNode != null)
             {

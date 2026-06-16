@@ -30,17 +30,23 @@ internal class EntityDrawer : PropertyDrawer<Entity>
             TypeLabel = "Entity",
             IconGlyph = "\uF158",
             Margin = new Thickness(0, 2, 0, 2),
-            ValidateDrop = (args) =>
-            {
-                // TODO: Implement drag and drop for entities from the hierarchy
-                return false;
-            },
         };
 
-        field.OnClearClicked = () =>
+        field.ValidateDrop += (args) =>
+        {
+            // TODO: Implement drag and drop for entities from the hierarchy
+            return false;
+        };
+
+        field.OnClearClicked += () =>
         {
             model.SetValueFromUI(Entity.Invalid);
             UpdateUI(Entity.Invalid, field);
+        };
+        
+        field.OnGotoClicked += () =>
+        {
+            // TODO: Implement goto functionality for entities
         };
 
         UpdateUI(model.Value, field);

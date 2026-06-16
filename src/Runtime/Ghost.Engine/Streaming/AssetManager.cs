@@ -239,25 +239,37 @@ public partial class AssetManager : IDisposable
         }
     }
 
-    //public IResolveOperation ResolveAsset(Guid assetID)
-    //{
-    //    if (assetID == Guid.Empty)
-    //    {
-    //        return null;
-    //    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public IAssetEntry ResolveAsset(Guid assetID)
+    {
+        if (assetID == Guid.Empty)
+        {
+            throw new ArgumentNullException(nameof(assetID));
+        }
 
-    //    var entry = GetOrCreateEntry(assetID);
-    //    entry.OnResolve();
+        return GetOrCreateEntry(assetID);
+    }
 
-    //    return new IResolveOperation;
-    //}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int ReleaseAsset(Guid assetID)
+    {
+        if (assetID == Guid.Empty)
+        {
+            throw new ArgumentNullException(nameof(assetID));
+        }
+
+        if (!_entries.TryGetValue(assetID, out var entry))
+        {
+            return 0;
+        }
+
+        Logger.DebugAssert(entry.AssetType != AssetType.Unknown);
+        return entry.Release();
+    }
 
     public void Dispose()
     {
-        foreach (var entry in _entries.Values)
-        {
-            entry.OnReleaseResource();
-        }
+        Logger.DebugAssert(_entries.Count == 0, $"There are still {_entries.Count} assets in the manager. Make sure to release all assets before disposing the manager.");
 
         _entries.Clear();
 
