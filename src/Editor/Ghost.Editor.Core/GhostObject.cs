@@ -48,6 +48,11 @@ public abstract class GhostObject : INotifyPropertyChanged, INotifyPropertyChang
         s_objectRegistry[InstanceID] = new WeakReference<GhostObject>(this);
     }
 
+    ~GhostObject()
+    {
+        Dispose(false);
+    }
+
     /// <summary>
     /// Resolves a GhostObject by its InstanceID in O(1) time.
     /// </summary>
@@ -109,10 +114,5 @@ public abstract class GhostObject : INotifyPropertyChanged, INotifyPropertyChang
     {
         Dispose(true);
         GC.SuppressFinalize(this);
-    }
-
-    ~GhostObject()
-    {
-        Dispose(false);
     }
 }

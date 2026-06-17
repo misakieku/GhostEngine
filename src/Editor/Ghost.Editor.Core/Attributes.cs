@@ -1,9 +1,10 @@
 using Windows.System;
+using Ghost.Editor.Core.Utilities;
 
 namespace Ghost.Editor.Core;
 
 /// <summary>
-/// The base class for all attributes that can be discovered via <see cref="Utilities.TypeCache"/>.
+/// The base class for all attributes that can be discovered via <see cref="TypeCache"/>.
 /// </summary>
 public abstract class DiscoverableAttributeBase : Attribute;
 

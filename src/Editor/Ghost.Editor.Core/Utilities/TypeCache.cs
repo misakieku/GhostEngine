@@ -1,4 +1,4 @@
-using Ghost.Core.Attributes;
+using Ghost.Core;
 using System.Reflection;
 using System.Runtime.InteropServices;
 

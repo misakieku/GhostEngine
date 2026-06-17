@@ -5,7 +5,7 @@ namespace Ghost.Editor.Core.Services;
 /// <summary>
 /// Syncs the inspector model from ECS data on every editor tick (Phase 3).
 /// </summary>
-public sealed class InspectorSyncService : IDisposable
+internal sealed class InspectorSyncService : IDisposable
 {
     private readonly EditorTickEngine _tickEngine;
     private ISyncableInspectorModel? _activeModel;

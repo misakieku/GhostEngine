@@ -32,7 +32,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
                 this.resource = resource;
             }
         }
-
+        
         public ResourceDesc desc;
         public ResourceViewGroup viewGroup;
         public __resource_union resource;

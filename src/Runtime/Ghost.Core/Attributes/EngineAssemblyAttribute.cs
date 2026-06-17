@@ -1,4 +1,4 @@
-namespace Ghost.Core.Attributes;
+namespace Ghost.Core;
 
 [AttributeUsage(AttributeTargets.Assembly)]
 public sealed class EngineAssemblyAttribute : Attribute

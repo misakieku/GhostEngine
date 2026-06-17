@@ -1,4 +1,4 @@
-using Ghost.Core.Attributes;
+using Ghost.Core;
 using Ghost.Editor.Core.Inspector;
 using Ghost.Entities;
 using Misaki.HighPerformance.Mathematics;

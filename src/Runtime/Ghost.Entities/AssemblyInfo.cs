@@ -1,7 +1,7 @@
 global using EntityID = System.Int32;
 global using GenerationID = System.Int32;
 
-using Ghost.Core.Attributes;
+using Ghost.Core;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Ghost.Engine")]

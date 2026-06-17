@@ -40,6 +40,7 @@ public static class PropertyDrawerRegistry
 
             s_drawers[typeof(Entity)] = new EntityDrawer();
 
+            // TODO: Use source generator.
             // Discover user-defined drawers via TypeCache
             var customDrawers = TypeCache.GetTypesWithAttribute<CustomPropertyDrawerAttribute>();
             if (customDrawers != null)
@@ -68,6 +69,7 @@ public static class PropertyDrawerRegistry
         {
             Initialize();
         }
+
         return s_drawers.ContainsKey(fieldType);
     }
 

@@ -1,4 +1,4 @@
-namespace Ghost.Core.Attributes;
+namespace Ghost.Core;
 
 /// <summary>
 /// Marks a field as read-only in the inspector.
