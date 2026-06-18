@@ -13,30 +13,26 @@ internal class SceneAssetHandler : IImportableAssetHandler, IPackableAssetHandle
     [AssetOpenHandler(".gscene")]
     private static async Task<Result> OpenAsync(string path)
     {
-        // Actually double clicking the asset in content browser will just open it.
-        // We probably shouldn't do the actual loading in OpenAsync, but let's keep it simple for now.
-        // OpenAsync usually returns immediately if there's no UI, or we should use AssetRegistry.LoadAssetAsync
         var assetRegistry = EditorApplication.GetService<IAssetRegistry>();
-        var result = await assetRegistry.LoadAssetAsync(assetRegistry.GetAssetGuid(path));
+        var guid = assetRegistry.GetAssetGuid(path);
+        var result = await assetRegistry.LoadAssetAsync(guid);
         if (result.IsFailure)
         {
             return result;
         }
 
-        // AssetMeta handles this. This method is just a quick hack for double clicking.
-        var data = await SceneSerializationService.DeserializeSceneFileAsync(path);
-        if (data == null)
+        var worldService = EditorApplication.GetService<IEditorWorldService>();
+        try
         {
-            return Result.Failure("Failed to load scene.");
-        }
-
-        var service = EditorApplication.GetService<SceneSerializationService>();
-        service.LoadSceneIntoEditorWorld(data, SceneLoadingType.Single, (scene) =>
-        {
+            var scene = await worldService.OpenSceneAsync(guid);
             ((SceneAsset)result.Value).RuntimeSceneID = scene.ID;
-            EditorApplication.GetService<IEditorWorldService>().RegisterSceneAsset(scene.ID, (SceneAsset)result.Value);
-        });
-        return Result.Success();
+            worldService.RegisterSceneAsset(scene.ID, (SceneAsset)result.Value);
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Failed to open scene: {ex.Message}");
+        }
     }
 
     public IAssetSettings? CreateDefaultSettings(string ext)
@@ -60,19 +56,6 @@ internal class SceneAssetHandler : IImportableAssetHandler, IPackableAssetHandle
                 EntityCount = data?.Entities?.Count ?? 0,
                 RuntimeSceneID = Engine.Core.Scene.INVALID_ID // Default
             };
-
-            //if (data != null)
-            //{
-            //    var tcs = new TaskCompletionSource<Asset>();
-            //    var service = EditorApplication.GetService<SceneSerializationService>();
-            //    service.LoadSceneIntoEditorWorld(data, SceneLoadingType.Single, (scene) =>
-            //    {
-            //        asset.RuntimeSceneID = scene.ID;
-            //        EditorApplication.GetService<IEditorWorldService>().RegisterSceneAsset(scene.ID, asset);
-            //        tcs.TrySetResult(asset);
-            //    });
-            //    return Result.Success(await tcs.Task);
-            //}
 
             return Result.Success<Asset>(asset);
         }
@@ -119,29 +102,29 @@ internal class SceneAssetHandler : IImportableAssetHandler, IPackableAssetHandle
         }
     }
 
-    public async ValueTask<Result<ImportedSubAsset[]>> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
+    public async ValueTask<Result<AssetImportResult>> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
     {
         try
         {
             if (!File.Exists(sourcePath))
             {
-                return Result.Failure("Source scene file does not exist.");
+                return Result.Failure<AssetImportResult>("Source scene file does not exist.");
             }
 
             var data = await SceneSerializationService.DeserializeSceneFileAsync(sourcePath, token);
             if (data == null)
             {
-                return Result.Failure("Failed to deserialize scene file.");
+                return Result.Failure<AssetImportResult>("Failed to deserialize scene file.");
             }
 
             using var stream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
-            SceneSerializationService.SerializeToBinary(data, stream);
+            var dependencies = SceneSerializationService.SerializeToBinary(data, stream);
 
-            return Result.Success(Array.Empty<ImportedSubAsset>());
+            return new AssetImportResult(Array.Empty<ImportedSubAsset>(), dependencies);
         }
         catch (Exception ex)
         {
-            return Result.Failure($"Failed to import scene asset: {ex.Message}");
+            return Result.Failure<AssetImportResult>($"Failed to import scene asset: {ex.Message}");
         }
     }
 

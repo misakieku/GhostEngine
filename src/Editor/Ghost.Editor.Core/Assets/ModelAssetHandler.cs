@@ -220,11 +220,11 @@ internal class ModelAssetHandler : IImportableAssetHandler, IPackableAssetHandle
         return ValueTask.FromResult(Result.Failure("Saving model assets is not supported yet."));
     }
 
-    public async ValueTask<Result<ImportedSubAsset[]>> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
+    public async ValueTask<Result<AssetImportResult>> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
     {
         if (!File.Exists(sourcePath))
         {
-            return Result.Failure<ImportedSubAsset[]>("Source file does not exist.");
+            return Result.Failure<AssetImportResult>("Source file does not exist.");
         }
 
         try
@@ -252,11 +252,11 @@ internal class ModelAssetHandler : IImportableAssetHandler, IPackableAssetHandle
             await using var stream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
             await JsonSerializer.SerializeAsync(stream, manifest, s_jsonOptions, token).ConfigureAwait(false);
 
-            return importedSubAssets.ToArray();
+            return new AssetImportResult(importedSubAssets.ToArray(), Array.Empty<Guid>());
         }
         catch (Exception ex)
         {
-            return Result.Failure<ImportedSubAsset[]>($"Failed to import mesh asset: {ex.Message}");
+            return Result.Failure<AssetImportResult>($"Failed to import mesh asset: {ex.Message}");
         }
     }
 

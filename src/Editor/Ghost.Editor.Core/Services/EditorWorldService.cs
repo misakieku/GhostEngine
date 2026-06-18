@@ -4,6 +4,7 @@ using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.SceneGraph;
 using Ghost.Engine;
 using Ghost.Engine.Core;
+using Ghost.Engine.Streaming;
 using Ghost.Entities;
 using Misaki.HighPerformance.Jobs;
 using System.Collections.Concurrent;
@@ -16,6 +17,7 @@ internal class EditorWorldService : IEditorWorldService
     private readonly ConcurrentQueue<Action> _deferredActions = new();
     private readonly ConcurrentQueue<Action> _pendingEvents = new();
     private readonly ConcurrentDictionary<ushort, SceneAsset> _sceneAssetMap = new();
+    private readonly HashSet<ushort> _activeScenes = new();
 
     public World EditorWorld
     {
@@ -262,14 +264,77 @@ internal class EditorWorldService : IEditorWorldService
     public void CreateDefaultScene()
     {
         var scene = SceneManager.CreateScene();
+        _activeScenes.Add(scene.ID);
         CreateEntity("Entity", scene.ID);
+    }
+
+    public Task<Scene> OpenSceneAsync(Guid assetGuid)
+    {
+        var tcs = new TaskCompletionSource<Scene>();
+        
+        Defer(() =>
+        {
+            //EditorWorld.Reset();
+
+            foreach (var sceneId in _activeScenes)
+            {
+                SceneManager.DestroyScene(new Scene(sceneId), EditorWorld);
+            }
+
+            _activeScenes.Clear();
+            _sceneAssetMap.Clear();
+
+            var activeScene = SceneManager.CreateScene();
+            var assetManager = EditorApplication.GetService<EngineCore>().AssetManager;
+            
+            var loadResult = assetManager.LoadScene(EditorWorld, new AssetRef<Scene>(assetGuid), SceneLoadingType.Single);
+            if (loadResult.IsFailure)
+            {
+                tcs.TrySetException(new Exception(loadResult.Message ?? "Failed to enqueue scene load"));
+                return;
+            }
+
+            var operation = loadResult.Value;
+
+            Task.Run(async () =>
+            {
+                while (!operation.IsCompleted)
+                {
+                    var stepTcs = new TaskCompletionSource();
+                    Defer(() =>
+                    {
+                        SceneManager.MaterializePendingScenes(EditorWorld, new SceneMaterializeBudget(int.MaxValue, 1000));
+                        stepTcs.TrySetResult();
+                    });
+                    await stepTcs.Task;
+                    await Task.Delay(16);
+                }
+
+                Defer(() =>
+                {
+                    if (operation.Status == SceneLoadStatus.Completed)
+                    {
+                        _activeScenes.Clear();
+                        _activeScenes.Add(operation.Scene.ID);
+                        RebuildSceneGraph(null);
+                        tcs.TrySetResult(operation.Scene);
+                    }
+                    else
+                    {
+                        tcs.TrySetException(new Exception(operation.ErrorMessage ?? "Failed to load scene"));
+                    }
+                });
+            });
+        });
+
+        return tcs.Task;
     }
 
     public void RebuildSceneGraph(Dictionary<Entity, string>? initialNames = null)
     {
         Defer(() =>
         {
-            var sceneNodes = SceneGraphBuilder.Build(EditorWorld, initialNames);
+            var sceneNodes = SceneGraphBuilder.Build(EditorWorld, _activeScenes, initialNames);
             _pendingEvents.Enqueue(() =>
             {
                 RootNodes.Clear();

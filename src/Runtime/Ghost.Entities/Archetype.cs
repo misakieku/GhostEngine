@@ -265,7 +265,6 @@ internal unsafe struct Archetype : IDisposable
         var entitySize = sizeof(Entity);
         var entityAlign = (int)MemoryUtility.AlignOf<Entity>();
 
-
         using var scope = AllocationManager.CreateStackScope();
         using var components = new UnsafeList<ComponentInfo>(componentIds.Length, scope.AllocationHandle);
         using var sharedInfos = new UnsafeList<ComponentInfo>(componentIds.Length, scope.AllocationHandle);
@@ -903,7 +902,7 @@ internal unsafe struct Archetype : IDisposable
             {
                 ref var chunk = ref _chunks[i];
                 ref var group = ref _chunkGroups[chunk._groupIndex];
-                // How can we set the activeChunkIndex?
+                // How can we set the activeChunkIndex? Backward tracing?
                 group.refCount--;
                 if (group.activeChunkIndex == i)
                 {

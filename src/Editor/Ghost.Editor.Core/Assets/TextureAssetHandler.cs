@@ -419,11 +419,11 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
         }, token).ConfigureAwait(false);
     }
 
-    public async ValueTask<Result<ImportedSubAsset[]>> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
+    public async ValueTask<Result<AssetImportResult>> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default)
     {
         if (!File.Exists(sourcePath))
         {
-            return Result.Failure("Source file does not exist.");
+            return Result.Failure<AssetImportResult>("Source file does not exist.");
         }
 
         try
@@ -465,11 +465,11 @@ internal class TextureAssetHandler : IImportableAssetHandler, IPackableAssetHand
             await ddsStream.CopyToAsync(targetStream, token).ConfigureAwait(false);
             await targetStream.FlushAsync(token).ConfigureAwait(false);
 
-            return Result.Success(Array.Empty<ImportedSubAsset>());
+            return new AssetImportResult(Array.Empty<ImportedSubAsset>(), Array.Empty<Guid>());
         }
         catch (Exception ex)
         {
-            return Result.Failure($"Failed to import texture asset: {ex.Message}");
+            return Result.Failure<AssetImportResult>($"Failed to import texture asset: {ex.Message}");
         }
     }
 

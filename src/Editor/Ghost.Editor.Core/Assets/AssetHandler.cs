@@ -68,9 +68,11 @@ public interface IAssetHandler
     ValueTask<Result> SaveAssetAsync(string targetPath, Asset asset, CancellationToken token = default);
 }
 
+public readonly record struct AssetImportResult(ImportedSubAsset[] SubAssets, Guid[] Dependencies);
+
 public interface IImportableAssetHandler : IAssetHandler
 {
-    ValueTask<Result<ImportedSubAsset[]>> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default);
+    ValueTask<Result<AssetImportResult>> ImportAsync(string sourcePath, string targetPath, Guid id, IAssetSettings? settings, CancellationToken token = default);
 }
 
 public readonly record struct ImportedSubAsset(Guid Guid, string Kind, string DisplayName, string StablePath, string VirtualSourcePath, Guid AssetTypeId);

@@ -6,15 +6,25 @@ namespace Ghost.Editor.Core.SceneGraph;
 
 public static class SceneGraphBuilder
 {
-    public static List<SceneNode> Build(World world, Dictionary<Entity, string>? initialNames = null)
+    public static List<SceneNode> Build(World world, IEnumerable<ushort>? activeScenes = null, Dictionary<Entity, string>? initialNames = null)
     {
         var sceneNodes = new List<SceneNode>();
         var sceneEntities = GroupEntitiesByScene(world);
 
-        foreach (var (scene, entities) in sceneEntities)
+        var scenesToBuild = new HashSet<ushort>(sceneEntities.Keys);
+        if (activeScenes != null)
         {
-            var sceneName = GetDefaultSceneName(scene);
-            var sceneNode = new SceneNode(world, new Scene(scene), sceneName);
+            foreach (var s in activeScenes)
+            {
+                scenesToBuild.Add(s);
+            }
+        }
+
+        foreach (var sceneID in scenesToBuild)
+        {
+            var entities = sceneEntities.TryGetValue(sceneID, out var list) ? list : new List<Entity>();
+            var sceneName = GetDefaultSceneName(sceneID);
+            var sceneNode = new SceneNode(world, new Scene(sceneID), sceneName);
             BuildEntityTree(entities, sceneNode, initialNames);
             sceneNodes.Add(sceneNode);
         }

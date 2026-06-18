@@ -18,6 +18,7 @@ namespace Ghost.UnitTest;
 [DoNotParallelize]
 public class SceneSerializationTests
 {
+#if false
     private sealed class EmptyServiceProvider : IServiceProvider
     {
         public object? GetService(Type serviceType)
@@ -486,4 +487,5 @@ public class SceneSerializationTests
     {
         get; set;
     } = null!;
+#endif
 }

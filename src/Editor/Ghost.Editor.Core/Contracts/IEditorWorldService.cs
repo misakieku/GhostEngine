@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Editor.Core.Assets;
 using Ghost.Editor.Core.SceneGraph;
 using Ghost.Entities;
+using Ghost.Engine.Core;
 using System.Collections.ObjectModel;
 
 namespace Ghost.Editor.Core.Contracts;
@@ -19,6 +20,7 @@ public interface IEditorWorldService : IDisposable
 
     void ChangeEntityScene(Entity entity, ushort sceneID);
     void CreateDefaultScene();
+    Task<Scene> OpenSceneAsync(Guid assetGuid);
     void CreateEntity(string name, ushort sceneID, Entity parent = default);
     void Defer(Action action);
     void DestroyEntity(Entity entity);

@@ -1,4 +1,5 @@
-using Ghost.Core.Attributes;
+using Ghost.Core;
+using Ghost.Editor.Core.SceneGraph;
 using System.Reflection;
 using System.Runtime.InteropServices;
 

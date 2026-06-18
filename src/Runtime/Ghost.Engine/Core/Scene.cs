@@ -83,6 +83,7 @@ public class LoadedSceneData : IDisposable
         public UnsafeList<Identifier<IComponent>> componentTypeIDs;
         public UnsafeList<(Identifier<IComponent> typeID, UnsafeArray<byte> data)> componentData;
         public UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)> entityFields;
+        public UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)> handleFields;
 
         public void Dispose()
         {
@@ -92,11 +93,18 @@ public class LoadedSceneData : IDisposable
                 componentData[i].data.Dispose();
             }
             componentData.Dispose();
+            
             for (var i = 0; i < entityFields.Count; i++)
             {
                 entityFields[i].fieldOffsets.Dispose();
             }
             entityFields.Dispose();
+            
+            for (var i = 0; i < handleFields.Count; i++)
+            {
+                handleFields[i].fieldOffsets.Dispose();
+            }
+            handleFields.Dispose();
         }
     }
 
@@ -183,7 +191,8 @@ internal sealed class PendingSceneLoad : IDisposable
         CreateEntities = 1,
         SetComponents = 2,
         RemapEntityReferences = 3,
-        Completed = 4,
+        RemapAssetHandles = 4,
+        Completed = 5,
     }
 
     private readonly AssetEntry _sceneEntry;
@@ -195,6 +204,7 @@ internal sealed class PendingSceneLoad : IDisposable
     private int _nextCreateIndex;
     private int _nextSetComponentIndex;
     private int _nextRemapIndex;
+    private int _nextRemapAssetIndex;
     private int _status;
     private int _releasedSceneEntry;
     private bool _singleResetApplied;
@@ -234,8 +244,8 @@ internal sealed class PendingSceneLoad : IDisposable
             }
 
             var entityCount = loadedData.entities.Length;
-            var completedEntities = Math.Min(entityCount * 3, _nextCreateIndex + _nextSetComponentIndex + _nextRemapIndex);
-            return 0.5f + (0.5f * completedEntities / (entityCount * 3));
+            var completedEntities = Math.Min(entityCount * 4, _nextCreateIndex + _nextSetComponentIndex + _nextRemapIndex + _nextRemapAssetIndex);
+            return 0.5f + (0.5f * completedEntities / (entityCount * 4));
         }
     }
 
@@ -299,6 +309,7 @@ internal sealed class PendingSceneLoad : IDisposable
         if (!_singleResetApplied && LoadingType == SceneLoadingType.Single)
         {
             SceneManager.ReleaseMaterializedSceneReferences(World);
+            // TODO: We should unload all the scenes instead of a hard reset.
             World.Reset();
             _singleResetApplied = true;
         }
@@ -335,6 +346,14 @@ internal sealed class PendingSceneLoad : IDisposable
                 case MaterializePhase.RemapEntityReferences:
                     consumed += MaterializeRemapEntityReferences(loadedData, maxEntities - consumed);
                     if (_nextRemapIndex >= loadedData.entities.Length)
+                    {
+                        _phase = MaterializePhase.RemapAssetHandles;
+                    }
+                    break;
+
+                case MaterializePhase.RemapAssetHandles:
+                    consumed += MaterializeRemapAssetHandles(loadedData, maxEntities - consumed);
+                    if (_nextRemapAssetIndex >= loadedData.entities.Length)
                     {
                         CompleteMaterialization();
                     }
@@ -434,6 +453,53 @@ internal sealed class PendingSceneLoad : IDisposable
             }
 
             _nextRemapIndex++;
+            consumed++;
+        }
+
+        return consumed;
+    }
+
+    private unsafe int MaterializeRemapAssetHandles(LoadedSceneData loadedData, int maxEntities)
+    {
+        var consumed = 0;
+        var assetManager = _sceneEntry.Manager;
+        while (consumed < maxEntities && _nextRemapAssetIndex < loadedData.entities.Length)
+        {
+            ref var pending = ref loadedData.entities[_nextRemapAssetIndex];
+            var entity = _fileLocalToRuntimeEntity[pending.fileLocalIndex];
+            if (entity.IsValid)
+            {
+                for (var i = 0; i < pending.handleFields.Count; i++)
+                {
+                    var (componentDataIndex, fieldOffsets) = pending.handleFields[i];
+                    var compTypeID = pending.componentData[componentDataIndex].typeID;
+
+                    var pComponent = World.EntityManager.GetComponent(entity, compTypeID);
+                    if (pComponent == null)
+                    {
+                        continue;
+                    }
+
+                    for (var f = 0; f < fieldOffsets.Length; f++)
+                    {
+                        var fieldOffset = fieldOffsets[f];
+                        var pField = (byte*)pComponent + fieldOffset;
+                        var importIndex = *(int*)pField;
+                        if (importIndex >= 0 && importIndex < _sceneEntry.Dependencies.Length)
+                        {
+                            var guid = _sceneEntry.Dependencies[importIndex];
+                            var depEntry = assetManager.ResolveAsset(guid);
+                            depEntry.ReadAssetData(new Span<byte>(pField, 8));
+                        }
+                        else
+                        {
+                            *(long*)pField = 0;
+                        }
+                    }
+                }
+            }
+
+            _nextRemapAssetIndex++;
             consumed++;
         }
 
@@ -569,7 +635,8 @@ public static class SceneManager
                         fileLocalIndex = i,
                         componentTypeIDs = new UnsafeList<Identifier<IComponent>>(0, allocationHandle),
                         componentData = new UnsafeList<(Identifier<IComponent> typeID, UnsafeArray<byte> data)>(0, allocationHandle),
-                        entityFields = new UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)>(0, allocationHandle)
+                        entityFields = new UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)>(0, allocationHandle),
+                        handleFields = new UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)>(0, allocationHandle)
                     };
                     continue;
                 }
@@ -579,7 +646,8 @@ public static class SceneManager
                     fileLocalIndex = i,
                     componentTypeIDs = new UnsafeList<Identifier<IComponent>>(compCount, allocationHandle),
                     componentData = new UnsafeList<(Identifier<IComponent> typeID, UnsafeArray<byte> data)>(compCount, allocationHandle),
-                    entityFields = new UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)>(compCount, allocationHandle)
+                    entityFields = new UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)>(compCount, allocationHandle),
+                    handleFields = new UnsafeList<(int componentDataIndex, UnsafeArray<int> fieldOffsets)>(compCount, allocationHandle)
                 };
 
                 for (var j = 0; j < compCount; j++)
@@ -601,15 +669,27 @@ public static class SceneManager
                     var compData = new UnsafeArray<byte>(dataSz, allocationHandle);
                     reader.ReadExactly(compData.AsSpan());
 
-                    var fieldCount = reader.Read<int>();
+                    var entityFieldCount = reader.Read<int>();
 
-                    UnsafeArray<int> fieldOffsets = default;
-                    if (fieldCount > 0)
+                    UnsafeArray<int> entityFieldOffsets = default;
+                    if (entityFieldCount > 0)
                     {
-                        fieldOffsets = new UnsafeArray<int>(fieldCount, allocationHandle);
-                        for (var f = 0; f < fieldCount; f++)
+                        entityFieldOffsets = new UnsafeArray<int>(entityFieldCount, allocationHandle);
+                        for (var f = 0; f < entityFieldCount; f++)
                         {
-                            fieldOffsets[f] = reader.Read<int>();
+                            entityFieldOffsets[f] = reader.Read<int>();
+                        }
+                    }
+
+                    var handleFieldCount = reader.Read<int>();
+
+                    UnsafeArray<int> handleFieldOffsets = default;
+                    if (handleFieldCount > 0)
+                    {
+                        handleFieldOffsets = new UnsafeArray<int>(handleFieldCount, allocationHandle);
+                        for (var f = 0; f < handleFieldCount; f++)
+                        {
+                            handleFieldOffsets[f] = reader.Read<int>();
                         }
                     }
 
@@ -618,17 +698,25 @@ public static class SceneManager
                     {
                         pending.componentTypeIDs.Add(typeID);
                         pending.componentData.Add((typeID, compData));
-                        if (fieldCount > 0)
+                        if (entityFieldCount > 0)
                         {
-                            pending.entityFields.Add((pending.componentData.Count - 1, fieldOffsets));
+                            pending.entityFields.Add((pending.componentData.Count - 1, entityFieldOffsets));
+                        }
+                        if (handleFieldCount > 0)
+                        {
+                            pending.handleFields.Add((pending.componentData.Count - 1, handleFieldOffsets));
                         }
                     }
                     else
                     {
                         compData.Dispose();
-                        if (fieldCount > 0)
+                        if (entityFieldCount > 0)
                         {
-                            fieldOffsets.Dispose();
+                            entityFieldOffsets.Dispose();
+                        }
+                        if (handleFieldCount > 0)
+                        {
+                            handleFieldOffsets.Dispose();
                         }
                     }
                 }

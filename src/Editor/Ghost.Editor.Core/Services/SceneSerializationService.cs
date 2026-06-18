@@ -1,7 +1,5 @@
-using Ghost.Core;
 using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.Utilities;
-using Ghost.Engine;
 using Ghost.Engine.Components;
 using Ghost.Engine.Core;
 using Ghost.Engine.Streaming;
@@ -37,7 +35,7 @@ internal sealed class EntitySaveData
     {
         get; set;
     } = "Entity";
-    
+
     // TODO: Maybe we can store the component data directly instead of the json element.
     public Dictionary<string, JsonElement> Components
     {
@@ -50,6 +48,7 @@ internal sealed class EntitySaveData
 internal class SceneSerializationService : IDisposable
 {
     private static readonly Dictionary<Type, FieldInfo[]> s_entityFieldsCache = new();
+    private static readonly Dictionary<Type, FieldInfo[]> s_handleFieldsCache = new();
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         IncludeFields = true,
@@ -114,6 +113,26 @@ internal class SceneSerializationService : IDisposable
         return fields;
     }
 
+    private static FieldInfo[] GetHandleFields(Type type)
+    {
+        if (!s_handleFieldsCache.TryGetValue(type, out var fields))
+        {
+            var list = new List<FieldInfo>();
+            foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic))
+            {
+                if (field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Ghost.Core.Handle<>))
+                {
+                    list.Add(field);
+                }
+            }
+
+            fields = list.ToArray();
+            s_handleFieldsCache[type] = fields;
+        }
+
+        return fields;
+    }
+
     private static void RemapEntityFieldsToLocal(object boxed, Type type, Dictionary<Entity, int> reverseMap)
     {
         var entityFields = GetEntityFields(type);
@@ -156,9 +175,10 @@ internal class SceneSerializationService : IDisposable
         return hash;
     }
 
-    public static unsafe void SerializeToBinary(SceneSaveData data, Stream targetStream)
+    public static unsafe Guid[] SerializeToBinary(SceneSaveData data, Stream targetStream)
     {
         using var writer = new BinaryWriter(targetStream, Encoding.UTF8, true);
+        var dependencies = new List<Guid>();
 
         var header = new SceneContentHeader
         {
@@ -171,7 +191,7 @@ internal class SceneSerializationService : IDisposable
 
         if (data.Entities == null)
         {
-            return;
+            return dependencies.ToArray();
         }
 
         foreach (var entity in data.Entities)
@@ -228,6 +248,39 @@ internal class SceneSerializationService : IDisposable
                     offsets[i] = (int)Marshal.OffsetOf(componentType, entityFieldOffsets[i].Name);
                 }
 
+                var handleFieldOffsets = GetHandleFields(componentType);
+                var handleOffsets = new int[handleFieldOffsets.Length];
+                for (var i = 0; i < handleFieldOffsets.Length; i++)
+                {
+                    var field = handleFieldOffsets[i];
+                    handleOffsets[i] = (int)Marshal.OffsetOf(componentType, field.Name);
+
+                    var camelCaseName = char.ToLowerInvariant(field.Name[0]) + field.Name.Substring(1);
+                    var assetGuid = Guid.Empty;
+                    if (componentElement.TryGetProperty(camelCaseName, out var propElement) || componentElement.TryGetProperty(field.Name, out propElement))
+                    {
+                        if (propElement.ValueKind == JsonValueKind.String && Guid.TryParse(propElement.GetString(), out var parsedGuid))
+                        {
+                            assetGuid = parsedGuid;
+                        }
+                    }
+
+                    int importIndex = -1;
+                    if (assetGuid != Guid.Empty)
+                    {
+                        importIndex = dependencies.IndexOf(assetGuid);
+                        if (importIndex == -1)
+                        {
+                            importIndex = dependencies.Count;
+                            dependencies.Add(assetGuid);
+                        }
+                    }
+
+                    var pField = (byte*)buffer.GetUnsafePtr() + handleOffsets[i];
+                    *(int*)pField = importIndex;
+                    *((int*)pField + 1) = 0;
+                }
+
                 writer.Write(typeHash);
 
                 var nameBytes2 = Encoding.UTF8.GetBytes(typeName);
@@ -236,14 +289,22 @@ internal class SceneSerializationService : IDisposable
 
                 writer.Write((int)buffer.Size);
                 writer.Write(buffer.AsSpan<byte>());
-                writer.Write(offsets.Length);
 
+                writer.Write(offsets.Length);
                 foreach (var off in offsets)
+                {
+                    writer.Write(off);
+                }
+
+                writer.Write(handleOffsets.Length);
+                foreach (var off in handleOffsets)
                 {
                     writer.Write(off);
                 }
             }
         }
+
+        return dependencies.ToArray();
     }
 
     #endregion
@@ -287,176 +348,6 @@ internal class SceneSerializationService : IDisposable
         return data;
     }
 
-    #endregion
-
-    #region Load Scene into Editor World
-
-    public unsafe void LoadSceneIntoEditorWorld(SceneSaveData data, SceneLoadingType loadingType = SceneLoadingType.Single, Action<Scene>? onComplete = null)
-    {
-        _worldService.Defer(() =>
-        {
-            if (loadingType == SceneLoadingType.Single)
-            {
-                _worldService.EditorWorld.Reset();
-            }
-
-            var world = _worldService.EditorWorld;
-            var activeScene = SceneManager.CreateScene();
-
-            var entityCount = data.Entities.Count;
-            var forwardMap = new Dictionary<int, Entity>(entityCount);
-            if (entityCount == 0)
-            {
-                goto RebuildAndReturn;
-            }
-
-            var scope = AllocationManager.CreateStackScope();
-            var typeIds = new UnsafeArray<UnsafeList<Identifier<IComponent>>>(entityCount, scope.AllocationHandle);
-            for (var i = 0; i < typeIds.Length; i++)
-            {
-                typeIds[i] = new UnsafeList<Identifier<IComponent>>(16, scope.AllocationHandle);
-            }
-
-            try
-            {
-                for (var fileIndex = 0; fileIndex < entityCount; fileIndex++)
-                {
-                    var entityData = data.Entities[fileIndex];
-                    ref var list = ref typeIds[fileIndex];
-
-                    list.Add(ComponentRegistry.GetOrRegisterComponentID<SceneID>());
-
-                    foreach (var (typeName, _) in entityData.Components)
-                    {
-                        var compId = ComponentRegistry.GetComponentIDByName(typeName);
-                        if (compId.IsInvalid)
-                        {
-                            var type = TypeCache.GetTypes().FirstOrDefault(t => t.FullName == typeName);
-                            if (type == null)
-                            {
-                                continue;
-                            }
-
-                            compId = RegisterComponentByType(type);
-                        }
-
-                        list.Add(compId);
-                    }
-
-                    var componentSet = new ComponentSetView(list);
-                    var entity = world.EntityManager.CreateEntity(componentSet);
-                    forwardMap[fileIndex] = entity;
-                }
-
-                using var buffer = new MemoryBlock(1024, 16, scope.AllocationHandle);
-                for (var fileIndex = 0; fileIndex < entityCount; fileIndex++)
-                {
-                    if (!forwardMap.TryGetValue(fileIndex, out var entity))
-                    {
-                        continue;
-                    }
-
-                    world.EntityManager.SetSharedComponent(entity, new SceneID { value = activeScene.ID });
-
-                    var entityData = data.Entities[fileIndex];
-
-                    foreach (var (typeName, componentElement) in entityData.Components)
-                    {
-                        var compId = ComponentRegistry.GetComponentIDByName(typeName);
-                        if (compId.IsInvalid)
-                        {
-                            var type = TypeCache.GetTypes().FirstOrDefault(t => t.FullName == typeName);
-                            if (type == null)
-                            {
-                                continue;
-                            }
-
-                            compId = ComponentRegistry.GetComponentIDByName(typeName);
-                        }
-
-                        if (compId.IsInvalid)
-                        {
-                            continue;
-                        }
-
-                        var componentType = ComponentRegistry.s_runtimeIDToType[compId];
-
-                        if (_syncService.TryGetNode(entity, out var node))
-                        {
-                            node.BuildComponents();
-                            var compNode = node.Components.FirstOrDefault(c => c.ComponentType == componentType);
-                            if (compNode != null)
-                            {
-                                compNode.Deserialize(componentElement, s_jsonOptions, (boxed) =>
-                                {
-                                    RemapLocalFieldsToEntity(boxed, componentType, forwardMap);
-                                });
-                                continue;
-                            }
-                        }
-
-                        // Fallback to direct deserialization
-                        var boxedLegacy = componentElement.Deserialize(componentType, s_jsonOptions);
-                        if (boxedLegacy == null)
-                        {
-                            continue;
-                        }
-
-                        RemapLocalFieldsToEntity(boxedLegacy, componentType, forwardMap);
-
-                        Marshal.StructureToPtr(boxedLegacy, (nint)buffer.GetUnsafePtr(), false);
-
-                        world.EntityManager.SetComponent(entity, compId, buffer.GetUnsafePtr());
-                    }
-                }
-            }
-            finally
-            {
-                scope.Dispose();
-
-                for (var i = 0; i < typeIds.Length; i++)
-                {
-                    typeIds[i].Dispose();
-                }
-
-                typeIds.Dispose();
-            }
-
-        RebuildAndReturn:
-            var initialNames = new Dictionary<Entity, string>();
-            for (var fileIndex = 0; fileIndex < entityCount; fileIndex++)
-            {
-                if (forwardMap.TryGetValue(fileIndex, out var entity))
-                {
-                    initialNames[entity] = data.Entities[fileIndex].Name;
-                }
-            }
-
-            _worldService.RebuildSceneGraph(initialNames);
-            onComplete?.Invoke(activeScene);
-        });
-    }
-
-    private static Identifier<IComponent> RegisterComponentByType(Type type)
-    {
-        var getOrRegisterMethod = typeof(ComponentRegistry).GetMethod(
-            "GetOrRegisterComponentID",
-            BindingFlags.NonPublic | BindingFlags.Static,
-            Array.Empty<Type>());
-
-        if (getOrRegisterMethod == null)
-        {
-            return Identifier<IComponent>.Invalid;
-        }
-
-        if (type == null)
-        {
-            return Identifier<IComponent>.Invalid;
-        }
-
-        var genericMethod = getOrRegisterMethod.MakeGenericMethod(type);
-        return (Identifier<IComponent>)genericMethod.Invoke(null, null)!;
-    }
     #endregion
 
     #region Save Scene from Editor World

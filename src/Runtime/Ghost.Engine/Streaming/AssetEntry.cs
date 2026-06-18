@@ -71,6 +71,7 @@ internal abstract class AssetEntry : IAssetEntry
 
     protected ResourceManager ResourceManager => _resourceManager;
     protected IResourceDatabase ResourceDatabase => _resourceDatabase;
+    internal AssetManager Manager => _assetManager;
 
     public Guid AssetId => _assetId;
     public JobHandle LoadJobHandle => _loadJobHandle;

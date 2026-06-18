@@ -47,9 +47,9 @@ public class MeshAssetHandlerTests
 
         Assert.IsTrue(result.IsSuccess, result.Message);
         Assert.IsTrue(File.Exists(targetPath));
-        Assert.IsGreaterThanOrEqualTo(result.Value.Length, 2);
+        Assert.IsGreaterThanOrEqualTo(result.Value.SubAssets.Length, 2);
 
-        foreach (var subAsset in result.Value)
+        foreach (var subAsset in result.Value.SubAssets)
         {
             Assert.AreEqual("Mesh", subAsset.Kind);
             Assert.IsTrue(subAsset.VirtualSourcePath.Contains("#Mesh/", StringComparison.Ordinal));
