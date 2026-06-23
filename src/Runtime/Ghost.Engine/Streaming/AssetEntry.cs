@@ -170,7 +170,7 @@ public interface IAssetEntry
     void AddRef();
     int Release();
     void ReadAssetData(Span<byte> dst);
-    public abstract void ReadAssetData<T>(ref T dst)
+    void ReadAssetData<T>(ref T dst)
         where T : struct;
 }
 

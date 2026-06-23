@@ -9,11 +9,16 @@ namespace Ghost.Editor.Core.Services;
 internal class SceneGraphSyncService : IDisposable
 {
     private readonly IEditorWorldService _worldService;
+    private readonly IUndoService _undoService;
+    private readonly IDirtyTrackerService _dirtyTrackerService;
+
     private readonly Dictionary<Entity, EntityNode> _nodeMap = new();
 
-    public SceneGraphSyncService(IEditorWorldService worldService)
+    public SceneGraphSyncService(IEditorWorldService worldService, IUndoService undoService, IDirtyTrackerService dirtyTrackerService)
     {
         _worldService = worldService;
+        _undoService = undoService;
+        _dirtyTrackerService = dirtyTrackerService;
 
         _worldService.EntityCreated += OnEntityCreated;
         _worldService.EntityDestroyed += OnEntityDestroyed;
@@ -75,6 +80,15 @@ internal class SceneGraphSyncService : IDisposable
         _nodeMap[entity] = node;
 
         sceneNode.Children.Add(node);
+
+        _undoService.RegisterCreatedObjectUndo(node, "Created new Entity");
+        _dirtyTrackerService.MarkDirty(node);
+
+        var sceneAsset = _worldService.GetAssetForScene(sceneNode.Scene.ID);
+        if (sceneAsset != null)
+        {
+            _dirtyTrackerService.MarkDirty(sceneAsset);
+        }
     }
 
     private void OnEntityDestroyed(Entity entity)

@@ -1,4 +1,6 @@
 using Ghost.Core;
+using Ghost.Editor.Core.Contracts;
+using Ghost.Engine;
 using Ghost.Engine.Streaming;
 
 namespace Ghost.Editor.Core.Assets;
@@ -50,7 +52,7 @@ public abstract class Asset : GhostObject
     }
 
     protected Asset(Guid id, Guid typeId, IAssetSettings? settings)
-        :base(id)
+        : base(id)
     {
         ID = id;
         TypeID = typeId;

@@ -327,7 +327,14 @@ internal sealed class AssetRegistry : IAssetRegistry, IDisposable
                 return Result.Failure("Meta file does not exist.");
             }
 
-            return await handler.LoadAssetAsync(path, id, meta.Settings, token);
+            var result = await handler.LoadAssetAsync(path, id, meta.Settings, token);
+            if (result.IsFailure)
+            {
+                return result;
+            }
+
+            _loadedAssets[id] = new WeakReference<Asset>(result.Value);
+            return Result.Success(result.Value);
         }
         catch (Exception ex)
         {

@@ -4,9 +4,7 @@ using Ghost.Editor.Core.Contracts;
 using Ghost.Editor.Core.SceneGraph;
 using Ghost.Engine;
 using Ghost.Engine.Core;
-using Ghost.Engine.Streaming;
 using Ghost.Entities;
-using Misaki.HighPerformance.Jobs;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 
@@ -14,6 +12,8 @@ namespace Ghost.Editor.Core.Services;
 
 internal class EditorWorldService : IEditorWorldService
 {
+    private readonly EngineCore _engineCore;
+
     private readonly ConcurrentQueue<Action> _deferredActions = new();
     private readonly ConcurrentQueue<Action> _pendingEvents = new();
     private readonly ConcurrentDictionary<ushort, SceneAsset> _sceneAssetMap = new();
@@ -35,9 +35,11 @@ internal class EditorWorldService : IEditorWorldService
     public event Action<Entity, string>? EntityNameChanged;
     public event Action? SceneGraphRebuilt;
 
-    public EditorWorldService(JobScheduler? jobScheduler = null)
+    public EditorWorldService(EngineCore engineCore)
     {
-        EditorWorld = World.Create(jobScheduler, 1024);
+        _engineCore = engineCore;
+
+        EditorWorld = World.Create(engineCore.JobScheduler, 1024);
     }
 
     public void Defer(Action action)
@@ -271,7 +273,7 @@ internal class EditorWorldService : IEditorWorldService
     public Task<Scene> OpenSceneAsync(Guid assetGuid)
     {
         var tcs = new TaskCompletionSource<Scene>();
-        
+
         Defer(() =>
         {
             //EditorWorld.Reset();
@@ -284,9 +286,8 @@ internal class EditorWorldService : IEditorWorldService
             _activeScenes.Clear();
             _sceneAssetMap.Clear();
 
-            var activeScene = SceneManager.CreateScene();
             var assetManager = EditorApplication.GetService<EngineCore>().AssetManager;
-            
+
             var loadResult = assetManager.LoadScene(EditorWorld, new AssetRef<Scene>(assetGuid), SceneLoadingType.Single);
             if (loadResult.IsFailure)
             {

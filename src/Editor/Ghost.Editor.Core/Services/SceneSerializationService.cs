@@ -352,7 +352,7 @@ internal class SceneSerializationService : IDisposable
 
     #region Save Scene from Editor World
 
-    public unsafe void SaveSceneFromEditorWorld(string filePath, Scene scene)
+    public void SaveSceneFromEditorWorld(string filePath, Scene scene)
     {
         var bytes = SerializeSceneToMemory(scene);
         File.WriteAllBytes(filePath, bytes);

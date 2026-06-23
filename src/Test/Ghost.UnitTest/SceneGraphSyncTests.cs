@@ -19,7 +19,7 @@ public class SceneGraphSyncTests
     public void Setup()
     {
         _worldService = new EditorWorldService();
-        _syncService = new SceneGraphSyncService(_worldService);
+        _syncService = new SceneGraphSyncService(_worldService, null!, null!);
     }
 
     [TestCleanup]

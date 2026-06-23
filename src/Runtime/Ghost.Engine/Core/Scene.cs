@@ -952,6 +952,11 @@ public static class SceneManager
     /// <returns>The number of entities written to the span.</returns>
     public static UnsafeList<Entity> GetSceneEntities(World world, Scene scene, AllocationHandle handle)
     {
+        if (!scene.IsValid)
+        {
+            return new UnsafeList<Entity>(1, handle);
+        }
+
         var queryID = new QueryBuilder().WithAll<SceneID>().Build(world);
         ref var query = ref world.ComponentManager.GetEntityQueryReference(queryID);
 

@@ -269,7 +269,7 @@ public partial class AssetManager : IDisposable
 
     public void Dispose()
     {
-        Logger.DebugAssert(_entries.Count == 0, $"There are still {_entries.Count} assets in the manager. Make sure to release all assets before disposing the manager.");
+        Logger.DebugAssert(_entries.IsEmpty, $"There are still {_entries.Count} assets in the manager. Make sure to release all assets before disposing the manager.");
 
         _entries.Clear();
 
