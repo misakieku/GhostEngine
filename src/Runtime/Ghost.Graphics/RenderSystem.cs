@@ -264,8 +264,8 @@ public class RenderSystem : IDisposable
                 waitHandles[0] = frameResource.CpuReadyEvent;
                 var waitResult = WaitHandle.WaitAny(waitHandles);
 
-                // If shutdown was signaled or timeout occurred, exit the loop
-                if (!_isRunning || waitResult == 1 || waitResult == WaitHandle.WaitTimeout)
+                // If shutdown was signaled, exit the loop
+                if (!_isRunning || waitResult == 1)
                 {
                     break;
                 }
@@ -412,13 +412,7 @@ public class RenderSystem : IDisposable
     {
         Logger.DebugAssert(!_disposed, "Cannot wait for GPU ready on a disposed RenderSystem.");
 
-        var submittedFenceValue = Volatile.Read(ref _submittedFenceValue);
-        if (submittedFenceValue == 0)
-        {
-            return true;
-        }
-
-        var eventIndex = (int)((submittedFenceValue - 1) % (ulong)_frameResources.Length);
+        var eventIndex = (int)(_cpuFenceValue % (ulong)_frameResources.Length);
         return _frameResources[eventIndex].GpuReadyEvent.WaitOne(timeOut);
     }
 

@@ -10,7 +10,6 @@ internal class MockingFence : IFence
 
     public ulong CompletedValue => _currentValue;
 
-    public nint WaitHandle => _fenceEvent.SafeWaitHandle.DangerousGetHandle();
 
     public string Name
     {

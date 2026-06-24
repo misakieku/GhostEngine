@@ -7,10 +7,6 @@ public interface IFence : IRHIObject
         get;
     }
 
-    nint WaitHandle
-    {
-        get;
-    }
 
     void WaitForValue(ulong value);
 

@@ -10,23 +10,6 @@
   </Configurations>
   <Folder Name="/Editor/">
     <Project Path="Editor/Ghost.DSL/Ghost.DSL.csproj" />
-    <Project Path="Editor/Ghost.Editor.Core/Ghost.Editor.Core.csproj">
-      <Platform Solution="*|ARM64" Project="ARM64" />
-      <Platform Solution="*|x64" Project="x64" />
-      <Platform Solution="Debug_Editor|x86" Project="x64" />
-      <Platform Solution="Debug|x86" Project="x86" />
-      <Platform Solution="Release_Editor|x86" Project="x64" />
-      <Platform Solution="Release|x86" Project="x86" />
-    </Project>
-    <Project Path="Editor/Ghost.Editor/Ghost.Editor.csproj">
-      <Platform Solution="*|ARM64" Project="ARM64" />
-      <Platform Solution="*|x64" Project="x64" />
-      <Platform Solution="Debug_Editor|x86" Project="x64" />
-      <Platform Solution="Debug|x86" Project="x86" />
-      <Platform Solution="Release_Editor|x86" Project="x64" />
-      <Platform Solution="Release|x86" Project="x86" />
-      <Deploy />
-    </Project>
   </Folder>
   <Folder Name="/ThridParty/">
     <Project Path="ThridParty/Ghost.DXC/Ghost.DXC.csproj" />
@@ -47,7 +30,6 @@
   </Folder>
   <Folder Name="/Test/">
     <Project Path="Test/Ghost.MicroTest/Ghost.MicroTest.csproj" Id="8c8ffa4b-e1e4-46a1-9221-7b508a109edd" />
-    <Project Path="Test/Ghost.TestCore/Ghost.TestCore.csproj" />
     <Project Path="Test/Ghost.UnitTest/Ghost.UnitTest.csproj" Id="4da45668-456b-4dcc-acd8-6bfe154e6837">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
@@ -59,4 +41,8 @@
   <Folder Name="/Tools/">
     <Project Path="Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj" />
   </Folder>
+  <Project Path="Ghost.Entry/Ghost.Entry.csproj" Id="9c4fb755-6092-41ce-9a22-a44380157897">
+    <BuildType Solution="Debug_Editor|*" Project="Debug" />
+    <BuildType Solution="Release_Editor|*" Project="Release" />
+  </Project>
 </Solution>

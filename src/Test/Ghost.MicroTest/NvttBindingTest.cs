@@ -1,5 +1,5 @@
+using Ghost.MicroTest.Core;
 using Ghost.Nvtt;
-using Ghost.TestCore;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;

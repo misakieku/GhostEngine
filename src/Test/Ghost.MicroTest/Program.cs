@@ -1,4 +1,4 @@
 using Ghost.MicroTest;
-using Ghost.TestCore;
+using Ghost.MicroTest.Core;
 
 TestRunner.Run<DXCBindingTest>();

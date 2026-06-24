@@ -15,6 +15,10 @@
     <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS;MHP_ENABLE_STACKTRACE</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS</DefineConstants>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)'=='Release_Editor'">
     <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS</DefineConstants>
   </PropertyGroup>

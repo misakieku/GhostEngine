@@ -13,11 +13,8 @@ namespace Ghost.Engine.Streaming;
 public interface IContentProvider
 {
     bool HasAsset(Guid guid);
-
     Result<Stream> OpenRead(Guid guid, CancellationToken token = default);
-
     Guid[] GetDependencies(Guid guid);
-
     AssetType GetAssetType(Guid guid);
 }
 

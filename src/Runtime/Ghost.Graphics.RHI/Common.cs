@@ -1188,32 +1188,32 @@ public struct SetProgramDesc
 
 public struct SwapChainDesc
 {
-    public uint Width
+    public required uint Width
     {
         get; set;
     }
 
-    public uint Height
+    public required uint Height
     {
         get; set;
     }
 
-    public float ScaleX
+    public required float ScaleX
     {
         get; set;
     }
 
-    public float ScaleY
+    public required float ScaleY
     {
         get; set;
     }
 
-    public TextureFormat Format
+    public required TextureFormat Format
     {
         get; set;
     }
 
-    public SwapChainTarget Target
+    public required SwapChainTarget Target
     {
         get; set;
     }
@@ -1221,7 +1221,7 @@ public struct SwapChainDesc
 
 public struct SwapChainTarget
 {
-    public SwapChainTargetType Type
+    public required SwapChainTargetType Type
     {
         get; set;
     }

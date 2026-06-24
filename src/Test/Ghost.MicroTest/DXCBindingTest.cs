@@ -1,5 +1,5 @@
 using Ghost.DXC;
-using Ghost.TestCore;
+using Ghost.MicroTest.Core;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static Ghost.DXC.UUID;

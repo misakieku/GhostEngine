@@ -1,4 +1,4 @@
-using Ghost.TestCore;
+using Ghost.MicroTest.Core;
 using Ghost.Ufbx;
 
 namespace Ghost.MicroTest;

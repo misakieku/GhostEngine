@@ -85,13 +85,13 @@ internal unsafe class DXGISwapChain : ISwapChain
                     Windowed = true,
                 };
 
-                pFactory->CreateSwapChainForHwnd(
+                ThrowIfFailed(pFactory->CreateSwapChainForHwnd(
                     (IUnknown*)pCommandQueue,
                     new HWND(desc.Target.WindowHandle.ToPointer()),
                     &swapChainDesc,
                     &swapChainFullscreenDesc,
                     null,
-                    &pTempSwapChain);
+                    &pTempSwapChain));
                 break;
 
             default:
@@ -215,6 +215,12 @@ internal unsafe class DXGISwapChain : ISwapChain
     public void SetScale(float scaleX, float scaleY)
     {
         Logger.DebugAssert(!_disposed);
+
+        // SetMatrixTransform can only be called on a swap chain that is created for composition.
+        if (_compositionSurface == null)
+        {
+            return;
+        }
 
         var inverseScaleX = 1.0f / scaleX;
         var inverseScaleY = 1.0f / scaleY;

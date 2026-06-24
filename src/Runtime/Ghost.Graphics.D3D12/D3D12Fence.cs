@@ -1,4 +1,6 @@
 using Ghost.Graphics.RHI;
+using System.Threading;
+using System.Threading.Tasks;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
@@ -6,10 +8,14 @@ namespace Ghost.Graphics.D3D12;
 
 internal unsafe class D3D12Fence : D3D12Object<ID3D12Fence>, IFence
 {
-    private readonly AutoResetEvent _fenceEvent;
+    [ThreadStatic]
+    private static AutoResetEvent? t_waitEvent;
 
-    public ulong CompletedValue => pNativeObject->GetCompletedValue();
-    public nint WaitHandle => _fenceEvent.SafeWaitHandle.DangerousGetHandle();
+    private static AutoResetEvent GetThreadEvent()
+    {
+        t_waitEvent ??= new AutoResetEvent(false);
+        return t_waitEvent;
+    }
 
     private static ID3D12Fence* CreateFence(D3D12RenderDevice device, ulong initialValue)
     {
@@ -21,8 +27,9 @@ internal unsafe class D3D12Fence : D3D12Object<ID3D12Fence>, IFence
     public D3D12Fence(D3D12RenderDevice device, ulong initialValue = 0)
         : base(CreateFence(device, initialValue))
     {
-        _fenceEvent = new AutoResetEvent(false);
     }
+
+    public ulong CompletedValue => pNativeObject->GetCompletedValue();
 
     public void WaitForValue(ulong value)
     {
@@ -30,10 +37,28 @@ internal unsafe class D3D12Fence : D3D12Object<ID3D12Fence>, IFence
 
         if (pNativeObject->GetCompletedValue() < value)
         {
-            var handle = new HANDLE((void*)WaitHandle);
+            var waitEvent = GetThreadEvent();
+            var handle = new HANDLE((void*)waitEvent.SafeWaitHandle.DangerousGetHandle());
             if (pNativeObject->SetEventOnCompletion(value, handle).SUCCEEDED)
             {
-                _fenceEvent.WaitOne();
+                waitEvent.WaitOne();
+            }
+        }
+    }
+
+    private class AsyncWaitState
+    {
+        public readonly TaskCompletionSource Tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public readonly AutoResetEvent Event = new(false);
+        public RegisteredWaitHandle? RegisteredWait;
+        private int _cleanedUp;
+
+        public void Cleanup()
+        {
+            if (Interlocked.Exchange(ref _cleanedUp, 1) == 0)
+            {
+                RegisteredWait?.Unregister(null);
+                Event.Dispose();
             }
         }
     }
@@ -47,29 +72,34 @@ internal unsafe class D3D12Fence : D3D12Object<ID3D12Fence>, IFence
             return Task.CompletedTask;
         }
 
-        var tcs = new TaskCompletionSource();
-        var handle = new HANDLE((void*)_fenceEvent.SafeWaitHandle.DangerousGetHandle());
+        var state = new AsyncWaitState();
+        var handle = new HANDLE((void*)state.Event.SafeWaitHandle.DangerousGetHandle());
 
         if (pNativeObject->SetEventOnCompletion(value, handle).FAILED)
         {
+            state.Cleanup();
             throw new InvalidOperationException("Failed to set event on completion.");
         }
 
-        var registeredWait = ThreadPool.RegisterWaitForSingleObject(
-            _fenceEvent,
-            (state, timedOut) =>
-            {
-                var capturedTcs = (TaskCompletionSource)state!;
-                capturedTcs.SetResult();
-                _fenceEvent.Dispose();
-            },
-            tcs,
-            Timeout.Infinite,
-            executeOnlyOnce: true
-        );
+        lock (state)
+        {
+            state.RegisteredWait = ThreadPool.RegisterWaitForSingleObject(
+                state.Event,
+                (s, timedOut) =>
+                {
+                    var waitState = (AsyncWaitState)s!;
+                    waitState.Tcs.TrySetResult();
+                    lock (waitState)
+                    {
+                        waitState.Cleanup();
+                    }
+                },
+                state,
+                Timeout.Infinite,
+                executeOnlyOnce: true
+            );
+        }
 
-        tcs.Task.ContinueWith(_ => registeredWait.Unregister(null));
-
-        return tcs.Task;
+        return state.Tcs.Task;
     }
 }
