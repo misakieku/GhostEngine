@@ -2,6 +2,8 @@ using Ghost.StbI;
 using System.IO.MemoryMappedFiles;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.ComponentModel;
+using Ghost.AssetBaker.Attributes;
 
 namespace Ghost.AssetBaker.Bakers;
 
@@ -79,16 +81,22 @@ public class TextureBakeSettings : IBakeSettings
         public bool StretchToPowerOfTwo { get; set; } = true;
         public bool VirtualTexture { get; set; } = false;
         public bool GenerateMipmaps { get; set; } = true;
+        [ShowWhen(nameof(GenerateMipmaps), true)]
         public uint MipmapLevelCount { get; set; } = 0; // 0 means generate full mipmap levels.
         public bool PremultiplyAlpha { get; set; } = false;
         public MipmapFilter MipmapFilter { get; set; } = MipmapFilter.Kaiser;
         public TextureCompressionLevel CompressionLevel { get; set; } = TextureCompressionLevel.Normal;
         public bool UseBorderColor { get; set; } = false;
+        [ShowWhen(nameof(UseBorderColor), true)]
         public Vector4 BorderColor { get; set; } = new Vector4(0, 0, 0, 0);
         public bool ZeroAlphaBorder { get; set; } = false;
         public bool CutoutAlpha { get; set; } = false;
+        [ShowWhen(nameof(CutoutAlpha), true)]
+        [Slider(0, 255)]
         public byte CutoutAlphaThreshold { get; set; } = 127;
         public bool ScaleAlphaForMipCoverage { get; set; } = false;
+        [ShowWhen(nameof(ScaleAlphaForMipCoverage), true)]
+        [Slider(0, 255)]
         public byte ScaleAlphaForMipCoverageThreshold { get; set; } = 127;
         public bool MipmapStreaming { get; set; } = false;
     }
@@ -116,8 +124,8 @@ internal struct TextureInfo
     public bool isHDR;
 }
 
-[AssetBaker(Extensions = [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr"])]
-internal partial class TextureBaker : IAssetBacker
+[AssetBaker(Extensions = [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr"], Type = Models.AssetType.Texture, SettingsType = typeof(TextureBakeSettings))]
+internal partial class TextureBaker : IAssetBaker
 {
     private static TextureDimension GetTextureDimension(TextureBakeSettings settings)
     {

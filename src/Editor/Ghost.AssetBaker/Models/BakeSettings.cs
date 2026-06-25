@@ -15,4 +15,5 @@ public record BakeSettings
     public bool GenerateLods { get; init; } = false;
     public bool BundleOutput { get; init; } = false;
     public string OutputPath { get; init; } = string.Empty;
+    public Bakers.IBakeSettings? AssetSettings { get; init; }
 }

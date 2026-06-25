@@ -1,17 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.UI.Reactor;
-using Microsoft.UI.Reactor.Core;
-using Microsoft.UI.Reactor.Layout;
-using Microsoft.UI.Reactor.Input;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Ghost.AssetBaker.Models;
 using Ghost.AssetBaker.Services;
 using Ghost.AssetBaker.Views.Components;
+using Microsoft.UI.Reactor;
+using Microsoft.UI.Reactor.Core;
+using Microsoft.UI.Reactor.Input;
+using Microsoft.UI.Reactor.Layout;
+using Microsoft.UI.Xaml;
 using static Microsoft.UI.Reactor.Factories;
 
 namespace Ghost.AssetBaker.Views;
@@ -32,17 +26,17 @@ public class WorkspaceView : Component<WorkspaceViewProps>
         // Subscribe to BakeService changes to trigger re-renders
         UseEffect(() =>
         {
-            Action handler = () => setDummy(d => d + 1);
+            void handler() => setDummy(d => d + 1);
             service.OnStateChanged += handler;
             return () => service.OnStateChanged -= handler;
         }, Array.Empty<object>());
 
-        var selectedAsset = selectedAssetId.HasValue 
-            ? service.Queue.FirstOrDefault(a => a.Id == selectedAssetId.Value) 
+        var selectedAsset = selectedAssetId.HasValue
+            ? service.Queue.FirstOrDefault(a => a.Id == selectedAssetId.Value)
             : null;
 
         // Custom File Picker Action
-        var openFiles = async () =>
+        async Task openFiles()
         {
             var picker = new Windows.Storage.Pickers.FileOpenPicker();
             picker.ViewMode = Windows.Storage.Pickers.PickerViewMode.List;
@@ -73,10 +67,10 @@ public class WorkspaceView : Component<WorkspaceViewProps>
                     service.AddFile(file.Path);
                 }
             }
-        };
+        }
 
         // Custom Folder Picker Action (Import folder contents)
-        var openFolder = async () =>
+        async Task openFolder()
         {
             var picker = new Windows.Storage.Pickers.FolderPicker();
             picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.ComputerFolder;
@@ -94,22 +88,21 @@ public class WorkspaceView : Component<WorkspaceViewProps>
                     service.AddFile(file);
                 }
             }
-        };
+        }
 
         // Drag & Drop event handlers
-        Action<DragTargetArgs> onDragOver = args =>
+        void onDragOver(DragTargetArgs args)
         {
             args.AcceptedOperation = DragOperations.Copy;
             args.UIOverride.Caption = "Add to Baker Queue";
             args.UIOverride.IsCaptionVisible = true;
             args.UIOverride.IsContentVisible = true;
             args.UIOverride.IsGlyphVisible = true;
-        };
+        }
 
-        Action<DragTargetArgs> onDrop = args =>
+        void onDrop(DragTargetArgs args)
         {
-            IReadOnlyList<Windows.Storage.IStorageItem>? files = null;
-            if (args.Data.TryGetSafeLocalFiles(out files) && files != null)
+            if (args.Data.TryGetSafeLocalFiles(out var files) && files != null)
             {
                 foreach (var file in files)
                 {
@@ -127,30 +120,28 @@ public class WorkspaceView : Component<WorkspaceViewProps>
                     }
                 }
             }
-        };
+        }
 
         var isQueueEmpty = service.Queue.Count == 0;
         var hasPending = service.Queue.Any(a => a.Status == AssetState.Pending);
 
-        var toolbar = RenderToolbar(service, isQueueEmpty, hasPending, openFiles, openFolder, setSelectedAssetId);
-        var queueList = RenderQueueList(service, selectedAssetId, setSelectedAssetId, onDragOver, onDrop);
-        var detailsAndLogs = RenderDetailsAndLogs(selectedAsset, service);
-
         return Grid(
             columns: [GridSize.Star(3), GridSize.Star(2)],
             rows: [GridSize.Star()],
-            
+
             // Left Pane (Queue list and toolbar)
             (FlexColumn(
-                toolbar.Flex(shrink: 0),
-                queueList
-            ) with { RowGap = 12 })
+                RenderToolbar(service, isQueueEmpty, hasPending, openFiles, openFolder, setSelectedAssetId)
+                    .Flex(shrink: 0),
+                RenderQueueList(service, selectedAssetId, setSelectedAssetId, onDragOver, onDrop)
+            ) with
+            { RowGap = 12 })
             .Margin(right: 12)
             .Grid(column: 0),
 
             // Right Pane (Settings panel + Monospaced console output)
-            detailsAndLogs
-            .Grid(column: 1)
+            RenderDetailsAndLogs(selectedAsset, service)
+                .Grid(column: 1)
         ).Margin(16);
     }
 
@@ -171,16 +162,18 @@ public class WorkspaceView : Component<WorkspaceViewProps>
                 .IsEnabled(!service.IsBaking),
             Button("Clear Completed", () => service.ClearCompleted())
                 .IsEnabled(!service.IsBaking && !isQueueEmpty),
-            Button("Clear All", () => {
+            Button("Clear All", () =>
+            {
                 setSelectedAssetId(null);
                 service.ClearAll();
             })
                 .IsEnabled(!service.IsBaking && !isQueueEmpty),
-            
+
             // Spacer to right-align the Bake button
             Empty().Flex(grow: 1, basis: 0),
 
-            Button("Bake Queue", () => {
+            Button("Bake Queue", () =>
+            {
                 _ = Task.Run(() => service.BakeQueueAsync(Props.GlobalSettings));
             })
             .AccentButton()
@@ -239,13 +232,15 @@ public class WorkspaceView : Component<WorkspaceViewProps>
                             Asset: asset,
                             IsSelected: selectedAssetId == asset.Id,
                             OnSelect: () => setSelectedAssetId(asset.Id),
-                            OnDelete: () => {
+                            OnDelete: () =>
+                            {
                                 if (selectedAssetId == asset.Id) setSelectedAssetId(null);
                                 service.RemoveFile(asset.Id);
                             }
                         )).WithKey(asset.Id.ToString())
                     )
-                ) with { RowGap = 8 }
+                ) with
+                { RowGap = 8 }
             )
             .Flex(grow: 1, basis: 0);
         }
@@ -261,7 +256,7 @@ public class WorkspaceView : Component<WorkspaceViewProps>
         return Grid(
             columns: [GridSize.Star()],
             rows: [GridSize.Star(4), GridSize.Star(3)],
-            
+
             Component<SettingsPanel, SettingsPanelProps>(new SettingsPanelProps(
                 Asset: selectedAsset,
                 OnSettingsChanged: settings => service.UpdateAssetSettings(selectedAsset!.Id, settings),

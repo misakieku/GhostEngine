@@ -6,6 +6,7 @@ using Microsoft.UI.Reactor.Layout;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Ghost.AssetBaker.Models;
+using Ghost.AssetBaker.Bakers;
 using static Microsoft.UI.Reactor.Factories;
 
 namespace Ghost.AssetBaker.Views.Components;
@@ -118,35 +119,11 @@ public class SettingsPanel : Component<SettingsPanelProps>
                     // Type Specific Settings Group
                     (Border(
                         FlexColumn(
-                            BodyStrong("Type-Specific Options")
-                                .Margin(bottom: 8),
-
-                            asset.Type switch
+                            BodyStrong("Type-Specific Options").Margin(bottom: 8),
+                            Ghost.AssetBaker.Views.Inspector.InspectorDrawerRegistry.Instance.DrawObject(settings.AssetSettings, updatedAssetSettings => 
                             {
-                                AssetType.Mesh => FlexColumn(
-                                    CheckBox(
-                                        isChecked: settings.OptimizeMesh,
-                                        onIsCheckedChanged: val => Props.OnSettingsChanged(settings with { OptimizeMesh = val }),
-                                        label: "Optimize Mesh (Cache & Index layouts)"
-                                    ),
-                                    CheckBox(
-                                        isChecked: settings.GenerateLods,
-                                        onIsCheckedChanged: val => Props.OnSettingsChanged(settings with { GenerateLods = val }),
-                                        label: "Generate Level of Details (LODs)"
-                                    )
-                                ) with { RowGap = 8 },
-
-                                AssetType.Texture => FlexColumn(
-                                    CheckBox(
-                                        isChecked: settings.GenerateMipmaps,
-                                        onIsCheckedChanged: val => Props.OnSettingsChanged(settings with { GenerateMipmaps = val }),
-                                        label: "Generate Mipmap chain"
-                                    )
-                                ),
-
-                                _ => Caption("No custom settings available for this asset type.")
-                                    .Foreground(Theme.DisabledText)
-                            }
+                                Props.OnSettingsChanged(settings with { AssetSettings = (IBakeSettings)updatedAssetSettings });
+                            })
                         )
                     ) with
                     {
@@ -169,4 +146,5 @@ public class SettingsPanel : Component<SettingsPanelProps>
         .Background(Theme.CardBackground)
         .Flex(grow: 1, basis: 0);
     }
+
 }
