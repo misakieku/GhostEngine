@@ -9,6 +9,13 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Editor/">
+    <Project Path="Editor/Ghost.AssetBaker/Ghost.AssetBaker.csproj" Id="27041208-54bd-4a9d-9661-5550115ca4ad">
+      <BuildType Solution="Debug_Editor|*" Project="Debug" />
+      <BuildType Solution="Release_Editor|*" Project="Release" />
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+      <Platform Solution="*|x86" Project="X86" />
+    </Project>
     <Project Path="Editor/Ghost.DSL/Ghost.DSL.csproj" />
   </Folder>
   <Folder Name="/ThridParty/">
@@ -37,12 +44,12 @@
       <Deploy Solution="Debug|*" />
       <Deploy Solution="Release|*" />
     </Project>
+    <Project Path="Test/TestGame/TestGame.csproj" Id="5d84a4f7-a5a2-4814-bdc1-abdec70c3b1b">
+      <BuildType Solution="Debug_Editor|*" Project="Debug" />
+      <BuildType Solution="Release_Editor|*" Project="Release" />
+    </Project>
   </Folder>
   <Folder Name="/Tools/">
     <Project Path="Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj" />
   </Folder>
-  <Project Path="Ghost.Entry/Ghost.Entry.csproj" Id="9c4fb755-6092-41ce-9a22-a44380157897">
-    <BuildType Solution="Debug_Editor|*" Project="Debug" />
-    <BuildType Solution="Release_Editor|*" Project="Release" />
-  </Project>
 </Solution>

@@ -51,7 +51,7 @@ internal readonly struct RenderSystemDesc
 /// Application-level render system that orchestrates multiple renderers
 /// and handles frame synchronization
 /// </summary>
-public class RenderSystem : IDisposable
+public class RenderEngine : IDisposable
 {
     private struct FrameResource : IDisposable
     {
@@ -108,7 +108,6 @@ public class RenderSystem : IDisposable
 
     private readonly ConcurrentDictionary<ISwapChain, uint2> _resizeRequest;
 
-    private ulong _cpuFenceValue;
     private ulong _submittedFenceValue;
 
     private bool _isRunning;
@@ -122,10 +121,7 @@ public class RenderSystem : IDisposable
     public AsyncCopyPipeline AsyncCopyPipeline => _asyncCopyPipeline;
 
     public bool IsRunning => _isRunning;
-
-    public ulong CPUFenceValue => _cpuFenceValue;
     public ulong SubmittedFenceValue => _submittedFenceValue;
-
     public int MaxFrameLatency => _frameResources.Length;
 
     public IRenderPipelineSettings RenderPipelineSettings
@@ -157,7 +153,7 @@ public class RenderSystem : IDisposable
         }
     }
 
-    internal RenderSystem(RenderSystemDesc desc)
+    internal RenderEngine(RenderSystemDesc desc)
     {
         var engineDesc = new GraphicsEngineDesc
         {
@@ -224,7 +220,7 @@ public class RenderSystem : IDisposable
         _disposed = false;
     }
 
-    ~RenderSystem()
+    ~RenderEngine()
     {
         Dispose();
     }
@@ -327,7 +323,7 @@ public class RenderSystem : IDisposable
                     renderContext.CommandBuffer = cmd;
 
                     _renderPipeline.Render(renderContext, frameIndex, frameResource.RenderPayload);
-                    _swapChainManager.TransitionToPresent(cmd);
+                    _swapChainManager.TransitionAllToPresent(cmd);
 
                     // End recording commands and submit
                     var r = cmd.End();
@@ -338,7 +334,7 @@ public class RenderSystem : IDisposable
                     }
 
                     _graphicsEngine.Device.GraphicsQueue.Submit(cmd);
-                    _swapChainManager.PresentAll(cmd);
+                    _swapChainManager.PresentAll();
                 }
                 finally
                 {
@@ -391,15 +387,14 @@ public class RenderSystem : IDisposable
         _renderThread.Join();
     }
 
-    internal void SignalCPUReady()
+    internal void SignalCPUReady(int frameIndex)
     {
         Logger.DebugAssert(!_disposed, "Cannot signal CPU ready on a disposed RenderSystem.");
 
-        var eventIndex = (int)(_cpuFenceValue % (ulong)_frameResources.Length);
+        var eventIndex = frameIndex % _frameResources.Length;
         ref var frameResource = ref _frameResources[eventIndex];
 
         frameResource.CpuReadyEvent.Set();
-        _cpuFenceValue++;
     }
 
     internal void RequestSwapChainResize(ISwapChain swapChain, uint2 newSize)
@@ -408,11 +403,11 @@ public class RenderSystem : IDisposable
         _resizeRequest.AddOrUpdate(swapChain, newSize, (_, _) => newSize);
     }
 
-    public bool WaitForGPUReady(int timeOut = -1)
+    public bool WaitForGPUReady(int frameIndex, int timeOut = -1)
     {
         Logger.DebugAssert(!_disposed, "Cannot wait for GPU ready on a disposed RenderSystem.");
 
-        var eventIndex = (int)(_cpuFenceValue % (ulong)_frameResources.Length);
+        var eventIndex = frameIndex % _frameResources.Length;
         return _frameResources[eventIndex].GpuReadyEvent.WaitOne(timeOut);
     }
 
@@ -428,11 +423,11 @@ public class RenderSystem : IDisposable
         }
     }
 
-    public IRenderPayload GetCurrentFramePayload()
+    public IRenderPayload GetCurrentFramePayload(int frameIndex)
     {
         Logger.DebugAssert(!_disposed, "Cannot get current frame payload from a disposed RenderSystem.");
 
-        var eventIndex = (int)(_cpuFenceValue % (ulong)_frameResources.Length);
+        var eventIndex = frameIndex % _frameResources.Length;
         ref var frameResource = ref _frameResources[eventIndex];
 
         return frameResource.RenderPayload;

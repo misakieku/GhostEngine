@@ -8,8 +8,8 @@ using System.Threading;
 
 namespace Ghost.Generator;
 
-[Generator]
-internal class AssetHandlerRegistrationGenerator : IIncrementalGenerator
+//[Generator]
+internal class AssetHandlerRegistrationGenerator // : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -128,7 +128,7 @@ internal static partial class {registerTypeName}
     }
 }
 
-[Generator]
+//[Generator]
 internal class IAssetSettingsRegistrationGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)

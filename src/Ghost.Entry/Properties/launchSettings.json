@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "Ghost.Entry": {
-      "commandName": "Project",
-      "debugEngines": "managed,native"
-    }
-  }
-}

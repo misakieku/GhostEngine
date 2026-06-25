@@ -7,15 +7,11 @@
     <Nullable>enable</Nullable>
     <PublishAot>true</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ppy.SDL3-CS" Version="2026.623.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Runtime\Ghost.Engine\Ghost.Engine.csproj" />
+    <ProjectReference Include="..\..\Runtime\Ghost.Engine\Ghost.Engine.csproj" />
+    <ProjectReference Include="..\..\Runtime\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

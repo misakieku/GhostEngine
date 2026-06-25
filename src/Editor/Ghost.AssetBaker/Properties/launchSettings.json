@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "Ghost.AssetBaker": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    },
+    "Ghost.AssetBaker Devtools": {
+      "commandName": "Project",
+      "commandLineArgs": "--devtools",
+      "nativeDebugging": false
+    }
+  }
+}

@@ -2,7 +2,7 @@ using Ghost.Core;
 
 namespace Ghost.Engine.Streaming;
 
-internal class RuntimeContentProvider : IContentProvider
+public class RuntimeContentProvider : IContentProvider
 {
     public AssetType GetAssetType(Guid guid)
     {

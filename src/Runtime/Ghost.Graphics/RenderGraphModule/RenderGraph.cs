@@ -36,7 +36,7 @@ public sealed class RenderGraph : IDisposable
 
     public RenderGraphBlackboard Blackboard => _blackboard;
 
-    public RenderGraph(RenderSystem renderSystem)
+    public RenderGraph(RenderEngine renderSystem)
     {
         _resourceDatabase = renderSystem.GraphicsEngine.ResourceDatabase;
 

@@ -11,13 +11,13 @@ namespace Ghost.Engine.Systems;
 [UpdateAfter<UpdateGPUInstanceSystem>]
 internal class AddGPUInstanceSystem : SystemBase
 {
-    private RenderSystem _renderSystem = null!;
+    private RenderEngine _renderSystem = null!;
 
     private Identifier<EntityQuery> _meshInstanceQueryID;
 
     protected override void OnInitialize(ref readonly SystemAPI systemAPI)
     {
-        _renderSystem = systemAPI.World.GetService<RenderSystem>();
+        _renderSystem = systemAPI.World.GetService<RenderEngine>();
 
         _meshInstanceQueryID = QueryBuilder.New()
             .WithAll<MeshInstance, LocalToWorld>()
@@ -29,7 +29,7 @@ internal class AddGPUInstanceSystem : SystemBase
 
     protected override void OnUpdate(ref readonly SystemAPI systemAPI)
     {
-        var payload = (GhostRenderPayload)_renderSystem.GetCurrentFramePayload();
+        var payload = (GhostRenderPayload)_renderSystem.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
 
         ref var meshInstanceQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_meshInstanceQueryID);
 

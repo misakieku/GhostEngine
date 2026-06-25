@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using TerraFX.Interop.Gdiplus;
 
 namespace Ghost.Core;
 
@@ -104,6 +105,10 @@ public static class Logger
 
                 _logs.Add(logMessage);
                 OnLogAdded?.Invoke(logMessage);
+
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"[{level}] " + message);
+#endif
             }
         }
 
@@ -117,6 +122,10 @@ public static class Logger
 
                 _logs.Add(logMessage);
                 OnLogAdded?.Invoke(logMessage);
+
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"[Error] " + exception.Message);
+#endif
             }
         }
 

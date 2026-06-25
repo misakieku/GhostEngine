@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Graphics.RHI;
 using System.Diagnostics.CodeAnalysis;
 
@@ -92,6 +93,30 @@ public class SwapChainManager : IDisposable
         }
     }
 
+    public void CreateSwapChain(SwapChainDesc desc, out ISwapChain swapChain, out int index)
+    {
+        for (var i = 0; i < MAX_SWAP_CHAINS; i++)
+        {
+            var record = Volatile.Read(ref _swapChains[i]);
+            if (record == null)
+            {
+                var newRecord = new SwapChainRecord(_graphicsEngine.CreateSwapChain(desc));
+                var previous = Interlocked.CompareExchange(ref _swapChains[i], newRecord, null);
+                if (previous == null)
+                {
+                    swapChain = newRecord.SwapChain;
+                    index = i;
+                }
+                else
+                {
+                    newRecord.SwapChain.Dispose();
+                }
+            }
+        }
+
+        throw new InvalidOperationException("Maximum number of swap chains reached.");
+    }
+
     public bool TryGetSwapChain(int index, [MaybeNullWhen(false)] out ISwapChain swapChain)
     {
         var record = Volatile.Read(ref _swapChains[index]);
@@ -105,18 +130,41 @@ public class SwapChainManager : IDisposable
         return false;
     }
 
-    public void ReleaseSwapChain(int index)
+    public int ReleaseSwapChain(int index)
     {
         var record = Volatile.Read(ref _swapChains[index]);
 
-        if (record != null && record.ReleaseRef() == 0)
+        if (record != null)
         {
-            record.SwapChain.Dispose();
-            Interlocked.CompareExchange(ref _swapChains[index], null, record);
+            var refCount = record.ReleaseRef();
+            if (refCount == 0)
+            {
+                record.SwapChain.Dispose();
+                Interlocked.CompareExchange(ref _swapChains[index], null, record);
+            }
+
+            return refCount;
         }
+
+        return -1;
     }
 
-    public void TransitionToPresent(ICommandBuffer commandBuffer)
+    public void TransitionToPresent(int index, ICommandBuffer commandBuffer)
+    {
+        var record = Volatile.Read(ref _swapChains[index]);
+        if (record == null)
+        {
+            Logger.Debug($"No swap chain at index {index} to transition to present.");
+            return;
+        }
+
+        commandBuffer.Barrier(BarrierDesc.Texture(record.SwapChain.GetCurrentBackBuffer().AsResource(),
+            BarrierSync.None,
+            BarrierAccess.NoAccess,
+            BarrierLayout.Present));
+    }
+
+    public void TransitionAllToPresent(ICommandBuffer commandBuffer)
     {
         for (var i = 0; i < MAX_SWAP_CHAINS; i++)
         {
@@ -133,18 +181,19 @@ public class SwapChainManager : IDisposable
         }
     }
 
-    public void Present(int index, ICommandBuffer commandBuffer)
+    public void Present(int index)
     {
         var record = Volatile.Read(ref _swapChains[index]);
         if (record == null)
         {
+            Logger.Debug($"No swap chain at index {index} to present.");
             return;
         }
 
         record.SwapChain.Present();
     }
 
-    public void PresentAll(ICommandBuffer commandBuffer)
+    public void PresentAll()
     {
         for (var i = 0; i < MAX_SWAP_CHAINS; i++)
         {
@@ -169,5 +218,7 @@ public class SwapChainManager : IDisposable
                 Interlocked.CompareExchange(ref _swapChains[i], null, record);
             }
         }
+
+        GC.SuppressFinalize(this);
     }
 }

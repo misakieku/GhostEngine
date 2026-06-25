@@ -73,6 +73,17 @@ public partial class World
 
         return s_worlds[id.Value];
     }
+
+    public static IEnumerable<World> EnumerateAllWorlds()
+    {
+        for (var i = 0; i < s_worlds.Count; i++)
+        {
+            if (s_worlds[i] is not null)
+            {
+                yield return s_worlds[i]!;
+            }
+        }
+    }
 }
 
 public partial class World : IDisposable, IEquatable<World>

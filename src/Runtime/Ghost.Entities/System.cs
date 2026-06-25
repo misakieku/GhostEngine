@@ -410,6 +410,13 @@ public sealed class SystemManager : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void AddSystem<T>(T system)
+        where T : ISystem
+    {
+        _systems.Add(system);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T GetSystem<T>()
         where T : ISystem
     {

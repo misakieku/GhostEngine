@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug_Editor'">
-    <DefineConstants>$(DefineConstants);DEBUG;TRACE;GHOST_EDITOR;GHOST_SAFETY_CHECKS;</DefineConstants>
+    <DefineConstants>$(DefineConstants);DEBUG;TRACE;GHOST_EDITOR;GHOST_SAFETY_CHECKS</DefineConstants>
     <Optimize>false</Optimize>
     <Obfuscate>false</Obfuscate>
     <DebugSymbols>true</DebugSymbols>
@@ -11,14 +11,14 @@
     <AppxPackageIncludePrivateSymbols>true</AppxPackageIncludePrivateSymbols>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release_Editor'">
-    <DefineConstants>$(DefineConstants);GHOST_EDITOR;GHOST_SAFETY_CHECKS;</DefineConstants>
+    <DefineConstants>$(DefineConstants);GHOST_EDITOR;GHOST_SAFETY_CHECKS</DefineConstants>
     <Optimize>true</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release_Dev'">
-    <DefineConstants>$(DefineConstants);GHOST_SAFETY_CHECKS;</DefineConstants>
+    <DefineConstants>$(DefineConstants);GHOST_SAFETY_CHECKS</DefineConstants>
     <Optimize>true</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <DefineConstants>$(DefineConstants);GHOST_SAFETY_CHECKS;</DefineConstants>
+    <DefineConstants>$(DefineConstants);GHOST_SAFETY_CHECKS</DefineConstants>
   </PropertyGroup>
 </Project>

@@ -1,16 +1,24 @@
 using Ghost.Engine.RenderPipeline;
 using Ghost.Engine.Streaming;
+using Ghost.Entities;
 using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
+using System.Diagnostics;
 
 namespace Ghost.Engine;
 
-public interface IRuntimeInitializeCallback
-{
-    void Initialize();
-    void Shutdown();
-}
+/// <summary>
+/// Indicates that the method should be called during the engine's initialization phase. Methods marked with this attribute will be invoked right after the engine is created and before the main loop starts.
+/// </summary>
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class RuntimeInitializeAttribute : Attribute;
+
+/// <summary>
+/// Indicates that the method should be called during the engine's shutdown phase. Methods marked with this attribute will be invoked right before the engine is disposed and the application exits.
+/// </summary>
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class RuntimeShutdownAttribute : Attribute;
 
 public sealed partial class EngineCore : IDisposable
 {
@@ -18,12 +26,18 @@ public sealed partial class EngineCore : IDisposable
 
     private readonly JobScheduler _jobScheduler;
     private readonly ResourceStreamingProcessor _streamingProcessor;
-    private readonly RenderSystem _renderSystem;
+    private readonly RenderEngine _renderEngine;
     private readonly AssetManager _assetManager;
 
+    private readonly Stopwatch _stopwatch;
+    private float _lastFrameTime;
+    private int _frameIndex;
+
     public JobScheduler JobScheduler => _jobScheduler;
-    public RenderSystem RenderSystem => _renderSystem;
+    public RenderEngine RenderEngine => _renderEngine;
     public AssetManager AssetManager => _assetManager;
+
+    public int FrameIndex => _frameIndex;
 
     public EngineCore(IContentProvider contentProvider, IShaderCompilationBridge? shaderCompilationBridge = null)
     {
@@ -49,19 +63,60 @@ public sealed partial class EngineCore : IDisposable
             ShaderCompilationBridge = shaderCompilationBridge,
         };
 
-        _renderSystem = new RenderSystem(renderingDesc);
-        _assetManager = new AssetManager(_renderSystem.GraphicsEngine.ResourceDatabase, _renderSystem.ResourceManager, _contentProvider, _streamingProcessor, _jobScheduler);
+        _renderEngine = new RenderEngine(renderingDesc);
+        _assetManager = new AssetManager(_renderEngine.GraphicsEngine.ResourceDatabase, _renderEngine.ResourceManager, _contentProvider, _streamingProcessor, _jobScheduler);
+
+        _stopwatch = new Stopwatch();
     }
 
-    internal void Start()
+    public void Start()
     {
-        _renderSystem.Start();
+        _renderEngine.Start();
+        _stopwatch.Start();
+
+        foreach (var world in World.EnumerateAllWorlds())
+        {
+            world.SystemManager.InitializeAll();
+        }
+    }
+
+    public void Tick()
+    {
+        var currentTime = (float)_stopwatch.Elapsed.TotalSeconds;
+        var deltaTime = currentTime - _lastFrameTime;
+        _lastFrameTime = currentTime;
+
+        var time = new TimeData
+        {
+            FrameIndex = _frameIndex,
+            DeltaTime = deltaTime,
+            ElapsedTime = currentTime,
+        };
+
+        foreach (var world in World.EnumerateAllWorlds())
+        {
+            world.SystemManager.UpdateAll(time);
+        }
+
+        RenderEngine.SignalCPUReady(_frameIndex++);
+        RenderEngine.WaitForGPUReady(_frameIndex);
+    }
+
+    public void Stop()
+    {
+        _stopwatch.Stop();
+        _renderEngine.Stop();
+
+        foreach (var world in World.EnumerateAllWorlds())
+        {
+            world.SystemManager.CleanupAll();
+        }
     }
 
     public void Dispose()
     {
         _assetManager.Dispose();
-        _renderSystem.Dispose();
+        _renderEngine.Dispose();
         _jobScheduler.Dispose();
     }
 }

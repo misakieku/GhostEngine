@@ -104,12 +104,12 @@ internal sealed class GhostRenderPayload : IRenderPayload
 
 internal class GhostRenderPipelineSettings : IRenderPipelineSettings
 {
-    public IRenderPipeline CreatePipeline(RenderSystem renderSystem)
+    public IRenderPipeline CreatePipeline(RenderEngine renderSystem)
     {
         return new GhostRenderPipeline(renderSystem);
     }
 
-    public IRenderPayload CreatePayload(RenderSystem renderSystem, IRenderPipeline _renderPipeline)
+    public IRenderPayload CreatePayload(RenderEngine renderSystem, IRenderPipeline _renderPipeline)
     {
         return new GhostRenderPayload((GhostRenderPipeline)_renderPipeline);
     }

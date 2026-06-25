@@ -1,13 +1,15 @@
 #define PLATFORM_WINDOWNS
 
+using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Services;
 using SDL;
 using System.Runtime.CompilerServices;
 using static SDL.SDL3;
 
-namespace Ghost.Entry;
+namespace Ghost.Engine;
 
-internal struct WindowDesc
+public struct WindowDesc
 {
     public required string Title
     {
@@ -30,7 +32,7 @@ internal struct WindowDesc
     }
 }
 
-internal unsafe class EngineWindow : IDisposable
+public unsafe class EngineWindow : IDisposable
 {
     // TODO: Linux can run on either X11 or Wayland, so we need to detect which one is being used and use the appropriate property name.
 
@@ -40,19 +42,25 @@ internal unsafe class EngineWindow : IDisposable
     private static ReadOnlySpan<byte> HANDLE_PROPERTY_NAME => SDL_PROP_WINDOW_COCOA_WINDOW_POINTER;
 #endif
 
+    private readonly SwapChainManager _swapChainManager;
+
     private readonly SDL_Window* _window;
     private readonly SDL_PropertiesID _propID;
 
     private readonly ISwapChain _swapChain;
+    private readonly int _swapChainIndex;
 
     private bool _isRunning;
 
     public IntPtr Handle => SDL_GetPointerProperty(_propID, HANDLE_PROPERTY_NAME, 0);
+    public int SwapChainIndex => _swapChainIndex;
 
     public bool IsRunning => _isRunning;
 
-    public EngineWindow(IGraphicsEngine graphicsEngine, WindowDesc desc)
+    public EngineWindow(SwapChainManager swapChainManager, WindowDesc desc)
     {
+        _swapChainManager = swapChainManager;
+
         var windowFlags = SDL_WindowFlags.SDL_WINDOW_RESIZABLE;
         if (desc.Borderless)
         {
@@ -78,7 +86,7 @@ internal unsafe class EngineWindow : IDisposable
             Target = SwapChainTarget.FromWindowHandle(Handle)
         };
 
-        _swapChain = graphicsEngine.CreateSwapChain(swapChainDesc);
+        swapChainManager.CreateSwapChain(swapChainDesc, out _swapChain, out _swapChainIndex);
 
         _isRunning = true;
     }
@@ -106,7 +114,9 @@ internal unsafe class EngineWindow : IDisposable
 
     public void Dispose()
     {
-        _swapChain.Dispose();
+        var refCount = _swapChainManager.ReleaseSwapChain(_swapChainIndex);
+        Logger.DebugAssert(refCount == 0);
+
         SDL_DestroyWindow(_window);
     }
 }

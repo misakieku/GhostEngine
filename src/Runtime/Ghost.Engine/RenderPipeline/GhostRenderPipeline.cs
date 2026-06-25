@@ -7,14 +7,14 @@ namespace Ghost.Engine.RenderPipeline;
 
 internal partial class GhostRenderPipeline : IRenderPipeline
 {
-    private readonly RenderSystem _renderSystem;
+    private readonly RenderEngine _renderSystem;
 
     private readonly RenderGraph _renderGraph;
     private readonly GPUScene _gpuScene;
 
     public GPUScene GPUScene => _gpuScene;
 
-    public GhostRenderPipeline(RenderSystem renderSystem)
+    public GhostRenderPipeline(RenderEngine renderSystem)
     {
         _renderSystem = renderSystem;
 

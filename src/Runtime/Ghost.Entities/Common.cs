@@ -2,7 +2,7 @@ namespace Ghost.Entities;
 
 public readonly struct TimeData
 {
-    public int FrameCount
+    public int FrameIndex
     {
         get; init;
     }
@@ -12,7 +12,7 @@ public readonly struct TimeData
         get; init;
     }
 
-    public double ElapsedTime
+    public float ElapsedTime
     {
         get; init;
     }
