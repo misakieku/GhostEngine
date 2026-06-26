@@ -23,7 +23,7 @@ public class GlobalSettingsView : Component<GlobalSettingsViewProps>
         var settings = Props.Settings;
 
         // Custom Browse Folder Action
-        var browseOutputFolder = async () =>
+        async Task browseOutputFolder()
         {
             var picker = new Windows.Storage.Pickers.FolderPicker();
             picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.ComputerFolder;
@@ -37,7 +37,7 @@ public class GlobalSettingsView : Component<GlobalSettingsViewProps>
             {
                 Props.OnSettingsChanged(settings with { OutputPath = folder.Path });
             }
-        };
+        }
 
         var (targetPlatformIndex, setTargetPlatformIndex) = UseState(0);
         var platforms = new[] { "PC (Direct3D 12 - x64)", "Xbox Series X/S (D3D12)", "Mobile (Vulkan - ARM64)" };
@@ -69,46 +69,6 @@ public class GlobalSettingsView : Component<GlobalSettingsViewProps>
                             .Foreground(Theme.SecondaryText)
                             .Margin(top: 4)
                     )
-                ),
-
-                // Group 2: Packaging & Optimization Defaults
-                CardGroup(
-                    "Packaging & Optimizations",
-                    FlexColumn(
-                        FlexRow(
-                            FlexColumn(
-                                BodyStrong("Bundle Outputs (GPak)"),
-                                Caption("Packs all baked assets into a single package file (.gpak) for optimized AOT loading.")
-                                    .Foreground(Theme.SecondaryText)
-                            ).Flex(grow: 1, basis: 0),
-                            ToggleSwitch(settings.BundleOutput, val => Props.OnSettingsChanged(settings with { BundleOutput = val }))
-                                .Flex(shrink: 0)
-                        ) with { AlignItems = FlexAlign.Center },
-
-                        Border(Empty()).Height(1).Background(Theme.DividerStroke).Margin(0, 8),
-
-                        FlexRow(
-                            FlexColumn(
-                                BodyStrong("Optimize Mesh Vertices"),
-                                Caption("Enables vertex cache and index buffer optimization by default.")
-                                    .Foreground(Theme.SecondaryText)
-                            ).Flex(grow: 1, basis: 0),
-                            ToggleSwitch(settings.OptimizeMesh, val => Props.OnSettingsChanged(settings with { OptimizeMesh = val }))
-                                .Flex(shrink: 0)
-                        ) with { AlignItems = FlexAlign.Center },
-
-                        Border(Empty()).Height(1).Background(Theme.DividerStroke).Margin(0, 8),
-
-                        FlexRow(
-                            FlexColumn(
-                                BodyStrong("Generate Texture Mipmaps"),
-                                Caption("Automatically generates a mipmap chain for textures to improve GPU rendering performance.")
-                                    .Foreground(Theme.SecondaryText)
-                            ).Flex(grow: 1, basis: 0),
-                            ToggleSwitch(settings.GenerateMipmaps, val => Props.OnSettingsChanged(settings with { GenerateMipmaps = val }))
-                                .Flex(shrink: 0)
-                        ) with { AlignItems = FlexAlign.Center }
-                    ) with { RowGap = 8 }
                 ),
 
                 // Group 3: Targets and Formats

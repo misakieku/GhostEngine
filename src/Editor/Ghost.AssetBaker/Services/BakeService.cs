@@ -1,4 +1,6 @@
 using Ghost.AssetBaker.Models;
+using Ghost.Core;
+using System.Runtime.InteropServices;
 
 namespace Ghost.AssetBaker.Services;
 
@@ -71,7 +73,11 @@ public class BakeService
 
     public void ClearAll()
     {
-        if (_isBaking) return;
+        if (_isBaking)
+        {
+            return;
+        }
+
         _queue.Clear();
         Log("Cleared all items from the queue.");
         NotifyStateChanged();
@@ -79,7 +85,11 @@ public class BakeService
 
     public void ClearCompleted()
     {
-        if (_isBaking) return;
+        if (_isBaking)
+        {
+            return;
+        }
+
         var completedCount = _queue.RemoveAll(a => a.Status == AssetState.Success || a.Status == AssetState.Failed);
         Log($"Cleared {completedCount} completed/failed items from the queue.");
         NotifyStateChanged();
@@ -95,9 +105,12 @@ public class BakeService
         }
     }
 
-    public async Task BakeQueueAsync(BakeSettings globalSettings)
+    public async Task BakeQueueAsync(BakeSettings settings, CancellationToken cancellationToken)
     {
-        if (_isBaking || !_queue.Any(a => a.Status == AssetState.Pending)) return;
+        if (_isBaking || !_queue.Any(a => a.Status == AssetState.Pending))
+        {
+            return;
+        }
 
         _isBaking = true;
         Log("=== Start Baking Process ===");
@@ -108,25 +121,45 @@ public class BakeService
             for (var i = 0; i < _queue.Count; i++)
             {
                 var asset = _queue[i];
-                if (asset.Status != AssetState.Pending) continue;
+                if (asset.Status != AssetState.Pending)
+                {
+                    continue;
+                }
 
                 // Update status to Baking
-                UpdateAssetStatus(asset.Id, AssetState.Baking, 0.0);
+                UpdateAssetStatus(asset, AssetState.Baking, 0.0);
                 Log($"Baking asset [{i + 1}/{_queue.Count}]: {asset.Name}...");
 
                 // Process asset
-                bool success = false;
+                var success = false;
                 var baker = BakerRegistry.Instance.GetBaker(asset.Type);
                 if (baker != null && asset.Settings.AssetSettings != null)
                 {
                     try
                     {
-                        using var stream = await baker.BakeAssetAsync(asset.FilePath, asset.Settings.AssetSettings);
+                        using var dst = new MemoryStream(); // Or file stream?
+                        await baker.BakeAssetAsync(asset.FilePath, dst, asset.Settings.AssetSettings, cancellationToken);
+
+                        var header = new AssetHeader
+                        {
+                            assetType = asset.Type,
+                            compressionMethod = settings.Compression,
+                        };
+
                         var outDir = asset.Settings.OutputPath;
-                        if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
+                        if (!Directory.Exists(outDir))
+                        {
+                            Directory.CreateDirectory(outDir);
+                        }
+
                         var outFile = Path.Combine(outDir, Path.GetFileNameWithoutExtension(asset.Name) + ".g" + asset.Type.ToString().ToLower());
-                        using var fs = new FileStream(outFile, FileMode.Create);
-                        await stream.CopyToAsync(fs);
+
+                        // TODO Compress dst based on settings.Compression
+
+                        using var fs = new FileStream(outFile, FileMode.Create, FileAccess.Write);
+                        fs.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref header, 1)));
+                        await dst.CopyToAsync(fs, cancellationToken);
+
                         success = true;
                     }
                     catch (Exception ex)
@@ -136,17 +169,17 @@ public class BakeService
                 }
                 else
                 {
-                    success = await SimulateBakeAsync(asset, globalSettings);
+                    Log($"Error: No baker found for asset type {asset.Type} or missing settings.", isError: true);
                 }
 
                 if (success)
                 {
-                    UpdateAssetStatus(asset.Id, AssetState.Success, 100.0);
+                    UpdateAssetStatus(asset, AssetState.Success, 100.0);
                     Log($"Success: Baked {asset.Name} to output folder.", isSuccess: true);
                 }
                 else
                 {
-                    UpdateAssetStatus(asset.Id, AssetState.Failed, 100.0, "Bake error simulated.");
+                    UpdateAssetStatus(asset, AssetState.Failed, 100.0, "Bake error.");
                     Log($"Failed: Failed to bake {asset.Name}.", isError: true);
                 }
             }
@@ -162,7 +195,7 @@ public class BakeService
     private void UpdateAssetStatus(Guid id, AssetState status, double progress, string errorMsg = "")
     {
         var index = _queue.FindIndex(a => a.Id == id);
-        if (index != -1 && index >= 0)
+        if (index >= 0)
         {
             _queue[index] = _queue[index] with
             {
@@ -170,82 +203,18 @@ public class BakeService
                 Progress = progress,
                 ErrorMessage = errorMsg
             };
+
             NotifyStateChanged();
         }
     }
 
-    private async Task<bool> SimulateBakeAsync(QueuedAsset asset, BakeSettings globalSettings)
+    private void UpdateAssetStatus(QueuedAsset asset, AssetState status, double progress, string errorMsg = "")
     {
-        var steps = 10;
-        var compression = asset.Settings.Compression;
-        var bundle = globalSettings.BundleOutput;
+        asset.Status = status;
+        asset.Progress = progress;
+        asset.ErrorMessage = errorMsg;
 
-        for (var step = 1; step <= steps; step++)
-        {
-            await Task.Delay(200); // 2 seconds total simulation time per asset
-            var progress = (step / (double)steps) * 100.0;
-
-            UpdateAssetStatus(asset.Id, AssetState.Baking, progress);
-
-            // Log details based on asset type
-            if (step == 3)
-            {
-                switch (asset.Type)
-                {
-                    case AssetType.Mesh:
-                        Log($"  [Mesh] Parsing vertex data... found {new Random().Next(5000, 100000)} vertices.");
-                        break;
-                    case AssetType.Texture:
-                        Log($"  [Texture] Analyzing dimensions... format identified as RGB.");
-                        break;
-                    case AssetType.Shader:
-                        Log("  [Shader] Preprocessing preprocessor directives...");
-                        break;
-                    case AssetType.Audio:
-                        Log("  [Audio] Decoding audio sample rate...");
-                        break;
-                }
-            }
-            else if (step == 6)
-            {
-                switch (asset.Type)
-                {
-                    case AssetType.Mesh:
-                        if (asset.Settings.OptimizeMesh)
-                            Log("  [Mesh] Optimizing vertex cache & index buffers...");
-                        if (asset.Settings.GenerateLods)
-                            Log("  [Mesh] Generating LOD levels...");
-                        break;
-                    case AssetType.Texture:
-                        Log($"  [Texture] Compressing with mode: {compression}");
-                        if (asset.Settings.GenerateMipmaps)
-                            Log("  [Texture] Generating mipmap chain...");
-                        break;
-                    case AssetType.Shader:
-                        Log("  [Shader] Compiling DXIL / SPIR-V bytecode...");
-                        break;
-                    case AssetType.Audio:
-                        Log("  [Audio] Encoding to engine-native PCM stream...");
-                        break;
-                }
-            }
-            else if (step == 9)
-            {
-                if (bundle)
-                    Log("  [Packer] Queueing asset for bundle packing...");
-                else
-                    Log($"  [Writer] Writing baked asset output file: {asset.Name.Substring(0, asset.Name.LastIndexOf('.'))}.g{asset.Type.ToString().ToLower()}");
-            }
-        }
-
-        // Simulate rare failures for Shader/Other
-        if (asset.Type == AssetType.Shader && new Random().Next(0, 10) == 0)
-        {
-            Log("  [Shader] Shader compilation error: syntax error in main entry point.", isError: true);
-            return false;
-        }
-
-        return true;
+        NotifyStateChanged();
     }
 
     private void Log(string message, bool isError = false, bool isSuccess = false)

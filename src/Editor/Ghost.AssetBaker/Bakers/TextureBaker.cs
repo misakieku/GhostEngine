@@ -1,9 +1,9 @@
+using Ghost.AssetBaker.Attributes;
+using Ghost.Core;
 using Ghost.StbI;
 using System.IO.MemoryMappedFiles;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using System.ComponentModel;
-using Ghost.AssetBaker.Attributes;
 
 namespace Ghost.AssetBaker.Bakers;
 
@@ -47,21 +47,16 @@ public enum MipmapFilter : uint
     MitchellNetravali
 }
 
-public enum TextureFilterMode
+public enum TextureDimension : uint
 {
-    Point,
-    Bilinear,
-    Trilinear,
-    Anisotropic
-}
-
-public enum TextureAddressMode
-{
-    Repeat,
-    Mirror,
-    Clamp,
-    Border,
-    MirrorOnce
+    Unknown = unchecked((uint)-1),
+    None = 0,
+    Texture1D = 1,
+    Texture2D = 2,
+    Texture3D = 3,
+    TextureCube = 4,
+    Texture2DArray = 5,
+    TextureCubeArray = 6
 }
 
 public class TextureBakeSettings : IBakeSettings
@@ -70,16 +65,20 @@ public class TextureBakeSettings : IBakeSettings
     {
         public TextureType TextureType { get; set; } = TextureType.Default;
         public TextureShape TextureShape { get; set; } = TextureShape.Texture2D;
+        [ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
         public int Columns { get; set; } = 1;
+        [ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
         public int Rows { get; set; } = 1;
+        [ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
         public int Depth { get; set; } = 1;
+        [ShowWhen(nameof(TextureType), TextureType.Default)]
         public bool IsSRGB { get; set; } = true;
     }
 
     public struct AdvancedSettings()
     {
+        public TextureSize MaxSize { get; set; } = TextureSize.Size2048;
         public bool StretchToPowerOfTwo { get; set; } = true;
-        public bool VirtualTexture { get; set; } = false;
         public bool GenerateMipmaps { get; set; } = true;
         [ShowWhen(nameof(GenerateMipmaps), true)]
         public uint MipmapLevelCount { get; set; } = 0; // 0 means generate full mipmap levels.
@@ -98,19 +97,10 @@ public class TextureBakeSettings : IBakeSettings
         [ShowWhen(nameof(ScaleAlphaForMipCoverage), true)]
         [Slider(0, 255)]
         public byte ScaleAlphaForMipCoverageThreshold { get; set; } = 127;
-        public bool MipmapStreaming { get; set; } = false;
-    }
-
-    public struct SamplerSettings()
-    {
-        public TextureSize MaxSize { get; set; } = TextureSize.Size2048;
-        public TextureFilterMode FilterMode { get; set; } = TextureFilterMode.Anisotropic;
-        public TextureAddressMode WrapMode { get; set; } = TextureAddressMode.Repeat;
     }
 
     public BasicSettings Basic { get; set; } = new BasicSettings();
     public AdvancedSettings Advanced { get; set; } = new AdvancedSettings();
-    public SamplerSettings Sampler { get; set; } = new SamplerSettings();
 }
 
 internal struct TextureInfo
@@ -124,7 +114,7 @@ internal struct TextureInfo
     public bool isHDR;
 }
 
-[AssetBaker(Extensions = [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr"], Type = Models.AssetType.Texture, SettingsType = typeof(TextureBakeSettings))]
+[AssetBaker(Extensions = [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr"], Type = AssetType.Texture, SettingsType = typeof(TextureBakeSettings))]
 internal partial class TextureBaker : IAssetBaker
 {
     private static TextureDimension GetTextureDimension(TextureBakeSettings settings)
@@ -159,7 +149,7 @@ internal partial class TextureBaker : IAssetBaker
         {
             using var mmf = MemoryMappedFile.CreateFromFile(sourcePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
             using var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
-            
+
             byte* ptr = null;
             try
             {
@@ -170,7 +160,7 @@ internal partial class TextureBaker : IAssetBaker
 
                 int imageWidth, imageHeight, colorComponents;
                 var bufferSpan = new ReadOnlySpan<byte>(ptr, (int)accessor.Capacity);
-                int bitsPerChannel = StbIApi.Is16BitFromMemory(bufferSpan) > 0 ? 16 : 8;
+                var bitsPerChannel = StbIApi.Is16BitFromMemory(bufferSpan) > 0 ? 16 : 8;
 
                 void* pPixels;
                 if (isHDR || bitsPerChannel > 8)
@@ -212,31 +202,23 @@ internal partial class TextureBaker : IAssetBaker
         }
     }
 
-    public async Task<Stream> BakeAssetAsync(string assetPath, IBakeSettings settings)
+    public async Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, CancellationToken cancellationToken)
     {
         if (settings is not TextureBakeSettings textureSettings)
         {
             throw new ArgumentException("Invalid settings type. Expected TextureBakeSettings.", nameof(settings));
         }
 
-        if (!File.Exists(assetPath))
-        {
-            throw new FileNotFoundException("Source file does not exist.", assetPath);
-        }
-
-        var info = GetImageInfo(assetPath, textureSettings);
+        var info = GetImageInfo(src, textureSettings);
 
         try
         {
-            var (tempFilePath, mipCount) = await GenerateMipAndCompressAsync(info, textureSettings).ConfigureAwait(false);
+            var (tempFilePath, mipCount) = await GenerateMipAndCompressAsync(info, textureSettings, cancellationToken).ConfigureAwait(false);
 
             try
             {
-                var targetStream = new MemoryStream();
                 var header = new TextureContentHeader
                 {
-                    magic = TextureContentHeader.MAGIC,
-                    version = TextureContentHeader.VERSION,
                     width = (uint)info.width,
                     height = (uint)info.height,
                     bpc = (uint)info.bitsPerChannel,
@@ -246,16 +228,11 @@ internal partial class TextureBaker : IAssetBaker
                 };
 
                 // Write header
-                targetStream.Write(MemoryMarshal.AsBytes(new Span<TextureContentHeader>(ref header)));
+                dst.Write(MemoryMarshal.AsBytes(new Span<TextureContentHeader>(ref header)));
 
                 // Write DDS payload
-                using (var ddsStream = new FileStream(tempFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                {
-                    await ddsStream.CopyToAsync(targetStream).ConfigureAwait(false);
-                }
-
-                targetStream.Position = 0;
-                return targetStream;
+                using var ddsStream = new FileStream(tempFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                await ddsStream.CopyToAsync(dst, cancellationToken).ConfigureAwait(false);
             }
             finally
             {

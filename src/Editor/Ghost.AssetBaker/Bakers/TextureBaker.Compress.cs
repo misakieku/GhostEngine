@@ -9,8 +9,7 @@ namespace Ghost.AssetBaker.Bakers;
 internal partial class TextureBaker
 {
     private static async Task<(string tempFilePath, int mipmapCount)> GenerateMipAndCompressAsync(
-        TextureInfo textureInfo,
-        TextureBakeSettings settings)
+        TextureInfo textureInfo, TextureBakeSettings settings, CancellationToken cancellationToken)
     {
         var tempFilePath = Path.GetTempFileName();
 
@@ -37,7 +36,7 @@ internal partial class TextureBaker
 
                     var pixelsPerFace = edge * edge;
                     var faceSize = pixelsPerFace * textureInfo.colorComponents;
-                    baseCubeData = new UnsafeArray<float>(faceSize * 6, AllocationHandle.FreeList);
+                    baseCubeData = new UnsafeArray<float>(faceSize * 6, AllocationHandle.TLSF);
 
                     var channels = textureInfo.colorComponents;
                     var channelPtrs = stackalloc float*[channels];
@@ -64,7 +63,7 @@ internal partial class TextureBaker
                     }
                 }
 
-                mipLevels = await Task.Run(() => GenerateMipHDRI(textureInfo, baseCubeData, edge, maxCubeMips)).ConfigureAwait(false);
+                mipLevels = await Task.Run(() => GenerateMipHDRIAsync(textureInfo, baseCubeData, edge, maxCubeMips), cancellationToken).ConfigureAwait(false);
                 baseCubeData.Dispose();
             }
 
@@ -78,7 +77,7 @@ internal partial class TextureBaker
                 {
                     return RunMipGenCompressionPipeline(tempFilePath, textureInfo, settings);
                 }
-            }).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
 
             return (tempFilePath, mipmapCount);
         }
@@ -90,6 +89,7 @@ internal partial class TextureBaker
                 {
                     mipLevels[i].data.Dispose();
                 }
+
                 mipLevels.Dispose();
             }
         }
@@ -101,7 +101,8 @@ internal partial class TextureBaker
         using var pCompOpts = new DisposablePtr<NvttCompressionOptions>(NvttCompressionOptions.Create());
         using var pOutOpts = new DisposablePtr<NvttOutputOptions>(NvttOutputOptions.Create());
         using var pCtx = new DisposablePtr<NvttContext>(NvttContext.Create());
-
+        using var timing = new DisposablePtr<NvttTimingContext>(NvttTimingContext.Create(3));
+        
         var inputFormat = textureInfo.colorComponents == 1
             ? NvttInputFormat.NVTT_InputFormat_R_32F
             : textureInfo.bitsPerChannel > 8
@@ -126,7 +127,7 @@ internal partial class TextureBaker
             pSurface.Get()->Swizzle(2, 1, 0, 3, null);
         }
 
-        var maxExtent = (int)settings.Sampler.MaxSize;
+        var maxExtent = (int)settings.Advanced.MaxSize;
         if (settings.Advanced.StretchToPowerOfTwo)
         {
             pSurface.Get()->ResizeMakeSquare(maxExtent,

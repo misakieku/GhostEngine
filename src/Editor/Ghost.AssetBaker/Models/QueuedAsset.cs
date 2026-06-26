@@ -1,15 +1,6 @@
-using System;
+using Ghost.Core;
 
 namespace Ghost.AssetBaker.Models;
-
-public enum AssetType
-{
-    Mesh,
-    Texture,
-    Shader,
-    Audio,
-    Other
-}
 
 public enum AssetState
 {
@@ -25,10 +16,10 @@ public record QueuedAsset
     public string FilePath { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public long SizeInBytes { get; init; }
-    public AssetType Type { get; init; } = AssetType.Other;
-    public AssetState Status { get; init; } = AssetState.Pending;
-    public double Progress { get; init; } = 0.0;
-    public string ErrorMessage { get; init; } = string.Empty;
+    public AssetType Type { get; init; } = AssetType.Unknown;
+    public AssetState Status { get; set; } = AssetState.Pending;
+    public double Progress { get; set; } = 0.0;
+    public string ErrorMessage { get; set; } = string.Empty;
     public BakeSettings Settings { get; init; } = new();
 
     public string SizeFormatted

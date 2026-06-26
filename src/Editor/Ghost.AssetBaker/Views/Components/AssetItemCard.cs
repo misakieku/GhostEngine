@@ -1,4 +1,5 @@
 using Ghost.AssetBaker.Models;
+using Ghost.Core;
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;

@@ -39,22 +39,17 @@
         -->
         <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' And ('$(Platform)' == '' Or '$(Platform)' == 'AnyCPU' Or '$(Platform)' == 'Any CPU')">$(NETCoreSdkPortableRuntimeIdentifier)</RuntimeIdentifier>
         <InvariantGlobalization>true</InvariantGlobalization>
-        <PublishAot>true</PublishAot>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
         <ImplicitUsings>enable</ImplicitUsings>
     </PropertyGroup>
     <!-- </snippet:template-shape> -->
 
     <ItemGroup>
+        <PackageReference Include="K4os.Compression.LZ4.Streams" Version="1.3.8" />
         <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.2.0" />
         <PackageReference Include="Microsoft.UI.Reactor" Version="0.1.0-preview.4" />
-        <PackageReference Include="Misaki.HighPerformance.LowLevel" Version="1.7.4">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Misaki.HighPerformance.Mathematics" Version="1.3.4" />
-        <PackageReference Include="Misaki.HighPerformance.Mathematics.SPMD" Version="1.3.8" />
-        <PackageReference Include="System.IO.Hashing" Version="10.0.9" />
+        <PackageReference Include="OodleSharp" Version="0.0.1" />
+        <PackageReference Include="ZstdSharp.Port" Version="0.8.8" />
     </ItemGroup>
 
     <!--
@@ -73,11 +68,15 @@
         <RuntimeHostConfigurationOption Include="Reactor.DevtoolsSupport" Value="true" Trim="true" />
     </ItemGroup>
     <ItemGroup>
+      <ProjectReference Include="..\..\Runtime\Ghost.Core\Ghost.Core.csproj" />
       <ProjectReference Include="..\..\ThridParty\Ghost.DXC\Ghost.DXC.csproj" />
       <ProjectReference Include="..\..\ThridParty\Ghost.MeshOptimizer\Ghost.MeshOptimizer.csproj" />
       <ProjectReference Include="..\..\ThridParty\Ghost.Nvtt\Ghost.Nvtt.csproj" />
       <ProjectReference Include="..\..\ThridParty\Ghost.StbI\Ghost.StbI.csproj" />
       <ProjectReference Include="..\..\ThridParty\Ghost.Ufbx\Ghost.Ufbx.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Views\Inspector\CustomEditors\" />
     </ItemGroup>
 
 </Project>

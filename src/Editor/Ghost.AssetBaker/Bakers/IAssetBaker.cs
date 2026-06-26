@@ -1,4 +1,5 @@
 using Ghost.AssetBaker.Models;
+using Ghost.Core;
 
 namespace Ghost.AssetBaker.Bakers;
 
@@ -13,5 +14,5 @@ public interface IBakeSettings;
 
 public interface IAssetBaker
 {
-    public Task<Stream> BakeAssetAsync(string assetPath, IBakeSettings settings);
+    public Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, CancellationToken cancellationToken);
 }

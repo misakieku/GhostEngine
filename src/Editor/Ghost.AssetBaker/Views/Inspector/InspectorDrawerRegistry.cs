@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Reflection;
 using Ghost.AssetBaker.Attributes;
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
+using System.Reflection;
 using static Microsoft.UI.Reactor.Factories;
 
 namespace Ghost.AssetBaker.Views.Inspector;
@@ -15,7 +13,7 @@ public class InspectorDrawerRegistry
 
     private readonly Dictionary<Type, IPropertyDrawer> _attributeDrawers = new();
     private readonly Dictionary<Type, ICustomEditor> _customEditors = new();
-    
+
     // Core default drawers
     private readonly Drawers.BoolDrawer _boolDrawer = new();
     private readonly Drawers.EnumDrawer _enumDrawer = new();
@@ -62,7 +60,7 @@ public class InspectorDrawerRegistry
         if (propType.IsEnum) return _enumDrawer.Draw(property, target, onUpdate);
         if (IsNumber(propType)) return _numberDrawer.Draw(property, target, onUpdate);
         if (propType == typeof(System.Numerics.Vector4)) return _vector4Drawer.Draw(property, target, onUpdate);
-        
+
         if (propType.IsValueType && !propType.IsPrimitive) return _nestedStructDrawer.Draw(property, target, onUpdate);
 
         return null; // skip

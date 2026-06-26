@@ -9,7 +9,7 @@ namespace Ghost.AssetBaker.Bakers;
 
 internal partial class TextureBaker
 {
-    private const int _SAMPLE_COUNT = 1024;
+    private const int SAMPLE_COUNT = 1024;
 
     private struct MipLevel
     {
@@ -187,7 +187,7 @@ internal partial class TextureBaker
         // Monte Carlo Integration Loop
 
         var vLuma = MathV.Create<TFloat, float>(0.2126f, 0.7152f, 0.0722f);
-        var dynamicSampleCount = (int)max(1.0f, _SAMPLE_COUNT * pLevel->roughness);
+        var dynamicSampleCount = (int)max(1.0f, SAMPLE_COUNT * pLevel->roughness);
         var dsc = TFloat.Create(dynamicSampleCount);
 
         for (var i = 0; i < dynamicSampleCount; i += TFloat.LaneWidth)
@@ -210,6 +210,7 @@ internal partial class TextureBaker
 
             NdotL &= validLaneMask;
 
+            // Denoising
             var luma = MathV.Dot(sampleColor, vLuma);
             var fireflyWeight = TFloat.One / (TFloat.One + luma);
             var finalWeight = NdotL * fireflyWeight;
@@ -257,15 +258,15 @@ internal partial class TextureBaker
         return bits * 2.3283064365386963e-10f; // bits / 0x100000000
     }
 
-    private static UnsafeArray<MipLevel> GenerateMipHDRI(TextureInfo textureInfo, UnsafeArray<float> baseCubeData, int edge, int totalMipLevels)
+    private static UnsafeArray<MipLevel> GenerateMipHDRIAsync(TextureInfo textureInfo, UnsafeArray<float> baseCubeData, int edge, int totalMipLevels)
     {
         System.Diagnostics.Debug.Assert(textureInfo.isHDR, "GenerateMipHDRI should only be called for HDR textures.");
         System.Diagnostics.Debug.Assert(textureInfo.colorComponents >= 3, "Texture must have at least 3 color components for RGB.");
 
-        var mipLevels = new UnsafeArray<MipLevel>(totalMipLevels, AllocationHandle.FreeList);
-        using var radicalInverse_VdCLut = new UnsafeArray<float>(_SAMPLE_COUNT, AllocationHandle.FreeList);
+        var mipLevels = new UnsafeArray<MipLevel>(totalMipLevels, AllocationHandle.TLSF);
+        using var radicalInverse_VdCLut = new UnsafeArray<float>(SAMPLE_COUNT, AllocationHandle.TLSF);
 
-        for (var i = 0u; i < _SAMPLE_COUNT; i++)
+        for (var i = 0u; i < SAMPLE_COUNT; i++)
         {
             radicalInverse_VdCLut[i] = RadicalInverse_VdC(i);
         }
@@ -279,7 +280,7 @@ internal partial class TextureBaker
 
             mipLevels[i] = new MipLevel
             {
-                data = new UnsafeArray<float>(w * w * 6 * textureInfo.colorComponents, AllocationHandle.FreeList),
+                data = new UnsafeArray<float>(w * w * 6 * textureInfo.colorComponents, AllocationHandle.TLSF),
                 width = w,
                 height = w,
                 offset = totalPixel,

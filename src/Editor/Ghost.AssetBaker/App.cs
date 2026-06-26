@@ -77,9 +77,10 @@ internal class App : Component
                 NavItem("Help & Integration", icon: "\uE897", tag: ToTag(Route.Help))
             ],
             body
-        ).WithNavigation(nav, ToTag, ToRoute) with
+        ).WithNavigation(nav, ToTag, ToRoute)
+        with
         {
-            IsSettingsVisible = false
+            IsSettingsVisible = false,
         };
 
         return FlexColumn(titleBar, navigation.Flex(grow: 1, basis: 0)

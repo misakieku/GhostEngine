@@ -1,19 +1,10 @@
-namespace Ghost.AssetBaker.Models;
+using Ghost.Core;
 
-public enum CompressionLevel
-{
-    None,
-    Fast,
-    High
-}
+namespace Ghost.AssetBaker.Models;
 
 public record BakeSettings
 {
-    public CompressionLevel Compression { get; init; } = CompressionLevel.Fast;
-    public bool GenerateMipmaps { get; init; } = true;
-    public bool OptimizeMesh { get; init; } = true;
-    public bool GenerateLods { get; init; } = false;
-    public bool BundleOutput { get; init; } = false;
+    public CompressionMethod Compression { get; init; } = CompressionMethod.None;
     public string OutputPath { get; init; } = string.Empty;
     public Bakers.IBakeSettings? AssetSettings { get; init; }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Ghost.AssetBaker.Bakers;
 using Ghost.AssetBaker.Models;
+using Ghost.Core;
 
 namespace Ghost.AssetBaker.Services;
 
@@ -41,8 +42,8 @@ public class BakerRegistry
 
     public AssetType DetectAssetType(string extension)
     {
-        if (string.IsNullOrEmpty(extension)) return AssetType.Other;
-        return _extensionToType.TryGetValue(extension, out var type) ? type : AssetType.Other;
+        if (string.IsNullOrEmpty(extension)) return AssetType.Unknown;
+        return _extensionToType.TryGetValue(extension, out var type) ? type : AssetType.Unknown;
     }
 
     public IBakeSettings? CreateDefaultSettings(AssetType type)

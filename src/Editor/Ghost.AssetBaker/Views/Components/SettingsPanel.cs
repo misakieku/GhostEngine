@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Controls;
 using Ghost.AssetBaker.Models;
 using Ghost.AssetBaker.Bakers;
 using static Microsoft.UI.Reactor.Factories;
+using Ghost.Core;
 
 namespace Ghost.AssetBaker.Views.Components;
 
@@ -53,11 +54,11 @@ public class SettingsPanel : Component<SettingsPanelProps>
         }
 
         var settings = asset.Settings;
-        var compressionItems = new[] { "None", "Fast", "High" };
+        var compressionItems = Enum.GetNames<CompressionMethod>();
         var selectedCompressionIndex = (int)settings.Compression;
 
         // Custom Browse Folder Action
-        var browseOutputFolder = async () =>
+        async Task browseOutputFolder()
         {
             var picker = new Windows.Storage.Pickers.FolderPicker();
             picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.ComputerFolder;
@@ -71,7 +72,7 @@ public class SettingsPanel : Component<SettingsPanelProps>
             {
                 Props.OnSettingsChanged(settings with { OutputPath = folder.Path });
             }
-        };
+        }
 
         return (Border(
             ScrollView(
@@ -107,12 +108,12 @@ public class SettingsPanel : Component<SettingsPanelProps>
 
                     // Compression Level Group
                     FlexColumn(
-                        BodyStrong("Compression Level")
+                        BodyStrong("Compression Method")
                             .Margin(bottom: 4),
                         ComboBox(
                             compressionItems, 
                             selectedCompressionIndex, 
-                            idx => Props.OnSettingsChanged(settings with { Compression = (CompressionLevel)idx })
+                            idx => Props.OnSettingsChanged(settings with { Compression = (CompressionMethod)idx })
                         )
                     ),
 
