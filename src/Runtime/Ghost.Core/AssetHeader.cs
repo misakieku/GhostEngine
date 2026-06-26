@@ -20,8 +20,7 @@ public enum CompressionMethod
 {
     None,
     Zstd,
-    LZ4,
-    Oodle
+    LZ4
 }
 
 [StructLayout(LayoutKind.Sequential, Size = 64)]

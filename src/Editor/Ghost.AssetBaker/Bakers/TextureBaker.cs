@@ -11,7 +11,6 @@ public enum TextureType : uint
 {
     Default,
     Normal,
-    Lightmap,
     SingleChannel
 }
 

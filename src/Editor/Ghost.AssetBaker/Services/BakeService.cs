@@ -105,7 +105,7 @@ public class BakeService
         }
     }
 
-    public async Task BakeQueueAsync(BakeSettings settings, CancellationToken cancellationToken)
+    public async Task BakeQueueAsync(BakeSettings settings, CancellationToken cancellationToken = default)
     {
         if (_isBaking || !_queue.Any(a => a.Status == AssetState.Pending))
         {
@@ -137,15 +137,6 @@ public class BakeService
                 {
                     try
                     {
-                        using var dst = new MemoryStream(); // Or file stream?
-                        await baker.BakeAssetAsync(asset.FilePath, dst, asset.Settings.AssetSettings, cancellationToken);
-
-                        var header = new AssetHeader
-                        {
-                            assetType = asset.Type,
-                            compressionMethod = settings.Compression,
-                        };
-
                         var outDir = asset.Settings.OutputPath;
                         if (!Directory.Exists(outDir))
                         {
@@ -154,11 +145,29 @@ public class BakeService
 
                         var outFile = Path.Combine(outDir, Path.GetFileNameWithoutExtension(asset.Name) + ".g" + asset.Type.ToString().ToLower());
 
-                        // TODO Compress dst based on settings.Compression
+                        var header = new AssetHeader
+                        {
+                            assetType = asset.Type,
+                            compressionMethod = settings.Compression,
+                        };
 
                         using var fs = new FileStream(outFile, FileMode.Create, FileAccess.Write);
                         fs.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref header, 1)));
-                        await dst.CopyToAsync(fs, cancellationToken);
+
+                        // Wrap fs in a compression stream. Data written to compressStream will be compressed into fs.
+                        var compressStream = CompressorUtility.GetCompressionStream(fs, settings.Compression);
+
+                        try
+                        {
+                            await baker.BakeAssetAsync(asset.FilePath, compressStream, asset.Settings.AssetSettings, cancellationToken);
+                        }
+                        finally
+                        {
+                            if (settings.Compression != CompressionMethod.None)
+                            {
+                                await compressStream.DisposeAsync();
+                            }
+                        }
 
                         success = true;
                     }

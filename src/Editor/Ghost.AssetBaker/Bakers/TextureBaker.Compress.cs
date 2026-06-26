@@ -295,7 +295,6 @@ internal partial class TextureBaker
             {
                 TextureType.Normal => NvttFormat.NVTT_Format_BC5,  // RG normal map
                 TextureType.SingleChannel => NvttFormat.NVTT_Format_BC4,  // single channel
-                TextureType.Lightmap => NvttFormat.NVTT_Format_BC6U, // HDR lightmap (unsigned)
                 _ => NvttFormat.NVTT_Format_BC7,  // default color
             };
 
