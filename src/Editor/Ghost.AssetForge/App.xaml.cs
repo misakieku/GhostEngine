@@ -1,15 +1,19 @@
 using Microsoft.UI.Xaml;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using Ghost.AssetForge.Core.Services;
+using Ghost.AssetForge.ViewModels;
 
 namespace Ghost.AssetForge;
+
 /// <summary>
 /// Provides application-specific behavior to supplement the default Application class.
 /// </summary>
 public partial class App : Application
 {
-    private Window? _window;
+    public static IHost AppHost { get; private set; } = null!;
+    public static Window MainWindowInstance { get; private set; } = null!;
 
     /// <summary>
     /// Initializes the singleton application object.  This is the first line of authored code
@@ -18,15 +22,38 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
+
+        AppHost = Host.CreateDefaultBuilder()
+            .ConfigureServices((context, services) =>
+            {
+                // Register Core services
+                services.AddSingleton<BakerRegistry>();
+                services.AddSingleton<ProjectService>();
+                services.AddTransient<BakeService>();
+                services.AddTransient<PackService>();
+                services.AddSingleton<Views.Inspector.InspectorDrawerRegistry>();
+
+                // Register ViewModels
+                services.AddSingleton<MainViewModel>();
+                services.AddTransient<DashboardViewModel>();
+                services.AddTransient<ProjectExplorerViewModel>();
+                services.AddTransient<PackingViewModel>();
+
+                // Register Views
+                services.AddSingleton<MainWindow>();
+            })
+            .Build();
     }
 
     /// <summary>
     /// Invoked when the application is launched.
     /// </summary>
     /// <param name="args">Details about the launch request and process.</param>
-    protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
+    protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
-        _window = new MainWindow();
-        _window.Activate();
+        await AppHost.StartAsync();
+
+        MainWindowInstance = AppHost.Services.GetRequiredService<MainWindow>();
+        MainWindowInstance.Activate();
     }
 }

@@ -4,11 +4,20 @@ namespace Ghost.AssetForge.Core.Services;
 
 public class BakeService
 {
+    private readonly ProjectService _projectService;
+    private readonly BakerRegistry _bakerRegistry;
+
+    public BakeService(ProjectService projectService, BakerRegistry bakerRegistry)
+    {
+        _projectService = projectService;
+        _bakerRegistry = bakerRegistry;
+    }
+
     public event Action<int, int>? OnProgress;
 
     public async Task BakeProjectAsync(CancellationToken cancellationToken = default)
     {
-        var project = ProjectService.Instance.CurrentProject ?? throw new InvalidOperationException("No project loaded.");
+        var project = _projectService.CurrentProject ?? throw new InvalidOperationException("No project loaded.");
         var assetDir = Path.Combine(project.RootPath, "Asset");
         var cacheDir = Path.Combine(project.RootPath, "Cache");
 
@@ -74,23 +83,23 @@ public class BakeService
             if (needsBake)
             {
                 Logger.Info($"Baking {relativePath}...");
-                var metadata = ProjectService.Instance.LoadMetadata(metaFile);
+                var metadata = _projectService.LoadMetadata(metaFile);
                 if (metadata == null)
                 {
                     Logger.Error($"Missing metadata for {sourceFile}. Skip.");
                     continue;
                 }
 
-                if (metadata.Settings == null)
-                {
-                    Logger.Error($"Missing settings in metadata for {sourceFile}. Skip.");
-                    continue;
-                }
-
-                var baker = BakerRegistry.Instance.GetBaker(metadata.Type);
+                var baker = _bakerRegistry.GetBaker(metadata.Type);
                 if (baker == null)
                 {
                     Logger.Warning($"No baker for type {metadata.Type}. Skip.");
+                    continue;
+                }
+
+                if (metadata.Settings == null)
+                {
+                    Logger.Error($"Missing settings in metadata for {sourceFile}. Skip.");
                     continue;
                 }
 

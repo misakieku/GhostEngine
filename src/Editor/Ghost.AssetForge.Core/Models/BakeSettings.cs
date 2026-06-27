@@ -1,9 +1,13 @@
 using Ghost.Core;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Ghost.AssetForge.Core.Models;
 
-public record BakeSettings
+public partial class BakeSettings : ObservableObject
 {
-    public CompressionMethod Compression { get; init; } = CompressionMethod.LZ4;
-    public long ChunkSizeThreshold { get; init; } = 1024L * 1024L * 1024L; // Default 1GB
+    [ObservableProperty]
+    private CompressionMethod _compression = CompressionMethod.LZ4;
+
+    [ObservableProperty]
+    private long _chunkSizeThreshold = 1024L * 1024L * 1024L; // Default 1GB
 }

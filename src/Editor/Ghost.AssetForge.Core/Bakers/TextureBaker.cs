@@ -4,6 +4,7 @@ using Ghost.StbI;
 using System.IO.MemoryMappedFiles;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Ghost.AssetForge.Core.Bakers;
 
@@ -58,48 +59,105 @@ public enum TextureDimension : uint
     TextureCubeArray = 6
 }
 
-public class TextureBakeSettings : IBakeSettings
+public partial class TextureBakeSettings : ObservableObject, IBakeSettings
 {
-    public struct BasicSettings()
+    public partial class BasicSettings : ObservableObject
     {
-        public TextureType TextureType { get; set; } = TextureType.Default;
-        public TextureShape TextureShape { get; set; } = TextureShape.Texture2D;
-        [ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
-        public int Columns { get; set; } = 1;
-        [ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
-        public int Rows { get; set; } = 1;
-        [ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
-        public int Depth { get; set; } = 1;
-        [ShowWhen(nameof(TextureType), TextureType.Default)]
-        public bool IsSRGB { get; set; } = true;
+        [ObservableProperty]
+        private TextureType _textureType = TextureType.Default;
+
+        [ObservableProperty]
+        private TextureShape _textureShape = TextureShape.Texture2D;
+
+        [ObservableProperty]
+        [property: ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
+        private int _columns = 1;
+
+        [ObservableProperty]
+        [property: ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
+        private int _rows = 1;
+
+        [ObservableProperty]
+        [property: ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
+        private int _depth = 1;
+
+        [ObservableProperty]
+        [property: ShowWhen(nameof(TextureType), TextureType.Default)]
+        private bool _isSRGB = true;
+
+        public bool IsTexture3D => TextureShape == TextureShape.Texture3D;
+        public bool IsDefaultType => TextureType == TextureType.Default;
+
+        partial void OnTextureShapeChanged(TextureShape value) => OnPropertyChanged(nameof(IsTexture3D));
+        partial void OnTextureTypeChanged(TextureType value) => OnPropertyChanged(nameof(IsDefaultType));
     }
 
-    public struct AdvancedSettings()
+    public partial class AdvancedSettings : ObservableObject
     {
-        public TextureSize MaxSize { get; set; } = TextureSize.Size2048;
-        public bool StretchToPowerOfTwo { get; set; } = true;
-        public bool GenerateMipmaps { get; set; } = true;
-        [ShowWhen(nameof(GenerateMipmaps), true)]
-        public uint MipmapLevelCount { get; set; } = 0; // 0 means generate full mipmap levels.
-        public bool PremultiplyAlpha { get; set; } = false;
-        public MipmapFilter MipmapFilter { get; set; } = MipmapFilter.Kaiser;
-        public TextureCompressionLevel CompressionLevel { get; set; } = TextureCompressionLevel.Normal;
-        public bool UseBorderColor { get; set; } = false;
-        [ShowWhen(nameof(UseBorderColor), true)]
-        public Vector4 BorderColor { get; set; } = new Vector4(0, 0, 0, 0);
-        public bool ZeroAlphaBorder { get; set; } = false;
-        public bool CutoutAlpha { get; set; } = false;
-        [ShowWhen(nameof(CutoutAlpha), true)]
-        [Slider(0, 255)]
-        public byte CutoutAlphaThreshold { get; set; } = 127;
-        public bool ScaleAlphaForMipCoverage { get; set; } = false;
-        [ShowWhen(nameof(ScaleAlphaForMipCoverage), true)]
-        [Slider(0, 255)]
-        public byte ScaleAlphaForMipCoverageThreshold { get; set; } = 127;
+        [ObservableProperty]
+        private TextureSize _maxSize = TextureSize.Size2048;
+
+        [ObservableProperty]
+        private bool _stretchToPowerOfTwo = true;
+
+        [ObservableProperty]
+        private bool _generateMipmaps = true;
+
+        [ObservableProperty]
+        [property: ShowWhen(nameof(GenerateMipmaps), true)]
+        private uint _mipmapLevelCount = 0; // 0 means generate full mipmap levels.
+
+        [ObservableProperty]
+        private bool _premultiplyAlpha = false;
+
+        [ObservableProperty]
+        private MipmapFilter _mipmapFilter = MipmapFilter.Kaiser;
+
+        [ObservableProperty]
+        private TextureCompressionLevel _compressionLevel = TextureCompressionLevel.Normal;
+
+        [ObservableProperty]
+        private bool _useBorderColor = false;
+
+        [ObservableProperty]
+        [property: ShowWhen(nameof(UseBorderColor), true)]
+        private Vector4 _borderColor = new Vector4(0, 0, 0, 0);
+
+        [ObservableProperty]
+        private bool _zeroAlphaBorder = false;
+
+        [ObservableProperty]
+        private bool _cutoutAlpha = false;
+
+        [ObservableProperty]
+        [property: ShowWhen(nameof(CutoutAlpha), true)]
+        [property: Slider(0, 255)]
+        private byte _cutoutAlphaThreshold = 127;
+
+        [ObservableProperty]
+        private bool _scaleAlphaForMipCoverage = false;
+
+        [ObservableProperty]
+        [property: ShowWhen(nameof(ScaleAlphaForMipCoverage), true)]
+        [property: Slider(0, 255)]
+        private byte _scaleAlphaForMipCoverageThreshold = 127;
+
+        public bool IsGenerateMipmaps => GenerateMipmaps;
+        public bool IsUseBorderColor => UseBorderColor;
+        public bool IsCutoutAlpha => CutoutAlpha;
+        public bool IsScaleAlphaForMipCoverage => ScaleAlphaForMipCoverage;
+
+        partial void OnGenerateMipmapsChanged(bool value) => OnPropertyChanged(nameof(IsGenerateMipmaps));
+        partial void OnUseBorderColorChanged(bool value) => OnPropertyChanged(nameof(IsUseBorderColor));
+        partial void OnCutoutAlphaChanged(bool value) => OnPropertyChanged(nameof(IsCutoutAlpha));
+        partial void OnScaleAlphaForMipCoverageChanged(bool value) => OnPropertyChanged(nameof(IsScaleAlphaForMipCoverage));
     }
 
-    public BasicSettings Basic { get; set; } = new BasicSettings();
-    public AdvancedSettings Advanced { get; set; } = new AdvancedSettings();
+    [ObservableProperty]
+    private BasicSettings _basic = new();
+
+    [ObservableProperty]
+    private AdvancedSettings _advanced = new();
 }
 
 internal struct TextureInfo

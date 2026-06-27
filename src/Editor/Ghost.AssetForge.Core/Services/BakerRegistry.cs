@@ -10,7 +10,7 @@ public class BakerRegistry
     private readonly Dictionary<AssetType, Type> _typeToSettings = new();
     private readonly Dictionary<AssetType, IAssetBaker> _typeToBaker = new();
 
-    private BakerRegistry()
+    public BakerRegistry()
     {
         var bakerTypes = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(a => a.GetTypes())

@@ -1,7 +1,6 @@
 using Ghost.AssetForge.Core.Models;
 using Ghost.Core;
 using K4os.Compression.LZ4.Streams;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ZstdSharp;
@@ -10,6 +9,13 @@ namespace Ghost.AssetForge.Core.Services;
 
 public class PackService
 {
+    private readonly ProjectService _projectService;
+
+    public PackService(ProjectService projectService)
+    {
+        _projectService = projectService;
+    }
+
     private readonly JsonSerializerOptions _jsonOpts = new()
     {
         WriteIndented = true,
@@ -25,7 +31,7 @@ public class PackService
 
     public async Task PackProjectAsync(CancellationToken cancellationToken = default)
     {
-        var project = ProjectService.Instance.CurrentProject ?? throw new InvalidOperationException("No project loaded.");
+        var project = _projectService.CurrentProject ?? throw new InvalidOperationException("No project loaded.");
         var cacheDir = Path.Combine(project.RootPath, "Cache");
         var assetDir = Path.Combine(project.RootPath, "Asset");
         var buildDir = Path.Combine(project.RootPath, "Build");
@@ -87,7 +93,7 @@ public class PackService
                 var originalFile = originalFiles[0];
                 var metaFile = originalFile + ".meta";
 
-                var metadata = ProjectService.Instance.LoadMetadata(metaFile);
+                var metadata = _projectService.LoadMetadata(metaFile);
                 if (metadata == null)
                 {
                     Logger.Error($"Missing metadata for {originalFile}");
@@ -95,8 +101,6 @@ public class PackService
                 }
 
                 var cacheFileInfo = new FileInfo(cacheFile);
-                // Size of AssetHeader (assuming 16 bytes due to sequential layout without manual padding, let's just serialize it)
-                var headerSize = Marshal.SizeOf<AssetHeader>();
 
                 // Should we start a new pack file?
                 // Size estimate (uncompressed): header + raw data. 
@@ -119,12 +123,7 @@ public class PackService
 
                 var offset = (ulong)currentPackStream.Position;
 
-                // 1. Write Header
-                var header = new AssetHeader { assetType = metadata.Type };
-                var headerSpan = MemoryMarshal.CreateReadOnlySpan(ref header, 1);
-                currentPackStream.Write(MemoryMarshal.AsBytes(headerSpan));
-
-                // 2. Compress and write payload
+                // Compress and write payload
                 using var fsIn = new FileStream(cacheFile, FileMode.Open, FileAccess.Read);
                 var compressStream = project.BakeSettings.Compression switch
                 {
