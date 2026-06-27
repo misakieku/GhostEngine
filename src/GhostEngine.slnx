@@ -1,17 +1,12 @@
 <Solution>
   <Configurations>
-    <BuildType Name="Debug" />
-    <BuildType Name="Debug_Editor" />
-    <BuildType Name="Release" />
-    <BuildType Name="Release_Editor" />
     <Platform Name="ARM64" />
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Editor/">
-    <Project Path="Editor/Ghost.AssetBaker/Ghost.AssetBaker.csproj" Id="27041208-54bd-4a9d-9661-5550115ca4ad">
-      <BuildType Solution="Debug_Editor|*" Project="Debug" />
-      <BuildType Solution="Release_Editor|*" Project="Release" />
+    <Project Path="Editor/Ghost.AssetForge.Core/Ghost.AssetForge.Core.csproj" Id="6b29990f-c553-4c08-88ea-bab42d86d83a" />
+    <Project Path="Editor/Ghost.AssetForge/Ghost.AssetForge.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
       <Platform Solution="*|x86" Project="X86" />
@@ -36,18 +31,20 @@
     <Project Path="Runtime/Ghost.Graphics/Ghost.Graphics.csproj" />
   </Folder>
   <Folder Name="/Test/">
+    <Project Path="Test/Ghost.AssetBaker.Test/Ghost.AssetForge.Test.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+      <Platform Solution="*|x86" Project="x86" />
+      <Deploy />
+    </Project>
     <Project Path="Test/Ghost.MicroTest/Ghost.MicroTest.csproj" Id="8c8ffa4b-e1e4-46a1-9221-7b508a109edd" />
     <Project Path="Test/Ghost.UnitTest/Ghost.UnitTest.csproj" Id="4da45668-456b-4dcc-acd8-6bfe154e6837">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
       <Platform Solution="*|x86" Project="x86" />
-      <Deploy Solution="Debug|*" />
-      <Deploy Solution="Release|*" />
+      <Deploy />
     </Project>
-    <Project Path="Test/TestGame/TestGame.csproj" Id="5d84a4f7-a5a2-4814-bdc1-abdec70c3b1b">
-      <BuildType Solution="Debug_Editor|*" Project="Debug" />
-      <BuildType Solution="Release_Editor|*" Project="Release" />
-    </Project>
+    <Project Path="Test/TestGame/TestGame.csproj" Id="5d84a4f7-a5a2-4814-bdc1-abdec70c3b1b" />
   </Folder>
   <Folder Name="/Tools/">
     <Project Path="Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj" />

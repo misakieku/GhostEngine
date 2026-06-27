@@ -7,20 +7,6 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Streaming;
 
-public enum AssetType
-{
-    Texture = 0,
-    Mesh = 1,
-    Material = 2,
-    Shader = 3,
-    Scene = 4,
-    Audio = 5,
-    Video = 6,
-    Json = 7,
-
-    Unknown = 64,
-}
-
 public enum AssetState
 {
     Unloaded = 0,

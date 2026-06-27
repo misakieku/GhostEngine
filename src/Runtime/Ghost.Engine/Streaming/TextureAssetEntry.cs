@@ -10,23 +10,6 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Streaming;
 
-[StructLayout(LayoutKind.Sequential, Size = 64)] // Leave extra space for future expansion without breaking compatibility
-public struct TextureContentHeader
-{
-    public const uint MAGIC = 0x58455447; // GTEX
-    public const uint VERSION = 1;
-
-    public uint magic;
-    public uint version;
-
-    public uint width;
-    public uint height;
-    public uint bpc;
-    public uint mipLevels;
-    public uint dimension; // 1 for 1D, 2 for 2D, 3 for 3D
-    public uint colorComponents;
-}
-
 internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUploadableAssetEntry
 {
     private Handle<GPUTexture> _actualHandle;

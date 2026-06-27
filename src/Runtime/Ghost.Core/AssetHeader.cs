@@ -33,7 +33,7 @@ public struct AssetHeader()
     public uint version = VERSION;
     
     public AssetType assetType;
-    public CompressionMethod compressionMethod;
+    public ulong size; // Size of the asset data after the header, in bytes. This is the size of the compressed data if compression is used.
 }
 
 [StructLayout(LayoutKind.Sequential, Size = 64)]

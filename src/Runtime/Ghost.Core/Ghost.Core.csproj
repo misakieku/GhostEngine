@@ -5,25 +5,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <Configurations>Debug;Release;Debug_Editor;Release_Editor</Configurations>
+    <Configurations>Debug;Release</Configurations>
     <DefineConstants>$(DefineConstants);MHP_ENABLE_MIMALLOC;MHP_FASTMATH</DefineConstants>
     <IsAotCompatible>True</IsAotCompatible>
     <IsTrimmable>True</IsTrimmable>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)'=='Debug_Editor'">
-    <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS;MHP_ENABLE_STACKTRACE</DefineConstants>
-  </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)'=='Release_Editor'">
-    <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)'=='Release_Dev'">
     <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS</DefineConstants>
   </PropertyGroup>
 
