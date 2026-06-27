@@ -21,30 +21,28 @@ public class AssetMetadataConverter : JsonConverter<AssetMetadata>
 {
     public override AssetMetadata? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        using (var doc = JsonDocument.ParseValue(ref reader))
+        using var doc = JsonDocument.ParseValue(ref reader);
+        var root = doc.RootElement;
+
+        var id = root.GetProperty("Id").GetGuid();
+        var type = Enum.Parse<AssetType>(root.GetProperty("Type").GetString() ?? "Unknown");
+
+        IBakeSettings? settings = null;
+        if (root.TryGetProperty("Settings", out var settingsEl))
         {
-            var root = doc.RootElement;
-            
-            var id = root.GetProperty("Id").GetGuid();
-            var type = Enum.Parse<AssetType>(root.GetProperty("Type").GetString() ?? "Unknown");
-            
-            IBakeSettings? settings = null;
-            if (root.TryGetProperty("Settings", out var settingsEl))
+            var settingsType = BakerRegistry.Instance.GetSettingsType(type);
+            if (settingsType != null)
             {
-                var settingsType = BakerRegistry.Instance.GetSettingsType(type);
-                if (settingsType != null)
-                {
-                    settings = (IBakeSettings?)JsonSerializer.Deserialize(settingsEl.GetRawText(), settingsType, options);
-                }
+                settings = (IBakeSettings?)JsonSerializer.Deserialize(settingsEl.GetRawText(), settingsType, options);
             }
-            
-            return new AssetMetadata
-            {
-                Id = id,
-                Type = type,
-                Settings = settings
-            };
         }
+
+        return new AssetMetadata
+        {
+            Id = id,
+            Type = type,
+            Settings = settings
+        };
     }
 
     public override void Write(Utf8JsonWriter writer, AssetMetadata value, JsonSerializerOptions options)

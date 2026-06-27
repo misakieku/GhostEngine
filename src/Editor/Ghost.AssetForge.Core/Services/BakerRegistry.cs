@@ -6,9 +6,6 @@ namespace Ghost.AssetForge.Core.Services;
 
 public class BakerRegistry
 {
-    private static readonly Lazy<BakerRegistry> s_instance = new(() => new BakerRegistry());
-    public static BakerRegistry Instance => s_instance.Value;
-
     private readonly Dictionary<string, AssetType> _extensionToType = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<AssetType, Type> _typeToSettings = new();
     private readonly Dictionary<AssetType, IAssetBaker> _typeToBaker = new();

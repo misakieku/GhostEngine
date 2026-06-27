@@ -10,16 +10,11 @@ namespace Ghost.AssetForge.Core.Services;
 
 public class PackService
 {
-    // Change to use DI.
-    private static readonly Lazy<PackService> s_instance = new(() => new PackService());
-
     private readonly JsonSerializerOptions _jsonOpts = new()
     {
         WriteIndented = true,
         Converters = { new JsonStringEnumConverter() }
     };
-
-    public static PackService Instance => s_instance.Value;
 
     public event Action<int, int>? OnProgress;
 

@@ -4,9 +4,6 @@ namespace Ghost.AssetForge.Core.Services;
 
 public class BakeService
 {
-    private static readonly Lazy<BakeService> s_instance = new(() => new BakeService());
-    public static BakeService Instance => s_instance.Value;
-
     public event Action<int, int>? OnProgress;
 
     public async Task BakeProjectAsync(CancellationToken cancellationToken = default)

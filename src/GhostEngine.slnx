@@ -6,10 +6,13 @@
   </Configurations>
   <Folder Name="/Editor/">
     <Project Path="Editor/Ghost.AssetForge.Core/Ghost.AssetForge.Core.csproj" Id="6b29990f-c553-4c08-88ea-bab42d86d83a" />
-    <Project Path="Editor/Ghost.AssetForge/Ghost.AssetForge.csproj">
+    <Project Path="Editor/Ghost.AssetForge/Ghost.AssetForge.csproj" Id="6d0a3289-cb12-47c2-9c21-86ed466a9e5c">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
-      <Platform Solution="*|x86" Project="X86" />
+      <Platform Solution="*|x86" Project="x86" />
+      <Deploy Solution="*|ARM64" />
+      <Deploy Solution="*|x86" />
+      <Deploy Solution="Release|x64" />
     </Project>
     <Project Path="Editor/Ghost.DSL/Ghost.DSL.csproj" />
   </Folder>

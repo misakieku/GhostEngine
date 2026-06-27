@@ -7,9 +7,6 @@ namespace Ghost.AssetForge.Core.Services;
 
 public class ProjectService
 {
-    private static readonly Lazy<ProjectService> s_instance = new(() => new ProjectService());
-    public static ProjectService Instance => s_instance.Value;
-    
     public Project? CurrentProject { get; private set; }
     
     private readonly JsonSerializerOptions _jsonOptions = new()

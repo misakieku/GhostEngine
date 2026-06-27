@@ -1,13 +1,10 @@
 {
   "profiles": {
-    "Ghost.AssetBaker": {
-      "commandName": "Project",
-      "nativeDebugging": false
+    "Ghost.AssetForge (Package)": {
+      "commandName": "MsixPackage"
     },
-    "Ghost.AssetBaker Devtools": {
-      "commandName": "Project",
-      "commandLineArgs": "--devtools",
-      "nativeDebugging": false
+    "Ghost.AssetForge (Unpackaged)": {
+      "commandName": "Project"
     }
   }
 }
