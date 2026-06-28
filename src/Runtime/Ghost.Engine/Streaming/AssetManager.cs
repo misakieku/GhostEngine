@@ -10,12 +10,25 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Streaming;
 
+public struct AssetReadData : IDisposable
+{
+    public Guid assetId;
+    public AssetType assetType;
+    public Stream stream;
+
+    public readonly void Dispose()
+    {
+        stream?.Dispose();
+    }
+}
+
 public interface IContentProvider
 {
+    Guid VirtualPathToGuid(string path);
     bool HasAsset(Guid guid);
-    Result<Stream> OpenRead(Guid guid, CancellationToken token = default);
     Guid[] GetDependencies(Guid guid);
     AssetType GetAssetType(Guid guid);
+    Result<AssetReadData> OpenReadAsync(Guid guid, CancellationToken token = default);
 }
 
 internal struct LoadAssetJob : IJob
@@ -52,7 +65,7 @@ internal struct LoadAssetJob : IJob
 
         try
         {
-            var openResult = assetManager.ContentProvider.OpenRead(entry.AssetId);
+            var openResult = assetManager.ContentProvider.OpenReadAsync(entry.AssetId);
             if (openResult.IsFailure)
             {
                 entry.State = AssetState.Failed;
@@ -60,8 +73,8 @@ internal struct LoadAssetJob : IJob
                 return;
             }
 
-            using var stream = openResult.Value;
-            var result = loadable.OnLoadContent(stream);
+            using var readData = openResult.Value;
+            var result = loadable.OnLoadContent(readData.stream);
             if (result.IsFailure)
             {
                 entry.State = AssetState.Failed;
@@ -248,6 +261,12 @@ public partial class AssetManager : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public IAssetEntry ResolveAsset(string virtualPath)
+    {
+        return ResolveAsset(_contentProvider.VirtualPathToGuid(virtualPath));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int ReleaseAsset(Guid assetID)
     {
         if (assetID == Guid.Empty)
@@ -262,6 +281,12 @@ public partial class AssetManager : IDisposable
 
         Logger.DebugAssert(entry.AssetType != AssetType.Unknown);
         return entry.Release();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int ReleaseAsset(string virtualPath)
+    {
+        return ReleaseAsset(_contentProvider.VirtualPathToGuid(virtualPath));
     }
 
     public void Dispose()

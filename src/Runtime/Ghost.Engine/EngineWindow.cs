@@ -3,6 +3,7 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
+using Misaki.HighPerformance.LowLevel;
 using SDL;
 using System.Runtime.CompilerServices;
 using static SDL.SDL3;
@@ -37,9 +38,9 @@ public unsafe class EngineWindow : IDisposable
     // TODO: Linux can run on either X11 or Wayland, so we need to detect which one is being used and use the appropriate property name.
 
 #if PLATFORM_WINDOWNS
-    private static ReadOnlySpan<byte> HANDLE_PROPERTY_NAME => SDL_PROP_WINDOW_WIN32_HWND_POINTER;
+    internal static ReadOnlySpan<byte> HANDLE_PROPERTY_NAME => SDL_PROP_WINDOW_WIN32_HWND_POINTER;
 #elif PLATFORM_MACOS
-    private static ReadOnlySpan<byte> HANDLE_PROPERTY_NAME => SDL_PROP_WINDOW_COCOA_WINDOW_POINTER;
+    internal static ReadOnlySpan<byte> HANDLE_PROPERTY_NAME => SDL_PROP_WINDOW_COCOA_WINDOW_POINTER;
 #endif
 
     private readonly SwapChainManager _swapChainManager;
@@ -118,5 +119,43 @@ public unsafe class EngineWindow : IDisposable
         Logger.DebugAssert(refCount == 0);
 
         SDL_DestroyWindow(_window);
+
+        GC.SuppressFinalize(this);
+    }
+}
+
+
+public unsafe class PopupWindow : IDisposable
+{
+    private readonly SDL_Window* _window;
+    private readonly SDL_Renderer* _renderer;
+    private readonly SDL_PropertiesID _propID;
+    
+    public IntPtr Handle => SDL_GetPointerProperty(_propID, EngineWindow.HANDLE_PROPERTY_NAME, 0);
+    
+    public PopupWindow(string title, int width, int height, Action<SharedPtr<SDL_Renderer>> onRender)
+    {
+        var windowFlags = SDL_WindowFlags.SDL_WINDOW_BORDERLESS | SDL_WindowFlags.SDL_WINDOW_ALWAYS_ON_TOP;
+
+        SDL_Window* window;
+        SDL_Renderer* renderer;
+        if (!SDL_CreateWindowAndRenderer(title, width, height, windowFlags, &window, &renderer))
+        {
+            throw new Exception($"Failed to create popup window: {SDL_GetError()}");
+        }
+
+        _window = window;
+        _renderer = renderer;
+        _propID = SDL_GetWindowProperties(_window);
+
+        onRender(_renderer);
+    }
+
+    public void Dispose()
+    {
+        SDL_DestroyWindow(_window);
+        SDL_DestroyRenderer(_renderer);
+
+        GC.SuppressFinalize(this);
     }
 }

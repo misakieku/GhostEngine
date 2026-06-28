@@ -9,7 +9,7 @@ using System.Diagnostics;
 
 namespace Ghost.Graphics;
 
-internal enum GraphicsAPI
+public enum GraphicsAPI
 {
     Direct3D12
 }

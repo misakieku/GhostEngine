@@ -26,11 +26,6 @@ internal partial class TextureBaker
     {
         var x = i / N;
         var y = TFloat.Load(lut + (int)i[0]); // Ensure index is properly mapped per lane if TFloat.Load supports it. Actually the original code did: TFloat.Load(lut + (int)i[0]);
-        // Wait, the original code did: var y = TFloat.Load(lut + (int)i[0]); This means all lanes get the same y? 
-        // No, `i` is a sequence of indices for the current vector of samples.
-        // Wait, TFloat.Load(float* ptr) loads contiguous floats from ptr.
-        // If `lut + (int)i[0]` is used, it loads LaneWidth consecutive floats from the LUT starting at `i[0]`.
-        // This makes sense because `i` is an array of contiguous sequence indices: `laneIndices = TFloat.Sequence(i, 1.0f);`.
         return MathV.Create<TFloat, float>(x, y);
     }
 

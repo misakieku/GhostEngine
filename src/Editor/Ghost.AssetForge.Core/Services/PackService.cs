@@ -1,8 +1,5 @@
-using Ghost.AssetForge.Core.Models;
 using Ghost.Core;
 using K4os.Compression.LZ4.Streams;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using ZstdSharp;
 
 namespace Ghost.AssetForge.Core.Services;
@@ -15,12 +12,6 @@ public class PackService
     {
         _projectService = projectService;
     }
-
-    private readonly JsonSerializerOptions _jsonOpts = new()
-    {
-        WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() }
-    };
 
     public event Action<int, int>? OnProgress;
 
@@ -42,14 +33,13 @@ public class PackService
             return;
         }
 
-        var allCacheFiles = Directory.GetFiles(cacheDir, "*.*", SearchOption.AllDirectories).ToList();
-
-        // Sort files alphabetically so packing is deterministic
-        allCacheFiles.Sort();
+        var allAssetFiles = Directory.GetFiles(assetDir, "*", SearchOption.AllDirectories)
+            .Where(f => !f.EndsWith(".meta"))
+            .ToArray();
 
         var manifest = new Manifest
         {
-            GlobalCompression = project.BakeSettings.Compression
+            CompressionMethod = project.BakeSettings.Compression
         };
 
         long currentPackSize = 0;
@@ -63,44 +53,37 @@ public class PackService
         try
         {
             var completed = 0;
-            var total = allCacheFiles.Count;
+            var total = allAssetFiles.Length;
             OnProgress?.Invoke(completed, total);
 
-            foreach (var cacheFile in allCacheFiles)
+            foreach (var assetFile in allAssetFiles)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var relativePath = Path.GetRelativePath(cacheDir, cacheFile);
-                var originalNameWithoutExt = Path.GetFileNameWithoutExtension(cacheFile);
-                var dir = Path.GetDirectoryName(relativePath) ?? string.Empty;
-                var virtualPath = Path.Combine(dir, originalNameWithoutExt).Replace('\\', '/');
+                var relativePath = Path.GetRelativePath(assetDir, assetFile);
+                var destPath = Path.Combine(cacheDir, relativePath);
+                var destDir = Path.GetDirectoryName(destPath) ?? cacheDir;
+                var cacheFile = Path.Combine(destDir, Path.GetFileNameWithoutExtension(assetFile));
 
-                // Find original meta file to get AssetType
-                // We need to search the Asset folder to find the original extension
-                var searchPattern = originalNameWithoutExt + ".*.meta"; // Wait, meta file is originalFile.ext.meta
-                var assetSubDir = Path.Combine(assetDir, dir);
-
-                // Let's just find the first file that matches nameWithoutExt in assetSubDir
-                var originalFiles = Directory.GetFiles(assetSubDir, originalNameWithoutExt + ".*")
-                                             .Where(f => !f.EndsWith(".meta")).ToList();
-
-                if (originalFiles.Count == 0)
+                if (!File.Exists(cacheFile))
                 {
-                    Logger.Error($"Could not find original asset for cached file {cacheFile}");
+                    Logger.Warning($"Cache file for {relativePath} not found. Please bake first.");
                     continue;
                 }
 
-                var originalFile = originalFiles[0];
-                var metaFile = originalFile + ".meta";
-
+                var metaFile = assetFile + ".meta";
                 var metadata = _projectService.LoadMetadata(metaFile);
                 if (metadata == null)
                 {
-                    Logger.Error($"Missing metadata for {originalFile}");
+                    Logger.Error($"Missing metadata for {assetFile}");
                     continue;
                 }
 
                 var cacheFileInfo = new FileInfo(cacheFile);
+
+                var dir = Path.GetDirectoryName(relativePath) ?? string.Empty;
+                var nameWithoutExt = Path.GetFileNameWithoutExtension(assetFile);
+                var virtualPath = Path.Combine(dir, nameWithoutExt).Replace('\\', '/');
 
                 // Should we start a new pack file?
                 // Size estimate (uncompressed): header + raw data. 
@@ -121,7 +104,7 @@ public class PackService
                     currentPackStream = new FileStream(currentPackPath, FileMode.Create, FileAccess.Write);
                 }
 
-                var offset = (ulong)currentPackStream.Position;
+                var offset = currentPackStream.Position;
 
                 // Compress and write payload
                 using var fsIn = new FileStream(cacheFile, FileMode.Open, FileAccess.Read);
@@ -135,24 +118,22 @@ public class PackService
 
                 await fsIn.CopyToAsync(compressStream, cancellationToken);
 
-                // Important: Close/Dispose the compression stream to flush it!
-                // But don't close the underlying stream (currentPackStream)
                 if (project.BakeSettings.Compression != CompressionMethod.None)
                 {
                     await compressStream.DisposeAsync();
-                    // Warning: Some compression streams close the underlying stream by default.
-                    // We must ensure CompressorUtility.GetCompressionStream uses leaveOpen = true.
                 }
 
-                var size = (ulong)currentPackStream.Position - offset;
+                var size = currentPackStream.Position - offset;
                 currentPackSize = currentPackStream.Position;
 
-                manifest.Assets[virtualPath] = new AssetLocation
+                manifest.AddAsset(virtualPath, new AssetInfo
                 {
+                    AssetId = metadata.Id,
+                    AssetType = metadata.Type,
                     PackFileName = currentPackName,
                     Offset = offset,
                     Size = size
-                };
+                });
 
                 Logger.Info($"Packed {virtualPath} into {currentPackName} (Offset: {offset}, Size: {size})");
 
@@ -162,8 +143,8 @@ public class PackService
 
             // Write Manifest
             var manifestPath = Path.Combine(buildDir, "manifest.json");
+            await manifest.SaveToDiskAsync(manifestPath, cancellationToken);
 
-            await File.WriteAllTextAsync(manifestPath, JsonSerializer.Serialize(manifest, _jsonOpts), cancellationToken);
             Logger.Info("Wrote manifest.json");
             Logger.Info("Packing complete.");
         }

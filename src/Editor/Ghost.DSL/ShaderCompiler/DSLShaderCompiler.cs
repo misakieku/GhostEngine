@@ -20,7 +20,6 @@ public struct DSLShaderError
 
 public static class DSLShaderCompiler
 {
-#if GHOST_SAFETY_CHECKS
     private static PipelineState MeragePipeline(PipelineSemantic? semantic, PipelineState parent)
     {
         if (semantic == null)
@@ -86,13 +85,11 @@ public static class DSLShaderCompiler
 
         return sb.ToString();
     }
-#endif
 
     // TODO: Implement shader inheritance resolution, including property and pass merging.
     // Currently, we just ignore inheritance.
     public static Result<GraphicsShaderDescriptor> ResolveShader(DSLShaderSemantics semantics)
     {
-#if GHOST_SAFETY_CHECKS
         if (!ShaderPropertiesRegistry.TryGetInfo(semantics.name, out var propertyInfo))
         {
             propertyInfo = default;
@@ -157,9 +154,6 @@ public static class DSLShaderCompiler
         }
 
         return descriptor;
-#else
-        return Result.Failure("GHOST_EDITOR is not defined");
-#endif
 
     }
 
@@ -301,7 +295,6 @@ public static class DSLShaderCompiler
 
     public static Result<ComputeShaderDescriptor> ResolveComputeShader(DSLComputeShaderSemantics semantics)
     {
-#if GHOST_SAFETY_CHECKS
         if (!ShaderPropertiesRegistry.TryGetInfo(semantics.name, out var propertyInfo))
         {
             propertyInfo = default;
@@ -328,8 +321,5 @@ public static class DSLShaderCompiler
             Defines = semantics.defines?.ToArray() ?? Array.Empty<string>(),
             Keywords = semantics.keywords?.ToArray() ?? Array.Empty<KeywordsGroup>()
         };
-#else
-        return Result.Failure("GHOST_EDITOR is not defined");
-#endif
     }
 }

@@ -1,9 +1,9 @@
+using Ghost.AssetForge.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
-using Ghost.AssetForge.ViewModels;
 
 namespace Ghost.AssetForge.Views;
 
@@ -25,12 +25,12 @@ public sealed partial class DashboardPage : Page
         var nameTextBox = new TextBox { Header = "Project Name", PlaceholderText = "MyProject" };
         var locationTextBox = new TextBox { Header = "Project Location", PlaceholderText = @"C:\GhostProjects" };
         var browseButton = new Button { Content = "Browse...", VerticalAlignment = VerticalAlignment.Bottom };
-        
+
         var locationGrid = new Grid { ColumnDefinitions = { new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }, new ColumnDefinition { Width = GridLength.Auto } }, Margin = new Thickness(0, 12, 0, 0) };
         locationTextBox.Margin = new Thickness(0, 0, 8, 0);
         locationGrid.Children.Add(locationTextBox);
         Grid.SetColumn(locationTextBox, 0);
-        
+
         browseButton.Click += async (s, ev) =>
         {
             var folderPicker = new Windows.Storage.Pickers.FolderPicker();
@@ -45,7 +45,7 @@ public sealed partial class DashboardPage : Page
         };
         locationGrid.Children.Add(browseButton);
         Grid.SetColumn(browseButton, 1);
-        
+
         var panel = new StackPanel { Spacing = 12 };
         panel.Children.Add(nameTextBox);
         panel.Children.Add(locationGrid);

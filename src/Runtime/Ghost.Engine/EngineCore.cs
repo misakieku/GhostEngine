@@ -4,9 +4,16 @@ using Ghost.Entities;
 using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Diagnostics;
 
 namespace Ghost.Engine;
+
+/// <summary>
+/// Indicates that the method should be called during the engine's configuration phase. Methods marked with this attribute will be invoked before the engine is created, allowing for any necessary configuration or setup to be performed.
+/// </summary>
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class RuntimeConfigurationAttribute : Attribute;
 
 /// <summary>
 /// Indicates that the method should be called during the engine's initialization phase. Methods marked with this attribute will be invoked right after the engine is created and before the main loop starts.
@@ -19,6 +26,86 @@ public sealed class RuntimeInitializeAttribute : Attribute;
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class RuntimeShutdownAttribute : Attribute;
+
+public struct RenderDesc
+{
+    public required uint FrameBufferCount
+    {
+        get; set;
+    }
+
+    public required GraphicsAPI GraphicsAPI
+    {
+        get; set;
+    }
+
+    public required IRenderPipelineSettings RenderPipelineSettings
+    {
+        get; set;
+    }
+
+    public required string ShaderCacheDirectory
+    {
+        get; set;
+    }
+
+    public IShaderCompilationBridge? ShaderCompilationBridge
+    {
+        get; set;
+    }
+}
+
+public struct EngineDesc
+{
+    public required AllocationManagerDesc AllocationManagerDesc
+    {
+        get; set;
+    }
+
+    public required WindowDesc WindowDesc
+    {
+        get; set;
+    }
+
+    public required JobSchedulerDesc JobSchedulerDesc
+    {
+        get; set;
+    }
+
+    public required RenderDesc RenderDesc
+    {
+        get; set;
+    }
+
+    public required IContentProvider ContentProvider
+    {
+        get; set;
+    }
+
+    public static EngineDesc GetDefault()
+    {
+        return new EngineDesc
+        {
+            AllocationManagerDesc = AllocationManagerDesc.Default,
+            WindowDesc = new WindowDesc { Width = 800, Height = 600, Title = "Ghost Engine" },
+            JobSchedulerDesc = new JobSchedulerDesc
+            {
+                ThreadCount = Environment.ProcessorCount - 2,
+                ThreadPriority = ThreadPriority.Normal,
+                DependencyChainCapacity = 8192,
+            },
+            RenderDesc = new RenderDesc
+            {
+                FrameBufferCount = 2,
+                GraphicsAPI = GraphicsAPI.Direct3D12,
+                RenderPipelineSettings = new GhostRenderPipelineSettings(),
+                ShaderCacheDirectory = "ShaderCache",
+                ShaderCompilationBridge = null
+            },
+            ContentProvider = new RuntimeContentProvider()
+        };
+    }
+}
 
 public sealed partial class EngineCore : IDisposable
 {
@@ -39,28 +126,21 @@ public sealed partial class EngineCore : IDisposable
 
     public int FrameIndex => _frameIndex;
 
-    public EngineCore(IContentProvider contentProvider, IShaderCompilationBridge? shaderCompilationBridge = null)
+    public EngineCore(JobSchedulerDesc jobSchedulerDesc, RenderDesc renderDesc, IContentProvider contentProvider)
     {
         _contentProvider = contentProvider;
 
-        var desc = new JobSchedulerDesc
-        {
-            ThreadCount = Environment.ProcessorCount - 2, // We -2 here, one for main thread, one for render thread
-            ThreadPriority = ThreadPriority.Normal,
-            DependencyChainCapacity = 8192,
-        };
-
-        _jobScheduler = new JobScheduler(in desc);
+        _jobScheduler = new JobScheduler(in jobSchedulerDesc);
         _streamingProcessor = new ResourceStreamingProcessor();
 
         var renderingDesc = new RenderSystemDesc
         {
-            FrameBufferCount = 2,
-            GraphicsAPI = GraphicsAPI.Direct3D12,
-            InitialRenderPipelineSettings = new GhostRenderPipelineSettings(),
+            FrameBufferCount = renderDesc.FrameBufferCount,
+            GraphicsAPI = renderDesc.GraphicsAPI,
+            InitialRenderPipelineSettings = renderDesc.RenderPipelineSettings,
+            ShaderCacheDirectory = renderDesc.ShaderCacheDirectory,
+            ShaderCompilationBridge = renderDesc.ShaderCompilationBridge,
             ResourceStreamingProcessor = _streamingProcessor,
-            ShaderCacheDirectory = "ShaderCache",
-            ShaderCompilationBridge = shaderCompilationBridge,
         };
 
         _renderEngine = new RenderEngine(renderingDesc);

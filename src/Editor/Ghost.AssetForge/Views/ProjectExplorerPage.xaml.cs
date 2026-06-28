@@ -1,10 +1,9 @@
+using Ghost.AssetForge.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
-using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
-using Ghost.AssetForge.ViewModels;
 
 namespace Ghost.AssetForge.Views;
 
@@ -147,7 +146,7 @@ public class BoolToVisibilityConverter : IValueConverter
     {
         if (value is bool b)
         {
-            bool show = IsInverse ? !b : b;
+            var show = IsInverse ? !b : b;
             return show ? Visibility.Visible : Visibility.Collapsed;
         }
         return Visibility.Collapsed;
@@ -165,10 +164,10 @@ public class NullToVisibilityConverter : IValueConverter
 
     public object Convert(object value, Type targetType, object parameter, string language)
     {
-        bool isNull = value == null;
+        var isNull = value == null;
         if (parameter?.ToString() == "Inverse") isNull = !isNull;
-        
-        bool show = IsInverse ? isNull : !isNull;
+
+        var show = IsInverse ? isNull : !isNull;
         return show ? Visibility.Visible : Visibility.Collapsed;
     }
 

@@ -37,14 +37,6 @@ public class ProjectService
         Directory.CreateDirectory(Path.Combine(folderPath, "Cache"));
         Directory.CreateDirectory(Path.Combine(folderPath, "Build"));
 
-        // Create dummy subfolders and assets to populate the explorer tree
-        var texDir = Path.Combine(assetDir, "Textures");
-        var modelDir = Path.Combine(assetDir, "Models");
-        var shaderDir = Path.Combine(assetDir, "Shaders");
-        Directory.CreateDirectory(texDir);
-        Directory.CreateDirectory(modelDir);
-        Directory.CreateDirectory(shaderDir);
-
         var projectFilePath = Path.Combine(folderPath, "project.json");
         File.WriteAllText(projectFilePath, JsonSerializer.Serialize(project, _jsonOptions));
 
@@ -59,9 +51,9 @@ public class ProjectService
             throw new FileNotFoundException($"project.json not found in {folderPath}");
 
         var json = File.ReadAllText(projectFilePath);
-        var project = JsonSerializer.Deserialize<Project>(json, _jsonOptions);
-        if (project == null) throw new InvalidOperationException("Failed to deserialize project.");
-
+        var project = JsonSerializer.Deserialize<Project>(json, _jsonOptions) 
+            ?? throw new InvalidOperationException("Failed to deserialize project.");
+        
         project.RootPath = folderPath;
         CurrentProject = project;
 

@@ -1,9 +1,9 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
+using Ghost.AssetForge.Core.Services;
 using Ghost.AssetForge.ViewModels;
 using Ghost.AssetForge.Views;
-using Ghost.AssetForge.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Linq;
 
@@ -24,7 +24,7 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
 
         ExtendsContentIntoTitleBar = true;
-        
+
         ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         ContentFrame.Navigated += ContentFrame_Navigated;
         _projectService.OnProjectLoaded += OnProjectLoaded;
@@ -55,8 +55,8 @@ public sealed partial class MainWindow : Window
     private void UpdateOverlayVisibility()
     {
         var pageType = ContentFrame.Content?.GetType();
-        bool requiresProject = pageType == typeof(ProjectExplorerPage) || pageType == typeof(PackingPage);
-        bool hasProject = _projectService.CurrentProject != null;
+        var requiresProject = pageType == typeof(ProjectExplorerPage) || pageType == typeof(PackingPage);
+        var hasProject = _projectService.CurrentProject != null;
 
         if (requiresProject && !hasProject)
         {
@@ -87,7 +87,7 @@ public sealed partial class MainWindow : Window
         var allItems = menuItems.Concat(footerItems);
 
         var targetItem = allItems.FirstOrDefault(i => i.Tag?.ToString() == pageName);
-        if (targetItem != null && NavView.SelectedItem != targetItem)
+        if (targetItem != null && (NavigationViewItem)NavView.SelectedItem != targetItem)
         {
             NavView.SelectedItem = targetItem;
         }
@@ -113,12 +113,12 @@ public sealed partial class MainWindow : Window
         var nameTextBox = new TextBox { Header = "Project Name", PlaceholderText = "MyProject" };
         var locationTextBox = new TextBox { Header = "Project Location", PlaceholderText = @"C:\GhostProjects" };
         var browseButton = new Button { Content = "Browse...", VerticalAlignment = VerticalAlignment.Bottom };
-        
+
         var locationGrid = new Grid { ColumnDefinitions = { new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }, new ColumnDefinition { Width = GridLength.Auto } }, Margin = new Thickness(0, 12, 0, 0) };
         locationTextBox.Margin = new Thickness(0, 0, 8, 0);
         locationGrid.Children.Add(locationTextBox);
         Grid.SetColumn(locationTextBox, 0);
-        
+
         browseButton.Click += async (s, ev) =>
         {
             var folderPicker = new Windows.Storage.Pickers.FolderPicker();
@@ -133,7 +133,7 @@ public sealed partial class MainWindow : Window
         };
         locationGrid.Children.Add(browseButton);
         Grid.SetColumn(browseButton, 1);
-        
+
         var panel = new StackPanel { Spacing = 12 };
         panel.Children.Add(nameTextBox);
         panel.Children.Add(locationGrid);

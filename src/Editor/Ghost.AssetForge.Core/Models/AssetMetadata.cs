@@ -1,9 +1,7 @@
+using Ghost.AssetForge.Core.Bakers;
 using Ghost.Core;
-using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Ghost.AssetForge.Core.Bakers;
-using Ghost.AssetForge.Core.Services;
 
 namespace Ghost.AssetForge.Core.Models;
 
@@ -12,7 +10,7 @@ public record AssetMetadata
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public AssetType Type { get; init; } = AssetType.Unknown;
-    
+
     // Custom converter handles polymorphic deserialization of IBakeSettings based on Type
     public IBakeSettings? Settings { get; init; }
 }

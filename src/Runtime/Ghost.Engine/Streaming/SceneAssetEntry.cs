@@ -81,7 +81,7 @@ public partial class AssetManager
             return Result.Failure("Invalid scene asset.");
         }
 
-        var openResult = _contentProvider.OpenRead(sceneAsset.ID);
+        var openResult = _contentProvider.OpenReadAsync(sceneAsset.ID);
         if (openResult.IsFailure)
         {
             return Result.Failure($"Failed to open scene {sceneAsset.ID}: {openResult.Message}.");

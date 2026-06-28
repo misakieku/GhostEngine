@@ -166,6 +166,11 @@ internal class MockingContentProvider : IContentProvider
         });
     }
 
+    public Guid VirtualPathToGuid(string path)
+    {
+        return Guid.Empty;
+    }
+
     public AssetType GetAssetType(Guid guid)
     {
         return _assets.TryGetValue(guid, out var asset) ? asset.type : AssetType.Unknown;
@@ -181,7 +186,7 @@ internal class MockingContentProvider : IContentProvider
         return _assets.ContainsKey(guid);
     }
 
-    public Result<Stream> OpenRead(Guid guid, CancellationToken token = default)
+    public Result<AssetReadData> OpenReadAsync(Guid guid, CancellationToken token = default)
     {
         if (_assets.TryGetValue(guid, out var asset))
         {
@@ -194,9 +199,14 @@ internal class MockingContentProvider : IContentProvider
             }
 
             // Return a fast, in-memory stream representing our file
-            return Result<Stream>.Success(new MemoryStream(asset.data, writable: false));
+            return new AssetReadData
+            {
+                assetId = guid,
+                assetType = asset.type,
+                stream = new MemoryStream(asset.data, writable: false),
+            };
         }
 
-        return Result<Stream>.Failure($"Mock asset {guid} not found.");
+        return Result<AssetReadData>.Failure($"Mock asset {guid} not found.");
     }
 }
