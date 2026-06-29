@@ -1,25 +1,18 @@
 using Antlr4.Runtime.Misc;
-using Ghost.DSL.ShaderParser.Model;
+using Ghost.DSL.ShaderParser.Syntax;
 
 namespace Ghost.DSL.ShaderParser;
 
 public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
 {
-    public List<GraphicsShaderModel> Shaders { get; } = new();
-
     public override object VisitShaderFile([NotNull] GhostShaderParser.ShaderFileContext context)
     {
-        foreach (var shaderContext in context.shader())
-        {
-            var shader = (GraphicsShaderModel)VisitShader(shaderContext);
-            Shaders.Add(shader);
-        }
-        return Shaders;
+        return VisitShader(context.shader(0));
     }
 
     public override object VisitShader([NotNull] GhostShaderParser.ShaderContext context)
     {
-        var shader = new GraphicsShaderModel
+        var shader = new GraphicsShaderSyntax
         {
             Name = StripQuotes(context.STRING_LITERAL().GetText())
         };
@@ -31,17 +24,17 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
 
             foreach (var pipelineBlock in shaderBody.pipelineBlock())
             {
-                shader.Pipeline = (PipelineBlockModel)VisitPipelineBlock(pipelineBlock);
+                shader.Pipeline = (PipelineBlockSyntax)VisitPipelineBlock(pipelineBlock);
             }
 
             foreach (var passBlock in shaderBody.passBlock())
             {
-                shader.Passes.Add((PassBlockModel)VisitPassBlock(passBlock));
+                shader.Passes.Add((PassBlockSyntax)VisitPassBlock(passBlock));
             }
 
             foreach (var funcCall in shaderBody.functionCall())
             {
-                shader.FunctionCalls.Add((FunctionCallModel)VisitFunctionCall(funcCall));
+                shader.FunctionCalls.Add((FunctionCallSyntax)VisitFunctionCall(funcCall));
             }
         }
 
@@ -50,7 +43,7 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
 
     public override object VisitPipelineBlock([NotNull] GhostShaderParser.PipelineBlockContext context)
     {
-        var pipeline = new PipelineBlockModel();
+        var pipeline = new PipelineBlockSyntax();
 
         foreach (var statement in context.pipelineStatement())
         {
@@ -64,7 +57,7 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
 
     public override object VisitPassBlock([NotNull] GhostShaderParser.PassBlockContext context)
     {
-        var pass = new PassBlockModel
+        var pass = new PassBlockSyntax
         {
             Name = StripQuotes(context.STRING_LITERAL().GetText())
         };
@@ -74,32 +67,32 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         {
             foreach (var definesBlock in passBody.definesBlock())
             {
-                pass.Defines = (DefinesBlockModel)VisitDefinesBlock(definesBlock);
+                pass.Defines = (DefinesBlockSyntax)VisitDefinesBlock(definesBlock);
             }
 
             foreach (var includesBlock in passBody.includesBlock())
             {
-                pass.Includes = (IncludesBlockModel)VisitIncludesBlock(includesBlock);
+                pass.Includes = (IncludesBlockSyntax)VisitIncludesBlock(includesBlock);
             }
 
             foreach (var keywordsBlock in passBody.keywordsBlock())
             {
-                pass.Keywords = (KeywordsBlockModel)VisitKeywordsBlock(keywordsBlock);
+                pass.Keywords = (KeywordsBlockSyntax)VisitKeywordsBlock(keywordsBlock);
             }
 
             foreach (var pipelineBlock in passBody.pipelineBlock())
             {
-                pass.LocalPipeline = (PipelineBlockModel)VisitPipelineBlock(pipelineBlock);
+                pass.LocalPipeline = (PipelineBlockSyntax)VisitPipelineBlock(pipelineBlock);
             }
 
             foreach (var hlslBlock in passBody.hlslBlock())
             {
-                pass.Hlsl = (HlslBlockModel)VisitHlslBlock(hlslBlock);
+                pass.Hlsl = (HlslBlockSyntax)VisitHlslBlock(hlslBlock);
             }
 
             foreach (var shaderEntry in passBody.shaderEntry())
             {
-                pass.ShaderEntries.Add((ShaderEntryModel)VisitShaderEntry(shaderEntry));
+                pass.ShaderEntries.Add((ShaderEntrySyntax)VisitShaderEntry(shaderEntry));
             }
         }
 
@@ -108,7 +101,7 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
 
     public override object VisitDefinesBlock([NotNull] GhostShaderParser.DefinesBlockContext context)
     {
-        var defines = new DefinesBlockModel();
+        var defines = new DefinesBlockSyntax();
 
         foreach (var defineStmt in context.defineStatement())
         {
@@ -120,7 +113,7 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
 
     public override object VisitIncludesBlock([NotNull] GhostShaderParser.IncludesBlockContext context)
     {
-        var includes = new IncludesBlockModel();
+        var includes = new IncludesBlockSyntax();
 
         foreach (var includeStmt in context.includeStatement())
         {
@@ -132,11 +125,11 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
 
     public override object VisitKeywordsBlock([NotNull] GhostShaderParser.KeywordsBlockContext context)
     {
-        var keywords = new KeywordsBlockModel();
+        var keywords = new KeywordsBlockSyntax();
 
         foreach (var keywordStmt in context.keywordStatement())
         {
-            var group = new KeywordGroupModel();
+            var group = new KeywordGroupSyntax();
 
             if (keywordStmt.scope() != null)
             {
@@ -156,7 +149,7 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
 
     public override object VisitHlslBlock([NotNull] GhostShaderParser.HlslBlockContext context)
     {
-        var hlsl = new HlslBlockModel();
+        var hlsl = new HlslBlockSyntax();
 
         // Get the text between the braces
         var start = context.LBRACE().Symbol.StopIndex + 1;
@@ -173,7 +166,7 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
 
     public override object VisitShaderEntry([NotNull] GhostShaderParser.ShaderEntryContext context)
     {
-        var entry = new ShaderEntryModel
+        var entry = new ShaderEntrySyntax
         {
             EntryType = context.IDENTIFIER().GetText(),
             ShaderPath = StripQuotes(context.STRING_LITERAL(0).GetText()),
@@ -185,7 +178,7 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
 
     public override object VisitFunctionCall([NotNull] GhostShaderParser.FunctionCallContext context)
     {
-        var funcCall = new FunctionCallModel
+        var funcCall = new FunctionCallSyntax
         {
             Name = context.IDENTIFIER().GetText()
         };

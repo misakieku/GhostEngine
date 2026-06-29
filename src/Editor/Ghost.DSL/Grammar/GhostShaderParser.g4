@@ -5,7 +5,7 @@ options {
 }
 
 // Top-level rule
-shaderFile: shader+ EOF;
+shaderFile: shader + EOF;
 
 shader:
     SHADER STRING_LITERAL LBRACE

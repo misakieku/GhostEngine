@@ -1,7 +1,7 @@
 #ifndef GHOST_PROPERTIES_HLSL
 #define GHOST_PROPERTIES_HLSL
 
-#include "F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/Shaders/Includes/Common.hlsl"
+#include "Common.hlsl"
 
 #define GLOBAL_BINDLESS_SIG \
     "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | " \

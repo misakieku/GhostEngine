@@ -48,6 +48,8 @@
     <Project Path="Test/TestGame/TestGame.csproj" Id="5d84a4f7-a5a2-4814-bdc1-abdec70c3b1b" />
   </Folder>
   <Folder Name="/Tools/">
+    <Project Path="Tools/Ghost.AssetForge.CLI/Ghost.AssetForge.CLI.csproj" />
     <Project Path="Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj" />
+    <Project Path="Tools/Ghost.ShaderMetadataTool/Ghost.ShaderMetadataTool.csproj" />
   </Folder>
 </Solution>

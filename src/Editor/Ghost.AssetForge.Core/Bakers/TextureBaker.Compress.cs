@@ -67,7 +67,7 @@ internal partial class TextureBaker
                 baseCubeData.Dispose();
             }
 
-            var mipmapCount = await Task.Run(() =>
+            var mipmapCount = await Task.Run((Func<int>)(() =>
             {
                 if (settings.Basic.TextureShape == TextureShape.TextureCube)
                 {
@@ -77,7 +77,7 @@ internal partial class TextureBaker
                 {
                     return RunMipGenCompressionPipeline(tempFilePath, textureInfo, settings);
                 }
-            }, cancellationToken).ConfigureAwait(false);
+            }), cancellationToken).ConfigureAwait(false);
 
             return (tempFilePath, mipmapCount);
         }

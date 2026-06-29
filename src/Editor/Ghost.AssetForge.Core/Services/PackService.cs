@@ -7,10 +7,12 @@ namespace Ghost.AssetForge.Core.Services;
 public class PackService
 {
     private readonly ProjectService _projectService;
+    private readonly BakerRegistry _bakerRegistry;
 
-    public PackService(ProjectService projectService)
+    public PackService(ProjectService projectService, BakerRegistry bakerRegistry)
     {
         _projectService = projectService;
+        _bakerRegistry = bakerRegistry;
     }
 
     public event Action<int, int>? OnProgress;
@@ -23,9 +25,8 @@ public class PackService
     public async Task PackProjectAsync(CancellationToken cancellationToken = default)
     {
         var project = _projectService.CurrentProject ?? throw new InvalidOperationException("No project loaded.");
-        var cacheDir = Path.Combine(project.RootPath, "Cache");
-        var assetDir = Path.Combine(project.RootPath, "Asset");
-        var buildDir = Path.Combine(project.RootPath, "Build");
+        var cacheDir = _projectService.CacheDirectory;
+        var buildDir = _projectService.BuildDirectory;
 
         if (!Directory.Exists(cacheDir))
         {
@@ -33,9 +34,26 @@ public class PackService
             return;
         }
 
-        var allAssetFiles = Directory.GetFiles(assetDir, "*", SearchOption.AllDirectories)
-            .Where(f => !f.EndsWith(".meta"))
-            .ToArray();
+        var virtualPathToFile = new Dictionary<string, string>();
+        
+        foreach (var dir in _projectService.AssetDirectories)
+        {
+            if (!Directory.Exists(dir))
+                continue;
+            
+            var filesInDir = Directory.GetFiles(dir, "*", SearchOption.AllDirectories)
+                .Where(f => !f.EndsWith(".meta"));
+            
+            foreach (var file in filesInDir)
+            {
+                var relativePath = Path.GetRelativePath(dir, file);
+                var virtualPath = relativePath.Replace('\\', '/');
+                virtualPathToFile[virtualPath] = file;
+            }
+        }
+
+        var allAssetFiles = virtualPathToFile.Values.ToArray();
+        var allAssetVirtualPaths = virtualPathToFile.Keys.ToArray();
 
         var manifest = new Manifest
         {
@@ -56,11 +74,12 @@ public class PackService
             var total = allAssetFiles.Length;
             OnProgress?.Invoke(completed, total);
 
-            foreach (var assetFile in allAssetFiles)
+            foreach (var kvp in virtualPathToFile)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var relativePath = Path.GetRelativePath(assetDir, assetFile);
+                var relativePath = kvp.Key;
+                var assetFile = kvp.Value;
                 var destPath = Path.Combine(cacheDir, relativePath);
                 var destDir = Path.GetDirectoryName(destPath) ?? cacheDir;
                 var cacheFile = Path.Combine(destDir, Path.GetFileNameWithoutExtension(assetFile));
@@ -79,11 +98,18 @@ public class PackService
                     continue;
                 }
 
-                var cacheFileInfo = new FileInfo(cacheFile);
+                var backer = _bakerRegistry.GetBaker(Path.GetExtension(assetFile));
+                if (backer == null)
+                {
+                    Logger.Warning($"No baker found for {assetFile}. Skipping packing.");
+                    continue;
+                }
 
+                // relative path without extension
                 var dir = Path.GetDirectoryName(relativePath) ?? string.Empty;
-                var nameWithoutExt = Path.GetFileNameWithoutExtension(assetFile);
-                var virtualPath = Path.Combine(dir, nameWithoutExt).Replace('\\', '/');
+                var nameWithoutExt = Path.GetFileNameWithoutExtension(relativePath);
+                var key = Path.Combine(dir, nameWithoutExt).Replace('\\', '/');
+                var cacheFileInfo = new FileInfo(cacheFile);
 
                 // Should we start a new pack file?
                 // Size estimate (uncompressed): header + raw data. 
@@ -126,7 +152,7 @@ public class PackService
                 var size = currentPackStream.Position - offset;
                 currentPackSize = currentPackStream.Position;
 
-                manifest.AddAsset(virtualPath, new AssetInfo
+                manifest.AddAsset(key, new AssetInfo
                 {
                     AssetId = metadata.Id,
                     AssetType = metadata.Type,
@@ -135,7 +161,7 @@ public class PackService
                     Size = size
                 });
 
-                Logger.Info($"Packed {virtualPath} into {currentPackName} (Offset: {offset}, Size: {size})");
+                Logger.Info($"Packed {key} into {currentPackName} (Offset: {offset}, Size: {size})");
 
                 completed++;
                 OnProgress?.Invoke(completed, total);

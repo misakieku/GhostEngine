@@ -28,19 +28,50 @@ public enum CompressionMethod
     LZ4 = 2
 }
 
-[StructLayout(LayoutKind.Sequential, Size = 64)]
-public struct AssetHeader()
+public enum TextureDimension : uint
 {
-    public const uint MAGIC = 0x47415353; // "SSAG" in little-endian
-    public const uint VERSION = 1;
-
-    public uint magic = MAGIC;
-    public uint version = VERSION;
-
-    public AssetType assetType;
-    public ulong size; // Size of the asset data after the header, in bytes. This is the size of the compressed data if compression is used.
+    Unknown = unchecked((uint)-1),
+    None = 0,
+    Texture1D = 1,
+    Texture2D = 2,
+    Texture3D = 3,
+    TextureCube = 4,
+    Texture2DArray = 5,
+    TextureCubeArray = 6
 }
 
+public enum ShaderType : uint
+{
+    Graphics = 0,
+    Compute = 1,
+}
+
+public enum ShaderStage : uint
+{
+    AmplificationShader,
+    MeshShader,
+    PixelShader,
+    ComputeShader,
+    Library // For ray tracing shaders or work graph shaders that don't fit into the traditional shader stages
+}
+
+public readonly struct AssetInfo()
+{
+    public Guid AssetId { get; init; }
+    public AssetType AssetType { get; init; }
+    public string PackFileName { get; init; } = string.Empty;
+    public long Offset { get; init; }
+    public long Size { get; init; }
+}
+
+/// <summary>
+/// The header for a texture asset, containing metadata about the texture's properties.
+/// </summary>
+/// <remarks>
+/// The layout of the texture asset in binary will be:
+/// [TextureContentHeader]
+/// [TextureData]
+/// </remarks>
 [StructLayout(LayoutKind.Sequential, Size = 64)]
 public struct TextureContentHeader()
 {
@@ -54,17 +85,43 @@ public struct TextureContentHeader()
     public uint height;
     public uint bpc;
     public uint mipLevels;
-    public uint dimension; // 1 for 1D, 2 for 2D, 3 for 3D, 4 for Cube, etc. See TextureDimension
+
+    public TextureDimension dimension;
     public uint colorComponents;
 }
 
-public readonly struct AssetInfo()
+/// <summary>
+/// The header for a shader asset, containing metadata about the shader's properties and its passes.
+/// </summary>
+/// <remarks>
+/// The layout of the shader asset in binary will be:
+/// [ShaderContentHeader]
+/// [PassHeader([EntryPointHeader] * entryPointCount)] * passCount
+/// [Bytecode]
+/// </remarks>
+[StructLayout(LayoutKind.Sequential, Size = 64)]
+public struct ShaderContentHeader()
 {
-    public Guid AssetId { get; init; }
-    public AssetType AssetType { get; init; }
-    public string PackFileName { get; init; } = string.Empty;
-    public long Offset { get; init; }
-    public long Size { get; init; }
+    public struct PassHeader
+    {
+        public uint entryPointCount;
+    }
+
+    public struct EntryPointHeader
+    {
+        public ShaderStage stage;
+        public long byteCodeOffset; // Offset to the shader bytecode for this entry point in the file
+        public long byteCodeSize;
+    }
+
+    public const uint MAGIC = 0x52484453; // SHDR
+    public const uint VERSION = 1;
+    
+    public uint magic = MAGIC;
+    public uint version = VERSION;
+
+    public ShaderType shaderType;
+    public uint passCount;
 }
 
 public class Manifest

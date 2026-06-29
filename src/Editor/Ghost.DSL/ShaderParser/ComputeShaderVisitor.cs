@@ -1,21 +1,13 @@
 using Antlr4.Runtime.Misc;
-using Ghost.DSL.ShaderParser.Model;
+using Ghost.DSL.ShaderParser.Syntax;
 
 namespace Ghost.DSL.ShaderParser;
 
 internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object>
 {
-    public List<ComputeShaderModel> ComputeShaders { get; } = new();
-
     public override object VisitComputeFile([NotNull] GhostComputeShaderParser.ComputeFileContext context)
     {
-        foreach (var shaderContext in context.compute())
-        {
-            var shader = (ComputeShaderModel)VisitCompute(shaderContext);
-            ComputeShaders.Add(shader);
-        }
-
-        return ComputeShaders;
+        return VisitCompute(context.compute(0));
     }
 
     private static string StripQuotes(string text)
@@ -29,7 +21,7 @@ internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object
 
     public override object VisitCompute([NotNull] GhostComputeShaderParser.ComputeContext context)
     {
-        var compute = new ComputeShaderModel
+        var compute = new ComputeShaderSyntax
         {
             Name = StripQuotes(context.STRING_LITERAL().GetText())
         };
@@ -41,28 +33,28 @@ internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object
 
             foreach (var definesBlock in computeBody.definesBlock())
             {
-                compute.Defines = (DefinesBlockModel)VisitDefinesBlock(definesBlock);
+                compute.Defines = (DefinesBlockSyntax)VisitDefinesBlock(definesBlock);
             }
 
             foreach (var includesBlock in computeBody.includesBlock())
             {
-                compute.Includes = (IncludesBlockModel)VisitIncludesBlock(includesBlock);
+                compute.Includes = (IncludesBlockSyntax)VisitIncludesBlock(includesBlock);
             }
 
             foreach (var keywordsBlock in computeBody.keywordsBlock())
             {
-                compute.Keywords = (KeywordsBlockModel)VisitKeywordsBlock(keywordsBlock);
+                compute.Keywords = (KeywordsBlockSyntax)VisitKeywordsBlock(keywordsBlock);
             }
 
             var hlslBlock = computeBody.hlslBlock().FirstOrDefault();
             if (hlslBlock != null)
             {
-                compute.Hlsl = (HlslBlockModel)VisitHlslBlock(hlslBlock);
+                compute.Hlsl = (HlslBlockSyntax)VisitHlslBlock(hlslBlock);
             }
 
             foreach (var computeEntry in computeBody.computeEntry())
             {
-                compute.ShaderEntries.Add((ShaderEntryModel)VisitComputeEntry(computeEntry));
+                compute.ShaderEntries.Add((ShaderEntrySyntax)VisitComputeEntry(computeEntry));
             }
         }
 
@@ -71,7 +63,7 @@ internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object
 
     public override object VisitDefinesBlock([NotNull] GhostComputeShaderParser.DefinesBlockContext context)
     {
-        var defines = new DefinesBlockModel();
+        var defines = new DefinesBlockSyntax();
 
         foreach (var defineStmt in context.defineStatement())
         {
@@ -83,7 +75,7 @@ internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object
 
     public override object VisitIncludesBlock([NotNull] GhostComputeShaderParser.IncludesBlockContext context)
     {
-        var includes = new IncludesBlockModel();
+        var includes = new IncludesBlockSyntax();
 
         foreach (var includeStmt in context.includeStatement())
         {
@@ -95,11 +87,11 @@ internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object
 
     public override object VisitKeywordsBlock([NotNull] GhostComputeShaderParser.KeywordsBlockContext context)
     {
-        var keywords = new KeywordsBlockModel();
+        var keywords = new KeywordsBlockSyntax();
 
         foreach (var keywordStmt in context.keywordStatement())
         {
-            var group = new KeywordGroupModel();
+            var group = new KeywordGroupSyntax();
 
             if (keywordStmt.scope() != null)
             {
@@ -119,7 +111,7 @@ internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object
 
     public override object VisitHlslBlock([NotNull] GhostComputeShaderParser.HlslBlockContext context)
     {
-        var hlsl = new HlslBlockModel();
+        var hlsl = new HlslBlockSyntax();
 
         // Get the text between the braces
         var start = context.LBRACE().Symbol.StopIndex + 1;
@@ -136,7 +128,7 @@ internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object
 
     public override object VisitComputeEntry([NotNull] GhostComputeShaderParser.ComputeEntryContext context)
     {
-        var entry = new ShaderEntryModel
+        var entry = new ShaderEntrySyntax
         {
             EntryType = context.IDENTIFIER().GetText(),
             ShaderPath = StripQuotes(context.STRING_LITERAL(0).GetText()),

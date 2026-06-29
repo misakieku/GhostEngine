@@ -100,7 +100,7 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
             MipLevels = header.mipLevels,
             Slice = 1,
             Format = GetTextureFormat(header.bpc, header.colorComponents),
-            Dimension = (TextureDimension)header.dimension,
+            Dimension = header.dimension,
             Usage = TextureUsage.ShaderResource,
         };
 

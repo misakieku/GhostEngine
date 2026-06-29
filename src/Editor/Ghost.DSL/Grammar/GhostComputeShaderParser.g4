@@ -5,7 +5,7 @@ options {
 }
 
 // Top-level rule
-computeFile: compute+ EOF;
+computeFile: compute + EOF;
 
 compute:
     COMPUTE STRING_LITERAL LBRACE

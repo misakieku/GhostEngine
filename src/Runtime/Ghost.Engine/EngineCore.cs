@@ -102,7 +102,7 @@ public struct EngineDesc
                 ShaderCacheDirectory = "ShaderCache",
                 ShaderCompilationBridge = null
             },
-            ContentProvider = new RuntimeContentProvider()
+            ContentProvider = new RuntimeContentProvider("Assets/manifest.json")
         };
     }
 }

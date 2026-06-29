@@ -42,7 +42,7 @@ internal class MockingContentProvider : IContentProvider
             height = height,
             bpc = 8,
             mipLevels = 1,
-            dimension = 2, // Texture2D
+            dimension = Ghost.Core.TextureDimension.Texture2D, // Texture2D
             colorComponents = 4
         };
 

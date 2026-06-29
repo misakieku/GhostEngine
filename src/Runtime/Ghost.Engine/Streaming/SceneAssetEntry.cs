@@ -87,24 +87,24 @@ public partial class AssetManager
             return Result.Failure($"Failed to open scene {sceneAsset.ID}: {openResult.Message}.");
         }
 
-        var stream = openResult.Value;
+        var data = openResult.Value;
 
-        if (stream.Length < sizeof(SceneContentHeader))
+        if (data.stream.Length < sizeof(SceneContentHeader))
         {
-            stream.Dispose();
+            data.Dispose();
             return Result.Failure("Invalid scene file size.");
         }
 
-        var header = stream.Read<SceneContentHeader>();
+        var header = data.stream.Read<SceneContentHeader>();
         if (header.magic != SceneContentHeader.MAGIC)
         {
-            stream.Dispose();
+            data.Dispose();
             return Result.Failure("Unexpected header format.");
         }
 
         if (header.version != SceneContentHeader.VERSION)
         {
-            stream.Dispose();
+            data.Dispose();
             return Result.Failure($"Not supported scene header version {header.version}.");
         }
 
@@ -117,16 +117,16 @@ public partial class AssetManager
             var job = new LoadSceneJob
             {
                 header = header,
-                stream = stream,
+                stream = data.stream,
                 pendingSceneLoad = pendingSceneLoad
             };
 
             _jobScheduler.Schedule(in job, entry.LoadJobHandle);
-            return Result<SceneLoadOperation>.Success(new SceneLoadOperation(pendingSceneLoad));
+            return new SceneLoadOperation(pendingSceneLoad);
         }
         catch (Exception ex)
         {
-            stream.Dispose();
+            data.Dispose();
             return Result.Failure(ex.Message);
         }
     }

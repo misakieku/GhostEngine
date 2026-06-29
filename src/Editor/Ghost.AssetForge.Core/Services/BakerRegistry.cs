@@ -4,11 +4,12 @@ using System.Reflection;
 
 namespace Ghost.AssetForge.Core.Services;
 
-public class BakerRegistry
+public class BakerRegistry : IDisposable
 {
-    private readonly Dictionary<string, AssetType> _extensionToType = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<AssetType, Type> _typeToSettings = new();
-    private readonly Dictionary<AssetType, IAssetBaker> _typeToBaker = new();
+    private readonly List<IAssetBaker> _bakers = new();
+    private readonly Dictionary<string, AssetType> _extToType = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Type> _extToSettings = new();
+    private readonly Dictionary<string, int> _extToBaker = new();
 
     public BakerRegistry()
     {
@@ -22,12 +23,14 @@ public class BakerRegistry
             if (attr != null)
             {
                 var bakerInstance = (IAssetBaker)Activator.CreateInstance(type, true)!;
-                _typeToBaker[attr.Type] = bakerInstance;
-                _typeToSettings[attr.Type] = attr.SettingsType;
+                var index = _bakers.Count;
 
+                _bakers.Add(bakerInstance);
                 foreach (var ext in attr.Extensions)
                 {
-                    _extensionToType[ext] = attr.Type;
+                    _extToBaker[ext] = index;
+                    _extToSettings[ext] = attr.SettingsType;
+                    _extToType[ext] = attr.Type;
                 }
             }
         }
@@ -36,27 +39,44 @@ public class BakerRegistry
     public AssetType DetectAssetType(string extension)
     {
         if (string.IsNullOrEmpty(extension)) return AssetType.Unknown;
-        return _extensionToType.TryGetValue(extension, out var type) ? type : AssetType.Unknown;
+        return _extToType.TryGetValue(extension, out var type) ? type : AssetType.Unknown;
     }
 
-    public IBakeSettings? CreateDefaultSettings(AssetType type)
+    public IBakeSettings? CreateDefaultSettings(string ext)
     {
-        if (_typeToSettings.TryGetValue(type, out var settingsType))
+        if (_extToSettings.TryGetValue(ext, out var settingsType))
         {
             return (IBakeSettings?)Activator.CreateInstance(settingsType, true);
         }
+
         return null;
     }
 
-    public IAssetBaker? GetBaker(AssetType type)
+    public IAssetBaker? GetBaker(string ext)
     {
-        _typeToBaker.TryGetValue(type, out var baker);
-        return baker;
+        if (_extToBaker.TryGetValue(ext, out var index))
+        {
+            return _bakers[index];
+        }
+
+        return null;
     }
 
-    public Type? GetSettingsType(AssetType type)
+    public Type? GetSettingsType(string ext)
     {
-        _typeToSettings.TryGetValue(type, out var settingsType);
-        return settingsType;
+        return _extToSettings.GetValueOrDefault(ext);
+    }
+
+    public void Dispose()
+    {
+        foreach (var baker in _bakers)
+        {
+            if (baker is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
+
+        GC.SuppressFinalize(this);
     }
 }

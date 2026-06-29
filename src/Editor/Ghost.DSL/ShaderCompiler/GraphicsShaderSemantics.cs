@@ -10,8 +10,8 @@ public enum PropertyScope
 
 public struct ShaderEntryPoint
 {
-    public string entry;
-    public string shaderPath;
+    public string? entry;
+    public string? shaderPath;
 
     public readonly bool IsCreated => !string.IsNullOrEmpty(entry) && !string.IsNullOrEmpty(shaderPath);
 }
@@ -38,7 +38,7 @@ public class PassSemantic
     public PipelineSemantic? localPipeline;
 }
 
-public class DSLShaderSemantics
+public class GraphicsShaderSemantics
 {
     public string name = string.Empty;
     public ShaderModel shaderModel;
@@ -46,7 +46,7 @@ public class DSLShaderSemantics
     public List<PassSemantic>? passes;
 }
 
-public class DSLComputeShaderSemantics
+public class ComputeShaderSemantics
 {
     public string name = string.Empty;
     public string? hlsl;

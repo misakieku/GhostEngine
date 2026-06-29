@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Editor\Ghost.DSL\Ghost.DSL.csproj" />
     <ProjectReference Include="..\..\Runtime\Ghost.Core\Ghost.Core.csproj" />
     <ProjectReference Include="..\..\ThridParty\Ghost.DXC\Ghost.DXC.csproj" />
     <ProjectReference Include="..\..\ThridParty\Ghost.Nvtt\Ghost.Nvtt.csproj" />

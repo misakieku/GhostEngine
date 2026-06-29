@@ -28,12 +28,22 @@ public struct ShaderCode
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ulong GetHashCode64()
     {
+        if (!IsCreated)
+        {
+            return 0;
+        }
+
         return Hash.Combine64(XxHash64.HashToUInt64(MemoryMarshal.AsBytes(code.AsSpan())), XxHash64.HashToUInt64(MemoryMarshal.AsBytes(entryPoint.AsSpan())));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override readonly int GetHashCode()
     {
+        if (!IsCreated)
+        {
+            return 0;
+        }
+
         return HashCode.Combine(code, entryPoint);
     }
 }

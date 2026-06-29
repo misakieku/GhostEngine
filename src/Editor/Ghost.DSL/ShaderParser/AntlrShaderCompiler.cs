@@ -1,13 +1,13 @@
 using Antlr4.Runtime;
 using Ghost.Core.Graphics;
 using Ghost.DSL.ShaderCompiler;
-using Ghost.DSL.ShaderParser.Model;
+using Ghost.DSL.ShaderParser.Syntax;
 
 namespace Ghost.DSL.ShaderParser;
 
 public class AntlrShaderCompiler
 {
-    public static List<GraphicsShaderModel> ParseShaders(string source, List<DSLShaderError> errors)
+    public static GraphicsShaderSyntax? ParseShaders(string source, List<DSLShaderError> errors)
     {
         try
         {
@@ -31,13 +31,11 @@ public class AntlrShaderCompiler
 
             if (errors.Count > 0)
             {
-                return new List<GraphicsShaderModel>();
+                return null;
             }
 
             var visitor = new ShaderVisitor();
-            visitor.Visit(tree);
-
-            return visitor.Shaders;
+            return (GraphicsShaderSyntax)visitor.Visit(tree);
         }
         catch (Exception ex)
         {
@@ -47,11 +45,12 @@ public class AntlrShaderCompiler
                 line = -1,
                 column = -1
             });
-            return new List<GraphicsShaderModel>();
+
+            return null;
         }
     }
 
-    public static List<ComputeShaderModel> ParseComputeShaders(string source, List<DSLShaderError> errors)
+    public static ComputeShaderSyntax? ParseComputeShaders(string source, List<DSLShaderError> errors)
     {
         errors = new List<DSLShaderError>();
 
@@ -77,13 +76,11 @@ public class AntlrShaderCompiler
 
             if (errors.Count > 0)
             {
-                return new List<ComputeShaderModel>();
+                return null;
             }
 
             var visitor = new ComputeShaderVisitor();
-            visitor.Visit(tree);
-
-            return visitor.ComputeShaders;
+            return (ComputeShaderSyntax)visitor.Visit(tree);
         }
         catch (Exception ex)
         {
@@ -93,7 +90,7 @@ public class AntlrShaderCompiler
                 line = -1,
                 column = -1
             });
-            return new List<ComputeShaderModel>();
+            return null;
         }
     }
 
@@ -131,11 +128,11 @@ public class AntlrShaderCompiler
         return true;
     }
 
-    public static DSLComputeShaderSemantics? ConvertToComputeSemantics(ComputeShaderModel model, out List<DSLShaderError> errors)
+    public static ComputeShaderSemantics? ConvertToComputeSemantics(ComputeShaderSyntax syntax, out List<DSLShaderError> errors)
     {
         errors = new List<DSLShaderError>();
 
-        if (string.IsNullOrWhiteSpace(model.Name))
+        if (string.IsNullOrWhiteSpace(syntax.Name))
         {
             errors.Add(new DSLShaderError
             {
@@ -146,23 +143,23 @@ public class AntlrShaderCompiler
             return null;
         }
 
-        var semantics = new DSLComputeShaderSemantics
+        var semantics = new ComputeShaderSemantics
         {
-            name = model.Name,
-            defines = model.Defines?.Defines,
-            includes = model.Includes?.Includes,
-            hlsl = model.Hlsl?.Code
+            name = syntax.Name,
+            defines = syntax.Defines?.Defines,
+            includes = syntax.Includes?.Includes,
+            hlsl = syntax.Hlsl?.Code
         };
 
-        if (TryGetShaderModel(model.ShaderModel, errors, out var shaderModel))
+        if (TryGetShaderModel(syntax.ShaderModel, errors, out var shaderModel))
         {
             semantics.shaderModel = shaderModel;
         }
 
-        if (model.Keywords != null)
+        if (syntax.Keywords != null)
         {
             semantics.keywords = new List<KeywordsGroup>();
-            foreach (var group in model.Keywords.Groups)
+            foreach (var group in syntax.Keywords.Groups)
             {
                 var keywordGroup = new KeywordsGroup
                 {
@@ -173,7 +170,7 @@ public class AntlrShaderCompiler
             }
         }
 
-        foreach (var entry in model.ShaderEntries)
+        foreach (var entry in syntax.ShaderEntries)
         {
             var entryType = entry.EntryType.ToLower();
             if (entryType == "cs")
@@ -200,7 +197,7 @@ public class AntlrShaderCompiler
         {
             errors.Add(new DSLShaderError
             {
-                message = $"Compute shader '{model.Name}' must contain a compute/cs entry declaration.",
+                message = $"Compute shader '{syntax.Name}' must contain a compute/cs entry declaration.",
                 line = 0,
                 column = 0
             });
@@ -210,7 +207,7 @@ public class AntlrShaderCompiler
         {
             errors.Add(new DSLShaderError
             {
-                message = $"Compute shader '{model.Name}' cannot have more than 8 entry points.",
+                message = $"Compute shader '{syntax.Name}' cannot have more than 8 entry points.",
                 line = 0,
                 column = 0
             });
@@ -219,7 +216,7 @@ public class AntlrShaderCompiler
         return semantics;
     }
 
-    private static PipelineSemantic? ConvertPipeline(PipelineBlockModel? pipeline, List<DSLShaderError> errors)
+    private static PipelineSemantic? ConvertPipeline(PipelineBlockSyntax? pipeline, List<DSLShaderError> errors)
     {
         if (pipeline == null || pipeline.Statements.Count == 0)
         {
@@ -278,7 +275,7 @@ public class AntlrShaderCompiler
         return semantic;
     }
 
-    private static PassSemantic? ConvertPass(PassBlockModel pass, List<DSLShaderError> errors)
+    private static PassSemantic? ConvertPass(PassBlockSyntax pass, List<DSLShaderError> errors)
     {
         var semantic = new PassSemantic
         {
@@ -347,11 +344,11 @@ public class AntlrShaderCompiler
         return semantic;
     }
 
-    public static DSLShaderSemantics? ConvertToSemantics(GraphicsShaderModel model, out List<DSLShaderError> errors)
+    public static GraphicsShaderSemantics? ConvertToSemantics(GraphicsShaderSyntax syntax, out List<DSLShaderError> errors)
     {
         errors = new List<DSLShaderError>();
 
-        if (string.IsNullOrWhiteSpace(model.Name))
+        if (string.IsNullOrWhiteSpace(syntax.Name))
         {
             errors.Add(new DSLShaderError
             {
@@ -362,18 +359,18 @@ public class AntlrShaderCompiler
             return null;
         }
 
-        var semantics = new DSLShaderSemantics
+        var semantics = new GraphicsShaderSemantics
         {
-            name = model.Name,
-            pipeline = ConvertPipeline(model.Pipeline, errors)
+            name = syntax.Name,
+            pipeline = ConvertPipeline(syntax.Pipeline, errors)
         };
 
-        if (TryGetShaderModel(model.ShaderModel, errors, out var shaderModel))
+        if (TryGetShaderModel(syntax.ShaderModel, errors, out var shaderModel))
         {
             semantics.shaderModel = shaderModel;
         }
 
-        foreach (var pass in model.Passes)
+        foreach (var pass in syntax.Passes)
         {
             var passSemantic = ConvertPass(pass, errors);
             if (passSemantic != null)

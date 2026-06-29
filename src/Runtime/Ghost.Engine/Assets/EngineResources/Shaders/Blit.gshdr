@@ -1,11 +1,5 @@
 shader "Hidden/Blit"
 {
-    properties
-    {
-        tex2d mainTex = { white };
-        sampler sampler_mainTex;
-    }
-
     pass "Blit"
     {
         pipeline
@@ -19,9 +13,9 @@ shader "Hidden/Blit"
 
         includes
         {
-            "F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/Shaders/Includes/Common.hlsl";
-            "F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/Shaders/Includes/Color.hlsl";
-            "F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/Shaders/Includes/Properties.hlsl";
+            "/EngineResources/Shaders/Includes/Common.hlsl";
+            "/EngineResources/Shaders/Includes/Color.hlsl";
+            "/EngineResources/Shaders/Includes/Properties.hlsl";
         }
 
         hlsl
@@ -33,7 +27,7 @@ shader "Hidden/Blit"
             };
 
             [numthreads(4, 1, 1)]
-            [OUTPUT_TRIANGLE_TOPOLOGY]
+            [outputtopology("triangle")]
             void MSMain(
                 uint gtid : SV_GroupThreadID,
                 out vertices PSInput verts[4],
@@ -67,7 +61,7 @@ shader "Hidden/Blit"
             }
         }
 
-        mesh "hlsl_block" : "MSMain";
-        pixel "hlsl_block" : "PSMain";
+        ms "hlsl_block" : "MSMain";
+        ps "hlsl_block" : "PSMain";
     }
 }

@@ -1,9 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup Label="Globals">
-    <WebView2EnableCsWinRTProjection>False</WebView2EnableCsWinRTProjection>
-  </PropertyGroup>
-
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -14,7 +9,7 @@
   <ItemGroup>
     <PackageReference Include="K4os.Compression.LZ4.Streams" Version="1.3.8" />
     <PackageReference Include="ZstdSharp.Port" Version="0.8.8" />
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,6 +19,7 @@
     <ProjectReference Include="..\..\ThridParty\Ghost.Nvtt\Ghost.Nvtt.csproj" />
     <ProjectReference Include="..\..\ThridParty\Ghost.StbI\Ghost.StbI.csproj" />
     <ProjectReference Include="..\..\ThridParty\Ghost.Ufbx\Ghost.Ufbx.csproj" />
+    <ProjectReference Include="..\Ghost.DSL\Ghost.DSL.csproj" />
   </ItemGroup>
 
 </Project>

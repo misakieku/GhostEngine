@@ -2,7 +2,7 @@ compute "Internal/UpdateGPUScene"
 {
     includes
     {
-        "F:/csharp/GhostEngine/src/Runtime/Ghost.Graphics/Shaders/Includes/Properties.hlsl";
+        "/EngineResources/Shaders/Includes/Properties.hlsl";
     }
 
     hlsl

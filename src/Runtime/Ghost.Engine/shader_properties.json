@@ -1,0 +1,34 @@
+{
+  "Internal/UpdateGPUScene": {
+    "ShaderName": "Internal/UpdateGPUScene",
+    "Code": "struct UpdateGPUSceneShaderProperty\n{\n    uint gpuSceneBuffer;\r\n    uint updateBuffer;\r\n    uint updateCount;\r\n    uint removeBuffer;\r\n    uint removeCount;\r\n};",
+    "Size": 20,
+    "Fields": [
+      {
+        "Name": "gpuSceneBuffer",
+        "Type": "UInt",
+        "Offset": 0
+      },
+      {
+        "Name": "updateBuffer",
+        "Type": "UInt",
+        "Offset": 4
+      },
+      {
+        "Name": "updateCount",
+        "Type": "UInt",
+        "Offset": 8
+      },
+      {
+        "Name": "removeBuffer",
+        "Type": "UInt",
+        "Offset": 12
+      },
+      {
+        "Name": "removeCount",
+        "Type": "UInt",
+        "Offset": 16
+      }
+    ]
+  }
+}

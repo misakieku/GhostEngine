@@ -388,7 +388,7 @@ public partial class ProjectExplorerViewModel : ObservableObject
         {
             var ext = Path.GetExtension(value.FullPath);
             var type = _bakerRegistry.DetectAssetType(ext);
-            var defaultSettings = _bakerRegistry.CreateDefaultSettings(type);
+            var defaultSettings = _bakerRegistry.CreateDefaultSettings(ext);
 
             metadata = new AssetMetadata
             {

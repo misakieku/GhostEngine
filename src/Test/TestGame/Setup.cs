@@ -12,6 +12,19 @@ namespace TestGame;
 
 internal static class Setup
 {
+    [Ghost.Core.Graphics.GenerateShaderProperty("MyShader/Standard")]
+    public struct MyShaderStandardData
+    {
+    }
+
+    [Ghost.Core.Graphics.GenerateShaderProperty("TestComputeShader")]
+    public struct TestComputeShaderData
+    {
+    }
+
+
+
+
     private static World _world = null!;
 
     [RuntimeInitialize]

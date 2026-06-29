@@ -2,7 +2,7 @@ using System;
 
 namespace Ghost.AssetForge.Core.Attributes;
 
-[AttributeUsage(AttributeTargets.Property)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class ShowWhenAttribute : Attribute
 {
     public string PropertyName { get; }
