@@ -98,13 +98,6 @@ public class PackService
                     continue;
                 }
 
-                var backer = _bakerRegistry.GetBaker(Path.GetExtension(assetFile));
-                if (backer == null)
-                {
-                    Logger.Warning($"No baker found for {assetFile}. Skipping packing.");
-                    continue;
-                }
-
                 // relative path without extension
                 var dir = Path.GetDirectoryName(relativePath) ?? string.Empty;
                 var nameWithoutExt = Path.GetFileNameWithoutExtension(relativePath);

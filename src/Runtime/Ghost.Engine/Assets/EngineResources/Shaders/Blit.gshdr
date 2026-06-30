@@ -13,9 +13,9 @@ shader "Hidden/Blit"
 
         includes
         {
-            "/EngineResources/Shaders/Includes/Common.hlsl";
-            "/EngineResources/Shaders/Includes/Color.hlsl";
-            "/EngineResources/Shaders/Includes/Properties.hlsl";
+            "EngineResources/Shaders/Includes/Common.hlsl";
+            "EngineResources/Shaders/Includes/Color.hlsl";
+            "EngineResources/Shaders/Includes/Properties.hlsl";
         }
 
         hlsl
@@ -50,7 +50,7 @@ shader "Hidden/Blit"
 
             float4 PSMain(PSInput input) : SV_TARGET
             {
-                PerMaterialData perMaterialData = LoadData<PerMaterialData>(g_PushConstantData.perMaterialBuffer, 0);
+                BlitShaderProperties perMaterialData = LoadData<BlitShaderProperties>(g_PushConstantData.instanceIndex, 0);
 
                 float2 uv = input.uv.xy;
                 float4 color = SAMPLE_TEXTURE2D(perMaterialData.mainTex, perMaterialData.sampler_mainTex, uv);

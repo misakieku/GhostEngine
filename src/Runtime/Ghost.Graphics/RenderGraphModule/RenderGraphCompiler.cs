@@ -150,12 +150,12 @@ internal sealed class RenderGraphCompiler
             var pass = passes[i];
             if (!pass.culled)
             {
-                UnculDependencies(pass, passes);
+                UncullDependencies(pass, passes);
             }
         }
     }
 
-    private void UnculDependencies(RenderGraphPassBase pass, List<RenderGraphPassBase> passes)
+    private void UncullDependencies(RenderGraphPassBase pass, List<RenderGraphPassBase> passes)
     {
         // Un-cull producers of read resources
         for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
@@ -163,33 +163,33 @@ internal sealed class RenderGraphCompiler
             var readList = pass.resourceReads[i];
             for (var j = 0; j < readList.Count; j++)
             {
-                UnculProducer(readList[j], passes);
+                UncullProducer(readList[j], passes);
             }
         }
 
         // Un-cull producers of color attachments
-        for (var i = 0; i < pass.maxColorIndex; i++)
+        for (var i = 0; i <= pass.maxColorIndex; i++)
         {
             if (pass.colorAccess[i].id.IsValid)
             {
-                UnculProducer(pass.colorAccess[i].id.AsResource(), passes);
+                UncullProducer(pass.colorAccess[i].id.AsResource(), passes);
             }
         }
 
         // Un-cull producer of depth attachment
         if (pass.depthAccess.id.IsValid)
         {
-            UnculProducer(pass.depthAccess.id.AsResource(), passes);
+            UncullProducer(pass.depthAccess.id.AsResource(), passes);
         }
 
         // Un-cull producers of UAV resources (if not already in reads/writes)
         for (var i = 0; i < pass.randomAccess.Count; i++)
         {
-            UnculProducer(pass.randomAccess[i], passes);
+            UncullProducer(pass.randomAccess[i], passes);
         }
     }
 
-    private void UnculProducer(Identifier<RGResource> resource, List<RenderGraphPassBase> passes)
+    private void UncullProducer(Identifier<RGResource> resource, List<RenderGraphPassBase> passes)
     {
         var res = _resources.GetResource(resource);
         if (res.producerPass >= 0)
@@ -198,7 +198,7 @@ internal sealed class RenderGraphCompiler
             if (producer.culled)
             {
                 producer.culled = false;
-                UnculDependencies(producer, passes);
+                UncullDependencies(producer, passes);
             }
         }
     }

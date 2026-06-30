@@ -18,10 +18,10 @@ public enum KeywordSpace
     Global,
 }
 
-public struct ShaderCode
+public struct ShaderCode()
 {
-    public string code;
-    public string entryPoint;
+    public string code = string.Empty;
+    public string entryPoint = string.Empty;
 
     public readonly bool IsCreated => !string.IsNullOrEmpty(code) && !string.IsNullOrEmpty(entryPoint);
 
@@ -50,8 +50,7 @@ public struct ShaderCode
 
 public struct KeywordsGroup
 {
-    public KeywordSpace space;
-    public List<string> keywords;
+    public List<string>? keywords;
 }
 
 public struct PassDescriptor

@@ -21,6 +21,7 @@ public partial struct UpdateGPUSceneShaderProperty
 
 internal partial class GhostRenderPipeline
 {
+    [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Includes/Generated/GhostRenderPipeline.hlsl")]
     private struct UpdateInstanceData
     {
         public float4x4 localToWorld;
@@ -31,6 +32,7 @@ internal partial class GhostRenderPipeline
         public uint shadowCastingMode;
     }
 
+    [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Includes/Generated/GhostRenderPipeline.hlsl")]
     private struct RemoveInstanceData
     {
         public uint instanceID;

@@ -32,13 +32,13 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
 
     private static async Task WriteShaderEntries(Stream stream, CancellationToken cancellationToken, params (ShaderStage stage, UnsafeArray<byte> bytecode)[] entries)
     {
-        var startOffset = stream.Position;
+        var baseByteCodeOffset = stream.Position + (entries.Length * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>());
 
         for (var i = 0; i < entries.Length; i++)
         {
             var (stage, bytecode) = entries[i];
-            var byteCodeOffset = startOffset + (i * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>());
-            for (var j = 0; j < i; i++)
+            var byteCodeOffset = baseByteCodeOffset;
+            for (var j = 0; j < i; j++)
             {
                 byteCodeOffset += entries[j].bytecode.Length;
             }
@@ -66,28 +66,7 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
         }
     }
 
-    public string ResolveVirtualPath(string rootDirectory, string assetPath)
-    {
-        var code = File.ReadAllText(assetPath);
-        var ext = Path.GetExtension(assetPath);
-
-        if (string.Equals(ext, ".gshdr", StringComparison.Ordinal))
-        {
-            var syntax = DSLShaderCompiler.ParseGraphicsShaderSyntax(code).GetValueOrThrow();
-            return syntax.Name;
-        }
-        else if (string.Equals(ext, ".gcomp", StringComparison.Ordinal))
-        {
-            var syntax = DSLShaderCompiler.ParseComputeShaderSyntax(code).GetValueOrThrow();
-            return syntax.Name;
-        }
-        else
-        {
-            // This should never happen because the baker is registered for these extensions only.
-            throw new NotSupportedException($"Unsupported shader file extension: {ext}");
-        }
-    }
-
+    // TODO: Compile all variants.
     public async Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
     {
         if (settings is not ShaderBakeSettings shaderSettings)
@@ -102,18 +81,16 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
         {
             optimizeLevel = shaderSettings.OptimizeLevel,
             options = shaderSettings.Options,
-            IncludeDirectories = ctx.AssetDirectories.ToArray(),
+            includeDirectories = ctx.AssetDirectories.ToArray(),
         };
 
         if (string.Equals(ext, ".gshdr", StringComparison.Ordinal))
         {
             var syntax = DSLShaderCompiler.ParseGraphicsShaderSyntax(codeStr).GetValueOrThrow();
             var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
-            var reflectionData = ctx.ShaderNameToReflectionData.TryGetValue(semantics.name, out var data)
-                ? data
-                : new DSL.Models.ShaderReflectionData();
 
-            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData).GetValueOrThrow();
+            var reflectionData = ctx.ShderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
+            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShderMetadata.VirtualShader).GetValueOrThrow();
 
             var header = new ShaderContentHeader
             {
@@ -172,15 +149,13 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
         {
             var syntax = DSLShaderCompiler.ParseComputeShaderSyntax(codeStr).GetValueOrThrow();
             var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
-            var reflectionData = ctx.ShaderNameToReflectionData.TryGetValue(semantics.name, out var data)
-                ? data
-                : new DSL.Models.ShaderReflectionData();
 
-            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData).GetValueOrThrow();
+            var reflectionData = ctx.ShderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
+            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShderMetadata.VirtualShader).GetValueOrThrow();
 
             var header = new ShaderContentHeader
             {
-                shaderType = ShaderType.Graphics,
+                shaderType = ShaderType.Compute,
                 passCount = 1, // Compute shaders have a single pass
             };
 

@@ -26,11 +26,11 @@ public enum PackingRules
 public class GenerateHLSLAttribute : Attribute
 {
     private readonly PackingRules _packingRules;
-    private readonly string? _outputSource;
+    private readonly string _virtualPath;
 
-    public GenerateHLSLAttribute(PackingRules packingRules, string? outputSource)
+    public GenerateHLSLAttribute(PackingRules packingRules, string virtualPath)
     {
         _packingRules = packingRules;
-        _outputSource = outputSource;
+        _virtualPath = virtualPath;
     }
 }

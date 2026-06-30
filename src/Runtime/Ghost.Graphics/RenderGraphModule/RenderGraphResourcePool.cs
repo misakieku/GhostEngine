@@ -136,6 +136,7 @@ internal sealed class RenderGraphResourceRegistry
             return count;
         }
     }
+
     public int BufferResourceCount
     {
         get

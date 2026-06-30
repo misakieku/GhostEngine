@@ -18,9 +18,6 @@ computeBody:
 shaderModel:
     SM IDENTIFIER SEMICOLON;
 
-scope:
-    GLOBAL | LOCAL;
-
 definesBlock:
     DEFINES LBRACE
         defineStatement*
@@ -43,7 +40,7 @@ keywordsBlock:
     RBRACE;
 
 keywordStatement:
-    scope? IDENTIFIER (COMMA IDENTIFIER)* SEMICOLON;
+    IDENTIFIER (COMMA IDENTIFIER)* SEMICOLON;
 
 hlslBlock:
     HLSL LBRACE

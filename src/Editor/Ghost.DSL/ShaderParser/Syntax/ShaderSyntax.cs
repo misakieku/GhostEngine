@@ -54,7 +54,6 @@ public class KeywordsBlockSyntax
 
 public class KeywordGroupSyntax
 {
-    public string? Scope { get; set; }
     public List<string> Keywords { get; set; } = new();
 }
 

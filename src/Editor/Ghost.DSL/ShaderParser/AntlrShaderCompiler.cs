@@ -146,8 +146,8 @@ public class AntlrShaderCompiler
         var semantics = new ComputeShaderSemantics
         {
             name = syntax.Name,
-            defines = syntax.Defines?.Defines,
-            includes = syntax.Includes?.Includes,
+            defines = syntax.Defines?.Defines ?? new List<string>(),
+            includes = syntax.Includes?.Includes ?? new List<string>(),
             hlsl = syntax.Hlsl?.Code
         };
 
@@ -163,7 +163,6 @@ public class AntlrShaderCompiler
             {
                 var keywordGroup = new KeywordsGroup
                 {
-                    space = group.Scope?.ToLower() == "global" ? KeywordSpace.Global : KeywordSpace.Local,
                     keywords = group.Keywords
                 };
                 semantics.keywords.Add(keywordGroup);
@@ -293,7 +292,6 @@ public class AntlrShaderCompiler
             {
                 var keywordGroup = new KeywordsGroup
                 {
-                    space = group.Scope?.ToLower() == "global" ? KeywordSpace.Global : KeywordSpace.Local,
                     keywords = group.Keywords
                 };
                 semantic.keywords.Add(keywordGroup);
@@ -375,7 +373,6 @@ public class AntlrShaderCompiler
             var passSemantic = ConvertPass(pass, errors);
             if (passSemantic != null)
             {
-                semantics.passes ??= new List<PassSemantic>();
                 semantics.passes.Add(passSemantic);
             }
         }

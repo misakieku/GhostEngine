@@ -18,9 +18,6 @@ shaderBody:
 shaderModel:
     SM IDENTIFIER SEMICOLON;
 
-scope:
-    GLOBAL | LOCAL;
-
 // Pipeline block
 pipelineBlock:
     PIPELINE LBRACE
@@ -62,7 +59,7 @@ keywordsBlock:
     RBRACE;
 
 keywordStatement:
-    scope? IDENTIFIER (COMMA IDENTIFIER)* SEMICOLON;
+    IDENTIFIER (COMMA IDENTIFIER)* SEMICOLON;
 
 hlslBlock:
     HLSL LBRACE

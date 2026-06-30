@@ -39,7 +39,7 @@ public static class DSLShaderCompiler
         };
     }
 
-    private static Result<string> BuildFinalShaderCode(string? shaderPath, ReadOnlySpan<string> includes, string? injectedCode, string? properties)
+    private static Result<string> BuildFinalShaderCode(string? shaderPath, ReadOnlySpan<string> includes, string? injectedCode, string? properties, IReadOnlyDictionary<string, string> virtualShaders)
     {
         if (string.IsNullOrEmpty(shaderPath))
         {
@@ -70,7 +70,18 @@ public static class DSLShaderCompiler
         foreach (var includePath in includes)
         {
             var relativePath = includePath.TrimStart('/', '\\');
-            sb.AppendLine($"#include \"{relativePath}\"");
+            var absolutePath = "/" + relativePath;
+
+            if (virtualShaders.TryGetValue(absolutePath, out var code) || 
+                virtualShaders.TryGetValue(relativePath, out code) || 
+                virtualShaders.TryGetValue(includePath, out code))
+            {
+                sb.AppendLine(code);
+            }
+            else
+            {
+                sb.AppendLine($"#include \"{relativePath}\"");
+            }
         }
 
         if (!string.IsNullOrEmpty(properties))
@@ -131,7 +142,7 @@ public static class DSLShaderCompiler
         return semantics;
     }
 
-    public static Result<GraphicsShaderDescriptor> ResolveShader(GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData)
+    public static Result<GraphicsShaderDescriptor> ResolveShader(GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders)
     {
         var passes = semantics.passes == null ? Array.Empty<PassDescriptor>() : new PassDescriptor[semantics.passes.Count];
         for (var i = 0; i < passes.Length; i++)
@@ -139,7 +150,7 @@ public static class DSLShaderCompiler
             var pass = semantics.passes![i];
             var localPipeline = MeragePipeline(pass.localPipeline, PipelineState.Default);
 
-            var result = BuildFinalShaderCode(pass.amplificationShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, reflectionData.Code);
+            var result = BuildFinalShaderCode(pass.amplificationShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, reflectionData.Code, virtualShaders);
             if (result.IsFailure)
             {
                 return Result.Failure($"Failed to build shader code for pass '{pass.name}': {result.Message}");
@@ -147,7 +158,7 @@ public static class DSLShaderCompiler
 
             var amplificationShaderCode = new ShaderCode { code = result.Value, entryPoint = pass.amplificationShader.entry ?? string.Empty };
 
-            result = BuildFinalShaderCode(pass.meshShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, reflectionData.Code);
+            result = BuildFinalShaderCode(pass.meshShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, reflectionData.Code, virtualShaders);
             if (result.IsFailure)
             {
                 return Result.Failure($"Failed to build shader code for pass '{pass.name}': {result.Message}");
@@ -155,7 +166,7 @@ public static class DSLShaderCompiler
 
             var meshShaderCode = new ShaderCode { code = result.Value, entryPoint = pass.meshShader.entry ?? string.Empty };
 
-            result = BuildFinalShaderCode(pass.pixelShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, reflectionData.Code);
+            result = BuildFinalShaderCode(pass.pixelShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, reflectionData.Code, virtualShaders);
             if (result.IsFailure)
             {
                 return Result.Failure($"Failed to build shader code for pass '{pass.name}': {result.Message}");
@@ -230,12 +241,12 @@ public static class DSLShaderCompiler
         return semantics;
     }
 
-    public static Result<ComputeShaderDescriptor> ResolveShader(ComputeShaderSemantics semantics, ShaderReflectionData reflectionData)
+    public static Result<ComputeShaderDescriptor> ResolveShader(ComputeShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders)
     {
         var shaderCodes = new ShaderCode[semantics.entryPoints.Count];
         for (var i = 0; i < shaderCodes.Length; i++)
         {
-            var result = BuildFinalShaderCode(semantics.entryPoints[i].shaderPath, semantics.includes.AsSpan(), semantics.hlsl, reflectionData.Code);
+            var result = BuildFinalShaderCode(semantics.entryPoints[i].shaderPath, semantics.includes.AsSpan(), semantics.hlsl, reflectionData.Code, virtualShaders);
             if (result.IsFailure)
             {
                 return Result.Failure($"Failed to build shader code for entry point '{semantics.entryPoints[i].entry}': {result.Message}");

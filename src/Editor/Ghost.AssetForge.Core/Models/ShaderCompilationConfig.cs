@@ -27,7 +27,7 @@ public struct ShaderCompilationConfig
     public string entryPoint;
     public ShaderStage stage;
     public ShaderModel model;
-    public IReadOnlyList<string>? IncludeDirectories;
+    public IReadOnlyList<string>? includeDirectories;
     public CompilerOptimizeLevel optimizeLevel;
     public CompilerOption options;
 }

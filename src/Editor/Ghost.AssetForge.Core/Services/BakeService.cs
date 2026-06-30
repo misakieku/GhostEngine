@@ -17,7 +17,7 @@ public class BakeService
         _projectService = projectService;
         _bakerRegistry = bakerRegistry;
 
-        var shaderData = new Dictionary<string, ShaderReflectionData>();
+        var shaderData = new ShaderMetadata();
         
         foreach (var path in _projectService.ShaderMetadataPaths)
         {
@@ -26,25 +26,22 @@ public class BakeService
                 try
                 {
                     var json = File.ReadAllText(path);
-                    var deserialized = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, ShaderReflectionData>>(json);
+                    var deserialized = System.Text.Json.JsonSerializer.Deserialize<ShaderMetadata>(json);
                     if (deserialized != null)
                     {
-                        foreach (var kvp in deserialized)
-                        {
-                            shaderData[kvp.Key] = kvp.Value;
-                        }
+                        shaderData.Merge(deserialized);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Logger.Warning($"Failed to load shader metadata from {path}: {ex.Message}");
+                    Logger.Error($"Failed to load shader metadata from {path}: {ex.Message}");
                 }
             }
         }
 
         _bakerContext = new AssetBakerContext
         {
-            ShaderNameToReflectionData = shaderData,
+            ShderMetadata = shaderData,
             AssetDirectories = _projectService.AssetDirectories
         };
     }
@@ -168,7 +165,7 @@ public class BakeService
                     continue;
                 }
 
-                var fs = new FileStream(cacheFile, FileMode.Create, FileAccess.Write);
+                await using var fs = new FileStream(cacheFile, FileMode.Create, FileAccess.Write);
                 await baker.BakeAssetAsync(sourceFile, fs, metadata.Settings, _bakerContext, cancellationToken);
             }
             else

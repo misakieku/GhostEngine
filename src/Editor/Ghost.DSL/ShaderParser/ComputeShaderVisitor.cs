@@ -93,11 +93,6 @@ internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object
         {
             var group = new KeywordGroupSyntax();
 
-            if (keywordStmt.scope() != null)
-            {
-                group.Scope = keywordStmt.scope().GetText();
-            }
-
             foreach (var identifier in keywordStmt.IDENTIFIER())
             {
                 group.Keywords.Add(identifier.GetText());

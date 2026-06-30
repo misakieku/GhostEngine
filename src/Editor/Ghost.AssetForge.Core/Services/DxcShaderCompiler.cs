@@ -69,9 +69,9 @@ internal sealed partial class DXCShaderCompiler
             argsArray.Add(define);
         }
 
-        if (config.IncludeDirectories != null)
+        if (config.includeDirectories != null)
         {
-            foreach (var dir in config.IncludeDirectories)
+            foreach (var dir in config.includeDirectories)
             {
                 argsArray.Add("-I");
                 argsArray.Add(dir);

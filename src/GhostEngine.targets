@@ -5,7 +5,7 @@
       <GhostAssetDir Condition="'$(GhostAssetDir)' == ''">$(MSBuildProjectDirectory)\Asset</GhostAssetDir>
       <GhostAssetCacheDir Condition="'$(GhostAssetCacheDir)' == ''">$(IntermediateOutputPath)AssetCache</GhostAssetCacheDir>
       <GhostAssetBuildDir Condition="'$(GhostAssetBuildDir)' == ''">$(TargetDir)Assets</GhostAssetBuildDir>
-      <GhostShaderMetadataPath Condition="'$(GhostShaderMetadataPath)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)shader_properties.json</GhostShaderMetadataPath>
+      <GhostShaderMetadataPath Condition="'$(GhostShaderMetadataPath)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)shader_metadata.json</GhostShaderMetadataPath>
     </PropertyGroup>
   </Target>
 

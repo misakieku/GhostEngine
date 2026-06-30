@@ -99,16 +99,13 @@ public partial struct Shader : IResourceReleasable
                         continue;
                     }
 
-                    if (group.space == KeywordSpace.Local)
+                    foreach (var kw in group.keywords)
                     {
-                        foreach (var kw in group.keywords)
-                        {
-                            var kwID = GetKeywordID(kw);
-                            var idx = localKeywordIndex++;
+                        var kwID = GetKeywordID(kw);
+                        var idx = localKeywordIndex++;
 
-                            keywords.SetKeyword(idx, true);
-                            _keywordIDToLocal.TryAdd(kwID, idx);
-                        }
+                        keywords.SetKeyword(idx, true);
+                        _keywordIDToLocal.TryAdd(kwID, idx);
                     }
 
                     // TODO: Global keywords
@@ -219,16 +216,13 @@ public unsafe partial struct ComputeShader : IResourceReleasable
                 continue;
             }
 
-            if (group.space == KeywordSpace.Local)
+            foreach (var kw in group.keywords)
             {
-                foreach (var kw in group.keywords)
-                {
-                    var kwID = Shader.GetKeywordID(kw);
-                    var idx = localKeywordIndex++;
+                var kwID = Shader.GetKeywordID(kw);
+                var idx = localKeywordIndex++;
 
-                    _localKeywordSet.SetKeyword(idx, true);
-                    _keywordIDToLocal.TryAdd(kwID, idx);
-                }
+                _localKeywordSet.SetKeyword(idx, true);
+                _keywordIDToLocal.TryAdd(kwID, idx);
             }
         }
     }

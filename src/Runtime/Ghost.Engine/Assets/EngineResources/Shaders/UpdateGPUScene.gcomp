@@ -2,7 +2,8 @@ compute "Internal/UpdateGPUScene"
 {
     includes
     {
-        "/EngineResources/Shaders/Includes/Properties.hlsl";
+        "EngineResources/Shaders/Includes/Properties.hlsl";
+        "EngineResources/Shaders/Includes/Generated/GhostRenderPipeline.hlsl";
     }
 
     hlsl
@@ -13,14 +14,14 @@ compute "Internal/UpdateGPUScene"
             UpdateGPUSceneShaderProperty properties = LoadData<UpdateGPUSceneShaderProperty>(g_PushConstantData.propertiesBuffer, 0);
             RWStructuredBuffer<InstanceData> gpuSceneBuffer = GET_BUFFER(properties.gpuSceneBuffer);
 
-            if (properties.addCount > 0)
+            if (properties.updateCount > 0)
             {
-                StructuredBuffer<AddInstanceData> addBuffer = GET_BUFFER(properties.addBuffer);
-                AddInstanceData addData = addBuffer[dispatchThreadID.x];
+                StructuredBuffer<UpdateInstanceData> updateBuffer = GET_BUFFER(properties.updateBuffer);
+                UpdateInstanceData updateData = updateBuffer[dispatchThreadID.x];
 
-                gpuSceneBuffer[addData.instanceID].localToWorld = addData.localToWorld;
-                gpuSceneBuffer[addData.instanceID].meshBuffer = addData.meshBuffer;
-                gpuSceneBuffer[addData.instanceID].materialBuffer = addData.materialPalette;
+                gpuSceneBuffer[updateData.instanceID].localToWorld = updateData.localToWorld;
+                gpuSceneBuffer[updateData.instanceID].meshBuffer = updateData.meshBuffer;
+                gpuSceneBuffer[updateData.instanceID].materialPaletteIndex = updateData.materialPaletteIndex;
             }
 
             if (properties.removeCount > 0)

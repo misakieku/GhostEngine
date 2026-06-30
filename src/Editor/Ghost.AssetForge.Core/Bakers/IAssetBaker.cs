@@ -14,7 +14,7 @@ public interface IBakeSettings;
 
 public class AssetBakerContext
 {
-    public required IReadOnlyDictionary<string, ShaderReflectionData> ShaderNameToReflectionData
+    public required ShaderMetadata ShderMetadata
     {
         get; init;
     }
@@ -27,13 +27,5 @@ public class AssetBakerContext
 
 public interface IAssetBaker
 {
-    virtual string ResolveVirtualPath(string rootDirectory, string assetPath)
-    {
-        var relativePath = Path.GetRelativePath(rootDirectory, assetPath);
-        var dir = Path.GetDirectoryName(relativePath) ?? string.Empty;
-        var nameWithoutExt = Path.GetFileNameWithoutExtension(relativePath);
-        return Path.Combine(dir, nameWithoutExt).Replace('\\', '/');
-    }
-
     Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken);
 }

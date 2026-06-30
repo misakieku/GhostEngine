@@ -8,6 +8,8 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
+        Logger.Impl.OnLogAdded += static log => Console.WriteLine($"[{log.Level}] {log.Message}");
+
         if (args.Length == 0 || args[0] != "bake")
         {
             Console.WriteLine("Usage: Ghost.AssetForge.CLI bake --asset-dir <dir> --cache-dir <dir> --build-dir <dir>");
@@ -49,7 +51,6 @@ public class Program
         }
 
         AllocationManager.Initialize();
-        Logger.Impl.OnLogAdded += log => Console.WriteLine($"[{log.Level}] {log.Message}");
 
         try
         {

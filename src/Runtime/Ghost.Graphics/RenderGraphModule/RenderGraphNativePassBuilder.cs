@@ -196,7 +196,7 @@ internal sealed class RenderGraphNativePassBuilder
     /// Checks if any barriers are required between two passes that would prevent merging.
     /// Only barriers affecting render targets prevent merging; SRV barriers are fine.
     /// </summary>
-    private bool RequiresBarrierBetweenPasses(
+    private static bool RequiresBarrierBetweenPasses(
         int passA,
         int passB,
         List<RenderGraphPassBase> compiledPasses,
@@ -213,6 +213,7 @@ internal sealed class RenderGraphNativePassBuilder
                 renderTargets.Add(laterPass.colorAccess[i].id.AsResource());
             }
         }
+
         if (!laterPass.depthAccess.id.IsInvalid)
         {
             renderTargets.Add(laterPass.depthAccess.id.AsResource());
