@@ -48,7 +48,7 @@ internal static class RenderGraphBarriers
         List<RenderGraphPassBase> compiledPasses,
         List<CompiledBarrier> compiledBarriers,
         RenderGraphResourceRegistry resources,
-        ResourceAliasingManager aliasingManager)
+        AliasingPlan aliasingPlan)
     {
         compiledBarriers.Clear();
 
@@ -58,7 +58,7 @@ internal static class RenderGraphBarriers
             var pass = compiledPasses[passIdx];
 
             // 1. Insert aliasing barriers for resources that reuse physical memory
-            InsertAliasingBarriers(pass, passIdx, compiledBarriers, resources, aliasingManager);
+            InsertAliasingBarriers(pass, passIdx, compiledBarriers, resources, aliasingPlan);
 
             // 2. Compile implicit transitions for all resources accessed by this pass
             CompileImplicitTransitions(pass, passIdx, compiledBarriers, resources);
@@ -70,7 +70,7 @@ internal static class RenderGraphBarriers
         int passIdx,
         List<CompiledBarrier> compiledBarriers,
         RenderGraphResourceRegistry resources,
-        ResourceAliasingManager aliasingManager)
+        AliasingPlan aliasingPlan)
     {
         // Check all resources written by this pass (both textures and buffers)
         for (var resType = 0; resType < (int)RenderGraphResourceType.Count; resType++)
@@ -79,7 +79,7 @@ internal static class RenderGraphBarriers
             for (var i = 0; i < writeList.Count; i++)
             {
                 var id = writeList[i];
-                var resource = resources.GetResource(id);
+                ref readonly var resource = ref resources.GetResource(id);
 
                 // Skip imported resources
                 if (resource.isImported)
@@ -91,10 +91,10 @@ internal static class RenderGraphBarriers
                 if (resource.firstUsePass == pass.index)
                 {
                     // Get the placed heap
-                    var placedIndex = aliasingManager.GetPlacedResourceIndex(id.Value);
+                    var placedIndex = aliasingPlan.GetPlacedResourceIndex(id.Value);
                     if (placedIndex >= 0)
                     {
-                        var placed = aliasingManager.GetPlacedResource(placedIndex);
+                        var placed = aliasingPlan.GetPlacedResource(placedIndex);
 
                         // If this placed heap has multiple aliased resources,
                         // we need an aliasing barrier when switching between them
@@ -153,7 +153,7 @@ internal static class RenderGraphBarriers
         // Helper to add a compiled barrier for a heap transition
         void AddTransition(Identifier<RGResource> id, ResourceBarrierData targetState)
         {
-            var resource = resources.GetResource(id);
+            ref readonly var resource = ref resources.GetResource(id);
             var barrier = new CompiledBarrier
             {
                 passIndex = passIdx,
@@ -290,7 +290,7 @@ internal static class RenderGraphBarriers
         var sync = BarrierSync.PixelShading | BarrierSync.NonPixelShading;
         var access = BarrierAccess.ShaderResource;
 
-        var resource = resources.GetResource(handle);
+        ref readonly var resource = ref resources.GetResource(handle);
         if (resource.bufferDesc.Usage.HasFlag(BufferUsage.IndirectArgument))
         {
             sync = BarrierSync.ExecuteIndirect;

@@ -19,11 +19,11 @@ public sealed class RenderGraph : IDisposable
     private readonly List<NativeRenderPass> _nativePasses;
 
     private readonly RenderGraphBuilder _builder;
-    private readonly ResourceAliasingManager _aliasingManager;
+    private readonly AliasingPlan _aliasingPlan;
 
     private readonly List<CompiledBarrier> _compiledBarriers = new(128);
 
-    private readonly RenderGraphCompilationCache _compilationCache = new();
+    private readonly RenderGraphCompilationCache _compilationCache;
     private readonly RenderGraphContext _context;
 
     private readonly RenderGraphCompiler _compiler;
@@ -41,14 +41,14 @@ public sealed class RenderGraph : IDisposable
         _resourceDatabase = renderSystem.GraphicsEngine.ResourceDatabase;
 
         _objectPool = new RenderGraphObjectPool();
-        _resources = new RenderGraphResourceRegistry(_objectPool);
+        _resources = new RenderGraphResourceRegistry(_objectPool, _resourceDatabase, renderSystem.GraphicsEngine.ResourceAllocator);
 
         _passes = new List<RenderGraphPassBase>(32);
         _compiledPasses = new List<RenderGraphPassBase>(32);
         _nativePasses = new List<NativeRenderPass>(32);
 
         _builder = new RenderGraphBuilder();
-        _aliasingManager = new ResourceAliasingManager(renderSystem.GraphicsEngine.ResourceAllocator, _objectPool);
+        _aliasingPlan = new AliasingPlan();
 
         _compilationCache = new RenderGraphCompilationCache();
 
@@ -61,7 +61,7 @@ public sealed class RenderGraph : IDisposable
         );
 
         _nativePassBuilder = new RenderGraphNativePassBuilder(_objectPool, _resources);
-        _compiler = new RenderGraphCompiler(renderSystem.GraphicsEngine.ResourceDatabase, renderSystem.GraphicsEngine.ResourceAllocator, _resources, _aliasingManager, _nativePassBuilder, _compilationCache);
+        _compiler = new RenderGraphCompiler(renderSystem.GraphicsEngine.ResourceAllocator, _resources, _nativePassBuilder, _compilationCache);
         _executor = new RenderGraphExecutor(renderSystem.ResourceManager, renderSystem.GraphicsEngine.ResourceDatabase, _resources, _context);
 
         _blackboard = new RenderGraphBlackboard();
@@ -74,7 +74,7 @@ public sealed class RenderGraph : IDisposable
     {
         _blackboard.Clear();
         _resources.Clear();
-        _aliasingManager.Clear();
+        _aliasingPlan.Clear(_objectPool);
         _compiledBarriers.Clear();
 
         // Return passes to the pool and reset count
@@ -186,7 +186,7 @@ public sealed class RenderGraph : IDisposable
         _resources.ResolveTextureSizes(in viewState);
 
         var graphHash = RenderGraphHasher.ComputeGraphHash(_passes, _resources);
-        var result = _compiler.Compile(in viewState, graphHash, _passes, _compiledPasses, _nativePasses, _compiledBarriers);
+        var result = _compiler.Compile(in viewState, graphHash, _passes, _compiledPasses, _nativePasses, _compiledBarriers, _aliasingPlan, _objectPool);
         if (result.IsFailure)
         {
             return result.Error;
@@ -213,7 +213,7 @@ public sealed class RenderGraph : IDisposable
 
     public void Dispose()
     {
-        _compiler.Dispose();
+        _resources.Dispose();
 
         // HACK: Ideally, we should have a Dispose method. But for now, we just reset to release resources.
         Reset();

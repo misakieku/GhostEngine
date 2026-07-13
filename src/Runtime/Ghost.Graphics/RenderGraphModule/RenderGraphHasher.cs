@@ -89,7 +89,7 @@ internal static unsafe class RenderGraphHasher
             return;
         }
 
-        var resource = resources.GetResource(texture.AsResource());
+        ref readonly var resource = ref resources.GetResource(texture.AsResource());
 
         // Hash imported flag
         writer->Write(resource.isImported);

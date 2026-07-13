@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Engine;
 using Ghost.Engine.Components;
+using Ghost.Engine.Systems;
 using Ghost.Engine.Utilities;
 using Ghost.Entities;
 using Ghost.Graphics.Core;
@@ -12,19 +13,6 @@ namespace TestGame;
 
 internal static class Setup
 {
-    [Ghost.Core.Graphics.GenerateShaderProperty("MyShader/Standard")]
-    public struct MyShaderStandardData
-    {
-    }
-
-    [Ghost.Core.Graphics.GenerateShaderProperty("TestComputeShader")]
-    public struct TestComputeShaderData
-    {
-    }
-
-
-
-
     private static World _world = null!;
 
     [RuntimeInitialize]
@@ -53,7 +41,7 @@ internal static class Setup
             matrix = float4x4.TRS(new float3(0.0f, 0.0f, -5.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
         });
 
-        
+        _world.SystemManager.AddSystem<RenderSystemGroup>();
     }
 
     [RuntimeShutdown]

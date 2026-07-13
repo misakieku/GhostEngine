@@ -1,6 +1,9 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Buffer;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -64,10 +67,8 @@ internal sealed class RenderGraphObjectPool
     }
 }
 
-internal sealed class RenderGraphResource
+internal record struct RenderGraphResource : IDisposable
 {
-    public string name = string.Empty;
-
     public int index;
     public RenderGraphResourceType type;
 
@@ -80,18 +81,25 @@ internal sealed class RenderGraphResource
     public uint resolvedHeight;
 
     public bool isImported;
-    public int firstUsePass = -1;
-    public int lastUsePass = -1;
-    public int producerPass = -1;
-    public List<int> consumerPasses = new(4);
+    public int firstUsePass;
+    public int lastUsePass;
+    public int producerPass;
+    public UnsafeList<int> consumerPasses;
     public int refCount;
 
-    public Handle<GPUResource> backingResource = Handle<GPUResource>.Invalid;
+    public Handle<GPUResource> backingResource;
+
+    public RenderGraphResource()
+    {
+        firstUsePass = -1;
+        lastUsePass = -1;
+        producerPass = -1;
+        consumerPasses = new UnsafeList<int>(4, AllocationHandle.Temp);
+        backingResource = Handle<GPUResource>.Invalid;
+    }
 
     public void Reset()
     {
-        name = string.Empty;
-
         type = RenderGraphResourceType.Texture;
         index = -1;
         rgTextureDesc = default;
@@ -104,156 +112,154 @@ internal sealed class RenderGraphResource
         producerPass = -1;
         consumerPasses.Clear();
         refCount = 0;
+        backingResource = Handle<GPUResource>.Invalid;
+    }
+
+    public void Dispose()
+    {
+        consumerPasses.Dispose();
     }
 }
 
-internal sealed class RenderGraphResourceRegistry
+internal sealed class RenderGraphResourceRegistry : IDisposable
 {
     private readonly RenderGraphObjectPool _pool;
-    private readonly List<RenderGraphResource> _resources;
+    private readonly IResourceDatabase _database;
+    private readonly IResourceAllocator _allocator;
+    private UnsafeList<RenderGraphResource> _resources;
+#if GHOST_SAFETY_CHECKS
+    private readonly Dictionary<int, string> _resourceName;
+#endif
+    private Handle<GPUResource> _resourceHeap = Handle<GPUResource>.Invalid;
 
-    internal IReadOnlyList<RenderGraphResource> Resources => _resources;
+    internal ReadOnlySpan<RenderGraphResource> Resources => _resources;
 
-    public RenderGraphResourceRegistry(RenderGraphObjectPool pool)
+    public RenderGraphResourceRegistry(RenderGraphObjectPool pool, IResourceDatabase database, IResourceAllocator allocator)
     {
         _pool = pool;
-        _resources = new List<RenderGraphResource>(64);
+        _database = database;
+        _allocator = allocator;
+        _resources = new UnsafeList<RenderGraphResource>(64, AllocationHandle.Persistent);
+#if GHOST_SAFETY_CHECKS
+        _resourceName = new Dictionary<int, string>(64);
+#endif
     }
 
     public int ResourceCount => _resources.Count;
-    public int TextureResourceCount
-    {
-        get
-        {
-            var count = 0;
-            for (var i = 0; i < _resources.Count; i++)
-            {
-                if (_resources[i].type == RenderGraphResourceType.Texture)
-                {
-                    count++;
-                }
-            }
-            return count;
-        }
-    }
-
-    public int BufferResourceCount
-    {
-        get
-        {
-            var count = 0;
-            for (var i = 0; i < _resources.Count; i++)
-            {
-                if (_resources[i].type == RenderGraphResourceType.Buffer)
-                {
-                    count++;
-                }
-            }
-            return count;
-        }
-    }
 
     public void Clear()
     {
-        // Return all resources to pool
         for (var i = 0; i < _resources.Count; i++)
         {
-            _pool.Return(_resources[i]);
+            _resources[i].Dispose();
         }
 
         _resources.Clear();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void AddResource(RenderGraphResource resource, string name)
+    {
+#if GHOST_SAFETY_CHECKS
+        _resourceName[_resources.Count] = name;
+#endif
+        _resources.Add(resource);
     }
 
     public Identifier<RGTexture> ImportTexture(ref readonly TextureDesc desc, Handle<GPUTexture> texture, string name,
         Color128 clearColor, float clearDepth, byte clearStencil,
         bool clearAtFirstUse, bool discardAtLastUse)
     {
-        var resource = _pool.Rent<RenderGraphResource>();
-        resource.name = name;
-        resource.type = RenderGraphResourceType.Texture;
-        resource.index = _resources.Count;
-        resource.rgTextureDesc = new RGTextureDesc
+        var resource = new RenderGraphResource
         {
-            sizeMode = RGTextureSizeMode.Absolute,
-            width = desc.Width,
-            height = desc.Height,
-            format = desc.Format,
-            clearColor = clearColor,
-            clearDepth = clearDepth,
-            clearStencil = clearStencil,
-            clearAtFirstUse = clearAtFirstUse,
-            discardAtLastUse = discardAtLastUse,
-            dimension = desc.Dimension,
-            mipLevels = desc.MipLevels,
-            slice = desc.Slice,
-            usage = desc.Usage
+            type = RenderGraphResourceType.Texture,
+            index = _resources.Count,
+            rgTextureDesc = new RGTextureDesc
+            {
+                sizeMode = RGTextureSizeMode.Absolute,
+                width = desc.Width,
+                height = desc.Height,
+                format = desc.Format,
+                clearColor = clearColor,
+                clearDepth = clearDepth,
+                clearStencil = clearStencil,
+                clearAtFirstUse = clearAtFirstUse,
+                discardAtLastUse = discardAtLastUse,
+                dimension = desc.Dimension,
+                mipLevels = desc.MipLevels,
+                slice = desc.Slice,
+                usage = desc.Usage
+            },
+            isImported = true,
+            backingResource = texture.AsResource(),
+            resolvedWidth = desc.Width,
+            resolvedHeight = desc.Height
         };
-        resource.isImported = true;
-        resource.backingResource = texture.AsResource();
-        resource.resolvedWidth = desc.Width;
-        resource.resolvedHeight = desc.Height;
 
-        _resources.Add(resource);
+        AddResource(resource, name);
 
         return new Identifier<RGTexture>(resource.index);
     }
 
     public Identifier<RGTexture> CreateTexture(ref readonly RGTextureDesc desc, string name)
     {
-        var resource = _pool.Rent<RenderGraphResource>();
-        resource.name = name;
-        resource.type = RenderGraphResourceType.Texture;
-        resource.index = _resources.Count;
-        resource.rgTextureDesc = desc;
-        resource.isImported = false;
+        var resource = new RenderGraphResource
+        {
+            type = RenderGraphResourceType.Texture,
+            index = _resources.Count,
+            rgTextureDesc = desc,
+            isImported = false
+        };
 
-        _resources.Add(resource);
+        AddResource(resource, name);
 
         return new Identifier<RGTexture>(resource.index);
     }
 
     public Identifier<RGBuffer> ImportBuffer(ref readonly BufferDesc desc, Handle<GPUBuffer> buffer, string name)
     {
-        var resource = _pool.Rent<RenderGraphResource>();
-        resource.name = name;
-        resource.type = RenderGraphResourceType.Buffer;
-        resource.index = _resources.Count;
-        resource.bufferDesc = desc;
-        resource.isImported = true;
-        resource.backingResource = buffer.AsResource();
+        var resource = new RenderGraphResource
+        {
+            type = RenderGraphResourceType.Buffer,
+            index = _resources.Count,
+            bufferDesc = desc,
+            isImported = true,
+            backingResource = buffer.AsResource()
+        };
 
-        _resources.Add(resource);
+        AddResource(resource, name);
 
         return new Identifier<RGBuffer>(resource.index);
     }
 
     public Identifier<RGBuffer> CreateBuffer(ref readonly BufferDesc desc, string name)
     {
-        var resource = _pool.Rent<RenderGraphResource>();
-        resource.name = name;
-        resource.type = RenderGraphResourceType.Buffer;
-        resource.index = _resources.Count;
-        resource.bufferDesc = desc;
-        resource.isImported = false;
+        var resource = new RenderGraphResource
+        {
+            type = RenderGraphResourceType.Buffer,
+            index = _resources.Count,
+            bufferDesc = desc,
+            isImported = false
+        };
 
-        _resources.Add(resource);
+        AddResource(resource, name);
 
         return new Identifier<RGBuffer>(resource.index);
     }
 
-    public RenderGraphResource GetResource(Identifier<RGResource> resource)
+    public ref RenderGraphResource GetResource(Identifier<RGResource> resource)
     {
-        return _resources[resource.Value];
+        return ref _resources[resource.Value];
     }
 
-    public RenderGraphResource GetResource(Identifier<RGTexture> texture)
+    public ref RenderGraphResource GetResource(Identifier<RGTexture> texture)
     {
-        return _resources[texture.Value];
+        return ref _resources[texture.Value];
     }
 
-    public RenderGraphResource GetResource(Identifier<RGBuffer> buffer)
+    public ref RenderGraphResource GetResource(Identifier<RGBuffer> buffer)
     {
-        return _resources[buffer.Value];
+        return ref _resources[buffer.Value];
     }
 
     /// <summary>
@@ -266,7 +272,7 @@ internal sealed class RenderGraphResourceRegistry
 
     public void SetProducer(Identifier<RGResource> resourceID, int passIndex)
     {
-        var resource = GetResource(resourceID);
+        ref var resource = ref GetResource(resourceID);
         resource.producerPass = passIndex;
         if (resource.firstUsePass < 0)
         {
@@ -276,7 +282,7 @@ internal sealed class RenderGraphResourceRegistry
 
     public void AddConsumer(Identifier<RGResource> resourceID, int passIndex)
     {
-        var resource = GetResource(resourceID);
+        ref var resource = ref GetResource(resourceID);
         resource.consumerPasses.Add(passIndex);
         resource.lastUsePass = passIndex;
         if (resource.firstUsePass < 0)
@@ -310,6 +316,116 @@ internal sealed class RenderGraphResourceRegistry
                 res.resolvedWidth = (uint)(desc.scaleX * viewState.viewportWidth);
                 res.resolvedHeight = (uint)(desc.scaleY * viewState.viewportHeight);
             }
+        }
+    }
+
+    public Error AllocateBackingResources(AliasingPlan plan, RenderGraphCompilationCache cache)
+    {
+        if (_resourceHeap.IsValid)
+        {
+            foreach (var res in _resources)
+            {
+                if (res.isImported)
+                {
+                    continue;
+                }
+
+                _database.ReleaseResource(res.backingResource);
+            }
+
+            _database.ReleaseResource(_resourceHeap);
+            _resourceHeap = Handle<GPUResource>.Invalid;
+        }
+
+        if (plan.TotalHeapSize == 0)
+        {
+            return Error.None; // No resources to allocate
+        }
+
+        var allocationDesc = new AllocationDesc
+        {
+            Size = plan.TotalHeapSize + 64 * 1024, // Add 64KB padding to avoid potential overflows
+            Alignment = 65536, // 64KB
+            HeapFlags = HeapFlags.AllowAllBufferAndTexture,
+            HeapType = HeapType.Default
+        };
+
+        _resourceHeap = _allocator.Allocate(in allocationDesc, "RenderGraphResourceHeap");
+        if (_resourceHeap.IsInvalid)
+        {
+            return Error.InvalidState;
+        }
+
+        for (var i = 0; i < _resources.Count; i++)
+        {
+            var placedIndex = plan.GetPlacedResourceIndex(i);
+            var placed = plan.GetPlacedResource(placedIndex);
+            if (placed == null)
+            {
+                continue;
+            }
+
+            var res = _resources[i];
+            var ops = new CreationOptions
+            {
+                AllocationType = ResourceAllocationType.Suballocation,
+                Heap = _resourceHeap,
+                Offset = placed.heapOffset,
+            };
+
+            var name = _resourceName.GetValueOrDefault(i, string.Empty);
+            if (res.type == RenderGraphResourceType.Texture)
+            {
+                var textureDesc = res.rgTextureDesc.ToTextureDesc(res.resolvedWidth, res.resolvedHeight);
+                res.backingResource = _allocator.CreateTexture(in textureDesc, name, ops).AsResource();
+            }
+            else if (res.type == RenderGraphResourceType.Buffer)
+            {
+                res.backingResource = _allocator.CreateBuffer(in res.bufferDesc, name, ops).AsResource();
+            }
+            else
+            {
+                throw new NotSupportedException();
+            }
+
+            if (res.backingResource.IsInvalid)
+            {
+                return Error.InvalidState;
+            }
+
+            cache.UpdateBackingResource(i, res.backingResource);
+        }
+
+        return Error.None;
+    }
+
+    public void RestoreBackingResources(List<Handle<GPUResource>> cachedBackingResources)
+    {
+        for (var i = 0; i < _resources.Count; i++)
+        {
+            var res = _resources[i];
+
+            if (!res.isImported)
+            {
+                res.backingResource = cachedBackingResources[i];
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_resourceHeap.IsValid)
+        {
+            foreach (var res in _resources)
+            {
+                if (!res.isImported)
+                {
+                    _database.ReleaseResource(res.backingResource);
+                }
+            }
+
+            _database.ReleaseResource(_resourceHeap);
+            _resourceHeap = Handle<GPUResource>.Invalid;
         }
     }
 }

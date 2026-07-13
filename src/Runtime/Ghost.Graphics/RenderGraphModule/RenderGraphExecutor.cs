@@ -218,8 +218,7 @@ internal sealed class RenderGraphExecutor
         while (barrierIndex < compiledBarriers.Count && compiledBarriers[barrierIndex].passIndex == passIndex)
         {
             var compiledBarrier = compiledBarriers[barrierIndex++];
-            var resource = _resources.GetResource(compiledBarrier.resource);
-            var resourceHandle = resource.backingResource;
+            var resourceHandle = _resources.GetResource(compiledBarrier.resource).backingResource;
 
             // Always query the before state from ResourceManager (single source of truth)
             var currentStateResult = _resourceDatabase.GetResourceBarrierData(resourceHandle);
