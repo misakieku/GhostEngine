@@ -581,10 +581,51 @@ public struct BarrierSubresourceRange
     {
         get; set;
     }
+
+    public uint FirstPlane
+    {
+        get; set;
+    }
+
+    public uint NumPlanes
+    {
+        get; set;
+    }
 }
 
 public struct BarrierDesc
 {
+    [StructLayout(LayoutKind.Explicit)]
+    public struct __additional_data
+    {
+        public struct GlobalData
+        {
+            public BarrierSync syncBefore;
+            public BarrierAccess accessBefore;
+        }
+
+        public struct BufferData
+        {
+            public ulong offset;
+            public ulong size;
+        }
+
+        public struct TextureData
+        {
+            public BarrierSubresourceRange subresourceRange;
+            public bool discard;
+        }
+
+        [FieldOffset(0)]
+        public GlobalData globalData;
+        [FieldOffset(0)]
+        public BufferData bufferData;
+        [FieldOffset(0)]
+        public TextureData textureData;
+    }
+
+    private __additional_data _additionalData;
+
     public BarrierType Type
     {
         get; set;
@@ -615,39 +656,51 @@ public struct BarrierDesc
         get; set;
     }
 
-    public bool Discard
-    {
-        get; set;
-    }
-
+    // TODO: We actually don't need this, we should insert NoAccess by ourself.
     public bool IsAliasing
     {
         get; set;
     }
 
-    public static BarrierDesc Global(BarrierSync syncAfter, BarrierAccess accessAfter)
+    [UnscopedRef]
+    public ref BarrierSync SyncBefore => ref _additionalData.globalData.syncBefore;
+    [UnscopedRef]
+    public ref BarrierAccess AccessBefore => ref _additionalData.globalData.accessBefore;
+
+    [UnscopedRef]
+    public ref ulong Offset => ref _additionalData.bufferData.offset;
+    [UnscopedRef]
+    public ref ulong Size => ref _additionalData.bufferData.size;
+
+    [UnscopedRef]
+    public ref BarrierSubresourceRange SubresourceRange => ref _additionalData.textureData.subresourceRange;
+    [UnscopedRef]
+    public ref bool Discard => ref _additionalData.textureData.discard;
+
+    public static BarrierDesc Global(
+        BarrierSync syncBefore,
+        BarrierSync syncAfter,
+        BarrierAccess accessBefore,
+        BarrierAccess accessAfter)
     {
         return new BarrierDesc
         {
             Type = BarrierType.Global,
             SyncAfter = syncAfter,
-            AccessAfter = accessAfter
-        };
-    }
-
-    public static BarrierDesc Buffer(Handle<GPUResource> resource, BarrierSync syncAfter, BarrierAccess accessAfter, bool isAliasing = false)
-    {
-        return new BarrierDesc
-        {
-            Type = BarrierType.Buffer,
-            Resource = resource,
-            SyncAfter = syncAfter,
             AccessAfter = accessAfter,
-            IsAliasing = isAliasing
+
+            SyncBefore = syncBefore,
+            AccessBefore = accessBefore,
         };
     }
 
-    public static BarrierDesc Buffer(Handle<GPUBuffer> resource, BarrierSync syncAfter, BarrierAccess accessAfter, bool isAliasing = false)
+    public static BarrierDesc Buffer(
+        Handle<GPUBuffer> resource,
+        BarrierSync syncAfter,
+        BarrierAccess accessAfter,
+        ulong offset = 0UL,
+        ulong size = ulong.MaxValue,
+        bool isAliasing = false)
     {
         return new BarrierDesc
         {
@@ -655,26 +708,21 @@ public struct BarrierDesc
             Resource = resource.AsResource(),
             SyncAfter = syncAfter,
             AccessAfter = accessAfter,
-            IsAliasing = isAliasing
+            IsAliasing = isAliasing,
+
+            Offset = offset,
+            Size = size
         };
     }
 
-    public static BarrierDesc Texture(Handle<GPUResource> resource, BarrierSync syncAfter, BarrierAccess accessAfter, BarrierLayout layoutAfter, BarrierSubresourceRange subresources = default, bool discard = false, bool isAliasing = false)
-    {
-        return new BarrierDesc
-        {
-            Type = BarrierType.Texture,
-            Resource = resource,
-            SyncAfter = syncAfter,
-            AccessAfter = accessAfter,
-            LayoutAfter = layoutAfter,
-            Subresources = subresources,
-            Discard = discard,
-            IsAliasing = isAliasing
-        };
-    }
-
-    public static BarrierDesc Texture(Handle<GPUTexture> resource, BarrierSync syncAfter, BarrierAccess accessAfter, BarrierLayout layoutAfter, BarrierSubresourceRange subresources = default, bool discard = false, bool isAliasing = false)
+    public static BarrierDesc Texture(
+        Handle<GPUTexture> resource,
+        BarrierSync syncAfter,
+        BarrierAccess accessAfter,
+        BarrierLayout layoutAfter,
+        BarrierSubresourceRange subresources = default,
+        bool discard = false,
+        bool isAliasing = false)
     {
         return new BarrierDesc
         {
@@ -683,12 +731,12 @@ public struct BarrierDesc
             SyncAfter = syncAfter,
             AccessAfter = accessAfter,
             LayoutAfter = layoutAfter,
+            IsAliasing = isAliasing,
+
             Subresources = subresources,
-            Discard = discard,
-            IsAliasing = isAliasing
+            Discard = discard
         };
     }
-
 }
 
 public record struct ResourceDesc

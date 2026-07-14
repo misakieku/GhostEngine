@@ -85,113 +85,131 @@ internal sealed class RenderGraphExecutor
         var barrierIndex = 0;
         var nativePassIndex = 0;
         var logicalPassIndex = 0;
+        var insideNativePass = false;
 
         _context.BeginNewFrame(commandBuffer);
 
-        var pPassRTDescs = stackalloc PassRenderTargetDesc[8];
-        var pRtFormats = stackalloc TextureFormat[8];
-
-        while (logicalPassIndex < compiledPasses.Count)
+        try
         {
-            var pass = compiledPasses[logicalPassIndex];
+            var pPassRTDescs = stackalloc PassRenderTargetDesc[8];
+            var pRtFormats = stackalloc TextureFormat[8];
 
-            // Check if this pass is part of a native render pass
-            if (pass.type == RenderPassType.Raster && nativePassIndex < nativePasses.Count)
+            while (logicalPassIndex < compiledPasses.Count)
             {
-                var nativePass = nativePasses[nativePassIndex];
+                var pass = compiledPasses[logicalPassIndex];
 
-                // Build barriers for ALL merged passes before beginning the native render pass
-                for (var i = 0; i < nativePass.mergedPassIndices.Count; i++)
+                // Check if this pass is part of a native render pass
+                if (pass.type == RenderPassType.Raster && nativePassIndex < nativePasses.Count)
                 {
-                    var mergedPassIdx = nativePass.mergedPassIndices[i];
-                    var e = ExecuteBarriersForPass(commandBuffer, mergedPassIdx, ref barrierIndex, compiledBarriers);
+                    var nativePass = nativePasses[nativePassIndex];
+
+                    // Build barriers for ALL merged passes before beginning the native render pass
+                    for (var i = 0; i < nativePass.mergedPassIndices.Count; i++)
+                    {
+                        var mergedPassIdx = nativePass.mergedPassIndices[i];
+                        var e = ExecuteBarriersForPass(commandBuffer, mergedPassIdx, ref barrierIndex, compiledBarriers);
+                        if (e != Error.None)
+                        {
+                            return e;
+                        }
+                    }
+
+                    // Begin native render pass
+
+                    SetViewport(nativePass.colorAttachments, nativePass.depthAttachment);
+
+                    for (var i = 0; i < nativePass.colorAttachmentCount; i++)
+                    {
+                        var attachment = nativePass.colorAttachments[i];
+                        pPassRTDescs[i] = new PassRenderTargetDesc
+                        {
+                            Texture = _resources.GetResource(attachment.texture).backingResource.AsTexture(),
+                            ClearColor = attachment.clearColor,
+                            LoadOp = attachment.loadOp,
+                            StoreOp = attachment.storeOp
+                        };
+                    }
+
+                    var depthDesc = new PassDepthStencilDesc
+                    {
+                        Texture = nativePass.hasDepthAttachment
+                            ? _resources.GetResource(nativePass.depthAttachment.texture).backingResource.AsTexture()
+                            : Handle<GPUTexture>.Invalid,
+                        ClearDepth = nativePass.depthAttachment.clearDepth,
+                        ClearStencil = nativePass.depthAttachment.clearStencil,
+                        DepthLoadOp = nativePass.hasDepthAttachment
+                            ? nativePass.depthAttachment.loadOp
+                            : AttachmentLoadOp.NoAccess,
+                        DepthStoreOp = nativePass.hasDepthAttachment
+                            ? nativePass.depthAttachment.storeOp
+                            : AttachmentStoreOp.NoAccess,
+                        StencilLoadOp = nativePass.hasDepthAttachment
+                            ? nativePass.depthAttachment.stencilLoadOp
+                            : AttachmentLoadOp.NoAccess,
+                        StencilStoreOp = nativePass.hasDepthAttachment
+                            ? nativePass.depthAttachment.stencilStoreOp
+                            : AttachmentStoreOp.NoAccess,
+                    };
+
+                    commandBuffer.BeginRenderPass(new Span<PassRenderTargetDesc>(pPassRTDescs, nativePass.colorAttachmentCount), in depthDesc);
+
+                    for (var i = 0; i < nativePass.colorAttachmentCount; i++)
+                    {
+                        var attachment = nativePass.colorAttachments[i];
+                        var resource = _resources.GetResource(attachment.texture);
+                        pRtFormats[i] = resource.rgTextureDesc.format;
+                    }
+
+                    var depthFormat = nativePass.hasDepthAttachment
+                        ? _resources.GetResource(nativePass.depthAttachment.texture).rgTextureDesc.format
+                        : TextureFormat.Unknown;
+                    _context.SetRenderTargetFormats(new ReadOnlySpan<TextureFormat>(pRtFormats, nativePass.colorAttachmentCount), depthFormat);
+
+                    // Build all merged logical passes within this native render pass
+                    for (var i = 0; i < nativePass.mergedPassIndices.Count; i++)
+                    {
+                        var mergedPassIdx = nativePass.mergedPassIndices[i];
+                        var mergedPass = compiledPasses[mergedPassIdx];
+                        mergedPass.Execute(_context);
+                        logicalPassIndex++;
+                    }
+
+                    commandBuffer.EndRenderPass();
+                    nativePassIndex++;
+                }
+                else
+                {
+                    // All the reaster pass should be merged into native render pass, so if we encounter a raster pass here, it means something went wrong during compilation.
+                    Logger.DebugAssert(pass.type != RenderPassType.Raster);
+
+                    // Compute pass or Unsafe pass
+                    var e = ExecuteBarriersForPass(commandBuffer, logicalPassIndex, ref barrierIndex, compiledBarriers);
                     if (e != Error.None)
                     {
                         return e;
                     }
-                }
 
-                // Begin native render pass
-
-                SetViewport(nativePass.colorAttachments, nativePass.depthAttachment);
-
-                for (var i = 0; i < nativePass.colorAttachmentCount; i++)
-                {
-                    var attachment = nativePass.colorAttachments[i];
-                    pPassRTDescs[i] = new PassRenderTargetDesc
-                    {
-                        Texture = _resources.GetResource(attachment.texture).backingResource.AsTexture(),
-                        ClearColor = attachment.clearColor,
-                        LoadOp = attachment.loadOp,
-                        StoreOp = attachment.storeOp
-                    };
-                }
-
-                var depthDesc = new PassDepthStencilDesc
-                {
-                    Texture = nativePass.hasDepthAttachment
-                        ? _resources.GetResource(nativePass.depthAttachment.texture).backingResource.AsTexture()
-                        : Handle<GPUTexture>.Invalid,
-                    ClearDepth = nativePass.depthAttachment.clearDepth,
-                    ClearStencil = nativePass.depthAttachment.clearStencil,
-                    DepthLoadOp = nativePass.hasDepthAttachment
-                        ? nativePass.depthAttachment.loadOp
-                        : AttachmentLoadOp.NoAccess,
-                    DepthStoreOp = nativePass.hasDepthAttachment
-                        ? nativePass.depthAttachment.storeOp
-                        : AttachmentStoreOp.NoAccess,
-                    StencilLoadOp = nativePass.hasDepthAttachment
-                        ? nativePass.depthAttachment.stencilLoadOp
-                        : AttachmentLoadOp.NoAccess,
-                    StencilStoreOp = nativePass.hasDepthAttachment
-                        ? nativePass.depthAttachment.stencilStoreOp
-                        : AttachmentStoreOp.NoAccess,
-                };
-
-                commandBuffer.BeginRenderPass(new Span<PassRenderTargetDesc>(pPassRTDescs, nativePass.colorAttachmentCount), in depthDesc);
-
-                for (var i = 0; i < nativePass.colorAttachmentCount; i++)
-                {
-                    var attachment = nativePass.colorAttachments[i];
-                    var resource = _resources.GetResource(attachment.texture);
-                    pRtFormats[i] = resource.rgTextureDesc.format;
-                }
-
-                var depthFormat = nativePass.hasDepthAttachment
-                    ? _resources.GetResource(nativePass.depthAttachment.texture).rgTextureDesc.format
-                    : TextureFormat.Unknown;
-                _context.SetRenderTargetFormats(new ReadOnlySpan<TextureFormat>(pRtFormats, nativePass.colorAttachmentCount), depthFormat);
-
-                // Build all merged logical passes within this native render pass
-                for (var i = 0; i < nativePass.mergedPassIndices.Count; i++)
-                {
-                    var mergedPassIdx = nativePass.mergedPassIndices[i];
-                    var mergedPass = compiledPasses[mergedPassIdx];
-                    mergedPass.Execute(_context);
+                    pass.Execute(_context);
                     logicalPassIndex++;
                 }
-
-                commandBuffer.EndRenderPass();
-                nativePassIndex++;
             }
-            else
-            {
-                // All the reaster pass should be merged into native render pass, so if we encounter a raster pass here, it means something went wrong during compilation.
-                Logger.DebugAssert(pass.type != RenderPassType.Raster);
 
-                // Compute pass or Unsafe pass
-                var e = ExecuteBarriersForPass(commandBuffer, logicalPassIndex, ref barrierIndex, compiledBarriers);
-                if (e != Error.None)
-                {
-                    return e;
-                }
-
-                pass.Execute(_context);
-                logicalPassIndex++;
-            }
+            return Error.None;
         }
+        catch (Exception ex)
+        {
+            if (insideNativePass)
+            {
+                commandBuffer.EndRenderPass();
+            }
 
-        return Error.None;
+            // Insert Full Pipeline Barrier
+            var barrier = BarrierDesc.Global(BarrierSync.All, BarrierSync.All, BarrierAccess.Common, BarrierAccess.Common);
+            commandBuffer.Barrier(barrier);
+
+            Logger.Error(ex);
+            return Error.InternalError;
+        }
     }
 
     private unsafe Error ExecuteBarriersForPass(
@@ -234,12 +252,16 @@ internal sealed class RenderGraphExecutor
             BarrierDesc desc;
             if (compiledBarrier.resourceType == RenderGraphResourceType.Texture)
             {
-                desc = BarrierDesc.Texture(resourceHandle, target.sync, target.access, target.layout,
-                    discard: compiledBarrier.flags.HasFlag(BarrierFlags.Discard));
+                desc = BarrierDesc.Texture(
+                            resourceHandle.AsTexture(),
+                            target.sync,
+                            target.access,
+                            target.layout,
+                            discard: compiledBarrier.flags.HasFlag(BarrierFlags.Discard));
             }
             else
             {
-                desc = BarrierDesc.Buffer(resourceHandle, target.sync, target.access);
+                desc = BarrierDesc.Buffer(resourceHandle.AsBuffer(), target.sync, target.access);
             }
 
             if (compiledBarrier.aliasingPredecessor.IsValid)

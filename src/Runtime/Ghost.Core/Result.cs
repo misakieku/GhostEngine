@@ -304,6 +304,15 @@ public static class ResultExtensions
                 _ => Error.UnknownError
             };
         }
+
+        public static Error FromExpection(Exception ex)
+        {
+            return ex switch
+            {
+                DirectoryNotFoundException or FileNotFoundException or KeyNotFoundException => Error.NotFound,
+                _ => Error.UnknownError,
+            };
+        }
     }
 
     public static void ThrowIfFailed(this Error result, [CallerArgumentExpression(nameof(result))] string? op = null)

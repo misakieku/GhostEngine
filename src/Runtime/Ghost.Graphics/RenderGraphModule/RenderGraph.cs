@@ -41,7 +41,7 @@ public sealed class RenderGraph : IDisposable
         _resourceDatabase = renderSystem.GraphicsEngine.ResourceDatabase;
 
         _objectPool = new RenderGraphObjectPool();
-        _resources = new RenderGraphResourceRegistry(_objectPool, _resourceDatabase, renderSystem.GraphicsEngine.ResourceAllocator);
+        _resources = new RenderGraphResourceRegistry(_resourceDatabase, renderSystem.GraphicsEngine.ResourceAllocator);
 
         _passes = new List<RenderGraphPassBase>(32);
         _compiledPasses = new List<RenderGraphPassBase>(32);

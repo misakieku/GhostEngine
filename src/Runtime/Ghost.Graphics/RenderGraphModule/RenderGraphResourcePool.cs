@@ -123,7 +123,6 @@ internal record struct RenderGraphResource : IDisposable
 
 internal sealed class RenderGraphResourceRegistry : IDisposable
 {
-    private readonly RenderGraphObjectPool _pool;
     private readonly IResourceDatabase _database;
     private readonly IResourceAllocator _allocator;
     private UnsafeList<RenderGraphResource> _resources;
@@ -134,9 +133,8 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
     internal ReadOnlySpan<RenderGraphResource> Resources => _resources;
 
-    public RenderGraphResourceRegistry(RenderGraphObjectPool pool, IResourceDatabase database, IResourceAllocator allocator)
+    public RenderGraphResourceRegistry(IResourceDatabase database, IResourceAllocator allocator)
     {
-        _pool = pool;
         _database = database;
         _allocator = allocator;
         _resources = new UnsafeList<RenderGraphResource>(64, AllocationHandle.Persistent);
@@ -146,16 +144,6 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
     }
 
     public int ResourceCount => _resources.Count;
-
-    public void Clear()
-    {
-        for (var i = 0; i < _resources.Count; i++)
-        {
-            _resources[i].Dispose();
-        }
-
-        _resources.Clear();
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void AddResource(RenderGraphResource resource, string name)
@@ -344,7 +332,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
         var allocationDesc = new AllocationDesc
         {
-            Size = plan.TotalHeapSize + 64 * 1024, // Add 64KB padding to avoid potential overflows
+            Size = plan.TotalHeapSize + 65536, // Add 64KB padding to avoid potential overflows
             Alignment = 65536, // 64KB
             HeapFlags = HeapFlags.AllowAllBufferAndTexture,
             HeapType = HeapType.Default
@@ -373,7 +361,12 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
                 Offset = placed.heapOffset,
             };
 
-            var name = _resourceName.GetValueOrDefault(i, string.Empty);
+            var name =
+#if GHOST_SAFETY_CHECKS
+                _resourceName.GetValueOrDefault(i, string.Empty);
+#else
+                string.Empty;
+#endif
             if (res.type == RenderGraphResourceType.Texture)
             {
                 var textureDesc = res.rgTextureDesc.ToTextureDesc(res.resolvedWidth, res.resolvedHeight);
@@ -410,6 +403,19 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
                 res.backingResource = cachedBackingResources[i];
             }
         }
+    }
+
+    public void Clear()
+    {
+        for (var i = 0; i < _resources.Count; i++)
+        {
+            _resources[i].Dispose();
+        }
+
+        _resources.Clear();
+#if GHOST_SAFETY_CHECKS
+        _resourceName.Clear();
+#endif
     }
 
     public void Dispose()

@@ -256,9 +256,8 @@ public static class Logger
     {
         s_logger.Log(ex);
 #if DEBUG
-        throw ex;
+        Debugger.BreakForUserUnhandledException(ex);
 #endif
-
     }
 
     [StackTraceHidden]

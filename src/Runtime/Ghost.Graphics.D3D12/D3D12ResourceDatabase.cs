@@ -120,8 +120,6 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
     private ulong _cpuFrame;
     private bool _disposed;
 
-    public ResourceBarrierData globalBarrier;
-
     public D3D12ResourceDatabase(D3D12RenderDevice device, D3D12DescriptorAllocator descriptorAllocator)
     {
         _device = device;
