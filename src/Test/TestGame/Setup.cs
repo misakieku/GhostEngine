@@ -2,10 +2,14 @@ using Ghost.Core;
 using Ghost.Engine;
 using Ghost.Engine.Components;
 using Ghost.Engine.Systems;
+using Ghost.Engine.Streaming;
 using Ghost.Engine.Utilities;
+using Ghost.Engine.RenderPipeline;
 using Ghost.Entities;
 using Ghost.Graphics.Core;
+using Ghost.Graphics.D3D12;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 
@@ -14,6 +18,31 @@ namespace TestGame;
 internal static class Setup
 {
     private static World _world = null!;
+
+    [RuntimeConfiguration]
+    public static EngineDesc InitEngineDesc()
+    {
+        return new EngineDesc
+        {
+            AllocationManagerDesc = AllocationManagerDesc.Default,
+            WindowDesc = new WindowDesc { Width = 800, Height = 600, Title = "Ghost Engine" },
+            JobSchedulerDesc = new JobSchedulerDesc
+            {
+                ThreadCount = Environment.ProcessorCount - 2,
+                ThreadPriority = ThreadPriority.Normal,
+                DependencyChainCapacity = 8192,
+            },
+            RenderDesc = new EngineDesc.Render
+            {
+                FrameBufferCount = 2,
+                GraphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 }),
+                RenderPipelineSettings = new GhostRenderPipelineSettings(),
+                ShaderCacheDirectory = "ShaderCache",
+                ShaderCompilationBridge = null
+            },
+            ContentProvider = new RuntimeContentProvider("Assets/manifest.json")
+        };
+    }
 
     [RuntimeInitialize]
     public static void Init(EngineCore engineCore)

@@ -8,7 +8,7 @@ using System.Collections.Concurrent;
 
 namespace Ghost.Engine.RenderPipeline;
 
-internal sealed class GhostRenderPayload : IRenderPayload
+public sealed class GhostRenderPayload : IRenderPayload
 {
     public struct UpdateInstanceRequest
     {
@@ -40,7 +40,7 @@ internal sealed class GhostRenderPayload : IRenderPayload
     public uint InstanceCountBefore => _instanceCountBefore;
     public uint InstanceCount => _instanceCount;
 
-    public GhostRenderPayload(GhostRenderPipeline renderPipeline)
+    internal GhostRenderPayload(GhostRenderPipeline renderPipeline)
     {
         _renderPipeline = renderPipeline;
 
@@ -102,7 +102,7 @@ internal sealed class GhostRenderPayload : IRenderPayload
     }
 }
 
-internal class GhostRenderPipelineSettings : IRenderPipelineSettings
+public class GhostRenderPipelineSettings : IRenderPipelineSettings
 {
     public IRenderPipeline CreatePipeline(RenderEngine renderSystem)
     {

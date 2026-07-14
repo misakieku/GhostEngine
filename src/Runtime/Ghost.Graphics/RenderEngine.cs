@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Graphics.Core;
-using Ghost.Graphics.D3D12;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Mathematics;
@@ -9,19 +8,14 @@ using System.Diagnostics;
 
 namespace Ghost.Graphics;
 
-public enum GraphicsAPI
+internal readonly struct RenderEngineDesc
 {
-    Direct3D12
-}
-
-internal readonly struct RenderSystemDesc
-{
-    public GraphicsAPI GraphicsAPI
+    public required IGraphicsEngine GraphicsEngine
     {
         get; init;
     }
 
-    public uint FrameBufferCount
+    public required uint FrameBufferCount
     {
         get; init;
     }
@@ -153,32 +147,9 @@ public class RenderEngine : IDisposable
         }
     }
 
-    internal RenderEngine(RenderSystemDesc desc)
+    internal RenderEngine(RenderEngineDesc desc)
     {
-        var engineDesc = new GraphicsEngineDesc
-        {
-            FrameBufferCount = desc.FrameBufferCount
-        };
-
-        switch (desc.GraphicsAPI)
-        {
-            case GraphicsAPI.Direct3D12:
-                if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041))
-                {
-                    _graphicsEngine = D3D12GraphicsEngineFactory.Create(engineDesc);
-                }
-                else
-                {
-                    // TODO: Fallback to Vulkan once it's implemented.
-                    throw new PlatformNotSupportedException("Direct3D12 requires Windows 10 version 2004 (build 19041) or later.");
-                }
-
-                break;
-
-            default:
-                throw new NotSupportedException($"The specified graphics API '{desc.GraphicsAPI}' is not supported.");
-        }
-
+        _graphicsEngine = desc.GraphicsEngine;
         _streamingProcessor = desc.ResourceStreamingProcessor;
         _renderPipelineSettings = desc.InitialRenderPipelineSettings;
 

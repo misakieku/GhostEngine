@@ -158,7 +158,7 @@ public class SwapChainManager : IDisposable
             return;
         }
 
-        commandBuffer.Barrier(BarrierDesc.Texture(record.SwapChain.GetCurrentBackBuffer().AsResource(),
+        commandBuffer.Barrier(BarrierDesc.Texture(record.SwapChain.GetCurrentBackBuffer(),
             BarrierSync.None,
             BarrierAccess.NoAccess,
             BarrierLayout.Present));
@@ -174,7 +174,7 @@ public class SwapChainManager : IDisposable
                 continue;
             }
 
-            commandBuffer.Barrier(BarrierDesc.Texture(record.SwapChain.GetCurrentBackBuffer().AsResource(),
+            commandBuffer.Barrier(BarrierDesc.Texture(record.SwapChain.GetCurrentBackBuffer(),
                 BarrierSync.None,
                 BarrierAccess.NoAccess,
                 BarrierLayout.Present));

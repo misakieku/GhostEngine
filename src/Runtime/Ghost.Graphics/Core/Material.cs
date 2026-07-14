@@ -251,7 +251,7 @@ public struct Material : IResourceReleasable
             return;
         }
 
-        var cbufferResource = _cBufferCache.GpuResource.AsResource();
+        var cbufferResource = _cBufferCache.GpuResource;
         var desc = BarrierDesc.Buffer(
             cbufferResource,
             BarrierSync.Copy,

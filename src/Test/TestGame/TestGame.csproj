@@ -8,13 +8,14 @@
     <PublishAot>true</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
     <IsGameProject>true</IsGameProject>
-    
+
     <!-- Custom Asset Paths -->
     <GhostAssetDir>$(MSBuildProjectDirectory)\Assets</GhostAssetDir>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Runtime\Ghost.Engine\Ghost.Engine.csproj" />
+    <ProjectReference Include="..\..\Runtime\Ghost.Graphics.D3D12\Ghost.Graphics.D3D12.csproj" />
     <ProjectReference Include="..\..\Runtime\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 

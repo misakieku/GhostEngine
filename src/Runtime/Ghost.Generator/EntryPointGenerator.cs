@@ -87,83 +87,20 @@ internal class EntryPointGenerator : IIncrementalGenerator
 
     private void GenerateEntryPoint(SourceProductionContext context, ((ImmutableArray<MethodData> Init, ImmutableArray<MethodData> Shutdown) Left, ImmutableArray<MethodData> Config) tuple)
     {
-        var initializeSb = new StringBuilder();
-        var shutdownSb = new StringBuilder();
-
         var initializeArray = tuple.Left.Init;
         var shutdownArray = tuple.Left.Shutdown;
         var configArray = tuple.Config;
 
-        var foundConfig = false;
-        var configCode = "global::Ghost.Engine.EngineDesc.GetDefault()";
-        foreach (var info in configArray)
-        {
-            if (info is ErrorMethodData error)
-            {
-                context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
-                    "GHOST001",
-                    "Invalid method signature",
-                    error.errorMessage,
-                    "Ghost.Generator",
-                    DiagnosticSeverity.Error,
-                    true), info.methodSymbol.Locations.FirstOrDefault()));
-            }
-            else
-            {
-                if (foundConfig)
-                {
-                    context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
-                        "GHOST002",
-                        "Multiple configuration methods found",
-                        "Only one method with <see cref=\"Ghost.Engine.RuntimeConfigurationAttribute\"/> is allowed.",
-                        "Ghost.Generator",
-                        DiagnosticSeverity.Error,
-                        true), info.methodSymbol.Locations.FirstOrDefault()));
-                }
-
-                foundConfig = true;
-                configCode = $"{info.className}.{info.methodName}()";
-            }
-        }
-
-        foreach (var info in initializeArray)
-        {
-            if (info is ErrorMethodData error)
-            {
-                context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
-                    "GHOST001",
-                    "Invalid method signature",
-                    error.errorMessage,
-                    "Ghost.Generator",
-                    DiagnosticSeverity.Error,
-                    true), info.methodSymbol.Locations.FirstOrDefault()));
-            }
-
-            initializeSb.AppendLine($"            {info.className}.{info.methodName}(engineCore);");
-        }
-
-        foreach (var info in shutdownArray)
-        {
-            if (info is ErrorMethodData error)
-            {
-                context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
-                    "GHOST001",
-                    "Invalid method signature",
-                    error.errorMessage,
-                    "Ghost.Generator",
-                    DiagnosticSeverity.Error,
-                    true), info.methodSymbol.Locations.FirstOrDefault()));
-            }
-
-            shutdownSb.AppendLine($"                {info.className}.{info.methodName}(engineCore);");
-        }
+        var configCall = GetConfigCall(context, configArray);
+        var initCall = GetInitCall(context, initializeArray);
+        var shutdownCall = GetShutdownCall(context, shutdownArray);
 
         var entrySource = @$"
 internal class Program
 {{
     private static void Main(string[] args)
     {{
-        var engineDesc = {configCode};
+        var engineDesc = {configCall};
 
         global::Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.Initialize(engineDesc.AllocationManagerDesc);
 
@@ -178,7 +115,7 @@ internal class Program
         {{
             using var engineCore = new global::Ghost.Engine.EngineCore(engineDesc.JobSchedulerDesc, engineDesc.RenderDesc, engineDesc.ContentProvider);
 
-{initializeSb}
+{initCall}
             try
             {{
                 using var window = new global::Ghost.Engine.EngineWindow(engineCore.RenderEngine.SwapChainManager, engineDesc.WindowDesc);
@@ -194,7 +131,7 @@ internal class Program
             }}
             finally
             {{
-{shutdownSb}
+{shutdownCall}
             }}
         }}
         // TODO: Log the exception
@@ -207,5 +144,106 @@ internal class Program
 }}";
 
         context.AddSource("EntryPoint.g.cs", entrySource);
+    }
+
+    private static string GetShutdownCall(SourceProductionContext context, ImmutableArray<MethodData> shutdownArray)
+    {
+        var sb = new StringBuilder();
+        foreach (var info in shutdownArray)
+        {
+            if (info is ErrorMethodData error)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
+                    "GHOST001",
+                    "Invalid method signature",
+                    error.errorMessage,
+                    "Ghost.Generator",
+                    DiagnosticSeverity.Error,
+                    true), info.methodSymbol.Locations.FirstOrDefault()));
+            }
+
+            sb.AppendLine($"                {info.className}.{info.methodName}(engineCore);");
+        }
+
+        return sb.ToString();
+    }
+
+    private static string GetInitCall(SourceProductionContext context, ImmutableArray<MethodData> initializeArray)
+    {
+        var sb = new StringBuilder();
+
+        foreach (var info in initializeArray)
+        {
+            if (info is ErrorMethodData error)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
+                    "GHOST001",
+                    "Invalid method signature",
+                    error.errorMessage,
+                    "Ghost.Generator",
+                    DiagnosticSeverity.Error,
+                    true), info.methodSymbol.Locations.FirstOrDefault()));
+            }
+
+            sb.AppendLine($"            {info.className}.{info.methodName}(engineCore);");
+        }
+
+        return sb.ToString();
+    }
+
+    private static string GetConfigCall(SourceProductionContext context, ImmutableArray<MethodData> configArray)
+    {
+        if (configArray.IsEmpty)
+        {
+
+            context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
+                "GHOST003",
+                "Engine configureation not found.",
+                "Need exactly one method marked with RuntimeConfigurationAttribute",
+                "Ghost.Generator",
+                DiagnosticSeverity.Error,
+                true), null));
+
+            return string.Empty;
+        }
+        else
+        {
+            var foundConfig = false;
+            var configCode = string.Empty;
+
+            foreach (var info in configArray)
+            {
+                if (info is ErrorMethodData error)
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
+                        "GHOST001",
+                        "Invalid method signature",
+                        error.errorMessage,
+                        "Ghost.Generator",
+                        DiagnosticSeverity.Error,
+                        true), info.methodSymbol.Locations.FirstOrDefault()));
+                }
+                else
+                {
+                    if (foundConfig)
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
+                            "GHOST002",
+                            "Multiple configuration methods found",
+                            "Only one method with <see cref=\"Ghost.Engine.RuntimeConfigurationAttribute\"/> is allowed.",
+                            "Ghost.Generator",
+                            DiagnosticSeverity.Error,
+                            true), info.methodSymbol.Locations.FirstOrDefault()));
+                    }
+                    else
+                    {
+                        foundConfig = true;
+                        configCode = $"{info.className}.{info.methodName}()";
+                    }
+                }
+            }
+
+            return configCode;
+        }
     }
 }

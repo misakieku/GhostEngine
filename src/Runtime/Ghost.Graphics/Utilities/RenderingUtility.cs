@@ -44,9 +44,9 @@ public static unsafe class RenderingUtility
             MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
             resourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
 
-            cmd.Barrier(BarrierDesc.Buffer(buffer.AsResource(), BarrierSync.Copy, BarrierAccess.CopyDest));
+            cmd.Barrier(BarrierDesc.Buffer(buffer, BarrierSync.Copy, BarrierAccess.CopyDest));
             cmd.CopyBuffer(buffer, uploadHandle, 0, 0, sizeInBytes);
-            cmd.Barrier(BarrierDesc.Buffer(buffer.AsResource(), BarrierSync.None, BarrierAccess.Common));
+            cmd.Barrier(BarrierDesc.Buffer(buffer, BarrierSync.None, BarrierAccess.Common));
         }
 
         return Error.None;
@@ -118,7 +118,7 @@ public static unsafe class RenderingUtility
             return Error.OutOfMemory;
         }
 
-        cmd.Barrier(BarrierDesc.Texture(texture.AsResource(), BarrierSync.Copy, BarrierAccess.CopyDest, BarrierLayout.CopyDest));
+        cmd.Barrier(BarrierDesc.Texture(texture, BarrierSync.Copy, BarrierAccess.CopyDest, BarrierLayout.CopyDest));
 
         var subresourceData = new SubResourceData
         {
@@ -128,7 +128,7 @@ public static unsafe class RenderingUtility
         };
 
         cmd.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresourceData);
-        cmd.Barrier(BarrierDesc.Texture(texture.AsResource(), BarrierSync.None, BarrierAccess.Common, BarrierLayout.Common));
+        cmd.Barrier(BarrierDesc.Texture(texture, BarrierSync.None, BarrierAccess.Common, BarrierLayout.Common));
 
         return Error.None;
     }

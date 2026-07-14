@@ -56,11 +56,11 @@ public unsafe class RenderContext
         BarrierDesc desc;
         if (isTexture)
         {
-            desc = BarrierDesc.Texture(resource, newSync, newAccess, newLayout);
+            desc = BarrierDesc.Texture(resource.AsTexture(), newSync, newAccess, newLayout);
         }
         else
         {
-            desc = BarrierDesc.Buffer(resource, newSync, newAccess);
+            desc = BarrierDesc.Buffer(resource.AsBuffer(), newSync, newAccess);
         }
 
         CommandBuffer.Barrier(desc);

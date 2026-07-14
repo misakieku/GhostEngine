@@ -1,4 +1,3 @@
-using Ghost.Engine.RenderPipeline;
 using Ghost.Engine.Streaming;
 using Ghost.Entities;
 using Ghost.Graphics;
@@ -27,36 +26,36 @@ public sealed class RuntimeInitializeAttribute : Attribute;
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class RuntimeShutdownAttribute : Attribute;
 
-public struct RenderDesc
-{
-    public required uint FrameBufferCount
-    {
-        get; set;
-    }
-
-    public required GraphicsAPI GraphicsAPI
-    {
-        get; set;
-    }
-
-    public required IRenderPipelineSettings RenderPipelineSettings
-    {
-        get; set;
-    }
-
-    public required string ShaderCacheDirectory
-    {
-        get; set;
-    }
-
-    public IShaderCompilationBridge? ShaderCompilationBridge
-    {
-        get; set;
-    }
-}
-
 public struct EngineDesc
 {
+    public struct Render
+    {
+        public required IGraphicsEngine GraphicsEngine
+        {
+            get; set;
+        }
+
+        public required uint FrameBufferCount
+        {
+            get; set;
+        }
+
+        public required IRenderPipelineSettings RenderPipelineSettings
+        {
+            get; set;
+        }
+
+        public required string ShaderCacheDirectory
+        {
+            get; set;
+        }
+
+        public IShaderCompilationBridge? ShaderCompilationBridge
+        {
+            get; set;
+        }
+    }
+
     public required AllocationManagerDesc AllocationManagerDesc
     {
         get; set;
@@ -72,7 +71,7 @@ public struct EngineDesc
         get; set;
     }
 
-    public required RenderDesc RenderDesc
+    public required Render RenderDesc
     {
         get; set;
     }
@@ -80,30 +79,6 @@ public struct EngineDesc
     public required IContentProvider ContentProvider
     {
         get; set;
-    }
-
-    public static EngineDesc GetDefault()
-    {
-        return new EngineDesc
-        {
-            AllocationManagerDesc = AllocationManagerDesc.Default,
-            WindowDesc = new WindowDesc { Width = 800, Height = 600, Title = "Ghost Engine" },
-            JobSchedulerDesc = new JobSchedulerDesc
-            {
-                ThreadCount = Environment.ProcessorCount - 2,
-                ThreadPriority = ThreadPriority.Normal,
-                DependencyChainCapacity = 8192,
-            },
-            RenderDesc = new RenderDesc
-            {
-                FrameBufferCount = 2,
-                GraphicsAPI = GraphicsAPI.Direct3D12,
-                RenderPipelineSettings = new GhostRenderPipelineSettings(),
-                ShaderCacheDirectory = "ShaderCache",
-                ShaderCompilationBridge = null
-            },
-            ContentProvider = new RuntimeContentProvider("Assets/manifest.json")
-        };
     }
 }
 
@@ -126,17 +101,17 @@ public sealed partial class EngineCore : IDisposable
 
     public int FrameIndex => _frameIndex;
 
-    public EngineCore(JobSchedulerDesc jobSchedulerDesc, RenderDesc renderDesc, IContentProvider contentProvider)
+    public EngineCore(JobSchedulerDesc jobSchedulerDesc, EngineDesc.Render renderDesc, IContentProvider contentProvider)
     {
         _contentProvider = contentProvider;
 
         _jobScheduler = new JobScheduler(in jobSchedulerDesc);
         _streamingProcessor = new ResourceStreamingProcessor();
 
-        var renderingDesc = new RenderSystemDesc
+        var renderingDesc = new RenderEngineDesc
         {
+            GraphicsEngine = renderDesc.GraphicsEngine,
             FrameBufferCount = renderDesc.FrameBufferCount,
-            GraphicsAPI = renderDesc.GraphicsAPI,
             InitialRenderPipelineSettings = renderDesc.RenderPipelineSettings,
             ShaderCacheDirectory = renderDesc.ShaderCacheDirectory,
             ShaderCompilationBridge = renderDesc.ShaderCompilationBridge,
