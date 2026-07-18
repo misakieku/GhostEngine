@@ -1,8 +1,20 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Graphics.RenderGraphModule;
+
+internal struct CompiledGraph : IDisposable
+{
+    public AliasingPlan plan;
+    public float2 scale;
+
+    public void Dispose()
+    {
+        plan.Dispose();
+    }
+}
 
 /// <summary>
 /// Handles compilation of the render graph including pass culling, heap allocation orchestration,
@@ -27,20 +39,22 @@ internal sealed class RenderGraphCompiler
         _compilationCache = compilationCache;
     }
 
+    // FIX: Make this stateless?
+
     /// <summary>
     /// Compiles the render graph by culling passes, allocating resources, and preparing barriers.
     /// </summary>
-    public Result<float2, Error> Compile(
+    public Result<CompiledGraph, Error> Compile(
         in ViewState viewState,
         ulong graphHash,
         List<RenderGraphPassBase> passes,
         List<RenderGraphPassBase> compiledPasses,
         List<NativeRenderPass> nativePasses,
         List<CompiledBarrier> compiledBarriers,
-        AliasingPlan aliasingPlan,
-        RenderGraphObjectPool pool)
+        AllocationHandle allocationHandle)
     {
         Error error;
+        AliasingPlan aliasingPlan;
 
         // Try to restore from cache
         if (_compilationCache.TryGetCached(graphHash, out var cached))
@@ -51,9 +65,9 @@ internal sealed class RenderGraphCompiler
             {
                 // View state changed - re-resolve sizes and recreate GPU resources
                 _resources.ResolveTextureSizes(in viewState);
-                RestoreFromCache(cached, compiledPasses, passes, nativePasses, compiledBarriers, aliasingPlan, pool);
+                // var aliasingPlan = RestoreFromCache(cached, compiledPasses, passes, nativePasses, compiledBarriers);
 
-                RenderGraphAliasingBuilder.Build(aliasingPlan, _resources, _resourceAllocator, pool);
+                aliasingPlan = RenderGraphAliasingBuilder.Build(_resources, _resourceAllocator, allocationHandle);
                 error = _resources.AllocateBackingResources(aliasingPlan, _compilationCache);
                 if (error != Error.None)
                 {
@@ -62,14 +76,22 @@ internal sealed class RenderGraphCompiler
 
                 cached.viewState = viewState;
 
-                return float2.one;
+                return new CompiledGraph
+                {
+                    scale = float2.one,
+                    plan = aliasingPlan
+                };
             }
             else
             {
                 // Perfect cache hit - restore everything
-                RestoreFromCache(cached, compiledPasses, passes, nativePasses, compiledBarriers, aliasingPlan, pool);
+                aliasingPlan = RestoreFromCache(cached, compiledPasses, passes, nativePasses, compiledBarriers, allocationHandle);
                 _resources.RestoreBackingResources(cached.backingResources);
-                return scale;
+                return new CompiledGraph
+                {
+                    scale = scale,
+                    plan = aliasingPlan
+                };
             }
         }
 
@@ -92,7 +114,7 @@ internal sealed class RenderGraphCompiler
             }
         }
 
-        RenderGraphAliasingBuilder.Build(aliasingPlan, _resources, _resourceAllocator, pool);
+        aliasingPlan = RenderGraphAliasingBuilder.Build(_resources, _resourceAllocator, allocationHandle);
         error = _resources.AllocateBackingResources(aliasingPlan, _compilationCache);
         if (error != Error.None)
         {
@@ -103,7 +125,11 @@ internal sealed class RenderGraphCompiler
         _nativePassBuilder.BuildNativeRenderPasses(compiledPasses, nativePasses, compiledBarriers);
         StoreInCache(graphHash, viewState, compiledPasses, passes, compiledBarriers, aliasingPlan);
 
-        return float2.one;
+        return new CompiledGraph
+        {
+            scale = float2.one,
+            plan = aliasingPlan
+        };
     }
 
     private void MarkPassesWithSideEffects(List<RenderGraphPassBase> passes)
@@ -190,14 +216,13 @@ internal sealed class RenderGraphCompiler
         }
     }
 
-    private void RestoreFromCache(
+    private AliasingPlan RestoreFromCache(
         CachedCompilation cached,
         List<RenderGraphPassBase> compiledPasses,
         List<RenderGraphPassBase> passes,
         List<NativeRenderPass> nativePasses,
         List<CompiledBarrier> compiledBarriers,
-        AliasingPlan aliasingPlan,
-        RenderGraphObjectPool pool)
+        AllocationHandle allocationHandle)
     {
         compiledPasses.Clear();
         for (var i = 0; i < cached.compiledPassIndices.Count; i++)
@@ -211,7 +236,7 @@ internal sealed class RenderGraphCompiler
             passes[i].culled = cached.passCulledFlags[i];
         }
 
-        RenderGraphAliasingBuilder.RestoreFromCache(aliasingPlan, cached.logicalToPhysical, cached.placedResources, pool);
+        var plan = RenderGraphAliasingBuilder.RestoreFromCache(cached.logicalToPhysical, cached.placedResources, allocationHandle);
 
         compiledBarriers.Clear();
         for (var i = 0; i < cached.compiledBarriers.Count; i++)
@@ -219,7 +244,10 @@ internal sealed class RenderGraphCompiler
             compiledBarriers.Add(cached.compiledBarriers[i]);
         }
 
+        // Why we need to build this every frame?
         _nativePassBuilder.BuildNativeRenderPasses(compiledPasses, nativePasses, compiledBarriers);
+
+        return plan;
     }
 
     private void StoreInCache(
@@ -230,9 +258,10 @@ internal sealed class RenderGraphCompiler
         List<CompiledBarrier> compiledBarriers,
         AliasingPlan aliasingPlan)
     {
-        var cacheData = new CachedCompilation();
-
-        cacheData.viewState = viewState;
+        var cacheData = new CachedCompilation
+        {
+            viewState = viewState
+        };
 
         for (var i = 0; i < compiledPasses.Count; i++)
         {

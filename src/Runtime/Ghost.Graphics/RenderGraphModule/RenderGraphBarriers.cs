@@ -98,13 +98,13 @@ internal static class RenderGraphBarriers
 
                         // If this placed heap has multiple aliased resources,
                         // we need an aliasing barrier when switching between them
-                        if (placed != null && placed.aliasedLogicalResources.Count > 1)
+                        if (placed.IsSuccess && placed.Value.aliasedLogicalResources.Count > 1)
                         {
                             // Find the heap that used this placed memory most recently before this pass
                             Identifier<RGResource> resourceBefore = default;
                             var mostRecentLastUse = -1;
 
-                            foreach (var otherLogicalIndex in placed.aliasedLogicalResources)
+                            foreach (var otherLogicalIndex in placed.Value.aliasedLogicalResources)
                             {
                                 if (otherLogicalIndex != id.Value)
                                 {

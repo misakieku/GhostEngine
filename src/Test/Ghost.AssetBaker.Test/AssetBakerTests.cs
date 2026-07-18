@@ -132,7 +132,7 @@ public class AssetBakerTests
         var projectDir = Path.Combine(_tempDir, "IncrementalProject");
         _projectService.CreateProject(projectDir, "IncrementalProject");
 
-        var assetDir = _projectService.AssetDirectory;
+        var assetDir = _projectService.AssetDirectories[0];
         var cacheDir = _projectService.CacheDirectory;
 
         // Clear pre-created dummy assets to only test our file

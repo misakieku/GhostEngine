@@ -165,14 +165,12 @@ public interface IUnsafeRenderGraphBuilder : IRenderGraphBuilder
 
 internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGraphBuilder, IUnsafeRenderGraphBuilder
 {
-    private RenderGraph _graph = null!;
     private RenderGraphPassBase _pass = null!;
     private RenderGraphResourceRegistry _resources = null!;
     private bool _disposed;
 
-    internal void Init(RenderGraph graph, RenderGraphPassBase pass, RenderGraphResourceRegistry resources)
+    internal void Reset(RenderGraphPassBase pass, RenderGraphResourceRegistry resources)
     {
-        _graph = graph;
         _pass = pass;
         _resources = resources;
         _disposed = false;
@@ -332,7 +330,6 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
     }
 
     public void Dispose()
-
     {
         if (_disposed)
         {
@@ -349,7 +346,6 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
             throw new InvalidOperationException("Raster render pass must have at least one color or depth attachment.");
         }
 
-        _graph = null!;
         _pass = null!;
         _resources = null!;
 

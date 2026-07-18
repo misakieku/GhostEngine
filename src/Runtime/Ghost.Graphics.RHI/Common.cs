@@ -742,7 +742,7 @@ public struct BarrierDesc
 public record struct ResourceDesc
 {
     [StructLayout(LayoutKind.Explicit)]
-    internal struct __union
+    private struct __union
     {
         [FieldOffset(0)]
         public TextureDesc textureDescription;

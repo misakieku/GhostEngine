@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
-using System.Diagnostics;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -74,7 +73,7 @@ public sealed class RenderGraph : IDisposable
     {
         _blackboard.Clear();
         _resources.Clear();
-        _aliasingPlan.Clear(_objectPool);
+        _aliasingPlan.Clear();
         _compiledBarriers.Clear();
 
         // Return passes to the pool and reset count
@@ -108,7 +107,7 @@ public sealed class RenderGraph : IDisposable
         var r = _resourceDatabase.GetResourceDescription(texture.AsResource());
         if (r.IsFailure)
         {
-            Debug.Fail("Failed to get resource description for texture handle: " + texture);
+            Logger.Error("Failed to get resource description for texture handle: " + texture);
             return Identifier<RGTexture>.Invalid;
         }
 
@@ -126,7 +125,7 @@ public sealed class RenderGraph : IDisposable
         var r = _resourceDatabase.GetResourceDescription(buffer.AsResource());
         if (r.IsFailure)
         {
-            Debug.Fail("Failed to get resource description for buffer handle: " + buffer);
+            Logger.Error("Failed to get resource description for buffer handle: " + buffer);
             return Identifier<RGBuffer>.Invalid;
         }
 
@@ -134,6 +133,15 @@ public sealed class RenderGraph : IDisposable
         return _resources.ImportBuffer(in desc.BufferDescriptor, buffer, name);
     }
 
+    /// <summary>
+    /// Add a new raster render pass to the render graph.
+    /// </summary>
+    /// <remarks>
+    /// This pass will be merged into native render pass when possible.
+    /// </remarks>
+    /// <param name="name">The name of the render pass.</param>
+    /// <param name="passData">The data that will be used during rendering.</param>
+    /// <returns>The builder to build the render pass,</returns>
     public IRasterRenderGraphBuilder AddRasterRenderPass<TPassData>(string name, out TPassData passData)
         where TPassData : class, new()
     {
@@ -143,10 +151,16 @@ public sealed class RenderGraph : IDisposable
 
         _passes.Add(renderPass);
 
-        _builder.Init(this, renderPass, _resources);
+        _builder.Reset(renderPass, _resources);
         return _builder;
     }
 
+    /// <summary>
+    /// Add a new compute render pass to the render graph.
+    /// </summary>
+    /// <param name="name">The name of the render pass.</param>
+    /// <param name="passData">The data that will be used during rendering.</param>
+    /// <returns>The builder to build the render pass,</returns>
     public IComputeRenderGraphBuilder AddComputeRenderPass<TPassData>(string name, out TPassData passData)
         where TPassData : class, new()
     {
@@ -156,10 +170,16 @@ public sealed class RenderGraph : IDisposable
 
         _passes.Add(renderPass);
 
-        _builder.Init(this, renderPass, _resources);
+        _builder.Reset(renderPass, _resources);
         return _builder;
     }
 
+    /// <summary>
+    /// Add a new unsafe render pass to the render graph.
+    /// </summary>
+    /// <param name="name">The name of the render pass.</param>
+    /// <param name="passData">The data that will be used during rendering.</param>
+    /// <returns>The builder to build the render pass,</returns>
     public IUnsafeRenderGraphBuilder AddUnsafeRenderPass<TPassData>(string name, out TPassData passData)
         where TPassData : class, new()
     {
@@ -169,7 +189,7 @@ public sealed class RenderGraph : IDisposable
 
         _passes.Add(renderPass);
 
-        _builder.Init(this, renderPass, _resources);
+        _builder.Reset(renderPass, _resources);
         return _builder;
     }
 

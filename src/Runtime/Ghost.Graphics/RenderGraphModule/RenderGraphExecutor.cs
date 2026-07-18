@@ -237,15 +237,6 @@ internal sealed class RenderGraphExecutor
         {
             var compiledBarrier = compiledBarriers[barrierIndex++];
             var resourceHandle = _resources.GetResource(compiledBarrier.resource).backingResource;
-
-            // Always query the before state from ResourceManager (single source of truth)
-            var currentStateResult = _resourceDatabase.GetResourceBarrierData(resourceHandle);
-            if (currentStateResult.IsFailure)
-            {
-                return currentStateResult.Error;
-            }
-
-            var currentState = currentStateResult.Value;
             var target = compiledBarrier.targetState;
 
             // Create barrier descriptor

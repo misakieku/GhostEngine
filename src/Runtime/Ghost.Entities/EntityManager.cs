@@ -1249,7 +1249,7 @@ public unsafe partial class EntityManager : IDisposable
                     newSignature.SetBit(index);
                     compCount++;
                 }
-            }
+            }   
 
             if (compCount == 0)
             {

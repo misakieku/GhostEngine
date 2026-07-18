@@ -98,22 +98,22 @@ internal record struct RenderGraphResource : IDisposable
         backingResource = Handle<GPUResource>.Invalid;
     }
 
-    public void Reset()
-    {
-        type = RenderGraphResourceType.Texture;
-        index = -1;
-        rgTextureDesc = default;
-        bufferDesc = default;
-        resolvedWidth = 0;
-        resolvedHeight = 0;
-        isImported = false;
-        firstUsePass = -1;
-        lastUsePass = -1;
-        producerPass = -1;
-        consumerPasses.Clear();
-        refCount = 0;
-        backingResource = Handle<GPUResource>.Invalid;
-    }
+    // public void Reset()
+    // {
+    //     type = RenderGraphResourceType.Texture;
+    //     index = -1;
+    //     rgTextureDesc = default;
+    //     bufferDesc = default;
+    //     resolvedWidth = 0;
+    //     resolvedHeight = 0;
+    //     isImported = false;
+    //     firstUsePass = -1;
+    //     lastUsePass = -1;
+    //     producerPass = -1;
+    //     consumerPasses.Clear();
+    //     refCount = 0;
+    //     backingResource = Handle<GPUResource>.Invalid;
+    // }
 
     public void Dispose()
     {
@@ -325,14 +325,14 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
             _resourceHeap = Handle<GPUResource>.Invalid;
         }
 
-        if (plan.TotalHeapSize == 0)
+        if (plan.totalHeapSize == 0)
         {
             return Error.None; // No resources to allocate
         }
 
         var allocationDesc = new AllocationDesc
         {
-            Size = plan.TotalHeapSize + 65536, // Add 64KB padding to avoid potential overflows
+            Size = plan.totalHeapSize + 65536, // Add 64KB padding to avoid potential overflows
             Alignment = 65536, // 64KB
             HeapFlags = HeapFlags.AllowAllBufferAndTexture,
             HeapType = HeapType.Default
@@ -347,8 +347,8 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         for (var i = 0; i < _resources.Count; i++)
         {
             var placedIndex = plan.GetPlacedResourceIndex(i);
-            var placed = plan.GetPlacedResource(placedIndex);
-            if (placed == null)
+            var placedResult = plan.GetPlacedResource(placedIndex);
+            if (placedResult.IsFailure)
             {
                 continue;
             }
@@ -358,7 +358,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
             {
                 AllocationType = ResourceAllocationType.Suballocation,
                 Heap = _resourceHeap,
-                Offset = placed.heapOffset,
+                Offset = placedResult.Value.heapOffset,
             };
 
             var name =

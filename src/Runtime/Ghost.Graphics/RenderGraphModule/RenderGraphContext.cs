@@ -30,9 +30,7 @@ public interface IRasterRenderContext : IRenderGraphContext
 
     void SetActiveMaterial(Handle<Material> material);
     void SetActiveMaterial(ref readonly Material material);
-    [Obsolete("No point to set active mesh anymore in gpu driven pipeline.")]
     void SetActiveMesh(Handle<Mesh> mesh);
-    [Obsolete("No point to set active mesh anymore in gpu driven pipeline.")]
     void SetActiveMesh(ref readonly Mesh mesh);
     void DispatchMesh(uint3 threadGroupCount);
 }
@@ -145,7 +143,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var r = _resourceManager.GetMaterialReference(material);
         if (r.IsFailure)
         {
-            throw new InvalidOperationException($"Failed to get material reference for material handle {material}.");
+            throw InvalidResourceHandleException.Create(material);
         }
 
         ref readonly var mat = ref r.Value;
@@ -157,8 +155,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var shaderResult = _resourceManager.GetShaderReference(material.Shader);
         if (shaderResult.IsFailure)
         {
-            _activePerMaterialData = Handle<GPUBuffer>.Invalid;
-            return;
+            throw InvalidResourceHandleException.Create(material.Shader);
         }
 
         ref var shader = ref shaderResult.Value;
@@ -225,7 +222,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var r = _resourceManager.GetMeshReference(mesh);
         if (r.IsFailure)
         {
-            throw new InvalidOperationException($"Failed to get mesh reference for mesh handle {mesh}.");
+            throw InvalidResourceHandleException.Create(mesh);
         }
 
         ref readonly var meshRef = ref r.Value;
@@ -268,7 +265,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var r = _resourceManager.GetComputeShaderReference(computeShader);
         if (r.IsFailure)
         {
-            throw new InvalidOperationException($"Failed to get compute shader reference for handle {computeShader}.");
+            throw InvalidResourceHandleException.Create(computeShader);
         }
 
         ref var shader = ref r.Value;
