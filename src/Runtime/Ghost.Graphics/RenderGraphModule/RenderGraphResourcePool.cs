@@ -428,8 +428,11 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
                 {
                     _database.ReleaseResource(res.backingResource);
                 }
+
+                res.Dispose();
             }
 
+            _resources.Dispose();
             _database.ReleaseResource(_resourceHeap);
             _resourceHeap = Handle<GPUResource>.Invalid;
         }

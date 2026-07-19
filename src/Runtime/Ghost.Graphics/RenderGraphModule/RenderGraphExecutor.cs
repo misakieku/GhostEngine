@@ -78,9 +78,9 @@ internal sealed class RenderGraphExecutor
 
     public unsafe Error Execute(
         ICommandBuffer commandBuffer,
-        List<RenderGraphPassBase> compiledPasses,
-        List<NativeRenderPass> nativePasses,
-        List<CompiledBarrier> compiledBarriers)
+        IReadOnlyList<RenderGraphPassBase> compiledPasses,
+        IReadOnlyList<NativeRenderPass> nativePasses,
+        IReadOnlyList<CompiledBarrier> compiledBarriers)
     {
         var barrierIndex = 0;
         var nativePassIndex = 0;
@@ -216,7 +216,7 @@ internal sealed class RenderGraphExecutor
         ICommandBuffer cmd,
         int passIndex,
         ref int barrierIndex,
-        List<CompiledBarrier> compiledBarriers)
+        IReadOnlyList<CompiledBarrier> compiledBarriers)
     {
         const int MaxBatch = 64;
         var barriers = stackalloc BarrierDesc[MaxBatch];

@@ -9,6 +9,9 @@ internal struct CompiledGraph : IDisposable
 {
     public AliasingPlan plan;
     public float2 scale;
+    public IReadOnlyList<RenderGraphPassBase> compiledPasses;
+    public IReadOnlyList<NativeRenderPass> nativePasses;
+    public IReadOnlyList<CompiledBarrier> compiledBarriers;
 
     public void Dispose()
     {
@@ -27,6 +30,10 @@ internal sealed class RenderGraphCompiler
     private readonly RenderGraphNativePassBuilder _nativePassBuilder;
     private readonly RenderGraphCompilationCache _compilationCache;
 
+    private readonly List<RenderGraphPassBase> _compiledPasses;
+    private readonly List<NativeRenderPass> _nativePasses;
+    private readonly List<CompiledBarrier> _compiledBarriers;
+
     public RenderGraphCompiler(
         IResourceAllocator resourceAllocator,
         RenderGraphResourceRegistry resources,
@@ -37,9 +44,11 @@ internal sealed class RenderGraphCompiler
         _resources = resources;
         _nativePassBuilder = nativePassBuilder;
         _compilationCache = compilationCache;
-    }
 
-    // FIX: Make this stateless?
+        _compiledPasses = new List<RenderGraphPassBase>(64);
+        _nativePasses = new List<NativeRenderPass>(32);
+        _compiledBarriers = new List<CompiledBarrier>(128);
+    }
 
     /// <summary>
     /// Compiles the render graph by culling passes, allocating resources, and preparing barriers.
@@ -48,9 +57,6 @@ internal sealed class RenderGraphCompiler
         in ViewState viewState,
         ulong graphHash,
         List<RenderGraphPassBase> passes,
-        List<RenderGraphPassBase> compiledPasses,
-        List<NativeRenderPass> nativePasses,
-        List<CompiledBarrier> compiledBarriers,
         AllocationHandle allocationHandle)
     {
         Error error;
@@ -79,24 +85,30 @@ internal sealed class RenderGraphCompiler
                 return new CompiledGraph
                 {
                     scale = float2.one,
-                    plan = aliasingPlan
+                    plan = aliasingPlan,
+                    compiledPasses = _compiledPasses,
+                    nativePasses = _nativePasses,
+                    compiledBarriers = _compiledBarriers
                 };
             }
             else
             {
                 // Perfect cache hit - restore everything
-                aliasingPlan = RestoreFromCache(cached, compiledPasses, passes, nativePasses, compiledBarriers, allocationHandle);
+                aliasingPlan = RestoreFromCache(cached, passes, allocationHandle);
                 _resources.RestoreBackingResources(cached.backingResources);
                 return new CompiledGraph
                 {
                     scale = scale,
-                    plan = aliasingPlan
+                    plan = aliasingPlan,
+                    compiledPasses = _compiledPasses,
+                    nativePasses = _nativePasses,
+                    compiledBarriers = _compiledBarriers
                 };
             }
         }
 
         // Fresh compilation needed
-        compiledPasses.Clear();
+        _compiledPasses.Clear();
 
         // Mark passes with side effects (writes to imported resources)
         MarkPassesWithSideEffects(passes);
@@ -110,7 +122,7 @@ internal sealed class RenderGraphCompiler
             var pass = passes[i];
             if (!pass.culled)
             {
-                compiledPasses.Add(pass);
+                _compiledPasses.Add(pass);
             }
         }
 
@@ -121,14 +133,17 @@ internal sealed class RenderGraphCompiler
             return error;
         }
 
-        RenderGraphBarriers.CompileBarriers(compiledPasses, compiledBarriers, _resources, aliasingPlan);
-        _nativePassBuilder.BuildNativeRenderPasses(compiledPasses, nativePasses, compiledBarriers);
-        StoreInCache(graphHash, viewState, compiledPasses, passes, compiledBarriers, aliasingPlan);
+        RenderGraphBarriers.CompileBarriers(_compiledPasses, _compiledBarriers, _resources, aliasingPlan);
+        _nativePassBuilder.BuildNativeRenderPasses(_compiledPasses, _nativePasses, _compiledBarriers);
+        StoreInCache(graphHash, viewState, passes, aliasingPlan);
 
         return new CompiledGraph
         {
             scale = float2.one,
-            plan = aliasingPlan
+            plan = aliasingPlan,
+            compiledPasses = _compiledPasses,
+            nativePasses = _nativePasses,
+            compiledBarriers = _compiledBarriers
         };
     }
 
@@ -218,17 +233,14 @@ internal sealed class RenderGraphCompiler
 
     private AliasingPlan RestoreFromCache(
         CachedCompilation cached,
-        List<RenderGraphPassBase> compiledPasses,
         List<RenderGraphPassBase> passes,
-        List<NativeRenderPass> nativePasses,
-        List<CompiledBarrier> compiledBarriers,
         AllocationHandle allocationHandle)
     {
-        compiledPasses.Clear();
+        _compiledPasses.Clear();
         for (var i = 0; i < cached.compiledPassIndices.Count; i++)
         {
             var passIndex = cached.compiledPassIndices[i];
-            compiledPasses.Add(passes[passIndex]);
+            _compiledPasses.Add(passes[passIndex]);
         }
 
         for (var i = 0; i < passes.Count && i < cached.passCulledFlags.Count; i++)
@@ -238,14 +250,14 @@ internal sealed class RenderGraphCompiler
 
         var plan = RenderGraphAliasingBuilder.RestoreFromCache(cached.logicalToPhysical, cached.placedResources, allocationHandle);
 
-        compiledBarriers.Clear();
+        _compiledBarriers.Clear();
         for (var i = 0; i < cached.compiledBarriers.Count; i++)
         {
-            compiledBarriers.Add(cached.compiledBarriers[i]);
+            _compiledBarriers.Add(cached.compiledBarriers[i]);
         }
 
         // Why we need to build this every frame?
-        _nativePassBuilder.BuildNativeRenderPasses(compiledPasses, nativePasses, compiledBarriers);
+        _nativePassBuilder.BuildNativeRenderPasses(_compiledPasses, _nativePasses, _compiledBarriers);
 
         return plan;
     }
@@ -253,9 +265,7 @@ internal sealed class RenderGraphCompiler
     private void StoreInCache(
         ulong graphHash,
         in ViewState viewState,
-        List<RenderGraphPassBase> compiledPasses,
         List<RenderGraphPassBase> passes,
-        List<CompiledBarrier> compiledBarriers,
         AliasingPlan aliasingPlan)
     {
         var cacheData = new CachedCompilation
@@ -263,9 +273,9 @@ internal sealed class RenderGraphCompiler
             viewState = viewState
         };
 
-        for (var i = 0; i < compiledPasses.Count; i++)
+        for (var i = 0; i < _compiledPasses.Count; i++)
         {
-            cacheData.compiledPassIndices.Add(compiledPasses[i].index);
+            cacheData.compiledPassIndices.Add(_compiledPasses[i].index);
         }
 
         for (var i = 0; i < passes.Count; i++)
@@ -275,9 +285,9 @@ internal sealed class RenderGraphCompiler
 
         aliasingPlan.StoreToCache(cacheData.logicalToPhysical, cacheData.placedResources);
 
-        for (var i = 0; i < compiledBarriers.Count; i++)
+        for (var i = 0; i < _compiledBarriers.Count; i++)
         {
-            cacheData.compiledBarriers.Add(compiledBarriers[i]);
+            cacheData.compiledBarriers.Add(_compiledBarriers[i]);
         }
 
         for (var i = 0; i < _resources.ResourceCount; i++)

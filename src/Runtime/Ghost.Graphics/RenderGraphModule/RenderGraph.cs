@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel.Buffer;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -14,13 +15,8 @@ public sealed class RenderGraph : IDisposable
     private readonly RenderGraphResourceRegistry _resources;
 
     private readonly List<RenderGraphPassBase> _passes;
-    private readonly List<RenderGraphPassBase> _compiledPasses;
-    private readonly List<NativeRenderPass> _nativePasses;
 
     private readonly RenderGraphBuilder _builder;
-    private readonly AliasingPlan _aliasingPlan;
-
-    private readonly List<CompiledBarrier> _compiledBarriers = new(128);
 
     private readonly RenderGraphCompilationCache _compilationCache;
     private readonly RenderGraphContext _context;
@@ -30,8 +26,6 @@ public sealed class RenderGraph : IDisposable
     private readonly RenderGraphNativePassBuilder _nativePassBuilder;
 
     private readonly RenderGraphBlackboard _blackboard;
-
-    private bool _compiled;
 
     public RenderGraphBlackboard Blackboard => _blackboard;
 
@@ -43,11 +37,8 @@ public sealed class RenderGraph : IDisposable
         _resources = new RenderGraphResourceRegistry(_resourceDatabase, renderSystem.GraphicsEngine.ResourceAllocator);
 
         _passes = new List<RenderGraphPassBase>(32);
-        _compiledPasses = new List<RenderGraphPassBase>(32);
-        _nativePasses = new List<NativeRenderPass>(32);
 
         _builder = new RenderGraphBuilder();
-        _aliasingPlan = new AliasingPlan();
 
         _compilationCache = new RenderGraphCompilationCache();
 
@@ -73,8 +64,6 @@ public sealed class RenderGraph : IDisposable
     {
         _blackboard.Clear();
         _resources.Clear();
-        _aliasingPlan.Clear();
-        _compiledBarriers.Clear();
 
         // Return passes to the pool and reset count
         for (var i = 0; i < _passes.Count; i++)
@@ -84,15 +73,6 @@ public sealed class RenderGraph : IDisposable
         }
 
         _passes.Clear();
-        _compiledPasses.Clear();
-
-        for (var i = 0; i < _nativePasses.Count; i++)
-        {
-            _objectPool.Return(_nativePasses[i]);
-        }
-        _nativePasses.Clear();
-
-        _compiled = false;
     }
 
     /// <summary>
@@ -194,41 +174,24 @@ public sealed class RenderGraph : IDisposable
     }
 
     /// <summary>
-    /// Compiles the render graph by culling unused passes and determining heap lifetimes.
+    /// Compiles the render graph the execute all compiled passes.
     /// </summary>
-    public Error Compile(ViewState viewState)
+    public Error CompileAndExecute(ICommandBuffer commandBuffer, ViewState viewState)
     {
-        if (_compiled)
-        {
-            return Error.None;
-        }
-
         _resources.ResolveTextureSizes(in viewState);
 
+        using var scope = AllocationManager.CreateStackScope();
         var graphHash = RenderGraphHasher.ComputeGraphHash(_passes, _resources);
-        var result = _compiler.Compile(in viewState, graphHash, _passes, _compiledPasses, _nativePasses, _compiledBarriers, _aliasingPlan, _objectPool);
+        var result = _compiler.Compile(in viewState, graphHash, _passes, scope.AllocationHandle);
         if (result.IsFailure)
         {
             return result.Error;
         }
 
-        _context.RelativeScale = result.Value;
+        var graph = result.Value;
+        _context.RelativeScale = graph.scale;
+        return _executor.Execute(commandBuffer, graph.compiledPasses, graph.nativePasses, graph.compiledBarriers);
 
-        _compiled = true;
-        return Error.None;
-    }
-
-    /// <summary>
-    /// Executes all compiled passes using native render passes where possible.
-    /// </summary>
-    public Error Execute(ICommandBuffer commandBuffer)
-    {
-        if (!_compiled)
-        {
-            return Error.InvalidState;
-        }
-
-        return _executor.Execute(commandBuffer, _compiledPasses, _nativePasses, _compiledBarriers);
     }
 
     public void Dispose()
