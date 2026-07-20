@@ -5,6 +5,10 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
+public delegate void PassRenderFunc<TPassData, TRenderContext>(ref readonly TPassData data, TRenderContext ctx)
+    where TPassData : struct
+    where TRenderContext : IRenderGraphContext;
+
 [Flags]
 public enum AccessFlags : byte
 {
@@ -81,6 +85,14 @@ public interface IRenderGraphBuilder : IDisposable
     /// <param name="src">The identifier of the buffer to be extracted.</param>
     /// <param name="dst">A handle to receive the actual GPU buffer heap.</param>
     void QueryBufferExtraction(Identifier<RGBuffer> src, Handle<GPUBuffer> dst, ResourceExtractionFlags flags = ResourceExtractionFlags.ReleaseAfterExtract);
+
+    /// <summary>
+    /// Set the data that will be used during rendering for this pass.
+    /// </summary>
+    /// <param name="passData">The pass data to set.</param>
+    /// <param name="addToBlackboard">Add the pass data to blackboard so other passes can access it if true.</param>
+    void SetPassData<T>(scoped in T passData, bool addToBlackboard = false)
+        where T : struct;
 }
 
 public interface IRasterRenderGraphBuilder : IRenderGraphBuilder
@@ -118,8 +130,8 @@ public interface IRasterRenderGraphBuilder : IRenderGraphBuilder
     /// </summary>
     /// <typeparam name="TPassData">The type of data associated with the render pass.</typeparam>
     /// <param name="renderFunc">The delegate that defines the rendering logic for the pass.</param>
-    void SetRenderFunc<TPassData>(Action<TPassData, IRasterRenderContext> renderFunc)
-        where TPassData : class, new();
+    void SetRenderFunc<TPassData>(PassRenderFunc<TPassData, IRasterRenderContext> renderFunc)
+        where TPassData : unmanaged;
 }
 
 public interface IComputeRenderGraphBuilder : IRenderGraphBuilder
@@ -135,8 +147,8 @@ public interface IComputeRenderGraphBuilder : IRenderGraphBuilder
     /// </summary>
     /// <typeparam name="TPassData">The type of the data object passed to the render function.</typeparam>
     /// <param name="renderFunc">The delegate that defines the rendering logic to execute.</param>
-    void SetRenderFunc<TPassData>(Action<TPassData, IComputeRenderContext> renderFunc)
-        where TPassData : class, new();
+    void SetRenderFunc<TPassData>(PassRenderFunc<TPassData, IComputeRenderContext> renderFunc)
+        where TPassData : struct;
 }
 
 public interface IUnsafeRenderGraphBuilder : IRenderGraphBuilder
@@ -159,20 +171,27 @@ public interface IUnsafeRenderGraphBuilder : IRenderGraphBuilder
     /// </summary>
     /// <typeparam name="TPassData">The type of data associated with the render pass.</typeparam>
     /// <param name="renderFunc">The delegate that defines the rendering logic for the pass.</param>
-    void SetRenderFunc<TPassData>(Action<TPassData, IUnsafeRenderContext> renderFunc)
-        where TPassData : class, new();
+    void SetRenderFunc<TPassData>(PassRenderFunc<TPassData, IUnsafeRenderContext> renderFunc)
+        where TPassData : struct;
 }
 
 internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGraphBuilder, IUnsafeRenderGraphBuilder
 {
-    private RenderGraphPassBase _pass = null!;
-    private RenderGraphResourceRegistry _resources = null!;
+    private readonly RenderGraphResourceRegistry _resourceRegistry;
+    private readonly RenderGraphBlackboard _blackboard;
+
+    private RenderGraphPass _pass = null!;
     private bool _disposed;
 
-    internal void Reset(RenderGraphPassBase pass, RenderGraphResourceRegistry resources)
+    public RenderGraphBuilder(RenderGraphResourceRegistry resourceRegistry, RenderGraphBlackboard blackboard)
+    {
+        _resourceRegistry = resourceRegistry;
+        _blackboard = blackboard;
+    }
+
+    internal void Reset(RenderGraphPass pass)
     {
         _pass = pass;
-        _resources = resources;
         _disposed = false;
     }
 
@@ -188,13 +207,13 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         if (accessFlags.HasFlag(AccessFlags.Read))
         {
             _pass.resourceReads[(int)type].Add(resource);
-            _resources.AddConsumer(resource, _pass.index);
+            _resourceRegistry.AddConsumer(resource, _pass.index);
         }
 
         if (accessFlags.HasFlag(AccessFlags.Write))
         {
             _pass.resourceWrites[(int)type].Add(resource);
-            _resources.SetProducer(resource, _pass.index);
+            _resourceRegistry.SetProducer(resource, _pass.index);
         }
 
         return resource;
@@ -214,9 +233,9 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
     {
         ThrowIfDisposed();
 
-        var handle = _resources.CreateTexture(in desc, name);
+        var handle = _resourceRegistry.CreateTexture(in desc, name);
         _pass.resourceCreates[(int)RenderGraphResourceType.Texture].Add(handle.AsResource());
-        _resources.SetProducer(handle.AsResource(), _pass.index);
+        _resourceRegistry.SetProducer(handle.AsResource(), _pass.index);
         return handle;
     }
 
@@ -224,9 +243,9 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
     {
         ThrowIfDisposed();
 
-        var handle = _resources.CreateBuffer(in desc, name);
+        var handle = _resourceRegistry.CreateBuffer(in desc, name);
         _pass.resourceCreates[(int)RenderGraphResourceType.Buffer].Add(handle.AsResource());
-        _resources.SetProducer(handle.AsResource(), _pass.index);
+        _resourceRegistry.SetProducer(handle.AsResource(), _pass.index);
         return handle;
     }
 
@@ -311,22 +330,38 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         }
     }
 
-    public void SetRenderFunc<TPassData>(Action<TPassData, IRasterRenderContext> renderFunc)
-        where TPassData : class, new()
+    public void SetRenderFunc<TPassData>(PassRenderFunc<TPassData, IRasterRenderContext> renderFunc)
+        where TPassData : unmanaged
     {
         ((RasterRenderGraphPass<TPassData>)_pass).renderFunc = renderFunc;
     }
 
-    public void SetRenderFunc<TPassData>(Action<TPassData, IComputeRenderContext> renderFunc)
-        where TPassData : class, new()
+    public void SetRenderFunc<TPassData>(PassRenderFunc<TPassData, IComputeRenderContext> renderFunc)
+        where TPassData : struct
     {
         ((ComputeRenderGraphPass<TPassData>)_pass).renderFunc = renderFunc;
     }
 
-    public void SetRenderFunc<TPassData>(Action<TPassData, IUnsafeRenderContext> renderFunc)
-        where TPassData : class, new()
+    public void SetRenderFunc<TPassData>(PassRenderFunc<TPassData, IUnsafeRenderContext> renderFunc)
+        where TPassData : struct
     {
         ((UnsafeRenderGraphPass<TPassData>)_pass).renderFunc = renderFunc;
+    }
+
+    public void SetPassData<T>(scoped in T passData, bool addToBlackboard = false)
+        where T : struct
+    {
+        if (_pass is not RenderGraphPass<T> typedPass)
+        {
+            throw new ArgumentException("Pass type and pass data type missmatch.");
+        }
+
+        typedPass.SetPassData(passData);
+
+        if (addToBlackboard)
+        {
+            _blackboard.Add<RenderGraphPass<T>, T>(typedPass);
+        }
     }
 
     public void Dispose()
@@ -347,7 +382,6 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         }
 
         _pass = null!;
-        _resources = null!;
 
         _disposed = true;
     }

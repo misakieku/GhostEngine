@@ -45,7 +45,7 @@ internal struct CompiledBarrier
 internal static class RenderGraphBarriers
 {
     public static void CompileBarriers(
-        List<RenderGraphPassBase> compiledPasses,
+        List<RenderGraphPass> compiledPasses,
         List<CompiledBarrier> compiledBarriers,
         RenderGraphResourceRegistry resources,
         AliasingPlan aliasingPlan)
@@ -66,7 +66,7 @@ internal static class RenderGraphBarriers
     }
 
     private static void InsertAliasingBarriers(
-        RenderGraphPassBase pass,
+        RenderGraphPass pass,
         int passIdx,
         List<CompiledBarrier> compiledBarriers,
         RenderGraphResourceRegistry resources,
@@ -145,7 +145,7 @@ internal static class RenderGraphBarriers
     }
 
     private static void CompileImplicitTransitions(
-        RenderGraphPassBase pass,
+        RenderGraphPass pass,
         int passIdx,
         List<CompiledBarrier> compiledBarriers,
         RenderGraphResourceRegistry resources)
@@ -278,7 +278,7 @@ internal static class RenderGraphBarriers
 
     private static ResourceBarrierData GetBufferReadBarrierData(
         Identifier<RGResource> handle,
-        RenderGraphPassBase pass,
+        RenderGraphPass pass,
         RenderGraphResourceType resourceType,
         RenderGraphResourceRegistry resources)
     {

@@ -1,54 +1,56 @@
+using System.Runtime.CompilerServices;
+
 namespace Ghost.Graphics.RenderGraphModule;
 
 /// <summary>
 /// Blackboard for sharing data between render passes.
-/// Uses a dictionary with type keys to store different pass data types.
-/// Avoids allocations by reusing the same dictionary across frames.
 /// </summary>
 public sealed class RenderGraphBlackboard
 {
-    private readonly Dictionary<Type, IPassData> _data = new(16);
+    private readonly Dictionary<Type, RenderGraphPass> _data = new(16);
 
     /// <summary>
     /// Adds or updates pass data in the blackboard.
     /// </summary>
-    public void Add<T>(T data)
-        where T : class, IPassData
+    internal void Add<TPass, TPassData>(TPass pass)
+        where TPass : RenderGraphPass<TPassData>
+        where TPassData : struct
     {
-        var type = typeof(T);
-        _data[type] = data;
+        var type = typeof(TPass);
+        _data[type] = pass;
     }
 
     /// <summary>
     /// Retrieves pass data from the blackboard.
     /// </summary>
-    public T Get<T>()
-        where T : class, IPassData
+    public ref readonly T Get<T>()
+        where T : struct
     {
-        var type = typeof(T);
-        if (_data.TryGetValue(type, out var obj))
+        ref readonly var data = ref TryGet<T>(out var exist);
+        if (!exist)
         {
-            return (T)obj;
+            throw new KeyNotFoundException($"Pass data of type {typeof(T).Name} not found in blackboard");
         }
 
-        throw new KeyNotFoundException($"Pass data of type {type.Name} not found in blackboard");
+        return ref data;
     }
 
     /// <summary>
     /// Tries to get pass data from the blackboard.
     /// </summary>
-    public bool TryGet<T>(out T? data)
-        where T : class, IPassData
+    public ref readonly T TryGet<T>(out bool exist)
+        where T : struct
     {
         var type = typeof(T);
-        if (_data.TryGetValue(type, out var obj))
+        if (_data.TryGetValue(type, out var pass)
+            && pass is RenderGraphPass<T> typedPass)
         {
-            data = (T)obj;
-            return true;
+            exist = true;
+            return ref typedPass.PassData;
         }
 
-        data = null;
-        return false;
+        exist = false;
+        return ref Unsafe.NullRef<T>();
     }
 
     /// <summary>

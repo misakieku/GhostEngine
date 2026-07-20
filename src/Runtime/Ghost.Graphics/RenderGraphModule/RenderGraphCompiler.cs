@@ -9,7 +9,7 @@ internal struct CompiledGraph : IDisposable
 {
     public AliasingPlan plan;
     public float2 scale;
-    public IReadOnlyList<RenderGraphPassBase> compiledPasses;
+    public IReadOnlyList<RenderGraphPass> compiledPasses;
     public IReadOnlyList<NativeRenderPass> nativePasses;
     public IReadOnlyList<CompiledBarrier> compiledBarriers;
 
@@ -30,7 +30,7 @@ internal sealed class RenderGraphCompiler
     private readonly RenderGraphNativePassBuilder _nativePassBuilder;
     private readonly RenderGraphCompilationCache _compilationCache;
 
-    private readonly List<RenderGraphPassBase> _compiledPasses;
+    private readonly List<RenderGraphPass> _compiledPasses;
     private readonly List<NativeRenderPass> _nativePasses;
     private readonly List<CompiledBarrier> _compiledBarriers;
 
@@ -45,7 +45,7 @@ internal sealed class RenderGraphCompiler
         _nativePassBuilder = nativePassBuilder;
         _compilationCache = compilationCache;
 
-        _compiledPasses = new List<RenderGraphPassBase>(64);
+        _compiledPasses = new List<RenderGraphPass>(64);
         _nativePasses = new List<NativeRenderPass>(32);
         _compiledBarriers = new List<CompiledBarrier>(128);
     }
@@ -56,7 +56,7 @@ internal sealed class RenderGraphCompiler
     public Result<CompiledGraph, Error> Compile(
         in ViewState viewState,
         ulong graphHash,
-        List<RenderGraphPassBase> passes,
+        List<RenderGraphPass> passes,
         AllocationHandle allocationHandle)
     {
         Error error;
@@ -147,7 +147,7 @@ internal sealed class RenderGraphCompiler
         };
     }
 
-    private void MarkPassesWithSideEffects(List<RenderGraphPassBase> passes)
+    private void MarkPassesWithSideEffects(List<RenderGraphPass> passes)
     {
         for (var i = 0; i < passes.Count; i++)
         {
@@ -170,7 +170,7 @@ internal sealed class RenderGraphCompiler
         }
     }
 
-    private void CullPasses(List<RenderGraphPassBase> passes)
+    private void CullPasses(List<RenderGraphPass> passes)
     {
         for (var i = 0; i < passes.Count; i++)
         {
@@ -187,7 +187,7 @@ internal sealed class RenderGraphCompiler
         }
     }
 
-    private void UncullDependencies(RenderGraphPassBase pass, List<RenderGraphPassBase> passes)
+    private void UncullDependencies(RenderGraphPass pass, List<RenderGraphPass> passes)
     {
         for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
         {
@@ -217,7 +217,7 @@ internal sealed class RenderGraphCompiler
         }
     }
 
-    private void UncullProducer(Identifier<RGResource> resource, List<RenderGraphPassBase> passes)
+    private void UncullProducer(Identifier<RGResource> resource, List<RenderGraphPass> passes)
     {
         ref readonly var res = ref _resources.GetResource(resource);
         if (res.producerPass >= 0)
@@ -233,7 +233,7 @@ internal sealed class RenderGraphCompiler
 
     private AliasingPlan RestoreFromCache(
         CachedCompilation cached,
-        List<RenderGraphPassBase> passes,
+        List<RenderGraphPass> passes,
         AllocationHandle allocationHandle)
     {
         _compiledPasses.Clear();
@@ -265,7 +265,7 @@ internal sealed class RenderGraphCompiler
     private void StoreInCache(
         ulong graphHash,
         in ViewState viewState,
-        List<RenderGraphPassBase> passes,
+        List<RenderGraphPass> passes,
         AliasingPlan aliasingPlan)
     {
         var cacheData = new CachedCompilation

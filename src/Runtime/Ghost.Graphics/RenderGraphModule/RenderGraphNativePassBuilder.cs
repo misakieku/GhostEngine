@@ -23,7 +23,7 @@ internal sealed class RenderGraphNativePassBuilder
     /// Uses conservative merging: only merge passes with identical attachments and no barriers between them.
     /// </summary>
     public void BuildNativeRenderPasses(
-        List<RenderGraphPassBase> compiledPasses,
+        List<RenderGraphPass> compiledPasses,
         List<NativeRenderPass> nativePasses,
         List<CompiledBarrier> compiledBarriers)
     {
@@ -89,7 +89,7 @@ internal sealed class RenderGraphNativePassBuilder
     /// <summary>
     /// Creates a new native render pass from a logical pass.
     /// </summary>
-    private NativeRenderPass CreateNativePass(RenderGraphPassBase pass, int passIndex)
+    private NativeRenderPass CreateNativePass(RenderGraphPass pass, int passIndex)
     {
         var nativePass = _objectPool.Rent<NativeRenderPass>();
         nativePass.Reset();
@@ -132,9 +132,9 @@ internal sealed class RenderGraphNativePassBuilder
     /// </summary>
     private bool CanMergePasses(
         NativeRenderPass nativePass,
-        RenderGraphPassBase pass,
+        RenderGraphPass pass,
         int passIndex,
-        List<RenderGraphPassBase> compiledPasses,
+        List<RenderGraphPass> compiledPasses,
         List<CompiledBarrier> compiledBarriers)
     {
         // Don't merge if UAVs are involved (conservative)
@@ -161,7 +161,7 @@ internal sealed class RenderGraphNativePassBuilder
     /// <summary>
     /// Checks if the attachment configuration of a pass matches the native pass.
     /// </summary>
-    private static bool AttachmentsMatch(NativeRenderPass nativePass, RenderGraphPassBase pass)
+    private static bool AttachmentsMatch(NativeRenderPass nativePass, RenderGraphPass pass)
     {
         // Check color attachment count
         if (nativePass.colorAttachmentCount != pass.maxColorIndex + 1)
@@ -199,7 +199,7 @@ internal sealed class RenderGraphNativePassBuilder
     private static bool RequiresBarrierBetweenPasses(
         int passA,
         int passB,
-        List<RenderGraphPassBase> compiledPasses,
+        List<RenderGraphPass> compiledPasses,
         List<CompiledBarrier> compiledBarriers)
     {
         var laterPass = compiledPasses[passB];

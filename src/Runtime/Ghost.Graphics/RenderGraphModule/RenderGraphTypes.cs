@@ -367,13 +367,6 @@ internal readonly struct BufferAccess
 }
 
 /// <summary>
-/// Base interface for pass data that can be stored in the blackboard.
-/// </summary>
-public interface IPassData
-{
-}
-
-/// <summary>
 /// Information about a render target attachment in a native render pass.
 /// </summary>
 internal struct RenderTargetInfo

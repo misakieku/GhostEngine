@@ -12,11 +12,9 @@ public sealed class RenderGraph : IDisposable
     private readonly IResourceDatabase _resourceDatabase;
 
     private readonly RenderGraphObjectPool _objectPool;
-    private readonly RenderGraphResourceRegistry _resources;
+    private readonly RenderGraphResourceRegistry _resourceRegistry;
 
-    private readonly List<RenderGraphPassBase> _passes;
-
-    private readonly RenderGraphBuilder _builder;
+    private readonly List<RenderGraphPass> _passes;
 
     private readonly RenderGraphCompilationCache _compilationCache;
     private readonly RenderGraphContext _context;
@@ -26,6 +24,7 @@ public sealed class RenderGraph : IDisposable
     private readonly RenderGraphNativePassBuilder _nativePassBuilder;
 
     private readonly RenderGraphBlackboard _blackboard;
+    private readonly RenderGraphBuilder _builder;
 
     public RenderGraphBlackboard Blackboard => _blackboard;
 
@@ -34,11 +33,10 @@ public sealed class RenderGraph : IDisposable
         _resourceDatabase = renderSystem.GraphicsEngine.ResourceDatabase;
 
         _objectPool = new RenderGraphObjectPool();
-        _resources = new RenderGraphResourceRegistry(_resourceDatabase, renderSystem.GraphicsEngine.ResourceAllocator);
+        _resourceRegistry = new RenderGraphResourceRegistry(_resourceDatabase, renderSystem.GraphicsEngine.ResourceAllocator);
 
-        _passes = new List<RenderGraphPassBase>(32);
+        _passes = new List<RenderGraphPass>(32);
 
-        _builder = new RenderGraphBuilder();
 
         _compilationCache = new RenderGraphCompilationCache();
 
@@ -47,14 +45,15 @@ public sealed class RenderGraph : IDisposable
             renderSystem.ShaderLibrary,
             renderSystem.GraphicsEngine.ResourceDatabase,
             renderSystem.GraphicsEngine.PipelineLibrary,
-            _resources
+            _resourceRegistry
         );
 
-        _nativePassBuilder = new RenderGraphNativePassBuilder(_objectPool, _resources);
-        _compiler = new RenderGraphCompiler(renderSystem.GraphicsEngine.ResourceAllocator, _resources, _nativePassBuilder, _compilationCache);
-        _executor = new RenderGraphExecutor(renderSystem.ResourceManager, renderSystem.GraphicsEngine.ResourceDatabase, _resources, _context);
+        _nativePassBuilder = new RenderGraphNativePassBuilder(_objectPool, _resourceRegistry);
+        _compiler = new RenderGraphCompiler(renderSystem.GraphicsEngine.ResourceAllocator, _resourceRegistry, _nativePassBuilder, _compilationCache);
+        _executor = new RenderGraphExecutor(renderSystem.ResourceManager, renderSystem.GraphicsEngine.ResourceDatabase, _resourceRegistry, _context);
 
         _blackboard = new RenderGraphBlackboard();
+        _builder = new RenderGraphBuilder(_resourceRegistry, _blackboard);
     }
 
     /// <summary>
@@ -63,7 +62,7 @@ public sealed class RenderGraph : IDisposable
     public void Reset()
     {
         _blackboard.Clear();
-        _resources.Clear();
+        _resourceRegistry.Clear();
 
         // Return passes to the pool and reset count
         for (var i = 0; i < _passes.Count; i++)
@@ -92,7 +91,7 @@ public sealed class RenderGraph : IDisposable
         }
 
         var desc = r.Value;
-        return _resources.ImportTexture(in desc.TextureDescriptor, texture, name, clearColor, clearDepth, clearStencil, clearAtFirstUse, discardAtLastUse);
+        return _resourceRegistry.ImportTexture(in desc.TextureDescriptor, texture, name, clearColor, clearDepth, clearStencil, clearAtFirstUse, discardAtLastUse);
     }
 
     /// <summary>
@@ -110,7 +109,7 @@ public sealed class RenderGraph : IDisposable
         }
 
         var desc = r.Value;
-        return _resources.ImportBuffer(in desc.BufferDescriptor, buffer, name);
+        return _resourceRegistry.ImportBuffer(in desc.BufferDescriptor, buffer, name);
     }
 
     /// <summary>
@@ -120,18 +119,16 @@ public sealed class RenderGraph : IDisposable
     /// This pass will be merged into native render pass when possible.
     /// </remarks>
     /// <param name="name">The name of the render pass.</param>
-    /// <param name="passData">The data that will be used during rendering.</param>
     /// <returns>The builder to build the render pass,</returns>
-    public IRasterRenderGraphBuilder AddRasterRenderPass<TPassData>(string name, out TPassData passData)
-        where TPassData : class, new()
+    public IRasterRenderGraphBuilder AddRasterRenderPass<TPassData>(string name)
+        where TPassData : unmanaged
     {
         var renderPass = _objectPool.Rent<RasterRenderGraphPass<TPassData>>();
-        renderPass.Init(_passes.Count, _objectPool.Rent<TPassData>(), name, RenderPassType.Raster);
-        passData = renderPass.passData;
+        renderPass.Init(_passes.Count, name, RenderPassType.Raster);
 
         _passes.Add(renderPass);
+        _builder.Reset(renderPass);
 
-        _builder.Reset(renderPass, _resources);
         return _builder;
     }
 
@@ -141,16 +138,15 @@ public sealed class RenderGraph : IDisposable
     /// <param name="name">The name of the render pass.</param>
     /// <param name="passData">The data that will be used during rendering.</param>
     /// <returns>The builder to build the render pass,</returns>
-    public IComputeRenderGraphBuilder AddComputeRenderPass<TPassData>(string name, out TPassData passData)
-        where TPassData : class, new()
+    public IComputeRenderGraphBuilder AddComputeRenderPass<TPassData>(string name)
+        where TPassData : unmanaged
     {
         var renderPass = _objectPool.Rent<ComputeRenderGraphPass<TPassData>>();
-        renderPass.Init(_passes.Count, _objectPool.Rent<TPassData>(), name, RenderPassType.Compute);
-        passData = renderPass.passData;
+        renderPass.Init(_passes.Count, name, RenderPassType.Compute);
 
         _passes.Add(renderPass);
+        _builder.Reset(renderPass);
 
-        _builder.Reset(renderPass, _resources);
         return _builder;
     }
 
@@ -160,16 +156,15 @@ public sealed class RenderGraph : IDisposable
     /// <param name="name">The name of the render pass.</param>
     /// <param name="passData">The data that will be used during rendering.</param>
     /// <returns>The builder to build the render pass,</returns>
-    public IUnsafeRenderGraphBuilder AddUnsafeRenderPass<TPassData>(string name, out TPassData passData)
-        where TPassData : class, new()
+    public IUnsafeRenderGraphBuilder AddUnsafeRenderPass<TPassData>(string name)
+        where TPassData : unmanaged
     {
         var renderPass = _objectPool.Rent<UnsafeRenderGraphPass<TPassData>>();
-        renderPass.Init(_passes.Count, _objectPool.Rent<TPassData>(), name, RenderPassType.Unsafe);
-        passData = renderPass.passData;
+        renderPass.Init(_passes.Count, name, RenderPassType.Unsafe);
 
         _passes.Add(renderPass);
+        _builder.Reset(renderPass);
 
-        _builder.Reset(renderPass, _resources);
         return _builder;
     }
 
@@ -178,10 +173,10 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     public Error CompileAndExecute(ICommandBuffer commandBuffer, ViewState viewState)
     {
-        _resources.ResolveTextureSizes(in viewState);
+        _resourceRegistry.ResolveTextureSizes(in viewState);
 
         using var scope = AllocationManager.CreateStackScope();
-        var graphHash = RenderGraphHasher.ComputeGraphHash(_passes, _resources);
+        var graphHash = RenderGraphHasher.ComputeGraphHash(_passes, _resourceRegistry);
         var result = _compiler.Compile(in viewState, graphHash, _passes, scope.AllocationHandle);
         if (result.IsFailure)
         {
@@ -196,7 +191,7 @@ public sealed class RenderGraph : IDisposable
 
     public void Dispose()
     {
-        _resources.Dispose();
+        _resourceRegistry.Dispose();
 
         // HACK: Ideally, we should have a Dispose method. But for now, we just reset to release resources.
         Reset();

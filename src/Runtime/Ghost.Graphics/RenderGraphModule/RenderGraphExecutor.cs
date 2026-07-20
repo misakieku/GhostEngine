@@ -78,7 +78,7 @@ internal sealed class RenderGraphExecutor
 
     public unsafe Error Execute(
         ICommandBuffer commandBuffer,
-        IReadOnlyList<RenderGraphPassBase> compiledPasses,
+        IReadOnlyList<RenderGraphPass> compiledPasses,
         IReadOnlyList<NativeRenderPass> nativePasses,
         IReadOnlyList<CompiledBarrier> compiledBarriers)
     {

@@ -14,12 +14,11 @@ public enum RenderPassType : byte
     Unsafe
 }
 
-
 /// <summary>
 /// Base class for render passes.
 /// Uses pooling to avoid allocations after the first frame.
 /// </summary>
-internal abstract class RenderGraphPassBase
+internal abstract class RenderGraphPass
 {
     public string name = string.Empty;
     public int index;
@@ -42,7 +41,7 @@ internal abstract class RenderGraphPassBase
     public bool culled;
     public bool hasSideEffects;
 
-    public RenderGraphPassBase()
+    public RenderGraphPass()
     {
         for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
         {
@@ -82,16 +81,28 @@ internal abstract class RenderGraphPassBase
     }
 }
 
-internal abstract class RenderGraphPass<TPassData, TRenderContext> : RenderGraphPassBase
-    where TPassData : class, new()
+internal abstract class RenderGraphPass<TPassData> : RenderGraphPass
+    where TPassData : struct
 {
-    public TPassData passData = null!;
-    public Action<TPassData, TRenderContext>? renderFunc;
+    private TPassData _passData;
 
-    public void Init(int index, TPassData passData, string name, RenderPassType type)
+    public ref readonly TPassData PassData => ref _passData;
+
+    public void SetPassData(scoped in TPassData passData)
+    {
+        _passData = passData;
+    }
+}
+
+internal abstract class RenderGraphPass<TPassData, TRenderContext> : RenderGraphPass<TPassData>
+    where TPassData : struct
+    where TRenderContext : IRenderGraphContext
+{
+    public PassRenderFunc<TPassData, TRenderContext>? renderFunc;
+
+    public void Init(int index, string name, RenderPassType type)
     {
         this.index = index;
-        this.passData = passData;
         this.name = name;
         this.type = type;
     }
@@ -115,19 +126,16 @@ internal abstract class RenderGraphPass<TPassData, TRenderContext> : RenderGraph
     public override void Reset(RenderGraphObjectPool pool)
     {
         base.Reset(pool);
-        pool.Return(passData);
-
-        passData = null!;
         renderFunc = null;
     }
 }
 
 internal sealed class RasterRenderGraphPass<TPassData> : RenderGraphPass<TPassData, IRasterRenderContext>
-    where TPassData : class, new()
+    where TPassData : struct
 {
     public override void Execute(RenderGraphContext context)
     {
-        renderFunc!(passData, context);
+        renderFunc!(in PassData, context);
     }
 
     public override void Reset(RenderGraphObjectPool pool)
@@ -138,11 +146,11 @@ internal sealed class RasterRenderGraphPass<TPassData> : RenderGraphPass<TPassDa
 }
 
 internal sealed class ComputeRenderGraphPass<TPassData> : RenderGraphPass<TPassData, IComputeRenderContext>
-    where TPassData : class, new()
+    where TPassData : struct
 {
     public override void Execute(RenderGraphContext context)
     {
-        renderFunc!(passData, context);
+        renderFunc!(in PassData, context);
     }
 
     public override void Reset(RenderGraphObjectPool pool)
@@ -153,11 +161,11 @@ internal sealed class ComputeRenderGraphPass<TPassData> : RenderGraphPass<TPassD
 }
 
 internal sealed class UnsafeRenderGraphPass<TPassData> : RenderGraphPass<TPassData, IUnsafeRenderContext>
-    where TPassData : class, new()
+    where TPassData : struct
 {
     public override void Execute(RenderGraphContext context)
     {
-        renderFunc!(passData, context);
+        renderFunc!(in PassData, context);
     }
 
     public override void Reset(RenderGraphObjectPool pool)
