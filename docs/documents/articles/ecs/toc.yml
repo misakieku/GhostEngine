@@ -1,14 +1,12 @@
-- name: Entity Component System
-  items:
-  - name: Getting Started
-    href: getting-started.md
-  - name: ECS Concepts
-    href: ecs-concepts.md
-  - name: Components
-    href: components.md
-  - name: Systems
-    href: systems.md
-  - name: ECS Workflows
-    href: ecs-workflows.md
-  - name: Performance
-    href: performance.md
+- name: Getting Started
+  href: getting-started.md
+- name: ECS Concepts
+  href: ecs-concepts.md
+- name: Components
+  href: components.md
+- name: Systems
+  href: systems.md
+- name: ECS Workflows
+  href: ecs-workflows.md
+- name: Performance
+  href: performance.md

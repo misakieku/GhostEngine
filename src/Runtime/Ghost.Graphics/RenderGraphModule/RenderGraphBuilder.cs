@@ -45,7 +45,7 @@ public interface IRenderGraphBuilder : IDisposable
     /// <param name="desc">A structure that defines the properties and configuration of the texture to create.</param>
     /// <param name="name">The name of the texture heap.</param>
     /// <returns>An identifier for the newly created texture heap.</returns>
-    Identifier<RGTexture> CreateTexture(in RGTextureDesc desc, string name);
+    Identifier<RGTexture> CreateTexture(scoped in RGTextureDesc desc, string? name = null);
 
     /// <summary>
     /// Creates a new buffer heap based on the specified desc.
@@ -53,7 +53,7 @@ public interface IRenderGraphBuilder : IDisposable
     /// <param name="desc">A structure that defines the properties and configuration of the buffer to create.</param>
     /// <param name="name">The name of the buffer heap.</param>
     /// <returns>An identifier for the newly created buffer heap.</returns>
-    Identifier<RGBuffer> CreateBuffer(in BufferDesc desc, string name);
+    Identifier<RGBuffer> CreateBuffer(scoped in BufferDesc desc, string? name = null);
 
     /// <summary>
     /// Registers the specified texture for use in the current render graph pass with the given access mode.
@@ -131,7 +131,7 @@ public interface IRasterRenderGraphBuilder : IRenderGraphBuilder
     /// <typeparam name="TPassData">The type of data associated with the render pass.</typeparam>
     /// <param name="renderFunc">The delegate that defines the rendering logic for the pass.</param>
     void SetRenderFunc<TPassData>(PassRenderFunc<TPassData, IRasterRenderContext> renderFunc)
-        where TPassData : unmanaged;
+        where TPassData : struct;
 }
 
 public interface IComputeRenderGraphBuilder : IRenderGraphBuilder
@@ -229,7 +229,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         _pass.asyncCompute = value;
     }
 
-    public Identifier<RGTexture> CreateTexture(in RGTextureDesc desc, string name)
+    public Identifier<RGTexture> CreateTexture(scoped in RGTextureDesc desc, string? name = null)
     {
         ThrowIfDisposed();
 
@@ -239,7 +239,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         return handle;
     }
 
-    public Identifier<RGBuffer> CreateBuffer(in BufferDesc desc, string name)
+    public Identifier<RGBuffer> CreateBuffer(scoped in BufferDesc desc, string? name = null)
     {
         ThrowIfDisposed();
 
@@ -331,7 +331,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
     }
 
     public void SetRenderFunc<TPassData>(PassRenderFunc<TPassData, IRasterRenderContext> renderFunc)
-        where TPassData : unmanaged
+        where TPassData : struct
     {
         ((RasterRenderGraphPass<TPassData>)_pass).renderFunc = renderFunc;
     }

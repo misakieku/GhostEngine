@@ -71,7 +71,7 @@ internal sealed class ResourceHeap : IDisposable
         var alignedSize = AlignUp(requestedSize, alignment);
 
         var bestFitIndex = -1;
-        ulong bestFitOffset = 0;
+        var bestFitOffset = 0UL;
         var smallestWaste = ulong.MaxValue;
 
         for (var i = 0; i < _blocks.Count; i++)
@@ -452,7 +452,7 @@ internal static class RenderGraphAliasingBuilder
 
     public static AliasingPlan RestoreFromCache(Dictionary<int, int> logicalToPlaced, List<PlacedResourceData> placedData, AllocationHandle allocationHandle)
     {
-        var plan =  new AliasingPlan(allocationHandle);
+        var plan = new AliasingPlan(allocationHandle);
         foreach (var kvp in logicalToPlaced)
         {
             plan.logicalToPlaced[kvp.Key] = kvp.Value;

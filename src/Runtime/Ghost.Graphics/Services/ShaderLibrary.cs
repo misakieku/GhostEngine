@@ -20,7 +20,7 @@ internal struct ShaderCache : IDisposable
     }
 }
 
-internal unsafe class ShaderLibrary : IDisposable
+public unsafe class ShaderLibrary : IDisposable
 {
     public struct CacheHeader
     {
@@ -109,7 +109,7 @@ internal unsafe class ShaderLibrary : IDisposable
         return Path.Combine(folderPath, $"shader_cache_{hashString}.bin");
     }
 
-    public static void ParseCacheData(MemoryBlock data, out CacheHeader header, out ReadOnlySpan<ulong> offsets, out ReadOnlySpan<byte> byteCodes)
+    internal static void ParseCacheData(MemoryBlock data, out CacheHeader header, out ReadOnlySpan<ulong> offsets, out ReadOnlySpan<byte> byteCodes)
     {
         Logger.DebugAssert(data.IsCreated);
 
@@ -120,7 +120,7 @@ internal unsafe class ShaderLibrary : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void CacheCompiledResult(ulong id, int index, Key64<ShaderVariant> variantKey, ReadOnlySpan<ShaderByteCode> byteCodes)
+    internal void CacheCompiledResult(ulong id, int index, Key64<ShaderVariant> variantKey, ReadOnlySpan<ShaderByteCode> byteCodes)
     {
         var header = new CacheHeader
         {
@@ -173,7 +173,7 @@ internal unsafe class ShaderLibrary : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Result<ShaderCache, Error> GetCompiledCache(ulong id, int index)
+    internal Result<ShaderCache, Error> GetCompiledCache(ulong id, int index)
     {
         if (_inMemoryCache.TryGetValue(id, out var entry))
         {
@@ -194,7 +194,7 @@ internal unsafe class ShaderLibrary : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Result<ulong, Error> GetCompiledHash(ulong id, int passIndex, Key64<ShaderVariant> variantKey, LocalKeywordSet keywordMask = default)
+    internal Result<ulong, Error> GetCompiledHash(ulong id, int passIndex, Key64<ShaderVariant> variantKey, LocalKeywordSet keywordMask = default)
     {
         if (_variantToCompiledHash.TryGetValue(variantKey, out var compiledHash))
         {
@@ -205,7 +205,7 @@ internal unsafe class ShaderLibrary : IDisposable
         return Error.NotFound;
     }
 
-    public void InvalidateShaderCache(ulong id)
+    internal void InvalidateShaderCache(ulong id)
     {
         if (_pipelineLibrary == null)
         {

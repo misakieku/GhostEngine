@@ -16,8 +16,8 @@ public interface IRenderPayload : IDisposable
 
 public interface IRenderPipelineSettings
 {
-    IRenderPipeline CreatePipeline(RenderEngine renderSystem);
-    IRenderPayload CreatePayload(RenderEngine renderSystem, IRenderPipeline renderPipeline);
+    IRenderPipeline CreatePipeline(RenderEngine renderEngine);
+    IRenderPayload CreatePayload(RenderEngine renderEngine, IRenderPipeline renderPipeline);
 }
 
 public interface IRenderPipeline : IDisposable

@@ -1,1 +1,3 @@
-href: ecs/
+- name: ECS 
+  href: ecs/toc.yml
+  topicHref: ecs/getting-started.md

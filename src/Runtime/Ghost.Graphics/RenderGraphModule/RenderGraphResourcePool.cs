@@ -146,15 +146,15 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
     public int ResourceCount => _resources.Count;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void AddResource(RenderGraphResource resource, string name)
+    private void AddResource(RenderGraphResource resource, string? name)
     {
 #if GHOST_SAFETY_CHECKS
-        _resourceName[_resources.Count] = name;
+        _resourceName[_resources.Count] = name ?? "Unknow";
 #endif
         _resources.Add(resource);
     }
 
-    public Identifier<RGTexture> ImportTexture(ref readonly TextureDesc desc, Handle<GPUTexture> texture, string name,
+    public Identifier<RGTexture> ImportTexture(ref readonly TextureDesc desc, Handle<GPUTexture> texture, string? name,
         Color128 clearColor, float clearDepth, byte clearStencil,
         bool clearAtFirstUse, bool discardAtLastUse)
     {
@@ -189,7 +189,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         return new Identifier<RGTexture>(resource.index);
     }
 
-    public Identifier<RGTexture> CreateTexture(ref readonly RGTextureDesc desc, string name)
+    public Identifier<RGTexture> CreateTexture(ref readonly RGTextureDesc desc, string? name)
     {
         var resource = new RenderGraphResource
         {
@@ -204,7 +204,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         return new Identifier<RGTexture>(resource.index);
     }
 
-    public Identifier<RGBuffer> ImportBuffer(ref readonly BufferDesc desc, Handle<GPUBuffer> buffer, string name)
+    public Identifier<RGBuffer> ImportBuffer(ref readonly BufferDesc desc, Handle<GPUBuffer> buffer, string? name)
     {
         var resource = new RenderGraphResource
         {
@@ -220,7 +220,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         return new Identifier<RGBuffer>(resource.index);
     }
 
-    public Identifier<RGBuffer> CreateBuffer(ref readonly BufferDesc desc, string name)
+    public Identifier<RGBuffer> CreateBuffer(ref readonly BufferDesc desc, string? name)
     {
         var resource = new RenderGraphResource
         {

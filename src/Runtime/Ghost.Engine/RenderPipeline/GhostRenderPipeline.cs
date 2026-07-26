@@ -7,19 +7,24 @@ namespace Ghost.Engine.RenderPipeline;
 
 internal partial class GhostRenderPipeline : IRenderPipeline
 {
-    private readonly RenderEngine _renderSystem;
+    private readonly RenderEngine _renderEngine;
 
     private readonly RenderGraph _renderGraph;
     private readonly GPUScene _gpuScene;
 
     public GPUScene GPUScene => _gpuScene;
 
-    public GhostRenderPipeline(RenderEngine renderSystem)
+    public GhostRenderPipeline(RenderEngine renderEngine)
     {
-        _renderSystem = renderSystem;
+        _renderEngine = renderEngine;
 
-        _renderGraph = new RenderGraph(renderSystem);
-        _gpuScene = new GPUScene(renderSystem.GraphicsEngine.ResourceAllocator, renderSystem.GraphicsEngine.ResourceDatabase, 102_400u); // 102.4k objects should be enough for now
+        _renderGraph = new RenderGraph(
+            renderEngine.GraphicsEngine.ResourceDatabase,
+            renderEngine.GraphicsEngine.ResourceAllocator,
+            renderEngine.GraphicsEngine.PipelineLibrary,
+            renderEngine.ResourceManager,
+            renderEngine.ShaderLibrary);
+        _gpuScene = new GPUScene(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, 102_400u); // 102.4k objects should be enough for now
     }
 
     public void Render(RenderContext ctx, int frameIndex, IRenderPayload payload)
@@ -30,7 +35,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         {
             try
             {
-                using var viewData = new RenderViewData(_renderSystem.SwapChainManager, ctx.ResourceDatabase, in request);
+                using var viewData = new RenderViewData(_renderEngine.SwapChainManager, ctx.ResourceDatabase, in request);
                 RenderPipelineUtility.GetVPMatrices(in request, viewData.ScreenSize, out var view, out var projection);
 
                 UpdateGPUScene(ctx, ghostPayload);

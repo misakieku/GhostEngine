@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Buffer;
 
 namespace Ghost.Graphics.RenderGraphModule;
@@ -28,12 +29,12 @@ public sealed class RenderGraph : IDisposable
 
     public RenderGraphBlackboard Blackboard => _blackboard;
 
-    public RenderGraph(RenderEngine renderSystem)
+    public RenderGraph(IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, IPipelineLibrary pipelineLibrary, ResourceManager resourceManager, ShaderLibrary shaderLibrary)
     {
-        _resourceDatabase = renderSystem.GraphicsEngine.ResourceDatabase;
+        _resourceDatabase = resourceDatabase;
 
         _objectPool = new RenderGraphObjectPool();
-        _resourceRegistry = new RenderGraphResourceRegistry(_resourceDatabase, renderSystem.GraphicsEngine.ResourceAllocator);
+        _resourceRegistry = new RenderGraphResourceRegistry(_resourceDatabase, resourceAllocator);
 
         _passes = new List<RenderGraphPass>(32);
 
@@ -41,16 +42,16 @@ public sealed class RenderGraph : IDisposable
         _compilationCache = new RenderGraphCompilationCache();
 
         _context = new RenderGraphContext(
-            renderSystem.ResourceManager,
-            renderSystem.ShaderLibrary,
-            renderSystem.GraphicsEngine.ResourceDatabase,
-            renderSystem.GraphicsEngine.PipelineLibrary,
+            resourceManager,
+            shaderLibrary,
+            resourceDatabase,
+            pipelineLibrary,
             _resourceRegistry
         );
 
         _nativePassBuilder = new RenderGraphNativePassBuilder(_objectPool, _resourceRegistry);
-        _compiler = new RenderGraphCompiler(renderSystem.GraphicsEngine.ResourceAllocator, _resourceRegistry, _nativePassBuilder, _compilationCache);
-        _executor = new RenderGraphExecutor(renderSystem.ResourceManager, renderSystem.GraphicsEngine.ResourceDatabase, _resourceRegistry, _context);
+        _compiler = new RenderGraphCompiler(resourceAllocator, _resourceRegistry, _nativePassBuilder, _compilationCache);
+        _executor = new RenderGraphExecutor(resourceManager, resourceDatabase, _resourceRegistry, _context);
 
         _blackboard = new RenderGraphBlackboard();
         _builder = new RenderGraphBuilder(_resourceRegistry, _blackboard);
@@ -79,7 +80,7 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     /// <param name="texture">The external texture handle.</param>
     /// <returns>The identifier of the imported render graph texture. Invalid if import fails.</returns>
-    public Identifier<RGTexture> ImportTexture(Handle<GPUTexture> texture, string name,
+    public Identifier<RGTexture> ImportTexture(Handle<GPUTexture> texture, string? name = null,
         Color128 clearColor = default, float clearDepth = 1.0f, byte clearStencil = 0,
         bool clearAtFirstUse = true, bool discardAtLastUse = true)
     {
@@ -99,7 +100,7 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     /// <param name="buffer">The external buffer handle.</param>
     /// <returns>The identifier of the imported render graph buffer. Invalid if import fails.</returns>
-    public Identifier<RGBuffer> ImportBuffer(Handle<GPUBuffer> buffer, string name)
+    public Identifier<RGBuffer> ImportBuffer(Handle<GPUBuffer> buffer, string? name = null)
     {
         var r = _resourceDatabase.GetResourceDescription(buffer.AsResource());
         if (r.IsFailure)
