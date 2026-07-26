@@ -9,15 +9,13 @@ public class BakeService
 {
     private readonly ProjectService _projectService;
     private readonly BakerRegistry _bakerRegistry;
-
-    private readonly AssetBakerContext _bakerContext;
+    private readonly ShaderMetadata _shaderMetadata;
 
     public BakeService(ProjectService projectService, BakerRegistry bakerRegistry)
     {
         _projectService = projectService;
         _bakerRegistry = bakerRegistry;
-
-        var shaderData = new ShaderMetadata();
+        _shaderMetadata = new ShaderMetadata();
         
         foreach (var path in _projectService.ShaderMetadataPaths)
         {
@@ -29,7 +27,7 @@ public class BakeService
                     var deserialized = System.Text.Json.JsonSerializer.Deserialize<ShaderMetadata>(json);
                     if (deserialized != null)
                     {
-                        shaderData.Merge(deserialized);
+                        _shaderMetadata.Merge(deserialized);
                     }
                 }
                 catch (Exception ex)
@@ -38,12 +36,6 @@ public class BakeService
                 }
             }
         }
-
-        _bakerContext = new AssetBakerContext
-        {
-            ShderMetadata = shaderData,
-            AssetDirectories = _projectService.AssetDirectories
-        };
     }
 
     public event Action<int, int>? OnProgress;
@@ -165,8 +157,33 @@ public class BakeService
                     continue;
                 }
 
+                var ctx = new AssetBakerContext
+                {
+                    ShderMetadata = _shaderMetadata,
+                    AssetDirectories = _projectService.AssetDirectories,
+                };
+
+                var subAssetCacheDir = cacheFile + ".sub";
+                ctx.SubAssetStreamFactory = subPath =>
+                {
+                    var subCachePath = Path.Combine(subAssetCacheDir, subPath.Replace('/', Path.DirectorySeparatorChar));
+                    Directory.CreateDirectory(Path.GetDirectoryName(subCachePath)!);
+                    return new FileStream(subCachePath, FileMode.Create, FileAccess.Write);
+                };
+
                 await using var fs = new FileStream(cacheFile, FileMode.Create, FileAccess.Write);
-                await baker.BakeAssetAsync(sourceFile, fs, metadata.Settings, _bakerContext, cancellationToken);
+                await baker.BakeAssetAsync(sourceFile, fs, metadata.Settings, ctx, cancellationToken);
+
+                if (ctx.SubAssets.Count > 0)
+                {
+                    var subManifest = new SubAssetManifest();
+                    foreach (var sub in ctx.SubAssets)
+                        subManifest.SubAssets.Add(new SubAssetManifest.SubAssetRecord(sub.SubPath, sub.Type));
+                    subManifest.Save(cacheFile + ".sub.json");
+
+                    foreach (var sub in ctx.SubAssets)
+                        Logger.Info($"  Sub-asset: {relativePath}#{sub.SubPath} ({sub.Type})");
+                }
             }
             else
             {

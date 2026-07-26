@@ -161,7 +161,7 @@ public sealed partial class ResourceManager : IDisposable
         return RegisterMesh(ref mesh);
     }
 
-    public Handle<Mesh> RegisterMesh([OwnershipTransfer] ref Mesh mesh)
+    public Handle<Mesh> RegisterMesh([Owner] ref Mesh mesh)
     {
         Logger.DebugAssert(!_disposed);
 

@@ -12,8 +12,16 @@ public sealed class AssetBakerAttribute : Attribute
 
 public interface IBakeSettings;
 
-public class AssetBakerContext
+public readonly struct SubAssetEntry
 {
+    public required string SubPath { get; init; }
+    public required AssetType Type { get; init; }
+}
+
+public struct AssetBakerContext()
+{
+    private readonly List<SubAssetEntry> _subAssets = new();
+
     public required ShaderMetadata ShderMetadata
     {
         get; init;
@@ -22,6 +30,27 @@ public class AssetBakerContext
     public required IReadOnlyList<string> AssetDirectories
     {
         get; init;
+    }
+
+    public readonly IReadOnlyList<SubAssetEntry> SubAssets => _subAssets;
+
+    internal Func<string, Stream>? SubAssetStreamFactory { get; set; }
+
+    public Stream AddSubAsset(string subPath, AssetType type)
+    {
+        if (SubAssetStreamFactory is null)
+        {
+            throw new InvalidOperationException("Sub-asset output is not configured.");
+        }
+
+        var stream = SubAssetStreamFactory(subPath);
+        _subAssets.Add(new SubAssetEntry { SubPath = subPath, Type = type });
+        return stream;
+    }
+
+    internal void ResetSubAssets()
+    {
+        _subAssets.Clear();
     }
 }
 

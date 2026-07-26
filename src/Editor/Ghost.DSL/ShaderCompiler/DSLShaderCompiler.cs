@@ -148,6 +148,7 @@ public static class DSLShaderCompiler
         for (var i = 0; i < passes.Length; i++)
         {
             var pass = semantics.passes![i];
+            
             var localPipeline = MeragePipeline(pass.localPipeline, PipelineState.Default);
 
             var result = BuildFinalShaderCode(pass.amplificationShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, reflectionData.Code, virtualShaders);
@@ -177,12 +178,10 @@ public static class DSLShaderCompiler
             passes[i] = new PassDescriptor
             {
                 name = pass.name,
-
+                localPipeline = localPipeline,
                 amplificationShaderCode = amplificationShaderCode,
                 meshShaderCode = meshShaderCode,
                 pixelShaderCode = pixelShaderCode,
-
-                localPipeline = localPipeline,
                 defines = pass.defines?.ToArray() ?? Array.Empty<string>(),
                 keywords = pass.keywords?.ToArray() ?? Array.Empty<KeywordsGroup>()
             };

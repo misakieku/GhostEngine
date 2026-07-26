@@ -4,7 +4,7 @@ using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Ghost.UnitTest.MockingEnvironment;
 
-namespace Ghost.UnitTest;
+namespace Ghost.UnitTest.Graphics;
 
 [TestClass]
 public class RenderGraphTest
@@ -57,6 +57,19 @@ public class RenderGraphTest
         _renderGraph = new RenderGraph(_resourceDatabase, _resourceAllocator, _pipelineLibrary, _resourceManager, _shaderLibrary);
     }
 
+    [TestCleanup]
+    public void Cleanup()
+    {
+        _renderGraph.Dispose();
+        _shaderLibrary.Dispose();
+        _resourceManager.Dispose();
+        _commandBuffer.Dispose();
+        _pipelineLibrary.Dispose();
+        _resourceAllocator.Dispose();
+        _resourceDatabase.Dispose();
+        _renderDevice.Dispose();
+    }
+
     private void SetupTestRenderPipeline()
     {
         var sceneDataDesc = new BufferDesc();
@@ -97,6 +110,8 @@ public class RenderGraphTest
             };
 
             vbuffer = vbufferData.vbuffer;
+
+            builder.SetColorAttachment(vbufferData.vbuffer, 0, AccessFlags.WriteAll);
             builder.SetPassData(vbufferData);
             builder.SetRenderFunc<VBufferPassData>(static (ref readonly data, ctx) =>
             {
@@ -104,7 +119,7 @@ public class RenderGraphTest
             });
         }
 
-        using (var builder = _renderGraph.AddRasterRenderPass<UnusedPassData>("Unused"))
+        using (var builder = _renderGraph.AddUnsafeRenderPass<UnusedPassData>("Unused"))
         {
             builder.SetPassData(new UnusedPassData
             {

@@ -17,33 +17,33 @@ public static class TempJobAllocatorHandle
 
 public unsafe partial struct TempJobAllocator
 {
-    private static TempJobAllocator* _pAllocator;
+    private static TempJobAllocator* s_pAllocator;
 
-    public static AllocationHandle AllocationHandle => _pAllocator->Handle;
+    public static AllocationHandle AllocationHandle => s_pAllocator->Handle;
 
     internal static void Initialize(nuint capacity)
     {
-        Logger.DebugAssert(_pAllocator == null, "TempJobAllocator is already initialized.");
-        _pAllocator = (TempJobAllocator*)NativeMemory.Alloc((nuint)sizeof(TempJobAllocator));
-        *_pAllocator = new TempJobAllocator(_pAllocator, capacity);
+        Logger.DebugAssert(s_pAllocator == null, "TempJobAllocator is already initialized.");
+        s_pAllocator = (TempJobAllocator*)NativeMemory.Alloc((nuint)sizeof(TempJobAllocator));
+        *s_pAllocator = new TempJobAllocator(s_pAllocator, capacity);
     }
 
     internal static void Dispose()
     {
-        if (_pAllocator == null)
+        if (s_pAllocator == null)
         {
             return;
         }
 
         for (var i = 0; i < _FRAME_LATENCY; i++)
         {
-            _pAllocator->_pArena[i].Dispose();
+            s_pAllocator->_pArena[i].Dispose();
         }
 
-        NativeMemory.Free(_pAllocator->_pArena);
-        NativeMemory.Free(_pAllocator);
+        NativeMemory.Free(s_pAllocator->_pArena);
+        NativeMemory.Free(s_pAllocator);
 
-        _pAllocator = null;
+        s_pAllocator = null;
     }
 }
 
@@ -52,6 +52,7 @@ public unsafe partial struct TempJobAllocator : IAllocator
     private const int _FRAME_LATENCY = 4;
 
     private VirtualArena* _pArena;
+    private AllocationHandle.Allocator* _pAllocator;
     private int _currentFrameCount;
     private int _currentFrameIndex;
 #if MHP_ENABLE_SAFETY_CHECKS
@@ -76,7 +77,16 @@ public unsafe partial struct TempJobAllocator : IAllocator
 #endif
         }
 
-        _handle = new AllocationHandle(pSelf, &Allocate, &Reallocate, &Free);
+        _pAllocator = (AllocationHandle.Allocator*)NativeMemory.Alloc((nuint)sizeof(AllocationHandle.Allocator));
+        *_pAllocator = new AllocationHandle.Allocator
+        {
+            state = pSelf,
+            alloc = &Allocate,
+            realloc = &Reallocate,
+            free = &Free,
+        };
+
+        _handle = new AllocationHandle(_pAllocator);
     }
 
     private static void* Allocate(void* instance, nuint size, nuint alignment, AllocationOption allocationOption)

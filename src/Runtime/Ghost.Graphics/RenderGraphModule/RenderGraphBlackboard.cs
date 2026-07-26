@@ -16,7 +16,7 @@ public sealed class RenderGraphBlackboard
         where TPass : RenderGraphPass<TPassData>
         where TPassData : struct
     {
-        var type = typeof(TPass);
+        var type = typeof(TPassData);
         _data[type] = pass;
     }
 

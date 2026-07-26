@@ -198,7 +198,7 @@ internal sealed class ResourceHeap : IDisposable
 
     public void Dispose()
     {
-        throw new NotImplementedException();
+        _blocks.Dispose();
     }
 }
 
@@ -286,6 +286,11 @@ internal struct AliasingPlan : IDisposable
 
     public void Dispose()
     {
+        for (var i = 0; i < placedResources.Count; i++)
+        {
+            placedResources[i].Dispose();
+        }
+
         placedResources.Dispose();
         logicalToPlaced.Dispose();
     }

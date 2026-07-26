@@ -11,4 +11,16 @@
     <ProjectReference Include="..\..\Editor\Ghost.AssetForge.Core\Ghost.AssetForge.Core.csproj" />
     <ProjectReference Include="..\..\Tools\Ghost.ShaderMetadataTool\Ghost.ShaderMetadataTool.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="Microsoft.Testing.Extensions.CodeCoverage" Version="18.9.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="Microsoft.Testing.Extensions.TrxReport" Version="2.3.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="MSTest.TestAdapter" Version="4.3.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="MSTest.TestFramework" Version="4.3.2" />
+  </ItemGroup>
 </Project>

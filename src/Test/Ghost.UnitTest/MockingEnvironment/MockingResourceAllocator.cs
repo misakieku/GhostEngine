@@ -41,16 +41,15 @@ internal class MockingResourceAllocator : IResourceAllocator
 
     public ResourceSizeInfo GetSizeInfo(ResourceDesc desc)
     {
-        return new ResourceSizeInfo
+        return desc.Type switch
         {
-            Size = 1048576, // 1MB mock
-            Alignment = 65536, // 64KB aligned
-            Offset = 0
+            ResourceType.Buffer => new ResourceSizeInfo { Size = desc.BufferDescriptor.Size, Alignment = 256, Offset = 0 },
+            ResourceType.Texture => new ResourceSizeInfo { Size = desc.TextureDescriptor.Width * desc.TextureDescriptor.Height * desc.TextureDescriptor.Format.GetBytesPerPixel() * desc.TextureDescriptor.Slice, Alignment = 512, Offset = 0 },
+            _ => throw new ArgumentOutOfRangeException(nameof(desc.Type), "Unknown resource type")
         };
     }
 
     public void Dispose()
     {
-        // Handled by dependency injection usually.
     }
 }

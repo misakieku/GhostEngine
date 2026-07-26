@@ -253,9 +253,9 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
     /// <summary>
     /// Gets heap by global index. Use this when iterating over all resources.
     /// </summary>
-    public RenderGraphResource GetResourceByIndex(int index)
+    public ref RenderGraphResource GetResourceByIndex(int index)
     {
-        return _resources[index];
+        return ref _resources[index];
     }
 
     public void SetProducer(Identifier<RGResource> resourceID, int passIndex)
@@ -287,7 +287,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
     {
         for (var i = 0; i < _resources.Count; i++)
         {
-            var res = _resources[i];
+            ref var res = ref _resources[i];
             if (res.type != RenderGraphResourceType.Texture || res.isImported)
             {
                 continue;
@@ -353,7 +353,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
                 continue;
             }
 
-            var res = _resources[i];
+            ref var res = ref _resources[i];
             var ops = new CreationOptions
             {
                 AllocationType = ResourceAllocationType.Suballocation,
@@ -396,8 +396,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
     {
         for (var i = 0; i < _resources.Count; i++)
         {
-            var res = _resources[i];
-
+            ref var res = ref _resources[i];
             if (!res.isImported)
             {
                 res.backingResource = cachedBackingResources[i];

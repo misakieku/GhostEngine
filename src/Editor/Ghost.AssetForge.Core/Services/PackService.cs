@@ -1,3 +1,5 @@
+using Ghost.AssetForge.Core.Models;
+using Ghost.Core.Utilities;
 using Ghost.Core;
 using K4os.Compression.LZ4.Streams;
 using ZstdSharp;
@@ -103,11 +105,12 @@ public class PackService
                 var nameWithoutExt = Path.GetFileNameWithoutExtension(relativePath);
                 var key = Path.Combine(dir, nameWithoutExt).Replace('\\', '/');
                 var cacheFileInfo = new FileInfo(cacheFile);
+                var uncompressedSize = cacheFileInfo.Length;
 
                 // Should we start a new pack file?
                 // Size estimate (uncompressed): header + raw data. 
                 // Since we compress during packing, actual size will be smaller, but we can use raw size for threshold
-                if (currentPackStream != null && currentPackSize + cacheFileInfo.Length > project.BakeSettings.ChunkSizeThreshold)
+                if (currentPackStream != null && currentPackSize + uncompressedSize > project.BakeSettings.ChunkSizeThreshold)
                 {
                     await currentPackStream.DisposeAsync();
                     currentPackStream = null;
@@ -127,22 +130,7 @@ public class PackService
 
                 // Compress and write payload
                 using var fsIn = new FileStream(cacheFile, FileMode.Open, FileAccess.Read);
-                var compressStream = project.BakeSettings.Compression switch
-                {
-                    CompressionMethod.None => currentPackStream,
-                    CompressionMethod.Zstd => new CompressionStream(currentPackStream, leaveOpen: true),
-                    CompressionMethod.LZ4 => (Stream)LZ4Stream.Encode(currentPackStream, leaveOpen: true),
-                    _ => throw new ArgumentOutOfRangeException(nameof(project.BakeSettings.Compression), project.BakeSettings.Compression, null)
-                };
-
-                await fsIn.CopyToAsync(compressStream, cancellationToken);
-
-                if (project.BakeSettings.Compression != CompressionMethod.None)
-                {
-                    await compressStream.DisposeAsync();
-                }
-
-                var size = currentPackStream.Position - offset;
+                var size = await CompressAndWriteAsync(fsIn, currentPackStream, project.BakeSettings.Compression, cancellationToken);
                 currentPackSize = currentPackStream.Position;
 
                 manifest.AddAsset(key, new AssetInfo
@@ -151,10 +139,57 @@ public class PackService
                     AssetType = metadata.Type,
                     PackFileName = currentPackName,
                     Offset = offset,
-                    Size = size
+                    Size = size,
+                    UncompressedSize = uncompressedSize,
                 });
 
                 Logger.Info($"Packed {key} into {currentPackName} (Offset: {offset}, Size: {size})");
+
+                // Pack sub-assets
+                var subManifestPath = cacheFile + ".sub.json";
+                var subManifest = SubAssetManifest.Load(subManifestPath);
+                if (subManifest != null)
+                {
+                    var subAssetCacheDir = cacheFile + ".sub";
+                    foreach (var sub in subManifest.SubAssets)
+                    {
+                        var subCachePath = Path.Combine(subAssetCacheDir, sub.SubPath.Replace('/', Path.DirectorySeparatorChar));
+                        if (!File.Exists(subCachePath)) continue;
+
+                        var subFileInfo = new FileInfo(subCachePath);
+                        var subUncompressedSize = subFileInfo.Length;
+
+                        // Check size for new pack file
+                        if (currentPackStream != null && currentPackSize + subUncompressedSize > project.BakeSettings.ChunkSizeThreshold)
+                        {
+                            await currentPackStream.DisposeAsync();
+                            packIndex++;
+                            currentPackName = GetPackFileName(packIndex);
+                            currentPackPath = Path.Combine(buildDir, currentPackName);
+                            Logger.Info($"Creating new pack file: {currentPackName}");
+                            currentPackStream = new FileStream(currentPackPath, FileMode.Create, FileAccess.Write);
+                            currentPackSize = 0;
+                        }
+
+                        var subOffset = currentPackStream!.Position;
+                        using var subFsIn = new FileStream(subCachePath, FileMode.Open, FileAccess.Read);
+                        var subSize = await CompressAndWriteAsync(subFsIn, currentPackStream, project.BakeSettings.Compression, cancellationToken);
+                        currentPackSize = currentPackStream.Position;
+
+                        var subKey = $"{key}#{sub.SubPath}";
+                        manifest.AddAsset(subKey, new AssetInfo
+                        {
+                            AssetId = GuidUtility.DeriveSubAssetGuid(metadata.Id, sub.SubPath),
+                            AssetType = sub.Type,
+                            PackFileName = currentPackName,
+                            Offset = subOffset,
+                            Size = subSize,
+                            UncompressedSize = subUncompressedSize,
+                        });
+
+                        Logger.Info($"Packed {subKey} into {currentPackName} (Offset: {subOffset}, Size: {subSize})");
+                    }
+                }
 
                 completed++;
                 OnProgress?.Invoke(completed, total);
@@ -174,5 +209,26 @@ public class PackService
                 await currentPackStream.DisposeAsync();
             }
         }
+    }
+
+    private static async Task<long> CompressAndWriteAsync(Stream src, Stream dst, CompressionMethod compression, CancellationToken cancellationToken)
+    {
+        var startPos = dst.Position;
+        var compressStream = compression switch
+        {
+            CompressionMethod.None => dst,
+            CompressionMethod.Zstd => new CompressionStream(dst, leaveOpen: true),
+            CompressionMethod.LZ4 => (Stream)LZ4Stream.Encode(dst, leaveOpen: true),
+            _ => throw new ArgumentOutOfRangeException(nameof(compression), compression, null)
+        };
+
+        await src.CopyToAsync(compressStream, cancellationToken);
+
+        if (compression != CompressionMethod.None)
+        {
+            await compressStream.DisposeAsync();
+        }
+
+        return dst.Position - startPos;
     }
 }

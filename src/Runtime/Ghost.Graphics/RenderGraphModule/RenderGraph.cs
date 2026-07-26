@@ -184,10 +184,9 @@ public sealed class RenderGraph : IDisposable
             return result.Error;
         }
 
-        var graph = result.Value;
+        using var graph = result.Value;
         _context.RelativeScale = graph.scale;
         return _executor.Execute(commandBuffer, graph.compiledPasses, graph.nativePasses, graph.compiledBarriers);
-
     }
 
     public void Dispose()

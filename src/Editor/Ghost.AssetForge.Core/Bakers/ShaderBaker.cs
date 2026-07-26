@@ -1,12 +1,21 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.AssetForge.Core.Models;
-using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.DSL.ShaderCompiler;
-using Misaki.HighPerformance.LowLevel.Buffer;
+using Ghost.DXC;
+using Ghost.AssetForge.Core.Services;
 using Misaki.HighPerformance.LowLevel.Collections;
-using System.Runtime.CompilerServices;
+using Misaki.HighPerformance.LowLevel.Buffer;
 
 namespace Ghost.AssetForge.Core.Bakers;
 
@@ -30,9 +39,9 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
 {
     private readonly DXCShaderCompiler _compiler = new DXCShaderCompiler();
 
-    private static async Task WriteShaderEntries(Stream stream, CancellationToken cancellationToken, params (ShaderStage stage, UnsafeArray<byte> bytecode)[] entries)
+    private static async Task WriteShaderEntries(Stream stream, long variantDataOffset, CancellationToken cancellationToken, params (ShaderStage stage, UnsafeArray<byte> bytecode)[] entries)
     {
-        var baseByteCodeOffset = stream.Position + (entries.Length * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>());
+        var baseByteCodeOffset = (stream.Position - variantDataOffset) + (entries.Length * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>());
 
         for (var i = 0; i < entries.Length; i++)
         {
@@ -66,7 +75,67 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
         }
     }
 
-    // TODO: Compile all variants.
+    private static ulong ComputeVariantKey(List<string> activeKeywords, List<string> allKeywords)
+    {
+        uint[] data = new uint[4];
+        foreach (var active in activeKeywords)
+        {
+            var localIndex = allKeywords.IndexOf(active);
+            if (localIndex < 0) continue;
+            var index = localIndex / 32;
+            var bit = localIndex % 32;
+            data[index] |= (uint)(1 << bit);
+        }
+
+        var hash = 14695981039346656037ul; // FNV Offset basis
+
+        for (var i = 0; i < 4; i++)
+        {
+            hash ^= data[i];
+            hash *= 1099511628211ul; // FNV prime
+        }
+
+        return hash;
+    }
+
+    private static List<List<string>> GenerateVariantCombinations(KeywordsGroup[] groups)
+    {
+        var combinations = new List<List<string>>();
+        var current = new string[groups.Length];
+        
+        void Backtrack(int groupIndex)
+        {
+            if (groupIndex == groups.Length)
+            {
+                combinations.Add(current.Where(k => !string.IsNullOrEmpty(k)).ToList());
+                return;
+            }
+
+            var group = groups[groupIndex];
+            if (group.keywords == null || group.keywords.Count == 0)
+            {
+                Backtrack(groupIndex + 1);
+            }
+            else
+            {
+                foreach (var kw in group.keywords)
+                {
+                    current[groupIndex] = kw;
+                    Backtrack(groupIndex + 1);
+                }
+            }
+        }
+
+        Backtrack(0);
+        
+        if (combinations.Count == 0)
+        {
+            combinations.Add(new List<string>());
+        }
+
+        return combinations;
+    }
+
     public async Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
     {
         if (settings is not ShaderBakeSettings shaderSettings)
@@ -98,51 +167,144 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                 passCount = (uint)descriptor.Passes.Length,
             };
 
+            var assetStartOffset = dst.Position;
             dst.Write(header);
 
+            // Calculate all unique keywords across all passes for string table
+            var allKeywords = new List<string>();
+            var stringTableBytes = new List<byte>();
+            
+            // Build string table
+            var passGroupOffsets = new List<List<uint>>(); // Pass index -> Group Index -> string table offset
             foreach (var pass in descriptor.Passes)
             {
-                var config = configTemplate with
+                var groupOffsets = new List<uint>();
+                foreach (var group in pass.keywords)
                 {
-                    stage = ShaderStage.AmplificationShader,
-                    model = descriptor.ShaderModel,
-                    defines = pass.defines,
-
-                    entryPoint = pass.amplificationShaderCode.entryPoint,
-                    shaderCode = pass.amplificationShaderCode.code,
-                };
-
-                if (!pass.meshShaderCode.IsCreated || !pass.pixelShaderCode.IsCreated)
-                {
-                    throw new InvalidOperationException("Shader pass is missing required shader stages. Both mesh and pixel shaders must be present.");
+                    groupOffsets.Add((uint)stringTableBytes.Count);
+                    if (group.keywords != null)
+                    {
+                        foreach (var kw in group.keywords)
+                        {
+                            if (!allKeywords.Contains(kw)) allKeywords.Add(kw);
+                            stringTableBytes.AddRange(Encoding.UTF8.GetBytes(kw));
+                            stringTableBytes.Add(0); // Null terminator
+                        }
+                    }
                 }
+                passGroupOffsets.Add(groupOffsets);
+            }
 
-                using var asByteCode = pass.amplificationShaderCode.IsCreated ?
-                    _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow()
-                    : default;
+            var stringTableOffset = (uint)(dst.Position - assetStartOffset);
+            var stringTableSize = (uint)stringTableBytes.Count;
+            
+            // Update header
+            var currentPos = dst.Position;
+            dst.Position = assetStartOffset;
+            header.keywordStringTableOffset = stringTableOffset;
+            header.keywordStringTableSize = stringTableSize;
+            dst.Write(header);
+            dst.Position = currentPos;
 
-                config.stage = ShaderStage.MeshShader;
-                config.entryPoint = pass.meshShaderCode.entryPoint;
-                config.shaderCode = pass.meshShaderCode.code;
+            // Write String Table
+            if (stringTableSize > 0)
+            {
+                dst.Write(BitConverter.GetBytes(stringTableSize));
+                dst.Write(stringTableBytes.ToArray());
+            }
+            else
+            {
+                dst.Write(BitConverter.GetBytes((uint)0));
+            }
 
-                using var msByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
-
-                config.stage = ShaderStage.PixelShader;
-                config.entryPoint = pass.pixelShaderCode.entryPoint;
-                config.shaderCode = pass.pixelShaderCode.code;
-
-                using var psByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+            for (var passIdx = 0; passIdx < descriptor.Passes.Length; passIdx++)
+            {
+                var pass = descriptor.Passes[passIdx];
+                var combinations = GenerateVariantCombinations(pass.keywords);
+                var groupOffsets = passGroupOffsets[passIdx];
 
                 var passHeader = new ShaderContentHeader.PassHeader
                 {
-                    entryPointCount = 3 // Amplification, Mesh, Pixel
+                    entryPointCount = 3, // Amplification, Mesh, Pixel
+                    variantCount = (uint)combinations.Count,
+                    keywordGroupCount = (uint)pass.keywords.Length
                 };
-
                 dst.Write(passHeader);
-                await WriteShaderEntries(dst, cancellationToken,
-                    (ShaderStage.AmplificationShader, asByteCode),
-                    (ShaderStage.MeshShader, msByteCode),
-                    (ShaderStage.PixelShader, psByteCode));
+
+                foreach (var t in groupOffsets.Select((offset, idx) => new ShaderContentHeader.KeywordGroupDescriptor
+                {
+                    stringTableOffset = offset,
+                    keywordCount = (uint)(pass.keywords[idx].keywords?.Count ?? 0)
+                }))
+                {
+                    dst.Write(t);
+                }
+
+                var variantEntriesOffset = dst.Position;
+                var variantEntries = new ShaderContentHeader.VariantEntry[combinations.Count];
+                for (var i = 0; i < combinations.Count; i++)
+                {
+                    dst.Write(variantEntries[i]); // Placeholder
+                }
+
+                for (var i = 0; i < combinations.Count; i++)
+                {
+                    var activeKeywords = combinations[i];
+                    var variantDataStart = dst.Position;
+                    
+                    var variantDefines = pass.defines.ToList();
+                    variantDefines.AddRange(activeKeywords);
+
+                    var config = configTemplate with
+                    {
+                        stage = ShaderStage.AmplificationShader,
+                        model = descriptor.ShaderModel,
+                        defines = variantDefines.ToArray(),
+                        entryPoint = pass.amplificationShaderCode.entryPoint,
+                        shaderCode = pass.amplificationShaderCode.code,
+                    };
+
+                    if (!pass.meshShaderCode.IsCreated || !pass.pixelShaderCode.IsCreated)
+                    {
+                        throw new InvalidOperationException("Shader pass is missing required shader stages. Both mesh and pixel shaders must be present.");
+                    }
+
+                    using var asByteCode = pass.amplificationShaderCode.IsCreated ?
+                        _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow()
+                        : default;
+
+                    config.stage = ShaderStage.MeshShader;
+                    config.entryPoint = pass.meshShaderCode.entryPoint;
+                    config.shaderCode = pass.meshShaderCode.code;
+
+                    using var msByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+
+                    config.stage = ShaderStage.PixelShader;
+                    config.entryPoint = pass.pixelShaderCode.entryPoint;
+                    config.shaderCode = pass.pixelShaderCode.code;
+
+                    using var psByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+
+                    await WriteShaderEntries(dst, variantDataStart, cancellationToken,
+                        (ShaderStage.AmplificationShader, asByteCode),
+                        (ShaderStage.MeshShader, msByteCode),
+                        (ShaderStage.PixelShader, psByteCode));
+
+                    variantEntries[i] = new ShaderContentHeader.VariantEntry
+                    {
+                        variantKey = ComputeVariantKey(activeKeywords, allKeywords),
+                        dataOffset = variantDataStart - assetStartOffset,
+                        dataSize = dst.Position - variantDataStart
+                    };
+                }
+
+                var endOfPass = dst.Position;
+                dst.Position = variantEntriesOffset;
+                foreach (var entry in variantEntries)
+                {
+                    dst.Write(entry);
+                }
+                dst.Position = endOfPass;
             }
         }
         else if (string.Equals(ext, ".gcomp", StringComparison.Ordinal))
@@ -159,42 +321,130 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                 passCount = 1, // Compute shaders have a single pass
             };
 
+            var assetStartOffset = dst.Position;
             dst.Write(header);
 
-            var byteCodes = new UnsafeArray<byte>[descriptor.ShaderCodes.Length];
-
-            try
+            // Compute unique keywords
+            var allKeywords = new List<string>();
+            var stringTableBytes = new List<byte>();
+            var groupOffsets = new List<uint>();
+            foreach (var group in semantics.keywords)
             {
-                for (var i = 0; i < descriptor.ShaderCodes.Length; i++)
+                groupOffsets.Add((uint)stringTableBytes.Count);
+                if (group.keywords != null)
                 {
-                    var shaderCode = descriptor.ShaderCodes[i];
-                    var config = configTemplate with
+                    foreach (var kw in group.keywords)
                     {
-                        stage = ShaderStage.ComputeShader,
-                        model = descriptor.ShaderModel,
-                        defines = descriptor.Defines,
-
-                        entryPoint = shaderCode.entryPoint,
-                        shaderCode = shaderCode.code,
-                    };
-
-                    byteCodes[i] = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                        if (!allKeywords.Contains(kw)) allKeywords.Add(kw);
+                        stringTableBytes.AddRange(Encoding.UTF8.GetBytes(kw));
+                        stringTableBytes.Add(0); // Null terminator
+                    }
                 }
-
-                var entries = byteCodes.Select((bc, index) => (ShaderStage.ComputeShader, bc)).ToArray();
-                await WriteShaderEntries(dst, cancellationToken, entries);
             }
-            finally
+
+            var stringTableOffset = (uint)(dst.Position - assetStartOffset);
+            var stringTableSize = (uint)stringTableBytes.Count;
+            
+            // Update header
+            var currentPos = dst.Position;
+            dst.Position = assetStartOffset;
+            header.keywordStringTableOffset = stringTableOffset;
+            header.keywordStringTableSize = stringTableSize;
+            dst.Write(header);
+            dst.Position = currentPos;
+
+            if (stringTableSize > 0)
             {
-                foreach (var code in byteCodes)
-                {
-                    code.Dispose();
-                }
+                dst.Write(BitConverter.GetBytes(stringTableSize));
+                dst.Write(stringTableBytes.ToArray());
             }
+            else
+            {
+                dst.Write(BitConverter.GetBytes((uint)0));
+            }
+
+            var combinations = GenerateVariantCombinations(semantics.keywords.ToArray());
+
+            var passHeader = new ShaderContentHeader.PassHeader
+            {
+                entryPointCount = (uint)descriptor.ShaderCodes.Length,
+                variantCount = (uint)combinations.Count,
+                keywordGroupCount = (uint)semantics.keywords.Count
+            };
+            dst.Write(passHeader);
+
+            foreach (var t in groupOffsets.Select((offset, idx) => new ShaderContentHeader.KeywordGroupDescriptor
+            {
+                stringTableOffset = offset,
+                keywordCount = (uint)(semantics.keywords[idx].keywords?.Count ?? 0)
+            }))
+            {
+                dst.Write(t);
+            }
+
+            var variantEntriesOffset = dst.Position;
+            var variantEntries = new ShaderContentHeader.VariantEntry[combinations.Count];
+            for (var i = 0; i < combinations.Count; i++)
+            {
+                dst.Write(variantEntries[i]); // Placeholder
+            }
+
+            for (var i = 0; i < combinations.Count; i++)
+            {
+                var activeKeywords = combinations[i];
+                var variantDataStart = dst.Position;
+                
+                var variantDefines = descriptor.Defines.ToList();
+                variantDefines.AddRange(activeKeywords);
+
+                var byteCodes = new UnsafeArray<byte>[descriptor.ShaderCodes.Length];
+
+                try
+                {
+                    for (var j = 0; j < descriptor.ShaderCodes.Length; j++)
+                    {
+                        var shaderCode = descriptor.ShaderCodes[j];
+                        var config = configTemplate with
+                        {
+                            stage = ShaderStage.ComputeShader,
+                            model = descriptor.ShaderModel,
+                            defines = variantDefines.ToArray(),
+                            entryPoint = shaderCode.entryPoint,
+                            shaderCode = shaderCode.code,
+                        };
+
+                        byteCodes[j] = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                    }
+
+                    var entries = byteCodes.Select((bc, index) => (ShaderStage.ComputeShader, bc)).ToArray();
+                    await WriteShaderEntries(dst, variantDataStart, cancellationToken, entries);
+                }
+                finally
+                {
+                    foreach (var code in byteCodes)
+                    {
+                        code.Dispose();
+                    }
+                }
+
+                variantEntries[i] = new ShaderContentHeader.VariantEntry
+                {
+                    variantKey = ComputeVariantKey(activeKeywords, allKeywords),
+                    dataOffset = variantDataStart - assetStartOffset,
+                    dataSize = dst.Position - variantDataStart
+                };
+            }
+
+            var endOfPass = dst.Position;
+            dst.Position = variantEntriesOffset;
+            foreach (var entry in variantEntries)
+            {
+                dst.Write(entry);
+            }
+            dst.Position = endOfPass;
         }
         else
         {
-            // This should never happen because the baker is registered for these extensions only.
             throw new NotSupportedException($"Unsupported shader file extension: {ext}");
         }
     }
