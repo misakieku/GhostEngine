@@ -1,5 +1,7 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -204,8 +206,10 @@ internal sealed class RenderGraphNativePassBuilder
     {
         var laterPass = compiledPasses[passB];
 
+        using var scope = AllocationManager.CreateStackScope();
+        using var renderTargets = new UnsafeHashSet<Identifier<RGResource>>(laterPass.maxColorIndex, scope.AllocationHandle);
+
         // Build a set of render target heap IDs (color + depth)
-        var renderTargets = new HashSet<Identifier<RGResource>>();
         for (var i = 0; i <= laterPass.maxColorIndex; i++)
         {
             if (!laterPass.colorAccess[i].id.IsInvalid)

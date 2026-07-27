@@ -57,7 +57,7 @@ public sealed class RenderGraphBlackboard
     /// Clears all data from the blackboard.
     /// Does not deallocate the backing dictionary to avoid allocations.
     /// </summary>
-    public void Clear()
+    public void Reset()
     {
         _data.Clear();
     }

@@ -89,31 +89,14 @@ internal record struct RenderGraphResource : IDisposable
 
     public Handle<GPUResource> backingResource;
 
-    public RenderGraphResource()
+    public RenderGraphResource(AllocationHandle allocationHandle)
     {
         firstUsePass = -1;
         lastUsePass = -1;
         producerPass = -1;
-        consumerPasses = new UnsafeList<int>(4, AllocationHandle.Temp);
+        consumerPasses = new UnsafeList<int>(4, allocationHandle);
         backingResource = Handle<GPUResource>.Invalid;
     }
-
-    // public void Reset()
-    // {
-    //     type = RenderGraphResourceType.Texture;
-    //     index = -1;
-    //     rgTextureDesc = default;
-    //     bufferDesc = default;
-    //     resolvedWidth = 0;
-    //     resolvedHeight = 0;
-    //     isImported = false;
-    //     firstUsePass = -1;
-    //     lastUsePass = -1;
-    //     producerPass = -1;
-    //     consumerPasses.Clear();
-    //     refCount = 0;
-    //     backingResource = Handle<GPUResource>.Invalid;
-    // }
 
     public void Dispose()
     {
@@ -158,7 +141,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         Color128 clearColor, float clearDepth, byte clearStencil,
         bool clearAtFirstUse, bool discardAtLastUse)
     {
-        var resource = new RenderGraphResource
+        var resource = new RenderGraphResource(AllocationHandle.Temp)
         {
             type = RenderGraphResourceType.Texture,
             index = _resources.Count,
@@ -191,7 +174,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
     public Identifier<RGTexture> CreateTexture(ref readonly RGTextureDesc desc, string? name)
     {
-        var resource = new RenderGraphResource
+        var resource = new RenderGraphResource(AllocationHandle.Temp)
         {
             type = RenderGraphResourceType.Texture,
             index = _resources.Count,
@@ -206,7 +189,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
     public Identifier<RGBuffer> ImportBuffer(ref readonly BufferDesc desc, Handle<GPUBuffer> buffer, string? name)
     {
-        var resource = new RenderGraphResource
+        var resource = new RenderGraphResource(AllocationHandle.Temp)
         {
             type = RenderGraphResourceType.Buffer,
             index = _resources.Count,
@@ -222,7 +205,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
     public Identifier<RGBuffer> CreateBuffer(ref readonly BufferDesc desc, string? name)
     {
-        var resource = new RenderGraphResource
+        var resource = new RenderGraphResource(AllocationHandle.Temp)
         {
             type = RenderGraphResourceType.Buffer,
             index = _resources.Count,
@@ -404,7 +387,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         }
     }
 
-    public void Clear()
+    public void Reset()
     {
         for (var i = 0; i < _resources.Count; i++)
         {

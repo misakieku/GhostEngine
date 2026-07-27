@@ -20,12 +20,34 @@ public static class RHIUtility
     {
         return format switch
         {
+            TextureFormat.R8_UNorm => 1,
+            TextureFormat.R8_SNorm => 1,
+            TextureFormat.R16_UNorm => 2,
+            TextureFormat.R16_SNorm => 2,
+            TextureFormat.R16_Float => 2,
+            TextureFormat.R32_UInt => 4,
+            TextureFormat.R32_SInt => 4,
+
+            TextureFormat.R8G8_UNorm => 2,
+            TextureFormat.R8G8_SNorm => 2,
+            TextureFormat.R16G16_UNorm => 4,
+            TextureFormat.R16G16_SNorm => 4,
+            TextureFormat.R16G16_Float => 4,
+            TextureFormat.R32G32_Float => 8,
+
             TextureFormat.R8G8B8A8_UNorm => 4,
+            TextureFormat.R8G8B8A8_SNorm => 4,
             TextureFormat.B8G8R8A8_UNorm => 4,
+
+            TextureFormat.R10G10B10A2_UNorm => 4,
             TextureFormat.R16G16B16A16_Float => 8,
             TextureFormat.R32G32B32A32_Float => 16,
+
             TextureFormat.D24_UNorm_S8_UInt => 4,
             TextureFormat.D32_Float => 4,
+
+            TextureFormat.R32_Typeless => 4,
+            TextureFormat.R24G8_Typeless => 4,
             _ => throw new NotSupportedException($"Texture format {format} is not supported."),
         };
     }

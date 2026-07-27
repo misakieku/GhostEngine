@@ -25,183 +25,6 @@ internal struct MemoryInfo
     }
 }
 
-internal sealed class ResourceHeap : IDisposable
-{
-    private UnsafeList<MemoryInfo> _blocks;
-
-    public int Index
-    {
-        get; set;
-    }
-
-    public ulong Size
-    {
-        get; set;
-    }
-
-    public const ulong DEFAULT_ALIGNMENT = 65536; // 64KB
-
-    public ResourceHeap(int index, ulong size, AllocationHandle allocationHandle) // 16MB default
-    {
-        Index = index;
-        Size = size;
-        _blocks = new UnsafeList<MemoryInfo>(32, allocationHandle);
-
-        // Initially one large free block
-        _blocks.Add(new MemoryInfo(0, size));
-    }
-
-    public void Reset()
-    {
-        _blocks.Clear();
-        _blocks.Add(new MemoryInfo(0, Size));
-    }
-
-    /// <summary>
-    /// Attempts to allocate a block of the requested size with proper alignment.
-    /// Uses best-fit algorithm with lifetime-aware allocation.
-    /// </summary>
-    public (bool success, ulong offset, MemoryInfo block) TryAllocate(
-        ulong requestedSize,
-        int firstUsePass,
-        int lastUsePass,
-        int logicalResourceIndex,
-        ulong alignment = DEFAULT_ALIGNMENT)
-    {
-        var alignedSize = AlignUp(requestedSize, alignment);
-
-        var bestFitIndex = -1;
-        var bestFitOffset = 0UL;
-        var smallestWaste = ulong.MaxValue;
-
-        for (var i = 0; i < _blocks.Count; i++)
-        {
-            ref var block = ref _blocks[i];
-
-            var alignedOffset = AlignUp(block.offset, alignment);
-            var endOffset = alignedOffset + alignedSize;
-
-            if (endOffset <= block.offset + block.size)
-            {
-                var canUseOffset = CanPlaceAtOffset(alignedOffset, alignedSize, firstUsePass, lastUsePass);
-
-                if (canUseOffset)
-                {
-                    var waste = block.size - alignedSize;
-
-                    if (waste < smallestWaste)
-                    {
-                        smallestWaste = waste;
-                        bestFitIndex = i;
-                        bestFitOffset = alignedOffset;
-                    }
-                }
-            }
-        }
-
-        if (bestFitIndex == -1)
-        {
-            return (false, 0, default);
-        }
-
-        ref var bestFit = ref _blocks[bestFitIndex];
-
-        if (bestFit.isFree)
-        {
-            var remainingSize = (bestFit.offset + bestFit.size) - (bestFitOffset + alignedSize);
-
-            bestFit.offset = bestFitOffset;
-            bestFit.size = alignedSize;
-            bestFit.isFree = false;
-            bestFit.firstUsePass = firstUsePass;
-            bestFit.lastUsePass = lastUsePass;
-            bestFit.logicalResourceIndex = logicalResourceIndex;
-
-            if (remainingSize > 0)
-            {
-                var newBlock = new MemoryInfo(bestFitOffset + alignedSize, remainingSize);
-                _blocks.Insert(bestFitIndex + 1, newBlock);
-            }
-        }
-        else
-        {
-            var aliasedBlock = new MemoryInfo(bestFitOffset, alignedSize)
-            {
-                isFree = false,
-                firstUsePass = firstUsePass,
-                lastUsePass = lastUsePass,
-                logicalResourceIndex = logicalResourceIndex
-            };
-
-            var insertIndex = 0;
-            for (var i = 0; i < _blocks.Count; i++)
-            {
-                if (_blocks[i].offset > bestFitOffset)
-                {
-                    break;
-                }
-                insertIndex = i + 1;
-            }
-            _blocks.Insert(insertIndex, aliasedBlock);
-            bestFit = ref _blocks[insertIndex];
-        }
-
-        return (true, bestFitOffset, bestFit);
-    }
-
-    private bool CanPlaceAtOffset(ulong offset, ulong size, int firstUsePass, int lastUsePass)
-    {
-        var endOffset = offset + size;
-
-        foreach (var block in _blocks)
-        {
-            if (block.isFree)
-            {
-                continue;
-            }
-
-            var blockEnd = block.offset + block.size;
-            var memoryOverlap = !(offset >= blockEnd || endOffset <= block.offset);
-
-            if (memoryOverlap)
-            {
-                var lifetimeOverlap = !(firstUsePass > block.lastUsePass || lastUsePass < block.firstUsePass);
-
-                if (lifetimeOverlap)
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    public ulong GetPeakUsage()
-    {
-        var peak = 0ul;
-        foreach (var block in _blocks)
-        {
-            if (!block.isFree)
-            {
-                peak = Math.Max(peak, block.offset + block.size);
-            }
-        }
-
-        return peak;
-    }
-
-    private static ulong AlignUp(ulong value, ulong alignment)
-    {
-        return (value + alignment - 1) & ~(alignment - 1);
-    }
-
-    public void Dispose()
-    {
-        _blocks.Dispose();
-    }
-}
-
 internal struct PlacedResource : IDisposable
 {
     public int index;
@@ -298,8 +121,190 @@ internal struct AliasingPlan : IDisposable
 
 internal static class RenderGraphAliasingBuilder
 {
-    private const ulong _DEFAULT_TEXTURE_ALIGNMENT = 65536; // 64KB
-    private const ulong _DEFAULT_BUFFER_ALIGNMENT = 65536;  // 64KB
+    private struct LogicalResourceEntry
+    {
+        public int index;
+        public RenderGraphResource resource;
+        public ulong size;
+
+        public LogicalResourceEntry(int index, RenderGraphResource resource, ulong size)
+        {
+            this.index = index;
+            this.resource = resource;
+            this.size = size;
+        }
+    }
+
+    private readonly struct ResourceSizeDescendingComparer : IComparer<LogicalResourceEntry>
+    {
+        public int Compare(LogicalResourceEntry x, LogicalResourceEntry y)
+        {
+            return y.size.CompareTo(x.size); // Descending order
+        }
+    }
+
+    internal struct ResourceHeap : IDisposable
+    {
+        private UnsafeList<MemoryInfo> _blocks;
+
+        public int Index
+        {
+            get; set;
+        }
+
+        public ulong Size
+        {
+            get; set;
+        }
+
+        public const ulong DEFAULT_ALIGNMENT = 65536; // 64KB
+
+        public ResourceHeap(int index, ulong size, AllocationHandle allocationHandle) // 16MB default
+        {
+            Index = index;
+            Size = size;
+            _blocks = new UnsafeList<MemoryInfo>(32, allocationHandle);
+
+            // Initially one large free block
+            _blocks.Add(new MemoryInfo(0, size));
+        }
+
+        public (bool success, ulong offset, MemoryInfo block) TryAllocate(
+            ulong requestedSize,
+            int firstUsePass,
+            int lastUsePass,
+            int logicalResourceIndex,
+            ulong alignment = DEFAULT_ALIGNMENT)
+        {
+            var alignedSize = AlignUp(requestedSize, alignment);
+
+            var fitIndex = -1;
+            var fitOffset = 0UL;
+
+            for (var i = 0; i < _blocks.Count; i++)
+            {
+                ref var block = ref _blocks[i];
+
+                var alignedOffset = AlignUp(block.offset, alignment);
+                var endOffset = alignedOffset + alignedSize;
+
+                if (endOffset <= block.offset + block.size)
+                {
+                    if (CanPlaceAtOffset(alignedOffset, alignedSize, firstUsePass, lastUsePass))
+                    {
+                        fitIndex = i;
+                        fitOffset = alignedOffset;
+                        break;
+                    }
+                }
+            }
+
+            if (fitIndex == -1)
+            {
+                return (false, 0, default);
+            }
+
+            ref var targetBlock = ref _blocks[fitIndex];
+
+            if (targetBlock.isFree)
+            {
+                var remainingSize = (targetBlock.offset + targetBlock.size) - (fitOffset + alignedSize);
+
+                targetBlock.offset = fitOffset;
+                targetBlock.size = alignedSize;
+                targetBlock.isFree = false;
+                targetBlock.firstUsePass = firstUsePass;
+                targetBlock.lastUsePass = lastUsePass;
+                targetBlock.logicalResourceIndex = logicalResourceIndex;
+
+                if (remainingSize > 0)
+                {
+                    var newBlock = new MemoryInfo(fitOffset + alignedSize, remainingSize);
+                    _blocks.Insert(fitIndex + 1, newBlock);
+                }
+            }
+            else
+            {
+                var aliasedBlock = new MemoryInfo(fitOffset, alignedSize)
+                {
+                    isFree = false,
+                    firstUsePass = firstUsePass,
+                    lastUsePass = lastUsePass,
+                    logicalResourceIndex = logicalResourceIndex
+                };
+
+                var insertIndex = 0;
+                for (var i = 0; i < _blocks.Count; i++)
+                {
+                    if (_blocks[i].offset > fitOffset)
+                    {
+                        break;
+                    }
+                    insertIndex = i + 1;
+                }
+                _blocks.Insert(insertIndex, aliasedBlock);
+                targetBlock = ref _blocks[insertIndex];
+            }
+
+            return (true, fitOffset, targetBlock);
+        }
+
+        private readonly bool CanPlaceAtOffset(ulong offset, ulong size, int firstUsePass, int lastUsePass)
+        {
+            var endOffset = offset + size;
+
+            foreach (var block in _blocks)
+            {
+                if (block.isFree)
+                {
+                    continue;
+                }
+
+                var blockEnd = block.offset + block.size;
+                var memoryOverlap = !(offset >= blockEnd || endOffset <= block.offset);
+
+                if (memoryOverlap)
+                {
+                    var lifetimeOverlap = !(firstUsePass > block.lastUsePass || lastUsePass < block.firstUsePass);
+
+                    if (lifetimeOverlap)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        public readonly ulong GetPeakUsage()
+        {
+            var peak = 0ul;
+            foreach (var block in _blocks)
+            {
+                if (!block.isFree)
+                {
+                    peak = Math.Max(peak, block.offset + block.size);
+                }
+            }
+
+            return peak;
+        }
+
+        private static ulong AlignUp(ulong value, ulong alignment)
+        {
+            return (value + alignment - 1) & ~(alignment - 1);
+        }
+
+        public void Dispose()
+        {
+            _blocks.Dispose();
+        }
+    }
+
+
+    private const ulong DEFAULT_TEXTURE_ALIGNMENT = 65536; // 64KB
+    private const ulong DEFAULT_BUFFER_ALIGNMENT = 65536;  // 64KB
 
     private static ulong GetResourceSize(RenderGraphResource resource, IResourceAllocator allocator)
     {
@@ -326,7 +331,7 @@ internal static class RenderGraphAliasingBuilder
     {
         using var scope = AllocationManager.CreateStackScope();
         // Build list of all logical resources with their lifetimes
-        using var logicalResources = new UnsafeList<(int index, RenderGraphResource resource)>(registry.ResourceCount, scope.AllocationHandle);
+        using var logicalResources = new UnsafeList<LogicalResourceEntry>(registry.ResourceCount, scope.AllocationHandle);
 
         try
         {
@@ -335,34 +340,32 @@ internal static class RenderGraphAliasingBuilder
                 var resource = registry.GetResourceByIndex(i);
                 if (!resource.isImported) // Don't alias imported resources
                 {
-                    logicalResources.Add((resource.index, resource));
+                    var size = GetResourceSize(resource, allocator);
+                    logicalResources.Add(new LogicalResourceEntry(resource.index, resource, size));
                 }
             }
 
             // Sort by size descending
-            logicalResources.AsSpan().Sort((a, b) =>
-            {
-                var sizeA = GetResourceSize(a.resource, allocator);
-                var sizeB = GetResourceSize(b.resource, allocator);
-                return sizeB.CompareTo(sizeA);
-            });
+            // TODO: Avoid closure.
+            logicalResources.AsSpan().Sort(default(ResourceSizeDescendingComparer));
 
             var plan = new AliasingPlan(allocationHandle);
 
             // Simulate allocation to find peak memory usage
             using var simulationHeap = new ResourceHeap(0, ulong.MaxValue, scope.AllocationHandle);
-            foreach (var (logicalIndex, logicalResource) in logicalResources)
+            for (var i = 0; i < logicalResources.Count; i++)
             {
-                var size = GetResourceSize(logicalResource, allocator);
-                var alignment = logicalResource.type == RenderGraphResourceType.Texture
-                    ? _DEFAULT_TEXTURE_ALIGNMENT
-                    : _DEFAULT_BUFFER_ALIGNMENT;
+                ref readonly var item = ref logicalResources[i];
+                var size = GetResourceSize(item.resource, allocator);
+                var alignment = item.resource.type == RenderGraphResourceType.Texture
+                    ? DEFAULT_TEXTURE_ALIGNMENT
+                    : DEFAULT_BUFFER_ALIGNMENT;
 
                 var (success, offset, memInfo) = simulationHeap.TryAllocate(
                     size,
-                    logicalResource.firstUsePass,
-                    logicalResource.lastUsePass,
-                    logicalIndex,
+                    item.resource.firstUsePass,
+                    item.resource.lastUsePass,
+                    item.index,
                     alignment);
 
                 Logger.DebugAssert(success, "Simulation allocation failed - heap should be unlimited in size");
@@ -370,58 +373,21 @@ internal static class RenderGraphAliasingBuilder
                 var assignedPlaced = new PlacedResource(allocationHandle)
                 {
                     index = plan.placedResources.Count,
-                    type = logicalResource.type,
+                    type = item.resource.type,
                     heapOffset = offset,
                     sizeInBytes = size,
-                    firstUsePass = logicalResource.firstUsePass,
-                    lastUsePass = logicalResource.lastUsePass,
+                    firstUsePass = item.resource.firstUsePass,
+                    lastUsePass = item.resource.lastUsePass,
                     memoryInfo = memInfo
                 };
-                assignedPlaced.aliasedLogicalResources.Add(logicalIndex);
+                assignedPlaced.aliasedLogicalResources.Add(item.index);
 
                 plan.placedResources.Add(assignedPlaced);
-                plan.logicalToPlaced[logicalIndex] = assignedPlaced.index;
+                plan.logicalToPlaced[item.index] = assignedPlaced.index;
             }
 
-            var peakMemoryUsage = AlignUp(simulationHeap.GetPeakUsage(), _DEFAULT_TEXTURE_ALIGNMENT);
+            var peakMemoryUsage = AlignUp(simulationHeap.GetPeakUsage(), DEFAULT_TEXTURE_ALIGNMENT);
             plan.totalHeapSize = peakMemoryUsage;
-
-            // Real allocation
-            // var realHeap = new ResourceHeap(0, peakMemoryUsage);
-            //
-            // foreach (var (logicalIndex, logicalResource) in logicalResources)
-            // {
-            //     var size = GetResourceSize(logicalResource, allocator);
-            //     var alignment = logicalResource.type == RenderGraphResourceType.Texture
-            //         ? _DEFAULT_TEXTURE_ALIGNMENT
-            //         : _DEFAULT_BUFFER_ALIGNMENT;
-            //
-            //     var (success, offset, block) = realHeap.TryAllocate(
-            //         size,
-            //         logicalResource.firstUsePass,
-            //         logicalResource.lastUsePass,
-            //         logicalIndex,
-            //         alignment);
-            //
-            //     if (!success)
-            //     {
-            //         throw new InvalidOperationException("Real allocation failed - this should match simulation");
-            //     }
-            //
-            //     var assignedPlaced = pool.Rent<PlacedResource>();
-            //     assignedPlaced.index = plan.PlacedResources.Count;
-            //     assignedPlaced.type = logicalResource.type;
-            //     assignedPlaced.heapOffset = offset;
-            //     assignedPlaced.sizeInBytes = size;
-            //     assignedPlaced.firstUsePass = logicalResource.firstUsePass;
-            //     assignedPlaced.lastUsePass = logicalResource.lastUsePass;
-            //     assignedPlaced.memoryBlock = block;
-            //     assignedPlaced.aliasedLogicalResources.Clear();
-            //     assignedPlaced.aliasedLogicalResources.Add(logicalIndex);
-            //
-            //     plan.PlacedResources.Add(assignedPlaced);
-            //     plan.LogicalToPlaced[logicalIndex] = assignedPlaced.index;
-            // }
 
             // Populate aliasedLogicalResources lists
             for (var i = 0; i < plan.placedResources.Count; i++)
@@ -448,7 +414,7 @@ internal static class RenderGraphAliasingBuilder
         }
         finally
         {
-            for (int i = 0; i < logicalResources.Count; i++)
+            for (var i = 0; i < logicalResources.Count; i++)
             {
                 logicalResources[i].resource.Dispose();
             }

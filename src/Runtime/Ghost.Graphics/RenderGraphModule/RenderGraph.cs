@@ -62,8 +62,8 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     public void Reset()
     {
-        _blackboard.Clear();
-        _resourceRegistry.Clear();
+        _blackboard.Reset();
+        _resourceRegistry.Reset();
 
         // Return passes to the pool and reset count
         for (var i = 0; i < _passes.Count; i++)
