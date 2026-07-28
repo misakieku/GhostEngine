@@ -160,7 +160,7 @@ internal sealed class RenderGraphCompiler
                 {
                     var writeHandle = writeList[k];
                     ref readonly var resource = ref _resources.GetResource(writeHandle);
-                    if (resource.isImported)
+                    if (resource.isImported || resource.isExtracted)
                     {
                         pass.hasSideEffects = true;
                         break;

@@ -10,7 +10,7 @@ namespace Ghost.Graphics.Services;
 
 public sealed partial class ResourceManager : IDisposable
 {
-    private const uint _PALETTE_BUFFER_INITIAL_CAPACITY = 64;
+    private const uint PALETTE_BUFFER_INITIAL_CAPACITY = 64;
 
     private readonly struct ResourceReturnEntry
     {
@@ -84,8 +84,8 @@ public sealed partial class ResourceManager : IDisposable
         _computeShaderWriteLock = new Lock();
 
         // Create initial GPU palette buffers. These grow on demand in UploadMaterialPaletteData.
-        _paletteOffsetCapacity = _PALETTE_BUFFER_INITIAL_CAPACITY;
-        _materialIndexCapacity = _PALETTE_BUFFER_INITIAL_CAPACITY * 4;
+        _paletteOffsetCapacity = PALETTE_BUFFER_INITIAL_CAPACITY;
+        _materialIndexCapacity = PALETTE_BUFFER_INITIAL_CAPACITY * 4;
         _paletteOffsetBuffer = CreatePaletteBuffer(_paletteOffsetCapacity, "PaletteOffsetBuffer");
         _materialIndexBuffer = CreatePaletteBuffer(_materialIndexCapacity, "MaterialIndexBuffer");
     }
@@ -589,7 +589,8 @@ public sealed partial class ResourceManager : IDisposable
         _resourceDatabase.ReleaseResource(_paletteOffsetBuffer.AsResource());
         _resourceDatabase.ReleaseResource(_materialIndexBuffer.AsResource());
 
-        DisposePool();
+        DisposeTransientPool();
+        DisposePersistentPool();
 
         _disposed = true;
         GC.SuppressFinalize(this);

@@ -142,7 +142,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Look up or create an archetype from a <see cref="SpanBitSet"/> signature.
     /// </summary>
-    private Identifier<Archetype> FindOrCreateArchetype(ref readonly SpanBitSet signature, int componentCount)
+    private Identifier<Archetype> FindOrCreateArchetype(scoped in SpanBitSet signature, int componentCount)
     {
         var hash = signature.GetHashCode();
         var arcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(hash);
@@ -705,7 +705,7 @@ public unsafe partial class EntityManager : IDisposable
             newSignature.SetBit(componentID);
 
             // Find or create new archetype
-            newArcID = FindOrCreateArchetype(ref newSignature, compCount);
+            newArcID = FindOrCreateArchetype(newSignature, compCount);
 
             oldArchetype.AddEdgeAdd(componentID, newArcID);
         }
@@ -820,7 +820,7 @@ public unsafe partial class EntityManager : IDisposable
             }
 
             // Find or create new archetype
-            newArcID = FindOrCreateArchetype(ref newSignature, compCount);
+            newArcID = FindOrCreateArchetype(newSignature, compCount);
 
             oldArchetype.AddEdgeRemove(componentID, newArcID);
         }
@@ -1163,7 +1163,7 @@ public unsafe partial class EntityManager : IDisposable
             compCount++;
             newSignature.SetBit(componentID);
 
-            newArcID = FindOrCreateArchetype(ref newSignature, compCount);
+            newArcID = FindOrCreateArchetype(newSignature, compCount);
 
             oldArchetype.AddEdgeAdd(componentID, newArcID);
         }
@@ -1256,7 +1256,7 @@ public unsafe partial class EntityManager : IDisposable
                 return DestroyEntity_Internal(entity, location);
             }
 
-            newArcID = FindOrCreateArchetype(ref newSignature, compCount);
+            newArcID = FindOrCreateArchetype(newSignature, compCount);
 
             oldArchetype.AddEdgeRemove(componentID, newArcID);
         }

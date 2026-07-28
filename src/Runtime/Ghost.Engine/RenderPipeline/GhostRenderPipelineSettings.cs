@@ -50,12 +50,12 @@ public sealed class GhostRenderPayload : IRenderPayload
     }
 
     // NOTE: This is not thread safe.
-    public void AddRenderRequest(ref readonly RenderRequest renderRequest)
+    public void AddRenderRequest(scoped in RenderRequest renderRequest)
     {
         _renderRequests.Add(renderRequest);
     }
 
-    public uint AddInstance(float4x4 ltw, ref readonly MeshInstance meshInstance)
+    public uint AddInstance(float4x4 ltw, scoped in MeshInstance meshInstance)
     {
         var index = _renderPipeline.GPUScene.AddInstance();
 
@@ -63,7 +63,7 @@ public sealed class GhostRenderPayload : IRenderPayload
         return index;
     }
 
-    public void UpdateInstance(uint instanceId, float4x4 ltw, ref readonly MeshInstance meshInstance)
+    public void UpdateInstance(uint instanceId, float4x4 ltw, scoped in MeshInstance meshInstance)
     {
         _updateRequest.Enqueue(new UpdateInstanceRequest { instanceId = instanceId, localToWorld = ltw, meshInstance = meshInstance });
     }

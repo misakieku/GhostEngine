@@ -12,7 +12,7 @@ internal class MockingResourceAllocator : IResourceAllocator
         _database = database;
     }
 
-    public Handle<GPUResource> Allocate(ref readonly AllocationDesc desc, string? name = null)
+    public Handle<GPUResource> Allocate(scoped in AllocationDesc desc, string? name = null)
     {
         var barrier = new ResourceBarrierData { layout = BarrierLayout.Common, access = BarrierAccess.NoAccess, sync = BarrierSync.None };
         // Passing a mock buffer desc for raw allocation representation
@@ -20,19 +20,19 @@ internal class MockingResourceAllocator : IResourceAllocator
         return _database.AddMockResource(ResourceDesc.Buffer(bufferDesc), barrier, name);
     }
 
-    public Handle<GPUBuffer> CreateBuffer(ref readonly BufferDesc desc, string? name = null, CreationOptions options = default)
+    public Handle<GPUBuffer> CreateBuffer(scoped in BufferDesc desc, string? name = null, CreationOptions options = default)
     {
         var barrier = new ResourceBarrierData { layout = BarrierLayout.Undefined, access = BarrierAccess.Common, sync = BarrierSync.None };
         var handle = _database.AddMockResource(ResourceDesc.Buffer(desc), barrier, name);
         return handle.AsBuffer();
     }
 
-    public Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc)
+    public Identifier<Sampler> CreateSampler(scoped in SamplerDesc desc)
     {
         return _database.AddSampler(in desc, 1);
     }
 
-    public Handle<GPUTexture> CreateTexture(ref readonly TextureDesc desc, string? name = null, CreationOptions options = default, AdditionalTextureDesc additionalDesc = default)
+    public Handle<GPUTexture> CreateTexture(scoped in TextureDesc desc, string? name = null, CreationOptions options = default, AdditionalTextureDesc additionalDesc = default)
     {
         var barrier = new ResourceBarrierData { layout = BarrierLayout.Common, access = BarrierAccess.Common, sync = BarrierSync.None };
         var handle = _database.AddMockResource(ResourceDesc.Texture(desc), barrier, name);

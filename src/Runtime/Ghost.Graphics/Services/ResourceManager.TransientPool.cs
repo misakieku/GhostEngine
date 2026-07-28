@@ -93,7 +93,7 @@ public partial class ResourceManager
         return Error.None;
     }
 
-    public Handle<GPUTexture> CreateTransientTexture(ref readonly TextureDesc desc, string? name = null)
+    public Handle<GPUTexture> CreateTransientTexture(scoped in TextureDesc desc, string? name = null)
     {
         var isRTOrDS = desc.Usage.HasFlag(TextureUsage.DepthStencil) || desc.Usage.HasFlag(TextureUsage.RenderTarget);
         var size = _resourceAllocator.GetSizeInfo(ResourceDesc.Texture(desc));
@@ -175,7 +175,7 @@ public partial class ResourceManager
         }
     }
 
-    public Handle<GPUBuffer> CreateTransientBuffer(ref readonly BufferDesc desc, string? name = null)
+    public Handle<GPUBuffer> CreateTransientBuffer(scoped in BufferDesc desc, string? name = null)
     {
         var size = _resourceAllocator.GetSizeInfo(ResourceDesc.Buffer(desc));
 
@@ -292,7 +292,7 @@ public partial class ResourceManager
         _frameTransientResources.Clear();
     }
 
-    private void DisposePool()
+    private void DisposeTransientPool()
     {
         foreach (var resource in _frameTransientResources)
         {

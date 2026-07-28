@@ -868,7 +868,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->DrawInstanced(vertexCount, instanceCount, startVertex, startInstance);
     }
 
-    public void SetProgram(ref readonly SetProgramDesc desc)
+    public void SetProgram(scoped in SetProgramDesc desc)
     {
         // TODO
     }
@@ -923,7 +923,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         throw new NotImplementedException();
     }
 
-    public void DispatchGraph(ref readonly DispatchGraphDesc desc)
+    public void DispatchGraph(scoped in DispatchGraphDesc desc)
     {
         throw new NotImplementedException();
     }

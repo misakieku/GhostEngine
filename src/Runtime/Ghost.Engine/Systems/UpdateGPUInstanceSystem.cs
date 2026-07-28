@@ -15,7 +15,7 @@ internal class UpdateGPUInstanceSystem : SystemBase
     private RenderEngine _renderSystem = null!;
     private Identifier<EntityQuery> _gpuInstanceQueryID;
 
-    protected override void OnInitialize(ref readonly SystemAPI systemAPI)
+    protected override void OnInitialize(scoped in SystemAPI systemAPI)
     {
         _renderSystem = systemAPI.World.GetService<RenderEngine>();
 
@@ -26,7 +26,7 @@ internal class UpdateGPUInstanceSystem : SystemBase
         RequireQueryForUpdate(_gpuInstanceQueryID);
     }
 
-    protected override void OnUpdate(ref readonly SystemAPI systemAPI)
+    protected override void OnUpdate(scoped in SystemAPI systemAPI)
     {
         var playload = (GhostRenderPayload)_renderSystem.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
 

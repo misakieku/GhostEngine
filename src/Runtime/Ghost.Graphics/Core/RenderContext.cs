@@ -335,7 +335,7 @@ public unsafe class RenderContext
         TransitionBarrier(bufferHandle, false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.PixelShading | BarrierSync.NonPixelShading);
     }
 
-    public Handle<GPUTexture> CreateTexture<T>(ref readonly TextureDesc desc, ReadOnlySpan<T> data, string name)
+    public Handle<GPUTexture> CreateTexture<T>(scoped in TextureDesc desc, ReadOnlySpan<T> data, string name)
         where T : unmanaged
     {
         var handle = ResourceAllocator.CreateTexture(in desc, name);
@@ -379,7 +379,7 @@ public unsafe class RenderContext
         }
     }
 
-    public void DispatchCompute<T>(Handle<ComputeShader> compute, int entryIndex, ref readonly LocalKeywordSet keywordSet, ref readonly T property, uint3 threadGroupCount)
+    public void DispatchCompute<T>(Handle<ComputeShader> compute, int entryIndex, scoped in LocalKeywordSet keywordSet, scoped in T property, uint3 threadGroupCount)
         where T : unmanaged
     {
         ref var shader = ref ResourceManager.GetComputeShaderReference(compute).GetValueOrThrow();

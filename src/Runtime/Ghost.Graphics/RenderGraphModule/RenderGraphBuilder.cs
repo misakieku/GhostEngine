@@ -26,7 +26,7 @@ public enum ResourceExtractionFlags : byte
 {
     None = 0,
     /// <summary>
-    /// Releases the old heap after extraction.
+    /// Releases the old resource after extraction.
     /// </summary>
     ReleaseAfterExtract = 1 << 0,
 }
@@ -75,16 +75,18 @@ public interface IRenderGraphBuilder : IDisposable
     /// <summary>
     /// Extracts the actual texture heap associated with the given identifier for use in outside of the render graph execution context.
     /// </summary>
-    /// <param name="src">The identifier of the texture to be extracted.</param>
-    /// <param name="dst">A handle to receive the actual GPU texture heap.</param>
-    void QueryTextureExtraction(Identifier<RGTexture> src, Handle<GPUTexture> dst, ResourceExtractionFlags flags = ResourceExtractionFlags.ReleaseAfterExtract);
+    /// <param name="src">The identifier of the render graph texture to be extracted.</param>
+    /// <param name="dst">The handle to receive the actual GPU texture.</param>
+    /// <param name="flags">Flags that control the extraction behavior.</param>
+    void QueueTextureExtraction(Identifier<RGTexture> src, Handle<GPUTexture> dst, ResourceExtractionFlags flags = ResourceExtractionFlags.None);
 
     /// <summary>
     /// Extracts the actual buffer heap associated with the given identifier for use in outside of the render graph execution context.
     /// </summary>
-    /// <param name="src">The identifier of the buffer to be extracted.</param>
-    /// <param name="dst">A handle to receive the actual GPU buffer heap.</param>
-    void QueryBufferExtraction(Identifier<RGBuffer> src, Handle<GPUBuffer> dst, ResourceExtractionFlags flags = ResourceExtractionFlags.ReleaseAfterExtract);
+    /// <param name="src">The identifier of the render graph buffer to be extracted.</param>
+    /// <param name="dst">The handle to receive the actual GPU buffer.</param>
+    /// <param name="flags">Flags that control the extraction behavior.</param>
+    void QueueBufferExtraction(Identifier<RGBuffer> src, Handle<GPUBuffer> dst, ResourceExtractionFlags flags = ResourceExtractionFlags.None);
 
     /// <summary>
     /// Set the data that will be used during rendering for this pass.
@@ -261,15 +263,28 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         return UseResource(buffer.AsResource(), flags, RenderGraphResourceType.Buffer).AsBuffer();
     }
 
-    // TODO: Implement QueryTextureExtraction and QueryBufferExtraction to allow users to get the actual GPU resources for use outside of the render graph execution context.
-    public void QueryTextureExtraction(Identifier<RGTexture> src, Handle<GPUTexture> dst, ResourceExtractionFlags flags = ResourceExtractionFlags.ReleaseAfterExtract)
+    public void QueueTextureExtraction(Identifier<RGTexture> src, Handle<GPUTexture> dst, ResourceExtractionFlags flags)
     {
-        throw new NotImplementedException();
+        ref var resource = ref _resourceRegistry.GetResource(src);
+        resource.isExtracted = true;
+        resource.extractionTarget = dst.AsResource();
+        resource.extractionFlags = flags;
+
+        var res = src.AsResource();
+        _pass.resourceReads[(int)RenderGraphResourceType.Texture].Add(res);
+        _resourceRegistry.AddConsumer(res, _pass.index);
     }
 
-    public void QueryBufferExtraction(Identifier<RGBuffer> src, Handle<GPUBuffer> dst, ResourceExtractionFlags flags = ResourceExtractionFlags.ReleaseAfterExtract)
+    public void QueueBufferExtraction(Identifier<RGBuffer> src, Handle<GPUBuffer> dst, ResourceExtractionFlags flags)
     {
-        throw new NotImplementedException();
+        ref var resource = ref _resourceRegistry.GetResource(src);
+        resource.isExtracted = true;
+        resource.extractionTarget = dst.AsResource();
+        resource.extractionFlags = flags;
+
+        var res = src.AsResource();
+        _pass.resourceReads[(int)RenderGraphResourceType.Buffer].Add(res);
+        _resourceRegistry.AddConsumer(res, _pass.index);
     }
 
     public Identifier<RGTexture> UseRandomAccessTexture(Identifier<RGTexture> texture)

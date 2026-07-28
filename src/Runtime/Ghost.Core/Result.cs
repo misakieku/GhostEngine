@@ -287,6 +287,9 @@ public static class ResultExtensions
         public bool IsSuccess => error == Error.None;
         public bool IsFailure => error != Error.None;
 
+        public static bool operator true(Error err) => err != Error.None;
+        public static bool operator false(Error err) => err == Error.None;
+
         public static Error FromHResult(int hr)
         {
             return hr switch

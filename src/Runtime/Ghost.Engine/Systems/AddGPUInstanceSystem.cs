@@ -15,7 +15,7 @@ internal class AddGPUInstanceSystem : SystemBase
 
     private Identifier<EntityQuery> _meshInstanceQueryID;
 
-    protected override void OnInitialize(ref readonly SystemAPI systemAPI)
+    protected override void OnInitialize(scoped in SystemAPI systemAPI)
     {
         _renderSystem = systemAPI.World.GetService<RenderEngine>();
 
@@ -27,7 +27,7 @@ internal class AddGPUInstanceSystem : SystemBase
         RequireQueryForUpdate(_meshInstanceQueryID);
     }
 
-    protected override void OnUpdate(ref readonly SystemAPI systemAPI)
+    protected override void OnUpdate(scoped in SystemAPI systemAPI)
     {
         var payload = (GhostRenderPayload)_renderSystem.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
 

@@ -63,12 +63,12 @@ internal static unsafe class RenderGraphHasher
                 {
                     writer.Write(createList[k].Value);
                 }
+            }
 
-                writer.Write(pass.randomAccess.Count);
-                for (var k = 0; k < pass.randomAccess.Count; k++)
-                {
-                    writer.Write(pass.randomAccess[k].Value);
-                }
+            writer.Write(pass.randomAccess.Count);
+            for (var k = 0; k < pass.randomAccess.Count; k++)
+            {
+                writer.Write(pass.randomAccess[k].Value);
             }
 
             writer.Write(pass.GetRenderFuncHashCode());
@@ -91,14 +91,19 @@ internal static unsafe class RenderGraphHasher
 
         ref readonly var resource = ref resources.GetResource(texture.AsResource());
 
-        // Hash imported flag
-        writer->Write(resource.isImported);
-
         // For imported textures, hash the backing heap handle
+        writer->Write(resource.isImported);
         if (resource.isImported)
         {
             writer->Write(resource.backingResource.GetHashCode());
             return;
+        }
+
+        writer->Write(resource.isExtracted);
+        if (resource.isExtracted)
+        {
+            writer->Write(resource.extractionTarget.GetHashCode());
+            writer->Write((byte)resource.extractionFlags);
         }
 
         var desc = resource.rgTextureDesc;

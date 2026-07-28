@@ -29,9 +29,9 @@ public interface IRasterRenderContext : IRenderGraphContext
     void SetInstanceIndex(uint instanceIndex);
 
     void SetActiveMaterial(Handle<Material> material);
-    void SetActiveMaterial(ref readonly Material material);
+    void SetActiveMaterial(scoped in Material material);
     void SetActiveMesh(Handle<Mesh> mesh);
-    void SetActiveMesh(ref readonly Mesh mesh);
+    void SetActiveMesh(scoped in Mesh mesh);
     void DispatchMesh(uint3 threadGroupCount);
 }
 
@@ -150,7 +150,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         SetActiveMaterial(in mat);
     }
 
-    public void SetActiveMaterial(ref readonly Material material)
+    public void SetActiveMaterial(scoped in Material material)
     {
         var shaderResult = _resourceManager.GetShaderReference(material.Shader);
         if (shaderResult.IsFailure)
@@ -229,7 +229,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         SetActiveMesh(in meshRef);
     }
 
-    public void SetActiveMesh(ref readonly Mesh mesh)
+    public void SetActiveMesh(scoped in Mesh mesh)
     {
         _activePerMeshData = mesh.MeshDataBuffer;
         _activeMeshIndexCount = mesh.IndexCount;

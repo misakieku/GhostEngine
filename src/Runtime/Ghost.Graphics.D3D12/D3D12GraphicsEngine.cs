@@ -132,7 +132,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         return new D3D12Fence(_device, initialValue);
     }
 
-    public ICommandSignature CreateCommandSignature(ref readonly CommandSignatureDesc desc, Key128<PipelineState> pipelineKey)
+    public ICommandSignature CreateCommandSignature(scoped in CommandSignatureDesc desc, Key128<PipelineState> pipelineKey)
     {
         Logger.DebugAssert(!_disposed);
         return new D3D12CommandSignature(_device, _pipelineLibrary, in desc, pipelineKey);

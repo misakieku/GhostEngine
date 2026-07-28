@@ -333,7 +333,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         _resources.Remove(handle.ID, handle.Generation);
     }
 
-    public Identifier<Sampler> AddSampler(ref readonly SamplerDesc desc, int id)
+    public Identifier<Sampler> AddSampler(scoped in SamplerDesc desc, int id)
     {
         Logger.DebugAssert(!_disposed);
 
@@ -348,7 +348,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         return identifier;
     }
 
-    public bool TryGetSampler(ref readonly SamplerDesc desc, out Identifier<Sampler> id)
+    public bool TryGetSampler(scoped in SamplerDesc desc, out Identifier<Sampler> id)
     {
         Logger.DebugAssert(!_disposed);
         return _samplers.TryGetValue(desc, out id);

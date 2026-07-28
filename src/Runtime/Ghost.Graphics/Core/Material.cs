@@ -121,7 +121,7 @@ public struct Material : IResourceReleasable
                 HeapType = HeapType.Default,
             };
 
-            var buffer = resourceAllocator.CreateBuffer(ref desc, "MaterialCBuffer");
+            var buffer = resourceAllocator.CreateBuffer(desc, "MaterialCBuffer");
             _cBufferCache = new CBufferCache(buffer, shader.PropertyBufferSize);
         }
 

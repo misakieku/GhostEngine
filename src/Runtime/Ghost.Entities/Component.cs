@@ -254,7 +254,7 @@ public partial class ComponentManager : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal Identifier<EntityQuery> CreateEntityQuery(ref readonly EntityQueryMask mask, int maskHash)
+    internal Identifier<EntityQuery> CreateEntityQuery(scoped in EntityQueryMask mask, int maskHash)
     {
         var queryID = new Identifier<EntityQuery>(_entityQueries.Count);
         _entityQueries.Add(new EntityQuery(queryID, _world.ID, in mask));

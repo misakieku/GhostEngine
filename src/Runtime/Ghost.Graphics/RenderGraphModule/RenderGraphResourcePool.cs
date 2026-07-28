@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Buffer;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -89,6 +90,10 @@ internal record struct RenderGraphResource : IDisposable
 
     public Handle<GPUResource> backingResource;
 
+    public bool isExtracted;
+    public Handle<GPUResource> extractionTarget;
+    public ResourceExtractionFlags extractionFlags;
+
     public RenderGraphResource(AllocationHandle allocationHandle)
     {
         firstUsePass = -1;
@@ -108,6 +113,8 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 {
     private readonly IResourceDatabase _database;
     private readonly IResourceAllocator _allocator;
+    private readonly ResourceManager _resourceManager;
+
     private UnsafeList<RenderGraphResource> _resources;
 #if GHOST_SAFETY_CHECKS
     private readonly Dictionary<int, string> _resourceName;
@@ -116,10 +123,12 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
     internal ReadOnlySpan<RenderGraphResource> Resources => _resources;
 
-    public RenderGraphResourceRegistry(IResourceDatabase database, IResourceAllocator allocator)
+    public RenderGraphResourceRegistry(IResourceDatabase database, IResourceAllocator allocator, ResourceManager resourceManager)
     {
         _database = database;
         _allocator = allocator;
+        _resourceManager = resourceManager;
+
         _resources = new UnsafeList<RenderGraphResource>(64, AllocationHandle.Persistent);
 #if GHOST_SAFETY_CHECKS
         _resourceName = new Dictionary<int, string>(64);
@@ -137,7 +146,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         _resources.Add(resource);
     }
 
-    public Identifier<RGTexture> ImportTexture(ref readonly TextureDesc desc, Handle<GPUTexture> texture, string? name,
+    public Identifier<RGTexture> ImportTexture(scoped in TextureDesc desc, Handle<GPUTexture> texture, string? name,
         Color128 clearColor, float clearDepth, byte clearStencil,
         bool clearAtFirstUse, bool discardAtLastUse)
     {
@@ -172,7 +181,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         return new Identifier<RGTexture>(resource.index);
     }
 
-    public Identifier<RGTexture> CreateTexture(ref readonly RGTextureDesc desc, string? name)
+    public Identifier<RGTexture> CreateTexture(scoped in RGTextureDesc desc, string? name)
     {
         var resource = new RenderGraphResource(AllocationHandle.Temp)
         {
@@ -187,7 +196,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         return new Identifier<RGTexture>(resource.index);
     }
 
-    public Identifier<RGBuffer> ImportBuffer(ref readonly BufferDesc desc, Handle<GPUBuffer> buffer, string? name)
+    public Identifier<RGBuffer> ImportBuffer(scoped in BufferDesc desc, Handle<GPUBuffer> buffer, string? name)
     {
         var resource = new RenderGraphResource(AllocationHandle.Temp)
         {
@@ -203,7 +212,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         return new Identifier<RGBuffer>(resource.index);
     }
 
-    public Identifier<RGBuffer> CreateBuffer(ref readonly BufferDesc desc, string? name)
+    public Identifier<RGBuffer> CreateBuffer(scoped in BufferDesc desc, string? name)
     {
         var resource = new RenderGraphResource(AllocationHandle.Temp)
         {
@@ -296,7 +305,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         {
             foreach (var res in _resources)
             {
-                if (res.isImported)
+                if (res.isImported || res.backingResource.IsInvalid)
                 {
                     continue;
                 }
@@ -337,36 +346,56 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
             }
 
             ref var res = ref _resources[i];
-            var ops = new CreationOptions
+            if (res.isImported)
             {
-                AllocationType = ResourceAllocationType.Suballocation,
-                Heap = _resourceHeap,
-                Offset = placedResult.Value.heapOffset,
-            };
-
-            var name =
-#if GHOST_SAFETY_CHECKS
-                _resourceName.GetValueOrDefault(i, string.Empty);
-#else
-                string.Empty;
-#endif
-            if (res.type == RenderGraphResourceType.Texture)
-            {
-                var textureDesc = res.rgTextureDesc.ToTextureDesc(res.resolvedWidth, res.resolvedHeight);
-                res.backingResource = _allocator.CreateTexture(in textureDesc, name, ops).AsResource();
+                continue;
             }
-            else if (res.type == RenderGraphResourceType.Buffer)
+
+            if (res.isExtracted)
             {
-                res.backingResource = _allocator.CreateBuffer(in res.bufferDesc, name, ops).AsResource();
+                if (res.type == RenderGraphResourceType.Texture)
+                {
+                    var textureDesc = res.rgTextureDesc.ToTextureDesc(res.resolvedWidth, res.resolvedHeight);
+                    res.backingResource = _resourceManager.CreatePooledTexture(in textureDesc).AsResource();
+                }
+                else if (res.type == RenderGraphResourceType.Buffer)
+                {
+                    res.backingResource = _resourceManager.CreatePooledBuffer(in res.bufferDesc).AsResource();
+                }
             }
             else
             {
-                throw new NotSupportedException();
-            }
+                var ops = new CreationOptions
+                {
+                    AllocationType = ResourceAllocationType.Suballocation,
+                    Heap = _resourceHeap,
+                    Offset = placedResult.Value.heapOffset,
+                };
 
-            if (res.backingResource.IsInvalid)
-            {
-                return Error.InvalidState;
+                var name =
+#if GHOST_SAFETY_CHECKS
+                    _resourceName.GetValueOrDefault(i, string.Empty);
+#else
+                string.Empty;
+#endif
+                if (res.type == RenderGraphResourceType.Texture)
+                {
+                    var textureDesc = res.rgTextureDesc.ToTextureDesc(res.resolvedWidth, res.resolvedHeight);
+                    res.backingResource = _allocator.CreateTexture(in textureDesc, name, ops).AsResource();
+                }
+                else if (res.type == RenderGraphResourceType.Buffer)
+                {
+                    res.backingResource = _allocator.CreateBuffer(in res.bufferDesc, name, ops).AsResource();
+                }
+                else
+                {
+                    throw new NotSupportedException();
+                }
+
+                if (res.backingResource.IsInvalid)
+                {
+                    return Error.InvalidState;
+                }
             }
 
             cache.UpdateBackingResource(i, res.backingResource);
@@ -380,7 +409,25 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         for (var i = 0; i < _resources.Count; i++)
         {
             ref var res = ref _resources[i];
-            if (!res.isImported)
+            if (res.isImported)
+            {
+                continue;
+            }
+
+            if (res.isExtracted)
+            {
+                // Extracted resources need a fresh/pooled handle every frame
+                if (res.type == RenderGraphResourceType.Texture)
+                {
+                    var textureDesc = res.rgTextureDesc.ToTextureDesc(res.resolvedWidth, res.resolvedHeight);
+                    res.backingResource = _resourceManager.CreatePooledTexture(textureDesc).AsResource();
+                }
+                else if (res.type == RenderGraphResourceType.Buffer)
+                {
+                    res.backingResource = _resourceManager.CreatePooledBuffer(res.bufferDesc).AsResource();
+                }
+            }
+            else
             {
                 res.backingResource = cachedBackingResources[i];
             }

@@ -10,7 +10,7 @@ public interface IRenderPayload : IDisposable
 {
     ReadOnlySpan<RenderRequest> RenderRequests { get; }
 
-    void AddRenderRequest(ref readonly RenderRequest renderRequest);
+    void AddRenderRequest(scoped in RenderRequest renderRequest);
     void Reset();
 }
 
@@ -76,7 +76,7 @@ public readonly ref struct RenderViewData : IDisposable
 
 public static class RenderPipelineUtility
 {
-    public static void GetVPMatrices(ref readonly RenderRequest request, uint2 screenSize, out float4x4 view, out float4x4 projection)
+    public static void GetVPMatrices(scoped in RenderRequest request, uint2 screenSize, out float4x4 view, out float4x4 projection)
     {
         var aspectScreen = (float)screenSize.x / screenSize.y;
 

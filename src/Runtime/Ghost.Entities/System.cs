@@ -11,7 +11,7 @@ public readonly ref struct SystemAPI
     /// Gets the tIme data of current frame.
     /// </summary>
     /// <remarks>
-    /// The data will always be <see langword="default"/> in <see cref="ISystem.Initialize(ref readonly SystemAPI)"/> and <see cref="ISystem.Cleanup(ref readonly SystemAPI)"/>
+    /// The data will always be <see langword="default"/> in <see cref="ISystem.Initialize(scoped in SystemAPI)"/> and <see cref="ISystem.Cleanup(scoped in SystemAPI)"/>
     /// </remarks>
     public TimeData Time
     {
@@ -29,9 +29,9 @@ public readonly ref struct SystemAPI
 
 public interface ISystem
 {
-    void Initialize(ref readonly SystemAPI systemAPI);
-    void Update(ref readonly SystemAPI systemAPI);
-    void Cleanup(ref readonly SystemAPI systemAPI);
+    void Initialize(scoped in SystemAPI systemAPI);
+    void Update(scoped in SystemAPI systemAPI);
+    void Cleanup(scoped in SystemAPI systemAPI);
 }
 
 public abstract class SystemBase : ISystem
@@ -84,12 +84,12 @@ public abstract class SystemBase : ISystem
         _requiredQueries.Add(queryID.Value);
     }
 
-    void ISystem.Initialize(ref readonly SystemAPI systemAPI)
+    void ISystem.Initialize(scoped in SystemAPI systemAPI)
     {
         OnInitialize(in systemAPI);
     }
 
-    void ISystem.Update(ref readonly SystemAPI systemAPI)
+    void ISystem.Update(scoped in SystemAPI systemAPI)
     {
         if (ShouldUpdate())
         {
@@ -110,21 +110,21 @@ public abstract class SystemBase : ISystem
         }
     }
 
-    void ISystem.Cleanup(ref readonly SystemAPI systemAPI)
+    void ISystem.Cleanup(scoped in SystemAPI systemAPI)
     {
         _requiredQueries.Dispose();
         OnCleanup(in systemAPI);
     }
 
-    protected virtual void OnInitialize(ref readonly SystemAPI systemAPI)
+    protected virtual void OnInitialize(scoped in SystemAPI systemAPI)
     {
     }
 
-    protected virtual void OnUpdate(ref readonly SystemAPI systemAPI)
+    protected virtual void OnUpdate(scoped in SystemAPI systemAPI)
     {
     }
 
-    protected virtual void OnCleanup(ref readonly SystemAPI systemAPI)
+    protected virtual void OnCleanup(scoped in SystemAPI systemAPI)
     {
     }
 
@@ -340,7 +340,7 @@ public abstract class SystemGroup : ISystem
         }
     }
 
-    public void Initialize(ref readonly SystemAPI systemAPI)
+    public void Initialize(scoped in SystemAPI systemAPI)
     {
         if (_systems.Count == 0)
         {
@@ -355,7 +355,7 @@ public abstract class SystemGroup : ISystem
         }
     }
 
-    public void Update(ref readonly SystemAPI systemAPI)
+    public void Update(scoped in SystemAPI systemAPI)
     {
         if (_systems.Count == 0)
         {
@@ -370,7 +370,7 @@ public abstract class SystemGroup : ISystem
         }
     }
 
-    public void Cleanup(ref readonly SystemAPI systemAPI)
+    public void Cleanup(scoped in SystemAPI systemAPI)
     {
         if (_systems.Count == 0)
         {

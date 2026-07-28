@@ -99,14 +99,14 @@ public unsafe interface IResourceDatabase : IDisposable
     /// <param name="id">An integer identifier to associate with the sampler.</param>
     /// <returns>An <see cref="Identifier{Sampler}"/> representing the sampler that matches the specified description.
     ///     If a matching sampler does not exist, a new sampler is created and its identifier is returned.</returns>
-    Identifier<Sampler> AddSampler(ref readonly SamplerDesc desc, int id);
+    Identifier<Sampler> AddSampler(scoped in SamplerDesc desc, int id);
 
     /// <summary>
     /// Determines whether a sampler with the specified identifier exists.
     /// </summary>
     /// <param name="id">The identifier of the sampler to check for existence.</param>
     /// <returns>true if a sampler with the given identifier exists; otherwise, false.</returns>
-    bool TryGetSampler(ref readonly SamplerDesc desc, out Identifier<Sampler> id);
+    bool TryGetSampler(scoped in SamplerDesc desc, out Identifier<Sampler> id);
 
     /// <summary>
     /// Releases the sampler associated with the specified identifier and frees any resources allocated to it.

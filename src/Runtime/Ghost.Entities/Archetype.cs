@@ -31,7 +31,7 @@ internal sealed unsafe class ChunkDebugView
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-    public object[] Items => GetItems(in _chunk);
+    public object[] Items => GetItems(_chunk);
 
     private static T[] ReadComponentArray<T>(long pData, int offsetInChunk, int count)
         where T : unmanaged
@@ -47,7 +47,7 @@ internal sealed unsafe class ChunkDebugView
         return result;
     }
 
-    private static object[] GetItems(ref readonly Chunk chunk)
+    private static object[] GetItems(scoped in Chunk chunk)
     {
 #if !DEBUG
         return [];

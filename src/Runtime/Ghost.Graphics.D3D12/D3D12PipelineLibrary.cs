@@ -191,7 +191,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
         return Result.Success();
     }
 
-    public Result<Key128<PipelineState>> CreateGraphicsPipeline(ref readonly GraphicsPSODesc desc)
+    public Result<Key128<PipelineState>> CreateGraphicsPipeline(scoped in GraphicsPSODesc desc)
     {
         AssertNotDisposed();
 
@@ -268,7 +268,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
         return pipelineKey;
     }
 
-    public Result<Key128<PipelineState>> CreateComputePipeline(ref readonly ComputePSODesc desc)
+    public Result<Key128<PipelineState>> CreateComputePipeline(scoped in ComputePSODesc desc)
     {
         AssertNotDisposed();
 

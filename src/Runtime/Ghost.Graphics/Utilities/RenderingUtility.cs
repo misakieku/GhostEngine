@@ -61,7 +61,7 @@ public static unsafe class RenderingUtility
         }
     }
 
-    public static Handle<GPUBuffer> CreateBuffer(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, void* pData, nuint sizeInBytes, ref readonly BufferDesc desc, string? name = null)
+    public static Handle<GPUBuffer> CreateBuffer(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, void* pData, nuint sizeInBytes, scoped in BufferDesc desc, string? name = null)
     {
         var error = Error.UnknownError;
         var bufferHandle = resourceAllocator.CreateBuffer(in desc, name);
@@ -80,7 +80,7 @@ public static unsafe class RenderingUtility
         return Handle<GPUBuffer>.Invalid;
     }
 
-    public static Handle<GPUBuffer> CreateBuffer<T>(ResourceManager resourceManager, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, ICommandBuffer cmd, ReadOnlySpan<T> data, ref readonly BufferDesc desc, string? name = null)
+    public static Handle<GPUBuffer> CreateBuffer<T>(ResourceManager resourceManager, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, ICommandBuffer cmd, ReadOnlySpan<T> data, scoped in BufferDesc desc, string? name = null)
         where T : unmanaged
     {
         fixed (T* pData = data)
@@ -142,7 +142,7 @@ public static unsafe class RenderingUtility
         }
     }
 
-    public static Handle<GPUTexture> CreateTexture(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, void* pData, nuint sizeInBytes, ref readonly TextureDesc desc, string? name = null)
+    public static Handle<GPUTexture> CreateTexture(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, void* pData, nuint sizeInBytes, scoped in TextureDesc desc, string? name = null)
     {
         var error = Error.UnknownError;
 
@@ -161,7 +161,7 @@ public static unsafe class RenderingUtility
         return Handle<GPUTexture>.Invalid;
     }
 
-    public static Handle<GPUTexture> CreateTexture<T>(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, ReadOnlySpan<T> data, ref readonly TextureDesc desc, string? name = null)
+    public static Handle<GPUTexture> CreateTexture<T>(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, ReadOnlySpan<T> data, scoped in TextureDesc desc, string? name = null)
         where T : unmanaged
     {
         fixed (T* pData = data)

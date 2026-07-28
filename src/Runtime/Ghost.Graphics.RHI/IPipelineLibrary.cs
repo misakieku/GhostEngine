@@ -7,8 +7,8 @@ public interface IPipelineLibrary : IDisposable
 {
     void SaveLibraryToDisk(string filePath);
     bool HasPipelineStateObject(UInt128 key);
-    Result<Key128<PipelineState>> CreateGraphicsPipeline(ref readonly GraphicsPSODesc desc);
-    Result<Key128<PipelineState>> CreateComputePipeline(ref readonly ComputePSODesc desc);
+    Result<Key128<PipelineState>> CreateGraphicsPipeline(scoped in GraphicsPSODesc desc);
+    Result<Key128<PipelineState>> CreateComputePipeline(scoped in ComputePSODesc desc);
 
     void BeginFrame(ulong cpuFrame);
     void EndFrame(ulong gpuFrame);

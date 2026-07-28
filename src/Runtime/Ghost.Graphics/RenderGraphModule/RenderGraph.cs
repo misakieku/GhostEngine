@@ -11,6 +11,7 @@ namespace Ghost.Graphics.RenderGraphModule;
 public sealed class RenderGraph : IDisposable
 {
     private readonly IResourceDatabase _resourceDatabase;
+    private readonly ResourceManager _resourceManager;
 
     private readonly RenderGraphObjectPool _objectPool;
     private readonly RenderGraphResourceRegistry _resourceRegistry;
@@ -32,9 +33,10 @@ public sealed class RenderGraph : IDisposable
     public RenderGraph(IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, IPipelineLibrary pipelineLibrary, ResourceManager resourceManager, ShaderLibrary shaderLibrary)
     {
         _resourceDatabase = resourceDatabase;
+        _resourceManager = resourceManager;
 
         _objectPool = new RenderGraphObjectPool();
-        _resourceRegistry = new RenderGraphResourceRegistry(_resourceDatabase, resourceAllocator);
+        _resourceRegistry = new RenderGraphResourceRegistry(resourceDatabase, resourceAllocator, resourceManager);
 
         _passes = new List<RenderGraphPass>(32);
 
@@ -186,14 +188,50 @@ public sealed class RenderGraph : IDisposable
 
         using var graph = result.Value;
         _context.RelativeScale = graph.scale;
-        return _executor.Execute(commandBuffer, graph.compiledPasses, graph.nativePasses, graph.compiledBarriers);
+        var error = _executor.Execute(commandBuffer, graph.compiledPasses, graph.nativePasses, graph.compiledBarriers);
+        if (error.IsFailure)
+        {
+            return error;
+        }
+
+        for (var i = 0; i < _resourceRegistry.ResourceCount; i++)
+        {
+            ref var res = ref _resourceRegistry.GetResourceByIndex(i);
+            if (!res.isExtracted || res.extractionTarget.IsInvalid)
+            {
+                continue;
+            }
+
+            var dst = res.extractionTarget;
+            var src = res.backingResource;
+            if (res.extractionFlags.HasFlag(ResourceExtractionFlags.ReleaseAfterExtract))
+            {
+                // Direct Replace (releases old dst resource immediately inside DB)
+                _resourceDatabase.Replace(dst, src);
+            }
+            else
+            {
+                // Swap & Pool Recycle
+                // Swapping swaps dst and src inside IResourceDatabase.
+                // After Swap, src now holds dst's OLD resource handle, which we return to the pool!
+                var err = _resourceDatabase.Swap(dst, src);
+                Logger.DebugAssert(err.IsSuccess, "Failed to swap resources in IResourceDatabase: " + err);
+
+                _resourceManager.ReleasePooledResource(src);
+            }
+        }
+
+        return Error.None;
     }
 
     public void Dispose()
     {
         _resourceRegistry.Dispose();
 
-        // HACK: Ideally, we should have a Dispose method. But for now, we just reset to release resources.
-        Reset();
+        for (var i = 0; i < _passes.Count; i++)
+        {
+            var pass = _passes[i];
+            pass.Reset(_objectPool);
+        }
     }
 }

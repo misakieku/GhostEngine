@@ -94,7 +94,7 @@ public interface IResourceAllocator : IDisposable
     /// <param name="desc">Allocation description</param>
     /// <param name="name">Debug name of the allocation</param>
     /// <returns>An <see cref="Handle{GPUResource}"/> point to the allocated memory</returns>
-    Handle<GPUResource> Allocate(ref readonly AllocationDesc desc, string? name = null);
+    Handle<GPUResource> Allocate(scoped in AllocationDesc desc, string? name = null);
 
     /// <summary>
     /// Creates a texture resource
@@ -104,7 +104,7 @@ public interface IResourceAllocator : IDisposable
     /// <param name="options">Additional options of the resource allocation</param>
     /// <param name="additionalDesc">Additional texture description for some specific texture types</param>
     /// <returns>An <see cref="Handle{Texture}"/> point to the resource</returns>
-    Handle<GPUTexture> CreateTexture(ref readonly TextureDesc desc, string? name = null, CreationOptions options = default, AdditionalTextureDesc additionalDesc = default);
+    Handle<GPUTexture> CreateTexture(scoped in TextureDesc desc, string? name = null, CreationOptions options = default, AdditionalTextureDesc additionalDesc = default);
 
     /// <summary>
     /// Creates a buffer resource
@@ -113,12 +113,12 @@ public interface IResourceAllocator : IDisposable
     /// <param name="name">Debug name of the resource</param>
     /// <param name="options">Additional options of the resource allocation</param>
     /// <returns>An <see cref="Handle{GraphicsBuffer}"/> point to the resource</returns>
-    Handle<GPUBuffer> CreateBuffer(ref readonly BufferDesc desc, string? name = null, CreationOptions options = default);
+    Handle<GPUBuffer> CreateBuffer(scoped in BufferDesc desc, string? name = null, CreationOptions options = default);
 
     /// <summary>
     /// Creates a new sampler object using the specified sampler description.
     /// </summary>
     /// <param name="desc">A read-only reference to a <see cref="SamplerDesc"/> structure that defines the properties of the sampler to be created.</param>
     /// <returns>An <see cref="Identifier{Sampler}"/> that uniquely identifies the created sampler object.</returns>
-    Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc);
+    Identifier<Sampler> CreateSampler(scoped in SamplerDesc desc);
 }

@@ -129,7 +129,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         };
     }
 
-    public Handle<GPUResource> Allocate(ref readonly AllocationDesc desc, string? name = null)
+    public Handle<GPUResource> Allocate(scoped in AllocationDesc desc, string? name = null)
     {
         var allocDesc = new D3D12MA_ALLOCATION_DESC
         {
@@ -161,7 +161,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         return _resourceDatabase.AddAllocation(alloc, barrierData, ResourceViewGroup.Invalid, default, name);
     }
 
-    public Handle<GPUTexture> CreateTexture(ref readonly TextureDesc desc, string? name = null, CreationOptions options = default, AdditionalTextureDesc additionalDesc = default)
+    public Handle<GPUTexture> CreateTexture(scoped in TextureDesc desc, string? name = null, CreationOptions options = default, AdditionalTextureDesc additionalDesc = default)
     {
         Logger.DebugAssert(!_disposed);
 
@@ -232,7 +232,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         return resource.AsTexture();
     }
 
-    public Handle<GPUBuffer> CreateBuffer(ref readonly BufferDesc desc, string? name = null, CreationOptions options = default)
+    public Handle<GPUBuffer> CreateBuffer(scoped in BufferDesc desc, string? name = null, CreationOptions options = default)
     {
         Logger.DebugAssert(!_disposed);
         CheckBufferSize(desc.Size);
@@ -298,7 +298,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         return resource.AsBuffer();
     }
 
-    public Identifier<Sampler> CreateSampler(ref readonly SamplerDesc desc)
+    public Identifier<Sampler> CreateSampler(scoped in SamplerDesc desc)
     {
         Logger.DebugAssert(!_disposed);
 

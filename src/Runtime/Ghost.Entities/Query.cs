@@ -18,7 +18,7 @@ internal struct EntityQueryMask : IDisposable, IEquatable<EntityQueryMask>
     public UnsafeBitSet writeAccess;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool Matches(ref readonly UnsafeBitSet archetypeSignature)
+    public readonly bool Matches(scoped in UnsafeBitSet archetypeSignature)
     {
         return (!structuralAll.IsCreated || structuralAll.All(archetypeSignature))
             && (!structuralAbsent.IsCreated || structuralAbsent.None(archetypeSignature))
@@ -129,7 +129,7 @@ public readonly unsafe ref struct ChunkView
 
     public readonly int EntityCount => _entityCount;
 
-    internal ChunkView(ref readonly Archetype archetype, ref readonly Chunk chunk)
+    internal ChunkView(scoped in Archetype archetype, ref readonly Chunk chunk)
     {
         _layouts = archetype._layouts.AsReadOnly();
         _layoutIndexLookup = archetype._componentIDToLayoutIndex.AsReadOnly();
@@ -494,7 +494,7 @@ public unsafe partial struct EntityQuery : IDisposable
         return true;
     }
 
-    private static bool RequiresEnableableFiltering(ref readonly Archetype archetype, ref readonly EntityQueryMask mask)
+    private static bool RequiresEnableableFiltering(scoped in Archetype archetype, ref readonly EntityQueryMask mask)
     {
         // If the query asks to filter by enabled/disabled state AND the archetype 
         // actually has that component marked as enableable (enableBitsOffset != -1), we must filter.
@@ -540,7 +540,7 @@ public unsafe partial struct EntityQuery : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void AddArchetypeIfMatch(ref readonly Archetype archetype)
+    internal void AddArchetypeIfMatch(scoped in Archetype archetype)
     {
         if (_mask.Matches(in archetype._signature))
         {

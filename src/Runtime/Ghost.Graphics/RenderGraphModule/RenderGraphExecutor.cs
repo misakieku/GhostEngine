@@ -1,6 +1,8 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -219,15 +221,15 @@ internal sealed class RenderGraphExecutor
         IReadOnlyList<CompiledBarrier> compiledBarriers)
     {
         const int MaxBatch = 64;
-        var barriers = stackalloc BarrierDesc[MaxBatch];
-        var barrierCount = 0;
+        using var scope = AllocationManager.CreateStackScope();
+        using var barriers = new UnsafeList<BarrierDesc>(MaxBatch, scope.AllocationHandle);
 
         void Flush()
         {
-            if (barrierCount > 0)
+            if (barriers.Count > 0)
             {
-                cmd.Barrier(new ReadOnlySpan<BarrierDesc>(barriers, barrierCount));
-                barrierCount = 0;
+                cmd.Barrier(barriers);
+                barriers.Clear();
             }
         }
 
@@ -260,12 +262,12 @@ internal sealed class RenderGraphExecutor
                 desc.IsAliasing = true;
             }
 
-            if (barrierCount >= MaxBatch)
+            if (barriers.Count >= MaxBatch)
             {
                 Flush();
             }
 
-            barriers[barrierCount++] = desc;
+            barriers.AddNoResize(desc);
         }
 
         Flush();

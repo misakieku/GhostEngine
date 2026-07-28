@@ -14,7 +14,7 @@ internal class RemoveGPUInstanceSystem : SystemBase
 
     private Identifier<EntityQuery> _gpuInstanceQueryID;
 
-    protected override void OnInitialize(ref readonly SystemAPI systemAPI)
+    protected override void OnInitialize(scoped in SystemAPI systemAPI)
     {
         _renderSystem = systemAPI.World.GetService<RenderEngine>();
 
@@ -26,7 +26,7 @@ internal class RemoveGPUInstanceSystem : SystemBase
         RequireQueryForUpdate(_gpuInstanceQueryID);
     }
 
-    protected override void OnUpdate(ref readonly SystemAPI systemAPI)
+    protected override void OnUpdate(scoped in SystemAPI systemAPI)
     {
         var payload = (GhostRenderPayload)_renderSystem.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
         payload.BeginRecord();

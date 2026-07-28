@@ -338,7 +338,9 @@ internal static class RenderGraphAliasingBuilder
             for (var i = 0; i < registry.ResourceCount; i++)
             {
                 var resource = registry.GetResourceByIndex(i);
-                if (!resource.isImported) // Don't alias imported resources
+
+                // Don't memory-alias imported OR extracted resources
+                if (!resource.isImported && !resource.isExtracted)
                 {
                     var size = GetResourceSize(resource, allocator);
                     logicalResources.Add(new LogicalResourceEntry(resource.index, resource, size));

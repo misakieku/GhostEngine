@@ -826,7 +826,7 @@ public static class SceneManager
     /// <param name="scene">The scene to which the entities belong.</param>
     /// <param name="startEntityIndex">The index of the first entity to materialize.</param>
     /// <param name="length">The number of entities to materialize.</param>
-    public static unsafe void MaterializeScene(World world, ref readonly LoadedSceneData result, Scene scene, int startEntityIndex, int length)
+    public static unsafe void MaterializeScene(World world, LoadedSceneData result, Scene scene, int startEntityIndex, int length)
     {
         if (startEntityIndex < 0 || startEntityIndex + length > result.entities.Length)
         {

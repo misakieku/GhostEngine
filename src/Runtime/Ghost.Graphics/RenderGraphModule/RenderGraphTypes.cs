@@ -70,7 +70,7 @@ public struct ViewState : IEquatable<ViewState>
 
     public override readonly int GetHashCode()
     {
-        return HashCode.Combine(viewportWidth, viewportHeight);
+        return HashCode.Combine(viewportWidth, viewportHeight, actualWidth, actualHeight);
     }
 
     public static bool operator ==(ViewState left, ViewState right)
@@ -313,25 +313,25 @@ public static class RGResourceExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Identifier<RGResource> AsResource(this Identifier<RGTexture> texture)
     {
-        return new Identifier<RGResource>(texture.Value);
+        return Unsafe.BitCast<Identifier<RGTexture>, Identifier<RGResource>>(texture);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Identifier<RGResource> AsResource(this Identifier<RGBuffer> buffer)
     {
-        return new Identifier<RGResource>(buffer.Value);
+        return Unsafe.BitCast<Identifier<RGBuffer>, Identifier<RGResource>>(buffer);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Identifier<RGTexture> AsTexture(this Identifier<RGResource> resource)
     {
-        return new Identifier<RGTexture>(resource.Value);
+        return Unsafe.BitCast<Identifier<RGResource>, Identifier<RGTexture>>(resource);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Identifier<RGBuffer> AsBuffer(this Identifier<RGResource> resource)
     {
-        return new Identifier<RGBuffer>(resource.Value);
+        return Unsafe.BitCast<Identifier<RGResource>, Identifier<RGBuffer>>(resource);
     }
 }
 

@@ -137,7 +137,7 @@ public interface ICommandBuffer : IRHIObject
     /// <param name="offsetIn32Bits">The Offset, in 32-bit values, from the start of the root parameter where the constants will be set.</param>
     void SetGraphicsRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0);
 
-    void SetProgram(ref readonly SetProgramDesc desc);
+    void SetProgram(scoped in SetProgramDesc desc);
 
     /// <summary>
     /// Issues a non-indexed draw call.
@@ -179,7 +179,7 @@ public interface ICommandBuffer : IRHIObject
     /// </summary>
     void DispatchRay();
 
-    void DispatchGraph(ref readonly DispatchGraphDesc desc);
+    void DispatchGraph(scoped in DispatchGraphDesc desc);
 
     /// <summary>
     /// Executes a sequence of GPU commands indirectly using the specified command signature and argument buffers.
