@@ -9,9 +9,11 @@ internal struct CompiledGraph : IDisposable
 {
     public AliasingPlan plan;
     public float2 scale;
+    public ulong graphHash;
     public IReadOnlyList<RenderGraphPass> compiledPasses;
     public IReadOnlyList<NativeRenderPass> nativePasses;
     public IReadOnlyList<CompiledBarrier> compiledBarriers;
+    public bool cacheHit;
 
     public void Dispose()
     {
@@ -86,9 +88,11 @@ internal sealed class RenderGraphCompiler
                 {
                     scale = float2.one,
                     plan = aliasingPlan,
+                    graphHash = graphHash,
                     compiledPasses = _compiledPasses,
                     nativePasses = _nativePasses,
-                    compiledBarriers = _compiledBarriers
+                    compiledBarriers = _compiledBarriers,
+                    cacheHit = true
                 };
             }
             else
@@ -100,9 +104,11 @@ internal sealed class RenderGraphCompiler
                 {
                     scale = scale,
                     plan = aliasingPlan,
+                    graphHash = graphHash,
                     compiledPasses = _compiledPasses,
                     nativePasses = _nativePasses,
-                    compiledBarriers = _compiledBarriers
+                    compiledBarriers = _compiledBarriers,
+                    cacheHit = true
                 };
             }
         }
@@ -141,9 +147,11 @@ internal sealed class RenderGraphCompiler
         {
             scale = float2.one,
             plan = aliasingPlan,
+            graphHash = graphHash,
             compiledPasses = _compiledPasses,
             nativePasses = _nativePasses,
-            compiledBarriers = _compiledBarriers
+            compiledBarriers = _compiledBarriers,
+            cacheHit = false
         };
     }
 

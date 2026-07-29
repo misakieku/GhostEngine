@@ -2,8 +2,17 @@ using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using TerraFX.Interop.Gdiplus;
 
 namespace Ghost.Graphics.RenderGraphModule;
+
+public readonly struct RGExecution
+{
+    public RenderGraphDump? Dump
+    {
+        get; init;
+    }
+}
 
 /// <summary>
 /// Main render graph class that manages heap allocation and pass execution.
@@ -27,6 +36,8 @@ public sealed class RenderGraph : IDisposable
 
     private readonly RenderGraphBlackboard _blackboard;
     private readonly RenderGraphBuilder _builder;
+
+    private RenderGraphDump? _cachedDump;
 
     public RenderGraphBlackboard Blackboard => _blackboard;
 
@@ -59,6 +70,98 @@ public sealed class RenderGraph : IDisposable
         _builder = new RenderGraphBuilder(_resourceRegistry, _blackboard);
     }
 
+    private RenderGraphDump GenerateDump(scoped in CompiledGraph graph, ViewState viewState)
+    {
+        var dump = new RenderGraphDump
+        {
+            TotalHeapSize = graph.plan.totalHeapSize,
+            IsCacheHit = graph.cacheHit,
+            ViewState = viewState
+        };
+
+        // Collect Memory Placement Blocks (Heap Blocks)
+        var uniqueBlocks = graph.plan.placedResources.AsSpan().ToArray()
+            .GroupBy(p => p.heapOffset);
+
+        foreach (var group in uniqueBlocks)
+        {
+            var maxBlockSize = 0UL;
+            var allLogicalIds = new List<int>();
+
+            foreach (var placed in group)
+            {
+                maxBlockSize = Math.Max(maxBlockSize, placed.sizeInBytes);
+                foreach (var id in placed.aliasedLogicalResources)
+                {
+                    if (!allLogicalIds.Contains(id))
+                    {
+                        allLogicalIds.Add(id);
+                    }
+                }
+            }
+
+            dump.MemoryBlocks.Add(new HeapBlockDumpInfo
+            {
+                offset = group.Key,
+                size = maxBlockSize,
+                isFree = false,
+                aliasedLogicalResources = allLogicalIds
+            });
+        }
+
+        // Collect Passes Info
+        for (var i = 0; i < _passes.Count; i++)
+        {
+            var pass = _passes[i];
+            var passInfo = new PassDumpInfo
+            {
+                index = pass.index,
+                name = pass.name,
+                type = pass.type,
+                isCulled = pass.culled,
+                asyncCompute = pass.asyncCompute,
+                resourceReads = pass.resourceReads[(int)RenderGraphResourceType.Texture]
+                    .Concat(pass.resourceReads[(int)RenderGraphResourceType.Buffer])
+                    .Select(r => r.Value).ToList(),
+                resourceWrites = pass.resourceWrites[(int)RenderGraphResourceType.Texture]
+                    .Concat(pass.resourceWrites[(int)RenderGraphResourceType.Buffer])
+                    .Select(r => r.Value).ToList()
+            };
+
+            dump.Passes.Add(passInfo);
+        }
+
+        // Collect Resource & Aliasing Info
+        var plan = graph.plan;
+        for (var i = 0; i < _resourceRegistry.ResourceCount; i++)
+        {
+            ref readonly var res = ref _resourceRegistry.GetResourceByIndex(i);
+            var placedIndex = plan.GetPlacedResourceIndex(i);
+            var placedResult = plan.GetPlacedResource(placedIndex);
+            var resInfo = new ResourceDumpInfo
+            {
+                index = res.index,
+                name = _resourceRegistry.GetResourceName(i),
+                type = res.type,
+                isImported = res.isImported,
+                isExtracted = res.isExtracted,
+                heapOffset = placedResult.IsSuccess ? placedResult.Value.heapOffset : 0,
+                sizeInBytes = placedResult.IsSuccess ? placedResult.Value.sizeInBytes : 0,
+                firstUsePass = res.firstUsePass,
+                lastUsePass = res.lastUsePass,
+                producerPass = res.producerPass,
+                consumerPasses = res.consumerPasses.ToList(),
+                aliasedWithResources = placedResult.IsSuccess
+                    ? placedResult.Value.aliasedLogicalResources.ToList()
+                    : new List<int>()
+            };
+
+            dump.Resources.Add(resInfo);
+        }
+
+        return dump;
+    }
+
     /// <summary>
     /// Resets the render graph for a new frame.
     /// </summary>
@@ -82,7 +185,7 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     /// <param name="texture">The external texture handle.</param>
     /// <returns>The identifier of the imported render graph texture. Invalid if import fails.</returns>
-    public Identifier<RGTexture> ImportTexture(Handle<GPUTexture> texture, string? name = null,
+    public Identifier<RGTexture> ImportTexture(Handle<GPUTexture> texture,
         Color128 clearColor = default, float clearDepth = 1.0f, byte clearStencil = 0,
         bool clearAtFirstUse = true, bool discardAtLastUse = true)
     {
@@ -92,8 +195,9 @@ public sealed class RenderGraph : IDisposable
             Logger.Error("Failed to get resource description for texture handle: " + texture);
             return Identifier<RGTexture>.Invalid;
         }
-
+        
         var desc = r.Value;
+        var name = _resourceDatabase.GetResourceName(texture.AsResource());
         return _resourceRegistry.ImportTexture(in desc.TextureDescriptor, texture, name, clearColor, clearDepth, clearStencil, clearAtFirstUse, discardAtLastUse);
     }
 
@@ -102,7 +206,7 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     /// <param name="buffer">The external buffer handle.</param>
     /// <returns>The identifier of the imported render graph buffer. Invalid if import fails.</returns>
-    public Identifier<RGBuffer> ImportBuffer(Handle<GPUBuffer> buffer, string? name = null)
+    public Identifier<RGBuffer> ImportBuffer(Handle<GPUBuffer> buffer)
     {
         var r = _resourceDatabase.GetResourceDescription(buffer.AsResource());
         if (r.IsFailure)
@@ -112,6 +216,7 @@ public sealed class RenderGraph : IDisposable
         }
 
         var desc = r.Value;
+        var name = _resourceDatabase.GetResourceName(buffer.AsResource());
         return _resourceRegistry.ImportBuffer(in desc.BufferDescriptor, buffer, name);
     }
 
@@ -174,7 +279,7 @@ public sealed class RenderGraph : IDisposable
     /// <summary>
     /// Compiles the render graph the execute all compiled passes.
     /// </summary>
-    public Error CompileAndExecute(ICommandBuffer commandBuffer, ViewState viewState)
+    public Result<RGExecution, Error> CompileAndExecute(ICommandBuffer commandBuffer, ViewState viewState, RGExecutionFlags flags = RGExecutionFlags.None)
     {
         _resourceRegistry.ResolveTextureSizes(in viewState);
 
@@ -221,7 +326,13 @@ public sealed class RenderGraph : IDisposable
             }
         }
 
-        return Error.None;
+        if (flags.HasFlag(RGExecutionFlags.GenerateDump)
+            && (_cachedDump == null || _cachedDump.GraphHash != graph.graphHash))
+        {
+            _cachedDump = GenerateDump(graph, viewState);
+        }
+
+        return new RGExecution { Dump = _cachedDump };
     }
 
     public void Dispose()

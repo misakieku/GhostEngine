@@ -5,7 +5,7 @@ namespace Ghost.Core;
 
 public enum Error
 {
-    None,
+    None = 0,
     NotFound,
     InvalidArgument,
     InvalidState,

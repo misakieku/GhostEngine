@@ -358,13 +358,12 @@ internal static class RenderGraphAliasingBuilder
             for (var i = 0; i < logicalResources.Count; i++)
             {
                 ref readonly var item = ref logicalResources[i];
-                var size = GetResourceSize(item.resource, allocator);
                 var alignment = item.resource.type == RenderGraphResourceType.Texture
                     ? DEFAULT_TEXTURE_ALIGNMENT
                     : DEFAULT_BUFFER_ALIGNMENT;
 
                 var (success, offset, memInfo) = simulationHeap.TryAllocate(
-                    size,
+                    item.size,
                     item.resource.firstUsePass,
                     item.resource.lastUsePass,
                     item.index,
@@ -377,7 +376,7 @@ internal static class RenderGraphAliasingBuilder
                     index = plan.placedResources.Count,
                     type = item.resource.type,
                     heapOffset = offset,
-                    sizeInBytes = size,
+                    sizeInBytes = item.size,
                     firstUsePass = item.resource.firstUsePass,
                     lastUsePass = item.resource.lastUsePass,
                     memoryInfo = memInfo
@@ -394,7 +393,7 @@ internal static class RenderGraphAliasingBuilder
             // Populate aliasedLogicalResources lists
             for (var i = 0; i < plan.placedResources.Count; i++)
             {
-                var placed = plan.placedResources[i];
+                ref var placed = ref plan.placedResources[i];
 
                 for (var j = 0; j < plan.placedResources.Count; j++)
                 {
@@ -404,7 +403,7 @@ internal static class RenderGraphAliasingBuilder
                     if (other.heapOffset == placed.heapOffset)
                     {
                         var otherLogicalIndex = other.aliasedLogicalResources[0];
-                        if (!placed.aliasedLogicalResources.AsSpan().Contains(otherLogicalIndex))
+                        if (!placed.aliasedLogicalResources.Contains(otherLogicalIndex))
                         {
                             placed.aliasedLogicalResources.Add(otherLogicalIndex);
                         }

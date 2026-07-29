@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
-internal enum RenderGraphResourceType : int
+public enum RenderGraphResourceType : int
 {
     Texture,
     Buffer,
@@ -391,4 +391,90 @@ internal struct DepthStencilInfo
     public AttachmentStoreOp stencilStoreOp;
     public float clearDepth;
     public byte clearStencil;
+}
+
+[Flags]
+public enum RGExecutionFlags
+{
+    None = 0,
+    GenerateDump = 1 << 0,
+}
+
+public sealed class RenderGraphDump
+{
+    public ulong GraphHash
+    {
+        get; init;
+    }
+
+    public bool IsCacheHit
+    {
+        get; init;
+    }
+
+    public ViewState ViewState
+    {
+        get; init;
+    }
+
+    // Memory Heap Aliasing Map
+    public ulong TotalHeapSize
+    {
+        get; init;
+    }
+
+    public List<HeapBlockDumpInfo> MemoryBlocks
+    {
+        get; init;
+    } = new();
+
+    // Complete Pass List (with culling & merge info)
+    public List<PassDumpInfo> Passes
+    {
+        get; init;
+    } = new();
+
+    // Complete Resource List (with offsets & lifetimes)
+    public List<ResourceDumpInfo> Resources
+    {
+        get; init;
+    } = new();
+}
+
+public struct HeapBlockDumpInfo
+{
+    public ulong offset;
+    public ulong size;
+    public bool isFree;
+    public List<int> aliasedLogicalResources; // Resources occupying this memory block
+}
+
+public struct PassDumpInfo
+{
+    public int index;
+    public string name;
+    public RenderPassType type;
+    public bool isCulled;
+    public bool asyncCompute;
+    public int nativePassIndex;
+    public List<int> resourceReads;
+    public List<int> resourceWrites;
+    public List<int> resourceCreates;
+}
+
+public struct ResourceDumpInfo
+{
+    public int index;
+    public string name;
+    public RenderGraphResourceType type;
+    public ulong sizeInBytes;
+    public string formatOrDesc;
+    public bool isImported;
+    public bool isExtracted;
+    public ulong heapOffset;
+    public int firstUsePass;
+    public int lastUsePass;
+    public int producerPass;
+    public List<int> consumerPasses;
+    public List<int> aliasedWithResources; // Other resources sharing the same heap offset range
 }

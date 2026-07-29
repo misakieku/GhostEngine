@@ -155,12 +155,14 @@ public class RenderGraphTest
     {
         SetupTestRenderPipeline();
 
-        _renderGraph.CompileAndExecute(_commandBuffer, new ViewState
+        var execution = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState
         {
             actualWidth = 1920,
             actualHeight = 1080,
             viewportWidth = 1920,
             viewportHeight = 1080
-        });
+        }).GetValueOrThrow();
+
+        Assert.IsNull(execution.Dump);
     }
 }

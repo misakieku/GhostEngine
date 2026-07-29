@@ -227,19 +227,31 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         return new Identifier<RGBuffer>(resource.index);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref RenderGraphResource GetResource(Identifier<RGResource> resource)
     {
         return ref _resources[resource.Value];
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref RenderGraphResource GetResource(Identifier<RGTexture> texture)
     {
         return ref _resources[texture.Value];
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref RenderGraphResource GetResource(Identifier<RGBuffer> buffer)
     {
         return ref _resources[buffer.Value];
+    }
+
+    public string GetResourceName(Identifier<RGResource> resource)
+    {
+#if GHOST_SAFETY_CHECKS || GHOST_EDITOR
+        return _resourceName.GetValueOrDefault(resource.Value, $"Resource_{resource.Value}");
+#else
+        return $"Resource_{resource.Value}";
+#endif
     }
 
     /// <summary>
