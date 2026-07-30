@@ -102,10 +102,10 @@ public sealed class RenderGraph : IDisposable
 
             dump.MemoryBlocks.Add(new HeapBlockDumpInfo
             {
-                offset = group.Key,
-                size = maxBlockSize,
-                isFree = false,
-                aliasedLogicalResources = allLogicalIds
+                Offset = group.Key,
+                Size = maxBlockSize,
+                IsFree = false,
+                AliasedLogicalResources = allLogicalIds
             });
         }
 
@@ -115,17 +115,21 @@ public sealed class RenderGraph : IDisposable
             var pass = _passes[i];
             var passInfo = new PassDumpInfo
             {
-                index = pass.index,
-                name = pass.name,
-                type = pass.type,
-                isCulled = pass.culled,
-                asyncCompute = pass.asyncCompute,
-                resourceReads = pass.resourceReads[(int)RenderGraphResourceType.Texture]
-                    .Concat(pass.resourceReads[(int)RenderGraphResourceType.Buffer])
+                Index = pass.index,
+                NativePassIndex = graph.nativePasses.FirstOrDefault(np => np.mergedPassIndices.Contains(pass.index))?.index ?? -1,
+                Name = pass.name,
+                Type = pass.type,
+                IsCulled = pass.culled,
+                AsyncCompute = pass.asyncCompute,
+                ResourceReads = pass.resourceReads[(int)RGResourceType.Texture]
+                    .Concat(pass.resourceReads[(int)RGResourceType.Buffer])
                     .Select(r => r.Value).ToList(),
-                resourceWrites = pass.resourceWrites[(int)RenderGraphResourceType.Texture]
-                    .Concat(pass.resourceWrites[(int)RenderGraphResourceType.Buffer])
-                    .Select(r => r.Value).ToList()
+                ResourceWrites = pass.resourceWrites[(int)RGResourceType.Texture]
+                    .Concat(pass.resourceWrites[(int)RGResourceType.Buffer])
+                    .Select(r => r.Value).ToList(),
+                ResourceCreates = pass.resourceCreates[(int)RGResourceType.Texture]
+                    .Concat(pass.resourceCreates[(int)RGResourceType.Buffer])
+                    .Select(r => r.Value).ToList(),
             };
 
             dump.Passes.Add(passInfo);
@@ -140,18 +144,18 @@ public sealed class RenderGraph : IDisposable
             var placedResult = plan.GetPlacedResource(placedIndex);
             var resInfo = new ResourceDumpInfo
             {
-                index = res.index,
-                name = _resourceRegistry.GetResourceName(i),
-                type = res.type,
-                isImported = res.isImported,
-                isExtracted = res.isExtracted,
-                heapOffset = placedResult.IsSuccess ? placedResult.Value.heapOffset : 0,
-                sizeInBytes = placedResult.IsSuccess ? placedResult.Value.sizeInBytes : 0,
-                firstUsePass = res.firstUsePass,
-                lastUsePass = res.lastUsePass,
-                producerPass = res.producerPass,
-                consumerPasses = res.consumerPasses.ToList(),
-                aliasedWithResources = placedResult.IsSuccess
+                BackingResource = res.backingResource,
+                Name = _resourceRegistry.GetResourceName(i),
+                Type = res.type,
+                IsImported = res.isImported,
+                IsExtracted = res.isExtracted,
+                HeapOffset = placedResult.IsSuccess ? placedResult.Value.heapOffset : 0,
+                SizeInBytes = placedResult.IsSuccess ? placedResult.Value.sizeInBytes : 0,
+                FirstUsePass = res.firstUsePass,
+                LastUsePass = res.lastUsePass,
+                ProducerPass = res.producerPass,
+                ConsumerPasses = res.consumerPasses.ToList(),
+                AliasedWithResources = placedResult.IsSuccess
                     ? placedResult.Value.aliasedLogicalResources.ToList()
                     : new List<int>()
             };
@@ -279,7 +283,7 @@ public sealed class RenderGraph : IDisposable
     /// <summary>
     /// Compiles the render graph the execute all compiled passes.
     /// </summary>
-    public Result<RGExecution, Error> CompileAndExecute(ICommandBuffer commandBuffer, ViewState viewState, RGExecutionFlags flags = RGExecutionFlags.None)
+    public Result<RGExecution, Error> CompileAndExecute(ICommandBuffer commandBuffer, ViewState viewState, RGExecutionFlags flags = RGExecutionFlags.Default)
     {
         _resourceRegistry.ResolveTextureSizes(in viewState);
 
@@ -293,7 +297,7 @@ public sealed class RenderGraph : IDisposable
 
         using var graph = result.Value;
         _context.RelativeScale = graph.scale;
-        var error = _executor.Execute(commandBuffer, graph.compiledPasses, graph.nativePasses, graph.compiledBarriers);
+        var error = _executor.Execute(commandBuffer, graph.compiledPasses, graph.nativePasses, graph.compiledBarriers, graph.commandReader);
         if (error.IsFailure)
         {
             return error;

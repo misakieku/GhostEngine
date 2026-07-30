@@ -13,8 +13,8 @@ public class ShaderLibraryTest
     {
         public List<ulong> EvictedHashes { get; } = new();
 
-        public Result<Key128<PipelineState>> CreateComputePipeline(ref readonly ComputePSODesc desc) => Result<Key128<PipelineState>>.Failure();
-        public Result<Key128<PipelineState>> CreateGraphicsPipeline(ref readonly GraphicsPSODesc desc) => Result<Key128<PipelineState>>.Failure();
+        public Result<Key128<PipelineState>> CreateComputePipeline(scoped in ComputePSODesc desc) => Result<Key128<PipelineState>>.Failure();
+        public Result<Key128<PipelineState>> CreateGraphicsPipeline(scoped in GraphicsPSODesc desc) => Result<Key128<PipelineState>>.Failure();
 
         public void EvictStalePipelines(ulong compiledHash)
         {

@@ -28,7 +28,7 @@ internal struct MemoryInfo
 internal struct PlacedResource : IDisposable
 {
     public int index;
-    public RenderGraphResourceType type;
+    public RGResourceType type;
     public ulong heapOffset;
     public ulong sizeInBytes;
 
@@ -83,7 +83,7 @@ internal struct AliasingPlan : IDisposable
             : Result.Failure();
     }
 
-    public void StoreToCache(Dictionary<int, int> outLogicalToPlaced, List<PlacedResourceData> outPlacedData)
+    public void StoreToCache(ref UnsafeHashMap<int, int> outLogicalToPlaced, ref UnsafeList<PlacedResourceData> outPlacedData)
     {
         outLogicalToPlaced.Clear();
         foreach (var kvp in logicalToPlaced)
@@ -308,7 +308,7 @@ internal static class RenderGraphAliasingBuilder
 
     private static ulong GetResourceSize(RenderGraphResource resource, IResourceAllocator allocator)
     {
-        if (resource.type == RenderGraphResourceType.Texture)
+        if (resource.type == RGResourceType.Texture)
         {
             var textureDesc = resource.rgTextureDesc.ToTextureDesc(resource.resolvedWidth, resource.resolvedHeight);
             return allocator.GetSizeInfo(ResourceDesc.Texture(textureDesc)).Size;
@@ -358,7 +358,7 @@ internal static class RenderGraphAliasingBuilder
             for (var i = 0; i < logicalResources.Count; i++)
             {
                 ref readonly var item = ref logicalResources[i];
-                var alignment = item.resource.type == RenderGraphResourceType.Texture
+                var alignment = item.resource.type == RGResourceType.Texture
                     ? DEFAULT_TEXTURE_ALIGNMENT
                     : DEFAULT_BUFFER_ALIGNMENT;
 
@@ -422,7 +422,7 @@ internal static class RenderGraphAliasingBuilder
         }
     }
 
-    public static AliasingPlan RestoreFromCache(Dictionary<int, int> logicalToPlaced, List<PlacedResourceData> placedData, AllocationHandle allocationHandle)
+    public static AliasingPlan RestoreFromCache(ref UnsafeHashMap<int, int> logicalToPlaced, ref UnsafeList<PlacedResourceData> placedData, AllocationHandle allocationHandle)
     {
         var plan = new AliasingPlan(allocationHandle);
         foreach (var kvp in logicalToPlaced)

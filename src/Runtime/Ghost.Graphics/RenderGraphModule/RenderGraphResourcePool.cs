@@ -71,7 +71,7 @@ internal sealed class RenderGraphObjectPool
 internal record struct RenderGraphResource : IDisposable
 {
     public int index;
-    public RenderGraphResourceType type;
+    public RGResourceType type;
 
     // Resource descriptors (only one is valid based on type)
     public RGTextureDesc rgTextureDesc;
@@ -152,7 +152,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
     {
         var resource = new RenderGraphResource(AllocationHandle.Temp)
         {
-            type = RenderGraphResourceType.Texture,
+            type = RGResourceType.Texture,
             index = _resources.Count,
             rgTextureDesc = new RGTextureDesc
             {
@@ -185,7 +185,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
     {
         var resource = new RenderGraphResource(AllocationHandle.Temp)
         {
-            type = RenderGraphResourceType.Texture,
+            type = RGResourceType.Texture,
             index = _resources.Count,
             rgTextureDesc = desc,
             isImported = false
@@ -200,7 +200,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
     {
         var resource = new RenderGraphResource(AllocationHandle.Temp)
         {
-            type = RenderGraphResourceType.Buffer,
+            type = RGResourceType.Buffer,
             index = _resources.Count,
             bufferDesc = desc,
             isImported = true,
@@ -216,7 +216,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
     {
         var resource = new RenderGraphResource(AllocationHandle.Temp)
         {
-            type = RenderGraphResourceType.Buffer,
+            type = RGResourceType.Buffer,
             index = _resources.Count,
             bufferDesc = desc,
             isImported = false
@@ -292,7 +292,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         for (var i = 0; i < _resources.Count; i++)
         {
             ref var res = ref _resources[i];
-            if (res.type != RenderGraphResourceType.Texture || res.isImported)
+            if (res.type != RGResourceType.Texture || res.isImported)
             {
                 continue;
             }
@@ -329,34 +329,25 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
             _resourceHeap = Handle<GPUResource>.Invalid;
         }
 
-        if (plan.totalHeapSize == 0)
+        if (plan.totalHeapSize > 0)
         {
-            return Error.None; // No resources to allocate
-        }
+            var allocationDesc = new AllocationDesc
+            {
+                Size = plan.totalHeapSize + 65536, // Add 64KB padding to avoid potential overflows
+                Alignment = 65536, // 64KB
+                HeapFlags = HeapFlags.AllowAllBufferAndTexture,
+                HeapType = HeapType.Default
+            };
 
-        var allocationDesc = new AllocationDesc
-        {
-            Size = plan.totalHeapSize + 65536, // Add 64KB padding to avoid potential overflows
-            Alignment = 65536, // 64KB
-            HeapFlags = HeapFlags.AllowAllBufferAndTexture,
-            HeapType = HeapType.Default
-        };
-
-        _resourceHeap = _allocator.Allocate(in allocationDesc, "RenderGraphResourceHeap");
-        if (_resourceHeap.IsInvalid)
-        {
-            return Error.InvalidState;
+            _resourceHeap = _allocator.Allocate(in allocationDesc, "RenderGraphResourceHeap");
+            if (_resourceHeap.IsInvalid)
+            {
+                return Error.InvalidState;
+            }
         }
 
         for (var i = 0; i < _resources.Count; i++)
         {
-            var placedIndex = plan.GetPlacedResourceIndex(i);
-            var placedResult = plan.GetPlacedResource(placedIndex);
-            if (placedResult.IsFailure)
-            {
-                continue;
-            }
-
             ref var res = ref _resources[i];
             if (res.isImported)
             {
@@ -365,18 +356,25 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
             if (res.isExtracted)
             {
-                if (res.type == RenderGraphResourceType.Texture)
+                if (res.type == RGResourceType.Texture)
                 {
                     var textureDesc = res.rgTextureDesc.ToTextureDesc(res.resolvedWidth, res.resolvedHeight);
                     res.backingResource = _resourceManager.CreatePooledTexture(in textureDesc).AsResource();
                 }
-                else if (res.type == RenderGraphResourceType.Buffer)
+                else if (res.type == RGResourceType.Buffer)
                 {
                     res.backingResource = _resourceManager.CreatePooledBuffer(in res.bufferDesc).AsResource();
                 }
             }
             else
             {
+                var placedIndex = plan.GetPlacedResourceIndex(i);
+                var placedResult = plan.GetPlacedResource(placedIndex);
+                if (placedResult.IsFailure)
+                {
+                    continue;
+                }
+
                 var ops = new CreationOptions
                 {
                     AllocationType = ResourceAllocationType.Suballocation,
@@ -384,18 +382,14 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
                     Offset = placedResult.Value.heapOffset,
                 };
 
-                var name =
-#if GHOST_SAFETY_CHECKS
-                    _resourceName.GetValueOrDefault(i, string.Empty);
-#else
-                string.Empty;
-#endif
-                if (res.type == RenderGraphResourceType.Texture)
+                var name = GetResourceName(i);
+
+                if (res.type == RGResourceType.Texture)
                 {
                     var textureDesc = res.rgTextureDesc.ToTextureDesc(res.resolvedWidth, res.resolvedHeight);
                     res.backingResource = _allocator.CreateTexture(in textureDesc, name, ops).AsResource();
                 }
-                else if (res.type == RenderGraphResourceType.Buffer)
+                else if (res.type == RGResourceType.Buffer)
                 {
                     res.backingResource = _allocator.CreateBuffer(in res.bufferDesc, name, ops).AsResource();
                 }
@@ -416,7 +410,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         return Error.None;
     }
 
-    public void RestoreBackingResources(List<Handle<GPUResource>> cachedBackingResources)
+    public void RestoreBackingResources(scoped in UnsafeList<Handle<GPUResource>> cachedBackingResources)
     {
         for (var i = 0; i < _resources.Count; i++)
         {
@@ -429,12 +423,12 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
             if (res.isExtracted)
             {
                 // Extracted resources need a fresh/pooled handle every frame
-                if (res.type == RenderGraphResourceType.Texture)
+                if (res.type == RGResourceType.Texture)
                 {
                     var textureDesc = res.rgTextureDesc.ToTextureDesc(res.resolvedWidth, res.resolvedHeight);
                     res.backingResource = _resourceManager.CreatePooledTexture(textureDesc).AsResource();
                 }
-                else if (res.type == RenderGraphResourceType.Buffer)
+                else if (res.type == RGResourceType.Buffer)
                 {
                     res.backingResource = _resourceManager.CreatePooledBuffer(res.bufferDesc).AsResource();
                 }
@@ -448,9 +442,9 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
     public void Reset()
     {
-        for (var i = 0; i < _resources.Count; i++)
+        foreach (ref var res in _resources)
         {
-            _resources[i].Dispose();
+            res.Dispose();
         }
 
         _resources.Clear();
@@ -461,21 +455,19 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
     public void Dispose()
     {
-        if (_resourceHeap.IsValid)
+        foreach (ref var res in _resources)
         {
-            foreach (var res in _resources)
+            if (!res.isImported)
             {
-                if (!res.isImported)
-                {
-                    _database.ReleaseResource(res.backingResource);
-                }
-
-                res.Dispose();
+                _database.ReleaseResource(res.backingResource);
             }
 
-            _resources.Dispose();
-            _database.ReleaseResource(_resourceHeap);
-            _resourceHeap = Handle<GPUResource>.Invalid;
+            res.Dispose();
         }
+
+        _resources.Dispose();
+
+        _database.ReleaseResource(_resourceHeap);
+        _resourceHeap = Handle<GPUResource>.Invalid;
     }
 }

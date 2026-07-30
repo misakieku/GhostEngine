@@ -17,9 +17,9 @@ public interface ICommandBuffer : IRHIObject
     }
 
     /// <summary>
-    /// Indicates whether the command buffer contains any recorded commands.
+    /// Gets the current state of the command buffer, indicating whether it is recording, executable, or in an invalid state.
     /// </summary>
-    bool IsEmpty
+    CommandBufferState State
     {
         get;
     }

@@ -33,9 +33,9 @@ internal abstract class RenderGraphPass
     public List<Identifier<RGResource>> randomAccess = new(8);
 
     // Resource dependencies
-    public readonly List<Identifier<RGResource>>[] resourceReads = new List<Identifier<RGResource>>[(int)RenderGraphResourceType.Count];
-    public readonly List<Identifier<RGResource>>[] resourceWrites = new List<Identifier<RGResource>>[(int)RenderGraphResourceType.Count];
-    public readonly List<Identifier<RGResource>>[] resourceCreates = new List<Identifier<RGResource>>[(int)RenderGraphResourceType.Count];
+    public readonly List<Identifier<RGResource>>[] resourceReads = new List<Identifier<RGResource>>[(int)RGResourceType.Count];
+    public readonly List<Identifier<RGResource>>[] resourceWrites = new List<Identifier<RGResource>>[(int)RGResourceType.Count];
+    public readonly List<Identifier<RGResource>>[] resourceCreates = new List<Identifier<RGResource>>[(int)RGResourceType.Count];
 
     // Execution state
     public bool culled;
@@ -43,7 +43,7 @@ internal abstract class RenderGraphPass
 
     public RenderGraphPass()
     {
-        for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
+        for (var i = 0; i < (int)RGResourceType.Count; i++)
         {
             resourceReads[i] = new List<Identifier<RGResource>>(8);
             resourceWrites[i] = new List<Identifier<RGResource>>(4);
@@ -69,7 +69,7 @@ internal abstract class RenderGraphPass
 
         randomAccess.Clear();
 
-        for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
+        for (var i = 0; i < (int)RGResourceType.Count; i++)
         {
             resourceReads[i].Clear();
             resourceWrites[i].Clear();

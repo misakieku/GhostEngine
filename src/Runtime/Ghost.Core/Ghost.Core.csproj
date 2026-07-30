@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <Configurations>Debug;Release</Configurations>
-    <DefineConstants>$(DefineConstants);MHP_ENABLE_MIMALLOC;MHP_FASTMATH</DefineConstants>
+    <DefineConstants>$(DefineConstants);MHP_ENABLE_MIMALLOC;MHP_FASTMATH;MHP_ENABLE_STACKTRACE</DefineConstants>
     <IsAotCompatible>True</IsAotCompatible>
     <IsTrimmable>True</IsTrimmable>
   </PropertyGroup>

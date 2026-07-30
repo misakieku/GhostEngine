@@ -6,12 +6,12 @@ namespace Ghost.UnitTest.MockingEnvironment;
 
 internal class MockingPipelineLibrary : IPipelineLibrary
 {
-    public Result<Key128<PipelineState>> CreateComputePipeline(ref readonly ComputePSODesc desc)
+    public Result<Key128<PipelineState>> CreateComputePipeline(scoped in ComputePSODesc desc)
     {
         return default;
     }
 
-    public Result<Key128<PipelineState>> CreateGraphicsPipeline(ref readonly GraphicsPSODesc desc)
+    public Result<Key128<PipelineState>> CreateGraphicsPipeline(scoped in GraphicsPSODesc desc)
     {
         return default;
     }

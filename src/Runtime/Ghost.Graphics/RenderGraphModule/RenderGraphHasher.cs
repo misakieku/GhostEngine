@@ -40,7 +40,7 @@ internal static unsafe class RenderGraphHasher
                 writer.Write(pass.colorAccess[j].accessFlags);
             }
 
-            for (var j = 0; j < (int)RenderGraphResourceType.Count; j++)
+            for (var j = 0; j < (int)RGResourceType.Count; j++)
             {
                 var readList = pass.resourceReads[j];
                 var writeList = pass.resourceWrites[j];

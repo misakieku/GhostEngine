@@ -3,6 +3,7 @@ using Ghost.Core.Graphics;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
+using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
@@ -22,12 +23,10 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly CommandBufferType _type;
 
-    private CommandError _lastError;
-    private ushort _commandCount;
-    private bool _isRecording;
+    private CommandBufferState _state;
 
     public CommandBufferType Type => _type;
-    public bool IsEmpty => _commandCount == 0;
+    public CommandBufferState State => _state;
 
     private static ID3D12GraphicsCommandList10* CreateCommandList(ID3D12Device14* device, D3D12_COMMAND_LIST_TYPE type)
     {
@@ -51,53 +50,41 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         _resourceDatabase = resourceDatabase;
         _resourceAllocator = resourceAllocator;
         _descriptorAllocator = descriptorAllocator;
-
-        _isRecording = false;
     }
 
     [Conditional("DEBUG")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ThrowIfRecording()
+    private void AssertNotRecording()
     {
-        if (_isRecording)
-        {
-            throw new InvalidOperationException("Command buffer is already recording");
-        }
+        Logger.Assert(!_state.IsRecording);
     }
 
     [Conditional("DEBUG")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ThrowIfNotRecording()
+    private void AssertRecording()
     {
-        if (!_isRecording)
-        {
-            throw new InvalidOperationException("Command buffer is not recording");
-        }
+        Logger.Assert(_state.IsRecording);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void IncrementCommandCount()
     {
-        _commandCount++;
+        _state.CommandCount++;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void RecordError(string cmdName, Error status)
+    private void RecordError(string cmdName, Error error)
     {
-        Debug.Fail($"Command '{cmdName}' failed with error: {status}");
+        Logger.Error($"Command '{cmdName}' failed with error: {error}");
 
-        _lastError = new CommandError
-        {
-            CommandName = cmdName,
-            CommandIndex = _commandCount,
-            Status = status
-        };
+        _state.ErrorCommandName = cmdName;
+        _state.Error = error;
     }
 
     public void Begin(ICommandAllocator allocator)
     {
         ThrowIfDisposed();
-        ThrowIfRecording();
+        AssertNotRecording();
 
         if (allocator is not D3D12CommandAllocator d3d12Allocator)
         {
@@ -116,24 +103,27 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             pNativeObject->SetDescriptorHeaps(2, heaps);
         }
 
-        _commandCount = 0;
-        _isRecording = true;
+        _state.CommandCount = 0;
+        _state.IsRecording = true;
     }
 
     public Result End()
     {
         ThrowIfDisposed();
-        ThrowIfNotRecording();
+        AssertRecording();
 
-        pNativeObject->Close();
-        _isRecording = false;
-
-#if !DEBUG
-        if (_lastError.Status != Error.None)
+        var hr = pNativeObject->Close();
+        if (hr.FAILED)
         {
-            return Result.Failure($"Command buffer ended with errors at {_lastError.CommandIndex}, command '{_lastError.CommandName}': {_lastError.Status}");
+            return Result.Failure($"Failed to close command list: {hr}");
         }
-#endif
+
+        _state.IsRecording = false;
+
+        if (_state.Error.IsFailure)
+        {
+            return Result.Failure($"Command buffer ended with errors at command {_state.ErrorCommandName}: {_state.Error}");
+        }
 
         return Result.Success();
     }
@@ -141,13 +131,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void SetScissorRect(ScissorRectDesc rect)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         var d3d12Rect = new RECT((int)rect.Left, (int)rect.Top, (int)rect.Right, (int)rect.Bottom);
@@ -157,13 +141,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void Barrier(params ReadOnlySpan<BarrierDesc> barrierDescs)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         if (barrierDescs.IsEmpty)
@@ -341,13 +319,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void InsertFullPipelineBarrier()
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         var globalBarrier = new D3D12_GLOBAL_BARRIER
@@ -371,13 +343,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void SetRenderTargets(ReadOnlySpan<Handle<GPUTexture>> renderTargets, Handle<GPUTexture> depthTarget)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         var pRtvHandles = stackalloc D3D12_CPU_DESCRIPTOR_HANDLE[renderTargets.Length];
@@ -436,13 +402,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void ClearRenderTargetView(Handle<GPUTexture> renderTarget, Color128 clearColor)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         var recordResult = _resourceDatabase.GetResourceRecord(renderTarget.AsResource());
@@ -466,13 +426,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void ClearDepthStencilView(Handle<GPUTexture> depthStencil, bool inlcudeDepth, bool includeStencil, float clearDepth = 1.0f, byte clearStencil = 0)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         var recordResult = _resourceDatabase.GetResourceRecord(depthStencil.AsResource());
@@ -502,13 +456,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, ref readonly PassDepthStencilDesc depthDesc, bool allowUAVWrites = false)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         var pRtvDescs = stackalloc D3D12_RENDER_PASS_RENDER_TARGET_DESC[rtDescs.Length];
@@ -677,13 +625,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void EndRenderPass()
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         pNativeObject->EndRenderPass();
@@ -692,13 +634,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void SetViewport(ViewportDesc viewport)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         var d3d12Viewport = new D3D12_VIEWPORT(viewport.X, viewport.Y, viewport.Width, viewport.Height, viewport.MinDepth, viewport.MaxDepth);
@@ -708,13 +644,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void SetPipelineState(Key128<PipelineState> pipelineKey)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         var psor = _pipelineLibrary.GetPipelineStateObject(pipelineKey);
@@ -731,13 +661,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void SetConstantBufferView(uint slot, Handle<GPUBuffer> buffer)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         var resource = _resourceDatabase.GetResource(buffer.AsResource());
@@ -752,13 +676,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void SetVertexBuffer(uint slot, Handle<GPUBuffer> buffer, ulong offset = 0)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         var recordResult = _resourceDatabase.GetResourceRecord(buffer.AsResource());
@@ -787,13 +705,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void SetIndexBuffer(Handle<GPUBuffer> buffer, IndexType type, ulong offset = 0)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         var resource = _resourceDatabase.GetResource(buffer.AsResource());
@@ -815,13 +727,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void SetPrimitiveTopology(PrimitiveTopology topology)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         var d3d12Topology = topology switch
@@ -838,13 +744,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void SetGraphicsRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         fixed (uint* pConstants = constantBuffer)
@@ -856,13 +756,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void Draw(uint vertexCount, uint instanceCount = 1, uint startVertex = 0, uint startInstance = 0)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         pNativeObject->DrawInstanced(vertexCount, instanceCount, startVertex, startInstance);
@@ -876,13 +770,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void DrawIndexed(uint indexCount, uint instanceCount = 1, uint startIndex = 0, int baseVertex = 0, uint startInstance = 0)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         pNativeObject->DrawIndexedInstanced(indexCount, instanceCount, startIndex, baseVertex, startInstance);
@@ -891,13 +779,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void DispatchCompute(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         pNativeObject->Dispatch(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
@@ -906,13 +788,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void DispatchMesh(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
         IncrementCommandCount();
 
         pNativeObject->DispatchMesh(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
@@ -931,14 +807,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void ExecuteIndirect(ICommandSignature commandSignature, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
-
+        AssertRecording();
         IncrementCommandCount();
 
         Logger.DebugAssert(commandSignature is D3D12CommandSignature);
@@ -953,13 +822,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void CopyBuffer(Handle<GPUBuffer> dst, Handle<GPUBuffer> src, ulong dstOffset = 0, ulong srcOffset = 0, ulong numBytes = 0)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
 
         if (dst == src)
         {
@@ -988,14 +851,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void UpdateSubResources(Handle<GPUResource> resource, Handle<GPUResource> intermediate, params ReadOnlySpan<SubResourceData> subResources)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
-
+        AssertRecording();
         IncrementCommandCount();
 
         var d3d12Resource = _resourceDatabase.GetResource(resource);
@@ -1053,13 +909,8 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public void CopyTexture(Handle<GPUTexture> dst, TextureRegion? dstRegion, Handle<GPUTexture> src, TextureRegion? srcRegion)
     {
         AssertNotDisposed();
-        ThrowIfNotRecording();
-#if !DEBUG
-        if (_lastError.Status != Error.None)
-        {
-            return;
-        }
-#endif
+        AssertRecording();
+
         if (dst == src)
         {
             return;

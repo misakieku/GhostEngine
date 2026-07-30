@@ -40,7 +40,7 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         return handle;
     }
 
-    public Identifier<Sampler> AddSampler(ref readonly SamplerDesc desc, int id)
+    public Identifier<Sampler> AddSampler(scoped in SamplerDesc desc, int id)
     {
         var newId = new Identifier<Sampler>(id);
         _samplers.TryAdd(newId, desc);
@@ -208,7 +208,7 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         return Error.NotFound;
     }
 
-    public bool TryGetSampler(ref readonly SamplerDesc desc, out Identifier<Sampler> id)
+    public bool TryGetSampler(scoped in SamplerDesc desc, out Identifier<Sampler> id)
     {
         foreach (var kvp in _samplers)
         {

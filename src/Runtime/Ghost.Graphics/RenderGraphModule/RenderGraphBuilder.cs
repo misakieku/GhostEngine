@@ -204,7 +204,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
-    private Identifier<RGResource> UseResource(Identifier<RGResource> resource, AccessFlags accessFlags, RenderGraphResourceType type)
+    private Identifier<RGResource> UseResource(Identifier<RGResource> resource, AccessFlags accessFlags, RGResourceType type)
     {
         if (accessFlags.HasFlag(AccessFlags.Read))
         {
@@ -236,7 +236,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         ThrowIfDisposed();
 
         var handle = _resourceRegistry.CreateTexture(in desc, name);
-        _pass.resourceCreates[(int)RenderGraphResourceType.Texture].Add(handle.AsResource());
+        _pass.resourceCreates[(int)RGResourceType.Texture].Add(handle.AsResource());
         _resourceRegistry.SetProducer(handle.AsResource(), _pass.index);
         return handle;
     }
@@ -246,7 +246,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         ThrowIfDisposed();
 
         var handle = _resourceRegistry.CreateBuffer(in desc, name);
-        _pass.resourceCreates[(int)RenderGraphResourceType.Buffer].Add(handle.AsResource());
+        _pass.resourceCreates[(int)RGResourceType.Buffer].Add(handle.AsResource());
         _resourceRegistry.SetProducer(handle.AsResource(), _pass.index);
         return handle;
     }
@@ -254,13 +254,13 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
     public Identifier<RGTexture> UseTexture(Identifier<RGTexture> texture, AccessFlags flags)
     {
         ThrowIfDisposed();
-        return UseResource(texture.AsResource(), flags, RenderGraphResourceType.Texture).AsTexture();
+        return UseResource(texture.AsResource(), flags, RGResourceType.Texture).AsTexture();
     }
 
     public Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags flags)
     {
         ThrowIfDisposed();
-        return UseResource(buffer.AsResource(), flags, RenderGraphResourceType.Buffer).AsBuffer();
+        return UseResource(buffer.AsResource(), flags, RGResourceType.Buffer).AsBuffer();
     }
 
     public void QueueTextureExtraction(Identifier<RGTexture> src, Handle<GPUTexture> dst, ResourceExtractionFlags flags)
@@ -271,7 +271,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         resource.extractionFlags = flags;
 
         var res = src.AsResource();
-        _pass.resourceReads[(int)RenderGraphResourceType.Texture].Add(res);
+        _pass.resourceReads[(int)RGResourceType.Texture].Add(res);
         _resourceRegistry.AddConsumer(res, _pass.index);
     }
 
@@ -283,7 +283,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         resource.extractionFlags = flags;
 
         var res = src.AsResource();
-        _pass.resourceReads[(int)RenderGraphResourceType.Buffer].Add(res);
+        _pass.resourceReads[(int)RGResourceType.Buffer].Add(res);
         _resourceRegistry.AddConsumer(res, _pass.index);
     }
 
@@ -292,7 +292,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         ThrowIfDisposed();
 
         var resource = texture.AsResource();
-        UseResource(resource, AccessFlags.ReadWrite, RenderGraphResourceType.Texture);
+        UseResource(resource, AccessFlags.ReadWrite, RGResourceType.Texture);
         _pass.randomAccess.Add(resource);
         return texture;
     }
@@ -302,7 +302,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         ThrowIfDisposed();
 
         var resource = buffer.AsResource();
-        UseResource(resource, AccessFlags.ReadWrite, RenderGraphResourceType.Buffer);
+        UseResource(resource, AccessFlags.ReadWrite, RGResourceType.Buffer);
         _pass.randomAccess.Add(resource);
         return buffer;
     }

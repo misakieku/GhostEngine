@@ -8,14 +8,12 @@ internal class MockingCommandBuffer : ICommandBuffer
 {
     private readonly IResourceDatabase _resourceDatabase;
 
-    private bool _isEmpty = true;
+    private CommandBufferState _state;
 
     // Tracking properties for test assertions
     public int DrawCallCount { get; private set; }
     public int CopyCallCount { get; private set; }
     public int UpdateSubResourcesCount { get; private set; }
-
-    public bool IsEmpty => _isEmpty;
 
     public CommandBufferType Type
     {
@@ -27,6 +25,8 @@ internal class MockingCommandBuffer : ICommandBuffer
         get; set;
     } = "MockingCommandBuffer";
 
+    public CommandBufferState State => _state;
+
     public MockingCommandBuffer(IResourceDatabase resourceDatabase, CommandBufferType type)
     {
         _resourceDatabase = resourceDatabase;
@@ -35,7 +35,7 @@ internal class MockingCommandBuffer : ICommandBuffer
 
     public void Barrier(params scoped ReadOnlySpan<BarrierDesc> barrierDescs)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
         lock (this)
         {
             foreach (var desc in barrierDescs)
@@ -54,7 +54,7 @@ internal class MockingCommandBuffer : ICommandBuffer
 
     public void Begin(ICommandAllocator allocator)
     {
-        _isEmpty = true;
+        _state.CommandCount++;
         DrawCallCount = 0;
         CopyCallCount = 0;
         UpdateSubResourcesCount = 0;
@@ -62,49 +62,49 @@ internal class MockingCommandBuffer : ICommandBuffer
 
     public void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, ref readonly PassDepthStencilDesc depthDesc, bool allowUAVWrites = false)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void ClearDepthStencilView(Handle<GPUTexture> depthStencil, bool inlcludeDepth, bool includeStencil, float clearDepth = 1, byte clearStencil = 0)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void ClearRenderTargetView(Handle<GPUTexture> renderTarget, Color128 clearColor)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void CopyBuffer(Handle<GPUBuffer> dest, Handle<GPUBuffer> src, ulong destOffset = 0, ulong srcOffset = 0, ulong numBytes = 0)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
         CopyCallCount++;
     }
 
     public void CopyTexture(Handle<GPUTexture> dst, TextureRegion? dstRegion, Handle<GPUTexture> src, TextureRegion? srcRegion)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
         CopyCallCount++;
     }
 
     public void DispatchCompute(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
-    public void DispatchGraph(ref readonly DispatchGraphDesc desc)
+    public void DispatchGraph(scoped in DispatchGraphDesc desc)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void DispatchMesh(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void DispatchRay()
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void Dispose()
@@ -113,13 +113,13 @@ internal class MockingCommandBuffer : ICommandBuffer
 
     public void Draw(uint vertexCount, uint instanceCount = 1, uint startVertex = 0, uint startInstance = 0)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
         DrawCallCount++;
     }
 
     public void DrawIndexed(uint indexCount, uint instanceCount = 1, uint startIndex = 0, int baseVertex = 0, uint startInstance = 0)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
         DrawCallCount++;
     }
 
@@ -134,62 +134,62 @@ internal class MockingCommandBuffer : ICommandBuffer
 
     public void ExecuteIndirect(ICommandSignature commandSignature, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void SetConstantBufferView(uint slot, Handle<GPUBuffer> buffer)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void SetGraphicsRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void SetIndexBuffer(Handle<GPUBuffer> buffer, IndexType type, ulong offset = 0)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void SetPipelineState(Key128<PipelineState> pipelineKey)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void SetPrimitiveTopology(PrimitiveTopology topology)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
-    public void SetProgram(ref readonly SetProgramDesc desc)
+    public void SetProgram(scoped in SetProgramDesc desc)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void SetRenderTargets(ReadOnlySpan<Handle<GPUTexture>> renderTargets, Handle<GPUTexture> depthTarget)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void SetScissorRect(ScissorRectDesc rect)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void SetVertexBuffer(uint slot, Handle<GPUBuffer> buffer, ulong offset = 0)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void SetViewport(ViewportDesc viewport)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
     }
 
     public void UpdateSubResources(Handle<GPUResource> resource, Handle<GPUResource> intermediate, params scoped ReadOnlySpan<SubResourceData> subResources)
     {
-        _isEmpty = false;
+        _state.CommandCount++;
         UpdateSubResourcesCount++;
     }
 }

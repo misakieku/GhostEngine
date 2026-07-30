@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
-public enum RenderGraphResourceType : int
+public enum RGResourceType : int
 {
     Texture,
     Buffer,
@@ -396,8 +396,25 @@ internal struct DepthStencilInfo
 [Flags]
 public enum RGExecutionFlags
 {
-    None = 0,
+    /// <summary>
+    /// Default execution behavior without any special flags.
+    /// </summary>
+    Default = 0,
+    /// <summary>
+    /// Generate a detailed dump of the render graph execution for debugging and analysis.
+    /// </summary>
     GenerateDump = 1 << 0,
+}
+
+internal enum RGExecutionOpType : byte
+{
+    IssueBarriers = 0,
+    BeginNativePass = 1,
+    ExecutePass = 2,
+    EndNativePass = 3,
+    GPUWait = 4,
+    SignalFence = 5,
+    SubmitQueue = 6,
 }
 
 public sealed class RenderGraphDump
@@ -441,40 +458,138 @@ public sealed class RenderGraphDump
     } = new();
 }
 
-public struct HeapBlockDumpInfo
+public readonly struct HeapBlockDumpInfo
 {
-    public ulong offset;
-    public ulong size;
-    public bool isFree;
-    public List<int> aliasedLogicalResources; // Resources occupying this memory block
+    public ulong Offset
+    {
+        get; init;
+    }
+
+    public ulong Size
+    {
+        get; init;
+    }
+
+    public bool IsFree
+    {
+        get; init;
+    }
+
+    // Resources occupying this memory block
+    public List<int> AliasedLogicalResources
+    {
+        get; init;
+    }
 }
 
-public struct PassDumpInfo
+public readonly struct PassDumpInfo
 {
-    public int index;
-    public string name;
-    public RenderPassType type;
-    public bool isCulled;
-    public bool asyncCompute;
-    public int nativePassIndex;
-    public List<int> resourceReads;
-    public List<int> resourceWrites;
-    public List<int> resourceCreates;
+    public int Index
+    {
+        get; init;
+    }
+
+    public string Name
+    {
+        get; init;
+    }
+
+    public RenderPassType Type
+    {
+        get; init;
+    }
+
+    public bool IsCulled
+    {
+        get; init;
+    }
+
+    public bool AsyncCompute
+    {
+        get; init;
+    }
+
+    public int NativePassIndex
+    {
+        get; init;
+    }
+
+    public List<int> ResourceReads
+    {
+        get; init;
+    }
+
+    public List<int> ResourceWrites
+    {
+        get; init;
+    }
+
+    public List<int> ResourceCreates
+    {
+        get; init;
+    }
 }
 
-public struct ResourceDumpInfo
+public readonly struct ResourceDumpInfo
 {
-    public int index;
-    public string name;
-    public RenderGraphResourceType type;
-    public ulong sizeInBytes;
-    public string formatOrDesc;
-    public bool isImported;
-    public bool isExtracted;
-    public ulong heapOffset;
-    public int firstUsePass;
-    public int lastUsePass;
-    public int producerPass;
-    public List<int> consumerPasses;
-    public List<int> aliasedWithResources; // Other resources sharing the same heap offset range
+    public Handle<GPUResource> BackingResource
+    {
+        get; init;
+    }
+
+    public string Name
+    {
+        get; init;
+    }
+
+    public RGResourceType Type
+    {
+        get; init;
+    }
+
+    public ulong SizeInBytes
+    {
+        get; init;
+    }
+
+    public bool IsImported
+    {
+        get; init;
+    }
+
+    public bool IsExtracted
+    {
+        get; init;
+    }
+
+    public ulong HeapOffset
+    {
+        get; init;
+    }
+
+    public int FirstUsePass
+    {
+        get; init;
+    }
+
+    public int LastUsePass
+    {
+        get; init;
+    }
+
+    public int ProducerPass
+    {
+        get; init;
+    }
+
+    public List<int> ConsumerPasses
+    {
+        get; init;
+    }
+
+    // Other resources sharing the same heap offset range
+    public List<int> AliasedWithResources
+    {
+        get; init;
+    }
 }

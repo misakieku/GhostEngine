@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Buffer;
@@ -82,117 +83,109 @@ internal sealed class RenderGraphExecutor
         ICommandBuffer commandBuffer,
         IReadOnlyList<RenderGraphPass> compiledPasses,
         IReadOnlyList<NativeRenderPass> nativePasses,
-        IReadOnlyList<CompiledBarrier> compiledBarriers)
+        IReadOnlyList<CompiledBarrier> compiledBarriers,
+        BufferReader reader)
     {
-        var barrierIndex = 0;
-        var nativePassIndex = 0;
-        var logicalPassIndex = 0;
-        var insideNativePass = false;
-
         _context.BeginNewFrame(commandBuffer);
+
+        var pPassRTDescs = stackalloc PassRenderTargetDesc[8];
+        var pRtFormats = stackalloc TextureFormat[8];
+        var insideNativePass = false;
 
         try
         {
-            var pPassRTDescs = stackalloc PassRenderTargetDesc[8];
-            var pRtFormats = stackalloc TextureFormat[8];
-
-            while (logicalPassIndex < compiledPasses.Count)
+            while (reader.RemainingBytes > 0)
             {
-                var pass = compiledPasses[logicalPassIndex];
+                var op = reader.Read<RGExecutionOpType>();
 
-                // Check if this pass is part of a native render pass
-                if (pass.type == RenderPassType.Raster && nativePassIndex < nativePasses.Count)
+                switch (op)
                 {
-                    var nativePass = nativePasses[nativePassIndex];
-
-                    // Build barriers for ALL merged passes before beginning the native render pass
-                    for (var i = 0; i < nativePass.mergedPassIndices.Count; i++)
+                    case RGExecutionOpType.IssueBarriers:
                     {
-                        var mergedPassIdx = nativePass.mergedPassIndices[i];
-                        var e = ExecuteBarriersForPass(commandBuffer, mergedPassIdx, ref barrierIndex, compiledBarriers);
+                        var barrierStart = reader.Read<int>();
+                        var barrierCount = reader.Read<int>();
+                        var e = ExecuteBarrierBatch(commandBuffer, barrierStart, barrierCount, compiledBarriers);
                         if (e != Error.None)
                         {
                             return e;
                         }
+                        break;
                     }
 
-                    // Begin native render pass
-
-                    SetViewport(nativePass.colorAttachments, nativePass.depthAttachment);
-
-                    for (var i = 0; i < nativePass.colorAttachmentCount; i++)
+                    case RGExecutionOpType.BeginNativePass:
                     {
-                        var attachment = nativePass.colorAttachments[i];
-                        pPassRTDescs[i] = new PassRenderTargetDesc
+                        var nativePassIdx = reader.Read<int>();
+                        var nativePass = nativePasses[nativePassIdx];
+
+                        SetViewport(nativePass.colorAttachments, nativePass.depthAttachment);
+
+                        for (var i = 0; i < nativePass.colorAttachmentCount; i++)
                         {
-                            Texture = _resources.GetResource(attachment.texture).backingResource.AsTexture(),
-                            ClearColor = attachment.clearColor,
-                            LoadOp = attachment.loadOp,
-                            StoreOp = attachment.storeOp
+                            var attachment = nativePass.colorAttachments[i];
+                            pPassRTDescs[i] = new PassRenderTargetDesc
+                            {
+                                Texture = _resources.GetResource(attachment.texture).backingResource.AsTexture(),
+                                ClearColor = attachment.clearColor,
+                                LoadOp = attachment.loadOp,
+                                StoreOp = attachment.storeOp
+                            };
+                        }
+
+                        var depthDesc = new PassDepthStencilDesc
+                        {
+                            Texture = nativePass.hasDepthAttachment
+                                ? _resources.GetResource(nativePass.depthAttachment.texture).backingResource.AsTexture()
+                                : Handle<GPUTexture>.Invalid,
+                            ClearDepth = nativePass.depthAttachment.clearDepth,
+                            ClearStencil = nativePass.depthAttachment.clearStencil,
+                            DepthLoadOp = nativePass.hasDepthAttachment
+                                ? nativePass.depthAttachment.loadOp
+                                : AttachmentLoadOp.NoAccess,
+                            DepthStoreOp = nativePass.hasDepthAttachment
+                                ? nativePass.depthAttachment.storeOp
+                                : AttachmentStoreOp.NoAccess,
+                            StencilLoadOp = nativePass.hasDepthAttachment
+                                ? nativePass.depthAttachment.stencilLoadOp
+                                : AttachmentLoadOp.NoAccess,
+                            StencilStoreOp = nativePass.hasDepthAttachment
+                                ? nativePass.depthAttachment.stencilStoreOp
+                                : AttachmentStoreOp.NoAccess,
                         };
+
+                        commandBuffer.BeginRenderPass(new Span<PassRenderTargetDesc>(pPassRTDescs, nativePass.colorAttachmentCount), in depthDesc);
+                        insideNativePass = true;
+
+                        for (var i = 0; i < nativePass.colorAttachmentCount; i++)
+                        {
+                            var attachment = nativePass.colorAttachments[i];
+                            var resource = _resources.GetResource(attachment.texture);
+                            pRtFormats[i] = resource.rgTextureDesc.format;
+                        }
+
+                        var depthFormat = nativePass.hasDepthAttachment
+                            ? _resources.GetResource(nativePass.depthAttachment.texture).rgTextureDesc.format
+                            : TextureFormat.Unknown;
+                        _context.SetRenderTargetFormats(new ReadOnlySpan<TextureFormat>(pRtFormats, nativePass.colorAttachmentCount), depthFormat);
+                        break;
                     }
 
-                    var depthDesc = new PassDepthStencilDesc
+                    case RGExecutionOpType.ExecutePass:
                     {
-                        Texture = nativePass.hasDepthAttachment
-                            ? _resources.GetResource(nativePass.depthAttachment.texture).backingResource.AsTexture()
-                            : Handle<GPUTexture>.Invalid,
-                        ClearDepth = nativePass.depthAttachment.clearDepth,
-                        ClearStencil = nativePass.depthAttachment.clearStencil,
-                        DepthLoadOp = nativePass.hasDepthAttachment
-                            ? nativePass.depthAttachment.loadOp
-                            : AttachmentLoadOp.NoAccess,
-                        DepthStoreOp = nativePass.hasDepthAttachment
-                            ? nativePass.depthAttachment.storeOp
-                            : AttachmentStoreOp.NoAccess,
-                        StencilLoadOp = nativePass.hasDepthAttachment
-                            ? nativePass.depthAttachment.stencilLoadOp
-                            : AttachmentLoadOp.NoAccess,
-                        StencilStoreOp = nativePass.hasDepthAttachment
-                            ? nativePass.depthAttachment.stencilStoreOp
-                            : AttachmentStoreOp.NoAccess,
-                    };
-
-                    commandBuffer.BeginRenderPass(new Span<PassRenderTargetDesc>(pPassRTDescs, nativePass.colorAttachmentCount), in depthDesc);
-
-                    for (var i = 0; i < nativePass.colorAttachmentCount; i++)
-                    {
-                        var attachment = nativePass.colorAttachments[i];
-                        var resource = _resources.GetResource(attachment.texture);
-                        pRtFormats[i] = resource.rgTextureDesc.format;
+                        var passIdx = reader.Read<int>();
+                        var pass = compiledPasses[passIdx];
+                        pass.Execute(_context);
+                        break;
                     }
 
-                    var depthFormat = nativePass.hasDepthAttachment
-                        ? _resources.GetResource(nativePass.depthAttachment.texture).rgTextureDesc.format
-                        : TextureFormat.Unknown;
-                    _context.SetRenderTargetFormats(new ReadOnlySpan<TextureFormat>(pRtFormats, nativePass.colorAttachmentCount), depthFormat);
-
-                    // Build all merged logical passes within this native render pass
-                    for (var i = 0; i < nativePass.mergedPassIndices.Count; i++)
+                    case RGExecutionOpType.EndNativePass:
                     {
-                        var mergedPassIdx = nativePass.mergedPassIndices[i];
-                        var mergedPass = compiledPasses[mergedPassIdx];
-                        mergedPass.Execute(_context);
-                        logicalPassIndex++;
+                        commandBuffer.EndRenderPass();
+                        insideNativePass = false;
+                        break;
                     }
 
-                    commandBuffer.EndRenderPass();
-                    nativePassIndex++;
-                }
-                else
-                {
-                    // All the reaster pass should be merged into native render pass, so if we encounter a raster pass here, it means something went wrong during compilation.
-                    Logger.DebugAssert(pass.type != RenderPassType.Raster);
-
-                    // Compute pass or Unsafe pass
-                    var e = ExecuteBarriersForPass(commandBuffer, logicalPassIndex, ref barrierIndex, compiledBarriers);
-                    if (e != Error.None)
-                    {
-                        return e;
-                    }
-
-                    pass.Execute(_context);
-                    logicalPassIndex++;
+                    default:
+                        throw new NotSupportedException($"Unsupported RGExecutionOpType: {op}");
                 }
             }
 
@@ -214,12 +207,17 @@ internal sealed class RenderGraphExecutor
         }
     }
 
-    private unsafe Error ExecuteBarriersForPass(
+    private unsafe Error ExecuteBarrierBatch(
         ICommandBuffer cmd,
-        int passIndex,
-        ref int barrierIndex,
+        int barrierStart,
+        int barrierCount,
         IReadOnlyList<CompiledBarrier> compiledBarriers)
     {
+        if (barrierCount <= 0)
+        {
+            return Error.None;
+        }
+
         const int MaxBatch = 64;
         using var scope = AllocationManager.CreateStackScope();
         using var barriers = new UnsafeList<BarrierDesc>(MaxBatch, scope.AllocationHandle);
@@ -233,17 +231,14 @@ internal sealed class RenderGraphExecutor
             }
         }
 
-        // Process all pre-compiled barriers for this pass
-        // TODO: We can insert BarrierAccess.NoAccess to the resource that aliased with others after their last usage to reduce cache burden.
-        while (barrierIndex < compiledBarriers.Count && compiledBarriers[barrierIndex].passIndex == passIndex)
+        for (var i = 0; i < barrierCount; i++)
         {
-            var compiledBarrier = compiledBarriers[barrierIndex++];
+            var compiledBarrier = compiledBarriers[barrierStart + i];
             var resourceHandle = _resources.GetResource(compiledBarrier.resource).backingResource;
             var target = compiledBarrier.targetState;
 
-            // Create barrier descriptor
             BarrierDesc desc;
-            if (compiledBarrier.resourceType == RenderGraphResourceType.Texture)
+            if (compiledBarrier.resourceType == RGResourceType.Texture)
             {
                 desc = BarrierDesc.Texture(
                             resourceHandle.AsTexture(),

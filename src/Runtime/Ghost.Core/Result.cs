@@ -280,6 +280,13 @@ public readonly ref struct RefResult<T, E>
     public static implicit operator bool(RefResult<T, E> result) => result.IsSuccess;
 }
 
+public class NotFoundException : Exception
+{
+    public NotFoundException(string? message = null) : base(message ?? "The requested resource was not found.")
+    {
+    }
+}
+
 public static class ResultExtensions
 {
     extension(Error error)
@@ -318,11 +325,30 @@ public static class ResultExtensions
         }
     }
 
-    public static void ThrowIfFailed(this Error result, [CallerArgumentExpression(nameof(result))] string? op = null)
+    public static void ThrowIfFailed(this Error error, [CallerArgumentExpression(nameof(error))] string? op = null)
     {
-        if (result != Error.None)
+        switch (error)
         {
-            throw new InvalidOperationException($"{op} failed: {result}");
+            case Error.NotFound:
+                throw new NotFoundException(op);
+            case Error.InvalidArgument:
+                throw new ArgumentException(op);
+            case Error.InvalidState:
+                throw new InvalidOperationException(op);
+            case Error.InternalError:
+                throw new InvalidOperationException(op);
+            case Error.PermissionDenied:
+                throw new UnauthorizedAccessException(op);
+            case Error.NotSupported:
+                throw new NotSupportedException(op);
+            case Error.OutOfMemory:
+                throw new OutOfMemoryException(op);
+            case Error.Timeout:
+                throw new TimeoutException(op);
+            case Error.Cancelled:
+                throw new OperationCanceledException(op);
+            case Error.UnknownError:
+                throw new Exception(op);
         }
     }
 

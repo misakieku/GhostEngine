@@ -6,6 +6,7 @@
 /* https://fmod.com/docs/2.03/api/core-api.html                                             */
 /* ======================================================================================== */
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -4143,6 +4144,7 @@ namespace Ghost.FMOD.Core
                 return newNumber;
             }
 
+            [return: NotNullIfNotNull(nameof(s))]
             public byte[]? byteFromStringUTF8(string? s)
             {
                 if (s == null)

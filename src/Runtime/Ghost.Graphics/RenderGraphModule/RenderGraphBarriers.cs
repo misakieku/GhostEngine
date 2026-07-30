@@ -32,7 +32,7 @@ internal struct CompiledBarrier
     public ResourceBarrierData targetState;
     public Identifier<RGResource> aliasingPredecessor; // Invalid if not aliasing
     public BarrierFlags flags;
-    public RenderGraphResourceType resourceType;
+    public RGResourceType resourceType;
 
     public override readonly string ToString()
     {
@@ -73,7 +73,7 @@ internal static class RenderGraphBarriers
         AliasingPlan aliasingPlan)
     {
         // Check all resources written by this pass (both textures and buffers)
-        for (var resType = 0; resType < (int)RenderGraphResourceType.Count; resType++)
+        for (var resType = 0; resType < (int)RGResourceType.Count; resType++)
         {
             var writeList = pass.resourceWrites[resType];
             for (var i = 0; i < writeList.Count; i++)
@@ -167,7 +167,7 @@ internal static class RenderGraphBarriers
         }
 
         // Compile transitions for read resources
-        for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
+        for (var i = 0; i < (int)RGResourceType.Count; i++)
         {
             var readList = pass.resourceReads[i];
             for (var j = 0; j < readList.Count; j++)
@@ -208,7 +208,7 @@ internal static class RenderGraphBarriers
                     continue;
                 }
 
-                var targetState = GetBufferReadBarrierData(handle, pass, (RenderGraphResourceType)i, resources);
+                var targetState = GetBufferReadBarrierData(handle, pass, (RGResourceType)i, resources);
                 AddTransition(handle, targetState);
             }
         }
@@ -246,7 +246,7 @@ internal static class RenderGraphBarriers
 
             case RenderPassType.Compute:
                 var computeUavState = new ResourceBarrierData(BarrierLayout.UnorderedAccess, BarrierAccess.UnorderedAccess, BarrierSync.ComputeShading);
-                for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
+                for (var i = 0; i < (int)RGResourceType.Count; i++)
                 {
                     var writeList = pass.resourceWrites[i];
                     for (var j = 0; j < writeList.Count; j++)
@@ -258,7 +258,7 @@ internal static class RenderGraphBarriers
 
             case RenderPassType.Unsafe:
                 var rtState = new ResourceBarrierData(BarrierLayout.RenderTarget, BarrierAccess.RenderTarget, BarrierSync.RenderTarget);
-                for (var i = 0; i < (int)RenderGraphResourceType.Count; i++)
+                for (var i = 0; i < (int)RGResourceType.Count; i++)
                 {
                     var writeList = pass.resourceWrites[i];
                     for (var j = 0; j < writeList.Count; j++)
@@ -279,10 +279,10 @@ internal static class RenderGraphBarriers
     private static ResourceBarrierData GetBufferReadBarrierData(
         Identifier<RGResource> handle,
         RenderGraphPass pass,
-        RenderGraphResourceType resourceType,
+        RGResourceType resourceType,
         RenderGraphResourceRegistry resources)
     {
-        if (resourceType == RenderGraphResourceType.Texture)
+        if (resourceType == RGResourceType.Texture)
         {
             return new ResourceBarrierData(BarrierLayout.ShaderResource, BarrierAccess.ShaderResource, BarrierSync.PixelShading | BarrierSync.NonPixelShading);
         }

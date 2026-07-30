@@ -973,19 +973,24 @@ public record struct BufferDesc
     }
 }
 
-public struct CommandError
+public struct CommandBufferState
 {
-    public int CommandIndex
+    public bool IsRecording
     {
         get; set;
     }
 
-    public string CommandName
+    public int CommandCount
     {
         get; set;
     }
 
-    public Error Status
+    public Error Error
+    {
+        get; set;
+    }
+
+    public string ErrorCommandName
     {
         get; set;
     }

@@ -132,7 +132,7 @@ internal sealed class RenderGraphNativePassBuilder
     /// Checks if a logical pass can be merged into an existing native render pass.
     /// Conservative merging: only merge if attachments match and no barriers needed.
     /// </summary>
-    private bool CanMergePasses(
+    private static bool CanMergePasses(
         NativeRenderPass nativePass,
         RenderGraphPass pass,
         int passIndex,
