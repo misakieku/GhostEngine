@@ -27,7 +27,8 @@ internal sealed class RenderGraphNativePassBuilder
     public void BuildNativeRenderPasses(
         List<RenderGraphPass> compiledPasses,
         List<NativeRenderPass> nativePasses,
-        List<CompiledBarrier> compiledBarriers)
+        RenderGraphResourceRegistry resources,
+        AliasingPlan aliasingPlan)
     {
         // Clear previous native passes
         for (var i = 0; i < nativePasses.Count; i++)
@@ -57,7 +58,7 @@ internal sealed class RenderGraphNativePassBuilder
 
 
             // Check if we can merge with current native pass
-            if (currentNativePass != null && CanMergePasses(currentNativePass, pass, i, compiledPasses, compiledBarriers))
+            if (currentNativePass != null && CanMergePasses(currentNativePass, pass, i, compiledPasses, resources, aliasingPlan))
             {
                 // Merge into existing native pass
                 currentNativePass.mergedPassIndices.Add(i);
@@ -137,7 +138,8 @@ internal sealed class RenderGraphNativePassBuilder
         RenderGraphPass pass,
         int passIndex,
         List<RenderGraphPass> compiledPasses,
-        List<CompiledBarrier> compiledBarriers)
+        RenderGraphResourceRegistry resources,
+        AliasingPlan aliasingPlan)
     {
         // Don't merge if UAVs are involved (conservative)
         if (pass.randomAccess.Count > 0 || nativePass.allowUAVWrites)
@@ -152,7 +154,7 @@ internal sealed class RenderGraphNativePassBuilder
         }
 
         // Check if barriers are needed between last merged pass and this pass
-        if (RequiresBarrierBetweenPasses(nativePass.lastLogicalPass, passIndex, compiledPasses, compiledBarriers))
+        if (RequiresBarrierBetweenPasses(nativePass.lastLogicalPass, passIndex, compiledPasses, resources, aliasingPlan))
         {
             return false;
         }
@@ -202,46 +204,10 @@ internal sealed class RenderGraphNativePassBuilder
         int passA,
         int passB,
         List<RenderGraphPass> compiledPasses,
-        List<CompiledBarrier> compiledBarriers)
+        RenderGraphResourceRegistry resources,
+        AliasingPlan aliasingPlan)
     {
-        var laterPass = compiledPasses[passB];
-
-        using var scope = AllocationManager.CreateStackScope();
-        using var renderTargets = new UnsafeHashSet<Identifier<RGResource>>(laterPass.maxColorIndex, scope.AllocationHandle);
-
-        // Build a set of render target heap IDs (color + depth)
-        for (var i = 0; i <= laterPass.maxColorIndex; i++)
-        {
-            if (!laterPass.colorAccess[i].id.IsInvalid)
-            {
-                renderTargets.Add(laterPass.colorAccess[i].id.AsResource());
-            }
-        }
-
-        if (!laterPass.depthAccess.id.IsInvalid)
-        {
-            renderTargets.Add(laterPass.depthAccess.id.AsResource());
-        }
-
-        // Check if any compiled barriers for passB affect render targets
-        for (var i = 0; i < compiledBarriers.Count; i++)
-        {
-            if (compiledBarriers[i].passIndex == passB)
-            {
-                // Only prevent merge if barrier affects a render target
-                if (renderTargets.Contains(compiledBarriers[i].resource))
-                {
-                    return true;  // Barrier affects render target, cannot merge
-                }
-            }
-
-            if (compiledBarriers[i].passIndex > passB)
-            {
-                break;  // No more barriers for this pass
-            }
-        }
-
-        return false;
+        return RenderGraphCompiler.RequiresBarrierBetweenPasses(passA, passB, compiledPasses, resources, aliasingPlan);
     }
 
     /// <summary>

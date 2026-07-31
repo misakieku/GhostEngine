@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
-using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics.CodeAnalysis;
@@ -22,9 +21,6 @@ internal struct CachedCompilation : IDisposable
     // Placed heap metadata
     public UnsafeList<PlacedResourceData> placedResources;
 
-    // Compiled barriers (stores only target states, queries before state from ResourceManager)
-    public UnsafeList<CompiledBarrier> compiledBarriers;
-
     // Real gpu heap
     public UnsafeList<Handle<GPUResource>> backingResources;
 
@@ -40,7 +36,6 @@ internal struct CachedCompilation : IDisposable
         passCulledFlags = new UnsafeList<bool>(64, allocationHandle);
         logicalToPhysical = new UnsafeHashMap<int, int>(128, AllocationHandle.Persistent);
         placedResources = new UnsafeList<PlacedResourceData>(32, AllocationHandle.Persistent);
-        compiledBarriers = new UnsafeList<CompiledBarrier>(128, AllocationHandle.Persistent);
         backingResources = new UnsafeList<Handle<GPUResource>>(32, AllocationHandle.Persistent);
         commandBytes = new BufferWriter(1024 * 1024, AllocationHandle.Persistent); // Start with 1MB buffer
         viewState = default;
@@ -52,7 +47,6 @@ internal struct CachedCompilation : IDisposable
         passCulledFlags.Clear();
         logicalToPhysical.Clear();
         placedResources.Clear();
-        compiledBarriers.Clear();
         backingResources.Clear();
         commandBytes.Reset();
         viewState = default;
@@ -64,7 +58,6 @@ internal struct CachedCompilation : IDisposable
         passCulledFlags.Dispose();
         logicalToPhysical.Dispose();
         placedResources.Dispose();
-        compiledBarriers.Dispose();
         backingResources.Dispose();
         commandBytes.Dispose();
     }
@@ -80,11 +73,16 @@ internal struct PlacedResourceData
     public int lastUsePass;
 }
 
-internal sealed class RenderGraphCompilationCache
+internal sealed class RenderGraphCompilationCache : IDisposable
 {
     private CachedCompilation _cached;
     private ulong _cachedHash;
     private bool _hasCachedData;
+
+    public RenderGraphCompilationCache()
+    {
+        _cached = new CachedCompilation(AllocationHandle.Persistent);
+    }
 
     public bool TryGetCached(ulong hash, [MaybeNullWhen(false)] out CachedCompilation result)
     {
@@ -98,14 +96,13 @@ internal sealed class RenderGraphCompilationCache
         return false;
     }
 
-    public void Store(ulong hash, [Owner] ref CachedCompilation data)
+    public ref CachedCompilation PrepareForStore(ulong hash, in ViewState viewState)
     {
         _cachedHash = hash;
         _hasCachedData = true;
-
-        // Deep copy the data
-        _cached.Dispose();
-        _cached = data;
+        _cached.Clear();
+        _cached.viewState = viewState;
+        return ref _cached;
     }
 
     public void Invalidate()
@@ -123,5 +120,10 @@ internal sealed class RenderGraphCompilationCache
         }
 
         _cached.backingResources[logicalIndex] = resource;
+    }
+
+    public void Dispose()
+    {
+        _cached.Dispose();
     }
 }

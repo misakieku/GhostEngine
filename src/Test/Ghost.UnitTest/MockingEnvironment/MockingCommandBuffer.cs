@@ -14,6 +14,9 @@ internal class MockingCommandBuffer : ICommandBuffer
     public int DrawCallCount { get; private set; }
     public int CopyCallCount { get; private set; }
     public int UpdateSubResourcesCount { get; private set; }
+#if GHOST_UNITTEST
+    public List<BarrierDesc> RecordedBarriers { get; } = new();
+#endif
 
     public CommandBufferType Type
     {
@@ -40,6 +43,9 @@ internal class MockingCommandBuffer : ICommandBuffer
         {
             foreach (var desc in barrierDescs)
             {
+#if GHOST_UNITTEST
+                RecordedBarriers.Add(desc);
+#endif
                 var data = new ResourceBarrierData
                 {
                     access = desc.AccessAfter,
@@ -58,6 +64,9 @@ internal class MockingCommandBuffer : ICommandBuffer
         DrawCallCount = 0;
         CopyCallCount = 0;
         UpdateSubResourcesCount = 0;
+#if GHOST_UNITTEST
+        RecordedBarriers.Clear();
+#endif
     }
 
     public void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, ref readonly PassDepthStencilDesc depthDesc, bool allowUAVWrites = false)

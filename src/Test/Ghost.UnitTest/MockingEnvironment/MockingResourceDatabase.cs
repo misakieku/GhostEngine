@@ -1,24 +1,24 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
-using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.UnitTest.MockingEnvironment;
 
 internal unsafe class MockingResourceDatabase : IResourceDatabase
 {
-    internal class MockResourceRecord
+    internal struct MockResourceRecord()
     {
         public ResourceDesc desc;
         public ResourceBarrierData barrierData;
         public string? name;
         public int refCount = 1;
         public bool isShared;
-        public unsafe void* mappedData;
+        public void* mappedData;
     }
 
-    private readonly ConcurrentDictionary<ulong, MockResourceRecord> _resources = new();
-    private readonly ConcurrentDictionary<Identifier<Sampler>, SamplerDesc> _samplers = new();
+    private readonly Dictionary<ulong, MockResourceRecord> _resources = new(128);
+    private readonly Dictionary<Identifier<Sampler>, SamplerDesc> _samplers = new(128);
     private int _nextToken = 0;
     private int _samplerToken = 0;
 
@@ -49,13 +49,11 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
 
     public Handle<GPUResource> CreateShared(Handle<GPUResource> src)
     {
-        if (_resources.TryGetValue(GetKey(src), out var record))
+        ref var record = ref CollectionsMarshal.GetValueRefOrNullRef(_resources, GetKey(src));
+        if (!Unsafe.IsNullRef(ref record))
         {
-            lock (record)
-            {
-                record.refCount++;
-                record.isShared = true;
-            }
+            record.refCount++;
+            record.isShared = true;
 
             // To simulate sharing, we create a new handle mapping to the same conceptual resource.
             // For simplicity, we just clone the dict entry with a new ID
@@ -94,21 +92,24 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
 
     public Result<ResourceBarrierData, Error> GetResourceBarrierData(Handle<GPUResource> handle)
     {
-        if (_resources.TryGetValue(GetKey(handle), out var record))
+        ref var record = ref CollectionsMarshal.GetValueRefOrNullRef(_resources, GetKey(handle));
+        if (!Unsafe.IsNullRef(ref record))
             return record.barrierData;
         return Error.NotFound;
     }
 
     public Result<ResourceDesc, Error> GetResourceDescription(Handle<GPUResource> handle)
     {
-        if (_resources.TryGetValue(GetKey(handle), out var record))
+        ref var record = ref CollectionsMarshal.GetValueRefOrNullRef(_resources, GetKey(handle));
+        if (!Unsafe.IsNullRef(ref record))
             return record.desc;
         return Error.NotFound;
     }
 
     public string? GetResourceName(Handle<GPUResource> handle)
     {
-        if (_resources.TryGetValue(GetKey(handle), out var record))
+        ref var record = ref CollectionsMarshal.GetValueRefOrNullRef(_resources, GetKey(handle));
+        if (!Unsafe.IsNullRef(ref record))
             return record.name;
         return null;
     }
@@ -120,21 +121,19 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
 
     public void* MapResource(Handle<GPUResource> handle, uint subResource, ResourceRange? readRange)
     {
-        if (!_resources.TryGetValue(GetKey(handle), out var record))
+        ref var record = ref CollectionsMarshal.GetValueRefOrNullRef(_resources, GetKey(handle));
+        if (!Unsafe.IsNullRef(ref record))
         {
             return null;
         }
 
-        lock (record)
+        if (record.mappedData == null)
         {
-            if (record.mappedData == null)
-            {
-                var size = record.desc.Type == ResourceType.Buffer ? Math.Max(1UL, record.desc.BufferDescriptor.Size) : 1UL;
-                record.mappedData = NativeMemory.Alloc((nuint)size);
-            }
-
-            return record.mappedData;
+            var size = record.desc.Type == ResourceType.Buffer ? Math.Max(1UL, record.desc.BufferDescriptor.Size) : 1UL;
+            record.mappedData = NativeMemory.Alloc((nuint)size);
         }
+
+        return record.mappedData;
     }
 
     public void ReleaseResource(Handle<GPUResource> handle)
@@ -144,28 +143,26 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
 
     public void ReleaseResourceImmediately(Handle<GPUResource> handle)
     {
-        if (_resources.TryGetValue(GetKey(handle), out var record))
+        ref var record = ref CollectionsMarshal.GetValueRefOrNullRef(_resources, GetKey(handle));
+        if (!Unsafe.IsNullRef(ref record))
         {
-            lock (record)
+            record.refCount--;
+            if (record.refCount <= 0)
             {
-                record.refCount--;
-                if (record.refCount <= 0)
+                if (record.mappedData != null)
                 {
-                    if (record.mappedData != null)
-                    {
-                        NativeMemory.Free(record.mappedData);
-                        record.mappedData = null;
-                    }
-
-                    _resources.TryRemove(GetKey(handle), out _);
+                    NativeMemory.Free(record.mappedData);
+                    record.mappedData = null;
                 }
+
+                _resources.Remove(GetKey(handle), out _);
             }
         }
     }
 
     public void ReleaseSampler(Identifier<Sampler> id)
     {
-        _samplers.TryRemove(id, out _);
+        _samplers.Remove(id, out _);
     }
 
     public Handle<GPUResource> Replace(Handle<GPUResource> dst, Handle<GPUResource> src)
@@ -183,12 +180,10 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
 
     public Error SetResourceBarrierData(Handle<GPUResource> handle, ResourceBarrierData data)
     {
-        if (_resources.TryGetValue(GetKey(handle), out var record))
+        ref var record = ref CollectionsMarshal.GetValueRefOrNullRef(_resources, GetKey(handle));
+        if (!Unsafe.IsNullRef(ref record))
         {
-            lock (record)
-            {
-                record.barrierData = data;
-            }
+            record.barrierData = data;
 
             return Error.None;
         }
@@ -225,6 +220,20 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         return Error.None;
     }
 
+    public void Reset()
+    {
+        foreach (var kvp in _resources)
+        {
+            if (kvp.Value.mappedData != null)
+            {
+                NativeMemory.Free(kvp.Value.mappedData);
+            }
+        }
+
+        _resources.Clear();
+        _samplers.Clear();
+    }
+
     public void Dispose()
     {
         foreach (var record in _resources.Values)
@@ -232,7 +241,6 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
             if (record.mappedData != null)
             {
                 NativeMemory.Free(record.mappedData);
-                record.mappedData = null;
             }
         }
 

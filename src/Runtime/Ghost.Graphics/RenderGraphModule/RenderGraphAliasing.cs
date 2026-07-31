@@ -242,6 +242,7 @@ internal static class RenderGraphAliasingBuilder
                     }
                     insertIndex = i + 1;
                 }
+
                 _blocks.Insert(insertIndex, aliasedBlock);
                 targetBlock = ref _blocks[insertIndex];
             }

@@ -335,4 +335,138 @@ public class RenderGraphTest
         Assert.IsTrue(_resourceDatabase.HasResource(dstSlot.AsResource()), "Destination handle slot should contain a valid extracted resource after execution.");
         Assert.AreEqual(TextureFormat.R8G8_UNorm, _resourceDatabase.GetResourceDescription(dstSlot.AsResource()).Value.TextureDescriptor.Format);
     }
+
+#if GHOST_UNITTEST
+    [TestMethod]
+    public void TestRenderGraphBarrierGeneration()
+    {
+        var backBufferDesc = new TextureDesc();
+        var backBuffer = _renderGraph.ImportTexture(_resourceAllocator.CreateTexture(in backBufferDesc));
+
+        Identifier<RGTexture> renderTexture;
+
+        // Pass 1: Render to renderTexture
+        using (var builder = _renderGraph.AddRasterRenderPass<VBufferPassData>("RenderPass"))
+        {
+            renderTexture = builder.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8G8_UNorm), "RenderTexture");
+            builder.SetColorAttachment(renderTexture, 0, AccessFlags.WriteAll);
+
+            builder.SetPassData(new VBufferPassData());
+            builder.SetRenderFunc<VBufferPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        // Pass 2: Read renderTexture in Unsafe/Blit pass
+        using (var builder = _renderGraph.AddUnsafeRenderPass<FinalBlitPassData>("BlitPass"))
+        {
+            builder.SetPassData(new FinalBlitPassData
+            {
+                source = builder.UseTexture(renderTexture, AccessFlags.Read),
+                backBuffer = builder.UseTexture(backBuffer, AccessFlags.WriteAll)
+            });
+            builder.SetRenderFunc<FinalBlitPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        _commandBuffer.Begin(null!);
+
+        var exec = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState
+        {
+            actualWidth = 1920,
+            actualHeight = 1080,
+            viewportWidth = 1920,
+            viewportHeight = 1080
+        }).GetValueOrThrow();
+
+        Assert.IsNotEmpty(_commandBuffer.RecordedBarriers, "Barriers should be issued during graph execution.");
+
+        // Check that at least one barrier transitioned a texture to RenderTarget and ShaderResource
+        var hasRenderTargetBarrier = _commandBuffer.RecordedBarriers.Any(b => b.LayoutAfter == BarrierLayout.RenderTarget);
+        var hasShaderResourceBarrier = _commandBuffer.RecordedBarriers.Any(b => b.LayoutAfter == BarrierLayout.ShaderResource);
+
+        Assert.IsTrue(hasRenderTargetBarrier, "Must issue a RenderTarget barrier for color attachment.");
+        Assert.IsTrue(hasShaderResourceBarrier, "Must issue a ShaderResource barrier when reading texture.");
+    }
+
+    [TestMethod]
+    public void TestAsyncComputePassExecution()
+    {
+        MockingCommandQueue.GlobalRecordedOps.Clear();
+
+        var computeCmdBuffer = new MockingCommandBuffer(_resourceDatabase, CommandBufferType.Compute);
+        var graphicsQueue = new MockingCommandQueue(CommandQueueType.Graphics);
+        var computeQueue = new MockingCommandQueue(CommandQueueType.Compute);
+        var fence = new MockingFence(0);
+
+        var backBufferDesc = new TextureDesc();
+        var backBuffer = _renderGraph.ImportTexture(_resourceAllocator.CreateTexture(in backBufferDesc));
+
+        Identifier<RGBuffer> computeOutputBuffer;
+
+        // Pass 1: Async Compute Culling pass
+        using (var builder = _renderGraph.AddComputeRenderPass<CullingPassData>("AsyncComputeCulling"))
+        {
+            builder.AllowPassCulling(false);
+            builder.EnableAsyncCompute(true);
+
+            computeOutputBuffer = builder.CreateBuffer(new BufferDesc { Size = 1024 }, "CullingBuffer");
+            builder.UseBuffer(computeOutputBuffer, AccessFlags.Write);
+
+            builder.SetPassData(new CullingPassData());
+            builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        // Pass 2: Graphics Raster pass reading CullingBuffer
+        using (var builder = _renderGraph.AddRasterRenderPass<VBufferPassData>("RasterPass"))
+        {
+            builder.AllowPassCulling(false);
+            builder.UseBuffer(computeOutputBuffer, AccessFlags.Read);
+            var vbuffer = builder.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8G8_UNorm), "VBuffer");
+            builder.SetColorAttachment(vbuffer, 0, AccessFlags.WriteAll);
+
+            builder.SetPassData(new VBufferPassData());
+            builder.SetRenderFunc<VBufferPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        _commandBuffer.Begin(null!);
+        computeCmdBuffer.Begin(null!);
+
+        ViewState viewState = new ViewState
+        {
+            actualWidth = 1920,
+            actualHeight = 1080,
+            viewportWidth = 1920,
+            viewportHeight = 1080
+        };
+
+        var execResult = _renderGraph.CompileAndExecute(
+            _commandBuffer,
+            computeCmdBuffer,
+            graphicsQueue,
+            computeQueue,
+            fence,
+            viewState,
+            RGExecutionFlags.GenerateDump);
+
+        Assert.IsTrue(execResult.IsSuccess, "CompileAndExecute with Async Compute should succeed.");
+        var exec = execResult.Value;
+        Assert.IsNotNull(exec.Dump, "Execution dump should not be null.");
+
+        var asyncPass = exec.Dump.Passes.FirstOrDefault(p => p.Name == "AsyncComputeCulling");
+        Assert.IsTrue(asyncPass.AsyncCompute, "AsyncComputeCulling pass should be flagged as AsyncCompute.");
+        // Verify Recorded Queue Ops (Cross-Queue Synchronization Protocol)
+        Assert.IsNotEmpty(MockingCommandQueue.GlobalRecordedOps, "Queue synchronization operations should be recorded.");
+
+        // Check that Signal, Submit, and Wait operations occurred on the appropriate queues
+        var recorded = MockingCommandQueue.GlobalRecordedOps;
+        var opsString = string.Join(" | ", recorded);
+
+        Assert.IsTrue(recorded.Any(op => op.QueueType == CommandQueueType.Graphics && op.OpType == QueueOpType.Signal), $"Graphics queue signal failed. Recorded: {opsString}");
+        Assert.IsTrue(recorded.Any(op => op.QueueType == CommandQueueType.Graphics && op.OpType == QueueOpType.Submit), $"Graphics queue submit failed. Recorded: {opsString}");
+        Assert.IsTrue(recorded.Any(op => op.QueueType == CommandQueueType.Compute && op.OpType == QueueOpType.Wait), $"Compute queue wait failed. Recorded: {opsString}");
+        Assert.IsTrue(recorded.Any(op => op.QueueType == CommandQueueType.Graphics && op.OpType == QueueOpType.Submit), $"Graphics queue submit failed. Recorded: {opsString}");
+        Assert.IsTrue(recorded.Any(op => op.QueueType == CommandQueueType.Compute && op.OpType == QueueOpType.Wait), $"Compute queue wait failed. Recorded: {opsString}");
+
+        computeCmdBuffer.Dispose();
+        fence.Dispose();
+    }
+#endif
 }

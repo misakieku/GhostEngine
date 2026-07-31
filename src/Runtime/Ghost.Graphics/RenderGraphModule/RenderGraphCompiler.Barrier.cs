@@ -1,5 +1,8 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -11,23 +14,8 @@ internal enum BarrierFlags
     Discard = 1 << 1
 }
 
-internal sealed class ResourceStateTracker
-{
-    public int resourceIndex;
-    public int lastAccessPass = -1;
-    public ResourceBarrierData currentState;
-
-    public void Reset()
-    {
-        resourceIndex = -1;
-        lastAccessPass = -1;
-        currentState = default;
-    }
-}
-
 internal struct CompiledBarrier
 {
-    public int passIndex;
     public Identifier<RGResource> resource;
     public ResourceBarrierData targetState;
     public Identifier<RGResource> aliasingPredecessor; // Invalid if not aliasing
@@ -37,70 +25,74 @@ internal struct CompiledBarrier
     public override readonly string ToString()
     {
         return aliasingPredecessor.IsValid
-            ? $"[Pass {passIndex}] Aliasing: {aliasingPredecessor.Value}->{resource.Value} -> {targetState.layout}"
-            : $"[Pass {passIndex}] Transition: {resource.Value} -> {targetState.layout}";
+            ? $"Aliasing: {aliasingPredecessor.Value}->{resource.Value} -> {targetState.layout}"
+            : $"Transition: {resource.Value} -> {targetState.layout}";
     }
 }
 
-internal static class RenderGraphBarriers
+internal partial class RenderGraphCompiler
 {
-    public static void CompileBarriers(
-        List<RenderGraphPass> compiledPasses,
-        List<CompiledBarrier> compiledBarriers,
-        RenderGraphResourceRegistry resources,
-        AliasingPlan aliasingPlan)
-    {
-        compiledBarriers.Clear();
-
-        // Process each compiled pass in order
-        for (var passIdx = 0; passIdx < compiledPasses.Count; passIdx++)
-        {
-            var pass = compiledPasses[passIdx];
-
-            // 1. Insert aliasing barriers for resources that reuse physical memory
-            InsertAliasingBarriers(pass, passIdx, compiledBarriers, resources, aliasingPlan);
-
-            // 2. Compile implicit transitions for all resources accessed by this pass
-            CompileImplicitTransitions(pass, passIdx, compiledBarriers, resources);
-        }
-    }
-
-    private static void InsertAliasingBarriers(
+    private int EmitBarriersForPass(
         RenderGraphPass pass,
         int passIdx,
-        List<CompiledBarrier> compiledBarriers,
-        RenderGraphResourceRegistry resources,
+        ref BufferWriter writer,
         AliasingPlan aliasingPlan)
     {
-        // Check all resources written by this pass (both textures and buffers)
+        var startPos = writer.Position;
+
+        // Reserve opcode (1 byte) + barrier count (4 bytes)
+        writer.Write(RGExecutionOpType.IssueBarriers);
+        writer.Write(0); // Count placeholder
+
+        var count = 0;
+        count += EmitAliasingBarriers(pass, passIdx, ref writer, aliasingPlan);
+        count += EmitImplicitTransitions(pass, passIdx, ref writer);
+
+        if (count > 0)
+        {
+            var endPos = writer.Position;
+            writer.Position = startPos + 1; // Backpatch count right after opcode
+            writer.Write(count);
+            writer.Position = endPos; // Restore position at end of stream
+        }
+        else
+        {
+            writer.Position = startPos; // Rewind if no barriers were emitted
+        }
+
+        return count;
+    }
+
+    private int EmitAliasingBarriers(
+        RenderGraphPass pass,
+        int passIdx,
+        ref BufferWriter writer,
+        AliasingPlan aliasingPlan)
+    {
+        var count = 0;
+
         for (var resType = 0; resType < (int)RGResourceType.Count; resType++)
         {
             var writeList = pass.resourceWrites[resType];
             for (var i = 0; i < writeList.Count; i++)
             {
                 var id = writeList[i];
-                ref readonly var resource = ref resources.GetResource(id);
+                ref readonly var resource = ref _resources.GetResource(id);
 
-                // Skip imported resources
                 if (resource.isImported)
                 {
                     continue;
                 }
 
-                // Check if this is the first use of this logical heap
                 if (resource.firstUsePass == pass.index)
                 {
-                    // Get the placed heap
                     var placedIndex = aliasingPlan.GetPlacedResourceIndex(id.Value);
                     if (placedIndex >= 0)
                     {
                         var placed = aliasingPlan.GetPlacedResource(placedIndex);
 
-                        // If this placed heap has multiple aliased resources,
-                        // we need an aliasing barrier when switching between them
                         if (placed.IsSuccess && placed.Value.aliasedLogicalResources.Count > 1)
                         {
-                            // Find the heap that used this placed memory most recently before this pass
                             Identifier<RGResource> resourceBefore = default;
                             var mostRecentLastUse = -1;
 
@@ -108,10 +100,8 @@ internal static class RenderGraphBarriers
                             {
                                 if (otherLogicalIndex != id.Value)
                                 {
-                                    // Get heap by global index
-                                    var otherResource = resources.GetResourceByIndex(otherLogicalIndex);
+                                    var otherResource = _resources.GetResourceByIndex(otherLogicalIndex);
 
-                                    // Check if this heap finished before our heap starts
                                     if (otherResource.lastUsePass < pass.index &&
                                         otherResource.lastUsePass > mostRecentLastUse)
                                     {
@@ -121,50 +111,35 @@ internal static class RenderGraphBarriers
                                 }
                             }
 
-                            // If we found a previous heap, insert aliasing barrier
                             if (mostRecentLastUse >= 0)
                             {
-                                // Aliasing Requirement: Transition to Undefined, Sync with Predecessor
                                 var targetState = new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierSync.None);
                                 var barrier = new CompiledBarrier
                                 {
-                                    passIndex = passIdx,
                                     resource = id,
                                     targetState = targetState,
                                     aliasingPredecessor = resourceBefore,
                                     flags = BarrierFlags.FirstUsage | BarrierFlags.Discard,
                                     resourceType = resource.type
                                 };
-                                compiledBarriers.Add(barrier);
+                                writer.Write(barrier);
+                                count++;
                             }
                         }
                     }
                 }
             }
         }
+
+        return count;
     }
 
-    private static void CompileImplicitTransitions(
+    private int EmitImplicitTransitions(
         RenderGraphPass pass,
         int passIdx,
-        List<CompiledBarrier> compiledBarriers,
-        RenderGraphResourceRegistry resources)
+        ref BufferWriter writer)
     {
-        // Helper to add a compiled barrier for a heap transition
-        void AddTransition(Identifier<RGResource> id, ResourceBarrierData targetState)
-        {
-            ref readonly var resource = ref resources.GetResource(id);
-            var barrier = new CompiledBarrier
-            {
-                passIndex = passIdx,
-                resource = id,
-                targetState = targetState,
-                aliasingPredecessor = Identifier<RGResource>.Invalid,
-                flags = BarrierFlags.None,
-                resourceType = resource.type
-            };
-            compiledBarriers.Add(barrier);
-        }
+        var count = 0;
 
         // Compile transitions for read resources
         for (var i = 0; i < (int)RGResourceType.Count; i++)
@@ -202,14 +177,13 @@ internal static class RenderGraphBarriers
                     }
                 }
 
-                // Skip generic SRV barrier if handled specifically
                 if (isExplicitlyHandled)
                 {
                     continue;
                 }
 
-                var targetState = GetBufferReadBarrierData(handle, pass, (RGResourceType)i, resources);
-                AddTransition(handle, targetState);
+                var targetState = GetBufferReadBarrierData(handle, pass, (RGResourceType)i);
+                count += AddTransition(handle, targetState, ref writer);
             }
         }
 
@@ -217,30 +191,27 @@ internal static class RenderGraphBarriers
         switch (pass.type)
         {
             case RenderPassType.Raster:
-                // Color attachments
                 for (var i = 0; i <= pass.maxColorIndex; i++)
                 {
                     if (pass.colorAccess[i].id.IsValid)
                     {
                         var usage = pass.colorAccess[i].usage;
                         var targetState = new ResourceBarrierData(usage.layout, usage.access, usage.sync);
-                        AddTransition(pass.colorAccess[i].id.AsResource(), targetState);
+                        count += AddTransition(pass.colorAccess[i].id.AsResource(), targetState, ref writer);
                     }
                 }
 
-                // Depth attachment
                 if (pass.depthAccess.id.IsValid)
                 {
                     var usage = pass.depthAccess.usage;
                     var targetState = new ResourceBarrierData(usage.layout, usage.access, usage.sync);
-                    AddTransition(pass.depthAccess.id.AsResource(), targetState);
+                    count += AddTransition(pass.depthAccess.id.AsResource(), targetState, ref writer);
                 }
 
-                // UAV resources
                 var uavState = new ResourceBarrierData(BarrierLayout.UnorderedAccess, BarrierAccess.UnorderedAccess, BarrierSync.AllShading);
                 for (var i = 0; i < pass.randomAccess.Count; i++)
                 {
-                    AddTransition(pass.randomAccess[i], uavState);
+                    count += AddTransition(pass.randomAccess[i], uavState, ref writer);
                 }
                 break;
 
@@ -251,7 +222,7 @@ internal static class RenderGraphBarriers
                     var writeList = pass.resourceWrites[i];
                     for (var j = 0; j < writeList.Count; j++)
                     {
-                        AddTransition(writeList[j], computeUavState);
+                        count += AddTransition(writeList[j], computeUavState, ref writer);
                     }
                 }
                 break;
@@ -263,24 +234,40 @@ internal static class RenderGraphBarriers
                     var writeList = pass.resourceWrites[i];
                     for (var j = 0; j < writeList.Count; j++)
                     {
-                        AddTransition(writeList[j], rtState);
+                        count += AddTransition(writeList[j], rtState, ref writer);
                     }
                 }
 
                 var unsafeUavState = new ResourceBarrierData(BarrierLayout.UnorderedAccess, BarrierAccess.UnorderedAccess, BarrierSync.AllShading);
                 for (var i = 0; i < pass.randomAccess.Count; i++)
                 {
-                    AddTransition(pass.randomAccess[i], unsafeUavState);
+                    count += AddTransition(pass.randomAccess[i], unsafeUavState, ref writer);
                 }
                 break;
         }
+
+        return count;
     }
 
-    private static ResourceBarrierData GetBufferReadBarrierData(
+    private int AddTransition(Identifier<RGResource> id, ResourceBarrierData targetState, ref BufferWriter writer)
+    {
+        ref readonly var resource = ref _resources.GetResource(id);
+        var barrier = new CompiledBarrier
+        {
+            resource = id,
+            targetState = targetState,
+            aliasingPredecessor = Identifier<RGResource>.Invalid,
+            flags = BarrierFlags.None,
+            resourceType = resource.type
+        };
+        writer.Write(barrier);
+        return 1;
+    }
+
+    private ResourceBarrierData GetBufferReadBarrierData(
         Identifier<RGResource> handle,
         RenderGraphPass pass,
-        RGResourceType resourceType,
-        RenderGraphResourceRegistry resources)
+        RGResourceType resourceType)
     {
         if (resourceType == RGResourceType.Texture)
         {
@@ -290,7 +277,7 @@ internal static class RenderGraphBarriers
         var sync = BarrierSync.PixelShading | BarrierSync.NonPixelShading;
         var access = BarrierAccess.ShaderResource;
 
-        ref readonly var resource = ref resources.GetResource(handle);
+        ref readonly var resource = ref _resources.GetResource(handle);
         if (resource.bufferDesc.Usage.HasFlag(BufferUsage.IndirectArgument))
         {
             sync = BarrierSync.ExecuteIndirect;
@@ -298,5 +285,58 @@ internal static class RenderGraphBarriers
         }
 
         return new ResourceBarrierData(BarrierLayout.Undefined, access, sync);
+    }
+
+    public static bool RequiresBarrierBetweenPasses(
+        int passA,
+        int passB,
+        List<RenderGraphPass> compiledPasses,
+        RenderGraphResourceRegistry resources,
+        AliasingPlan aliasingPlan)
+    {
+        var laterPass = compiledPasses[passB];
+
+        using var scope = AllocationManager.CreateStackScope();
+        using var renderTargets = new UnsafeHashSet<Identifier<RGResource>>(laterPass.maxColorIndex + 1, scope.AllocationHandle);
+
+        for (var i = 0; i <= laterPass.maxColorIndex; i++)
+        {
+            if (!laterPass.colorAccess[i].id.IsInvalid)
+            {
+                renderTargets.Add(laterPass.colorAccess[i].id.AsResource());
+            }
+        }
+
+        if (!laterPass.depthAccess.id.IsInvalid)
+        {
+            renderTargets.Add(laterPass.depthAccess.id.AsResource());
+        }
+
+        for (var resType = 0; resType < (int)RGResourceType.Count; resType++)
+        {
+            var writeList = laterPass.resourceWrites[resType];
+            for (var i = 0; i < writeList.Count; i++)
+            {
+                var id = writeList[i];
+                ref readonly var resource = ref resources.GetResource(id);
+                if (!resource.isImported && resource.firstUsePass == laterPass.index)
+                {
+                    var placedIndex = aliasingPlan.GetPlacedResourceIndex(id.Value);
+                    if (placedIndex >= 0)
+                    {
+                        var placed = aliasingPlan.GetPlacedResource(placedIndex);
+                        if (placed.IsSuccess && placed.Value.aliasedLogicalResources.Count > 1)
+                        {
+                            if (renderTargets.Contains(id))
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }

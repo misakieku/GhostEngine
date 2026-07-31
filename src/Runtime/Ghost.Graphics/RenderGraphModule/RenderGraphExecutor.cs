@@ -83,10 +83,23 @@ internal sealed class RenderGraphExecutor
         ICommandBuffer commandBuffer,
         IReadOnlyList<RenderGraphPass> compiledPasses,
         IReadOnlyList<NativeRenderPass> nativePasses,
-        IReadOnlyList<CompiledBarrier> compiledBarriers,
         BufferReader reader)
     {
-        _context.BeginNewFrame(commandBuffer);
+        return Execute(commandBuffer, null, null, null, null, compiledPasses, nativePasses, reader);
+    }
+
+    public unsafe Error Execute(
+        ICommandBuffer graphicsCommandBuffer,
+        ICommandBuffer? computeCommandBuffer,
+        ICommandQueue? graphicsQueue,
+        ICommandQueue? computeQueue,
+        IFence? fence,
+        IReadOnlyList<RenderGraphPass> compiledPasses,
+        IReadOnlyList<NativeRenderPass> nativePasses,
+        BufferReader reader)
+    {
+        var activeCommandBuffer = graphicsCommandBuffer;
+        _context.BeginNewFrame(activeCommandBuffer);
 
         var pPassRTDescs = stackalloc PassRenderTargetDesc[8];
         var pRtFormats = stackalloc TextureFormat[8];
@@ -102,9 +115,8 @@ internal sealed class RenderGraphExecutor
                 {
                     case RGExecutionOpType.IssueBarriers:
                     {
-                        var barrierStart = reader.Read<int>();
                         var barrierCount = reader.Read<int>();
-                        var e = ExecuteBarrierBatch(commandBuffer, barrierStart, barrierCount, compiledBarriers);
+                        var e = ExecuteBarrierBatch(activeCommandBuffer, barrierCount, ref reader);
                         if (e != Error.None)
                         {
                             return e;
@@ -152,7 +164,7 @@ internal sealed class RenderGraphExecutor
                                 : AttachmentStoreOp.NoAccess,
                         };
 
-                        commandBuffer.BeginRenderPass(new Span<PassRenderTargetDesc>(pPassRTDescs, nativePass.colorAttachmentCount), in depthDesc);
+                        activeCommandBuffer.BeginRenderPass(new Span<PassRenderTargetDesc>(pPassRTDescs, nativePass.colorAttachmentCount), in depthDesc);
                         insideNativePass = true;
 
                         for (var i = 0; i < nativePass.colorAttachmentCount; i++)
@@ -179,8 +191,50 @@ internal sealed class RenderGraphExecutor
 
                     case RGExecutionOpType.EndNativePass:
                     {
-                        commandBuffer.EndRenderPass();
+                        activeCommandBuffer.EndRenderPass();
                         insideNativePass = false;
+                        break;
+                    }
+
+                    case RGExecutionOpType.SignalFence:
+                    {
+                        var srcQueueType = (CommandQueueType)reader.Read<byte>();
+                        var fenceId = reader.Read<int>();
+                        var fenceVal = reader.Read<ulong>();
+                        var srcQueue = (srcQueueType == CommandQueueType.Compute) ? computeQueue : graphicsQueue;
+                        if (srcQueue != null && fence != null)
+                        {
+                            srcQueue.Signal(fence, fenceVal);
+                        }
+                        break;
+                    }
+
+                    case RGExecutionOpType.SubmitQueue:
+                    {
+                        var targetQueueType = (CommandQueueType)reader.Read<byte>();
+                        var targetCmdBuffer = (targetQueueType == CommandQueueType.Compute) ? computeCommandBuffer : graphicsCommandBuffer;
+                        var targetQueue = (targetQueueType == CommandQueueType.Compute) ? computeQueue : graphicsQueue;
+                        if (targetQueue != null && targetCmdBuffer != null)
+                        {
+                            targetQueue.Submit(targetCmdBuffer);
+                        }
+                        break;
+                    }
+
+                    case RGExecutionOpType.GPUWait:
+                    {
+                        var dstQueueType = (CommandQueueType)reader.Read<byte>();
+                        var fenceId = reader.Read<int>();
+                        var fenceVal = reader.Read<ulong>();
+                        var dstQueue = (dstQueueType == CommandQueueType.Compute) ? computeQueue : graphicsQueue;
+                        if (dstQueue != null && fence != null)
+                        {
+                            dstQueue.Wait(fence, fenceVal);
+                        }
+                        activeCommandBuffer = (dstQueueType == CommandQueueType.Compute && computeCommandBuffer != null)
+                            ? computeCommandBuffer
+                            : graphicsCommandBuffer;
+                        _context.BeginNewFrame(activeCommandBuffer);
                         break;
                     }
 
@@ -195,12 +249,12 @@ internal sealed class RenderGraphExecutor
         {
             if (insideNativePass)
             {
-                commandBuffer.EndRenderPass();
+                activeCommandBuffer.EndRenderPass();
             }
 
             // Insert Full Pipeline Barrier
             var barrier = BarrierDesc.Global(BarrierSync.All, BarrierSync.All, BarrierAccess.Common, BarrierAccess.Common);
-            commandBuffer.Barrier(barrier);
+            activeCommandBuffer.Barrier(barrier);
 
             Logger.Error(ex);
             return Error.InternalError;
@@ -209,9 +263,8 @@ internal sealed class RenderGraphExecutor
 
     private unsafe Error ExecuteBarrierBatch(
         ICommandBuffer cmd,
-        int barrierStart,
         int barrierCount,
-        IReadOnlyList<CompiledBarrier> compiledBarriers)
+        ref BufferReader reader)
     {
         if (barrierCount <= 0)
         {
@@ -233,7 +286,7 @@ internal sealed class RenderGraphExecutor
 
         for (var i = 0; i < barrierCount; i++)
         {
-            var compiledBarrier = compiledBarriers[barrierStart + i];
+            var compiledBarrier = reader.Read<CompiledBarrier>();
             var resourceHandle = _resources.GetResource(compiledBarrier.resource).backingResource;
             var target = compiledBarrier.targetState;
 

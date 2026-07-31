@@ -2,7 +2,6 @@ using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Buffer;
-using TerraFX.Interop.Gdiplus;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -185,6 +184,14 @@ public sealed class RenderGraph : IDisposable
     }
 
     /// <summary>
+    /// Forces the compilation cache to be invalidated.
+    /// </summary>
+    public void InvalidateCache()
+    {
+        _compilationCache.Invalidate();
+    }
+
+    /// <summary>
     /// Imports an external texture into the render graph.
     /// </summary>
     /// <param name="texture">The external texture handle.</param>
@@ -199,7 +206,7 @@ public sealed class RenderGraph : IDisposable
             Logger.Error("Failed to get resource description for texture handle: " + texture);
             return Identifier<RGTexture>.Invalid;
         }
-        
+
         var desc = r.Value;
         var name = _resourceDatabase.GetResourceName(texture.AsResource());
         return _resourceRegistry.ImportTexture(in desc.TextureDescriptor, texture, name, clearColor, clearDepth, clearStencil, clearAtFirstUse, discardAtLastUse);
@@ -281,9 +288,16 @@ public sealed class RenderGraph : IDisposable
     }
 
     /// <summary>
-    /// Compiles the render graph the execute all compiled passes.
+    /// Compiles the render graph and executes all compiled passes with multi-queue support.
     /// </summary>
-    public Result<RGExecution, Error> CompileAndExecute(ICommandBuffer commandBuffer, ViewState viewState, RGExecutionFlags flags = RGExecutionFlags.Default)
+    public Result<RGExecution, Error> CompileAndExecute(
+        ICommandBuffer graphicsCommandBuffer,
+        ICommandBuffer? computeCommandBuffer,
+        ICommandQueue? graphicsQueue,
+        ICommandQueue? computeQueue,
+        IFence? fence,
+        ViewState viewState,
+        RGExecutionFlags flags = RGExecutionFlags.Default)
     {
         _resourceRegistry.ResolveTextureSizes(in viewState);
 
@@ -297,7 +311,15 @@ public sealed class RenderGraph : IDisposable
 
         using var graph = result.Value;
         _context.RelativeScale = graph.scale;
-        var error = _executor.Execute(commandBuffer, graph.compiledPasses, graph.nativePasses, graph.compiledBarriers, graph.commandReader);
+        var error = _executor.Execute(
+            graphicsCommandBuffer,
+            computeCommandBuffer,
+            graphicsQueue,
+            computeQueue,
+            fence,
+            graph.compiledPasses,
+            graph.nativePasses,
+            graph.commandReader);
         if (error.IsFailure)
         {
             return error;
@@ -339,9 +361,18 @@ public sealed class RenderGraph : IDisposable
         return new RGExecution { Dump = _cachedDump };
     }
 
+    /// <summary>
+    /// Compiles the render graph and executes all compiled passes on a single command buffer.
+    /// </summary>
+    public Result<RGExecution, Error> CompileAndExecute(ICommandBuffer commandBuffer, ViewState viewState, RGExecutionFlags flags = RGExecutionFlags.Default)
+    {
+        return CompileAndExecute(commandBuffer, null, null, null, null, viewState, flags);
+    }
+
     public void Dispose()
     {
         _resourceRegistry.Dispose();
+        _compilationCache.Dispose();
 
         for (var i = 0; i < _passes.Count; i++)
         {
