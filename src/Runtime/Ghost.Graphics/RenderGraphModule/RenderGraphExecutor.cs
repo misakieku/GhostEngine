@@ -12,21 +12,18 @@ internal sealed class RenderGraphExecutor
     private readonly ResourceManager _resourceManager;
     private readonly IResourceDatabase _resourceDatabase;
     private readonly RenderGraphResourceRegistry _resources;
-    private readonly RenderGraphContext _context;
 
     public RenderGraphExecutor(
         ResourceManager resourceManager,
         IResourceDatabase resourceDatabase,
-        RenderGraphResourceRegistry resources,
-        RenderGraphContext context)
+        RenderGraphResourceRegistry resources)
     {
         _resourceManager = resourceManager;
         _resourceDatabase = resourceDatabase;
         _resources = resources;
-        _context = context;
     }
 
-    private void SetViewport(ReadOnlySpan<RenderTargetInfo> color, DepthStencilInfo depthStencil)
+    private void SetViewport(RenderGraphContext context, ReadOnlySpan<RenderTargetInfo> color, DepthStencilInfo depthStencil)
     {
         // This should not happened since the compiler should have rejected any render pass with an invalid render target configuration, but just in case, we use Logger.DebugAssert to validate our assumptions.
         Logger.DebugAssert(color.Length > 0 || depthStencil.texture.IsValid);
@@ -75,35 +72,26 @@ internal sealed class RenderGraphExecutor
             };
         }
 
-        _context.SetViewport(viewportDesc);
-        _context.SetScissorRect(scissorDesc);
-    }
-
-    public unsafe Error Execute(
-        ICommandBuffer commandBuffer,
-        IReadOnlyList<RenderGraphPass> compiledPasses,
-        IReadOnlyList<NativeRenderPass> nativePasses,
-        BufferReader reader)
-    {
-        return Execute(commandBuffer, null, null, null, null, compiledPasses, nativePasses, reader);
+        context.SetViewport(viewportDesc);
+        context.SetScissorRect(scissorDesc);
     }
 
     public unsafe Error Execute(
         ICommandBuffer graphicsCommandBuffer,
-        ICommandBuffer? computeCommandBuffer,
-        ICommandQueue? graphicsQueue,
-        ICommandQueue? computeQueue,
-        IFence? fence,
-        IReadOnlyList<RenderGraphPass> compiledPasses,
-        IReadOnlyList<NativeRenderPass> nativePasses,
-        BufferReader reader)
+        ICommandBuffer computeCommandBuffer,
+        ICommandQueue graphicsQueue,
+        ICommandQueue computeQueue,
+        IFence fence,
+        RenderGraphContext context,
+        scoped in CompiledGraph graph)
     {
         var activeCommandBuffer = graphicsCommandBuffer;
-        _context.BeginNewFrame(activeCommandBuffer);
+        context.BeginNewFrame(activeCommandBuffer);
 
         var pPassRTDescs = stackalloc PassRenderTargetDesc[8];
         var pRtFormats = stackalloc TextureFormat[8];
         var insideNativePass = false;
+        var reader = new SpanReader(graph.commandStream);
 
         try
         {
@@ -127,9 +115,9 @@ internal sealed class RenderGraphExecutor
                     case RGExecutionOpType.BeginNativePass:
                     {
                         var nativePassIdx = reader.Read<int>();
-                        var nativePass = nativePasses[nativePassIdx];
+                        var nativePass = graph.nativePasses[nativePassIdx];
 
-                        SetViewport(nativePass.colorAttachments, nativePass.depthAttachment);
+                        SetViewport(context, nativePass.colorAttachments, nativePass.depthAttachment);
 
                         for (var i = 0; i < nativePass.colorAttachmentCount; i++)
                         {
@@ -177,15 +165,15 @@ internal sealed class RenderGraphExecutor
                         var depthFormat = nativePass.hasDepthAttachment
                             ? _resources.GetResource(nativePass.depthAttachment.texture).rgTextureDesc.format
                             : TextureFormat.Unknown;
-                        _context.SetRenderTargetFormats(new ReadOnlySpan<TextureFormat>(pRtFormats, nativePass.colorAttachmentCount), depthFormat);
+                        context.SetRenderTargetFormats(new ReadOnlySpan<TextureFormat>(pRtFormats, nativePass.colorAttachmentCount), depthFormat);
                         break;
                     }
 
                     case RGExecutionOpType.ExecutePass:
                     {
                         var passIdx = reader.Read<int>();
-                        var pass = compiledPasses[passIdx];
-                        pass.Execute(_context);
+                        var pass = graph.passes[passIdx];
+                        pass.Execute(context);
                         break;
                     }
 
@@ -198,43 +186,35 @@ internal sealed class RenderGraphExecutor
 
                     case RGExecutionOpType.SignalFence:
                     {
-                        var srcQueueType = (CommandQueueType)reader.Read<byte>();
-                        var fenceId = reader.Read<int>();
+                        var srcQueueType = reader.Read<CommandQueueType>();
                         var fenceVal = reader.Read<ulong>();
                         var srcQueue = (srcQueueType == CommandQueueType.Compute) ? computeQueue : graphicsQueue;
-                        if (srcQueue != null && fence != null)
-                        {
-                            srcQueue.Signal(fence, fenceVal);
-                        }
+
+                        srcQueue.Signal(fence, fenceVal);
                         break;
                     }
 
                     case RGExecutionOpType.SubmitQueue:
                     {
-                        var targetQueueType = (CommandQueueType)reader.Read<byte>();
+                        var targetQueueType = reader.Read<CommandQueueType>();
                         var targetCmdBuffer = (targetQueueType == CommandQueueType.Compute) ? computeCommandBuffer : graphicsCommandBuffer;
                         var targetQueue = (targetQueueType == CommandQueueType.Compute) ? computeQueue : graphicsQueue;
-                        if (targetQueue != null && targetCmdBuffer != null)
-                        {
-                            targetQueue.Submit(targetCmdBuffer);
-                        }
+
+                        targetQueue.Submit(targetCmdBuffer);
                         break;
                     }
 
                     case RGExecutionOpType.GPUWait:
                     {
-                        var dstQueueType = (CommandQueueType)reader.Read<byte>();
-                        var fenceId = reader.Read<int>();
+                        var dstQueueType = reader.Read<CommandQueueType>();
                         var fenceVal = reader.Read<ulong>();
                         var dstQueue = (dstQueueType == CommandQueueType.Compute) ? computeQueue : graphicsQueue;
-                        if (dstQueue != null && fence != null)
-                        {
-                            dstQueue.Wait(fence, fenceVal);
-                        }
-                        activeCommandBuffer = (dstQueueType == CommandQueueType.Compute && computeCommandBuffer != null)
+
+                        dstQueue.Wait(fence, fenceVal);
+                        activeCommandBuffer = (dstQueueType == CommandQueueType.Compute)
                             ? computeCommandBuffer
                             : graphicsCommandBuffer;
-                        _context.BeginNewFrame(activeCommandBuffer);
+                        context.BeginNewFrame(activeCommandBuffer);
                         break;
                     }
 
@@ -261,10 +241,10 @@ internal sealed class RenderGraphExecutor
         }
     }
 
-    private unsafe Error ExecuteBarrierBatch(
+    private Error ExecuteBarrierBatch(
         ICommandBuffer cmd,
         int barrierCount,
-        ref BufferReader reader)
+        ref SpanReader reader)
     {
         if (barrierCount <= 0)
         {

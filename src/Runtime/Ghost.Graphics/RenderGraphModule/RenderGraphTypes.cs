@@ -349,9 +349,12 @@ internal readonly struct TextureAccess
     }
 }
 
-/// <summary>
-/// Tracks buffer access information.
-/// </summary>
+[InlineArray(RHIUtility.MAX_RENDER_TARGETS)]
+internal struct TextureAccessArray
+{
+    public TextureAccess access;
+}
+
 internal readonly struct BufferAccess
 {
     public readonly Identifier<RGBuffer> id;
@@ -366,9 +369,6 @@ internal readonly struct BufferAccess
     }
 }
 
-/// <summary>
-/// Information about a render target attachment in a native render pass.
-/// </summary>
 internal struct RenderTargetInfo
 {
     public Identifier<RGTexture> texture;
@@ -378,9 +378,12 @@ internal struct RenderTargetInfo
     public Color128 clearColor;
 }
 
-/// <summary>
-/// Information about a depth-stencil attachment in a native render pass.
-/// </summary>
+[InlineArray(RHIUtility.MAX_RENDER_TARGETS)]
+internal struct RenderTargetInfoArray
+{
+    public RenderTargetInfo info;
+}
+
 internal struct DepthStencilInfo
 {
     public Identifier<RGTexture> texture;
@@ -391,6 +394,17 @@ internal struct DepthStencilInfo
     public AttachmentStoreOp stencilStoreOp;
     public float clearDepth;
     public byte clearStencil;
+}
+
+internal enum RGExecutionOpType : byte
+{
+    IssueBarriers = 0,
+    BeginNativePass = 1,
+    ExecutePass = 2,
+    EndNativePass = 3,
+    GPUWait = 4,
+    SignalFence = 5,
+    SubmitQueue = 6,
 }
 
 [Flags]
@@ -404,17 +418,6 @@ public enum RGExecutionFlags
     /// Generate a detailed dump of the render graph execution for debugging and analysis.
     /// </summary>
     GenerateDump = 1 << 0,
-}
-
-internal enum RGExecutionOpType : byte
-{
-    IssueBarriers = 0,
-    BeginNativePass = 1,
-    ExecutePass = 2,
-    EndNativePass = 3,
-    GPUWait = 4,
-    SignalFence = 5,
-    SubmitQueue = 6,
 }
 
 public sealed class RenderGraphDump
@@ -447,6 +450,12 @@ public sealed class RenderGraphDump
 
     // Complete Pass List (with culling & merge info)
     public List<PassDumpInfo> Passes
+    {
+        get; init;
+    } = new();
+
+    // Disassembled Binary Command Stream
+    public List<string> CommandStream
     {
         get; init;
     } = new();
@@ -577,12 +586,12 @@ public readonly struct ResourceDumpInfo
         get; init;
     }
 
-    public int ProducerPass
+    public int[] ProducerPass
     {
         get; init;
     }
 
-    public List<int> ConsumerPasses
+    public int[] ConsumerPasses
     {
         get; init;
     }

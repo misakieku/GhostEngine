@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -10,52 +9,39 @@ namespace Ghost.Graphics.RenderGraphModule;
 internal struct CachedCompilation : IDisposable
 {
     // Compiled pass indices (indices into the _passes list)
-    public UnsafeList<int> compiledPassIndices;
+    public UnsafeArray<int> compiledPassIndices;
 
     // Culling decisions for each pass
-    public UnsafeList<bool> passCulledFlags;
+    public UnsafeArray<bool> passCulledFlags;
+
+    // Native render passes (merged logical passes)
+    public UnsafeArray<NativeRenderPass> nativePasses;
 
     // Physical heap aliasing mappings (logical index -> physical index)
     public UnsafeHashMap<int, int> logicalToPhysical;
 
     // Placed heap metadata
-    public UnsafeList<PlacedResourceData> placedResources;
+    public UnsafeArray<PlacedResourceData> placedResources;
 
     // Real gpu heap
-    public UnsafeList<Handle<GPUResource>> backingResources;
+    public UnsafeArray<Handle<GPUResource>> backingResources;
 
     // Compiled binary command stream
-    public BufferWriter commandBytes;
+    public UnsafeArray<byte> commandBytes;
 
     // View state used for this compilation
     public ViewState viewState;
 
-    public CachedCompilation(AllocationHandle allocationHandle)
-    {
-        compiledPassIndices = new UnsafeList<int>(64, allocationHandle);
-        passCulledFlags = new UnsafeList<bool>(64, allocationHandle);
-        logicalToPhysical = new UnsafeHashMap<int, int>(128, AllocationHandle.Persistent);
-        placedResources = new UnsafeList<PlacedResourceData>(32, AllocationHandle.Persistent);
-        backingResources = new UnsafeList<Handle<GPUResource>>(32, AllocationHandle.Persistent);
-        commandBytes = new BufferWriter(1024 * 1024, AllocationHandle.Persistent); // Start with 1MB buffer
-        viewState = default;
-    }
-
-    public void Clear()
-    {
-        compiledPassIndices.Clear();
-        passCulledFlags.Clear();
-        logicalToPhysical.Clear();
-        placedResources.Clear();
-        backingResources.Clear();
-        commandBytes.Reset();
-        viewState = default;
-    }
-
     public void Dispose()
     {
+        for (var i = 0; i < nativePasses.Length; i++)
+        {
+            nativePasses[i].Dispose();
+        }
+
         compiledPassIndices.Dispose();
         passCulledFlags.Dispose();
+        nativePasses.Dispose();
         logicalToPhysical.Dispose();
         placedResources.Dispose();
         backingResources.Dispose();
@@ -79,11 +65,6 @@ internal sealed class RenderGraphCompilationCache : IDisposable
     private ulong _cachedHash;
     private bool _hasCachedData;
 
-    public RenderGraphCompilationCache()
-    {
-        _cached = new CachedCompilation(AllocationHandle.Persistent);
-    }
-
     public bool TryGetCached(ulong hash, [MaybeNullWhen(false)] out CachedCompilation result)
     {
         if (_hasCachedData && _cachedHash == hash)
@@ -96,12 +77,60 @@ internal sealed class RenderGraphCompilationCache : IDisposable
         return false;
     }
 
-    public ref CachedCompilation PrepareForStore(ulong hash, in ViewState viewState)
+    public ref readonly CachedCompilation SetCached(
+        RenderGraphResourceRegistry registry,
+        ulong hash,
+        ViewState viewState,
+        List<RenderGraphPass> passes,
+        ReadOnlySpan<int> compiledPasses,
+        ReadOnlySpan<NativeRenderPass> nativePasses,
+        ReadOnlySpan<byte> commandBytes,
+        AliasingPlan aliasingPlan,
+        AllocationHandle allocationHandle)
     {
         _cachedHash = hash;
         _hasCachedData = true;
-        _cached.Clear();
-        _cached.viewState = viewState;
+        _cached.Dispose();
+
+        _cached = new CachedCompilation
+        {
+            compiledPassIndices = new UnsafeArray<int>(compiledPasses.Length, allocationHandle),
+            passCulledFlags = new UnsafeArray<bool>(passes.Count, allocationHandle),
+            nativePasses = new UnsafeArray<NativeRenderPass>(nativePasses.Length, allocationHandle),
+            logicalToPhysical = new UnsafeHashMap<int, int>(128, allocationHandle),
+            placedResources = new UnsafeArray<PlacedResourceData>(aliasingPlan.placedResources.Count, allocationHandle),
+            backingResources = new UnsafeArray<Handle<GPUResource>>(registry.ResourceCount, allocationHandle),
+            commandBytes = new UnsafeArray<byte>(commandBytes.Length, allocationHandle),
+            viewState = viewState
+        };
+
+        _cached.compiledPassIndices.CopyFrom(compiledPasses);
+        _cached.nativePasses.CopyFrom(nativePasses);
+        _cached.commandBytes.CopyFrom(commandBytes);
+
+        for (var i = 0; i < nativePasses.Length; i++)
+        {
+            ref var cachedNativePass = ref _cached.nativePasses[i];
+            ref readonly var srcNativePass = ref nativePasses[i];
+
+            cachedNativePass.mergedPassIndices = new UnsafeList<int>(srcNativePass.mergedPassIndices.Count, allocationHandle);
+            cachedNativePass.mergedPassIndices.CopyFrom(srcNativePass.mergedPassIndices);
+            cachedNativePass.mergedPassIndices.UnsafeSetCount(srcNativePass.mergedPassIndices.Count);
+        }
+
+        for (var i = 0; i < passes.Count; i++)
+        {
+            _cached.passCulledFlags[i] = passes[i].culled;
+        }
+
+        aliasingPlan.StoreToCache(ref _cached.logicalToPhysical, ref _cached.placedResources);
+
+        for (var i = 0; i < registry.ResourceCount; i++)
+        {
+            var res = registry.Resources[i];
+            _cached.backingResources[i] = res.backingResource;
+        }
+
         return ref _cached;
     }
 
@@ -109,12 +138,12 @@ internal sealed class RenderGraphCompilationCache : IDisposable
     {
         _hasCachedData = false;
         _cachedHash = 0;
-        _cached.Clear();
+        _cached.Dispose();
     }
 
     public void UpdateBackingResource(int logicalIndex, Handle<GPUResource> resource)
     {
-        if (logicalIndex < 0 || logicalIndex >= _cached.backingResources.Count)
+        if (logicalIndex < 0 || logicalIndex >= _cached.backingResources.Count || !_cached.backingResources.IsCreated)
         {
             return;
         }

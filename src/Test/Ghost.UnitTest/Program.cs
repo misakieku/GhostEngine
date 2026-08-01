@@ -2,7 +2,6 @@
 
 using BenchmarkDotNet.Running;
 using Ghost.UnitTest.Benchmarks.Graphics;
-using Misaki.HighPerformance.LowLevel.Buffer;
 
 namespace Ghost.UnitTest;
 
@@ -16,15 +15,14 @@ public class Program
 
         //var sw = new System.Diagnostics.Stopwatch();
         //sw.Start();
-        //for (int i = 0; i < 1024000; i++)
+        //for (var i = 0; i < 1; i++)
         //{
-        //    rg.Compile_Warm_CacheHit();
-        //    rg.IterationCleanup();
+        //    rg.Compile_Cold_CacheMiss();
         //}
         //sw.Stop();
         //rg.Cleanup();
 
-        //Console.WriteLine($"{sw.Elapsed.TotalMilliseconds / 1024000} ms");
+        //Console.WriteLine($"{sw.Elapsed.TotalMilliseconds / 1} ms");
     }
 }
 

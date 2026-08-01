@@ -83,27 +83,33 @@ internal struct AliasingPlan : IDisposable
             : Result.Failure();
     }
 
-    public void StoreToCache(ref UnsafeHashMap<int, int> outLogicalToPlaced, ref UnsafeList<PlacedResourceData> outPlacedData)
+    public void StoreToCache(ref UnsafeHashMap<int, int> outLogicalToPlaced, ref UnsafeArray<PlacedResourceData> outPlacedData)
     {
-        outLogicalToPlaced.Clear();
-        foreach (var kvp in logicalToPlaced)
+        if (logicalToPlaced.Count != 0)
         {
-            outLogicalToPlaced[kvp.Key] = kvp.Value;
+            outLogicalToPlaced.Clear();
+            foreach (var kvp in logicalToPlaced)
+            {
+                outLogicalToPlaced[kvp.Key] = kvp.Value;
+            }
         }
 
-        outPlacedData.Clear();
-        for (var i = 0; i < placedResources.Count; i++)
+        if (placedResources.Count != 0)
         {
-            var placed = placedResources[i];
-            outPlacedData.Add(new PlacedResourceData
+            outPlacedData.Clear();
+            for (var i = 0; i < placedResources.Count; i++)
             {
-                index = placed.index,
-                type = placed.type,
-                heapOffset = placed.heapOffset,
-                sizeInBytes = placed.sizeInBytes,
-                firstUsePass = placed.firstUsePass,
-                lastUsePass = placed.lastUsePass
-            });
+                var placed = placedResources[i];
+                outPlacedData[i] = new PlacedResourceData
+                {
+                    index = placed.index,
+                    type = placed.type,
+                    heapOffset = placed.heapOffset,
+                    sizeInBytes = placed.sizeInBytes,
+                    firstUsePass = placed.firstUsePass,
+                    lastUsePass = placed.lastUsePass
+                };
+            }
         }
     }
 
@@ -123,9 +129,9 @@ internal static class RenderGraphAliasingBuilder
 {
     private struct LogicalResourceEntry
     {
-        public int index;
-        public RenderGraphResource resource;
-        public ulong size;
+        public readonly int index;
+        public readonly RenderGraphResource resource;
+        public readonly ulong size;
 
         public LogicalResourceEntry(int index, RenderGraphResource resource, ulong size)
         {
@@ -334,96 +340,86 @@ internal static class RenderGraphAliasingBuilder
         // Build list of all logical resources with their lifetimes
         using var logicalResources = new UnsafeList<LogicalResourceEntry>(registry.ResourceCount, scope.AllocationHandle);
 
-        try
+        for (var i = 0; i < registry.ResourceCount; i++)
         {
-            for (var i = 0; i < registry.ResourceCount; i++)
-            {
-                var resource = registry.GetResourceByIndex(i);
+            var resource = registry.GetResourceByIndex(i);
 
-                // Don't memory-alias imported OR extracted resources
-                if (!resource.isImported && !resource.isExtracted)
-                {
-                    var size = GetResourceSize(resource, allocator);
-                    logicalResources.Add(new LogicalResourceEntry(resource.index, resource, size));
-                }
+            // Don't memory-alias imported OR extracted resources
+            if (!resource.isImported && !resource.isExtracted)
+            {
+                var size = GetResourceSize(resource, allocator);
+                logicalResources.Add(new LogicalResourceEntry(resource.index, resource, size));
             }
+        }
 
-            // Sort by size descending
-            // TODO: Avoid closure.
-            logicalResources.AsSpan().Sort(default(ResourceSizeDescendingComparer));
+        // Sort by size descending
+        // TODO: Avoid closure.
+        logicalResources.AsSpan().Sort(default(ResourceSizeDescendingComparer));
 
-            var plan = new AliasingPlan(allocationHandle);
+        var plan = new AliasingPlan(allocationHandle);
 
-            // Simulate allocation to find peak memory usage
-            using var simulationHeap = new ResourceHeap(0, ulong.MaxValue, scope.AllocationHandle);
-            for (var i = 0; i < logicalResources.Count; i++)
+        // Simulate allocation to find peak memory usage
+        using var simulationHeap = new ResourceHeap(0, ulong.MaxValue, scope.AllocationHandle);
+        for (var i = 0; i < logicalResources.Count; i++)
+        {
+            ref readonly var item = ref logicalResources[i];
+            var alignment = item.resource.type == RGResourceType.Texture
+                ? DEFAULT_TEXTURE_ALIGNMENT
+                : DEFAULT_BUFFER_ALIGNMENT;
+
+            var (success, offset, memInfo) = simulationHeap.TryAllocate(
+                item.size,
+                item.resource.firstUsePass,
+                item.resource.lastUsePass,
+                item.index,
+                alignment);
+
+            Logger.DebugAssert(success, "Simulation allocation failed - heap should be unlimited in size");
+
+            var assignedPlaced = new PlacedResource(allocationHandle)
             {
-                ref readonly var item = ref logicalResources[i];
-                var alignment = item.resource.type == RGResourceType.Texture
-                    ? DEFAULT_TEXTURE_ALIGNMENT
-                    : DEFAULT_BUFFER_ALIGNMENT;
+                index = plan.placedResources.Count,
+                type = item.resource.type,
+                heapOffset = offset,
+                sizeInBytes = item.size,
+                firstUsePass = item.resource.firstUsePass,
+                lastUsePass = item.resource.lastUsePass,
+                memoryInfo = memInfo
+            };
+            assignedPlaced.aliasedLogicalResources.Add(item.index);
 
-                var (success, offset, memInfo) = simulationHeap.TryAllocate(
-                    item.size,
-                    item.resource.firstUsePass,
-                    item.resource.lastUsePass,
-                    item.index,
-                    alignment);
+            plan.placedResources.Add(assignedPlaced);
+            plan.logicalToPlaced[item.index] = assignedPlaced.index;
+        }
 
-                Logger.DebugAssert(success, "Simulation allocation failed - heap should be unlimited in size");
+        var peakMemoryUsage = AlignUp(simulationHeap.GetPeakUsage(), DEFAULT_TEXTURE_ALIGNMENT);
+        plan.totalHeapSize = peakMemoryUsage;
 
-                var assignedPlaced = new PlacedResource(allocationHandle)
-                {
-                    index = plan.placedResources.Count,
-                    type = item.resource.type,
-                    heapOffset = offset,
-                    sizeInBytes = item.size,
-                    firstUsePass = item.resource.firstUsePass,
-                    lastUsePass = item.resource.lastUsePass,
-                    memoryInfo = memInfo
-                };
-                assignedPlaced.aliasedLogicalResources.Add(item.index);
+        // Populate aliasedLogicalResources lists
+        for (var i = 0; i < plan.placedResources.Count; i++)
+        {
+            ref var placed = ref plan.placedResources[i];
 
-                plan.placedResources.Add(assignedPlaced);
-                plan.logicalToPlaced[item.index] = assignedPlaced.index;
-            }
-
-            var peakMemoryUsage = AlignUp(simulationHeap.GetPeakUsage(), DEFAULT_TEXTURE_ALIGNMENT);
-            plan.totalHeapSize = peakMemoryUsage;
-
-            // Populate aliasedLogicalResources lists
-            for (var i = 0; i < plan.placedResources.Count; i++)
+            for (var j = 0; j < plan.placedResources.Count; j++)
             {
-                ref var placed = ref plan.placedResources[i];
+                if (i == j) continue;
 
-                for (var j = 0; j < plan.placedResources.Count; j++)
+                var other = plan.placedResources[j];
+                if (other.heapOffset == placed.heapOffset)
                 {
-                    if (i == j) continue;
-
-                    var other = plan.placedResources[j];
-                    if (other.heapOffset == placed.heapOffset)
+                    var otherLogicalIndex = other.aliasedLogicalResources[0];
+                    if (!placed.aliasedLogicalResources.Contains(otherLogicalIndex))
                     {
-                        var otherLogicalIndex = other.aliasedLogicalResources[0];
-                        if (!placed.aliasedLogicalResources.Contains(otherLogicalIndex))
-                        {
-                            placed.aliasedLogicalResources.Add(otherLogicalIndex);
-                        }
+                        placed.aliasedLogicalResources.Add(otherLogicalIndex);
                     }
                 }
             }
+        }
 
-            return plan;
-        }
-        finally
-        {
-            for (var i = 0; i < logicalResources.Count; i++)
-            {
-                logicalResources[i].resource.Dispose();
-            }
-        }
+        return plan;
     }
 
-    public static AliasingPlan RestoreFromCache(ref UnsafeHashMap<int, int> logicalToPlaced, ref UnsafeList<PlacedResourceData> placedData, AllocationHandle allocationHandle)
+    public static AliasingPlan RestoreFromCache(UnsafeHashMap<int, int> logicalToPlaced, ReadOnlySpan<PlacedResourceData> placedData, AllocationHandle allocationHandle)
     {
         var plan = new AliasingPlan(allocationHandle);
         foreach (var kvp in logicalToPlaced)
@@ -432,7 +428,7 @@ internal static class RenderGraphAliasingBuilder
         }
 
         // Restore placed resources
-        for (var i = 0; i < placedData.Count; i++)
+        for (var i = 0; i < placedData.Length; i++)
         {
             var data = placedData[i];
             var placed = new PlacedResource(allocationHandle)

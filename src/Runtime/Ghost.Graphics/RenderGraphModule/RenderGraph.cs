@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Buffer;
@@ -26,16 +27,15 @@ public sealed class RenderGraph : IDisposable
 
     private readonly List<RenderGraphPass> _passes;
 
-    private readonly RenderGraphCompilationCache _compilationCache;
     private readonly RenderGraphContext _context;
 
     private readonly RenderGraphCompiler _compiler;
     private readonly RenderGraphExecutor _executor;
-    private readonly RenderGraphNativePassBuilder _nativePassBuilder;
 
     private readonly RenderGraphBlackboard _blackboard;
     private readonly RenderGraphBuilder _builder;
 
+    private MemoryPool<TLSF, TLSF.CreationOptions> _memoryPool;
     private RenderGraphDump? _cachedDump;
 
     public RenderGraphBlackboard Blackboard => _blackboard;
@@ -50,9 +50,6 @@ public sealed class RenderGraph : IDisposable
 
         _passes = new List<RenderGraphPass>(32);
 
-
-        _compilationCache = new RenderGraphCompilationCache();
-
         _context = new RenderGraphContext(
             resourceManager,
             shaderLibrary,
@@ -61,12 +58,13 @@ public sealed class RenderGraph : IDisposable
             _resourceRegistry
         );
 
-        _nativePassBuilder = new RenderGraphNativePassBuilder(_objectPool, _resourceRegistry);
-        _compiler = new RenderGraphCompiler(resourceAllocator, _resourceRegistry, _nativePassBuilder, _compilationCache);
-        _executor = new RenderGraphExecutor(resourceManager, resourceDatabase, _resourceRegistry, _context);
+        _compiler = new RenderGraphCompiler(resourceAllocator, _resourceRegistry);
+        _executor = new RenderGraphExecutor(resourceManager, resourceDatabase, _resourceRegistry);
 
         _blackboard = new RenderGraphBlackboard();
         _builder = new RenderGraphBuilder(_resourceRegistry, _blackboard);
+
+        _memoryPool = new MemoryPool<TLSF, TLSF.CreationOptions>(new TLSF.CreationOptions { alignment = 16, initialChunkSize = 1024 * 1024 * 16 });
     }
 
     private RenderGraphDump GenerateDump(scoped in CompiledGraph graph, ViewState viewState)
@@ -115,7 +113,7 @@ public sealed class RenderGraph : IDisposable
             var passInfo = new PassDumpInfo
             {
                 Index = pass.index,
-                NativePassIndex = graph.nativePasses.FirstOrDefault(np => np.mergedPassIndices.Contains(pass.index))?.index ?? -1,
+                NativePassIndex = graph.nativePasses.FirstOrDefault(np => np.mergedPassIndices.Contains(pass.index), NativeRenderPass.Invalid).index,
                 Name = pass.name,
                 Type = pass.type,
                 IsCulled = pass.culled,
@@ -152,8 +150,8 @@ public sealed class RenderGraph : IDisposable
                 SizeInBytes = placedResult.IsSuccess ? placedResult.Value.sizeInBytes : 0,
                 FirstUsePass = res.firstUsePass,
                 LastUsePass = res.lastUsePass,
-                ProducerPass = res.producerPass,
-                ConsumerPasses = res.consumerPasses.ToList(),
+                ProducerPass = [..res.producerPasses],
+                ConsumerPasses = [..res.consumerPasses],
                 AliasedWithResources = placedResult.IsSuccess
                     ? placedResult.Value.aliasedLogicalResources.ToList()
                     : new List<int>()
@@ -162,7 +160,94 @@ public sealed class RenderGraph : IDisposable
             dump.Resources.Add(resInfo);
         }
 
+        // Disassemble Command Stream for human-readable debugging
+        var reader = new SpanReader(graph.commandStream.AsSpan());
+        dump.CommandStream.AddRange(DisassembleCommandStream(ref reader, graph.nativePasses.AsSpan()));
+
         return dump;
+    }
+
+    private List<string> DisassembleCommandStream(ref SpanReader reader, ReadOnlySpan<NativeRenderPass> nativePasses)
+    {
+        var lines = new List<string>();
+        var instIndex = 0;
+
+        while (reader.RemainingBytes > 0)
+        {
+            var op = reader.Read<RGExecutionOpType>();
+
+            switch (op)
+            {
+                case RGExecutionOpType.IssueBarriers:
+                {
+                    var count = reader.Read<int>();
+                    lines.Add($"[{instIndex++:D4}] IssueBarriers ({count} barriers)");
+                    for (var i = 0; i < count; i++)
+                    {
+                        var barrier = reader.Read<CompiledBarrier>();
+                        var resName = _resourceRegistry.GetResourceName(barrier.resource.Value);
+                        if (barrier.aliasingPredecessor.IsValid)
+                        {
+                            var predName = _resourceRegistry.GetResourceName(barrier.aliasingPredecessor.Value);
+                            lines.Add($"       ├─ Aliasing: {predName} -> {resName}");
+                        }
+                        else
+                        {
+                            lines.Add($"       ├─ Transition: {resName} -> Layout: {barrier.targetState.layout}, Access: {barrier.targetState.access}, Sync: {barrier.targetState.sync}");
+                        }
+                    }
+                    break;
+                }
+
+                case RGExecutionOpType.BeginNativePass:
+                {
+                    var nativePassIdx = reader.Read<int>();
+                    var np = (nativePassIdx >= 0 && nativePassIdx < nativePasses.Length) ? nativePasses[nativePassIdx] : default;
+                    lines.Add($"[{instIndex++:D4}] BeginNativePass #{nativePassIdx} (ColorCount: {np.colorAttachmentCount}, HasDepth: {np.hasDepthAttachment})");
+                    break;
+                }
+
+                case RGExecutionOpType.ExecutePass:
+                {
+                    var passIdx = reader.Read<int>();
+                    var passName = (passIdx >= 0 && passIdx < _passes.Count) ? _passes[passIdx].name : $"Pass#{passIdx}";
+                    var passType = (passIdx >= 0 && passIdx < _passes.Count) ? _passes[passIdx].type.ToString() : "Unknown";
+                    lines.Add($"[{instIndex++:D4}] ExecutePass #{passIdx} '{passName}' [{passType}]");
+                    break;
+                }
+
+                case RGExecutionOpType.EndNativePass:
+                {
+                    lines.Add($"[{instIndex++:D4}] EndNativePass");
+                    break;
+                }
+
+                case RGExecutionOpType.SignalFence:
+                {
+                    var srcQueue = reader.Read<CommandQueueType>();
+                    var fenceVal = reader.Read<ulong>();
+                    lines.Add($"[{instIndex++:D4}] SignalFence -> Queue: {srcQueue}, FenceValue: {fenceVal}");
+                    break;
+                }
+
+                case RGExecutionOpType.SubmitQueue:
+                {
+                    var targetQueue = reader.Read<CommandQueueType>();
+                    lines.Add($"[{instIndex++:D4}] SubmitQueue -> Queue: {targetQueue}");
+                    break;
+                }
+
+                case RGExecutionOpType.GPUWait:
+                {
+                    var dstQueue = reader.Read<CommandQueueType>();
+                    var fenceVal = reader.Read<ulong>();
+                    lines.Add($"[{instIndex++:D4}] GPUWait -> Queue: {dstQueue}, FenceValue: {fenceVal}");
+                    break;
+                }
+            }
+        }
+
+        return lines;
     }
 
     /// <summary>
@@ -188,7 +273,7 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     public void InvalidateCache()
     {
-        _compilationCache.Invalidate();
+        _compiler.InvalidateCache();
     }
 
     /// <summary>
@@ -292,18 +377,17 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     public Result<RGExecution, Error> CompileAndExecute(
         ICommandBuffer graphicsCommandBuffer,
-        ICommandBuffer? computeCommandBuffer,
-        ICommandQueue? graphicsQueue,
-        ICommandQueue? computeQueue,
-        IFence? fence,
+        ICommandBuffer computeCommandBuffer,
+        ICommandQueue graphicsQueue,
+        ICommandQueue computeQueue,
+        IFence fence,
         ViewState viewState,
         RGExecutionFlags flags = RGExecutionFlags.Default)
     {
         _resourceRegistry.ResolveTextureSizes(in viewState);
 
-        using var scope = AllocationManager.CreateStackScope();
         var graphHash = RenderGraphHasher.ComputeGraphHash(_passes, _resourceRegistry);
-        var result = _compiler.Compile(in viewState, graphHash, _passes, scope.AllocationHandle);
+        var result = _compiler.Compile(in viewState, graphHash, _passes, _memoryPool.AllocationHandle);
         if (result.IsFailure)
         {
             return result.Error;
@@ -317,9 +401,9 @@ public sealed class RenderGraph : IDisposable
             graphicsQueue,
             computeQueue,
             fence,
-            graph.compiledPasses,
-            graph.nativePasses,
-            graph.commandReader);
+            _context,
+            graph);
+
         if (error.IsFailure)
         {
             return error;
@@ -361,23 +445,17 @@ public sealed class RenderGraph : IDisposable
         return new RGExecution { Dump = _cachedDump };
     }
 
-    /// <summary>
-    /// Compiles the render graph and executes all compiled passes on a single command buffer.
-    /// </summary>
-    public Result<RGExecution, Error> CompileAndExecute(ICommandBuffer commandBuffer, ViewState viewState, RGExecutionFlags flags = RGExecutionFlags.Default)
-    {
-        return CompileAndExecute(commandBuffer, null, null, null, null, viewState, flags);
-    }
-
     public void Dispose()
     {
         _resourceRegistry.Dispose();
-        _compilationCache.Dispose();
+        _compiler.Dispose();
 
         for (var i = 0; i < _passes.Count; i++)
         {
             var pass = _passes[i];
             pass.Reset(_objectPool);
         }
+
+        _memoryPool.Dispose();
     }
 }

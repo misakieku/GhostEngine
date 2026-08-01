@@ -13,9 +13,10 @@ internal struct CompiledGraph : IDisposable
     public required AliasingPlan plan;
     public required float2 scale;
     public required ulong graphHash;
-    public required IReadOnlyList<RenderGraphPass> compiledPasses;
-    public required IReadOnlyList<NativeRenderPass> nativePasses;
-    public required BufferReader commandReader;
+    public required IReadOnlyList<RenderGraphPass> passes;
+    public required ReadOnlyView<int> compiledPasses;
+    public required ReadOnlyView<NativeRenderPass> nativePasses;
+    public required ReadOnlyView<byte> commandStream;
     public required bool cacheHit;
 
     public void Dispose()
@@ -28,7 +29,7 @@ internal struct CompiledGraph : IDisposable
 /// Handles compilation of the render graph including pass culling, heap allocation orchestration,
 /// barrier compilation, and cache management.
 /// </summary>
-internal partial class RenderGraphCompiler
+internal unsafe partial class RenderGraphCompiler : IDisposable
 {
     private struct PassDependencyNode : IDisposable
     {
@@ -50,27 +51,15 @@ internal partial class RenderGraphCompiler
     }
 
     private readonly IResourceAllocator _resourceAllocator;
-    private readonly RenderGraphResourceRegistry _resources;
-    private readonly RenderGraphNativePassBuilder _nativePassBuilder;
+    private readonly RenderGraphResourceRegistry _resourceRegistry;
     private readonly RenderGraphCompilationCache _compilationCache;
 
-    // TODO: We should store compiledPasses as indices, nativePasses as unmanaged struct, compiledBarriers as command ops.
-    private readonly List<RenderGraphPass> _compiledPasses;
-    private readonly List<NativeRenderPass> _nativePasses;
-
-    public RenderGraphCompiler(
-        IResourceAllocator resourceAllocator,
-        RenderGraphResourceRegistry resources,
-        RenderGraphNativePassBuilder nativePassBuilder,
-        RenderGraphCompilationCache compilationCache)
+    public RenderGraphCompiler(IResourceAllocator resourceAllocator, RenderGraphResourceRegistry resourceRegistry)
     {
         _resourceAllocator = resourceAllocator;
-        _resources = resources;
-        _nativePassBuilder = nativePassBuilder;
-        _compilationCache = compilationCache;
+        _resourceRegistry = resourceRegistry;
 
-        _compiledPasses = new List<RenderGraphPass>(64);
-        _nativePasses = new List<NativeRenderPass>(32);
+        _compilationCache = new RenderGraphCompilationCache();
     }
 
     /// <summary>
@@ -93,26 +82,26 @@ internal partial class RenderGraphCompiler
             if (math.any(scale > float2.one))
             {
                 // View state changed - re-resolve sizes and recreate GPU resources
-                _resources.ResolveTextureSizes(in viewState);
+                _resourceRegistry.ResolveTextureSizes(in viewState);
 
-                aliasingPlan = RenderGraphAliasingBuilder.Build(_resources, _resourceAllocator, allocationHandle);
-                error = _resources.AllocateBackingResources(aliasingPlan, _compilationCache);
+                aliasingPlan = RenderGraphAliasingBuilder.Build(_resourceRegistry, _resourceAllocator, allocationHandle);
+                error = _resourceRegistry.AllocateBackingResources(aliasingPlan, _compilationCache);
                 if (error != Error.None)
                 {
                     return error;
                 }
 
                 cached.viewState = viewState;
-                _nativePassBuilder.BuildNativeRenderPasses(_compiledPasses, _nativePasses, _resources, aliasingPlan);
 
                 return new CompiledGraph
                 {
                     scale = float2.one,
                     plan = aliasingPlan,
                     graphHash = graphHash,
-                    compiledPasses = _compiledPasses,
-                    nativePasses = _nativePasses,
-                    commandReader = cached.commandBytes.AsReader(),
+                    passes = passes,
+                    compiledPasses = cached.compiledPassIndices,
+                    nativePasses = cached.nativePasses,
+                    commandStream = cached.commandBytes,
                     cacheHit = true
                 };
             }
@@ -120,22 +109,23 @@ internal partial class RenderGraphCompiler
             {
                 // Perfect cache hit - restore everything
                 aliasingPlan = RestoreFromCache(cached, passes, allocationHandle);
-                _resources.RestoreBackingResources(cached.backingResources);
+                _resourceRegistry.RestoreBackingResources(cached.backingResources);
                 return new CompiledGraph
                 {
                     scale = scale,
                     plan = aliasingPlan,
                     graphHash = graphHash,
-                    compiledPasses = _compiledPasses,
-                    nativePasses = _nativePasses,
-                    commandReader = cached.commandBytes.AsReader(),
+                    passes = passes,
+                    compiledPasses = cached.compiledPassIndices,
+                    nativePasses = cached.nativePasses,
+                    commandStream = cached.commandBytes,
                     cacheHit = true
                 };
             }
         }
 
         // Fresh compilation needed
-        _compiledPasses.Clear();
+        using var compiledPasses = new UnsafeList<int>(passes.Count, allocationHandle);
 
         // Mark passes with side effects (writes to imported resources)
         MarkPassesWithSideEffects(passes);
@@ -149,36 +139,65 @@ internal partial class RenderGraphCompiler
             var pass = passes[i];
             if (!pass.culled)
             {
-                _compiledPasses.Add(pass);
+                compiledPasses.Add(i);
             }
         }
 
         // Reorder passes to ensure best performance
-        ReorderPasses(_compiledPasses);
+        //ReorderPasses(passes, &compiledPasses);
 
-        aliasingPlan = RenderGraphAliasingBuilder.Build(_resources, _resourceAllocator, allocationHandle);
-        error = _resources.AllocateBackingResources(aliasingPlan, _compilationCache);
+        aliasingPlan = RenderGraphAliasingBuilder.Build(_resourceRegistry, _resourceAllocator, allocationHandle);
+        error = _resourceRegistry.AllocateBackingResources(aliasingPlan, _compilationCache);
         if (error != Error.None)
         {
             return error;
         }
 
-        _nativePassBuilder.BuildNativeRenderPasses(_compiledPasses, _nativePasses, _resources, aliasingPlan);
+        var nativePasses = RenderGraphNativePassBuilder.BuildNativeRenderPasses(_resourceRegistry, passes, compiledPasses, aliasingPlan, allocationHandle);
+        var commandWriter = new BufferWriter(1024 * 1024, allocationHandle);
 
-        ref var cacheData = ref _compilationCache.PrepareForStore(graphHash, in viewState);
-        PopulateCacheData(ref cacheData, passes, aliasingPlan);
-        BuildExecutionCommands(ref cacheData.commandBytes, aliasingPlan);
-
-        return new CompiledGraph
+        try
         {
-            scale = float2.one,
-            plan = aliasingPlan,
-            graphHash = graphHash,
-            compiledPasses = _compiledPasses,
-            nativePasses = _nativePasses,
-            commandReader = cacheData.commandBytes.AsReader(),
-            cacheHit = false
-        };
+            BuildExecutionCommands(ref commandWriter, passes, compiledPasses, nativePasses, aliasingPlan);
+
+            ref readonly var cacheData = ref _compilationCache.SetCached(
+                _resourceRegistry,
+                graphHash,
+                viewState,
+                passes,
+                compiledPasses,
+                nativePasses,
+                commandWriter.AsSpan(),
+                aliasingPlan,
+                allocationHandle);
+
+            return new CompiledGraph
+            {
+                scale = float2.one,
+                plan = aliasingPlan,
+                graphHash = graphHash,
+                passes = passes,
+                compiledPasses = cacheData.compiledPassIndices,
+                nativePasses = cacheData.nativePasses,
+                commandStream = cacheData.commandBytes,
+                cacheHit = false
+            };
+        }
+        finally
+        {
+            for (var i = 0; i < nativePasses.Count; i++)
+            {
+                nativePasses[i].Dispose();
+            }
+
+            nativePasses.Dispose();
+            commandWriter.Dispose();
+        }
+    }
+
+    public void InvalidateCache()
+    {
+        _compilationCache.Invalidate();
     }
 
     private void MarkPassesWithSideEffects(List<RenderGraphPass> passes)
@@ -193,7 +212,7 @@ internal partial class RenderGraphCompiler
                 for (var k = 0; k < writeList.Count; k++)
                 {
                     var writeHandle = writeList[k];
-                    ref readonly var resource = ref _resources.GetResource(writeHandle);
+                    ref readonly var resource = ref _resourceRegistry.GetResource(writeHandle);
                     if (resource.isImported || resource.isExtracted)
                     {
                         pass.hasSideEffects = true;
@@ -253,10 +272,10 @@ internal partial class RenderGraphCompiler
 
     private void UncullProducer(Identifier<RGResource> resource, List<RenderGraphPass> passes)
     {
-        ref readonly var res = ref _resources.GetResource(resource);
-        if (res.producerPass >= 0)
+        ref readonly var res = ref _resourceRegistry.GetResource(resource);
+        foreach (var producerIdx in res.producerPasses)
         {
-            var producer = passes[res.producerPass];
+            var producer = passes[producerIdx];
             if (producer.culled)
             {
                 producer.culled = false;
@@ -266,7 +285,8 @@ internal partial class RenderGraphCompiler
     }
 
     private static void BuildDAG(
-        List<RenderGraphPass> compiledPasses,
+        List<RenderGraphPass> passes,
+        ReadOnlySpan<int> compiledPasses,
         RenderGraphResourceRegistry resources,
         Span<PassDependencyNode> nodes,
         AllocationHandle allocationHandle)
@@ -286,7 +306,7 @@ internal partial class RenderGraphCompiler
             }
         }
 
-        var passCount = compiledPasses.Count;
+        var passCount = compiledPasses.Length;
         var resourceCount = resources.ResourceCount;
 
         using var scope = AllocationManager.CreateStackScope();
@@ -311,7 +331,7 @@ internal partial class RenderGraphCompiler
         // Iterate over non-culled passes
         for (var i = 0; i < passCount; i++)
         {
-            var pass = compiledPasses[i];
+            var pass = passes[compiledPasses[i]];
 
             // Process READS (RAW Dependencies)
             void ProcessRead(Identifier<RGResource> resId, Span<PassDependencyNode> nodes, Span<int> lastWriter)
@@ -434,13 +454,14 @@ internal partial class RenderGraphCompiler
     private static int SelectBestCandidatePass(
         ReadOnlySpan<int> readyPassIndices,
         RenderGraphPass? lastScheduledPass,
-        List<RenderGraphPass> compiledPasses)
+        List<RenderGraphPass> passes,
+        ReadOnlySpan<int> compiledPasses)
     {
         var bestIndex = 0;
         var maxScore = float.MinValue;
         for (var i = 0; i < readyPassIndices.Length; i++)
         {
-            var candidate = compiledPasses[readyPassIndices[i]];
+            var candidate = passes[compiledPasses[readyPassIndices[i]]];
             var score = 0.0f;
             if (lastScheduledPass != null)
             {
@@ -475,6 +496,7 @@ internal partial class RenderGraphCompiler
                 bestIndex = i;
             }
         }
+
         return bestIndex;
     }
     private static bool AttachmentsMatch(RenderGraphPass passA, RenderGraphPass passB)
@@ -494,25 +516,25 @@ internal partial class RenderGraphCompiler
 
         return passA.depthAccess.id == passB.depthAccess.id;
     }
+
     private static bool SharesResources(RenderGraphPass passA, RenderGraphPass passB)
     {
         for (var t = 0; t < (int)RGResourceType.Count; t++)
         {
-            foreach (var rA in passA.resourceWrites[t])
+            var readsA = passA.resourceReads[t].AsSpan();
+            var readsB = passB.resourceReads[t].AsSpan();
+            for (var i = 0; i < readsA.Length; i++)
             {
-                if (passB.resourceReads[t].AsSpan().Contains(rA))
-                {
-                    return true;
-                }
+                if (readsB.Contains(readsA[i])) return true;
             }
         }
 
         return false;
     }
 
-    private void ReorderPasses(List<RenderGraphPass> compiledPasses)
+    private void ReorderPasses(List<RenderGraphPass> passes, UnsafeList<int>* pCompiledPasses)
     {
-        var passCount = compiledPasses.Count;
+        var passCount = pCompiledPasses->Count;
         if (passCount <= 1)
         {
             return;
@@ -522,7 +544,7 @@ internal partial class RenderGraphCompiler
         using var scope = AllocationManager.CreateStackScope();
         var nodes = new PassDependencyNode[passCount];
 
-        BuildDAG(compiledPasses, _resources, nodes, scope.AllocationHandle);
+        BuildDAG(passes, pCompiledPasses->AsSpan(), _resourceRegistry, nodes, scope.AllocationHandle);
 
         // Initialize Ready List (Passes with 0 incoming dependencies)
         using var readyList = new UnsafeList<int>(passCount, scope.AllocationHandle);
@@ -541,12 +563,13 @@ internal partial class RenderGraphCompiler
         while (readyList.Count > 0)
         {
             // Select best candidate pass from readyList based on grouping rules
-            var bestReadyIdx = SelectBestCandidatePass(readyList.AsSpan(), lastScheduledPass, compiledPasses);
+            var bestReadyIdx = SelectBestCandidatePass(readyList.AsSpan(), lastScheduledPass, passes, pCompiledPasses->AsSpan());
             var chosenPassIndex = readyList[bestReadyIdx];
             readyList.RemoveAtSwapBack(bestReadyIdx);
-            reorderedIndices.Add(chosenPassIndex);
-            var chosenPass = compiledPasses[chosenPassIndex];
-            lastScheduledPass = chosenPass;
+
+            var chosenPass = (*pCompiledPasses)[chosenPassIndex];
+            reorderedIndices.Add(chosenPass);
+            lastScheduledPass = passes[chosenPass];
 
             // Decrement in-degree for all downstream dependent passes
             ref var chosenNode = ref nodes[chosenPassIndex];
@@ -563,22 +586,10 @@ internal partial class RenderGraphCompiler
             }
         }
 
-        // Update _compiledPasses with the reordered sequence
-        // (If for any reason a cycle occurred, reorderedIndices count matches passCount)
-        if (reorderedIndices.Count == passCount)
-        {
-            var tempPasses = new List<RenderGraphPass>(passCount);
-            for (var i = 0; i < passCount; i++)
-            {
-                tempPasses.Add(compiledPasses[reorderedIndices[i]]);
-            }
+        Logger.DebugAssert(reorderedIndices.Count == pCompiledPasses->Count);
 
-            compiledPasses.Clear();
-            for (var i = 0; i < passCount; i++)
-            {
-                compiledPasses.Add(tempPasses[i]);
-            }
-        }
+        pCompiledPasses->Clear();
+        pCompiledPasses->AddRange(reorderedIndices);
 
         for (var i = 0; i < passCount; i++)
         {
@@ -586,42 +597,30 @@ internal partial class RenderGraphCompiler
         }
     }
 
-    private AliasingPlan RestoreFromCache(
+    private static AliasingPlan RestoreFromCache(
         CachedCompilation cached,
         List<RenderGraphPass> passes,
         AllocationHandle allocationHandle)
     {
-        _compiledPasses.Clear();
-        for (var i = 0; i < cached.compiledPassIndices.Count; i++)
-        {
-            var passIndex = cached.compiledPassIndices[i];
-            _compiledPasses.Add(passes[passIndex]);
-        }
-
         for (var i = 0; i < passes.Count && i < cached.passCulledFlags.Count; i++)
         {
             passes[i].culled = cached.passCulledFlags[i];
         }
 
-        var plan = RenderGraphAliasingBuilder.RestoreFromCache(ref cached.logicalToPhysical, ref cached.placedResources, allocationHandle);
-
-        // TODO: We should store native passes in cache as well, but for now we can just rebuild them since they are cheap to construct.
-        _nativePassBuilder.BuildNativeRenderPasses(_compiledPasses, _nativePasses, _resources, plan);
-
-        return plan;
+        return RenderGraphAliasingBuilder.RestoreFromCache(cached.logicalToPhysical, cached.placedResources, allocationHandle);
     }
 
-    private void BuildExecutionCommands(ref BufferWriter writer, AliasingPlan aliasingPlan)
+    private void BuildExecutionCommands(ref BufferWriter writer, List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, ReadOnlySpan<NativeRenderPass> nativePasses, AliasingPlan aliasingPlan)
     {
         var nativePassIndex = 0;
-        var logicalPassIndex = 0;
+        var idx = 0;
         var currentQueue = CommandQueueType.Graphics;
         var nextFenceValue = 1UL;
-        var fenceId = 1;
 
-        while (logicalPassIndex < _compiledPasses.Count)
+        while (idx < compiledPasses.Length)
         {
-            var pass = _compiledPasses[logicalPassIndex];
+            var logicalPassIndex = compiledPasses[idx];
+            var pass = passes[logicalPassIndex];
             var passQueue = (pass.asyncCompute && pass.type == RenderPassType.Compute)
                 ? CommandQueueType.Compute
                 : CommandQueueType.Graphics;
@@ -630,32 +629,30 @@ internal partial class RenderGraphCompiler
             {
                 // Emit cross-queue fence signal & submit on current queue
                 writer.Write(RGExecutionOpType.SignalFence);
-                writer.Write((byte)currentQueue);
-                writer.Write(fenceId);
+                writer.Write(currentQueue);
                 writer.Write(nextFenceValue);
 
                 writer.Write(RGExecutionOpType.SubmitQueue);
-                writer.Write((byte)currentQueue);
+                writer.Write(currentQueue);
 
                 // Emit GPU wait on destination queue
                 writer.Write(RGExecutionOpType.GPUWait);
-                writer.Write((byte)passQueue);
-                writer.Write(fenceId);
+                writer.Write(passQueue);
                 writer.Write(nextFenceValue);
 
                 currentQueue = passQueue;
                 nextFenceValue++;
             }
 
-            if (pass.type == RenderPassType.Raster && nativePassIndex < _nativePasses.Count)
+            if (pass.type == RenderPassType.Raster && nativePassIndex < nativePasses.Length)
             {
-                var nativePass = _nativePasses[nativePassIndex];
+                var nativePass = nativePasses[nativePassIndex];
 
                 // 1. Issue barriers for all merged passes before beginning native pass
                 for (var i = 0; i < nativePass.mergedPassIndices.Count; i++)
                 {
                     var mergedPassIdx = nativePass.mergedPassIndices[i];
-                    var mergedPass = _compiledPasses[mergedPassIdx];
+                    var mergedPass = passes[mergedPassIdx];
                     EmitBarriersForPass(mergedPass, mergedPassIdx, ref writer, aliasingPlan);
                 }
 
@@ -669,7 +666,7 @@ internal partial class RenderGraphCompiler
                     var mergedPassIdx = nativePass.mergedPassIndices[i];
                     writer.Write(RGExecutionOpType.ExecutePass);
                     writer.Write(mergedPassIdx);
-                    logicalPassIndex++;
+                    idx++;
                 }
 
                 // 4. End Native Render Pass
@@ -683,48 +680,13 @@ internal partial class RenderGraphCompiler
 
                 writer.Write(RGExecutionOpType.ExecutePass);
                 writer.Write(logicalPassIndex);
-                logicalPassIndex++;
+                idx++;
             }
-        }
-
-        if (currentQueue != CommandQueueType.Graphics)
-        {
-            writer.Write(RGExecutionOpType.SignalFence);
-            writer.Write((byte)currentQueue);
-            writer.Write(fenceId);
-            writer.Write(nextFenceValue);
-
-            writer.Write(RGExecutionOpType.SubmitQueue);
-            writer.Write((byte)currentQueue);
-
-            writer.Write(RGExecutionOpType.GPUWait);
-            writer.Write((byte)CommandQueueType.Graphics);
-            writer.Write(fenceId);
-            writer.Write(nextFenceValue);
         }
     }
 
-    private void PopulateCacheData(
-        ref CachedCompilation cacheData,
-        List<RenderGraphPass> passes,
-        AliasingPlan aliasingPlan)
+    public void Dispose()
     {
-        for (var i = 0; i < _compiledPasses.Count; i++)
-        {
-            cacheData.compiledPassIndices.Add(_compiledPasses[i].index);
-        }
-
-        for (var i = 0; i < passes.Count; i++)
-        {
-            cacheData.passCulledFlags.Add(passes[i].culled);
-        }
-
-        aliasingPlan.StoreToCache(ref cacheData.logicalToPhysical, ref cacheData.placedResources);
-
-        for (var i = 0; i < _resources.ResourceCount; i++)
-        {
-            var res = _resources.Resources[i];
-            cacheData.backingResources.Add(res.backingResource);
-        }
+        _compilationCache.Dispose();
     }
 }

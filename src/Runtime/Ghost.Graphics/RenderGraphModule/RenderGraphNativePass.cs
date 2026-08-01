@@ -1,50 +1,42 @@
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
+
 namespace Ghost.Graphics.RenderGraphModule;
 
-/// <summary>
-/// Represents a native render pass that can contain multiple merged logical passes.
-/// Maps to D3D12 BeginRenderPass/EndRenderPass or Vulkan vkCmdBeginRenderPass/vkCmdEndRenderPass.
-/// </summary>
-internal sealed class NativeRenderPass
+internal struct NativeRenderPass : IDisposable
 {
+    public static NativeRenderPass Invalid = new NativeRenderPass { index = -1 };
+
     public int index;
 
-    /// <summary>
-    /// Indices of logical passes merged into this native render pass.
-    /// </summary>
-    public readonly List<int> mergedPassIndices = new(4);
+    // Indices of logical passes merged into this native render pass.
+    public UnsafeList<int> mergedPassIndices;
 
-    /// <summary>
-    /// Color attachments shared across all merged passes.
-    /// </summary>
-    public RenderTargetInfo[] colorAttachments = new RenderTargetInfo[8];
+    // Color attachments shared across all merged passes.
+    public RenderTargetInfoArray colorAttachments;
     public int colorAttachmentCount;
 
-    /// <summary>
-    /// Depth-stencil attachment (optional).
-    /// </summary>
+    // Depth-stencil attachment (optional).
     public DepthStencilInfo depthAttachment;
     public bool hasDepthAttachment;
 
-    /// <summary>
-    /// Range of logical passes included in this native pass.
-    /// </summary>
+    // Range of logical passes included in this native pass.
     public int firstLogicalPass;
     public int lastLogicalPass;
 
-    /// <summary>
-    /// Whether UAV writes are allowed during this render pass.
-    /// </summary>
+    // Whether UAV writes are allowed during this render pass.
     public bool allowUAVWrites;
 
-    public void Reset()
+    public NativeRenderPass(AllocationHandle allocationHandle)
     {
         index = -1;
-        mergedPassIndices.Clear();
-        colorAttachmentCount = 0;
-        hasDepthAttachment = false;
-        depthAttachment = default;
+        mergedPassIndices = new UnsafeList<int>(8, allocationHandle);
         firstLogicalPass = int.MaxValue;
         lastLogicalPass = -1;
-        allowUAVWrites = false;
+    }
+
+    public void Dispose()
+    {
+        mergedPassIndices.Dispose();
     }
 }

@@ -9,75 +9,62 @@ namespace Ghost.Graphics.RenderGraphModule;
 /// Builds native render passes by merging compatible consecutive raster passes.
 /// Optimizes for tile-based deferred rendering (TBDR) GPUs by minimizing load/store operations.
 /// </summary>
-internal sealed class RenderGraphNativePassBuilder
+internal static class RenderGraphNativePassBuilder
 {
-    private readonly RenderGraphObjectPool _objectPool;
-    private readonly RenderGraphResourceRegistry _resources;
-
-    public RenderGraphNativePassBuilder(RenderGraphObjectPool objectPool, RenderGraphResourceRegistry resources)
-    {
-        _objectPool = objectPool;
-        _resources = resources;
-    }
-
     /// <summary>
     /// Builds native render passes by merging compatible consecutive raster passes.
     /// Uses conservative merging: only merge passes with identical attachments and no barriers between them.
     /// </summary>
-    public void BuildNativeRenderPasses(
-        List<RenderGraphPass> compiledPasses,
-        List<NativeRenderPass> nativePasses,
-        RenderGraphResourceRegistry resources,
-        AliasingPlan aliasingPlan)
+    public static UnsafeList<NativeRenderPass> BuildNativeRenderPasses(
+        RenderGraphResourceRegistry resourceRegistry,
+        List<RenderGraphPass> passes,
+        ReadOnlySpan<int> compiledPasses,
+        AliasingPlan aliasingPlan,
+        AllocationHandle allocationHandle)
     {
-        // Clear previous native passes
-        for (var i = 0; i < nativePasses.Count; i++)
-        {
-            _objectPool.Return(nativePasses[i]);
-        }
-        nativePasses.Clear();
+        var nativePasses = new UnsafeList<NativeRenderPass>(compiledPasses.Length / 2, allocationHandle);
+        NativeRenderPass currentNativePass = default;
 
-        NativeRenderPass? currentNativePass = null;
-
-        for (var i = 0; i < compiledPasses.Count; i++)
+        for (var i = 0; i < compiledPasses.Length; i++)
         {
-            var pass = compiledPasses[i];
+            var pass = passes[compiledPasses[i]];
 
             // Only raster passes can be merged into native render passes
             // Compute passes break the current native render pass
             if (pass.type != RenderPassType.Raster)
             {
                 // Close current native pass if open
-                if (currentNativePass != null)
+                if (currentNativePass.mergedPassIndices.IsCreated)
                 {
                     nativePasses.Add(currentNativePass);
-                    currentNativePass = null;
+                    currentNativePass = default;
                 }
+
                 continue;  // Compute/Unsafe passes execute outside native render passes
             }
 
-
             // Check if we can merge with current native pass
-            if (currentNativePass != null && CanMergePasses(currentNativePass, pass, i, compiledPasses, resources, aliasingPlan))
+            if (currentNativePass.mergedPassIndices.IsCreated
+                && CanMergePasses(resourceRegistry, currentNativePass, pass, passes, compiledPasses, aliasingPlan))
             {
                 // Merge into existing native pass
-                currentNativePass.mergedPassIndices.Add(i);
-                currentNativePass.lastLogicalPass = i;
+                currentNativePass.mergedPassIndices.Add(pass.index);
+                currentNativePass.lastLogicalPass = pass.index;
             }
             else
             {
                 // Start new native pass
-                if (currentNativePass != null)
+                if (currentNativePass.mergedPassIndices.IsCreated)
                 {
                     nativePasses.Add(currentNativePass);
                 }
 
-                currentNativePass = CreateNativePass(pass, i);
+                currentNativePass = CreateNativePass(pass, allocationHandle);
             }
         }
 
         // Add final native pass
-        if (currentNativePass != null)
+        if (currentNativePass.mergedPassIndices.IsCreated)
         {
             nativePasses.Add(currentNativePass);
         }
@@ -85,23 +72,23 @@ internal sealed class RenderGraphNativePassBuilder
         // Infer load/store operations for all native passes
         for (var i = 0; i < nativePasses.Count; i++)
         {
-            InferLoadStoreOps(nativePasses[i]);
+            InferLoadStoreOps(resourceRegistry, nativePasses[i]);
         }
+
+        return nativePasses;
     }
 
-    /// <summary>
-    /// Creates a new native render pass from a logical pass.
-    /// </summary>
-    private NativeRenderPass CreateNativePass(RenderGraphPass pass, int passIndex)
+    private static NativeRenderPass CreateNativePass(RenderGraphPass pass, AllocationHandle allocationHandle)
     {
-        var nativePass = _objectPool.Rent<NativeRenderPass>();
-        nativePass.Reset();
+        var nativePass = new NativeRenderPass(allocationHandle)
+        {
+            index = 0, // Will be set by caller
+            firstLogicalPass = pass.index,
+            lastLogicalPass = pass.index,
+            allowUAVWrites = pass.randomAccess.Count > 0
+        };
 
-        nativePass.index = 0; // Will be set by caller
-        nativePass.mergedPassIndices.Add(passIndex);
-        nativePass.firstLogicalPass = passIndex;
-        nativePass.lastLogicalPass = passIndex;
-        nativePass.allowUAVWrites = pass.randomAccess.Count > 0;
+        nativePass.mergedPassIndices.Add(pass.index);
 
         // Copy color attachments
         nativePass.colorAttachmentCount = pass.maxColorIndex + 1;
@@ -129,16 +116,12 @@ internal sealed class RenderGraphNativePassBuilder
         return nativePass;
     }
 
-    /// <summary>
-    /// Checks if a logical pass can be merged into an existing native render pass.
-    /// Conservative merging: only merge if attachments match and no barriers needed.
-    /// </summary>
     private static bool CanMergePasses(
-        NativeRenderPass nativePass,
-        RenderGraphPass pass,
-        int passIndex,
-        List<RenderGraphPass> compiledPasses,
         RenderGraphResourceRegistry resources,
+        scoped in NativeRenderPass nativePass,
+        RenderGraphPass pass,
+        List<RenderGraphPass> passes,
+        ReadOnlySpan<int> compiledPasses,
         AliasingPlan aliasingPlan)
     {
         // Don't merge if UAVs are involved (conservative)
@@ -154,7 +137,7 @@ internal sealed class RenderGraphNativePassBuilder
         }
 
         // Check if barriers are needed between last merged pass and this pass
-        if (RequiresBarrierBetweenPasses(nativePass.lastLogicalPass, passIndex, compiledPasses, resources, aliasingPlan))
+        if (RequiresBarrierBetweenPasses(nativePass.lastLogicalPass, pass.index, passes, compiledPasses, resources, aliasingPlan))
         {
             return false;
         }
@@ -162,10 +145,7 @@ internal sealed class RenderGraphNativePassBuilder
         return true;
     }
 
-    /// <summary>
-    /// Checks if the attachment configuration of a pass matches the native pass.
-    /// </summary>
-    private static bool AttachmentsMatch(NativeRenderPass nativePass, RenderGraphPass pass)
+    private static bool AttachmentsMatch(scoped in NativeRenderPass nativePass, RenderGraphPass pass)
     {
         // Check color attachment count
         if (nativePass.colorAttachmentCount != pass.maxColorIndex + 1)
@@ -196,31 +176,24 @@ internal sealed class RenderGraphNativePassBuilder
         return true;
     }
 
-    /// <summary>
-    /// Checks if any barriers are required between two passes that would prevent merging.
-    /// Only barriers affecting render targets prevent merging; SRV barriers are fine.
-    /// </summary>
     private static bool RequiresBarrierBetweenPasses(
         int passA,
         int passB,
-        List<RenderGraphPass> compiledPasses,
+        List<RenderGraphPass> passes,
+        ReadOnlySpan<int> compiledPasses,
         RenderGraphResourceRegistry resources,
         AliasingPlan aliasingPlan)
     {
-        return RenderGraphCompiler.RequiresBarrierBetweenPasses(passA, passB, compiledPasses, resources, aliasingPlan);
+        return RenderGraphCompiler.RequiresBarrierBetweenPasses(passA, passB, passes, compiledPasses, resources, aliasingPlan);
     }
 
-    /// <summary>
-    /// Infers optimal load/store operations for all attachments in a native render pass.
-    /// Uses heap lifetime information to minimize memory bandwidth (critical for TBDR GPUs).
-    /// </summary>
-    private void InferLoadStoreOps(NativeRenderPass nativePass)
+    private static void InferLoadStoreOps(RenderGraphResourceRegistry resourceRegistry, NativeRenderPass nativePass)
     {
         // Infer load/store ops for color attachments
         for (var i = 0; i < nativePass.colorAttachmentCount; i++)
         {
             ref var attachment = ref nativePass.colorAttachments[i];
-            var resource = _resources.GetResource(attachment.texture);
+            var resource = resourceRegistry.GetResource(attachment.texture);
             var flags = attachment.access;
 
             // ===== LOAD OP INFERENCE =====
@@ -281,7 +254,7 @@ internal sealed class RenderGraphNativePassBuilder
         if (nativePass.hasDepthAttachment)
         {
             ref var attachment = ref nativePass.depthAttachment;
-            var resource = _resources.GetResource(attachment.texture);
+            var resource = resourceRegistry.GetResource(attachment.texture);
             var flags = attachment.access;
 
             // ===== LOAD OP INFERENCE =====

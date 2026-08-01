@@ -30,7 +30,7 @@ internal struct CompiledBarrier
     }
 }
 
-internal partial class RenderGraphCompiler
+internal unsafe partial class RenderGraphCompiler
 {
     private int EmitBarriersForPass(
         RenderGraphPass pass,
@@ -45,13 +45,13 @@ internal partial class RenderGraphCompiler
         writer.Write(0); // Count placeholder
 
         var count = 0;
-        count += EmitAliasingBarriers(pass, passIdx, ref writer, aliasingPlan);
-        count += EmitImplicitTransitions(pass, passIdx, ref writer);
+        count += EmitAliasingBarriers(pass, ref writer, aliasingPlan);
+        count += EmitImplicitTransitions(pass, ref writer);
 
         if (count > 0)
         {
             var endPos = writer.Position;
-            writer.Position = startPos + 1; // Backpatch count right after opcode
+            writer.Position = startPos + sizeof(RGExecutionOpType); // Backpatch count right after opcode
             writer.Write(count);
             writer.Position = endPos; // Restore position at end of stream
         }
@@ -65,7 +65,6 @@ internal partial class RenderGraphCompiler
 
     private int EmitAliasingBarriers(
         RenderGraphPass pass,
-        int passIdx,
         ref BufferWriter writer,
         AliasingPlan aliasingPlan)
     {
@@ -77,7 +76,7 @@ internal partial class RenderGraphCompiler
             for (var i = 0; i < writeList.Count; i++)
             {
                 var id = writeList[i];
-                ref readonly var resource = ref _resources.GetResource(id);
+                ref readonly var resource = ref _resourceRegistry.GetResource(id);
 
                 if (resource.isImported)
                 {
@@ -100,7 +99,7 @@ internal partial class RenderGraphCompiler
                             {
                                 if (otherLogicalIndex != id.Value)
                                 {
-                                    var otherResource = _resources.GetResourceByIndex(otherLogicalIndex);
+                                    var otherResource = _resourceRegistry.GetResourceByIndex(otherLogicalIndex);
 
                                     if (otherResource.lastUsePass < pass.index &&
                                         otherResource.lastUsePass > mostRecentLastUse)
@@ -134,10 +133,7 @@ internal partial class RenderGraphCompiler
         return count;
     }
 
-    private int EmitImplicitTransitions(
-        RenderGraphPass pass,
-        int passIdx,
-        ref BufferWriter writer)
+    private int EmitImplicitTransitions(RenderGraphPass pass, ref BufferWriter writer)
     {
         var count = 0;
 
@@ -182,7 +178,7 @@ internal partial class RenderGraphCompiler
                     continue;
                 }
 
-                var targetState = GetBufferReadBarrierData(handle, pass, (RGResourceType)i);
+                var targetState = GetBufferReadBarrierData(handle, (RGResourceType)i);
                 count += AddTransition(handle, targetState, ref writer);
             }
         }
@@ -251,7 +247,7 @@ internal partial class RenderGraphCompiler
 
     private int AddTransition(Identifier<RGResource> id, ResourceBarrierData targetState, ref BufferWriter writer)
     {
-        ref readonly var resource = ref _resources.GetResource(id);
+        ref readonly var resource = ref _resourceRegistry.GetResource(id);
         var barrier = new CompiledBarrier
         {
             resource = id,
@@ -264,10 +260,7 @@ internal partial class RenderGraphCompiler
         return 1;
     }
 
-    private ResourceBarrierData GetBufferReadBarrierData(
-        Identifier<RGResource> handle,
-        RenderGraphPass pass,
-        RGResourceType resourceType)
+    private ResourceBarrierData GetBufferReadBarrierData(Identifier<RGResource> handle, RGResourceType resourceType)
     {
         if (resourceType == RGResourceType.Texture)
         {
@@ -277,7 +270,7 @@ internal partial class RenderGraphCompiler
         var sync = BarrierSync.PixelShading | BarrierSync.NonPixelShading;
         var access = BarrierAccess.ShaderResource;
 
-        ref readonly var resource = ref _resources.GetResource(handle);
+        ref readonly var resource = ref _resourceRegistry.GetResource(handle);
         if (resource.bufferDesc.Usage.HasFlag(BufferUsage.IndirectArgument))
         {
             sync = BarrierSync.ExecuteIndirect;
@@ -290,11 +283,12 @@ internal partial class RenderGraphCompiler
     public static bool RequiresBarrierBetweenPasses(
         int passA,
         int passB,
-        List<RenderGraphPass> compiledPasses,
+        List<RenderGraphPass> passes,
+        ReadOnlySpan<int> compiledPasses,
         RenderGraphResourceRegistry resources,
         AliasingPlan aliasingPlan)
     {
-        var laterPass = compiledPasses[passB];
+        var laterPass = passes[passB];
 
         using var scope = AllocationManager.CreateStackScope();
         using var renderTargets = new UnsafeHashSet<Identifier<RGResource>>(laterPass.maxColorIndex + 1, scope.AllocationHandle);

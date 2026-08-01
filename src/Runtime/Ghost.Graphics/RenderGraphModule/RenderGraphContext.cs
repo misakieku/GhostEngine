@@ -16,8 +16,6 @@ public interface IRenderGraphContext
     Handle<GPUResource> GetActualResource(Identifier<RGResource> resource);
     Handle<GPUTexture> GetActualTexture(Identifier<RGTexture> texture);
     Handle<GPUBuffer> GetActualBuffer(Identifier<RGBuffer> buffer);
-
-    ICommandBuffer GetCommandBufferUnsafe();
 }
 
 public interface IRasterRenderContext : IRenderGraphContext
@@ -32,17 +30,18 @@ public interface IRasterRenderContext : IRenderGraphContext
     void SetActiveMaterial(scoped in Material material);
     void SetActiveMesh(Handle<Mesh> mesh);
     void SetActiveMesh(scoped in Mesh mesh);
-    void DispatchMesh(uint3 threadGroupCount);
+    void DispatchMesh(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ);
 }
 
 public interface IComputeRenderContext : IRenderGraphContext
 {
     void SetActiveCompute(Handle<ComputeShader> computeShader, int entryIndex);
-    void DispatchCompute(uint3 threadGroupCount);
+    void DispatchCompute(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ);
 }
 
 public interface IUnsafeRenderContext : IRasterRenderContext, IComputeRenderContext
 {
+    ICommandBuffer GetCommandBufferUnsafe();
 }
 
 internal sealed class RenderGraphContext : IUnsafeRenderContext
@@ -246,7 +245,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         _activeInstanceIndex = instanceIndex;
     }
 
-    public unsafe void DispatchMesh(uint3 threadGroupCount)
+    public unsafe void DispatchMesh(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
     {
         var data = new PushConstantsData
         {
@@ -257,7 +256,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
 
         var pushConstantSpan = new ReadOnlySpan<uint>(&data, sizeof(PushConstantsData) / sizeof(uint));
         _commandBuffer.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstantSpan);
-        _commandBuffer.DispatchMesh(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
+        _commandBuffer.DispatchMesh(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
     }
 
     public void SetActiveCompute(Handle<ComputeShader> computeShader, int entryIndex)
@@ -310,9 +309,9 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         _commandBuffer.SetPipelineState(pipelineKey);
     }
 
-    public void DispatchCompute(uint3 threadGroupCount)
+    public void DispatchCompute(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
     {
-
+        _commandBuffer.DispatchCompute(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
     }
 
     public ICommandBuffer GetCommandBufferUnsafe()

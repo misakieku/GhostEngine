@@ -7,6 +7,7 @@ using Ghost.UnitTest.MockingEnvironment;
 namespace Ghost.UnitTest.Graphics;
 
 [TestClass]
+[DoNotParallelize]
 public class RenderGraphTest
 {
     private struct CullingPassData
@@ -80,7 +81,7 @@ public class RenderGraphTest
 
         using (var builder = _renderGraph.AddComputeRenderPass<CullingPassData>("Culling"))
         {
-            builder.EnableAsyncCompute(true);
+            builder.EnableAsyncCompute(false);
 
             var cullingData = new CullingPassData
             {
@@ -155,7 +156,7 @@ public class RenderGraphTest
     {
         SetupTestRenderPipeline();
 
-        var execution = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState
+        var execution = _renderGraph.CompileAndExecute(_commandBuffer, null!, null!, null!, null!, new ViewState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -171,7 +172,7 @@ public class RenderGraphTest
     {
         SetupTestRenderPipeline();
 
-        var execution = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState
+        var execution = _renderGraph.CompileAndExecute(_commandBuffer, null!, null!, null!, null!, new ViewState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -203,7 +204,7 @@ public class RenderGraphTest
 
         // Frame 1: Initial compilation (Cache Miss)
         SetupTestRenderPipeline();
-        var execFrame1 = _renderGraph.CompileAndExecute(_commandBuffer, viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execFrame1 = _renderGraph.CompileAndExecute(_commandBuffer, null!, null!, null!, null!, viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execFrame1.Dump);
         Assert.IsFalse(execFrame1.Dump.IsCacheHit, "Frame 1 should be a cache miss.");
 
@@ -211,7 +212,7 @@ public class RenderGraphTest
 
         // Frame 2: Same pipeline setup (Cache Hit)
         SetupTestRenderPipeline();
-        var execFrame2 = _renderGraph.CompileAndExecute(_commandBuffer, viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execFrame2 = _renderGraph.CompileAndExecute(_commandBuffer, null!, null!, null!, null!, viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execFrame2.Dump);
         Assert.IsTrue(execFrame2.Dump.IsCacheHit, "Frame 2 should be a cache hit.");
 
@@ -266,7 +267,7 @@ public class RenderGraphTest
             builder.SetRenderFunc<FinalBlitPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var exec = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState
+        var exec = _renderGraph.CompileAndExecute(_commandBuffer, null!, null!, null!, null!, new ViewState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -318,7 +319,7 @@ public class RenderGraphTest
             builder.SetRenderFunc<FinalBlitPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var exec = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState
+        var exec = _renderGraph.CompileAndExecute(_commandBuffer, null!, null!, null!, null!, new ViewState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -368,7 +369,7 @@ public class RenderGraphTest
 
         _commandBuffer.Begin(null!);
 
-        var exec = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState
+        var exec = _renderGraph.CompileAndExecute(_commandBuffer, null!, null!, null!, null!, new ViewState
         {
             actualWidth = 1920,
             actualHeight = 1080,

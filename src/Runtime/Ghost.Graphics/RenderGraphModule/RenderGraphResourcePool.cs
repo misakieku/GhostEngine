@@ -84,8 +84,8 @@ internal record struct RenderGraphResource : IDisposable
     public bool isImported;
     public int firstUsePass;
     public int lastUsePass;
-    public int producerPass;
-    public UnsafeList<int> consumerPasses;
+    public UnsafeHashSet<int> producerPasses;
+    public UnsafeHashSet<int> consumerPasses;
     public int refCount;
 
     public Handle<GPUResource> backingResource;
@@ -98,14 +98,15 @@ internal record struct RenderGraphResource : IDisposable
     {
         firstUsePass = -1;
         lastUsePass = -1;
-        producerPass = -1;
-        consumerPasses = new UnsafeList<int>(4, allocationHandle);
+        producerPasses = new UnsafeHashSet<int>(4, allocationHandle);
+        consumerPasses = new UnsafeHashSet<int>(4, allocationHandle);
         backingResource = Handle<GPUResource>.Invalid;
     }
 
     public void Dispose()
     {
         consumerPasses.Dispose();
+        producerPasses.Dispose();
     }
 }
 
@@ -265,21 +266,19 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
     public void SetProducer(Identifier<RGResource> resourceID, int passIndex)
     {
         ref var resource = ref GetResource(resourceID);
-        resource.producerPass = passIndex;
-        if (resource.firstUsePass < 0)
-        {
-            resource.firstUsePass = passIndex;
-        }
+        resource.producerPasses.Add(passIndex);
     }
 
     public void AddConsumer(Identifier<RGResource> resourceID, int passIndex)
     {
         ref var resource = ref GetResource(resourceID);
-        resource.consumerPasses.Add(passIndex);
-        resource.lastUsePass = passIndex;
-        if (resource.firstUsePass < 0)
+        if (resource.consumerPasses.Add(passIndex))
         {
-            resource.firstUsePass = passIndex;
+            resource.lastUsePass = passIndex;
+            if (resource.firstUsePass < 0)
+            {
+                resource.firstUsePass = passIndex;
+            }
         }
     }
 
@@ -410,7 +409,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         return Error.None;
     }
 
-    public void RestoreBackingResources(scoped in UnsafeList<Handle<GPUResource>> cachedBackingResources)
+    public void RestoreBackingResources(ReadOnlySpan<Handle<GPUResource>> cachedBackingResources)
     {
         for (var i = 0; i < _resources.Count; i++)
         {
