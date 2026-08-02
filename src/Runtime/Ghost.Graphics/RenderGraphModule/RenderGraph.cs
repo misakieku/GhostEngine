@@ -36,7 +36,6 @@ public sealed class RenderGraph : IDisposable
     private readonly RenderGraphBuilder _builder;
 
     private MemoryPool<TLSF, TLSF.CreationOptions> _memoryPool;
-    private RenderGraphDump? _cachedDump;
 
     public RenderGraphBlackboard Blackboard => _blackboard;
 
@@ -71,10 +70,15 @@ public sealed class RenderGraph : IDisposable
     {
         var dump = new RenderGraphDump
         {
+            GraphHash = graph.graphHash,
             TotalHeapSize = graph.plan.totalHeapSize,
             IsCacheHit = graph.cacheHit,
             ViewState = viewState
         };
+
+        var effectiveQueues = new Dictionary<int, CommandQueueType>();
+        var reader = new SpanReader(graph.commandStream.AsSpan());
+        dump.CommandStream.AddRange(DisassembleCommandStream(ref reader, graph.nativePasses.AsSpan(), effectiveQueues));
 
         // Collect Memory Placement Blocks (Heap Blocks)
         var uniqueBlocks = graph.plan.placedResources.AsSpan().ToArray()
@@ -118,6 +122,10 @@ public sealed class RenderGraph : IDisposable
                 Type = pass.type,
                 IsCulled = pass.culled,
                 AsyncCompute = pass.asyncCompute,
+                AsyncRequested = pass.asyncCompute,
+                EffectiveQueue = effectiveQueues.TryGetValue(pass.index, out var effectiveQueue)
+                    ? effectiveQueue
+                    : null,
                 ResourceReads = pass.resourceReads[(int)RGResourceType.Texture]
                     .Concat(pass.resourceReads[(int)RGResourceType.Buffer])
                     .Select(r => r.Value).ToList(),
@@ -141,6 +149,7 @@ public sealed class RenderGraph : IDisposable
             var placedResult = plan.GetPlacedResource(placedIndex);
             var resInfo = new ResourceDumpInfo
             {
+                LogicalResourceId = res.index,
                 BackingResource = res.backingResource,
                 Name = _resourceRegistry.GetResourceName(i),
                 Type = res.type,
@@ -160,17 +169,17 @@ public sealed class RenderGraph : IDisposable
             dump.Resources.Add(resInfo);
         }
 
-        // Disassemble Command Stream for human-readable debugging
-        var reader = new SpanReader(graph.commandStream.AsSpan());
-        dump.CommandStream.AddRange(DisassembleCommandStream(ref reader, graph.nativePasses.AsSpan()));
-
         return dump;
     }
 
-    private List<string> DisassembleCommandStream(ref SpanReader reader, ReadOnlySpan<NativeRenderPass> nativePasses)
+    private List<string> DisassembleCommandStream(
+        ref SpanReader reader,
+        ReadOnlySpan<NativeRenderPass> nativePasses,
+        Dictionary<int, CommandQueueType> effectiveQueues)
     {
         var lines = new List<string>();
         var instIndex = 0;
+        var effectiveQueue = CommandQueueType.Graphics;
 
         while (reader.RemainingBytes > 0)
         {
@@ -185,15 +194,21 @@ public sealed class RenderGraph : IDisposable
                     for (var i = 0; i < count; i++)
                     {
                         var barrier = reader.Read<CompiledBarrier>();
-                        var resName = _resourceRegistry.GetResourceName(barrier.resource.Value);
+                        var resourceId = barrier.resource.Value;
+                        var resName = _resourceRegistry.GetResourceName(resourceId);
+                        var resourceLabel = $"{resName} [{barrier.resourceType} #{resourceId}]";
                         if (barrier.aliasingPredecessor.IsValid)
                         {
-                            var predName = _resourceRegistry.GetResourceName(barrier.aliasingPredecessor.Value);
-                            lines.Add($"       ├─ Aliasing: {predName} -> {resName}");
+                            var predecessorId = barrier.aliasingPredecessor.Value;
+                            ref readonly var predecessor = ref _resourceRegistry.GetResource(barrier.aliasingPredecessor);
+                            var predName = _resourceRegistry.GetResourceName(predecessorId);
+                            var predecessorLabel = $"{predName} [{predecessor.type} #{predecessorId}]";
+                            var targetStateLabel = $"Layout: {barrier.targetState.layout}, Access: {barrier.targetState.access}, Sync: {barrier.targetState.sync}";
+                            lines.Add($"       ├─ Aliasing: {predecessorLabel} -> {resourceLabel} -> {targetStateLabel}, Flags: {barrier.flags}");
                         }
                         else
                         {
-                            lines.Add($"       ├─ Transition: {resName} -> Layout: {barrier.targetState.layout}, Access: {barrier.targetState.access}, Sync: {barrier.targetState.sync}");
+                            lines.Add($"       ├─ Transition: {resourceLabel} -> Layout: {barrier.targetState.layout}, Access: {barrier.targetState.access}, Sync: {barrier.targetState.sync}");
                         }
                     }
                     break;
@@ -210,9 +225,15 @@ public sealed class RenderGraph : IDisposable
                 case RGExecutionOpType.ExecutePass:
                 {
                     var passIdx = reader.Read<int>();
-                    var passName = (passIdx >= 0 && passIdx < _passes.Count) ? _passes[passIdx].name : $"Pass#{passIdx}";
-                    var passType = (passIdx >= 0 && passIdx < _passes.Count) ? _passes[passIdx].type.ToString() : "Unknown";
-                    lines.Add($"[{instIndex++:D4}] ExecutePass #{passIdx} '{passName}' [{passType}]");
+                    var isKnownPass = passIdx >= 0 && passIdx < _passes.Count;
+                    var passName = isKnownPass ? _passes[passIdx].name : $"Pass#{passIdx}";
+                    var passType = isKnownPass ? _passes[passIdx].type.ToString() : "Unknown";
+                    var asyncRequested = isKnownPass && _passes[passIdx].asyncCompute;
+                    if (isKnownPass)
+                    {
+                        effectiveQueues[passIdx] = effectiveQueue;
+                    }
+                    lines.Add($"[{instIndex++:D4}] ExecutePass #{passIdx} '{passName}' [{passType}] -> AsyncRequested: {asyncRequested}, EffectiveQueue: {effectiveQueue}");
                     break;
                 }
 
@@ -242,6 +263,7 @@ public sealed class RenderGraph : IDisposable
                     var dstQueue = reader.Read<CommandQueueType>();
                     var fenceVal = reader.Read<ulong>();
                     lines.Add($"[{instIndex++:D4}] GPUWait -> Queue: {dstQueue}, FenceValue: {fenceVal}");
+                    effectiveQueue = dstQueue;
                     break;
                 }
             }
@@ -436,13 +458,11 @@ public sealed class RenderGraph : IDisposable
             }
         }
 
-        if (flags.HasFlag(RGExecutionFlags.GenerateDump)
-            && (_cachedDump == null || _cachedDump.GraphHash != graph.graphHash))
-        {
-            _cachedDump = GenerateDump(graph, viewState);
-        }
+        var dump = flags.HasFlag(RGExecutionFlags.GenerateDump)
+            ? GenerateDump(graph, viewState)
+            : null;
 
-        return new RGExecution { Dump = _cachedDump };
+        return new RGExecution { Dump = dump };
     }
 
     public void Dispose()

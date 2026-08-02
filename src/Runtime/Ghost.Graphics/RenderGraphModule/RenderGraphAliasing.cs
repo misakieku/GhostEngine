@@ -83,7 +83,10 @@ internal struct AliasingPlan : IDisposable
             : Result.Failure();
     }
 
-    public void StoreToCache(ref UnsafeHashMap<int, int> outLogicalToPlaced, ref UnsafeArray<PlacedResourceData> outPlacedData)
+    public void StoreToCache(
+        ref UnsafeHashMap<int, int> outLogicalToPlaced,
+        ref UnsafeArray<PlacedResourceData> outPlacedData,
+        ref UnsafeArray<int> outAliasedLogicalResources)
     {
         if (logicalToPlaced.Count != 0)
         {
@@ -97,6 +100,7 @@ internal struct AliasingPlan : IDisposable
         if (placedResources.Count != 0)
         {
             outPlacedData.Clear();
+            var aliasedLogicalResourceOffset = 0;
             for (var i = 0; i < placedResources.Count; i++)
             {
                 var placed = placedResources[i];
@@ -107,8 +111,15 @@ internal struct AliasingPlan : IDisposable
                     heapOffset = placed.heapOffset,
                     sizeInBytes = placed.sizeInBytes,
                     firstUsePass = placed.firstUsePass,
-                    lastUsePass = placed.lastUsePass
+                    lastUsePass = placed.lastUsePass,
+                    aliasedLogicalResourceOffset = aliasedLogicalResourceOffset,
+                    aliasedLogicalResourceCount = placed.aliasedLogicalResources.Count
                 };
+
+                for (var aliasIndex = 0; aliasIndex < placed.aliasedLogicalResources.Count; aliasIndex++)
+                {
+                    outAliasedLogicalResources[aliasedLogicalResourceOffset++] = placed.aliasedLogicalResources[aliasIndex];
+                }
             }
         }
     }
@@ -419,15 +430,22 @@ internal static class RenderGraphAliasingBuilder
         return plan;
     }
 
-    public static AliasingPlan RestoreFromCache(UnsafeHashMap<int, int> logicalToPlaced, ReadOnlySpan<PlacedResourceData> placedData, AllocationHandle allocationHandle)
+    public static AliasingPlan RestoreFromCache(
+        UnsafeHashMap<int, int> logicalToPlaced,
+        ReadOnlySpan<PlacedResourceData> placedData,
+        ReadOnlySpan<int> aliasedLogicalResources,
+        ulong totalHeapSize,
+        AllocationHandle allocationHandle)
     {
-        var plan = new AliasingPlan(allocationHandle);
+        var plan = new AliasingPlan(allocationHandle)
+        {
+            totalHeapSize = totalHeapSize
+        };
         foreach (var kvp in logicalToPlaced)
         {
             plan.logicalToPlaced[kvp.Key] = kvp.Value;
         }
 
-        // Restore placed resources
         for (var i = 0; i < placedData.Length; i++)
         {
             var data = placedData[i];
@@ -440,6 +458,13 @@ internal static class RenderGraphAliasingBuilder
                 firstUsePass = data.firstUsePass,
                 lastUsePass = data.lastUsePass
             };
+
+            var aliasEnd = data.aliasedLogicalResourceOffset + data.aliasedLogicalResourceCount;
+            for (var aliasIndex = data.aliasedLogicalResourceOffset; aliasIndex < aliasEnd; aliasIndex++)
+            {
+                placed.aliasedLogicalResources.Add(aliasedLogicalResources[aliasIndex]);
+            }
+
             plan.placedResources.Add(placed);
         }
 

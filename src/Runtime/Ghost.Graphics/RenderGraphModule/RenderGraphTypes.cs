@@ -518,6 +518,16 @@ public readonly struct PassDumpInfo
         get; init;
     }
 
+    public bool AsyncRequested
+    {
+        get; init;
+    }
+
+    public CommandQueueType? EffectiveQueue
+    {
+        get; init;
+    }
+
     public int NativePassIndex
     {
         get; init;
@@ -541,6 +551,11 @@ public readonly struct PassDumpInfo
 
 public readonly struct ResourceDumpInfo
 {
+    public int LogicalResourceId
+    {
+        get; init;
+    }
+
     public Handle<GPUResource> BackingResource
     {
         get; init;

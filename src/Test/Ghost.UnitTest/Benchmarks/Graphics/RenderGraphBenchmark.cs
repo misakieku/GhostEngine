@@ -365,14 +365,26 @@ public class RenderGraphBenchmark
             builder.SetPassData(new FinalCompositePassData
             {
                 source = builder.UseTexture(finalLDR, AccessFlags.Read),
-                backBuffer = builder.UseTexture(backBuffer, AccessFlags.WriteAll)
+                backBuffer = builder.UseRenderTargetTexture(backBuffer, AccessFlags.WriteAll)
             });
             builder.SetRenderFunc<FinalCompositePassData>(static (ref readonly data, ctx) => { });
         }
     }
 
     /// <summary>
-    /// Benchmark 1: Cold Compile (Cache Miss).
+    /// Benchmark 1: Graph Declaration Only.
+    /// Measures pooled pass reset, resource declaration, deduplication, and completed-pass validation.
+    /// </summary>
+    [Benchmark]
+    public void Declare_PipelineOnly()
+    {
+        _renderGraph.Reset();
+        BuildAAAPipeline(_renderGraph, _importedBackBufferHandle, _importedSceneBufferHandle);
+        AllocationManager.ResetTempAllocator();
+    }
+
+    /// <summary>
+    /// Benchmark 2: Cold Compile (Cache Miss).
     /// Measures pass creation, DAG sorting, memory aliasing allocation plan, native pass merging, and binary stream compilation.
     /// </summary>
     [Benchmark]
@@ -401,7 +413,7 @@ public class RenderGraphBenchmark
     }
 
     /// <summary>
-    /// Benchmark 2: Warm Compile (Cache Hit).
+    /// Benchmark 3: Warm Compile (Cache Hit).
     /// Measures frame setup + graph hash calculation + compilation cache restoration.
     /// </summary>
     [Benchmark]

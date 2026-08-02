@@ -22,6 +22,8 @@ internal struct CachedCompilation : IDisposable
 
     // Placed heap metadata
     public UnsafeArray<PlacedResourceData> placedResources;
+    public UnsafeArray<int> aliasedLogicalResources;
+    public ulong totalHeapSize;
 
     // Real gpu heap
     public UnsafeArray<Handle<GPUResource>> backingResources;
@@ -44,6 +46,7 @@ internal struct CachedCompilation : IDisposable
         nativePasses.Dispose();
         logicalToPhysical.Dispose();
         placedResources.Dispose();
+        aliasedLogicalResources.Dispose();
         backingResources.Dispose();
         commandBytes.Dispose();
     }
@@ -57,6 +60,8 @@ internal struct PlacedResourceData
     public ulong sizeInBytes;
     public int firstUsePass;
     public int lastUsePass;
+    public int aliasedLogicalResourceOffset;
+    public int aliasedLogicalResourceCount;
 }
 
 internal sealed class RenderGraphCompilationCache : IDisposable
@@ -92,6 +97,12 @@ internal sealed class RenderGraphCompilationCache : IDisposable
         _hasCachedData = true;
         _cached.Dispose();
 
+        var aliasedLogicalResourceCount = 0;
+        for (var i = 0; i < aliasingPlan.placedResources.Count; i++)
+        {
+            aliasedLogicalResourceCount += aliasingPlan.placedResources[i].aliasedLogicalResources.Count;
+        }
+
         _cached = new CachedCompilation
         {
             compiledPassIndices = new UnsafeArray<int>(compiledPasses.Length, allocationHandle),
@@ -99,6 +110,8 @@ internal sealed class RenderGraphCompilationCache : IDisposable
             nativePasses = new UnsafeArray<NativeRenderPass>(nativePasses.Length, allocationHandle),
             logicalToPhysical = new UnsafeHashMap<int, int>(128, allocationHandle),
             placedResources = new UnsafeArray<PlacedResourceData>(aliasingPlan.placedResources.Count, allocationHandle),
+            aliasedLogicalResources = new UnsafeArray<int>(aliasedLogicalResourceCount, allocationHandle),
+            totalHeapSize = aliasingPlan.totalHeapSize,
             backingResources = new UnsafeArray<Handle<GPUResource>>(registry.ResourceCount, allocationHandle),
             commandBytes = new UnsafeArray<byte>(commandBytes.Length, allocationHandle),
             viewState = viewState
@@ -123,7 +136,7 @@ internal sealed class RenderGraphCompilationCache : IDisposable
             _cached.passCulledFlags[i] = passes[i].culled;
         }
 
-        aliasingPlan.StoreToCache(ref _cached.logicalToPhysical, ref _cached.placedResources);
+        aliasingPlan.StoreToCache(ref _cached.logicalToPhysical, ref _cached.placedResources, ref _cached.aliasedLogicalResources);
 
         for (var i = 0; i < registry.ResourceCount; i++)
         {

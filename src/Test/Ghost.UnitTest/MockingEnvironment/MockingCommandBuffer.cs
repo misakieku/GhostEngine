@@ -13,10 +13,9 @@ internal class MockingCommandBuffer : ICommandBuffer
     // Tracking properties for test assertions
     public int DrawCallCount { get; private set; }
     public int CopyCallCount { get; private set; }
+    public int DispatchCallCount { get; private set; }
     public int UpdateSubResourcesCount { get; private set; }
-#if GHOST_UNITTEST
     public List<BarrierDesc> RecordedBarriers { get; } = new();
-#endif
 
     public CommandBufferType Type
     {
@@ -43,9 +42,7 @@ internal class MockingCommandBuffer : ICommandBuffer
         {
             foreach (var desc in barrierDescs)
             {
-#if GHOST_UNITTEST
                 RecordedBarriers.Add(desc);
-#endif
                 var data = new ResourceBarrierData
                 {
                     access = desc.AccessAfter,
@@ -60,13 +57,15 @@ internal class MockingCommandBuffer : ICommandBuffer
 
     public void Begin(ICommandAllocator allocator)
     {
-        _state.CommandCount++;
+        _state.CommandCount = 0;
+        _state.IsRecording = true;
+        _state.Error = Error.None;
+        _state.ErrorCommandName = string.Empty;
         DrawCallCount = 0;
         CopyCallCount = 0;
+        DispatchCallCount = 0;
         UpdateSubResourcesCount = 0;
-#if GHOST_UNITTEST
         RecordedBarriers.Clear();
-#endif
     }
 
     public void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, ref readonly PassDepthStencilDesc depthDesc, bool allowUAVWrites = false)
@@ -99,6 +98,7 @@ internal class MockingCommandBuffer : ICommandBuffer
     public void DispatchCompute(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
     {
         _state.CommandCount++;
+        DispatchCallCount++;
     }
 
     public void DispatchGraph(scoped in DispatchGraphDesc desc)
@@ -134,6 +134,7 @@ internal class MockingCommandBuffer : ICommandBuffer
 
     public Result End()
     {
+        _state.IsRecording = false;
         return Result.Success();
     }
 

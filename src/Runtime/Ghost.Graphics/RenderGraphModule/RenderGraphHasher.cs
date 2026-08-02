@@ -1,12 +1,31 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 using System.IO.Hashing;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
 internal static unsafe class RenderGraphHasher
 {
+    private static void WriteResourceSet(BufferWriter* writer, RenderGraphResourceSet resources, Span<int> scratch)
+    {
+        writer->Write(resources.Count);
+
+        var resourceCount = 0;
+        foreach (var resource in resources)
+        {
+            scratch[resourceCount++] = resource.Value;
+        }
+
+        var resourceIds = scratch[..resourceCount];
+        resourceIds.Sort();
+        for (var resourceIndex = 0; resourceIndex < resourceIds.Length; resourceIndex++)
+        {
+            writer->Write(resourceIds[resourceIndex]);
+        }
+    }
+
     /// <summary>
     /// Computes a hash of the entire render graph structure.
     /// Used for cache invalidation - same hash means same compilation result.
@@ -15,6 +34,7 @@ internal static unsafe class RenderGraphHasher
     {
         using var scope = AllocationManager.CreateStackScope();
         using var writer = new BufferWriter(2048, scope.AllocationHandle);
+        using var scratch = new UnsafeArray<int>(resources.ResourceCount, scope.AllocationHandle);
 
         // Hash pass count
         writer.Write(passes.Count);
@@ -46,30 +66,13 @@ internal static unsafe class RenderGraphHasher
                 var writeList = pass.resourceWrites[j];
                 var createList = pass.resourceCreates[j];
 
-                writer.Write(readList.Count);
-                for (var k = 0; k < readList.Count; k++)
-                {
-                    writer.Write(readList[k].Value);
-                }
-
-                writer.Write(writeList.Count);
-                for (var k = 0; k < writeList.Count; k++)
-                {
-                    writer.Write(writeList[k].Value);
-                }
-
-                writer.Write(createList.Count);
-                for (var k = 0; k < createList.Count; k++)
-                {
-                    writer.Write(createList[k].Value);
-                }
+                WriteResourceSet(&writer, readList, scratch.AsSpan());
+                WriteResourceSet(&writer, writeList, scratch.AsSpan());
+                WriteResourceSet(&writer, createList, scratch.AsSpan());
             }
 
-            writer.Write(pass.randomAccess.Count);
-            for (var k = 0; k < pass.randomAccess.Count; k++)
-            {
-                writer.Write(pass.randomAccess[k].Value);
-            }
+            WriteResourceSet(&writer, pass.randomAccess, scratch.AsSpan());
+            WriteResourceSet(&writer, pass.renderTargetWrites, scratch.AsSpan());
 
             writer.Write(pass.GetRenderFuncHashCode());
         }

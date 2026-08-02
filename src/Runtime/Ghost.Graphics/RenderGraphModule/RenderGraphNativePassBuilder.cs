@@ -1,4 +1,3 @@
-using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -22,7 +21,8 @@ internal static class RenderGraphNativePassBuilder
         AliasingPlan aliasingPlan,
         AllocationHandle allocationHandle)
     {
-        var nativePasses = new UnsafeList<NativeRenderPass>(compiledPasses.Length / 2, allocationHandle);
+        var initialCapacity = Math.Max(1, (compiledPasses.Length + 1) / 2);
+        var nativePasses = new UnsafeList<NativeRenderPass>(initialCapacity, allocationHandle);
         NativeRenderPass currentNativePass = default;
 
         for (var i = 0; i < compiledPasses.Length; i++)

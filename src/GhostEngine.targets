@@ -2,10 +2,12 @@
   <!-- Compute Paths Later to avoid empty $(IntermediateOutputPath) during evaluation -->
   <Target Name="ComputeGhostPaths">
     <PropertyGroup>
+      <GhostIntermediateOutputPath Condition="$([System.IO.Path]::IsPathRooted('$(IntermediateOutputPath)'))">$(IntermediateOutputPath)</GhostIntermediateOutputPath>
+      <GhostIntermediateOutputPath Condition="'$(GhostIntermediateOutputPath)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)</GhostIntermediateOutputPath>
       <GhostAssetDir Condition="'$(GhostAssetDir)' == ''">$(MSBuildProjectDirectory)\Asset</GhostAssetDir>
-      <GhostAssetCacheDir Condition="'$(GhostAssetCacheDir)' == ''">$(IntermediateOutputPath)AssetCache</GhostAssetCacheDir>
+      <GhostAssetCacheDir Condition="'$(GhostAssetCacheDir)' == ''">$(GhostIntermediateOutputPath)AssetCache</GhostAssetCacheDir>
       <GhostAssetBuildDir Condition="'$(GhostAssetBuildDir)' == ''">$(TargetDir)Assets</GhostAssetBuildDir>
-      <GhostShaderMetadataPath Condition="'$(GhostShaderMetadataPath)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)shader_metadata.json</GhostShaderMetadataPath>
+      <GhostShaderMetadataPath Condition="'$(GhostShaderMetadataPath)' == ''">$(GhostIntermediateOutputPath)shader_metadata.json</GhostShaderMetadataPath>
     </PropertyGroup>
   </Target>
 
@@ -18,10 +20,10 @@
     
     <Message Importance="High" Text="Extracting Shader Metadata..." />
     
-    <WriteLinesToFile File="$(IntermediateOutputPath)compile_files.txt" Lines="@(Compile)" Overwrite="true" />
+    <WriteLinesToFile File="$(GhostIntermediateOutputPath)compile_files.txt" Lines="@(Compile)" Overwrite="true" />
     
     <!-- We use dotnet run so it automatically builds the tool if needed in local dev -->
-    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)Tools\Ghost.ShaderMetadataTool\Ghost.ShaderMetadataTool.csproj&quot; --no-launch-profile -c Release -- &quot;$(IntermediateOutputPath)compile_files.txt&quot; &quot;$(GhostShaderMetadataPath)&quot;" />
+    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)Tools\Ghost.ShaderMetadataTool\Ghost.ShaderMetadataTool.csproj&quot; --no-launch-profile -c Release -- &quot;$(GhostIntermediateOutputPath)compile_files.txt&quot; &quot;$(GhostShaderMetadataPath)&quot;" />
   </Target>
 
   <!-- Allow other projects to query this project's shader metadata path -->

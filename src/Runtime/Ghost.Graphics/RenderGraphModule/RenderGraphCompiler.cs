@@ -4,7 +4,6 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
-using Misaki.HighPerformance.Utilities;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -53,6 +52,10 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
     private readonly IResourceAllocator _resourceAllocator;
     private readonly RenderGraphResourceRegistry _resourceRegistry;
     private readonly RenderGraphCompilationCache _compilationCache;
+#if GHOST_SAFETY_CHECKS
+    private ulong _validatedGraphHash;
+    private bool _hasValidatedGraphHash;
+#endif
 
     public RenderGraphCompiler(IResourceAllocator resourceAllocator, RenderGraphResourceRegistry resourceRegistry)
     {
@@ -71,6 +74,20 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         List<RenderGraphPass> passes,
         AllocationHandle allocationHandle)
     {
+#if GHOST_SAFETY_CHECKS
+        if (!_hasValidatedGraphHash || _validatedGraphHash != graphHash)
+        {
+            var validationError = RenderGraphValidator.ValidateGraph(passes, _resourceRegistry);
+            if (validationError is not null)
+            {
+                throw new InvalidOperationException(validationError);
+            }
+
+            _validatedGraphHash = graphHash;
+            _hasValidatedGraphHash = true;
+        }
+#endif
+
         Error error;
         AliasingPlan aliasingPlan;
 
@@ -209,9 +226,8 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             for (var j = 0; j < (int)RGResourceType.Count; j++)
             {
                 var writeList = pass.resourceWrites[j];
-                for (var k = 0; k < writeList.Count; k++)
+                foreach (var writeHandle in writeList)
                 {
-                    var writeHandle = writeList[k];
                     ref readonly var resource = ref _resourceRegistry.GetResource(writeHandle);
                     if (resource.isImported || resource.isExtracted)
                     {
@@ -245,9 +261,9 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         for (var i = 0; i < (int)RGResourceType.Count; i++)
         {
             var readList = pass.resourceReads[i];
-            for (var j = 0; j < readList.Count; j++)
+            foreach (var res in readList)
             {
-                UncullProducer(readList[j], passes);
+                UncullProducer(res, passes);
             }
         }
 
@@ -264,9 +280,9 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             UncullProducer(pass.depthAccess.id.AsResource(), passes);
         }
 
-        for (var i = 0; i < pass.randomAccess.Count; i++)
+        foreach (var res in pass.randomAccess)
         {
-            UncullProducer(pass.randomAccess[i], passes);
+            UncullProducer(res, passes);
         }
     }
 
@@ -521,11 +537,10 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
     {
         for (var t = 0; t < (int)RGResourceType.Count; t++)
         {
-            var readsA = passA.resourceReads[t].AsSpan();
-            var readsB = passB.resourceReads[t].AsSpan();
-            for (var i = 0; i < readsA.Length; i++)
+            var readsB = passB.resourceReads[t];
+            foreach (var readA in passA.resourceReads[t])
             {
-                if (readsB.Contains(readsA[i])) return true;
+                if (readsB.Contains(readA)) return true;
             }
         }
 
@@ -607,42 +622,23 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             passes[i].culled = cached.passCulledFlags[i];
         }
 
-        return RenderGraphAliasingBuilder.RestoreFromCache(cached.logicalToPhysical, cached.placedResources, allocationHandle);
+        return RenderGraphAliasingBuilder.RestoreFromCache(
+            cached.logicalToPhysical,
+            cached.placedResources,
+            cached.aliasedLogicalResources,
+            cached.totalHeapSize,
+            allocationHandle);
     }
 
     private void BuildExecutionCommands(ref BufferWriter writer, List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, ReadOnlySpan<NativeRenderPass> nativePasses, AliasingPlan aliasingPlan)
     {
         var nativePassIndex = 0;
         var idx = 0;
-        var currentQueue = CommandQueueType.Graphics;
-        var nextFenceValue = 1UL;
 
         while (idx < compiledPasses.Length)
         {
             var logicalPassIndex = compiledPasses[idx];
             var pass = passes[logicalPassIndex];
-            var passQueue = (pass.asyncCompute && pass.type == RenderPassType.Compute)
-                ? CommandQueueType.Compute
-                : CommandQueueType.Graphics;
-
-            if (passQueue != currentQueue)
-            {
-                // Emit cross-queue fence signal & submit on current queue
-                writer.Write(RGExecutionOpType.SignalFence);
-                writer.Write(currentQueue);
-                writer.Write(nextFenceValue);
-
-                writer.Write(RGExecutionOpType.SubmitQueue);
-                writer.Write(currentQueue);
-
-                // Emit GPU wait on destination queue
-                writer.Write(RGExecutionOpType.GPUWait);
-                writer.Write(passQueue);
-                writer.Write(nextFenceValue);
-
-                currentQueue = passQueue;
-                nextFenceValue++;
-            }
 
             if (pass.type == RenderPassType.Raster && nativePassIndex < nativePasses.Length)
             {

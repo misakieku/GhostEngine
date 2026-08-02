@@ -139,9 +139,12 @@ public interface IRasterRenderGraphBuilder : IRenderGraphBuilder
 public interface IComputeRenderGraphBuilder : IRenderGraphBuilder
 {
     /// <summary>
-    /// Enables or disables asynchronous compute operations.
+    /// Marks the compute pass as eligible for asynchronous compute scheduling.
     /// </summary>
-    /// <param name="value">true to enable asynchronous compute; otherwise, false.</param>
+    /// <remarks>
+    /// This is a scheduling hint, not a guarantee of compute-queue execution. Until dependency-aware queue batching is implemented, eligible passes execute on the graphics/direct queue.
+    /// </remarks>
+    /// <param name="value"><see langword="true"/> to request asynchronous compute eligibility; otherwise, <see langword="false"/>.</param>
     void EnableAsyncCompute(bool value);
 
     /// <summary>
@@ -155,6 +158,14 @@ public interface IComputeRenderGraphBuilder : IRenderGraphBuilder
 
 public interface IUnsafeRenderGraphBuilder : IRenderGraphBuilder
 {
+    /// <summary>
+    /// Declares that a texture will be used as a render target by the unsafe pass.
+    /// </summary>
+    /// <param name="texture">The texture used as a render target.</param>
+    /// <param name="flags">The access performed by the pass.</param>
+    /// <returns>The declared texture.</returns>
+    Identifier<RGTexture> UseRenderTargetTexture(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.Write);
+
     /// <summary>
     /// Binds a texture for random access operations within the current rendering pass.
     /// </summary>
@@ -184,6 +195,9 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
 
     private RenderGraphPass _pass = null!;
     private bool _disposed;
+#if GHOST_SAFETY_CHECKS
+    private bool _faulted;
+#endif
 
     public RenderGraphBuilder(RenderGraphResourceRegistry resourceRegistry, RenderGraphBlackboard blackboard)
     {
@@ -195,6 +209,9 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
     {
         _pass = pass;
         _disposed = false;
+#if GHOST_SAFETY_CHECKS
+        _faulted = false;
+#endif
     }
 
     [Conditional("DEBUG")]
@@ -204,17 +221,42 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
+    [Conditional("GHOST_SAFETY_CHECKS")]
+    private void Reject(string error)
+    {
+#if GHOST_SAFETY_CHECKS
+        _faulted = true;
+        throw new InvalidOperationException(error);
+#endif
+    }
+
+    [Conditional("GHOST_SAFETY_CHECKS")]
+    private void ValidateDeclaration(Identifier<RGResource> resource, PassResourceUsageClass usageClass)
+    {
+#if GHOST_SAFETY_CHECKS
+        var error = RenderGraphValidator.ValidateDeclaration(_pass, resource, usageClass, _resourceRegistry);
+        if (error is not null)
+        {
+            Reject(error);
+        }
+#endif
+    }
+
+    private void CompleteDispose()
+    {
+        _pass = null!;
+        _disposed = true;
+    }
+
     private Identifier<RGResource> UseResource(Identifier<RGResource> resource, AccessFlags accessFlags, RGResourceType type)
     {
-        if (accessFlags.HasFlag(AccessFlags.Read))
+        if (accessFlags.HasFlag(AccessFlags.Read) && _pass.resourceReads[(int)type].Add(resource))
         {
-            _pass.resourceReads[(int)type].Add(resource);
             _resourceRegistry.AddConsumer(resource, _pass.index);
         }
 
-        if (accessFlags.HasFlag(AccessFlags.Write))
+        if (accessFlags.HasFlag(AccessFlags.Write) && _pass.resourceWrites[(int)type].Add(resource))
         {
-            _pass.resourceWrites[(int)type].Add(resource);
             _resourceRegistry.SetProducer(resource, _pass.index);
         }
 
@@ -270,9 +312,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         resource.extractionTarget = dst.AsResource();
         resource.extractionFlags = flags;
 
-        var res = src.AsResource();
-        _pass.resourceReads[(int)RGResourceType.Texture].Add(res);
-        _resourceRegistry.AddConsumer(res, _pass.index);
+        UseResource(src.AsResource(), AccessFlags.Read, RGResourceType.Texture);
     }
 
     public void QueueBufferExtraction(Identifier<RGBuffer> src, Handle<GPUBuffer> dst, ResourceExtractionFlags flags)
@@ -282,9 +322,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         resource.extractionTarget = dst.AsResource();
         resource.extractionFlags = flags;
 
-        var res = src.AsResource();
-        _pass.resourceReads[(int)RGResourceType.Buffer].Add(res);
-        _resourceRegistry.AddConsumer(res, _pass.index);
+        UseResource(src.AsResource(), AccessFlags.Read, RGResourceType.Buffer);
     }
 
     public Identifier<RGTexture> UseRandomAccessTexture(Identifier<RGTexture> texture)
@@ -292,6 +330,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         ThrowIfDisposed();
 
         var resource = texture.AsResource();
+        ValidateDeclaration(resource, PassResourceUsageClass.UnorderedAccess);
         UseResource(resource, AccessFlags.ReadWrite, RGResourceType.Texture);
         _pass.randomAccess.Add(resource);
         return texture;
@@ -302,9 +341,21 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         ThrowIfDisposed();
 
         var resource = buffer.AsResource();
+        ValidateDeclaration(resource, PassResourceUsageClass.UnorderedAccess);
         UseResource(resource, AccessFlags.ReadWrite, RGResourceType.Buffer);
         _pass.randomAccess.Add(resource);
         return buffer;
+    }
+
+    public Identifier<RGTexture> UseRenderTargetTexture(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.Write)
+    {
+        ThrowIfDisposed();
+
+        var resource = texture.AsResource();
+        ValidateDeclaration(resource, PassResourceUsageClass.ColorAttachment);
+        UseResource(resource, flags, RGResourceType.Texture);
+        _pass.renderTargetWrites.Add(resource);
+        return texture;
     }
 
     public void SetColorAttachment(Identifier<RGTexture> texture, int index, AccessFlags flags = AccessFlags.Write)
@@ -313,36 +364,38 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
 
         Logger.DebugAssert(index >= 0 && index < RHIUtility.MAX_RENDER_TARGETS, "Color attachment index out of range.");
 
-        var id = UseTexture(texture, flags);
-        if (_pass.colorAccess[index].id == id || _pass.colorAccess[index].id.IsInvalid)
+        var existingAttachment = _pass.colorAccess[index].id;
+        if (existingAttachment.IsValid && existingAttachment != texture)
         {
-            _pass.maxColorIndex = Math.Max(_pass.maxColorIndex, index);
-            var usage = new ResourceBarrierData(BarrierLayout.RenderTarget, BarrierAccess.RenderTarget, BarrierSync.RenderTarget);
-            _pass.colorAccess[index] = new TextureAccess(id, flags, usage);
+            Reject($"Color attachment at index {index} is already set to a different texture.");
         }
-        else
-        {
-            throw new InvalidOperationException($"Color attachment at index {index} is already set to a different texture.");
-        }
+
+        var resource = texture.AsResource();
+        ValidateDeclaration(resource, PassResourceUsageClass.ColorAttachment);
+        UseResource(resource, flags, RGResourceType.Texture);
+        _pass.maxColorIndex = Math.Max(_pass.maxColorIndex, index);
+        var usage = new ResourceBarrierData(BarrierLayout.RenderTarget, BarrierAccess.RenderTarget, BarrierSync.RenderTarget);
+        _pass.colorAccess[index] = new TextureAccess(texture, flags, usage);
     }
 
     public void SetDepthAttachment(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.ReadWrite)
     {
         ThrowIfDisposed();
 
-        var id = UseTexture(texture, flags);
-        if (_pass.depthAccess.id == id || _pass.depthAccess.id.IsInvalid)
+        if (_pass.depthAccess.id.IsValid && _pass.depthAccess.id != texture)
         {
-            var layout = flags.HasFlag(AccessFlags.Write) ? BarrierLayout.DepthStencilWrite : BarrierLayout.DepthStencilRead;
-            var access = flags.HasFlag(AccessFlags.Write) ? BarrierAccess.DepthStencilWrite : BarrierAccess.DepthStencilRead;
-            var sync = BarrierSync.DepthStencil;
-            var usage = new ResourceBarrierData(layout, access, sync);
-            _pass.depthAccess = new TextureAccess(id, flags, usage);
+            Reject("Depth attachment is already set to a different texture.");
         }
-        else
-        {
-            throw new InvalidOperationException("Depth attachment is already set to a different texture.");
-        }
+
+        var layout = flags.HasFlag(AccessFlags.Write) ? BarrierLayout.DepthStencilWrite : BarrierLayout.DepthStencilRead;
+        var usageClass = layout == BarrierLayout.DepthStencilWrite ? PassResourceUsageClass.DepthWrite : PassResourceUsageClass.DepthRead;
+        var resource = texture.AsResource();
+        ValidateDeclaration(resource, usageClass);
+        UseResource(resource, flags, RGResourceType.Texture);
+        var access = flags.HasFlag(AccessFlags.Write) ? BarrierAccess.DepthStencilWrite : BarrierAccess.DepthStencilRead;
+        var sync = BarrierSync.DepthStencil;
+        var usage = new ResourceBarrierData(layout, access, sync);
+        _pass.depthAccess = new TextureAccess(texture, flags, usage);
     }
 
     public void SetRenderFunc<TPassData>(PassRenderFunc<TPassData, IRasterRenderContext> renderFunc)
@@ -368,7 +421,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
     {
         if (_pass is not RenderGraphPass<T> typedPass)
         {
-            throw new ArgumentException("Pass type and pass data type missmatch.");
+            throw new ArgumentException("Pass type and pass data type mismatch.");
         }
 
         typedPass.SetPassData(passData);
@@ -386,18 +439,21 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
             return;
         }
 
-        if (!_pass.HasRenderFunc())
+#if GHOST_SAFETY_CHECKS
+        if (_faulted)
         {
-            throw new InvalidOperationException("RenderGraphBuilder must be disposed after setting up the render function.");
+            CompleteDispose();
+            return;
         }
 
-        if (_pass.type == RenderPassType.Raster && _pass.colorAccess[0].id.IsInvalid && _pass.depthAccess.id.IsInvalid)
+        var error = RenderGraphValidator.ValidatePass(_pass, _resourceRegistry);
+#endif
+        CompleteDispose();
+#if GHOST_SAFETY_CHECKS
+        if (error is not null)
         {
-            throw new InvalidOperationException("Raster render pass must have at least one color or depth attachment.");
+            throw new InvalidOperationException(error);
         }
-
-        _pass = null!;
-
-        _disposed = true;
+#endif
     }
 }
