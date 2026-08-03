@@ -402,7 +402,7 @@ public class RenderGraphBenchmark
             _graphicsQueue,
             _computeQueue,
             _fence,
-            _viewState);
+            _viewState, RGExecutionFlags.GenerateDump);
 
         if (result.IsFailure)
         {
