@@ -168,72 +168,88 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             }
         }
 
-        // Reorder passes to ensure best performance
-        //ReorderPasses(passes, &compiledPasses);
-
         using var schedulingScope = AllocationManager.CreateStackScope();
-        using var effectiveQueues = new UnsafeArray<CommandQueueType>(compiledPasses.Count, schedulingScope.AllocationHandle);
-        using var syncBoundaries = new UnsafeArray<SyncBoundary>(compiledPasses.Count, schedulingScope.AllocationHandle);
-        BuildDependencyWindowSchedule(
-            passes,
-            compiledPasses.AsSpan(),
-            effectiveQueues.AsSpan(),
-            syncBoundaries.AsSpan(),
-            schedulingScope.AllocationHandle);
 
-        aliasingPlan = RenderGraphAliasingBuilder.Build(_resourceRegistry, _resourceAllocator, allocationHandle);
-        error = _resourceRegistry.AllocateBackingResources(aliasingPlan, _compilationCache);
-        if (error != Error.None)
-        {
-            return error;
-        }
-
-        var nativePasses = RenderGraphNativePassBuilder.BuildNativeRenderPasses(_resourceRegistry, passes, compiledPasses, aliasingPlan, allocationHandle);
-        var commandWriter = new BufferWriter(1024 * 1024, allocationHandle);
+        var nodes = BuildDAG(passes, compiledPasses, _resourceRegistry, schedulingScope.AllocationHandle);
 
         try
         {
-            BuildExecutionCommands(
-                ref commandWriter,
+            // Reorder passes to ensure best performance
+            ReorderPasses(passes, nodes.AsSpan(), &compiledPasses);
+
+            using var effectiveQueues = new UnsafeArray<CommandQueueType>(compiledPasses.Count, schedulingScope.AllocationHandle);
+            using var syncBoundaries = new UnsafeArray<SyncBoundary>(compiledPasses.Count, schedulingScope.AllocationHandle);
+            BuildDependencyWindowSchedule(
                 passes,
-                compiledPasses,
-                nativePasses,
-                aliasingPlan,
+                compiledPasses.AsSpan(),
                 effectiveQueues.AsSpan(),
-                syncBoundaries.AsSpan());
+                syncBoundaries.AsSpan(),
+                nodes.AsSpan(),
+                schedulingScope.AllocationHandle);
 
-            ref readonly var cacheData = ref _compilationCache.SetCached(
-                _resourceRegistry,
-                graphHash,
-                viewState,
-                passes,
-                compiledPasses,
-                nativePasses,
-                commandWriter.AsSpan(),
-                aliasingPlan,
-                allocationHandle);
-
-            return new CompiledGraph
+            aliasingPlan = RenderGraphAliasingBuilder.Build(_resourceRegistry, _resourceAllocator, allocationHandle);
+            error = _resourceRegistry.AllocateBackingResources(aliasingPlan, _compilationCache);
+            if (error != Error.None)
             {
-                scale = float2.one,
-                plan = aliasingPlan,
-                graphHash = graphHash,
-                passes = passes,
-                compiledPasses = cacheData.compiledPassIndices,
-                nativePasses = cacheData.nativePasses,
-                commandStream = cacheData.commandBytes,
-                cacheHit = false
-            };
+                return error;
+            }
+
+            var nativePasses = RenderGraphNativePassBuilder.BuildNativeRenderPasses(_resourceRegistry, passes, compiledPasses, aliasingPlan, allocationHandle);
+            var commandWriter = new BufferWriter(1024 * 1024, allocationHandle);
+
+            try
+            {
+                BuildExecutionCommands(
+                    ref commandWriter,
+                    passes,
+                    compiledPasses,
+                    nativePasses,
+                    aliasingPlan,
+                    effectiveQueues.AsSpan(),
+                    syncBoundaries.AsSpan());
+
+                ref readonly var cacheData = ref _compilationCache.SetCached(
+                    _resourceRegistry,
+                    graphHash,
+                    viewState,
+                    passes,
+                    compiledPasses,
+                    nativePasses,
+                    commandWriter.AsSpan(),
+                    aliasingPlan,
+                    allocationHandle);
+
+                return new CompiledGraph
+                {
+                    scale = float2.one,
+                    plan = aliasingPlan,
+                    graphHash = graphHash,
+                    passes = passes,
+                    compiledPasses = cacheData.compiledPassIndices,
+                    nativePasses = cacheData.nativePasses,
+                    commandStream = cacheData.commandBytes,
+                    cacheHit = false
+                };
+            }
+            finally
+            {
+                for (var i = 0; i < nativePasses.Count; i++)
+                {
+                    nativePasses[i].Dispose();
+                }
+
+                nativePasses.Dispose();
+                commandWriter.Dispose();
+            }
         }
         finally
         {
-            for (var i = 0; i < nativePasses.Count; i++)
+            for (var i = 0; i < nodes.Count; i++)
             {
-                nativePasses[i].Dispose();
+                nodes[i].Dispose();
             }
 
-            nativePasses.Dispose();
-            commandWriter.Dispose();
+            nodes.Dispose();
         }
     }
 
@@ -325,11 +341,10 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         }
     }
 
-    private static void BuildDAG(
+    private static UnsafeArray<PassDependencyNode> BuildDAG(
         List<RenderGraphPass> passes,
         ReadOnlySpan<int> compiledPasses,
         RenderGraphResourceRegistry resources,
-        Span<PassDependencyNode> nodes,
         AllocationHandle allocationHandle)
     {
         void AddEdge(int passA, int passB, Span<PassDependencyNode> nodes)
@@ -350,23 +365,23 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         var passCount = compiledPasses.Length;
         var resourceCount = resources.ResourceCount;
 
-        using var scope = AllocationManager.CreateStackScope();
-
-        // Track last access per resource
-        using var lastWriter = new UnsafeArray<int>(resourceCount, scope.AllocationHandle);
+        // Track last access per resource. These use the caller-owned scheduling scope so
+        // returning from BuildDAG cannot rewind and invalidate the graph allocations.
+        using var lastWriter = new UnsafeArray<int>(resourceCount, allocationHandle);
         lastWriter.AsSpan().Fill(-1);
 
         // Track readers since last write per resource
-        using var lastReaders = new UnsafeList<UnsafeList<int>>(resourceCount, scope.AllocationHandle);
+        using var lastReaders = new UnsafeList<UnsafeList<int>>(resourceCount, allocationHandle);
         for (var i = 0; i < resourceCount; i++)
         {
-            lastReaders.Add(new UnsafeList<int>(4, scope.AllocationHandle));
+            lastReaders.Add(new UnsafeList<int>(4, allocationHandle));
         }
 
-        // Initialize nodes
+        // Initialize nodes in the original compiled-pass index space.
+        var nodes = new UnsafeArray<PassDependencyNode>(passCount, allocationHandle);
         for (var i = 0; i < passCount; i++)
         {
-            nodes[i] = new PassDependencyNode(i, allocationHandle);
+            nodes[i] = new PassDependencyNode(compiledPasses[i], allocationHandle);
         }
 
         var lastSideEffect = -1;
@@ -507,6 +522,8 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         {
             lastReaders[i].Dispose();
         }
+
+        return nodes;
     }
     private static int SelectBestCandidatePass(
         ReadOnlySpan<int> readyPassIndices,
@@ -588,7 +605,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         return false;
     }
 
-    private void ReorderPasses(List<RenderGraphPass> passes, UnsafeList<int>* pCompiledPasses)
+    private void ReorderPasses(List<RenderGraphPass> passes, ReadOnlySpan<PassDependencyNode> dependencyNodes, UnsafeList<int>* pCompiledPasses)
     {
         var passCount = pCompiledPasses->Count;
         if (passCount <= 1)
@@ -596,17 +613,15 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             return;
         }
 
-        // Build DAG Node array
         using var scope = AllocationManager.CreateStackScope();
-        var nodes = new PassDependencyNode[passCount];
-
-        BuildDAG(passes, pCompiledPasses->AsSpan(), _resourceRegistry, nodes, scope.AllocationHandle);
+        using var remainingInDegrees = new UnsafeArray<int>(passCount, scope.AllocationHandle);
 
         // Initialize Ready List (Passes with 0 incoming dependencies)
         using var readyList = new UnsafeList<int>(passCount, scope.AllocationHandle);
         for (var i = 0; i < passCount; i++)
         {
-            if (nodes[i].inDegree == 0)
+            remainingInDegrees[i] = dependencyNodes[i].inDegree;
+            if (remainingInDegrees[i] == 0)
             {
                 readyList.Add(i);
             }
@@ -627,15 +642,13 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             reorderedIndices.Add(chosenPass);
             lastScheduledPass = passes[chosenPass];
 
-            // Decrement in-degree for all downstream dependent passes
-            ref var chosenNode = ref nodes[chosenPassIndex];
+            // Decrement the scratch in-degree for all downstream dependent passes.
+            ref readonly var chosenNode = ref dependencyNodes[chosenPassIndex];
             for (var i = 0; i < chosenNode.dependents.Count; i++)
             {
                 var dstIdx = chosenNode.dependents[i];
-                ref var dstNode = ref nodes[dstIdx];
-
-                dstNode.inDegree--;
-                if (dstNode.inDegree == 0)
+                remainingInDegrees[dstIdx]--;
+                if (remainingInDegrees[dstIdx] == 0)
                 {
                     readyList.Add(dstIdx);
                 }
@@ -646,11 +659,6 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 
         pCompiledPasses->Clear();
         pCompiledPasses->AddRange(reorderedIndices);
-
-        for (var i = 0; i < passCount; i++)
-        {
-            nodes[i].dependents.Dispose();
-        }
     }
 
     private void BuildDependencyWindowSchedule(
@@ -658,6 +666,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         ReadOnlySpan<int> compiledPasses,
         Span<CommandQueueType> effectiveQueues,
         Span<SyncBoundary> syncBoundaries,
+        ReadOnlySpan<PassDependencyNode> dependencyNodes,
         AllocationHandle allocationHandle)
     {
         effectiveQueues.Fill(CommandQueueType.Graphics);
@@ -669,37 +678,50 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             return;
         }
 
-        using var nodes = new UnsafeArray<PassDependencyNode>(passCount, allocationHandle);
+        using var dagIndexByPassIndex = new UnsafeArray<int>(passes.Count, allocationHandle);
+        using var dagIndexByScheduleIndex = new UnsafeArray<int>(passCount, allocationHandle);
+        using var scheduleIndexByDagIndex = new UnsafeArray<int>(passCount, allocationHandle);
         using var reachability = new UnsafeArray<byte>(passCount * passCount, allocationHandle);
+        dagIndexByPassIndex.AsSpan().Fill(-1);
         reachability.AsSpan().Clear();
 
-        try
+        for (var dagIndex = 0; dagIndex < passCount; dagIndex++)
         {
-            BuildDAG(passes, compiledPasses, _resourceRegistry, nodes.AsSpan(), allocationHandle);
+            dagIndexByPassIndex[dependencyNodes[dagIndex].passIndex] = dagIndex;
+        }
 
-            for (var source = passCount - 1; source >= 0; source--)
+        for (var scheduleIndex = 0; scheduleIndex < passCount; scheduleIndex++)
+        {
+            var dagIndex = dagIndexByPassIndex[compiledPasses[scheduleIndex]];
+            Logger.DebugAssert(dagIndex >= 0);
+            dagIndexByScheduleIndex[scheduleIndex] = dagIndex;
+            scheduleIndexByDagIndex[dagIndex] = scheduleIndex;
+        }
+
+        for (var source = passCount - 1; source >= 0; source--)
+        {
+            ref readonly var sourceNode = ref dependencyNodes[dagIndexByScheduleIndex[source]];
+            for (var edgeIndex = 0; edgeIndex < sourceNode.dependents.Count; edgeIndex++)
             {
-                ref var sourceNode = ref nodes[source];
-                for (var edgeIndex = 0; edgeIndex < sourceNode.dependents.Count; edgeIndex++)
-                {
-                    var dependent = sourceNode.dependents[edgeIndex];
-                    reachability[(source * passCount) + dependent] = 1;
+                var dependent = scheduleIndexByDagIndex[sourceNode.dependents[edgeIndex]];
+                Logger.DebugAssert(dependent > source);
+                reachability[(source * passCount) + dependent] = 1;
 
-                    var dependentRow = dependent * passCount;
-                    var sourceRow = source * passCount;
-                    for (var destination = dependent + 1; destination < passCount; destination++)
+                var dependentRow = dependent * passCount;
+                var sourceRow = source * passCount;
+                for (var destination = dependent + 1; destination < passCount; destination++)
+                {
+                    if (reachability[dependentRow + destination] != 0)
                     {
-                        if (reachability[dependentRow + destination] != 0)
-                        {
-                            reachability[sourceRow + destination] = 1;
-                        }
+                        reachability[sourceRow + destination] = 1;
                     }
                 }
             }
+        }
 
-            for (var candidateIndex = 1; candidateIndex < passCount; candidateIndex++)
-            {
-                var candidate = passes[compiledPasses[candidateIndex]];
+        for (var candidateIndex = 1; candidateIndex < passCount; candidateIndex++)
+        {
+            var candidate = passes[compiledPasses[candidateIndex]];
                 if (!IsAsyncComputeCandidate(candidate))
                 {
                     continue;
@@ -787,17 +809,9 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     producerCommandBufferId = 1
                 };
 
-                // The initial planner materializes one active Compute region. Later candidates are
-                // deterministically demoted by original pass order unless they joined this group.
-                break;
-            }
-        }
-        finally
-        {
-            for (var i = 0; i < passCount; i++)
-            {
-                nodes[i].Dispose();
-            }
+            // The initial planner materializes one active Compute region. Later candidates are
+            // deterministically demoted by original pass order unless they joined this group.
+            break;
         }
     }
 
