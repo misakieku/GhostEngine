@@ -23,7 +23,7 @@
     <WriteLinesToFile File="$(GhostIntermediateOutputPath)compile_files.txt" Lines="@(Compile)" Overwrite="true" />
     
     <!-- We use dotnet run so it automatically builds the tool if needed in local dev -->
-    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)Tools\Ghost.ShaderMetadataTool\Ghost.ShaderMetadataTool.csproj&quot; --no-launch-profile -c Release -- &quot;$(GhostIntermediateOutputPath)compile_files.txt&quot; &quot;$(GhostShaderMetadataPath)&quot;" />
+    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)Tools/Ghost.ShaderMetadataTool/Ghost.ShaderMetadataTool.csproj&quot; --no-launch-profile -c Release -- &quot;$(GhostIntermediateOutputPath)compile_files.txt&quot; &quot;$(GhostShaderMetadataPath)&quot;" />
   </Target>
 
   <!-- Allow other projects to query this project's shader metadata path -->
@@ -45,9 +45,9 @@
     </MSBuild>
     
     <PropertyGroup>
-      <GhostEngineAssetDir>$(MSBuildThisFileDirectory)Runtime\Ghost.Engine\Assets</GhostEngineAssetDir>
+      <GhostEngineAssetDir>$(MSBuildThisFileDirectory)Runtime/Ghost.Engine/Assets</GhostEngineAssetDir>
     </PropertyGroup>
     
-    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)Tools\Ghost.AssetForge.CLI\Ghost.AssetForge.CLI.csproj&quot; --no-launch-profile -c Release -- bake --asset-dir &quot;$(GhostEngineAssetDir);$(GhostAssetDir)&quot; --cache-dir &quot;$(GhostAssetCacheDir)&quot; --build-dir &quot;$(GhostAssetBuildDir)&quot; --shader-metadata &quot;$(GhostShaderMetadataPath);@(AllMetadata)&quot;" />
+    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)Tools/Ghost.AssetForge.CLI/Ghost.AssetForge.CLI.csproj&quot; --no-launch-profile -c Release -- bake --asset-dir &quot;$(GhostEngineAssetDir);$(GhostAssetDir)&quot; --cache-dir &quot;$(GhostAssetCacheDir)&quot; --build-dir &quot;$(GhostAssetBuildDir)&quot; --shader-metadata &quot;$(GhostShaderMetadataPath);@(AllMetadata)&quot;" />
   </Target>
 </Project>

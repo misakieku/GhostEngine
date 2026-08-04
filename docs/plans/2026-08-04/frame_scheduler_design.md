@@ -1,8 +1,17 @@
-# FrameScheduler Design Plan
+# Historical FrameScheduler Design Draft
 
-**Date:** 2026-08-04  
-**Status:** Draft  
-**Context:** GhostEngine render graph Step 8 — dependency-aware async compute scheduling
+- **Date:** 2026-08-04
+- **Status:** Obsolete and superseded
+- **Context:** Historical pre-implementation exploration for GhostEngine render graph Step 8
+
+> **Do not implement this draft.** Its `void Submit`, `Reset`, shared-fence alternatives, internal batch grouping,
+> raw `SubmitQueue`/`SignalFence`/`GPUWait` activation, and projected file locations do not match the accepted scheduler.
+> Read [the current handoff context](render_graph_sync_point_command_buffer_integration_context.md),
+> [the accepted integration plan](render_graph_sync_point_command_buffer_integration_plan.md), and the implemented
+> [`IFrameScheduler`](../../../src/Runtime/Ghost.Graphics/FrameScheduling/IFrameScheduler.cs) instead. The native
+> `ICommandBuffer` is the submission node; no `CompiledQueueBatch` or equivalent render-graph submission object is permitted.
+
+The remainder of this file is retained only as historical decision context.
 
 ---
 
@@ -91,7 +100,7 @@ public readonly struct FrameCompletionInfo
 
 The scheduler builds two lists as `Submit` and `Transition` are called:
 
-```
+```text
 _entries: List<SchedulerEntry>
 _transitions: List<TransitionEdge>
 
@@ -119,7 +128,7 @@ A `Transition(from, to)` call records an edge at the current sequence position. 
 
 ## Flush Algorithm
 
-```
+```text
 Flush():
   1. Group consecutive same-queue SchedulerEntries into batches.
      A batch boundary occurs at every TransitionEdge.
@@ -187,7 +196,7 @@ frameScheduler.Reset();
 
 Command allocators must not be reset until the GPU has finished all command lists recorded through them. `FrameCompletionInfo` provides the fence values to check.
 
-```
+```text
 Ring buffer: allocator[frameIndex % FRAMES_IN_FLIGHT]
 
 Start of frame N:

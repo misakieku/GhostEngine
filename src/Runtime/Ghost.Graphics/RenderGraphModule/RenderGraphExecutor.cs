@@ -25,7 +25,8 @@ internal sealed class RenderGraphExecutor
 
     private void SetViewport(RenderGraphContext context, ReadOnlySpan<RenderTargetInfo> color, DepthStencilInfo depthStencil)
     {
-        // This should not happened since the compiler should have rejected any render pass with an invalid render target configuration, but just in case, we use Logger.DebugAssert to validate our assumptions.
+        // The compiler should reject invalid render-target configurations.
+        // Retain a debug assertion here to protect the executor invariant.
         Logger.DebugAssert(color.Length > 0 || depthStencil.texture.IsValid);
 
         ViewportDesc viewportDesc = default;
@@ -78,10 +79,6 @@ internal sealed class RenderGraphExecutor
 
     public unsafe Error Execute(
         ICommandBuffer graphicsCommandBuffer,
-        ICommandBuffer computeCommandBuffer,
-        ICommandQueue graphicsQueue,
-        ICommandQueue computeQueue,
-        IFence fence,
         RenderGraphContext context,
         scoped in CompiledGraph graph)
     {
@@ -184,37 +181,11 @@ internal sealed class RenderGraphExecutor
                         break;
                     }
 
-                    case RGExecutionOpType.SignalFence:
+                    case RGExecutionOpType.CommandBufferSyncPoint:
                     {
-                        var srcQueueType = reader.Read<CommandQueueType>();
-                        var fenceVal = reader.Read<ulong>();
-                        var srcQueue = (srcQueueType == CommandQueueType.Compute) ? computeQueue : graphicsQueue;
-
-                        srcQueue.Signal(fence, fenceVal);
-                        break;
-                    }
-
-                    case RGExecutionOpType.SubmitQueue:
-                    {
-                        var targetQueueType = reader.Read<CommandQueueType>();
-                        var targetCmdBuffer = (targetQueueType == CommandQueueType.Compute) ? computeCommandBuffer : graphicsCommandBuffer;
-                        var targetQueue = (targetQueueType == CommandQueueType.Compute) ? computeQueue : graphicsQueue;
-
-                        targetQueue.Submit(targetCmdBuffer);
-                        break;
-                    }
-
-                    case RGExecutionOpType.GPUWait:
-                    {
-                        var dstQueueType = reader.Read<CommandQueueType>();
-                        var fenceVal = reader.Read<ulong>();
-                        var dstQueue = (dstQueueType == CommandQueueType.Compute) ? computeQueue : graphicsQueue;
-
-                        dstQueue.Wait(fence, fenceVal);
-                        activeCommandBuffer = (dstQueueType == CommandQueueType.Compute)
-                            ? computeCommandBuffer
-                            : graphicsCommandBuffer;
-                        context.BeginNewFrame(activeCommandBuffer);
+                        // Phase 2 serializes the planned command-buffer topology for diagnostics and caching.
+                        // Native command-buffer splitting remains disabled, so all commands stay on Graphics.
+                        _ = RGCommandStream.ReadSyncMarker(ref reader);
                         break;
                     }
 

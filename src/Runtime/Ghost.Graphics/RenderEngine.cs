@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.Core;
+using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Mathematics;
@@ -59,13 +60,22 @@ public class RenderEngine : IDisposable
             get; init;
         }
 
-        // TODO: Thread local?
-        public required ICommandAllocator CommandAllocator
+        public required ICommandAllocator GraphicsCommandAllocator
         {
             get; init;
         }
 
-        public ulong FenceValue
+        public required ICommandAllocator ComputeCommandAllocator
+        {
+            get; init;
+        }
+
+        public required ICommandAllocator CopyCommandAllocator
+        {
+            get; init;
+        }
+
+        public FrameCompletionInfo Completion
         {
             get; set;
         }
@@ -79,7 +89,9 @@ public class RenderEngine : IDisposable
         {
             CpuReadyEvent.Dispose();
             GpuReadyEvent.Dispose();
-            CommandAllocator.Dispose();
+            GraphicsCommandAllocator.Dispose();
+            ComputeCommandAllocator.Dispose();
+            CopyCommandAllocator.Dispose();
             RenderPayload.Dispose();
         }
     }
@@ -93,16 +105,14 @@ public class RenderEngine : IDisposable
     private readonly ResourceManager _resourceManager;
     private readonly SwapChainManager _swapChainManager;
     private readonly ShaderLibrary _shaderLibrary;
-    private readonly AsyncCopyPipeline _asyncCopyPipeline;
-
-    private readonly IFence _fence;
+    private readonly IFrameScheduler _frameScheduler;
     private readonly FrameResource[] _frameResources;
     private readonly Thread _renderThread;
     private readonly AutoResetEvent _shutdownEvent;
 
     private readonly ConcurrentDictionary<ISwapChain, uint2> _resizeRequest;
 
-    private ulong _submittedFenceValue;
+    private ulong _submittedFrame;
 
     private bool _isRunning;
     private bool _disposed;
@@ -112,10 +122,10 @@ public class RenderEngine : IDisposable
     public IGraphicsEngine GraphicsEngine => _graphicsEngine;
     public ResourceManager ResourceManager => _resourceManager;
     public SwapChainManager SwapChainManager => _swapChainManager;
-    public AsyncCopyPipeline AsyncCopyPipeline => _asyncCopyPipeline;
+    public IFrameScheduler FrameScheduler => _frameScheduler;
 
     public bool IsRunning => _isRunning;
-    public ulong SubmittedFenceValue => _submittedFenceValue;
+    public ulong SubmittedFrame => _submittedFrame;
     public int MaxFrameLatency => _frameResources.Length;
 
     public IRenderPipelineSettings RenderPipelineSettings
@@ -153,7 +163,7 @@ public class RenderEngine : IDisposable
         _streamingProcessor = desc.ResourceStreamingProcessor;
         _renderPipelineSettings = desc.InitialRenderPipelineSettings;
 
-        _fence = _graphicsEngine.CreateFence(0);
+        _frameScheduler = new FrameScheduler(_graphicsEngine);
         // Create frame resources for synchronization
         _frameResources = new FrameResource[desc.FrameBufferCount];
         for (var i = 0; i < desc.FrameBufferCount; i++)
@@ -162,7 +172,9 @@ public class RenderEngine : IDisposable
             {
                 CpuReadyEvent = new AutoResetEvent(false),
                 GpuReadyEvent = new AutoResetEvent(true),
-                CommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics),
+                GraphicsCommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics),
+                ComputeCommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Compute),
+                CopyCommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Copy),
             };
         }
 
@@ -175,7 +187,6 @@ public class RenderEngine : IDisposable
         _resourceManager = new ResourceManager(_graphicsEngine.Device, _graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
         _swapChainManager = new SwapChainManager(_graphicsEngine);
         _shaderLibrary = new ShaderLibrary(desc.ShaderCompilationBridge, _graphicsEngine.PipelineLibrary, desc.ShaderCacheDirectory);
-        _asyncCopyPipeline = new AsyncCopyPipeline(_graphicsEngine);
 
         _renderThread = new Thread(RenderLoop)
         {
@@ -222,7 +233,7 @@ public class RenderEngine : IDisposable
 
         while (_isRunning)
         {
-            var frameIndex = (int)(_submittedFenceValue % (ulong)_frameResources.Length);
+            var frameIndex = (int)(_submittedFrame % (ulong)_frameResources.Length);
             ref var frameResource = ref _frameResources[frameIndex];
 
             try
@@ -243,7 +254,8 @@ public class RenderEngine : IDisposable
                     continue;
                 }
 
-                _fence.WaitForValue(frameResource.FenceValue);
+                _frameScheduler.WaitForFrame(frameResource.Completion);
+                var completedFrame = frameResource.Completion.FrameNumber;
 
                 if (!_resizeRequest.IsEmpty)
                 {
@@ -259,33 +271,34 @@ public class RenderEngine : IDisposable
                     }
                 }
 
-                var completedFrame = _fence.CompletedValue;
-                if (_submittedFenceValue < completedFrame)
+                if (_submittedFrame < completedFrame)
                 {
-                    _submittedFenceValue = completedFrame;
+                    _submittedFrame = completedFrame;
                 }
 
-                // Begin rendering for this frame
-                frameResource.CommandAllocator.Reset();
+                // Begin rendering for this frame.
+                frameResource.GraphicsCommandAllocator.Reset();
+                frameResource.ComputeCommandAllocator.Reset();
+                frameResource.CopyCommandAllocator.Reset();
 
-                _resourceManager.BeginFrame(_submittedFenceValue);
-                _graphicsEngine.BeginFrame(_submittedFenceValue);
+                _resourceManager.BeginFrame(_submittedFrame);
+                _graphicsEngine.BeginFrame(_submittedFrame);
 
-                // Start recording commands
-
-                // TODO: How can we support async compute and async copy?
                 var cmd = _graphicsEngine.GetPooledCommandBuffer(CommandBufferType.Graphics);
+                var submitted = false;
 
                 try
                 {
-                    cmd.Begin(frameResource.CommandAllocator);
+                    cmd.Begin(frameResource.GraphicsCommandAllocator);
 
                     var streamingContext = new ResourceStreamingContext
                     {
+                        FrameScheduler = _frameScheduler,
+                        GraphicsEngine = _graphicsEngine,
+                        CopyCommandAllocator = frameResource.CopyCommandAllocator,
                         ResourceManager = _resourceManager,
                         ResourceDatabase = _graphicsEngine.ResourceDatabase,
                         ResourceAllocator = _graphicsEngine.ResourceAllocator,
-                        CopyPipeline = _asyncCopyPipeline,
                         CommandBuffer = cmd,
                     };
 
@@ -296,29 +309,31 @@ public class RenderEngine : IDisposable
                     _renderPipeline.Render(renderContext, frameIndex, frameResource.RenderPayload);
                     _swapChainManager.TransitionAllToPresent(cmd);
 
-                    // End recording commands and submit
-                    var r = cmd.End();
-                    if (r.IsFailure)
+                    var result = cmd.End();
+                    if (result.IsFailure)
                     {
-                        StopRenderLoop(r);
+                        StopRenderLoop(result);
                         break;
                     }
 
-                    _graphicsEngine.Device.GraphicsQueue.Submit(cmd);
+                    _frameScheduler.Submit(cmd);
+                    submitted = true;
+                    frameResource.Completion = _frameScheduler.Flush();
+                    _submittedFrame = frameResource.Completion.FrameNumber;
+
                     _swapChainManager.PresentAll();
                 }
                 finally
                 {
-                    _graphicsEngine.ReturnPooledCommandBuffer(cmd);
+                    if (!submitted)
+                    {
+                        _graphicsEngine.ReturnPooledCommandBuffer(cmd);
+                    }
                 }
 
-                _submittedFenceValue++;
-                frameResource.FenceValue = _graphicsEngine.Device.GraphicsQueue.Signal(_fence, _submittedFenceValue);
                 frameResource.GpuReadyEvent.Set();
 
-                completedFrame = _fence.CompletedValue;
-
-                // End the frame and retire resources based on the freshest observed GPU progress.
+                // End the frame and retire resources based on the oldest completed frame slot.
                 _resourceManager.EndFrame(completedFrame);
                 _graphicsEngine.EndFrame(completedFrame);
 
@@ -385,13 +400,7 @@ public class RenderEngine : IDisposable
     public void WaitIdle()
     {
         Logger.DebugAssert(!_disposed, "Cannot wait idle on a disposed RenderSystem.");
-        foreach (var frameResource in _frameResources)
-        {
-            if (frameResource.FenceValue > 0)
-            {
-                _fence.WaitForValue(frameResource.FenceValue);
-            }
-        }
+        _frameScheduler.WaitIdle();
     }
 
     public IRenderPayload GetCurrentFramePayload(int frameIndex)
@@ -412,6 +421,7 @@ public class RenderEngine : IDisposable
         }
 
         Stop();
+        _frameScheduler.Dispose();
 
         for (var i = 0; i < _frameResources.Length; i++)
         {
@@ -421,12 +431,9 @@ public class RenderEngine : IDisposable
 
         _renderPipeline.Dispose();
 
-        _fence.Dispose();
-
         _shaderLibrary.Dispose();
         _resourceManager.Dispose();
         _swapChainManager.Dispose();
-        _asyncCopyPipeline.Dispose();
 
         _graphicsEngine.Dispose();
 

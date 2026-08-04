@@ -26,6 +26,23 @@ internal static unsafe class RenderGraphHasher
         }
     }
 
+    private static bool WritesExternalResource(RenderGraphPass pass, RenderGraphResourceRegistry resources)
+    {
+        for (var resourceType = 0; resourceType < (int)RGResourceType.Count; resourceType++)
+        {
+            foreach (var resourceId in pass.resourceWrites[resourceType])
+            {
+                ref readonly var resource = ref resources.GetResource(resourceId);
+                if (resource.isImported || resource.isExtracted)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>
     /// Computes a hash of the entire render graph structure.
     /// Used for cache invalidation - same hash means same compilation result.
@@ -47,6 +64,7 @@ internal static unsafe class RenderGraphHasher
             writer.Write(pass.type);
             writer.Write(pass.allowCulling);
             writer.Write(pass.asyncCompute);
+            writer.Write(WritesExternalResource(pass, resources));
 
             // Hash depth attachment
             ComputeTextureHash(&writer, pass.depthAccess.id, resources);

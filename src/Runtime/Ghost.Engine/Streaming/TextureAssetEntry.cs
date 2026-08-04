@@ -118,7 +118,7 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
             context.ResourceManager,
             context.ResourceDatabase,
             context.ResourceAllocator,
-            context.CopyPipeline.GetCommandBuffer(),
+            context.CopyCommandBuffer,
             _textureData.GetUnsafePtr(),
             _textureData.Size,
             in _desc);

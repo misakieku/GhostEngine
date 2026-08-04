@@ -49,6 +49,14 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         }
     }
 
+    private struct SyncBoundary
+    {
+        public bool isValid;
+        public CommandQueueType nextCommandBufferType;
+        public int nextCommandBufferId;
+        public int producerCommandBufferId;
+    }
+
     private readonly IResourceAllocator _resourceAllocator;
     private readonly RenderGraphResourceRegistry _resourceRegistry;
     private readonly RenderGraphCompilationCache _compilationCache;
@@ -163,6 +171,16 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         // Reorder passes to ensure best performance
         //ReorderPasses(passes, &compiledPasses);
 
+        using var schedulingScope = AllocationManager.CreateStackScope();
+        using var effectiveQueues = new UnsafeArray<CommandQueueType>(compiledPasses.Count, schedulingScope.AllocationHandle);
+        using var syncBoundaries = new UnsafeArray<SyncBoundary>(compiledPasses.Count, schedulingScope.AllocationHandle);
+        BuildDependencyWindowSchedule(
+            passes,
+            compiledPasses.AsSpan(),
+            effectiveQueues.AsSpan(),
+            syncBoundaries.AsSpan(),
+            schedulingScope.AllocationHandle);
+
         aliasingPlan = RenderGraphAliasingBuilder.Build(_resourceRegistry, _resourceAllocator, allocationHandle);
         error = _resourceRegistry.AllocateBackingResources(aliasingPlan, _compilationCache);
         if (error != Error.None)
@@ -175,7 +193,14 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 
         try
         {
-            BuildExecutionCommands(ref commandWriter, passes, compiledPasses, nativePasses, aliasingPlan);
+            BuildExecutionCommands(
+                ref commandWriter,
+                passes,
+                compiledPasses,
+                nativePasses,
+                aliasingPlan,
+                effectiveQueues.AsSpan(),
+                syncBoundaries.AsSpan());
 
             ref readonly var cacheData = ref _compilationCache.SetCached(
                 _resourceRegistry,
@@ -344,6 +369,8 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             nodes[i] = new PassDependencyNode(i, allocationHandle);
         }
 
+        var lastSideEffect = -1;
+
         // Iterate over non-culled passes
         for (var i = 0; i < passCount; i++)
         {
@@ -401,10 +428,14 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 lastWriter[resIdx] = i;
             }
 
-            // Collect Reads & Writes from Pass
-            // Inputs (SRVs)
+            // Collect creation, read, and write hazards from the canonical declarations.
             for (var t = 0; t < (int)RGResourceType.Count; t++)
             {
+                foreach (var res in pass.resourceCreates[t])
+                {
+                    ProcessWrite(res, nodes, lastWriter);
+                }
+
                 foreach (var res in pass.resourceReads[t])
                 {
                     ProcessRead(res, nodes, lastWriter);
@@ -459,6 +490,16 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             {
                 ProcessRead(uav, nodes, lastWriter);
                 ProcessWrite(uav, nodes, lastWriter);
+            }
+
+            if (pass.hasSideEffects)
+            {
+                if (lastSideEffect >= 0)
+                {
+                    AddEdge(lastSideEffect, i, nodes);
+                }
+
+                lastSideEffect = i;
             }
         }
 
@@ -612,6 +653,189 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         }
     }
 
+    private void BuildDependencyWindowSchedule(
+        List<RenderGraphPass> passes,
+        ReadOnlySpan<int> compiledPasses,
+        Span<CommandQueueType> effectiveQueues,
+        Span<SyncBoundary> syncBoundaries,
+        AllocationHandle allocationHandle)
+    {
+        effectiveQueues.Fill(CommandQueueType.Graphics);
+        syncBoundaries.Clear();
+
+        var passCount = compiledPasses.Length;
+        if (passCount < 4)
+        {
+            return;
+        }
+
+        using var nodes = new UnsafeArray<PassDependencyNode>(passCount, allocationHandle);
+        using var reachability = new UnsafeArray<byte>(passCount * passCount, allocationHandle);
+        reachability.AsSpan().Clear();
+
+        try
+        {
+            BuildDAG(passes, compiledPasses, _resourceRegistry, nodes.AsSpan(), allocationHandle);
+
+            for (var source = passCount - 1; source >= 0; source--)
+            {
+                ref var sourceNode = ref nodes[source];
+                for (var edgeIndex = 0; edgeIndex < sourceNode.dependents.Count; edgeIndex++)
+                {
+                    var dependent = sourceNode.dependents[edgeIndex];
+                    reachability[(source * passCount) + dependent] = 1;
+
+                    var dependentRow = dependent * passCount;
+                    var sourceRow = source * passCount;
+                    for (var destination = dependent + 1; destination < passCount; destination++)
+                    {
+                        if (reachability[dependentRow + destination] != 0)
+                        {
+                            reachability[sourceRow + destination] = 1;
+                        }
+                    }
+                }
+            }
+
+            for (var candidateIndex = 1; candidateIndex < passCount; candidateIndex++)
+            {
+                var candidate = passes[compiledPasses[candidateIndex]];
+                if (!IsAsyncComputeCandidate(candidate))
+                {
+                    continue;
+                }
+
+                var joinIndex = FindFirstDependent(candidateIndex, passCount, reachability.AsSpan());
+                if (joinIndex < 0)
+                {
+                    continue;
+                }
+
+                var groupEndIndex = candidateIndex;
+                while (groupEndIndex + 1 < joinIndex)
+                {
+                    var nextIndex = groupEndIndex + 1;
+                    var nextCandidate = passes[compiledPasses[nextIndex]];
+                    if (!IsAsyncComputeCandidate(nextCandidate)
+                        || FindFirstDependent(nextIndex, passCount, reachability.AsSpan()) != joinIndex)
+                    {
+                        break;
+                    }
+
+                    groupEndIndex = nextIndex;
+                }
+
+                var hasIndependentGraphicsWork = false;
+                var legalWindow = true;
+                for (var overlapIndex = groupEndIndex + 1; overlapIndex < joinIndex; overlapIndex++)
+                {
+                    var overlapPass = passes[compiledPasses[overlapIndex]];
+                    if (overlapPass.type == RenderPassType.Unsafe)
+                    {
+                        legalWindow = false;
+                        break;
+                    }
+
+                    if (overlapPass.type == RenderPassType.Raster)
+                    {
+                        hasIndependentGraphicsWork = true;
+                    }
+                }
+
+                if (!legalWindow || !hasIndependentGraphicsWork || WouldSplitNativePass(passes, compiledPasses, joinIndex))
+                {
+                    continue;
+                }
+
+                var hasGraphicsProducer = false;
+                for (var producerIndex = 0; producerIndex < candidateIndex && !hasGraphicsProducer; producerIndex++)
+                {
+                    for (var computeIndex = candidateIndex; computeIndex <= groupEndIndex; computeIndex++)
+                    {
+                        if (reachability[(producerIndex * passCount) + computeIndex] != 0)
+                        {
+                            hasGraphicsProducer = true;
+                            break;
+                        }
+                    }
+                }
+
+                for (var computeIndex = candidateIndex; computeIndex <= groupEndIndex; computeIndex++)
+                {
+                    effectiveQueues[computeIndex] = CommandQueueType.Compute;
+                }
+
+                syncBoundaries[candidateIndex] = new SyncBoundary
+                {
+                    isValid = true,
+                    nextCommandBufferType = CommandQueueType.Compute,
+                    nextCommandBufferId = 1,
+                    producerCommandBufferId = hasGraphicsProducer ? 0 : -1
+                };
+                syncBoundaries[groupEndIndex + 1] = new SyncBoundary
+                {
+                    isValid = true,
+                    nextCommandBufferType = CommandQueueType.Graphics,
+                    nextCommandBufferId = 2,
+                    producerCommandBufferId = -1
+                };
+                syncBoundaries[joinIndex] = new SyncBoundary
+                {
+                    isValid = true,
+                    nextCommandBufferType = CommandQueueType.Graphics,
+                    nextCommandBufferId = 3,
+                    producerCommandBufferId = 1
+                };
+
+                // The initial planner materializes one active Compute region. Later candidates are
+                // deterministically demoted by original pass order unless they joined this group.
+                break;
+            }
+        }
+        finally
+        {
+            for (var i = 0; i < passCount; i++)
+            {
+                nodes[i].Dispose();
+            }
+        }
+    }
+
+    private static bool IsAsyncComputeCandidate(RenderGraphPass pass)
+    {
+        return pass.type == RenderPassType.Compute
+            && pass.asyncCompute
+            && !pass.hasSideEffects
+            && pass.maxColorIndex < 0
+            && pass.depthAccess.id.IsInvalid
+            && pass.renderTargetWrites.Count == 0;
+    }
+
+    private static int FindFirstDependent(int sourceIndex, int passCount, ReadOnlySpan<byte> reachability)
+    {
+        var sourceRow = sourceIndex * passCount;
+        for (var destinationIndex = sourceIndex + 1; destinationIndex < passCount; destinationIndex++)
+        {
+            if (reachability[sourceRow + destinationIndex] != 0)
+            {
+                return destinationIndex;
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool WouldSplitNativePass(List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, int joinIndex)
+    {
+        var beforeJoin = passes[compiledPasses[joinIndex - 1]];
+        var joinPass = passes[compiledPasses[joinIndex]];
+        return beforeJoin.type == RenderPassType.Raster
+            && joinPass.type == RenderPassType.Raster
+            && beforeJoin.randomAccess.Count == 0
+            && joinPass.randomAccess.Count == 0
+            && AttachmentsMatch(beforeJoin, joinPass);
+    }
+
     private static AliasingPlan RestoreFromCache(
         CachedCompilation cached,
         List<RenderGraphPass> passes,
@@ -630,19 +854,53 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             allocationHandle);
     }
 
-    private void BuildExecutionCommands(ref BufferWriter writer, List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, ReadOnlySpan<NativeRenderPass> nativePasses, AliasingPlan aliasingPlan)
+    private void BuildExecutionCommands(
+        ref BufferWriter writer,
+        List<RenderGraphPass> passes,
+        ReadOnlySpan<int> compiledPasses,
+        ReadOnlySpan<NativeRenderPass> nativePasses,
+        AliasingPlan aliasingPlan,
+        ReadOnlySpan<CommandQueueType> effectiveQueues,
+        ReadOnlySpan<SyncBoundary> syncBoundaries)
     {
         var nativePassIndex = 0;
+        var commandBufferId = 0;
+        var activeQueue = CommandQueueType.Graphics;
         var idx = 0;
 
         while (idx < compiledPasses.Length)
         {
+            ref readonly var boundary = ref syncBoundaries[idx];
+            if (boundary.isValid)
+            {
+                if (boundary.nextCommandBufferId != commandBufferId + 1)
+                {
+                    throw new InvalidOperationException("Render-graph sync boundaries must assign contiguous relative command-buffer IDs.");
+                }
+
+                WriteSyncBoundary(ref writer, in boundary);
+                activeQueue = boundary.nextCommandBufferType;
+                commandBufferId = boundary.nextCommandBufferId;
+            }
+
+            if (effectiveQueues[idx] != activeQueue)
+            {
+                throw new InvalidOperationException("Render-graph pass queue assignment does not match its structural sync boundaries.");
+            }
+
             var logicalPassIndex = compiledPasses[idx];
             var pass = passes[logicalPassIndex];
 
             if (pass.type == RenderPassType.Raster && nativePassIndex < nativePasses.Length)
             {
                 var nativePass = nativePasses[nativePassIndex];
+                for (var mergedOffset = 1; mergedOffset < nativePass.mergedPassIndices.Count; mergedOffset++)
+                {
+                    if (syncBoundaries[idx + mergedOffset].isValid)
+                    {
+                        throw new InvalidOperationException("A native render pass cannot contain a command-buffer sync boundary.");
+                    }
+                }
 
                 // 1. Issue barriers for all merged passes before beginning native pass
                 for (var i = 0; i < nativePass.mergedPassIndices.Count; i++)
@@ -679,6 +937,27 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 idx++;
             }
         }
+    }
+
+    private static void WriteSyncBoundary(ref BufferWriter writer, scoped in SyncBoundary boundary)
+    {
+        if (boundary.producerCommandBufferId >= 0)
+        {
+            Span<int> producerIds = stackalloc int[1];
+            producerIds[0] = boundary.producerCommandBufferId;
+            RGCommandStream.WriteSyncMarker(
+                ref writer,
+                boundary.nextCommandBufferType,
+                producerIds,
+                boundary.nextCommandBufferId);
+            return;
+        }
+
+        RGCommandStream.WriteSyncMarker(
+            ref writer,
+            boundary.nextCommandBufferType,
+            ReadOnlySpan<int>.Empty,
+            boundary.nextCommandBufferId);
     }
 
     public void Dispose()

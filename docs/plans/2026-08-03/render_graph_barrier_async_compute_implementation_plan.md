@@ -1,3 +1,5 @@
+# Render Graph Barrier And Async Compute Implementation Plan
+
 We should treat this as a sequence of independently reviewable changes. Each step should leave the render graph buildable and tested before moving forward.
 
 ## Step 1: Diagnostics And Reproduction
@@ -127,6 +129,22 @@ At this point, the render graph should have a defensible single-queue correctnes
 ## Step 8: Design True Async Queue Batches
 
 Goal: Model actual concurrency before touching native submission again.
+
+Status: The minimal submission foundation is complete; full render-graph batch splitting remains pending explicit approval.
+
+Ownership decision:
+
+- A device-lifetime frame scheduler owns deferred native command-buffer submission, one producer-owned fence timeline per physical queue, cross-queue waits, and frame completion.
+- The render graph owns resource barriers, queue-batch formation, and dependency declarations.
+- `SubmissionHandle` is an opaque command-buffer-batch dependency token; callers never manage native fence values.
+- `AsyncCopyPipeline` has been removed. Streaming copy batches submit through the scheduler and retain only an opaque completion handle.
+- The current render graph remains on its contained single-Graphics-command-buffer path until the full Step 8 batch plan is approved.
+
+Minimal foundation gate:
+
+- 9 focused scheduler tests pass, including deferred submission, transitions, fork/join ordering, cross-frame waits, cycle cleanup, foreign handles, unresolved transitions, and recording-state rejection.
+- 22 render-graph tests and all 92 unit tests pass.
+- Debug and Release x64 solution builds pass with zero errors.
 
 Changes:
 

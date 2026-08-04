@@ -1,4 +1,4 @@
-#if GHOST_UNITTEST
+#if !GHOST_UNITTEST
 
 using BenchmarkDotNet.Running;
 using Ghost.UnitTest.Benchmarks.Graphics;

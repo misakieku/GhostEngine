@@ -147,17 +147,13 @@ public class RenderGraphValidationTest
         builder.Dispose();
 
         var viewState = new ViewState(1920, 1080, 1920, 1080);
-        _renderGraph.CompileAndExecute(_commandBuffer, null!, null!, null!, null!, viewState).GetValueOrThrow();
+        _renderGraph.CompileAndExecute(_commandBuffer, viewState).GetValueOrThrow();
 
         var passes = GetPasses();
         passes[0].renderTargetWrites.Add(buffer.AsResource());
 
         var error = Assert.ThrowsExactly<InvalidOperationException>(() => _renderGraph.CompileAndExecute(
             _commandBuffer,
-            null!,
-            null!,
-            null!,
-            null!,
             viewState));
         AssertDetailedConflict(error, "CompilerBackstopPass", resourceName, buffer.Value, "ColorAttachment", "requires a texture resource");
     }
@@ -182,10 +178,6 @@ public class RenderGraphValidationTest
 
         var error = Assert.ThrowsExactly<InvalidOperationException>(() => _renderGraph.CompileAndExecute(
             _commandBuffer,
-            null!,
-            null!,
-            null!,
-            null!,
             new ViewState(1920, 1080, 1920, 1080)));
         AssertDetailedConflict(error, "DepthCompilerBackstopPass", resourceName, buffer.Value, "DepthWrite", "requires a texture resource");
     }

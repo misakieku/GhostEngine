@@ -51,10 +51,6 @@ public class RenderGraphBenchmark
     private MockingResourceAllocator _resourceAllocator = null!;
     private MockingPipelineLibrary _pipelineLibrary = null!;
     private MockingCommandBuffer _graphicsCmdBuffer = null!;
-    private MockingCommandBuffer _computeCmdBuffer = null!;
-    private MockingCommandQueue _graphicsQueue = null!;
-    private MockingCommandQueue _computeQueue = null!;
-    private MockingFence _fence = null!;
     private ResourceManager _resourceManager = null!;
     private ShaderLibrary _shaderLibrary = null!;
 
@@ -75,10 +71,6 @@ public class RenderGraphBenchmark
         _pipelineLibrary = new MockingPipelineLibrary();
 
         _graphicsCmdBuffer = new MockingCommandBuffer(_resourceDatabase, CommandBufferType.Graphics);
-        _computeCmdBuffer = new MockingCommandBuffer(_resourceDatabase, CommandBufferType.Compute);
-        _graphicsQueue = new MockingCommandQueue(CommandQueueType.Graphics);
-        _computeQueue = new MockingCommandQueue(CommandQueueType.Compute);
-        _fence = new MockingFence(0);
 
         _resourceManager = new ResourceManager(_renderDevice, _resourceAllocator, _resourceDatabase);
         _shaderLibrary = new ShaderLibrary(null, _pipelineLibrary, string.Empty);
@@ -108,9 +100,8 @@ public class RenderGraphBenchmark
 
         // Pre-warm once so cache pipeline is initialized
         _graphicsCmdBuffer.Begin(null!);
-        _computeCmdBuffer.Begin(null!);
         BuildAAAPipeline(_renderGraph, _importedBackBufferHandle, _importedSceneBufferHandle);
-        _renderGraph.CompileAndExecute(_graphicsCmdBuffer, _computeCmdBuffer, _graphicsQueue, _computeQueue, _fence, _viewState);
+        _renderGraph.CompileAndExecute(_graphicsCmdBuffer, _viewState);
     }
 
     [GlobalCleanup]
@@ -119,8 +110,6 @@ public class RenderGraphBenchmark
         _renderGraph.Dispose();
         _shaderLibrary.Dispose();
         _resourceManager.Dispose();
-        _fence.Dispose();
-        _computeCmdBuffer.Dispose();
         _graphicsCmdBuffer.Dispose();
         _pipelineLibrary.Dispose();
         _resourceAllocator.Dispose();
@@ -393,16 +382,11 @@ public class RenderGraphBenchmark
         _renderGraph.Reset();
         _renderGraph.InvalidateCache();
         _graphicsCmdBuffer.Begin(null!);
-        _computeCmdBuffer.Begin(null!);
 
         BuildAAAPipeline(_renderGraph, _importedBackBufferHandle, _importedSceneBufferHandle);
         var result = _renderGraph.CompileAndExecute(
             _graphicsCmdBuffer,
-            _computeCmdBuffer,
-            _graphicsQueue,
-            _computeQueue,
-            _fence,
-            _viewState, RGExecutionFlags.GenerateDump);
+            _viewState);
 
         if (result.IsFailure)
         {
@@ -421,15 +405,10 @@ public class RenderGraphBenchmark
     {
         _renderGraph.Reset();
         _graphicsCmdBuffer.Begin(null!);
-        _computeCmdBuffer.Begin(null!);
 
         BuildAAAPipeline(_renderGraph, _importedBackBufferHandle, _importedSceneBufferHandle);
         var result = _renderGraph.CompileAndExecute(
             _graphicsCmdBuffer,
-            _computeCmdBuffer,
-            _graphicsQueue,
-            _computeQueue,
-            _fence,
             _viewState);
 
         if (result.IsFailure)
