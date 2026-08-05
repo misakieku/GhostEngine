@@ -434,6 +434,7 @@ Scope:
 - End every command buffer.
 - Implement reusable execution scratch and recording rollback.
 - Submit the resulting command buffers through `IFrameScheduler`.
+- Return command buffer immediately after submission.  `IGraphicsEngine` use defer release mechanism so it's safe.
 - Temporarily map every requested command-buffer type to Graphics and suppress cross-queue waits.
 - Keep multiple Graphics command buffers so lifecycle and splitting are exercised without async risk.
 - Remove raw command-buffer, queue, and fence parameters from `CompileAndExecute` as appropriate for this stage.

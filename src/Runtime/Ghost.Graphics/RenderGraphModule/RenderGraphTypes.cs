@@ -669,6 +669,16 @@ public readonly struct ResourceDumpInfo
         get; init;
     }
 
+    public int ScheduledFirstUseIndex
+    {
+        get; init;
+    }
+
+    public int ScheduledLastUseIndex
+    {
+        get; init;
+    }
+
     public int[] ProducerPass
     {
         get; init;

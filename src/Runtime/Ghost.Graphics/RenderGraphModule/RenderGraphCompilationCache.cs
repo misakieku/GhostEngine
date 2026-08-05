@@ -25,6 +25,10 @@ internal struct CachedCompilation : IDisposable
     public UnsafeArray<int> aliasedLogicalResources;
     public ulong totalHeapSize;
 
+    // Scheduled lifetime metadata used by cache-hit native-pass restoration and diagnostics.
+    public UnsafeArray<int> resourceFirstUseScheduleIndices;
+    public UnsafeArray<int> resourceLastUseScheduleIndices;
+
     // Real gpu heap
     public UnsafeArray<Handle<GPUResource>> backingResources;
 
@@ -47,6 +51,8 @@ internal struct CachedCompilation : IDisposable
         logicalToPhysical.Dispose();
         placedResources.Dispose();
         aliasedLogicalResources.Dispose();
+        resourceFirstUseScheduleIndices.Dispose();
+        resourceLastUseScheduleIndices.Dispose();
         backingResources.Dispose();
         commandBytes.Dispose();
     }
@@ -91,6 +97,7 @@ internal sealed class RenderGraphCompilationCache : IDisposable
         ReadOnlySpan<NativeRenderPass> nativePasses,
         ReadOnlySpan<byte> commandBytes,
         AliasingPlan aliasingPlan,
+        RenderGraphResourceOrdering resourceOrdering,
         AllocationHandle allocationHandle)
     {
         _cachedHash = hash;
@@ -103,6 +110,9 @@ internal sealed class RenderGraphCompilationCache : IDisposable
             aliasedLogicalResourceCount += aliasingPlan.placedResources[i].aliasedLogicalResources.Count;
         }
 
+        var resourceFirstUseScheduleIndices = resourceOrdering.GetFirstUseScheduleIndices();
+        var resourceLastUseScheduleIndices = resourceOrdering.GetLastUseScheduleIndices();
+
         _cached = new CachedCompilation
         {
             compiledPassIndices = new UnsafeArray<int>(compiledPasses.Length, allocationHandle),
@@ -112,6 +122,8 @@ internal sealed class RenderGraphCompilationCache : IDisposable
             placedResources = new UnsafeArray<PlacedResourceData>(aliasingPlan.placedResources.Count, allocationHandle),
             aliasedLogicalResources = new UnsafeArray<int>(aliasedLogicalResourceCount, allocationHandle),
             totalHeapSize = aliasingPlan.totalHeapSize,
+            resourceFirstUseScheduleIndices = new UnsafeArray<int>(resourceFirstUseScheduleIndices.Length, allocationHandle),
+            resourceLastUseScheduleIndices = new UnsafeArray<int>(resourceLastUseScheduleIndices.Length, allocationHandle),
             backingResources = new UnsafeArray<Handle<GPUResource>>(registry.ResourceCount, allocationHandle),
             commandBytes = new UnsafeArray<byte>(commandBytes.Length, allocationHandle),
             viewState = viewState
@@ -120,6 +132,11 @@ internal sealed class RenderGraphCompilationCache : IDisposable
         _cached.compiledPassIndices.CopyFrom(compiledPasses);
         _cached.nativePasses.CopyFrom(nativePasses);
         _cached.commandBytes.CopyFrom(commandBytes);
+        if (!resourceFirstUseScheduleIndices.IsEmpty)
+        {
+            _cached.resourceFirstUseScheduleIndices.CopyFrom(resourceFirstUseScheduleIndices);
+            _cached.resourceLastUseScheduleIndices.CopyFrom(resourceLastUseScheduleIndices);
+        }
 
         for (var i = 0; i < nativePasses.Length; i++)
         {

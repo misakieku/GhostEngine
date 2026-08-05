@@ -103,7 +103,7 @@ public class SharedComponentTests
         // Two distinct shared values → two distinct chunk groups.
         var groups = CollectGroupCounts();
 
-        Assert.AreEqual(2, groups.Count, "Expected 2 distinct chunk groups.");
+        Assert.HasCount(2, groups, "Expected 2 distinct chunk groups.");
         Assert.IsTrue(groups.ContainsKey(1));
         Assert.IsTrue(groups.ContainsKey(2));
     }
@@ -117,7 +117,7 @@ public class SharedComponentTests
         // Both entities have the same shared value → single chunk group with 2 entities.
         var groups = CollectGroupCounts();
 
-        Assert.AreEqual(1, groups.Count, "Expected a single chunk group.");
+        Assert.HasCount(1, groups, "Expected a single chunk group.");
         Assert.AreEqual(2, groups[42]);
     }
 
@@ -490,7 +490,7 @@ public class SharedComponentTests
 
         var groups = CollectGroupCounts();
 
-        Assert.AreEqual(1, groups.Count, "Expected exactly 1 chunk group due to canonical sorting of SharedComponentSet.");
+        Assert.HasCount(1, groups, "Expected exactly 1 chunk group due to canonical sorting of SharedComponentSet.");
         Assert.AreEqual(2, groups[42], "Both entities should be grouped under groupID 42.");
     }
 }

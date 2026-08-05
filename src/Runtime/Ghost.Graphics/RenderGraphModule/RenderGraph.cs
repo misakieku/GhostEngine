@@ -174,6 +174,8 @@ public sealed class RenderGraph : IDisposable
                 SizeInBytes = placedResult.IsSuccess ? placedResult.Value.sizeInBytes : 0,
                 FirstUsePass = res.firstUsePass,
                 LastUsePass = res.lastUsePass,
+                ScheduledFirstUseIndex = graph.resourceFirstUseScheduleIndices[i],
+                ScheduledLastUseIndex = graph.resourceLastUseScheduleIndices[i],
                 ProducerPass = [..res.producerPasses],
                 ConsumerPasses = [..res.consumerPasses],
                 AliasedWithResources = placedResult.IsSuccess
@@ -217,18 +219,34 @@ public sealed class RenderGraph : IDisposable
                         var resourceId = barrier.resource.Value;
                         var resName = _resourceRegistry.GetResourceName(resourceId);
                         var resourceLabel = $"{resName} [{barrier.resourceType} #{resourceId}]";
-                        if (barrier.aliasingPredecessor.IsValid)
+                        var sourceStateLabel = $"Layout: {barrier.sourceState.layout}, Access: {barrier.sourceState.access}, Sync: {barrier.sourceState.sync}";
+                        var handoffStateLabel = $"Layout: {barrier.handoffState.layout}, Access: {barrier.handoffState.access}, Sync: {barrier.handoffState.sync}";
+                        var targetStateLabel = $"Layout: {barrier.targetState.layout}, Access: {barrier.targetState.access}, Sync: {barrier.targetState.sync}";
+                        if (barrier.flags.HasFlag(BarrierFlags.QueueRelease))
+                        {
+                            lines.Add(
+                                $"       ├─ QueueRelease: {resourceLabel}, {barrier.sourceQueue} -> {barrier.destinationQueue}, " +
+                                $"Source: [{sourceStateLabel}], Handoff: [{handoffStateLabel}], Flags: {barrier.flags}");
+                        }
+                        else if (barrier.flags.HasFlag(BarrierFlags.QueueAcquire))
+                        {
+                            lines.Add(
+                                $"       ├─ QueueAcquire: {resourceLabel}, {barrier.sourceQueue} -> {barrier.destinationQueue}, " +
+                                $"Handoff: [{handoffStateLabel}], Target: [{targetStateLabel}], Flags: {barrier.flags}");
+                        }
+                        else if (barrier.aliasingPredecessor.IsValid)
                         {
                             var predecessorId = barrier.aliasingPredecessor.Value;
                             ref readonly var predecessor = ref _resourceRegistry.GetResource(barrier.aliasingPredecessor);
                             var predName = _resourceRegistry.GetResourceName(predecessorId);
                             var predecessorLabel = $"{predName} [{predecessor.type} #{predecessorId}]";
-                            var targetStateLabel = $"Layout: {barrier.targetState.layout}, Access: {barrier.targetState.access}, Sync: {barrier.targetState.sync}";
                             lines.Add($"       ├─ Aliasing: {predecessorLabel} -> {resourceLabel} -> {targetStateLabel}, Flags: {barrier.flags}");
                         }
                         else
                         {
-                            lines.Add($"       ├─ Transition: {resourceLabel} -> Layout: {barrier.targetState.layout}, Access: {barrier.targetState.access}, Sync: {barrier.targetState.sync}");
+                            lines.Add(
+                                $"       ├─ Transition: {resourceLabel}, Source: [{sourceStateLabel}], " +
+                                $"Target: [{targetStateLabel}], Flags: {barrier.flags}");
                         }
                     }
                     break;

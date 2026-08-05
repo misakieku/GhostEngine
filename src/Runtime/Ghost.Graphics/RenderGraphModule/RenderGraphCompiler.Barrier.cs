@@ -11,7 +11,11 @@ internal enum BarrierFlags
 {
     None = 0,
     FirstUsage = 1 << 0,
-    Discard = 1 << 1
+    Discard = 1 << 1,
+    ExplicitSource = 1 << 2,
+    Force = 1 << 3,
+    QueueRelease = 1 << 4,
+    QueueAcquire = 1 << 5
 }
 
 internal enum PassResourceUsagePriority : byte
@@ -36,10 +40,14 @@ internal struct ResolvedPassResourceUsage
 internal struct CompiledBarrier
 {
     public Identifier<RGResource> resource;
+    public ResourceBarrierData sourceState;
+    public ResourceBarrierData handoffState;
     public ResourceBarrierData targetState;
     public Identifier<RGResource> aliasingPredecessor; // Invalid if not aliasing
     public BarrierFlags flags;
     public RGResourceType resourceType;
+    public CommandQueueType sourceQueue;
+    public CommandQueueType destinationQueue;
 
     public override readonly string ToString()
     {
@@ -52,10 +60,14 @@ internal struct CompiledBarrier
 internal unsafe partial class RenderGraphCompiler
 {
     private int EmitBarriersForPass(
-        RenderGraphPass pass,
-        int passIdx,
+        ReadOnlySpan<ResolvedPassResourceUsage> usages,
+        int scheduleIndex,
+        CommandQueueType effectiveQueue,
         ref BufferWriter writer,
-        AliasingPlan aliasingPlan)
+        AliasingPlan aliasingPlan,
+        RenderGraphResourceOrdering resourceOrdering,
+        Span<CompiledResourceState> resourceStates,
+        ReadOnlySpan<QueueHandoff> handoffs)
     {
         var startPos = writer.Position;
 
@@ -63,7 +75,15 @@ internal unsafe partial class RenderGraphCompiler
         writer.Write(RGExecutionOpType.IssueBarriers);
         writer.Write(0); // Count placeholder
 
-        var count = EmitImplicitTransitions(pass, ref writer, aliasingPlan);
+        var count = EmitImplicitTransitions(
+            usages,
+            scheduleIndex,
+            effectiveQueue,
+            ref writer,
+            aliasingPlan,
+            resourceOrdering,
+            resourceStates,
+            handoffs);
 
         if (count > 0)
         {
@@ -81,14 +101,15 @@ internal unsafe partial class RenderGraphCompiler
     }
 
     private bool TryGetAliasingPredecessor(
-        RenderGraphPass pass,
+        int scheduleIndex,
         Identifier<RGResource> resourceId,
         AliasingPlan aliasingPlan,
+        RenderGraphResourceOrdering resourceOrdering,
         out Identifier<RGResource> predecessor)
     {
         predecessor = Identifier<RGResource>.Invalid;
         ref readonly var resource = ref _resourceRegistry.GetResource(resourceId);
-        if (resource.isImported || resource.firstUsePass != pass.index)
+        if (resource.isImported || !resourceOrdering.IsFirstUse(resourceId.Value, scheduleIndex))
         {
             return false;
         }
@@ -108,15 +129,16 @@ internal unsafe partial class RenderGraphCompiler
         var mostRecentLastUse = -1;
         foreach (var otherLogicalIndex in placed.Value.aliasedLogicalResources)
         {
-            if (otherLogicalIndex == resourceId.Value)
+            if (otherLogicalIndex == resourceId.Value
+                || !resourceOrdering.AllUsesHappenBefore(otherLogicalIndex, resourceId.Value))
             {
                 continue;
             }
 
-            ref readonly var otherResource = ref _resourceRegistry.GetResourceByIndex(otherLogicalIndex);
-            if (otherResource.lastUsePass < pass.index && otherResource.lastUsePass > mostRecentLastUse)
+            var otherLastUse = resourceOrdering.GetLastUseScheduleIndex(otherLogicalIndex);
+            if (otherLastUse > mostRecentLastUse)
             {
-                mostRecentLastUse = otherResource.lastUsePass;
+                mostRecentLastUse = otherLastUse;
                 predecessor = new Identifier<RGResource>(otherLogicalIndex);
             }
         }
@@ -164,22 +186,17 @@ internal unsafe partial class RenderGraphCompiler
         }
     }
 
-    private int EmitImplicitTransitions(RenderGraphPass pass, ref BufferWriter writer, AliasingPlan aliasingPlan)
+    private void ResolvePassResourceUsages(
+        RenderGraphPass pass,
+        Span<ResolvedPassResourceUsage> usages)
     {
-        var resourceCount = _resourceRegistry.ResourceCount;
-        if (resourceCount == 0)
-        {
-            return 0;
-        }
-
-        using var scope = AllocationManager.CreateStackScope();
-        using var usages = new UnsafeArray<ResolvedPassResourceUsage>(resourceCount, scope.AllocationHandle, AllocationOption.Clear);
+        usages.Clear();
 
         for (var resourceType = 0; resourceType < (int)RGResourceType.Count; resourceType++)
         {
             foreach (var resource in pass.resourceReads[resourceType])
             {
-                var targetState = GetBufferReadBarrierData(resource, (RGResourceType)resourceType);
+                var targetState = GetBufferReadBarrierData(resource, (RGResourceType)resourceType, pass.type);
                 var usageClass = targetState.access == BarrierAccess.IndirectArgument
                     ? PassResourceUsageClass.IndirectArgument
                     : PassResourceUsageClass.ShaderRead;
@@ -304,21 +321,73 @@ internal unsafe partial class RenderGraphCompiler
                 randomAccessState);
         }
 
-        var count = 0;
-        for (var resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
-        {
-            ref readonly var usage = ref usages[resourceIndex];
-            if (usage.usageClass != PassResourceUsageClass.None)
-            {
-                var aliasingPredecessor = Identifier<RGResource>.Invalid;
-                var flags = BarrierFlags.None;
-                if (TryGetAliasingPredecessor(pass, usage.resource, aliasingPlan, out aliasingPredecessor))
-                {
-                    flags = BarrierFlags.FirstUsage | BarrierFlags.Discard;
-                }
+    }
 
-                count += AddTransition(usage.resource, usage.targetState, aliasingPredecessor, flags, ref writer);
+    private int EmitImplicitTransitions(
+        ReadOnlySpan<ResolvedPassResourceUsage> usages,
+        int scheduleIndex,
+        CommandQueueType effectiveQueue,
+        ref BufferWriter writer,
+        AliasingPlan aliasingPlan,
+        RenderGraphResourceOrdering resourceOrdering,
+        Span<CompiledResourceState> resourceStates,
+        ReadOnlySpan<QueueHandoff> handoffs)
+    {
+        var count = 0;
+        for (var usageIndex = 0; usageIndex < usages.Length; usageIndex++)
+        {
+            ref readonly var usage = ref usages[usageIndex];
+            ref var resourceState = ref resourceStates[usage.resource.Value];
+            if (HasQueueAcquire(handoffs, scheduleIndex, usage.resource))
+            {
+                resourceState = new CompiledResourceState(usage.targetState, usage.writes);
+                continue;
             }
+
+            var aliasingPredecessor = Identifier<RGResource>.Invalid;
+            var flags = BarrierFlags.None;
+            if (TryGetAliasingPredecessor(
+                scheduleIndex,
+                usage.resource,
+                aliasingPlan,
+                resourceOrdering,
+                out aliasingPredecessor))
+            {
+                flags = BarrierFlags.FirstUsage | BarrierFlags.Discard;
+            }
+
+            var hasSameState = resourceState.isValid
+                && resourceState.state.layout == usage.targetState.layout
+                && resourceState.state.access == usage.targetState.access
+                && resourceState.state.sync == usage.targetState.sync;
+            var forceUavOrdering = hasSameState
+                && usage.targetState.access == BarrierAccess.UnorderedAccess
+                && (resourceState.writes || usage.writes);
+            if (hasSameState && !forceUavOrdering && aliasingPredecessor.IsInvalid)
+            {
+                resourceState.writes = usage.writes;
+                continue;
+            }
+
+            if (resourceState.isValid)
+            {
+                flags |= BarrierFlags.ExplicitSource;
+            }
+
+            if (forceUavOrdering)
+            {
+                flags |= BarrierFlags.Force;
+            }
+
+            count += AddTransition(
+                usage.resource,
+                resourceState.state,
+                usage.targetState,
+                aliasingPredecessor,
+                flags,
+                effectiveQueue,
+                ref writer);
+            resourceState = new CompiledResourceState(usage.targetState, usage.writes);
         }
 
         return count;
@@ -326,32 +395,47 @@ internal unsafe partial class RenderGraphCompiler
 
     private int AddTransition(
         Identifier<RGResource> id,
+        ResourceBarrierData sourceState,
         ResourceBarrierData targetState,
         Identifier<RGResource> aliasingPredecessor,
         BarrierFlags flags,
+        CommandQueueType queue,
         ref BufferWriter writer)
     {
         ref readonly var resource = ref _resourceRegistry.GetResource(id);
         var barrier = new CompiledBarrier
         {
             resource = id,
+            sourceState = sourceState,
+            handoffState = targetState,
             targetState = targetState,
             aliasingPredecessor = aliasingPredecessor,
             flags = flags,
-            resourceType = resource.type
+            resourceType = resource.type,
+            sourceQueue = queue,
+            destinationQueue = queue
         };
         writer.Write(barrier);
         return 1;
     }
 
-    private ResourceBarrierData GetBufferReadBarrierData(Identifier<RGResource> handle, RGResourceType resourceType)
+    private ResourceBarrierData GetBufferReadBarrierData(
+        Identifier<RGResource> handle,
+        RGResourceType resourceType,
+        RenderPassType passType)
     {
+        var sync = passType switch
+        {
+            RenderPassType.Compute => BarrierSync.ComputeShading,
+            RenderPassType.Raster => BarrierSync.PixelShading | BarrierSync.NonPixelShading,
+            _ => BarrierSync.All
+        };
+
         if (resourceType == RGResourceType.Texture)
         {
-            return new ResourceBarrierData(BarrierLayout.ShaderResource, BarrierAccess.ShaderResource, BarrierSync.PixelShading | BarrierSync.NonPixelShading);
+            return new ResourceBarrierData(BarrierLayout.ShaderResource, BarrierAccess.ShaderResource, sync);
         }
 
-        var sync = BarrierSync.PixelShading | BarrierSync.NonPixelShading;
         var access = BarrierAccess.ShaderResource;
 
         ref readonly var resource = ref _resourceRegistry.GetResource(handle);
@@ -365,14 +449,12 @@ internal unsafe partial class RenderGraphCompiler
     }
 
     public static bool RequiresBarrierBetweenPasses(
-        int passA,
-        int passB,
-        List<RenderGraphPass> passes,
-        ReadOnlySpan<int> compiledPasses,
+        RenderGraphPass laterPass,
+        int scheduleIndex,
         RenderGraphResourceRegistry resources,
-        AliasingPlan aliasingPlan)
+        AliasingPlan aliasingPlan,
+        RenderGraphResourceOrdering resourceOrdering)
     {
-        var laterPass = passes[passB];
 
         using var scope = AllocationManager.CreateStackScope();
         using var renderTargets = new UnsafeHashSet<Identifier<RGResource>>(laterPass.maxColorIndex + 1, scope.AllocationHandle);
@@ -396,7 +478,7 @@ internal unsafe partial class RenderGraphCompiler
             foreach (var id in writeList)
             {
                 ref readonly var resource = ref resources.GetResource(id);
-                if (!resource.isImported && resource.firstUsePass == laterPass.index)
+                if (!resource.isImported && resourceOrdering.IsFirstUse(id.Value, scheduleIndex))
                 {
                     var placedIndex = aliasingPlan.GetPlacedResourceIndex(id.Value);
                     if (placedIndex >= 0)

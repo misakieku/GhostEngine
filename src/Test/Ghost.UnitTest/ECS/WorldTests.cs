@@ -11,7 +11,7 @@ public class WorldTests
     private struct CompB : IComponentData { public int value; }
 
     private World _world = null!;
-    private EntityManager _entityManager;
+    private EntityManager _entityManager = null!;
 
     [TestInitialize]
     public void Setup()
