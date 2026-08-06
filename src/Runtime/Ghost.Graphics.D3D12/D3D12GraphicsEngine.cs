@@ -5,7 +5,6 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
-using Misaki.HighPerformance.Utilities;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.D3D12;
@@ -44,7 +43,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     private readonly D3D12PipelineLibrary _pipelineLibrary;
     private readonly D3D12ResourceAllocator _resourceAllocator;
 
-    private readonly List<ICommandBuffer> _commandBufferPool;
+    private readonly Stack<ICommandBuffer>[] _commandBufferPool;
     private readonly Queue<CommandBufferReturnEntry> _commandBufferReturnQueue;
 
     private ulong _cpuFrame;
@@ -69,8 +68,13 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _pipelineLibrary = new D3D12PipelineLibrary(_device);
         _resourceAllocator = new D3D12ResourceAllocator(_device, _descriptorAllocator, _resourceDatabase, _pipelineLibrary);
 
-        _commandBufferPool = new List<ICommandBuffer>(4);
+        _commandBufferPool = new Stack<ICommandBuffer>[3];
         _commandBufferReturnQueue = new Queue<CommandBufferReturnEntry>(4);
+
+        foreach (var type in Enum.GetValues<CommandBufferType>())
+        {
+            _commandBufferPool[(int)type] = new Stack<ICommandBuffer>(4);
+        }
     }
 
     ~D3D12GraphicsEngine()
@@ -101,14 +105,9 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     {
         Logger.DebugAssert(!_disposed);
 
-        for (var i = 0; i < _commandBufferPool.Count; i++)
+        if (_commandBufferPool[(int)type].TryPop(out var cmd))
         {
-            if (_commandBufferPool[i].Type == type)
-            {
-                var commandBuffer = _commandBufferPool[i];
-                _commandBufferPool.RemoveAndSwapBack(i);
-                return commandBuffer;
-            }
+            return cmd;
         }
 
         return CreateCommandBuffer(type);
@@ -156,7 +155,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 
         while (_commandBufferReturnQueue.TryPeek(out var entry) && entry.returnFrame < gpuFrame)
         {
-            _commandBufferPool.Add(entry.commandBuffer);
+            _commandBufferPool[(int)entry.commandBuffer.Type].Push(entry.commandBuffer);
             _commandBufferReturnQueue.Dequeue();
         }
     }
@@ -173,9 +172,12 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
             entry.commandBuffer.Dispose();
         }
 
-        foreach (var commandBuffer in _commandBufferPool)
+        foreach (var stack in _commandBufferPool)
         {
-            commandBuffer.Dispose();
+            foreach (var cmd in stack)
+            {
+                cmd.Dispose();
+            }
         }
 
         _resourceDatabase.ReleaseAllResourcesImmediately();

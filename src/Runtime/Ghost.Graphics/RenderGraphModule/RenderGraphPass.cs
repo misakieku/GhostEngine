@@ -1,6 +1,3 @@
-using Ghost.Core;
-using System.Runtime.CompilerServices;
-
 namespace Ghost.Graphics.RenderGraphModule;
 
 /// <summary>
@@ -29,12 +26,13 @@ internal abstract class RenderGraphPass
     public TextureAccessArray colorAccess;
     public int maxColorIndex = -1;
 
-    public List<Identifier<RGResource>> randomAccess = new(8);
+    public RenderGraphResourceSet randomAccess = new RenderGraphResourceSet(8);
+    public RenderGraphResourceSet renderTargetWrites = new RenderGraphResourceSet(4);
 
     // Resource dependencies
-    public readonly List<Identifier<RGResource>>[] resourceReads = new List<Identifier<RGResource>>[(int)RGResourceType.Count];
-    public readonly List<Identifier<RGResource>>[] resourceWrites = new List<Identifier<RGResource>>[(int)RGResourceType.Count];
-    public readonly List<Identifier<RGResource>>[] resourceCreates = new List<Identifier<RGResource>>[(int)RGResourceType.Count];
+    public readonly RenderGraphResourceSet[] resourceReads = new RenderGraphResourceSet[(int)RGResourceType.Count];
+    public readonly RenderGraphResourceSet[] resourceWrites = new RenderGraphResourceSet[(int)RGResourceType.Count];
+    public readonly RenderGraphResourceSet[] resourceCreates = new RenderGraphResourceSet[(int)RGResourceType.Count];
 
     // Execution state
     public bool culled;
@@ -44,9 +42,9 @@ internal abstract class RenderGraphPass
     {
         for (var i = 0; i < (int)RGResourceType.Count; i++)
         {
-            resourceReads[i] = new List<Identifier<RGResource>>(8);
-            resourceWrites[i] = new List<Identifier<RGResource>>(4);
-            resourceCreates[i] = new List<Identifier<RGResource>>(4);
+            resourceReads[i] = new RenderGraphResourceSet(8);
+            resourceWrites[i] = new RenderGraphResourceSet(4);
+            resourceCreates[i] = new RenderGraphResourceSet(4);
         }
     }
 
@@ -67,6 +65,7 @@ internal abstract class RenderGraphPass
         maxColorIndex = -1;
 
         randomAccess.Clear();
+        renderTargetWrites.Clear();
 
         for (var i = 0; i < (int)RGResourceType.Count; i++)
         {
@@ -118,8 +117,10 @@ internal abstract class RenderGraphPass<TPassData, TRenderContext> : RenderGraph
             return 0;
         }
 
-        var methodHashCode = RuntimeHelpers.GetHashCode(renderFunc.Method);
-        return renderFunc.Target == null ? methodHashCode : methodHashCode ^ RuntimeHelpers.GetHashCode(renderFunc.Target); // static deleget does not have target
+        var methodHashCode = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(renderFunc.Method);
+        return renderFunc.Target == null
+            ? methodHashCode
+            : methodHashCode ^ System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(renderFunc.Target);
     }
 
     public override void Reset(RenderGraphObjectPool pool)

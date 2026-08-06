@@ -19,14 +19,25 @@ internal static class RenderGraphNativePassBuilder
         RenderGraphResourceRegistry resourceRegistry,
         List<RenderGraphPass> passes,
         ReadOnlySpan<int> compiledPasses,
+        ReadOnlySpan<RenderGraphCompiler.SyncBoundary> syncBoundaries,
+        ReadOnlySpan<int> scheduleIndexByPassIndex,
         AliasingPlan aliasingPlan,
+        RenderGraphResourceOrdering resourceOrdering,
         AllocationHandle allocationHandle)
     {
-        var nativePasses = new UnsafeList<NativeRenderPass>(compiledPasses.Length / 2, allocationHandle);
+        var initialCapacity = Math.Max(1, (compiledPasses.Length + 1) / 2);
+        var nativePasses = new UnsafeList<NativeRenderPass>(initialCapacity, allocationHandle);
         NativeRenderPass currentNativePass = default;
 
         for (var i = 0; i < compiledPasses.Length; i++)
         {
+            if (syncBoundaries[i].isValid && currentNativePass.mergedPassIndices.IsCreated)
+            {
+                currentNativePass.index = nativePasses.Count;
+                nativePasses.Add(currentNativePass);
+                currentNativePass = default;
+            }
+
             var pass = passes[compiledPasses[i]];
 
             // Only raster passes can be merged into native render passes
@@ -36,6 +47,7 @@ internal static class RenderGraphNativePassBuilder
                 // Close current native pass if open
                 if (currentNativePass.mergedPassIndices.IsCreated)
                 {
+                    currentNativePass.index = nativePasses.Count;
                     nativePasses.Add(currentNativePass);
                     currentNativePass = default;
                 }
@@ -45,7 +57,7 @@ internal static class RenderGraphNativePassBuilder
 
             // Check if we can merge with current native pass
             if (currentNativePass.mergedPassIndices.IsCreated
-                && CanMergePasses(resourceRegistry, currentNativePass, pass, passes, compiledPasses, aliasingPlan))
+                && CanMergePasses(resourceRegistry, currentNativePass, pass, i, aliasingPlan, resourceOrdering))
             {
                 // Merge into existing native pass
                 currentNativePass.mergedPassIndices.Add(pass.index);
@@ -56,6 +68,7 @@ internal static class RenderGraphNativePassBuilder
                 // Start new native pass
                 if (currentNativePass.mergedPassIndices.IsCreated)
                 {
+                    currentNativePass.index = nativePasses.Count;
                     nativePasses.Add(currentNativePass);
                 }
 
@@ -66,13 +79,14 @@ internal static class RenderGraphNativePassBuilder
         // Add final native pass
         if (currentNativePass.mergedPassIndices.IsCreated)
         {
+            currentNativePass.index = nativePasses.Count;
             nativePasses.Add(currentNativePass);
         }
 
         // Infer load/store operations for all native passes
         for (var i = 0; i < nativePasses.Count; i++)
         {
-            InferLoadStoreOps(resourceRegistry, nativePasses[i]);
+            InferLoadStoreOps(resourceRegistry, nativePasses[i], scheduleIndexByPassIndex, resourceOrdering);
         }
 
         return nativePasses;
@@ -120,9 +134,9 @@ internal static class RenderGraphNativePassBuilder
         RenderGraphResourceRegistry resources,
         scoped in NativeRenderPass nativePass,
         RenderGraphPass pass,
-        List<RenderGraphPass> passes,
-        ReadOnlySpan<int> compiledPasses,
-        AliasingPlan aliasingPlan)
+        int scheduleIndex,
+        AliasingPlan aliasingPlan,
+        RenderGraphResourceOrdering resourceOrdering)
     {
         // Don't merge if UAVs are involved (conservative)
         if (pass.randomAccess.Count > 0 || nativePass.allowUAVWrites)
@@ -131,13 +145,13 @@ internal static class RenderGraphNativePassBuilder
         }
 
         // Check if attachment configuration matches
-        if (!AttachmentsMatch(nativePass, pass))
+        if (!AttachmentsMatch(nativePass, pass) || !HasOnlyAttachmentUsages(pass))
         {
             return false;
         }
 
         // Check if barriers are needed between last merged pass and this pass
-        if (RequiresBarrierBetweenPasses(nativePass.lastLogicalPass, pass.index, passes, compiledPasses, resources, aliasingPlan))
+        if (RequiresBarrierBetweenPasses(pass, scheduleIndex, resources, aliasingPlan, resourceOrdering))
         {
             return false;
         }
@@ -176,19 +190,67 @@ internal static class RenderGraphNativePassBuilder
         return true;
     }
 
-    private static bool RequiresBarrierBetweenPasses(
-        int passA,
-        int passB,
-        List<RenderGraphPass> passes,
-        ReadOnlySpan<int> compiledPasses,
-        RenderGraphResourceRegistry resources,
-        AliasingPlan aliasingPlan)
+    private static bool HasOnlyAttachmentUsages(RenderGraphPass pass)
     {
-        return RenderGraphCompiler.RequiresBarrierBetweenPasses(passA, passB, passes, compiledPasses, resources, aliasingPlan);
+        bool IsAttachment(Identifier<RGResource> resource)
+        {
+            for (var colorIndex = 0; colorIndex <= pass.maxColorIndex; colorIndex++)
+            {
+                if (pass.colorAccess[colorIndex].id.IsValid
+                    && pass.colorAccess[colorIndex].id.AsResource() == resource)
+                {
+                    return true;
+                }
+            }
+
+            return pass.depthAccess.id.IsValid && pass.depthAccess.id.AsResource() == resource;
+        }
+
+        for (var resourceType = 0; resourceType < (int)RGResourceType.Count; resourceType++)
+        {
+            foreach (var resource in pass.resourceCreates[resourceType])
+            {
+                if (!IsAttachment(resource)) return false;
+            }
+
+            foreach (var resource in pass.resourceReads[resourceType])
+            {
+                if (!IsAttachment(resource)) return false;
+            }
+
+            foreach (var resource in pass.resourceWrites[resourceType])
+            {
+                if (!IsAttachment(resource)) return false;
+            }
+        }
+
+        return true;
     }
 
-    private static void InferLoadStoreOps(RenderGraphResourceRegistry resourceRegistry, NativeRenderPass nativePass)
+    private static bool RequiresBarrierBetweenPasses(
+        RenderGraphPass pass,
+        int scheduleIndex,
+        RenderGraphResourceRegistry resources,
+        AliasingPlan aliasingPlan,
+        RenderGraphResourceOrdering resourceOrdering)
     {
+        return RenderGraphCompiler.RequiresBarrierBetweenPasses(
+            pass,
+            scheduleIndex,
+            resources,
+            aliasingPlan,
+            resourceOrdering);
+    }
+
+    private static void InferLoadStoreOps(
+        RenderGraphResourceRegistry resourceRegistry,
+        NativeRenderPass nativePass,
+        ReadOnlySpan<int> scheduleIndexByPassIndex,
+        RenderGraphResourceOrdering resourceOrdering)
+    {
+        var firstScheduleIndex = scheduleIndexByPassIndex[nativePass.firstLogicalPass];
+        var lastScheduleIndex = scheduleIndexByPassIndex[nativePass.lastLogicalPass];
+
         // Infer load/store ops for color attachments
         for (var i = 0; i < nativePass.colorAttachmentCount; i++)
         {
@@ -199,7 +261,7 @@ internal static class RenderGraphNativePassBuilder
             // ===== LOAD OP INFERENCE =====
 
             // 1. First use
-            if (resource.firstUsePass == nativePass.firstLogicalPass)
+            if (resourceOrdering.IsFirstUse(resource.index, firstScheduleIndex))
             {
                 // Clear at first use
                 if (resource.rgTextureDesc.clearAtFirstUse)
@@ -231,7 +293,7 @@ internal static class RenderGraphNativePassBuilder
             // ===== STORE OP INFERENCE =====
 
             // Last use: No one needs it after this native pass
-            if (resource.lastUsePass == nativePass.lastLogicalPass)
+            if (resourceOrdering.GetLastUseScheduleIndex(resource.index) == lastScheduleIndex)
             {
                 if (resource.rgTextureDesc.discardAtLastUse)
                 {
@@ -260,7 +322,7 @@ internal static class RenderGraphNativePassBuilder
             // ===== LOAD OP INFERENCE =====
 
             // 1. First Use
-            if (resource.firstUsePass == nativePass.firstLogicalPass)
+            if (resourceOrdering.IsFirstUse(resource.index, firstScheduleIndex))
             {
                 // Clear at first use
                 if (resource.rgTextureDesc.clearAtFirstUse)
@@ -293,7 +355,7 @@ internal static class RenderGraphNativePassBuilder
             // ===== STORE OP INFERENCE =====
 
             // Depth is commonly discarded (depth-only passes, intermediate depth)
-            if (resource.lastUsePass == nativePass.lastLogicalPass)
+            if (resourceOrdering.GetLastUseScheduleIndex(resource.index) == lastScheduleIndex)
             {
                 if (resource.rgTextureDesc.discardAtLastUse)
                 {

@@ -598,12 +598,6 @@ public struct BarrierDesc
     [StructLayout(LayoutKind.Explicit)]
     public struct __additional_data
     {
-        public struct GlobalData
-        {
-            public BarrierSync syncBefore;
-            public BarrierAccess accessBefore;
-        }
-
         public struct BufferData
         {
             public ulong offset;
@@ -617,8 +611,6 @@ public struct BarrierDesc
         }
 
         [FieldOffset(0)]
-        public GlobalData globalData;
-        [FieldOffset(0)]
         public BufferData bufferData;
         [FieldOffset(0)]
         public TextureData textureData;
@@ -626,46 +618,41 @@ public struct BarrierDesc
 
     private __additional_data _additionalData;
 
-    public BarrierType Type
-    {
-        get; set;
-    }
+    public BarrierType Type { get; set; }
 
-    public BarrierSync SyncAfter
-    {
-        get; set;
-    }
+    /// <summary>Gets or sets the synchronization scope before the barrier.</summary>
+    public BarrierSync SyncBefore { get; set; }
 
-    public BarrierAccess AccessAfter
-    {
-        get; set;
-    }
+    /// <summary>Gets or sets the synchronization scope after the barrier.</summary>
+    public BarrierSync SyncAfter { get; set; }
 
-    public BarrierLayout LayoutAfter
-    {
-        get; set;
-    }
+    /// <summary>Gets or sets the access state before the barrier.</summary>
+    public BarrierAccess AccessBefore { get; set; }
 
-    public Handle<GPUResource> Resource
-    {
-        get; set;
-    }
+    /// <summary>Gets or sets the access state after the barrier.</summary>
+    public BarrierAccess AccessAfter { get; set; }
 
-    public BarrierSubresourceRange Subresources
-    {
-        get; set;
-    }
+    /// <summary>Gets or sets the texture layout before the barrier.</summary>
+    public BarrierLayout LayoutBefore { get; set; }
+
+    /// <summary>Gets or sets the texture layout after the barrier.</summary>
+    public BarrierLayout LayoutAfter { get; set; }
+
+    public Handle<GPUResource> Resource { get; set; }
+
+    public BarrierSubresourceRange Subresources { get; set; }
+
+    /// <summary>Gets or sets whether the backend should obtain the before-state from its resource database.</summary>
+    public bool UseTrackedBeforeState { get; set; }
+
+    /// <summary>Gets or sets whether an otherwise identical before/after barrier must still be emitted.</summary>
+    public bool Force { get; set; }
+
+    /// <summary>Gets or sets the cross-queue handoff role of this barrier.</summary>
+    public BarrierHandoffType Handoff { get; set; }
 
     // TODO: We actually don't need this, we should insert NoAccess by ourself.
-    public bool IsAliasing
-    {
-        get; set;
-    }
-
-    [UnscopedRef]
-    public ref BarrierSync SyncBefore => ref _additionalData.globalData.syncBefore;
-    [UnscopedRef]
-    public ref BarrierAccess AccessBefore => ref _additionalData.globalData.accessBefore;
+    public bool IsAliasing { get; set; }
 
     [UnscopedRef]
     public ref ulong Offset => ref _additionalData.bufferData.offset;
@@ -686,11 +673,10 @@ public struct BarrierDesc
         return new BarrierDesc
         {
             Type = BarrierType.Global,
-            SyncAfter = syncAfter,
-            AccessAfter = accessAfter,
-
             SyncBefore = syncBefore,
+            SyncAfter = syncAfter,
             AccessBefore = accessBefore,
+            AccessAfter = accessAfter
         };
     }
 
@@ -708,8 +694,37 @@ public struct BarrierDesc
             Resource = resource.AsResource(),
             SyncAfter = syncAfter,
             AccessAfter = accessAfter,
+            UseTrackedBeforeState = true,
             IsAliasing = isAliasing,
+            Offset = offset,
+            Size = size
+        };
+    }
 
+    /// <summary>Creates a buffer barrier with an explicit before-state.</summary>
+    public static BarrierDesc BufferExplicit(
+        Handle<GPUBuffer> resource,
+        ResourceBarrierData before,
+        ResourceBarrierData after,
+        BarrierHandoffType handoff = BarrierHandoffType.None,
+        bool force = false,
+        ulong offset = 0UL,
+        ulong size = ulong.MaxValue,
+        bool isAliasing = false)
+    {
+        return new BarrierDesc
+        {
+            Type = BarrierType.Buffer,
+            Resource = resource.AsResource(),
+            SyncBefore = before.sync,
+            SyncAfter = after.sync,
+            AccessBefore = before.access,
+            AccessAfter = after.access,
+            LayoutBefore = before.layout,
+            LayoutAfter = after.layout,
+            Handoff = handoff,
+            Force = force,
+            IsAliasing = isAliasing,
             Offset = offset,
             Size = size
         };
@@ -731,8 +746,37 @@ public struct BarrierDesc
             SyncAfter = syncAfter,
             AccessAfter = accessAfter,
             LayoutAfter = layoutAfter,
+            UseTrackedBeforeState = true,
             IsAliasing = isAliasing,
+            Subresources = subresources,
+            Discard = discard
+        };
+    }
 
+    /// <summary>Creates a texture barrier with an explicit before-state.</summary>
+    public static BarrierDesc TextureExplicit(
+        Handle<GPUTexture> resource,
+        ResourceBarrierData before,
+        ResourceBarrierData after,
+        BarrierHandoffType handoff = BarrierHandoffType.None,
+        bool force = false,
+        BarrierSubresourceRange subresources = default,
+        bool discard = false,
+        bool isAliasing = false)
+    {
+        return new BarrierDesc
+        {
+            Type = BarrierType.Texture,
+            Resource = resource.AsResource(),
+            SyncBefore = before.sync,
+            SyncAfter = after.sync,
+            AccessBefore = before.access,
+            AccessAfter = after.access,
+            LayoutBefore = before.layout,
+            LayoutAfter = after.layout,
+            Handoff = handoff,
+            Force = force,
+            IsAliasing = isAliasing,
             Subresources = subresources,
             Discard = discard
         };
@@ -1321,6 +1365,14 @@ public enum BarrierType
     Global,
     Texture,
     Buffer
+}
+
+/// <summary>Identifies a resource barrier's role in a cross-queue handoff.</summary>
+public enum BarrierHandoffType : byte
+{
+    None,
+    Release,
+    Acquire
 }
 
 [Flags]

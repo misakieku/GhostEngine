@@ -10,6 +10,8 @@
     <IsTrimmable>True</IsTrimmable>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'" />
+
   <ItemGroup>
     <PackageReference Include="Misaki.HighPerformance.Analyzer" Version="1.1.2">
       <PrivateAssets>all</PrivateAssets>

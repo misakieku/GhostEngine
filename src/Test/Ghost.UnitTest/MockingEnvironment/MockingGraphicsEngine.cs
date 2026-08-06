@@ -16,6 +16,14 @@ internal class MockingGraphicsEngine : IGraphicsEngine
 
     public IResourceAllocator ResourceAllocator => _resourceAllocator;
 
+#if GHOST_UNITTEST
+    public int ReturnedCommandBufferCount
+    {
+        get;
+        private set;
+    }
+#endif
+
     public MockingGraphicsEngine()
     {
         _renderDevice = new MockingRenderDevice();
@@ -58,6 +66,9 @@ internal class MockingGraphicsEngine : IGraphicsEngine
 
     public void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer)
     {
+#if GHOST_UNITTEST
+        ReturnedCommandBufferCount++;
+#endif
     }
 
     public void Dispose()

@@ -36,7 +36,6 @@ public sealed class RenderGraph : IDisposable
     private readonly RenderGraphBuilder _builder;
 
     private MemoryPool<TLSF, TLSF.CreationOptions> _memoryPool;
-    private RenderGraphDump? _cachedDump;
 
     public RenderGraphBlackboard Blackboard => _blackboard;
 
@@ -71,10 +70,22 @@ public sealed class RenderGraph : IDisposable
     {
         var dump = new RenderGraphDump
         {
+            GraphHash = graph.graphHash,
             TotalHeapSize = graph.plan.totalHeapSize,
             IsCacheHit = graph.cacheHit,
             ViewState = viewState
         };
+
+        var effectiveQueues = new Dictionary<int, CommandQueueType>();
+        var syncBoundariesBefore = new Dictionary<int, PassSyncBoundaryDumpInfo>();
+        var syncBoundariesAfter = new Dictionary<int, PassSyncBoundaryDumpInfo>();
+        var reader = new SpanReader(graph.commandStream.AsSpan());
+        dump.CommandStream.AddRange(DisassembleCommandStream(
+            ref reader,
+            graph.nativePasses.AsSpan(),
+            effectiveQueues,
+            syncBoundariesBefore,
+            syncBoundariesAfter));
 
         // Collect Memory Placement Blocks (Heap Blocks)
         var uniqueBlocks = graph.plan.placedResources.AsSpan().ToArray()
@@ -110,6 +121,9 @@ public sealed class RenderGraph : IDisposable
         for (var i = 0; i < _passes.Count; i++)
         {
             var pass = _passes[i];
+            CommandQueueType? effectiveQueue = effectiveQueues.TryGetValue(pass.index, out var queue)
+                ? queue
+                : null;
             var passInfo = new PassDumpInfo
             {
                 Index = pass.index,
@@ -118,6 +132,15 @@ public sealed class RenderGraph : IDisposable
                 Type = pass.type,
                 IsCulled = pass.culled,
                 AsyncCompute = pass.asyncCompute,
+                AsyncRequested = pass.asyncCompute,
+                EffectiveQueue = effectiveQueue,
+                QueueDecision = GetQueueDecision(pass, effectiveQueue),
+                SyncBoundaryBefore = syncBoundariesBefore.TryGetValue(pass.index, out var boundaryBefore)
+                    ? boundaryBefore
+                    : null,
+                SyncBoundaryAfter = syncBoundariesAfter.TryGetValue(pass.index, out var boundaryAfter)
+                    ? boundaryAfter
+                    : null,
                 ResourceReads = pass.resourceReads[(int)RGResourceType.Texture]
                     .Concat(pass.resourceReads[(int)RGResourceType.Buffer])
                     .Select(r => r.Value).ToList(),
@@ -141,6 +164,7 @@ public sealed class RenderGraph : IDisposable
             var placedResult = plan.GetPlacedResource(placedIndex);
             var resInfo = new ResourceDumpInfo
             {
+                LogicalResourceId = res.index,
                 BackingResource = res.backingResource,
                 Name = _resourceRegistry.GetResourceName(i),
                 Type = res.type,
@@ -150,6 +174,8 @@ public sealed class RenderGraph : IDisposable
                 SizeInBytes = placedResult.IsSuccess ? placedResult.Value.sizeInBytes : 0,
                 FirstUsePass = res.firstUsePass,
                 LastUsePass = res.lastUsePass,
+                ScheduledFirstUseIndex = graph.resourceFirstUseScheduleIndices[i],
+                ScheduledLastUseIndex = graph.resourceLastUseScheduleIndices[i],
                 ProducerPass = [..res.producerPasses],
                 ConsumerPasses = [..res.consumerPasses],
                 AliasedWithResources = placedResult.IsSuccess
@@ -160,17 +186,22 @@ public sealed class RenderGraph : IDisposable
             dump.Resources.Add(resInfo);
         }
 
-        // Disassemble Command Stream for human-readable debugging
-        var reader = new SpanReader(graph.commandStream.AsSpan());
-        dump.CommandStream.AddRange(DisassembleCommandStream(ref reader, graph.nativePasses.AsSpan()));
-
         return dump;
     }
 
-    private List<string> DisassembleCommandStream(ref SpanReader reader, ReadOnlySpan<NativeRenderPass> nativePasses)
+    private List<string> DisassembleCommandStream(
+        ref SpanReader reader,
+        ReadOnlySpan<NativeRenderPass> nativePasses,
+        Dictionary<int, CommandQueueType> effectiveQueues,
+        Dictionary<int, PassSyncBoundaryDumpInfo> syncBoundariesBefore,
+        Dictionary<int, PassSyncBoundaryDumpInfo> syncBoundariesAfter)
     {
         var lines = new List<string>();
+        var commandBufferTypes = new List<CommandQueueType> { CommandQueueType.Graphics };
         var instIndex = 0;
+        var lastPassIndex = -1;
+        PassSyncBoundaryDumpInfo? pendingBoundary = null;
+        var effectiveQueue = CommandQueueType.Graphics;
 
         while (reader.RemainingBytes > 0)
         {
@@ -185,15 +216,37 @@ public sealed class RenderGraph : IDisposable
                     for (var i = 0; i < count; i++)
                     {
                         var barrier = reader.Read<CompiledBarrier>();
-                        var resName = _resourceRegistry.GetResourceName(barrier.resource.Value);
-                        if (barrier.aliasingPredecessor.IsValid)
+                        var resourceId = barrier.resource.Value;
+                        var resName = _resourceRegistry.GetResourceName(resourceId);
+                        var resourceLabel = $"{resName} [{barrier.resourceType} #{resourceId}]";
+                        var sourceStateLabel = $"Layout: {barrier.sourceState.layout}, Access: {barrier.sourceState.access}, Sync: {barrier.sourceState.sync}";
+                        var handoffStateLabel = $"Layout: {barrier.handoffState.layout}, Access: {barrier.handoffState.access}, Sync: {barrier.handoffState.sync}";
+                        var targetStateLabel = $"Layout: {barrier.targetState.layout}, Access: {barrier.targetState.access}, Sync: {barrier.targetState.sync}";
+                        if (barrier.flags.HasFlag(BarrierFlags.QueueRelease))
                         {
-                            var predName = _resourceRegistry.GetResourceName(barrier.aliasingPredecessor.Value);
-                            lines.Add($"       ├─ Aliasing: {predName} -> {resName}");
+                            lines.Add(
+                                $"       ├─ QueueRelease: {resourceLabel}, {barrier.sourceQueue} -> {barrier.destinationQueue}, " +
+                                $"Source: [{sourceStateLabel}], Handoff: [{handoffStateLabel}], Flags: {barrier.flags}");
+                        }
+                        else if (barrier.flags.HasFlag(BarrierFlags.QueueAcquire))
+                        {
+                            lines.Add(
+                                $"       ├─ QueueAcquire: {resourceLabel}, {barrier.sourceQueue} -> {barrier.destinationQueue}, " +
+                                $"Handoff: [{handoffStateLabel}], Target: [{targetStateLabel}], Flags: {barrier.flags}");
+                        }
+                        else if (barrier.aliasingPredecessor.IsValid)
+                        {
+                            var predecessorId = barrier.aliasingPredecessor.Value;
+                            ref readonly var predecessor = ref _resourceRegistry.GetResource(barrier.aliasingPredecessor);
+                            var predName = _resourceRegistry.GetResourceName(predecessorId);
+                            var predecessorLabel = $"{predName} [{predecessor.type} #{predecessorId}]";
+                            lines.Add($"       ├─ Aliasing: {predecessorLabel} -> {resourceLabel} -> {targetStateLabel}, Flags: {barrier.flags}");
                         }
                         else
                         {
-                            lines.Add($"       ├─ Transition: {resName} -> Layout: {barrier.targetState.layout}, Access: {barrier.targetState.access}, Sync: {barrier.targetState.sync}");
+                            lines.Add(
+                                $"       ├─ Transition: {resourceLabel}, Source: [{sourceStateLabel}], " +
+                                $"Target: [{targetStateLabel}], Flags: {barrier.flags}");
                         }
                     }
                     break;
@@ -210,9 +263,26 @@ public sealed class RenderGraph : IDisposable
                 case RGExecutionOpType.ExecutePass:
                 {
                     var passIdx = reader.Read<int>();
-                    var passName = (passIdx >= 0 && passIdx < _passes.Count) ? _passes[passIdx].name : $"Pass#{passIdx}";
-                    var passType = (passIdx >= 0 && passIdx < _passes.Count) ? _passes[passIdx].type.ToString() : "Unknown";
-                    lines.Add($"[{instIndex++:D4}] ExecutePass #{passIdx} '{passName}' [{passType}]");
+                    var isKnownPass = passIdx >= 0 && passIdx < _passes.Count;
+                    var passName = isKnownPass ? _passes[passIdx].name : $"Pass#{passIdx}";
+                    var passType = isKnownPass ? _passes[passIdx].type.ToString() : "Unknown";
+                    var asyncRequested = isKnownPass && _passes[passIdx].asyncCompute;
+                    if (isKnownPass)
+                    {
+                        effectiveQueues[passIdx] = effectiveQueue;
+                        if (pendingBoundary.HasValue)
+                        {
+                            syncBoundariesBefore[passIdx] = pendingBoundary.Value;
+                            pendingBoundary = null;
+                        }
+                    }
+                    lastPassIndex = passIdx;
+                    var queueDecision = isKnownPass
+                        ? GetQueueDecision(_passes[passIdx], effectiveQueue)
+                        : RGQueueDecision.IneligiblePassType;
+                    lines.Add(
+                        $"[{instIndex++:D4}] ExecutePass #{passIdx} '{passName}' [{passType}] -> " +
+                        $"AsyncRequested: {asyncRequested}, EffectiveQueue: {effectiveQueue}, QueueDecision: {queueDecision}");
                     break;
                 }
 
@@ -222,32 +292,64 @@ public sealed class RenderGraph : IDisposable
                     break;
                 }
 
-                case RGExecutionOpType.SignalFence:
+                case RGExecutionOpType.CommandBufferSyncPoint:
                 {
-                    var srcQueue = reader.Read<CommandQueueType>();
-                    var fenceVal = reader.Read<ulong>();
-                    lines.Add($"[{instIndex++:D4}] SignalFence -> Queue: {srcQueue}, FenceValue: {fenceVal}");
-                    break;
-                }
+                    var marker = RGCommandStream.ReadSyncMarker(ref reader);
+                    var producerIds = marker.ProducerCommandBufferIds.ToArray();
+                    var producerTypes = new CommandQueueType[producerIds.Length];
+                    for (var i = 0; i < producerIds.Length; i++)
+                    {
+                        producerTypes[i] = commandBufferTypes[producerIds[i]];
+                    }
 
-                case RGExecutionOpType.SubmitQueue:
-                {
-                    var targetQueue = reader.Read<CommandQueueType>();
-                    lines.Add($"[{instIndex++:D4}] SubmitQueue -> Queue: {targetQueue}");
-                    break;
-                }
+                    var boundary = new PassSyncBoundaryDumpInfo
+                    {
+                        SourceType = effectiveQueue,
+                        DestinationType = marker.NextCommandBufferType,
+                        ProducerCommandBufferIds = producerIds,
+                        ProducerTypes = producerTypes
+                    };
+                    if (lastPassIndex >= 0)
+                    {
+                        syncBoundariesAfter[lastPassIndex] = boundary;
+                    }
+                    pendingBoundary = boundary;
 
-                case RGExecutionOpType.GPUWait:
-                {
-                    var dstQueue = reader.Read<CommandQueueType>();
-                    var fenceVal = reader.Read<ulong>();
-                    lines.Add($"[{instIndex++:D4}] GPUWait -> Queue: {dstQueue}, FenceValue: {fenceVal}");
+                    var deps = producerIds.Length > 0 ? string.Join(", ", producerIds) : "none";
+                    var dependencyTypes = producerTypes.Length > 0 ? string.Join(", ", producerTypes) : "none";
+                    lines.Add(
+                        $"[{instIndex++:D4}] CommandBufferSyncPoint -> SourceType: {effectiveQueue}, NextType: {marker.NextCommandBufferType}, " +
+                        $"DependsOn: [{deps}], DependencyTypes: [{dependencyTypes}]");
+                    effectiveQueue = marker.NextCommandBufferType;
+                    commandBufferTypes.Add(effectiveQueue);
                     break;
                 }
             }
         }
 
         return lines;
+    }
+
+    private static RGQueueDecision GetQueueDecision(RenderGraphPass pass, CommandQueueType? effectiveQueue)
+    {
+        if (pass.culled || !effectiveQueue.HasValue)
+        {
+            return RGQueueDecision.Culled;
+        }
+
+        if (pass.type != RenderPassType.Compute)
+        {
+            return RGQueueDecision.IneligiblePassType;
+        }
+
+        if (!pass.asyncCompute)
+        {
+            return RGQueueDecision.AsyncNotRequested;
+        }
+
+        return effectiveQueue == CommandQueueType.Compute
+            ? RGQueueDecision.AsyncComputeSelected
+            : RGQueueDecision.NoLegalOverlapWindow;
     }
 
     /// <summary>
@@ -373,14 +475,10 @@ public sealed class RenderGraph : IDisposable
     }
 
     /// <summary>
-    /// Compiles the render graph and executes all compiled passes with multi-queue support.
+    /// Compiles the render graph and executes all compiled passes.
     /// </summary>
     public Result<RGExecution, Error> CompileAndExecute(
         ICommandBuffer graphicsCommandBuffer,
-        ICommandBuffer computeCommandBuffer,
-        ICommandQueue graphicsQueue,
-        ICommandQueue computeQueue,
-        IFence fence,
         ViewState viewState,
         RGExecutionFlags flags = RGExecutionFlags.Default)
     {
@@ -397,10 +495,6 @@ public sealed class RenderGraph : IDisposable
         _context.RelativeScale = graph.scale;
         var error = _executor.Execute(
             graphicsCommandBuffer,
-            computeCommandBuffer,
-            graphicsQueue,
-            computeQueue,
-            fence,
             _context,
             graph);
 
@@ -436,13 +530,11 @@ public sealed class RenderGraph : IDisposable
             }
         }
 
-        if (flags.HasFlag(RGExecutionFlags.GenerateDump)
-            && (_cachedDump == null || _cachedDump.GraphHash != graph.graphHash))
-        {
-            _cachedDump = GenerateDump(graph, viewState);
-        }
+        var dump = flags.HasFlag(RGExecutionFlags.GenerateDump)
+            ? GenerateDump(graph, viewState)
+            : null;
 
-        return new RGExecution { Dump = _cachedDump };
+        return new RGExecution { Dump = dump };
     }
 
     public void Dispose()

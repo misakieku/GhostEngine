@@ -12,7 +12,7 @@ using static TerraFX.Interop.DirectX.D3D12MemAlloc;
 
 namespace Ghost.Graphics.D3D12;
 
-internal sealed unsafe partial class D3D12ResourceAllocator
+internal sealed partial class D3D12ResourceAllocator
 {
     // NOTE: MAX_BYTES may not be accurate, we need to verify it with feature level checks.
     private const uint MAX_BYTES = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_A_TERM * 1024u * 1024u;

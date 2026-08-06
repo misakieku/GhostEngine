@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
@@ -402,9 +403,7 @@ internal enum RGExecutionOpType : byte
     BeginNativePass = 1,
     ExecutePass = 2,
     EndNativePass = 3,
-    GPUWait = 4,
-    SignalFence = 5,
-    SubmitQueue = 6,
+    CommandBufferSyncPoint = 4,
 }
 
 [Flags]
@@ -467,6 +466,57 @@ public sealed class RenderGraphDump
     } = new();
 }
 
+/// <summary>
+/// Describes why a render-graph pass was assigned to its effective command-buffer type.
+/// </summary>
+public enum RGQueueDecision : byte
+{
+    /// <summary>The pass does not request asynchronous Compute execution.</summary>
+    AsyncNotRequested,
+
+    /// <summary>The pass type cannot execute on an asynchronous Compute command buffer.</summary>
+    IneligiblePassType,
+
+    /// <summary>The pass was culled and has no effective command-buffer assignment.</summary>
+    Culled,
+
+    /// <summary>The dependency-window planner selected the pass for a Compute command buffer.</summary>
+    AsyncComputeSelected,
+
+    /// <summary>The async request was demoted because no legal overlap window was found.</summary>
+    NoLegalOverlapWindow,
+}
+
+/// <summary>
+/// Diagnostic description of one structural command-buffer boundary adjacent to a pass.
+/// </summary>
+public readonly struct PassSyncBoundaryDumpInfo
+{
+    /// <summary>Type of the command buffer that ends at the boundary.</summary>
+    public CommandQueueType SourceType
+    {
+        get; init;
+    }
+
+    /// <summary>Type of the command buffer that begins at the boundary.</summary>
+    public CommandQueueType DestinationType
+    {
+        get; init;
+    }
+
+    /// <summary>Relative producer command-buffer IDs required by the destination.</summary>
+    public int[] ProducerCommandBufferIds
+    {
+        get; init;
+    }
+
+    /// <summary>Command-buffer types corresponding to <see cref="ProducerCommandBufferIds"/>.</summary>
+    public CommandQueueType[] ProducerTypes
+    {
+        get; init;
+    }
+}
+
 public readonly struct HeapBlockDumpInfo
 {
     public ulong Offset
@@ -518,6 +568,34 @@ public readonly struct PassDumpInfo
         get; init;
     }
 
+    public bool AsyncRequested
+    {
+        get; init;
+    }
+
+    public CommandQueueType? EffectiveQueue
+    {
+        get; init;
+    }
+
+    /// <summary>Explains the effective command-buffer assignment.</summary>
+    public RGQueueDecision QueueDecision
+    {
+        get; init;
+    }
+
+    /// <summary>Structural command-buffer boundary immediately before this pass, when present.</summary>
+    public PassSyncBoundaryDumpInfo? SyncBoundaryBefore
+    {
+        get; init;
+    }
+
+    /// <summary>Structural command-buffer boundary immediately after this pass, when present.</summary>
+    public PassSyncBoundaryDumpInfo? SyncBoundaryAfter
+    {
+        get; init;
+    }
+
     public int NativePassIndex
     {
         get; init;
@@ -541,6 +619,11 @@ public readonly struct PassDumpInfo
 
 public readonly struct ResourceDumpInfo
 {
+    public int LogicalResourceId
+    {
+        get; init;
+    }
+
     public Handle<GPUResource> BackingResource
     {
         get; init;
@@ -586,6 +669,16 @@ public readonly struct ResourceDumpInfo
         get; init;
     }
 
+    public int ScheduledFirstUseIndex
+    {
+        get; init;
+    }
+
+    public int ScheduledLastUseIndex
+    {
+        get; init;
+    }
+
     public int[] ProducerPass
     {
         get; init;
@@ -600,5 +693,113 @@ public readonly struct ResourceDumpInfo
     public List<int> AliasedWithResources
     {
         get; init;
+    }
+}
+
+/// <summary>
+/// Decoded payload of a <see cref="RGExecutionOpType.CommandBufferSyncPoint"/> command-stream entry.
+/// </summary>
+/// <remarks>
+/// <para>The span points directly into the originating command bytes and is only valid for the lifetime of that buffer.</para>
+/// <para>
+/// Relative command-buffer IDs are assigned in stream order: the first command buffer has ID 0 and each
+/// <see cref="RGExecutionOpType.CommandBufferSyncPoint"/> ends command buffer N and starts command buffer N + 1.
+/// Every element of <see cref="ProducerCommandBufferIds"/> must therefore be strictly less than N + 1.
+/// </para>
+/// </remarks>
+internal readonly ref struct RGSyncMarker
+{
+    /// <summary>Queue type of the command buffer that begins after this boundary.</summary>
+    public readonly CommandQueueType NextCommandBufferType;
+
+    /// <summary>
+    /// Relative IDs of command buffers that must complete before the next command buffer may execute.
+    /// Each ID is strictly less than the implicit ID assigned to the next command buffer.
+    /// </summary>
+    public readonly ReadOnlySpan<int> ProducerCommandBufferIds;
+
+    public RGSyncMarker(CommandQueueType nextCommandBufferType, ReadOnlySpan<int> producerCommandBufferIds)
+    {
+        NextCommandBufferType = nextCommandBufferType;
+        ProducerCommandBufferIds = producerCommandBufferIds;
+    }
+}
+
+/// <summary>
+/// Helpers for writing and reading <see cref="RGExecutionOpType.CommandBufferSyncPoint"/> entries in the
+/// binary command stream used by <see cref="RenderGraphCompiler"/> and <see cref="RenderGraphExecutor"/>.
+/// </summary>
+internal static class RGCommandStream
+{
+    /// <summary>
+    /// Writes a <see cref="RGExecutionOpType.CommandBufferSyncPoint"/> entry into <paramref name="writer"/>.
+    /// </summary>
+    /// <param name="writer">Destination buffer writer.</param>
+    /// <param name="nextCommandBufferType">Queue type for the command buffer that starts after this boundary.</param>
+    /// <param name="producerIds">Relative IDs of producer command buffers that the next command buffer depends on.</param>
+    /// <param name="nextCommandBufferId">
+    /// The implicit relative ID that will be assigned to the command buffer that starts after this marker.
+    /// Used to validate that every element of <paramref name="producerIds"/> is a strictly earlier command buffer.
+    /// </param>
+    /// <exception cref="ArgumentException">
+    /// Thrown when any producer ID is greater than or equal to <paramref name="nextCommandBufferId"/>, or when
+    /// producer IDs contain duplicates.
+    /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void WriteSyncMarker(
+        ref BufferWriter writer,
+        CommandQueueType nextCommandBufferType,
+        ReadOnlySpan<int> producerIds,
+        int nextCommandBufferId)
+    {
+        ValidateProducerIds(producerIds, nextCommandBufferId);
+
+        writer.Write(RGExecutionOpType.CommandBufferSyncPoint);
+        writer.Write(nextCommandBufferType);
+        writer.Write(producerIds.Length);
+        writer.WriteSpan(producerIds);
+    }
+
+    /// <summary>
+    /// Reads a <see cref="RGExecutionOpType.CommandBufferSyncPoint"/> payload from <paramref name="reader"/>.
+    /// The opcode byte itself must already have been consumed by the caller.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static RGSyncMarker ReadSyncMarker(ref SpanReader reader)
+    {
+        var nextType = reader.Read<CommandQueueType>();
+        var count = reader.Read<int>();
+        var ids = reader.ReadSpan<int>(count);
+        return new RGSyncMarker(nextType, ids);
+    }
+
+    /// <summary>
+    /// Validates that producer IDs form a legal dependency set for a sync marker whose next command buffer will
+    /// receive the relative ID <paramref name="nextCommandBufferId"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// Thrown when any ID is out of range or when the set contains duplicates.
+    /// </exception>
+    public static void ValidateProducerIds(ReadOnlySpan<int> producerIds, int nextCommandBufferId)
+    {
+        for (var i = 0; i < producerIds.Length; i++)
+        {
+            var id = producerIds[i];
+            if (id < 0 || id >= nextCommandBufferId)
+            {
+                throw new ArgumentException(
+                    $"Producer command-buffer ID {id} is out of range. " +
+                    $"All IDs must be in [0, {nextCommandBufferId - 1}].");
+            }
+
+            for (var j = i + 1; j < producerIds.Length; j++)
+            {
+                if (producerIds[j] == id)
+                {
+                    throw new ArgumentException(
+                        $"Duplicate producer command-buffer ID {id} in sync marker.");
+                }
+            }
+        }
     }
 }

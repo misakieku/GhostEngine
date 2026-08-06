@@ -110,7 +110,7 @@ internal record struct RenderGraphResource : IDisposable
     }
 }
 
-internal sealed class RenderGraphResourceRegistry : IDisposable
+internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphValidationResourceProvider
 {
     private readonly IResourceDatabase _database;
     private readonly IResourceAllocator _allocator;
@@ -248,11 +248,16 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
     public string GetResourceName(Identifier<RGResource> resource)
     {
-#if GHOST_SAFETY_CHECKS || GHOST_EDITOR
+#if GHOST_SAFETY_CHECKS
         return _resourceName.GetValueOrDefault(resource.Value, $"Resource_{resource.Value}");
 #else
         return $"Resource_{resource.Value}";
 #endif
+    }
+
+    public RGResourceType GetResourceType(Identifier<RGResource> resource)
+    {
+        return GetResource(resource).type;
     }
 
     /// <summary>
@@ -266,7 +271,11 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
     public void SetProducer(Identifier<RGResource> resourceID, int passIndex)
     {
         ref var resource = ref GetResource(resourceID);
-        resource.producerPasses.Add(passIndex);
+        if (resource.producerPasses.Add(passIndex))
+        {
+            resource.firstUsePass = resource.firstUsePass < 0 ? passIndex : Math.Min(resource.firstUsePass, passIndex);
+            resource.lastUsePass = Math.Max(resource.lastUsePass, passIndex);
+        }
     }
 
     public void AddConsumer(Identifier<RGResource> resourceID, int passIndex)
@@ -274,11 +283,8 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         ref var resource = ref GetResource(resourceID);
         if (resource.consumerPasses.Add(passIndex))
         {
-            resource.lastUsePass = passIndex;
-            if (resource.firstUsePass < 0)
-            {
-                resource.firstUsePass = passIndex;
-            }
+            resource.firstUsePass = resource.firstUsePass < 0 ? passIndex : Math.Min(resource.firstUsePass, passIndex);
+            resource.lastUsePass = Math.Max(resource.lastUsePass, passIndex);
         }
     }
 

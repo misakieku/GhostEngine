@@ -10,10 +10,11 @@
 *.userosscache
 *.sln.docstates
 
-AGENTS.md
 .opencode/
 .code-review-graph/
 .antigravitycli/
+.pi-subagents/
+.pi-tasks/
 .pi/
 
 ref/

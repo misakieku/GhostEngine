@@ -15,19 +15,29 @@ public readonly struct RecordedQueueOp
     public CommandQueueType QueueType { get; }
     public QueueOpType OpType { get; }
     public ulong Value { get; }
+    public bool? CommandBufferWasRecording { get; }
 
-    public RecordedQueueOp(CommandQueueType queueType, QueueOpType opType, ulong value = 0)
+    public RecordedQueueOp(CommandQueueType queueType, QueueOpType opType, ulong value = 0, bool? commandBufferWasRecording = null)
     {
         QueueType = queueType;
         OpType = opType;
         Value = value;
+        CommandBufferWasRecording = commandBufferWasRecording;
     }
 
-    public override string ToString() => $"{QueueType}:{OpType}({Value})";
+    public override string ToString()
+    {
+        var recordingState = CommandBufferWasRecording.HasValue
+            ? $", Recording: {CommandBufferWasRecording.Value}"
+            : string.Empty;
+        return $"{QueueType}:{OpType}({Value}{recordingState})";
+    }
 }
 
 internal class MockingCommandQueue : ICommandQueue
 {
+    private readonly bool _validateCommandBufferState;
+
 #if GHOST_UNITTEST
     public static List<RecordedQueueOp> GlobalRecordedOps { get; } = new();
 #endif
@@ -42,9 +52,10 @@ internal class MockingCommandQueue : ICommandQueue
         get; set;
     } = "MockCommandQueue";
 
-    public MockingCommandQueue(CommandQueueType type)
+    public MockingCommandQueue(CommandQueueType type, bool validateCommandBufferState = true)
     {
         Type = type;
+        _validateCommandBufferState = validateCommandBufferState;
     }
 
     public ulong Signal(IFence fence, ulong value)
@@ -65,22 +76,44 @@ internal class MockingCommandQueue : ICommandQueue
 
     public void Submit(ICommandBuffer commandBuffer)
     {
+        var wasRecording = commandBuffer.State.IsRecording;
 #if GHOST_UNITTEST
         lock (GlobalRecordedOps)
         {
-            GlobalRecordedOps.Add(new RecordedQueueOp(Type, QueueOpType.Submit, (ulong)commandBuffer.Type));
+            GlobalRecordedOps.Add(new RecordedQueueOp(Type, QueueOpType.Submit, (ulong)commandBuffer.Type, wasRecording));
         }
 #endif
+        ValidateCommandBufferState(wasRecording);
     }
 
     public void Submit(params scoped ReadOnlySpan<ICommandBuffer> commandBuffers)
     {
+        if (commandBuffers.IsEmpty)
+        {
+            return;
+        }
+
+        var wasRecording = false;
+        for (var i = 0; i < commandBuffers.Length; i++)
+        {
+            wasRecording |= commandBuffers[i].State.IsRecording;
+        }
+
 #if GHOST_UNITTEST
         lock (GlobalRecordedOps)
         {
-            GlobalRecordedOps.Add(new RecordedQueueOp(Type, QueueOpType.Submit, (ulong)commandBuffers[0].Type));
+            GlobalRecordedOps.Add(new RecordedQueueOp(Type, QueueOpType.Submit, (ulong)commandBuffers[0].Type, wasRecording));
         }
 #endif
+        ValidateCommandBufferState(wasRecording);
+    }
+
+    private void ValidateCommandBufferState(bool wasRecording)
+    {
+        if (_validateCommandBufferState && wasRecording)
+        {
+            throw new InvalidOperationException("Cannot submit a command buffer while it is recording.");
+        }
     }
 
     public void Wait(IFence fence, ulong value)

@@ -22,6 +22,12 @@ internal struct CachedCompilation : IDisposable
 
     // Placed heap metadata
     public UnsafeArray<PlacedResourceData> placedResources;
+    public UnsafeArray<int> aliasedLogicalResources;
+    public ulong totalHeapSize;
+
+    // Scheduled lifetime metadata used by cache-hit native-pass restoration and diagnostics.
+    public UnsafeArray<int> resourceFirstUseScheduleIndices;
+    public UnsafeArray<int> resourceLastUseScheduleIndices;
 
     // Real gpu heap
     public UnsafeArray<Handle<GPUResource>> backingResources;
@@ -44,6 +50,9 @@ internal struct CachedCompilation : IDisposable
         nativePasses.Dispose();
         logicalToPhysical.Dispose();
         placedResources.Dispose();
+        aliasedLogicalResources.Dispose();
+        resourceFirstUseScheduleIndices.Dispose();
+        resourceLastUseScheduleIndices.Dispose();
         backingResources.Dispose();
         commandBytes.Dispose();
     }
@@ -57,6 +66,8 @@ internal struct PlacedResourceData
     public ulong sizeInBytes;
     public int firstUsePass;
     public int lastUsePass;
+    public int aliasedLogicalResourceOffset;
+    public int aliasedLogicalResourceCount;
 }
 
 internal sealed class RenderGraphCompilationCache : IDisposable
@@ -86,11 +97,21 @@ internal sealed class RenderGraphCompilationCache : IDisposable
         ReadOnlySpan<NativeRenderPass> nativePasses,
         ReadOnlySpan<byte> commandBytes,
         AliasingPlan aliasingPlan,
+        RenderGraphResourceOrdering resourceOrdering,
         AllocationHandle allocationHandle)
     {
         _cachedHash = hash;
         _hasCachedData = true;
         _cached.Dispose();
+
+        var aliasedLogicalResourceCount = 0;
+        for (var i = 0; i < aliasingPlan.placedResources.Count; i++)
+        {
+            aliasedLogicalResourceCount += aliasingPlan.placedResources[i].aliasedLogicalResources.Count;
+        }
+
+        var resourceFirstUseScheduleIndices = resourceOrdering.GetFirstUseScheduleIndices();
+        var resourceLastUseScheduleIndices = resourceOrdering.GetLastUseScheduleIndices();
 
         _cached = new CachedCompilation
         {
@@ -99,6 +120,10 @@ internal sealed class RenderGraphCompilationCache : IDisposable
             nativePasses = new UnsafeArray<NativeRenderPass>(nativePasses.Length, allocationHandle),
             logicalToPhysical = new UnsafeHashMap<int, int>(128, allocationHandle),
             placedResources = new UnsafeArray<PlacedResourceData>(aliasingPlan.placedResources.Count, allocationHandle),
+            aliasedLogicalResources = new UnsafeArray<int>(aliasedLogicalResourceCount, allocationHandle),
+            totalHeapSize = aliasingPlan.totalHeapSize,
+            resourceFirstUseScheduleIndices = new UnsafeArray<int>(resourceFirstUseScheduleIndices.Length, allocationHandle),
+            resourceLastUseScheduleIndices = new UnsafeArray<int>(resourceLastUseScheduleIndices.Length, allocationHandle),
             backingResources = new UnsafeArray<Handle<GPUResource>>(registry.ResourceCount, allocationHandle),
             commandBytes = new UnsafeArray<byte>(commandBytes.Length, allocationHandle),
             viewState = viewState
@@ -107,6 +132,11 @@ internal sealed class RenderGraphCompilationCache : IDisposable
         _cached.compiledPassIndices.CopyFrom(compiledPasses);
         _cached.nativePasses.CopyFrom(nativePasses);
         _cached.commandBytes.CopyFrom(commandBytes);
+        if (!resourceFirstUseScheduleIndices.IsEmpty)
+        {
+            _cached.resourceFirstUseScheduleIndices.CopyFrom(resourceFirstUseScheduleIndices);
+            _cached.resourceLastUseScheduleIndices.CopyFrom(resourceLastUseScheduleIndices);
+        }
 
         for (var i = 0; i < nativePasses.Length; i++)
         {
@@ -123,7 +153,7 @@ internal sealed class RenderGraphCompilationCache : IDisposable
             _cached.passCulledFlags[i] = passes[i].culled;
         }
 
-        aliasingPlan.StoreToCache(ref _cached.logicalToPhysical, ref _cached.placedResources);
+        aliasingPlan.StoreToCache(ref _cached.logicalToPhysical, ref _cached.placedResources, ref _cached.aliasedLogicalResources);
 
         for (var i = 0; i < registry.ResourceCount; i++)
         {

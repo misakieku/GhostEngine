@@ -38,4 +38,5 @@
     </Content>
   </ItemGroup>
 
+  <Import Project="..\..\GhostEngine.targets" />
 </Project>

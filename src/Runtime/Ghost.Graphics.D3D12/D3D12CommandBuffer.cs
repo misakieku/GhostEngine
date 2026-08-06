@@ -138,6 +138,48 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->RSSetScissorRects(1, &d3d12Rect);
     }
 
+    internal static bool IsTextureBarrierLayoutCompatible(
+        CommandBufferType commandBufferType,
+        BarrierLayout layoutBefore,
+        BarrierLayout layoutAfter)
+    {
+        static bool IsDirectOnly(BarrierLayout layout)
+        {
+            return layout is >= BarrierLayout.DirectQueueCommon and <= BarrierLayout.DirectQueueCopyDest
+                or BarrierLayout.DirectQueueGenericReadComputeQueueAccessible;
+        }
+
+        static bool IsComputeOnly(BarrierLayout layout)
+        {
+            return layout is >= BarrierLayout.ComputeQueueCommon and <= BarrierLayout.ComputeQueueCopyDest;
+        }
+
+        return commandBufferType switch
+        {
+            CommandBufferType.Graphics => !IsComputeOnly(layoutBefore) && !IsComputeOnly(layoutAfter),
+            CommandBufferType.Compute => !IsDirectOnly(layoutBefore)
+                && !IsDirectOnly(layoutAfter)
+                && layoutBefore is not BarrierLayout.RenderTarget
+                and not BarrierLayout.DepthStencilRead
+                and not BarrierLayout.DepthStencilWrite
+                && layoutAfter is not BarrierLayout.RenderTarget
+                and not BarrierLayout.DepthStencilRead
+                and not BarrierLayout.DepthStencilWrite,
+            _ => true
+        };
+    }
+
+    private static bool IsHandoffValid(scoped in BarrierDesc desc)
+    {
+        return desc.Handoff switch
+        {
+            BarrierHandoffType.None => true,
+            BarrierHandoffType.Release => desc.SyncAfter == BarrierSync.None && desc.AccessAfter == BarrierAccess.NoAccess,
+            BarrierHandoffType.Acquire => desc.SyncBefore == BarrierSync.None && desc.AccessBefore == BarrierAccess.NoAccess,
+            _ => false
+        };
+    }
+
     public void Barrier(params ReadOnlySpan<BarrierDesc> barrierDescs)
     {
         AssertNotDisposed();
@@ -201,9 +243,23 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                             return;
                         }
 
-                        var accessBefore = desc.IsAliasing ? BarrierAccess.NoAccess : record.barrierData.access;
+                        var beforeState = desc.UseTrackedBeforeState
+                            ? record.barrierData
+                            : new ResourceBarrierData(BarrierLayout.Undefined, desc.AccessBefore, desc.SyncBefore);
+                        if (desc.IsAliasing)
+                        {
+                            beforeState.access = BarrierAccess.NoAccess;
+                        }
 
-                        if (record.barrierData.sync == desc.SyncAfter && accessBefore == desc.AccessAfter)
+                        if (!IsHandoffValid(in desc))
+                        {
+                            RecordError(nameof(Barrier), Error.InvalidArgument);
+                            continue;
+                        }
+
+                        if (!desc.Force
+                            && beforeState.sync == desc.SyncAfter
+                            && beforeState.access == desc.AccessAfter)
                         {
                             continue;
                         }
@@ -211,13 +267,13 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                         var resource = record.ResourcePtr;
                         pBufferBarriers[bufferIndex++] = new D3D12_BUFFER_BARRIER
                         {
-                            SyncBefore = (D3D12_BARRIER_SYNC)record.barrierData.sync,
+                            SyncBefore = (D3D12_BARRIER_SYNC)beforeState.sync,
                             SyncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter,
-                            AccessBefore = (D3D12_BARRIER_ACCESS)accessBefore,
+                            AccessBefore = (D3D12_BARRIER_ACCESS)beforeState.access,
                             AccessAfter = (D3D12_BARRIER_ACCESS)desc.AccessAfter,
                             pResource = resource,
-                            Offset = 0,
-                            Size = ulong.MaxValue
+                            Offset = desc.Offset,
+                            Size = desc.Size
                         };
 
                         record.barrierData = new ResourceBarrierData(BarrierLayout.Undefined, desc.AccessAfter, desc.SyncAfter);
@@ -238,10 +294,26 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                             return;
                         }
 
-                        var accessBefore = desc.IsAliasing ? BarrierAccess.NoAccess : record.barrierData.access;
-                        var layoutBefore = desc.IsAliasing ? BarrierLayout.Undefined : record.barrierData.layout;
+                        var beforeState = desc.UseTrackedBeforeState
+                            ? record.barrierData
+                            : new ResourceBarrierData(desc.LayoutBefore, desc.AccessBefore, desc.SyncBefore);
+                        if (desc.IsAliasing)
+                        {
+                            beforeState.layout = BarrierLayout.Undefined;
+                            beforeState.access = BarrierAccess.NoAccess;
+                        }
 
-                        if (record.barrierData.sync == desc.SyncAfter && accessBefore == desc.AccessAfter && layoutBefore == desc.LayoutAfter)
+                        if (!IsHandoffValid(in desc)
+                            || !IsTextureBarrierLayoutCompatible(_type, beforeState.layout, desc.LayoutAfter))
+                        {
+                            RecordError(nameof(Barrier), Error.InvalidArgument);
+                            continue;
+                        }
+
+                        if (!desc.Force
+                            && beforeState.sync == desc.SyncAfter
+                            && beforeState.access == desc.AccessAfter
+                            && beforeState.layout == desc.LayoutAfter)
                         {
                             continue;
                         }
@@ -249,11 +321,11 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                         var resource = record.ResourcePtr;
                         pTextureBarriers[textureIndex++] = new D3D12_TEXTURE_BARRIER
                         {
-                            SyncBefore = (D3D12_BARRIER_SYNC)record.barrierData.sync,
+                            SyncBefore = (D3D12_BARRIER_SYNC)beforeState.sync,
                             SyncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter,
-                            AccessBefore = (D3D12_BARRIER_ACCESS)accessBefore,
+                            AccessBefore = (D3D12_BARRIER_ACCESS)beforeState.access,
                             AccessAfter = (D3D12_BARRIER_ACCESS)desc.AccessAfter,
-                            LayoutBefore = (D3D12_BARRIER_LAYOUT)layoutBefore,
+                            LayoutBefore = (D3D12_BARRIER_LAYOUT)beforeState.layout,
                             LayoutAfter = (D3D12_BARRIER_LAYOUT)desc.LayoutAfter,
                             pResource = resource,
                             Subresources = new D3D12_BARRIER_SUBRESOURCE_RANGE
