@@ -286,12 +286,20 @@ public unsafe struct EntityCommandBuffer : IDisposable
                 case ECBOpCode.DestroyEntities:
                     var removeCount = reader.Read<int>();
                     var entitiesToRemove = reader.ReadSpan<Entity>(removeCount);
-                    // Mapped destruction for multiple entities not typically used with temp IDs, 
-                    // but we map them just in case.
-                    for (int i = 0; i < removeCount; i++)
+                    // Map temp entities created earlier in this ECB to their real identities,
+                    // then destroy the whole batch in one call (batched swap-removal).
+                    if (tempEntities.Capacity < removeCount)
                     {
-                        entityManager.DestroyEntity(MapEntity(entitiesToRemove[i], &tempMap));
+                        tempEntities.Resize(removeCount);
                     }
+
+                    tempEntities.UnsafeSetCount(removeCount);
+                    for (var i = 0; i < removeCount; i++)
+                    {
+                        tempEntities[i] = MapEntity(entitiesToRemove[i], &tempMap);
+                    }
+
+                    entityManager.DestroyEntities(tempEntities.AsSpan());
                     break;
 
                 case ECBOpCode.AddComponent:

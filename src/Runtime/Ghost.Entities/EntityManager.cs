@@ -14,7 +14,7 @@ internal struct EntityLocation : IComparable<EntityLocation>
 
     public readonly int CompareTo(EntityLocation other)
     {
-        var archComp = chunkIndex.CompareTo(other.chunkIndex);
+        var archComp = archetypeID.CompareTo(other.archetypeID);
         if (archComp != 0)
         {
             return archComp;
@@ -103,60 +103,71 @@ public unsafe partial class EntityManager : IDisposable
             return archetype._cleanupEdge;
         }
 
+        // Capture the ID before CreateArchetype may reallocate _archetypes (which would
+        // invalidate the `archetype` ref).
+        var archetypeID = archetype.ID;
         ref var signature = ref archetype._signature;
 
-        using var scope = AllocationManager.CreateStackScope();
-        using var newSignature = new UnsafeBitSet(signature.Count, scope.AllocationHandle);
-
+        // Count cleanup components, then collect their IDs directly from the (always
+        // cleared) signature bitset. Iterating the signature twice avoids building a
+        // second bitset — the IDs are needed for the canonical hash anyway, and a
+        // second allocation only adds a failure mode.
         var compCount = 0;
         var it = signature.GetIterator();
         while (it.Next(out var componentID))
         {
             if (ComponentRegistry.GetComponentInfo(componentID).isCleanup)
             {
-                newSignature.SetBit(componentID);
                 compCount++;
             }
         }
 
-        var newSignatureHash = newSignature.GetHashCode();
+        Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[compCount];
+        var collectIt = signature.GetIterator();
+        var i = 0;
+        while (collectIt.Next(out var componentID))
+        {
+            if (ComponentRegistry.GetComponentInfo(componentID).isCleanup)
+            {
+                componentTypeIDs[i++] = componentID;
+            }
+        }
+
+        // Hash canonically from the component ID list so the lookup matches every other
+        // creation path (see ComponentRegistry.GetHashCodeForTypeIDs).
+        var newSignatureHash = ComponentRegistry.GetHashCodeForTypeIDs(componentTypeIDs);
         var newArcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(newSignatureHash);
         if (newArcID.IsInvalid)
         {
-            Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[compCount];
-
-            var newIt = newSignature.GetIterator();
-            var i = 0;
-            while (newIt.Next(out var cid))
-            {
-                componentTypeIDs[i++] = cid;
-            }
-
             newArcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, newSignatureHash);
         }
 
-        archetype._cleanupEdge = newArcID;
+        // IMPORTANT: CreateArchetype may have reallocated _archetypes — re-fetch by ID.
+        _world.ComponentManager.GetArchetypeReference(archetypeID)._cleanupEdge = newArcID;
         return newArcID;
     }
 
     /// <summary>
     /// Look up or create an archetype from a <see cref="SpanBitSet"/> signature.
+    /// The hash is computed canonically from the component ID list (see
+    /// <see cref="ComponentRegistry.GetHashCodeForTypeIDs"/>), so it matches every
+    /// other creation/lookup path regardless of bitset sizing.
     /// </summary>
     private Identifier<Archetype> FindOrCreateArchetype(scoped in SpanBitSet signature, int componentCount)
     {
-        var hash = signature.GetHashCode();
+        Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[componentCount];
+
+        var it = signature.GetIterator();
+        var i = 0;
+        while (it.Next(out var cid))
+        {
+            componentTypeIDs[i++] = cid;
+        }
+
+        var hash = ComponentRegistry.GetHashCodeForTypeIDs(componentTypeIDs);
         var arcID = _world.ComponentManager.GetArchetypeIDBySignatureHash(hash);
         if (arcID.IsInvalid)
         {
-            Span<Identifier<IComponent>> componentTypeIDs = stackalloc Identifier<IComponent>[componentCount];
-
-            var it = signature.GetIterator();
-            var i = 0;
-            while (it.Next(out var cid))
-            {
-                componentTypeIDs[i++] = cid;
-            }
-
             arcID = _world.ComponentManager.CreateArchetype(componentTypeIDs, hash);
         }
 
@@ -220,19 +231,24 @@ public unsafe partial class EntityManager : IDisposable
     public void CreateEntities(Span<Entity> entities)
     {
         ref var emptyArchetype = ref _world.ComponentManager.GetArchetypeReference(World.EmptyArchetypeID);
-        emptyArchetype.AllocateEntity(out var chunkIndex, out var rowIndex);
+
+        using var scope = AllocationManager.CreateStackScope();
+        using var chunkIndices = new UnsafeArray<int>(entities.Length, scope.AllocationHandle);
+        using var rowIndices = new UnsafeArray<int>(entities.Length, scope.AllocationHandle);
+
+        emptyArchetype.AllocateEntities(chunkIndices, rowIndices);
 
         for (var i = 0; i < entities.Length; i++)
         {
             var id = _entityLocations.Add(new EntityLocation
             {
                 archetypeID = World.EmptyArchetypeID,
-                chunkIndex = chunkIndex,
-                rowIndex = rowIndex
+                chunkIndex = chunkIndices[i],
+                rowIndex = rowIndices[i]
             }, out var generation);
 
             var entity = new Entity(id, generation);
-            emptyArchetype.SetEntity(chunkIndex, rowIndex, entity);
+            emptyArchetype.SetEntity(chunkIndices[i], rowIndices[i], entity);
 
             entities[i] = entity;
         }
@@ -247,8 +263,10 @@ public unsafe partial class EntityManager : IDisposable
     {
         ref var emptyArchetype = ref _world.ComponentManager.GetArchetypeReference(World.EmptyArchetypeID);
 
-        var chunkIndices = (Span<int>)stackalloc int[count];
-        var rowIndices = (Span<int>)stackalloc int[count];
+        using var scope = AllocationManager.CreateStackScope();
+        using var chunkIndices = new UnsafeArray<int>(count, scope.AllocationHandle);
+        using var rowIndices = new UnsafeArray<int>(count, scope.AllocationHandle);
+
         emptyArchetype.AllocateEntities(chunkIndices, rowIndices);
 
         for (var i = 0; i < count; i++)
@@ -283,19 +301,23 @@ public unsafe partial class EntityManager : IDisposable
 
         ref var archetype = ref _world.ComponentManager.GetArchetypeReference(arcID);
 
+        using var scope = AllocationManager.CreateStackScope();
+        using var chunkIndices = new UnsafeArray<int>(entities.Length, scope.AllocationHandle);
+        using var rowIndices = new UnsafeArray<int>(entities.Length, scope.AllocationHandle);
+
+        archetype.AllocateEntities(set.SharedComponentData, set.SharedDataHashCode, chunkIndices, rowIndices);
+
         for (var i = 0; i < entities.Length; i++)
         {
-            archetype.AllocateEntity(set.SharedComponentData, set.SharedDataHashCode, out var chunkIndex, out var rowIndex);
-
             var id = _entityLocations.Add(new EntityLocation
             {
                 archetypeID = arcID,
-                chunkIndex = chunkIndex,
-                rowIndex = rowIndex
+                chunkIndex = chunkIndices[i],
+                rowIndex = rowIndices[i]
             }, out var generation);
 
             var entity = new Entity(id, generation);
-            archetype.SetEntity(chunkIndex, rowIndex, entity);
+            archetype.SetEntity(chunkIndices[i], rowIndices[i], entity);
 
             entities[i] = entity;
         }
@@ -318,19 +340,23 @@ public unsafe partial class EntityManager : IDisposable
 
         ref var archetype = ref _world.ComponentManager.GetArchetypeReference(arcID);
 
+        using var scope = AllocationManager.CreateStackScope();
+        using var chunkIndices = new UnsafeArray<int>(count, scope.AllocationHandle);
+        using var rowIndices = new UnsafeArray<int>(count, scope.AllocationHandle);
+
+        archetype.AllocateEntities(set.SharedComponentData, set.SharedDataHashCode, chunkIndices, rowIndices);
+
         for (var i = 0; i < count; i++)
         {
-            archetype.AllocateEntity(set.SharedComponentData, set.SharedDataHashCode, out var chunkIndex, out var rowIndex);
-
             var id = _entityLocations.Add(new EntityLocation
             {
                 archetypeID = arcID,
-                chunkIndex = chunkIndex,
-                rowIndex = rowIndex
+                chunkIndex = chunkIndices[i],
+                rowIndex = rowIndices[i]
             }, out var generation);
 
             var entity = new Entity(id, generation);
-            archetype.SetEntity(chunkIndex, rowIndex, entity);
+            archetype.SetEntity(chunkIndices[i], rowIndices[i], entity);
         }
     }
 
@@ -356,6 +382,11 @@ public unsafe partial class EntityManager : IDisposable
     /// <summary>
     /// Destroy the specified entity.
     /// </summary>
+    /// <remarks>
+    /// If the entity has <see cref="ICleanupComponent"/> components, it is moved to the
+    /// cleanup archetype (where it survives until a system destroys it again) instead of
+    /// being removed immediately. <see cref="Error.None"/> is returned in both cases.
+    /// </remarks>
     /// <returns>The result status of the operation.</returns>
     public Error DestroyEntity(Entity entity)
     {
@@ -371,24 +402,57 @@ public unsafe partial class EntityManager : IDisposable
         {
             return DestroyEntity_Internal(entity, location);
         }
-        else
+
+        var newArcID = GetOrCreateCleanupArchetype(ref archetype);
+
+        // Entity is already in the cleanup archetype (e.g. it only carries cleanup
+        // components): destroy it for real. Without this case, cleanup entities could
+        // never actually be removed.
+        if (newArcID.Value == location.archetypeID)
         {
-            var newArcID = GetOrCreateCleanupArchetype(ref archetype);
-
-            ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
-            newArchetype.AllocateEntity(out var newChunkIndex, out var newRowIndex);
-            CopyData(ref archetype, location.chunkIndex, location.rowIndex,
-                    ref newArchetype, newChunkIndex, newRowIndex);
-
-            newArchetype.SetEntity(newChunkIndex, newRowIndex, entity);
+            return DestroyEntity_Internal(entity, location);
         }
 
+        // Migrate the entity into the cleanup archetype: copy its data (cleanup components
+        // included) and remove it from the source archetype.
+        ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
+        newArchetype.AllocateEntity(out var newChunkIndex, out var newRowIndex);
+
+        // GetOrCreateCleanupArchetype may have reallocated _archetypes — re-fetch by ID.
+        ref var oldArchetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+        CopyData(ref oldArchetype, location.chunkIndex, location.rowIndex,
+                ref newArchetype, newChunkIndex, newRowIndex);
+
+        newArchetype.SetEntity(newChunkIndex, newRowIndex, entity);
+
+        var r = oldArchetype.RemoveEntity(location.chunkIndex, location.rowIndex);
+        Logger.DebugAssert(r == Error.None);
+        if (r != Error.None)
+        {
+            return r;
+        }
+
+        UpdateEntityLocation(entity, newArcID, newChunkIndex, newRowIndex);
+
         return Error.None;
+    }
+
+    private struct MigratedEntity
+    {
+        public Entity entity;
+        public int archetypeID;
+        public int chunkIndex;
+        public int rowIndex;
     }
 
     /// <summary>
     /// Destroy the specified entities.
     /// </summary>
+    /// <remarks>
+    /// Entities with <see cref="ICleanupComponent"/> components are migrated to the cleanup
+    /// archetype and survive until they are destroyed again. All removals are batched per
+    /// (archetype, chunk) so the swap-removal bookkeeping stays consistent.
+    /// </remarks>
     /// <param name="entities">The entities to destroy.</param>
     public void DestroyEntities(params ReadOnlySpan<Entity> entities)
     {
@@ -398,81 +462,107 @@ public unsafe partial class EntityManager : IDisposable
         }
 
         using var scope = AllocationManager.CreateStackScope();
-        using var batchDestroy = new UnsafeList<EntityLocation>(entities.Length, scope.AllocationHandle);
+        using var toRemove = new UnsafeList<EntityLocation>(entities.Length, scope.AllocationHandle);
+        using var destroyed = new UnsafeList<Entity>(entities.Length, scope.AllocationHandle);
+        using var migrated = new UnsafeList<MigratedEntity>(entities.Length, scope.AllocationHandle);
         using var rowIndicesCache = new UnsafeList<int>(32, scope.AllocationHandle);
 
-        Span<bool> cleanupMigrated = stackalloc bool[entities.Length];
-        cleanupMigrated.Clear();
+#if GHOST_SAFETY_CHECKS
+        // Duplicate entities in one batch would remove the same row twice and corrupt the
+        // chunk — fail fast in safety builds (no cost in release).
+        using var dedupeCheck = new UnsafeList<Entity>(entities.Length, scope.AllocationHandle);
+        dedupeCheck.AddRange(entities);
+        var dedupeSpan = dedupeCheck.AsSpan();
+        dedupeSpan.Sort(static (a, b) =>
+        {
+            var idComp = a.ID.CompareTo(b.ID);
+            return idComp != 0 ? idComp : a.Generation.CompareTo(b.Generation);
+        });
+        for (var i = 1; i < dedupeSpan.Length; i++)
+        {
+            if (dedupeSpan[i - 1] == dedupeSpan[i])
+            {
+                Logger.DebugAssert(false, "DestroyEntities called with duplicate entities in the same batch.");
+            }
+        }
+#endif
 
-        // 1. GATHER
-        // Resolve all entities to their locations.
-        // Entities with ICleanupComponent are handled immediately — moved to a cleanup-only archetype
-        // where they survive until cleanup systems finish processing them.
+        // 1. GATHER + MIGRATE (no removals yet)
+        // Resolve all entities to their locations. Entities with ICleanupComponent are
+        // moved to a cleanup-only archetype where they survive until cleanup systems
+        // finish processing them. Nothing is removed from the source chunks here — the
+        // captured locations stay valid until phase 2.
         for (var i = 0; i < entities.Length; i++)
         {
             var entity = entities[i];
-            if (_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
+            if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
             {
-                ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
-
-                // 0 means no cleanup component (empty archetype or no ICleanupComponent types).
-                if (archetype._cleanupEdge == 0)
-                {
-                    batchDestroy.Add(location);
-                }
-                else
-                {
-                    // Archetype has ICleanupComponent — move entity to cleanup archetype.
-                    var newArcID = GetOrCreateCleanupArchetype(ref archetype);
-
-                    ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
-                    newArchetype.AllocateEntity(out var newChunkIndex, out var newRowIndex);
-                    CopyData(ref archetype, location.chunkIndex, location.rowIndex,
-                            ref newArchetype, newChunkIndex, newRowIndex);
-
-                    newArchetype.SetEntity(newChunkIndex, newRowIndex, entity);
-
-                    // Remove from old archetype.
-                    archetype.RemoveEntity(location.chunkIndex, location.rowIndex);
-
-                    // Update entity location to point to the cleanup archetype.
-                    UpdateEntityLocation(entity, newArcID, newChunkIndex, newRowIndex);
-
-                    // Mark as cleanup-migrated — entity survives in cleanup archetype, do NOT remove from _entityLocations.
-                    cleanupMigrated[i] = true;
-                }
+                continue;
             }
+
+            ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+
+            // 0 means no cleanup component (empty archetype or no ICleanupComponent types).
+            if (archetype._cleanupEdge == 0)
+            {
+                toRemove.Add(location);
+                destroyed.Add(entity);
+                continue;
+            }
+
+            var newArcID = GetOrCreateCleanupArchetype(ref archetype);
+
+            // Already in the cleanup archetype: destroy for real.
+            if (newArcID.Value == location.archetypeID)
+            {
+                toRemove.Add(location);
+                destroyed.Add(entity);
+                continue;
+            }
+
+            // Migrate: allocate in the cleanup archetype and copy the data. The source
+            // row is still valid because nothing has been removed yet.
+            ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
+            newArchetype.AllocateEntity(out var newChunkIndex, out var newRowIndex);
+
+            // GetOrCreateCleanupArchetype may have reallocated _archetypes — re-fetch by ID.
+            ref var oldArchetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+            CopyData(ref oldArchetype, location.chunkIndex, location.rowIndex,
+                    ref newArchetype, newChunkIndex, newRowIndex);
+
+            newArchetype.SetEntity(newChunkIndex, newRowIndex, entity);
+
+            toRemove.Add(location);
+            migrated.Add(new MigratedEntity
+            {
+                entity = entity,
+                archetypeID = newArcID.Value,
+                chunkIndex = newChunkIndex,
+                rowIndex = newRowIndex
+            });
         }
 
-        if (batchDestroy.Count == 0)
+        if (toRemove.Count == 0)
         {
             return;
         }
 
-        // 2. BATCH DESTROY
-        // Sorting groups them by chunk automatically.
-        batchDestroy.AsSpan().Sort();
+        // 2. BATCH REMOVAL
+        // Sorting groups the locations by (archetype, chunk) automatically.
+        toRemove.AsSpan().Sort();
 
-        var firstLoc = batchDestroy[0];
+        var firstLoc = toRemove[0];
         var prevArchetypeID = firstLoc.archetypeID;
         var prevChunkIndex = firstLoc.chunkIndex;
 
-        for (var i = 0; i < batchDestroy.Count; i++)
+        for (var i = 0; i < toRemove.Count; i++)
         {
-            var loc = batchDestroy[i];
+            var loc = toRemove[i];
 
-            // Check if we have crossed a boundary (Different Chunk OR Different Archetype)
-            var isNewBatch = (loc.chunkIndex != prevChunkIndex) || (loc.archetypeID != prevArchetypeID);
-
-            if (isNewBatch)
+            // Flush the previous batch when crossing a (chunk, archetype) boundary.
+            if (loc.chunkIndex != prevChunkIndex || loc.archetypeID != prevArchetypeID)
             {
-                // FLUSH PREVIOUS BATCH
                 ref var prevArchetype = ref _world.ComponentManager.GetArchetypeReference(prevArchetypeID);
-
-                // Remove Managed Entities first
-                // RemoveManagedEntity(rowIndicesCache.AsSpan(), in prevArchetype, prevChunkIndex);
-
-                // Execute the hole-filling/swap logic
                 prevArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
 
                 rowIndicesCache.Clear();
@@ -487,21 +577,21 @@ public unsafe partial class EntityManager : IDisposable
         if (rowIndicesCache.Count > 0)
         {
             ref var lastArchetype = ref _world.ComponentManager.GetArchetypeReference(prevArchetypeID);
-
-            // RemoveManagedEntity(rowIndicesCache.AsSpan(), in lastArchetype, prevChunkIndex);
             lastArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
         }
 
-        // 3. Remove from Entity Locations — skip cleanup-migrated entities.
-        for (var i = 0; i < entities.Length; i++)
+        // 3. FINALIZE
+        // Migrated entities keep their slot-map entry (pointing at the cleanup archetype);
+        // destroyed entities are removed from the slot map.
+        for (var i = 0; i < migrated.Count; i++)
         {
-            if (cleanupMigrated[i])
-            {
-                continue;
-            }
+            ref var m = ref migrated[i];
+            UpdateEntityLocation(m.entity, new Identifier<Archetype>(m.archetypeID), m.chunkIndex, m.rowIndex);
+        }
 
-            var entity = entities[i];
-            _entityLocations.Remove(entity.ID, entity.Generation);
+        for (var i = 0; i < destroyed.Count; i++)
+        {
+            _entityLocations.Remove(destroyed[i].ID, destroyed[i].Generation);
         }
     }
 
@@ -707,11 +797,16 @@ public unsafe partial class EntityManager : IDisposable
             // Find or create new archetype
             newArcID = FindOrCreateArchetype(newSignature, compCount);
 
-            oldArchetype.AddEdgeAdd(componentID, newArcID);
+            // FindOrCreateArchetype may have reallocated _archetypes (CreateArchetype) —
+            // re-fetch by ID before writing the edge cache.
+            _world.ComponentManager.GetArchetypeReference(location.archetypeID).AddEdgeAdd(componentID, newArcID);
         }
 
         // Move entity data
         ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
+
+        // Re-fetch the source archetype: it may have been reallocated above.
+        oldArchetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
 
         // Carry existing shared values into the new archetype unchanged.
         int newChunkIndex, newRowIndex;
@@ -822,11 +917,16 @@ public unsafe partial class EntityManager : IDisposable
             // Find or create new archetype
             newArcID = FindOrCreateArchetype(newSignature, compCount);
 
-            oldArchetype.AddEdgeRemove(componentID, newArcID);
+            // FindOrCreateArchetype may have reallocated _archetypes (CreateArchetype) —
+            // re-fetch by ID before writing the edge cache.
+            _world.ComponentManager.GetArchetypeReference(location.archetypeID).AddEdgeRemove(componentID, newArcID);
         }
 
         // Move entity data
         ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
+
+        // Re-fetch the source archetype: it may have been reallocated above.
+        oldArchetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
 
         // Carry existing shared values into the new archetype unchanged.
         int newChunkIndex, newRowIndex;
@@ -1083,6 +1183,11 @@ public unsafe partial class EntityManager : IDisposable
             return layoutResult.Error;
         }
 
+        if (layoutResult.Value.enableBitsOffset == -1)
+        {
+            return Error.InvalidArgument;
+        }
+
         ref var chunk = ref archetype.GetChunkReference(chunkIndex);
         var chunkBase = chunk.GetUnsafePtr();
         var maskBase = chunkBase + layoutResult.Value.enableBitsOffset;
@@ -1165,10 +1270,15 @@ public unsafe partial class EntityManager : IDisposable
 
             newArcID = FindOrCreateArchetype(newSignature, compCount);
 
-            oldArchetype.AddEdgeAdd(componentID, newArcID);
+            // FindOrCreateArchetype may have reallocated _archetypes (CreateArchetype) —
+            // re-fetch by ID before writing the edge cache.
+            _world.ComponentManager.GetArchetypeReference(location.archetypeID).AddEdgeAdd(componentID, newArcID);
         }
 
         ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
+
+        // Re-fetch the source archetype: it may have been reallocated above.
+        oldArchetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
 
         // Build shared data: carry existing values + insert the new shared component.
         Span<byte> newSharedData = stackalloc byte[newArchetype._sharedDataSize];
@@ -1258,10 +1368,15 @@ public unsafe partial class EntityManager : IDisposable
 
             newArcID = FindOrCreateArchetype(newSignature, compCount);
 
-            oldArchetype.AddEdgeRemove(componentID, newArcID);
+            // FindOrCreateArchetype may have reallocated _archetypes (CreateArchetype) —
+            // re-fetch by ID before writing the edge cache.
+            _world.ComponentManager.GetArchetypeReference(location.archetypeID).AddEdgeRemove(componentID, newArcID);
         }
 
         ref var newArchetype = ref _world.ComponentManager.GetArchetypeReference(newArcID);
+
+        // Re-fetch the source archetype: it may have been reallocated above.
+        oldArchetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
 
         // Build shared data: carry existing values, omitting the removed shared component.
         Span<byte> newSharedData = stackalloc byte[newArchetype._sharedDataSize];
