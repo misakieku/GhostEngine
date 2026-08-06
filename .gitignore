@@ -10,7 +10,6 @@
 *.userosscache
 *.sln.docstates
 
-AGENTS.md
 .opencode/
 .code-review-graph/
 .antigravitycli/
