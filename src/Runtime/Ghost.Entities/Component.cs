@@ -5,6 +5,7 @@ using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Entities;
 
@@ -55,9 +56,6 @@ internal static class ComponentRegistry
     private static readonly Dictionary<IntPtr, int> s_typeHandleToID = new();
     private static readonly Dictionary<string, int> s_nameToRuntimeID = new();
 
-    // NOTE: Can we remove the lock? Ideally all the component registeration will happend during module init, way before the first get.
-    private static readonly Lock s_registerLock = new();
-
 #if DEBUG || GHOST_EDITOR
     internal static readonly Dictionary<int, Type> s_runtimeIDToType = new();
 #endif
@@ -68,47 +66,41 @@ internal static class ComponentRegistry
         var type = typeof(T);
         var typeHandle = type.TypeHandle.Value;
 
-        lock (s_registerLock)
+        if (s_typeHandleToID.TryGetValue(typeHandle, out var existingID))
         {
-            if (s_typeHandleToID.TryGetValue(typeHandle, out var existingID))
-            {
-                return existingID;
-            }
+            return existingID;
+        }
 
-            var newID = new Identifier<IComponent>(s_registeredComponents.Count);
-            var stableName = typeof(T).FullName ?? typeof(T).Name;
-            var info = new ComponentInfo
-            {
-                id = newID,
-                size = sizeof(T),
-                alignment = (int)MemoryUtility.AlignOf<T>(),
-                isEnableable = typeof(IEnableableComponent).IsAssignableFrom(type),
-                isCleanup = typeof(ICleanupComponent).IsAssignableFrom(type),
-                isShared = typeof(ISharedComponent).IsAssignableFrom(type),
-            };
+        var newID = new Identifier<IComponent>(s_registeredComponents.Count);
+        var stableName = typeof(T).FullName ?? typeof(T).Name;
+        var info = new ComponentInfo
+        {
+            id = newID,
+            size = sizeof(T),
+            alignment = (int)MemoryUtility.AlignOf<T>(),
+            isEnableable = typeof(IEnableableComponent).IsAssignableFrom(type),
+            isCleanup = typeof(ICleanupComponent).IsAssignableFrom(type),
+            isShared = typeof(ISharedComponent).IsAssignableFrom(type),
+        };
 
-            s_registeredComponents.Add(info);
+        s_registeredComponents.Add(info);
 
-            s_typeHandleToID[typeHandle] = newID;
-            s_nameToRuntimeID[stableName] = newID;
+        s_typeHandleToID[typeHandle] = newID;
+        s_nameToRuntimeID[stableName] = newID;
 #if DEBUG || GHOST_EDITOR
-            s_runtimeIDToType[newID.Value] = typeof(T);
+        s_runtimeIDToType[newID.Value] = typeof(T);
 #endif
 
-            return newID;
-        }
+        return newID;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Identifier<IComponent> GetComponentID(Type type)
     {
         var typeHandle = type.TypeHandle.Value;
-        lock (s_registerLock)
+        if (s_typeHandleToID.TryGetValue(typeHandle, out var existingID))
         {
-            if (s_typeHandleToID.TryGetValue(typeHandle, out var existingID))
-            {
-                return existingID;
-            }
+            return existingID;
         }
 
         return Identifier<IComponent>.Invalid;
@@ -117,12 +109,9 @@ internal static class ComponentRegistry
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Identifier<IComponent> GetComponentIDByName(string fullName)
     {
-        lock (s_registerLock)
+        if (s_nameToRuntimeID.TryGetValue(fullName, out var id))
         {
-            if (s_nameToRuntimeID.TryGetValue(fullName, out var id))
-            {
-                return id;
-            }
+            return id;
         }
 
         return Identifier<IComponent>.Invalid;
@@ -131,49 +120,39 @@ internal static class ComponentRegistry
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ComponentInfo GetComponentInfo(Identifier<IComponent> typeId)
     {
-        lock (s_registerLock)
-        {
-            return s_registeredComponents[typeId];
-        }
+        return s_registeredComponents[typeId];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ComponentInfo GetComponentInfo(Type type)
     {
-        lock (s_registerLock)
+        var typeId = GetComponentID(type);
+        if (typeId.IsInvalid)
         {
-            var typeId = GetComponentID(type);
-            if (typeId.IsInvalid)
-            {
-                throw new KeyNotFoundException($"Component type {type.FullName} is not registered.");
-            }
-
-            return s_registeredComponents[typeId];
+            throw new KeyNotFoundException($"Component type {type.FullName} is not registered.");
         }
+
+        return s_registeredComponents[typeId];
     }
 
+    /// <summary>
+    /// Computes the canonical signature hash for a set of component IDs: XxHash32 over the
+    /// SORTED id list. Order-independent and independent of any bitset sizing/padding, so
+    /// every creation and lookup path (CreateEntities, AddComponent, MigrateEntity,
+    /// cleanup edges, singletons) agrees on the same hash for the same logical signature.
+    /// </summary>
     public static int GetHashCodeForTypeIDs(params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
     {
-        var largestID = 0;
-        foreach (var id in componentTypeIDs)
+        if (componentTypeIDs.IsEmpty)
         {
-            if (id.Value > largestID)
-            {
-                largestID = id.Value;
-            }
+            return 0;
         }
 
-        var length = UnsafeBitSet.RequiredLength(largestID + 1);
-        var bits = (Span<uint>)stackalloc uint[length];
-        bits.Clear();
+        Span<Identifier<IComponent>> sorted = stackalloc Identifier<IComponent>[componentTypeIDs.Length];
+        componentTypeIDs.CopyTo(sorted);
+        sorted.Sort(static (a, b) => a.Value.CompareTo(b.Value));
 
-        var bitSet = new SpanBitSet(bits);
-        foreach (var id in componentTypeIDs)
-        {
-            bitSet.SetBit(id.Value);
-        }
-
-        return bitSet.GetHashCode();
+        return Unsafe.BitCast<uint, int>(XxHash32.HashToUInt32(MemoryMarshal.AsBytes(sorted)));
     }
 
     public static int GetHashCodeForSharedData(ReadOnlySpan<byte> data)
@@ -280,30 +259,36 @@ public partial class ComponentManager : IDisposable
         return Identifier<EntityQuery>.Invalid;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <summary>
+    /// Clears all entity data while keeping archetype and query identities stable, so cached
+    /// <see cref="Identifier{Archetype}"/> / <see cref="Identifier{EntityQuery}"/> values
+    /// (e.g. held by systems) remain valid across a World.Reset.
+    /// </summary>
     internal void Clear()
     {
         for (var i = 0; i < _archetypes.Count; i++)
         {
-            _archetypes[i].Dispose();
+            _archetypes[i].Clear();
         }
 
+        // Queries keep their identity too; rebuild their matched-archetype lists against
+        // the (unchanged) signatures.
         for (var i = 0; i < _entityQueries.Count; i++)
         {
-            _entityQueries[i].Dispose();
+            ref var query = ref _entityQueries[i];
+            query.ClearArchetypes();
+            for (var j = 0; j < _archetypes.Count; j++)
+            {
+                query.AddArchetypeIfMatch(in _archetypes[j]);
+            }
         }
-
-        _archetypes.Clear();
-        _entityQueries.Clear();
-
-        _archetypeLookup.Clear();
-        _querieLookup.Clear();
-
-        CreateArchetype(ReadOnlySpan<Identifier<IComponent>>.Empty, 0);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void Collect()
+    /// <summary>
+    /// Trims memory used by empty chunks and dead shared-component groups. Never called
+    /// automatically — invoke it at safe points such as scene unloads.
+    /// </summary>
+    public void Collect()
     {
         for (var i = 0; i < _archetypes.Count; i++)
         {
@@ -514,9 +499,9 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
         return new ComponentSetView(_components, _sharedData);
     }
 
-    public readonly bool Equals(ComponentSet other)
+    public bool Equals(ComponentSet other)
     {
-        return _hashCode == other._hashCode && _sharedHashCode == other._sharedHashCode && _components.AsSpan().SequenceEqual(other._components.AsSpan()) && _sharedData.AsSpan().SequenceEqual(other._sharedData.AsSpan());
+        return ComponentHashCode == other.ComponentHashCode && SharedDataHashCode == other.SharedDataHashCode && _components.AsSpan().SequenceEqual(other._components.AsSpan()) && _sharedData.AsSpan().SequenceEqual(other._sharedData.AsSpan());
     }
 
     public override int GetHashCode()
@@ -529,7 +514,7 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
         _components.Dispose();
     }
 
-    public override readonly bool Equals(object? obj)
+    public override bool Equals(object? obj)
     {
         return obj is ComponentSet set && Equals(set);
     }
@@ -628,9 +613,9 @@ public ref struct ComponentSetView : IEquatable<ComponentSetView>
     {
     }
 
-    public readonly bool Equals(ComponentSetView other)
+    public bool Equals(ComponentSetView other)
     {
-        return _hashCode == other._hashCode && _sharedHashCode == other._sharedHashCode && _components.SequenceEqual(other._components) && _sharedData.SequenceEqual(other._sharedData);
+        return ComponentHashCode == other.ComponentHashCode && SharedDataHashCode == other.SharedDataHashCode && _components.SequenceEqual(other._components) && _sharedData.SequenceEqual(other._sharedData);
     }
 
     public override int GetHashCode()
@@ -638,7 +623,7 @@ public ref struct ComponentSetView : IEquatable<ComponentSetView>
         return ComponentHashCode ^ (SharedDataHashCode >> 16);
     }
 
-    public override readonly bool Equals(object? obj)
+    public override bool Equals(object? obj)
     {
         return false;
     }

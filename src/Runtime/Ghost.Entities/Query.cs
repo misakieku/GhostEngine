@@ -205,7 +205,7 @@ public readonly unsafe ref struct ChunkView
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly uint GetComponentVersion(Identifier<IComponent> id)
     {
-        return _pVersion[id];
+        return _pVersion[GetLayout(id).versionIndex];
     }
 
     /// <summary>
@@ -217,7 +217,7 @@ public readonly unsafe ref struct ChunkView
     public readonly uint GetComponentVersion<T>()
         where T : unmanaged, IComponentData
     {
-        return _pVersion[ComponentTypeID<T>.Value];
+        return _pVersion[GetLayout(ComponentTypeID<T>.Value).versionIndex];
     }
 
     /// <summary>
@@ -276,7 +276,7 @@ public readonly unsafe ref struct ChunkView
     public SpanBitSet GetEnableBits<T>()
         where T : unmanaged, IEnableableComponent
     {
-        var layout = _layouts[ComponentTypeID<T>.Value];
+        var layout = GetLayout(ComponentTypeID<T>.Value);
         var maskBase = _pChunkData + layout.enableBitsOffset;
         return new SpanBitSet(new Span<uint>(maskBase, (_entityCount + 31) / 32));
     }
@@ -546,6 +546,12 @@ public unsafe partial struct EntityQuery : IDisposable
         {
             _matchingArchetypes.Add(archetype.ID);
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void ClearArchetypes()
+    {
+        _matchingArchetypes.Clear();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

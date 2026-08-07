@@ -150,6 +150,17 @@ internal unsafe struct Chunk : IDisposable
         return _versions.IsCreated ? (uint*)_versions.GetUnsafePtr() : null;
     }
 
+    /// <summary>
+    /// True if this chunk slot holds live buffers. Chunks whose buffers were
+    /// trimmed by <see cref="Archetype.Collect"/> are replaced with a default
+    /// struct (IsCreated == false) and are reused by <see cref="Archetype.AllocateChunkIndex"/>.
+    /// </summary>
+    public readonly bool IsCreated
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _data.IsCreated;
+    }
+
     public void Dispose()
     {
         _data.Dispose();
@@ -202,6 +213,12 @@ internal unsafe struct Archetype : IDisposable
     internal UnsafeArray<SharedComponentLayout> _sharedLayouts;
     internal UnsafeList<ChunkGroup> _chunkGroups;
 
+    // Indices of chunk slots whose buffers were trimmed by Collect(). Reused by AllocateChunkIndex.
+    // Chunks are NEVER removed from _chunks: entity locations reference chunks by index.
+    private UnsafeList<int> _freeSlots;
+    // Indices of dead ChunkGroup slots (refCount == 0, sharedData disposed by Collect()). Reused by AllocateGroup.
+    private UnsafeList<int> _freeGroups;
+
     private UnsafeHashMap<int, int> _edgesAdd;
     private UnsafeHashMap<int, int> _edgesRemove;
 
@@ -232,6 +249,8 @@ internal unsafe struct Archetype : IDisposable
         _chunks = new UnsafeList<Chunk>(4, AllocationHandle.Persistent);
         _edgesAdd = new UnsafeHashMap<int, int>(4, AllocationHandle.Persistent);
         _edgesRemove = new UnsafeHashMap<int, int>(4, AllocationHandle.Persistent);
+        _freeSlots = new UnsafeList<int>(4, AllocationHandle.Persistent);
+        _freeGroups = new UnsafeList<int>(4, AllocationHandle.Persistent);
 
         if (componentIds.IsEmpty)
         {
@@ -454,63 +473,144 @@ internal unsafe struct Archetype : IDisposable
         return _layouts[layoutIndex];
     }
 
+    /// <summary>
+    /// Finds the chunk group whose shared data exactly matches <paramref name="sharedData"/>.
+    /// Dead groups (refCount == 0) are skipped: their sharedData has been disposed by <see cref="Collect"/>.
+    /// </summary>
+    private int FindGroup(ReadOnlySpan<byte> sharedData, int sharedDataHash)
+    {
+        for (var i = 0; i < _chunkGroups.Count; i++)
+        {
+            ref var group = ref _chunkGroups[i];
+            if (group.refCount > 0
+                && group.sharedDataHash == sharedDataHash
+                && group.sharedData.AsSpan().SequenceEqual(sharedData))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// Creates a new chunk group, reusing a dead group slot when available, and returns its index.
+    /// The group's refCount starts at 0 and counts live chunks: it is incremented by
+    /// <see cref="AllocateChunkIndex"/> and when an empty chunk is adopted by the group.
+    /// </summary>
+    private int AllocateGroup(ReadOnlySpan<byte> sharedData, int sharedDataHash)
+    {
+        var data = sharedData.IsEmpty ? default : new UnsafeArray<byte>(sharedData.Length, AllocationHandle.Persistent);
+        if (!sharedData.IsEmpty)
+        {
+            data.CopyFrom(sharedData);
+        }
+
+        var newGroup = new ChunkGroup
+        {
+            sharedDataHash = sharedDataHash,
+            sharedData = data,
+            activeChunkIndex = -1,
+            refCount = 0
+        };
+
+        if (_freeGroups.Count > 0)
+        {
+            var slot = _freeGroups[_freeGroups.Count - 1];
+            _freeGroups.UnsafeSetCount(_freeGroups.Count - 1);
+            _chunkGroups[slot] = newGroup;
+            return slot;
+        }
+
+        _chunkGroups.Add(newGroup);
+        return _chunkGroups.Count - 1;
+    }
+
+    /// <summary>
+    /// Returns the index of a chunk for the given group, reusing a trimmed slot
+    /// (<see cref="_freeSlots"/>) when available and creating a new chunk otherwise.
+    /// The owning group's refCount is incremented (a chunk now belongs to it).
+    /// </summary>
+    private int AllocateChunkIndex(uint version, int groupIndex)
+    {
+        _chunkGroups[groupIndex].refCount++;
+
+        if (_freeSlots.Count > 0)
+        {
+            var slot = _freeSlots[_freeSlots.Count - 1];
+            _freeSlots.UnsafeSetCount(_freeSlots.Count - 1);
+            _chunks[slot] = CreateNewChunk(version, groupIndex);
+            return slot;
+        }
+
+        var newChunk = CreateNewChunk(version, groupIndex);
+        _chunks.Add(newChunk);
+        return _chunks.Count - 1;
+    }
+
     public void AllocateEntity(ReadOnlySpan<byte> sharedData, int sharedDataHash, out int chunkIndex, out int rowIndex)
     {
         var world = World.GetWorldUncheck(_worldID);
-        var groupIndex = -1;
-
-        for (var i = 0; i < _chunkGroups.Count; i++)
-        {
-            var group = _chunkGroups[i];
-            if (group.sharedDataHash == sharedDataHash && group.sharedData.AsSpan().SequenceEqual(sharedData))
-            {
-                groupIndex = i;
-                group.refCount++;
-
-                if (group.activeChunkIndex < 0)
-                {
-                    break;
-                }
-
-                ref var chunk = ref _chunks[group.activeChunkIndex];
-                if (chunk._count < _entityCapacity)
-                {
-                    rowIndex = chunk._count;
-                    chunkIndex = group.activeChunkIndex;
-
-                    chunk._count++;
-                    chunk._structuralVersion = world.Version;
-
-                    return;
-                }
-            }
-        }
-
+        var groupIndex = FindGroup(sharedData, sharedDataHash);
         if (groupIndex == -1)
         {
-            var data = sharedData.IsEmpty ? default : new UnsafeArray<byte>(sharedData.Length, AllocationHandle.Persistent);
-            if (!sharedData.IsEmpty)
-            {
-                data.CopyFrom(sharedData);
-            }
-            groupIndex = _chunkGroups.Count;
-
-            _chunkGroups.Add(new ChunkGroup
-            {
-                sharedDataHash = sharedDataHash,
-                sharedData = data,
-                refCount = 1
-            });
+            groupIndex = AllocateGroup(sharedData, sharedDataHash);
         }
 
-        var newChunk = CreateNewChunk(world.Version, groupIndex);
+        ref var group = ref _chunkGroups[groupIndex];
 
+        // Fast path: the active chunk still has room.
+        if (group.activeChunkIndex >= 0)
+        {
+            ref var chunk = ref _chunks[group.activeChunkIndex];
+            if (chunk._count < _entityCapacity)
+            {
+                rowIndex = chunk._count;
+                chunkIndex = group.activeChunkIndex;
+
+                chunk._count++;
+                chunk._structuralVersion = world.Version;
+
+                return;
+            }
+        }
+
+        // Reuse any chunk of this group with room (empty chunks included). This keeps the
+        // chunk list compact after churn: an emptied chunk is adopted back instead of
+        // forcing a fresh allocation every time.
+        for (var i = 0; i < _chunks.Count; i++)
+        {
+            ref var chunk = ref _chunks[i];
+            if (i == group.activeChunkIndex || !chunk.IsCreated || chunk._groupIndex != groupIndex || chunk._count >= _entityCapacity)
+            {
+                continue;
+            }
+
+            if (chunk._count == 0)
+            {
+                group.refCount++; // adopt an empty chunk
+            }
+
+            group.activeChunkIndex = i;
+            rowIndex = chunk._count;
+            chunkIndex = i;
+
+            chunk._count++;
+            chunk._structuralVersion = world.Version;
+
+            return;
+        }
+
+        // Create a new chunk (reusing a trimmed slot if one is available).
+        var newChunkIndex = AllocateChunkIndex(world.Version, groupIndex);
+        group.activeChunkIndex = newChunkIndex;
+
+        ref var newChunk = ref _chunks[newChunkIndex];
         rowIndex = 0;
-        newChunk._count++;
-        chunkIndex = _chunks.Count;
+        chunkIndex = newChunkIndex;
 
-        _chunkGroups[groupIndex].activeChunkIndex = chunkIndex;
-        _chunks.Add(newChunk);
+        newChunk._count++;
+        newChunk._structuralVersion = world.Version;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -524,77 +624,83 @@ internal unsafe struct Archetype : IDisposable
         Logger.DebugAssert(chunkIndex.Length == rowIndex.Length, "chunkIndex and rowIndex spans must have the same length");
 
         var world = World.GetWorldUncheck(_worldID);
-        var groupIndex = -1;
-
-        var idx = 0;
-        for (var i = 0; i < _chunkGroups.Count; i++)
-        {
-            var group = _chunkGroups[i];
-            if (group.sharedDataHash == sharedDataHash && group.sharedData.AsSpan().SequenceEqual(sharedData))
-            {
-                groupIndex = i;
-                group.refCount++;
-
-                if (group.activeChunkIndex < 0)
-                {
-                    break;
-                }
-
-                ref var chunk = ref _chunks[group.activeChunkIndex];
-                while (chunk._count < _entityCapacity && idx < rowIndex.Length)
-                {
-                    rowIndex[idx] = chunk._count;
-                    chunkIndex[idx] = group.activeChunkIndex;
-
-                    chunk._count++;
-                    idx++;
-                }
-
-                if (idx != 0)
-                {
-                    chunk._structuralVersion = world.Version;
-                }
-
-                if (idx == rowIndex.Length - 1)
-                {
-                    return;
-                }
-            }
-        }
-
+        var groupIndex = FindGroup(sharedData, sharedDataHash);
         if (groupIndex == -1)
         {
-            var data = sharedData.IsEmpty ? default : new UnsafeArray<byte>(sharedData.Length, AllocationHandle.Persistent);
-            if (!sharedData.IsEmpty)
-            {
-                data.CopyFrom(sharedData);
-            }
-            groupIndex = _chunkGroups.Count;
-
-            _chunkGroups.Add(new ChunkGroup
-            {
-                sharedDataHash = sharedDataHash,
-                sharedData = data,
-                refCount = 1
-            });
+            groupIndex = AllocateGroup(sharedData, sharedDataHash);
         }
 
+        ref var group = ref _chunkGroups[groupIndex];
+        var idx = 0;
 
+        // 1. Fill the active chunk.
+        if (group.activeChunkIndex >= 0)
+        {
+            ref var chunk = ref _chunks[group.activeChunkIndex];
+            while (chunk._count < _entityCapacity && idx < rowIndex.Length)
+            {
+                rowIndex[idx] = chunk._count;
+                chunkIndex[idx] = group.activeChunkIndex;
+
+                chunk._count++;
+                idx++;
+            }
+
+            if (idx != 0)
+            {
+                chunk._structuralVersion = world.Version;
+            }
+
+            if (idx == rowIndex.Length)
+            {
+                return;
+            }
+        }
+
+        // 2. Reuse other chunks of this group with room (empty chunks included).
+        for (var i = 0; i < _chunks.Count && idx < rowIndex.Length; i++)
+        {
+            ref var chunk = ref _chunks[i];
+            if (i == group.activeChunkIndex || !chunk.IsCreated || chunk._groupIndex != groupIndex || chunk._count >= _entityCapacity)
+            {
+                continue;
+            }
+
+            if (chunk._count == 0)
+            {
+                group.refCount++; // adopt an empty chunk
+            }
+
+            group.activeChunkIndex = i;
+            while (chunk._count < _entityCapacity && idx < rowIndex.Length)
+            {
+                rowIndex[idx] = chunk._count;
+                chunkIndex[idx] = i;
+
+                chunk._count++;
+                idx++;
+            }
+
+            chunk._structuralVersion = world.Version;
+        }
+
+        // 3. Create new chunks as needed.
         while (idx < rowIndex.Length)
         {
-            var newChunk = CreateNewChunk(world.Version, groupIndex);
+            var newChunkIndex = AllocateChunkIndex(world.Version, groupIndex);
+            group.activeChunkIndex = newChunkIndex;
 
+            ref var newChunk = ref _chunks[newChunkIndex];
             while (newChunk._count < _entityCapacity && idx < rowIndex.Length)
             {
                 rowIndex[idx] = newChunk._count;
-                chunkIndex[idx] = _chunks.Count;
+                chunkIndex[idx] = newChunkIndex;
 
                 newChunk._count++;
                 idx++;
             }
 
-            _chunkGroups[groupIndex].activeChunkIndex = _chunks.Count;
-            _chunks.Add(newChunk);
+            newChunk._structuralVersion = world.Version;
         }
     }
 
@@ -759,6 +865,17 @@ internal unsafe struct Archetype : IDisposable
         chunk._count--;
         chunk._structuralVersion = world.Version;
 
+        if (chunk._count == 0)
+        {
+            // The chunk is empty: release its group reference. When the group's last
+            // chunk empties, the group is recycled immediately (slot pushed to
+            // _freeGroups) so the next allocation for the same shared data reuses the
+            // same group slot — which lets this empty chunk be adopted back instead of
+            // allocating a fresh chunk. The chunk itself stays in _chunks (entity
+            // locations reference chunks by index).
+            ReleaseChunkGroup(chunk._groupIndex);
+        }
+
         return Error.None;
     }
 
@@ -860,7 +977,32 @@ internal unsafe struct Archetype : IDisposable
         chunk._count = newCount;
         chunk._structuralVersion = world.Version;
 
+        if (newCount == 0)
+        {
+            // See RemoveEntity: release (and eagerly recycle) the emptied chunk's group.
+            ReleaseChunkGroup(chunk._groupIndex);
+        }
+
         return Error.None;
+    }
+
+    /// <summary>
+    /// Decrements the group's chunk refCount and, when it reaches zero, immediately
+    /// recycles the group slot (disposes its shared data and pushes the slot onto
+    /// <see cref="_freeGroups"/> for reuse). Recycling eagerly keeps the chunk list
+    /// compact: the next allocation for the same shared data lands on the same group
+    /// slot, so empty chunks of the dead group can be adopted instead of forcing new
+    /// chunk allocations.
+    /// </summary>
+    private void ReleaseChunkGroup(int groupIndex)
+    {
+        ref var group = ref _chunkGroups[groupIndex];
+        group.refCount--;
+        if (group.refCount == 0)
+        {
+            group.sharedData.Dispose();
+            _freeGroups.Add(groupIndex);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -893,23 +1035,72 @@ internal unsafe struct Archetype : IDisposable
         return _edgesRemove.GetValueOrDefault(componentID, -1);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void Collect()
+    /// <summary>
+    /// Trims memory: disposes the buffers of empty chunks. Chunk slots are retained
+    /// (they are reused by the next allocation) because entity locations reference
+    /// chunks by index. Dead chunk groups are recycled eagerly at removal time, so
+    /// nothing to do for them here.
+    /// This is never called automatically — call it at safe points such as scene unloads.
+    /// </summary>
+    public void Collect()
     {
         for (var i = 0; i < _chunks.Count; i++)
         {
-            if (_chunks[i]._count == 0)
+            ref var chunk = ref _chunks[i];
+            if (chunk._count != 0 || !chunk.IsCreated)
             {
-                ref var chunk = ref _chunks[i];
-                ref var group = ref _chunkGroups[chunk._groupIndex];
-                // How can we set the activeChunkIndex? Backward tracing?
-                group.refCount--;
-                if (group.activeChunkIndex == i)
-                {
-                    group.activeChunkIndex = -1;
-                }
+                continue;
+            }
 
-                chunk.Dispose();
+            ref var group = ref _chunkGroups[chunk._groupIndex];
+            if (group.activeChunkIndex == i)
+            {
+                group.activeChunkIndex = -1;
+            }
+
+            chunk.Dispose();
+            _chunks[i] = default;
+            _freeSlots.Add(i);
+        }
+    }
+
+    /// <summary>
+    /// Clears all chunks and chunk groups while keeping the archetype's identity
+    /// (signature, layouts, capacity). Used by World.Reset so cached archetype and
+    /// query identifiers stay valid across a reset.
+    /// </summary>
+    public void Clear()
+    {
+        for (var i = 0; i < _chunks.Count; i++)
+        {
+            if (_chunks[i].IsCreated)
+            {
+                _chunks[i].Dispose();
+            }
+        }
+
+        for (var i = 0; i < _chunkGroups.Count; i++)
+        {
+            _chunkGroups[i].Dispose();
+        }
+
+        _chunks.Clear();
+        _chunkGroups.Clear();
+        _freeSlots.Clear();
+        _freeGroups.Clear();
+
+        _edgesAdd.Clear();
+        _edgesRemove.Clear();
+
+        // Recompute the cleanup edge sentinel from the signature (0 = no cleanup components).
+        _cleanupEdge = 0;
+        var it = _signature.GetIterator();
+        while (it.Next(out var componentID))
+        {
+            if (ComponentRegistry.GetComponentInfo(componentID).isCleanup)
+            {
+                _cleanupEdge = -1;
+                break;
             }
         }
     }
@@ -924,7 +1115,10 @@ internal unsafe struct Archetype : IDisposable
     {
         for (var i = 0; i < _chunks.Count; i++)
         {
-            _chunks[i].Dispose();
+            if (_chunks[i].IsCreated)
+            {
+                _chunks[i].Dispose();
+            }
         }
 
         for (var i = 0; i < _chunkGroups.Count; i++)
@@ -941,5 +1135,8 @@ internal unsafe struct Archetype : IDisposable
 
         _edgesAdd.Dispose();
         _edgesRemove.Dispose();
+
+        _freeSlots.Dispose();
+        _freeGroups.Dispose();
     }
 }

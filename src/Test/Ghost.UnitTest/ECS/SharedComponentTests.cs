@@ -55,9 +55,7 @@ public class SharedComponentTests
         Identifier<IComponent>[] ids = [ComponentTypeID<Tag>.Value, ComponentTypeID<SharedGroup>.Value];
         var set = new ComponentSetView(ids, sharedSet);
 
-        Span<Entity> result = stackalloc Entity[1];
-        _world.EntityManager.CreateEntities(result, set);
-        return result[0];
+        return _world.EntityManager.CreateEntity(set);
     }
 
     /// <summary>Counts entities visible to a single-component query.</summary>
@@ -453,9 +451,9 @@ public class SharedComponentTests
 
         // Group 1 may still have an empty chunk, but it should have 0 entities.
         var groups = CollectGroupCounts();
-        if (groups.ContainsKey(1))
+        if (groups.TryGetValue(1, out var value))
         {
-            Assert.AreEqual(0, groups[1], "Group 1 should have 0 entities.");
+            Assert.AreEqual(0, value, "Group 1 should have 0 entities.");
         }
 
         Assert.IsTrue(groups.ContainsKey(2) && groups[2] == 1, "Group 2 entity should be untouched.");
@@ -482,11 +480,8 @@ public class SharedComponentTests
         Identifier<IComponent>[] ids2 = [ComponentTypeID<Tag>.Value, ComponentTypeID<SharedGroup2>.Value, ComponentTypeID<SharedGroup>.Value];
         var set2 = new ComponentSetView(ids2, sharedSet2);
 
-        Span<Entity> result1 = stackalloc Entity[1];
-        _world.EntityManager.CreateEntities(result1, set1);
-
-        Span<Entity> result2 = stackalloc Entity[1];
-        _world.EntityManager.CreateEntities(result2, set2);
+        _world.EntityManager.CreateEntity(set1);
+        _world.EntityManager.CreateEntity(set2);
 
         var groups = CollectGroupCounts();
 

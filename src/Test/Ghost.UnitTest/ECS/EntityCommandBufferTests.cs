@@ -164,4 +164,40 @@ public class EntityCommandBufferTests
 
         Assert.IsTrue(found);
     }
+
+    [TestMethod]
+    public void TestECB_DestroyEntities_TempEntitiesCreatedInSameECB()
+    {
+        using var ecb = new EntityCommandBuffer(1024, AllocationHandle.Persistent);
+        var t0 = ecb.CreateEntity();
+        var t1 = ecb.CreateEntity();
+        ecb.AddComponent(t0, new CompA { value = 1 });
+        ecb.AddComponent(t1, new CompA { value = 2 });
+
+        // Batch destroy of temp entities created earlier in the SAME buffer.
+        // Regression: the batch path never remapped temp IDs, so these survived.
+        ecb.DestroyEntities(new[] { t0, t1 });
+        ecb.Playback(_world.EntityManager);
+
+        var queryID = QueryBuilder.New().Build(_world);
+        ref readonly var query = ref _world.ComponentManager.GetEntityQueryReference(queryID);
+        Assert.AreEqual(0, query.CalculateEntityCount(), "Temp entities destroyed in the same ECB must be gone.");
+    }
+
+    [TestMethod]
+    public void TestECB_DestroyEntities_MixedRealAndTemp()
+    {
+        var real = _world.EntityManager.CreateEntity();
+        _world.EntityManager.AddComponent(real, new CompA { value = 10 });
+
+        using var ecb = new EntityCommandBuffer(1024, AllocationHandle.Persistent);
+        var temp = ecb.CreateEntity();
+        ecb.AddComponent(temp, new CompA { value = 20 });
+
+        ecb.DestroyEntities(new[] { real, temp });
+        ecb.Playback(_world.EntityManager);
+
+        Assert.IsFalse(_world.EntityManager.Exists(real));
+        Assert.AreEqual(0, _world.EntityManager.EntityCount, "Both the real and the temp entity must be destroyed.");
+    }
 }

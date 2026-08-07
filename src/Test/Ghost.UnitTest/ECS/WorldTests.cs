@@ -132,4 +132,39 @@ public class WorldTests
         var e2 = _world.EntityManager.CreateEntity();
         Assert.IsFalse(_world.EntityManager.HasComponent<SharedData>(e2));
     }
+
+    [TestMethod]
+    public void TestWorld_Reset_QueryIDRemainsValid()
+    {
+        // Cached query identifiers must survive a Reset (regression: Clear() used to
+        // dispose all queries and archetypes, dangling cached IDs).
+        var queryID = QueryBuilder.New().WithAll<CompA>().Build(_world);
+
+        var e = _world.EntityManager.CreateEntity();
+        _world.EntityManager.AddComponent(e, new CompA { value = 1 });
+
+        _world.Reset();
+
+        // The same query ID must still resolve and match entities created after the reset.
+        var e2 = _world.EntityManager.CreateEntity();
+        _world.EntityManager.AddComponent(e2, new CompA { value = 2 });
+
+        ref readonly var query = ref _world.ComponentManager.GetEntityQueryReference(queryID);
+        Assert.AreEqual(1, query.CalculateEntityCount(), "Query must match the post-reset entity.");
+        Assert.AreEqual(2, _world.EntityManager.GetComponent<CompA>(e2).value);
+    }
+
+    [TestMethod]
+    public void TestWorld_Reset_KeepsArchetypeIdentitiesStable()
+    {
+        var entity = _world.EntityManager.CreateEntity();
+        _world.EntityManager.AddComponent(entity, new CompA { value = 1 });
+
+        var archetypeCountBefore = _world.ComponentManager.ArchetypeCount;
+
+        _world.Reset();
+
+        Assert.AreEqual(archetypeCountBefore, _world.ComponentManager.ArchetypeCount,
+            "Reset must not dispose/recreate archetypes; cached identifiers stay valid.");
+    }
 }
