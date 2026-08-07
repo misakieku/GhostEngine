@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
+using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Buffer;
@@ -8,7 +9,26 @@ namespace Ghost.Graphics.RenderGraphModule;
 
 public readonly struct RGExecution
 {
+    /// <summary>
+    /// Gets the optional diagnostic dump generated for this execution.
+    /// </summary>
     public RenderGraphDump? Dump
+    {
+        get; init;
+    }
+
+    /// <summary>
+    /// Gets the terminal Graphics submission produced by this execution.
+    /// </summary>
+    public SubmissionHandle GraphicsSubmission
+    {
+        get; init;
+    }
+
+    /// <summary>
+    /// Gets the terminal Compute submission produced by this execution, or an invalid handle when no native Compute submission was made.
+    /// </summary>
+    public SubmissionHandle ComputeSubmission
     {
         get; init;
     }
@@ -58,7 +78,7 @@ public sealed class RenderGraph : IDisposable
         );
 
         _compiler = new RenderGraphCompiler(resourceAllocator, _resourceRegistry);
-        _executor = new RenderGraphExecutor(resourceManager, resourceDatabase, _resourceRegistry);
+        _executor = new RenderGraphExecutor(_resourceRegistry);
 
         _blackboard = new RenderGraphBlackboard();
         _builder = new RenderGraphBuilder(_resourceRegistry, _blackboard);
@@ -478,7 +498,7 @@ public sealed class RenderGraph : IDisposable
     /// Compiles the render graph and executes all compiled passes.
     /// </summary>
     public Result<RGExecution, Error> CompileAndExecute(
-        ICommandBuffer graphicsCommandBuffer,
+        in RenderGraphExecutionContext executionContext,
         ViewState viewState,
         RGExecutionFlags flags = RGExecutionFlags.Default)
     {
@@ -494,9 +514,12 @@ public sealed class RenderGraph : IDisposable
         using var graph = result.Value;
         _context.RelativeScale = graph.scale;
         var error = _executor.Execute(
-            graphicsCommandBuffer,
+            executionContext,
             _context,
-            graph);
+            graph,
+            flags,
+            out var graphicsSubmission,
+            out var computeSubmission);
 
         if (error.IsFailure)
         {
@@ -534,7 +557,12 @@ public sealed class RenderGraph : IDisposable
             ? GenerateDump(graph, viewState)
             : null;
 
-        return new RGExecution { Dump = dump };
+        return new RGExecution
+        {
+            Dump = dump,
+            GraphicsSubmission = graphicsSubmission,
+            ComputeSubmission = computeSubmission
+        };
     }
 
     public void Dispose()

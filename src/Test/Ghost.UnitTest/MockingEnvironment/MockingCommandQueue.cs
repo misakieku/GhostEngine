@@ -66,7 +66,6 @@ internal class MockingCommandQueue : ICommandQueue
             GlobalRecordedOps.Add(new RecordedQueueOp(Type, QueueOpType.Signal, value));
         }
 #endif
-
         var mockingFence = fence as MockingFence;
         Debug.Assert(mockingFence != null);
 
@@ -78,9 +77,12 @@ internal class MockingCommandQueue : ICommandQueue
     {
         var wasRecording = commandBuffer.State.IsRecording;
 #if GHOST_UNITTEST
+        var commandBufferId = commandBuffer is MockingCommandBuffer mockingCommandBuffer
+            ? (ulong)mockingCommandBuffer.InstanceId
+            : (ulong)commandBuffer.Type;
         lock (GlobalRecordedOps)
         {
-            GlobalRecordedOps.Add(new RecordedQueueOp(Type, QueueOpType.Submit, (ulong)commandBuffer.Type, wasRecording));
+            GlobalRecordedOps.Add(new RecordedQueueOp(Type, QueueOpType.Submit, commandBufferId, wasRecording));
         }
 #endif
         ValidateCommandBufferState(wasRecording);
@@ -98,11 +100,13 @@ internal class MockingCommandQueue : ICommandQueue
         {
             wasRecording |= commandBuffers[i].State.IsRecording;
         }
-
 #if GHOST_UNITTEST
+        var commandBufferId = commandBuffers[0] is MockingCommandBuffer mockingCommandBuffer
+            ? (ulong)mockingCommandBuffer.InstanceId
+            : (ulong)commandBuffers[0].Type;
         lock (GlobalRecordedOps)
         {
-            GlobalRecordedOps.Add(new RecordedQueueOp(Type, QueueOpType.Submit, (ulong)commandBuffers[0].Type, wasRecording));
+            GlobalRecordedOps.Add(new RecordedQueueOp(Type, QueueOpType.Submit, commandBufferId, wasRecording));
         }
 #endif
         ValidateCommandBufferState(wasRecording);

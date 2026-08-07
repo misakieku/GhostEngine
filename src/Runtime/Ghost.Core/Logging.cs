@@ -221,43 +221,42 @@ public static class Logger
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Error(object? message)
     {
+#if DEBUG
+        Debugger.Break();
+#endif
         var messageStr = message?.ToString() ?? "null";
         s_logger.Log(messageStr, LogLevel.Error);
-#if DEBUG
-        throw new Exception(messageStr);
-#endif
     }
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Error(string? message)
     {
-        s_logger.Log(message, LogLevel.Error);
 #if DEBUG
-        throw new Exception(message);
+        Debugger.Break();
 #endif
+        s_logger.Log(message, LogLevel.Error);
     }
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Error(string format, params object?[] args)
     {
+#if DEBUG
+        Debugger.Break();
+#endif
         var message = string.Format(format, args);
         s_logger.Log(message, LogLevel.Error);
-#if DEBUG
-        throw new Exception(message);
-#endif
-
     }
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Error(Exception ex)
     {
-        s_logger.Log(ex);
 #if DEBUG
         Debugger.BreakForUserUnhandledException(ex);
 #endif
+        s_logger.Log(ex);
     }
 
     [StackTraceHidden]
@@ -300,12 +299,12 @@ public static class Logger
     [Conditional("GHOST_EDITOR")]
     public static void DebugAssert([DoesNotReturnIf(false)] bool condition, [CallerArgumentExpression(nameof(condition))] string? message = null)
     {
-        s_logger.Assert(condition, message?.ToString() ?? "null");
 #if DEBUG
         if (!condition)
         {
-            throw new Exception(message ?? "Assertion failed.");
+            Debugger.Break();
         }
 #endif
+        s_logger.Assert(condition, message?.ToString() ?? "null");
     }
 }

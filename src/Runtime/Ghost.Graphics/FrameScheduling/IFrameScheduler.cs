@@ -19,6 +19,41 @@ public interface IFrameScheduler : IDisposable
     }
 
     /// <summary>
+    /// Validates the scheduler state and reserves storage for an upcoming sequence of submissions.
+    /// </summary>
+    /// <remarks>
+    /// This method does not transfer command-buffer ownership. After it succeeds, the specified number of valid
+    /// <see cref="Submit"/> calls can be made without growing the scheduler's internal submission storage.
+    /// </remarks>
+    /// <param name="additionalSubmissionCount">Number of submissions that will be appended to the pending frame.</param>
+    void PrepareSubmissions(int additionalSubmissionCount);
+
+    /// <summary>
+    /// Starts an atomic sequence of submissions and explicit dependencies.
+    /// </summary>
+    /// <remarks>
+    /// The scheduler snapshots its pending-frame state and reserves all requested storage before ownership transfer begins.
+    /// The returned token must be committed or rolled back exactly once. Submission handles created by the transaction must
+    /// not escape until the transaction commits.
+    /// </remarks>
+    /// <param name="additionalSubmissionCount">Maximum number of submissions appended by the transaction.</param>
+    /// <param name="additionalDependencyCount">Maximum number of explicit dependencies appended by the transaction.</param>
+    /// <returns>A token identifying the active transaction.</returns>
+    SubmissionTransaction BeginSubmissionTransaction(int additionalSubmissionCount, int additionalDependencyCount);
+
+    /// <summary>
+    /// Commits an active submission transaction.
+    /// </summary>
+    /// <param name="transaction">The active transaction token.</param>
+    void CommitSubmissionTransaction(SubmissionTransaction transaction);
+
+    /// <summary>
+    /// Rolls back an active submission transaction and returns every command buffer transferred by it.
+    /// </summary>
+    /// <param name="transaction">The active transaction token.</param>
+    void RollbackSubmissionTransaction(SubmissionTransaction transaction);
+
+    /// <summary>
     /// Defers an executable command buffer for submission to the queue matching its type.
     /// </summary>
     /// <remarks>

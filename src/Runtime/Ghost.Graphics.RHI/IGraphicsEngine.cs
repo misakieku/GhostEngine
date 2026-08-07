@@ -52,9 +52,12 @@ public interface IGraphicsEngine : IDisposable
     ICommandBuffer GetPooledCommandBuffer(CommandBufferType type = CommandBufferType.Graphics);
 
     /// <summary>
-    /// Returns a command buffer to the pool after use.
+    /// Returns command-buffer ownership to the graphics engine for deferred reuse or disposal.
     /// </summary>
-    /// <param name="commandBuffer">The command buffer to return to the pool</param>
+    /// <remarks>
+    /// Implementations must discard a command buffer that is still recording instead of making it available for reuse.
+    /// </remarks>
+    /// <param name="commandBuffer">The command buffer whose ownership is returned.</param>
     void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer);
 
     /// <summary>

@@ -417,6 +417,10 @@ public enum RGExecutionFlags
     /// Generate a detailed dump of the render graph execution for debugging and analysis.
     /// </summary>
     GenerateDump = 1 << 0,
+    /// <summary>
+    /// Record every structural segment on the Graphics queue and suppress internal cross-queue dependencies.
+    /// </summary>
+    ForceGraphics = 1 << 1,
 }
 
 public sealed class RenderGraphDump

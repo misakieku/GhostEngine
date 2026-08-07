@@ -10,6 +10,8 @@ namespace Ghost.Graphics.D3D12;
 /// </summary>
 internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, ICommandQueue
 {
+    private readonly ID3D12Device14* _pDevice;
+
     public CommandQueueType Type
     {
         get;
@@ -32,6 +34,7 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
     public D3D12CommandQueue(D3D12RenderDevice device, CommandQueueType type)
         : base(CreateCommandQueue(device.NativeObject, type))
     {
+        _pDevice = device.NativeObject.Get();
         Type = type;
     }
 
@@ -101,7 +104,7 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
         var d3d12Fence = fence as D3D12Fence;
         Debug.Assert(d3d12Fence != null, "Fence must be a D3D12Fence");
 
-        ThrowIfFailed(pNativeObject->Signal(d3d12Fence.NativeObject, value));
+        Exceptions.TerminateIfFailed(pNativeObject->Signal(d3d12Fence.NativeObject, value));
         return value;
     }
 

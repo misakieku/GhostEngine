@@ -315,6 +315,24 @@ public static class ResultExtensions
             };
         }
 
+        public int ToHResult()
+        {
+            return error switch
+            {
+                Error.None => 0,
+                Error.NotFound => unchecked((int)0x80070002),
+                Error.InvalidArgument => unchecked((int)0x80070057),
+                Error.InvalidState => unchecked((int)0x8007139F),
+                Error.InternalError => unchecked((int)0x80004005),
+                Error.PermissionDenied => unchecked((int)0x80070005),
+                Error.NotSupported => unchecked((int)0x80004001),
+                Error.OutOfMemory => unchecked((int)0x8007000E),
+                Error.Timeout => unchecked((int)0x800705B4),
+                Error.Cancelled => unchecked((int)0x800704C7),
+                _ => unchecked((int)0x80004005)
+            };
+        }
+
         public static Error FromExpection(Exception ex)
         {
             return ex switch

@@ -133,6 +133,40 @@ public class FrameSchedulerTest
     }
 
     [TestMethod]
+    public void TestMultipleComputeRegionsWaitOnlyForTheirDeclaredProducerFences()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var scheduler = new FrameScheduler(engine);
+        using var graphicsAllocator = engine.CreateCommandAllocator(CommandBufferType.Graphics);
+        using var computeAllocator = engine.CreateCommandAllocator(CommandBufferType.Compute);
+        var graphicsProducer = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator));
+        var firstCompute = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Compute, computeAllocator));
+        scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator));
+        var firstJoin = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator));
+        var secondCompute = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Compute, computeAllocator));
+        var finalJoin = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator));
+        scheduler.AddDependency(graphicsProducer, firstCompute);
+        scheduler.AddDependency(firstCompute, firstJoin);
+        scheduler.AddDependency(firstJoin, secondCompute);
+        scheduler.AddDependency(secondCompute, finalJoin);
+
+        scheduler.Flush();
+
+        var waits = MockingCommandQueue.GlobalRecordedOps.Where(op => op.OpType == QueueOpType.Wait).ToArray();
+        Assert.HasCount(4, waits);
+        Assert.AreEqual(CommandQueueType.Compute, waits[0].QueueType);
+        Assert.AreEqual(graphicsProducer.FenceValue, waits[0].Value);
+        Assert.AreEqual(CommandQueueType.Graphics, waits[1].QueueType);
+        Assert.AreEqual(firstCompute.FenceValue, waits[1].Value);
+        Assert.AreEqual(CommandQueueType.Compute, waits[2].QueueType);
+        Assert.AreEqual(firstJoin.FenceValue, waits[2].Value);
+        Assert.AreEqual(CommandQueueType.Graphics, waits[3].QueueType);
+        Assert.AreEqual(secondCompute.FenceValue, waits[3].Value);
+        Assert.IsLessThan(secondCompute.FenceValue, firstCompute.FenceValue, "The first Graphics join must not wait for the later Compute region.");
+        Assert.AreEqual(6, engine.ReturnedCommandBufferCount);
+    }
+
+    [TestMethod]
     public void TestCrossFrameDependencyWaitsForPriorSubmission()
     {
         using var engine = new MockingGraphicsEngine();
@@ -194,6 +228,74 @@ public class FrameSchedulerTest
         Assert.IsEmpty(MockingCommandQueue.GlobalRecordedOps);
         Assert.AreEqual(1, engine.ReturnedCommandBufferCount);
 
+        scheduler.Flush();
+    }
+
+    [TestMethod]
+    public void TestSubmissionTransactionRollbackRestoresPendingStateWithoutReusingFenceValues()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var scheduler = new FrameScheduler(engine);
+        using var graphicsAllocator = engine.CreateCommandAllocator(CommandBufferType.Graphics);
+        using var computeAllocator = engine.CreateCommandAllocator(CommandBufferType.Compute);
+        var externalGraphics = CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator);
+        var externalGraphicsSubmission = scheduler.Submit(externalGraphics);
+        scheduler.Transition(CommandQueueType.Graphics, CommandQueueType.Compute);
+
+        var transaction = scheduler.BeginSubmissionTransaction(2, 1);
+        var rolledBackCompute = CreateExecutableCommandBuffer(engine, CommandBufferType.Compute, computeAllocator);
+        var rolledBackGraphics = CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator);
+        var rolledBackComputeSubmission = scheduler.Submit(rolledBackCompute);
+        var rolledBackGraphicsSubmission = scheduler.Submit(rolledBackGraphics);
+        scheduler.AddDependency(rolledBackComputeSubmission, rolledBackGraphicsSubmission);
+        scheduler.RollbackSubmissionTransaction(transaction);
+
+        Assert.AreEqual(2, engine.ReturnedCommandBufferCount);
+        var committedCompute = CreateExecutableCommandBuffer(engine, CommandBufferType.Compute, computeAllocator);
+        var committedComputeSubmission = scheduler.Submit(committedCompute);
+        Assert.IsGreaterThan(0UL, rolledBackComputeSubmission.FenceValue);
+        Assert.IsGreaterThan(rolledBackComputeSubmission.FenceValue, committedComputeSubmission.FenceValue);
+        Assert.ThrowsExactly<ArgumentException>(
+            () => scheduler.AddDependency(externalGraphicsSubmission, rolledBackComputeSubmission),
+            "A rolled-back dependent handle must not alias a later submission at the same pending index.");
+        Assert.ThrowsExactly<ArgumentException>(
+            () => scheduler.AddDependency(rolledBackComputeSubmission, committedComputeSubmission),
+            "A rolled-back producer handle must be rejected before the frame flushes.");
+
+        scheduler.Flush();
+
+        Assert.HasCount(5, MockingCommandQueue.GlobalRecordedOps);
+        Assert.AreEqual(CommandQueueType.Graphics, MockingCommandQueue.GlobalRecordedOps[0].QueueType);
+        Assert.AreEqual(QueueOpType.Submit, MockingCommandQueue.GlobalRecordedOps[0].OpType);
+        Assert.AreEqual(CommandQueueType.Compute, MockingCommandQueue.GlobalRecordedOps[2].QueueType);
+        Assert.AreEqual(QueueOpType.Wait, MockingCommandQueue.GlobalRecordedOps[2].OpType);
+        Assert.AreEqual(externalGraphicsSubmission.FenceValue, MockingCommandQueue.GlobalRecordedOps[2].Value);
+        Assert.AreEqual(QueueOpType.Submit, MockingCommandQueue.GlobalRecordedOps[3].OpType);
+        Assert.AreEqual(QueueOpType.Signal, MockingCommandQueue.GlobalRecordedOps[4].OpType);
+        Assert.AreEqual(committedComputeSubmission.FenceValue, MockingCommandQueue.GlobalRecordedOps[4].Value);
+        Assert.AreEqual(4, engine.ReturnedCommandBufferCount);
+
+        MockingCommandQueue.GlobalRecordedOps.Clear();
+        var laterGraphics = CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator);
+        var laterGraphicsSubmission = scheduler.Submit(laterGraphics);
+        Assert.ThrowsExactly<ArgumentException>(
+            () => scheduler.AddDependency(rolledBackComputeSubmission, laterGraphicsSubmission),
+            "A rolled-back producer handle must remain invalid after the scheduler generation advances.");
+        scheduler.Flush();
+        Assert.AreEqual(5, engine.ReturnedCommandBufferCount);
+    }
+
+    [TestMethod]
+    public void TestSubmissionTransactionMustResolveBeforeFlushAndRejectsStaleToken()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var scheduler = new FrameScheduler(engine);
+        var transaction = scheduler.BeginSubmissionTransaction(0, 0);
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => scheduler.Flush());
+
+        scheduler.RollbackSubmissionTransaction(transaction);
+        Assert.ThrowsExactly<InvalidOperationException>(() => scheduler.CommitSubmissionTransaction(transaction));
         scheduler.Flush();
     }
 

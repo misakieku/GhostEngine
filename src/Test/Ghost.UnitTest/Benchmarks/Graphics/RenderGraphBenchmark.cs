@@ -50,11 +50,15 @@ public class RenderGraphBenchmark
     private MockingResourceDatabase _resourceDatabase = null!;
     private MockingResourceAllocator _resourceAllocator = null!;
     private MockingPipelineLibrary _pipelineLibrary = null!;
-    private MockingCommandBuffer _graphicsCmdBuffer = null!;
+    private MockingGraphicsEngine _graphicsEngine = null!;
+    private ICommandAllocator _graphicsCommandAllocator = null!;
+    private ICommandAllocator _computeCommandAllocator = null!;
+    private FrameScheduler _frameScheduler = null!;
     private ResourceManager _resourceManager = null!;
     private ShaderLibrary _shaderLibrary = null!;
 
     private RenderGraph _renderGraph = null!;
+    private RenderGraphExecutionContext _executionContext;
     private ViewState _viewState;
 
     private Handle<GPUTexture> _importedBackBufferHandle;
@@ -69,13 +73,20 @@ public class RenderGraphBenchmark
         _resourceDatabase = new MockingResourceDatabase();
         _resourceAllocator = new MockingResourceAllocator(_resourceDatabase);
         _pipelineLibrary = new MockingPipelineLibrary();
-
-        _graphicsCmdBuffer = new MockingCommandBuffer(_resourceDatabase, CommandBufferType.Graphics);
+        _graphicsEngine = new MockingGraphicsEngine(_renderDevice, _resourceDatabase, _resourceAllocator);
+        _graphicsCommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics);
+        _computeCommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Compute);
+        _frameScheduler = new FrameScheduler(_graphicsEngine);
 
         _resourceManager = new ResourceManager(_renderDevice, _resourceAllocator, _resourceDatabase);
         _shaderLibrary = new ShaderLibrary(null, _pipelineLibrary, string.Empty);
 
         _renderGraph = new RenderGraph(_resourceDatabase, _resourceAllocator, _pipelineLibrary, _resourceManager, _shaderLibrary);
+        _executionContext = new RenderGraphExecutionContext(
+            _graphicsEngine,
+            _frameScheduler,
+            _graphicsCommandAllocator,
+            _computeCommandAllocator);
 
         _viewState = new ViewState
         {
@@ -98,19 +109,22 @@ public class RenderGraphBenchmark
         var sceneDataDesc = new BufferDesc { Size = 10 * 1024 * 1024 }; // 10MB
         _importedSceneBufferHandle = _resourceAllocator.CreateBuffer(in sceneDataDesc);
 
-        // Pre-warm once so cache pipeline is initialized
-        _graphicsCmdBuffer.Begin(null!);
+        // Pre-warm once so cache and execution scratch are initialized.
         BuildAAAPipeline(_renderGraph, _importedBackBufferHandle, _importedSceneBufferHandle);
-        _renderGraph.CompileAndExecute(_graphicsCmdBuffer, _viewState);
+        _ = _renderGraph.CompileAndExecute(_executionContext, _viewState).GetValueOrThrow();
+        _frameScheduler.Flush();
     }
 
     [GlobalCleanup]
     public void Cleanup()
     {
+        _frameScheduler.Dispose();
         _renderGraph.Dispose();
         _shaderLibrary.Dispose();
         _resourceManager.Dispose();
-        _graphicsCmdBuffer.Dispose();
+        _graphicsCommandAllocator.Dispose();
+        _computeCommandAllocator.Dispose();
+        _graphicsEngine.Dispose();
         _pipelineLibrary.Dispose();
         _resourceAllocator.Dispose();
         _resourceDatabase.Dispose();
@@ -381,11 +395,10 @@ public class RenderGraphBenchmark
     {
         _renderGraph.Reset();
         _renderGraph.InvalidateCache();
-        _graphicsCmdBuffer.Begin(null!);
 
         BuildAAAPipeline(_renderGraph, _importedBackBufferHandle, _importedSceneBufferHandle);
         var result = _renderGraph.CompileAndExecute(
-            _graphicsCmdBuffer,
+            _executionContext,
             _viewState);
 
         if (result.IsFailure)
@@ -393,6 +406,7 @@ public class RenderGraphBenchmark
             throw new InvalidOperationException("Cold compile failed: " + result.Error);
         }
 
+        _frameScheduler.Flush();
         AllocationManager.ResetTempAllocator();
     }
 
@@ -404,11 +418,10 @@ public class RenderGraphBenchmark
     public void Compile_Warm_CacheHit()
     {
         _renderGraph.Reset();
-        _graphicsCmdBuffer.Begin(null!);
 
         BuildAAAPipeline(_renderGraph, _importedBackBufferHandle, _importedSceneBufferHandle);
         var result = _renderGraph.CompileAndExecute(
-            _graphicsCmdBuffer,
+            _executionContext,
             _viewState);
 
         if (result.IsFailure)
@@ -416,6 +429,7 @@ public class RenderGraphBenchmark
             throw new InvalidOperationException("Warm compile failed: " + result.Error);
         }
 
+        _frameScheduler.Flush();
         AllocationManager.ResetTempAllocator();
     }
 }

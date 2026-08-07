@@ -1,26 +1,34 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
+using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RHI;
-using Ghost.Graphics.Services;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
 internal sealed class RenderGraphExecutor
 {
-    private readonly ResourceManager _resourceManager;
-    private readonly IResourceDatabase _resourceDatabase;
-    private readonly RenderGraphResourceRegistry _resources;
+    private const int INITIAL_COMMAND_BUFFER_CAPACITY = 8;
 
-    public RenderGraphExecutor(
-        ResourceManager resourceManager,
-        IResourceDatabase resourceDatabase,
-        RenderGraphResourceRegistry resources)
+    private readonly RenderGraphResourceRegistry _resources;
+    private ICommandBuffer?[] _commandBuffers;
+    private SubmissionHandle[] _submissionHandles;
+    private CommandQueueType[] _commandBufferQueueTypes;
+    private int[] _dependencyOffsets;
+    private int[] _dependencyCounts;
+    private int[] _producerCommandBufferIds;
+    private int _commandBufferCount;
+    private int _producerCommandBufferIdCount;
+
+    public RenderGraphExecutor(RenderGraphResourceRegistry resources)
     {
-        _resourceManager = resourceManager;
-        _resourceDatabase = resourceDatabase;
         _resources = resources;
+        _commandBuffers = new ICommandBuffer?[INITIAL_COMMAND_BUFFER_CAPACITY];
+        _submissionHandles = new SubmissionHandle[INITIAL_COMMAND_BUFFER_CAPACITY];
+        _commandBufferQueueTypes = new CommandQueueType[INITIAL_COMMAND_BUFFER_CAPACITY];
+        _dependencyOffsets = new int[INITIAL_COMMAND_BUFFER_CAPACITY];
+        _dependencyCounts = new int[INITIAL_COMMAND_BUFFER_CAPACITY];
+        _producerCommandBufferIds = new int[INITIAL_COMMAND_BUFFER_CAPACITY];
     }
 
     private void SetViewport(RenderGraphContext context, ReadOnlySpan<RenderTargetInfo> color, DepthStencilInfo depthStencil)
@@ -78,20 +86,33 @@ internal sealed class RenderGraphExecutor
     }
 
     public unsafe Error Execute(
-        ICommandBuffer graphicsCommandBuffer,
+        in RenderGraphExecutionContext executionContext,
         RenderGraphContext context,
-        scoped in CompiledGraph graph)
+        scoped in CompiledGraph graph,
+        RGExecutionFlags flags,
+        out SubmissionHandle graphicsSubmission,
+        out SubmissionHandle computeSubmission)
     {
-        var activeCommandBuffer = graphicsCommandBuffer;
-        context.BeginNewFrame(activeCommandBuffer);
+        Logger.DebugAssert(_commandBufferCount == 0, "Render-graph execution scratch was not cleared after the previous execution.");
+        graphicsSubmission = default;
+        computeSubmission = default;
 
-        var pPassRTDescs = stackalloc PassRenderTargetDesc[8];
-        var pRtFormats = stackalloc TextureFormat[8];
+        ICommandBuffer? activeCommandBuffer = null;
         var insideNativePass = false;
-        var reader = new SpanReader(graph.commandStream);
 
         try
         {
+            activeCommandBuffer = AcquireCommandBuffer(
+                executionContext,
+                CommandQueueType.Graphics,
+                ReadOnlySpan<int>.Empty,
+                flags);
+            context.BeginNewFrame(activeCommandBuffer);
+
+            var pPassRTDescs = stackalloc PassRenderTargetDesc[8];
+            var pRtFormats = stackalloc TextureFormat[8];
+            var reader = new SpanReader(graph.commandStream);
+
             while (reader.RemainingBytes > 0)
             {
                 var op = reader.Read<RGExecutionOpType>();
@@ -101,10 +122,11 @@ internal sealed class RenderGraphExecutor
                     case RGExecutionOpType.IssueBarriers:
                     {
                         var barrierCount = reader.Read<int>();
-                        var e = ExecuteBarrierBatch(activeCommandBuffer, barrierCount, ref reader);
-                        if (e != Error.None)
+                        var error = ExecuteBarrierBatch(activeCommandBuffer, barrierCount, ref reader);
+                        if (error != Error.None)
                         {
-                            return e;
+                            RollbackRecording(executionContext.GraphicsEngine, insideNativePass);
+                            return error;
                         }
                         break;
                     }
@@ -169,8 +191,7 @@ internal sealed class RenderGraphExecutor
                     case RGExecutionOpType.ExecutePass:
                     {
                         var passIdx = reader.Read<int>();
-                        var pass = graph.passes[passIdx];
-                        pass.Execute(context);
+                        graph.passes[passIdx].Execute(context);
                         break;
                     }
 
@@ -183,9 +204,25 @@ internal sealed class RenderGraphExecutor
 
                     case RGExecutionOpType.CommandBufferSyncPoint:
                     {
-                        // Phase 2 serializes the planned command-buffer topology for diagnostics and caching.
-                        // Native command-buffer splitting remains disabled, so all commands stay on Graphics.
-                        _ = RGCommandStream.ReadSyncMarker(ref reader);
+                        var marker = RGCommandStream.ReadSyncMarker(ref reader);
+                        if (insideNativePass)
+                        {
+                            throw new InvalidOperationException("A command-buffer sync point cannot occur inside a native render pass.");
+                        }
+
+                        var error = EndCommandBuffer(activeCommandBuffer);
+                        if (error != Error.None)
+                        {
+                            ReturnAcquiredCommandBuffers(executionContext.GraphicsEngine);
+                            return error;
+                        }
+
+                        activeCommandBuffer = AcquireCommandBuffer(
+                            executionContext,
+                            marker.NextCommandBufferType,
+                            marker.ProducerCommandBufferIds,
+                            flags);
+                        context.BeginNewFrame(activeCommandBuffer);
                         break;
                     }
 
@@ -194,22 +231,271 @@ internal sealed class RenderGraphExecutor
                 }
             }
 
+            var finalError = EndCommandBuffer(activeCommandBuffer);
+            if (finalError != Error.None)
+            {
+                ReturnAcquiredCommandBuffers(executionContext.GraphicsEngine);
+                return finalError;
+            }
+        }
+        catch (Exception ex)
+        {
+            RollbackRecording(executionContext.GraphicsEngine, insideNativePass);
+            Logger.Error(ex);
+            return Error.InternalError;
+        }
+
+        return SubmitCommandBuffers(executionContext, out graphicsSubmission, out computeSubmission);
+    }
+
+    private ICommandBuffer AcquireCommandBuffer(
+        in RenderGraphExecutionContext executionContext,
+        CommandQueueType requestedQueueType,
+        ReadOnlySpan<int> producerCommandBufferIds,
+        RGExecutionFlags flags)
+    {
+        if (requestedQueueType is not CommandQueueType.Graphics and not CommandQueueType.Compute)
+        {
+            throw new InvalidOperationException($"RenderGraph execution does not support {requestedQueueType} command-buffer segments.");
+        }
+
+        ValidateProducerCommandBufferIds(producerCommandBufferIds, _commandBufferCount);
+        EnsureScratchCapacity(_commandBufferCount + 1);
+        EnsureProducerIdCapacity(_producerCommandBufferIdCount + producerCommandBufferIds.Length);
+
+        var queueType = flags.HasFlag(RGExecutionFlags.ForceGraphics)
+            ? CommandQueueType.Graphics
+            : requestedQueueType;
+        var commandBufferType = queueType == CommandQueueType.Graphics
+            ? CommandBufferType.Graphics
+            : CommandBufferType.Compute;
+        var commandAllocator = queueType == CommandQueueType.Graphics
+            ? executionContext.GraphicsCommandAllocator
+            : executionContext.ComputeCommandAllocator;
+        var commandBuffer = executionContext.GraphicsEngine.GetPooledCommandBuffer(commandBufferType);
+        var commandBufferIndex = _commandBufferCount++;
+        _commandBuffers[commandBufferIndex] = commandBuffer;
+        _commandBufferQueueTypes[commandBufferIndex] = queueType;
+        _dependencyOffsets[commandBufferIndex] = _producerCommandBufferIdCount;
+        _dependencyCounts[commandBufferIndex] = producerCommandBufferIds.Length;
+        producerCommandBufferIds.CopyTo(_producerCommandBufferIds.AsSpan(_producerCommandBufferIdCount));
+        _producerCommandBufferIdCount += producerCommandBufferIds.Length;
+
+        if (commandBuffer.Type != commandBufferType)
+        {
+            throw new InvalidOperationException($"The {commandBufferType} command-buffer pool returned a {commandBuffer.Type} command buffer.");
+        }
+
+        commandBuffer.Begin(commandAllocator);
+        return commandBuffer;
+    }
+
+    private static void ValidateProducerCommandBufferIds(ReadOnlySpan<int> producerCommandBufferIds, int nextCommandBufferId)
+    {
+        for (var i = 0; i < producerCommandBufferIds.Length; i++)
+        {
+            var producerId = producerCommandBufferIds[i];
+            if ((uint)producerId >= (uint)nextCommandBufferId)
+            {
+                throw new InvalidOperationException($"Producer command-buffer ID {producerId} must precede command buffer {nextCommandBufferId}.");
+            }
+
+            for (var previous = 0; previous < i; previous++)
+            {
+                if (producerCommandBufferIds[previous] == producerId)
+                {
+                    throw new InvalidOperationException($"Producer command-buffer ID {producerId} is duplicated for command buffer {nextCommandBufferId}.");
+                }
+            }
+        }
+    }
+
+    private static Error EndCommandBuffer(ICommandBuffer commandBuffer)
+    {
+        var result = commandBuffer.End();
+        if (result.IsSuccess)
+        {
+            return Error.None;
+        }
+
+        Logger.Warning("Failed to end a render-graph command buffer: " + result.Message);
+        return Error.InternalError;
+    }
+
+    private Error SubmitCommandBuffers(
+        in RenderGraphExecutionContext executionContext,
+        out SubmissionHandle graphicsSubmission,
+        out SubmissionHandle computeSubmission)
+    {
+        graphicsSubmission = default;
+        computeSubmission = default;
+        SubmissionTransaction transaction = default;
+
+        try
+        {
+            transaction = executionContext.FrameScheduler.BeginSubmissionTransaction(
+                _commandBufferCount,
+                _producerCommandBufferIdCount);
+            for (var i = 0; i < _commandBufferCount; i++)
+            {
+                var commandBuffer = _commandBuffers[i]!;
+                var submission = executionContext.FrameScheduler.Submit(commandBuffer);
+
+                // Scheduler ownership transfers when Submit returns.
+                _commandBuffers[i] = null;
+                _submissionHandles[i] = submission;
+
+                if (!submission.IsValid || submission.QueueType != _commandBufferQueueTypes[i])
+                {
+                    throw new InvalidOperationException("The frame scheduler returned an invalid submission handle.");
+                }
+
+                var dependencyOffset = _dependencyOffsets[i];
+                var dependencyCount = _dependencyCounts[i];
+                for (var dependencyIndex = 0; dependencyIndex < dependencyCount; dependencyIndex++)
+                {
+                    var producerId = _producerCommandBufferIds[dependencyOffset + dependencyIndex];
+                    if (_commandBufferQueueTypes[producerId] == _commandBufferQueueTypes[i])
+                    {
+                        continue;
+                    }
+
+                    executionContext.FrameScheduler.AddDependency(_submissionHandles[producerId], submission);
+                }
+
+                if (submission.QueueType == CommandQueueType.Graphics)
+                {
+                    graphicsSubmission = submission;
+                }
+                else if (submission.QueueType == CommandQueueType.Compute)
+                {
+                    computeSubmission = submission;
+                }
+            }
+
+            executionContext.FrameScheduler.CommitSubmissionTransaction(transaction);
+            transaction = default;
+            ClearExecutionScratch();
             return Error.None;
         }
         catch (Exception ex)
         {
-            if (insideNativePass)
+            if (transaction.IsValid)
             {
-                activeCommandBuffer.EndRenderPass();
+                try
+                {
+                    executionContext.FrameScheduler.RollbackSubmissionTransaction(transaction);
+                }
+                catch (Exception rollbackException)
+                {
+                    Logger.Error(rollbackException);
+                }
             }
 
-            // Insert Full Pipeline Barrier
-            var barrier = BarrierDesc.Global(BarrierSync.All, BarrierSync.All, BarrierAccess.Common, BarrierAccess.Common);
-            activeCommandBuffer.Barrier(barrier);
-
+            ReturnAcquiredCommandBuffers(executionContext.GraphicsEngine);
+            graphicsSubmission = default;
+            computeSubmission = default;
             Logger.Error(ex);
             return Error.InternalError;
         }
+    }
+
+    private void RollbackRecording(IGraphicsEngine graphicsEngine, bool insideNativePass)
+    {
+        var activeCommandBuffer = _commandBufferCount > 0
+            ? _commandBuffers[_commandBufferCount - 1]
+            : null;
+
+        if (activeCommandBuffer?.State.IsRecording == true)
+        {
+            if (insideNativePass)
+            {
+                try
+                {
+                    activeCommandBuffer.EndRenderPass();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex);
+                }
+            }
+
+            try
+            {
+                _ = activeCommandBuffer.End();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
+            }
+        }
+
+        ReturnAcquiredCommandBuffers(graphicsEngine);
+    }
+
+    private void ReturnAcquiredCommandBuffers(IGraphicsEngine graphicsEngine)
+    {
+        for (var i = 0; i < _commandBufferCount; i++)
+        {
+            var commandBuffer = _commandBuffers[i];
+            if (commandBuffer == null)
+            {
+                continue;
+            }
+
+            try
+            {
+                graphicsEngine.ReturnPooledCommandBuffer(commandBuffer);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
+            }
+            finally
+            {
+                _commandBuffers[i] = null;
+            }
+        }
+
+        ClearExecutionScratch();
+    }
+
+    private void EnsureScratchCapacity(int requiredCapacity)
+    {
+        if (requiredCapacity <= _commandBuffers.Length)
+        {
+            return;
+        }
+
+        var newCapacity = Math.Max(requiredCapacity, _commandBuffers.Length * 2);
+        Array.Resize(ref _commandBuffers, newCapacity);
+        Array.Resize(ref _submissionHandles, newCapacity);
+        Array.Resize(ref _commandBufferQueueTypes, newCapacity);
+        Array.Resize(ref _dependencyOffsets, newCapacity);
+        Array.Resize(ref _dependencyCounts, newCapacity);
+    }
+
+    private void EnsureProducerIdCapacity(int requiredCapacity)
+    {
+        if (requiredCapacity <= _producerCommandBufferIds.Length)
+        {
+            return;
+        }
+
+        var newCapacity = Math.Max(requiredCapacity, _producerCommandBufferIds.Length * 2);
+        Array.Resize(ref _producerCommandBufferIds, newCapacity);
+    }
+
+    private void ClearExecutionScratch()
+    {
+        Array.Clear(_commandBuffers, 0, _commandBufferCount);
+        Array.Clear(_submissionHandles, 0, _commandBufferCount);
+        Array.Clear(_commandBufferQueueTypes, 0, _commandBufferCount);
+        Array.Clear(_dependencyOffsets, 0, _commandBufferCount);
+        Array.Clear(_dependencyCounts, 0, _commandBufferCount);
+        Array.Clear(_producerCommandBufferIds, 0, _producerCommandBufferIdCount);
+        _commandBufferCount = 0;
+        _producerCommandBufferIdCount = 0;
     }
 
     private Error ExecuteBarrierBatch(
@@ -223,7 +509,7 @@ internal sealed class RenderGraphExecutor
         }
 
         const int MaxBatch = 64;
-        using var scope = AllocationManager.CreateStackScope();
+        using var scope = Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.CreateStackScope();
         using var barriers = new UnsafeList<BarrierDesc>(MaxBatch, scope.AllocationHandle);
 
         void Flush()

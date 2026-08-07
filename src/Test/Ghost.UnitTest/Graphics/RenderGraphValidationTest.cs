@@ -21,10 +21,14 @@ public class RenderGraphValidationTest
     private MockingResourceDatabase _resourceDatabase = null!;
     private MockingResourceAllocator _resourceAllocator = null!;
     private MockingPipelineLibrary _pipelineLibrary = null!;
-    private MockingCommandBuffer _commandBuffer = null!;
+    private MockingGraphicsEngine _graphicsEngine = null!;
+    private ICommandAllocator _graphicsCommandAllocator = null!;
+    private ICommandAllocator _computeCommandAllocator = null!;
+    private FrameScheduler _frameScheduler = null!;
     private ResourceManager _resourceManager = null!;
     private ShaderLibrary _shaderLibrary = null!;
     private RenderGraph _renderGraph = null!;
+    private RenderGraphExecutionContext _executionContext;
 
     [TestInitialize]
     public void Setup()
@@ -33,23 +37,39 @@ public class RenderGraphValidationTest
         _resourceDatabase = new MockingResourceDatabase();
         _resourceAllocator = new MockingResourceAllocator(_resourceDatabase);
         _pipelineLibrary = new MockingPipelineLibrary();
-        _commandBuffer = new MockingCommandBuffer(_resourceDatabase, CommandBufferType.Graphics);
+        _graphicsEngine = new MockingGraphicsEngine(_renderDevice, _resourceDatabase, _resourceAllocator);
+        _graphicsCommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics);
+        _computeCommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Compute);
+        _frameScheduler = new FrameScheduler(_graphicsEngine);
         _resourceManager = new ResourceManager(_renderDevice, _resourceAllocator, _resourceDatabase);
         _shaderLibrary = new ShaderLibrary(null, _pipelineLibrary, string.Empty);
+        _executionContext = new RenderGraphExecutionContext(
+            _graphicsEngine,
+            _frameScheduler,
+            _graphicsCommandAllocator,
+            _computeCommandAllocator);
         _renderGraph = new RenderGraph(_resourceDatabase, _resourceAllocator, _pipelineLibrary, _resourceManager, _shaderLibrary);
     }
 
     [TestCleanup]
     public void Cleanup()
     {
+        _frameScheduler.Dispose();
         _renderGraph.Dispose();
         _shaderLibrary.Dispose();
         _resourceManager.Dispose();
-        _commandBuffer.Dispose();
+        _graphicsCommandAllocator.Dispose();
+        _computeCommandAllocator.Dispose();
+        _graphicsEngine.Dispose();
         _pipelineLibrary.Dispose();
         _resourceAllocator.Dispose();
         _resourceDatabase.Dispose();
         _renderDevice.Dispose();
+    }
+
+    private Result<RGExecution, Error> CompileAndExecute(ViewState viewState)
+    {
+        return _renderGraph.CompileAndExecute(_executionContext, viewState);
     }
 
     [TestMethod]
@@ -147,14 +167,12 @@ public class RenderGraphValidationTest
         builder.Dispose();
 
         var viewState = new ViewState(1920, 1080, 1920, 1080);
-        _renderGraph.CompileAndExecute(_commandBuffer, viewState).GetValueOrThrow();
+        CompileAndExecute(viewState).GetValueOrThrow();
 
         var passes = GetPasses();
         passes[0].renderTargetWrites.Add(buffer.AsResource());
 
-        var error = Assert.ThrowsExactly<InvalidOperationException>(() => _renderGraph.CompileAndExecute(
-            _commandBuffer,
-            viewState));
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => CompileAndExecute(viewState));
         AssertDetailedConflict(error, "CompilerBackstopPass", resourceName, buffer.Value, "ColorAttachment", "requires a texture resource");
     }
 
@@ -176,9 +194,7 @@ public class RenderGraphValidationTest
             AccessFlags.Write,
             new ResourceBarrierData(BarrierLayout.DepthStencilWrite, BarrierAccess.DepthStencilWrite, BarrierSync.DepthStencil));
 
-        var error = Assert.ThrowsExactly<InvalidOperationException>(() => _renderGraph.CompileAndExecute(
-            _commandBuffer,
-            new ViewState(1920, 1080, 1920, 1080)));
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => CompileAndExecute(new ViewState(1920, 1080, 1920, 1080)));
         AssertDetailedConflict(error, "DepthCompilerBackstopPass", resourceName, buffer.Value, "DepthWrite", "requires a texture resource");
     }
 

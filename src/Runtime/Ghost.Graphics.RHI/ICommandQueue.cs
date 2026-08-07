@@ -28,6 +28,10 @@ public interface ICommandQueue : IRHIObject
     /// <summary>
     /// Signals a fence with the specified Value
     /// </summary>
+    /// <remarks>
+    /// A native signal failure is unrecoverable because previously submitted GPU work no longer has a provable completion point.
+    /// Implementations must terminate the process instead of returning or throwing a recoverable exception.
+    /// </remarks>
     /// <param name="fence">Fence to signal</param>
     /// <param name="value">Value to signal</param>
     /// <returns>The fence Value that was signaled</returns>

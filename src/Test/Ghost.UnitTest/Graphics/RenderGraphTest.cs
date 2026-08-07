@@ -11,7 +11,7 @@ namespace Ghost.UnitTest.Graphics;
 
 [TestClass]
 [DoNotParallelize]
-public class RenderGraphTest
+public partial class RenderGraphTest
 {
     private struct CullingPassData
     {
@@ -48,11 +48,15 @@ public class RenderGraphTest
     private MockingResourceDatabase _resourceDatabase = null!;
     private MockingResourceAllocator _resourceAllocator = null!;
     private MockingPipelineLibrary _pipelineLibrary = null!;
-    private MockingCommandBuffer _commandBuffer = null!;
+    private MockingGraphicsEngine _graphicsEngine = null!;
+    private ICommandAllocator _graphicsCommandAllocator = null!;
+    private ICommandAllocator _computeCommandAllocator = null!;
+    private FrameScheduler _frameScheduler = null!;
     private ResourceManager _resourceManager = null!;
     private ShaderLibrary _shaderLibrary = null!;
 
     private RenderGraph _renderGraph = null!;
+    private RenderGraphExecutionContext _executionContext;
 
     [TestInitialize]
     public void Setup()
@@ -61,24 +65,58 @@ public class RenderGraphTest
         _resourceDatabase = new MockingResourceDatabase();
         _resourceAllocator = new MockingResourceAllocator(_resourceDatabase);
         _pipelineLibrary = new MockingPipelineLibrary();
-        _commandBuffer = new MockingCommandBuffer(_resourceDatabase, CommandBufferType.Graphics);
+        _graphicsEngine = new MockingGraphicsEngine(_renderDevice, _resourceDatabase, _resourceAllocator);
+        _graphicsCommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics);
+        _computeCommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Compute);
+        _frameScheduler = new FrameScheduler(_graphicsEngine);
         _resourceManager = new ResourceManager(_renderDevice, _resourceAllocator, _resourceDatabase);
         _shaderLibrary = new ShaderLibrary(null, _pipelineLibrary, string.Empty);
-
+        _executionContext = new RenderGraphExecutionContext(
+            _graphicsEngine,
+            _frameScheduler,
+            _graphicsCommandAllocator,
+            _computeCommandAllocator);
+#if GHOST_UNITTEST
+        MockingCommandQueue.GlobalRecordedOps.Clear();
+#endif
         _renderGraph = new RenderGraph(_resourceDatabase, _resourceAllocator, _pipelineLibrary, _resourceManager, _shaderLibrary);
     }
 
     [TestCleanup]
     public void Cleanup()
     {
+        _frameScheduler.Dispose();
         _renderGraph.Dispose();
         _shaderLibrary.Dispose();
         _resourceManager.Dispose();
-        _commandBuffer.Dispose();
+        _graphicsCommandAllocator.Dispose();
+        _computeCommandAllocator.Dispose();
+        _graphicsEngine.Dispose();
         _pipelineLibrary.Dispose();
         _resourceAllocator.Dispose();
         _resourceDatabase.Dispose();
         _renderDevice.Dispose();
+#if GHOST_UNITTEST
+        MockingCommandQueue.GlobalRecordedOps.Clear();
+#endif
+    }
+
+    private Result<RGExecution, Error> CompileAndExecute(
+        ViewState viewState,
+        RGExecutionFlags flags = RGExecutionFlags.Default)
+    {
+        _graphicsEngine.ResetCommandBufferTracking();
+        return _renderGraph.CompileAndExecute(_executionContext, viewState, flags | RGExecutionFlags.ForceGraphics);
+    }
+
+    private IEnumerable<BarrierDesc> GetRecordedBarriers()
+    {
+        return _graphicsEngine.AcquiredCommandBuffers.SelectMany(commandBuffer => commandBuffer.RecordedBarriers);
+    }
+
+    private int GetDispatchCallCount()
+    {
+        return _graphicsEngine.AcquiredCommandBuffers.Sum(commandBuffer => commandBuffer.DispatchCallCount);
     }
 
     private void SetupTestRenderPipeline()
@@ -239,13 +277,39 @@ public class RenderGraphTest
         builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => { });
     }
 
+    private void SetupPhase4SplitPipeline(bool throwInComputeCallback = false)
+    {
+        var producer = AddPlannerGraphicsProducer("Phase4Producer");
+        Identifier<RGBuffer> computeOutput;
+
+        if (throwInComputeCallback)
+        {
+            using var builder = _renderGraph.AddComputeRenderPass<AsyncPlannerPassData>("Phase4Compute");
+            builder.AllowPassCulling(false);
+            builder.EnableAsyncCompute(true);
+            builder.UseBuffer(producer, AccessFlags.Read);
+            computeOutput = builder.CreateBuffer(new BufferDesc { Size = 1024 }, "Phase4Compute_Output");
+            builder.UseBuffer(computeOutput, AccessFlags.Write);
+            builder.SetPassData(new AsyncPlannerPassData { firstBuffer = producer, secondBuffer = computeOutput });
+            builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => throw new InvalidOperationException("Injected pass callback failure."));
+        }
+        else
+        {
+            computeOutput = AddPlannerAsyncCompute("Phase4Compute", producer);
+        }
+
+        AddPlannerRasterPass("Phase4Independent");
+        AddPlannerRasterPass("Phase4Join", computeOutput);
+    }
+
+    private static int GetCommandBufferSegmentCount(RenderGraphDump dump)
+    {
+        return dump.CommandStream.Count(line => line.Contains("CommandBufferSyncPoint", StringComparison.Ordinal)) + 1;
+    }
+
     private RenderGraphDump CompilePlannerDump()
     {
-        _commandBuffer.Begin(null!);
-        var execution = _renderGraph.CompileAndExecute(
-            _commandBuffer,
-            new ViewState(1920, 1080, 1920, 1080),
-            RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execution.Dump);
         return execution.Dump;
     }
@@ -255,7 +319,7 @@ public class RenderGraphTest
     {
         SetupTestRenderPipeline();
 
-        var execution = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState
+        var execution = CompileAndExecute(new ViewState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -271,7 +335,7 @@ public class RenderGraphTest
     {
         SetupTestRenderPipeline();
 
-        var execution = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState
+        var execution = CompileAndExecute(new ViewState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -316,7 +380,7 @@ public class RenderGraphTest
 
         // Frame 1: Initial compilation (Cache Miss)
         SetupTestRenderPipeline();
-        var execFrame1 = _renderGraph.CompileAndExecute(_commandBuffer, viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execFrame1 = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execFrame1.Dump);
         Assert.IsFalse(execFrame1.Dump.IsCacheHit, "Frame 1 should be a cache miss.");
 
@@ -324,7 +388,7 @@ public class RenderGraphTest
 
         // Frame 2: Same pipeline setup (Cache Hit)
         SetupTestRenderPipeline();
-        var execFrame2 = _renderGraph.CompileAndExecute(_commandBuffer, viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execFrame2 = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execFrame2.Dump);
         Assert.IsTrue(execFrame2.Dump.IsCacheHit, "Frame 2 should be a cache hit.");
 
@@ -350,7 +414,7 @@ public class RenderGraphTest
                 $"Cache hits must preserve aliases for resource #{freshResource.LogicalResourceId}.");
         }
 
-        var executionWithoutDump = _renderGraph.CompileAndExecute(_commandBuffer, viewState).GetValueOrThrow();
+        var executionWithoutDump = CompileAndExecute(viewState).GetValueOrThrow();
         Assert.IsNull(executionWithoutDump.Dump, "A previous diagnostic request must not leak into later executions.");
     }
 
@@ -381,10 +445,7 @@ public class RenderGraphTest
         }
 
         SetupMergedPasses();
-        var freshExecution = _renderGraph.CompileAndExecute(
-            _commandBuffer,
-            viewState,
-            RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var freshExecution = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(freshExecution.Dump);
         var freshPasses = freshExecution.Dump.Passes.Where(pass => pass.Name.StartsWith("MergedPass", StringComparison.Ordinal)).ToList();
         Assert.HasCount(2, freshPasses);
@@ -395,10 +456,7 @@ public class RenderGraphTest
         _renderGraph.Reset();
 
         SetupMergedPasses();
-        var cachedExecution = _renderGraph.CompileAndExecute(
-            _commandBuffer,
-            viewState,
-            RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var cachedExecution = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(cachedExecution.Dump);
         Assert.IsTrue(cachedExecution.Dump.IsCacheHit);
         var cachedPasses = cachedExecution.Dump.Passes.Where(pass => pass.Name.StartsWith("MergedPass", StringComparison.Ordinal)).ToList();
@@ -453,7 +511,7 @@ public class RenderGraphTest
             builder.SetRenderFunc<FinalBlitPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var exec = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState
+        var exec = CompileAndExecute(new ViewState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -483,7 +541,7 @@ public class RenderGraphTest
         Assert.Contains("FirstUsage", aliasingLines[0]);
         Assert.Contains("Discard", aliasingLines[0]);
 
-        var textureAliasingBarriers = _commandBuffer.RecordedBarriers
+        var textureAliasingBarriers = GetRecordedBarriers()
             .Where(barrier => barrier.IsAliasing && _resourceDatabase.GetResourceName(barrier.Resource) == "TextureB")
             .ToList();
         Assert.HasCount(1, textureAliasingBarriers, "The texture alias must execute as one aliasing barrier.");
@@ -559,14 +617,14 @@ public class RenderGraphTest
             Assert.Contains("FirstUsage", aliasingLines[0]);
             Assert.Contains("Discard", aliasingLines[0]);
 
-            var aliasingBarriers = _commandBuffer.RecordedBarriers
+            var aliasingBarriers = GetRecordedBarriers()
                 .Where(barrier => barrier.IsAliasing && _resourceDatabase.GetResourceName(barrier.Resource) == "BufferAliasB")
                 .ToList();
             Assert.HasCount(1, aliasingBarriers, "The buffer alias must execute as one aliasing barrier.");
             Assert.AreEqual(BarrierAccess.UnorderedAccess, aliasingBarriers[0].AccessAfter);
             Assert.AreEqual(BarrierSync.ComputeShading, aliasingBarriers[0].SyncAfter);
 
-            var firstUseTransitions = _commandBuffer.RecordedBarriers
+            var firstUseTransitions = GetRecordedBarriers()
                 .Where(barrier => _resourceDatabase.GetResourceName(barrier.Resource) == "BufferAliasB" && barrier.AccessAfter == BarrierAccess.UnorderedAccess)
                 .ToList();
             Assert.HasCount(1, firstUseTransitions, "The aliased buffer first use must not emit a second ordinary UAV transition.");
@@ -574,20 +632,13 @@ public class RenderGraphTest
         }
 
         var (before, after) = AddAliasingBufferPasses();
-        var execution = _renderGraph.CompileAndExecute(
-            _commandBuffer,
-            new ViewState(1920, 1080, 1920, 1080),
-            RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
         AssertAliasingTransition(execution, before, after);
 
         _renderGraph.Reset();
-        _commandBuffer.RecordedBarriers.Clear();
 
         var (cachedBefore, cachedAfter) = AddAliasingBufferPasses();
-        var cachedExecution = _renderGraph.CompileAndExecute(
-            _commandBuffer,
-            new ViewState(1920, 1080, 1920, 1080),
-            RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var cachedExecution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(cachedExecution.Dump);
         Assert.IsTrue(cachedExecution.Dump.IsCacheHit, "The second equivalent graph must replay the cached barrier stream.");
         AssertAliasingTransition(cachedExecution, cachedBefore, cachedAfter);
@@ -625,7 +676,7 @@ public class RenderGraphTest
             builder.SetRenderFunc<FinalBlitPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var exec = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState
+        var exec = CompileAndExecute(new ViewState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -673,9 +724,7 @@ public class RenderGraphTest
             builder.SetRenderFunc<FinalBlitPassData>(static (ref readonly data, ctx) => { });
         }
 
-        _commandBuffer.Begin(null!);
-
-        var exec = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState
+        var exec = CompileAndExecute(new ViewState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -683,11 +732,11 @@ public class RenderGraphTest
             viewportHeight = 1080
         }).GetValueOrThrow();
 
-        Assert.IsNotEmpty(_commandBuffer.RecordedBarriers, "Barriers should be issued during graph execution.");
+        Assert.IsNotEmpty(GetRecordedBarriers(), "Barriers should be issued during graph execution.");
 
         // Check that at least one barrier transitioned a texture to RenderTarget and ShaderResource
-        var hasRenderTargetBarrier = _commandBuffer.RecordedBarriers.Any(b => b.LayoutAfter == BarrierLayout.RenderTarget);
-        var hasShaderResourceBarrier = _commandBuffer.RecordedBarriers.Any(b => b.LayoutAfter == BarrierLayout.ShaderResource);
+        var hasRenderTargetBarrier = GetRecordedBarriers().Any(b => b.LayoutAfter == BarrierLayout.RenderTarget);
+        var hasShaderResourceBarrier = GetRecordedBarriers().Any(b => b.LayoutAfter == BarrierLayout.ShaderResource);
 
         Assert.IsTrue(hasRenderTargetBarrier, "Must issue a RenderTarget barrier for color attachment.");
         Assert.IsTrue(hasShaderResourceBarrier, "Must issue a ShaderResource barrier when reading texture.");
@@ -706,7 +755,7 @@ public class RenderGraphTest
             builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var execution = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execution.Dump);
 
         var resourceLabel = $"[Buffer #{readWriteBuffer.Value}]";
@@ -737,7 +786,7 @@ public class RenderGraphTest
         }
 
         var repeatedBuffer = SetupReadPass(repeatDeclaration: true);
-        var repeatedExecution = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var repeatedExecution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(repeatedExecution.Dump);
 
         var repeatedPass = repeatedExecution.Dump.Passes.Single(pass => pass.Name == "RepeatedRead");
@@ -749,7 +798,7 @@ public class RenderGraphTest
         _renderGraph.Reset();
 
         SetupReadPass(repeatDeclaration: false);
-        var singleExecution = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var singleExecution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(singleExecution.Dump);
         Assert.AreEqual(repeatedExecution.Dump.GraphHash, singleExecution.Dump.GraphHash, "Duplicate declarations must not alter the structural graph hash.");
         Assert.IsTrue(singleExecution.Dump.IsCacheHit, "Canonical declarations must reuse the compilation cached for the equivalent graph.");
@@ -779,7 +828,7 @@ public class RenderGraphTest
             builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var execution = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execution.Dump);
 
         var pass = execution.Dump.Passes.Single(item => item.Name == "RepeatedRandomAccess");
@@ -815,7 +864,7 @@ public class RenderGraphTest
         AddPass("WriteC", AccessFlags.Write);
         AddPass("WriteD", AccessFlags.Write);
 
-        var execution = _renderGraph.CompileAndExecute(_commandBuffer, new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execution.Dump);
 
         var executionOrder = execution.Dump.CommandStream.Where(line => line.Contains("ExecutePass")).ToList();
@@ -866,14 +915,14 @@ public class RenderGraphTest
         }
 
         SetupPipeline(false);
-        var firstExecution = _renderGraph.CompileAndExecute(_commandBuffer, viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var firstExecution = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(firstExecution.Dump);
         Assert.IsFalse(firstExecution.Dump.IsCacheHit);
 
         _renderGraph.Reset();
 
         SetupPipeline(true);
-        var secondExecution = _renderGraph.CompileAndExecute(_commandBuffer, viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var secondExecution = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(secondExecution.Dump);
         Assert.IsTrue(secondExecution.Dump.IsCacheHit);
         Assert.AreEqual(firstExecution.Dump.GraphHash, secondExecution.Dump.GraphHash);
@@ -881,19 +930,6 @@ public class RenderGraphTest
     }
 
 #if GHOST_UNITTEST
-    [TestMethod]
-    public void TestMockQueueRejectsRecordingCommandBufferSubmission()
-    {
-        MockingCommandQueue.GlobalRecordedOps.Clear();
-        var commandBuffer = new MockingCommandBuffer(_resourceDatabase, CommandBufferType.Graphics);
-        var queue = new MockingCommandQueue(CommandQueueType.Graphics, validateCommandBufferState: true);
-        commandBuffer.Begin(null!);
-
-        Assert.ThrowsExactly<InvalidOperationException>(() => queue.Submit(commandBuffer));
-        Assert.HasCount(1, MockingCommandQueue.GlobalRecordedOps);
-        Assert.IsTrue(MockingCommandQueue.GlobalRecordedOps[0].CommandBufferWasRecording);
-    }
-
     [TestMethod]
     public void TestAsyncComputeEligibilityExecutesOnGraphicsQueue()
     {
@@ -923,12 +959,7 @@ public class RenderGraphTest
             builder.SetRenderFunc<VBufferPassData>(static (ref readonly data, ctx) => { });
         }
 
-        _commandBuffer.Begin(null!);
-
-        var execResult = _renderGraph.CompileAndExecute(
-            _commandBuffer,
-            new ViewState(1920, 1080, 1920, 1080),
-            RGExecutionFlags.GenerateDump);
+        var execResult = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump);
 
         Assert.IsTrue(execResult.IsSuccess, "Async-eligible compute should execute successfully on the graphics queue.");
         var exec = execResult.Value;
@@ -938,7 +969,7 @@ public class RenderGraphTest
         Assert.IsTrue(asyncPass.AsyncCompute, "AsyncComputeCulling should retain the compatibility flag.");
         Assert.IsTrue(asyncPass.AsyncRequested, "AsyncComputeCulling should retain async scheduling intent.");
         Assert.AreEqual(CommandQueueType.Graphics, asyncPass.EffectiveQueue, "Async-eligible compute must execute on Graphics during containment.");
-        Assert.AreEqual(1, _commandBuffer.DispatchCallCount, "The compute callback must dispatch through the graphics command buffer.");
+        Assert.AreEqual(1, GetDispatchCallCount(), "The compute callback must dispatch through the graphics command buffer.");
         Assert.IsEmpty(MockingCommandQueue.GlobalRecordedOps, "The contained render graph must not submit, signal, or wait on queues.");
         Assert.IsTrue(exec.Dump.CommandStream.Any(line => line.Contains("AsyncComputeCulling") && line.Contains("AsyncRequested: True, EffectiveQueue: Graphics")));
         var hasQueueOperation = exec.Dump.CommandStream.Any(line => line.Contains("SignalFence") || line.Contains("SubmitQueue") || line.Contains("GPUWait"));
@@ -978,13 +1009,13 @@ public class RenderGraphTest
         }
 
         SetupComputePass(asyncRequested: true);
-        var asyncExecution = _renderGraph.CompileAndExecute(_commandBuffer, viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var asyncExecution = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(asyncExecution.Dump);
 
         _renderGraph.Reset();
 
         SetupComputePass(asyncRequested: false);
-        var graphicsExecution = _renderGraph.CompileAndExecute(_commandBuffer, viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var graphicsExecution = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(graphicsExecution.Dump);
 
         Assert.AreNotEqual(asyncExecution.Dump.GraphHash, graphicsExecution.Dump.GraphHash, "Async scheduling intent must remain part of the graph hash.");
@@ -1035,7 +1066,7 @@ public class RenderGraphTest
         Assert.AreEqual(CommandQueueType.Graphics, compute.SyncBoundaryBefore.Value.SourceType);
         Assert.AreEqual(CommandQueueType.Compute, compute.SyncBoundaryBefore.Value.DestinationType);
         Assert.AreEqual(CommandQueueType.Compute, consumer.SyncBoundaryBefore.Value.ProducerTypes[0]);
-        Assert.AreEqual(1, _commandBuffer.DispatchCallCount, "Phase 2 must still record Compute callbacks into the Graphics command buffer.");
+        Assert.AreEqual(1, GetDispatchCallCount(), "Phase 2 must still record Compute callbacks into the Graphics command buffer.");
     }
 
     [TestMethod]
@@ -1153,440 +1184,5 @@ public class RenderGraphTest
     // ------------------------------------------------------------------------------------------
     // Phase 1: Structural sync-point command-stream encoding
     // ------------------------------------------------------------------------------------------
-
-    [TestMethod]
-    public void TestPhase3_CrossQueueHandoffsAreSerializedAndContained()
-    {
-        var producer = AddPlannerGraphicsProducer("HandoffProducer");
-        var computeOutput = AddPlannerAsyncCompute("HandoffCompute", producer);
-        AddPlannerRasterPass("HandoffIndependent");
-        AddPlannerRasterPass("HandoffJoin", computeOutput);
-
-        var dump = CompilePlannerDump();
-        var releases = dump.CommandStream.Where(line => line.Contains("QueueRelease", StringComparison.Ordinal)).ToList();
-        var acquires = dump.CommandStream.Where(line => line.Contains("QueueAcquire", StringComparison.Ordinal)).ToList();
-
-        Assert.HasCount(2, releases);
-        Assert.HasCount(2, acquires);
-        Assert.IsTrue(releases.Any(line => line.Contains("Graphics -> Compute", StringComparison.Ordinal)));
-        Assert.IsTrue(releases.Any(line => line.Contains("Compute -> Graphics", StringComparison.Ordinal)));
-        Assert.IsTrue(releases.All(line => line.Contains("Access: NoAccess", StringComparison.Ordinal)));
-        Assert.IsTrue(releases.All(line => line.Contains("Sync: None", StringComparison.Ordinal)));
-        Assert.AreEqual(1, _commandBuffer.DispatchCallCount, "Contained execution must still record Compute work on Graphics.");
-    }
-
-    [TestMethod]
-    public void TestPhase3_CrossQueueRawWarAndWawEachProduceOneHandoff()
-    {
-        Identifier<RGBuffer> rawResource;
-        Identifier<RGTexture> warResource;
-        Identifier<RGBuffer> wawResource;
-        using (var builder = _renderGraph.AddRasterRenderPass<AsyncPlannerPassData>("HazardProducer"))
-        {
-            builder.AllowPassCulling(false);
-            rawResource = builder.CreateBuffer(new BufferDesc { Size = 1024 }, "RawHazard");
-            builder.UseRandomAccessBuffer(rawResource);
-            warResource = builder.CreateTexture(
-                RGTextureDesc.Relative(1.0f, TextureFormat.R8G8B8A8_UNorm),
-                "WarHazard");
-            builder.UseTexture(warResource, AccessFlags.Read);
-            wawResource = builder.CreateBuffer(new BufferDesc { Size = 1024 }, "WawHazard");
-            builder.UseRandomAccessBuffer(wawResource);
-            var target = builder.CreateTexture(
-                RGTextureDesc.Relative(1.0f, TextureFormat.R8G8B8A8_UNorm),
-                "HazardProducerTarget");
-            builder.SetColorAttachment(target, 0, AccessFlags.WriteAll);
-            builder.SetPassData(new AsyncPlannerPassData { firstBuffer = rawResource, secondBuffer = wawResource, target = target });
-            builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => { });
-        }
-
-        Identifier<RGBuffer> computeOutput;
-        using (var builder = _renderGraph.AddComputeRenderPass<AsyncPlannerPassData>("HazardCompute"))
-        {
-            builder.AllowPassCulling(false);
-            builder.EnableAsyncCompute(true);
-            builder.UseBuffer(rawResource, AccessFlags.Read);
-            builder.UseTexture(warResource, AccessFlags.Write);
-            builder.UseBuffer(wawResource, AccessFlags.Write);
-            computeOutput = builder.CreateBuffer(new BufferDesc { Size = 1024 }, "HazardComputeOutput");
-            builder.UseBuffer(computeOutput, AccessFlags.Write);
-            builder.SetPassData(new AsyncPlannerPassData { firstBuffer = rawResource, secondBuffer = computeOutput });
-            builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => ctx.DispatchCompute(1, 1, 1));
-        }
-
-        AddPlannerRasterPass("HazardIndependent");
-        AddPlannerRasterPass("HazardJoin", computeOutput);
-        var dump = CompilePlannerDump();
-        var releases = dump.CommandStream
-            .Where(line => line.Contains("QueueRelease", StringComparison.Ordinal)
-                && line.Contains("Graphics -> Compute", StringComparison.Ordinal))
-            .ToList();
-        var acquires = dump.CommandStream
-            .Where(line => line.Contains("QueueAcquire", StringComparison.Ordinal)
-                && line.Contains("Graphics -> Compute", StringComparison.Ordinal))
-            .ToList();
-
-        Assert.HasCount(3, releases);
-        Assert.HasCount(3, acquires);
-        Assert.IsTrue(releases.Any(line => line.Contains("RawHazard", StringComparison.Ordinal)));
-        Assert.IsTrue(releases.Any(line => line.Contains("WarHazard", StringComparison.Ordinal)));
-        Assert.IsTrue(releases.Any(line => line.Contains("WawHazard", StringComparison.Ordinal)));
-    }
-
-    [TestMethod]
-    public void TestPhase3_ParallelReadersPreserveCrossQueueWarHandoff()
-    {
-        var sharedResource = AddPlannerGraphicsProducer("WarFanoutProducer");
-        var computeOutput = AddPlannerAsyncCompute("WarFanoutCompute", sharedResource);
-        AddPlannerRasterPass("WarFanoutGraphicsReader", sharedResource);
-
-        using (var builder = _renderGraph.AddRasterRenderPass<AsyncPlannerPassData>("WarFanoutJoin"))
-        {
-            builder.AllowPassCulling(false);
-            builder.UseBuffer(computeOutput, AccessFlags.Read);
-            builder.UseRandomAccessBuffer(sharedResource);
-            var target = builder.CreateTexture(
-                RGTextureDesc.Relative(1.0f, TextureFormat.R8G8B8A8_UNorm),
-                "WarFanoutJoinTarget");
-            builder.SetColorAttachment(target, 0, AccessFlags.WriteAll);
-            builder.SetPassData(new AsyncPlannerPassData { firstBuffer = computeOutput, secondBuffer = sharedResource, target = target });
-            builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => { });
-        }
-
-        var dump = CompilePlannerDump();
-        var warReleases = dump.CommandStream
-            .Where(line => line.Contains("QueueRelease", StringComparison.Ordinal)
-                && line.Contains("Compute -> Graphics", StringComparison.Ordinal)
-                && line.Contains("WarFanoutProducer_Output", StringComparison.Ordinal))
-            .ToList();
-
-        Assert.AreEqual(CommandQueueType.Compute, dump.Passes.Single(pass => pass.Name == "WarFanoutCompute").EffectiveQueue);
-        Assert.HasCount(1, warReleases);
-    }
-
-    [TestMethod]
-    public void TestPhase3_ComputeUavWawForcesSameStateBarrier()
-    {
-        Identifier<RGBuffer> buffer;
-        using (var builder = _renderGraph.AddComputeRenderPass<CullingPassData>("UavWriteA"))
-        {
-            builder.AllowPassCulling(false);
-            buffer = builder.CreateBuffer(new BufferDesc { Size = 1024 }, "ForcedUavBuffer");
-            builder.UseBuffer(buffer, AccessFlags.ReadWrite);
-            builder.SetPassData(new CullingPassData());
-            builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => ctx.DispatchCompute(1, 1, 1));
-        }
-
-        using (var builder = _renderGraph.AddComputeRenderPass<CullingPassData>("UavWriteB"))
-        {
-            builder.AllowPassCulling(false);
-            builder.UseBuffer(buffer, AccessFlags.ReadWrite);
-            builder.SetPassData(new CullingPassData());
-            builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => ctx.DispatchCompute(1, 1, 1));
-        }
-
-        _commandBuffer.Begin(null!);
-        var execution = _renderGraph.CompileAndExecute(
-            _commandBuffer,
-            new ViewState(1920, 1080, 1920, 1080),
-            RGExecutionFlags.GenerateDump).GetValueOrThrow();
-        Assert.IsNotNull(execution.Dump);
-        Assert.IsTrue(_commandBuffer.RecordedBarriers.Any(barrier => barrier.Force));
-        Assert.IsTrue(execution.Dump.CommandStream.Any(
-            line => line.Contains("ForcedUavBuffer", StringComparison.Ordinal)
-                && line.Contains("Force", StringComparison.Ordinal)));
-    }
-
-    [TestMethod]
-    public void TestPhase3_IncomparableGraphicsAndComputeResourcesDoNotAlias()
-    {
-        var producer = AddPlannerGraphicsProducer("AliasForkProducer");
-        Identifier<RGBuffer> computeTransient;
-        Identifier<RGBuffer> computeOutput;
-        using (var builder = _renderGraph.AddComputeRenderPass<AsyncPlannerPassData>("AliasForkCompute"))
-        {
-            builder.AllowPassCulling(false);
-            builder.EnableAsyncCompute(true);
-            builder.UseBuffer(producer, AccessFlags.Read);
-            computeTransient = builder.CreateBuffer(new BufferDesc { Size = 1024 }, "ComputeTransient");
-            builder.UseBuffer(computeTransient, AccessFlags.ReadWrite);
-            computeOutput = builder.CreateBuffer(new BufferDesc { Size = 1024 }, "AliasForkOutput");
-            builder.UseBuffer(computeOutput, AccessFlags.Write);
-            builder.SetPassData(new AsyncPlannerPassData { firstBuffer = producer, secondBuffer = computeOutput });
-            builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => ctx.DispatchCompute(1, 1, 1));
-        }
-
-        Identifier<RGBuffer> graphicsTransient;
-        using (var builder = _renderGraph.AddRasterRenderPass<AsyncPlannerPassData>("AliasForkGraphics"))
-        {
-            builder.AllowPassCulling(false);
-            graphicsTransient = builder.CreateBuffer(new BufferDesc { Size = 1024 }, "GraphicsTransient");
-            var target = builder.CreateTexture(
-                RGTextureDesc.Relative(1.0f, TextureFormat.R8G8B8A8_UNorm),
-                "AliasForkGraphicsTarget");
-            builder.SetColorAttachment(target, 0, AccessFlags.WriteAll);
-            builder.SetPassData(new AsyncPlannerPassData { target = target });
-            builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => { });
-        }
-
-        AddPlannerRasterPass("AliasForkJoin", computeOutput);
-        var dump = CompilePlannerDump();
-        var computeResource = dump.Resources.Single(resource => resource.LogicalResourceId == computeTransient.Value);
-        var graphicsResource = dump.Resources.Single(resource => resource.LogicalResourceId == graphicsTransient.Value);
-
-        Assert.AreNotEqual(computeResource.HeapOffset, graphicsResource.HeapOffset);
-        Assert.DoesNotContain(graphicsTransient.Value, computeResource.AliasedWithResources);
-        Assert.DoesNotContain(computeTransient.Value, graphicsResource.AliasedWithResources);
-    }
-
-    [TestMethod]
-    public void TestPhase3_TransitivelyOrderedCrossQueueResourcesMayAlias()
-    {
-        Identifier<RGBuffer> firstResource;
-        Identifier<RGBuffer> dependencyResource;
-        using (var builder = _renderGraph.AddRasterRenderPass<AsyncPlannerPassData>("AliasOrderedProducer"))
-        {
-            builder.AllowPassCulling(false);
-            firstResource = builder.CreateBuffer(new BufferDesc { Size = 1024 }, "OrderedBefore");
-            dependencyResource = builder.CreateBuffer(new BufferDesc { Size = 1024 }, "OrderingDependency");
-            var target = builder.CreateTexture(
-                RGTextureDesc.Relative(1.0f, TextureFormat.R8G8B8A8_UNorm),
-                "AliasOrderedProducerTarget");
-            builder.SetColorAttachment(target, 0, AccessFlags.WriteAll);
-            builder.SetPassData(new AsyncPlannerPassData { firstBuffer = dependencyResource, target = target });
-            builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => { });
-        }
-
-        Identifier<RGBuffer> secondResource;
-        using (var builder = _renderGraph.AddComputeRenderPass<AsyncPlannerPassData>("AliasOrderedCompute"))
-        {
-            builder.AllowPassCulling(false);
-            builder.EnableAsyncCompute(true);
-            builder.UseBuffer(dependencyResource, AccessFlags.Read);
-            secondResource = builder.CreateBuffer(new BufferDesc { Size = 1024 }, "OrderedAfter");
-            builder.UseBuffer(secondResource, AccessFlags.Write);
-            builder.SetPassData(new AsyncPlannerPassData { firstBuffer = dependencyResource, secondBuffer = secondResource });
-            builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => ctx.DispatchCompute(1, 1, 1));
-        }
-
-        AddPlannerRasterPass("AliasOrderedIndependent");
-        AddPlannerRasterPass("AliasOrderedJoin", secondResource);
-        var dump = CompilePlannerDump();
-        var before = dump.Resources.Single(resource => resource.LogicalResourceId == firstResource.Value);
-        var after = dump.Resources.Single(resource => resource.LogicalResourceId == secondResource.Value);
-
-        Assert.AreEqual(before.HeapOffset, after.HeapOffset);
-        Assert.Contains(secondResource.Value, before.AliasedWithResources);
-        Assert.Contains(firstResource.Value, after.AliasedWithResources);
-    }
-
-    [TestMethod]
-    public void TestPhase3_SyncBoundarySplitsCompatibleNativePasses()
-    {
-        var producer = AddPlannerGraphicsProducer("NativeSplitProducer");
-        var computeOutput = AddPlannerAsyncCompute("NativeSplitCompute", producer);
-        var targetDesc = new TextureDesc
-        {
-            Width = 1920,
-            Height = 1080,
-            Format = TextureFormat.R8G8B8A8_UNorm,
-            Usage = TextureUsage.RenderTarget
-        };
-        var target = _renderGraph.ImportTexture(_resourceAllocator.CreateTexture(in targetDesc));
-
-        void AddTargetPass(string name, Identifier<RGBuffer>? input)
-        {
-            using var builder = _renderGraph.AddRasterRenderPass<AsyncPlannerPassData>(name);
-            builder.AllowPassCulling(false);
-            if (input.HasValue)
-            {
-                builder.UseBuffer(input.Value, AccessFlags.Read);
-            }
-            builder.SetColorAttachment(target, 0, AccessFlags.WriteAll);
-            builder.SetPassData(new AsyncPlannerPassData { target = target });
-            builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => { });
-        }
-
-        AddTargetPass("NativeSplitIndependent", null);
-        AddTargetPass("NativeSplitJoin", computeOutput);
-        var dump = CompilePlannerDump();
-        var independent = dump.Passes.Single(pass => pass.Name == "NativeSplitIndependent");
-        var join = dump.Passes.Single(pass => pass.Name == "NativeSplitJoin");
-
-        Assert.AreEqual(CommandQueueType.Compute, dump.Passes.Single(pass => pass.Name == "NativeSplitCompute").EffectiveQueue);
-        Assert.AreNotEqual(independent.NativePassIndex, join.NativePassIndex);
-        Assert.HasCount(3, dump.CommandStream.Where(line => line.Contains("CommandBufferSyncPoint", StringComparison.Ordinal)));
-    }
-
-    [TestMethod]
-    public void TestPhase3_ViewportGrowthPreservesAliasGroupsAndCommandBytes()
-    {
-        SetupTestRenderPipeline();
-        var firstExecution = _renderGraph.CompileAndExecute(
-            _commandBuffer,
-            new ViewState(960, 540, 960, 540),
-            RGExecutionFlags.GenerateDump).GetValueOrThrow();
-        Assert.IsNotNull(firstExecution.Dump);
-
-        _renderGraph.Reset();
-        SetupTestRenderPipeline();
-        var grownExecution = _renderGraph.CompileAndExecute(
-            _commandBuffer,
-            new ViewState(1920, 1080, 1920, 1080),
-            RGExecutionFlags.GenerateDump).GetValueOrThrow();
-        Assert.IsNotNull(grownExecution.Dump);
-        Assert.IsTrue(grownExecution.Dump.IsCacheHit);
-        Assert.IsTrue(firstExecution.Dump.CommandStream.SequenceEqual(grownExecution.Dump.CommandStream));
-
-        foreach (var firstResource in firstExecution.Dump.Resources)
-        {
-            var grownResource = grownExecution.Dump.Resources.Single(
-                resource => resource.LogicalResourceId == firstResource.LogicalResourceId);
-            Assert.IsTrue(firstResource.AliasedWithResources.SequenceEqual(grownResource.AliasedWithResources));
-            Assert.AreEqual(firstResource.ScheduledFirstUseIndex, grownResource.ScheduledFirstUseIndex);
-            Assert.AreEqual(firstResource.ScheduledLastUseIndex, grownResource.ScheduledLastUseIndex);
-        }
-    }
-
-    [TestMethod]
-    public void TestSyncMarkerRoundTrip_SingleDependency()
-    {
-        using var scope = AllocationManager.CreateStackScope();
-        var writer = new BufferWriter(256, scope.AllocationHandle);
-
-        // Write a sync marker: command buffer 1 (Compute) depends on command buffer 0 (Graphics).
-        var producerIds = new int[] { 0 };
-        RGCommandStream.WriteSyncMarker(ref writer, CommandQueueType.Compute, producerIds, nextCommandBufferId: 1);
-
-        var reader = new SpanReader(writer.AsSpan());
-        var opcode = reader.Read<RGExecutionOpType>();
-        Assert.AreEqual(RGExecutionOpType.CommandBufferSyncPoint, opcode);
-
-        var marker = RGCommandStream.ReadSyncMarker(ref reader);
-        Assert.AreEqual(CommandQueueType.Compute, marker.NextCommandBufferType);
-        Assert.AreEqual(1, marker.ProducerCommandBufferIds.Length);
-        Assert.AreEqual(0, marker.ProducerCommandBufferIds[0]);
-        Assert.AreEqual(0, reader.RemainingBytes, "No trailing bytes expected after a single sync marker.");
-        writer.Dispose();
-    }
-
-    [TestMethod]
-    public void TestSyncMarkerRoundTrip_NoDependencies()
-    {
-        using var scope = AllocationManager.CreateStackScope();
-        var writer = new BufferWriter(256, scope.AllocationHandle);
-
-        RGCommandStream.WriteSyncMarker(ref writer, CommandQueueType.Graphics, ReadOnlySpan<int>.Empty, nextCommandBufferId: 1);
-
-        var reader = new SpanReader(writer.AsSpan());
-        Assert.AreEqual(RGExecutionOpType.CommandBufferSyncPoint, reader.Read<RGExecutionOpType>());
-
-        var marker = RGCommandStream.ReadSyncMarker(ref reader);
-        Assert.AreEqual(CommandQueueType.Graphics, marker.NextCommandBufferType);
-        Assert.AreEqual(0, marker.ProducerCommandBufferIds.Length);
-        Assert.AreEqual(0, reader.RemainingBytes);
-        writer.Dispose();
-    }
-
-    [TestMethod]
-    public void TestSyncMarkerRoundTrip_MultipleDependencies()
-    {
-        using var scope = AllocationManager.CreateStackScope();
-        var writer = new BufferWriter(256, scope.AllocationHandle);
-
-        // Fork/join: command buffer 3 (Graphics consumer) depends on Compute 1 and Graphics 2.
-        var producerIds = new int[] { 1, 2 };
-        RGCommandStream.WriteSyncMarker(ref writer, CommandQueueType.Graphics, producerIds, nextCommandBufferId: 3);
-
-        var reader = new SpanReader(writer.AsSpan());
-        Assert.AreEqual(RGExecutionOpType.CommandBufferSyncPoint, reader.Read<RGExecutionOpType>());
-
-        var marker = RGCommandStream.ReadSyncMarker(ref reader);
-        Assert.AreEqual(CommandQueueType.Graphics, marker.NextCommandBufferType);
-        Assert.AreEqual(2, marker.ProducerCommandBufferIds.Length);
-        Assert.AreEqual(1, marker.ProducerCommandBufferIds[0]);
-        Assert.AreEqual(2, marker.ProducerCommandBufferIds[1]);
-        Assert.AreEqual(0, reader.RemainingBytes);
-        writer.Dispose();
-    }
-
-    [TestMethod]
-    public void TestSyncMarkerRoundTrip_MultipleMarkersInStream()
-    {
-        using var scope = AllocationManager.CreateStackScope();
-        var writer = new BufferWriter(512, scope.AllocationHandle);
-
-        // Simulate the fork/join command stream described in the plan:
-        // ID 0 (Graphics) -> marker [Compute, deps=[0]]   starts ID 1
-        // ID 1 (Compute)  -> marker [Graphics, deps=[]]   starts ID 2
-        // ID 2 (Graphics) -> marker [Graphics, deps=[1]]  starts ID 3
-        RGCommandStream.WriteSyncMarker(ref writer, CommandQueueType.Compute, new int[] { 0 }, nextCommandBufferId: 1);
-        RGCommandStream.WriteSyncMarker(ref writer, CommandQueueType.Graphics, ReadOnlySpan<int>.Empty, nextCommandBufferId: 2);
-        RGCommandStream.WriteSyncMarker(ref writer, CommandQueueType.Graphics, new int[] { 1 }, nextCommandBufferId: 3);
-
-        var reader = new SpanReader(writer.AsSpan());
-
-        Assert.AreEqual(RGExecutionOpType.CommandBufferSyncPoint, reader.Read<RGExecutionOpType>());
-        var m0 = RGCommandStream.ReadSyncMarker(ref reader);
-        Assert.AreEqual(CommandQueueType.Compute, m0.NextCommandBufferType);
-        Assert.AreEqual(1, m0.ProducerCommandBufferIds.Length);
-        Assert.AreEqual(0, m0.ProducerCommandBufferIds[0]);
-
-        Assert.AreEqual(RGExecutionOpType.CommandBufferSyncPoint, reader.Read<RGExecutionOpType>());
-        var m1 = RGCommandStream.ReadSyncMarker(ref reader);
-        Assert.AreEqual(CommandQueueType.Graphics, m1.NextCommandBufferType);
-        Assert.AreEqual(0, m1.ProducerCommandBufferIds.Length);
-
-        Assert.AreEqual(RGExecutionOpType.CommandBufferSyncPoint, reader.Read<RGExecutionOpType>());
-        var m2 = RGCommandStream.ReadSyncMarker(ref reader);
-        Assert.AreEqual(CommandQueueType.Graphics, m2.NextCommandBufferType);
-        Assert.AreEqual(1, m2.ProducerCommandBufferIds.Length);
-        Assert.AreEqual(1, m2.ProducerCommandBufferIds[0]);
-
-        Assert.AreEqual(0, reader.RemainingBytes);
-        writer.Dispose();
-    }
-
-    [TestMethod]
-    public void TestSyncMarkerValidation_RejectsProducerIdEqualToNext()
-    {
-        // Producer ID must be strictly less than the ID of the next command buffer.
-        Assert.ThrowsExactly<ArgumentException>(
-            () => RGCommandStream.ValidateProducerIds(new int[] { 1 }, nextCommandBufferId: 1),
-            "A producer ID equal to the next command buffer ID must be rejected.");
-    }
-
-    [TestMethod]
-    public void TestSyncMarkerValidation_RejectsProducerIdGreaterThanNext()
-    {
-        Assert.ThrowsExactly<ArgumentException>(
-            () => RGCommandStream.ValidateProducerIds(new int[] { 5 }, nextCommandBufferId: 3),
-            "A producer ID greater than the next command buffer ID must be rejected.");
-    }
-
-    [TestMethod]
-    public void TestSyncMarkerValidation_RejectsNegativeProducerId()
-    {
-        Assert.ThrowsExactly<ArgumentException>(
-            () => RGCommandStream.ValidateProducerIds(new int[] { -1 }, nextCommandBufferId: 1),
-            "A negative producer ID must be rejected.");
-    }
-
-    [TestMethod]
-    public void TestSyncMarkerValidation_RejectsDuplicateProducerIds()
-    {
-        Assert.ThrowsExactly<ArgumentException>(
-            () => RGCommandStream.ValidateProducerIds(new int[] { 0, 1, 0 }, nextCommandBufferId: 3),
-            "Duplicate producer IDs within one marker must be rejected.");
-    }
-
-    [TestMethod]
-    public void TestSyncMarkerValidation_AcceptsValidProducerIds()
-    {
-        // Should not throw for a valid set of strictly earlier, unique IDs.
-        RGCommandStream.ValidateProducerIds(new int[] { 0, 1, 2 }, nextCommandBufferId: 3);
-        RGCommandStream.ValidateProducerIds(ReadOnlySpan<int>.Empty, nextCommandBufferId: 0);
-        RGCommandStream.ValidateProducerIds(new int[] { 0 }, nextCommandBufferId: 1);
-    }
 
 }

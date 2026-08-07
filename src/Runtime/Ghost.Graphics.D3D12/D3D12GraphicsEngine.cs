@@ -116,6 +116,12 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     public void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer)
     {
         Logger.DebugAssert(!_disposed);
+        if (commandBuffer.State.IsRecording)
+        {
+            commandBuffer.Dispose();
+            return;
+        }
+
         _commandBufferReturnQueue.Enqueue(new CommandBufferReturnEntry(commandBuffer, _cpuFrame));
     }
 

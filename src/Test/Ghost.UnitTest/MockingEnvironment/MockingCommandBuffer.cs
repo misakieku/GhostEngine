@@ -6,15 +6,23 @@ namespace Ghost.UnitTest.MockingEnvironment;
 
 internal class MockingCommandBuffer : ICommandBuffer
 {
+    private static int s_nextInstanceId;
+
     private readonly IResourceDatabase _resourceDatabase;
 
     private CommandBufferState _state;
 
     // Tracking properties for test assertions
+    public int BeginCount { get; private set; }
+    public int EndCount { get; private set; }
     public int DrawCallCount { get; private set; }
     public int CopyCallCount { get; private set; }
     public int DispatchCallCount { get; private set; }
     public int UpdateSubResourcesCount { get; private set; }
+    public bool FailOnBegin { get; set; }
+    public bool FailOnEnd { get; set; }
+    public int InstanceId { get; }
+    public ICommandAllocator? LastBeginAllocator { get; private set; }
     public List<BarrierDesc> RecordedBarriers { get; } = new();
 
     public CommandBufferType Type
@@ -33,6 +41,7 @@ internal class MockingCommandBuffer : ICommandBuffer
     {
         _resourceDatabase = resourceDatabase;
         Type = type;
+        InstanceId = Interlocked.Increment(ref s_nextInstanceId);
     }
 
     public void Barrier(params scoped ReadOnlySpan<BarrierDesc> barrierDescs)
@@ -57,6 +66,13 @@ internal class MockingCommandBuffer : ICommandBuffer
 
     public void Begin(ICommandAllocator allocator)
     {
+        BeginCount++;
+        LastBeginAllocator = allocator;
+        if (FailOnBegin)
+        {
+            throw new InvalidOperationException("Injected command-buffer begin failure.");
+        }
+
         _state.CommandCount = 0;
         _state.IsRecording = true;
         _state.Error = Error.None;
@@ -134,6 +150,12 @@ internal class MockingCommandBuffer : ICommandBuffer
 
     public Result End()
     {
+        EndCount++;
+        if (FailOnEnd)
+        {
+            return Result.Failure("Injected command-buffer end failure.");
+        }
+
         _state.IsRecording = false;
         return Result.Success();
     }

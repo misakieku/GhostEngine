@@ -4,9 +4,14 @@ namespace Ghost.UnitTest.MockingEnvironment;
 
 internal class MockingGraphicsEngine : IGraphicsEngine
 {
+    private const int COMMAND_BUFFER_TYPE_COUNT = 3;
+
     private readonly MockingRenderDevice _renderDevice;
     private readonly MockingResourceDatabase _resourceDatabase;
     private readonly MockingResourceAllocator _resourceAllocator;
+    private readonly Stack<MockingCommandBuffer>[] _commandBufferPools;
+    private readonly Queue<MockingCommandBuffer> _scriptedCommandBuffers;
+    private readonly bool _ownsDependencies;
 
     public IRenderDevice Device => _renderDevice;
 
@@ -16,19 +21,68 @@ internal class MockingGraphicsEngine : IGraphicsEngine
 
     public IResourceAllocator ResourceAllocator => _resourceAllocator;
 
-#if GHOST_UNITTEST
     public int ReturnedCommandBufferCount
     {
         get;
         private set;
     }
-#endif
+
+    public int DiscardedCommandBufferCount
+    {
+        get;
+        private set;
+    }
+
+    public bool FailNextCommandBufferAcquisition
+    {
+        get;
+        set;
+    }
+
+    public int FailCommandBufferAcquisitionAtRequest
+    {
+        get;
+        set;
+    } = -1;
+
+    public List<MockingCommandBuffer> AcquiredCommandBuffers
+    {
+        get;
+    } = new(8);
+
+    public List<MockingCommandBuffer> ReturnedCommandBuffers
+    {
+        get;
+    } = new(8);
+
+    public List<CommandBufferType> RequestedCommandBufferTypes
+    {
+        get;
+    } = new(8);
+
+    public MockingCommandBuffer LastAcquiredCommandBuffer => AcquiredCommandBuffers[^1];
 
     public MockingGraphicsEngine()
     {
         _renderDevice = new MockingRenderDevice();
         _resourceDatabase = new MockingResourceDatabase();
         _resourceAllocator = new MockingResourceAllocator(_resourceDatabase);
+        _commandBufferPools = CreateCommandBufferPools();
+        _scriptedCommandBuffers = new Queue<MockingCommandBuffer>();
+        _ownsDependencies = true;
+    }
+
+    public MockingGraphicsEngine(
+        MockingRenderDevice renderDevice,
+        MockingResourceDatabase resourceDatabase,
+        MockingResourceAllocator resourceAllocator)
+    {
+        _renderDevice = renderDevice;
+        _resourceDatabase = resourceDatabase;
+        _resourceAllocator = resourceAllocator;
+        _commandBufferPools = CreateCommandBufferPools();
+        _scriptedCommandBuffers = new Queue<MockingCommandBuffer>();
+        _ownsDependencies = false;
     }
 
     public void BeginFrame(ulong submittedFrame)
@@ -37,7 +91,7 @@ internal class MockingGraphicsEngine : IGraphicsEngine
 
     public ICommandAllocator CreateCommandAllocator(CommandBufferType type = CommandBufferType.Graphics)
     {
-        return new MockingCommandAllocator();
+        return new MockingCommandAllocator(type);
     }
 
     public ICommandBuffer CreateCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
@@ -61,20 +115,82 @@ internal class MockingGraphicsEngine : IGraphicsEngine
 
     public ICommandBuffer GetPooledCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
     {
-        return new MockingCommandBuffer(_resourceDatabase, type);
+        var requestIndex = RequestedCommandBufferTypes.Count;
+        RequestedCommandBufferTypes.Add(type);
+        if (FailNextCommandBufferAcquisition || requestIndex == FailCommandBufferAcquisitionAtRequest)
+        {
+            FailNextCommandBufferAcquisition = false;
+            FailCommandBufferAcquisitionAtRequest = -1;
+            throw new InvalidOperationException("Injected command-buffer acquisition failure.");
+        }
+
+        MockingCommandBuffer commandBuffer;
+        if (_scriptedCommandBuffers.Count > 0)
+        {
+            commandBuffer = _scriptedCommandBuffers.Dequeue();
+        }
+        else if (!_commandBufferPools[(int)type].TryPop(out commandBuffer!))
+        {
+            commandBuffer = new MockingCommandBuffer(_resourceDatabase, type);
+        }
+
+        AcquiredCommandBuffers.Add(commandBuffer);
+        return commandBuffer;
     }
 
     public void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer)
     {
-#if GHOST_UNITTEST
+        if (commandBuffer is not MockingCommandBuffer mockingCommandBuffer)
+        {
+            throw new ArgumentException("Unexpected command-buffer implementation.", nameof(commandBuffer));
+        }
+
         ReturnedCommandBufferCount++;
-#endif
+        ReturnedCommandBuffers.Add(mockingCommandBuffer);
+        if (mockingCommandBuffer.State.IsRecording)
+        {
+            DiscardedCommandBufferCount++;
+            mockingCommandBuffer.Dispose();
+            return;
+        }
+
+        _commandBufferPools[(int)mockingCommandBuffer.Type].Push(mockingCommandBuffer);
+    }
+
+    public void QueueCommandBuffer(MockingCommandBuffer commandBuffer)
+    {
+        _scriptedCommandBuffers.Enqueue(commandBuffer);
+    }
+
+    public void ResetCommandBufferTracking()
+    {
+        AcquiredCommandBuffers.Clear();
+        ReturnedCommandBuffers.Clear();
+        RequestedCommandBufferTypes.Clear();
+        ReturnedCommandBufferCount = 0;
+        DiscardedCommandBufferCount = 0;
     }
 
     public void Dispose()
     {
+        if (!_ownsDependencies)
+        {
+            return;
+        }
+
         _resourceAllocator.Dispose();
         _resourceDatabase.Dispose();
         _renderDevice.Dispose();
+    }
+
+    private static Stack<MockingCommandBuffer>[] CreateCommandBufferPools()
+    {
+        var pools = new Stack<MockingCommandBuffer>[COMMAND_BUFFER_TYPE_COUNT];
+        for (var i = 0; i < pools.Length; i++)
+        {
+            pools[i] = new Stack<MockingCommandBuffer>();
+        }
+
+        return pools;
     }
 }

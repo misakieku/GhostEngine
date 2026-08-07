@@ -43,12 +43,20 @@ internal sealed class FrameScheduler : IFrameScheduler
     private readonly List<SubmissionHandle>[] _pendingDependencies;
     private readonly List<SubmissionRecord> _submissions;
     private readonly List<SubmissionDependency> _dependencies;
+    private readonly SubmissionHandle[] _transactionLatestSubmissions;
+    private readonly int[] _transactionQueueTailIndices;
+    private readonly List<SubmissionHandle>[] _transactionPendingDependencies;
+    private readonly List<SubmissionHandle> _invalidatedSubmissions;
 
     private int[] _indegrees;
     private int[] _executionOrder;
     private bool[] _scheduled;
     private readonly int _schedulerId;
 
+    private int _transactionSubmissionCount;
+    private int _transactionDependencyCount;
+    private uint _nextTransactionId;
+    private SubmissionTransaction _activeTransaction;
     private uint _generation;
     private bool _disposed;
 
@@ -72,6 +80,10 @@ internal sealed class FrameScheduler : IFrameScheduler
         _pendingDependencies = new List<SubmissionHandle>[QUEUE_COUNT];
         _submissions = new List<SubmissionRecord>(16);
         _dependencies = new List<SubmissionDependency>(16);
+        _transactionLatestSubmissions = new SubmissionHandle[QUEUE_COUNT];
+        _transactionQueueTailIndices = new int[QUEUE_COUNT];
+        _transactionPendingDependencies = new List<SubmissionHandle>[QUEUE_COUNT];
+        _invalidatedSubmissions = new List<SubmissionHandle>(4);
         _indegrees = Array.Empty<int>();
         _executionOrder = Array.Empty<int>();
         _scheduled = Array.Empty<bool>();
@@ -85,11 +97,85 @@ internal sealed class FrameScheduler : IFrameScheduler
             _fences[i] = graphicsEngine.CreateFence();
             _fences[i].Name = $"FrameScheduler_{(CommandQueueType)i}_Fence";
             _pendingDependencies[i] = new List<SubmissionHandle>(2);
+            _transactionPendingDependencies[i] = new List<SubmissionHandle>(2);
             _currentQueueTailIndices[i] = -1;
         }
 
         _schedulerId = Interlocked.Increment(ref s_nextSchedulerId);
         _generation = 1;
+    }
+
+    public void PrepareSubmissions(int additionalSubmissionCount)
+    {
+        ThrowIfDisposed();
+        ArgumentOutOfRangeException.ThrowIfNegative(additionalSubmissionCount);
+        EnsureSubmissionCapacity(additionalSubmissionCount, 0);
+    }
+
+    public SubmissionTransaction BeginSubmissionTransaction(int additionalSubmissionCount, int additionalDependencyCount)
+    {
+        ThrowIfDisposed();
+        ArgumentOutOfRangeException.ThrowIfNegative(additionalSubmissionCount);
+        ArgumentOutOfRangeException.ThrowIfNegative(additionalDependencyCount);
+        if (_activeTransaction.IsValid)
+        {
+            throw new InvalidOperationException("A frame-scheduler submission transaction is already active.");
+        }
+
+        EnsureSubmissionCapacity(additionalSubmissionCount, additionalDependencyCount);
+
+        _transactionSubmissionCount = _submissions.Count;
+        _transactionDependencyCount = _dependencies.Count;
+        Array.Copy(_latestSubmissions, _transactionLatestSubmissions, QUEUE_COUNT);
+        Array.Copy(_currentQueueTailIndices, _transactionQueueTailIndices, QUEUE_COUNT);
+        for (var i = 0; i < QUEUE_COUNT; i++)
+        {
+            var snapshot = _transactionPendingDependencies[i];
+            snapshot.Clear();
+            snapshot.AddRange(_pendingDependencies[i]);
+        }
+
+        _nextTransactionId++;
+        if (_nextTransactionId == 0)
+        {
+            _nextTransactionId = 1;
+        }
+
+        _activeTransaction = new SubmissionTransaction(_schedulerId, _generation, _nextTransactionId);
+        return _activeTransaction;
+    }
+
+    public void CommitSubmissionTransaction(SubmissionTransaction transaction)
+    {
+        ThrowIfDisposed();
+        ValidateTransaction(transaction);
+        CompleteSubmissionTransaction();
+    }
+
+    public void RollbackSubmissionTransaction(SubmissionTransaction transaction)
+    {
+        ThrowIfDisposed();
+        ValidateTransaction(transaction);
+
+        for (var i = _transactionSubmissionCount; i < _submissions.Count; i++)
+        {
+            var submission = _submissions[i];
+            _invalidatedSubmissions.Add(submission.handle);
+            _graphicsEngine.ReturnPooledCommandBuffer(submission.commandBuffer);
+        }
+
+        _submissions.RemoveRange(_transactionSubmissionCount, _submissions.Count - _transactionSubmissionCount);
+        _dependencies.RemoveRange(_transactionDependencyCount, _dependencies.Count - _transactionDependencyCount);
+        Array.Copy(_transactionLatestSubmissions, _latestSubmissions, QUEUE_COUNT);
+        Array.Copy(_transactionQueueTailIndices, _currentQueueTailIndices, QUEUE_COUNT);
+        for (var i = 0; i < QUEUE_COUNT; i++)
+        {
+            var pendingDependencies = _pendingDependencies[i];
+            pendingDependencies.Clear();
+            pendingDependencies.AddRange(_transactionPendingDependencies[i]);
+        }
+
+        CompleteSubmissionTransaction();
     }
 
     public SubmissionHandle Submit(ICommandBuffer commandBuffer)
@@ -188,6 +274,10 @@ internal sealed class FrameScheduler : IFrameScheduler
     public FrameCompletionInfo Flush()
     {
         ThrowIfDisposed();
+        if (_activeTransaction.IsValid)
+        {
+            throw new InvalidOperationException("An active submission transaction must be committed or rolled back before flushing.");
+        }
 
         var submissionCount = _submissions.Count;
         EnsureScratchCapacity(submissionCount);
@@ -212,6 +302,7 @@ internal sealed class FrameScheduler : IFrameScheduler
         catch
         {
             ReturnUnsubmittedCommandBuffers();
+            InvalidatePendingSubmissions();
             Array.Copy(_flushedSubmissions, _latestSubmissions, QUEUE_COUNT);
             ResetPendingState();
             throw;
@@ -362,10 +453,20 @@ internal sealed class FrameScheduler : IFrameScheduler
     {
         for (var i = 0; i < _submissions.Count; i++)
         {
-            if (!_scheduled[i])
+            if (_scheduled[i])
             {
-                _graphicsEngine.ReturnPooledCommandBuffer(_submissions[i].commandBuffer);
+                continue;
             }
+
+            _graphicsEngine.ReturnPooledCommandBuffer(_submissions[i].commandBuffer);
+        }
+    }
+
+    private void InvalidatePendingSubmissions()
+    {
+        for (var i = 0; i < _submissions.Count; i++)
+        {
+            _invalidatedSubmissions.Add(_submissions[i].handle);
         }
     }
 
@@ -397,15 +498,67 @@ internal sealed class FrameScheduler : IFrameScheduler
         {
             throw new ArgumentException("The submission handle does not belong to this frame scheduler.", parameterName);
         }
+
+        for (var i = 0; i < _invalidatedSubmissions.Count; i++)
+        {
+            if (_invalidatedSubmissions[i] == submission)
+            {
+                throw new ArgumentException("The submission handle was invalidated by transaction rollback.", parameterName);
+            }
+        }
     }
 
     private void ValidateCurrentSubmission(SubmissionHandle submission, string parameterName)
     {
         ValidateHandle(submission, parameterName);
-        if (submission.Generation != _generation || submission.SubmissionIndex < 0 || submission.SubmissionIndex >= _submissions.Count)
+        if (submission.Generation != _generation
+            || submission.SubmissionIndex < 0
+            || submission.SubmissionIndex >= _submissions.Count
+            || _submissions[submission.SubmissionIndex].handle != submission)
         {
             throw new ArgumentException("The dependent submission is not pending in the current frame.", parameterName);
         }
+    }
+
+    private void EnsureSubmissionCapacity(int additionalSubmissionCount, int additionalDependencyCount)
+    {
+        if (additionalSubmissionCount == 0 && additionalDependencyCount == 0)
+        {
+            return;
+        }
+
+        var submissionCapacity = checked(_submissions.Count + additionalSubmissionCount);
+        var dependencyCapacity = checked(_dependencies.Count + additionalDependencyCount + additionalSubmissionCount);
+        for (var i = 0; i < QUEUE_COUNT; i++)
+        {
+            dependencyCapacity = checked(dependencyCapacity + _pendingDependencies[i].Count);
+        }
+
+        _submissions.EnsureCapacity(submissionCapacity);
+        _dependencies.EnsureCapacity(dependencyCapacity);
+    }
+
+    private void ValidateTransaction(SubmissionTransaction transaction)
+    {
+        if (!_activeTransaction.IsValid
+            || transaction.SchedulerId != _schedulerId
+            || transaction.SchedulerGeneration != _generation
+            || transaction.TransactionId != _activeTransaction.TransactionId)
+        {
+            throw new InvalidOperationException("The submission transaction is not active on this frame scheduler.");
+        }
+    }
+
+    private void CompleteSubmissionTransaction()
+    {
+        for (var i = 0; i < QUEUE_COUNT; i++)
+        {
+            _transactionPendingDependencies[i].Clear();
+        }
+
+        _activeTransaction = default;
+        _transactionSubmissionCount = 0;
+        _transactionDependencyCount = 0;
     }
 
     private void EnsureScratchCapacity(int submissionCount)
@@ -474,6 +627,11 @@ internal sealed class FrameScheduler : IFrameScheduler
 
         try
         {
+            if (_activeTransaction.IsValid)
+            {
+                RollbackSubmissionTransaction(_activeTransaction);
+            }
+
             WaitIdle();
         }
         finally
