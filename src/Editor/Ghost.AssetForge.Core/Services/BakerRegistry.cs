@@ -11,8 +11,29 @@ public class BakerRegistry : IDisposable
     private readonly Dictionary<string, Type> _extToSettings = new();
     private readonly Dictionary<string, int> _extToBaker = new();
 
+    /// <summary>
+    /// Creates a registry that auto-discovers <see cref="IAssetBaker"/> implementations
+    /// decorated with <see cref="AssetBakerAttribute"/> via reflection over all loaded assemblies.
+    /// </summary>
     public BakerRegistry()
+        : this(autoDiscover: true)
     {
+    }
+
+    /// <summary>
+    /// Creates a registry, optionally skipping the AppDomain reflection scan.
+    /// </summary>
+    /// <param name="autoDiscover">
+    /// When <c>true</c>, scans all loaded assemblies for <see cref="IAssetBaker"/> types.
+    /// When <c>false</c>, no bakers are discovered; call <see cref="Register{TBaker}"/> explicitly.
+    /// </param>
+    public BakerRegistry(bool autoDiscover)
+    {
+        if (!autoDiscover)
+        {
+            return;
+        }
+
         var bakerTypes = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(a => a.GetTypes())
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IAssetBaker).IsAssignableFrom(t));
@@ -23,16 +44,46 @@ public class BakerRegistry : IDisposable
             if (attr != null)
             {
                 var bakerInstance = (IAssetBaker)Activator.CreateInstance(type, true)!;
-                var index = _bakers.Count;
-
-                _bakers.Add(bakerInstance);
-                foreach (var ext in attr.Extensions)
-                {
-                    _extToBaker[ext] = index;
-                    _extToSettings[ext] = attr.SettingsType;
-                    _extToType[ext] = attr.Type;
-                }
+                Register(bakerInstance, attr.Type, attr.SettingsType, attr.Extensions);
             }
+        }
+    }
+
+    /// <summary>
+    /// Instantiates <typeparamref name="TBaker"/> and registers it for the given asset type,
+    /// settings type, and file extensions.
+    /// </summary>
+    /// <param name="type">The asset type produced by the baker.</param>
+    /// <param name="settingsType">The <see cref="IBakeSettings"/> type consumed by the baker.</param>
+    /// <param name="extensions">The source file extensions claimed by the baker (e.g. <c>".png"</c>).</param>
+    /// <exception cref="InvalidOperationException">An extension is already claimed by another baker.</exception>
+    public void Register<TBaker>(AssetType type, Type settingsType, params string[] extensions)
+        where TBaker : IAssetBaker
+    {
+        var bakerInstance = (TBaker)Activator.CreateInstance(typeof(TBaker), true)!;
+        Register(bakerInstance, type, settingsType, extensions);
+    }
+
+    private void Register(IAssetBaker baker, AssetType type, Type settingsType, IReadOnlyList<string> extensions)
+    {
+        foreach (var ext in extensions)
+        {
+            if (_extToBaker.TryGetValue(ext, out var existingIndex))
+            {
+                var existingBakerType = _bakers[existingIndex].GetType();
+                throw new InvalidOperationException(
+                    $"Duplicate asset extension '{ext}' is registered by both '{existingBakerType.FullName}' and '{baker.GetType().FullName}'. Each extension may only be claimed by a single baker.");
+            }
+        }
+
+        var index = _bakers.Count;
+        _bakers.Add(baker);
+
+        foreach (var ext in extensions)
+        {
+            _extToBaker[ext] = index;
+            _extToSettings[ext] = settingsType;
+            _extToType[ext] = type;
         }
     }
 

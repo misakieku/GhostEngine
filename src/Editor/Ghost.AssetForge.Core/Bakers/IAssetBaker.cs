@@ -22,7 +22,7 @@ public struct AssetBakerContext()
 {
     private readonly List<SubAssetEntry> _subAssets = new();
 
-    public required ShaderMetadata ShderMetadata
+    public required ShaderMetadata ShaderMetadata
     {
         get; init;
     }

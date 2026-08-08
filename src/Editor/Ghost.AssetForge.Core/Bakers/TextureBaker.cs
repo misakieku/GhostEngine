@@ -249,12 +249,12 @@ internal partial class TextureBaker : IAssetBaker
             try
             {
                 var ext = Path.GetExtension(sourcePath);
-                var isHDR = ext.Equals(".hdr", StringComparison.OrdinalIgnoreCase) || settings.Basic.TextureShape == TextureShape.TextureCube;
+                var isHDR = ext.Equals(".hdr", StringComparison.OrdinalIgnoreCase);
 
                 accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
 
                 int imageWidth, imageHeight, colorComponents;
-                var bufferSpan = new ReadOnlySpan<byte>(ptr, (int)accessor.Capacity);
+                var bufferSpan = new ReadOnlySpan<byte>(ptr, (int)new FileInfo(sourcePath).Length);
                 var bitsPerChannel = StbIApi.Is16BitFromMemory(bufferSpan) > 0 ? 16 : 8;
 
                 void* pPixels;

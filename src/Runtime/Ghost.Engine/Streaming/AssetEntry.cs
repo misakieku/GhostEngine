@@ -50,6 +50,7 @@ internal abstract class AssetEntry : IAssetEntry
     private readonly Guid[] _dependencies;
 
     private JobHandle _loadJobHandle;
+    private JobHandle _combinedDependencyJobHandle;
     private int _refCount;
     private int _state;
 
@@ -61,6 +62,7 @@ internal abstract class AssetEntry : IAssetEntry
 
     public Guid AssetId => _assetId;
     public JobHandle LoadJobHandle => _loadJobHandle;
+    internal JobHandle CombinedDependencyJobHandle => _combinedDependencyJobHandle;
     public AssetType AssetType => _assetType;
     public ReadOnlySpan<Guid> Dependencies => _dependencies;
     public int RefCount => Volatile.Read(ref _refCount);
@@ -100,9 +102,25 @@ internal abstract class AssetEntry : IAssetEntry
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void SetCombinedDependencyJobHandle(JobHandle handle)
+    {
+        _combinedDependencyJobHandle = handle;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void SetPendingReimport()
     {
         Volatile.Write(ref _pendingReimport, 1);
+    }
+
+    /// <summary>
+    /// Atomically claims an outstanding reimport request. Only one thread can succeed, which
+    /// guarantees at most one thread re-schedules the entry through <c>EnsureScheduled</c>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool TryConsumePendingReimport()
+    {
+        return Interlocked.Exchange(ref _pendingReimport, 0) == 1;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -114,13 +132,12 @@ internal abstract class AssetEntry : IAssetEntry
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Release()
     {
-        Logger.DebugAssert(State == AssetState.Ready);
-
         var newRefCount = Interlocked.Decrement(ref _refCount);
         Logger.DebugAssert(newRefCount >= 0, "Reference count should not be negative");
 
         if (newRefCount == 0)
         {
+            Logger.DebugAssert(State == AssetState.Ready);
             _assetManager.RemoveEntry(_assetId);
             OnReleaseResource();
 

@@ -38,6 +38,7 @@ public partial class ShaderBakeSettings : ObservableObject, IBakeSettings
 internal partial class ShaderBaker : IAssetBaker, IDisposable
 {
     private readonly DXCShaderCompiler _compiler = new DXCShaderCompiler();
+    private readonly SemaphoreSlim _compileLock = new(1, 1);
 
     private static async Task WriteShaderEntries(Stream stream, long variantDataOffset, CancellationToken cancellationToken, params (ShaderStage stage, UnsafeArray<byte> bytecode)[] entries)
     {
@@ -138,6 +139,21 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
 
     public async Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
     {
+        // DXCShaderCompiler is a native handle and is not thread-safe. Serialize
+        // concurrent shader bakes through the lock; textures keep running in parallel.
+        await _compileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await BakeAssetCoreAsync(src, dst, settings, ctx, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _compileLock.Release();
+        }
+    }
+
+    private async Task BakeAssetCoreAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
+    {
         if (settings is not ShaderBakeSettings shaderSettings)
         {
             throw new ArgumentException("Invalid settings type. Expected ShaderBakeSettings.", nameof(settings));
@@ -158,8 +174,8 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
             var syntax = DSLShaderCompiler.ParseGraphicsShaderSyntax(codeStr).GetValueOrThrow();
             var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
 
-            var reflectionData = ctx.ShderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
-            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShderMetadata.VirtualShader).GetValueOrThrow();
+            var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
+            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader).GetValueOrThrow();
 
             var header = new ShaderContentHeader
             {
@@ -312,8 +328,8 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
             var syntax = DSLShaderCompiler.ParseComputeShaderSyntax(codeStr).GetValueOrThrow();
             var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
 
-            var reflectionData = ctx.ShderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
-            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShderMetadata.VirtualShader).GetValueOrThrow();
+            var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
+            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader).GetValueOrThrow();
 
             var header = new ShaderContentHeader
             {

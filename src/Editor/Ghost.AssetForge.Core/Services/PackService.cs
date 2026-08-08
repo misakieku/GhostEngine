@@ -8,12 +8,12 @@ namespace Ghost.AssetForge.Core.Services;
 
 public class PackService
 {
-    private readonly ProjectService _projectService;
+    private readonly ProjectContext _context;
     private readonly BakerRegistry _bakerRegistry;
 
-    public PackService(ProjectService projectService, BakerRegistry bakerRegistry)
+    public PackService(ProjectContext context, BakerRegistry bakerRegistry)
     {
-        _projectService = projectService;
+        _context = context;
         _bakerRegistry = bakerRegistry;
     }
 
@@ -26,9 +26,9 @@ public class PackService
 
     public async Task PackProjectAsync(CancellationToken cancellationToken = default)
     {
-        var project = _projectService.CurrentProject ?? throw new InvalidOperationException("No project loaded.");
-        var cacheDir = _projectService.CacheDirectory;
-        var buildDir = _projectService.BuildDirectory;
+        var project = _context.Project;
+        var cacheDir = _context.CacheDirectory;
+        var buildDir = _context.BuildDirectory;
 
         if (!Directory.Exists(cacheDir))
         {
@@ -36,23 +36,7 @@ public class PackService
             return;
         }
 
-        var virtualPathToFile = new Dictionary<string, string>();
-        
-        foreach (var dir in _projectService.AssetDirectories)
-        {
-            if (!Directory.Exists(dir))
-                continue;
-            
-            var filesInDir = Directory.GetFiles(dir, "*", SearchOption.AllDirectories)
-                .Where(f => !f.EndsWith(".meta"));
-            
-            foreach (var file in filesInDir)
-            {
-                var relativePath = Path.GetRelativePath(dir, file);
-                var virtualPath = relativePath.Replace('\\', '/');
-                virtualPathToFile[virtualPath] = file;
-            }
-        }
+        var virtualPathToFile = _context.EnumerateAssetFiles();
 
         var allAssetFiles = virtualPathToFile.Values.ToArray();
         var allAssetVirtualPaths = virtualPathToFile.Keys.ToArray();
@@ -93,7 +77,7 @@ public class PackService
                 }
 
                 var metaFile = assetFile + ".meta";
-                var metadata = _projectService.LoadMetadata(metaFile);
+                var metadata = _context.LoadMetadata(metaFile);
                 if (metadata == null)
                 {
                     Logger.Error($"Missing metadata for {assetFile}");
@@ -105,11 +89,17 @@ public class PackService
                 var nameWithoutExt = Path.GetFileNameWithoutExtension(relativePath);
                 var key = Path.Combine(dir, nameWithoutExt).Replace('\\', '/');
                 var cacheFileInfo = new FileInfo(cacheFile);
-                var uncompressedSize = cacheFileInfo.Length;
+                // Cache files start with a 16-byte CacheFileHeader; it is not part of the
+                // compressed payload, so exclude it from the size estimate.
+                var uncompressedSize = Math.Max(0, cacheFileInfo.Length - CacheFileHeader.SIZE);
 
                 // Should we start a new pack file?
-                // Size estimate (uncompressed): header + raw data. 
-                // Since we compress during packing, actual size will be smaller, but we can use raw size for threshold
+                // uncompressedSize is the size of the *uncompressed* cache payload (the
+                // CacheFileHeader was stripped from the file length above), so it is a
+                // conservative upper-bound estimate of the bytes actually written to the
+                // pack: LZ4/Zstd typically shrink data, and per-asset frame overhead is
+                // negligible next to the GB-scale ChunkSizeThreshold. Using this estimate
+                // guarantees pack files never meaningfully overshoot the configured threshold.
                 if (currentPackStream != null && currentPackSize + uncompressedSize > project.BakeSettings.ChunkSizeThreshold)
                 {
                     await currentPackStream.DisposeAsync();
@@ -124,12 +114,14 @@ public class PackService
                 {
                     Logger.Info($"Creating new pack file: {currentPackName}");
                     currentPackStream = new FileStream(currentPackPath, FileMode.Create, FileAccess.Write);
+                    new PackFileHeader().WriteTo(currentPackStream);
                 }
 
                 var offset = currentPackStream.Position;
 
-                // Compress and write payload
+                // Compress and write payload (seek past the 16-byte CacheFileHeader)
                 using var fsIn = new FileStream(cacheFile, FileMode.Open, FileAccess.Read);
+                fsIn.Seek(CacheFileHeader.SIZE, SeekOrigin.Begin);
                 var size = await CompressAndWriteAsync(fsIn, currentPackStream, project.BakeSettings.Compression, cancellationToken);
                 currentPackSize = currentPackStream.Position;
 
@@ -159,7 +151,10 @@ public class PackService
                         var subFileInfo = new FileInfo(subCachePath);
                         var subUncompressedSize = subFileInfo.Length;
 
-                        // Check size for new pack file
+                        // Should we start a new pack file? Same conservative upper-bound
+                        // reasoning as the main asset loop: subUncompressedSize over-estimates
+                        // the compressed bytes actually written (LZ4/Zstd typically shrink data;
+                        // frame overhead is negligible vs the GB-scale threshold).
                         if (currentPackStream != null && currentPackSize + subUncompressedSize > project.BakeSettings.ChunkSizeThreshold)
                         {
                             await currentPackStream.DisposeAsync();
@@ -168,6 +163,7 @@ public class PackService
                             currentPackPath = Path.Combine(buildDir, currentPackName);
                             Logger.Info($"Creating new pack file: {currentPackName}");
                             currentPackStream = new FileStream(currentPackPath, FileMode.Create, FileAccess.Write);
+                            new PackFileHeader().WriteTo(currentPackStream);
                             currentPackSize = 0;
                         }
 
