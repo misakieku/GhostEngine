@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.Core;
+using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Mathematics;
@@ -22,7 +23,22 @@ public interface IRenderPipelineSettings
 
 public interface IRenderPipeline : IDisposable
 {
-    void Render(RenderContext ctx, int frameIndex, IRenderPayload payload);
+    /// <summary>
+    /// Records pre-graph commands into the open <see cref="RenderContext.CommandBuffer"/> (the frame prelude).
+    /// The command buffer must be open when this is called; the outer frame owns Begin, End, and submission.
+    /// </summary>
+    void RecordPrelude(RenderContext ctx, int frameIndex, IRenderPayload payload);
+
+    /// <summary>
+    /// Compiles and executes the render graph, submitting its native command buffers through the
+    /// frame scheduler embedded in <paramref name="executionContext"/>.
+    /// </summary>
+    /// <returns>
+    /// Terminal submission handles the outer frame uses to declare post-graph dependencies
+    /// (e.g. Compute → epilogue). Returns <c>default</c> when the graph is empty or execution fails.
+    /// </returns>
+    RGExecution ExecuteGraph(RenderContext ctx, int frameIndex, IRenderPayload payload,
+        in RenderGraphExecutionContext executionContext);
 }
 
 public readonly ref struct RenderViewData : IDisposable

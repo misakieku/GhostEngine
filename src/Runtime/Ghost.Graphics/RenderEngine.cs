@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.FrameScheduling;
+using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Mathematics;
@@ -284,12 +285,15 @@ public class RenderEngine : IDisposable
                 _resourceManager.BeginFrame(_submittedFrame);
                 _graphicsEngine.BeginFrame(_submittedFrame);
 
-                var cmd = _graphicsEngine.GetPooledCommandBuffer(CommandBufferType.Graphics);
-                var submitted = false;
+                var preludeCmd = _graphicsEngine.GetPooledCommandBuffer(CommandBufferType.Graphics);
+                var preludeSubmitted = false;
+                ICommandBuffer? epilogueCmd = null;
+                var epilogueSubmitted = false;
 
                 try
                 {
-                    cmd.Begin(frameResource.GraphicsCommandAllocator);
+                    // --- Prelude: streaming uploads and pre-graph rendering commands ---
+                    preludeCmd.Begin(frameResource.GraphicsCommandAllocator);
 
                     var streamingContext = new ResourceStreamingContext
                     {
@@ -299,25 +303,55 @@ public class RenderEngine : IDisposable
                         ResourceManager = _resourceManager,
                         ResourceDatabase = _graphicsEngine.ResourceDatabase,
                         ResourceAllocator = _graphicsEngine.ResourceAllocator,
-                        CommandBuffer = cmd,
+                        CommandBuffer = preludeCmd,
                     };
 
                     _streamingProcessor.ProcessPendingUploads(streamingContext);
 
-                    renderContext.CommandBuffer = cmd;
+                    renderContext.CommandBuffer = preludeCmd;
+                    _renderPipeline.RecordPrelude(renderContext, frameIndex, frameResource.RenderPayload);
 
-                    _renderPipeline.Render(renderContext, frameIndex, frameResource.RenderPayload);
-                    _swapChainManager.TransitionAllToPresent(cmd);
-
-                    var result = cmd.End();
+                    var result = preludeCmd.End();
                     if (result.IsFailure)
                     {
                         StopRenderLoop(result);
                         break;
                     }
 
-                    _frameScheduler.Submit(cmd);
-                    submitted = true;
+                    _frameScheduler.Submit(preludeCmd);
+                    preludeSubmitted = true;
+
+                    // --- Graph: compile and execute the render graph ---
+                    var executionContext = new RenderGraphExecutionContext(
+                        _graphicsEngine,
+                        _frameScheduler,
+                        frameResource.GraphicsCommandAllocator,
+                        frameResource.ComputeCommandAllocator);
+
+                    var graphExecution = _renderPipeline.ExecuteGraph(
+                        renderContext, frameIndex, frameResource.RenderPayload, executionContext);
+
+                    // --- Epilogue: swap-chain present transitions ---
+                    epilogueCmd = _graphicsEngine.GetPooledCommandBuffer(CommandBufferType.Graphics);
+                    epilogueCmd.Begin(frameResource.GraphicsCommandAllocator);
+                    _swapChainManager.TransitionAllToPresent(epilogueCmd);
+
+                    result = epilogueCmd.End();
+                    if (result.IsFailure)
+                    {
+                        StopRenderLoop(result);
+                        break;
+                    }
+
+                    var epilogueHandle = _frameScheduler.Submit(epilogueCmd);
+                    epilogueSubmitted = true;
+
+                    // Terminal Compute work must complete before present-transition barriers execute.
+                    if (graphExecution.ComputeSubmission.IsValid)
+                    {
+                        _frameScheduler.AddDependency(graphExecution.ComputeSubmission, epilogueHandle);
+                    }
+
                     frameResource.Completion = _frameScheduler.Flush();
                     _submittedFrame = frameResource.Completion.FrameNumber;
 
@@ -325,9 +359,14 @@ public class RenderEngine : IDisposable
                 }
                 finally
                 {
-                    if (!submitted)
+                    if (!preludeSubmitted)
                     {
-                        _graphicsEngine.ReturnPooledCommandBuffer(cmd);
+                        _graphicsEngine.ReturnPooledCommandBuffer(preludeCmd);
+                    }
+
+                    if (epilogueCmd != null && !epilogueSubmitted)
+                    {
+                        _graphicsEngine.ReturnPooledCommandBuffer(epilogueCmd);
                     }
                 }
 

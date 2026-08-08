@@ -104,7 +104,7 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
         var d3d12Fence = fence as D3D12Fence;
         Debug.Assert(d3d12Fence != null, "Fence must be a D3D12Fence");
 
-        Exceptions.TerminateIfFailed(pNativeObject->Signal(d3d12Fence.NativeObject, value));
+        ThrowIfFailed(pNativeObject->Signal(d3d12Fence.NativeObject, value));
         return value;
     }
 
@@ -115,6 +115,6 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
         var d3d12Fence = fence as D3D12Fence;
         Debug.Assert(d3d12Fence != null, "Fence must be a D3D12Fence");
 
-        pNativeObject->Wait(d3d12Fence.NativeObject, value);
+        ThrowIfFailed(pNativeObject->Wait(d3d12Fence.NativeObject, value));
     }
 }
