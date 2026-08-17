@@ -16,7 +16,14 @@ computeBody:
     shaderModel | (definesBlock | includesBlock | keywordsBlock | hlslBlock | computeEntry)*;
 
 shaderModel:
-    SM IDENTIFIER SEMICOLON;
+    SM shaderModelIdentifier SEMICOLON;
+
+shaderModelIdentifier:
+    IDENTIFIER
+    | NUMBER
+    | NUMBER IDENTIFIER
+    | STRING_LITERAL
+    ;
 
 definesBlock:
     DEFINES LBRACE
@@ -43,18 +50,17 @@ keywordStatement:
     IDENTIFIER (COMMA IDENTIFIER)* SEMICOLON;
 
 hlslBlock:
-    HLSL LBRACE
-        hlslBody
+    HLSL opaqueBracedBody;
+
+opaqueBracedBody:
+    LBRACE
+        opaqueInner*
     RBRACE;
 
-// Recursively matches content, ensuring braces are balanced.
-hlslBody:
-    (
-        ~(LBRACE | RBRACE)   // Match ANY token except open/close braces
-        | 
-        LBRACE hlslBody RBRACE  // Or match a nested block recursively
-    )*;
-
+opaqueInner:
+    ~(LBRACE | RBRACE)
+    | opaqueBracedBody
+    ;
 computeEntry:
     IDENTIFIER STRING_LITERAL COLON STRING_LITERAL SEMICOLON;
 

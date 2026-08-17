@@ -105,6 +105,24 @@ public static class DSLShaderCompiler
         return sb.ToString();
     }
 
+    public static Result<DSLDocumentSyntax> ParseDSLDocument(string shaderCode)
+    {
+        var parseErrors = new List<DSLShaderError>();
+        var doc = AntlrShaderCompiler.ParseDocument(shaderCode, parseErrors);
+
+        if (parseErrors.Count != 0 || doc == null)
+        {
+            var errorMessages = new StringBuilder();
+            foreach (var error in parseErrors)
+            {
+                errorMessages.AppendLine(error.ToString());
+            }
+            return Result.Failure("Failed to parse DSL document due to errors:\n" + errorMessages.ToString());
+        }
+
+        return doc;
+    }
+
     public static Result<GraphicsShaderSyntax> ParseGraphicsShaderSyntax(string shaderCode)
     {
         var parseErrors = new List<DSLShaderError>();

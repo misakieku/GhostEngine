@@ -7,7 +7,7 @@ namespace Ghost.DSL.ShaderParser;
 
 public class AntlrShaderCompiler
 {
-    public static GraphicsShaderSyntax? ParseShaders(string source, List<DSLShaderError> errors)
+    public static DSLDocumentSyntax? ParseDocument(string source, List<DSLShaderError> errors)
     {
         try
         {
@@ -35,7 +35,7 @@ public class AntlrShaderCompiler
             }
 
             var visitor = new ShaderVisitor();
-            return (GraphicsShaderSyntax)visitor.Visit(tree);
+            return (DSLDocumentSyntax)visitor.Visit(tree);
         }
         catch (Exception ex)
         {
@@ -48,6 +48,89 @@ public class AntlrShaderCompiler
 
             return null;
         }
+    }
+
+    public static GraphicsShaderSyntax? ParseShaders(string source, List<DSLShaderError> errors)
+    {
+        var doc = ParseDocument(source, errors);
+        if (doc == null || errors.Count > 0)
+        {
+            return null;
+        }
+
+        if (doc.Shaders.Count > 0)
+        {
+            var s = doc.Shaders[0];
+            return new GraphicsShaderSyntax
+            {
+                Name = s.Name,
+                ShaderModel = s.ShaderModel,
+                Pipeline = s.Pipeline,
+                Passes = s.Passes,
+                FunctionCalls = s.FunctionCalls
+            };
+        }
+
+        if (doc.Templates.Count > 0)
+        {
+            var t = doc.Templates[0];
+            return new GraphicsShaderSyntax
+            {
+                Name = t.Name,
+                ShaderModel = t.ShaderModel,
+                Pipeline = t.Pipeline,
+                Passes = t.Passes,
+                FunctionCalls = t.FunctionCalls
+            };
+        }
+
+        if (doc.Modules.Count > 0)
+        {
+            foreach (var mod in doc.Modules)
+            {
+                if (mod.Shaders.Count > 0)
+                {
+                    var s = mod.Shaders[0];
+                    return new GraphicsShaderSyntax
+                    {
+                        Name = s.Name,
+                        ShaderModel = s.ShaderModel,
+                        Pipeline = s.Pipeline,
+                        Passes = s.Passes,
+                        FunctionCalls = s.FunctionCalls
+                    };
+                }
+                if (mod.Templates.Count > 0)
+                {
+                    var t = mod.Templates[0];
+                    return new GraphicsShaderSyntax
+                    {
+                        Name = t.Name,
+                        ShaderModel = t.ShaderModel,
+                        Pipeline = t.Pipeline,
+                        Passes = t.Passes,
+                        FunctionCalls = t.FunctionCalls
+                    };
+                }
+            }
+        }
+
+        if (doc.Passes.Count > 0)
+        {
+            return new GraphicsShaderSyntax
+            {
+                Name = "Unnamed",
+                Passes = doc.Passes
+            };
+        }
+
+        errors.Add(new DSLShaderError
+        {
+            message = "No shader or template declaration found in file",
+            line = 1,
+            column = 1
+        });
+        return null;
     }
 
     public static ComputeShaderSyntax? ParseComputeShaders(string source, List<DSLShaderError> errors)

@@ -1,8 +1,9 @@
+using System.Collections.Concurrent;
 using Ghost.AssetForge.Core.Bakers;
 using Ghost.AssetForge.Core.Models;
 using Ghost.Core;
 using Ghost.DSL.Models;
-
+using Ghost.DSL.ShaderCompiler;
 namespace Ghost.AssetForge.Core.Services;
 
 public class BakeService
@@ -10,7 +11,8 @@ public class BakeService
     private readonly ProjectContext _context;
     private readonly BakerRegistry _bakerRegistry;
     private readonly ShaderMetadata _shaderMetadata;
-
+    private ShaderWorkspace? _shaderWorkspace;
+    private readonly ConcurrentDictionary<ulong, (ShaderStage stage, byte[] bytecode)[]> _sharedPassBytecodeCache = new();
     private enum BakeOutcome
     {
         Succeeded,
@@ -55,6 +57,17 @@ public class BakeService
     /// </summary>
     public async Task<BakeResult> BakeProjectAsync(CancellationToken cancellationToken = default)
     {
+        // Pre-build ShaderWorkspace across asset directories for shader resolution
+        var wsResult = ShaderWorkspace.CreateFromAssetDirectories(_context.AssetDirectories);
+        if (wsResult.IsSuccess)
+        {
+            _shaderWorkspace = wsResult.Value;
+        }
+        else
+        {
+            Logger.Warning($"Shader workspace discovery note: {wsResult.Message}");
+        }
+
         // Map VirtualPath -> AbsolutePath. Later directories overwrite earlier ones.
         var virtualPathToFile = _context.EnumerateAssetFiles();
 
@@ -211,6 +224,8 @@ public class BakeService
         var ctx = new AssetBakerContext
         {
             ShaderMetadata = _shaderMetadata,
+            ShaderWorkspace = _shaderWorkspace,
+            SharedPassBytecodeCache = _sharedPassBytecodeCache,
             AssetDirectories = _context.AssetDirectories,
         };
 

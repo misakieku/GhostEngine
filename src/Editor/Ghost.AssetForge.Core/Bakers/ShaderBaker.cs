@@ -1,21 +1,20 @@
-using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.AssetForge.Core.Models;
+using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
+using Ghost.DSL.Composition;
 using Ghost.DSL.ShaderCompiler;
+using Ghost.DSL.ShaderParser.Syntax;
+using Ghost.DSL.Symbols;
 using Ghost.DXC;
-using Ghost.AssetForge.Core.Services;
-using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.AssetForge.Core.Bakers;
 
@@ -76,65 +75,37 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
         }
     }
 
-    private static ulong ComputeVariantKey(List<string> activeKeywords, List<string> allKeywords)
+    private static async Task WriteCachedShaderEntries(Stream stream, long variantDataOffset, CancellationToken cancellationToken, params (ShaderStage stage, byte[] bytecode)[] entries)
     {
-        uint[] data = new uint[4];
-        foreach (var active in activeKeywords)
+        var baseByteCodeOffset = (stream.Position - variantDataOffset) + (entries.Length * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>());
+
+        for (var i = 0; i < entries.Length; i++)
         {
-            var localIndex = allKeywords.IndexOf(active);
-            if (localIndex < 0) continue;
-            var index = localIndex / 32;
-            var bit = localIndex % 32;
-            data[index] |= (uint)(1 << bit);
-        }
-
-        var hash = 14695981039346656037ul; // FNV Offset basis
-
-        for (var i = 0; i < 4; i++)
-        {
-            hash ^= data[i];
-            hash *= 1099511628211ul; // FNV prime
-        }
-
-        return hash;
-    }
-
-    private static List<List<string>> GenerateVariantCombinations(KeywordsGroup[] groups)
-    {
-        var combinations = new List<List<string>>();
-        var current = new string[groups.Length];
-        
-        void Backtrack(int groupIndex)
-        {
-            if (groupIndex == groups.Length)
+            var (stage, bytecode) = entries[i];
+            var byteCodeOffset = baseByteCodeOffset;
+            for (var j = 0; j < i; j++)
             {
-                combinations.Add(current.Where(k => !string.IsNullOrEmpty(k)).ToList());
-                return;
+                byteCodeOffset += entries[j].bytecode.Length;
             }
 
-            var group = groups[groupIndex];
-            if (group.keywords == null || group.keywords.Count == 0)
+            var entryPointHeader = new ShaderContentHeader.EntryPointHeader
             {
-                Backtrack(groupIndex + 1);
-            }
-            else
-            {
-                foreach (var kw in group.keywords)
-                {
-                    current[groupIndex] = kw;
-                    Backtrack(groupIndex + 1);
-                }
-            }
+                stage = stage,
+                byteCodeSize = bytecode.Length,
+                byteCodeOffset = byteCodeOffset
+            };
+
+            stream.Write(entryPointHeader);
         }
 
-        Backtrack(0);
-        
-        if (combinations.Count == 0)
+        for (var i = 0; i < entries.Length; i++)
         {
-            combinations.Add(new List<string>());
+            var bytecode = entries[i].bytecode;
+            if (bytecode.Length > 0)
+            {
+                await stream.WriteAsync(bytecode, cancellationToken).ConfigureAwait(false);
+            }
         }
-
-        return combinations;
     }
 
     public async Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
@@ -171,147 +142,184 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
 
         if (string.Equals(ext, ".gshdr", StringComparison.Ordinal))
         {
-            var syntax = DSLShaderCompiler.ParseGraphicsShaderSyntax(codeStr).GetValueOrThrow();
-            var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
+            // 1. Resolve Workspace
+            var workspace = ctx.ShaderWorkspace;
+            if (workspace == null)
+            {
+                workspace = new ShaderWorkspace();
+                var doc = DSLShaderCompiler.ParseDSLDocument(codeStr).GetValueOrThrow();
+                workspace.IndexDocument(src, doc);
+                workspace.ResolveAndValidate().ThrowIfFailed();
+            }
 
-            var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
-            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader).GetValueOrThrow();
+            // 2. Identify Target Shader in Workspace
+            var shaderSymbol = workspace.Shaders.Values.FirstOrDefault(s => s.SourceFile == src)
+                            ?? workspace.Shaders.Values.FirstOrDefault()
+                            ?? throw new InvalidOperationException($"No shader declaration found in '{src}'.");
+
+            // 3. Resolve Pass Specializations and Composition Matrix
+            var composition = workspace.ResolveShaderComposition(shaderSymbol).GetValueOrThrow();
 
             var header = new ShaderContentHeader
             {
                 shaderType = ShaderType.Graphics,
-                passCount = (uint)descriptor.Passes.Length,
+                passCount = (uint)composition.Passes.Count
             };
 
             var assetStartOffset = dst.Position;
             dst.Write(header);
 
-            // Calculate all unique keywords across all passes for string table
-            var allKeywords = new List<string>();
-            var stringTableBytes = new List<byte>();
-            
-            // Build string table
-            var passGroupOffsets = new List<List<uint>>(); // Pass index -> Group Index -> string table offset
-            foreach (var pass in descriptor.Passes)
-            {
-                var groupOffsets = new List<uint>();
-                foreach (var group in pass.keywords)
-                {
-                    groupOffsets.Add((uint)stringTableBytes.Count);
-                    if (group.keywords != null)
-                    {
-                        foreach (var kw in group.keywords)
-                        {
-                            if (!allKeywords.Contains(kw)) allKeywords.Add(kw);
-                            stringTableBytes.AddRange(Encoding.UTF8.GetBytes(kw));
-                            stringTableBytes.Add(0); // Null terminator
-                        }
-                    }
-                }
-                passGroupOffsets.Add(groupOffsets);
-            }
+            // Reflection property data
+            var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(shaderSymbol.QualifiedName, new DSL.Models.ShaderReflectionData());
 
-            var stringTableOffset = (uint)(dst.Position - assetStartOffset);
-            var stringTableSize = (uint)stringTableBytes.Count;
-            
-            // Update header
-            var currentPos = dst.Position;
-            dst.Position = assetStartOffset;
-            header.keywordStringTableOffset = stringTableOffset;
-            header.keywordStringTableSize = stringTableSize;
-            dst.Write(header);
-            dst.Position = currentPos;
-
-            // Write String Table
-            if (stringTableSize > 0)
+            for (var passIdx = 0; passIdx < composition.Passes.Count; passIdx++)
             {
-                dst.Write(BitConverter.GetBytes(stringTableSize));
-                dst.Write(stringTableBytes.ToArray());
-            }
-            else
-            {
-                dst.Write(BitConverter.GetBytes((uint)0));
-            }
-
-            for (var passIdx = 0; passIdx < descriptor.Passes.Length; passIdx++)
-            {
-                var pass = descriptor.Passes[passIdx];
-                var combinations = GenerateVariantCombinations(pass.keywords);
-                var groupOffsets = passGroupOffsets[passIdx];
+                var passSet = composition.Passes[passIdx];
+                var entryCount = passSet.Syntax.ShaderEntries.Count > 0 ? passSet.Syntax.ShaderEntries.Count : 1;
 
                 var passHeader = new ShaderContentHeader.PassHeader
                 {
-                    entryPointCount = 3, // Amplification, Mesh, Pixel
-                    variantCount = (uint)combinations.Count,
-                    keywordGroupCount = (uint)pass.keywords.Length
+                    entryPointCount = (uint)entryCount,
+                    variantCount = (uint)passSet.Specializations.Count,
+                    isTemplateShared = passSet.IsTemplateShared ? 1u : 0u,
+                    templatePassId = passSet.TemplatePassId ?? 0ul
                 };
                 dst.Write(passHeader);
 
-                foreach (var t in groupOffsets.Select((offset, idx) => new ShaderContentHeader.KeywordGroupDescriptor
-                {
-                    stringTableOffset = offset,
-                    keywordCount = (uint)(pass.keywords[idx].keywords?.Count ?? 0)
-                }))
-                {
-                    dst.Write(t);
-                }
-
                 var variantEntriesOffset = dst.Position;
-                var variantEntries = new ShaderContentHeader.VariantEntry[combinations.Count];
-                for (var i = 0; i < combinations.Count; i++)
+                var variantEntries = new ShaderContentHeader.VariantEntry[passSet.Specializations.Count];
+                for (var i = 0; i < passSet.Specializations.Count; i++)
                 {
                     dst.Write(variantEntries[i]); // Placeholder
                 }
 
-                for (var i = 0; i < combinations.Count; i++)
+                // Check Template Pass Bytecode Cache for shared passes (e.g. DepthOnly)
+                if (passSet.IsTemplateShared && passSet.TemplatePassId.HasValue && ctx.SharedPassBytecodeCache != null)
                 {
-                    var activeKeywords = combinations[i];
-                    var variantDataStart = dst.Position;
-                    
-                    var variantDefines = pass.defines.ToList();
-                    variantDefines.AddRange(activeKeywords);
-
-                    var config = configTemplate with
+                    if (ctx.SharedPassBytecodeCache.TryGetValue(passSet.TemplatePassId.Value, out var cachedEntries))
                     {
-                        stage = ShaderStage.AmplificationShader,
-                        model = descriptor.ShaderModel,
-                        defines = variantDefines.ToArray(),
-                        entryPoint = pass.amplificationShaderCode.entryPoint,
-                        shaderCode = pass.amplificationShaderCode.code,
-                    };
+                        var variantDataStart = dst.Position;
+                        await WriteCachedShaderEntries(dst, variantDataStart, cancellationToken, cachedEntries).ConfigureAwait(false);
 
-                    if (!pass.meshShaderCode.IsCreated || !pass.pixelShaderCode.IsCreated)
-                    {
-                        throw new InvalidOperationException("Shader pass is missing required shader stages. Both mesh and pixel shaders must be present.");
+                        variantEntries[0] = new ShaderContentHeader.VariantEntry
+                        {
+                            variantKey = 0,
+                            dataOffset = variantDataStart - assetStartOffset,
+                            dataSize = dst.Position - variantDataStart
+                        };
+
+                        var endOfCachedPass = dst.Position;
+                        dst.Position = variantEntriesOffset;
+                        dst.Write(variantEntries[0]);
+                        dst.Position = endOfCachedPass;
+                        continue;
                     }
+                }
 
-                    using var asByteCode = pass.amplificationShaderCode.IsCreated ?
-                        _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow()
-                        : default;
+                var cachedEntriesToSave = new List<(ShaderStage stage, byte[] bytecode)>();
 
-                    config.stage = ShaderStage.MeshShader;
-                    config.entryPoint = pass.meshShaderCode.entryPoint;
-                    config.shaderCode = pass.meshShaderCode.code;
+                for (var i = 0; i < passSet.Specializations.Count; i++)
+                {
+                    var spec = passSet.Specializations[i];
+                    var variantDataStart = dst.Position;
 
-                    using var msByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                    var compiledEntries = new List<(ShaderStage stage, UnsafeArray<byte> bytecode)>();
 
-                    config.stage = ShaderStage.PixelShader;
-                    config.entryPoint = pass.pixelShaderCode.entryPoint;
-                    config.shaderCode = pass.pixelShaderCode.code;
+                    try
+                    {
+                        if (passSet.Syntax.ShaderEntries.Count > 0)
+                        {
+                            foreach (var entry in passSet.Syntax.ShaderEntries)
+                            {
+                                var stage = ParseShaderStage(entry.EntryType);
+                                var hlslResult = HLSLCodeGenerator.GeneratePassHLSL(
+                                    passSet.Syntax,
+                                    spec,
+                                    shaderSymbol.PayloadBody,
+                                    reflectionData.Code,
+                                    ctx.ShaderMetadata.VirtualShader,
+                                    entry.ShaderPath,
+                                    ctx.AssetDirectories);
 
-                    using var psByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                                var hlslCode = hlslResult.GetValueOrThrow();
 
-                    await WriteShaderEntries(dst, variantDataStart, cancellationToken,
-                        (ShaderStage.AmplificationShader, asByteCode),
-                        (ShaderStage.MeshShader, msByteCode),
-                        (ShaderStage.PixelShader, psByteCode));
+                                var config = configTemplate with
+                                {
+                                    stage = stage,
+                                    model = ShaderModel.SM_6_6,
+                                    defines = spec.CompilerDefines.ToArray(),
+                                    entryPoint = entry.EntryPoint,
+                                    shaderCode = hlslCode,
+                                };
+
+                                var bytecode = _compiler.Compile(in config, AllocationHandle.Persistent).GetValueOrThrow();
+                                compiledEntries.Add((stage, bytecode));
+
+                                if (passSet.IsTemplateShared && i == 0)
+                                {
+                                    var copy = new byte[bytecode.Length];
+                                    using var mem = NativeMemoryManager<byte>.FromUnsafeCollection(in bytecode);
+                                    mem.Memory.Span.CopyTo(copy);
+                                    cachedEntriesToSave.Add((stage, copy));
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Inline HLSL fallback
+                            var hlslResult = HLSLCodeGenerator.GeneratePassHLSL(
+                                passSet.Syntax,
+                                spec,
+                                shaderSymbol.PayloadBody,
+                                reflectionData.Code,
+                                ctx.ShaderMetadata.VirtualShader,
+                                null,
+                                ctx.AssetDirectories);
+
+                            var hlslCode = hlslResult.GetValueOrThrow();
+
+                            var config = configTemplate with
+                            {
+                                stage = ShaderStage.PixelShader,
+                                model = ShaderModel.SM_6_6,
+                                defines = spec.CompilerDefines.ToArray(),
+                                entryPoint = "MainPS",
+                                shaderCode = hlslCode,
+                            };
+
+                            var bytecode = _compiler.Compile(in config, AllocationHandle.Persistent).GetValueOrThrow();
+                            compiledEntries.Add((ShaderStage.PixelShader, bytecode));
+
+                            if (passSet.IsTemplateShared && i == 0)
+                            {
+                                var copy = new byte[bytecode.Length];
+                                using var mem = NativeMemoryManager<byte>.FromUnsafeCollection(in bytecode);
+                                mem.Memory.Span.CopyTo(copy);
+                                cachedEntriesToSave.Add((ShaderStage.PixelShader, copy));
+                            }
+                        }
+
+                        await WriteShaderEntries(dst, variantDataStart, cancellationToken, compiledEntries.ToArray()).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        foreach (var (_, bc) in compiledEntries)
+                        {
+                            bc.Dispose();
+                        }
+                    }
 
                     variantEntries[i] = new ShaderContentHeader.VariantEntry
                     {
-                        variantKey = ComputeVariantKey(activeKeywords, allKeywords),
+                        variantKey = spec.CompositionKey,
                         dataOffset = variantDataStart - assetStartOffset,
                         dataSize = dst.Position - variantDataStart
                     };
+                }
+
+                if (passSet.IsTemplateShared && passSet.TemplatePassId.HasValue && ctx.SharedPassBytecodeCache != null && cachedEntriesToSave.Count > 0)
+                {
+                    ctx.SharedPassBytecodeCache[passSet.TemplatePassId.Value] = cachedEntriesToSave.ToArray();
                 }
 
                 var endOfPass = dst.Position;
@@ -334,135 +342,85 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
             var header = new ShaderContentHeader
             {
                 shaderType = ShaderType.Compute,
-                passCount = 1, // Compute shaders have a single pass
+                passCount = 1,
             };
 
             var assetStartOffset = dst.Position;
             dst.Write(header);
 
-            // Compute unique keywords
-            var allKeywords = new List<string>();
-            var stringTableBytes = new List<byte>();
-            var groupOffsets = new List<uint>();
-            foreach (var group in semantics.keywords)
-            {
-                groupOffsets.Add((uint)stringTableBytes.Count);
-                if (group.keywords != null)
-                {
-                    foreach (var kw in group.keywords)
-                    {
-                        if (!allKeywords.Contains(kw)) allKeywords.Add(kw);
-                        stringTableBytes.AddRange(Encoding.UTF8.GetBytes(kw));
-                        stringTableBytes.Add(0); // Null terminator
-                    }
-                }
-            }
-
-            var stringTableOffset = (uint)(dst.Position - assetStartOffset);
-            var stringTableSize = (uint)stringTableBytes.Count;
-            
-            // Update header
-            var currentPos = dst.Position;
-            dst.Position = assetStartOffset;
-            header.keywordStringTableOffset = stringTableOffset;
-            header.keywordStringTableSize = stringTableSize;
-            dst.Write(header);
-            dst.Position = currentPos;
-
-            if (stringTableSize > 0)
-            {
-                dst.Write(BitConverter.GetBytes(stringTableSize));
-                dst.Write(stringTableBytes.ToArray());
-            }
-            else
-            {
-                dst.Write(BitConverter.GetBytes((uint)0));
-            }
-
-            var combinations = GenerateVariantCombinations(semantics.keywords.ToArray());
-
             var passHeader = new ShaderContentHeader.PassHeader
             {
                 entryPointCount = (uint)descriptor.ShaderCodes.Length,
-                variantCount = (uint)combinations.Count,
-                keywordGroupCount = (uint)semantics.keywords.Count
+                variantCount = 1,
+                isTemplateShared = 0,
+                templatePassId = 0
             };
             dst.Write(passHeader);
 
-            foreach (var t in groupOffsets.Select((offset, idx) => new ShaderContentHeader.KeywordGroupDescriptor
-            {
-                stringTableOffset = offset,
-                keywordCount = (uint)(semantics.keywords[idx].keywords?.Count ?? 0)
-            }))
-            {
-                dst.Write(t);
-            }
-
             var variantEntriesOffset = dst.Position;
-            var variantEntries = new ShaderContentHeader.VariantEntry[combinations.Count];
-            for (var i = 0; i < combinations.Count; i++)
+            var variantEntry = new ShaderContentHeader.VariantEntry();
+            dst.Write(variantEntry);
+
+            var variantDataStart = dst.Position;
+            var byteCodes = new UnsafeArray<byte>[descriptor.ShaderCodes.Length];
+
+            try
             {
-                dst.Write(variantEntries[i]); // Placeholder
-            }
-
-            for (var i = 0; i < combinations.Count; i++)
-            {
-                var activeKeywords = combinations[i];
-                var variantDataStart = dst.Position;
-                
-                var variantDefines = descriptor.Defines.ToList();
-                variantDefines.AddRange(activeKeywords);
-
-                var byteCodes = new UnsafeArray<byte>[descriptor.ShaderCodes.Length];
-
-                try
+                for (var j = 0; j < descriptor.ShaderCodes.Length; j++)
                 {
-                    for (var j = 0; j < descriptor.ShaderCodes.Length; j++)
+                    var shaderCode = descriptor.ShaderCodes[j];
+                    var config = configTemplate with
                     {
-                        var shaderCode = descriptor.ShaderCodes[j];
-                        var config = configTemplate with
-                        {
-                            stage = ShaderStage.ComputeShader,
-                            model = descriptor.ShaderModel,
-                            defines = variantDefines.ToArray(),
-                            entryPoint = shaderCode.entryPoint,
-                            shaderCode = shaderCode.code,
-                        };
+                        stage = ShaderStage.ComputeShader,
+                        model = descriptor.ShaderModel,
+                        defines = descriptor.Defines.ToArray(),
+                        entryPoint = shaderCode.entryPoint,
+                        shaderCode = shaderCode.code,
+                    };
 
-                        byteCodes[j] = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
-                    }
-
-                    var entries = byteCodes.Select((bc, index) => (ShaderStage.ComputeShader, bc)).ToArray();
-                    await WriteShaderEntries(dst, variantDataStart, cancellationToken, entries);
-                }
-                finally
-                {
-                    foreach (var code in byteCodes)
-                    {
-                        code.Dispose();
-                    }
+                    byteCodes[j] = _compiler.Compile(in config, AllocationHandle.Persistent).GetValueOrThrow();
                 }
 
-                variantEntries[i] = new ShaderContentHeader.VariantEntry
-                {
-                    variantKey = ComputeVariantKey(activeKeywords, allKeywords),
-                    dataOffset = variantDataStart - assetStartOffset,
-                    dataSize = dst.Position - variantDataStart
-                };
+                var entries = byteCodes.Select((bc, index) => (ShaderStage.ComputeShader, bc)).ToArray();
+                await WriteShaderEntries(dst, variantDataStart, cancellationToken, entries).ConfigureAwait(false);
             }
+            finally
+            {
+                foreach (var code in byteCodes)
+                {
+                    code.Dispose();
+                }
+            }
+
+            variantEntry = new ShaderContentHeader.VariantEntry
+            {
+                variantKey = 0,
+                dataOffset = variantDataStart - assetStartOffset,
+                dataSize = dst.Position - variantDataStart
+            };
 
             var endOfPass = dst.Position;
             dst.Position = variantEntriesOffset;
-            foreach (var entry in variantEntries)
-            {
-                dst.Write(entry);
-            }
+            dst.Write(variantEntry);
             dst.Position = endOfPass;
         }
         else
         {
             throw new NotSupportedException($"Unsupported shader file extension: {ext}");
         }
+    }
+
+    private static ShaderStage ParseShaderStage(string entryType)
+    {
+        return entryType.ToLowerInvariant() switch
+        {
+            "amplification" or "as" or "task" => ShaderStage.AmplificationShader,
+            "mesh" or "ms" => ShaderStage.MeshShader,
+            "pixel" or "ps" or "fragment" => ShaderStage.PixelShader,
+            "compute" or "cs" => ShaderStage.ComputeShader,
+            "lib" or "library" or "rt" => ShaderStage.Library,
+            _ => ShaderStage.PixelShader
+        };
     }
 
     public void Dispose()

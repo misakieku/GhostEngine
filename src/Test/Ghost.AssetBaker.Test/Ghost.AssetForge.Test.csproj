@@ -9,6 +9,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Editor\Ghost.AssetForge.Core\Ghost.AssetForge.Core.csproj" />
+    <ProjectReference Include="..\..\Editor\Ghost.DSL\Ghost.DSL.csproj" />
+    <ProjectReference Include="..\..\Runtime\Ghost.Core\Ghost.Core.csproj" />
     <ProjectReference Include="..\..\Tools\Ghost.ShaderMetadataTool\Ghost.ShaderMetadataTool.csproj" />
   </ItemGroup>
   <ItemGroup>

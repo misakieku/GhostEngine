@@ -12,7 +12,20 @@ GLOBAL: 'global';
 LOCAL: 'local';
 HLSL: 'hlsl';
 SM: 'sm';
-
+MODULE: 'module';
+IMPORT: 'import';
+EXPORT: 'export';
+CLOSED: 'closed';
+INTERFACE: 'interface';
+IMPLEMENTATION: 'implementation';
+TEMPLATE: 'template';
+SLOT: 'slot';
+BIND: 'bind';
+COMPOSE: 'compose';
+PAYLOAD: 'payload';
+SHADER_PROJECT: 'shader_project';
+TARGET: 'target';
+PROVIDER: 'provider';
 // Punctuation
 LBRACE: '{';
 RBRACE: '}';
@@ -24,7 +37,7 @@ SEMICOLON: ';';
 COMMA: ',';
 EQUALS: '=';
 COLON: ':';
-
+DOT: '.';
 // Literals
 STRING_LITERAL: '"' (~["\r\n] | '\\' .)* '"';
 NUMBER: [0-9]+ ('.' [0-9]+)? | '.' [0-9]+;

@@ -1,5 +1,116 @@
 namespace Ghost.DSL.ShaderParser.Syntax;
 
+public enum InterfaceScope
+{
+    Pipeline,
+    Shader
+}
+
+public class DSLDocumentSyntax
+{
+    public List<ModuleDeclarationSyntax> Modules { get; set; } = new();
+    public List<ImportDeclarationSyntax> Imports { get; set; } = new();
+    public List<InterfaceDeclarationSyntax> Interfaces { get; set; } = new();
+    public List<ImplementationDeclarationSyntax> Implementations { get; set; } = new();
+    public List<TemplateDeclarationSyntax> Templates { get; set; } = new();
+    public List<ShaderDeclarationSyntax> Shaders { get; set; } = new();
+    public List<ShaderProjectDeclarationSyntax> Projects { get; set; } = new();
+    public List<PassBlockSyntax> Passes { get; set; } = new();
+}
+
+public class ModuleDeclarationSyntax
+{
+    public string Name { get; set; } = string.Empty;
+    public List<ImportDeclarationSyntax> Imports { get; set; } = new();
+    public List<InterfaceDeclarationSyntax> Interfaces { get; set; } = new();
+    public List<ImplementationDeclarationSyntax> Implementations { get; set; } = new();
+    public List<TemplateDeclarationSyntax> Templates { get; set; } = new();
+    public List<ShaderDeclarationSyntax> Shaders { get; set; } = new();
+}
+
+public class ImportDeclarationSyntax
+{
+    public string ModuleName { get; set; } = string.Empty;
+}
+
+public class InterfaceDeclarationSyntax
+{
+    public string Name { get; set; } = string.Empty;
+    public InterfaceScope Scope { get; set; }
+    public bool IsClosed { get; set; }
+    public bool IsExported { get; set; }
+    public string Body { get; set; } = string.Empty;
+}
+
+public class ImplementationDeclarationSyntax
+{
+    public string Name { get; set; } = string.Empty;
+    public string InterfaceName { get; set; } = string.Empty;
+    public bool IsExported { get; set; }
+    public string Body { get; set; } = string.Empty;
+    public string? Provider { get; set; }
+}
+
+public class TemplateDeclarationSyntax
+{
+    public string Name { get; set; } = string.Empty;
+    public bool IsExported { get; set; }
+    public List<TemplateSlotSyntax> Slots { get; set; } = new();
+    public List<PassBlockSyntax> Passes { get; set; } = new();
+    public PipelineBlockSyntax? Pipeline { get; set; }
+    public string ShaderModel { get; set; } = string.Empty;
+    public List<FunctionCallSyntax> FunctionCalls { get; set; } = new();
+}
+
+public class TemplateSlotSyntax
+{
+    public string InterfaceName { get; set; } = string.Empty;
+    public string? DefaultImplementationName { get; set; }
+}
+
+public class ShaderDeclarationSyntax
+{
+    public string Name { get; set; } = string.Empty;
+    public string? TemplateName { get; set; }
+    public bool IsExported { get; set; }
+    public PayloadBlockSyntax? Payload { get; set; }
+    public List<ImplementationDeclarationSyntax> Implementations { get; set; } = new();
+    public BindBlockSyntax? Bind { get; set; }
+    public List<PassBlockSyntax> Passes { get; set; } = new();
+    public PipelineBlockSyntax? Pipeline { get; set; }
+    public string ShaderModel { get; set; } = string.Empty;
+    public List<FunctionCallSyntax> FunctionCalls { get; set; } = new();
+}
+
+public class PayloadBlockSyntax
+{
+    public string Body { get; set; } = string.Empty;
+}
+
+public class BindBlockSyntax
+{
+    public List<BindingSyntax> Bindings { get; set; } = new();
+}
+
+public class BindingSyntax
+{
+    public string InterfaceName { get; set; } = string.Empty;
+    public string ImplementationName { get; set; } = string.Empty;
+}
+
+
+public class ShaderProjectDeclarationSyntax
+{
+    public string Name { get; set; } = string.Empty;
+    public List<string> Modules { get; set; } = new();
+    public List<string> Targets { get; set; } = new();
+}
+
+public class ComposeBlockSyntax
+{
+    public List<string> Interfaces { get; set; } = new();
+}
+
 public class GraphicsShaderSyntax
 {
     public string Name { get; set; } = string.Empty;
@@ -30,6 +141,7 @@ public class PassBlockSyntax
 {
     public string Name { get; set; } = string.Empty;
     public PipelineBlockSyntax? LocalPipeline { get; set; }
+    public ComposeBlockSyntax? Compose { get; set; }
     public DefinesBlockSyntax? Defines { get; set; }
     public IncludesBlockSyntax? Includes { get; set; }
     public KeywordsBlockSyntax? Keywords { get; set; }

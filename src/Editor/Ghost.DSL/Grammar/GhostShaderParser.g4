@@ -5,18 +5,107 @@ options {
 }
 
 // Top-level rule
-shaderFile: shader + EOF;
+shaderFile: (topLevelDeclaration | moduleDeclaration | shaderProjectDeclaration)+ EOF;
 
-shader:
-    SHADER STRING_LITERAL LBRACE
+moduleDeclaration:
+    MODULE STRING_LITERAL LBRACE
+        moduleItem*
+    RBRACE;
+
+moduleItem:
+    importDeclaration
+    | interfaceDeclaration
+    | implementationDeclaration
+    | templateDeclaration
+    | shaderDeclaration
+    ;
+
+shaderProjectDeclaration:
+    SHADER_PROJECT STRING_LITERAL LBRACE
+        projectItem*
+    RBRACE;
+
+projectItem:
+    MODULE STRING_LITERAL SEMICOLON
+    | TARGET STRING_LITERAL SEMICOLON
+    ;
+
+topLevelDeclaration:
+    importDeclaration
+    | interfaceDeclaration
+    | implementationDeclaration
+    | templateDeclaration
+    | shaderDeclaration
+    | passBlock
+    ;
+
+importDeclaration:
+    IMPORT STRING_LITERAL SEMICOLON;
+
+interfaceDeclaration:
+    EXPORT? CLOSED? INTERFACE interfaceScope qualifiedIdentifier opaqueBracedBody? SEMICOLON?;
+
+interfaceScope:
+    PIPELINE
+    | SHADER
+    ;
+
+implementationDeclaration:
+    EXPORT? IMPLEMENTATION qualifiedIdentifier COLON qualifiedIdentifier opaqueBracedBody;
+
+templateDeclaration:
+    EXPORT? TEMPLATE qualifiedIdentifier LBRACE
+        templateBody
+    RBRACE;
+
+templateBody:
+    (slotBlock | passBlock | pipelineBlock | shaderModel | functionCall)*;
+
+slotBlock:
+    SLOT LBRACE
+        slotItem*
+    RBRACE;
+
+slotItem:
+    qualifiedIdentifier (EQUALS qualifiedIdentifier)? SEMICOLON;
+
+shaderDeclaration:
+    EXPORT? SHADER qualifiedIdentifier (COLON qualifiedIdentifier)? LBRACE
         shaderBody
     RBRACE;
 
 shaderBody:
-    shaderModel | (pipelineBlock | passBlock | functionCall)*;
+    (
+        shaderModel
+        | payloadBlock
+        | implementationDeclaration
+        | bindBlock
+        | pipelineBlock
+        | passBlock
+        | functionCall
+    )*;
+
+payloadBlock:
+    PAYLOAD opaqueBracedBody;
+
+bindBlock:
+    BIND LBRACE
+        bindItem*
+    RBRACE;
+
+bindItem:
+    qualifiedIdentifier EQUALS qualifiedIdentifier SEMICOLON;
+
 
 shaderModel:
-    SM IDENTIFIER SEMICOLON;
+    SM shaderModelIdentifier SEMICOLON;
+
+shaderModelIdentifier:
+    identifier
+    | NUMBER
+    | NUMBER identifier
+    | STRING_LITERAL
+    ;
 
 // Pipeline block
 pipelineBlock:
@@ -25,17 +114,24 @@ pipelineBlock:
     RBRACE;
 
 pipelineStatement:
-    IDENTIFIER EQUALS IDENTIFIER SEMICOLON;
+    identifier EQUALS identifier SEMICOLON;
 
 // Pass block
 passBlock:
-    PASS STRING_LITERAL LBRACE
+    PASS qualifiedIdentifier LBRACE
         passBody
     RBRACE;
 
-// Template
 passBody:
-    (definesBlock | includesBlock | keywordsBlock | pipelineBlock | hlslBlock | shaderEntry)*;
+    (composeBlock | definesBlock | includesBlock | keywordsBlock | pipelineBlock | hlslBlock | shaderEntry | functionCall)*;
+
+composeBlock:
+    COMPOSE LBRACE
+        composeItem*
+    RBRACE;
+
+composeItem:
+    qualifiedIdentifier SEMICOLON;
 
 definesBlock:
     DEFINES LBRACE
@@ -43,7 +139,7 @@ definesBlock:
     RBRACE;
 
 defineStatement:
-    IDENTIFIER SEMICOLON;
+    identifier SEMICOLON;
 
 includesBlock:
     INCLUDES LBRACE
@@ -59,29 +155,56 @@ keywordsBlock:
     RBRACE;
 
 keywordStatement:
-    IDENTIFIER (COMMA IDENTIFIER)* SEMICOLON;
+    identifier (COMMA identifier)* SEMICOLON;
 
 hlslBlock:
-    HLSL LBRACE
-        hlslBody
+    HLSL opaqueBracedBody;
+
+opaqueBracedBody:
+    LBRACE
+        opaqueInner*
     RBRACE;
 
-// Recursively matches content, ensuring braces are balanced.
-hlslBody:
-    (
-        ~(LBRACE | RBRACE)   // Match ANY token except open/close braces
-        | 
-        LBRACE hlslBody RBRACE  // Or match a nested block recursively
-    )*;
+opaqueInner:
+    ~(LBRACE | RBRACE)
+    | opaqueBracedBody
+    ;
 
 shaderEntry:
-    IDENTIFIER STRING_LITERAL COLON STRING_LITERAL SEMICOLON;
+    identifier STRING_LITERAL COLON STRING_LITERAL SEMICOLON;
 
 functionCall:
-    IDENTIFIER LPAREN functionArguments? RPAREN SEMICOLON;
+    identifier LPAREN functionArguments? RPAREN SEMICOLON;
 
 functionArguments:
     functionArgument (COMMA functionArgument)*;
 
 functionArgument:
-    STRING_LITERAL | NUMBER | IDENTIFIER;
+    STRING_LITERAL | NUMBER | qualifiedIdentifier;
+
+identifier:
+    IDENTIFIER
+    | GLOBAL
+    | LOCAL
+    | PASS
+    | SHADER
+    | PIPELINE
+    | TEMPLATE
+    | INTERFACE
+    | IMPLEMENTATION
+    | MODULE
+    | IMPORT
+    | EXPORT
+    | CLOSED
+    | SLOT
+    | BIND
+    | COMPOSE
+    | PAYLOAD
+    | TARGET
+    | PROVIDER
+    ;
+
+qualifiedIdentifier:
+    identifier (DOT identifier)*
+    | STRING_LITERAL
+    ;

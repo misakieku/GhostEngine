@@ -29,7 +29,7 @@ internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object
         var computeBody = context.computeBody();
         if (computeBody != null)
         {
-            compute.ShaderModel = computeBody.shaderModel()?.GetText() ?? string.Empty;
+            compute.ShaderModel = computeBody.shaderModel()?.shaderModelIdentifier()?.GetText() ?? string.Empty;
 
             foreach (var definesBlock in computeBody.definesBlock())
             {
@@ -107,15 +107,17 @@ internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object
     public override object VisitHlslBlock([NotNull] GhostComputeShaderParser.HlslBlockContext context)
     {
         var hlsl = new HlslBlockSyntax();
-
-        // Get the text between the braces
-        var start = context.LBRACE().Symbol.StopIndex + 1;
-        var stop = context.RBRACE().Symbol.StartIndex - 1;
-
-        if (stop >= start)
+        var opaque = context.opaqueBracedBody();
+        if (opaque != null)
         {
-            var input = context.Start.InputStream;
-            hlsl.Code = input.GetText(new Interval(start, stop));
+            var start = opaque.LBRACE().Symbol.StopIndex + 1;
+            var stop = opaque.RBRACE().Symbol.StartIndex - 1;
+
+            if (stop >= start)
+            {
+                var input = opaque.Start.InputStream;
+                hlsl.Code = input.GetText(new Interval(start, stop));
+            }
         }
 
         return hlsl;

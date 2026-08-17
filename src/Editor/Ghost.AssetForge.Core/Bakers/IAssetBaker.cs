@@ -1,8 +1,9 @@
+using System.Collections.Concurrent;
 using Ghost.Core;
 using Ghost.DSL.Models;
+using Ghost.DSL.ShaderCompiler;
 
 namespace Ghost.AssetForge.Core.Bakers;
-
 public sealed class AssetBakerAttribute : Attribute
 {
     public required string[] Extensions { get; set; }
@@ -32,6 +33,15 @@ public struct AssetBakerContext()
         get; init;
     }
 
+    public ShaderWorkspace? ShaderWorkspace
+    {
+        get; init;
+    }
+
+    public ConcurrentDictionary<ulong, (ShaderStage stage, byte[] bytecode)[]>? SharedPassBytecodeCache
+    {
+        get; init;
+    }
     public readonly IReadOnlyList<SubAssetEntry> SubAssets => _subAssets;
 
     internal Func<string, Stream>? SubAssetStreamFactory { get; set; }

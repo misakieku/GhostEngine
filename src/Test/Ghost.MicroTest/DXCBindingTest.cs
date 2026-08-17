@@ -27,8 +27,8 @@ PSInput main(VSInput input)
     output.position = float4(input.position, 1.0);
     output.normal = input.normal;
     return output;
-}"u8;
-
+}
+"u8;
     private IDxcCompiler3* _compiler;
     private IDxcUtils* _utils;
 
