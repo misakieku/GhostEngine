@@ -1,7 +1,9 @@
-using Ghost.DSL.Composition;
 using Ghost.Core;
+using Ghost.DSL.Composition;
+using Ghost.DSL.Properties;
 using Ghost.DSL.ShaderParser.Syntax;
 using Ghost.DSL.Symbols;
+using Ghost.DSL.Syntax.Symbols;
 using System.Text;
 
 namespace Ghost.DSL.ShaderCompiler;
@@ -48,8 +50,7 @@ public sealed class ShaderWorkspace
 
             var files = Directory.EnumerateFiles(dir, "*.*", SearchOption.AllDirectories)
                                  .Where(f => f.EndsWith(".gshdr", StringComparison.OrdinalIgnoreCase)
-                                          || f.EndsWith(".gmod", StringComparison.OrdinalIgnoreCase)
-                                          || f.EndsWith(".gcomp", StringComparison.OrdinalIgnoreCase));
+                                          || f.EndsWith(".gmod", StringComparison.OrdinalIgnoreCase));
 
             foreach (var file in files)
             {
@@ -251,6 +252,18 @@ public sealed class ShaderWorkspace
             ModuleName = module?.Name,
             Syntax = syntax
         };
+        var propErrors = new List<Ghost.DSL.Parser.DSLShaderError>();
+        symbol.PropertySchema = PropertyLayoutEngine.ComputeTemplateLayout(syntax, qualifiedName, propErrors);
+        foreach (var err in propErrors)
+        {
+            _diagnostics.Add(new DSLShaderError
+            {
+                message = err.Message,
+                line = err.Line,
+                column = err.Column
+            });
+        }
+
 
         foreach (var slot in syntax.Slots)
         {
@@ -599,6 +612,18 @@ public sealed class ShaderWorkspace
                     shdr.BaseTemplateId = baseTemplate.Id;
                 }
             }
+            var shaderPropErrors = new List<Ghost.DSL.Parser.DSLShaderError>();
+            shdr.PropertySchema = PropertyLayoutEngine.ComputeShaderLayout(shdr.Syntax, shdr.QualifiedName, baseTemplate?.PropertySchema, shaderPropErrors);
+            foreach (var err in shaderPropErrors)
+            {
+                _diagnostics.Add(new DSLShaderError
+                {
+                    message = err.Message,
+                    line = err.Line,
+                    column = err.Column
+                });
+            }
+
 
             // Resolve local implementations
             foreach (var localImpl in shdr.LocalImplementations.Values)

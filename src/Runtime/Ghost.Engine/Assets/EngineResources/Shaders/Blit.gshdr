@@ -1,5 +1,11 @@
 shader "Hidden/Blit"
 {
+    properties
+    {
+        TextureHandle mainTex;
+        SamplerHandle sampler_mainTex;
+    }
+
     pass "Blit"
     {
         pipeline

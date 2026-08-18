@@ -1,5 +1,12 @@
 shader "MyShader/Standard"
 {
+    properties
+    {
+        Float4 BaseColor;
+        Float Roughness;
+        Float Metallic;
+    }
+
     pass "Forward"
     {
         pipeline

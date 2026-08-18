@@ -80,12 +80,19 @@ public static class HLSLCodeGenerator
             foreach (var inc in pass.Includes.Includes)
             {
                 var trimmed = inc.TrimStart('/', '\\').Replace('\\', '/');
-                sb.AppendLine($"#include \"{trimmed}\"");
+                if (virtualShaders != null && (virtualShaders.TryGetValue(trimmed, out var vCode) || virtualShaders.TryGetValue(inc, out vCode)))
+                {
+                    sb.AppendLine(vCode);
+                }
+                else
+                {
+                    sb.AppendLine($"#include \"{trimmed}\"");
+                }
             }
         }
 
         // 6. External or Inline Shader Code
-        if (!string.IsNullOrEmpty(specificShaderPath))
+        if (!string.IsNullOrEmpty(specificShaderPath) && specificShaderPath != "hlsl_block")
         {
             var resolvedFile = ResolveShaderFilePath(specificShaderPath, assetDirectories);
             if (resolvedFile != null && File.Exists(resolvedFile))

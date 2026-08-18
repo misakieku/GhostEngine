@@ -1,0 +1,4 @@
+Setup.cs
+obj\Release\net10.0\TestGame.GlobalUsings.g.cs
+obj\Release\net10.0\.NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+obj\Release\net10.0\TestGame.AssemblyInfo.cs

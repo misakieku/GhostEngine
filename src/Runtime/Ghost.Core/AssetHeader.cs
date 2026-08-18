@@ -109,21 +109,35 @@ public struct TextureContentHeader()
 [StructLayout(LayoutKind.Sequential, Size = 64)]
 public struct ShaderContentHeader()
 {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BindingRecord
+    {
+        public ulong interfaceId;
+        public ulong implementationId;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     public struct VariantEntry
     {
         public ulong variantKey; // 64-bit composition key
+        public ulong programContentHash;
         public long dataOffset;  // Offset relative to the start of the asset
         public long dataSize;
+        public uint bindingCount;
+        public uint reserved;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public struct PassHeader
     {
+        public ulong passId;
         public uint entryPointCount;
         public uint variantCount;
         public uint isTemplateShared;
         public ulong templatePassId;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public struct EntryPointHeader
     {
         public ShaderStage stage;
@@ -139,7 +153,10 @@ public struct ShaderContentHeader()
 
     public ShaderType shaderType;
     public uint passCount;
-    public ulong reserved;
+    public ulong shaderId;
+    public ulong schemaId;
+    public uint propertyBufferSize;
+    public uint reserved;
 }
 
 /// <summary>

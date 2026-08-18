@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.DSL.ShaderCompiler;
 using Ghost.DSL.ShaderParser.Syntax;
 using Ghost.DSL.Symbols;
+using Ghost.DSL.Syntax.Symbols;
 using System.Text;
 namespace Ghost.DSL.Composition;
 

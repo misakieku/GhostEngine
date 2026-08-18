@@ -1,5 +1,5 @@
+using Ghost.DSL.Properties;
 using Ghost.DSL.ShaderParser.Syntax;
-
 namespace Ghost.DSL.Symbols;
 
 public sealed class TemplateSlotSymbol
@@ -28,6 +28,7 @@ public sealed class TemplateSymbol
     public List<TemplateSlotSymbol> Slots { get; init; } = new();
     public List<TemplatePassSymbol> Passes { get; init; } = new();
     public required TemplateDeclarationSyntax Syntax { get; init; }
+    public PropertySchema? PropertySchema { get; set; }
 
     public override string ToString()
     {

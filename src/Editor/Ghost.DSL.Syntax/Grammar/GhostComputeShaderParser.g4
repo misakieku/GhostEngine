@@ -13,7 +13,18 @@ compute:
     RBRACE;
 
 computeBody:
-    shaderModel | (definesBlock | includesBlock | keywordsBlock | hlslBlock | computeEntry)*;
+    (shaderModel | propertiesBlock | definesBlock | includesBlock | keywordsBlock | hlslBlock | computeEntry | functionCall)*;
+
+propertiesBlock:
+    PROPERTIES LBRACE
+        propertyDeclaration*
+    RBRACE;
+
+propertyDeclaration:
+    propertyType IDENTIFIER (LBRACK NUMBER RBRACK)? SEMICOLON;
+
+propertyType:
+    IDENTIFIER;
 
 shaderModel:
     SM shaderModelIdentifier SEMICOLON;

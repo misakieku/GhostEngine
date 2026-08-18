@@ -1,0 +1,56 @@
+{
+  "ReflectionDatas": {
+    "Internal/UpdateGPUScene": {
+      "ShaderName": "Internal/UpdateGPUScene",
+      "Code": "struct UpdateGPUSceneShaderProperty\n{\n    uint gpuSceneBuffer;\r\n    uint updateBuffer;\r\n    uint updateCount;\r\n    uint removeBuffer;\r\n    uint removeCount;\r\n};",
+      "Size": 20,
+      "Fields": [
+        {
+          "Name": "gpuSceneBuffer",
+          "Type": "UInt",
+          "Offset": 0
+        },
+        {
+          "Name": "updateBuffer",
+          "Type": "UInt",
+          "Offset": 4
+        },
+        {
+          "Name": "updateCount",
+          "Type": "UInt",
+          "Offset": 8
+        },
+        {
+          "Name": "removeBuffer",
+          "Type": "UInt",
+          "Offset": 12
+        },
+        {
+          "Name": "removeCount",
+          "Type": "UInt",
+          "Offset": 16
+        }
+      ]
+    },
+    "Hidden/Blit": {
+      "ShaderName": "Hidden/Blit",
+      "Code": "struct BlitShaderProperties\n{\n    uint mainTex;\r\n    uint sampler_mainTex;\r\n};",
+      "Size": 8,
+      "Fields": [
+        {
+          "Name": "mainTex",
+          "Type": "UInt",
+          "Offset": 0
+        },
+        {
+          "Name": "sampler_mainTex",
+          "Type": "UInt",
+          "Offset": 4
+        }
+      ]
+    }
+  },
+  "VirtualShader": {
+    "EngineResources/Shaders/Includes/Generated/GhostRenderPipeline.hlsl": "#ifndef ENGINERESOURCES_SHADERS_INCLUDES_GENERATED_GHOSTRENDERPIPELINE_HLSL\n#define ENGINERESOURCES_SHADERS_INCLUDES_GENERATED_GHOSTRENDERPIPELINE_HLSL\n\r\nstruct UpdateInstanceData\r\n{\r\n    float4x4 localToWorld;\r\n    uint instanceID;\r\n    uint meshBuffer;\r\n    uint materialPaletteIndex;\r\n    uint renderingLayerMask;\r\n    uint shadowCastingMode;\r\n};\r\n\r\nstruct RemoveInstanceData\r\n{\r\n    uint instanceID;\r\n    uint swapWithInstanceID;\r\n};\r\n\n#endif // ENGINERESOURCES_SHADERS_INCLUDES_GENERATED_GHOSTRENDERPIPELINE_HLSL\n"
+  }
+}

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Antlr4.Runtime.Misc;
 using Ghost.DSL.ShaderParser.Syntax;
 
@@ -9,20 +10,21 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
     {
         var doc = new DSLDocumentSyntax();
 
-        foreach (var child in context.children)
+        foreach (var topLevel in context.topLevelDeclaration())
         {
-            if (child is GhostShaderParser.ModuleDeclarationContext modCtx)
-            {
-                doc.Modules.Add((ModuleDeclarationSyntax)VisitModuleDeclaration(modCtx));
-            }
-            else if (child is GhostShaderParser.ShaderProjectDeclarationContext projCtx)
-            {
-                doc.Projects.Add((ShaderProjectDeclarationSyntax)VisitShaderProjectDeclaration(projCtx));
-            }
-            else if (child is GhostShaderParser.TopLevelDeclarationContext topCtx)
-            {
-                ProcessTopLevelDeclaration(topCtx, doc);
-            }
+            ProcessTopLevelDeclaration(topLevel, doc);
+        }
+
+        foreach (var moduleCtx in context.moduleDeclaration())
+        {
+            var module = (ModuleDeclarationSyntax)VisitModuleDeclaration(moduleCtx);
+            doc.Modules.Add(module);
+        }
+
+        foreach (var projCtx in context.shaderProjectDeclaration())
+        {
+            var proj = (ShaderProjectDeclarationSyntax)VisitShaderProjectDeclaration(projCtx);
+            doc.Projects.Add(proj);
         }
 
         return doc;
@@ -122,37 +124,33 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
 
     public override object VisitInterfaceDeclaration([NotNull] GhostShaderParser.InterfaceDeclarationContext context)
     {
-        var iface = new InterfaceDeclarationSyntax
+        var scope = context.interfaceScope().PIPELINE() != null
+            ? InterfaceScope.Pipeline
+            : InterfaceScope.Shader;
+
+        return new InterfaceDeclarationSyntax
         {
             Name = GetQualifiedIdentifierText(context.qualifiedIdentifier()),
-            IsExported = context.EXPORT() != null,
+            Scope = scope,
             IsClosed = context.CLOSED() != null,
-            Scope = context.interfaceScope().PIPELINE() != null ? InterfaceScope.Pipeline : InterfaceScope.Shader
+            IsExported = context.EXPORT() != null,
+            Body = context.opaqueBracedBody() != null ? ExtractOpaqueBody(context.opaqueBracedBody()) : string.Empty
         };
-
-        if (context.opaqueBracedBody() != null)
-        {
-            iface.Body = ExtractOpaqueBody(context.opaqueBracedBody());
-        }
-
-        return iface;
     }
 
     public override object VisitImplementationDeclaration([NotNull] GhostShaderParser.ImplementationDeclarationContext context)
     {
-        var rawBody = ExtractOpaqueBody(context.opaqueBracedBody());
-        var (cleanedBody, provider) = ExtractProviderFromBody(rawBody);
+        var body = ExtractOpaqueBody(context.opaqueBracedBody());
+        var (cleanedBody, provider) = ExtractProviderFromBody(body);
 
-        var impl = new ImplementationDeclarationSyntax
+        return new ImplementationDeclarationSyntax
         {
             Name = GetQualifiedIdentifierText(context.qualifiedIdentifier(0)),
             InterfaceName = GetQualifiedIdentifierText(context.qualifiedIdentifier(1)),
             IsExported = context.EXPORT() != null,
-            Provider = provider,
-            Body = cleanedBody
+            Body = cleanedBody,
+            Provider = provider
         };
-
-        return impl;
     }
 
     private static (string cleanedBody, string? provider) ExtractProviderFromBody(string body)
@@ -161,7 +159,7 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         if (match.Success)
         {
             var provider = match.Groups[1].Value;
-            var cleaned = System.Text.RegularExpressions.Regex.Replace(body, @"provider\s*=\s*""[^""]+""\s*;\r?\n?", string.Empty);
+            var cleaned = body.Remove(match.Index, match.Length);
             return (cleaned, provider);
         }
         return (body, null);
@@ -177,6 +175,12 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         var body = context.templateBody();
         if (body != null)
         {
+            var props = body.propertiesBlock();
+            if (props != null && props.Length > 0)
+            {
+                template.Properties = (PropertiesBlockSyntax)VisitPropertiesBlock(props[0]);
+            }
+
             foreach (var slotBlock in body.slotBlock())
             {
                 foreach (var slotItem in slotBlock.slotItem())
@@ -232,6 +236,12 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         var body = context.shaderBody();
         if (body != null)
         {
+            var props = body.propertiesBlock();
+            if (props != null && props.Length > 0)
+            {
+                shader.Properties = (PropertiesBlockSyntax)VisitPropertiesBlock(props[0]);
+            }
+
             var payloadBlock = body.payloadBlock();
             if (payloadBlock != null && payloadBlock.Length > 0)
             {
@@ -285,18 +295,35 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         return shader;
     }
 
+    public override object VisitPropertiesBlock([NotNull] GhostShaderParser.PropertiesBlockContext context)
+    {
+        var block = new PropertiesBlockSyntax();
+        foreach (var decl in context.propertyDeclaration())
+        {
+            int arrayLen = 0;
+            if (decl.NUMBER() != null)
+            {
+                int.TryParse(decl.NUMBER().GetText(), out arrayLen);
+            }
+            block.Declarations.Add(new PropertyDeclarationSyntax
+            {
+                TypeName = decl.propertyType().GetText(),
+                Name = decl.identifier().GetText(),
+                ArrayLength = arrayLen,
+                Line = decl.Start.Line,
+                Column = decl.Start.Column
+            });
+        }
+        return block;
+    }
 
     public override object VisitPipelineBlock([NotNull] GhostShaderParser.PipelineBlockContext context)
     {
         var pipeline = new PipelineBlockSyntax();
-
-        foreach (var statement in context.pipelineStatement())
+        foreach (var stmt in context.pipelineStatement())
         {
-            var key = statement.identifier(0).GetText();
-            var value = statement.identifier(1).GetText();
-            pipeline.Statements[key] = value;
+            pipeline.Statements[stmt.identifier(0).GetText()] = stmt.identifier(1).GetText();
         }
-
         return pipeline;
     }
 
@@ -310,44 +337,50 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         var passBody = context.passBody();
         if (passBody != null)
         {
-            foreach (var composeBlock in passBody.composeBlock())
+            var composeBlock = passBody.composeBlock();
+            if (composeBlock != null && composeBlock.Length > 0)
             {
-                var compose = new ComposeBlockSyntax();
-                foreach (var item in composeBlock.composeItem())
+                var composeSyntax = new ComposeBlockSyntax();
+                foreach (var item in composeBlock[0].composeItem())
                 {
-                    compose.Interfaces.Add(GetQualifiedIdentifierText(item.qualifiedIdentifier()));
+                    composeSyntax.Interfaces.Add(GetQualifiedIdentifierText(item.qualifiedIdentifier()));
                 }
-                pass.Compose = compose;
+                pass.Compose = composeSyntax;
             }
 
-            foreach (var definesBlock in passBody.definesBlock())
+            var definesBlock = passBody.definesBlock();
+            if (definesBlock != null && definesBlock.Length > 0)
             {
-                pass.Defines = (DefinesBlockSyntax)VisitDefinesBlock(definesBlock);
+                pass.Defines = (DefinesBlockSyntax)VisitDefinesBlock(definesBlock[0]);
             }
 
-            foreach (var includesBlock in passBody.includesBlock())
+            var includesBlock = passBody.includesBlock();
+            if (includesBlock != null && includesBlock.Length > 0)
             {
-                pass.Includes = (IncludesBlockSyntax)VisitIncludesBlock(includesBlock);
+                pass.Includes = (IncludesBlockSyntax)VisitIncludesBlock(includesBlock[0]);
             }
 
-            foreach (var keywordsBlock in passBody.keywordsBlock())
+            var keywordsBlock = passBody.keywordsBlock();
+            if (keywordsBlock != null && keywordsBlock.Length > 0)
             {
-                pass.Keywords = (KeywordsBlockSyntax)VisitKeywordsBlock(keywordsBlock);
+                pass.Keywords = (KeywordsBlockSyntax)VisitKeywordsBlock(keywordsBlock[0]);
             }
 
-            foreach (var pipelineBlock in passBody.pipelineBlock())
+            var hlslBlock = passBody.hlslBlock();
+            if (hlslBlock != null && hlslBlock.Length > 0)
             {
-                pass.LocalPipeline = (PipelineBlockSyntax)VisitPipelineBlock(pipelineBlock);
+                pass.Hlsl = (HlslBlockSyntax)VisitHlslBlock(hlslBlock[0]);
             }
 
-            foreach (var hlslBlock in passBody.hlslBlock())
+            var pipelineBlock = passBody.pipelineBlock();
+            if (pipelineBlock != null && pipelineBlock.Length > 0)
             {
-                pass.Hlsl = (HlslBlockSyntax)VisitHlslBlock(hlslBlock);
+                pass.LocalPipeline = (PipelineBlockSyntax)VisitPipelineBlock(pipelineBlock[0]);
             }
 
-            foreach (var shaderEntry in passBody.shaderEntry())
+            foreach (var entry in passBody.shaderEntry())
             {
-                pass.ShaderEntries.Add((ShaderEntrySyntax)VisitShaderEntry(shaderEntry));
+                pass.ShaderEntries.Add((ShaderEntrySyntax)VisitShaderEntry(entry));
             }
         }
 
@@ -357,43 +390,35 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
     public override object VisitDefinesBlock([NotNull] GhostShaderParser.DefinesBlockContext context)
     {
         var defines = new DefinesBlockSyntax();
-
-        foreach (var defineStmt in context.defineStatement())
+        foreach (var stmt in context.defineStatement())
         {
-            defines.Defines.Add(defineStmt.identifier().GetText());
+            defines.Defines.Add(stmt.identifier().GetText());
         }
-
         return defines;
     }
 
     public override object VisitIncludesBlock([NotNull] GhostShaderParser.IncludesBlockContext context)
     {
         var includes = new IncludesBlockSyntax();
-
-        foreach (var includeStmt in context.includeStatement())
+        foreach (var stmt in context.includeStatement())
         {
-            includes.Includes.Add(StripQuotes(includeStmt.STRING_LITERAL().GetText()));
+            includes.Includes.Add(StripQuotes(stmt.STRING_LITERAL().GetText()));
         }
-
         return includes;
     }
 
     public override object VisitKeywordsBlock([NotNull] GhostShaderParser.KeywordsBlockContext context)
     {
         var keywords = new KeywordsBlockSyntax();
-
-        foreach (var keywordStmt in context.keywordStatement())
+        foreach (var stmt in context.keywordStatement())
         {
             var group = new KeywordGroupSyntax();
-
-            foreach (var identifier in keywordStmt.identifier())
+            foreach (var id in stmt.identifier())
             {
-                group.Keywords.Add(identifier.GetText());
+                group.Keywords.Add(id.GetText());
             }
-
             keywords.Groups.Add(group);
         }
-
         return keywords;
     }
 
@@ -417,39 +442,42 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
 
     public override object VisitFunctionCall([NotNull] GhostShaderParser.FunctionCallContext context)
     {
-        var funcCall = new FunctionCallSyntax
+        var call = new FunctionCallSyntax
         {
             Name = context.identifier().GetText()
         };
 
-        if (context.functionArguments() != null)
+        var args = context.functionArguments();
+        if (args != null)
         {
-            foreach (var arg in context.functionArguments().functionArgument())
+            foreach (var arg in args.functionArgument())
             {
-                var text = arg.GetText();
-                if (text.StartsWith('"'))
+                if (arg.STRING_LITERAL() != null)
                 {
-                    text = StripQuotes(text);
+                    call.Arguments.Add(StripQuotes(arg.STRING_LITERAL().GetText()));
                 }
-                funcCall.Arguments.Add(text);
+                else if (arg.NUMBER() != null)
+                {
+                    call.Arguments.Add(arg.NUMBER().GetText());
+                }
+                else if (arg.qualifiedIdentifier() != null)
+                {
+                    call.Arguments.Add(GetQualifiedIdentifierText(arg.qualifiedIdentifier()));
+                }
             }
         }
 
-        return funcCall;
+        return call;
     }
 
     private static string ExtractOpaqueBody(GhostShaderParser.OpaqueBracedBodyContext context)
     {
-        var start = context.LBRACE().Symbol.StopIndex + 1;
-        var stop = context.RBRACE().Symbol.StartIndex - 1;
-
-        if (stop >= start)
-        {
-            var input = context.Start.InputStream;
-            return input.GetText(new Interval(start, stop));
-        }
-
-        return string.Empty;
+        if (context == null) return string.Empty;
+        var start = context.Start.StartIndex + 1;
+        var stop = context.Stop.StopIndex - 1;
+        if (start > stop) return string.Empty;
+        var inputStream = context.Start.InputStream;
+        return inputStream.GetText(new Antlr4.Runtime.Misc.Interval(start, stop)).Trim();
     }
 
     private static string GetQualifiedIdentifierText(GhostShaderParser.QualifiedIdentifierContext context)
@@ -458,13 +486,12 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         {
             return StripQuotes(context.STRING_LITERAL().GetText());
         }
-
         return context.GetText();
     }
 
     private static string StripQuotes(string text)
     {
-        if (text.Length >= 2 && text.StartsWith('"') && text.EndsWith('"'))
+        if (text.Length >= 2 && text.StartsWith("\"") && text.EndsWith("\""))
         {
             return text.Substring(1, text.Length - 2);
         }

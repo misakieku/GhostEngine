@@ -12,6 +12,7 @@
       <Platform Solution="*|x86" Project="x86" />
       <Deploy />
     </Project>
+    <Project Path="Editor/Ghost.DSL.Syntax/Ghost.DSL.Syntax.csproj" />
     <Project Path="Editor/Ghost.DSL/Ghost.DSL.csproj" />
   </Folder>
   <Folder Name="/ThridParty/">

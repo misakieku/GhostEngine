@@ -26,6 +26,8 @@ PAYLOAD: 'payload';
 SHADER_PROJECT: 'shader_project';
 TARGET: 'target';
 PROVIDER: 'provider';
+PROPERTIES: 'properties';
+
 // Punctuation
 LBRACE: '{';
 RBRACE: '}';
@@ -38,6 +40,7 @@ COMMA: ',';
 EQUALS: '=';
 COLON: ':';
 DOT: '.';
+
 // Literals
 STRING_LITERAL: '"' (~["\r\n] | '\\' .)* '"';
 NUMBER: [0-9]+ ('.' [0-9]+)? | '.' [0-9]+;
@@ -47,6 +50,5 @@ IDENTIFIER: [a-zA-Z_][a-zA-Z0-9_]*;
 WS: [ \t\r\n]+ -> skip;
 LINE_COMMENT: '//' ~[\r\n]* -> skip;
 BLOCK_COMMENT: '/*' .*? '*/' -> skip;
-
 
 ANY_CHAR: . ;

@@ -1,5 +1,5 @@
+using Ghost.DSL.Properties;
 using Ghost.DSL.ShaderParser.Syntax;
-
 namespace Ghost.DSL.Symbols;
 
 public sealed class ShaderSymbol
@@ -15,6 +15,7 @@ public sealed class ShaderSymbol
     public Dictionary<string, ImplementationSymbol> LocalImplementations { get; init; } = new(StringComparer.Ordinal);
     public Dictionary<ulong, ulong> Bindings { get; init; } = new();
     public required ShaderDeclarationSyntax Syntax { get; init; }
+    public PropertySchema? PropertySchema { get; set; }
 
     public override string ToString()
     {

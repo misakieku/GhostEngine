@@ -27,7 +27,7 @@ internal static class AssetEntryFactory
             AssetType.Texture => new TextureAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
             AssetType.Mesh => new MeshAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
             AssetType.Material => throw new NotImplementedException(),
-            AssetType.Shader => throw new NotImplementedException(),
+            AssetType.Shader => new ShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
             AssetType.Scene => new SceneAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
             AssetType.Audio => throw new NotImplementedException(),
             AssetType.Video => throw new NotImplementedException(),
@@ -137,8 +137,7 @@ internal abstract class AssetEntry : IAssetEntry
 
         if (newRefCount == 0)
         {
-            Logger.DebugAssert(State == AssetState.Ready);
-            _assetManager.RemoveEntry(_assetId);
+            _assetManager?.RemoveEntry(_assetId);
             OnReleaseResource();
 
             foreach (var dep in _dependencies)

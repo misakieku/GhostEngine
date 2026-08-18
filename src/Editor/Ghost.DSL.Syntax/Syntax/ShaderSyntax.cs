@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Ghost.DSL.ShaderParser.Syntax;
 
 public enum InterfaceScope
@@ -55,6 +57,7 @@ public class TemplateDeclarationSyntax
 {
     public string Name { get; set; } = string.Empty;
     public bool IsExported { get; set; }
+    public PropertiesBlockSyntax? Properties { get; set; }
     public List<TemplateSlotSyntax> Slots { get; set; } = new();
     public List<PassBlockSyntax> Passes { get; set; } = new();
     public PipelineBlockSyntax? Pipeline { get; set; }
@@ -73,6 +76,7 @@ public class ShaderDeclarationSyntax
     public string Name { get; set; } = string.Empty;
     public string? TemplateName { get; set; }
     public bool IsExported { get; set; }
+    public PropertiesBlockSyntax? Properties { get; set; }
     public PayloadBlockSyntax? Payload { get; set; }
     public List<ImplementationDeclarationSyntax> Implementations { get; set; } = new();
     public BindBlockSyntax? Bind { get; set; }
@@ -80,6 +84,20 @@ public class ShaderDeclarationSyntax
     public PipelineBlockSyntax? Pipeline { get; set; }
     public string ShaderModel { get; set; } = string.Empty;
     public List<FunctionCallSyntax> FunctionCalls { get; set; } = new();
+}
+
+public class PropertiesBlockSyntax
+{
+    public List<PropertyDeclarationSyntax> Declarations { get; set; } = new();
+}
+
+public class PropertyDeclarationSyntax
+{
+    public string TypeName { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int ArrayLength { get; set; } = 0;
+    public int Line { get; set; }
+    public int Column { get; set; }
 }
 
 public class PayloadBlockSyntax
@@ -97,7 +115,6 @@ public class BindingSyntax
     public string InterfaceName { get; set; } = string.Empty;
     public string ImplementationName { get; set; } = string.Empty;
 }
-
 
 public class ShaderProjectDeclarationSyntax
 {
@@ -124,6 +141,7 @@ public class ComputeShaderSyntax
 {
     public string Name { get; set; } = string.Empty;
     public string ShaderModel { get; set; } = string.Empty;
+    public PropertiesBlockSyntax? Properties { get; set; }
     public DefinesBlockSyntax? Defines { get; set; }
     public IncludesBlockSyntax? Includes { get; set; }
     public KeywordsBlockSyntax? Keywords { get; set; }
@@ -176,7 +194,7 @@ public class HlslBlockSyntax
 
 public class ShaderEntrySyntax
 {
-    public string EntryType { get; set; } = string.Empty;  // "mesh", "pixel", "task", etc.
+    public string EntryType { get; set; } = string.Empty;
     public string ShaderPath { get; set; } = string.Empty;
     public string EntryPoint { get; set; } = string.Empty;
 }

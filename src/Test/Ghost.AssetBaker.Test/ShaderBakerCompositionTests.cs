@@ -8,6 +8,7 @@ using Ghost.DSL.Composition;
 using Ghost.DSL.Models;
 using Ghost.DSL.ShaderCompiler;
 using Ghost.DSL.Symbols;
+using Ghost.DSL.Syntax.Symbols;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Ghost.AssetForge.Test;

@@ -8,30 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
-    <PackageReference Include="Antlr4BuildTasks" Version="12.14.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Antlr4 Include="Grammar\GhostShaderLexer.g4">
-      <Generator>MSBuild:Compile</Generator>
-      <Listener>false</Listener>
-      <Visitor>true</Visitor>
-    </Antlr4>
-    <Antlr4 Include="Grammar\GhostComputeShaderParser.g4">
-      <Visitor>true</Visitor>
-      <Generator>MSBuild:Compile</Generator>
-      <Listener>false</Listener>
-    </Antlr4>
-    <Antlr4 Include="Grammar\GhostShaderParser.g4">
-      <Generator>MSBuild:Compile</Generator>
-      <Listener>false</Listener>
-      <Visitor>true</Visitor>
-    </Antlr4>
-  </ItemGroup>
-
-  <ItemGroup>
-        <ProjectReference Include="../../Runtime/Ghost.Core/Ghost.Core.csproj" />
+    <ProjectReference Include="../Ghost.DSL.Syntax/Ghost.DSL.Syntax.csproj" />
+    <ProjectReference Include="../../Runtime/Ghost.Core/Ghost.Core.csproj" />
   </ItemGroup>
 
 </Project>

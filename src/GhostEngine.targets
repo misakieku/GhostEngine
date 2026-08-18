@@ -1,9 +1,33 @@
 <Project>
+  <!-- Build Profile Settings & Compiler Visible Properties for Roslyn Source Generators -->
+  <PropertyGroup>
+    <GhostShaderBackend Condition="'$(GhostShaderBackend)' == ''">D3D12</GhostShaderBackend>
+    <GhostShaderModel Condition="'$(GhostShaderModel)' == ''">6_6</GhostShaderModel>
+    <GhostShaderModuleRoot Condition="'$(GhostShaderModuleRoot)' == ''">$(MSBuildProjectDirectory)</GhostShaderModuleRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="GhostShaderBackend;GhostShaderModel;GhostShaderModuleRoot;GhostAssetDir" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="SourceItemType;PackageRoot" />
+  </ItemGroup>
+
+  <!-- Automatically discover project .gshdr, .gmod, .gcomp files as GhostShaderSource and AdditionalFiles -->
+  <ItemGroup>
+    <GhostShaderSource Include="**\*.gshdr;**\*.gmod;**\*.gcomp" Exclude="bin\**;obj\**" Condition="'@(GhostShaderSource)' == ''" />
+    <AdditionalFiles Include="@(GhostShaderSource)" SourceItemType="GhostShaderSource" />
+  </ItemGroup>
+
+  <!-- Allow querying project shader sources transitively -->
+  <Target Name="GetGhostShaderSources" Returns="@(GhostShaderSource)">
+    <ItemGroup>
+      <GhostShaderSource Include="**\*.gshdr;**\*.gmod;**\*.gcomp" Exclude="bin\**;obj\**" Condition="'@(GhostShaderSource)' == ''" />
+    </ItemGroup>
+  </Target>
+
   <!-- Compute Paths Later to avoid empty $(IntermediateOutputPath) during evaluation -->
   <Target Name="ComputeGhostPaths">
     <PropertyGroup>
-      <GhostIntermediateOutputPath Condition="$([System.IO.Path]::IsPathRooted('$(IntermediateOutputPath)'))">$(IntermediateOutputPath)</GhostIntermediateOutputPath>
-      <GhostIntermediateOutputPath Condition="'$(GhostIntermediateOutputPath)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)</GhostIntermediateOutputPath>
+      <GhostAssetDir Condition="'$(GhostAssetDir)' == '' and Exists('$(MSBuildProjectDirectory)\Assets')">$(MSBuildProjectDirectory)\Assets</GhostAssetDir>
       <GhostAssetDir Condition="'$(GhostAssetDir)' == ''">$(MSBuildProjectDirectory)\Asset</GhostAssetDir>
       <GhostAssetCacheDir Condition="'$(GhostAssetCacheDir)' == ''">$(GhostIntermediateOutputPath)AssetCache</GhostAssetCacheDir>
       <GhostAssetBuildDir Condition="'$(GhostAssetBuildDir)' == ''">$(TargetDir)Assets</GhostAssetBuildDir>
@@ -29,7 +53,7 @@
   <!-- Allow other projects to query this project's shader metadata path -->
   <Target Name="GetGhostShaderMetadataPath" Returns="$(GhostShaderMetadataPath)" DependsOnTargets="ComputeGhostPaths" />
 
-  <!-- Hook Asset Forge CLI (We'll implement this in the next task) -->
+  <!-- Hook Asset Forge CLI -->
   <Target Name="BakeAndPackAssets" 
           DependsOnTargets="ComputeGhostPaths"
           AfterTargets="Build"

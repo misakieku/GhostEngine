@@ -1,5 +1,14 @@
 compute "Internal/UpdateGPUScene"
 {
+    properties
+    {
+        BufferHandle gpuSceneBuffer;
+        BufferHandle updateBuffer;
+        BufferHandle removeBuffer;
+        Uint updateCount;
+        Uint removeCount;
+    }
+
     includes
     {
         "EngineResources/Shaders/Includes/Properties.hlsl";

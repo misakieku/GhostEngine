@@ -59,7 +59,18 @@ templateDeclaration:
     RBRACE;
 
 templateBody:
-    (slotBlock | passBlock | pipelineBlock | shaderModel | functionCall)*;
+    (propertiesBlock | slotBlock | passBlock | pipelineBlock | shaderModel | functionCall)*;
+
+propertiesBlock:
+    PROPERTIES LBRACE
+        propertyDeclaration*
+    RBRACE;
+
+propertyDeclaration:
+    propertyType identifier (LBRACK NUMBER RBRACK)? SEMICOLON;
+
+propertyType:
+    identifier;
 
 slotBlock:
     SLOT LBRACE
@@ -77,6 +88,7 @@ shaderDeclaration:
 shaderBody:
     (
         shaderModel
+        | propertiesBlock
         | payloadBlock
         | implementationDeclaration
         | bindBlock
@@ -95,7 +107,6 @@ bindBlock:
 
 bindItem:
     qualifiedIdentifier EQUALS qualifiedIdentifier SEMICOLON;
-
 
 shaderModel:
     SM shaderModelIdentifier SEMICOLON;
@@ -202,6 +213,7 @@ identifier:
     | PAYLOAD
     | TARGET
     | PROVIDER
+    | PROPERTIES
     ;
 
 qualifiedIdentifier:

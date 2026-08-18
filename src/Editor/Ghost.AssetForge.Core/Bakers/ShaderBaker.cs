@@ -1,8 +1,15 @@
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text;
-using CommunityToolkit.Mvvm.ComponentModel;
+using System.Threading;
+using System.Threading.Tasks;
+using Ghost.AssetForge.Core.Contracts;
+using Ghost.Core.Utilities;
 using Ghost.AssetForge.Core.Models;
 using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
@@ -12,25 +19,19 @@ using Ghost.DSL.Composition;
 using Ghost.DSL.ShaderCompiler;
 using Ghost.DSL.ShaderParser.Syntax;
 using Ghost.DSL.Symbols;
+using Ghost.DSL.Syntax.Symbols;
 using Ghost.DXC;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-
 namespace Ghost.AssetForge.Core.Bakers;
 
 public partial class ShaderBakeSettings : ObservableObject, IBakeSettings
 {
     [ObservableProperty]
-    public partial CompilerOptimizeLevel OptimizeLevel
-    {
-        get; set;
-    } = CompilerOptimizeLevel.O3;
+    private CompilerOptimizeLevel _optimizeLevel = CompilerOptimizeLevel.O3;
 
     [ObservableProperty]
-    public partial CompilerOption Options
-    {
-        get; set;
-    } = CompilerOption.None;
+    private CompilerOption _options = CompilerOption.None;
 }
 
 [AssetBaker(Extensions = [".gshdr", ".gcomp"], Type = AssetType.Shader, SettingsType = typeof(ShaderBakeSettings))]
@@ -39,8 +40,25 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
     private readonly DXCShaderCompiler _compiler = new DXCShaderCompiler();
     private readonly SemaphoreSlim _compileLock = new(1, 1);
 
-    private static async Task WriteShaderEntries(Stream stream, long variantDataOffset, CancellationToken cancellationToken, params (ShaderStage stage, UnsafeArray<byte> bytecode)[] entries)
+    private static async Task<ulong> WriteShaderEntries(
+        Stream stream,
+        long variantDataOffset,
+        IEnumerable<KeyValuePair<ulong, ulong>>? bindings,
+        CancellationToken cancellationToken,
+        params (ShaderStage stage, UnsafeArray<byte> bytecode)[] entries)
     {
+        if (bindings != null)
+        {
+            foreach (var kvp in bindings)
+            {
+                stream.Write(new ShaderContentHeader.BindingRecord
+                {
+                    interfaceId = kvp.Key,
+                    implementationId = kvp.Value
+                });
+            }
+        }
+
         var baseByteCodeOffset = (stream.Position - variantDataOffset) + (entries.Length * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>());
 
         for (var i = 0; i < entries.Length; i++)
@@ -61,6 +79,9 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
 
             stream.Write(entryPointHeader);
         }
+
+        ulong contentHash = 14695981039346656037UL;
+        const ulong prime = 1099511628211UL;
 
         for (var i = 0; i < entries.Length; i++)
         {
@@ -70,13 +91,39 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                 continue;
             }
 
-            using var memory = NativeMemoryManager<byte>.FromUnsafeCollection(in bytecode);
-            await stream.WriteAsync(memory.Memory, cancellationToken).ConfigureAwait(false);
+            using var memoryManager = NativeMemoryManager<byte>.FromUnsafeCollection(in bytecode);
+            var mem = memoryManager.Memory;
+            var span = mem.Span;
+            for (int k = 0; k < span.Length; k++)
+            {
+                contentHash ^= span[k];
+                contentHash *= prime;
+            }
+            await stream.WriteAsync(mem, cancellationToken).ConfigureAwait(false);
         }
+
+        return contentHash;
     }
 
-    private static async Task WriteCachedShaderEntries(Stream stream, long variantDataOffset, CancellationToken cancellationToken, params (ShaderStage stage, byte[] bytecode)[] entries)
+    private static async Task<ulong> WriteCachedShaderEntries(
+        Stream stream,
+        long variantDataOffset,
+        IEnumerable<KeyValuePair<ulong, ulong>>? bindings,
+        CancellationToken cancellationToken,
+        params (ShaderStage stage, byte[] bytecode)[] entries)
     {
+        if (bindings != null)
+        {
+            foreach (var kvp in bindings)
+            {
+                stream.Write(new ShaderContentHeader.BindingRecord
+                {
+                    interfaceId = kvp.Key,
+                    implementationId = kvp.Value
+                });
+            }
+        }
+
         var baseByteCodeOffset = (stream.Position - variantDataOffset) + (entries.Length * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>());
 
         for (var i = 0; i < entries.Length; i++)
@@ -98,14 +145,21 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
             stream.Write(entryPointHeader);
         }
 
+        ulong contentHash = 14695981039346656037UL;
+        const ulong prime = 1099511628211UL;
+
         for (var i = 0; i < entries.Length; i++)
         {
             var bytecode = entries[i].bytecode;
-            if (bytecode.Length > 0)
+            for (int k = 0; k < bytecode.Length; k++)
             {
-                await stream.WriteAsync(bytecode, cancellationToken).ConfigureAwait(false);
+                contentHash ^= bytecode[k];
+                contentHash *= prime;
             }
+            await stream.WriteAsync(bytecode.AsMemory(), cancellationToken).ConfigureAwait(false);
         }
+
+        return contentHash;
     }
 
     public async Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
@@ -125,24 +179,22 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
 
     private async Task BakeAssetCoreAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
     {
-        if (settings is not ShaderBakeSettings shaderSettings)
-        {
-            throw new ArgumentException("Invalid settings type. Expected ShaderBakeSettings.", nameof(settings));
-        }
-
-        var codeStr = await File.ReadAllTextAsync(src, cancellationToken).ConfigureAwait(false);
-        var ext = Path.GetExtension(src);
+        var bakeSettings = (ShaderBakeSettings)settings;
+        var ext = Path.GetExtension(src).ToLowerInvariant();
 
         var configTemplate = new ShaderCompilationConfig
         {
-            optimizeLevel = shaderSettings.OptimizeLevel,
-            options = shaderSettings.Options,
-            includeDirectories = ctx.AssetDirectories.ToArray(),
+            optimizeLevel = bakeSettings.OptimizeLevel,
+            options = bakeSettings.Options,
+            includeDirectories = ctx.AssetDirectories,
         };
+
+        var codeBytes = await File.ReadAllBytesAsync(src, cancellationToken).ConfigureAwait(false);
+        var codeStr = Encoding.UTF8.GetString(codeBytes);
 
         if (string.Equals(ext, ".gshdr", StringComparison.Ordinal))
         {
-            // 1. Resolve Workspace
+            // 1. Ingest into Workspace if not pre-populated
             var workspace = ctx.ShaderWorkspace;
             if (workspace == null)
             {
@@ -163,7 +215,11 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
             var header = new ShaderContentHeader
             {
                 shaderType = ShaderType.Graphics,
-                passCount = (uint)composition.Passes.Count
+                passCount = (uint)composition.Passes.Count,
+                shaderId = shaderSymbol.Id,
+                schemaId = shaderSymbol.PropertySchema?.SchemaId ?? 0,
+                propertyBufferSize = shaderSymbol.PropertySchema?.TotalSize ?? 0,
+                reserved = 0
             };
 
             var assetStartOffset = dst.Position;
@@ -179,6 +235,7 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
 
                 var passHeader = new ShaderContentHeader.PassHeader
                 {
+                    passId = SymbolId.Compute($"{shaderSymbol.QualifiedName}.{passSet.PassName}"),
                     entryPointCount = (uint)entryCount,
                     variantCount = (uint)passSet.Specializations.Count,
                     isTemplateShared = passSet.IsTemplateShared ? 1u : 0u,
@@ -199,13 +256,16 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                     if (ctx.SharedPassBytecodeCache.TryGetValue(passSet.TemplatePassId.Value, out var cachedEntries))
                     {
                         var variantDataStart = dst.Position;
-                        await WriteCachedShaderEntries(dst, variantDataStart, cancellationToken, cachedEntries).ConfigureAwait(false);
+                        var contentHash = await WriteCachedShaderEntries(dst, variantDataStart, null, cancellationToken, cachedEntries).ConfigureAwait(false);
 
                         variantEntries[0] = new ShaderContentHeader.VariantEntry
                         {
                             variantKey = 0,
+                            programContentHash = contentHash,
                             dataOffset = variantDataStart - assetStartOffset,
-                            dataSize = dst.Position - variantDataStart
+                            dataSize = dst.Position - variantDataStart,
+                            bindingCount = 0,
+                            reserved = 0
                         };
 
                         var endOfCachedPass = dst.Position;
@@ -217,6 +277,7 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                 }
 
                 var cachedEntriesToSave = new List<(ShaderStage stage, byte[] bytecode)>();
+                var propertiesHlsl = shaderSymbol.PropertySchema?.GenerateHlslStruct("MaterialProperties") ?? reflectionData.Code;
 
                 for (var i = 0; i < passSet.Specializations.Count; i++)
                 {
@@ -224,6 +285,7 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                     var variantDataStart = dst.Position;
 
                     var compiledEntries = new List<(ShaderStage stage, UnsafeArray<byte> bytecode)>();
+                    ulong contentHash = 0;
 
                     try
                     {
@@ -236,7 +298,7 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                                     passSet.Syntax,
                                     spec,
                                     shaderSymbol.PayloadBody,
-                                    reflectionData.Code,
+                                    propertiesHlsl,
                                     ctx.ShaderMetadata.VirtualShader,
                                     entry.ShaderPath,
                                     ctx.AssetDirectories);
@@ -271,7 +333,7 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                                 passSet.Syntax,
                                 spec,
                                 shaderSymbol.PayloadBody,
-                                reflectionData.Code,
+                                propertiesHlsl,
                                 ctx.ShaderMetadata.VirtualShader,
                                 null,
                                 ctx.AssetDirectories);
@@ -299,7 +361,7 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                             }
                         }
 
-                        await WriteShaderEntries(dst, variantDataStart, cancellationToken, compiledEntries.ToArray()).ConfigureAwait(false);
+                        contentHash = await WriteShaderEntries(dst, variantDataStart, spec.Bindings, cancellationToken, compiledEntries.ToArray()).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -312,8 +374,11 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                     variantEntries[i] = new ShaderContentHeader.VariantEntry
                     {
                         variantKey = spec.CompositionKey,
+                        programContentHash = contentHash,
                         dataOffset = variantDataStart - assetStartOffset,
-                        dataSize = dst.Position - variantDataStart
+                        dataSize = dst.Position - variantDataStart,
+                        bindingCount = (uint)spec.Bindings.Count,
+                        reserved = 0
                     };
                 }
 
@@ -343,6 +408,10 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
             {
                 shaderType = ShaderType.Compute,
                 passCount = 1,
+                shaderId = SymbolId.Compute(semantics.name),
+                schemaId = 0,
+                propertyBufferSize = descriptor.PropertyBufferSize,
+                reserved = 0
             };
 
             var assetStartOffset = dst.Position;
@@ -350,6 +419,7 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
 
             var passHeader = new ShaderContentHeader.PassHeader
             {
+                passId = SymbolId.Compute($"{semantics.name}.Main"),
                 entryPointCount = (uint)descriptor.ShaderCodes.Length,
                 variantCount = 1,
                 isTemplateShared = 0,
@@ -359,7 +429,7 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
 
             var variantEntriesOffset = dst.Position;
             var variantEntry = new ShaderContentHeader.VariantEntry();
-            dst.Write(variantEntry);
+            dst.Write(variantEntry); // Placeholder
 
             var variantDataStart = dst.Position;
             var byteCodes = new UnsafeArray<byte>[descriptor.ShaderCodes.Length];
@@ -382,7 +452,17 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                 }
 
                 var entries = byteCodes.Select((bc, index) => (ShaderStage.ComputeShader, bc)).ToArray();
-                await WriteShaderEntries(dst, variantDataStart, cancellationToken, entries).ConfigureAwait(false);
+                var contentHash = await WriteShaderEntries(dst, variantDataStart, null, cancellationToken, entries).ConfigureAwait(false);
+
+                variantEntry = new ShaderContentHeader.VariantEntry
+                {
+                    variantKey = 0,
+                    programContentHash = contentHash,
+                    dataOffset = variantDataStart - assetStartOffset,
+                    dataSize = dst.Position - variantDataStart,
+                    bindingCount = 0,
+                    reserved = 0
+                };
             }
             finally
             {
@@ -391,13 +471,6 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                     code.Dispose();
                 }
             }
-
-            variantEntry = new ShaderContentHeader.VariantEntry
-            {
-                variantKey = 0,
-                dataOffset = variantDataStart - assetStartOffset,
-                dataSize = dst.Position - variantDataStart
-            };
 
             var endOfPass = dst.Position;
             dst.Position = variantEntriesOffset;
@@ -410,22 +483,19 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
         }
     }
 
-    private static ShaderStage ParseShaderStage(string entryType)
-    {
-        return entryType.ToLowerInvariant() switch
+    private static ShaderStage ParseShaderStage(string entryType) =>
+        entryType.ToLowerInvariant() switch
         {
-            "amplification" or "as" or "task" => ShaderStage.AmplificationShader,
-            "mesh" or "ms" => ShaderStage.MeshShader,
-            "pixel" or "ps" or "fragment" => ShaderStage.PixelShader,
-            "compute" or "cs" => ShaderStage.ComputeShader,
-            "lib" or "library" or "rt" => ShaderStage.Library,
-            _ => ShaderStage.PixelShader
+            "mesh" or "ms" or "meshshader" => ShaderStage.MeshShader,
+            "amplification" or "as" or "task" or "amplificationshader" => ShaderStage.AmplificationShader,
+            "pixel" or "ps" or "pixelshader" => ShaderStage.PixelShader,
+            "compute" or "cs" or "computeshader" => ShaderStage.ComputeShader,
+            _ => ShaderStage.PixelShader,
         };
-    }
 
     public void Dispose()
     {
         _compiler.Dispose();
-        GC.SuppressFinalize(this);
+        _compileLock.Dispose();
     }
 }
