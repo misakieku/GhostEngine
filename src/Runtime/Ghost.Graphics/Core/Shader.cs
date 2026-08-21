@@ -8,8 +8,6 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Core;
 
-public struct ShaderProperty;
-
 public partial struct Shader
 {
     private static readonly Dictionary<string, int> s_passNameToID = new Dictionary<string, int>();
