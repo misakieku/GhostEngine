@@ -6,10 +6,7 @@ COMPUTE: 'compute';
 PIPELINE: 'pipeline';
 PASS: 'pass';
 DEFINES: 'defines';
-KEYWORDS: 'keywords';
 INCLUDES: 'includes';
-GLOBAL: 'global';
-LOCAL: 'local';
 HLSL: 'hlsl';
 SM: 'sm';
 

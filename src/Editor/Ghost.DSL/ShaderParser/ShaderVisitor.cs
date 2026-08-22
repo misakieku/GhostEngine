@@ -75,11 +75,6 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
                 pass.Includes = (IncludesBlockSyntax)VisitIncludesBlock(includesBlock);
             }
 
-            foreach (var keywordsBlock in passBody.keywordsBlock())
-            {
-                pass.Keywords = (KeywordsBlockSyntax)VisitKeywordsBlock(keywordsBlock);
-            }
-
             foreach (var pipelineBlock in passBody.pipelineBlock())
             {
                 pass.LocalPipeline = (PipelineBlockSyntax)VisitPipelineBlock(pipelineBlock);
@@ -121,25 +116,6 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         }
 
         return includes;
-    }
-
-    public override object VisitKeywordsBlock([NotNull] GhostShaderParser.KeywordsBlockContext context)
-    {
-        var keywords = new KeywordsBlockSyntax();
-
-        foreach (var keywordStmt in context.keywordStatement())
-        {
-            var group = new KeywordGroupSyntax();
-            
-            foreach (var identifier in keywordStmt.IDENTIFIER())
-            {
-                group.Keywords.Add(identifier.GetText());
-            }
-
-            keywords.Groups.Add(group);
-        }
-
-        return keywords;
     }
 
     public override object VisitHlslBlock([NotNull] GhostShaderParser.HlslBlockContext context)

@@ -119,8 +119,8 @@ public class AssetBakerTests
         Assert.AreEqual(2, result.Failed);
         Assert.AreEqual(0, result.Succeeded);
         Assert.AreEqual(0, result.Skipped);
-        Assert.AreEqual(2, result.FailedAssets.Count);
-        StringAssert.Contains(result.FailedAssets[0], "Textures/skybox");
+        Assert.HasCount(2, result.FailedAssets);
+        Assert.Contains("Textures/skybox", result.FailedAssets[0]);
     }
 
     [TestMethod]

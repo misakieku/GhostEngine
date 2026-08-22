@@ -87,12 +87,12 @@ public class RenderEnginePhase6Test
         var computeOps = allOps.Where(op => op.QueueType == CommandQueueType.Compute).ToList();
 
         // Compute queue: Submit + Signal only — no waits needed
-        Assert.AreEqual(2, computeOps.Count);
+        Assert.HasCount(2, computeOps);
         Assert.AreEqual(QueueOpType.Submit, computeOps[0].OpType);
         Assert.AreEqual(QueueOpType.Signal, computeOps[1].OpType);
 
         // Graphics queue: Submit(prelude) + Signal, then Wait(ComputeFence) + Submit(epilogue) + Signal
-        Assert.AreEqual(5, graphicsOps.Count);
+        Assert.HasCount(5, graphicsOps);
         Assert.AreEqual(QueueOpType.Submit, graphicsOps[0].OpType);  // prelude submit
         Assert.AreEqual(QueueOpType.Signal, graphicsOps[1].OpType);  // prelude signal
         Assert.AreEqual(QueueOpType.Wait, graphicsOps[2].OpType);    // epilogue waits for Compute
@@ -134,7 +134,7 @@ public class RenderEnginePhase6Test
 
         // Three rounds of Submit + Signal
         var ops = MockingCommandQueue.GlobalRecordedOps.ToList();
-        Assert.AreEqual(6, ops.Count);
+        Assert.HasCount(6, ops);
         for (var i = 0; i < 3; i++)
         {
             Assert.AreEqual(QueueOpType.Submit, ops[i * 2].OpType);
@@ -181,17 +181,17 @@ public class RenderEnginePhase6Test
         var copyOps = allOps.Where(op => op.QueueType == CommandQueueType.Copy).ToList();
 
         // Copy queue: Submit + Signal
-        Assert.AreEqual(2, copyOps.Count);
+        Assert.HasCount(2, copyOps);
         Assert.AreEqual(QueueOpType.Submit, copyOps[0].OpType);
         Assert.AreEqual(QueueOpType.Signal, copyOps[1].OpType);
 
         // Compute queue: Submit + Signal
-        Assert.AreEqual(2, computeOps.Count);
+        Assert.HasCount(2, computeOps);
         Assert.AreEqual(QueueOpType.Submit, computeOps[0].OpType);
         Assert.AreEqual(QueueOpType.Signal, computeOps[1].OpType);
 
         // Graphics queue: Submit+Signal (prelude), Wait+Submit+Signal (epilogue)
-        Assert.AreEqual(5, graphicsOps.Count);
+        Assert.HasCount(5, graphicsOps);
         Assert.AreEqual(QueueOpType.Submit, graphicsOps[0].OpType);
         Assert.AreEqual(QueueOpType.Signal, graphicsOps[1].OpType);
         Assert.AreEqual(QueueOpType.Wait, graphicsOps[2].OpType);
@@ -243,14 +243,14 @@ public class RenderEnginePhase6Test
         var computeOps = allOps.Where(op => op.QueueType == CommandQueueType.Compute).ToList();
 
         // Compute queue: Wait(Graphics producer fence) + Submit + Signal
-        Assert.AreEqual(3, computeOps.Count);
+        Assert.HasCount(3, computeOps);
         Assert.AreEqual(QueueOpType.Wait, computeOps[0].OpType);
         Assert.AreEqual(QueueOpType.Submit, computeOps[1].OpType);
         Assert.AreEqual(QueueOpType.Signal, computeOps[2].OpType);
 
         // Graphics queue has two Wait ops: one for the join, one for the epilogue
         var graphicsWaits = graphicsOps.Where(op => op.OpType == QueueOpType.Wait).ToList();
-        Assert.AreEqual(2, graphicsWaits.Count);
+        Assert.HasCount(2, graphicsWaits);
 
         // Both waits are for the Compute signal value
         var computeSignalValue = computeOps[2].Value;
@@ -285,7 +285,7 @@ public class RenderEnginePhase6Test
 
         Assert.IsTrue(completion.IsValid);
         Assert.IsFalse(MockingCommandQueue.GlobalRecordedOps.Any(op => op.OpType == QueueOpType.Wait));
-        Assert.AreEqual(4, MockingCommandQueue.GlobalRecordedOps.Count); // 2 × (Submit + Signal)
+        Assert.HasCount(4, MockingCommandQueue.GlobalRecordedOps); // 2 × (Submit + Signal)
     }
 }
 #endif

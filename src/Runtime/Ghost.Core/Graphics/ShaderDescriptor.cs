@@ -12,12 +12,6 @@ public enum ShaderModel
     SM_6_8
 }
 
-public enum KeywordSpace
-{
-    Local,
-    Global,
-}
-
 public struct ShaderCode()
 {
     public string code = string.Empty;
@@ -48,11 +42,6 @@ public struct ShaderCode()
     }
 }
 
-public struct KeywordsGroup
-{
-    public List<string>? keywords;
-}
-
 public struct PassDescriptor
 {
     public GraphicsShaderDescriptor shader;
@@ -63,7 +52,6 @@ public struct PassDescriptor
     public ShaderCode meshShaderCode;
     public ShaderCode pixelShaderCode;
     public string[] defines;
-    public KeywordsGroup[] keywords;
     public PipelineState localPipeline;
 }
 
@@ -113,11 +101,6 @@ public class ComputeShaderDescriptor
     }
 
     public required string[] Defines
-    {
-        get; init;
-    }
-
-    public required KeywordsGroup[] Keywords
     {
         get; init;
     }

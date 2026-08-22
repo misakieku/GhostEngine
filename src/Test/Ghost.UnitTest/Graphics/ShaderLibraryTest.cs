@@ -30,18 +30,18 @@ public class ShaderLibraryTest
 
     private class MockShaderCompilationBridge : IShaderCompilationBridge
     {
-        public List<(ulong id, int passIndex, Key64<ShaderVariant> variantKey, LocalKeywordSet keywordMask)> Requests { get; } = new();
+        public List<(ulong id, int passIndex)> Requests { get; } = new();
         public event ShaderVariantCompiledHandler? OnShaderVariantCompiled;
         public event Action<ulong>? OnShaderInvalidated;
 
-        public void RequestCompilation(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, LocalKeywordSet keywordMask)
+        public void RequestCompilation(ulong shaderId, int passIndex)
         {
-            Requests.Add((shaderId, passIndex, variantKey, keywordMask));
+            Requests.Add((shaderId, passIndex));
         }
 
-        public void TriggerCompiled(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, ReadOnlySpan<ShaderByteCode> byteCodes)
+        public void TriggerCompiled(ulong shaderId, int passIndex, ReadOnlySpan<ShaderByteCode> byteCodes)
         {
-            OnShaderVariantCompiled?.Invoke(shaderId, passIndex, variantKey, byteCodes);
+            OnShaderVariantCompiled?.Invoke(shaderId, passIndex, byteCodes);
         }
 
         public void TriggerInvalidated(ulong shaderId)
@@ -63,7 +63,6 @@ public class ShaderLibraryTest
 
         ulong testShaderId = 12345;
         var testPassIndex = 0;
-        var variantKey = new Key64<ShaderVariant>(999);
 
         // Create some dummy bytecode to cache
         var fakeData = new byte[] { 1, 2, 3, 4 };
@@ -84,7 +83,7 @@ public class ShaderLibraryTest
             expectedHash = System.IO.Hashing.XxHash64.HashToUInt64(dataSpan);
 
             // Act: Cache it
-            shaderLibrary.CacheCompiledResult(testShaderId, testPassIndex, variantKey, byteCodes);
+            shaderLibrary.CacheCompiledResult(testShaderId, testPassIndex, byteCodes);
         }
 
         // Verify it was cached successfully
@@ -112,10 +111,9 @@ public class ShaderLibraryTest
         using var shaderLibrary = new ShaderLibrary(mockBridge, null, "TestShaderCache");
         var testShaderId = 555UL;
         var passIndex = 1;
-        var variantKey = new Key64<ShaderVariant>(777);
 
         // Act
-        var result = shaderLibrary.GetCompiledHash(testShaderId, passIndex, variantKey);
+        var result = shaderLibrary.GetCompiledHash(testShaderId, passIndex);
 
         // Assert
         Assert.IsFalse(result.IsSuccess);
@@ -123,7 +121,6 @@ public class ShaderLibraryTest
         Assert.HasCount(1, mockBridge.Requests);
         Assert.AreEqual(testShaderId, mockBridge.Requests[0].id);
         Assert.AreEqual(passIndex, mockBridge.Requests[0].passIndex);
-        Assert.AreEqual(variantKey, mockBridge.Requests[0].variantKey);
     }
 
     [TestMethod]
@@ -132,7 +129,6 @@ public class ShaderLibraryTest
         // Arrange
         var mockBridge = new MockShaderCompilationBridge();
         using var shaderLibrary = new ShaderLibrary(mockBridge, null, "TestShaderCache");
-        var variantKey = new Key64<ShaderVariant>(123);
 
         var fakeData = new byte[] { 1, 2, 3, 4 };
         var expectedHash = 0UL;
@@ -146,11 +142,11 @@ public class ShaderLibraryTest
             var dataSpan = new ReadOnlySpan<byte>(pData, fakeData.Length);
             expectedHash = System.IO.Hashing.XxHash64.HashToUInt64(dataSpan);
 
-            mockBridge.TriggerCompiled(0, 0, variantKey, new ReadOnlySpan<ShaderByteCode>(ref byteCode));
+            mockBridge.TriggerCompiled(0, 0, new ReadOnlySpan<ShaderByteCode>(ref byteCode));
         }
 
         // Assert
-        var result = shaderLibrary.GetCompiledHash(0, 0, variantKey);
+        var result = shaderLibrary.GetCompiledHash(0, 0);
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual(expectedHash, result.Value);
     }

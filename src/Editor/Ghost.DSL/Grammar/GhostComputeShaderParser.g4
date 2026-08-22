@@ -13,7 +13,7 @@ compute:
     RBRACE;
 
 computeBody:
-    shaderModel | (definesBlock | includesBlock | keywordsBlock | hlslBlock | computeEntry)*;
+    shaderModel | (definesBlock | includesBlock | hlslBlock | computeEntry)*;
 
 shaderModel:
     SM IDENTIFIER SEMICOLON;
@@ -33,14 +33,6 @@ includesBlock:
 
 includeStatement:
     STRING_LITERAL SEMICOLON;
-
-keywordsBlock:
-    KEYWORDS LBRACE
-        keywordStatement*
-    RBRACE;
-
-keywordStatement:
-    IDENTIFIER (COMMA IDENTIFIER)* SEMICOLON;
 
 hlslBlock:
     HLSL LBRACE

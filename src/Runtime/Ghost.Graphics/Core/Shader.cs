@@ -14,11 +14,7 @@ public partial struct Shader
 {
     private static readonly Dictionary<string, int> s_passNameToID = new Dictionary<string, int>();
     private static int s_nextPassID = 0;
-
-    private static readonly Dictionary<string, int> s_keywordNameToID = new Dictionary<string, int>();
-    private static readonly Dictionary<int, string> s_keywordIDToName = new Dictionary<int, string>();
-    private static int s_nextKeywordID = 0;
-
+    
     public static Identifier<ShaderPass> GetPassID(string passName)
     {
         ref var id = ref CollectionsMarshal.GetValueRefOrAddDefault(s_passNameToID, passName, out var exists);
@@ -29,32 +25,7 @@ public partial struct Shader
 
         return id;
     }
-
-    public static int GetKeywordID(string keywordName)
-    {
-        ref var id = ref CollectionsMarshal.GetValueRefOrAddDefault(s_keywordNameToID, keywordName, out var exists);
-        if (!exists)
-        {
-            id = s_nextKeywordID++;
-        }
-
-        s_keywordIDToName[id] = keywordName;
-        return id;
-    }
-
-    public static string? GetKeywordName(int keywordID)
-    {
-        if (s_keywordIDToName.TryGetValue(keywordID, out var name))
-        {
-            return name;
-        }
-
-        return null;
-    }
-
-    // TODO: Global keywords
 }
-
 /// <summary>
 /// A representation of a GPU shader, including all the passes it contains.
 /// </summary>
@@ -64,7 +35,6 @@ public partial struct Shader : IResourceReleasable
     private readonly uint _propertyBufferSize;
     private UnsafeArray<ShaderPass> _shaderPasses;
     private UnsafeHashMap<int, int> _passIDToLocal;
-    private UnsafeHashMap<int, int> _keywordIDToLocal;
 
     // TODO: Tag to pass index for fast lookup.
     // We can use a int array since the number and index of tags are fixed at compile time.
@@ -79,59 +49,19 @@ public partial struct Shader : IResourceReleasable
         _propertyBufferSize = descriptor.PropertyBufferSize;
         _shaderPasses = new UnsafeArray<ShaderPass>(descriptor.Passes.Length, AllocationHandle.Persistent);
         _passIDToLocal = new UnsafeHashMap<int, int>(descriptor.Passes.Length, AllocationHandle.Persistent);
-        _keywordIDToLocal = new UnsafeHashMap<int, int>(32, AllocationHandle.Persistent);
 
         for (var i = 0; i < descriptor.Passes.Length; i++)
         {
             ref readonly var pass = ref descriptor.Passes[i];
 
-            var keywords = new LocalKeywordSet();
-
-            if (pass.keywords.Length > 0)
-            {
-                var localKeywordIndex = 0;
-
-                for (var j = 0; j < pass.keywords.Length; j++)
-                {
-                    var group = pass.keywords[j];
-                    if (group.keywords == null)
-                    {
-                        continue;
-                    }
-
-                    foreach (var kw in group.keywords)
-                    {
-                        var kwID = GetKeywordID(kw);
-                        var idx = localKeywordIndex++;
-
-                        keywords.SetKeyword(idx, true);
-                        _keywordIDToLocal.TryAdd(kwID, idx);
-                    }
-
-                    // TODO: Global keywords
-                }
-            }
-
             _shaderPasses[i] = new ShaderPass
             {
                 Key = RHIUtility.GetPassID(_nameHash, i),
                 DefaultState = pass.localPipeline,
-                DefinedKeywords = keywords,
             };
 
             _passIDToLocal[GetPassID(pass.name)] = (ushort)i;
         }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal int GetLocalKeywordIndex(int globalKeywordID)
-    {
-        if (_keywordIDToLocal.TryGetValue(globalKeywordID, out var localIndex))
-        {
-            return localIndex;
-        }
-
-        return -1;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -177,7 +107,6 @@ public partial struct Shader : IResourceReleasable
 
     public void ReleaseResource(IResourceDatabase database)
     {
-        _keywordIDToLocal.Dispose();
         _shaderPasses.Dispose();
         _passIDToLocal.Dispose();
     }
@@ -189,9 +118,6 @@ public unsafe partial struct ComputeShader : IResourceReleasable
     private fixed ulong _entryHashes[8]; // Support up to 8 entry points for now, can be extended if needed.
     private readonly uint _propertyBufferSize;
 
-    private LocalKeywordSet _localKeywordSet;
-    private UnsafeHashMap<int, int> _keywordIDToLocal;
-
     public readonly ulong UniqueID => _nameHash;
     public readonly uint PropertyBufferSize => _propertyBufferSize;
 
@@ -200,30 +126,9 @@ public unsafe partial struct ComputeShader : IResourceReleasable
         _nameHash = RHIUtility.GetShaderID(descriptor.Name);
         _propertyBufferSize = descriptor.PropertyBufferSize;
 
-        _keywordIDToLocal = new UnsafeHashMap<int, int>(32, AllocationHandle.Persistent);
-
         for (var i = 0; i < descriptor.ShaderCodes.Length; i++)
         {
             _entryHashes[i] = RHIUtility.GetPassID(_nameHash, i);
-        }
-
-        var localKeywordIndex = 0;
-        for (var i = 0; i < descriptor.Keywords.Length; i++)
-        {
-            var group = descriptor.Keywords[i];
-            if (group.keywords == null)
-            {
-                continue;
-            }
-
-            foreach (var kw in group.keywords)
-            {
-                var kwID = Shader.GetKeywordID(kw);
-                var idx = localKeywordIndex++;
-
-                _localKeywordSet.SetKeyword(idx, true);
-                _keywordIDToLocal.TryAdd(kwID, idx);
-            }
         }
     }
 
@@ -233,19 +138,7 @@ public unsafe partial struct ComputeShader : IResourceReleasable
         return _entryHashes[entryIndex];
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal int GetLocalKeywordIndex(int globalKeywordID)
-    {
-        if (_keywordIDToLocal.TryGetValue(globalKeywordID, out var localIndex))
-        {
-            return localIndex;
-        }
-
-        return -1;
-    }
-
     public void ReleaseResource(IResourceDatabase database)
     {
-        _keywordIDToLocal.Dispose();
     }
 }

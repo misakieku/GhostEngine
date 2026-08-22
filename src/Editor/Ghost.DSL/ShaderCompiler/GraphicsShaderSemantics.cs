@@ -34,7 +34,6 @@ public class PassSemantic
     public string? hlsl;
     public List<string>? defines;
     public List<string>? includes;
-    public List<KeywordsGroup>? keywords;
     public PipelineSemantic? localPipeline;
 }
 
@@ -53,6 +52,5 @@ public class ComputeShaderSemantics
     public ShaderModel shaderModel;
     public List<string> defines = new List<string>();
     public List<string> includes = new List<string>();
-    public List<KeywordsGroup> keywords = new List<KeywordsGroup>();
     public List<ShaderEntryPoint> entryPoints = new List<ShaderEntryPoint>();
 }

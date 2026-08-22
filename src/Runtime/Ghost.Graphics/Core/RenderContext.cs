@@ -379,20 +379,17 @@ public unsafe class RenderContext
         }
     }
 
-    public void DispatchCompute<T>(Handle<ComputeShader> compute, int entryIndex, scoped in LocalKeywordSet keywordSet, scoped in T property, uint3 threadGroupCount)
+    public void DispatchCompute<T>(Handle<ComputeShader> compute, int entryIndex, scoped in T property, uint3 threadGroupCount)
         where T : unmanaged
     {
         ref var shader = ref ResourceManager.GetComputeShaderReference(compute).GetValueOrThrow();
 
-        var entryHash = shader.GetEntryID(entryIndex);
-        var variantKey = RHIUtility.CreateShaderVariantKey(entryHash, in keywordSet);
-
         // TODO: Refactor this into a helper method.
-        var (compiledHash, error) = ShaderLibrary.GetCompiledHash(shader.UniqueID, entryIndex, variantKey, keywordSet);
+        var (compiledHash, error) = ShaderLibrary.GetCompiledHash(shader.UniqueID, entryIndex);
         if (error.IsFailure)
         {
             // TODO: Fallback to an error material.
-            Logger.Debug($"No compiled shader found for compute shader {shader.UniqueID} with entry point {entryIndex} and keywords {keywordSet}.");
+            Logger.Debug($"No compiled shader found for compute shader {shader.UniqueID} with entry point {entryIndex}.");
             return;
         }
 
@@ -416,7 +413,7 @@ public unsafe class RenderContext
             var psoDes = new ComputePSODesc
             {
                 CompiledHash = compiledHash,
-                VariantKey = variantKey,
+                VariantKey = new Key64<ShaderVariant>(shader.GetEntryID(entryIndex)),
                 CsCode = byteCodes.Slice((int)byteCodeOffsets[0]),
             };
 

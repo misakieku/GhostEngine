@@ -69,7 +69,7 @@ public class ChunkRecyclingTests
 
         // Without recycling this grows by ~1 chunk per round (10+). With recycling the slots
         // are reused and the count stays near the peak concurrent chunk count (≤ 4).
-        Assert.IsTrue(chunkCount <= 4, $"Chunk count should stay bounded after churn, was {chunkCount}.");
+        Assert.IsLessThanOrEqualTo(4, chunkCount, $"Chunk count should stay bounded after churn, was {chunkCount}.");
 
         // Query results must still be consistent.
         var queryID = QueryBuilder.New().WithAll<Tag>().Build(_world);
@@ -159,7 +159,7 @@ public class ChunkRecyclingTests
         _world.EntityManager.AddSharedComponent(e2, new SharedGroup { groupID = 3 });
 
         ref var archetype = ref ArchetypeOf<SharedGroup>();
-        Assert.IsTrue(archetype._chunkGroups.Count <= 3, $"Chunk group slots should be reused, was {archetype._chunkGroups.Count}.");
+        Assert.IsLessThanOrEqualTo(3, archetype._chunkGroups.Count, $"Chunk group slots should be reused, was {archetype._chunkGroups.Count}.");
         Assert.AreEqual(3, _world.EntityManager.GetSharedComponent<SharedGroup>(e2).groupID);
     }
 

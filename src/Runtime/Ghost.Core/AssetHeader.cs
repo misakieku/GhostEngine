@@ -99,57 +99,37 @@ public struct TextureContentHeader()
 /// <remarks>
 /// The layout of the shader asset in binary will be:
 /// [ShaderContentHeader]
-/// [KeywordStringTableSize: uint]
-/// [KeywordStringTableData: byte[]]
 /// For each pass:
 ///   [PassHeader]
-///   [KeywordGroupDescriptor * keywordGroupCount]
-///   [VariantEntry * variantCount]
-///   For each variant:
-///     [EntryPointHeader * entryPointCount]
-///     [Bytecode]
+///   [EntryPointHeader * entryPointCount]
+///   [Bytecode]
 /// </remarks>
 [StructLayout(LayoutKind.Sequential, Size = 64)]
 public struct ShaderContentHeader()
 {
-    public struct KeywordGroupDescriptor
-    {
-        public uint stringTableOffset;
-        public uint keywordCount;
-    }
-
-    public struct VariantEntry
-    {
-        public ulong variantKey;
-        public long dataOffset; // Offset relative to the start of the asset
-        public long dataSize;
-    }
 
     public struct PassHeader
     {
         public uint entryPointCount;
-        public uint variantCount;
-        public uint keywordGroupCount;
+        public long dataOffset; // Offset relative to the start of the asset
+        public long dataSize;
     }
 
     public struct EntryPointHeader
     {
         public ShaderStage stage;
-        public long byteCodeOffset; // Offset to the shader bytecode for this entry point, relative to the start of the variant data
+        public long byteCodeOffset; // Offset to the shader bytecode for this entry point, relative to the start of the pass data
         public long byteCodeSize;
     }
 
     public const uint MAGIC = 0x52484453; // SHDR
-    public const uint VERSION = 2;
+    public const uint VERSION = 3;
 
     public uint magic = MAGIC;
     public uint version = VERSION;
 
     public ShaderType shaderType;
     public uint passCount;
-    
-    public uint keywordStringTableOffset;
-    public uint keywordStringTableSize;
 }
 
 /// <summary>
@@ -215,7 +195,7 @@ public struct CacheFileHeader()
     public void WriteTo(Stream stream)
     {
         Span<byte> bytes = stackalloc byte[SIZE];
-        MemoryMarshal.Write(bytes, ref this);
+        MemoryMarshal.Write(bytes, in this);
         stream.Write(bytes);
     }
 
@@ -270,7 +250,7 @@ public struct PackFileHeader()
     public void WriteTo(Stream stream)
     {
         Span<byte> bytes = stackalloc byte[SIZE];
-        MemoryMarshal.Write(bytes, ref this);
+        MemoryMarshal.Write(bytes, in this);
         stream.Write(bytes);
     }
 

@@ -183,7 +183,6 @@ public static class DSLShaderCompiler
                 meshShaderCode = meshShaderCode,
                 pixelShaderCode = pixelShaderCode,
                 defines = pass.defines?.ToArray() ?? Array.Empty<string>(),
-                keywords = pass.keywords?.ToArray() ?? Array.Empty<KeywordsGroup>()
             };
         }
 
@@ -261,7 +260,6 @@ public static class DSLShaderCompiler
             ShaderModel = semantics.shaderModel,
             ShaderCodes = shaderCodes,
             Defines = semantics.defines?.ToArray() ?? Array.Empty<string>(),
-            Keywords = semantics.keywords?.ToArray() ?? Array.Empty<KeywordsGroup>()
         };
     }
 }

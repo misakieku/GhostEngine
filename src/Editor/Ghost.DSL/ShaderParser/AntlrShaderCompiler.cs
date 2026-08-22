@@ -156,18 +156,6 @@ public class AntlrShaderCompiler
             semantics.shaderModel = shaderModel;
         }
 
-        if (syntax.Keywords != null)
-        {
-            semantics.keywords = new List<KeywordsGroup>();
-            foreach (var group in syntax.Keywords.Groups)
-            {
-                var keywordGroup = new KeywordsGroup
-                {
-                    keywords = group.Keywords
-                };
-                semantics.keywords.Add(keywordGroup);
-            }
-        }
 
         foreach (var entry in syntax.ShaderEntries)
         {
@@ -285,18 +273,6 @@ public class AntlrShaderCompiler
             localPipeline = ConvertPipeline(pass.LocalPipeline, errors)
         };
 
-        if (pass.Keywords != null)
-        {
-            semantic.keywords = new List<KeywordsGroup>();
-            foreach (var group in pass.Keywords.Groups)
-            {
-                var keywordGroup = new KeywordsGroup
-                {
-                    keywords = group.Keywords
-                };
-                semantic.keywords.Add(keywordGroup);
-            }
-        }
 
         foreach (var entry in pass.ShaderEntries)
         {

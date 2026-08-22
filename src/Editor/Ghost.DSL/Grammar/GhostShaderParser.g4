@@ -35,7 +35,7 @@ passBlock:
 
 // Template
 passBody:
-    (definesBlock | includesBlock | keywordsBlock | pipelineBlock | hlslBlock | shaderEntry)*;
+    (definesBlock | includesBlock | pipelineBlock | hlslBlock | shaderEntry)*;
 
 definesBlock:
     DEFINES LBRACE
@@ -52,15 +52,6 @@ includesBlock:
 
 includeStatement:
     STRING_LITERAL SEMICOLON;
-
-keywordsBlock:
-    KEYWORDS LBRACE
-        keywordStatement*
-    RBRACE;
-
-keywordStatement:
-    IDENTIFIER (COMMA IDENTIFIER)* SEMICOLON;
-
 hlslBlock:
     HLSL LBRACE
         hlslBody

@@ -95,11 +95,6 @@ public class RuntimeContentProvider : IContentProvider, IDisposable
         };
     }
 
-    /// <summary>
-    /// Resolves a pack file path from the manifest against the directory that contains the
-    /// manifest itself, so that relative names like "pack_0000.pack" work regardless of the
-    /// process working directory.
-    /// </summary>
     private string ResolvePackPath(string packFileName)
     {
         return Path.IsPathRooted(packFileName)
@@ -107,30 +102,11 @@ public class RuntimeContentProvider : IContentProvider, IDisposable
             : Path.Combine(_packDirectory, packFileName);
     }
 
-    /// <summary>
-    /// Lazily opens (and caches) a memory-mapped handle for a pack file.
-    /// </summary>
-    /// <remarks>
-    /// The returned <see cref="MemoryMappedFile"/> is shared by all concurrent reads; each
-    /// <see cref="OpenReadAsync"/> call creates its own view stream over the mapped region.
-    /// A failed open is cached as <c>null</c> so the error is not retried on every access.
-    /// </remarks>
     private MemoryMappedFile? GetOrOpenPackFile(string packPath)
     {
         return _packFiles.GetOrAdd(packPath, static path =>
         {
-            try
-            {
-                return MemoryMappedFile.CreateFromFile(path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
-            }
-            catch (IOException)
-            {
-                return null;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return null;
-            }
+            return MemoryMappedFile.CreateFromFile(path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
         });
     }
 

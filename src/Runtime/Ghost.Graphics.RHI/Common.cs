@@ -176,11 +176,6 @@ public readonly struct ShaderPass
     {
         get; init;
     }
-
-    public LocalKeywordSet DefinedKeywords
-    {
-        get; init;
-    }
 }
 
 public readonly struct PassAttachmentHash : IEquatable<PassAttachmentHash>
