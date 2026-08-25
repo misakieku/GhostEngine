@@ -248,13 +248,14 @@ public class RenderEnginePhase6Test
         Assert.AreEqual(QueueOpType.Submit, computeOps[1].OpType);
         Assert.AreEqual(QueueOpType.Signal, computeOps[2].OpType);
 
-        // Graphics queue has two Wait ops: one for the join, one for the epilogue
+        // Graphics queue has one Wait op: the join waits for Compute.
+        // The scheduler suppresses redundant duplicate waits for the same Compute fence value on subsequent Graphics submissions.
         var graphicsWaits = graphicsOps.Where(op => op.OpType == QueueOpType.Wait).ToList();
-        Assert.AreEqual(2, graphicsWaits.Count);
+        Assert.AreEqual(1, graphicsWaits.Count);
 
-        // Both waits are for the Compute signal value
+        // The wait is for the Compute signal value
         var computeSignalValue = computeOps[2].Value;
-        Assert.IsTrue(graphicsWaits.All(w => w.Value == computeSignalValue));
+        Assert.AreEqual(computeSignalValue, graphicsWaits[0].Value);
 
         // PresentAll always comes after Flush: no Compute ops after epilogue signal
         var lastComputeIndex = allOps.FindLastIndex(op => op.QueueType == CommandQueueType.Compute);

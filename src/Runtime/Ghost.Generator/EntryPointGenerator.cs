@@ -101,7 +101,6 @@ internal class Program
     private static void Main(string[] args)
     {{
         var engineDesc = {configCall};
-
         global::Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.Initialize(engineDesc.AllocationManagerDesc);
 
         if (!global::SDL.SDL3.SDL_Init(global::SDL.SDL_InitFlags.SDL_INIT_VIDEO))
@@ -113,12 +112,12 @@ internal class Program
 
         try
         {{
-            using var engineCore = new global::Ghost.Engine.EngineCore(engineDesc.JobSchedulerDesc, engineDesc.RenderDesc, engineDesc.ContentProvider);
+            using var engineCore = new global::Ghost.Engine.EngineCore(engineDesc.JobSchedulerDesc, engineDesc.RenderDescFactory(), engineDesc.ContentProviderFactory());
 
 {initCall}
             try
             {{
-                using var window = new global::Ghost.Engine.EngineWindow(engineCore.RenderEngine.SwapChainManager, engineDesc.WindowDesc);
+                using var window = new global::Ghost.Engine.EngineWindow(engineCore.RenderEngine, engineDesc.WindowDesc);
 
                 engineCore.Start();
 
@@ -128,6 +127,8 @@ internal class Program
 
                     engineCore.Tick();
                 }}
+
+                engineCore.Stop();
             }}
             finally
             {{

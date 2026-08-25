@@ -179,6 +179,11 @@ internal class MockingCommandBuffer : ICommandBuffer
         _state.CommandCount++;
     }
 
+    public void SetComputeRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0)
+    {
+        _state.CommandCount++;
+    }
+
     public void SetIndexBuffer(Handle<GPUBuffer> buffer, IndexType type, ulong offset = 0)
     {
         _state.CommandCount++;

@@ -154,11 +154,12 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         var barrierData = new ResourceBarrierData
         {
             access = BarrierAccess.NoAccess,
-            layout = BarrierLayout.Common,
+            layout = BarrierLayout.Undefined,
             sync = BarrierSync.None
         };
 
-        return _resourceDatabase.AddAllocation(alloc, barrierData, ResourceViewGroup.Invalid, default, name);
+        var resourceDesc = ResourceDesc.Buffer(new BufferDesc { Size = desc.Size, HeapType = desc.HeapType, Stride = 1, Usage = BufferUsage.Raw });
+        return _resourceDatabase.AddAllocation(alloc, barrierData, ResourceViewGroup.Invalid, resourceDesc, name);
     }
 
     public Handle<GPUTexture> CreateTexture(scoped in TextureDesc desc, string? name = null, CreationOptions options = default, AdditionalTextureDesc additionalDesc = default)
@@ -214,8 +215,8 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         var resourceDescriptor = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, ResourceDesc.Texture(desc), pResource);
         var barrierData = new ResourceBarrierData
         {
-            layout = BarrierLayout.Common,
-            access = BarrierAccess.Common,
+            layout = BarrierLayout.Undefined,
+            access = BarrierAccess.NoAccess,
             sync = BarrierSync.None
         };
 
@@ -281,7 +282,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         var barrierData = new ResourceBarrierData
         {
             layout = BarrierLayout.Undefined,
-            access = BarrierAccess.Common,
+            access = BarrierAccess.NoAccess,
             sync = BarrierSync.None
         };
 

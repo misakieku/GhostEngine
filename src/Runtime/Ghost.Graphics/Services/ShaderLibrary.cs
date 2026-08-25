@@ -63,7 +63,6 @@ public unsafe class ShaderLibrary : IDisposable
     }
 
     private UnsafeHashMap<ulong, CacheEntry> _inMemoryCache;
-    private UnsafeHashMap<ulong, ulong> _variantToCompiledHash;
 
     private readonly string _cacheDirectory;
     private readonly IShaderCompilationBridge? _shaderCompilationBridge;
@@ -72,7 +71,6 @@ public unsafe class ShaderLibrary : IDisposable
     internal ShaderLibrary(IShaderCompilationBridge? shaderCompilationBridge, IPipelineLibrary? pipelineLibrary, string cacheDirectory)
     {
         _inMemoryCache = new UnsafeHashMap<ulong, CacheEntry>(16, AllocationHandle.Persistent);
-        _variantToCompiledHash = new UnsafeHashMap<ulong, ulong>(16, AllocationHandle.Persistent);
 
         _cacheDirectory = cacheDirectory;
         _shaderCompilationBridge = shaderCompilationBridge;
@@ -80,14 +78,14 @@ public unsafe class ShaderLibrary : IDisposable
 
         if (_shaderCompilationBridge != null)
         {
-            _shaderCompilationBridge.OnShaderVariantCompiled += OnVariantCompiled;
+            _shaderCompilationBridge.OnShaderCompiled += OnShaderCompiled;
             _shaderCompilationBridge.OnShaderInvalidated += OnShaderInvalidated;
         }
     }
 
-    private void OnVariantCompiled(ulong shaderId, int passIndex, Key64<ShaderVariant> variantKey, ReadOnlySpan<ShaderByteCode> byteCodes)
+    private void OnShaderCompiled(ulong shaderId, int passIndex, ReadOnlySpan<ShaderByteCode> byteCodes)
     {
-        CacheCompiledResult(shaderId, passIndex, variantKey, byteCodes);
+        CacheCompiledResult(shaderId, passIndex, byteCodes);
     }
 
     private void OnShaderInvalidated(ulong shaderId)
@@ -120,7 +118,7 @@ public unsafe class ShaderLibrary : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void CacheCompiledResult(ulong id, int index, Key64<ShaderVariant> variantKey, ReadOnlySpan<ShaderByteCode> byteCodes)
+    internal void CacheCompiledResult(ulong id, int index, ReadOnlySpan<ShaderByteCode> byteCodes)
     {
         var header = new CacheHeader
         {
@@ -166,8 +164,6 @@ public unsafe class ShaderLibrary : IDisposable
             codeHash = XxHash64.HashToUInt64(bytecodeSpan);
         }
 
-        _variantToCompiledHash[variantKey] = codeHash;
-
         ref var entry = ref _inMemoryCache.GetValueRefOrAddDefault(id, out var exists);
         entry.UpdateCache(index, ref data, codeHash);
     }
@@ -194,14 +190,17 @@ public unsafe class ShaderLibrary : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal Result<ulong, Error> GetCompiledHash(ulong id, int passIndex, Key64<ShaderVariant> variantKey, LocalKeywordSet keywordMask = default)
+    internal Result<ulong, Error> GetCompiledHash(ulong id, int passIndex)
     {
-        if (_variantToCompiledHash.TryGetValue(variantKey, out var compiledHash))
+        if (_inMemoryCache.TryGetValue(id, out var entry))
         {
-            return compiledHash;
+            if (passIndex < entry.cache.Length && entry.cache[passIndex].compiledHash != 0)
+            {
+                return entry.cache[passIndex].compiledHash;
+            }
         }
 
-        _shaderCompilationBridge?.RequestCompilation(id, passIndex, variantKey, keywordMask);
+        _shaderCompilationBridge?.RequestCompilation(id, passIndex);
         return Error.NotFound;
     }
 
@@ -224,11 +223,6 @@ public unsafe class ShaderLibrary : IDisposable
             entry.Dispose();
             _inMemoryCache.Remove(id);
         }
-
-        // Wait, what about _variantToCompiledHash?
-        // It maps variantKey -> compiledHash. Since we don't have a way to find variantKeys for this shader id,
-        // it will just linger as garbage. But it's small (8 bytes + 8 bytes).
-        // A proper fix would require _inMemoryCache to store the variantKeys, but for now we ignore it.
     }
 
     public void Dispose()
@@ -239,11 +233,10 @@ public unsafe class ShaderLibrary : IDisposable
         }
 
         _inMemoryCache.Dispose();
-        _variantToCompiledHash.Dispose();
 
         if (_shaderCompilationBridge != null)
         {
-            _shaderCompilationBridge.OnShaderVariantCompiled -= OnVariantCompiled;
+            _shaderCompilationBridge.OnShaderCompiled -= OnShaderCompiled;
             _shaderCompilationBridge.OnShaderInvalidated -= OnShaderInvalidated;
         }
 

@@ -191,13 +191,6 @@ public static class RHIUtility
         return Hash.Combine64(passID, compiledHash);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Key64<ShaderVariant> CreateShaderVariantKey(ulong passKey, ref readonly LocalKeywordSet keywords)
-    {
-        var keywordHash = keywords.GetHashCode64();
-        return new Key64<ShaderVariant>(Hash.Combine64(passKey, keywordHash));
-    }
-
     public static unsafe Key128<PipelineState> CreateGraphicsPipelineKey(ulong compiledHash, PipelineState pipelineState, PassAttachmentHash passAttachmentHash)
     {
         // Order-sensitive 128-bit mix. Cheap and stable, avoids span hashing.

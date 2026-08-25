@@ -56,7 +56,6 @@ public struct Material : IResourceReleasable
     private bool _isDirty;
 
     internal CBufferCache _cBufferCache;
-    internal LocalKeywordSet _keywordMask;
 
     public readonly Handle<Shader> Shader => _shader;
     public readonly bool IsDirty => _isDirty;
@@ -101,7 +100,6 @@ public struct Material : IResourceReleasable
             }
         }
 
-        _keywordMask.Clear();
         for (var i = 0; i < shader.PassCount; i++)
         {
             ref readonly var pass = ref shader.GetPassReference(i);
@@ -203,45 +201,6 @@ public struct Material : IResourceReleasable
         ref var pipelineOverride = ref _passPipelineOverride[passIndex];
         pipelineOverride.options = options;
         _isDirty = true;
-    }
-
-    public Error SetKeyword(ResourceManager manager, int keywordId, bool enabled)
-    {
-        var r = manager.GetShaderReference(_shader);
-        if (r.IsFailure)
-        {
-            return r.Error;
-        }
-
-        ref var shader = ref r.Value;
-        var localIndex = shader.GetLocalKeywordIndex(keywordId);
-        if (localIndex == -1)
-        {
-            return Error.NotFound;
-        }
-
-        _keywordMask.SetKeyword(localIndex, enabled);
-        _isDirty = true;
-
-        return Error.None;
-    }
-
-    public readonly bool IsKeywordEnabled(ResourceManager manager, int keywordId)
-    {
-        var r = manager.GetShaderReference(_shader);
-        if (r.IsFailure)
-        {
-            return false;
-        }
-
-        ref var shader = ref r.Value;
-        var localIndex = shader.GetLocalKeywordIndex(keywordId);
-        if (localIndex == -1)
-        {
-            return false;
-        }
-
-        return _keywordMask.IsKeywordEnabled(localIndex);
     }
 
     public readonly void UploadData(RenderContext ctx)

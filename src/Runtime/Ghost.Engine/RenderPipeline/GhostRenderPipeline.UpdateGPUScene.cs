@@ -157,8 +157,7 @@ internal partial class GhostRenderPipeline
 
         // TODO: Write and load the shader. This is just a placeholder for now.
         var shader = Handle<ComputeShader>.Invalid;
-        var keywords = new LocalKeywordSet();
 
-        ctx.DispatchCompute(shader, 0, in keywords, in property, new uint3());
+        ctx.DispatchCompute(shader, 0, in property, new uint3());
     }
 }

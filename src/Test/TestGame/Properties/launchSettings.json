@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TestGame": {
+      "commandName": "Project",
+      "debugEngines": "managed"
+    }
+  }
+}

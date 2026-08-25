@@ -71,12 +71,12 @@ public struct EngineDesc
         get; set;
     }
 
-    public required Render RenderDesc
+    public required Func<Render> RenderDescFactory
     {
         get; set;
     }
 
-    public required IContentProvider ContentProvider
+    public required Func<IContentProvider> ContentProviderFactory
     {
         get; set;
     }
@@ -129,7 +129,7 @@ public sealed partial class EngineCore : IDisposable
         _renderEngine.Start();
         _stopwatch.Start();
 
-        foreach (var world in World.EnumerateAllWorlds())
+        foreach (var world in World.GetWorldEnumerator())
         {
             world.SystemManager.InitializeAll();
         }
@@ -148,7 +148,7 @@ public sealed partial class EngineCore : IDisposable
             ElapsedTime = currentTime,
         };
 
-        foreach (var world in World.EnumerateAllWorlds())
+        foreach (var world in World.GetWorldEnumerator())
         {
             world.SystemManager.UpdateAll(time);
         }
@@ -162,7 +162,7 @@ public sealed partial class EngineCore : IDisposable
         _stopwatch.Stop();
         _renderEngine.Stop();
 
-        foreach (var world in World.EnumerateAllWorlds())
+        foreach (var world in World.GetWorldEnumerator())
         {
             world.SystemManager.CleanupAll();
         }

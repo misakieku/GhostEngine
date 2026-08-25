@@ -12,7 +12,7 @@ namespace Ghost.Graphics.D3D12;
 
 internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 {
-    internal unsafe record struct ResourceRecord
+    internal record struct ResourceRecord
     {
         [StructLayout(LayoutKind.Explicit)]
         public struct __resource_union
@@ -521,10 +521,17 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
         foreach (ref var record in _resources)
         {
+#if DEBUG
+            Debug.WriteLine($"[Resource Leak] Resource 0x{record.ResourcePtr:X} is being released without proper disposal. This may indicate a resource leak.");
+#endif
             record.Release(_descriptorAllocator);
         }
 
+        _releaseQueue.Clear();
         _resources.Clear();
+#if DEBUG
+        _resourceName.Clear();
+#endif
     }
 
     public void Dispose()

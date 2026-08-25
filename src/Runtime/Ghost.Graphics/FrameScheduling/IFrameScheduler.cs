@@ -11,6 +11,19 @@ namespace Ghost.Graphics.FrameScheduling;
 public interface IFrameScheduler : IDisposable
 {
     /// <summary>
+    /// Acquires a pooled command buffer for recording work that will be submitted to this frame scheduler.
+    /// </summary>
+    /// <param name="type">Type of command buffer to acquire.</param>
+    /// <returns>A command buffer instance from the pool.</returns>
+    ICommandBuffer GetPooledCommandBuffer(CommandBufferType type = CommandBufferType.Graphics);
+
+    /// <summary>
+    /// Returns a pooled command buffer if it will not be submitted to this frame scheduler (e.g. on error).
+    /// </summary>
+    /// <param name="commandBuffer">The command buffer whose ownership is returned.</param>
+    void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer);
+
+    /// <summary>
     /// Gets the number of frames flushed by this scheduler.
     /// </summary>
     ulong SubmittedFrame

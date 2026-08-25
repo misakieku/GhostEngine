@@ -9,6 +9,41 @@ namespace Ghost.Entities;
 
 public partial class World
 {
+    public struct Enumerator
+    {
+        private int _index;
+
+        public Enumerator()
+        {
+            _index = -1;
+        }
+
+        public readonly World Current => s_worlds[_index]!;
+
+        public readonly Enumerator GetEnumerator()
+        {
+            return this;
+        }
+
+        public bool MoveNext()
+        {
+            while (++_index < s_worlds.Count)
+            {
+                if (s_worlds[_index] is not null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public void Reset()
+        {
+            _index = -1;
+        }
+    }
+
     private static readonly List<World?> s_worlds = new(4);
     private static readonly Queue<Identifier<World>> s_freeWorldSlots = new();
 
@@ -74,15 +109,10 @@ public partial class World
         return s_worlds[id.Value];
     }
 
-    public static IEnumerable<World> EnumerateAllWorlds()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Enumerator GetWorldEnumerator()
     {
-        for (var i = 0; i < s_worlds.Count; i++)
-        {
-            if (s_worlds[i] is not null)
-            {
-                yield return s_worlds[i]!;
-            }
-        }
+        return new Enumerator();
     }
 }
 
@@ -304,6 +334,8 @@ public partial class World : IDisposable, IEquatable<World>
             {
                 _threadLocalECBs[i].Dispose();
             }
+
+            _threadLocalECBs.Dispose();
         }
 
         _componentManager.Dispose();

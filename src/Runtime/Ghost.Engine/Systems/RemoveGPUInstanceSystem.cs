@@ -10,13 +10,13 @@ namespace Ghost.Engine.Systems;
 [RenderPipelineSystem<GhostRenderPipelineSettings>]
 internal class RemoveGPUInstanceSystem : SystemBase
 {
-    private RenderEngine _renderSystem = null!;
+    private RenderEngine _renderEngine = null!;
 
     private Identifier<EntityQuery> _gpuInstanceQueryID;
 
     protected override void OnInitialize(scoped in SystemAPI systemAPI)
     {
-        _renderSystem = systemAPI.World.GetService<RenderEngine>();
+        _renderEngine = systemAPI.World.GetService<RenderEngine>();
 
         _gpuInstanceQueryID = QueryBuilder.New()
             .WithAll<GPUInstanceRef>()
@@ -28,7 +28,7 @@ internal class RemoveGPUInstanceSystem : SystemBase
 
     protected override void OnUpdate(scoped in SystemAPI systemAPI)
     {
-        var payload = (GhostRenderPayload)_renderSystem.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
+        var payload = (GhostRenderPayload)_renderEngine.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
         payload.BeginRecord();
 
         ref var gpuInstanceQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_gpuInstanceQueryID);
@@ -44,7 +44,7 @@ internal class RemoveGPUInstanceSystem : SystemBase
                 var entity = entities.GetElementUnsafe(i);
 
                 payload.RemoveInstance(gpuInstance.gpuInstanceIndex);
-                _renderSystem.ResourceManager.ReleaseMaterialPalette(gpuInstance.materialPalette);
+                _renderEngine.ResourceManager.ReleaseMaterialPalette(gpuInstance.materialPalette);
 
                 systemAPI.World.EntityCommandBuffer.RemoveComponent<GPUInstanceRef>(entity);
             }

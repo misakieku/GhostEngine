@@ -1,6 +1,8 @@
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
+using Ghost.Core;
 using Misaki.HighPerformance.LowLevel;
+using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
@@ -12,6 +14,30 @@ namespace Ghost.Graphics.D3D12;
 
 internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDevice
 {
+    public void DumpInfoQueueMessages()
+    {
+        ID3D12InfoQueue* pInfoQueue = default;
+        if (pNativeObject->QueryInterface(__uuidof(pInfoQueue), (void**)&pInfoQueue).SUCCEEDED)
+        {
+            var msgCount = pInfoQueue->GetNumStoredMessages();
+            for (ulong i = 0; i < msgCount; i++)
+            {
+                nuint msgLength = 0;
+                pInfoQueue->GetMessage(i, null, &msgLength);
+                if (msgLength > 0)
+                {
+                    var pMsg = (D3D12_MESSAGE*)NativeMemory.Alloc(msgLength);
+                    pInfoQueue->GetMessage(i, pMsg, &msgLength);
+                    var msgStr = Marshal.PtrToStringAnsi((nint)pMsg->pDescription);
+                    Console.WriteLine($"[D3D12 InfoQueue {pMsg->Severity} {pMsg->Category}] {msgStr}");
+                    NativeMemory.Free(pMsg);
+                }
+            }
+            pInfoQueue->ClearStoredMessages();
+            pInfoQueue->Release();
+        }
+    }
+
     private UniquePtr<IDXGIFactory7> _dxgiFactory;
     private UniquePtr<IDXGIAdapter1> _adapter;
 
@@ -67,6 +93,7 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
         {
             DXGI_ADAPTER_DESC1 desc = default;
             pAdapter->GetDesc1(&desc);
+            Logger.Debug($"Found adapter: {new string((char*)&desc.Description)}");
 
             // Don't select the Basic Render Driver adapter.
             if ((desc.Flags & (uint)DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
@@ -77,6 +104,7 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
             if (D3D12CreateDevice((IUnknown*)pAdapter, D3D_FEATURE_LEVEL_12_0, __uuidof(pDevice), (void**)&pDevice).SUCCEEDED)
             {
                 adapter = pAdapter;
+                Logger.Debug($"Selected D3D12 adapter: {new string((char*)&desc.Description)}");
                 break;
             }
 

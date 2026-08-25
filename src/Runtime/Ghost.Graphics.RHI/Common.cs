@@ -163,8 +163,6 @@ public struct ResourceRange
     }
 }
 
-public readonly struct ShaderVariant;
-
 public readonly struct ShaderPass
 {
     public Key64<ShaderPass> Key
@@ -173,11 +171,6 @@ public readonly struct ShaderPass
     }
 
     public PipelineState DefaultState
-    {
-        get; init;
-    }
-
-    public LocalKeywordSet DefinedKeywords
     {
         get; init;
     }
@@ -222,11 +215,6 @@ public ref struct GraphicsPSODesc
         get; set;
     }
 
-    public Key64<ShaderVariant> VariantKey
-    {
-        get; set;
-    }
-
     public PipelineState PipelineOption
     {
         get; set;
@@ -261,11 +249,6 @@ public ref struct GraphicsPSODesc
 public ref struct ComputePSODesc
 {
     public ulong CompiledHash
-    {
-        get; set;
-    }
-
-    public Key64<ShaderVariant> VariantKey
     {
         get; set;
     }

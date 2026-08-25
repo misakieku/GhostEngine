@@ -59,7 +59,7 @@ internal struct CompiledBarrier
 
 internal unsafe partial class RenderGraphCompiler
 {
-    private int EmitBarriersForPass(
+    private int EmitPassPrologueBarriers(
         ReadOnlySpan<ResolvedPassResourceUsage> usages,
         int scheduleIndex,
         CommandQueueType effectiveQueue,
@@ -75,7 +75,8 @@ internal unsafe partial class RenderGraphCompiler
         writer.Write(RGExecutionOpType.IssueBarriers);
         writer.Write(0); // Count placeholder
 
-        var count = EmitImplicitTransitions(
+        var count = WriteQueueHandoffBarriers(ref writer, handoffs, scheduleIndex, release: false);
+        count += EmitImplicitTransitions(
             usages,
             scheduleIndex,
             effectiveQueue,
@@ -95,6 +96,56 @@ internal unsafe partial class RenderGraphCompiler
         else
         {
             writer.Position = startPos; // Rewind if no barriers were emitted
+        }
+
+        return count;
+    }
+
+    private int EmitPassPrologueBarriersForMergedPasses(
+        ReadOnlySpan<ResolvedPassResourceUsage> allUsages,
+        ReadOnlySpan<PassResourceUsageRange> usageRanges,
+        int startScheduleIndex,
+        int passCount,
+        ReadOnlySpan<CommandQueueType> effectiveQueues,
+        ref BufferWriter writer,
+        AliasingPlan aliasingPlan,
+        RenderGraphResourceOrdering resourceOrdering,
+        Span<CompiledResourceState> resourceStates,
+        ReadOnlySpan<QueueHandoff> handoffs)
+    {
+        var startPos = writer.Position;
+
+        writer.Write(RGExecutionOpType.IssueBarriers);
+        writer.Write(0);
+
+        var count = 0;
+        for (var i = 0; i < passCount; i++)
+        {
+            var mergedScheduleIndex = startScheduleIndex + i;
+            count += WriteQueueHandoffBarriers(ref writer, handoffs, mergedScheduleIndex, release: false);
+
+            ref readonly var usageRange = ref usageRanges[mergedScheduleIndex];
+            count += EmitImplicitTransitions(
+                allUsages.Slice(usageRange.start, usageRange.count),
+                mergedScheduleIndex,
+                effectiveQueues[mergedScheduleIndex],
+            ref writer,
+            aliasingPlan,
+            resourceOrdering,
+            resourceStates,
+            handoffs);
+        }
+
+        if (count > 0)
+        {
+            var endPos = writer.Position;
+            writer.Position = startPos + sizeof(RGExecutionOpType);
+            writer.Write(count);
+            writer.Position = endPos;
+        }
+        else
+        {
+            writer.Position = startPos;
         }
 
         return count;

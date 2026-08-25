@@ -19,6 +19,7 @@ internal unsafe class DXGISwapChain : ISwapChain
 
     private UniquePtr<IDXGISwapChain4> _swapChain;
     private UnsafeArray<Handle<GPUTexture>> _backBuffers;
+    private HANDLE _frameLatencyWaitableObject;
 
     private readonly object? _compositionSurface;
 
@@ -57,7 +58,7 @@ internal unsafe class DXGISwapChain : ISwapChain
             Scaling = DXGI_SCALING_STRETCH,
             SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
             AlphaMode = DXGI_ALPHA_MODE_IGNORE,
-            Flags = (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING,
+            Flags = (uint)(DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT),
             Stereo = false,
         };
 
@@ -115,6 +116,9 @@ internal unsafe class DXGISwapChain : ISwapChain
 
         var pSfwapChain = CreateSwapChain(device, desc, bufferCount);
         _swapChain.Attach(pSfwapChain);
+
+        ThrowIfFailed(_swapChain.Get()->SetMaximumFrameLatency(1));
+        _frameLatencyWaitableObject = _swapChain.Get()->GetFrameLatencyWaitableObject();
 
         _backBuffers = new UnsafeArray<Handle<GPUTexture>>((int)bufferCount, AllocationHandle.Persistent);
 
@@ -182,11 +186,19 @@ internal unsafe class DXGISwapChain : ISwapChain
     {
         Logger.DebugAssert(!_disposed);
 
-        var presentFlags = 0u;
+        var presentFlags = vsync ? 0u : (uint)DXGI.DXGI_PRESENT_ALLOW_TEARING;
         var syncInterval = vsync ? 1u : 0u;
 
-        var i = _swapChain.Get()->GetCurrentBackBufferIndex();
         ThrowIfFailed(_swapChain.Get()->Present(syncInterval, presentFlags));
+    }
+
+    public void WaitForFrameLatency(uint timeoutMs = 1000)
+    {
+        Logger.DebugAssert(!_disposed);
+        if (_frameLatencyWaitableObject.Value != null)
+        {
+            TerraFX.Interop.Windows.Windows.WaitForSingleObjectEx(_frameLatencyWaitableObject, timeoutMs, true);
+        }
     }
 
     public void Resize(uint width, uint height)
@@ -204,7 +216,12 @@ internal unsafe class DXGISwapChain : ISwapChain
             _resourceDatabase.ReleaseResourceImmediately(_backBuffers[i].AsResource());
         }
 
-        ThrowIfFailed(_swapChain.Get()->ResizeBuffers((uint)_backBuffers.Count, width, height, DXGI_FORMAT_B8G8R8A8_UNORM, (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
+        ThrowIfFailed(_swapChain.Get()->ResizeBuffers(
+            (uint)_backBuffers.Count,
+            width,
+            height,
+            DXGI_FORMAT_B8G8R8A8_UNORM,
+            (uint)(DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT)));
 
         Width = width;
         Height = height;
@@ -254,9 +271,15 @@ internal unsafe class DXGISwapChain : ISwapChain
             compositionSurface.SetSwapChain(0);
         }
 
+        if (_frameLatencyWaitableObject.Value != null)
+        {
+            TerraFX.Interop.Windows.Windows.CloseHandle(_frameLatencyWaitableObject);
+            _frameLatencyWaitableObject = default;
+        }
+
         for (var i = 0; i < _backBuffers.Count; i++)
         {
-            _resourceDatabase.ReleaseResource(_backBuffers[i].AsResource());
+            _resourceDatabase.ReleaseResourceImmediately(_backBuffers[i].AsResource());
         }
 
         _backBuffers.Dispose();

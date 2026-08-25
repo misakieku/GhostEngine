@@ -15,8 +15,9 @@ using static TerraFX.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
-internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList10>, ICommandBuffer
+internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList7>, ICommandBuffer
 {
+    private readonly D3D12RenderDevice _device;
     private readonly D3D12PipelineLibrary _pipelineLibrary;
     private readonly D3D12ResourceDatabase _resourceDatabase;
     private readonly D3D12ResourceAllocator _resourceAllocator;
@@ -28,10 +29,21 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     public CommandBufferType Type => _type;
     public CommandBufferState State => _state;
 
-    private static ID3D12GraphicsCommandList10* CreateCommandList(ID3D12Device14* device, D3D12_COMMAND_LIST_TYPE type)
+    private static ID3D12GraphicsCommandList7* CreateCommandList(D3D12RenderDevice renderDevice, D3D12_COMMAND_LIST_TYPE type)
     {
-        ID3D12GraphicsCommandList10* pCommandList = default;
-        ThrowIfFailed(device->CreateCommandList1(0u, type, D3D12_COMMAND_LIST_FLAG_NONE, __uuidof(pCommandList), (void**)&pCommandList));
+        var device = renderDevice.NativeObject.Get();
+        ID3D12GraphicsCommandList7* pCommandList = default;
+        var hr = device->CreateCommandList1(0u, type, D3D12_COMMAND_LIST_FLAG_NONE, __uuidof(pCommandList), (void**)&pCommandList);
+        if (hr.FAILED)
+        {
+            var removedReason = device->GetDeviceRemovedReason();
+            Logger.Error($"CreateCommandList1 failed with hr={hr}, GetDeviceRemovedReason={removedReason}");
+            renderDevice.DumpInfoQueueMessages();
+            ID3D12GraphicsCommandList* pBaseList = default;
+            ThrowIfFailed(device->CreateCommandList1(0u, type, D3D12_COMMAND_LIST_FLAG_NONE, __uuidof(pBaseList), (void**)&pBaseList));
+            ThrowIfFailed(pBaseList->QueryInterface(__uuidof(pCommandList), (void**)&pCommandList));
+            pBaseList->Release();
+        }
         return pCommandList;
     }
 
@@ -42,8 +54,9 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         D3D12ResourceAllocator resourceAllocator,
         D3D12DescriptorAllocator descriptorAllocator,
         CommandBufferType type)
-        : base(CreateCommandList(device.NativeObject, D3D12Utility.ToCommandListType(type)))
+        : base(CreateCommandList(device, D3D12Utility.ToCommandListType(type)))
     {
+        _device = device;
         _type = type;
 
         _pipelineLibrary = pipelineLibrary;
@@ -115,6 +128,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         var hr = pNativeObject->Close();
         if (hr.FAILED)
         {
+            _device.DumpInfoQueueMessages();
             return Result.Failure($"Failed to close command list: {hr}");
         }
 
@@ -167,6 +181,20 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                 and not BarrierLayout.DepthStencilWrite,
             _ => true
         };
+    }
+
+    private static D3D12_BARRIER_SYNC FilterSyncForQueue(CommandBufferType queueType, BarrierSync sync)
+    {
+        if (queueType == CommandBufferType.Compute)
+        {
+            const BarrierSync graphicsOnly = BarrierSync.VertexShading | BarrierSync.PixelShading | BarrierSync.DepthStencil | BarrierSync.RenderTarget | BarrierSync.IndexInput | BarrierSync.Resolve;
+            if ((sync & graphicsOnly) != 0)
+            {
+                var filtered = sync & ~graphicsOnly;
+                return (D3D12_BARRIER_SYNC)(filtered == BarrierSync.None ? BarrierSync.AllShading : filtered);
+            }
+        }
+        return (D3D12_BARRIER_SYNC)sync;
     }
 
     private static bool IsHandoffValid(scoped in BarrierDesc desc)
@@ -264,13 +292,23 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                             continue;
                         }
 
+                        var syncBefore = FilterSyncForQueue(_type, beforeState.sync);
+                        var accessBefore = syncBefore == D3D12_BARRIER_SYNC.D3D12_BARRIER_SYNC_NONE
+                            ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
+                            : (D3D12_BARRIER_ACCESS)beforeState.access;
+
+                        var syncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter;
+                        var accessAfter = syncAfter == D3D12_BARRIER_SYNC.D3D12_BARRIER_SYNC_NONE
+                            ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
+                            : (D3D12_BARRIER_ACCESS)desc.AccessAfter;
+
                         var resource = record.ResourcePtr;
                         pBufferBarriers[bufferIndex++] = new D3D12_BUFFER_BARRIER
                         {
-                            SyncBefore = (D3D12_BARRIER_SYNC)beforeState.sync,
-                            SyncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter,
-                            AccessBefore = (D3D12_BARRIER_ACCESS)beforeState.access,
-                            AccessAfter = (D3D12_BARRIER_ACCESS)desc.AccessAfter,
+                            SyncBefore = syncBefore,
+                            SyncAfter = syncAfter,
+                            AccessBefore = accessBefore,
+                            AccessAfter = accessAfter,
                             pResource = resource,
                             Offset = desc.Offset,
                             Size = desc.Size
@@ -318,13 +356,30 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                             continue;
                         }
 
+                        var syncBefore = FilterSyncForQueue(_type, beforeState.sync);
+                        var accessBefore = syncBefore == D3D12_BARRIER_SYNC.D3D12_BARRIER_SYNC_NONE
+                            ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
+                            : (D3D12_BARRIER_ACCESS)beforeState.access;
+
+                        var syncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter;
+                        var accessAfter = syncAfter == D3D12_BARRIER_SYNC.D3D12_BARRIER_SYNC_NONE
+                            ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
+                            : (D3D12_BARRIER_ACCESS)desc.AccessAfter;
+
+                        var discard = desc.Discard || beforeState.layout == BarrierLayout.Undefined;
+                        var flags = D3D12_TEXTURE_BARRIER_FLAGS.D3D12_TEXTURE_BARRIER_FLAG_NONE;
+                        if (discard)
+                        {
+                            flags |= D3D12_TEXTURE_BARRIER_FLAGS.D3D12_TEXTURE_BARRIER_FLAG_DISCARD;
+                        }
+
                         var resource = record.ResourcePtr;
                         pTextureBarriers[textureIndex++] = new D3D12_TEXTURE_BARRIER
                         {
-                            SyncBefore = (D3D12_BARRIER_SYNC)beforeState.sync,
-                            SyncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter,
-                            AccessBefore = (D3D12_BARRIER_ACCESS)beforeState.access,
-                            AccessAfter = (D3D12_BARRIER_ACCESS)desc.AccessAfter,
+                            SyncBefore = syncBefore,
+                            SyncAfter = syncAfter,
+                            AccessBefore = accessBefore,
+                            AccessAfter = accessAfter,
                             LayoutBefore = (D3D12_BARRIER_LAYOUT)beforeState.layout,
                             LayoutAfter = (D3D12_BARRIER_LAYOUT)desc.LayoutAfter,
                             pResource = resource,
@@ -335,7 +390,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                                 FirstArraySlice = desc.Subresources.FirstArraySlice,
                                 NumArraySlices = desc.Subresources.NumArraySlices
                             },
-                            Flags = desc.Discard ? D3D12_TEXTURE_BARRIER_FLAGS.D3D12_TEXTURE_BARRIER_FLAG_DISCARD : D3D12_TEXTURE_BARRIER_FLAGS.D3D12_TEXTURE_BARRIER_FLAG_NONE
+                            Flags = flags
                         };
 
                         record.barrierData = new ResourceBarrierData(desc.LayoutAfter, desc.AccessAfter, desc.SyncAfter);
@@ -597,8 +652,9 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             pRtvDescs[i] = desc;
         }
 
+        var hasStencil = false;
         var pDsvDesc = stackalloc D3D12_RENDER_PASS_DEPTH_STENCIL_DESC[depthDesc.Texture.IsValid ? 1 : 0];
-        if (pDsvDesc != null)
+        if (depthDesc.Texture.IsValid)
         {
             var recordResult = _resourceDatabase.GetResourceRecord(depthDesc.Texture.AsResource());
             if (recordResult.Error != Error.None)
@@ -615,6 +671,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
 
             var cpuHandle = _descriptorAllocator.GetCpuHandle(record.viewGroup.dsv);
             var format = record.desc.TextureDescriptor.Format.ToDXGIFormat();
+            hasStencil = format is DXGI_FORMAT_D24_UNORM_S8_UINT or DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
             // Map depth load operation
             var depthLoadAccessType = depthDesc.DepthLoadOp switch
@@ -636,7 +693,9 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             };
 
             // Map stencil load operation
-            var stencilLoadAccessType = depthDesc.StencilLoadOp switch
+            var stencilLoadAccessType = !hasStencil
+                ? D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS
+                : depthDesc.StencilLoadOp switch
             {
                 AttachmentLoadOp.Load => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE,
                 AttachmentLoadOp.Clear => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,
@@ -646,7 +705,9 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             };
 
             // Map stencil store operation
-            var stencilStoreAccessType = depthDesc.StencilStoreOp switch
+            var stencilStoreAccessType = !hasStencil
+                ? D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS
+                : depthDesc.StencilStoreOp switch
             {
                 AttachmentStoreOp.Store => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,
                 AttachmentStoreOp.DontCare => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,
@@ -690,8 +751,20 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             pDsvDesc[0] = desc;
         }
 
-        pNativeObject->BeginRenderPass((uint)rtDescs.Length, pRtvDescs, pDsvDesc,
-                allowUAVWrites ? D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES : D3D12_RENDER_PASS_FLAG_NONE);
+        var passFlags = allowUAVWrites ? D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES : D3D12_RENDER_PASS_FLAG_NONE;
+        if (depthDesc.Texture.IsValid)
+        {
+            if (depthDesc.DepthStoreOp == AttachmentStoreOp.NoAccess)
+            {
+                passFlags |= D3D12_RENDER_PASS_FLAG_BIND_READ_ONLY_DEPTH;
+            }
+            if (hasStencil && depthDesc.StencilStoreOp == AttachmentStoreOp.NoAccess)
+            {
+                passFlags |= D3D12_RENDER_PASS_FLAG_BIND_READ_ONLY_STENCIL;
+            }
+        }
+
+        pNativeObject->BeginRenderPass((uint)rtDescs.Length, pRtvDescs, depthDesc.Texture.IsValid ? pDsvDesc : null, passFlags);
     }
 
     public void EndRenderPass()
@@ -726,7 +799,15 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             return;
         }
 
-        pNativeObject->SetGraphicsRootSignature(_pipelineLibrary.DefaultRootSignature);
+        if (_type == CommandBufferType.Compute)
+        {
+            pNativeObject->SetComputeRootSignature(_pipelineLibrary.DefaultRootSignature);
+        }
+        else
+        {
+            pNativeObject->SetGraphicsRootSignature(_pipelineLibrary.DefaultRootSignature);
+        }
+
         pNativeObject->SetPipelineState(psor.Value);
     }
 
@@ -822,6 +903,18 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         fixed (uint* pConstants = constantBuffer)
         {
             pNativeObject->SetGraphicsRoot32BitConstants(rootIndex, (uint)constantBuffer.Length, pConstants, offsetIn32Bits);
+        }
+    }
+
+    public void SetComputeRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0)
+    {
+        AssertNotDisposed();
+        AssertRecording();
+        IncrementCommandCount();
+
+        fixed (uint* pConstants = constantBuffer)
+        {
+            pNativeObject->SetComputeRoot32BitConstants(rootIndex, (uint)constantBuffer.Length, pConstants, offsetIn32Bits);
         }
     }
 

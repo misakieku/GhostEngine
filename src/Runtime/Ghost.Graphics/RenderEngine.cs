@@ -51,12 +51,12 @@ public class RenderEngine : IDisposable
 {
     private struct FrameResource : IDisposable
     {
-        public required AutoResetEvent CpuReadyEvent
+        public required ManualResetEventSlim CpuReadyEvent
         {
             get; init;
         }
 
-        public required AutoResetEvent GpuReadyEvent
+        public required ManualResetEventSlim GpuReadyEvent
         {
             get; init;
         }
@@ -99,8 +99,8 @@ public class RenderEngine : IDisposable
 
     private readonly IResourceStreamingProcessor _streamingProcessor;
 
-    private IRenderPipelineSettings _renderPipelineSettings;
-    private IRenderPipeline _renderPipeline;
+    private readonly IRenderPipelineSettings _renderPipelineSettings;
+    private readonly IRenderPipeline _renderPipeline;
 
     private readonly IGraphicsEngine _graphicsEngine;
     private readonly ResourceManager _resourceManager;
@@ -109,7 +109,7 @@ public class RenderEngine : IDisposable
     private readonly IFrameScheduler _frameScheduler;
     private readonly FrameResource[] _frameResources;
     private readonly Thread _renderThread;
-    private readonly AutoResetEvent _shutdownEvent;
+    private readonly CancellationTokenSource _shutdownCts;
 
     private readonly ConcurrentDictionary<ISwapChain, uint2> _resizeRequest;
 
@@ -129,34 +129,7 @@ public class RenderEngine : IDisposable
     public ulong SubmittedFrame => _submittedFrame;
     public int MaxFrameLatency => _frameResources.Length;
 
-    public IRenderPipelineSettings RenderPipelineSettings
-    {
-        get => _renderPipelineSettings;
-        set
-        {
-            Logger.DebugAssert(value != null, "RenderPipelineSettings cannot be set to null.");
-            Logger.DebugAssert(!_disposed, "Cannot set RenderPipelineSettings on a disposed RenderSystem.");
-
-            if (value == _renderPipelineSettings)
-            {
-                return;
-            }
-
-            _renderPipeline?.Dispose();
-            for (var i = 0; i < _frameResources.Length; i++)
-            {
-                _frameResources[i].RenderPayload?.Dispose();
-            }
-
-            _renderPipelineSettings = value;
-
-            _renderPipeline = _renderPipelineSettings.CreatePipeline(this);
-            for (var i = 0; i < _frameResources.Length; i++)
-            {
-                _frameResources[i].RenderPayload = _renderPipelineSettings.CreatePayload(this, _renderPipeline);
-            }
-        }
-    }
+    public IRenderPipelineSettings RenderPipelineSettings => _renderPipelineSettings;
 
     internal RenderEngine(RenderEngineDesc desc)
     {
@@ -164,15 +137,18 @@ public class RenderEngine : IDisposable
         _streamingProcessor = desc.ResourceStreamingProcessor;
         _renderPipelineSettings = desc.InitialRenderPipelineSettings;
 
-        _frameScheduler = new FrameScheduler(_graphicsEngine);
+        _resourceManager = new ResourceManager(_graphicsEngine.Device, _graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
+        _swapChainManager = new SwapChainManager(_graphicsEngine);
+        _frameScheduler = new FrameScheduler(_graphicsEngine, _swapChainManager);
+
         // Create frame resources for synchronization
         _frameResources = new FrameResource[desc.FrameBufferCount];
         for (var i = 0; i < desc.FrameBufferCount; i++)
         {
             _frameResources[i] = new FrameResource
             {
-                CpuReadyEvent = new AutoResetEvent(false),
-                GpuReadyEvent = new AutoResetEvent(true),
+                CpuReadyEvent = new ManualResetEventSlim(false, 64),
+                GpuReadyEvent = new ManualResetEventSlim(true, 64),
                 GraphicsCommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics),
                 ComputeCommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Compute),
                 CopyCommandAllocator = _graphicsEngine.CreateCommandAllocator(CommandBufferType.Copy),
@@ -185,8 +161,6 @@ public class RenderEngine : IDisposable
             _frameResources[i].RenderPayload = _renderPipelineSettings.CreatePayload(this, _renderPipeline);
         }
 
-        _resourceManager = new ResourceManager(_graphicsEngine.Device, _graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
-        _swapChainManager = new SwapChainManager(_graphicsEngine);
         _shaderLibrary = new ShaderLibrary(desc.ShaderCompilationBridge, _graphicsEngine.PipelineLibrary, desc.ShaderCacheDirectory);
 
         _renderThread = new Thread(RenderLoop)
@@ -196,7 +170,7 @@ public class RenderEngine : IDisposable
             Priority = ThreadPriority.Normal
         };
 
-        _shutdownEvent = new AutoResetEvent(false);
+        _shutdownCts = new CancellationTokenSource();
         _resizeRequest = new ConcurrentDictionary<ISwapChain, uint2>();
 
         _isRunning = false;
@@ -213,15 +187,13 @@ public class RenderEngine : IDisposable
         void StopRenderLoop(Result result)
         {
             _isRunning = false;
-            _shutdownEvent.Set();
+            _shutdownCts.Cancel();
 
 #if DEBUG
             Debugger.Break();
 #endif
             Logger.Error($"Render failed: {result.Message}");
         }
-
-        var waitHandles = new WaitHandle[] { null!, _shutdownEvent };
 
         var renderContext = new RenderContext
         (
@@ -239,22 +211,27 @@ public class RenderEngine : IDisposable
 
             try
             {
-                // Wait for either CPU ready signal or shutdown signal
-                waitHandles[0] = frameResource.CpuReadyEvent;
-                var waitResult = WaitHandle.WaitAny(waitHandles);
-
-                // If shutdown was signaled, exit the loop
-                if (!_isRunning || waitResult == 1)
+                // Wait for CPU ready signal in user space before sleeping
+                try
+                {
+                    frameResource.CpuReadyEvent.Wait(_shutdownCts.Token);
+                }
+                catch (OperationCanceledException)
                 {
                     break;
                 }
 
-                // Only proceed if CPU ready event was signaled
-                if (waitResult != 0)
+                if (!_isRunning)
                 {
-                    continue;
+                    break;
                 }
 
+                frameResource.CpuReadyEvent.Reset();
+
+                // Pacing: wait for DXGI frame latency waitable object
+                _swapChainManager.WaitForAllFrameLatency();
+
+                // Wait for GPU fence completion of the oldest in-flight frame slot
                 _frameScheduler.WaitForFrame(frameResource.Completion);
                 var completedFrame = frameResource.Completion.FrameNumber;
 
@@ -285,7 +262,7 @@ public class RenderEngine : IDisposable
                 _resourceManager.BeginFrame(_submittedFrame);
                 _graphicsEngine.BeginFrame(_submittedFrame);
 
-                var preludeCmd = _graphicsEngine.GetPooledCommandBuffer(CommandBufferType.Graphics);
+                var preludeCmd = _frameScheduler.GetPooledCommandBuffer(CommandBufferType.Graphics);
                 var preludeSubmitted = false;
                 ICommandBuffer? epilogueCmd = null;
                 var epilogueSubmitted = false;
@@ -326,47 +303,53 @@ public class RenderEngine : IDisposable
                         _graphicsEngine,
                         _frameScheduler,
                         frameResource.GraphicsCommandAllocator,
-                        frameResource.ComputeCommandAllocator);
+                        frameResource.ComputeCommandAllocator)
+                    {
+                        OnFinalGraphicsCommandBuffer = _swapChainManager.TransitionAllToPresent
+                    };
 
                     var graphExecution = _renderPipeline.ExecuteGraph(
                         renderContext, frameIndex, frameResource.RenderPayload, executionContext);
 
-                    // --- Epilogue: swap-chain present transitions ---
-                    epilogueCmd = _graphicsEngine.GetPooledCommandBuffer(CommandBufferType.Graphics);
-                    epilogueCmd.Begin(frameResource.GraphicsCommandAllocator);
-                    _swapChainManager.TransitionAllToPresent(epilogueCmd);
-
-                    result = epilogueCmd.End();
-                    if (result.IsFailure)
+                    // If the graph already recorded to a Graphics command buffer, the swap-chain present
+                    // transition was recorded into the tail of that command buffer directly.
+                    // Only allocate a standalone epilogue command buffer if the graph produced no Graphics submission.
+                    if (!graphExecution.GraphicsSubmission.IsValid)
                     {
-                        StopRenderLoop(result);
-                        break;
-                    }
+                        epilogueCmd = _frameScheduler.GetPooledCommandBuffer(CommandBufferType.Graphics);
+                        epilogueCmd.Begin(frameResource.GraphicsCommandAllocator);
+                        _swapChainManager.TransitionAllToPresent(epilogueCmd);
 
-                    var epilogueHandle = _frameScheduler.Submit(epilogueCmd);
-                    epilogueSubmitted = true;
+                        result = epilogueCmd.End();
+                        if (result.IsFailure)
+                        {
+                            StopRenderLoop(result);
+                            break;
+                        }
 
-                    // Terminal Compute work must complete before present-transition barriers execute.
-                    if (graphExecution.ComputeSubmission.IsValid)
-                    {
-                        _frameScheduler.AddDependency(graphExecution.ComputeSubmission, epilogueHandle);
+                        var epilogueHandle = _frameScheduler.Submit(epilogueCmd);
+                        epilogueSubmitted = true;
+
+                        // Terminal Compute work must complete before present-transition barriers execute.
+                        if (graphExecution.ComputeSubmission.IsValid)
+                        {
+                            _frameScheduler.AddDependency(graphExecution.ComputeSubmission, epilogueHandle);
+                        }
                     }
 
                     frameResource.Completion = _frameScheduler.Flush();
                     _submittedFrame = frameResource.Completion.FrameNumber;
-
-                    _swapChainManager.PresentAll();
                 }
                 finally
                 {
                     if (!preludeSubmitted)
                     {
-                        _graphicsEngine.ReturnPooledCommandBuffer(preludeCmd);
+                        _frameScheduler.ReturnPooledCommandBuffer(preludeCmd);
                     }
 
                     if (epilogueCmd != null && !epilogueSubmitted)
                     {
-                        _graphicsEngine.ReturnPooledCommandBuffer(epilogueCmd);
+                        _frameScheduler.ReturnPooledCommandBuffer(epilogueCmd);
                     }
                 }
 
@@ -408,8 +391,14 @@ public class RenderEngine : IDisposable
         }
 
         _isRunning = false;
-        _shutdownEvent.Set();
+        _shutdownCts.Cancel();
+        for (var i = 0; i < _frameResources.Length; i++)
+        {
+            _frameResources[i].CpuReadyEvent.Set();
+            _frameResources[i].GpuReadyEvent.Set();
+        }
         _renderThread.Join();
+        _frameScheduler.WaitIdle();
     }
 
     internal void SignalCPUReady(int frameIndex)
@@ -433,7 +422,13 @@ public class RenderEngine : IDisposable
         Logger.DebugAssert(!_disposed, "Cannot wait for GPU ready on a disposed RenderSystem.");
 
         var eventIndex = frameIndex % _frameResources.Length;
-        return _frameResources[eventIndex].GpuReadyEvent.WaitOne(timeOut);
+        ref var frameResource = ref _frameResources[eventIndex];
+        var success = frameResource.GpuReadyEvent.Wait(timeOut);
+        if (success)
+        {
+            frameResource.GpuReadyEvent.Reset();
+        }
+        return success;
     }
 
     public void WaitIdle()
@@ -476,7 +471,7 @@ public class RenderEngine : IDisposable
 
         _graphicsEngine.Dispose();
 
-        _shutdownEvent.Dispose();
+        _shutdownCts.Dispose();
 
         _disposed = true;
         GC.SuppressFinalize(this);

@@ -163,11 +163,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         var passPipelineHash = new PassAttachmentHash(_rtvFormats, _dsvFormat);
         var materialPipeline = material.GetPassPipelineOverride(material.ActivePassIndex);
 
-        // Mask out the keywords that are not used in this pass.
-        var variantMask = material._keywordMask & pass.DefinedKeywords;
-        var variantKey = RHIUtility.CreateShaderVariantKey(pass.Key, in variantMask);
-
-        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shader.UniqueID, material.ActivePassIndex, variantKey, variantMask);
+        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shader.UniqueID, material.ActivePassIndex);
         if (error.IsFailure)
         {
             // TODO: Fallback to a default shader or show an error material.
@@ -198,7 +194,6 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
             var psoDes = new GraphicsPSODesc
             {
                 CompiledHash = compiledHash,
-                VariantKey = variantKey,
                 PipelineOption = materialPipeline,
 
                 RtvFormats = _rtvFormats.AsSpan(0, _rtvCount),
@@ -268,11 +263,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         }
 
         ref var shader = ref r.Value;
-        var entryHash = shader.GetEntryID(entryIndex);
-        var keywordSet = new LocalKeywordSet(); // TODO: Support keywords in compute shader.
-        var variantKey = RHIUtility.CreateShaderVariantKey(entryHash, in keywordSet);
-
-        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shader.UniqueID, entryIndex, variantKey, keywordSet);
+        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shader.UniqueID, entryIndex);
         if (error.IsFailure)
         {
             // TODO: Fallback to a default shader or show an error material.
@@ -299,7 +290,6 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
             var psoDes = new ComputePSODesc
             {
                 CompiledHash = compiledHash,
-                VariantKey = variantKey,
                 CsCode = byteCodes.Slice((int)byteCodeOffsets[0]),
             };
 

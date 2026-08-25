@@ -314,16 +314,12 @@ internal unsafe partial class RenderGraphCompiler
         return false;
     }
 
-    private static int EmitQueueHandoffBarriers(
+    private static int WriteQueueHandoffBarriers(
         ref BufferWriter writer,
         ReadOnlySpan<QueueHandoff> handoffs,
         int scheduleIndex,
         bool release)
     {
-        var startPosition = writer.Position;
-        writer.Write(RGExecutionOpType.IssueBarriers);
-        writer.Write(0);
-
         var count = 0;
         for (var handoffIndex = 0; handoffIndex < handoffs.Length; handoffIndex++)
         {
@@ -358,6 +354,20 @@ internal unsafe partial class RenderGraphCompiler
             });
             count++;
         }
+
+        return count;
+    }
+
+    private static int EmitQueueReleaseBarriers(
+        ref BufferWriter writer,
+        ReadOnlySpan<QueueHandoff> handoffs,
+        int scheduleIndex)
+    {
+        var startPosition = writer.Position;
+        writer.Write(RGExecutionOpType.IssueBarriers);
+        writer.Write(0);
+
+        var count = WriteQueueHandoffBarriers(ref writer, handoffs, scheduleIndex, release: true);
 
         if (count == 0)
         {

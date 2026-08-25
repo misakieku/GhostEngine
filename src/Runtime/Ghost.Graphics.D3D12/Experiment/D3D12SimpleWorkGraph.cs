@@ -126,23 +126,26 @@ internal unsafe class D3D12SimpleWorkGraph : IDisposable
     }
 
     // You invoke this from outside passing records via CPU array to test immediately.
-    public void DispatchGraph<TRecord>(D3D12CommandBuffer cmdBuffer, uint entryPointIndex, ReadOnlySpan<TRecord> records)
+    public void Dispatch<TRecord>(D3D12CommandBuffer cmdBuffer, uint entryPointIndex, ReadOnlySpan<TRecord> records)
         where TRecord : unmanaged
     {
-        var pCmdList = cmdBuffer.NativeObject.Get();
+        ID3D12GraphicsCommandList10* pCmdList = default;
+        ThrowIfFailed(cmdBuffer.NativeObject.Get()->QueryInterface(__uuidof(pCmdList), (void**)&pCmdList));
 
+        try
+        {
         // 1. Prepare Program descriptors
         var setProgramDesc = new D3D12_SET_PROGRAM_DESC
-        {
+            {
             Type = D3D12_PROGRAM_TYPE_WORK_GRAPH,
             WorkGraph = new D3D12_SET_WORK_GRAPH_DESC
-            {
+    {
                 ProgramIdentifier = _programIdentifier,
                 Flags = _isInitialized ? D3D12_SET_WORK_GRAPH_FLAG_NONE : D3D12_SET_WORK_GRAPH_FLAG_INITIALIZE,
                 BackingMemory = _backingMemoryRange,
                 NodeLocalRootArgumentsTable = default // Ignored since we are pure bindless setup!
             }
-        };
+            };
 
         _isInitialized = true;
 
@@ -150,14 +153,14 @@ internal unsafe class D3D12SimpleWorkGraph : IDisposable
 
         // 2. Execute! Map CPU inputs natively directly.
         fixed (TRecord* pRecords = records)
-        {
-            var cpuInput = new D3D12_NODE_CPU_INPUT
             {
+            var cpuInput = new D3D12_NODE_CPU_INPUT
+        {
                 EntrypointIndex = entryPointIndex,
                 NumRecords = (uint)records.Length,
                 pRecords = pRecords,
                 RecordStrideInBytes = (uint)sizeof(TRecord)
-            };
+        };
 
             var dispatchDesc = new D3D12_DISPATCH_GRAPH_DESC
             {
@@ -166,6 +169,11 @@ internal unsafe class D3D12SimpleWorkGraph : IDisposable
             };
 
             pCmdList->DispatchGraph(&dispatchDesc);
+            }
+        }
+        finally
+        {
+            pCmdList->Release();
         }
     }
 

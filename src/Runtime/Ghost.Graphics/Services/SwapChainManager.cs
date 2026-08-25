@@ -9,11 +9,14 @@ internal sealed class SwapChainRecord
     private int _refCount;
 
     public ISwapChain SwapChain { get; }
+    public bool Vsync { get; set; }
 
-    public SwapChainRecord(ISwapChain swapChain)
+    public SwapChainRecord(ISwapChain swapChain, bool vsync)
     {
-        SwapChain = swapChain;
         _refCount = 1;
+
+        SwapChain = swapChain;
+        Vsync = vsync;
     }
 
     public bool TryAddRef()
@@ -79,7 +82,7 @@ public class SwapChainManager : IDisposable
                 continue;
             }
 
-            var newRecord = new SwapChainRecord(_graphicsEngine.CreateSwapChain(desc));
+            var newRecord = new SwapChainRecord(_graphicsEngine.CreateSwapChain(desc), false);
             var previous = Interlocked.CompareExchange(ref _swapChains[index], newRecord, null);
 
             if (previous == null)
@@ -93,19 +96,20 @@ public class SwapChainManager : IDisposable
         }
     }
 
-    public void CreateSwapChain(SwapChainDesc desc, out ISwapChain swapChain, out int index)
+    public void CreateSwapChain(SwapChainDesc desc, bool vsync, out ISwapChain swapChain, out int index)
     {
         for (var i = 0; i < MAX_SWAP_CHAINS; i++)
         {
             var record = Volatile.Read(ref _swapChains[i]);
             if (record == null)
             {
-                var newRecord = new SwapChainRecord(_graphicsEngine.CreateSwapChain(desc));
+                var newRecord = new SwapChainRecord(_graphicsEngine.CreateSwapChain(desc), vsync);
                 var previous = Interlocked.CompareExchange(ref _swapChains[i], newRecord, null);
                 if (previous == null)
                 {
                     swapChain = newRecord.SwapChain;
                     index = i;
+                    return;
                 }
                 else
                 {
@@ -115,6 +119,18 @@ public class SwapChainManager : IDisposable
         }
 
         throw new InvalidOperationException("Maximum number of swap chains reached.");
+    }
+
+    public void SetVsync(int index, bool vsync)
+    {
+        var record = Volatile.Read(ref _swapChains[index]);
+        record?.Vsync = vsync;
+    }
+
+    public bool GetVsync(int index)
+    {
+        var record = Volatile.Read(ref _swapChains[index]);
+        return record?.Vsync ?? false;
     }
 
     public bool TryGetSwapChain(int index, [MaybeNullWhen(false)] out ISwapChain swapChain)
@@ -181,6 +197,20 @@ public class SwapChainManager : IDisposable
         }
     }
 
+    public void WaitForAllFrameLatency(uint timeoutMs = 1000)
+    {
+        for (var i = 0; i < MAX_SWAP_CHAINS; i++)
+        {
+            var record = Volatile.Read(ref _swapChains[i]);
+            if (record == null || !record.Vsync)
+            {
+                continue;
+            }
+
+            record.SwapChain.WaitForFrameLatency(timeoutMs);
+        }
+    }
+
     public void Present(int index)
     {
         var record = Volatile.Read(ref _swapChains[index]);
@@ -190,7 +220,7 @@ public class SwapChainManager : IDisposable
             return;
         }
 
-        record.SwapChain.Present();
+        record.SwapChain.Present(record.Vsync);
     }
 
     public void PresentAll()
@@ -203,7 +233,7 @@ public class SwapChainManager : IDisposable
                 continue;
             }
 
-            record?.SwapChain.Present();
+            record.SwapChain.Present(record.Vsync);
         }
     }
 
