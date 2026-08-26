@@ -107,7 +107,7 @@ internal class Program
         {{
             global::Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.Dispose();
             var errorMessage = global::SDL.SDL3.SDL_GetError();
-            throw new global::System.Exception($""Failed to initialize SDL{{errorMessage}}"");
+            throw new global::System.Exception($""Failed to initialize SDL. {{errorMessage}}"");
         }}
 
         try

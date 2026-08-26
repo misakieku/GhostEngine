@@ -82,6 +82,10 @@ internal record struct RenderGraphResource : IDisposable
     public uint resolvedHeight;
 
     public bool isImported;
+    public bool hasInitialBarrierState;
+    public bool hasFinalBarrierState;
+    public ResourceBarrierData initialBarrierState;
+    public ResourceBarrierData finalBarrierState;
     public int firstUsePass;
     public int lastUsePass;
     public UnsafeHashSet<int> producerPasses;
@@ -150,8 +154,10 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
     }
 
     public Identifier<RGTexture> ImportTexture(scoped in TextureDesc desc, Handle<GPUTexture> texture, string? name,
-        Color128 clearColor, float clearDepth, byte clearStencil,
-        bool clearAtFirstUse, bool discardAtLastUse)
+        Color128 clearColor = default, float clearDepth = 1.0f, byte clearStencil = 0,
+        bool clearAtFirstUse = false, bool discardAtLastUse = false,
+        ResourceBarrierData? initialBarrierState = null,
+        ResourceBarrierData? finalBarrierState = null)
     {
         var resource = new RenderGraphResource(AllocationHandle.Temp)
         {
@@ -174,6 +180,10 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
                 usage = desc.Usage
             },
             isImported = true,
+            hasInitialBarrierState = initialBarrierState.HasValue,
+            initialBarrierState = initialBarrierState ?? default,
+            hasFinalBarrierState = finalBarrierState.HasValue,
+            finalBarrierState = finalBarrierState ?? default,
             backingResource = texture.AsResource(),
             resolvedWidth = desc.Width,
             resolvedHeight = desc.Height
@@ -199,7 +209,9 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
         return new Identifier<RGTexture>(resource.index);
     }
 
-    public Identifier<RGBuffer> ImportBuffer(scoped in BufferDesc desc, Handle<GPUBuffer> buffer, string? name)
+    public Identifier<RGBuffer> ImportBuffer(scoped in BufferDesc desc, Handle<GPUBuffer> buffer, string? name,
+        ResourceBarrierData? initialBarrierState = null,
+        ResourceBarrierData? finalBarrierState = null)
     {
         var resource = new RenderGraphResource(AllocationHandle.Temp)
         {
@@ -207,6 +219,10 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
             index = _resources.Count,
             bufferDesc = desc,
             isImported = true,
+            hasInitialBarrierState = initialBarrierState.HasValue,
+            initialBarrierState = initialBarrierState ?? default,
+            hasFinalBarrierState = finalBarrierState.HasValue,
+            finalBarrierState = finalBarrierState ?? default,
             backingResource = buffer.AsResource()
         };
 

@@ -295,13 +295,13 @@ internal static class RenderGraphNativePassBuilder
             // Last use: No one needs it after this native pass
             if (resourceOrdering.GetLastUseScheduleIndex(resource.index) == lastScheduleIndex)
             {
-                if (resource.rgTextureDesc.discardAtLastUse)
+                if (!resource.rgTextureDesc.discardAtLastUse)
                 {
-                    attachment.storeOp = AttachmentStoreOp.DontCare;
+                    attachment.storeOp = AttachmentStoreOp.Store;
                 }
                 else
                 {
-                    attachment.storeOp = AttachmentStoreOp.Store;
+                    attachment.storeOp = AttachmentStoreOp.DontCare;
                 }
             }
             // Intermediate: Store for future passes
@@ -357,13 +357,13 @@ internal static class RenderGraphNativePassBuilder
             // Depth is commonly discarded (depth-only passes, intermediate depth)
             if (resourceOrdering.GetLastUseScheduleIndex(resource.index) == lastScheduleIndex)
             {
-                if (resource.rgTextureDesc.discardAtLastUse)
+                if (resource.isImported || resource.isExtracted || !resource.rgTextureDesc.discardAtLastUse)
                 {
-                    attachment.storeOp = AttachmentStoreOp.DontCare;
+                    attachment.storeOp = AttachmentStoreOp.Store;
                 }
                 else
                 {
-                    attachment.storeOp = AttachmentStoreOp.Store;
+                    attachment.storeOp = AttachmentStoreOp.DontCare;
                 }
             }
             else

@@ -189,9 +189,6 @@ public class RenderEngine : IDisposable
             _isRunning = false;
             _shutdownCts.Cancel();
 
-#if DEBUG
-            Debugger.Break();
-#endif
             Logger.Error($"Render failed: {result.Message}");
         }
 
@@ -264,8 +261,6 @@ public class RenderEngine : IDisposable
 
                 var preludeCmd = _frameScheduler.GetPooledCommandBuffer(CommandBufferType.Graphics);
                 var preludeSubmitted = false;
-                ICommandBuffer? epilogueCmd = null;
-                var epilogueSubmitted = false;
 
                 try
                 {
@@ -295,47 +290,21 @@ public class RenderEngine : IDisposable
                         break;
                     }
 
-                    _frameScheduler.Submit(preludeCmd);
-                    preludeSubmitted = true;
+                    if (preludeCmd.State.CommandCount > 0)
+                    {
+                        _frameScheduler.Submit(preludeCmd);
+                        preludeSubmitted = true;
+                    }
 
                     // --- Graph: compile and execute the render graph ---
                     var executionContext = new RenderGraphExecutionContext(
                         _graphicsEngine,
                         _frameScheduler,
                         frameResource.GraphicsCommandAllocator,
-                        frameResource.ComputeCommandAllocator)
-                    {
-                        OnFinalGraphicsCommandBuffer = _swapChainManager.TransitionAllToPresent
-                    };
+                        frameResource.ComputeCommandAllocator);
 
                     var graphExecution = _renderPipeline.ExecuteGraph(
                         renderContext, frameIndex, frameResource.RenderPayload, executionContext);
-
-                    // If the graph already recorded to a Graphics command buffer, the swap-chain present
-                    // transition was recorded into the tail of that command buffer directly.
-                    // Only allocate a standalone epilogue command buffer if the graph produced no Graphics submission.
-                    if (!graphExecution.GraphicsSubmission.IsValid)
-                    {
-                        epilogueCmd = _frameScheduler.GetPooledCommandBuffer(CommandBufferType.Graphics);
-                        epilogueCmd.Begin(frameResource.GraphicsCommandAllocator);
-                        _swapChainManager.TransitionAllToPresent(epilogueCmd);
-
-                        result = epilogueCmd.End();
-                        if (result.IsFailure)
-                        {
-                            StopRenderLoop(result);
-                            break;
-                        }
-
-                        var epilogueHandle = _frameScheduler.Submit(epilogueCmd);
-                        epilogueSubmitted = true;
-
-                        // Terminal Compute work must complete before present-transition barriers execute.
-                        if (graphExecution.ComputeSubmission.IsValid)
-                        {
-                            _frameScheduler.AddDependency(graphExecution.ComputeSubmission, epilogueHandle);
-                        }
-                    }
 
                     frameResource.Completion = _frameScheduler.Flush();
                     _submittedFrame = frameResource.Completion.FrameNumber;
@@ -345,11 +314,6 @@ public class RenderEngine : IDisposable
                     if (!preludeSubmitted)
                     {
                         _frameScheduler.ReturnPooledCommandBuffer(preludeCmd);
-                    }
-
-                    if (epilogueCmd != null && !epilogueSubmitted)
-                    {
-                        _frameScheduler.ReturnPooledCommandBuffer(epilogueCmd);
                     }
                 }
 

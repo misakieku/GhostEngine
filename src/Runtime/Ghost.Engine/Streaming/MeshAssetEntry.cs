@@ -322,14 +322,14 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         _tempHandle = Handle<Mesh>.Invalid;
 
         context.CommandBuffer.Barrier(
-            BarrierDesc.Buffer(dstMesh.VertexBuffer, BarrierSync.VertexShading, BarrierAccess.VertexBuffer | BarrierAccess.ShaderResource),
-            BarrierDesc.Buffer(dstMesh.IndexBuffer, BarrierSync.IndexInput, BarrierAccess.IndexBuffer | BarrierAccess.ShaderResource),
-            BarrierDesc.Buffer(dstMesh.MeshletBuffer, BarrierSync.AllShading, BarrierAccess.ShaderResource),
-            BarrierDesc.Buffer(dstMesh.MeshletVerticesBuffer, BarrierSync.AllShading, BarrierAccess.ShaderResource),
-            BarrierDesc.Buffer(dstMesh.MeshletTrianglesBuffer, BarrierSync.AllShading, BarrierAccess.ShaderResource),
-            BarrierDesc.Buffer(dstMesh.MeshletGroupBuffer, BarrierSync.AllShading, BarrierAccess.ShaderResource),
-            BarrierDesc.Buffer(dstMesh.MeshletHierarchyBuffer, BarrierSync.AllShading, BarrierAccess.ShaderResource),
-            BarrierDesc.Buffer(dstMesh.MeshDataBuffer, BarrierSync.AllShading, BarrierAccess.ShaderResource));
+            BarrierDesc.Buffer(dstMesh.VertexBuffer, BarrierSync.Copy, BarrierSync.VertexShading, BarrierAccess.CopyDest, BarrierAccess.VertexBuffer | BarrierAccess.ShaderResource),
+            BarrierDesc.Buffer(dstMesh.IndexBuffer, BarrierSync.Copy, BarrierSync.IndexInput, BarrierAccess.CopyDest, BarrierAccess.IndexBuffer | BarrierAccess.ShaderResource),
+            BarrierDesc.Buffer(dstMesh.MeshletBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource),
+            BarrierDesc.Buffer(dstMesh.MeshletVerticesBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource),
+            BarrierDesc.Buffer(dstMesh.MeshletTrianglesBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource),
+            BarrierDesc.Buffer(dstMesh.MeshletGroupBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource),
+            BarrierDesc.Buffer(dstMesh.MeshletHierarchyBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource),
+            BarrierDesc.Buffer(dstMesh.MeshDataBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource));
 
         _rawData.Dispose();
         _pVertices = null;

@@ -61,6 +61,9 @@ internal sealed class FrameScheduler : IFrameScheduler
     private SubmissionTransaction _activeTransaction;
     private uint _generation;
     private bool _disposed;
+#if DEBUG
+    private int _debugCmdIndex;
+#endif
 
     public ulong SubmittedFrame
     {
@@ -112,7 +115,11 @@ internal sealed class FrameScheduler : IFrameScheduler
     public ICommandBuffer GetPooledCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
     {
         ThrowIfDisposed();
-        return _graphicsEngine.GetPooledCommandBuffer(type);
+        var cmd = _graphicsEngine.GetPooledCommandBuffer(type);
+#if DEBUG
+        cmd.Name = $"FrameScheduler_{type}_Cmd_{_debugCmdIndex++}";
+#endif
+        return cmd;
     }
 
     public void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer)
@@ -294,6 +301,10 @@ internal sealed class FrameScheduler : IFrameScheduler
         {
             throw new InvalidOperationException("An active submission transaction must be committed or rolled back before flushing.");
         }
+
+#if DEBUG
+        _debugCmdIndex = 0;
+#endif
 
         var submissionCount = _submissions.Count;
         EnsureScratchCapacity(submissionCount);

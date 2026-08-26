@@ -174,9 +174,13 @@ public class SwapChainManager : IDisposable
             return;
         }
 
-        commandBuffer.Barrier(BarrierDesc.Texture(record.SwapChain.GetCurrentBackBuffer(),
+        commandBuffer.Barrier(BarrierDesc.Texture(
+            record.SwapChain.GetCurrentBackBuffer(),
+            BarrierSync.RenderTarget,
             BarrierSync.None,
+            BarrierAccess.RenderTarget,
             BarrierAccess.NoAccess,
+            BarrierLayout.RenderTarget,
             BarrierLayout.Present));
     }
 
@@ -190,9 +194,13 @@ public class SwapChainManager : IDisposable
                 continue;
             }
 
-            commandBuffer.Barrier(BarrierDesc.Texture(record.SwapChain.GetCurrentBackBuffer(),
+            commandBuffer.Barrier(BarrierDesc.Texture(
+                record.SwapChain.GetCurrentBackBuffer(),
+                BarrierSync.RenderTarget,
                 BarrierSync.None,
+                BarrierAccess.RenderTarget,
                 BarrierAccess.NoAccess,
+                BarrierLayout.RenderTarget,
                 BarrierLayout.Present));
         }
     }
@@ -202,7 +210,7 @@ public class SwapChainManager : IDisposable
         for (var i = 0; i < MAX_SWAP_CHAINS; i++)
         {
             var record = Volatile.Read(ref _swapChains[i]);
-            if (record == null || !record.Vsync)
+            if (record == null)
             {
                 continue;
             }

@@ -340,7 +340,10 @@ float4 CompositePSMain(PSInput input) : SV_TARGET
         uint width,
         uint height)
     {
-        var backBuffer = rg.ImportTexture(backBufferHandle);
+        var backBuffer = rg.ImportTexture(
+            backBufferHandle,
+            initialState: new ResourceBarrierData(BarrierLayout.Present, BarrierAccess.NoAccess, BarrierSync.None),
+            finalState: new ResourceBarrierData(BarrierLayout.Present, BarrierAccess.NoAccess, BarrierSync.None));
 
         // 1. Graphics Producer (Raster)
         Identifier<RGTexture> targetA;
@@ -349,7 +352,7 @@ float4 CompositePSMain(PSInput input) : SV_TARGET
             targetA = builder.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8G8B8A8_UNorm, clearAtFirstUse: true, clearColor: new Color128(0.1f, 0.2f, 0.5f, 1.0f)), "Transient_TargetA");
             builder.SetColorAttachment(targetA, 0, AccessFlags.WriteAll);
             builder.SetPassData(new ProducerPassData { targetA = targetA, pso = producerPso, width = width, height = height });
-            builder.SetRenderFunc<ProducerPassData>(static (ref readonly ProducerPassData data, IRasterRenderContext ctx) =>
+            builder.SetRenderFunc<ProducerPassData>(static (ref readonly data, ctx) =>
             {
                 var cmd = ((IUnsafeRenderContext)ctx).GetCommandBufferUnsafe();
                 cmd.SetPipelineState(data.pso);
@@ -368,7 +371,7 @@ float4 CompositePSMain(PSInput input) : SV_TARGET
             builder.UseTexture(targetA, AccessFlags.Read);
             builder.UseTexture(targetB, AccessFlags.Write);
             builder.SetPassData(new AsyncComputePassData { targetA = targetA, targetB = targetB, pso = computePso, frameIndex = frameIndex, width = width, height = height });
-            builder.SetRenderFunc<AsyncComputePassData>(static (ref readonly AsyncComputePassData data, IComputeRenderContext ctx) =>
+            builder.SetRenderFunc<AsyncComputePassData>(static (ref readonly data, ctx) =>
             {
                 var cmd = ((IUnsafeRenderContext)ctx).GetCommandBufferUnsafe();
                 var targetAHandle = ctx.GetActualTexture(data.targetA);
@@ -396,7 +399,7 @@ float4 CompositePSMain(PSInput input) : SV_TARGET
             targetC = builder.CreateTexture(RGTextureDesc.RelativeDepth(1.0f, clearAtFirstUse: true, clearDepth: 1.0f, usage: TextureUsage.DepthStencil | TextureUsage.ShaderResource), "Transient_TargetC");
             builder.SetDepthAttachment(targetC, AccessFlags.WriteAll);
             builder.SetPassData(new IndependentGraphicsPassData { targetC = targetC, pso = depthPso, width = width, height = height });
-            builder.SetRenderFunc<IndependentGraphicsPassData>(static (ref readonly IndependentGraphicsPassData data, IRasterRenderContext ctx) =>
+            builder.SetRenderFunc<IndependentGraphicsPassData>(static (ref readonly data, ctx) =>
             {
                 var cmd = ((IUnsafeRenderContext)ctx).GetCommandBufferUnsafe();
                 cmd.SetPipelineState(data.pso);
@@ -414,7 +417,7 @@ float4 CompositePSMain(PSInput input) : SV_TARGET
             builder.UseTexture(targetC, AccessFlags.Read);
             builder.SetColorAttachment(backBuffer, 0, AccessFlags.WriteAll);
             builder.SetPassData(new GraphicsJoinPassData { targetA = targetA, targetB = targetB, targetC = targetC, backBuffer = backBuffer, pso = compositePso, frameIndex = frameIndex, width = width, height = height });
-            builder.SetRenderFunc<GraphicsJoinPassData>(static (ref readonly GraphicsJoinPassData data, IRasterRenderContext ctx) =>
+            builder.SetRenderFunc<GraphicsJoinPassData>(static (ref readonly data, ctx) =>
             {
                 var cmd = ((IUnsafeRenderContext)ctx).GetCommandBufferUnsafe();
                 var targetBHandle = ctx.GetActualTexture(data.targetB);

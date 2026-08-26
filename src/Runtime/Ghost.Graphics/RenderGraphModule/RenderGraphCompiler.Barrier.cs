@@ -420,7 +420,15 @@ internal unsafe partial class RenderGraphCompiler
                 continue;
             }
 
-            if (resourceState.isValid)
+            var sourceState = resourceState.isValid
+                ? resourceState.state
+                : new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierSync.None);
+
+            if (!resourceState.isValid)
+            {
+                flags |= BarrierFlags.FirstUsage | BarrierFlags.Discard;
+            }
+            else
             {
                 flags |= BarrierFlags.ExplicitSource;
             }
@@ -432,7 +440,7 @@ internal unsafe partial class RenderGraphCompiler
 
             count += AddTransition(
                 usage.resource,
-                resourceState.state,
+                sourceState,
                 usage.targetState,
                 aliasingPredecessor,
                 flags,
@@ -468,6 +476,78 @@ internal unsafe partial class RenderGraphCompiler
         };
         writer.Write(barrier);
         return 1;
+    }
+
+    private int EmitClosingBarriers(
+        ref BufferWriter writer,
+        CommandQueueType activeQueue,
+        Span<CompiledResourceState> resourceStates)
+    {
+        var startPos = writer.Position;
+        writer.Write(RGExecutionOpType.IssueBarriers);
+        writer.Write(0);
+
+        var count = 0;
+        for (var i = 0; i < _resourceRegistry.ResourceCount; i++)
+        {
+            ref readonly var resource = ref _resourceRegistry.GetResourceByIndex(i);
+            if (!resource.isImported || !resource.hasFinalBarrierState)
+            {
+                continue;
+            }
+
+            var finalState = resource.finalBarrierState;
+
+            ref var currentState = ref resourceStates[i];
+            if (!currentState.isValid)
+            {
+                if (resource.hasInitialBarrierState
+                    && (resource.initialBarrierState.layout != finalState.layout
+                        || resource.initialBarrierState.access != finalState.access
+                        || resource.initialBarrierState.sync != finalState.sync))
+                {
+                    count += AddTransition(
+                        new Identifier<RGResource>(i),
+                        resource.initialBarrierState,
+                        finalState,
+                        Identifier<RGResource>.Invalid,
+                        BarrierFlags.None,
+                        activeQueue,
+                        ref writer);
+                    currentState = new CompiledResourceState(finalState, writes: false);
+                }
+                continue;
+            }
+
+            if (currentState.state.layout != finalState.layout
+                || currentState.state.access != finalState.access
+                || currentState.state.sync != finalState.sync)
+            {
+                count += AddTransition(
+                    new Identifier<RGResource>(i),
+                    currentState.state,
+                    finalState,
+                    Identifier<RGResource>.Invalid,
+                    BarrierFlags.None,
+                    activeQueue,
+                    ref writer);
+                currentState = new CompiledResourceState(finalState, writes: false);
+            }
+        }
+
+        if (count > 0)
+        {
+            var endPos = writer.Position;
+            writer.Position = startPos + sizeof(RGExecutionOpType);
+            writer.Write(count);
+            writer.Position = endPos;
+        }
+        else
+        {
+            writer.Position = startPos;
+        }
+
+        return count;
     }
 
     private ResourceBarrierData GetBufferReadBarrierData(

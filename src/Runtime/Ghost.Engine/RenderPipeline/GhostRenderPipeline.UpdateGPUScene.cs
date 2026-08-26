@@ -42,7 +42,7 @@ internal partial class GhostRenderPipeline
     private static unsafe Handle<GPUBuffer> CreateUpdateInstanceBuffer(GhostRenderPayload ghostPayload, ResourceManager resourceManager, IResourceDatabase resourceDatabase, out int count)
     {
         // TODO: This should also include update requests like transform update, material update, etc.
-        var totalUpdateCount = ghostPayload.UpdateRequest.Count; // + ghostPayload.UpdateRequest.Count;
+        var totalUpdateCount = ghostPayload.UpdateRequest.Count;
 
         if (!ghostPayload.UpdateRequest.IsEmpty)
         {

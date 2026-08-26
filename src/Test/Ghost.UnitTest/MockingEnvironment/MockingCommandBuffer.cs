@@ -52,14 +52,6 @@ internal class MockingCommandBuffer : ICommandBuffer
             foreach (var desc in barrierDescs)
             {
                 RecordedBarriers.Add(desc);
-                var data = new ResourceBarrierData
-                {
-                    access = desc.AccessAfter,
-                    layout = desc.LayoutAfter,
-                    sync = desc.SyncAfter
-                };
-
-                _resourceDatabase.SetResourceBarrierData(desc.Resource, data);
             }
         }
     }

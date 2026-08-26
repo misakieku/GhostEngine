@@ -1017,6 +1017,18 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             _resourceRegistry.ResourceCount,
             scope.AllocationHandle,
             AllocationOption.Clear);
+        for (var i = 0; i < _resourceRegistry.ResourceCount; i++)
+        {
+            ref readonly var res = ref _resourceRegistry.GetResourceByIndex(i);
+            if (res.isImported && res.hasInitialBarrierState)
+            {
+                resourceStates[i] = new CompiledResourceState(res.initialBarrierState, writes: false);
+            }
+            else
+            {
+                resourceStates[i] = CompiledResourceState.Undefined;
+            }
+        }
         using var usageRecords = BuildPassResourceUsagePlan(
             passes,
             compiledPasses,
@@ -1121,6 +1133,11 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 idx++;
             }
         }
+
+        EmitClosingBarriers(
+            ref writer,
+            activeQueue,
+            resourceStates.AsSpan());
     }
 
     private static void WriteSyncBoundary(ref BufferWriter writer, scoped in SyncBoundary boundary)

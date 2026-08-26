@@ -545,35 +545,44 @@ public struct TextureRegion
 
 public struct BarrierSubresourceRange
 {
-    public uint IndexOrFirstMipLevel
-    {
-        get; set;
-    }
+    public const uint AllSubresources = 0xFFFFFFFF;
 
-    public uint NumMipLevels
-    {
-        get; set;
-    }
+    public uint IndexOrFirstMipLevel { get; set; }
+    public uint NumMipLevels { get; set; }
+    public uint FirstArraySlice { get; set; }
+    public uint NumArraySlices { get; set; }
+    public uint FirstPlane { get; set; }
+    public uint NumPlanes { get; set; }
 
-    public uint FirstArraySlice
+    public static BarrierSubresourceRange All => new BarrierSubresourceRange
     {
-        get; set;
-    }
+        IndexOrFirstMipLevel = AllSubresources,
+        NumMipLevels = 0,
+        FirstArraySlice = 0,
+        NumArraySlices = 0,
+        FirstPlane = 0,
+        NumPlanes = 0
+    };
 
-    public uint NumArraySlices
+    public static BarrierSubresourceRange Single(uint subresourceIndex) => new BarrierSubresourceRange
     {
-        get; set;
-    }
+        IndexOrFirstMipLevel = subresourceIndex,
+        NumMipLevels = 0,
+        FirstArraySlice = 0,
+        NumArraySlices = 0,
+        FirstPlane = 0,
+        NumPlanes = 0
+    };
 
-    public uint FirstPlane
+    public static BarrierSubresourceRange Range(uint firstMip, uint numMips, uint firstSlice = 0, uint numSlices = 1, uint firstPlane = 0, uint numPlanes = 1) => new BarrierSubresourceRange
     {
-        get; set;
-    }
-
-    public uint NumPlanes
-    {
-        get; set;
-    }
+        IndexOrFirstMipLevel = firstMip,
+        NumMipLevels = numMips,
+        FirstArraySlice = firstSlice,
+        NumArraySlices = numSlices,
+        FirstPlane = firstPlane,
+        NumPlanes = numPlanes
+    };
 }
 
 public struct BarrierDesc
@@ -625,9 +634,6 @@ public struct BarrierDesc
 
     public BarrierSubresourceRange Subresources { get; set; }
 
-    /// <summary>Gets or sets whether the backend should obtain the before-state from its resource database.</summary>
-    public bool UseTrackedBeforeState { get; set; }
-
     /// <summary>Gets or sets whether an otherwise identical before/after barrier must still be emitted.</summary>
     public bool Force { get; set; }
 
@@ -665,28 +671,6 @@ public struct BarrierDesc
 
     public static BarrierDesc Buffer(
         Handle<GPUBuffer> resource,
-        BarrierSync syncAfter,
-        BarrierAccess accessAfter,
-        ulong offset = 0UL,
-        ulong size = ulong.MaxValue,
-        bool isAliasing = false)
-    {
-        return new BarrierDesc
-        {
-            Type = BarrierType.Buffer,
-            Resource = resource.AsResource(),
-            SyncAfter = syncAfter,
-            AccessAfter = accessAfter,
-            UseTrackedBeforeState = true,
-            IsAliasing = isAliasing,
-            Offset = offset,
-            Size = size
-        };
-    }
-
-    /// <summary>Creates a buffer barrier with an explicit before-state.</summary>
-    public static BarrierDesc BufferExplicit(
-        Handle<GPUBuffer> resource,
         ResourceBarrierData before,
         ResourceBarrierData after,
         BarrierHandoffType handoff = BarrierHandoffType.None,
@@ -713,38 +697,44 @@ public struct BarrierDesc
         };
     }
 
-    public static BarrierDesc Texture(
-        Handle<GPUTexture> resource,
+    public static BarrierDesc Buffer(
+        Handle<GPUBuffer> resource,
+        BarrierSync syncBefore,
         BarrierSync syncAfter,
+        BarrierAccess accessBefore,
         BarrierAccess accessAfter,
-        BarrierLayout layoutAfter,
-        BarrierSubresourceRange subresources = default,
-        bool discard = false,
+        BarrierHandoffType handoff = BarrierHandoffType.None,
+        bool force = false,
+        ulong offset = 0UL,
+        ulong size = ulong.MaxValue,
         bool isAliasing = false)
     {
         return new BarrierDesc
         {
-            Type = BarrierType.Texture,
+            Type = BarrierType.Buffer,
             Resource = resource.AsResource(),
+            SyncBefore = syncBefore,
             SyncAfter = syncAfter,
+            AccessBefore = accessBefore,
             AccessAfter = accessAfter,
-            LayoutAfter = layoutAfter,
-            UseTrackedBeforeState = true,
+            LayoutBefore = BarrierLayout.Undefined,
+            LayoutAfter = BarrierLayout.Undefined,
+            Handoff = handoff,
+            Force = force,
             IsAliasing = isAliasing,
-            Subresources = subresources,
-            Discard = discard
+            Offset = offset,
+            Size = size
         };
     }
 
-    /// <summary>Creates a texture barrier with an explicit before-state.</summary>
-    public static BarrierDesc TextureExplicit(
+    public static BarrierDesc Texture(
         Handle<GPUTexture> resource,
         ResourceBarrierData before,
         ResourceBarrierData after,
-        BarrierHandoffType handoff = BarrierHandoffType.None,
-        bool force = false,
         BarrierSubresourceRange subresources = default,
+        BarrierHandoffType handoff = BarrierHandoffType.None,
         bool discard = false,
+        bool force = false,
         bool isAliasing = false)
     {
         return new BarrierDesc
@@ -757,6 +747,38 @@ public struct BarrierDesc
             AccessAfter = after.access,
             LayoutBefore = before.layout,
             LayoutAfter = after.layout,
+            Handoff = handoff,
+            Force = force,
+            IsAliasing = isAliasing,
+            Subresources = subresources,
+            Discard = discard
+        };
+    }
+
+    public static BarrierDesc Texture(
+        Handle<GPUTexture> resource,
+        BarrierSync syncBefore,
+        BarrierSync syncAfter,
+        BarrierAccess accessBefore,
+        BarrierAccess accessAfter,
+        BarrierLayout layoutBefore,
+        BarrierLayout layoutAfter,
+        BarrierSubresourceRange subresources = default,
+        BarrierHandoffType handoff = BarrierHandoffType.None,
+        bool discard = false,
+        bool force = false,
+        bool isAliasing = false)
+    {
+        return new BarrierDesc
+        {
+            Type = BarrierType.Texture,
+            Resource = resource.AsResource(),
+            SyncBefore = syncBefore,
+            SyncAfter = syncAfter,
+            AccessBefore = accessBefore,
+            AccessAfter = accessAfter,
+            LayoutBefore = layoutBefore,
+            LayoutAfter = layoutAfter,
             Handoff = handoff,
             Force = force,
             IsAliasing = isAliasing,

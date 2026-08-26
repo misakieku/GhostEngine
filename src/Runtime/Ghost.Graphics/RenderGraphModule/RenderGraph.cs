@@ -403,9 +403,15 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     /// <param name="texture">The external texture handle.</param>
     /// <returns>The identifier of the imported render graph texture. Invalid if import fails.</returns>
-    public Identifier<RGTexture> ImportTexture(Handle<GPUTexture> texture,
-        Color128 clearColor = default, float clearDepth = 1.0f, byte clearStencil = 0,
-        bool clearAtFirstUse = true, bool discardAtLastUse = true)
+    public Identifier<RGTexture> ImportTexture(
+        Handle<GPUTexture> texture,
+        ResourceBarrierData? initialState = null,
+        ResourceBarrierData? finalState = null,
+        Color128 clearColor = default,
+        float clearDepth = 1.0f,
+        byte clearStencil = 0,
+        bool clearAtFirstUse = false,
+        bool discardAtLastUse = false)
     {
         var r = _resourceDatabase.GetResourceDescription(texture.AsResource());
         if (r.IsFailure)
@@ -416,7 +422,17 @@ public sealed class RenderGraph : IDisposable
 
         var desc = r.Value;
         var name = _resourceDatabase.GetResourceName(texture.AsResource());
-        return _resourceRegistry.ImportTexture(in desc.TextureDescriptor, texture, name, clearColor, clearDepth, clearStencil, clearAtFirstUse, discardAtLastUse);
+        return _resourceRegistry.ImportTexture(
+            in desc.TextureDescriptor,
+            texture,
+            name,
+            clearColor,
+            clearDepth,
+            clearStencil,
+            clearAtFirstUse,
+            discardAtLastUse,
+            initialState,
+            finalState);
     }
 
     /// <summary>
@@ -424,7 +440,10 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     /// <param name="buffer">The external buffer handle.</param>
     /// <returns>The identifier of the imported render graph buffer. Invalid if import fails.</returns>
-    public Identifier<RGBuffer> ImportBuffer(Handle<GPUBuffer> buffer)
+    public Identifier<RGBuffer> ImportBuffer(
+        Handle<GPUBuffer> buffer,
+        ResourceBarrierData? initialBarrierState = null,
+        ResourceBarrierData? finalBarrierState = null)
     {
         var r = _resourceDatabase.GetResourceDescription(buffer.AsResource());
         if (r.IsFailure)
@@ -435,7 +454,12 @@ public sealed class RenderGraph : IDisposable
 
         var desc = r.Value;
         var name = _resourceDatabase.GetResourceName(buffer.AsResource());
-        return _resourceRegistry.ImportBuffer(in desc.BufferDescriptor, buffer, name);
+        return _resourceRegistry.ImportBuffer(
+            in desc.BufferDescriptor,
+            buffer,
+            name,
+            initialBarrierState,
+            finalBarrierState);
     }
 
     /// <summary>

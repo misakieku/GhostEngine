@@ -51,16 +51,24 @@ public unsafe class RenderContext
         ShaderLibrary = shaderLibrary;
     }
 
-    private void TransitionBarrier(Handle<GPUResource> resource, bool isTexture, BarrierLayout newLayout, BarrierAccess newAccess, BarrierSync newSync)
+    private void TransitionBarrier(
+        Handle<GPUResource> resource,
+        bool isTexture,
+        BarrierLayout layoutBefore,
+        BarrierLayout layoutAfter,
+        BarrierAccess accessBefore,
+        BarrierAccess accessAfter,
+        BarrierSync syncBefore,
+        BarrierSync syncAfter)
     {
         BarrierDesc desc;
         if (isTexture)
         {
-            desc = BarrierDesc.Texture(resource.AsTexture(), newSync, newAccess, newLayout);
+            desc = BarrierDesc.Texture(resource.AsTexture(), syncBefore, syncAfter, accessBefore, accessAfter, layoutBefore, layoutAfter);
         }
         else
         {
-            desc = BarrierDesc.Buffer(resource.AsBuffer(), newSync, newAccess);
+            desc = BarrierDesc.Buffer(resource.AsBuffer(), syncBefore, syncAfter, accessBefore, accessAfter);
         }
 
         CommandBuffer.Barrier(desc);
@@ -165,14 +173,14 @@ public unsafe class RenderContext
         var vertexHandle = meshData.VertexBuffer.AsResource();
         var indexHandle = meshData.IndexBuffer.AsResource();
 
-        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
-        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
+        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
+        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
 
         UploadBuffer(meshData.VertexBuffer, meshData.Vertices.AsSpan());
         UploadBuffer(meshData.IndexBuffer, meshData.Indices.AsSpan());
 
-        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.VertexShading);
-        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierAccess.IndexBuffer, BarrierSync.IndexInput);
+        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.VertexShading);
+        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.IndexBuffer, BarrierSync.Copy, BarrierSync.IndexInput);
 
         if (staticMesh)
         {
@@ -212,14 +220,14 @@ public unsafe class RenderContext
         var vertexHandle = meshRef.VertexBuffer.AsResource();
         var indexHandle = meshRef.IndexBuffer.AsResource();
 
-        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
-        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
+        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
+        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
 
         UploadBuffer(meshRef.VertexBuffer, meshRef.Vertices.AsSpan());
         UploadBuffer(meshRef.IndexBuffer, meshRef.Indices.AsSpan());
 
-        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.VertexShading);
-        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierAccess.IndexBuffer, BarrierSync.IndexInput);
+        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.VertexShading);
+        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.IndexBuffer, BarrierSync.Copy, BarrierSync.IndexInput);
 
         if (markMeshStatic)
         {
@@ -284,11 +292,11 @@ public unsafe class RenderContext
         meshRef.MeshletGroupBuffer = ResourceAllocator.CreateBuffer(in groupsDesc, "MeshletGroups");
         meshRef.MeshletHierarchyBuffer = ResourceAllocator.CreateBuffer(in hierarchyDesc, "MeshletHierarchy");
 
-        TransitionBarrier(meshRef.MeshletBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
-        TransitionBarrier(meshRef.MeshletVerticesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
-        TransitionBarrier(meshRef.MeshletTrianglesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
-        TransitionBarrier(meshRef.MeshletGroupBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
-        TransitionBarrier(meshRef.MeshletHierarchyBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
+        TransitionBarrier(meshRef.MeshletBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
+        TransitionBarrier(meshRef.MeshletVerticesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
+        TransitionBarrier(meshRef.MeshletTrianglesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
+        TransitionBarrier(meshRef.MeshletGroupBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
+        TransitionBarrier(meshRef.MeshletHierarchyBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
 
         UploadBuffer(meshRef.MeshletBuffer, meshletData.meshlets.AsSpan());
         UploadBuffer(meshRef.MeshletVerticesBuffer, meshletData.meshletVertices.AsSpan());
@@ -296,11 +304,11 @@ public unsafe class RenderContext
         UploadBuffer(meshRef.MeshletGroupBuffer, meshletData.groups.AsSpan());
         UploadBuffer(meshRef.MeshletHierarchyBuffer, meshletData.hierarchyNodes.AsSpan());
 
-        TransitionBarrier(meshRef.MeshletBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
-        TransitionBarrier(meshRef.MeshletVerticesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
-        TransitionBarrier(meshRef.MeshletTrianglesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
-        TransitionBarrier(meshRef.MeshletGroupBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
-        TransitionBarrier(meshRef.MeshletHierarchyBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
+        TransitionBarrier(meshRef.MeshletBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
+        TransitionBarrier(meshRef.MeshletVerticesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
+        TransitionBarrier(meshRef.MeshletTrianglesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
+        TransitionBarrier(meshRef.MeshletGroupBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
+        TransitionBarrier(meshRef.MeshletHierarchyBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
     }
 
     public void UpdateObjectData(Handle<Mesh> mesh)
@@ -330,9 +338,9 @@ public unsafe class RenderContext
 
         var bufferHandle = meshData.MeshDataBuffer.AsResource();
 
-        TransitionBarrier(bufferHandle, false, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierSync.Copy);
+        TransitionBarrier(bufferHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
         UploadBuffer(meshData.MeshDataBuffer, data);
-        TransitionBarrier(bufferHandle, false, BarrierLayout.Undefined, BarrierAccess.ShaderResource, BarrierSync.PixelShading | BarrierSync.NonPixelShading);
+        TransitionBarrier(bufferHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.PixelShading | BarrierSync.NonPixelShading);
     }
 
     public Handle<GPUTexture> CreateTexture<T>(scoped in TextureDesc desc, ReadOnlySpan<T> data, string name)
@@ -364,7 +372,7 @@ public unsafe class RenderContext
             throw new OutOfMemoryException("Failed to create upload buffer for texture data.");
         }
 
-        TransitionBarrier(texture.AsResource(), true, BarrierLayout.CopyDest, BarrierAccess.CopyDest, BarrierSync.Copy);
+        TransitionBarrier(texture.AsResource(), true, BarrierLayout.Undefined, BarrierLayout.CopyDest, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
 
         fixed (T* pData = data)
         {

@@ -37,36 +37,31 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         public ResourceViewGroup viewGroup;
         public __resource_union resource;
 
-        public ResourceBarrierData barrierData;
-
         public bool isExternal;
         public bool isShared;
 
         public readonly bool Allocated => isExternal ? resource.resource.Get() != null : resource.allocation.Get() != null;
         public readonly SharedPtr<ID3D12Resource> ResourcePtr => isExternal ? resource.resource.Get() : resource.allocation.Get()->GetResource();
 
-        public ResourceRecord(D3D12MA_Allocation* allocation, ResourceBarrierData barrierData, ResourceViewGroup viewGroup, ResourceDesc desc)
+        public ResourceRecord(D3D12MA_Allocation* allocation, ResourceViewGroup viewGroup, ResourceDesc desc)
         {
             this.resource = new __resource_union(allocation);
             this.isExternal = false;
             this.isShared = false;
 
             this.viewGroup = viewGroup;
-            this.barrierData = barrierData;
             this.desc = desc;
         }
 
-        public ResourceRecord(ID3D12Resource* resource, ResourceBarrierData barrierData, ResourceViewGroup viewGroup, ResourceDesc desc)
+        public ResourceRecord(ID3D12Resource* resource, ResourceViewGroup viewGroup, ResourceDesc desc)
         {
             this.resource = new __resource_union(resource);
             this.isExternal = true;
             this.isShared = false;
 
             this.viewGroup = viewGroup;
-            this.barrierData = barrierData;
             this.desc = desc;
         }
-
         public readonly uint Release(D3D12DescriptorAllocator descriptorAllocator)
         {
             if (isShared)
@@ -140,7 +135,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         Dispose();
     }
 
-    internal Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceBarrierData initialBarrierData, ResourceViewGroup viewGroup, ResourceDesc desc, string? name = null)
+    internal Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceViewGroup viewGroup, ResourceDesc desc, string? name = null)
     {
         Logger.DebugAssert(!_disposed);
 
@@ -157,7 +152,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         // We do not choose a concurrent collection here because we want maximum access speed for read operations.
         lock (_writeLock)
         {
-            var id = _resources.Add(new ResourceRecord(pResource, initialBarrierData, viewGroup, desc), out var generation);
+            var id = _resources.Add(new ResourceRecord(pResource, viewGroup, desc), out var generation);
             var handle = new Handle<GPUResource>(id, generation);
 
 #if GHOST_SAFETY_CHECKS
@@ -172,7 +167,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         }
     }
 
-    internal Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, ResourceBarrierData initialBarrierData, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
+    internal Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
     {
         Logger.DebugAssert(!_disposed);
 
@@ -186,7 +181,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
         lock (_writeLock)
         {
-            var id = _resources.Add(new ResourceRecord(allocation, initialBarrierData, resourceDescriptor, desc), out var generation);
+            var id = _resources.Add(new ResourceRecord(allocation, resourceDescriptor, desc), out var generation);
             var handle = new Handle<GPUResource>(id, generation);
 
 #if GHOST_SAFETY_CHECKS
@@ -234,29 +229,6 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         }
 
         return r.Value.ResourcePtr;
-    }
-
-    public Result<ResourceBarrierData, Error> GetResourceBarrierData(Handle<GPUResource> handle)
-    {
-        var r = GetResourceRecord(handle);
-        if (r.IsFailure)
-        {
-            return r.Error;
-        }
-
-        return r.Value.barrierData;
-    }
-
-    public Error SetResourceBarrierData(Handle<GPUResource> handle, ResourceBarrierData data)
-    {
-        var r = GetResourceRecord(handle);
-        if (r.IsFailure)
-        {
-            return r.Error;
-        }
-
-        r.Value.barrierData = data;
-        return Error.None;
     }
 
     public Result<ResourceDesc, Error> GetResourceDescription(Handle<GPUResource> handle)

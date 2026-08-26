@@ -156,14 +156,7 @@ internal unsafe class DXGISwapChain : ISwapChain
                 rtv = rtv
             };
 
-            var barrierData = new ResourceBarrierData
-            {
-                access = BarrierAccess.NoAccess,
-                layout = BarrierLayout.Present,
-                sync = BarrierSync.None,
-            };
-
-            var handle = _resourceDatabase.ImportExternalResource(pBackBuffer, barrierData, view, D3D12Utility.GetResourceDesc(pBackBuffer, view));
+            var handle = _resourceDatabase.ImportExternalResource(pBackBuffer, view, D3D12Utility.GetResourceDesc(pBackBuffer, view));
             _backBuffers[i] = handle.AsTexture();
         }
     }
@@ -186,7 +179,7 @@ internal unsafe class DXGISwapChain : ISwapChain
     {
         Logger.DebugAssert(!_disposed);
 
-        var presentFlags = vsync ? 0u : (uint)DXGI.DXGI_PRESENT_ALLOW_TEARING;
+        var presentFlags = vsync ? 0u : DXGI_PRESENT_ALLOW_TEARING;
         var syncInterval = vsync ? 1u : 0u;
 
         ThrowIfFailed(_swapChain.Get()->Present(syncInterval, presentFlags));
@@ -197,7 +190,7 @@ internal unsafe class DXGISwapChain : ISwapChain
         Logger.DebugAssert(!_disposed);
         if (_frameLatencyWaitableObject.Value != null)
         {
-            TerraFX.Interop.Windows.Windows.WaitForSingleObjectEx(_frameLatencyWaitableObject, timeoutMs, true);
+            WaitForSingleObjectEx(_frameLatencyWaitableObject, timeoutMs, true);
         }
     }
 
@@ -273,7 +266,7 @@ internal unsafe class DXGISwapChain : ISwapChain
 
         if (_frameLatencyWaitableObject.Value != null)
         {
-            TerraFX.Interop.Windows.Windows.CloseHandle(_frameLatencyWaitableObject);
+            CloseHandle(_frameLatencyWaitableObject);
             _frameLatencyWaitableObject = default;
         }
 

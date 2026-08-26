@@ -2,13 +2,15 @@ using Ghost.Core;
 using Ghost.Engine.Components;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
+using Misaki.HighPerformance.LowLevel;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using System.Collections.Concurrent;
 
 namespace Ghost.Engine.RenderPipeline;
 
-public sealed class GhostRenderPayload : IRenderPayload
+public unsafe sealed class GhostRenderPayload : IRenderPayload
 {
     public struct UpdateInstanceRequest
     {
@@ -27,16 +29,19 @@ public sealed class GhostRenderPayload : IRenderPayload
 
     private UnsafeList<RenderRequest> _renderRequests;
 
-    private readonly ConcurrentQueue<UpdateInstanceRequest> _updateRequest;
-    private readonly ConcurrentQueue<RemoveInstanceRequest> _removeRequest;
+    private DisposablePtr<UnsafeParallelQueue<UpdateInstanceRequest>> _updateRequest;
+    private DisposablePtr<UnsafeParallelQueue<RemoveInstanceRequest>> _removeRequest;
+
+    private readonly UnsafeParallelQueue<UpdateInstanceRequest>.ParallelProducer _updateRequestProducer;
+    private readonly UnsafeParallelQueue<RemoveInstanceRequest>.ParallelProducer _removeRequestProducer;
 
     private uint _instanceCountBefore;
     private uint _instanceCount;
 
     public ReadOnlySpan<RenderRequest> RenderRequests => _renderRequests;
 
-    public ConcurrentQueue<UpdateInstanceRequest> UpdateRequest => _updateRequest;
-    public ConcurrentQueue<RemoveInstanceRequest> RemoveRequest => _removeRequest;
+    public UnsafeParallelQueue<UpdateInstanceRequest>.ParallelConsumer UpdateRequest => _updateRequest.Get()->AsParallelConsumer();
+    public UnsafeParallelQueue<RemoveInstanceRequest>.ParallelConsumer RemoveRequest => _removeRequest.Get()->AsParallelConsumer();
     public uint InstanceCountBefore => _instanceCountBefore;
     public uint InstanceCount => _instanceCount;
 
@@ -44,9 +49,12 @@ public sealed class GhostRenderPayload : IRenderPayload
     {
         _renderPipeline = renderPipeline;
 
-        _renderRequests = new UnsafeList<RenderRequest>(4, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
-        _updateRequest = new ConcurrentQueue<UpdateInstanceRequest>();
-        _removeRequest = new ConcurrentQueue<RemoveInstanceRequest>();
+        _renderRequests = new UnsafeList<RenderRequest>(4, AllocationHandle.Persistent);
+        _updateRequest = UnsafeParallelQueue<UpdateInstanceRequest>.Allocate(16, AllocationHandle.Persistent);
+        _removeRequest = UnsafeParallelQueue<RemoveInstanceRequest>.Allocate(16, AllocationHandle.Persistent);
+
+        _updateRequestProducer = _updateRequest.Get()->AsParallelProducer();
+        _removeRequestProducer = _removeRequest.Get()->AsParallelProducer();
     }
 
     // NOTE: This is not thread safe.
@@ -59,13 +67,13 @@ public sealed class GhostRenderPayload : IRenderPayload
     {
         var index = _renderPipeline.GPUScene.AddInstance();
 
-        _updateRequest.Enqueue(new UpdateInstanceRequest { instanceId = index, localToWorld = ltw, meshInstance = meshInstance });
+        _updateRequestProducer.Enqueue(new UpdateInstanceRequest { instanceId = index, localToWorld = ltw, meshInstance = meshInstance });
         return index;
     }
 
     public void UpdateInstance(uint instanceId, float4x4 ltw, scoped in MeshInstance meshInstance)
     {
-        _updateRequest.Enqueue(new UpdateInstanceRequest { instanceId = instanceId, localToWorld = ltw, meshInstance = meshInstance });
+        _updateRequestProducer.Enqueue(new UpdateInstanceRequest { instanceId = instanceId, localToWorld = ltw, meshInstance = meshInstance });
     }
 
     public void RemoveInstance(uint instanceId)
@@ -73,7 +81,7 @@ public sealed class GhostRenderPayload : IRenderPayload
         var swapWithInstanceId = _renderPipeline.GPUScene.RemoveInstance(instanceId);
         if (swapWithInstanceId != uint.MaxValue)
         {
-            _removeRequest.Enqueue(new RemoveInstanceRequest { instanceId = instanceId, swapWithInstanceId = swapWithInstanceId });
+            _removeRequestProducer.Enqueue(new RemoveInstanceRequest { instanceId = instanceId, swapWithInstanceId = swapWithInstanceId });
         }
     }
 
@@ -86,19 +94,21 @@ public sealed class GhostRenderPayload : IRenderPayload
     {
         // We capture the count here to prevent that main thread continues to add more requests for next frame while the render thread is still processing current frame's requests.
         _instanceCount = _renderPipeline.GPUScene.InstanceCount;
-        Logger.DebugAssert(_instanceCount == _instanceCountBefore + (uint)_updateRequest.Count - (uint)_removeRequest.Count);
+        Logger.DebugAssert(_instanceCount == _instanceCountBefore + (uint)_updateRequest.Get()->Count - (uint)_removeRequest.Get()->Count);
     }
 
     public void Reset()
     {
         _renderRequests.Clear();
-        _updateRequest.Clear();
-        _removeRequest.Clear();
+        _updateRequest.Get()->Clear();
+        _removeRequest.Get()->Clear();
     }
 
     public void Dispose()
     {
         _renderRequests.Dispose();
+        _updateRequest.Dispose();
+        _removeRequest.Dispose();
     }
 }
 

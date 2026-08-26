@@ -137,7 +137,7 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
         var actualHandle = context.ResourceDatabase.Replace(_actualHandle.AsResource(), _tempHandle.AsResource());
         Logger.DebugAssert(actualHandle.IsValid);
 
-        context.CommandBuffer.Barrier(BarrierDesc.Texture(actualHandle.AsTexture(), BarrierSync.AllShading, BarrierAccess.ShaderResource, BarrierLayout.ShaderResource));
+        context.CommandBuffer.Barrier(BarrierDesc.Texture(actualHandle.AsTexture(), BarrierSync.None, BarrierSync.AllShading, BarrierAccess.Common, BarrierAccess.ShaderResource, BarrierLayout.Common, BarrierLayout.ShaderResource));
 
         _actualHandle = actualHandle.AsTexture();
         _tempHandle = Handle<GPUTexture>.Invalid;

@@ -20,6 +20,13 @@ internal unsafe partial class RenderGraphCompiler
             this.writes = writes;
             isValid = true;
         }
+
+        public static CompiledResourceState Undefined => new(
+            new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierSync.None),
+            writes: false)
+        {
+            isValid = false
+        };
     }
 
     private struct PassResourceUsageRange
