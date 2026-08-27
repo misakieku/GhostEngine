@@ -3,6 +3,11 @@ namespace Ghost.DSL.ShaderParser.Syntax;
 public class GraphicsShaderSyntax
 {
     public string Name { get; set; } = string.Empty;
+    public string? TemplateName { get; set; }
+    public PropertiesBlockSyntax? Properties { get; set; }
+    public PayloadBlockSyntax? Payload { get; set; }
+    public IncludesBlockSyntax? Includes { get; set; }
+    public HlslBlockSyntax? Hlsl { get; set; }
     public string ShaderModel { get; set; } = string.Empty;
     public PipelineBlockSyntax? Pipeline { get; set; }
     public List<PassBlockSyntax> Passes { get; set; } = new();
@@ -18,6 +23,23 @@ public class ComputeShaderSyntax
     public HlslBlockSyntax? Hlsl { get; set; }
     public List<FunctionCallSyntax> FunctionCalls { get; set; } = new();
     public List<ShaderEntrySyntax> ShaderEntries { get; set; } = new();
+}
+
+public class PropertiesBlockSyntax
+{
+    public List<PropertyStatementSyntax> Properties { get; set; } = new();
+}
+
+public class PropertyStatementSyntax
+{
+    public string Type { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? DefaultValue { get; set; }
+}
+
+public class PayloadBlockSyntax
+{
+    public string Code { get; set; } = string.Empty;
 }
 
 public class PipelineBlockSyntax

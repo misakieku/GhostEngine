@@ -7,6 +7,8 @@ PIPELINE: 'pipeline';
 PASS: 'pass';
 DEFINES: 'defines';
 INCLUDES: 'includes';
+PROPERTIES: 'properties';
+PAYLOAD: 'payload';
 HLSL: 'hlsl';
 SM: 'sm';
 

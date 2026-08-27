@@ -129,54 +129,87 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
             {
                 var pass = descriptor.Passes[passIdx];
                 var passHeaderOffset = dst.Position;
-                var passHeader = new ShaderContentHeader.PassHeader
+                if (pass.computeShaderCode.IsCreated)
                 {
-                    entryPointCount = 3, // Amplification, Mesh, Pixel
-                };
-                dst.Write(passHeader); // Placeholder
+                    var passHeader = new ShaderContentHeader.PassHeader
+                    {
+                        entryPointCount = 1,
+                    };
+                    dst.Write(passHeader); // Placeholder
 
-                var passDataStart = dst.Position;
-                var config = configTemplate with
-                {
-                    stage = ShaderStage.AmplificationShader,
-                    model = descriptor.ShaderModel,
-                    defines = pass.defines,
-                    entryPoint = pass.amplificationShaderCode.entryPoint,
-                    shaderCode = pass.amplificationShaderCode.code,
-                };
+                    var passDataStart = dst.Position;
+                    var config = configTemplate with
+                    {
+                        stage = ShaderStage.ComputeShader,
+                        model = descriptor.ShaderModel,
+                        defines = pass.defines,
+                        entryPoint = pass.computeShaderCode.entryPoint,
+                        shaderCode = pass.computeShaderCode.code,
+                    };
 
-                if (!pass.meshShaderCode.IsCreated || !pass.pixelShaderCode.IsCreated)
-                {
-                    throw new InvalidOperationException("Shader pass is missing required shader stages. Both mesh and pixel shaders must be present.");
+                    using var csByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+
+                    await WriteShaderEntries(dst, passDataStart, cancellationToken,
+                        (ShaderStage.ComputeShader, csByteCode));
+
+                    passHeader.dataOffset = passDataStart - assetStartOffset;
+                    passHeader.dataSize = dst.Position - passDataStart;
+                    var endOfPass = dst.Position;
+                    dst.Position = passHeaderOffset;
+                    dst.Write(passHeader);
+                    dst.Position = endOfPass;
                 }
+                else
+                {
+                    var passHeader = new ShaderContentHeader.PassHeader
+                    {
+                        entryPointCount = 3, // Amplification, Mesh, Pixel
+                    };
+                    dst.Write(passHeader); // Placeholder
 
-                using var asByteCode = pass.amplificationShaderCode.IsCreated ?
-                    _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow()
-                    : default;
+                    var passDataStart = dst.Position;
+                    var config = configTemplate with
+                    {
+                        stage = ShaderStage.AmplificationShader,
+                        model = descriptor.ShaderModel,
+                        defines = pass.defines,
+                        entryPoint = pass.amplificationShaderCode.entryPoint,
+                        shaderCode = pass.amplificationShaderCode.code,
+                    };
 
-                config.stage = ShaderStage.MeshShader;
-                config.entryPoint = pass.meshShaderCode.entryPoint;
-                config.shaderCode = pass.meshShaderCode.code;
+                    if (!pass.meshShaderCode.IsCreated || !pass.pixelShaderCode.IsCreated)
+                    {
+                        throw new InvalidOperationException("Shader pass is missing required shader stages. Both mesh and pixel shaders must be present.");
+                    }
 
-                using var msByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                    using var asByteCode = pass.amplificationShaderCode.IsCreated ?
+                        _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow()
+                        : default;
 
-                config.stage = ShaderStage.PixelShader;
-                config.entryPoint = pass.pixelShaderCode.entryPoint;
-                config.shaderCode = pass.pixelShaderCode.code;
+                    config.stage = ShaderStage.MeshShader;
+                    config.entryPoint = pass.meshShaderCode.entryPoint;
+                    config.shaderCode = pass.meshShaderCode.code;
 
-                using var psByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                    using var msByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
 
-                await WriteShaderEntries(dst, passDataStart, cancellationToken,
-                    (ShaderStage.AmplificationShader, asByteCode),
-                    (ShaderStage.MeshShader, msByteCode),
-                    (ShaderStage.PixelShader, psByteCode));
+                    config.stage = ShaderStage.PixelShader;
+                    config.entryPoint = pass.pixelShaderCode.entryPoint;
+                    config.shaderCode = pass.pixelShaderCode.code;
 
-                passHeader.dataOffset = passDataStart - assetStartOffset;
-                passHeader.dataSize = dst.Position - passDataStart;
-                var endOfPass = dst.Position;
-                dst.Position = passHeaderOffset;
-                dst.Write(passHeader);
-                dst.Position = endOfPass;
+                    using var psByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+
+                    await WriteShaderEntries(dst, passDataStart, cancellationToken,
+                        (ShaderStage.AmplificationShader, asByteCode),
+                        (ShaderStage.MeshShader, msByteCode),
+                        (ShaderStage.PixelShader, psByteCode));
+
+                    passHeader.dataOffset = passDataStart - assetStartOffset;
+                    passHeader.dataSize = dst.Position - passDataStart;
+                    var endOfPass = dst.Position;
+                    dst.Position = passHeaderOffset;
+                    dst.Write(passHeader);
+                    dst.Position = endOfPass;
+                }
             }
         }
         else if (string.Equals(ext, ".gcomp", StringComparison.Ordinal))

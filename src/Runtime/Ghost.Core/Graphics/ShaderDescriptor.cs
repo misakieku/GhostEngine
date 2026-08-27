@@ -11,6 +11,16 @@ public enum ShaderModel
     SM_6_7,
     SM_6_8
 }
+public enum PassSemantic : byte
+{
+    Forward = 0,
+    Visibility = 1,
+    Shadow = 2,
+    DeferredTexturing = 3,
+    Custom = 4,
+    Count = 8
+}
+
 
 public struct ShaderCode()
 {
@@ -51,6 +61,7 @@ public struct PassDescriptor
     public ShaderCode amplificationShaderCode;
     public ShaderCode meshShaderCode;
     public ShaderCode pixelShaderCode;
+    public ShaderCode computeShaderCode;
     public string[] defines;
     public PipelineState localPipeline;
 }

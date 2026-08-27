@@ -29,12 +29,13 @@ public partial struct Shader
 /// <summary>
 /// A representation of a GPU shader, including all the passes it contains.
 /// </summary>
-public partial struct Shader : IResourceReleasable
+public unsafe partial struct Shader : IResourceReleasable
 {
     private readonly ulong _nameHash;
     private readonly uint _propertyBufferSize;
     private UnsafeArray<ShaderPass> _shaderPasses;
     private UnsafeHashMap<int, int> _passIDToLocal;
+    private fixed sbyte _semanticPassMap[8];
 
     // TODO: Tag to pass index for fast lookup.
     // We can use a int array since the number and index of tags are fixed at compile time.
@@ -50,6 +51,11 @@ public partial struct Shader : IResourceReleasable
         _shaderPasses = new UnsafeArray<ShaderPass>(descriptor.Passes.Length, AllocationHandle.Persistent);
         _passIDToLocal = new UnsafeHashMap<int, int>(descriptor.Passes.Length, AllocationHandle.Persistent);
 
+        for (var s = 0; s < 8; s++)
+        {
+            _semanticPassMap[s] = -1;
+        }
+
         for (var i = 0; i < descriptor.Passes.Length; i++)
         {
             ref readonly var pass = ref descriptor.Passes[i];
@@ -61,7 +67,30 @@ public partial struct Shader : IResourceReleasable
             };
 
             _passIDToLocal[GetPassID(pass.name)] = (ushort)i;
+
+            if (string.Equals(pass.name, "Forward", StringComparison.OrdinalIgnoreCase))
+            {
+                _semanticPassMap[(byte)PassSemantic.Forward] = (sbyte)i;
+            }
+            else if (string.Equals(pass.name, "Visibility", StringComparison.OrdinalIgnoreCase))
+            {
+                _semanticPassMap[(byte)PassSemantic.Visibility] = (sbyte)i;
+            }
+            else if (string.Equals(pass.name, "Shadow", StringComparison.OrdinalIgnoreCase))
+            {
+                _semanticPassMap[(byte)PassSemantic.Shadow] = (sbyte)i;
+            }
+            else if (string.Equals(pass.name, "DeferredTexturing", StringComparison.OrdinalIgnoreCase))
+            {
+                _semanticPassMap[(byte)PassSemantic.DeferredTexturing] = (sbyte)i;
+            }
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int GetPassIndex(PassSemantic semantic)
+    {
+        return _semanticPassMap[(byte)semantic];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

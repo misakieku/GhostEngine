@@ -15,4 +15,8 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <DefineConstants>$(DefineConstants);GHOST_SAFETY_CHECKS</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="**\*.gshdr" />
+  </ItemGroup>
 </Project>

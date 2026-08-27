@@ -1,0 +1,29 @@
+shader "Custom/CarPaint" : "Lit"
+{
+    properties
+    {
+        uint flakeNormal;
+        float flakeStrength = 0.5;
+        float flakeScale = 100.0;
+    }
+
+    payload
+    {
+        float flakeIntensity;
+    }
+
+    hlsl
+    {
+        void GetSurfaceData(in MaterialContext ctx, inout Payload payload, out SurfaceData surface)
+        {
+            CustomCarPaintShaderProperties props = LoadLitProperties(ctx.materialIndex);
+
+            surface = (SurfaceData)0;
+            surface.albedo = props.baseColor.rgb;
+            surface.normalWS = ctx.normalWS;
+            surface.metallic = props.metallic;
+            surface.roughness = props.roughness;
+            surface.occlusion = props.occlusion;
+        }
+    }
+}
