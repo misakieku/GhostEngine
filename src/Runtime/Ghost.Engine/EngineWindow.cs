@@ -1,6 +1,7 @@
 #define PLATFORM_WINDOWNS
 
 using Ghost.Core;
+using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel;
@@ -43,6 +44,7 @@ public unsafe class EngineWindow : IDisposable
     internal static ReadOnlySpan<byte> HANDLE_PROPERTY_NAME => SDL_PROP_WINDOW_COCOA_WINDOW_POINTER;
 #endif
 
+    private readonly RenderEngine _renderEngine;
     private readonly SwapChainManager _swapChainManager;
 
     private readonly SDL_Window* _window;
@@ -58,9 +60,10 @@ public unsafe class EngineWindow : IDisposable
 
     public bool IsRunning => _isRunning;
 
-    public EngineWindow(SwapChainManager swapChainManager, WindowDesc desc)
+    public EngineWindow(RenderEngine renderEngine, WindowDesc desc)
     {
-        _swapChainManager = swapChainManager;
+        _renderEngine = renderEngine;
+        _swapChainManager = renderEngine.SwapChainManager;
 
         var windowFlags = SDL_WindowFlags.SDL_WINDOW_RESIZABLE;
         if (desc.Borderless)
@@ -87,7 +90,7 @@ public unsafe class EngineWindow : IDisposable
             Target = SwapChainTarget.FromWindowHandle(Handle)
         };
 
-        swapChainManager.CreateSwapChain(swapChainDesc, out _swapChain, out _swapChainIndex);
+        _swapChainManager.CreateSwapChain(swapChainDesc, false, out _swapChain, out _swapChainIndex);
 
         _isRunning = true;
     }
@@ -115,6 +118,7 @@ public unsafe class EngineWindow : IDisposable
 
     public void Dispose()
     {
+        _renderEngine.WaitIdle();
         var refCount = _swapChainManager.ReleaseSwapChain(_swapChainIndex);
         Logger.DebugAssert(refCount == 0);
 

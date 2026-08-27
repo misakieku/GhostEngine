@@ -34,6 +34,7 @@ internal sealed class FrameScheduler : IFrameScheduler
     private static int s_nextSchedulerId;
 
     private readonly IGraphicsEngine _graphicsEngine;
+    private readonly SwapChainManager? _swapChainManager;
     private readonly ICommandQueue[] _queues;
     private readonly IFence[] _fences;
     private readonly ulong[] _nextFenceValues;
@@ -47,6 +48,7 @@ internal sealed class FrameScheduler : IFrameScheduler
     private readonly int[] _transactionQueueTailIndices;
     private readonly List<SubmissionHandle>[] _transactionPendingDependencies;
     private readonly List<SubmissionHandle> _invalidatedSubmissions;
+    private readonly ulong[,] _lastWaitedFenceValues;
 
     private int[] _indegrees;
     private int[] _executionOrder;
@@ -59,6 +61,9 @@ internal sealed class FrameScheduler : IFrameScheduler
     private SubmissionTransaction _activeTransaction;
     private uint _generation;
     private bool _disposed;
+#if DEBUG
+    private int _debugCmdIndex;
+#endif
 
     public ulong SubmittedFrame
     {
@@ -66,11 +71,12 @@ internal sealed class FrameScheduler : IFrameScheduler
         private set;
     }
 
-    public FrameScheduler(IGraphicsEngine graphicsEngine)
+    public FrameScheduler(IGraphicsEngine graphicsEngine, SwapChainManager? swapChainManager = null)
     {
         ArgumentNullException.ThrowIfNull(graphicsEngine);
 
         _graphicsEngine = graphicsEngine;
+        _swapChainManager = swapChainManager;
         _queues = new ICommandQueue[QUEUE_COUNT];
         _fences = new IFence[QUEUE_COUNT];
         _nextFenceValues = new ulong[QUEUE_COUNT];
@@ -84,6 +90,7 @@ internal sealed class FrameScheduler : IFrameScheduler
         _transactionQueueTailIndices = new int[QUEUE_COUNT];
         _transactionPendingDependencies = new List<SubmissionHandle>[QUEUE_COUNT];
         _invalidatedSubmissions = new List<SubmissionHandle>(4);
+        _lastWaitedFenceValues = new ulong[QUEUE_COUNT, QUEUE_COUNT];
         _indegrees = Array.Empty<int>();
         _executionOrder = Array.Empty<int>();
         _scheduled = Array.Empty<bool>();
@@ -103,6 +110,22 @@ internal sealed class FrameScheduler : IFrameScheduler
 
         _schedulerId = Interlocked.Increment(ref s_nextSchedulerId);
         _generation = 1;
+    }
+
+    public ICommandBuffer GetPooledCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
+    {
+        ThrowIfDisposed();
+        var cmd = _graphicsEngine.GetPooledCommandBuffer(type);
+#if DEBUG
+        cmd.Name = $"FrameScheduler_{type}_Cmd_{_debugCmdIndex++}";
+#endif
+        return cmd;
+    }
+
+    public void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer)
+    {
+        ThrowIfDisposed();
+        _graphicsEngine.ReturnPooledCommandBuffer(commandBuffer);
     }
 
     public void PrepareSubmissions(int additionalSubmissionCount)
@@ -279,6 +302,10 @@ internal sealed class FrameScheduler : IFrameScheduler
             throw new InvalidOperationException("An active submission transaction must be committed or rolled back before flushing.");
         }
 
+#if DEBUG
+        _debugCmdIndex = 0;
+#endif
+
         var submissionCount = _submissions.Count;
         EnsureScratchCapacity(submissionCount);
         Array.Clear(_scheduled, 0, submissionCount);
@@ -332,11 +359,9 @@ internal sealed class FrameScheduler : IFrameScheduler
 
         for (var i = 0; i < QUEUE_COUNT; i++)
         {
-            var submission = _flushedSubmissions[i];
-            if (submission.IsValid)
-            {
-                _fences[i].WaitForValue(submission.FenceValue);
-            }
+            var fenceValue = ++_nextFenceValues[i];
+            _queues[i].Signal(_fences[i], fenceValue);
+            _fences[i].WaitForValue(fenceValue);
         }
     }
 
@@ -348,6 +373,7 @@ internal sealed class FrameScheduler : IFrameScheduler
             return;
         }
 
+        Array.Clear(_lastWaitedFenceValues, 0, QUEUE_COUNT * QUEUE_COUNT);
         Array.Clear(_indegrees, 0, submissionCount);
         Array.Clear(_scheduled, 0, submissionCount);
 
@@ -382,11 +408,22 @@ internal sealed class FrameScheduler : IFrameScheduler
             }
         }
 
+        var lastGraphicsSubmissionIndex = -1;
+        for (var orderIndex = submissionCount - 1; orderIndex >= 0; orderIndex--)
+        {
+            var idx = _executionOrder[orderIndex];
+            if (_submissions[idx].handle.QueueType == CommandQueueType.Graphics)
+            {
+                lastGraphicsSubmissionIndex = idx;
+                break;
+            }
+        }
+
         Array.Clear(_scheduled, 0, submissionCount);
         for (var orderIndex = 0; orderIndex < submissionCount; orderIndex++)
         {
             var submissionIndex = _executionOrder[orderIndex];
-            ExecuteSubmission(submissionIndex);
+            ExecuteSubmission(submissionIndex, submissionIndex == lastGraphicsSubmissionIndex);
             _scheduled[submissionIndex] = true;
         }
     }
@@ -404,11 +441,12 @@ internal sealed class FrameScheduler : IFrameScheduler
         return -1;
     }
 
-    private void ExecuteSubmission(int submissionIndex)
+    private void ExecuteSubmission(int submissionIndex, bool isLastGraphicsSubmission)
     {
         var record = _submissions[submissionIndex];
         var destinationQueueIndex = GetQueueIndex(record.handle.QueueType);
         Span<ulong> waitValues = stackalloc ulong[QUEUE_COUNT];
+        waitValues.Clear();
 
         for (var i = 0; i < _dependencies.Count; i++)
         {
@@ -424,13 +462,20 @@ internal sealed class FrameScheduler : IFrameScheduler
 
         for (var i = 0; i < QUEUE_COUNT; i++)
         {
-            if (waitValues[i] != 0)
+            if (waitValues[i] != 0 && waitValues[i] > _lastWaitedFenceValues[destinationQueueIndex, i])
             {
                 _queues[destinationQueueIndex].Wait(_fences[i], waitValues[i]);
+                _lastWaitedFenceValues[destinationQueueIndex, i] = waitValues[i];
             }
         }
 
         _queues[destinationQueueIndex].Submit(record.commandBuffer);
+
+        if (isLastGraphicsSubmission && _swapChainManager != null)
+        {
+            _swapChainManager.PresentAll();
+        }
+
         _queues[destinationQueueIndex].Signal(_fences[destinationQueueIndex], record.handle.FenceValue);
         _graphicsEngine.ReturnPooledCommandBuffer(record.commandBuffer);
     }

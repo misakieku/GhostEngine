@@ -78,12 +78,12 @@ public unsafe class ShaderLibrary : IDisposable
 
         if (_shaderCompilationBridge != null)
         {
-            _shaderCompilationBridge.OnShaderVariantCompiled += OnVariantCompiled;
+            _shaderCompilationBridge.OnShaderCompiled += OnShaderCompiled;
             _shaderCompilationBridge.OnShaderInvalidated += OnShaderInvalidated;
         }
     }
 
-    private void OnVariantCompiled(ulong shaderId, int passIndex, ReadOnlySpan<ShaderByteCode> byteCodes)
+    private void OnShaderCompiled(ulong shaderId, int passIndex, ReadOnlySpan<ShaderByteCode> byteCodes)
     {
         CacheCompiledResult(shaderId, passIndex, byteCodes);
     }
@@ -236,7 +236,7 @@ public unsafe class ShaderLibrary : IDisposable
 
         if (_shaderCompilationBridge != null)
         {
-            _shaderCompilationBridge.OnShaderVariantCompiled -= OnVariantCompiled;
+            _shaderCompilationBridge.OnShaderCompiled -= OnShaderCompiled;
             _shaderCompilationBridge.OnShaderInvalidated -= OnShaderInvalidated;
         }
 

@@ -10,7 +10,6 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
     internal struct MockResourceRecord()
     {
         public ResourceDesc desc;
-        public ResourceBarrierData barrierData;
         public string? name;
         public int refCount = 1;
         public bool isShared;
@@ -24,7 +23,7 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
 
     private static ulong GetKey(Handle<GPUResource> handle) => ((ulong)handle.Generation << 32) | (uint)handle.ID;
 
-    public Handle<GPUResource> AddMockResource(ResourceDesc desc, ResourceBarrierData barrierData, string? name)
+    public Handle<GPUResource> AddMockResource(ResourceDesc desc, string? name)
     {
         var id = Interlocked.Increment(ref _nextToken);
         var generation = 1;
@@ -33,7 +32,6 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         _resources.TryAdd(GetKey(handle), new MockResourceRecord
         {
             desc = desc,
-            barrierData = barrierData,
             name = name
         });
 
@@ -90,13 +88,6 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         return 0; // For testing, we can return 0 because we don't actually allocate memory.
     }
 
-    public Result<ResourceBarrierData, Error> GetResourceBarrierData(Handle<GPUResource> handle)
-    {
-        ref var record = ref CollectionsMarshal.GetValueRefOrNullRef(_resources, GetKey(handle));
-        if (!Unsafe.IsNullRef(ref record))
-            return record.barrierData;
-        return Error.NotFound;
-    }
 
     public Result<ResourceDesc, Error> GetResourceDescription(Handle<GPUResource> handle)
     {
@@ -178,18 +169,6 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         return dst;
     }
 
-    public Error SetResourceBarrierData(Handle<GPUResource> handle, ResourceBarrierData data)
-    {
-        ref var record = ref CollectionsMarshal.GetValueRefOrNullRef(_resources, GetKey(handle));
-        if (!Unsafe.IsNullRef(ref record))
-        {
-            record.barrierData = data;
-
-            return Error.None;
-        }
-
-        return Error.NotFound;
-    }
 
     public Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB)
     {

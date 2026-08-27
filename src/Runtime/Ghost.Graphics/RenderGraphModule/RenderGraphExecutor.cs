@@ -122,10 +122,10 @@ internal sealed class RenderGraphExecutor
                     case RGExecutionOpType.IssueBarriers:
                     {
                         var barrierCount = reader.Read<int>();
-                        var error = ExecuteBarrierBatch(activeCommandBuffer, barrierCount, ref reader);
+                        var error = ExecuteBarrierBatch(activeCommandBuffer, barrierCount, ref reader, flags);
                         if (error != Error.None)
                         {
-                            RollbackRecording(executionContext.GraphicsEngine, insideNativePass);
+                            RollbackRecording(executionContext.FrameScheduler, insideNativePass);
                             return error;
                         }
                         break;
@@ -213,7 +213,7 @@ internal sealed class RenderGraphExecutor
                         var error = EndCommandBuffer(activeCommandBuffer);
                         if (error != Error.None)
                         {
-                            ReturnAcquiredCommandBuffers(executionContext.GraphicsEngine);
+                            ReturnAcquiredCommandBuffers(executionContext.FrameScheduler);
                             return error;
                         }
 
@@ -231,16 +231,21 @@ internal sealed class RenderGraphExecutor
                 }
             }
 
+            if (activeCommandBuffer.Type == CommandBufferType.Graphics && executionContext.OnFinalGraphicsCommandBuffer != null)
+            {
+                executionContext.OnFinalGraphicsCommandBuffer(activeCommandBuffer);
+            }
+
             var finalError = EndCommandBuffer(activeCommandBuffer);
             if (finalError != Error.None)
             {
-                ReturnAcquiredCommandBuffers(executionContext.GraphicsEngine);
+                ReturnAcquiredCommandBuffers(executionContext.FrameScheduler);
                 return finalError;
             }
         }
         catch (Exception ex)
         {
-            RollbackRecording(executionContext.GraphicsEngine, insideNativePass);
+            RollbackRecording(executionContext.FrameScheduler, insideNativePass);
             Logger.Error(ex);
             return Error.InternalError;
         }
@@ -272,7 +277,7 @@ internal sealed class RenderGraphExecutor
         var commandAllocator = queueType == CommandQueueType.Graphics
             ? executionContext.GraphicsCommandAllocator
             : executionContext.ComputeCommandAllocator;
-        var commandBuffer = executionContext.GraphicsEngine.GetPooledCommandBuffer(commandBufferType);
+        var commandBuffer = executionContext.FrameScheduler.GetPooledCommandBuffer(commandBufferType);
         var commandBufferIndex = _commandBufferCount++;
         _commandBuffers[commandBufferIndex] = commandBuffer;
         _commandBufferQueueTypes[commandBufferIndex] = queueType;
@@ -392,7 +397,7 @@ internal sealed class RenderGraphExecutor
                 }
             }
 
-            ReturnAcquiredCommandBuffers(executionContext.GraphicsEngine);
+            ReturnAcquiredCommandBuffers(executionContext.FrameScheduler);
             graphicsSubmission = default;
             computeSubmission = default;
             Logger.Error(ex);
@@ -400,13 +405,13 @@ internal sealed class RenderGraphExecutor
         }
     }
 
-    private void RollbackRecording(IGraphicsEngine graphicsEngine, bool insideNativePass)
+    private void RollbackRecording(IFrameScheduler frameScheduler, bool insideNativePass)
     {
         var activeCommandBuffer = _commandBufferCount > 0
             ? _commandBuffers[_commandBufferCount - 1]
             : null;
 
-        if (activeCommandBuffer?.State.IsRecording == true)
+        if (activeCommandBuffer != null && activeCommandBuffer.State.IsRecording)
         {
             if (insideNativePass)
             {
@@ -430,10 +435,10 @@ internal sealed class RenderGraphExecutor
             }
         }
 
-        ReturnAcquiredCommandBuffers(graphicsEngine);
+        ReturnAcquiredCommandBuffers(frameScheduler);
     }
 
-    private void ReturnAcquiredCommandBuffers(IGraphicsEngine graphicsEngine)
+    private void ReturnAcquiredCommandBuffers(IFrameScheduler frameScheduler)
     {
         for (var i = 0; i < _commandBufferCount; i++)
         {
@@ -445,7 +450,7 @@ internal sealed class RenderGraphExecutor
 
             try
             {
-                graphicsEngine.ReturnPooledCommandBuffer(commandBuffer);
+                frameScheduler.ReturnPooledCommandBuffer(commandBuffer);
             }
             catch (Exception ex)
             {
@@ -501,13 +506,15 @@ internal sealed class RenderGraphExecutor
     private Error ExecuteBarrierBatch(
         ICommandBuffer cmd,
         int barrierCount,
-        ref SpanReader reader)
+        ref SpanReader reader,
+        RGExecutionFlags flags)
     {
         if (barrierCount <= 0)
         {
             return Error.None;
         }
 
+        var forceGraphics = flags.HasFlag(RGExecutionFlags.ForceGraphics);
         const int MaxBatch = 64;
         using var scope = Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.CreateStackScope();
         using var barriers = new UnsafeList<BarrierDesc>(MaxBatch, scope.AllocationHandle);
@@ -526,52 +533,110 @@ internal sealed class RenderGraphExecutor
             var compiledBarrier = reader.Read<CompiledBarrier>();
             if (compiledBarrier.flags.HasFlag(BarrierFlags.QueueRelease))
             {
-                // Phase 3 keeps execution contained on one Graphics command buffer. The acquire
-                // record below lowers the full producer-to-consumer transition for this mode.
+                if (forceGraphics)
+                {
+                    continue;
+                }
+
+                var resourceHandle = _resources.GetResource(compiledBarrier.resource).backingResource;
+                var source = compiledBarrier.sourceState;
+                var handoff = compiledBarrier.handoffState;
+                var force = compiledBarrier.flags.HasFlag(BarrierFlags.Force);
+
+                BarrierDesc releaseDesc;
+                if (compiledBarrier.resourceType == RGResourceType.Texture)
+                {
+                    releaseDesc = BarrierDesc.Texture(
+                        resourceHandle.AsTexture(),
+                        source,
+                        new ResourceBarrierData(handoff.layout, BarrierAccess.NoAccess, BarrierSync.None),
+                        handoff: BarrierHandoffType.Release,
+                        force: force);
+                }
+                else
+                {
+                    releaseDesc = BarrierDesc.Buffer(
+                        resourceHandle.AsBuffer(),
+                        source,
+                        new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierSync.None),
+                        handoff: BarrierHandoffType.Release,
+                        force: force);
+                }
+
+                if (barriers.Count >= MaxBatch)
+                {
+                    Flush();
+                }
+
+                barriers.AddNoResize(releaseDesc);
                 continue;
             }
 
-            var resourceHandle = _resources.GetResource(compiledBarrier.resource).backingResource;
-            var target = compiledBarrier.targetState;
-            var explicitSource = compiledBarrier.flags.HasFlag(BarrierFlags.ExplicitSource);
-            var isAliasing = compiledBarrier.aliasingPredecessor.IsValid;
-            var force = compiledBarrier.flags.HasFlag(BarrierFlags.Force);
+            if (compiledBarrier.flags.HasFlag(BarrierFlags.QueueAcquire) && !forceGraphics)
+            {
+                var resourceHandle = _resources.GetResource(compiledBarrier.resource).backingResource;
+                var handoff = compiledBarrier.handoffState;
+                var target = compiledBarrier.targetState;
+                var isAliasing = compiledBarrier.aliasingPredecessor.IsValid;
+                var force = compiledBarrier.flags.HasFlag(BarrierFlags.Force);
+
+                BarrierDesc acquireDesc;
+                if (compiledBarrier.resourceType == RGResourceType.Texture)
+                {
+                    acquireDesc = BarrierDesc.Texture(
+                        resourceHandle.AsTexture(),
+                        new ResourceBarrierData(handoff.layout, BarrierAccess.NoAccess, BarrierSync.None),
+                        target,
+                        handoff: BarrierHandoffType.Acquire,
+                        discard: compiledBarrier.flags.HasFlag(BarrierFlags.Discard),
+                        force: force,
+                        isAliasing: isAliasing);
+                }
+                else
+                {
+                    acquireDesc = BarrierDesc.Buffer(
+                        resourceHandle.AsBuffer(),
+                        new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierSync.None),
+                        target,
+                        handoff: BarrierHandoffType.Acquire,
+                        force: force,
+                        isAliasing: isAliasing);
+                }
+
+                if (barriers.Count >= MaxBatch)
+                {
+                    Flush();
+                }
+
+                barriers.AddNoResize(acquireDesc);
+                continue;
+            }
+
+            var resHandle = _resources.GetResource(compiledBarrier.resource).backingResource;
+            var trgt = compiledBarrier.targetState;
+            var isAlias = compiledBarrier.aliasingPredecessor.IsValid;
+            var frc = compiledBarrier.flags.HasFlag(BarrierFlags.Force);
 
             BarrierDesc desc;
             if (compiledBarrier.resourceType == RGResourceType.Texture)
             {
-                desc = explicitSource
-                    ? BarrierDesc.TextureExplicit(
-                        resourceHandle.AsTexture(),
-                        compiledBarrier.sourceState,
-                        target,
-                        force: force,
-                        discard: compiledBarrier.flags.HasFlag(BarrierFlags.Discard),
-                        isAliasing: isAliasing)
-                    : BarrierDesc.Texture(
-                        resourceHandle.AsTexture(),
-                        target.sync,
-                        target.access,
-                        target.layout,
-                        discard: compiledBarrier.flags.HasFlag(BarrierFlags.Discard),
-                        isAliasing: isAliasing);
+                desc = BarrierDesc.Texture(
+                    resHandle.AsTexture(),
+                    compiledBarrier.sourceState,
+                    trgt,
+                    discard: compiledBarrier.flags.HasFlag(BarrierFlags.Discard),
+                    force: frc,
+                    isAliasing: isAlias);
             }
             else
             {
-                desc = explicitSource
-                    ? BarrierDesc.BufferExplicit(
-                        resourceHandle.AsBuffer(),
-                        compiledBarrier.sourceState,
-                        target,
-                        force: force,
-                        isAliasing: isAliasing)
-                    : BarrierDesc.Buffer(
-                        resourceHandle.AsBuffer(),
-                        target.sync,
-                        target.access,
-                        isAliasing: isAliasing);
+                desc = BarrierDesc.Buffer(
+                    resHandle.AsBuffer(),
+                    compiledBarrier.sourceState,
+                    trgt,
+                    force: frc,
+                    isAliasing: isAlias);
             }
-
             if (barriers.Count >= MaxBatch)
             {
                 Flush();

@@ -213,17 +213,19 @@ public struct Material : IResourceReleasable
         var cbufferResource = _cBufferCache.GpuResource;
         var desc = BarrierDesc.Buffer(
             cbufferResource,
+            BarrierSync.AllShading,
             BarrierSync.Copy,
+            BarrierAccess.ShaderResource,
             BarrierAccess.CopyDest);
-
         ctx.CommandBuffer.Barrier(desc);
         ctx.UploadBuffer(_cBufferCache.GpuResource, _cBufferCache.CpuData.AsSpan());
 
         desc = BarrierDesc.Buffer(
             cbufferResource,
+            BarrierSync.Copy,
             BarrierSync.AllShading,
+            BarrierAccess.CopyDest,
             BarrierAccess.ShaderResource);
-
         ctx.CommandBuffer.Barrier(desc);
     }
 

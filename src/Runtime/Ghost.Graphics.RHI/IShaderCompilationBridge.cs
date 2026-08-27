@@ -8,7 +8,7 @@ public unsafe struct ShaderByteCode
     public ulong size;
 }
 
-public delegate void ShaderVariantCompiledHandler(ulong shaderId, int passIndex, ReadOnlySpan<ShaderByteCode> byteCodes);
+public delegate void ShaderCompiledHandler(ulong shaderId, int passIndex, ReadOnlySpan<ShaderByteCode> byteCodes);
 
 public interface IShaderCompilationBridge : IDisposable
 {
@@ -19,9 +19,9 @@ public interface IShaderCompilationBridge : IDisposable
     void RequestCompilation(ulong shaderId, int passIndex);
 
     /// <summary>
-    /// Event triggered when a shader variant has been successfully compiled.
+    /// Event triggered when a shader pass has been successfully compiled.
     /// </summary>
-    event ShaderVariantCompiledHandler OnShaderVariantCompiled;
+    event ShaderCompiledHandler OnShaderCompiled;
 
     /// <summary>
     /// Event triggered when a shader source has been imported or modified, requiring cache invalidation.

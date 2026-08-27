@@ -52,14 +52,6 @@ internal class MockingCommandBuffer : ICommandBuffer
             foreach (var desc in barrierDescs)
             {
                 RecordedBarriers.Add(desc);
-                var data = new ResourceBarrierData
-                {
-                    access = desc.AccessAfter,
-                    layout = desc.LayoutAfter,
-                    sync = desc.SyncAfter
-                };
-
-                _resourceDatabase.SetResourceBarrierData(desc.Resource, data);
             }
         }
     }
@@ -175,6 +167,11 @@ internal class MockingCommandBuffer : ICommandBuffer
     }
 
     public void SetGraphicsRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0)
+    {
+        _state.CommandCount++;
+    }
+
+    public void SetComputeRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0)
     {
         _state.CommandCount++;
     }

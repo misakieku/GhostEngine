@@ -12,12 +12,12 @@ namespace Ghost.Engine.Systems;
 [UpdateBefore<AddGPUInstanceSystem>]
 internal class UpdateGPUInstanceSystem : SystemBase
 {
-    private RenderEngine _renderSystem = null!;
+    private RenderEngine _renderEngine = null!;
     private Identifier<EntityQuery> _gpuInstanceQueryID;
 
     protected override void OnInitialize(scoped in SystemAPI systemAPI)
     {
-        _renderSystem = systemAPI.World.GetService<RenderEngine>();
+        _renderEngine = systemAPI.World.GetService<RenderEngine>();
 
         _gpuInstanceQueryID = QueryBuilder.New()
             .WithAll<LocalToWorld, MeshInstance, GPUInstanceRef>()
@@ -28,7 +28,7 @@ internal class UpdateGPUInstanceSystem : SystemBase
 
     protected override void OnUpdate(scoped in SystemAPI systemAPI)
     {
-        var playload = (GhostRenderPayload)_renderSystem.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
+        var playload = (GhostRenderPayload)_renderEngine.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
 
         ref var instanceQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_gpuInstanceQueryID);
 

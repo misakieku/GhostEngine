@@ -31,7 +31,7 @@ public class ShaderLibraryTest
     private class MockShaderCompilationBridge : IShaderCompilationBridge
     {
         public List<(ulong id, int passIndex)> Requests { get; } = new();
-        public event ShaderVariantCompiledHandler? OnShaderVariantCompiled;
+        public event ShaderCompiledHandler? OnShaderCompiled;
         public event Action<ulong>? OnShaderInvalidated;
 
         public void RequestCompilation(ulong shaderId, int passIndex)
@@ -41,7 +41,7 @@ public class ShaderLibraryTest
 
         public void TriggerCompiled(ulong shaderId, int passIndex, ReadOnlySpan<ShaderByteCode> byteCodes)
         {
-            OnShaderVariantCompiled?.Invoke(shaderId, passIndex, byteCodes);
+            OnShaderCompiled?.Invoke(shaderId, passIndex, byteCodes);
         }
 
         public void TriggerInvalidated(ulong shaderId)
@@ -124,7 +124,7 @@ public class ShaderLibraryTest
     }
 
     [TestMethod]
-    public unsafe void TestOnVariantCompiled_UpdatesHashCache()
+    public unsafe void TestOnShaderCompiled_UpdatesHashCache()
     {
         // Arrange
         var mockBridge = new MockShaderCompilationBridge();

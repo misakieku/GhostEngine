@@ -196,7 +196,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
             var psoDes = new GraphicsPSODesc
             {
                 CompiledHash = compiledHash,
-                VariantKey = new Key64<ShaderVariant>(pass.Key.Value),
+
                 PipelineOption = materialPipeline,
 
                 RtvFormats = _rtvFormats.AsSpan(0, _rtvCount),
@@ -275,9 +275,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
             var psoDes = new GraphicsPSODesc
             {
                 CompiledHash = compiledHash,
-                VariantKey = new Key64<ShaderVariant>(pass.Key.Value),
                 PipelineOption = materialPipeline,
-
                 RtvFormats = _rtvFormats.AsSpan(0, _rtvCount),
                 DsvFormat = _dsvFormat,
 
@@ -334,7 +332,6 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
             var psoDes = new ComputePSODesc
             {
                 CompiledHash = compiledHash,
-                VariantKey = new Key64<ShaderVariant>(RHIUtility.GetPassID(shader.UniqueID, passIndex)),
                 CsCode = byteCodes.Slice((int)byteCodeOffsets[0]),
             };
 
@@ -397,7 +394,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         }
 
         ref var shader = ref r.Value;
-        var entryHash = shader.GetEntryID(entryIndex);
+
         var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shader.UniqueID, entryIndex);
         if (error.IsFailure)
         {
@@ -425,7 +422,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
             var psoDes = new ComputePSODesc
             {
                 CompiledHash = compiledHash,
-                VariantKey = new Key64<ShaderVariant>(entryHash),
+
                 CsCode = byteCodes.Slice((int)byteCodeOffsets[0]),
             };
 

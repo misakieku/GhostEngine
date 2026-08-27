@@ -59,7 +59,7 @@ internal struct CompiledBarrier
 
 internal unsafe partial class RenderGraphCompiler
 {
-    private int EmitBarriersForPass(
+    private int EmitPassPrologueBarriers(
         ReadOnlySpan<ResolvedPassResourceUsage> usages,
         int scheduleIndex,
         CommandQueueType effectiveQueue,
@@ -75,7 +75,8 @@ internal unsafe partial class RenderGraphCompiler
         writer.Write(RGExecutionOpType.IssueBarriers);
         writer.Write(0); // Count placeholder
 
-        var count = EmitImplicitTransitions(
+        var count = WriteQueueHandoffBarriers(ref writer, handoffs, scheduleIndex, release: false);
+        count += EmitImplicitTransitions(
             usages,
             scheduleIndex,
             effectiveQueue,
@@ -95,6 +96,56 @@ internal unsafe partial class RenderGraphCompiler
         else
         {
             writer.Position = startPos; // Rewind if no barriers were emitted
+        }
+
+        return count;
+    }
+
+    private int EmitPassPrologueBarriersForMergedPasses(
+        ReadOnlySpan<ResolvedPassResourceUsage> allUsages,
+        ReadOnlySpan<PassResourceUsageRange> usageRanges,
+        int startScheduleIndex,
+        int passCount,
+        ReadOnlySpan<CommandQueueType> effectiveQueues,
+        ref BufferWriter writer,
+        AliasingPlan aliasingPlan,
+        RenderGraphResourceOrdering resourceOrdering,
+        Span<CompiledResourceState> resourceStates,
+        ReadOnlySpan<QueueHandoff> handoffs)
+    {
+        var startPos = writer.Position;
+
+        writer.Write(RGExecutionOpType.IssueBarriers);
+        writer.Write(0);
+
+        var count = 0;
+        for (var i = 0; i < passCount; i++)
+        {
+            var mergedScheduleIndex = startScheduleIndex + i;
+            count += WriteQueueHandoffBarriers(ref writer, handoffs, mergedScheduleIndex, release: false);
+
+            ref readonly var usageRange = ref usageRanges[mergedScheduleIndex];
+            count += EmitImplicitTransitions(
+                allUsages.Slice(usageRange.start, usageRange.count),
+                mergedScheduleIndex,
+                effectiveQueues[mergedScheduleIndex],
+            ref writer,
+            aliasingPlan,
+            resourceOrdering,
+            resourceStates,
+            handoffs);
+        }
+
+        if (count > 0)
+        {
+            var endPos = writer.Position;
+            writer.Position = startPos + sizeof(RGExecutionOpType);
+            writer.Write(count);
+            writer.Position = endPos;
+        }
+        else
+        {
+            writer.Position = startPos;
         }
 
         return count;
@@ -369,7 +420,15 @@ internal unsafe partial class RenderGraphCompiler
                 continue;
             }
 
-            if (resourceState.isValid)
+            var sourceState = resourceState.isValid
+                ? resourceState.state
+                : new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierSync.None);
+
+            if (!resourceState.isValid)
+            {
+                flags |= BarrierFlags.FirstUsage | BarrierFlags.Discard;
+            }
+            else
             {
                 flags |= BarrierFlags.ExplicitSource;
             }
@@ -381,7 +440,7 @@ internal unsafe partial class RenderGraphCompiler
 
             count += AddTransition(
                 usage.resource,
-                resourceState.state,
+                sourceState,
                 usage.targetState,
                 aliasingPredecessor,
                 flags,
@@ -417,6 +476,78 @@ internal unsafe partial class RenderGraphCompiler
         };
         writer.Write(barrier);
         return 1;
+    }
+
+    private int EmitClosingBarriers(
+        ref BufferWriter writer,
+        CommandQueueType activeQueue,
+        Span<CompiledResourceState> resourceStates)
+    {
+        var startPos = writer.Position;
+        writer.Write(RGExecutionOpType.IssueBarriers);
+        writer.Write(0);
+
+        var count = 0;
+        for (var i = 0; i < _resourceRegistry.ResourceCount; i++)
+        {
+            ref readonly var resource = ref _resourceRegistry.GetResourceByIndex(i);
+            if (!resource.isImported || !resource.hasFinalBarrierState)
+            {
+                continue;
+            }
+
+            var finalState = resource.finalBarrierState;
+
+            ref var currentState = ref resourceStates[i];
+            if (!currentState.isValid)
+            {
+                if (resource.hasInitialBarrierState
+                    && (resource.initialBarrierState.layout != finalState.layout
+                        || resource.initialBarrierState.access != finalState.access
+                        || resource.initialBarrierState.sync != finalState.sync))
+                {
+                    count += AddTransition(
+                        new Identifier<RGResource>(i),
+                        resource.initialBarrierState,
+                        finalState,
+                        Identifier<RGResource>.Invalid,
+                        BarrierFlags.None,
+                        activeQueue,
+                        ref writer);
+                    currentState = new CompiledResourceState(finalState, writes: false);
+                }
+                continue;
+            }
+
+            if (currentState.state.layout != finalState.layout
+                || currentState.state.access != finalState.access
+                || currentState.state.sync != finalState.sync)
+            {
+                count += AddTransition(
+                    new Identifier<RGResource>(i),
+                    currentState.state,
+                    finalState,
+                    Identifier<RGResource>.Invalid,
+                    BarrierFlags.None,
+                    activeQueue,
+                    ref writer);
+                currentState = new CompiledResourceState(finalState, writes: false);
+            }
+        }
+
+        if (count > 0)
+        {
+            var endPos = writer.Position;
+            writer.Position = startPos + sizeof(RGExecutionOpType);
+            writer.Write(count);
+            writer.Position = endPos;
+        }
+        else
+        {
+            writer.Position = startPos;
+        }
+
+        return count;
     }
 
     private ResourceBarrierData GetBufferReadBarrierData(

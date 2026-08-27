@@ -14,16 +14,14 @@ internal class MockingResourceAllocator : IResourceAllocator
 
     public Handle<GPUResource> Allocate(scoped in AllocationDesc desc, string? name = null)
     {
-        var barrier = new ResourceBarrierData { layout = BarrierLayout.Common, access = BarrierAccess.NoAccess, sync = BarrierSync.None };
         // Passing a mock buffer desc for raw allocation representation
         var bufferDesc = new BufferDesc { Size = desc.Size, Usage = BufferUsage.None };
-        return _database.AddMockResource(ResourceDesc.Buffer(bufferDesc), barrier, name);
+        return _database.AddMockResource(ResourceDesc.Buffer(bufferDesc), name);
     }
 
     public Handle<GPUBuffer> CreateBuffer(scoped in BufferDesc desc, string? name = null, CreationOptions options = default)
     {
-        var barrier = new ResourceBarrierData { layout = BarrierLayout.Undefined, access = BarrierAccess.Common, sync = BarrierSync.None };
-        var handle = _database.AddMockResource(ResourceDesc.Buffer(desc), barrier, name);
+        var handle = _database.AddMockResource(ResourceDesc.Buffer(desc), name);
         return handle.AsBuffer();
     }
 
@@ -34,8 +32,7 @@ internal class MockingResourceAllocator : IResourceAllocator
 
     public Handle<GPUTexture> CreateTexture(scoped in TextureDesc desc, string? name = null, CreationOptions options = default, AdditionalTextureDesc additionalDesc = default)
     {
-        var barrier = new ResourceBarrierData { layout = BarrierLayout.Common, access = BarrierAccess.Common, sync = BarrierSync.None };
-        var handle = _database.AddMockResource(ResourceDesc.Texture(desc), barrier, name);
+        var handle = _database.AddMockResource(ResourceDesc.Texture(desc), name);
         return handle.AsTexture();
     }
 

@@ -11,6 +11,12 @@ using static TerraFX.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12.Utilities;
 
+internal struct ComputePipelineStream
+{
+    public CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE rootSignature;
+    public CD3DX12_PIPELINE_STATE_STREAM_CS cs;
+}
+
 internal static unsafe class D3D12Utility
 {
     [EditorBrowsable(EditorBrowsableState.Never)]

@@ -151,14 +151,8 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             return Handle<GPUResource>.Invalid;
         }
 
-        var barrierData = new ResourceBarrierData
-        {
-            access = BarrierAccess.NoAccess,
-            layout = BarrierLayout.Common,
-            sync = BarrierSync.None
-        };
-
-        return _resourceDatabase.AddAllocation(alloc, barrierData, ResourceViewGroup.Invalid, default, name);
+        var resourceDesc = ResourceDesc.Buffer(new BufferDesc { Size = desc.Size, HeapType = desc.HeapType, Stride = 1, Usage = BufferUsage.Raw });
+        return _resourceDatabase.AddAllocation(alloc, ResourceViewGroup.Invalid, resourceDesc, name);
     }
 
     public Handle<GPUTexture> CreateTexture(scoped in TextureDesc desc, string? name = null, CreationOptions options = default, AdditionalTextureDesc additionalDesc = default)
@@ -212,21 +206,14 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         }
 
         var resourceDescriptor = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, ResourceDesc.Texture(desc), pResource);
-        var barrierData = new ResourceBarrierData
-        {
-            layout = BarrierLayout.Common,
-            access = BarrierAccess.Common,
-            sync = BarrierSync.None
-        };
-
         Handle<GPUResource> resource;
         if (isSubAllocation)
         {
-            resource = _resourceDatabase.ImportExternalResource(pResource, barrierData, resourceDescriptor, ResourceDesc.Texture(desc), name);
+            resource = _resourceDatabase.ImportExternalResource(pResource, resourceDescriptor, ResourceDesc.Texture(desc), name);
         }
         else
         {
-            resource = _resourceDatabase.AddAllocation(pAllocation, barrierData, resourceDescriptor, ResourceDesc.Texture(desc), name);
+            resource = _resourceDatabase.AddAllocation(pAllocation, resourceDescriptor, ResourceDesc.Texture(desc), name);
         }
 
         return resource.AsTexture();
@@ -278,21 +265,14 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         }
 
         var resourceDescriptor = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, ResourceDesc.Buffer(desc), pResource);
-        var barrierData = new ResourceBarrierData
-        {
-            layout = BarrierLayout.Undefined,
-            access = BarrierAccess.Common,
-            sync = BarrierSync.None
-        };
-
         Handle<GPUResource> resource;
         if (isSubAllocation)
         {
-            resource = _resourceDatabase.ImportExternalResource(pResource, barrierData, resourceDescriptor, ResourceDesc.Buffer(desc), name);
+            resource = _resourceDatabase.ImportExternalResource(pResource, resourceDescriptor, ResourceDesc.Buffer(desc), name);
         }
         else
         {
-            resource = _resourceDatabase.AddAllocation(pAllocation, barrierData, resourceDescriptor, ResourceDesc.Buffer(desc), name);
+            resource = _resourceDatabase.AddAllocation(pAllocation, resourceDescriptor, ResourceDesc.Buffer(desc), name);
         }
 
         return resource.AsBuffer();

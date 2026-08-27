@@ -137,6 +137,14 @@ public interface ICommandBuffer : IRHIObject
     /// <param name="offsetIn32Bits">The Offset, in 32-bit values, from the start of the root parameter where the constants will be set.</param>
     void SetGraphicsRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0);
 
+    /// <summary>
+    /// Sets a 32-bit constant value in the compute root signature at the specified index.
+    /// </summary>
+    /// <param name="rootIndex">The zero-based index of the root parameter in the compute root signature to set the constant for.</param>
+    /// <param name="constantBuffer">A read-only span containing the 32-bit constant values to set.</param>
+    /// <param name="offsetIn32Bits">The Offset, in 32-bit values, from the start of the root parameter where the constants will be set.</param>
+    void SetComputeRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0);
+
     void SetProgram(scoped in SetProgramDesc desc);
 
     /// <summary>

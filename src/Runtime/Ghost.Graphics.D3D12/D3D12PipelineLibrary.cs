@@ -17,7 +17,6 @@ namespace Ghost.Graphics.D3D12;
 internal struct D3D12PipelineState : IDisposable
 {
     public UniquePtr<ID3D12PipelineState> pso;
-    public Key64<ShaderVariant> shaderVariant;
     public ulong contentHash;
 
     public void Dispose()
@@ -158,7 +157,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
         return D3D12Utility.D3D12_DEPTH_STENCIL_DESC_CREATE(depthEnabled, writeEnabled, cmp);
     }
 
-    private Result CreatePSO(ulong contentHash, Key64<ShaderVariant> shaderVariantKey, UInt128 pipelineKey, D3D12_PIPELINE_STATE_STREAM_DESC* pStreamDesc)
+    private Result CreatePSO(ulong contentHash, UInt128 pipelineKey, D3D12_PIPELINE_STATE_STREAM_DESC* pStreamDesc)
     {
         ID3D12PipelineState* pPipelineState = default;
 
@@ -183,7 +182,6 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
         }
 
         D3D12PipelineState pso = default;
-        pso.shaderVariant = shaderVariantKey;
         pso.contentHash = contentHash;
         pso.pso.Attach(pPipelineState);
 
@@ -257,7 +255,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
                     SizeInBytes = (nuint)sizeof(CD3DX12_PIPELINE_MESH_STATE_STREAM)
                 };
 
-                var result = CreatePSO(desc.CompiledHash, desc.VariantKey, pipelineKey, &streamDesc);
+                var result = CreatePSO(desc.CompiledHash, pipelineKey, &streamDesc);
                 if (result.IsFailure)
                 {
                     return result;
@@ -278,15 +276,19 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
             fixed (byte* pCSByteCode = desc.CsCode)
             {
                 var byteCode = new D3D12_SHADER_BYTECODE(pCSByteCode, (nuint)desc.CsCode.Length);
-                var csPipelineDesc = new CD3DX12_PIPELINE_STATE_STREAM_CS(in byteCode);
+                var csPipelineDesc = new ComputePipelineStream
+                {
+                    rootSignature = new CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE(_defaultRootSignature.Get()),
+                    cs = new CD3DX12_PIPELINE_STATE_STREAM_CS(in byteCode)
+                };
 
                 var streamDesc = new D3D12_PIPELINE_STATE_STREAM_DESC
                 {
                     pPipelineStateSubobjectStream = &csPipelineDesc,
-                    SizeInBytes = (nuint)sizeof(CD3DX12_PIPELINE_STATE_STREAM_CS)
+                    SizeInBytes = (nuint)sizeof(ComputePipelineStream)
                 };
 
-                var result = CreatePSO(desc.CompiledHash, desc.VariantKey, pipelineKey, &streamDesc);
+                var result = CreatePSO(desc.CompiledHash, pipelineKey, &streamDesc);
                 if (result.IsFailure)
                 {
                     return result;

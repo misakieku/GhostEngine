@@ -21,7 +21,7 @@ public readonly ref struct SystemAPI
     /// <summary>
     /// Gets the world current system is running on.
     /// </summary>
-    public World World
+    public required World World
     {
         get; init;
     }
@@ -39,14 +39,6 @@ public abstract class SystemBase : ISystem
     private UnsafeList<int> _requiredQueries;
 
     /// <summary>
-    /// Gets the world that the system is running on currently.
-    /// </summary>
-    public World World
-    {
-        get; init;
-    } = null!;
-
-    /// <summary>
     /// Gets the last version that the system update.
     /// </summary>
     public uint LastSystemVersion
@@ -54,7 +46,7 @@ public abstract class SystemBase : ISystem
         get; internal set;
     } = uint.MaxValue - 1;
 
-    private bool ShouldUpdate()
+    private bool ShouldUpdate(scoped in SystemAPI systemAPI)
     {
         if (!_requiredQueries.IsCreated || _requiredQueries.Count == 0)
         {
@@ -64,7 +56,7 @@ public abstract class SystemBase : ISystem
         for (var i = 0; i < _requiredQueries.Count; i++)
         {
             var queryID = _requiredQueries[i];
-            ref var query = ref World.ComponentManager.GetEntityQueryReference(new Identifier<EntityQuery>(queryID));
+            ref var query = ref systemAPI.World.ComponentManager.GetEntityQueryReference(new Identifier<EntityQuery>(queryID));
             if (!query.HasMatchingEntity())
             {
                 return false;
@@ -91,19 +83,19 @@ public abstract class SystemBase : ISystem
 
     void ISystem.Update(scoped in SystemAPI systemAPI)
     {
-        if (ShouldUpdate())
+        if (ShouldUpdate(in systemAPI))
         {
-            if (World.Version - LastSystemVersion > 1)
+            if (systemAPI.World.Version - LastSystemVersion > 1)
             {
                 OnStartRunning();
             }
 
             OnUpdate(in systemAPI);
-            LastSystemVersion = World.Version;
+            LastSystemVersion = systemAPI.World.Version;
         }
         else
         {
-            if (World.Version - LastSystemVersion <= 1)
+            if (systemAPI.World.Version - LastSystemVersion <= 1)
             {
                 OnStopRunning();
             }

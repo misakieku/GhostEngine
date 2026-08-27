@@ -112,11 +112,15 @@ internal static unsafe class RenderGraphHasher
 
         ref readonly var resource = ref resources.GetResource(texture.AsResource());
 
-        // For imported textures, hash the backing heap handle
+        // For imported textures, hash structural properties (format, dimension, usage, size) rather than dynamic handle
         writer->Write(resource.isImported);
         if (resource.isImported)
         {
-            writer->Write(resource.backingResource.GetHashCode());
+            writer->Write(resource.rgTextureDesc.format);
+            writer->Write(resource.rgTextureDesc.dimension);
+            writer->Write(resource.rgTextureDesc.usage);
+            writer->Write(resource.rgTextureDesc.width);
+            writer->Write(resource.rgTextureDesc.height);
             return;
         }
 

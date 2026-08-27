@@ -44,6 +44,15 @@ public readonly struct RenderGraphExecutionContext
     }
 
     /// <summary>
+    /// Optional action invoked on the final Graphics command buffer before it is closed and submitted.
+    /// Used for recording epilogue present barriers directly without allocating an isolated command buffer.
+    /// </summary>
+    public Action<ICommandBuffer>? OnFinalGraphicsCommandBuffer
+    {
+        get; init;
+    }
+
+    /// <summary>
     /// Creates a render-graph execution context for the current frame.
     /// </summary>
     public RenderGraphExecutionContext(

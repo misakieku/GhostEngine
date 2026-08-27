@@ -40,21 +40,6 @@ public unsafe interface IResourceDatabase : IDisposable
     bool HasResource(Handle<GPUResource> handle);
 
     /// <summary>
-    /// Retrieves the current barrier data of the specified resource.
-    /// </summary>
-    /// <param name="handle">The handle that uniquely identifies the resource.</param>
-    /// <returns>A ResourceBarrierData value representing the current barrier state.</returns>
-    Result<ResourceBarrierData, Error> GetResourceBarrierData(Handle<GPUResource> handle);
-
-    /// <summary>
-    /// Sets the barrier data of the specified resource handle.
-    /// </summary>
-    /// <param name="handle">The handle that identifies the resource.</param>
-    /// <param name="data">The new barrier data.</param>
-    /// <returns>An Error indicating the success or failure of the operation.</returns>
-    Error SetResourceBarrierData(Handle<GPUResource> handle, ResourceBarrierData data);
-
-    /// <summary>
     /// Retrieves the description of a GPU resource associated with the specified handle.
     /// </summary>
     /// <param name="handle">A handle that identifies the GPU resource for which to obtain the description. Must reference a valid resource.</param>

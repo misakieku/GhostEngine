@@ -21,6 +21,16 @@ internal sealed class FaultInjectingFrameScheduler : IFrameScheduler
         _inner = inner;
     }
 
+    public ICommandBuffer GetPooledCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
+    {
+        return _inner.GetPooledCommandBuffer(type);
+    }
+
+    public void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer)
+    {
+        _inner.ReturnPooledCommandBuffer(commandBuffer);
+    }
+
     public void PrepareSubmissions(int additionalSubmissionCount)
     {
         _inner.PrepareSubmissions(additionalSubmissionCount);

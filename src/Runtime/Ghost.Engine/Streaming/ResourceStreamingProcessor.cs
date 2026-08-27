@@ -97,7 +97,7 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
             return;
         }
 
-        var copyCommandBuffer = context.GraphicsEngine.GetPooledCommandBuffer(CommandBufferType.Copy);
+        var copyCommandBuffer = context.FrameScheduler.GetPooledCommandBuffer(CommandBufferType.Copy);
         var submitted = false;
 
         try
@@ -159,7 +159,7 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
                 }
 
                 _recordedUploads.Clear();
-                context.GraphicsEngine.ReturnPooledCommandBuffer(copyCommandBuffer);
+                context.FrameScheduler.ReturnPooledCommandBuffer(copyCommandBuffer);
             }
         }
     }

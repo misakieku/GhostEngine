@@ -1,11 +1,12 @@
 using Ghost.Core;
 using Ghost.Engine;
 using Ghost.Engine.Components;
-using Ghost.Engine.Systems;
-using Ghost.Engine.Streaming;
-using Ghost.Engine.Utilities;
 using Ghost.Engine.RenderPipeline;
+using Ghost.Engine.Streaming;
+using Ghost.Engine.Systems;
+using Ghost.Engine.Utilities;
 using Ghost.Entities;
+using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12;
 using Ghost.Graphics.RHI;
@@ -32,7 +33,7 @@ internal static class Setup
                 ThreadPriority = ThreadPriority.Normal,
                 DependencyChainCapacity = 8192,
             },
-            RenderDesc = new EngineDesc.Render
+            RenderDescFactory = () => new EngineDesc.Render
             {
                 FrameBufferCount = 2,
                 GraphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 }),
@@ -40,7 +41,7 @@ internal static class Setup
                 ShaderCacheDirectory = "ShaderCache",
                 ShaderCompilationBridge = null
             },
-            ContentProvider = new RuntimeContentProvider("Assets/manifest.json")
+            ContentProviderFactory = () => new RuntimeContentProvider("Assets/manifest.json")
         };
     }
 
@@ -50,7 +51,7 @@ internal static class Setup
         _world = World.Create(engineCore.JobScheduler, 1024);
 
         using var scope = AllocationManager.CreateStackScope();
-        var camSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<Camera>.Value, ComponentTypeID<LocalToWorld>.Value);
+        using var camSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<Camera>.Value, ComponentTypeID<LocalToWorld>.Value);
         var cameraEntity = _world.EntityManager.CreateEntity(camSet);
 
         _world.EntityManager.SetComponent(cameraEntity, new Camera
@@ -71,6 +72,8 @@ internal static class Setup
         });
 
         _world.SystemManager.AddSystem<RenderSystemGroup>();
+
+        _world.AddService(engineCore.RenderEngine);
     }
 
     [RuntimeShutdown]

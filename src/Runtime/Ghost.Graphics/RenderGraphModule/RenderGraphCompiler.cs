@@ -225,6 +225,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 _resourceAllocator,
                 resourceOrdering,
                 allocationHandle);
+
             error = _resourceRegistry.AllocateBackingResources(aliasingPlan, _compilationCache);
             if (error != Error.None)
             {
@@ -1016,6 +1017,18 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             _resourceRegistry.ResourceCount,
             scope.AllocationHandle,
             AllocationOption.Clear);
+        for (var i = 0; i < _resourceRegistry.ResourceCount; i++)
+        {
+            ref readonly var res = ref _resourceRegistry.GetResourceByIndex(i);
+            if (res.isImported && res.hasInitialBarrierState)
+            {
+                resourceStates[i] = new CompiledResourceState(res.initialBarrierState, writes: false);
+            }
+            else
+            {
+                resourceStates[i] = CompiledResourceState.Undefined;
+            }
+        }
         using var usageRecords = BuildPassResourceUsagePlan(
             passes,
             compiledPasses,
@@ -1041,7 +1054,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             ref readonly var boundary = ref syncBoundaries[idx];
             if (boundary.isValid)
             {
-                EmitQueueHandoffBarriers(ref writer, handoffs.AsSpan(), idx, release: true);
+                EmitQueueReleaseBarriers(ref writer, handoffs.AsSpan(), idx);
                 if (boundary.nextCommandBufferId != commandBufferId + 1)
                 {
                     throw new InvalidOperationException("Render-graph sync boundaries must assign contiguous relative command-buffer IDs.");
@@ -1051,8 +1064,6 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 activeQueue = boundary.nextCommandBufferType;
                 commandBufferId = boundary.nextCommandBufferId;
             }
-
-            EmitQueueHandoffBarriers(ref writer, handoffs.AsSpan(), idx, release: false);
 
             if (effectiveQueues[idx] != activeQueue)
             {
@@ -1073,21 +1084,18 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     }
                 }
 
-                // 1. Issue barriers for all merged passes before beginning native pass
-                for (var i = 0; i < nativePass.mergedPassIndices.Count; i++)
-                {
-                    var mergedScheduleIndex = idx + i;
-                    ref readonly var usageRange = ref usageRanges[mergedScheduleIndex];
-                    EmitBarriersForPass(
-                        usageRecords.AsSpan().Slice(usageRange.start, usageRange.count),
-                        mergedScheduleIndex,
-                        effectiveQueues[mergedScheduleIndex],
-                        ref writer,
-                        aliasingPlan,
-                        resourceOrdering,
-                        resourceStates.AsSpan(),
-                        handoffs.AsSpan());
-                }
+                // 1. Issue all prologue barriers (handoff acquire + transitions) for all merged passes before beginning native pass
+                EmitPassPrologueBarriersForMergedPasses(
+                    usageRecords.AsSpan(),
+                    usageRanges.AsSpan(),
+                    idx,
+                    nativePass.mergedPassIndices.Count,
+                    effectiveQueues,
+                    ref writer,
+                    aliasingPlan,
+                    resourceOrdering,
+                    resourceStates.AsSpan(),
+                    handoffs.AsSpan());
 
                 // 2. Begin Native Render Pass
                 writer.Write(RGExecutionOpType.BeginNativePass);
@@ -1110,7 +1118,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             {
                 // Non-raster pass (Compute or Unsafe)
                 ref readonly var usageRange = ref usageRanges[idx];
-                EmitBarriersForPass(
+                EmitPassPrologueBarriers(
                     usageRecords.AsSpan().Slice(usageRange.start, usageRange.count),
                     idx,
                     effectiveQueues[idx],
@@ -1125,6 +1133,11 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 idx++;
             }
         }
+
+        EmitClosingBarriers(
+            ref writer,
+            activeQueue,
+            resourceStates.AsSpan());
     }
 
     private static void WriteSyncBoundary(ref BufferWriter writer, scoped in SyncBoundary boundary)

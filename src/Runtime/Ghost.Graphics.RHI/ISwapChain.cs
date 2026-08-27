@@ -58,6 +58,12 @@ public interface ISwapChain : IDisposable
     void Present(bool vsync = true);
 
     /// <summary>
+    /// Waits for the swap chain's frame latency waitable object to be signaled.
+    /// </summary>
+    /// <param name="timeoutMs">Timeout in milliseconds.</param>
+    void WaitForFrameLatency(uint timeoutMs = 1000);
+
+    /// <summary>
     /// Resizes the swap chain back buffers
     /// </summary>
     /// <param name="width">New Width</param>
