@@ -1,6 +1,8 @@
+using Ghost.AssetForge.Core.Bakers;
 using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using System.Reflection;
 
 namespace Ghost.AssetForge.CLI;
 
@@ -54,22 +56,41 @@ public class Program
 
         try
         {
-            using var registry = new BakerRegistry();
+            using var registry = new BakerRegistry(autoDiscover: false);
+
+            var textureAttr = typeof(TextureBaker).GetCustomAttribute<AssetBakerAttribute>()!;
+            registry.Register<TextureBaker>(textureAttr.Type, textureAttr.SettingsType, textureAttr.Extensions);
+
+            var shaderAttr = typeof(ShaderBaker).GetCustomAttribute<AssetBakerAttribute>()!;
+            registry.Register<ShaderBaker>(shaderAttr.Type, shaderAttr.SettingsType, shaderAttr.Extensions);
+
             var projectService = new ProjectService(registry);
             projectService.InitializeFromArgs(assetDirs, cacheDir, buildDir, shaderMetadataPaths);
+            var context = projectService.GetContext();
 
-            var bakeService = new BakeService(projectService, registry);
-            var packService = new PackService(projectService, registry);
+            var bakeService = new BakeService(context, registry);
+            var packService = new PackService(context, registry);
 
             Console.WriteLine($"Starting asset bake & pack pipeline...");
             Console.WriteLine($"Assets: {string.Join(", ", assetDirs)}");
             Console.WriteLine($"Cache: {cacheDir}");
             Console.WriteLine($"Build: {buildDir}");
 
-            await bakeService.BakeProjectAsync();
+            var bakeResult = await bakeService.BakeProjectAsync();
+            if (bakeResult.Failed > 0)
+            {
+                Console.WriteLine($"Bake failed: {bakeResult.Failed} of {bakeResult.Total} assets failed.");
+                foreach (var failedAsset in bakeResult.FailedAssets)
+                {
+                    Console.WriteLine($"  Failed: {failedAsset}");
+                }
+                Environment.Exit(1);
+            }
+
             await packService.PackProjectAsync();
 
             Console.WriteLine("Asset bake & pack complete.");
+            Environment.Exit(0);
         }
         finally
         {

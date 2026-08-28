@@ -157,15 +157,22 @@ public partial class AssetManager : IDisposable
         var previousState = Interlocked.CompareExchange(ref entry.StateValue, (int)AssetState.Scheduled, (int)AssetState.Unloaded);
         if (previousState != (int)AssetState.Unloaded)
         {
-            if (previousState != (int)AssetState.Scheduled || entry.LoadJobHandle.IsValid)
+            // Reimport path: the entry is already Scheduled. Only the thread that can atomically
+            // claim the outstanding reimport request may re-schedule it; any other thread bails
+            // out here (it is re-queued once the entry returns to Ready). This closes the TOCTOU
+            // window between ReimportAsset invalidating the old load job and EnsureScheduled
+            // re-scheduling, so the entry can never be scheduled by two threads at once (BUG-08).
+            if (previousState != (int)AssetState.Scheduled || !entry.TryConsumePendingReimport())
             {
                 return;
             }
         }
 
         // TODO: Can this be jobified? If the dependency tree is not deep, it should be fine to do it in main thread, otherwise we might need to schedule a job to do it.
-        var dependency = JobHandle.Invalid;
-        if (entry.Dependencies.Length > 0)
+        // The combined dependency handle is resolved once and cached on the entry; subsequent
+        // re-schedules (e.g. reimport) reuse it instead of re-traversing the whole graph (PERF-07).
+        var dependency = entry.CombinedDependencyJobHandle;
+        if (!dependency.IsValid && entry.Dependencies.Length > 0)
         {
             // Avoid stack overflow for deep dependency tree like a scene.
 
@@ -203,17 +210,30 @@ public partial class AssetManager : IDisposable
 
             using var depHandles = new UnsafeList<JobHandle>(list.Count, scope.AllocationHandle);
 
-            // Schedule all dependencies first (depth-first)
-            for (var i = list.Count - 1; i >= 0; i--)
+            // Schedule all dependencies first. Direct dependencies are visited before transitive
+            // ones so that, by the time the transient reference taken by GetOrCreateEntry below is
+            // released, the entry is already referenced by at least one of its parents and is not
+            // removed/re-created by the Release cascade.
+            for (var i = 0; i < list.Count; i++)
             {
                 // This should create the entry and schedule the job on those assets does not have any dependency first.
-                var depHandle = GetOrCreateEntry(list[i]).LoadJobHandle;
+                var depEntry = GetOrCreateEntry(list[i]);
+                var depHandle = depEntry.LoadJobHandle;
                 Logger.DebugAssert(depHandle.IsValid);
 
                 depHandles.Add(depHandle);
+
+                // GetOrCreateEntry takes a reference on the entry. References on direct dependencies
+                // are balanced by this entry's Release() cascade; the transient reference on a
+                // transitive-only dependency must be released here or it leaks (BUG-04).
+                if (!IsDirectDependency(entry, list[i]))
+                {
+                    depEntry.Release();
+                }
             }
 
             dependency = _jobScheduler.CombineDependencies(depHandles);
+            entry.SetCombinedDependencyJobHandle(dependency);
         }
 
         var job = new LoadAssetJob
@@ -225,6 +245,20 @@ public partial class AssetManager : IDisposable
 
         var handle = _jobScheduler.Schedule(ref job, JobPriority.Low, dependency);
         entry.SetLoadJobHandle(handle); // Use low priority to avoid blocking main thread critical tasks like rendering and physics.
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsDirectDependency(AssetEntry entry, Guid guid)
+    {
+        foreach (var dep in entry.Dependencies)
+        {
+            if (dep == guid)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     internal void ReimportAsset(Guid guid)
@@ -240,7 +274,9 @@ public partial class AssetManager : IDisposable
             // Go directly to Scheduled -> Loading -> Loaded -> Uploading -> Ready again.
             // The swap cycle in RecordTextureUpload/OnTextureUploadComplete handles the 
             // v1 to v2 transition exactly like the fallback to v1 transition.
-            entry.SetLoadJobHandle(JobHandle.Invalid);
+            // Request the re-schedule atomically: EnsureScheduled claims this request via
+            // TryConsumePendingReimport, so no other thread can double-schedule the entry (BUG-08).
+            entry.SetPendingReimport();
             EnsureScheduled(entry);
         }
         else
@@ -294,6 +330,11 @@ public partial class AssetManager : IDisposable
         Logger.DebugAssert(_entries.IsEmpty, $"There are still {_entries.Count} assets in the manager. Make sure to release all assets before disposing the manager.");
 
         _entries.Clear();
+
+        if (_contentProvider is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
 
         GC.SuppressFinalize(this);
     }

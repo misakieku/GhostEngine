@@ -14,9 +14,10 @@ internal partial class TextureBaker
         var tempFilePath = Path.GetTempFileName();
 
         UnsafeArray<MipLevel> mipLevels = default;
+        var isHdrCube = textureInfo.isHDR && settings.Basic.TextureShape == TextureShape.TextureCube;
         try
         {
-            if (settings.Basic.TextureShape == TextureShape.TextureCube)
+            if (isHdrCube)
             {
                 int maxCubeMips;
                 int edge;
@@ -69,7 +70,7 @@ internal partial class TextureBaker
 
             var mipmapCount = await Task.Run((Func<int>)(() =>
             {
-                if (settings.Basic.TextureShape == TextureShape.TextureCube)
+                if (isHdrCube)
                 {
                     return RunCubeMapCompressionPipeline(tempFilePath, textureInfo, settings, mipLevels);
                 }

@@ -55,7 +55,7 @@ public class Program
         });
 
         File.WriteAllText(outputFile, json);
-        Console.WriteLine($"Extracted {manifest.VirtualShader.Count} shader properties to {outputFile}");
+        Console.WriteLine($"Extracted {manifest.ReflectionDatas.Count} shader properties to {outputFile}");
         Console.WriteLine($"Generated {manifest.VirtualShader.Count} shader codes.");
     }
 }

@@ -156,18 +156,6 @@ public class AntlrShaderCompiler
             semantics.shaderModel = shaderModel;
         }
 
-        if (syntax.Keywords != null)
-        {
-            semantics.keywords = new List<KeywordsGroup>();
-            foreach (var group in syntax.Keywords.Groups)
-            {
-                var keywordGroup = new KeywordsGroup
-                {
-                    keywords = group.Keywords
-                };
-                semantics.keywords.Add(keywordGroup);
-            }
-        }
 
         foreach (var entry in syntax.ShaderEntries)
         {
@@ -274,9 +262,9 @@ public class AntlrShaderCompiler
         return semantic;
     }
 
-    private static PassSemantic? ConvertPass(PassBlockSyntax pass, List<DSLShaderError> errors)
+    private static ShaderPassSemantic? ConvertPass(PassBlockSyntax pass, List<DSLShaderError> errors)
     {
-        var semantic = new PassSemantic
+        var semantic = new ShaderPassSemantic
         {
             name = pass.Name,
             hlsl = pass.Hlsl?.Code,
@@ -285,18 +273,6 @@ public class AntlrShaderCompiler
             localPipeline = ConvertPipeline(pass.LocalPipeline, errors)
         };
 
-        if (pass.Keywords != null)
-        {
-            semantic.keywords = new List<KeywordsGroup>();
-            foreach (var group in pass.Keywords.Groups)
-            {
-                var keywordGroup = new KeywordsGroup
-                {
-                    keywords = group.Keywords
-                };
-                semantic.keywords.Add(keywordGroup);
-            }
-        }
 
         foreach (var entry in pass.ShaderEntries)
         {
@@ -360,10 +336,36 @@ public class AntlrShaderCompiler
         var semantics = new GraphicsShaderSemantics
         {
             name = syntax.Name,
+            templateName = syntax.TemplateName,
+            payload = syntax.Payload?.Code,
+            hlsl = syntax.Hlsl?.Code,
+            includes = syntax.Includes?.Includes ?? new List<string>(),
             pipeline = ConvertPipeline(syntax.Pipeline, errors)
         };
 
-        if (TryGetShaderModel(syntax.ShaderModel, errors, out var shaderModel))
+        if (syntax.Properties != null)
+        {
+            foreach (var prop in syntax.Properties.Properties)
+            {
+                semantics.properties.Add(new PropertySemantic
+                {
+                    type = prop.Type,
+                    name = prop.Name,
+                    defaultValue = prop.DefaultValue
+                });
+            }
+        }
+
+        if (string.IsNullOrEmpty(syntax.TemplateName) && syntax.Passes.Count == 0)
+        {
+            errors.Add(new DSLShaderError
+            {
+                message = "Shader must either inherit from a template (e.g. : \"Lit\") or contain pass definitions.",
+                line = 0,
+                column = 0
+            });
+        }
+        else if (TryGetShaderModel(syntax.ShaderModel, errors, out var shaderModel))
         {
             semantics.shaderModel = shaderModel;
         }

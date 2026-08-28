@@ -91,6 +91,11 @@ internal class EntryPointGenerator : IIncrementalGenerator
         var shutdownArray = tuple.Left.Shutdown;
         var configArray = tuple.Config;
 
+        if (initializeArray.IsEmpty && shutdownArray.IsEmpty && configArray.IsEmpty)
+        {
+            return;
+        }
+
         var configCall = GetConfigCall(context, configArray);
         var initCall = GetInitCall(context, initializeArray);
         var shutdownCall = GetShutdownCall(context, shutdownArray);

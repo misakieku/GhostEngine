@@ -24,7 +24,6 @@ public class AssetBakerTests
         _bakerRegistry = new BakerRegistry();
 
         _projectService = new ProjectService(_bakerRegistry);
-        _bakeService = new BakeService(_projectService, _bakerRegistry);
     }
 
     [TestCleanup]
@@ -92,11 +91,12 @@ public class AssetBakerTests
     }
 
     [TestMethod]
-    public async Task TestDuplicateAssetNameThrowsException()
+    public async Task TestDuplicateAssetNameReturnsFailedResult()
     {
         // Set up project
         var projectDir = Path.Combine(_tempDir, "MyProject");
         _projectService.CreateProject(projectDir, "MyProject");
+        _bakeService = new BakeService(_projectService.GetContext(), _bakerRegistry);
 
         var assetDir = Path.Combine(projectDir, "Asset");
         var texDir = Path.Combine(assetDir, "Textures");
@@ -111,19 +111,16 @@ public class AssetBakerTests
         _projectService.SaveMetadata(Path.Combine(texDir, "skybox.png.meta"), meta1);
         _projectService.SaveMetadata(Path.Combine(texDir, "skybox.tga.meta"), meta1);
 
-        // Run bake pipeline, should throw InvalidOperationException
-        var threw = false;
-        try
-        {
-            await _bakeService.BakeProjectAsync();
-        }
-        catch (Exception ex)
-        {
-            threw = true;
-            StringAssert.Contains(ex.Message, "Duplicate asset name");
-        }
+        // Run bake pipeline: duplicates are detected in a pre-scan, nothing is baked,
+        // and the result reports every duplicated asset as failed (no exception thrown).
+        var result = await _bakeService.BakeProjectAsync();
 
-        Assert.IsTrue(threw, "BakeProjectAsync should throw when duplicate asset names are present.");
+        Assert.AreEqual(2, result.Total);
+        Assert.AreEqual(2, result.Failed);
+        Assert.AreEqual(0, result.Succeeded);
+        Assert.AreEqual(0, result.Skipped);
+        Assert.HasCount(2, result.FailedAssets);
+        Assert.Contains("Textures/skybox", result.FailedAssets[0]);
     }
 
     [TestMethod]
@@ -131,6 +128,7 @@ public class AssetBakerTests
     {
         var projectDir = Path.Combine(_tempDir, "IncrementalProject");
         _projectService.CreateProject(projectDir, "IncrementalProject");
+        _bakeService = new BakeService(_projectService.GetContext(), _bakerRegistry);
 
         var assetDir = _projectService.AssetDirectories[0];
         var cacheDir = _projectService.CacheDirectory;

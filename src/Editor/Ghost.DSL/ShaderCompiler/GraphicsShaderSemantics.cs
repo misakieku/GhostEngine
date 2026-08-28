@@ -25,7 +25,14 @@ public class PipelineSemantic
     public ColorWriteMask? colorMask;
 }
 
-public class PassSemantic
+public class PropertySemantic
+{
+    public string type = string.Empty;
+    public string name = string.Empty;
+    public string? defaultValue;
+}
+
+public class ShaderPassSemantic
 {
     public string name = string.Empty;
     public ShaderEntryPoint amplificationShader;
@@ -34,16 +41,20 @@ public class PassSemantic
     public string? hlsl;
     public List<string>? defines;
     public List<string>? includes;
-    public List<KeywordsGroup>? keywords;
     public PipelineSemantic? localPipeline;
 }
 
 public class GraphicsShaderSemantics
 {
     public string name = string.Empty;
+    public string? templateName;
+    public string? payload;
+    public string? hlsl;
+    public List<PropertySemantic> properties = new List<PropertySemantic>();
+    public List<string> includes = new List<string>();
     public ShaderModel shaderModel;
     public PipelineSemantic? pipeline;
-    public List<PassSemantic> passes = new List<PassSemantic>();
+    public List<ShaderPassSemantic> passes = new List<ShaderPassSemantic>();
 }
 
 public class ComputeShaderSemantics
@@ -53,6 +64,5 @@ public class ComputeShaderSemantics
     public ShaderModel shaderModel;
     public List<string> defines = new List<string>();
     public List<string> includes = new List<string>();
-    public List<KeywordsGroup> keywords = new List<KeywordsGroup>();
     public List<ShaderEntryPoint> entryPoints = new List<ShaderEntryPoint>();
 }

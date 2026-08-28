@@ -21,22 +21,26 @@ public class AssetMetadataConverter : JsonConverter<AssetMetadata>
     {
         if (string.IsNullOrEmpty(typeName)) return null;
 
-        var type = Type.GetType(typeName);
-        if (type != null) return type;
+        // Backward compatibility: older .meta files stored the AssemblyQualifiedName
+        // (e.g. "Namespace.Type, Assembly, Version=1.0.0.0, ..."). Strip everything
+        // from the first comma so the lookup is by FullName only and stays immune to
+        // assembly version bumps.
+        var commaIndex = typeName.IndexOf(',');
+        if (commaIndex >= 0)
+        {
+            typeName = typeName[..commaIndex].Trim();
+        }
 
-        // Try searching loaded assemblies by full name or simple class name
+        // Scan all loaded assemblies for a type whose FullName matches.
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
-            type = assembly.GetType(typeName);
-            if (type != null) return type;
-
             try
             {
-                foreach (var t in assembly.GetTypes())
+                foreach (var type in assembly.GetTypes())
                 {
-                    if (t.Name == typeName || t.FullName == typeName)
+                    if (type.FullName == typeName)
                     {
-                        return t;
+                        return type;
                     }
                 }
             }
@@ -86,7 +90,7 @@ public class AssetMetadataConverter : JsonConverter<AssetMetadata>
         if (value.Settings != null)
         {
             var settingsType = value.Settings.GetType();
-            writer.WriteString("SettingsType", settingsType.AssemblyQualifiedName ?? settingsType.FullName ?? settingsType.Name);
+            writer.WriteString("SettingsType", settingsType.FullName ?? settingsType.Name);
             writer.WritePropertyName("Settings");
             JsonSerializer.Serialize(writer, value.Settings, settingsType, options);
         }

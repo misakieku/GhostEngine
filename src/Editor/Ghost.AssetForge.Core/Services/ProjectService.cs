@@ -98,7 +98,7 @@ public class ProjectService
         OnProjectLoaded?.Invoke();
     }
 
-    public void OpenProject(string path)
+    public void OpenProject(string path, string configuration = "Debug")
     {
         string csprojPath = path;
         string folderPath = path;
@@ -142,7 +142,6 @@ public class ProjectService
                 var ns = doc.Root?.Name.Namespace ?? XNamespace.None;
                 
                 string? targetFramework = doc.Descendants(ns + "TargetFramework").FirstOrDefault()?.Value ?? "net10.0";
-                string configuration = "Debug"; // Default assumption
 
                 string ReplaceMacros(string value)
                 {
@@ -196,6 +195,16 @@ public class ProjectService
     {
         // Settings are now stored in .csproj or standard MSBuild properties,
         // so we don't save a proprietary project.json anymore.
+    }
+
+    /// <summary>
+    /// Returns an immutable snapshot of the currently loaded project's configuration.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">No project is currently loaded.</exception>
+    public ProjectContext GetContext()
+    {
+        var project = CurrentProject ?? throw new InvalidOperationException("No project loaded.");
+        return new ProjectContext(project, AssetDirectories, CacheDirectory, BuildDirectory, ShaderMetadataPaths);
     }
 
     public void ImportAsset(string sourceFilePath, string targetVirtualPath)

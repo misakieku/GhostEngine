@@ -8,15 +8,49 @@ options {
 shaderFile: shader + EOF;
 
 shader:
-    SHADER STRING_LITERAL LBRACE
+    SHADER STRING_LITERAL (COLON STRING_LITERAL)? LBRACE
         shaderBody
     RBRACE;
 
 shaderBody:
-    shaderModel | (pipelineBlock | passBlock | functionCall)*;
+    shaderModel | (propertiesBlock | payloadBlock | includesBlock | pipelineBlock | hlslBlock | passBlock | functionCall)*;
 
 shaderModel:
     SM IDENTIFIER SEMICOLON;
+
+// Properties block
+propertiesBlock:
+    PROPERTIES LBRACE
+        propertyStatement*
+    RBRACE;
+
+propertyStatement:
+    IDENTIFIER IDENTIFIER (EQUALS propertyDefaultValue)? SEMICOLON;
+
+propertyDefaultValue:
+    IDENTIFIER LPAREN propertyDefaultArguments? RPAREN
+    | NUMBER
+    | STRING_LITERAL
+    | IDENTIFIER;
+
+propertyDefaultArguments:
+    propertyDefaultArgument (COMMA propertyDefaultArgument)*;
+
+propertyDefaultArgument:
+    NUMBER | IDENTIFIER | STRING_LITERAL;
+
+// Payload block
+payloadBlock:
+    PAYLOAD LBRACE
+        payloadBody
+    RBRACE;
+
+payloadBody:
+    (
+        ~(LBRACE | RBRACE)
+        |
+        LBRACE payloadBody RBRACE
+    )*;
 
 // Pipeline block
 pipelineBlock:
@@ -35,7 +69,7 @@ passBlock:
 
 // Template
 passBody:
-    (definesBlock | includesBlock | keywordsBlock | pipelineBlock | hlslBlock | shaderEntry)*;
+    (definesBlock | includesBlock | pipelineBlock | hlslBlock | shaderEntry)*;
 
 definesBlock:
     DEFINES LBRACE
@@ -52,15 +86,6 @@ includesBlock:
 
 includeStatement:
     STRING_LITERAL SEMICOLON;
-
-keywordsBlock:
-    KEYWORDS LBRACE
-        keywordStatement*
-    RBRACE;
-
-keywordStatement:
-    IDENTIFIER (COMMA IDENTIFIER)* SEMICOLON;
-
 hlslBlock:
     HLSL LBRACE
         hlslBody

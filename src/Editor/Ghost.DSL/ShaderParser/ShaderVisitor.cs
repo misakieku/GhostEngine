@@ -14,13 +14,42 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
     {
         var shader = new GraphicsShaderSyntax
         {
-            Name = StripQuotes(context.STRING_LITERAL().GetText())
+            Name = StripQuotes(context.STRING_LITERAL(0).GetText())
         };
+
+        if (context.STRING_LITERAL().Length > 1)
+        {
+            shader.TemplateName = StripQuotes(context.STRING_LITERAL(1).GetText());
+        }
 
         var shaderBody = context.shaderBody();
         if (shaderBody != null)
         {
             shader.ShaderModel = shaderBody.shaderModel()?.GetText() ?? string.Empty;
+
+            var propertiesBlock = shaderBody.propertiesBlock().FirstOrDefault();
+            if (propertiesBlock != null)
+            {
+                shader.Properties = (PropertiesBlockSyntax)VisitPropertiesBlock(propertiesBlock);
+            }
+
+            var payloadBlock = shaderBody.payloadBlock().FirstOrDefault();
+            if (payloadBlock != null)
+            {
+                shader.Payload = (PayloadBlockSyntax)VisitPayloadBlock(payloadBlock);
+            }
+
+            var includesBlock = shaderBody.includesBlock().FirstOrDefault();
+            if (includesBlock != null)
+            {
+                shader.Includes = (IncludesBlockSyntax)VisitIncludesBlock(includesBlock);
+            }
+
+            var hlslBlock = shaderBody.hlslBlock().FirstOrDefault();
+            if (hlslBlock != null)
+            {
+                shader.Hlsl = (HlslBlockSyntax)VisitHlslBlock(hlslBlock);
+            }
 
             foreach (var pipelineBlock in shaderBody.pipelineBlock())
             {
@@ -39,6 +68,40 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         }
 
         return shader;
+    }
+
+    public override object VisitPropertiesBlock([NotNull] GhostShaderParser.PropertiesBlockContext context)
+    {
+        var properties = new PropertiesBlockSyntax();
+
+        foreach (var stmt in context.propertyStatement())
+        {
+            var prop = new PropertyStatementSyntax
+            {
+                Type = stmt.IDENTIFIER(0).GetText(),
+                Name = stmt.IDENTIFIER(1).GetText(),
+                DefaultValue = stmt.propertyDefaultValue()?.GetText()
+            };
+            properties.Properties.Add(prop);
+        }
+
+        return properties;
+    }
+
+    public override object VisitPayloadBlock([NotNull] GhostShaderParser.PayloadBlockContext context)
+    {
+        var payload = new PayloadBlockSyntax();
+
+        var start = context.LBRACE().Symbol.StopIndex + 1;
+        var stop = context.RBRACE().Symbol.StartIndex - 1;
+
+        if (stop >= start)
+        {
+            var input = context.Start.InputStream;
+            payload.Code = input.GetText(new Interval(start, stop));
+        }
+
+        return payload;
     }
 
     public override object VisitPipelineBlock([NotNull] GhostShaderParser.PipelineBlockContext context)
@@ -73,11 +136,6 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
             foreach (var includesBlock in passBody.includesBlock())
             {
                 pass.Includes = (IncludesBlockSyntax)VisitIncludesBlock(includesBlock);
-            }
-
-            foreach (var keywordsBlock in passBody.keywordsBlock())
-            {
-                pass.Keywords = (KeywordsBlockSyntax)VisitKeywordsBlock(keywordsBlock);
             }
 
             foreach (var pipelineBlock in passBody.pipelineBlock())
@@ -121,25 +179,6 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         }
 
         return includes;
-    }
-
-    public override object VisitKeywordsBlock([NotNull] GhostShaderParser.KeywordsBlockContext context)
-    {
-        var keywords = new KeywordsBlockSyntax();
-
-        foreach (var keywordStmt in context.keywordStatement())
-        {
-            var group = new KeywordGroupSyntax();
-            
-            foreach (var identifier in keywordStmt.IDENTIFIER())
-            {
-                group.Keywords.Add(identifier.GetText());
-            }
-
-            keywords.Groups.Add(group);
-        }
-
-        return keywords;
     }
 
     public override object VisitHlslBlock([NotNull] GhostShaderParser.HlslBlockContext context)

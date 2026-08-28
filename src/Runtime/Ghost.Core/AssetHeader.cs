@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -98,57 +99,183 @@ public struct TextureContentHeader()
 /// <remarks>
 /// The layout of the shader asset in binary will be:
 /// [ShaderContentHeader]
-/// [KeywordStringTableSize: uint]
-/// [KeywordStringTableData: byte[]]
 /// For each pass:
 ///   [PassHeader]
-///   [KeywordGroupDescriptor * keywordGroupCount]
-///   [VariantEntry * variantCount]
-///   For each variant:
-///     [EntryPointHeader * entryPointCount]
-///     [Bytecode]
+///   [EntryPointHeader * entryPointCount]
+///   [Bytecode]
 /// </remarks>
 [StructLayout(LayoutKind.Sequential, Size = 64)]
 public struct ShaderContentHeader()
 {
-    public struct KeywordGroupDescriptor
-    {
-        public uint stringTableOffset;
-        public uint keywordCount;
-    }
-
-    public struct VariantEntry
-    {
-        public ulong variantKey;
-        public long dataOffset; // Offset relative to the start of the asset
-        public long dataSize;
-    }
 
     public struct PassHeader
     {
         public uint entryPointCount;
-        public uint variantCount;
-        public uint keywordGroupCount;
+        public long dataOffset; // Offset relative to the start of the asset
+        public long dataSize;
     }
 
     public struct EntryPointHeader
     {
         public ShaderStage stage;
-        public long byteCodeOffset; // Offset to the shader bytecode for this entry point, relative to the start of the variant data
+        public long byteCodeOffset; // Offset to the shader bytecode for this entry point, relative to the start of the pass data
         public long byteCodeSize;
     }
 
     public const uint MAGIC = 0x52484453; // SHDR
-    public const uint VERSION = 2;
+    public const uint VERSION = 3;
 
     public uint magic = MAGIC;
     public uint version = VERSION;
 
     public ShaderType shaderType;
     public uint passCount;
-    
-    public uint keywordStringTableOffset;
-    public uint keywordStringTableSize;
+}
+
+/// <summary>
+/// The header written at offset 0 of every cache file produced by the asset baker.
+/// </summary>
+/// <remarks>
+/// The layout of the cache file in binary will be:
+/// [CacheFileHeader]
+/// [Baker payload (e.g. TextureContentHeader + TextureData)]
+///
+/// The <see cref="bakerVersion"/> is a stable FNV-1a hash of the baker class name and
+/// settings type name, so cache files produced by an older baker version or a different
+/// settings type are detected and force a rebake instead of silently producing corrupt packs.
+/// </remarks>
+[StructLayout(LayoutKind.Sequential, Size = 16)]
+public struct CacheFileHeader()
+{
+    public const uint MAGIC = 0x46435347; // "GSCF" — little-endian byte order, matching GTEX/SHDR
+    public const int SIZE = 16;
+
+    public uint magic = MAGIC;
+    public uint bakerVersion;
+    public ulong reserved;
+
+    /// <summary>
+    /// Computes a stable content-format version for a baker/settings type pair.
+    /// </summary>
+    /// <param name="bakerType">The concrete baker implementation type.</param>
+    /// <param name="settingsType">The concrete bake-settings type consumed by the baker.</param>
+    /// <returns>
+    /// A 32-bit FNV-1a hash over the UTF-8 bytes of <c>bakerType.FullName + ":" + settingsType.FullName</c>.
+    /// </returns>
+    public static uint ComputeBakerVersion(Type bakerType, Type settingsType)
+    {
+        return Fnv1a($"{bakerType.FullName}:{settingsType.FullName}");
+    }
+
+    /// <summary>
+    /// Computes a stable 32-bit FNV-1a hash over the UTF-8 bytes of <paramref name="value"/>.
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="string.GetHashCode"/> (which is randomized per process), this is
+    /// deterministic across runs and frameworks, making it safe to persist to disk.
+    /// </remarks>
+    public static uint Fnv1a(string value)
+    {
+        const uint OFFSET_BASIS = 2166136261;
+        const uint PRIME = 16777619;
+
+        var hash = OFFSET_BASIS;
+        foreach (var b in Encoding.UTF8.GetBytes(value))
+        {
+            hash ^= b;
+            hash *= PRIME;
+        }
+
+        return hash;
+    }
+
+    /// <summary>
+    /// Writes this header to the given stream at its current position.
+    /// </summary>
+    public void WriteTo(Stream stream)
+    {
+        Span<byte> bytes = stackalloc byte[SIZE];
+        MemoryMarshal.Write(bytes, in this);
+        stream.Write(bytes);
+    }
+
+    /// <summary>
+    /// Attempts to read a <see cref="CacheFileHeader"/> from the given stream at its current position.
+    /// </summary>
+    /// <returns><c>true</c> when a full header was read; <c>false</c> at end-of-stream or on a short read.</returns>
+    public static bool TryReadFrom(Stream stream, out CacheFileHeader header)
+    {
+        Span<byte> bytes = stackalloc byte[SIZE];
+        var totalRead = 0;
+        while (totalRead < SIZE)
+        {
+            var read = stream.Read(bytes[totalRead..]);
+            if (read == 0)
+            {
+                header = default;
+                return false;
+            }
+            totalRead += read;
+        }
+
+        header = MemoryMarshal.Read<CacheFileHeader>(bytes);
+        return true;
+    }
+}
+
+/// <summary>
+/// The header written at offset 0 of every pack file.
+/// </summary>
+/// <remarks>
+/// Layout:
+/// [4] Magic "GSPK"
+/// [4] Format version
+/// [8] Reserved
+/// [N] Packed asset payloads — manifest offsets are absolute stream positions that include this header.
+/// </remarks>
+[StructLayout(LayoutKind.Sequential, Size = 16)]
+public struct PackFileHeader()
+{
+    public const uint MAGIC = 0x4B505347; // "GSPK" — little-endian byte order, matching GTEX/SHDR
+    public const uint VERSION = 1;
+    public const int SIZE = 16;
+
+    public uint magic = MAGIC;
+    public uint version = VERSION;
+    public ulong reserved;
+
+    /// <summary>
+    /// Writes this header to the given stream at its current position.
+    /// </summary>
+    public void WriteTo(Stream stream)
+    {
+        Span<byte> bytes = stackalloc byte[SIZE];
+        MemoryMarshal.Write(bytes, in this);
+        stream.Write(bytes);
+    }
+
+    /// <summary>
+    /// Attempts to read a <see cref="PackFileHeader"/> from the given stream at its current position.
+    /// </summary>
+    /// <returns><c>true</c> when a full header was read; <c>false</c> at end-of-stream or on a short read.</returns>
+    public static bool TryReadFrom(Stream stream, out PackFileHeader header)
+    {
+        Span<byte> bytes = stackalloc byte[SIZE];
+        var totalRead = 0;
+        while (totalRead < SIZE)
+        {
+            var read = stream.Read(bytes[totalRead..]);
+            if (read == 0)
+            {
+                header = default;
+                return false;
+            }
+            totalRead += read;
+        }
+
+        header = MemoryMarshal.Read<PackFileHeader>(bytes);
+        return true;
+    }
 }
 
 public class Manifest

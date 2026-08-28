@@ -1,0 +1,16 @@
+shader "Default/Unlit" : "Unlit"
+{
+    properties
+    {
+        float customTintScale = 1.0;
+    }
+
+    hlsl
+    {
+        float4 GetColor(uint materialIndex, float2 uv, inout Payload payload)
+        {
+            UnlitShaderProperties props = LoadUnlitProperties(materialIndex);
+            return props.baseColor;
+        }
+    }
+}

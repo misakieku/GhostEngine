@@ -421,6 +421,7 @@ public unsafe class RenderContext
             var psoDes = new ComputePSODesc
             {
                 CompiledHash = compiledHash,
+
                 CsCode = byteCodes.Slice((int)byteCodeOffsets[0]),
             };
 
