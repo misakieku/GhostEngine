@@ -1,14 +1,18 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Ufbx
 {
+    /// <include file='ufbx_material_features.xml' path='doc/member[@name="ufbx_material_features"]/*' />
     public partial struct ufbx_material_features
     {
-        [NativeTypeName("__AnonymousRecord_ufbx_L2600_C2")]
+        /// <include file='ufbx_material_features.xml' path='doc/member[@name="ufbx_material_features.Anonymous"]/*' />
+        [NativeTypeName("__AnonymousRecord_ufbx_L2606_C2")]
         public _Anonymous_e__Union Anonymous;
 
+        /// <include file='_Anonymous_e__Union.xml' path='doc/member[@name="_Anonymous_e__Union.features"]/*' />
         [UnscopedRef]
         public Span<ufbx_material_feature_info> features
         {
@@ -18,6 +22,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.pbr"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info pbr
         {
@@ -27,6 +32,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.metalness"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info metalness
         {
@@ -36,6 +42,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.diffuse"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info diffuse
         {
@@ -45,6 +52,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.specular"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info specular
         {
@@ -54,6 +62,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.emission"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info emission
         {
@@ -63,6 +72,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.transmission"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info transmission
         {
@@ -72,6 +82,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.coat"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info coat
         {
@@ -81,6 +92,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.sheen"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info sheen
         {
@@ -90,6 +102,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.opacity"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info opacity
         {
@@ -99,6 +112,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.ambient_occlusion"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info ambient_occlusion
         {
@@ -108,6 +122,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.matte"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info matte
         {
@@ -117,6 +132,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.unlit"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info unlit
         {
@@ -126,6 +142,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.ior"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info ior
         {
@@ -135,6 +152,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.diffuse_roughness"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info diffuse_roughness
         {
@@ -144,6 +162,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.transmission_roughness"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info transmission_roughness
         {
@@ -153,6 +172,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.thin_walled"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info thin_walled
         {
@@ -162,6 +182,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.caustics"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info caustics
         {
@@ -171,6 +192,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.exit_to_background"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info exit_to_background
         {
@@ -180,6 +202,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.internal_reflections"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info internal_reflections
         {
@@ -189,6 +212,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.double_sided"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info double_sided
         {
@@ -198,6 +222,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.roughness_as_glossiness"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info roughness_as_glossiness
         {
@@ -207,6 +232,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.coat_roughness_as_glossiness"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info coat_roughness_as_glossiness
         {
@@ -216,6 +242,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.transmission_roughness_as_glossiness"]/*' />
         [UnscopedRef]
         public ref ufbx_material_feature_info transmission_roughness_as_glossiness
         {
@@ -225,66 +252,94 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Union.xml' path='doc/member[@name="_Anonymous_e__Union"]/*' />
         [StructLayout(LayoutKind.Explicit)]
         public partial struct _Anonymous_e__Union
         {
+            /// <include file='_Anonymous_e__Union.xml' path='doc/member[@name="_Anonymous_e__Union.features"]/*' />
             [FieldOffset(0)]
             [NativeTypeName("ufbx_material_feature_info[23]")]
             public _features_e__FixedBuffer features;
 
+            /// <include file='_Anonymous_e__Union.xml' path='doc/member[@name="_Anonymous_e__Union.Anonymous"]/*' />
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_ufbx_L2602_C3")]
+            [NativeTypeName("__AnonymousRecord_ufbx_L2608_C3")]
             public _Anonymous_e__Struct Anonymous;
 
+            /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct"]/*' />
             public partial struct _Anonymous_e__Struct
             {
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.pbr"]/*' />
                 public ufbx_material_feature_info pbr;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.metalness"]/*' />
                 public ufbx_material_feature_info metalness;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.diffuse"]/*' />
                 public ufbx_material_feature_info diffuse;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.specular"]/*' />
                 public ufbx_material_feature_info specular;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.emission"]/*' />
                 public ufbx_material_feature_info emission;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.transmission"]/*' />
                 public ufbx_material_feature_info transmission;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.coat"]/*' />
                 public ufbx_material_feature_info coat;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.sheen"]/*' />
                 public ufbx_material_feature_info sheen;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.opacity"]/*' />
                 public ufbx_material_feature_info opacity;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.ambient_occlusion"]/*' />
                 public ufbx_material_feature_info ambient_occlusion;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.matte"]/*' />
                 public ufbx_material_feature_info matte;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.unlit"]/*' />
                 public ufbx_material_feature_info unlit;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.ior"]/*' />
                 public ufbx_material_feature_info ior;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.diffuse_roughness"]/*' />
                 public ufbx_material_feature_info diffuse_roughness;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.transmission_roughness"]/*' />
                 public ufbx_material_feature_info transmission_roughness;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.thin_walled"]/*' />
                 public ufbx_material_feature_info thin_walled;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.caustics"]/*' />
                 public ufbx_material_feature_info caustics;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.exit_to_background"]/*' />
                 public ufbx_material_feature_info exit_to_background;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.internal_reflections"]/*' />
                 public ufbx_material_feature_info internal_reflections;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.double_sided"]/*' />
                 public ufbx_material_feature_info double_sided;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.roughness_as_glossiness"]/*' />
                 public ufbx_material_feature_info roughness_as_glossiness;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.coat_roughness_as_glossiness"]/*' />
                 public ufbx_material_feature_info coat_roughness_as_glossiness;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.transmission_roughness_as_glossiness"]/*' />
                 public ufbx_material_feature_info transmission_roughness_as_glossiness;
             }
 
+            /// <include file='_features_e__FixedBuffer.xml' path='doc/member[@name="_features_e__FixedBuffer"]/*' />
             [InlineArray(23)]
             public partial struct _features_e__FixedBuffer
             {

@@ -11,6 +11,7 @@ namespace Ghost.UnitTest.Benchmarks.Graphics;
 [MemoryDiagnoser]
 public class RenderGraphBenchmark
 {
+#pragma warning disable CS0649 // Field is never assigned to, and will always have its default value
     private struct CullingPassData
     {
         public Identifier<RGBuffer> sceneBuffer;
@@ -45,6 +46,7 @@ public class RenderGraphBenchmark
         public Identifier<RGTexture> source;
         public Identifier<RGTexture> backBuffer;
     }
+#pragma warning restore CS0649 // Field is never assigned to, and will always have its default value
 
     private MockingRenderDevice _renderDevice = null!;
     private MockingResourceDatabase _resourceDatabase = null!;

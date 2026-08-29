@@ -11,14 +11,42 @@ internal class EntryPointGenerator : IIncrementalGenerator
 {
     private class MethodData
     {
-        public string className;
-        public string methodName;
-        public IMethodSymbol methodSymbol;
+        public string ClassName
+        {
+            get;
+        }
+
+        public string MethodName
+        {
+            get;
+        }
+
+        public IMethodSymbol MethodSymbol
+        {
+            get;
+        }
+
+
+        public MethodData(string className, string methodName, IMethodSymbol methodSymbol)
+        {
+            ClassName = className;
+            MethodName = methodName;
+            MethodSymbol = methodSymbol;
+        }
     }
 
     private class ErrorMethodData : MethodData
     {
-        public string errorMessage;
+        public string ErrorMessage
+        {
+            get;
+        }
+
+        public ErrorMethodData(IMethodSymbol methodSymbol, string errorMessage)
+            : base(methodSymbol.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), methodSymbol.Name, methodSymbol)
+        {
+            this.ErrorMessage = errorMessage;
+        }
     }
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -33,12 +61,12 @@ internal class EntryPointGenerator : IIncrementalGenerator
 
                     if (!methodSymbol.IsStatic || !methodSymbol.ReturnsVoid || (methodSymbol.Parameters.Length != 1 && methodSymbol.Parameters[0].Name != "EngineCore"))
                     {
-                        return new ErrorMethodData { methodSymbol = methodSymbol, errorMessage = @"Invalid method signature. The methods with <see cref=""Ghost.Engine.RuntimeInitializeAttribute""/> must return void and have only one parameter with type <see cref=""Ghost.Engine.EngineCore""/>" };
+                        return new ErrorMethodData(methodSymbol, @"Invalid method signature. The methods with <see cref=""Ghost.Engine.RuntimeInitializeAttribute""/> must return void and have only one parameter with type <see cref=""Ghost.Engine.EngineCore""/>");
                     }
 
                     var className = methodSymbol.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                     var methodName = methodSymbol.Name;
-                    return new MethodData { className = className, methodName = methodName, methodSymbol = methodSymbol };
+                    return new MethodData(className, methodName, methodSymbol);
                 })
             .Where(data => data != null)
             .Collect();
@@ -53,12 +81,12 @@ internal class EntryPointGenerator : IIncrementalGenerator
 
                     if (!methodSymbol.IsStatic || !methodSymbol.ReturnsVoid || (methodSymbol.Parameters.Length != 1 && methodSymbol.Parameters[0].Name != "EngineCore"))
                     {
-                        return new ErrorMethodData { methodSymbol = methodSymbol, errorMessage = @"Invalid method signature. The methods with <see cref=""Ghost.Engine.RuntimeShutdownAttribute""/> must return void and have only one parameter with type <see cref=""Ghost.Engine.EngineCore""/>" };
+                        return new ErrorMethodData(methodSymbol, @"Invalid method signature. The methods with <see cref=""Ghost.Engine.RuntimeShutdownAttribute""/> must return void and have only one parameter with type <see cref=""Ghost.Engine.EngineCore""/>");
                     }
 
                     var className = methodSymbol.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                     var methodName = methodSymbol.Name;
-                    return new MethodData { className = className, methodName = methodName, methodSymbol = methodSymbol };
+                    return new MethodData(className, methodName, methodSymbol);
                 })
             .Where(data => data != null)
             .Collect();
@@ -72,12 +100,12 @@ internal class EntryPointGenerator : IIncrementalGenerator
 
                 if (!methodSymbol.IsStatic || (methodSymbol.Parameters.Length != 0 && methodSymbol.ReturnType.Name != "EngineDesc"))
                 {
-                    return new ErrorMethodData { methodSymbol = methodSymbol, errorMessage = @"Invalid method signature. The methods with <see cref=""Ghost.Engine.RuntimeConfigurationAttribute""/> must return <see cref=""Ghost.Engine.EngineDesc""/> and have no parameter" };
+                    return new ErrorMethodData(methodSymbol, @"Invalid method signature. The methods with <see cref=""Ghost.Engine.RuntimeConfigurationAttribute""/> must return <see cref=""Ghost.Engine.EngineDesc""/> and have no parameter");
                 }
 
                 var className = methodSymbol.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                 var methodName = methodSymbol.Name;
-                return new MethodData { className = className, methodName = methodName, methodSymbol = methodSymbol };
+                return new MethodData(className, methodName, methodSymbol);
             })
             .Where(data => data != null)
             .Collect();
@@ -162,13 +190,13 @@ internal class Program
                 context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
                     "GHOST001",
                     "Invalid method signature",
-                    error.errorMessage,
+                    error.ErrorMessage,
                     "Ghost.Generator",
                     DiagnosticSeverity.Error,
-                    true), info.methodSymbol.Locations.FirstOrDefault()));
+                    true), info.MethodSymbol.Locations.FirstOrDefault()));
             }
 
-            sb.AppendLine($"                {info.className}.{info.methodName}(engineCore);");
+            sb.AppendLine($"                {info.ClassName}.{info.MethodName}(engineCore);");
         }
 
         return sb.ToString();
@@ -185,13 +213,13 @@ internal class Program
                 context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
                     "GHOST001",
                     "Invalid method signature",
-                    error.errorMessage,
+                    error.ErrorMessage,
                     "Ghost.Generator",
                     DiagnosticSeverity.Error,
-                    true), info.methodSymbol.Locations.FirstOrDefault()));
+                    true), info.MethodSymbol.Locations.FirstOrDefault()));
             }
 
-            sb.AppendLine($"            {info.className}.{info.methodName}(engineCore);");
+            sb.AppendLine($"            {info.ClassName}.{info.MethodName}(engineCore);");
         }
 
         return sb.ToString();
@@ -224,10 +252,10 @@ internal class Program
                     context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
                         "GHOST001",
                         "Invalid method signature",
-                        error.errorMessage,
+                        error.ErrorMessage,
                         "Ghost.Generator",
                         DiagnosticSeverity.Error,
-                        true), info.methodSymbol.Locations.FirstOrDefault()));
+                        true), info.MethodSymbol.Locations.FirstOrDefault()));
                 }
                 else
                 {
@@ -239,12 +267,12 @@ internal class Program
                             "Only one method with <see cref=\"Ghost.Engine.RuntimeConfigurationAttribute\"/> is allowed.",
                             "Ghost.Generator",
                             DiagnosticSeverity.Error,
-                            true), info.methodSymbol.Locations.FirstOrDefault()));
+                            true), info.MethodSymbol.Locations.FirstOrDefault()));
                     }
                     else
                     {
                         foundConfig = true;
-                        configCode = $"{info.className}.{info.methodName}()";
+                        configCode = $"{info.ClassName}.{info.MethodName}()";
                     }
                 }
             }

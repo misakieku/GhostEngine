@@ -1,14 +1,30 @@
 namespace Ghost.Ufbx
 {
+    /// <include file='ufbx_coordinate_axis.xml' path='doc/member[@name="ufbx_coordinate_axis"]/*' />
     public enum ufbx_coordinate_axis
     {
+        /// <include file='ufbx_coordinate_axis.xml' path='doc/member[@name="ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_X"]/*' />
         UFBX_COORDINATE_AXIS_POSITIVE_X,
+
+        /// <include file='ufbx_coordinate_axis.xml' path='doc/member[@name="ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_NEGATIVE_X"]/*' />
         UFBX_COORDINATE_AXIS_NEGATIVE_X,
+
+        /// <include file='ufbx_coordinate_axis.xml' path='doc/member[@name="ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_Y"]/*' />
         UFBX_COORDINATE_AXIS_POSITIVE_Y,
+
+        /// <include file='ufbx_coordinate_axis.xml' path='doc/member[@name="ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_NEGATIVE_Y"]/*' />
         UFBX_COORDINATE_AXIS_NEGATIVE_Y,
+
+        /// <include file='ufbx_coordinate_axis.xml' path='doc/member[@name="ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_POSITIVE_Z"]/*' />
         UFBX_COORDINATE_AXIS_POSITIVE_Z,
+
+        /// <include file='ufbx_coordinate_axis.xml' path='doc/member[@name="ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_NEGATIVE_Z"]/*' />
         UFBX_COORDINATE_AXIS_NEGATIVE_Z,
+
+        /// <include file='ufbx_coordinate_axis.xml' path='doc/member[@name="ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_UNKNOWN"]/*' />
         UFBX_COORDINATE_AXIS_UNKNOWN,
+
+        /// <include file='ufbx_coordinate_axis.xml' path='doc/member[@name="ufbx_coordinate_axis.UFBX_COORDINATE_AXIS_FORCE_32BIT"]/*' />
         UFBX_COORDINATE_AXIS_FORCE_32BIT = 0x7fffffff,
     }
 }

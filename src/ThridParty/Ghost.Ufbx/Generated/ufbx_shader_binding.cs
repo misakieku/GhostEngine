@@ -3,13 +3,17 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Ufbx
 {
+    /// <include file='ufbx_shader_binding.xml' path='doc/member[@name="ufbx_shader_binding"]/*' />
     public partial struct ufbx_shader_binding
     {
-        [NativeTypeName("__AnonymousRecord_ufbx_L3020_C2")]
+        /// <include file='ufbx_shader_binding.xml' path='doc/member[@name="ufbx_shader_binding.Anonymous"]/*' />
+        [NativeTypeName("__AnonymousRecord_ufbx_L3026_C2")]
         public _Anonymous_e__Union Anonymous;
 
+        /// <include file='ufbx_shader_binding.xml' path='doc/member[@name="ufbx_shader_binding.prop_bindings"]/*' />
         public ufbx_shader_prop_binding_list prop_bindings;
 
+        /// <include file='_Anonymous_e__Union.xml' path='doc/member[@name="_Anonymous_e__Union.element"]/*' />
         [UnscopedRef]
         public ref ufbx_element element
         {
@@ -19,6 +23,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.name"]/*' />
         [UnscopedRef]
         public ref ufbx_string name
         {
@@ -28,6 +33,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.props"]/*' />
         [UnscopedRef]
         public ref ufbx_props props
         {
@@ -37,6 +43,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.element_id"]/*' />
         [UnscopedRef]
         public ref uint element_id
         {
@@ -46,6 +53,7 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.typed_id"]/*' />
         [UnscopedRef]
         public ref uint typed_id
         {
@@ -55,25 +63,33 @@ namespace Ghost.Ufbx
             }
         }
 
+        /// <include file='_Anonymous_e__Union.xml' path='doc/member[@name="_Anonymous_e__Union"]/*' />
         [StructLayout(LayoutKind.Explicit)]
         public partial struct _Anonymous_e__Union
         {
+            /// <include file='_Anonymous_e__Union.xml' path='doc/member[@name="_Anonymous_e__Union.element"]/*' />
             [FieldOffset(0)]
             public ufbx_element element;
 
+            /// <include file='_Anonymous_e__Union.xml' path='doc/member[@name="_Anonymous_e__Union.Anonymous"]/*' />
             [FieldOffset(0)]
-            [NativeTypeName("__AnonymousRecord_ufbx_L3020_C32")]
+            [NativeTypeName("__AnonymousRecord_ufbx_L3026_C32")]
             public _Anonymous_e__Struct Anonymous;
 
+            /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct"]/*' />
             public partial struct _Anonymous_e__Struct
             {
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.name"]/*' />
                 public ufbx_string name;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.props"]/*' />
                 public ufbx_props props;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.element_id"]/*' />
                 [NativeTypeName("uint32_t")]
                 public uint element_id;
 
+                /// <include file='_Anonymous_e__Struct.xml' path='doc/member[@name="_Anonymous_e__Struct.typed_id"]/*' />
                 [NativeTypeName("uint32_t")]
                 public uint typed_id;
             }

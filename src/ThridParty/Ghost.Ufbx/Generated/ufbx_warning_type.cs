@@ -1,23 +1,57 @@
 namespace Ghost.Ufbx
 {
+    /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type"]/*' />
     public enum ufbx_warning_type
     {
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_MISSING_EXTERNAL_FILE"]/*' />
         UFBX_WARNING_MISSING_EXTERNAL_FILE,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_IMPLICIT_MTL"]/*' />
         UFBX_WARNING_IMPLICIT_MTL,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_TRUNCATED_ARRAY"]/*' />
         UFBX_WARNING_TRUNCATED_ARRAY,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_MISSING_GEOMETRY_DATA"]/*' />
         UFBX_WARNING_MISSING_GEOMETRY_DATA,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_DUPLICATE_CONNECTION"]/*' />
         UFBX_WARNING_DUPLICATE_CONNECTION,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_BAD_VERTEX_W_ATTRIBUTE"]/*' />
         UFBX_WARNING_BAD_VERTEX_W_ATTRIBUTE,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_MISSING_POLYGON_MAPPING"]/*' />
         UFBX_WARNING_MISSING_POLYGON_MAPPING,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_UNSUPPORTED_VERSION"]/*' />
         UFBX_WARNING_UNSUPPORTED_VERSION,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_INDEX_CLAMPED"]/*' />
         UFBX_WARNING_INDEX_CLAMPED,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_BAD_UNICODE"]/*' />
         UFBX_WARNING_BAD_UNICODE,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_BAD_BASE64_CONTENT"]/*' />
         UFBX_WARNING_BAD_BASE64_CONTENT,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_BAD_ELEMENT_CONNECTED_TO_ROOT"]/*' />
         UFBX_WARNING_BAD_ELEMENT_CONNECTED_TO_ROOT,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_DUPLICATE_OBJECT_ID"]/*' />
         UFBX_WARNING_DUPLICATE_OBJECT_ID,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_EMPTY_FACE_REMOVED"]/*' />
         UFBX_WARNING_EMPTY_FACE_REMOVED,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_UNKNOWN_OBJ_DIRECTIVE"]/*' />
         UFBX_WARNING_UNKNOWN_OBJ_DIRECTIVE,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_TYPE_FIRST_DEDUPLICATED"]/*' />
         UFBX_WARNING_TYPE_FIRST_DEDUPLICATED = UFBX_WARNING_INDEX_CLAMPED,
+
+        /// <include file='ufbx_warning_type.xml' path='doc/member[@name="ufbx_warning_type.UFBX_WARNING_TYPE_FORCE_32BIT"]/*' />
         UFBX_WARNING_TYPE_FORCE_32BIT = 0x7fffffff,
     }
 }
