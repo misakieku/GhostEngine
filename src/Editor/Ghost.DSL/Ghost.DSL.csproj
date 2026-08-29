@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Configurations>Debug;Release</Configurations>
+    <JavaExec Condition="'$(JavaExec)' == ''">java</JavaExec>
   </PropertyGroup>
 
   <ItemGroup>
