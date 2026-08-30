@@ -134,9 +134,9 @@ public unsafe class PopupWindow : IDisposable
     private readonly SDL_Window* _window;
     private readonly SDL_Renderer* _renderer;
     private readonly SDL_PropertiesID _propID;
-    
+
     public IntPtr Handle => SDL_GetPointerProperty(_propID, EngineWindow.HANDLE_PROPERTY_NAME, 0);
-    
+
     public PopupWindow(string title, int width, int height, Action<SharedPtr<SDL_Renderer>> onRender)
     {
         var windowFlags = SDL_WindowFlags.SDL_WINDOW_BORDERLESS | SDL_WindowFlags.SDL_WINDOW_ALWAYS_ON_TOP;

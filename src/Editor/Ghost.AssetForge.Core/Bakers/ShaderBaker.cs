@@ -1,21 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.AssetForge.Core.Models;
+using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
-using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.DSL.ShaderCompiler;
-using Ghost.DXC;
-using Ghost.AssetForge.Core.Services;
-using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.AssetForge.Core.Bakers;
 

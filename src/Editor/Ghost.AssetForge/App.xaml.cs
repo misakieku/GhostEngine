@@ -1,9 +1,8 @@
-using Microsoft.UI.Xaml;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using System;
 using Ghost.AssetForge.Core.Services;
 using Ghost.AssetForge.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.UI.Xaml;
 
 namespace Ghost.AssetForge;
 

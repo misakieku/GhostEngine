@@ -1,8 +1,7 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Engine.Streaming;
-using Ghost.Graphics.Core;
-using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Collections.Concurrent;
@@ -113,14 +112,11 @@ internal class MockingContentProvider : IContentProvider
         {
             new MeshletHierarchyNode
             {
-                minX = new float4(0, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity),
-                minY = new float4(0, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity),
-                minZ = new float4(0, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity),
-                maxX = new float4(1, float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity),
-                maxY = new float4(1, float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity),
-                maxZ = new float4(0, float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity),
-                maxParentError = new float4(0),
-                nodeData = new uint4(0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF),
+                bounds = new SphereBounds(new float3(0.5f, 0.5f, 0), 1.0f),
+                error = 0,
+                groupIndex = 0,
+                childOffset = 0,
+                childCount = 0,
             }
         };
         var meshletVertices = new uint[] { 0, 1, 2 };

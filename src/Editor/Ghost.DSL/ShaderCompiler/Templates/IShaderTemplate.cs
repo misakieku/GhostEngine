@@ -1,6 +1,4 @@
 using Ghost.Core;
-using Ghost.Core.Graphics;
-using Ghost.DSL.ShaderParser.Syntax;
 
 namespace Ghost.DSL.ShaderCompiler.Templates;
 

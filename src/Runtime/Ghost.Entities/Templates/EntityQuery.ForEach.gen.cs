@@ -1,5 +1,5 @@
-using System.Runtime.CompilerServices;
 using Ghost.Core;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
 
@@ -65,7 +65,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -123,7 +123,7 @@ public unsafe partial struct EntityQuery
                 {
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
-                        action(                            ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex])
+                        action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex])
 );
                     }
                 }
@@ -156,7 +156,7 @@ public unsafe partial struct EntityQuery
                             var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                             var entityIndex = (block * 64) + bit;
 
-                            action(                                ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex])
+                            action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex])
 );
                             validMask ^= (1UL << bit);
                         }
@@ -241,7 +241,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -308,7 +308,7 @@ public unsafe partial struct EntityQuery
                 {
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
-                        action(                            ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                        action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                             ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex])
 );
                     }
@@ -342,7 +342,7 @@ public unsafe partial struct EntityQuery
                             var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                             var entityIndex = (block * 64) + bit;
 
-                            action(                                ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                            action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                                 ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex])
 );
                             validMask ^= (1UL << bit);
@@ -443,7 +443,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -519,7 +519,7 @@ public unsafe partial struct EntityQuery
                 {
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
-                        action(                            ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                        action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                             ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                             ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex])
 );
@@ -554,7 +554,7 @@ public unsafe partial struct EntityQuery
                             var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                             var entityIndex = (block * 64) + bit;
 
-                            action(                                ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                            action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                                 ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                                 ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex])
 );
@@ -671,7 +671,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -756,7 +756,7 @@ public unsafe partial struct EntityQuery
                 {
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
-                        action(                            ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                        action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                             ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                             ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                             ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex])
@@ -792,7 +792,7 @@ public unsafe partial struct EntityQuery
                             var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                             var entityIndex = (block * 64) + bit;
 
-                            action(                                ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                            action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                                 ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                                 ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                                 ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex])
@@ -925,7 +925,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -1019,7 +1019,7 @@ public unsafe partial struct EntityQuery
                 {
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
-                        action(                            ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                        action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                             ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                             ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                             ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -1056,7 +1056,7 @@ public unsafe partial struct EntityQuery
                             var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                             var entityIndex = (block * 64) + bit;
 
-                            action(                                ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                            action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                                 ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                                 ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                                 ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -1205,7 +1205,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -1308,7 +1308,7 @@ public unsafe partial struct EntityQuery
                 {
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
-                        action(                            ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                        action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                             ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                             ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                             ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -1346,7 +1346,7 @@ public unsafe partial struct EntityQuery
                             var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                             var entityIndex = (block * 64) + bit;
 
-                            action(                                ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                            action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                                 ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                                 ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                                 ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -1511,7 +1511,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -1623,7 +1623,7 @@ public unsafe partial struct EntityQuery
                 {
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
-                        action(                            ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                        action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                             ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                             ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                             ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -1662,7 +1662,7 @@ public unsafe partial struct EntityQuery
                             var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                             var entityIndex = (block * 64) + bit;
 
-                            action(                                ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                            action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                                 ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                                 ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                                 ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -1843,7 +1843,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -1964,7 +1964,7 @@ public unsafe partial struct EntityQuery
                 {
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
-                        action(                            ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                        action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                             ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                             ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                             ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -2004,7 +2004,7 @@ public unsafe partial struct EntityQuery
                             var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                             var entityIndex = (block * 64) + bit;
 
-                            action(                                ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                            action(ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                                 ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                                 ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                                 ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -2081,7 +2081,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -2140,7 +2140,7 @@ public unsafe partial struct EntityQuery
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
                         var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                        action(*pEntity,                             ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex])
+                        action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex])
 );
                     }
                 }
@@ -2174,7 +2174,7 @@ public unsafe partial struct EntityQuery
                             var entityIndex = (block * 64) + bit;
 
                             var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                            action(*pEntity,                                 ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex])
+                            action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex])
 );
                             validMask ^= (1UL << bit);
                         }
@@ -2259,7 +2259,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -2327,7 +2327,7 @@ public unsafe partial struct EntityQuery
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
                         var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                        action(*pEntity,                             ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                        action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                             ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex])
 );
                     }
@@ -2362,7 +2362,7 @@ public unsafe partial struct EntityQuery
                             var entityIndex = (block * 64) + bit;
 
                             var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                            action(*pEntity,                                 ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                            action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                                 ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex])
 );
                             validMask ^= (1UL << bit);
@@ -2463,7 +2463,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -2540,7 +2540,7 @@ public unsafe partial struct EntityQuery
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
                         var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                        action(*pEntity,                             ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                        action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                             ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                             ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex])
 );
@@ -2576,7 +2576,7 @@ public unsafe partial struct EntityQuery
                             var entityIndex = (block * 64) + bit;
 
                             var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                            action(*pEntity,                                 ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                            action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                                 ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                                 ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex])
 );
@@ -2693,7 +2693,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -2779,7 +2779,7 @@ public unsafe partial struct EntityQuery
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
                         var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                        action(*pEntity,                             ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                        action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                             ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                             ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                             ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex])
@@ -2816,7 +2816,7 @@ public unsafe partial struct EntityQuery
                             var entityIndex = (block * 64) + bit;
 
                             var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                            action(*pEntity,                                 ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                            action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                                 ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                                 ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                                 ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex])
@@ -2949,7 +2949,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -3044,7 +3044,7 @@ public unsafe partial struct EntityQuery
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
                         var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                        action(*pEntity,                             ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                        action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                             ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                             ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                             ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -3082,7 +3082,7 @@ public unsafe partial struct EntityQuery
                             var entityIndex = (block * 64) + bit;
 
                             var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                            action(*pEntity,                                 ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                            action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                                 ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                                 ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                                 ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -3231,7 +3231,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -3335,7 +3335,7 @@ public unsafe partial struct EntityQuery
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
                         var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                        action(*pEntity,                             ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                        action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                             ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                             ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                             ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -3374,7 +3374,7 @@ public unsafe partial struct EntityQuery
                             var entityIndex = (block * 64) + bit;
 
                             var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                            action(*pEntity,                                 ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                            action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                                 ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                                 ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                                 ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -3539,7 +3539,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -3652,7 +3652,7 @@ public unsafe partial struct EntityQuery
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
                         var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                        action(*pEntity,                             ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                        action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                             ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                             ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                             ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -3692,7 +3692,7 @@ public unsafe partial struct EntityQuery
                             var entityIndex = (block * 64) + bit;
 
                             var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                            action(*pEntity,                                 ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                            action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                                 ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                                 ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                                 ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -3873,7 +3873,7 @@ public unsafe partial struct EntityQuery
             }
 
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
-            
+
             var reqCount = 0;
             var reqDisCount = 0;
             var rejCount = 0;
@@ -3995,7 +3995,7 @@ public unsafe partial struct EntityQuery
                     for (var entityIndex = 0; entityIndex < chunk._count; entityIndex++)
                     {
                         var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                        action(*pEntity,                             ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                        action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                             ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                             ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                             ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),
@@ -4036,7 +4036,7 @@ public unsafe partial struct EntityQuery
                             var entityIndex = (block * 64) + bit;
 
                             var pEntity = (Entity*)(pChunkData + archetype.EntityIDsOffset + (sizeof(Entity) * entityIndex));
-                            action(*pEntity,                                 ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
+                            action(*pEntity, ref (ComponentTypeID<T0>.IsShared ? ref ((T0*)basePtrs[0])[0] : ref ((T0*)basePtrs[0])[entityIndex]),
                                 ref (ComponentTypeID<T1>.IsShared ? ref ((T1*)basePtrs[1])[0] : ref ((T1*)basePtrs[1])[entityIndex]),
                                 ref (ComponentTypeID<T2>.IsShared ? ref ((T2*)basePtrs[2])[0] : ref ((T2*)basePtrs[2])[entityIndex]),
                                 ref (ComponentTypeID<T3>.IsShared ? ref ((T3*)basePtrs[3])[0] : ref ((T3*)basePtrs[3])[entityIndex]),

@@ -1,7 +1,5 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
@@ -56,16 +54,16 @@ internal class SoaGenerator : IIncrementalGenerator
             var symbol = item.TargetType;
 
             var sb = new StringBuilder();
-            
+
             sb.AppendLine($"// Auto-generated SoA for {symbol.Name}");
             sb.AppendLine($"{symbol.DeclaredAccessibility.ToString().ToLower()} struct {symbol.Name}SoA");
             sb.AppendLine("{");
-            
+
             foreach (var member in symbol.GetMembers().OfType<IFieldSymbol>())
             {
                 sb.AppendLine($"    public {member.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}[] {member.Name}Array;");
             }
-            
+
             sb.AppendLine("}");
 
             context.AddSource($"{symbol.Name}SoA.g.cs", sb.ToString());

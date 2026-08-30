@@ -786,92 +786,92 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         for (var candidateIndex = 1; candidateIndex < passCount; candidateIndex++)
         {
             var candidate = passes[compiledPasses[candidateIndex]];
-                if (!IsAsyncComputeCandidate(candidate))
+            if (!IsAsyncComputeCandidate(candidate))
+            {
+                continue;
+            }
+
+            var joinIndex = FindFirstDependent(candidateIndex, passCount, reachability);
+            if (joinIndex < 0)
+            {
+                continue;
+            }
+
+            var groupEndIndex = candidateIndex;
+            while (groupEndIndex + 1 < joinIndex)
+            {
+                var nextIndex = groupEndIndex + 1;
+                var nextCandidate = passes[compiledPasses[nextIndex]];
+                if (!IsAsyncComputeCandidate(nextCandidate)
+                    || FindFirstDependent(nextIndex, passCount, reachability) != joinIndex)
                 {
-                    continue;
+                    break;
                 }
 
-                var joinIndex = FindFirstDependent(candidateIndex, passCount, reachability);
-                if (joinIndex < 0)
+                groupEndIndex = nextIndex;
+            }
+
+            var hasIndependentGraphicsWork = false;
+            var legalWindow = true;
+            for (var overlapIndex = groupEndIndex + 1; overlapIndex < joinIndex; overlapIndex++)
+            {
+                var overlapPass = passes[compiledPasses[overlapIndex]];
+                if (overlapPass.type == RenderPassType.Unsafe)
                 {
-                    continue;
+                    legalWindow = false;
+                    break;
                 }
 
-                var groupEndIndex = candidateIndex;
-                while (groupEndIndex + 1 < joinIndex)
+                if (overlapPass.type == RenderPassType.Raster)
                 {
-                    var nextIndex = groupEndIndex + 1;
-                    var nextCandidate = passes[compiledPasses[nextIndex]];
-                    if (!IsAsyncComputeCandidate(nextCandidate)
-                        || FindFirstDependent(nextIndex, passCount, reachability) != joinIndex)
-                    {
-                        break;
-                    }
-
-                    groupEndIndex = nextIndex;
+                    hasIndependentGraphicsWork = true;
                 }
+            }
 
-                var hasIndependentGraphicsWork = false;
-                var legalWindow = true;
-                for (var overlapIndex = groupEndIndex + 1; overlapIndex < joinIndex; overlapIndex++)
-                {
-                    var overlapPass = passes[compiledPasses[overlapIndex]];
-                    if (overlapPass.type == RenderPassType.Unsafe)
-                    {
-                        legalWindow = false;
-                        break;
-                    }
+            if (!legalWindow || !hasIndependentGraphicsWork)
+            {
+                continue;
+            }
 
-                    if (overlapPass.type == RenderPassType.Raster)
-                    {
-                        hasIndependentGraphicsWork = true;
-                    }
-                }
-
-                if (!legalWindow || !hasIndependentGraphicsWork)
-                {
-                    continue;
-                }
-
-                var hasGraphicsProducer = false;
-                for (var producerIndex = 0; producerIndex < candidateIndex && !hasGraphicsProducer; producerIndex++)
-                {
-                    for (var computeIndex = candidateIndex; computeIndex <= groupEndIndex; computeIndex++)
-                    {
-                        if (reachability[(producerIndex * passCount) + computeIndex] != 0)
-                        {
-                            hasGraphicsProducer = true;
-                            break;
-                        }
-                    }
-                }
-
+            var hasGraphicsProducer = false;
+            for (var producerIndex = 0; producerIndex < candidateIndex && !hasGraphicsProducer; producerIndex++)
+            {
                 for (var computeIndex = candidateIndex; computeIndex <= groupEndIndex; computeIndex++)
                 {
-                    effectiveQueues[computeIndex] = CommandQueueType.Compute;
+                    if (reachability[(producerIndex * passCount) + computeIndex] != 0)
+                    {
+                        hasGraphicsProducer = true;
+                        break;
+                    }
                 }
+            }
 
-                syncBoundaries[candidateIndex] = new SyncBoundary
-                {
-                    isValid = true,
-                    nextCommandBufferType = CommandQueueType.Compute,
-                    nextCommandBufferId = 1,
-                    producerCommandBufferId = hasGraphicsProducer ? 0 : -1
-                };
-                syncBoundaries[groupEndIndex + 1] = new SyncBoundary
-                {
-                    isValid = true,
-                    nextCommandBufferType = CommandQueueType.Graphics,
-                    nextCommandBufferId = 2,
-                    producerCommandBufferId = -1
-                };
-                syncBoundaries[joinIndex] = new SyncBoundary
-                {
-                    isValid = true,
-                    nextCommandBufferType = CommandQueueType.Graphics,
-                    nextCommandBufferId = 3,
-                    producerCommandBufferId = 1
-                };
+            for (var computeIndex = candidateIndex; computeIndex <= groupEndIndex; computeIndex++)
+            {
+                effectiveQueues[computeIndex] = CommandQueueType.Compute;
+            }
+
+            syncBoundaries[candidateIndex] = new SyncBoundary
+            {
+                isValid = true,
+                nextCommandBufferType = CommandQueueType.Compute,
+                nextCommandBufferId = 1,
+                producerCommandBufferId = hasGraphicsProducer ? 0 : -1
+            };
+            syncBoundaries[groupEndIndex + 1] = new SyncBoundary
+            {
+                isValid = true,
+                nextCommandBufferType = CommandQueueType.Graphics,
+                nextCommandBufferId = 2,
+                producerCommandBufferId = -1
+            };
+            syncBoundaries[joinIndex] = new SyncBoundary
+            {
+                isValid = true,
+                nextCommandBufferType = CommandQueueType.Graphics,
+                nextCommandBufferId = 3,
+                producerCommandBufferId = 1
+            };
 
             // The initial planner materializes one active Compute region. Later candidates are
             // deterministically demoted by original pass order unless they joined this group.

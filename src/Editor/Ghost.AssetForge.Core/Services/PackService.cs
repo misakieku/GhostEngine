@@ -1,6 +1,6 @@
 using Ghost.AssetForge.Core.Models;
-using Ghost.Core.Utilities;
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using K4os.Compression.LZ4.Streams;
 using ZstdSharp;
 
@@ -214,7 +214,7 @@ public class PackService
         {
             CompressionMethod.None => dst,
             CompressionMethod.Zstd => new CompressionStream(dst, leaveOpen: true),
-            CompressionMethod.LZ4 => (Stream)LZ4Stream.Encode(dst, leaveOpen: true),
+            CompressionMethod.LZ4 => LZ4Stream.Encode(dst, leaveOpen: true),
             _ => throw new ArgumentOutOfRangeException(nameof(compression), compression, null)
         };
 

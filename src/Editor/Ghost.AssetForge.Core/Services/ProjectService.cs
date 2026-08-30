@@ -16,7 +16,7 @@ public class ProjectService
     }
 
     public Project? CurrentProject { get; private set; }
-    
+
     public IReadOnlyList<string> AssetDirectories { get; private set; } = Array.Empty<string>();
     public string CacheDirectory { get; private set; } = string.Empty;
     public string BuildDirectory { get; private set; } = string.Empty;
@@ -42,10 +42,10 @@ public class ProjectService
             Directory.CreateDirectory(dir);
             Logger.Info($"Including asset directory: {dir}");
         }
-        
+
         Directory.CreateDirectory(CacheDirectory);
         Directory.CreateDirectory(BuildDirectory);
-        
+
         foreach (var path in ShaderMetadataPaths)
         {
             var shaderDir = Path.GetDirectoryName(path);
@@ -57,12 +57,12 @@ public class ProjectService
             Logger.Info($"Including shader metadata path: {path}");
         }
 
-        CurrentProject = new Project 
-        { 
-            Name = "CLI_Project", 
-            RootPath = Path.GetDirectoryName(AssetDirectories.FirstOrDefault()) ?? string.Empty 
+        CurrentProject = new Project
+        {
+            Name = "CLI_Project",
+            RootPath = Path.GetDirectoryName(AssetDirectories.FirstOrDefault()) ?? string.Empty
         };
-        
+
         OnProjectLoaded?.Invoke();
     }
 
@@ -100,9 +100,9 @@ public class ProjectService
 
     public void OpenProject(string path, string configuration = "Debug")
     {
-        string csprojPath = path;
-        string folderPath = path;
-        
+        var csprojPath = path;
+        var folderPath = path;
+
         if (File.Exists(path) && path.EndsWith(".csproj"))
         {
             folderPath = Path.GetDirectoryName(path) ?? string.Empty;
@@ -117,7 +117,7 @@ public class ProjectService
         }
         else
         {
-             throw new DirectoryNotFoundException($"Path {path} does not exist");
+            throw new DirectoryNotFoundException($"Path {path} does not exist");
         }
 
         var project = new Project
@@ -125,7 +125,7 @@ public class ProjectService
             Name = Path.GetFileNameWithoutExtension(csprojPath),
             RootPath = folderPath
         };
-        
+
         CurrentProject = project;
 
         var defaultAssetDir = Path.Combine(folderPath, "Asset");
@@ -140,8 +140,8 @@ public class ProjectService
             {
                 var doc = XDocument.Load(csprojPath);
                 var ns = doc.Root?.Name.Namespace ?? XNamespace.None;
-                
-                string? targetFramework = doc.Descendants(ns + "TargetFramework").FirstOrDefault()?.Value ?? "net10.0";
+
+                var targetFramework = doc.Descendants(ns + "TargetFramework").FirstOrDefault()?.Value ?? "net10.0";
 
                 string ReplaceMacros(string value)
                 {
@@ -162,9 +162,9 @@ public class ProjectService
 
                 var buildDirNode = doc.Descendants(ns + "GhostAssetBuildDir").FirstOrDefault();
                 if (buildDirNode != null) BuildDirectory = Path.GetFullPath(Path.Combine(folderPath, ReplaceMacros(buildDirNode.Value)));
-                
+
                 var shaderMetaNode = doc.Descendants(ns + "GhostShaderMetadataPath").FirstOrDefault();
-                if (shaderMetaNode != null) 
+                if (shaderMetaNode != null)
                 {
                     singleShaderPathOpen = Path.GetFullPath(Path.Combine(folderPath, ReplaceMacros(shaderMetaNode.Value)));
                     ShaderMetadataPaths = new[] { singleShaderPathOpen };
@@ -181,13 +181,13 @@ public class ProjectService
         Directory.CreateDirectory(defaultAssetDir);
         Directory.CreateDirectory(CacheDirectory);
         Directory.CreateDirectory(BuildDirectory);
-        
+
         var shaderDir = Path.GetDirectoryName(singleShaderPathOpen);
         if (!string.IsNullOrEmpty(shaderDir) && !Directory.Exists(shaderDir))
         {
             Directory.CreateDirectory(shaderDir);
         }
-        
+
         OnProjectLoaded?.Invoke();
     }
 

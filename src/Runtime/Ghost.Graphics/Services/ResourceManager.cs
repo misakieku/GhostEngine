@@ -199,12 +199,12 @@ public sealed partial class ResourceManager : IDisposable
     /// Creates a new shader and returns its unique identifier.
     /// </summary>
     /// <returns>An <see cref="Handle{Shader}"/> representing the newly created shader.</returns>
-    /// <param name="descriptor">The viewGroup containing the shader's properties and passes.</param>
-    public Handle<Shader> CreateGraphicsShader(GraphicsShaderDescriptor descriptor)
+    /// <param name="descriptor">The viewGroup containing the shader's properties and passes. Register a empty shader if descriptor is null.</param>
+    public Handle<Shader> CreateShader(GraphicsShaderDescriptor? descriptor)
     {
         Logger.DebugAssert(!_disposed);
 
-        var shader = new Shader(descriptor);
+        var shader = descriptor == null ? default : new Shader(descriptor);
 
         lock (_shaderWriteLock)
         {
@@ -213,11 +213,16 @@ public sealed partial class ResourceManager : IDisposable
         }
     }
 
-    public Handle<ComputeShader> CreateComputeShader(ComputeShaderDescriptor descriptor)
+    /// <summary>
+    /// Creates a new compute shader and returns its unique identifier.
+    /// </summary>
+    /// <returns>An <see cref="Handle{ComputeShader}"/> representing the newly created compute shader.</returns>
+    /// <param name="descriptor">The viewGroup containing the compute shader's properties and passes. Register a empty compute shader if descriptor is null.</param>
+    public Handle<ComputeShader> CreateComputeShader(ComputeShaderDescriptor? descriptor)
     {
         Logger.DebugAssert(!_disposed);
 
-        var computeShader = new ComputeShader(descriptor);
+        var computeShader = descriptor == null ? default : new ComputeShader(descriptor);
 
         lock (_computeShaderWriteLock)
         {

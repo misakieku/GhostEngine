@@ -23,7 +23,7 @@ public class BakeService
         _context = context;
         _bakerRegistry = bakerRegistry;
         _shaderMetadata = new ShaderMetadata();
-        
+
         foreach (var path in _context.ShaderMetadataPaths)
         {
             if (File.Exists(path))

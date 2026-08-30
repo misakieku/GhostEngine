@@ -172,6 +172,20 @@ public partial class AssetManager : IDisposable
         // The combined dependency handle is resolved once and cached on the entry; subsequent
         // re-schedules (e.g. reimport) reuse it instead of re-traversing the whole graph (PERF-07).
         var dependency = entry.CombinedDependencyJobHandle;
+
+        // If the entry has no dependencies and it's not a loadable asset, we can skip the job scheduling and directly mark the entry as loaded.
+        if ((dependency.IsValid || entry.Dependencies.Length == 0) && entry is not ILoadableAssetEntry)
+        {
+            entry.State = AssetState.Loaded;
+            if (!StreamingProcessor.EnqueueForProcess(entry))
+            {
+                entry.State = AssetState.Ready;
+            }
+
+            return;
+        }
+
+        // TODO: We are rescheduling the job for ervery dependencies even if it is already loaded. We should only schedule the job for the dependencies that are not loaded yet.
         if (!dependency.IsValid && entry.Dependencies.Length > 0)
         {
             // Avoid stack overflow for deep dependency tree like a scene.

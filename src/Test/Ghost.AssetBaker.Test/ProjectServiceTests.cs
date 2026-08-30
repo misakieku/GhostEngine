@@ -1,7 +1,4 @@
 using Ghost.AssetForge.Core.Services;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.IO;
 
 namespace Ghost.AssetForge.Test;
 
@@ -31,7 +28,7 @@ public class ProjectServiceTests
     {
         var registry = new BakerRegistry();
         var service = new ProjectService(registry);
-        
+
         var assetDir = Path.Combine(_tempDir, "Asset");
         var cacheDir = Path.Combine(_tempDir, "Cache");
         var buildDir = Path.Combine(_tempDir, "Build");
@@ -61,7 +58,7 @@ public class ProjectServiceTests
         var service = new ProjectService(registry);
 
         // Create dummy csproj
-        string csprojPath = Path.Combine(_tempDir, "MyTestProject.csproj");
+        var csprojPath = Path.Combine(_tempDir, "MyTestProject.csproj");
         File.WriteAllText(csprojPath, "<Project></Project>");
 
         service.OpenProject(_tempDir);
@@ -81,8 +78,8 @@ public class ProjectServiceTests
         var registry = new BakerRegistry();
         var service = new ProjectService(registry);
 
-        string csprojPath = Path.Combine(_tempDir, "CustomProject.csproj");
-        string xml = @"<Project>
+        var csprojPath = Path.Combine(_tempDir, "CustomProject.csproj");
+        var xml = @"<Project>
             <PropertyGroup>
                 <TargetFramework>net9.0</TargetFramework>
                 <GhostAssetDir>CustomAssetDir</GhostAssetDir>

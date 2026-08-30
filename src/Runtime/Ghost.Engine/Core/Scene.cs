@@ -93,13 +93,13 @@ public class LoadedSceneData : IDisposable
                 componentData[i].data.Dispose();
             }
             componentData.Dispose();
-            
+
             for (var i = 0; i < entityFields.Count; i++)
             {
                 entityFields[i].fieldOffsets.Dispose();
             }
             entityFields.Dispose();
-            
+
             for (var i = 0; i < handleFields.Count; i++)
             {
                 handleFields[i].fieldOffsets.Dispose();

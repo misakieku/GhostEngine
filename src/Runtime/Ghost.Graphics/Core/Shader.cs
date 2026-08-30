@@ -14,7 +14,7 @@ public partial struct Shader
 {
     private static readonly Dictionary<string, int> s_passNameToID = new Dictionary<string, int>();
     private static int s_nextPassID = 0;
-    
+
     public static Identifier<ShaderPass> GetPassID(string passName)
     {
         ref var id = ref CollectionsMarshal.GetValueRefOrAddDefault(s_passNameToID, passName, out var exists);

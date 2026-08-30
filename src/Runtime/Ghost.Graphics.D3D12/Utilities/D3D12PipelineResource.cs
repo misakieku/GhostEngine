@@ -1,4 +1,4 @@
-using Ghost.Graphics.RHI;
+using Ghost.Core.Graphics;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 

@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Utilities;
@@ -7,91 +8,9 @@ using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Core;
 
-[StructLayout(LayoutKind.Sequential)]
-public struct Meshlet
-{
-    public SphereBounds boundingSphere;         // 16 bytes
-    public SphereBounds parentBoundingSphere;   // 16 bytes
-    public AABB boundingBox;                    // 24 bytes
-    public uint vertexOffset;                   // offset into meshlet vertex index array
-    public uint triangleOffset;                 // offset into packed triangle array
-    public uint groupIndex;                     // owning group
-    public float clusterError;                  // geometric error of this meshlet/cluster
-    public float parentError;                   // geometric refinement error carried into runtime LOD tests
-    public byte vertexCount;                    // max 64
-    public byte triangleCount;                  // max 124
-    public byte localMaterialIndex;             // mesh-local material slot
-    public byte lodLevel;                       // this meshlet's LOD level
-}
-
-[StructLayout(LayoutKind.Sequential)]
-public struct MeshletGroup
-{
-    public SphereBounds boundingSphere;   // 16 bytes
-    public AABB boundingBox;              // 24 bytes
-    public float parentError;             // error of refining to the previous level
-    public uint meshletStartIndex;        // contiguous meshlet range
-    public uint meshletCount;             // number of meshlets in the group
-    public uint lodLevel;                 // group LOD level
-}
-
-[StructLayout(LayoutKind.Sequential)]
-public struct MeshletHierarchyNode
-{
-    public float4 minX;
-    public float4 minY;
-    public float4 minZ;
-    public float4 maxX;
-    public float4 maxY;
-    public float4 maxZ;
-    public float4 maxParentError;
-
-    // x,y,z,w correspond to children 0,1,2,3.
-    // MSB (1 << 31) indicates it's an Internal Node.
-    // If MSB is 0, the remaining 31 bits are the MeshletIndex.
-    // If MSB is 1, the remaining 31 bits are the child MeshletHierarchyNode index.
-    // 0xFFFFFFFF means invalid/empty slot.
-    public uint4 nodeData;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-public struct MeshletMeshData : IDisposable
-{
-    public UnsafeList<Meshlet> meshlets;
-    public UnsafeList<MeshletGroup> groups;
-    public UnsafeList<MeshletHierarchyNode> hierarchyNodes;
-    public UnsafeList<uint> meshletVertices;
-    public UnsafeList<uint> meshletTriangles;
-    public int meshletCount;
-    public int lodLevelCount;
-    public int materialSlotCount;
-
-    public readonly MeshletMeshData Clone()
-    {
-        var newData = this;
-
-        newData.meshlets = meshlets.Clone(AllocationHandle.Persistent);
-        newData.groups = groups.Clone(AllocationHandle.Persistent);
-        newData.hierarchyNodes = hierarchyNodes.Clone(AllocationHandle.Persistent);
-        newData.meshletVertices = meshletVertices.Clone(AllocationHandle.Persistent);
-        newData.meshletTriangles = meshletTriangles.Clone(AllocationHandle.Persistent);
-
-        return newData;
-    }
-
-    public void Dispose()
-    {
-        meshlets.Dispose();
-        groups.Dispose();
-        hierarchyNodes.Dispose();
-        meshletVertices.Dispose();
-        meshletTriangles.Dispose();
-    }
-}
 
 public struct Mesh : IResourceReleasable
 {

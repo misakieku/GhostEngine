@@ -403,7 +403,7 @@ public struct SharedComponentSet : IDisposable
         {
             var el = _elements[i];
             srcSpan.Slice(el.offset, el.size).CopyTo(dstSpan.Slice(currentOffset, el.size));
-            
+
             el.offset = currentOffset;
             _elements[i] = el;
 

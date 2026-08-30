@@ -1,6 +1,4 @@
 using Ghost.Graphics.RHI;
-using System.Threading;
-using System.Threading.Tasks;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 

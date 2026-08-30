@@ -56,6 +56,9 @@ shader "MyShader/Standard"
                 ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
                 Meshlet meshlet = meshletBuffer.Load<Meshlet>(meshletIndex * sizeof(Meshlet));
 
+                ByteAddressBuffer meshletGroupBuffer = GET_BUFFER(meshData.meshletGroupBuffer);
+                MeshletGroup group = meshletGroupBuffer.Load<MeshletGroup>(meshlet.groupIndex * sizeof(MeshletGroup));
+
                 ViewData viewData = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
 
                 // Assume uniform scale
@@ -67,28 +70,25 @@ shader "MyShader/Standard"
 
                 float threshold = 1.0f;
 
-                // Calculate THIS cluster's error using ITS OWN bounding sphere
-                float3 clusterCenter = mul(instanceData.localToWorld, float4(meshlet.boundingSphere.xyz, 1.0f)).xyz;
-                float clusterRadius = meshlet.boundingSphere.w * scale;
-                float clusterError = meshlet.clusterError * scale;
-                float clusterProjError = BoundsError(clusterCenter, clusterRadius, clusterError, viewData.cameraPosition, cameraProj, viewData.nearClip);
+                // Calculate THIS group's error (error at which this cluster merges into coarser LOD)
+                float3 groupCenter = mul(instanceData.localToWorld, float4(group.boundingSphere.xyz, 1.0f)).xyz;
+                float groupRadius = group.boundingSphere.w * scale;
+                float groupError = group.parentError * scale;
+                float groupProjError = BoundsError(groupCenter, groupRadius, groupError, viewData.cameraPosition, cameraProj, viewData.nearClip);
+                bool isTerminal = group.parentError >= 3.402823466e+38F; // FLT_MAX
 
-                // Calculate the PARENT'S error using the PARENT'S bounding sphere
+                // Calculate the PARENT'S error (error of parent group that refined to produce this cluster)
                 float3 parentCenter = mul(instanceData.localToWorld, float4(meshlet.parentBoundingSphere.xyz, 1.0f)).xyz;
                 float parentRadius = meshlet.parentBoundingSphere.w * scale;
                 float parentError = meshlet.parentError * scale;
                 float parentProjError = BoundsError(parentCenter, parentRadius, parentError, viewData.cameraPosition, cameraProj, viewData.nearClip);
-
-                bool isRoot = meshlet.parentError >= 3.402823466e+38F; // FLT_MAX
-                uint emitMeshlet = ((parentProjError > threshold || isRoot) && clusterProjError <= threshold) ? 1u : 0u;
-
-                // Failsafe: if we are at the finest LOD (LOD 0) and the error is STILL too high,
-                // we must render it anyway because there is no more detailed geometry to fall back on.
                 uint lodLevel = (meshlet.packedCounts >> 24) & 0xFFu;
-                if (lodLevel == 0u && parentProjError > threshold)
-                {
-                    emitMeshlet = 1u;
-                }
+                bool isBaseLOD = (lodLevel == 0u);
+
+                // Render condition: group is needed (> threshold or terminal) and parent is satisfied (<= threshold or base LOD)
+                bool shouldRender = (isTerminal || groupProjError > threshold) && (isBaseLOD || parentProjError <= threshold);
+
+                uint emitMeshlet = shouldRender ? 1u : 0u;
 
                 DispatchMesh(emitMeshlet, 1u, 1u, s_Payload);
             }

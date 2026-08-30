@@ -20,7 +20,7 @@ public class AssetBakerTests
     {
         _tempDir = Path.Combine(Path.GetTempPath(), "GhostAssetBakerTest_" + Guid.NewGuid().ToString());
         Directory.CreateDirectory(_tempDir);
-        
+
         _bakerRegistry = new BakerRegistry();
 
         _projectService = new ProjectService(_bakerRegistry);

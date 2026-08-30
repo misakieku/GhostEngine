@@ -6,10 +6,10 @@ using Ghost.Engine.Streaming;
 using Ghost.Engine.Systems;
 using Ghost.Engine.Utilities;
 using Ghost.Entities;
-using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
@@ -33,7 +33,7 @@ internal static class Setup
                 ThreadPriority = ThreadPriority.Normal,
                 DependencyChainCapacity = 8192,
             },
-            RenderDescFactory = () => new EngineDesc.Render
+            RenderDescFactory = static () => new EngineDesc.Render
             {
                 FrameBufferCount = 2,
                 GraphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 }),
@@ -41,7 +41,7 @@ internal static class Setup
                 ShaderCacheDirectory = "ShaderCache",
                 ShaderCompilationBridge = null
             },
-            ContentProviderFactory = () => new RuntimeContentProvider("Assets/manifest.json")
+            ContentProviderFactory = static () => new RuntimeContentProvider("Assets/manifest.json")
         };
     }
 
@@ -69,6 +69,31 @@ internal static class Setup
         _world.EntityManager.SetComponent(cameraEntity, new LocalToWorld
         {
             matrix = float4x4.TRS(new float3(0.0f, 0.0f, -5.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
+        });
+
+        var meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/bunny");
+        var shaderAsset = engineCore.AssetManager.ResolveAsset("Shaders/test");
+
+        var meshHandle = default(Handle<Mesh>);
+        meshAsset.ReadAssetData(ref meshHandle);
+
+        var shaderHandle = default(Handle<Shader>);
+        shaderAsset.ReadAssetData(ref shaderHandle);
+
+        // TODO: Create material from shader
+        var mat = engineCore.RenderEngine.ResourceManager.CreateMaterial(shaderHandle);
+        var materialPallette = engineCore.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);
+
+        using var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
+        var meshEntity = _world.EntityManager.CreateEntity(meshSet);
+
+        _world.EntityManager.SetComponent(meshEntity, new MeshInstance
+        {
+            mesh = meshHandle,
+            materialPalette = Identifier<MaterialPalette>.Invalid,
+            renderingLayerMask = RenderingLayerMask.All,
+            shadowCastingMode = ShadowCastingMode.On,
+            staticShadowCaster = true,
         });
 
         _world.SystemManager.AddSystem<RenderSystemGroup>();

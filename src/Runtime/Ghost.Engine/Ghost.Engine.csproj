@@ -34,7 +34,7 @@
       <BuildAction>Compile</BuildAction>
     </Content>
   </ItemGroup>
-
+  
   <ItemGroup>
     <ProjectReference Include="..\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>

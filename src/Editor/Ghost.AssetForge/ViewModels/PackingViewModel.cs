@@ -1,3 +1,9 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Ghost.AssetForge.Core.Models;
+using Ghost.AssetForge.Core.Services;
+using Ghost.Core;
+using Microsoft.UI.Dispatching;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -5,12 +11,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.UI.Dispatching;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Ghost.Core;
-using Ghost.AssetForge.Core.Models;
-using Ghost.AssetForge.Core.Services;
 
 namespace Ghost.AssetForge.ViewModels;
 
@@ -144,17 +144,17 @@ public partial class PackingViewModel : ObservableObject
     private void UpdateProgress()
     {
         if (TotalCount == 0) return;
-        
+
         // baking is 50% of the build, packing is 50% of the build
-        double bakeProgress = (double)CookedCount / TotalCount * 50;
-        double packProgress = (double)PackedCount / TotalCount * 50;
+        var bakeProgress = (double)CookedCount / TotalCount * 50;
+        var packProgress = (double)PackedCount / TotalCount * 50;
         ProgressPercent = Math.Clamp(bakeProgress + packProgress, 0, 100);
 
         if (_stopwatch != null && ProgressPercent > 0)
         {
             double elapsedMs = _stopwatch.ElapsedMilliseconds;
-            double totalEstimateMs = elapsedMs / (ProgressPercent / 100.0);
-            double remainingMs = Math.Max(0, totalEstimateMs - elapsedMs);
+            var totalEstimateMs = elapsedMs / (ProgressPercent / 100.0);
+            var remainingMs = Math.Max(0, totalEstimateMs - elapsedMs);
             var remaining = TimeSpan.FromMilliseconds(remainingMs);
             RemainingTimeString = $"{remaining.Minutes:D2}:{remaining.Seconds:D2}";
         }

@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.DSL.ShaderCompiler;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Ghost.AssetForge.Test;
 

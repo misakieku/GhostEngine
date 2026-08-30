@@ -892,7 +892,7 @@ namespace Ghost.Ufbx
         public const uint UFBX_VERSION = ((0) * 1000000U + (21) * 1000U + (3));
 
         [NativeTypeName("#define UFBX_NO_INDEX ((uint32_t)~0u)")]
-        public const uint UFBX_NO_INDEX = ((uint)(~0U));
+        public const uint UFBX_NO_INDEX = ~0U;
 
         [NativeTypeName("#define UFBX_Lcl_Translation \"Lcl Translation\"")]
         public static ReadOnlySpan<byte> UFBX_Lcl_Translation => "Lcl Translation"u8;

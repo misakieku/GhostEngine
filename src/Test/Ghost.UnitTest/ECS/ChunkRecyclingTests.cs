@@ -1,6 +1,4 @@
 using Ghost.Entities;
-using Ghost.Core;
-using Misaki.HighPerformance.LowLevel.Buffer;
 
 namespace Ghost.UnitTest.ECS;
 

@@ -1002,7 +1002,7 @@ public unsafe partial class EntityManager : IDisposable
         if (location.archetypeID == newArcID)
         {
             ref var currentArchetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
-            
+
             // Check if shared data is exactly the same
             if (currentArchetype._sharedLayouts.Count > 0)
             {
@@ -1359,7 +1359,7 @@ public unsafe partial class EntityManager : IDisposable
                     newSignature.SetBit(index);
                     compCount++;
                 }
-            }   
+            }
 
             if (compCount == 0)
             {

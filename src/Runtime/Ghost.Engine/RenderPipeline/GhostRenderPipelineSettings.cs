@@ -6,11 +6,10 @@ using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
-using System.Collections.Concurrent;
 
 namespace Ghost.Engine.RenderPipeline;
 
-public unsafe sealed class GhostRenderPayload : IRenderPayload
+public sealed unsafe class GhostRenderPayload : IRenderPayload
 {
     public struct UpdateInstanceRequest
     {

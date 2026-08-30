@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.DSL.Models;
-using System.Reflection;
 using System.Text;
 
 namespace Ghost.DSL.ShaderCompiler.Templates;

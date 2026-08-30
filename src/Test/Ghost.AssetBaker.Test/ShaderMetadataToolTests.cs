@@ -1,6 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.IO;
 using Ghost.ShaderMetadataTool;
 
 namespace Ghost.AssetForge.Test;
@@ -29,7 +26,7 @@ public class ShaderMetadataToolTests
     [TestMethod]
     public void ExtractMetadata_GeneratesValidJson()
     {
-        string csFile = Path.Combine(_tempDir, "TestShader.cs");
+        var csFile = Path.Combine(_tempDir, "TestShader.cs");
         File.WriteAllText(csFile, @"
 using System;
 
@@ -47,18 +44,18 @@ namespace TestNamespace
 }
 ");
 
-        string inputFileList = Path.Combine(_tempDir, "input_files.txt");
+        var inputFileList = Path.Combine(_tempDir, "input_files.txt");
         File.WriteAllLines(inputFileList, new[] { csFile });
 
-        string outputFile = Path.Combine(_tempDir, "output.json");
+        var outputFile = Path.Combine(_tempDir, "output.json");
 
         // Run the tool's main logic
         Program.Main(new[] { inputFileList, outputFile });
 
         Assert.IsTrue(File.Exists(outputFile), "Output JSON should be generated.");
-        
-        string json = File.ReadAllText(outputFile);
-        
+
+        var json = File.ReadAllText(outputFile);
+
         StringAssert.Contains(json, "MyShader", "JSON should contain the shader name.");
         StringAssert.Contains(json, "MyShaderStruct", "JSON should contain the struct name.");
         StringAssert.Contains(json, "value1", "JSON should contain the field value1.");

@@ -16,7 +16,7 @@ public class RingBuffer<T> : IEnumerable<T>
 
         public readonly T Current => _ringBuffer._buffer[(_ringBuffer._head + _index) % _ringBuffer._buffer.Length];
         readonly object? IEnumerator.Current => Current;
-        
+
         public bool MoveNext()
         {
             if (_index + 1 >= _ringBuffer._count)

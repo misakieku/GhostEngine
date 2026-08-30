@@ -89,7 +89,7 @@ public class EntityManagerTests
     public void TestEntityManager_MultipleOperations()
     {
         var entity = _world.EntityManager.CreateEntity();
-        
+
         _world.EntityManager.AddComponent(entity, new CompA { value = 10 });
         _world.EntityManager.AddComponent(entity, new CompB { value = 20 });
 
@@ -107,7 +107,7 @@ public class EntityManagerTests
     public void TestEntityManager_Singleton()
     {
         _world.EntityManager.CreateSingleton(new CompA { value = 99 });
-        
+
         Assert.AreEqual(99, _world.EntityManager.GetSingleton<CompA>().value);
 
         _world.EntityManager.GetSingleton<CompA>().value = 100;

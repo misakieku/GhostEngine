@@ -1,9 +1,9 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.DSL.Models;
+using Ghost.DSL.ShaderCompiler.Templates;
 using Ghost.DSL.ShaderParser;
 using Ghost.DSL.ShaderParser.Syntax;
-using Ghost.DSL.ShaderCompiler.Templates;
 using Misaki.HighPerformance.Utilities;
 using System.Text;
 
@@ -73,8 +73,8 @@ public static class DSLShaderCompiler
             var relativePath = includePath.TrimStart('/', '\\');
             var absolutePath = "/" + relativePath;
 
-            if (virtualShaders.TryGetValue(absolutePath, out var code) || 
-                virtualShaders.TryGetValue(relativePath, out code) || 
+            if (virtualShaders.TryGetValue(absolutePath, out var code) ||
+                virtualShaders.TryGetValue(relativePath, out code) ||
                 virtualShaders.TryGetValue(includePath, out code))
             {
                 sb.AppendLine(code);
@@ -193,7 +193,7 @@ public static class DSLShaderCompiler
         for (var i = 0; i < passes.Length; i++)
         {
             var pass = semantics.passes![i];
-            
+
             var localPipeline = MergePipeline(pass.localPipeline, PipelineState.Default);
 
             var result = BuildFinalShaderCode(pass.amplificationShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertiesCode, virtualShaders);
