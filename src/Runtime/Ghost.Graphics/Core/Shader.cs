@@ -37,9 +37,6 @@ public unsafe partial struct Shader : IResourceReleasable
     private UnsafeHashMap<int, int> _passIDToLocal;
     private fixed sbyte _semanticPassMap[8];
 
-    // TODO: Tag to pass index for fast lookup.
-    // We can use a int array since the number and index of tags are fixed at compile time.
-
     public readonly ulong UniqueID => _nameHash;
     public readonly int PassCount => _shaderPasses.Count;
     public readonly uint PropertyBufferSize => _propertyBufferSize;
@@ -63,26 +60,16 @@ public unsafe partial struct Shader : IResourceReleasable
             _shaderPasses[i] = new ShaderPass
             {
                 Key = RHIUtility.GetPassID(_nameHash, i),
+                StageMask = pass.stageMask,
                 DefaultState = pass.localPipeline,
             };
 
             _passIDToLocal[GetPassID(pass.name)] = (ushort)i;
 
-            if (string.Equals(pass.name, "Forward", StringComparison.OrdinalIgnoreCase))
+            if ((uint)pass.semantic < (uint)PassSemantic.Count && pass.semantic != PassSemantic.Custom)
             {
-                _semanticPassMap[(byte)PassSemantic.Forward] = (sbyte)i;
-            }
-            else if (string.Equals(pass.name, "Visibility", StringComparison.OrdinalIgnoreCase))
-            {
-                _semanticPassMap[(byte)PassSemantic.Visibility] = (sbyte)i;
-            }
-            else if (string.Equals(pass.name, "Shadow", StringComparison.OrdinalIgnoreCase))
-            {
-                _semanticPassMap[(byte)PassSemantic.Shadow] = (sbyte)i;
-            }
-            else if (string.Equals(pass.name, "DeferredTexturing", StringComparison.OrdinalIgnoreCase))
-            {
-                _semanticPassMap[(byte)PassSemantic.DeferredTexturing] = (sbyte)i;
+                Logger.DebugAssert(_semanticPassMap[(byte)pass.semantic] < 0, $"Shader '{descriptor.Name}' contains more than one {pass.semantic} pass.");
+                _semanticPassMap[(byte)pass.semantic] = (sbyte)i;
             }
         }
     }
@@ -124,7 +111,7 @@ public unsafe partial struct Shader : IResourceReleasable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Result<ShaderPass, Error> TryGetPass(Identifier<ShaderPass> passID, out int passIndex)
     {
-        if (_passIDToLocal.TryGetValue(passID.Value, out var index))
+        if (!_passIDToLocal.TryGetValue(passID.Value, out var index))
         {
             passIndex = -1;
             return Error.NotFound;

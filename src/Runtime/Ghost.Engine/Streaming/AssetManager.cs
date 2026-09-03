@@ -24,6 +24,7 @@ public struct AssetReadData : IDisposable
 
 public interface IContentProvider
 {
+    IReadOnlyList<ShaderCatalogEntry> ShaderCatalog { get; }
     Guid VirtualPathToGuid(string path);
     bool HasAsset(Guid guid);
     Guid[] GetDependencies(Guid guid);
@@ -106,11 +107,21 @@ public partial class AssetManager : IDisposable
     private readonly ResourceManager _resourceManager;
     private readonly ResourceStreamingProcessor _streamingProcessor;
     private readonly JobScheduler _jobScheduler;
+    private readonly ShaderVariantRegistry _shaderVariants;
+    private readonly ComputeShaderRegistry _computeShaders;
 
     private readonly ConcurrentDictionary<Guid, AssetEntry> _entries;
 
     internal IContentProvider ContentProvider => _contentProvider;
     internal ResourceStreamingProcessor StreamingProcessor => _streamingProcessor;
+    /// <summary>
+    /// Dense metadata registry for graphics shader variants.
+    /// </summary>
+    public ShaderVariantRegistry ShaderVariants => _shaderVariants;
+    /// <summary>
+    /// Metadata registry for standalone compute shaders.
+    /// </summary>
+    public ComputeShaderRegistry ComputeShaders => _computeShaders;
 
     internal AssetManager(IResourceDatabase resourceDatabase, ResourceManager resourceManager, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler)
     {
@@ -119,6 +130,8 @@ public partial class AssetManager : IDisposable
         _contentProvider = contentProvider;
         _streamingProcessor = streamingProcessor;
         _jobScheduler = jobScheduler;
+        _shaderVariants = new ShaderVariantRegistry(resourceManager, contentProvider.ShaderCatalog);
+        _computeShaders = new ComputeShaderRegistry(resourceManager, contentProvider.ShaderCatalog);
 
         _entries = new ConcurrentDictionary<Guid, AssetEntry>();
     }
@@ -344,7 +357,8 @@ public partial class AssetManager : IDisposable
         Logger.DebugAssert(_entries.IsEmpty, $"There are still {_entries.Count} assets in the manager. Make sure to release all assets before disposing the manager.");
 
         _entries.Clear();
-
+        _computeShaders.Dispose();
+        _shaderVariants.Dispose();
         if (_contentProvider is IDisposable disposable)
         {
             disposable.Dispose();

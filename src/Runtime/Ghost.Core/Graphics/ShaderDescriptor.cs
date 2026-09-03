@@ -5,12 +5,31 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Core.Graphics;
 
+public static class ShaderIdentity
+{
+    public const ulong ShaderIdMask = 0xFFFFFFFFFFFFFFF0ul;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong GetShaderId(string shaderName)
+    {
+        return XxHash64.HashToUInt64(MemoryMarshal.AsBytes(shaderName.AsSpan())) & ShaderIdMask;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong GetPassId(ulong shaderId, int passIndex)
+    {
+        Logger.DebugAssert(passIndex >= 0 && passIndex < 16, "Pass index must be between 0 and 15 to fit within the shader ID mask.");
+        return shaderId | ((ulong)passIndex & 0xFul);
+    }
+}
+
 public enum ShaderModel
 {
     SM_6_6,
     SM_6_7,
     SM_6_8
 }
+
 public enum PassSemantic : byte
 {
     Forward = 0,
@@ -21,6 +40,20 @@ public enum PassSemantic : byte
     Count = 8
 }
 
+public static class PassSemanticExtensions
+{
+    public static PassSemantic FromName(string passName)
+    {
+        return passName switch
+        {
+            "Forward" => PassSemantic.Forward,
+            "Visibility" => PassSemantic.Visibility,
+            "Shadow" => PassSemantic.Shadow,
+            "DeferredTexturing" => PassSemantic.DeferredTexturing,
+            _ => PassSemantic.Custom,
+        };
+    }
+}
 
 public struct ShaderCode()
 {
@@ -57,6 +90,8 @@ public struct PassDescriptor
     public GraphicsShaderDescriptor shader;
 
     public string name;
+    public PassSemantic semantic;
+    public ShaderStageMask stageMask;
 
     public ShaderCode amplificationShaderCode;
     public ShaderCode meshShaderCode;

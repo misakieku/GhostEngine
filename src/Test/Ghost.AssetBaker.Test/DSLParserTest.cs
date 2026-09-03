@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.DSL.ShaderCompiler;
 
 namespace Ghost.AssetForge.Test;
@@ -149,17 +150,18 @@ shader ""Custom/CarPaint"" : ""Lit""
         Assert.HasCount(4, descriptor.Passes); // Forward, Visibility, Shadow, DeferredTexturing
 
         var forwardPass = descriptor.Passes.First(p => p.name == "Forward");
+        Assert.AreEqual(PassSemantic.Forward, forwardPass.semantic);
         Assert.IsTrue(forwardPass.amplificationShaderCode.IsCreated);
         Assert.IsTrue(forwardPass.meshShaderCode.IsCreated);
         Assert.IsTrue(forwardPass.pixelShaderCode.IsCreated);
         StringAssert.Contains(forwardPass.pixelShaderCode.code, "CustomCarPaintShaderProperties");
 
         var deferredPass = descriptor.Passes.First(p => p.name == "DeferredTexturing");
+        Assert.AreEqual(PassSemantic.DeferredTexturing, deferredPass.semantic);
         Assert.IsTrue(deferredPass.computeShaderCode.IsCreated);
         StringAssert.Contains(deferredPass.computeShaderCode.code, "CSMain");
+
     }
-
-
     [TestMethod]
     public void TestParseClassicPassShader_Succeeds()
     {

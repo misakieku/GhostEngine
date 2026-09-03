@@ -112,6 +112,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
 
         contentStream.Position = 0;
 
+        // TODO: Replace the full persistent payload with range-based bounded staging.
         _rawData = contentStream.ReadMemory(AllocationHandle.Persistent);
         var pData = (byte*)_rawData.GetUnsafePtr();
 

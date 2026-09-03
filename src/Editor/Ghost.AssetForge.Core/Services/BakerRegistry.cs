@@ -89,7 +89,16 @@ public class BakerRegistry : IDisposable
 
     public AssetType DetectAssetType(string extension)
     {
-        if (string.IsNullOrEmpty(extension)) return AssetType.Unknown;
+        if (string.IsNullOrEmpty(extension))
+        {
+            return AssetType.Unknown;
+        }
+
+        if (string.Equals(extension, ".gcomp", StringComparison.OrdinalIgnoreCase))
+        {
+            return AssetType.ComputeShader;
+        }
+
         return _extToType.TryGetValue(extension, out var type) ? type : AssetType.Unknown;
     }
 

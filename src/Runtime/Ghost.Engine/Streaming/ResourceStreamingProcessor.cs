@@ -15,18 +15,18 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
 
     private readonly ConcurrentQueue<IProcessableAssetEntry> _pendingProcess;
     private readonly ConcurrentQueue<IUploadableAssetEntry> _pendingUpload;
+    private readonly ConcurrentQueue<IShaderCommitableAssetEntry> _pendingShaderCommit;
     private readonly ConcurrentQueue<IUploadableAssetEntry> _pendingFinalize;
     private readonly List<IUploadableAssetEntry> _recordedUploads;
-
     private SubmissionHandle _pendingCopySubmission;
 
     public ResourceStreamingProcessor()
     {
         _pendingProcess = new ConcurrentQueue<IProcessableAssetEntry>();
         _pendingUpload = new ConcurrentQueue<IUploadableAssetEntry>();
+        _pendingShaderCommit = new ConcurrentQueue<IShaderCommitableAssetEntry>();
         _pendingFinalize = new ConcurrentQueue<IUploadableAssetEntry>();
         _recordedUploads = new List<IUploadableAssetEntry>(MAX_UPLOADS_PER_FRAME);
-        _pendingCopySubmission = default;
     }
 
     public bool EnqueueForProcess(AssetEntry entry)
@@ -36,13 +36,42 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
             _pendingUpload.Enqueue(uploadable);
             return true;
         }
-        else if (entry is IProcessableAssetEntry processable)
+
+        if (entry is IShaderCommitableAssetEntry shaderCommitable)
+        {
+            _pendingShaderCommit.Enqueue(shaderCommitable);
+            return true;
+        }
+
+        if (entry is IProcessableAssetEntry processable)
         {
             _pendingProcess.Enqueue(processable);
             return true;
         }
 
         return false;
+    }
+
+    public void ProcessPendingShaderCommits(ResourceStreamingContext context)
+    {
+        while (_pendingShaderCommit.TryDequeue(out var entry))
+        {
+            if (entry.State != AssetState.Loaded)
+            {
+                Logger.Warning($"Asset {entry.AssetId} is in state {entry.State}, expected Loaded. Skipping shader commit.");
+                continue;
+            }
+
+            var result = entry.CommitShaderBytecode(context.ShaderLibrary);
+            if (result.IsFailure)
+            {
+                entry.State = AssetState.Failed;
+                Logger.Error($"Failed to commit shader bytecode for asset {entry.AssetId}: {result.Message}");
+                continue;
+            }
+
+            entry.State = AssetState.Ready;
+        }
     }
 
     public void ProcessPendingResource(JobScheduler jobScheduler, object? context)

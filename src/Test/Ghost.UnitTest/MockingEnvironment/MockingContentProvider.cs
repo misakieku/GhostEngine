@@ -23,6 +23,8 @@ internal class MockingContentProvider : IContentProvider
 
     private readonly ConcurrentDictionary<Guid, MockAssetData> _assets = new();
 
+    public IReadOnlyList<ShaderCatalogEntry> ShaderCatalog { get; init; } = Array.Empty<ShaderCatalogEntry>();
+
     public void AddMockAsset(Guid guid, MockAssetData data)
     {
         _assets[guid] = data;

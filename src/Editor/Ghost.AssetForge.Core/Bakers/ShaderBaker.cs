@@ -2,11 +2,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.AssetForge.Core.Models;
 using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.DSL.ShaderCompiler;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.IO.Hashing;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.AssetForge.Core.Bakers;
 
@@ -30,6 +33,20 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
 {
     private readonly DXCShaderCompiler _compiler = new DXCShaderCompiler();
     private readonly SemaphoreSlim _compileLock = new(1, 1);
+
+    private static ulong GetLayoutHash(DSL.Models.ShaderReflectionData reflectionData)
+    {
+        var codeHash = XxHash64.HashToUInt64(MemoryMarshal.AsBytes(reflectionData.Code.AsSpan()));
+        return Hash.Combine64(codeHash, reflectionData.Size);
+    }
+
+    private static void WriteName(Stream stream, long assetStartOffset, string name, ref long nameOffset, ref uint nameSize)
+    {
+        var nameBytes = System.Text.Encoding.UTF8.GetBytes(name);
+        nameOffset = stream.Position - assetStartOffset;
+        nameSize = (uint)nameBytes.Length;
+        stream.Write(nameBytes);
+    }
 
     private static async Task WriteShaderEntries(Stream stream, long passDataOffset, CancellationToken cancellationToken, params (ShaderStage stage, UnsafeArray<byte> bytecode)[] entries)
     {
@@ -107,28 +124,39 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
             var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
             var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader).GetValueOrThrow();
 
+            var assetStartOffset = dst.Position;
             var header = new ShaderContentHeader
             {
                 shaderType = ShaderType.Graphics,
                 passCount = (uint)descriptor.Passes.Length,
+                propertyBufferSize = descriptor.PropertyBufferSize,
+                shaderModel = descriptor.ShaderModel,
+                shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
+                familyId = ShaderIdentity.GetShaderId(semantics.templateName ?? descriptor.Name),
+                layoutHash = GetLayoutHash(reflectionData),
             };
 
-            var assetStartOffset = dst.Position;
             dst.Write(header);
+            WriteName(dst, assetStartOffset, descriptor.Name, ref header.nameOffset, ref header.nameSize);
 
             for (var passIdx = 0; passIdx < descriptor.Passes.Length; passIdx++)
             {
                 var pass = descriptor.Passes[passIdx];
                 var passHeaderOffset = dst.Position;
+                var passHeader = new ShaderContentHeader.PassHeader
+                {
+                    entryPointCount = pass.computeShaderCode.IsCreated ? 1u : (pass.amplificationShaderCode.IsCreated ? 3u : 2u),
+                    semantic = pass.semantic,
+                    stageMask = pass.stageMask,
+                    passId = ShaderIdentity.GetPassId(header.shaderId, passIdx),
+                    localPipeline = pass.localPipeline,
+                };
+                dst.Write(passHeader); // Placeholder
+                WriteName(dst, assetStartOffset, pass.name, ref passHeader.nameOffset, ref passHeader.nameSize);
+                var passDataStart = dst.Position;
+
                 if (pass.computeShaderCode.IsCreated)
                 {
-                    var passHeader = new ShaderContentHeader.PassHeader
-                    {
-                        entryPointCount = 1,
-                    };
-                    dst.Write(passHeader); // Placeholder
-
-                    var passDataStart = dst.Position;
                     var config = configTemplate with
                     {
                         stage = ShaderStage.ComputeShader,
@@ -139,69 +167,63 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                     };
 
                     using var csByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
-
                     await WriteShaderEntries(dst, passDataStart, cancellationToken,
                         (ShaderStage.ComputeShader, csByteCode));
-
-                    passHeader.dataOffset = passDataStart - assetStartOffset;
-                    passHeader.dataSize = dst.Position - passDataStart;
-                    var endOfPass = dst.Position;
-                    dst.Position = passHeaderOffset;
-                    dst.Write(passHeader);
-                    dst.Position = endOfPass;
                 }
                 else
                 {
-                    var passHeader = new ShaderContentHeader.PassHeader
+                    if (!pass.meshShaderCode.IsCreated || !pass.pixelShaderCode.IsCreated ||
+                        (pass.stageMask & (ShaderStageMask.Mesh | ShaderStageMask.Pixel)) != (ShaderStageMask.Mesh | ShaderStageMask.Pixel))
                     {
-                        entryPointCount = 3, // Amplification, Mesh, Pixel
-                    };
-                    dst.Write(passHeader); // Placeholder
-
-                    var passDataStart = dst.Position;
-                    var config = configTemplate with
-                    {
-                        stage = ShaderStage.AmplificationShader,
-                        model = descriptor.ShaderModel,
-                        defines = pass.defines,
-                        entryPoint = pass.amplificationShaderCode.entryPoint,
-                        shaderCode = pass.amplificationShaderCode.code,
-                    };
-
-                    if (!pass.meshShaderCode.IsCreated || !pass.pixelShaderCode.IsCreated)
-                    {
-                        throw new InvalidOperationException("Shader pass is missing required shader stages. Both mesh and pixel shaders must be present.");
+                        throw new InvalidOperationException($"Shader pass '{pass.name}' is missing required graphics shader stages.");
                     }
 
-                    using var asByteCode = pass.amplificationShaderCode.IsCreated ?
-                        _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow()
-                        : default;
-
-                    config.stage = ShaderStage.MeshShader;
-                    config.entryPoint = pass.meshShaderCode.entryPoint;
-                    config.shaderCode = pass.meshShaderCode.code;
-
+                    var config = configTemplate with
+                    {
+                        stage = ShaderStage.MeshShader,
+                        model = descriptor.ShaderModel,
+                        defines = pass.defines,
+                        entryPoint = pass.meshShaderCode.entryPoint,
+                        shaderCode = pass.meshShaderCode.code,
+                    };
                     using var msByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
 
                     config.stage = ShaderStage.PixelShader;
                     config.entryPoint = pass.pixelShaderCode.entryPoint;
                     config.shaderCode = pass.pixelShaderCode.code;
-
                     using var psByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
 
-                    await WriteShaderEntries(dst, passDataStart, cancellationToken,
-                        (ShaderStage.AmplificationShader, asByteCode),
-                        (ShaderStage.MeshShader, msByteCode),
-                        (ShaderStage.PixelShader, psByteCode));
-
-                    passHeader.dataOffset = passDataStart - assetStartOffset;
-                    passHeader.dataSize = dst.Position - passDataStart;
-                    var endOfPass = dst.Position;
-                    dst.Position = passHeaderOffset;
-                    dst.Write(passHeader);
-                    dst.Position = endOfPass;
+                    if (pass.amplificationShaderCode.IsCreated)
+                    {
+                        config.stage = ShaderStage.AmplificationShader;
+                        config.entryPoint = pass.amplificationShaderCode.entryPoint;
+                        config.shaderCode = pass.amplificationShaderCode.code;
+                        using var asByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                        await WriteShaderEntries(dst, passDataStart, cancellationToken,
+                            (ShaderStage.AmplificationShader, asByteCode),
+                            (ShaderStage.MeshShader, msByteCode),
+                            (ShaderStage.PixelShader, psByteCode));
+                    }
+                    else
+                    {
+                        await WriteShaderEntries(dst, passDataStart, cancellationToken,
+                            (ShaderStage.MeshShader, msByteCode),
+                            (ShaderStage.PixelShader, psByteCode));
+                    }
                 }
+
+                passHeader.dataOffset = passDataStart - assetStartOffset;
+                passHeader.dataSize = dst.Position - passDataStart;
+                var endOfPass = dst.Position;
+                dst.Position = passHeaderOffset;
+                dst.Write(passHeader);
+                dst.Position = endOfPass;
             }
+
+            var endOfAsset = dst.Position;
+            dst.Position = assetStartOffset;
+            dst.Write(header);
+            dst.Position = endOfAsset;
         }
         else if (string.Equals(ext, ".gcomp", StringComparison.Ordinal))
         {
@@ -211,22 +233,32 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
             var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
             var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader).GetValueOrThrow();
 
+            var assetStartOffset = dst.Position;
             var header = new ShaderContentHeader
             {
                 shaderType = ShaderType.Compute,
-                passCount = 1, // Compute shaders have a single pass
+                passCount = 1,
+                propertyBufferSize = descriptor.PropertyBufferSize,
+                shaderModel = descriptor.ShaderModel,
+                shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
+                familyId = ShaderIdentity.GetShaderId(descriptor.Name),
+                layoutHash = GetLayoutHash(reflectionData),
             };
 
-            var assetStartOffset = dst.Position;
             dst.Write(header);
+            WriteName(dst, assetStartOffset, descriptor.Name, ref header.nameOffset, ref header.nameSize);
 
             var passHeaderOffset = dst.Position;
             var passHeader = new ShaderContentHeader.PassHeader
             {
                 entryPointCount = (uint)descriptor.ShaderCodes.Length,
+                semantic = PassSemantic.Custom,
+                stageMask = ShaderStageMask.Compute,
+                passId = ShaderIdentity.GetPassId(header.shaderId, 0),
+                localPipeline = PipelineState.Default,
             };
             dst.Write(passHeader); // Placeholder
-
+            WriteName(dst, assetStartOffset, descriptor.Name, ref passHeader.nameOffset, ref passHeader.nameSize);
             var passDataStart = dst.Position;
             var byteCodes = new UnsafeArray<byte>[descriptor.ShaderCodes.Length];
 
@@ -264,6 +296,10 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
             dst.Position = passHeaderOffset;
             dst.Write(passHeader);
             dst.Position = endOfPass;
+            var endOfAsset = dst.Position;
+            dst.Position = assetStartOffset;
+            dst.Write(header);
+            dst.Position = endOfAsset;
         }
         else
         {

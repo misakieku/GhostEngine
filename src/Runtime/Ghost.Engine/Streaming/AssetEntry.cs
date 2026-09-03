@@ -24,10 +24,10 @@ internal static class AssetEntryFactory
     {
         return assetType switch
         {
-            AssetType.Texture => new TextureAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
-            AssetType.Mesh => new MeshAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
-            AssetType.Material => throw new NotImplementedException(),
-            AssetType.Shader => throw new NotImplementedException(),
+            AssetType.Shader => manager.ComputeShaders.TryGetShaderHandle(assetId, out _)
+                ? new ComputeShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies)
+                : new ShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies),
+            AssetType.ComputeShader => new ComputeShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies),
             AssetType.Scene => new SceneAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
             AssetType.Audio => throw new NotImplementedException(),
             AssetType.Video => throw new NotImplementedException(),
@@ -191,4 +191,9 @@ internal interface IUploadableAssetEntry : IAssetEntry
 {
     Result OnRecordUploadCommands(ResourceStreamingContext context);
     void OnUploadComplete(ResourceStreamingContext context);
+}
+
+internal interface IShaderCommitableAssetEntry : IAssetEntry
+{
+    Result CommitShaderBytecode(ShaderLibrary shaderLibrary);
 }

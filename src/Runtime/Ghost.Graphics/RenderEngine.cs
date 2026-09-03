@@ -275,9 +275,11 @@ public class RenderEngine : IDisposable
                         ResourceDatabase = _graphicsEngine.ResourceDatabase,
                         ResourceAllocator = _graphicsEngine.ResourceAllocator,
                         CommandBuffer = preludeCmd,
+                        ShaderLibrary = _shaderLibrary,
                     };
 
                     _streamingProcessor.ProcessPendingUploads(streamingContext);
+                    _streamingProcessor.ProcessPendingShaderCommits(streamingContext);
 
                     renderContext.CommandBuffer = preludeCmd;
                     _renderPipeline.RecordPrelude(renderContext, frameIndex, frameResource.RenderPayload);

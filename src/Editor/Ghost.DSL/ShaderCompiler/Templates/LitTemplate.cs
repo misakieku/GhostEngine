@@ -35,6 +35,7 @@ public sealed class LitTemplate : IShaderTemplate
         new TemplatePassDef
         {
             name = "Forward",
+            semantic = PassSemantic.Forward,
             pipeline = new PipelineSemantic
             {
                 zTest = ZTest.LessEqual,
@@ -53,6 +54,7 @@ public sealed class LitTemplate : IShaderTemplate
         new TemplatePassDef
         {
             name = "Visibility",
+            semantic = PassSemantic.Visibility,
             pipeline = new PipelineSemantic
             {
                 zTest = ZTest.LessEqual,
@@ -71,6 +73,7 @@ public sealed class LitTemplate : IShaderTemplate
         new TemplatePassDef
         {
             name = "Shadow",
+            semantic = PassSemantic.Shadow,
             pipeline = new PipelineSemantic
             {
                 zTest = ZTest.LessEqual,
@@ -89,6 +92,7 @@ public sealed class LitTemplate : IShaderTemplate
         new TemplatePassDef
         {
             name = "DeferredTexturing",
+            semantic = PassSemantic.DeferredTexturing,
             pipeline = new PipelineSemantic(),
             stages = new List<TemplateStage>
             {

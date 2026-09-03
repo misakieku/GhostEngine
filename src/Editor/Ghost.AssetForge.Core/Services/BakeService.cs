@@ -189,17 +189,29 @@ public class BakeService
             return BakeOutcome.Skipped;
         }
 
+        var detectedAssetType = _bakerRegistry.DetectAssetType(ext);
         if (metadata == null)
         {
             metadata = new AssetMetadata
             {
                 Id = Guid.NewGuid(),
-                Type = _bakerRegistry.DetectAssetType(ext),
+                Type = detectedAssetType,
                 Settings = _bakerRegistry.CreateDefaultSettings(ext)
             };
 
             _context.SaveMetadata(metaFile, metadata);
             Logger.Info($"Created default metadata for {relativePath}.");
+        }
+        else if (metadata.Type != detectedAssetType)
+        {
+            metadata = new AssetMetadata
+            {
+                Id = metadata.Id,
+                Type = detectedAssetType,
+                Settings = metadata.Settings,
+            };
+            _context.SaveMetadata(metaFile, metadata);
+            Logger.Info($"Updated asset type metadata for {relativePath} to {detectedAssetType}.");
         }
 
         if (metadata.Settings == null)

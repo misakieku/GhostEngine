@@ -220,10 +220,18 @@ public static class DSLShaderCompiler
 
             var pixelShaderCode = new ShaderCode { code = result.Value, entryPoint = pass.pixelShader.entry ?? string.Empty };
 
+            var stageMask = ShaderStageMask.Mesh | ShaderStageMask.Pixel;
+            if (amplificationShaderCode.IsCreated)
+            {
+                stageMask |= ShaderStageMask.Amplification;
+            }
+
             passes[i] = new PassDescriptor
             {
                 name = pass.name,
+                semantic = PassSemanticExtensions.FromName(pass.name),
                 localPipeline = localPipeline,
+                stageMask = stageMask,
                 amplificationShaderCode = amplificationShaderCode,
                 meshShaderCode = meshShaderCode,
                 pixelShaderCode = pixelShaderCode,

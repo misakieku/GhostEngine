@@ -2,6 +2,8 @@ using Ghost.AssetForge.Core.Models;
 using Ghost.Core;
 using Ghost.Core.Utilities;
 using K4os.Compression.LZ4.Streams;
+using System.Text;
+using System.Runtime.CompilerServices;
 using ZstdSharp;
 
 namespace Ghost.AssetForge.Core.Services;
@@ -22,6 +24,75 @@ public class PackService
     private static string GetPackFileName(int index)
     {
         return $"pack_{index:D4}.pack";
+    }
+
+    private static string ReadUtf8String(Stream stream, long assetStart, long offset, uint size)
+    {
+        if (offset < 0 || size > int.MaxValue || offset > stream.Length - assetStart || size > stream.Length - assetStart - offset)
+        {
+            throw new InvalidDataException("Shader catalog contains an invalid string range.");
+        }
+
+        var position = stream.Position;
+        stream.Position = assetStart + offset;
+        var bytes = new byte[(int)size];
+        stream.ReadExactly(bytes);
+        stream.Position = position;
+        return Encoding.UTF8.GetString(bytes);
+    }
+
+    private static ShaderCatalogEntry ReadShaderCatalogEntry(string cacheFile, Guid assetId)
+    {
+        using var stream = new FileStream(cacheFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var assetStart = CacheFileHeader.SIZE;
+        stream.Position = assetStart;
+
+        var header = stream.Read<ShaderContentHeader>();
+        if (header.magic != ShaderContentHeader.MAGIC || header.version != ShaderContentHeader.VERSION)
+        {
+            throw new InvalidDataException($"Shader cache '{cacheFile}' uses an unsupported content format.");
+        }
+
+        if (header.passCount > 16)
+        {
+            throw new InvalidDataException($"Shader cache '{cacheFile}' contains {header.passCount} passes; at most 16 are supported.");
+        }
+
+        var passes = new ShaderCatalogPass[header.passCount];
+        var nextPassOffset = header.nameOffset + header.nameSize;
+        for (var i = 0; i < passes.Length; i++)
+        {
+            if (nextPassOffset < 0 || nextPassOffset > stream.Length - assetStart - Unsafe.SizeOf<ShaderContentHeader.PassHeader>())
+            {
+                throw new InvalidDataException($"Shader cache '{cacheFile}' contains an invalid pass header range.");
+            }
+
+            stream.Position = assetStart + nextPassOffset;
+            var pass = stream.Read<ShaderContentHeader.PassHeader>();
+            passes[i] = new ShaderCatalogPass
+            {
+                Name = ReadUtf8String(stream, assetStart, pass.nameOffset, pass.nameSize),
+                Semantic = pass.semantic,
+                StageMask = pass.stageMask,
+                EntryPointCount = pass.entryPointCount,
+                PassId = pass.passId,
+                LocalPipeline = pass.localPipeline,
+            };
+            nextPassOffset = pass.dataOffset + pass.dataSize;
+        }
+
+        return new ShaderCatalogEntry
+        {
+            AssetId = assetId,
+            ShaderType = header.shaderType,
+            Name = ReadUtf8String(stream, assetStart, header.nameOffset, header.nameSize),
+            ShaderId = header.shaderId,
+            FamilyId = header.familyId,
+            LayoutHash = header.layoutHash,
+            PropertyBufferSize = header.propertyBufferSize,
+            ShaderModel = header.shaderModel,
+            Passes = passes,
+        };
     }
 
     public async Task PackProjectAsync(CancellationToken cancellationToken = default)
@@ -134,6 +205,11 @@ public class PackService
                     Size = size,
                     UncompressedSize = uncompressedSize,
                 });
+
+                if (metadata.Type == AssetType.Shader || metadata.Type == AssetType.ComputeShader)
+                {
+                    manifest.Shaders.Add(ReadShaderCatalogEntry(cacheFile, metadata.Id));
+                }
 
                 Logger.Info($"Packed {key} into {currentPackName} (Offset: {offset}, Size: {size})");
 

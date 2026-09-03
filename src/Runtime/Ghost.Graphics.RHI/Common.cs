@@ -27,6 +27,12 @@ public readonly struct ShaderPass
         get; init;
     }
 
+    public ShaderStageMask StageMask
+    {
+        get;
+        init;
+    }
+
     public PipelineState DefaultState
     {
         get; init;

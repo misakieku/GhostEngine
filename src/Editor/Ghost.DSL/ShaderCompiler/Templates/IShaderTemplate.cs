@@ -1,5 +1,5 @@
 using Ghost.Core;
-
+using Ghost.Core.Graphics;
 namespace Ghost.DSL.ShaderCompiler.Templates;
 
 /// <summary>
@@ -29,6 +29,7 @@ public struct TemplateStage
 public class TemplatePassDef
 {
     public string name = string.Empty;
+    public PassSemantic semantic = PassSemantic.Custom;
     public PipelineSemantic pipeline = new();
     public List<TemplateStage> stages = new List<TemplateStage>();
 }

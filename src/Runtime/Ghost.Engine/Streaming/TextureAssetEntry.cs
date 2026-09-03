@@ -105,6 +105,7 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
         };
 
         _desc = textureDesc;
+        // TODO: Replace the full persistent payload with bounded stream-owned staging.
         _textureData = contentStream.ReadMemory(AllocationHandle.Persistent);
 
         return Result.Success();

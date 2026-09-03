@@ -236,6 +236,7 @@ public static class TemplateStitcher
             var pass = new PassDescriptor
             {
                 name = passDef.name,
+                semantic = passDef.semantic,
                 localPipeline = DSLShaderCompiler.MergePipeline(semantics.pipeline, passDef.pipeline.ToPipelineState()),
                 defines = defines.ToArray(),
             };
@@ -249,6 +250,14 @@ public static class TemplateStitcher
                 }
 
                 var shaderCode = new ShaderCode { code = result.Value, entryPoint = stageDef.entryPoint };
+                pass.stageMask |= stageDef.stage switch
+                {
+                    ShaderStage.AmplificationShader => ShaderStageMask.Amplification,
+                    ShaderStage.MeshShader => ShaderStageMask.Mesh,
+                    ShaderStage.PixelShader => ShaderStageMask.Pixel,
+                    ShaderStage.ComputeShader => ShaderStageMask.Compute,
+                    _ => ShaderStageMask.None,
+                };
 
                 switch (stageDef.stage)
                 {
