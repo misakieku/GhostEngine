@@ -69,7 +69,7 @@ internal struct LoadAssetJob : IJob
             var openResult = assetManager.ContentProvider.OpenReadAsync(entry.AssetId);
             if (openResult.IsFailure)
             {
-                entry.State = AssetState.Failed;
+                entry.State = entry.FailureState;
                 Logger.Error($"Failed to open asset {assetID}: {openResult.Message}");
                 return;
             }
@@ -78,7 +78,7 @@ internal struct LoadAssetJob : IJob
             var result = loadable.OnLoadContent(readData.stream);
             if (result.IsFailure)
             {
-                entry.State = AssetState.Failed;
+                entry.State = entry.FailureState;
                 Logger.Error($"Failed to load asset {assetID}: {result.Message}");
                 return;
             }
@@ -92,7 +92,7 @@ internal struct LoadAssetJob : IJob
         }
         catch (Exception ex)
         {
-            entry.State = AssetState.Failed;
+            entry.State = entry.FailureState;
             Logger.Error($"Failed to load asset {assetID}: {ex.Message}");
             return;
         }

@@ -140,7 +140,7 @@ internal partial class GhostRenderPipeline
             return; // No updates needed
         }
 
-        // NOTE: We dispatch it here instead of in render graph is because the update does not perform every frame.
+        // NOTE: We dispatch it here instead of in render graph because the update may not perform every frame.
         // The topology change of the graph will trigger the recompilation of the render graph, which is expensive.
         // Currently the render graph does not support import invalid resources, which means we can not handle the early return in the render func.
         // Furthermore, updating the GPU scene does not rely on other resources and passes, it's isolated and always run before the actual rendering.

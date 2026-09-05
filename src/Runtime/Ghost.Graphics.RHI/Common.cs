@@ -78,6 +78,11 @@ public ref struct GraphicsPSODesc
         get; set;
     }
 
+    public ulong PassId
+    {
+        get; set;
+    }
+
     public PipelineState PipelineOption
     {
         get; set;
@@ -112,6 +117,11 @@ public ref struct GraphicsPSODesc
 public ref struct ComputePSODesc
 {
     public ulong CompiledHash
+    {
+        get; set;
+    }
+
+    public ulong PassId
     {
         get; set;
     }

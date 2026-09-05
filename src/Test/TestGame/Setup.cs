@@ -9,7 +9,6 @@ using Ghost.Entities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12;
 using Ghost.Graphics.RHI;
-using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
@@ -90,7 +89,7 @@ internal static class Setup
         _world.EntityManager.SetComponent(meshEntity, new MeshInstance
         {
             mesh = meshHandle,
-            materialPalette = Identifier<MaterialPalette>.Invalid,
+            materialPalette = materialPallette,
             renderingLayerMask = RenderingLayerMask.All,
             shadowCastingMode = ShadowCastingMode.On,
             staticShadowCaster = true,

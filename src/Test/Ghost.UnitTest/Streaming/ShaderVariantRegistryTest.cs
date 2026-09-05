@@ -43,11 +43,20 @@ public sealed class ShaderVariantRegistryTest
         Assert.AreEqual(1, deferredVariants.Length);
         Assert.AreEqual(firstIndex, deferredVariants[0]);
 
+        var dispatchVariants = registry.GetDispatchVariants(PassSemantic.DeferredTexturing);
+        Assert.AreEqual(1, dispatchVariants.Length);
+        Assert.AreEqual(firstIndex.Value, dispatchVariants[0].DenseIndex);
+        Assert.AreEqual(registry.GetVariant(firstIndex).Shader, dispatchVariants[0].Shader);
+        Assert.IsFalse(registry.IsBytecodeReady(firstIndex.Value));
+        registry.PublishBytecodeReady(firstAsset);
+        Assert.IsTrue(registry.IsBytecodeReady(firstIndex.Value));
+        Assert.IsFalse(registry.IsBytecodeReady(secondIndex.Value));
+
         ref readonly var firstVariant = ref registry.GetVariant(firstIndex);
         ref readonly var secondVariant = ref registry.GetVariant(secondIndex);
         Assert.AreEqual(familyId, firstVariant.FamilyId);
         Assert.AreEqual(familyId, secondVariant.FamilyId);
-        Assert.AreEqual(ShaderVariantState.MetadataReady, firstVariant.State);
+        Assert.AreEqual(ShaderVariantState.BytecodeReady, registry.GetState(firstIndex));
         Assert.IsTrue(firstVariant.Shader.IsValid);
 
         ref readonly var shader = ref resourceManager.GetShaderReference(firstVariant.Shader).Value;
@@ -57,6 +66,33 @@ public sealed class ShaderVariantRegistryTest
         Assert.AreEqual(ShaderStageMask.Compute, shader.GetPassReference(1).StageMask);
         Assert.IsTrue(shader.TryGetPass(Ghost.Graphics.Core.Shader.GetPassID("Forward"), out var passIndex).IsSuccess);
         Assert.AreEqual(0, passIndex);
+    }
+
+    [TestMethod]
+    public void BytecodePublicationAdvancesGenerationWithoutChangingRuntimeIdentity()
+    {
+        var assetId = Guid.NewGuid();
+        var catalog = new ShaderCatalogEntry[]
+        {
+            CreateEntry(assetId, "ReloadableLit", ShaderIdentity.GetShaderId("Lit"), PassSemantic.Forward),
+        };
+
+        using var renderDevice = new MockingRenderDevice();
+        using var resourceDatabase = new MockingResourceDatabase();
+        using var resourceAllocator = new MockingResourceAllocator(resourceDatabase);
+        using var resourceManager = new ResourceManager(renderDevice, resourceAllocator, resourceDatabase);
+        using var registry = new ShaderVariantRegistry(resourceManager, catalog);
+
+        Assert.IsTrue(registry.TryGetVariantIndex(assetId, out var index));
+        var handle = registry.GetVariant(index).Shader;
+        registry.PublishBytecodeReady(assetId);
+        Assert.AreEqual(1u, registry.GetGeneration(index));
+        registry.PublishBytecodeReady(assetId);
+
+        Assert.AreEqual(index, registry.GetVariant(index).Index);
+        Assert.AreEqual(handle, registry.GetVariant(index).Shader);
+        Assert.AreEqual(2u, registry.GetGeneration(index));
+        Assert.AreEqual(ShaderVariantState.BytecodeReady, registry.GetState(index));
     }
 
     private static ShaderCatalogEntry CreateEntry(Guid assetId, string name, ulong familyId, params PassSemantic[] semantics)

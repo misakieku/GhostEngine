@@ -199,7 +199,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
         }
 
         var passAttachmentKey = new PassAttachmentHash(desc.RtvFormats, desc.DsvFormat);
-        var pipelineKey = RHIUtility.CreateGraphicsPipelineKey(desc.CompiledHash, desc.PipelineOption, passAttachmentKey);
+        var pipelineKey = RHIUtility.CreateGraphicsPipelineKey(desc.PassId, desc.CompiledHash, desc.PipelineOption, passAttachmentKey);
 
         if (!_pipelineCache.ContainsKey(pipelineKey))
         {
@@ -270,7 +270,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
     {
         AssertNotDisposed();
 
-        var pipelineKey = RHIUtility.CreateComputePipelineKey(desc.CompiledHash);
+        var pipelineKey = RHIUtility.CreateComputePipelineKey(desc.PassId, desc.CompiledHash);
         if (!_pipelineCache.ContainsKey(pipelineKey))
         {
             fixed (byte* pCSByteCode = desc.CsCode)

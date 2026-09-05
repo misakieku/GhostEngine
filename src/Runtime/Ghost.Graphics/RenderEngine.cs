@@ -40,6 +40,7 @@ internal readonly struct RenderEngineDesc
     {
         get; init;
     }
+
 }
 
 /// <summary>
@@ -257,6 +258,7 @@ public class RenderEngine : IDisposable
 
                 _resourceManager.BeginFrame(_submittedFrame);
                 _graphicsEngine.BeginFrame(_submittedFrame);
+                _shaderLibrary.BeginFrame(_submittedFrame);
 
                 var preludeCmd = _frameScheduler.GetPooledCommandBuffer(CommandBufferType.Graphics);
                 var preludeSubmitted = false;
@@ -323,6 +325,7 @@ public class RenderEngine : IDisposable
                 // End the frame and retire resources based on the oldest completed frame slot.
                 _resourceManager.EndFrame(completedFrame);
                 _graphicsEngine.EndFrame(completedFrame);
+                _shaderLibrary.EndFrame(completedFrame);
 
                 frameResource.RenderPayload.Reset();
             }

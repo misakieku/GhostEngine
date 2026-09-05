@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.Services;
 using System.Runtime.CompilerServices;
@@ -52,21 +53,22 @@ public struct ShaderVariantRecord
     public uint PropertyBufferSize { get; internal set; }
     public int PassCount { get; internal set; }
     public uint SupportedPasses { get; internal set; }
-    public uint Generation { get; internal set; }
-    public ShaderVariantState State { get; internal set; }
+    internal ShaderModel ShaderModel { get; set; }
+    internal ShaderCatalogPass[] Passes { get; set; }
 }
 
 /// <summary>
 /// Owns metadata-complete graphics shader handles and dense per-semantic variant rosters.
 /// Constructed before runtime initialization so materials can be created before bytecode streaming completes.
 /// </summary>
-public sealed class ShaderVariantRegistry : IDisposable
+public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
 {
     private readonly ResourceManager _resourceManager;
     private readonly Dictionary<Guid, int> _assetToVariant;
     private readonly Dictionary<ulong, int> _shaderToVariant;
     private readonly ShaderVariantRecord[] _variants;
     private readonly ShaderVariantIndex[][] _semanticVariants;
+    private readonly ShaderVariantDispatchInfo[][] _dispatchVariants;
     private readonly int[] _states;
     private readonly uint[] _generations;
     private bool _disposed;
@@ -147,12 +149,14 @@ public sealed class ShaderVariantRegistry : IDisposable
                     Index = index,
                     AssetId = entry.AssetId,
                     Shader = shaderHandle,
+                    FamilyId = entry.FamilyId,
                     ShaderId = entry.ShaderId,
                     LayoutHash = entry.LayoutHash,
                     PropertyBufferSize = entry.PropertyBufferSize,
                     PassCount = entry.Passes.Length,
                     SupportedPasses = supportedPasses,
-                    State = ShaderVariantState.MetadataReady,
+                    ShaderModel = entry.ShaderModel,
+                    Passes = entry.Passes,
                 };
                 _states[variantIndex] = (int)ShaderVariantState.MetadataReady;
 
@@ -173,6 +177,20 @@ public sealed class ShaderVariantRegistry : IDisposable
         for (var i = 0; i < semanticLists.Length; i++)
         {
             _semanticVariants[i] = semanticLists[i].ToArray();
+        }
+
+        _dispatchVariants = new ShaderVariantDispatchInfo[_semanticVariants.Length][];
+        for (var semanticIndex = 0; semanticIndex < _semanticVariants.Length; semanticIndex++)
+        {
+            var semanticVariants = _semanticVariants[semanticIndex];
+            var dispatchVariants = new ShaderVariantDispatchInfo[semanticVariants.Length];
+            for (var i = 0; i < semanticVariants.Length; i++)
+            {
+                var index = semanticVariants[i];
+                dispatchVariants[i] = new ShaderVariantDispatchInfo(index.Value, _variants[index.Value].Shader);
+            }
+
+            _dispatchVariants[semanticIndex] = dispatchVariants;
         }
     }
 
@@ -239,6 +257,26 @@ public sealed class ShaderVariantRegistry : IDisposable
         }
 
         return _semanticVariants[(int)semantic];
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ReadOnlySpan<ShaderVariantDispatchInfo> GetDispatchVariants(PassSemantic semantic)
+    {
+        if ((uint)semantic >= (uint)_dispatchVariants.Length)
+        {
+            return ReadOnlySpan<ShaderVariantDispatchInfo>.Empty;
+        }
+
+        return _dispatchVariants[(int)semantic];
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsBytecodeReady(int denseIndex)
+    {
+        return (uint)denseIndex < (uint)_states.Length &&
+               (ShaderVariantState)Volatile.Read(ref _states[denseIndex]) == ShaderVariantState.BytecodeReady;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

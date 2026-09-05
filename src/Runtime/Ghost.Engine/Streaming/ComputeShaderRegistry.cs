@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.Services;
@@ -22,6 +21,9 @@ public struct ComputeShaderRecord
     public ulong LayoutHash { get; internal set; }
     public uint PropertyBufferSize { get; internal set; }
     public int EntryPointCount { get; internal set; }
+    internal ulong FamilyId { get; set; }
+    internal ShaderModel ShaderModel { get; set; }
+    internal ShaderCatalogPass[] Passes { get; set; }
     public uint Generation { get; internal set; }
     public ComputeShaderState State { get; internal set; }
 }
@@ -95,6 +97,9 @@ public sealed class ComputeShaderRegistry : IDisposable
                     LayoutHash = entry.LayoutHash,
                     PropertyBufferSize = entry.PropertyBufferSize,
                     EntryPointCount = (int)entry.Passes[0].EntryPointCount,
+                    FamilyId = entry.FamilyId,
+                    ShaderModel = entry.ShaderModel,
+                    Passes = entry.Passes,
                     State = ComputeShaderState.MetadataReady,
                 };
                 _states[shaderIndex] = (int)ComputeShaderState.MetadataReady;

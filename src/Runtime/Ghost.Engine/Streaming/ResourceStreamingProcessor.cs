@@ -65,7 +65,7 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
             var result = entry.CommitShaderBytecode(context.ShaderLibrary);
             if (result.IsFailure)
             {
-                entry.State = AssetState.Failed;
+                entry.State = ((AssetEntry)entry).FailureState;
                 Logger.Error($"Failed to commit shader bytecode for asset {entry.AssetId}: {result.Message}");
                 continue;
             }

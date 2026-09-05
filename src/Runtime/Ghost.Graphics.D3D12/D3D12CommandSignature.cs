@@ -82,7 +82,7 @@ internal unsafe class D3D12CommandSignature : D3D12Object<ID3D12CommandSignature
         };
 
         ID3D12CommandSignature* pCommandSignature = default;
-        ThrowIfFailed(pDevice->CreateCommandSignature(&d3d12Desc, pRootSignature, __uuidof(pCommandSignature), (void**)pCommandSignature));
+        ThrowIfFailed(pDevice->CreateCommandSignature(&d3d12Desc, pRootSignature, __uuidof(pCommandSignature), (void**)&pCommandSignature));
 
         return pCommandSignature;
     }

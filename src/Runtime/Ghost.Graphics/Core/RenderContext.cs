@@ -402,7 +402,8 @@ public unsafe class RenderContext
             return;
         }
 
-        var pipelineKey = RHIUtility.CreateComputePipelineKey(compiledHash);
+        var passId = shader.GetEntryID(entryIndex);
+        var pipelineKey = RHIUtility.CreateComputePipelineKey(passId, compiledHash);
 
         if (!PipelineLibrary.HasPipelineStateObject(pipelineKey))
         {
@@ -422,6 +423,7 @@ public unsafe class RenderContext
             var psoDes = new ComputePSODesc
             {
                 CompiledHash = compiledHash,
+                PassId = passId,
 
                 CsCode = byteCodes.Slice((int)byteCodeOffsets[0]),
             };

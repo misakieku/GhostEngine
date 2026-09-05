@@ -512,6 +512,7 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
     public void Dispose()
     {
         _components.Dispose();
+        _sharedData.Dispose();
     }
 
     public override bool Equals(object? obj)
@@ -531,7 +532,7 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
 
     public static implicit operator ComponentSetView(in ComponentSet set)
     {
-        return new ComponentSetView(set._components, set._sharedData);
+        return set.AsView();
     }
 }
 

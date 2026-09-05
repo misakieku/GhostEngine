@@ -961,7 +961,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         throw new NotImplementedException();
     }
 
-    public void ExecuteIndirect(ICommandSignature commandSignature, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset)
+    public void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset)
     {
         AssertNotDisposed();
         AssertRecording();
@@ -972,7 +972,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         var resource = _resourceDatabase.GetResource(argumentBuffer.AsResource());
         var countResource = _resourceDatabase.GetResource(countBuffer.AsResource());
 
-        pNativeObject->ExecuteIndirect((ID3D12CommandSignature*)commandSignature.NativePointer, 0,
+        pNativeObject->ExecuteIndirect((ID3D12CommandSignature*)commandSignature.NativePointer, maxCommandCount,
             resource, argumentOffset, countResource, countBufferOffset);
     }
 

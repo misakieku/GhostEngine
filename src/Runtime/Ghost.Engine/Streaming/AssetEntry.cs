@@ -24,6 +24,7 @@ internal static class AssetEntryFactory
     {
         return assetType switch
         {
+            // TODO: We should separate the shader and compute shader asset types, but for now we will treat them as the same type.
             AssetType.Shader => manager.ComputeShaders.TryGetShaderHandle(assetId, out _)
                 ? new ComputeShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies)
                 : new ShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies),
@@ -66,6 +67,7 @@ internal abstract class AssetEntry : IAssetEntry
     public AssetType AssetType => _assetType;
     public ReadOnlySpan<Guid> Dependencies => _dependencies;
     public int RefCount => Volatile.Read(ref _refCount);
+    internal virtual AssetState FailureState => AssetState.Failed;
 
     public ref int StateValue => ref _state;
     public AssetState State
