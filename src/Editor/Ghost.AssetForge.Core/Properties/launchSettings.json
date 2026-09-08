@@ -1,8 +1,7 @@
 {
   "profiles": {
-    "TestGame": {
+    "Ghost.AssetForge.Core": {
       "commandName": "Project",
-      "workingDirectory": "$(TargetDir)",
       "debugEngines": "managed,native"
     }
   }

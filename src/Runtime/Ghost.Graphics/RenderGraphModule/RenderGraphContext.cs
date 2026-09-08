@@ -30,6 +30,9 @@ public interface IRasterRenderContext : IRenderGraphContext
     void SetActiveMaterial(scoped in Material material);
     void SetActiveMaterialPass(Handle<Material> material, PassSemantic semantic);
     void SetActiveMaterialPass(scoped in Material material, PassSemantic semantic);
+    bool TrySetActiveMaterialPass(Handle<Material> material, PassSemantic semantic);
+    bool TrySetActiveMaterialPass(scoped in Material material, PassSemantic semantic);
+    bool TrySetActiveShaderPass(Handle<Shader> shader, PassSemantic semantic);
     void SetActiveMesh(Handle<Mesh> mesh);
     void SetActiveMesh(scoped in Mesh mesh);
     void DispatchMesh(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ);
@@ -340,7 +343,61 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         _commandBuffer.SetPipelineState(pipelineKey);
     }
 
+    public bool TrySetActiveMaterialPass(Handle<Material> material, PassSemantic semantic)
+    {
+        if (material.IsInvalid)
+        {
+            return false;
+        }
+
+        var r = _resourceManager.GetMaterialReference(material);
+        if (r.IsFailure)
+        {
+            return false;
+        }
+
+        ref readonly var mat = ref r.Value;
+        return TrySetActiveMaterialPass(in mat, semantic);
+    }
+
+    public bool TrySetActiveMaterialPass(scoped in Material material, PassSemantic semantic)
+    {
+        if (material.Shader.IsInvalid)
+        {
+            return false;
+        }
+
+        var shaderResult = _resourceManager.GetShaderReference(material.Shader);
+        if (shaderResult.IsFailure)
+        {
+            return false;
+        }
+
+        ref var shader = ref shaderResult.Value;
+        var passIndex = shader.GetPassIndex(semantic);
+        if (passIndex < 0)
+        {
+            return false;
+        }
+
+        ref readonly var pass = ref shader.GetPassReference(passIndex);
+        var materialPipeline = material.GetPassPipelineOverride(passIndex);
+        if (!TryResolveGraphicsPipeline(in pass, shader.UniqueID, passIndex, materialPipeline, out var pipelineKey))
+        {
+            return false;
+        }
+
+        _activePerMaterialData = material._cBufferCache.GpuResource;
+        _commandBuffer.SetPipelineState(pipelineKey);
+        return true;
+    }
+
     public bool TrySetActiveShaderPass(Handle<Shader> shaderHandle, PassSemantic semantic)
+    {
+        return TrySetActiveShaderPass(shaderHandle, semantic, null);
+    }
+
+    public bool TrySetActiveShaderPass(Handle<Shader> shaderHandle, PassSemantic semantic, PipelineState? pipelineOverride)
     {
         var r = _resourceManager.GetShaderReference(shaderHandle);
         if (r.IsFailure)
@@ -356,17 +413,24 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         }
 
         ref readonly var pass = ref shader.GetPassReference(passIndex);
-        if ((pass.StageMask & ShaderStageMask.Compute) == 0)
+        if ((pass.StageMask & ShaderStageMask.Compute) != 0)
+        {
+            if (!TryResolveComputePipeline(pass.Key.Value, shader.UniqueID, passIndex, out var computePipelineKey))
+            {
+                return false;
+            }
+
+            _commandBuffer.SetPipelineState(computePipelineKey);
+            return true;
+        }
+
+        var pipelineOption = pipelineOverride ?? pass.DefaultState;
+        if (!TryResolveGraphicsPipeline(in pass, shader.UniqueID, passIndex, pipelineOption, out var graphicsPipelineKey))
         {
             return false;
         }
 
-        if (!TryResolveComputePipeline(pass.Key.Value, shader.UniqueID, passIndex, out var pipelineKey))
-        {
-            return false;
-        }
-
-        _commandBuffer.SetPipelineState(pipelineKey);
+        _commandBuffer.SetPipelineState(graphicsPipelineKey);
         return true;
     }
 

@@ -211,8 +211,13 @@ public unsafe struct EntityCommandBuffer : IDisposable
         return entity;
     }
 
-    public readonly void Playback(EntityManager entityManager)
+    public void Playback(EntityManager entityManager)
     {
+        if (_writer.Position == 0)
+        {
+            return;
+        }
+
         var reader = _writer.AsReader();
 
         using var scope = AllocationManager.CreateStackScope();
@@ -355,6 +360,8 @@ public unsafe struct EntityCommandBuffer : IDisposable
 
             tempEntities.Clear();
         }
+
+        Reset();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

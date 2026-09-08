@@ -92,7 +92,6 @@ internal unsafe class ShaderAssetEntry : AssetEntry, ILoadableAssetEntry, IShade
         MemoryBlock stagedPayload = default;
         try
         {
-            contentStream.Position = 0;
             stagedPayload = contentStream.ReadMemory(AllocationHandle.Persistent);
 
             if (!Manager.ShaderVariants.TryGetVariantIndex(AssetId, out var variantIndex))

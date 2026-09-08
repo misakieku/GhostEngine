@@ -70,7 +70,6 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
         MemoryBlock stagedPayload = default;
         try
         {
-            contentStream.Position = 0;
             stagedPayload = contentStream.ReadMemory(AllocationHandle.Persistent);
 
             if (!Manager.ComputeShaders.TryGetShaderIndex(AssetId, out var index))

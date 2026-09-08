@@ -66,6 +66,8 @@ public unsafe partial class MeshBaker : IAssetBaker
 
     private static void WriteMeshContent(Stream stream, ParsedMesh mesh, MeshletMeshData* meshletData)
     {
+        var assetStartOffset = stream.Position;
+
         var header = new MeshContentHeader
         {
             magic = MeshContentHeader.MAGIC,
@@ -87,33 +89,36 @@ public unsafe partial class MeshBaker : IAssetBaker
         // Write header placeholder
         stream.Write(header);
 
-        header.vertexOffset = stream.Position;
+        header.vertexOffset = stream.Position - assetStartOffset;
         stream.Write(mesh.Vertices.AsSpan());
 
-        header.indexOffset = stream.Position;
+        header.indexOffset = stream.Position - assetStartOffset;
         stream.Write(mesh.Indices.AsSpan());
 
-        header.materialPartOffset = stream.Position;
+        header.materialPartOffset = stream.Position - assetStartOffset;
         WriteMaterialParts(stream, mesh.MaterialParts.AsSpan());
 
-        header.meshletOffset = stream.Position;
+        header.meshletOffset = stream.Position - assetStartOffset;
         stream.Write(meshletData->meshlets.AsSpan());
 
-        header.meshletGroupOffset = stream.Position;
+        header.meshletGroupOffset = stream.Position - assetStartOffset;
         stream.Write(meshletData->groups.AsSpan());
 
-        header.meshletHierarchyNodeOffset = stream.Position;
+        header.meshletHierarchyNodeOffset = stream.Position - assetStartOffset;
         stream.Write(meshletData->hierarchyNodes.AsSpan());
 
-        header.meshletVertexOffset = stream.Position;
+        header.meshletVertexOffset = stream.Position - assetStartOffset;
         stream.Write(meshletData->meshletVertices.AsSpan());
 
-        header.meshletTriangleOffset = stream.Position;
+        header.meshletTriangleOffset = stream.Position - assetStartOffset;
         stream.Write(meshletData->meshletTriangles.AsSpan());
 
+        var endOfAsset = stream.Position;
+
         // Backpatch header with real offsets
-        stream.Position = 0;
+        stream.Position = assetStartOffset;
         stream.Write(header);
+        stream.Position = endOfAsset;
         stream.Flush();
     }
 

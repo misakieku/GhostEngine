@@ -356,8 +356,8 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         recordA.viewGroup = viewA;
         recordB.viewGroup = viewB;
 
-        D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordA.desc, recordA.ResourcePtr, viewA);
-        D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordB.desc, recordB.ResourcePtr, viewB);
+        recordA.viewGroup = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordA.desc, recordA.ResourcePtr, viewA);
+        recordB.viewGroup = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordB.desc, recordB.ResourcePtr, viewB);
 
         return Error.None;
     }
@@ -378,12 +378,17 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         recordDst = recordSrc;
         recordSrc = temp;
 
-        // Pin viewGroups back
-        recordDst.viewGroup = dstView;
-        recordSrc.viewGroup = srcView;
+        if (dstView.srv.IsValid || dstView.uav.IsValid || dstView.cbv.IsValid || dstView.rtv.IsValid || dstView.dsv.IsValid)
+        {
+            recordDst.viewGroup = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordDst.desc, recordDst.ResourcePtr, dstView);
+            recordSrc.viewGroup = srcView;
+        }
+        else
+        {
+            recordDst.viewGroup = srcView;
+            recordSrc.viewGroup = default;
+        }
 
-        // Update dst's descriptor to point to the new resource
-        D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordDst.desc, recordDst.ResourcePtr, dstView);
         ReleaseResource(src);
 
         return dst;

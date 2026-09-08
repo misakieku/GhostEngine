@@ -73,6 +73,11 @@ public struct Mesh : IResourceReleasable
     }
 
     /// <summary>
+    /// Gets the number of meshlets in the mesh.
+    /// </summary>
+    public int MeshletCount => _meshletData.meshletCount;
+
+    /// <summary>
     /// Gets or sets the axis-aligned bounding box (AABB) of the mesh.
     /// </summary>
     public AABB BoundingBox

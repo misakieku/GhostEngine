@@ -29,7 +29,7 @@ internal unsafe class GPUScene : IDisposable
         {
             Size = initialCount * (ulong)sizeof(InstanceData),
             Stride = (uint)sizeof(InstanceData),
-            Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource,
             HeapType = HeapType.Default,
         };
 
@@ -93,21 +93,19 @@ internal unsafe class GPUScene : IDisposable
             Interlocked.Increment(ref _requiredResize);
         }
 
-        var index = Interlocked.Increment(ref _instanceCount);
+        var index = Interlocked.Increment(ref _instanceCount) - 1;
         return index;
     }
 
     public uint RemoveInstance(uint index)
     {
-        if (index < 0 || index >= _capacity)
+        if (index >= _capacity)
         {
             return uint.MaxValue;
         }
 
         // Return the last index. We will swap the last instance data with the removed index on gpu to keep the buffer compact.
         var last = Interlocked.Decrement(ref _instanceCount);
-        Logger.DebugAssert(last >= 0);
-
         return last;
     }
 

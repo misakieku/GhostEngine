@@ -76,7 +76,8 @@ public static class StreamUtility
 
         while (offset < length)
         {
-            var segmentSize = (int)Math.Min(maxChunkSize, stream.Length - stream.Position);
+            var remaining = length - offset;
+            var segmentSize = (int)Math.Min(maxChunkSize, remaining);
             using var mem = NativeMemoryManager<byte>.FromMemoryBlock(memory, (nuint)offset, segmentSize);
             stream.ReadExactly(mem.Memory.Span);
             offset += (uint)mem.Memory.Length;
@@ -88,7 +89,25 @@ public static class StreamUtility
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MemoryBlock ReadMemory(this Stream stream, AllocationHandle allocationHandle)
     {
-        return stream.ReadMemory(stream.Length - stream.Position, allocationHandle);
+        if (stream.CanSeek)
+        {
+            return stream.ReadMemory(stream.Length - stream.Position, allocationHandle);
+        }
+
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        var length = ms.Length;
+        var alignedLength = MemoryUtility.AlignUp((nuint)length, 16);
+        var memory = new MemoryBlock(alignedLength, 16, allocationHandle);
+        unsafe
+        {
+            fixed (byte* pSrc = ms.GetBuffer())
+            {
+                MemoryUtility.MemCpy(memory.GetUnsafePtr(), pSrc, (nuint)length);
+            }
+        }
+
+        return memory;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -109,7 +128,7 @@ public static class StreamUtility
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MemoryBlock ReadMemory(this BinaryReader reader, AllocationHandle allocationHandle)
     {
-        return reader.BaseStream.ReadMemory(reader.BaseStream.Length - reader.BaseStream.Position, allocationHandle);
+        return reader.BaseStream.ReadMemory(allocationHandle);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -433,7 +433,6 @@ public unsafe class RenderContext
 
         CommandBuffer.SetPipelineState(pipelineKey);
 
-
         var propertySpan = MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in property));
         // TODO: Placed resource has 64k alignment requirement, which can waste lots of memory. We can allocate a large buffer and slice it for each dispatch to avoid this issue.
         var propertyBufferDesc = new BufferDesc
@@ -464,7 +463,7 @@ public unsafe class RenderContext
             propertyBuffer = ResourceDatabase.GetBindlessIndex(properyBuffer.AsResource()),
         };
 
-        CommandBuffer.SetGraphicsRoot32Constants(0, pushConstant.AsUInts());
+        CommandBuffer.SetComputeRoot32Constants(0, pushConstant.AsUInts());
         CommandBuffer.DispatchCompute(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
     }
 }

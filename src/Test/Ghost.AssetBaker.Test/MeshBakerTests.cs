@@ -100,4 +100,57 @@ public class MeshBakerTests
 
         Assert.AreEqual(32, Marshal.SizeOf<MeshletHierarchyNode>());
     }
+
+    [TestMethod]
+    public async Task BakeAssetAsync_WithInitialStreamOffset_PreservesPrefixAndComputesRelativeOffsets()
+    {
+        var objContent = """
+            v 0.0 0.0 0.0
+            v 1.0 0.0 0.0
+            v 1.0 1.0 0.0
+            v 0.0 1.0 0.0
+            vn 0.0 0.0 1.0
+            vt 0.0 0.0
+            vt 1.0 0.0
+            vt 1.0 1.0
+            vt 0.0 1.0
+            f 1/1/1 2/2/1 3/3/1
+            f 1/1/1 3/3/1 4/4/1
+            """;
+
+        var objPath = Path.Combine(_tempDir, "quad_offset.obj");
+        await File.WriteAllTextAsync(objPath, objContent);
+
+        var baker = new MeshBaker();
+        var settings = new MeshBakeSettings();
+        var ctx = new AssetBakerContext
+        {
+            ShaderMetadata = new ShaderMetadata(),
+            AssetDirectories = [_tempDir],
+        };
+
+        using var outputStream = new MemoryStream();
+        // Simulate a 16-byte CacheFileHeader prefix
+        var prefix = new byte[16] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+        outputStream.Write(prefix);
+
+        await baker.BakeAssetAsync(objPath, outputStream, settings, ctx, CancellationToken.None);
+
+        // Verify prefix was NOT overwritten
+        outputStream.Position = 0;
+        var readPrefix = new byte[16];
+        outputStream.ReadExactly(readPrefix);
+        CollectionAssert.AreEqual(prefix, readPrefix);
+
+        // Verify header starts at offset 16 and has valid magic and relative offsets
+        var headerBytes = new byte[Marshal.SizeOf<MeshContentHeader>()];
+        outputStream.ReadExactly(headerBytes);
+        var header = MemoryMarshal.Read<MeshContentHeader>(headerBytes);
+
+        Assert.AreEqual(MeshContentHeader.MAGIC, header.magic);
+        Assert.AreEqual(MeshContentHeader.VERSION, header.version);
+        Assert.AreEqual(Marshal.SizeOf<MeshContentHeader>(), (int)header.vertexOffset);
+        Assert.IsGreaterThan(0, (int)header.vertexOffset);
+        Assert.IsGreaterThan((int)header.vertexOffset, (int)header.indexOffset);
+    }
 }

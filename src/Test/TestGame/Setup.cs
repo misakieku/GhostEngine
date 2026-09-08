@@ -95,9 +95,15 @@ internal static class Setup
             staticShadowCaster = true,
         });
 
+        _world.EntityManager.SetComponent(meshEntity, new LocalToWorld
+        {
+            matrix = float4x4.TRS(new float3(0, -1.0f, 0), quaternion.identity, new float3(1, 1, 1))
+        });
+
         _world.SystemManager.AddSystem<RenderSystemGroup>();
 
         _world.AddService(engineCore.RenderEngine);
+        _world.AddService(engineCore.RenderPipelineManager);
     }
 
     [RuntimeShutdown]

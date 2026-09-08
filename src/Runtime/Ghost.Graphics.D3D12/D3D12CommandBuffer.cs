@@ -22,6 +22,9 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     private readonly D3D12ResourceAllocator _resourceAllocator;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly CommandBufferType _type;
+#if DEBUG
+    private readonly List<string> _commandNames = new();
+#endif
 
     private CommandBufferState _state;
 
@@ -79,9 +82,16 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void IncrementCommandCount()
+    private void IncrementCommandCount(
+#if DEBUG
+        [CallerMemberName]string? caller = null
+#endif
+        )
     {
         _state.CommandCount++;
+#if DEBUG
+        _commandNames.Add(caller ?? "Unknown");
+#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -105,7 +115,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
 
         ThrowIfFailed(pNativeObject->Reset(d3d12Allocator.NativeObject, null));
 
-        if (Type == CommandBufferType.Graphics || Type == CommandBufferType.Compute)
+        if (_type == CommandBufferType.Graphics || _type == CommandBufferType.Compute)
         {
             // Set descriptor heaps for bindless resources and samplers
 
@@ -113,6 +123,14 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             heaps[0] = _descriptorAllocator.GetCbvSrvUavHeap(); // Bindless resource Heap
             heaps[1] = _descriptorAllocator.GetSamplerHeap();   // Bindless sampler Heap
             pNativeObject->SetDescriptorHeaps(2, heaps);
+
+            // Set the default root signature for the command list.
+            // We only have one root signature for all pipelines since we are using bindless, so we can set it once at the beginning of the command list.
+            pNativeObject->SetComputeRootSignature(_pipelineLibrary.DefaultRootSignature);
+            if (_type == CommandBufferType.Graphics)
+            {
+                pNativeObject->SetGraphicsRootSignature(_pipelineLibrary.DefaultRootSignature);
+            }
         }
 
         _state.CommandCount = 0;
@@ -124,6 +142,9 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         ThrowIfDisposed();
         AssertRecording();
 
+#if DEBUG
+        _commandNames.Clear();
+#endif
         var hr = pNativeObject->Close();
         if (hr.FAILED)
         {
@@ -789,15 +810,6 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         {
             RecordError(nameof(SetPipelineState), psor.Error);
             return;
-        }
-
-        if (_type == CommandBufferType.Compute)
-        {
-            pNativeObject->SetComputeRootSignature(_pipelineLibrary.DefaultRootSignature);
-        }
-        else
-        {
-            pNativeObject->SetGraphicsRootSignature(_pipelineLibrary.DefaultRootSignature);
         }
 
         pNativeObject->SetPipelineState(psor.Value);

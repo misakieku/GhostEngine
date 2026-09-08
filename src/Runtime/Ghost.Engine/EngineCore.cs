@@ -1,4 +1,5 @@
 using Ghost.Engine.Streaming;
+using Ghost.Engine.RenderPipeline;
 using Ghost.Entities;
 using Ghost.Graphics;
 using Ghost.Graphics.RHI;
@@ -90,6 +91,7 @@ public sealed partial class EngineCore : IDisposable
     private readonly ResourceStreamingProcessor _streamingProcessor;
     private readonly RenderEngine _renderEngine;
     private readonly AssetManager _assetManager;
+    private readonly RenderPipelineManager _renderPipelineManager;
 
     private readonly Stopwatch _stopwatch;
     private float _lastFrameTime;
@@ -98,6 +100,7 @@ public sealed partial class EngineCore : IDisposable
     public JobScheduler JobScheduler => _jobScheduler;
     public RenderEngine RenderEngine => _renderEngine;
     public AssetManager AssetManager => _assetManager;
+    public RenderPipelineManager RenderPipelineManager => _renderPipelineManager;
 
     public int FrameIndex => _frameIndex;
 
@@ -112,7 +115,6 @@ public sealed partial class EngineCore : IDisposable
         {
             GraphicsEngine = renderDesc.GraphicsEngine,
             FrameBufferCount = renderDesc.FrameBufferCount,
-            InitialRenderPipelineSettings = renderDesc.RenderPipelineSettings,
             ShaderCacheDirectory = renderDesc.ShaderCacheDirectory,
             ShaderCompilationBridge = renderDesc.ShaderCompilationBridge,
             ResourceStreamingProcessor = _streamingProcessor,
@@ -120,6 +122,7 @@ public sealed partial class EngineCore : IDisposable
 
         _renderEngine = new RenderEngine(renderingDesc);
         _assetManager = new AssetManager(_renderEngine.GraphicsEngine.ResourceDatabase, _renderEngine.ResourceManager, _contentProvider, _streamingProcessor, _jobScheduler);
+        _renderPipelineManager = new RenderPipelineManager(renderDesc.RenderPipelineSettings, _renderEngine, _renderEngine.ResourceManager, _assetManager);
 
         _stopwatch = new Stopwatch();
     }
@@ -137,6 +140,7 @@ public sealed partial class EngineCore : IDisposable
 
     public void Tick()
     {
+        RenderEngine.WaitForGPUReady(_frameIndex);
         var currentTime = (float)_stopwatch.Elapsed.TotalSeconds;
         var deltaTime = currentTime - _lastFrameTime;
         _lastFrameTime = currentTime;
@@ -154,7 +158,11 @@ public sealed partial class EngineCore : IDisposable
         }
 
         RenderEngine.SignalCPUReady(_frameIndex++);
-        RenderEngine.WaitForGPUReady(_frameIndex);
+
+        foreach (var world in World.GetWorldEnumerator())
+        {
+            world.PlaybackEntityCommandBuffers();
+        }
     }
 
     public void Stop()
@@ -170,6 +178,7 @@ public sealed partial class EngineCore : IDisposable
 
     public void Dispose()
     {
+        _renderPipelineManager.Dispose();
         _assetManager.Dispose();
         _renderEngine.Dispose();
         _jobScheduler.Dispose();

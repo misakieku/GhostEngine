@@ -5,6 +5,7 @@ using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel;
+using Misaki.HighPerformance.Mathematics;
 using SDL;
 using System.Runtime.CompilerServices;
 using static SDL.SDL3;
@@ -108,7 +109,10 @@ public unsafe class EngineWindow : IDisposable
                     break;
                 case SDL_EventType.SDL_EVENT_WINDOW_RESIZED:
                     var resizeEvent = e.window;
-                    _swapChain.Resize((uint)resizeEvent.data1, (uint)resizeEvent.data2);
+                    if (resizeEvent.data1 > 0 && resizeEvent.data2 > 0)
+                    {
+                        _renderEngine.RequestSwapChainResize(_swapChain, new uint2((uint)resizeEvent.data1, (uint)resizeEvent.data2));
+                    }
                     break;
             }
 

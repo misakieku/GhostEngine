@@ -9,9 +9,23 @@ namespace Ghost.Graphics;
 
 public interface IRenderPayload : IDisposable
 {
+    /// <summary>
+    /// The list of render requests to be processed by the render pipeline.
+    /// </summary>
     ReadOnlySpan<RenderRequest> RenderRequests { get; }
 
+    /// <summary>
+    /// Adds a render request to the stateless payload, which will be processed by the render pipeline during the rendering phase.
+    /// </summary>
+    /// <remarks>
+    /// This method is not thread-safe and should be called from the main thread.
+    /// </remarks>
+    /// <param name="renderRequest">The render request to be added.</param>
     void AddRenderRequest(scoped in RenderRequest renderRequest);
+
+    /// <summary>
+    /// Resets the payload, clearing all render requests and preparing it for the next frame.
+    /// </summary>
     void Reset();
 }
 

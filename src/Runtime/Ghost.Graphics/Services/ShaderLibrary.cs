@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Services;
 
-internal struct ShaderCache : IDisposable
+internal struct ShaderCache
 {
     public MemoryBlock byteCode;
     public ulong compiledHash;
@@ -18,6 +18,12 @@ internal struct ShaderCache : IDisposable
     {
         byteCode.Dispose();
     }
+}
+
+internal struct ShaderCacheView
+{
+    public ReadOnlyView<byte> byteCode;
+    public ulong compiledHash;
 }
 
 public unsafe class ShaderLibrary : IDisposable
@@ -108,11 +114,11 @@ public unsafe class ShaderLibrary : IDisposable
         return Path.Combine(folderPath, $"shader_cache_{hashString}.bin");
     }
 
-    internal static void ParseCacheData(MemoryBlock data, out CacheHeader header, out ReadOnlySpan<ulong> offsets, out ReadOnlySpan<byte> byteCodes)
+    internal static void ParseCacheData(ReadOnlySpan<byte> data, out CacheHeader header, out ReadOnlySpan<ulong> offsets, out ReadOnlySpan<byte> byteCodes)
     {
-        Logger.DebugAssert(data.IsCreated);
+        Logger.DebugAssert(!data.IsEmpty);
 
-        var reader = new SpanReader(data.AsSpan<byte>());
+        var reader = new SpanReader(data);
         header = reader.Read<CacheHeader>();
         offsets = reader.ReadSpan<ulong>(header.byteCodeOffsetCount);
         byteCodes = reader.ReadSpan<byte>(header.byteCodeSize);
@@ -272,16 +278,15 @@ public unsafe class ShaderLibrary : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal Result<ShaderCache, Error> GetCompiledCache(ulong id, int index)
+    internal Result<ShaderCacheView, Error> GetCompiledCache(ulong id, int index)
     {
         if (_inMemoryCache.TryGetValue(id, out var entry) && (uint)index < (uint)entry.cache.Length)
         {
             var shaderCache = entry.cache[index];
-            var result = new MemoryBlock(shaderCache.byteCode.GetUnsafePtr(), (uint)shaderCache.byteCode.Size);
 
-            return new ShaderCache
+            return new ShaderCacheView
             {
-                byteCode = result,
+                byteCode = new ReadOnlyView<byte>((byte*)shaderCache.byteCode.GetUnsafePtr(), (int)shaderCache.byteCode.Size),
                 compiledHash = shaderCache.compiledHash,
             };
         }

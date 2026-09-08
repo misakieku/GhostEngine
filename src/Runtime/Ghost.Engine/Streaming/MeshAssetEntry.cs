@@ -74,13 +74,21 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
 
     public Result OnLoadContent(Stream contentStream)
     {
+        _rawData = contentStream.ReadMemory(AllocationHandle.Persistent);
+        if (_rawData.Size < (nuint)sizeof(MeshContentHeader))
+        {
+            return Result.Failure("Mesh content is too short for header.");
+        }
+
+        var pData = (byte*)_rawData.GetUnsafePtr();
+        var header = *(MeshContentHeader*)pData;
+
         bool ValidateRange(long offset, int count, uint stride)
         {
             var size = count * stride;
-            return offset <= contentStream.Length && size <= contentStream.Length - offset;
+            return offset <= (long)_rawData.Size && size <= (long)_rawData.Size - offset;
         }
 
-        var header = contentStream.Read<MeshContentHeader>();
         if (header.magic != MeshContentHeader.MAGIC || header.version != MeshContentHeader.VERSION)
         {
             return Result.Failure("Unsupported mesh content format.");
@@ -109,12 +117,6 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         {
             return Result.Failure("Mesh content contains an invalid material part range.");
         }
-
-        contentStream.Position = 0;
-
-        // TODO: Replace the full persistent payload with range-based bounded staging.
-        _rawData = contentStream.ReadMemory(AllocationHandle.Persistent);
-        var pData = (byte*)_rawData.GetUnsafePtr();
 
         _header = header;
         _pVertices = pData + header.vertexOffset;

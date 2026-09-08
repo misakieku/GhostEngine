@@ -280,6 +280,12 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsBytecodeReady(ShaderVariantIndex index)
+    {
+        return IsBytecodeReady(index.Value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ValidateIndex(ShaderVariantIndex index)
     {
         if ((uint)index.Value >= (uint)_variants.Length)

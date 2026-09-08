@@ -1,4 +1,4 @@
-compute "Internal/UpdateGPUScene"
+compute "Internal/UpdateGPUScene" 
 {
     includes
     {
@@ -12,24 +12,28 @@ compute "Internal/UpdateGPUScene"
         void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         {
             UpdateGPUSceneShaderProperty properties = LoadData<UpdateGPUSceneShaderProperty>(g_PushConstantData.propertiesBuffer, 0);
-            RWStructuredBuffer<InstanceData> gpuSceneBuffer = GET_BUFFER(properties.gpuSceneBuffer);
+            RWByteAddressBuffer gpuSceneBuffer = GET_BUFFER(properties.gpuSceneBuffer);
 
-            if (properties.updateCount > 0)
+            if (dispatchThreadID.x < properties.updateCount)
             {
                 StructuredBuffer<UpdateInstanceData> updateBuffer = GET_BUFFER(properties.updateBuffer);
                 UpdateInstanceData updateData = updateBuffer[dispatchThreadID.x];
 
-                gpuSceneBuffer[updateData.instanceID].localToWorld = updateData.localToWorld;
-                gpuSceneBuffer[updateData.instanceID].meshBuffer = updateData.meshBuffer;
-                gpuSceneBuffer[updateData.instanceID].materialPaletteIndex = updateData.materialPaletteIndex;
+                InstanceData instance = (InstanceData)0;
+                instance.localToWorld = updateData.localToWorld;
+                instance.meshBuffer = updateData.meshBuffer;
+                instance.materialPaletteIndex = updateData.materialPaletteIndex;
+
+                gpuSceneBuffer.Store<InstanceData>(updateData.instanceID * sizeof(InstanceData), instance);
             }
 
-            if (properties.removeCount > 0)
+            if (dispatchThreadID.x < properties.removeCount)
             {
                 StructuredBuffer<RemoveInstanceData> removeBuffer = GET_BUFFER(properties.removeBuffer);
                 RemoveInstanceData removeData = removeBuffer[dispatchThreadID.x];
 
-                gpuSceneBuffer[removeData.instanceID] = gpuSceneBuffer[removeData.swapWithInstanceID];
+                InstanceData swapInstance = gpuSceneBuffer.Load<InstanceData>(removeData.swapWithInstanceID * sizeof(InstanceData));
+                gpuSceneBuffer.Store<InstanceData>(removeData.instanceID * sizeof(InstanceData), swapInstance);
             }
         }
     }

@@ -24,6 +24,9 @@ internal static class AssetEntryFactory
     {
         return assetType switch
         {
+            AssetType.Texture => new TextureAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
+            AssetType.Mesh => new MeshAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
+            //AssetType.Material => new MaterialAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
             // TODO: We should separate the shader and compute shader asset types, but for now we will treat them as the same type.
             AssetType.Shader => manager.ComputeShaders.TryGetShaderHandle(assetId, out _)
                 ? new ComputeShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies)
