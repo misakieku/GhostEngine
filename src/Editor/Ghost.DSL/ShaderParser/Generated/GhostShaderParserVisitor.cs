@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/Misaki/orca/workspaces/GhostEngine/feature-asset-pipeline/src/Editor/Ghost.DSL/Grammar/GhostShaderParser.g4 by ANTLR 4.13.1
+// Generated from Grammar/GhostShaderParser.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162

@@ -18,5 +18,6 @@
 
   <ItemGroup>
     <AdditionalFiles Include="**\*.gshdr" />
+    <AdditionalFiles Include="**\*.gcomp" />
   </ItemGroup>
 </Project>

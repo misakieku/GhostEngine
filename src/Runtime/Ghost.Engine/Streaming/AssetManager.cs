@@ -10,6 +10,17 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Streaming;
 
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
+public sealed class ResolveAssetAttribute : Attribute
+{
+    public string VirtualPath { get; }
+
+    public ResolveAssetAttribute(string virtualPath)
+    {
+        VirtualPath = virtualPath;
+    }
+}
+
 public struct AssetReadData : IDisposable
 {
     public Guid assetId;

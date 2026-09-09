@@ -125,6 +125,70 @@ public class RenderEngine : IDisposable
 
     public IRenderPipeline? RenderPipeline => _renderPipeline;
 
+    public void SetRenderPipeline(IRenderPipeline renderPipeline)
+    {
+        ArgumentNullException.ThrowIfNull(renderPipeline);
+
+        if (_isRunning)
+        {
+            WaitIdle();
+        }
+
+        _renderPipeline?.Dispose();
+        _renderPipeline = renderPipeline;
+
+        for (var i = 0; i < _frameResources.Length; i++)
+        {
+            _frameResources[i].RenderPayload?.Dispose();
+            _frameResources[i].RenderPayload = renderPipeline.CreatePayload();
+        }
+    }
+
+    public void SetRenderPipeline(IRenderPipeline renderPipeline, Func<RenderEngine, IRenderPipeline, IRenderPayload> payloadFactory)
+    {
+        ArgumentNullException.ThrowIfNull(renderPipeline);
+        ArgumentNullException.ThrowIfNull(payloadFactory);
+
+        if (_isRunning)
+        {
+            WaitIdle();
+        }
+
+        _renderPipeline?.Dispose();
+        _renderPipeline = renderPipeline;
+
+        for (var i = 0; i < _frameResources.Length; i++)
+        {
+            _frameResources[i].RenderPayload?.Dispose();
+            _frameResources[i].RenderPayload = payloadFactory(this, renderPipeline);
+        }
+    }
+
+    public void SetRenderPipeline(IRenderPipeline renderPipeline, IRenderPayload[] payloads)
+    {
+        ArgumentNullException.ThrowIfNull(renderPipeline);
+        ArgumentNullException.ThrowIfNull(payloads);
+
+        if (payloads.Length != _frameResources.Length)
+        {
+            throw new ArgumentException($"Payload count ({payloads.Length}) must match frame buffer count ({_frameResources.Length}).");
+        }
+
+        if (_isRunning)
+        {
+            WaitIdle();
+        }
+
+        _renderPipeline?.Dispose();
+        _renderPipeline = renderPipeline;
+
+        for (var i = 0; i < _frameResources.Length; i++)
+        {
+            _frameResources[i].RenderPayload?.Dispose();
+            _frameResources[i].RenderPayload = payloads[i];
+        }
+    }
+
     internal RenderEngine(RenderEngineDesc desc)
     {
         _graphicsEngine = desc.GraphicsEngine;
@@ -327,28 +391,6 @@ public class RenderEngine : IDisposable
             {
                 StopRenderLoop(Result.Failure($"An exception occurred during rendering: {ex.Message}"));
             }
-        }
-    }
-
-    public void SetRenderPipeline(IRenderPipeline renderPipeline, IRenderPayload[] payloads)
-    {
-        ArgumentNullException.ThrowIfNull(renderPipeline);
-        ArgumentNullException.ThrowIfNull(payloads);
-
-        if (payloads.Length != _frameResources.Length)
-        {
-            throw new ArgumentException($"Payload count ({payloads.Length}) must match frame buffer count ({_frameResources.Length}).");
-        }
-
-        if (_isRunning)
-        {
-            WaitIdle();
-        }
-
-        _renderPipeline = renderPipeline;
-        for (var i = 0; i < _frameResources.Length; i++)
-        {
-            _frameResources[i].RenderPayload = payloads[i];
         }
     }
 

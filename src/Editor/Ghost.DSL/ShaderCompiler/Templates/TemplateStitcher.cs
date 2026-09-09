@@ -286,10 +286,37 @@ public static class TemplateStitcher
             passes[i] = pass;
         }
 
+        var seenProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var allProperties = new List<PropertySemantic>();
+        foreach (var prop in template.BaseProperties)
+        {
+            if (seenProperties.Add(prop.name))
+            {
+                allProperties.Add(new PropertySemantic
+                {
+                    type = prop.type,
+                    name = prop.name,
+                    defaultValue = prop.defaultValue
+                });
+            }
+        }
+        foreach (var prop in semantics.properties)
+        {
+            if (seenProperties.Add(prop.name))
+            {
+                allProperties.Add(prop);
+            }
+        }
+        var propertyBufferSize = DSLShaderCompiler.CalculatePropertyBufferSize(allProperties);
+        if (propertyBufferSize == 0 && reflectionData != null && reflectionData.Size > 0)
+        {
+            propertyBufferSize = reflectionData.Size;
+        }
+
         var descriptor = new GraphicsShaderDescriptor
         {
             Name = semantics.name,
-            PropertyBufferSize = reflectionData.Size,
+            PropertyBufferSize = propertyBufferSize,
             ShaderModel = semantics.shaderModel,
             Passes = passes
         };

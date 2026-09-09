@@ -31,6 +31,12 @@ internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object
         {
             compute.ShaderModel = computeBody.shaderModel()?.GetText() ?? string.Empty;
 
+            var propertiesBlock = computeBody.propertiesBlock().FirstOrDefault();
+            if (propertiesBlock != null)
+            {
+                compute.Properties = (PropertiesBlockSyntax)VisitPropertiesBlock(propertiesBlock);
+            }
+
             foreach (var definesBlock in computeBody.definesBlock())
             {
                 compute.Defines = (DefinesBlockSyntax)VisitDefinesBlock(definesBlock);
@@ -107,5 +113,23 @@ internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object
         };
 
         return entry;
+    }
+
+    public override object VisitPropertiesBlock([NotNull] GhostComputeShaderParser.PropertiesBlockContext context)
+    {
+        var properties = new PropertiesBlockSyntax();
+
+        foreach (var stmt in context.propertyStatement())
+        {
+            var prop = new PropertyStatementSyntax
+            {
+                Type = stmt.IDENTIFIER(0).GetText(),
+                Name = stmt.IDENTIFIER(1).GetText(),
+                DefaultValue = stmt.propertyDefaultValue()?.GetText()
+            };
+            properties.Properties.Add(prop);
+        }
+
+        return properties;
     }
 }

@@ -1,10 +1,10 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.Engine.Streaming;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
-using Ghost.Engine.Streaming;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Engine.RenderPipeline;
@@ -28,23 +28,31 @@ internal partial class GhostRenderPipeline : IRenderPipeline
     }
 
     private readonly RenderEngine _renderEngine;
+    private readonly AssetManager _assetManager;
+    private readonly GhostRenderPipelineSettings _settings;
+    private IAssetEntry _updateGPUSceneShaderEntry;
 
     private readonly RenderGraph _renderGraph;
     private readonly GPUScene _gpuScene;
     private readonly PassRenderFunc<TestPassData, IRasterRenderContext> _renderPassFunc;
 
     private CPUInstanceInfo[] _instanceInfos;
-    private AssetManager? _assetManager;
     private bool _disposed;
     private int _lastRenderRequestCount = -1;
     private uint _lastInstanceCount = uint.MaxValue;
     private int _lastMaterialBindProbe = -1;
 
     public GPUScene GPUScene => _gpuScene;
+    public GhostRenderPipelineSettings Settings => _settings;
 
-    public GhostRenderPipeline(RenderEngine renderEngine)
+    public GhostRenderPipeline(RenderEngine renderEngine, AssetManager assetManager, GhostRenderPipelineSettings? settings = null)
     {
         _renderEngine = renderEngine;
+        _assetManager = assetManager;
+        _settings = settings ?? new GhostRenderPipelineSettings();
+
+        _updateGPUSceneShaderEntry = assetManager.ResolveAsset("EngineResources/Shaders/UpdateGPUScene");
+        _updateGPUSceneShaderEntry.ReadAssetData(ref _updateGPUSceneShader);
 
         _renderGraph = new RenderGraph(
             renderEngine.GraphicsEngine.ResourceDatabase,
@@ -55,6 +63,11 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         _gpuScene = new GPUScene(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, 102_400u); // 102.4k objects should be enough for now
         _instanceInfos = new CPUInstanceInfo[64];
         _renderPassFunc = RenderPassCallback;
+    }
+
+    public IRenderPayload CreatePayload()
+    {
+        return new GhostRenderPayload(this);
     }
 
     public void RecordPrelude(RenderContext ctx, int frameIndex, IRenderPayload payload)
@@ -247,6 +260,8 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         }
 
         _disposed = true;
+
+        _updateGPUSceneShaderEntry.Release();
 
         _renderGraph.Dispose();
         _gpuScene.Dispose();

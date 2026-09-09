@@ -156,6 +156,19 @@ public class AntlrShaderCompiler
             semantics.shaderModel = shaderModel;
         }
 
+        if (syntax.Properties != null)
+        {
+            foreach (var prop in syntax.Properties.Properties)
+            {
+                semantics.properties.Add(new PropertySemantic
+                {
+                    type = prop.Type,
+                    name = prop.Name,
+                    defaultValue = prop.DefaultValue
+                });
+            }
+        }
+
 
         foreach (var entry in syntax.ShaderEntries)
         {

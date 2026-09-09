@@ -91,7 +91,6 @@ public sealed partial class EngineCore : IDisposable
     private readonly ResourceStreamingProcessor _streamingProcessor;
     private readonly RenderEngine _renderEngine;
     private readonly AssetManager _assetManager;
-    private readonly RenderPipelineManager _renderPipelineManager;
 
     private readonly Stopwatch _stopwatch;
     private float _lastFrameTime;
@@ -100,7 +99,6 @@ public sealed partial class EngineCore : IDisposable
     public JobScheduler JobScheduler => _jobScheduler;
     public RenderEngine RenderEngine => _renderEngine;
     public AssetManager AssetManager => _assetManager;
-    public RenderPipelineManager RenderPipelineManager => _renderPipelineManager;
 
     public int FrameIndex => _frameIndex;
 
@@ -122,7 +120,9 @@ public sealed partial class EngineCore : IDisposable
 
         _renderEngine = new RenderEngine(renderingDesc);
         _assetManager = new AssetManager(_renderEngine.GraphicsEngine.ResourceDatabase, _renderEngine.ResourceManager, _contentProvider, _streamingProcessor, _jobScheduler);
-        _renderPipelineManager = new RenderPipelineManager(renderDesc.RenderPipelineSettings, _renderEngine, _renderEngine.ResourceManager, _assetManager);
+
+        var pipeline = renderDesc.RenderPipelineSettings.CreatePipeline(_renderEngine, _assetManager);
+        _renderEngine.SetRenderPipeline(pipeline);
 
         _stopwatch = new Stopwatch();
     }
@@ -178,7 +178,6 @@ public sealed partial class EngineCore : IDisposable
 
     public void Dispose()
     {
-        _renderPipelineManager.Dispose();
         _assetManager.Dispose();
         _renderEngine.Dispose();
         _jobScheduler.Dispose();

@@ -17,7 +17,9 @@ namespace TestGame;
 
 internal static class Setup
 {
-    private static World _world = null!;
+    private static World s_world = null!;
+    private static IAssetEntry s_meshAsset = null!;
+    private static IAssetEntry s_shaderAsset = null!;
 
     [RuntimeConfiguration]
     public static EngineDesc InitEngineDesc()
@@ -47,13 +49,13 @@ internal static class Setup
     [RuntimeInitialize]
     public static void Init(EngineCore engineCore)
     {
-        _world = World.Create(engineCore.JobScheduler, 1024);
+        s_world = World.Create(engineCore.JobScheduler, 1024);
 
         using var scope = AllocationManager.CreateStackScope();
         using var camSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<Camera>.Value, ComponentTypeID<LocalToWorld>.Value);
-        var cameraEntity = _world.EntityManager.CreateEntity(camSet);
+        var cameraEntity = s_world.EntityManager.CreateEntity(camSet);
 
-        _world.EntityManager.SetComponent(cameraEntity, new Camera
+        s_world.EntityManager.SetComponent(cameraEntity, new Camera
         {
             swapChainIndex = 0,
             depthTarget = Handle<GPUTexture>.Invalid,
@@ -65,28 +67,28 @@ internal static class Setup
             renderingLayerMask = RenderingLayerMask.All,
         });
 
-        _world.EntityManager.SetComponent(cameraEntity, new LocalToWorld
+        s_world.EntityManager.SetComponent(cameraEntity, new LocalToWorld
         {
             matrix = float4x4.TRS(new float3(0.0f, 0.0f, -5.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
         });
 
-        var meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/bunny");
-        var shaderAsset = engineCore.AssetManager.ResolveAsset("Shaders/test");
+        s_meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/bunny");
+        s_shaderAsset = engineCore.AssetManager.ResolveAsset("Shaders/test");
 
         var meshHandle = default(Handle<Mesh>);
-        meshAsset.ReadAssetData(ref meshHandle);
+        s_meshAsset.ReadAssetData(ref meshHandle);
 
         var shaderHandle = default(Handle<Shader>);
-        shaderAsset.ReadAssetData(ref shaderHandle);
+        s_shaderAsset.ReadAssetData(ref shaderHandle);
 
         // TODO: Create material from shader
         var mat = engineCore.RenderEngine.ResourceManager.CreateMaterial(shaderHandle);
         var materialPallette = engineCore.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);
 
         using var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
-        var meshEntity = _world.EntityManager.CreateEntity(meshSet);
+        var meshEntity = s_world.EntityManager.CreateEntity(meshSet);
 
-        _world.EntityManager.SetComponent(meshEntity, new MeshInstance
+        s_world.EntityManager.SetComponent(meshEntity, new MeshInstance
         {
             mesh = meshHandle,
             materialPalette = materialPallette,
@@ -95,20 +97,22 @@ internal static class Setup
             staticShadowCaster = true,
         });
 
-        _world.EntityManager.SetComponent(meshEntity, new LocalToWorld
+        s_world.EntityManager.SetComponent(meshEntity, new LocalToWorld
         {
             matrix = float4x4.TRS(new float3(0, -1.0f, 0), quaternion.identity, new float3(1, 1, 1))
         });
 
-        _world.SystemManager.AddSystem<RenderSystemGroup>();
+        s_world.SystemManager.AddSystem<RenderSystemGroup>();
 
-        _world.AddService(engineCore.RenderEngine);
-        _world.AddService(engineCore.RenderPipelineManager);
+        s_world.AddService(engineCore.RenderEngine);
     }
 
     [RuntimeShutdown]
     public static void Shutdown(EngineCore engineCore)
     {
-        World.Destroy(_world);
+        World.Destroy(s_world);
+
+        s_meshAsset.Release();
+        s_shaderAsset.Release();
     }
 }

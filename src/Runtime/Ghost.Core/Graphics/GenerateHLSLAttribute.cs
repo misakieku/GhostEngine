@@ -1,13 +1,5 @@
 namespace Ghost.Core.Graphics;
 
-[AttributeUsage(AttributeTargets.Struct)]
-public class GenerateShaderPropertyAttribute : Attribute
-{
-    public GenerateShaderPropertyAttribute(string shaderName, string? name = null)
-    {
-    }
-}
-
 [AttributeUsage(AttributeTargets.Field)]
 public class GenerateAsHLSLTypeAttribute : Attribute
 {

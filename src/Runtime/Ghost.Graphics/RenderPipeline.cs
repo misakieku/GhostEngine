@@ -29,14 +29,13 @@ public interface IRenderPayload : IDisposable
     void Reset();
 }
 
-public interface IRenderPipelineSettings
-{
-    IRenderPipeline CreatePipeline(RenderEngine renderEngine);
-    IRenderPayload CreatePayload(RenderEngine renderEngine, IRenderPipeline renderPipeline);
-}
-
 public interface IRenderPipeline : IDisposable
 {
+    /// <summary>
+    /// Creates a new per-frame payload instance for this render pipeline.
+    /// </summary>
+    IRenderPayload CreatePayload();
+
     /// <summary>
     /// Records pre-graph commands into the open <see cref="RenderContext.CommandBuffer"/> (the frame prelude).
     /// The command buffer must be open when this is called; the outer frame owns Begin, End, and submission.

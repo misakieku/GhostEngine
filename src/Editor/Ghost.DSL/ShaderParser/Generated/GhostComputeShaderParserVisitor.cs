@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/Misaki/orca/workspaces/GhostEngine/feature-asset-pipeline/src/Editor/Ghost.DSL/Grammar/GhostComputeShaderParser.g4 by ANTLR 4.13.1
+// Generated from Grammar/GhostComputeShaderParser.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -55,6 +55,36 @@ public interface IGhostComputeShaderParserVisitor<Result> : IParseTreeVisitor<Re
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitShaderModel([NotNull] GhostComputeShaderParser.ShaderModelContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="GhostComputeShaderParser.propertiesBlock"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPropertiesBlock([NotNull] GhostComputeShaderParser.PropertiesBlockContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="GhostComputeShaderParser.propertyStatement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPropertyStatement([NotNull] GhostComputeShaderParser.PropertyStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="GhostComputeShaderParser.propertyDefaultValue"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPropertyDefaultValue([NotNull] GhostComputeShaderParser.PropertyDefaultValueContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="GhostComputeShaderParser.propertyDefaultArguments"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPropertyDefaultArguments([NotNull] GhostComputeShaderParser.PropertyDefaultArgumentsContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="GhostComputeShaderParser.propertyDefaultArgument"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPropertyDefaultArgument([NotNull] GhostComputeShaderParser.PropertyDefaultArgumentContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="GhostComputeShaderParser.definesBlock"/>.
 	/// </summary>

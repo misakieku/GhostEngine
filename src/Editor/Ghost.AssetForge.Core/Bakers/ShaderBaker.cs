@@ -34,10 +34,16 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
     private readonly DXCShaderCompiler _compiler = new DXCShaderCompiler();
     private readonly SemaphoreSlim _compileLock = new(1, 1);
 
-    private static ulong GetLayoutHash(DSL.Models.ShaderReflectionData reflectionData)
+    private static ulong GetLayoutHash(DSL.Models.ShaderReflectionData reflectionData, uint propertyBufferSize, string shaderName)
     {
-        var codeHash = XxHash64.HashToUInt64(MemoryMarshal.AsBytes(reflectionData.Code.AsSpan()));
-        return Hash.Combine64(codeHash, reflectionData.Size);
+        if (!string.IsNullOrEmpty(reflectionData.Code))
+        {
+            var codeHash = XxHash64.HashToUInt64(MemoryMarshal.AsBytes(reflectionData.Code.AsSpan()));
+            return Hash.Combine64(codeHash, reflectionData.Size);
+        }
+
+        var nameHash = XxHash64.HashToUInt64(MemoryMarshal.AsBytes(shaderName.AsSpan()));
+        return Hash.Combine64(nameHash, propertyBufferSize);
     }
 
     private static void WriteName(Stream stream, long assetStartOffset, string name, ref long nameOffset, ref uint nameSize)
@@ -133,7 +139,7 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                 shaderModel = descriptor.ShaderModel,
                 shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
                 familyId = ShaderIdentity.GetShaderId(semantics.templateName ?? descriptor.Name),
-                layoutHash = GetLayoutHash(reflectionData),
+                layoutHash = GetLayoutHash(reflectionData, descriptor.PropertyBufferSize, descriptor.Name),
             };
 
             dst.Write(header);
@@ -242,7 +248,7 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
                 shaderModel = descriptor.ShaderModel,
                 shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
                 familyId = ShaderIdentity.GetShaderId(descriptor.Name),
-                layoutHash = GetLayoutHash(reflectionData),
+                layoutHash = GetLayoutHash(reflectionData, descriptor.PropertyBufferSize, descriptor.Name),
             };
 
             dst.Write(header);

@@ -29,16 +29,17 @@ public class ShaderMetadataToolTests
         var csFile = Path.Combine(_tempDir, "TestShader.cs");
         File.WriteAllText(csFile, @"
 using System;
+using Ghost.Core.Graphics;
 
 namespace TestNamespace
 {
-    [Ghost.Core.Graphics.GenerateShaderProperty(""MyShader"", ""MyShaderStruct"")]
+    [GenerateHLSL(PackingRules.Exact, ""Test/MyShader.hlsl"")]
     public struct TestShaderStruct
     {
         public float value1;
         public int value2;
         
-        [Ghost.Engine.Utilities.GenerateAsHLSLType(""float4x4"")]
+        [GenerateAsHLSLType(""float4x4"")]
         public System.Numerics.Matrix4x4 matrix;
     }
 }
@@ -56,8 +57,8 @@ namespace TestNamespace
 
         var json = File.ReadAllText(outputFile);
 
-        StringAssert.Contains(json, "MyShader", "JSON should contain the shader name.");
-        StringAssert.Contains(json, "MyShaderStruct", "JSON should contain the struct name.");
+        StringAssert.Contains(json, "Test/MyShader.hlsl", "JSON should contain the virtual path.");
+        StringAssert.Contains(json, "TestShaderStruct", "JSON should contain the struct name.");
         StringAssert.Contains(json, "value1", "JSON should contain the field value1.");
         StringAssert.Contains(json, "float4x4", "JSON should contain the mapped HLSL type.");
     }

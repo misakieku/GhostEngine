@@ -13,10 +13,31 @@ compute:
     RBRACE;
 
 computeBody:
-    shaderModel | (definesBlock | includesBlock | hlslBlock | computeEntry)*;
+    shaderModel | (propertiesBlock | definesBlock | includesBlock | hlslBlock | computeEntry | functionCall)*;
 
 shaderModel:
     SM IDENTIFIER SEMICOLON;
+
+// Properties block
+propertiesBlock:
+    PROPERTIES LBRACE
+        propertyStatement*
+    RBRACE;
+
+propertyStatement:
+    IDENTIFIER IDENTIFIER (EQUALS propertyDefaultValue)? SEMICOLON;
+
+propertyDefaultValue:
+    IDENTIFIER LPAREN propertyDefaultArguments? RPAREN
+    | NUMBER
+    | STRING_LITERAL
+    | IDENTIFIER;
+
+propertyDefaultArguments:
+    propertyDefaultArgument (COMMA propertyDefaultArgument)*;
+
+propertyDefaultArgument:
+    NUMBER | IDENTIFIER | STRING_LITERAL;
 
 definesBlock:
     DEFINES LBRACE

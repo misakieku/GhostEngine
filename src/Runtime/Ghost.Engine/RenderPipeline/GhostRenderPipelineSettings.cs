@@ -1,8 +1,8 @@
 using Ghost.Core;
 using Ghost.Engine.Components;
+using Ghost.Engine.Streaming;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
-using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
@@ -151,15 +151,15 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     }
 }
 
+public interface IRenderPipelineSettings
+{
+    IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager);
+}
+
 public class GhostRenderPipelineSettings : IRenderPipelineSettings
 {
-    public IRenderPipeline CreatePipeline(RenderEngine renderSystem)
+    public IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager)
     {
-        return new GhostRenderPipeline(renderSystem);
-    }
-
-    public IRenderPayload CreatePayload(RenderEngine renderSystem, IRenderPipeline _renderPipeline)
-    {
-        return new GhostRenderPayload((GhostRenderPipeline)_renderPipeline);
+        return new GhostRenderPipeline(renderEngine, assetManager, this);
     }
 }

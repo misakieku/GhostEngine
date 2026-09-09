@@ -6,21 +6,10 @@ using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using Ghost.Engine.Streaming;
-
-
+using Ghost.Engine.ShaderProperties;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.RenderPipeline;
-
-[GenerateShaderProperty("Internal/UpdateGPUScene")]
-public partial struct UpdateGPUSceneShaderProperty
-{
-    public uint gpuSceneBuffer;
-    public uint updateBuffer;
-    public uint updateCount;
-    public uint removeBuffer;
-    public uint removeCount;
-}
 
 internal partial class GhostRenderPipeline
 {
@@ -171,13 +160,6 @@ internal partial class GhostRenderPipeline
     private Handle<ComputeShader> _updateGPUSceneShader = Handle<ComputeShader>.Invalid;
     private int _lastGpuUpdateProbe = -1;
 
-    public void Initialize(AssetManager assetManager)
-    {
-        _assetManager = assetManager;
-        var entry = assetManager.ResolveAsset("EngineResources/Shaders/UpdateGPUScene");
-        entry.ReadAssetData(ref _updateGPUSceneShader);
-    }
-
     private void UpdateGPUScene(RenderContext ctx, GhostRenderPayload payload)
     {
         void LogProbe(int state, string message)
@@ -224,7 +206,7 @@ internal partial class GhostRenderPipeline
             return; // No updates needed
         }
 
-        var property = new UpdateGPUSceneShaderProperty
+        var property = new InternalUpdateGPUSceneShaderProperties
         {
             gpuSceneBuffer = ctx.ResourceDatabase.GetBindlessIndex(_gpuScene.SceneBuffer.AsResource(), BindlessAccess.UnorderedAccess),
             updateBuffer = updateBuffer.IsValid ? ctx.ResourceDatabase.GetBindlessIndex(updateBuffer.AsResource()) : 0,
