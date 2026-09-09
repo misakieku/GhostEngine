@@ -23,7 +23,7 @@ internal class AssetHandlerRegistrationGenerator // : IIncrementalGenerator
         context.RegisterSourceOutput(handerCandidates, GenerateRegistrationCode);
     }
 
-    private static T GetValueOrDefault<T>(IDictionary<string, TypedConstant> dictionary, string key, T defaultValue = default)
+    private static T? GetValueOrDefault<T>(IDictionary<string, TypedConstant> dictionary, string key, T? defaultValue = default)
     {
         if (dictionary.TryGetValue(key, out var value))
         {
@@ -46,7 +46,7 @@ internal class AssetHandlerRegistrationGenerator // : IIncrementalGenerator
         return default;
     }
 
-    private void GenerateRegistrationCode(SourceProductionContext context, ImmutableArray<INamedTypeSymbol> array)
+    private void GenerateRegistrationCode(SourceProductionContext context, ImmutableArray<INamedTypeSymbol?> array)
     {
         if (array.IsDefaultOrEmpty)
         {
@@ -57,6 +57,11 @@ internal class AssetHandlerRegistrationGenerator // : IIncrementalGenerator
 
         foreach (var symbol in array)
         {
+            if (symbol == null)
+            {
+                continue;
+            }
+
             var attribute = symbol.GetAttributes().FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "Ghost.Editor.Core.Assets.CustomAssetHandlerAttribute");
             if (attribute == null)
             {
@@ -102,7 +107,7 @@ internal static partial class {registerTypeName}
         context.AddSource($"{registerTypeName}.gen.cs", code);
     }
 
-    private INamedTypeSymbol GetAssetHandlerSymbol(GeneratorSyntaxContext context, CancellationToken token)
+    private INamedTypeSymbol? GetAssetHandlerSymbol(GeneratorSyntaxContext context, CancellationToken token)
     {
         var classSyntax = (ClassDeclarationSyntax)context.Node;
         if (context.SemanticModel.GetDeclaredSymbol(classSyntax) is not INamedTypeSymbol symbol)
@@ -142,7 +147,7 @@ internal class IAssetSettingsRegistrationGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(settingsCandidates, GenerateRegistrationCode);
     }
 
-    private void GenerateRegistrationCode(SourceProductionContext context, ImmutableArray<INamedTypeSymbol> array)
+    private void GenerateRegistrationCode(SourceProductionContext context, ImmutableArray<INamedTypeSymbol?> array)
     {
         if (array.IsDefaultOrEmpty)
         {
@@ -153,6 +158,11 @@ internal class IAssetSettingsRegistrationGenerator : IIncrementalGenerator
 
         foreach (var iface in array)
         {
+            if (iface == null)
+            {
+                continue;
+            }
+
             sb.AppendLine($"        global::Ghost.Editor.Core.Assets.AssetHandlerRegistry.RegisterIAssetSettingsType(typeof({iface.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}), \"{iface.Name}\");");
         }
 
@@ -174,7 +184,7 @@ internal static partial class {registerTypeName}
         context.AddSource($"{registerTypeName}.gen.cs", code);
     }
 
-    private INamedTypeSymbol GetAssetSettingsSymbol(GeneratorSyntaxContext context, CancellationToken token)
+    private INamedTypeSymbol? GetAssetSettingsSymbol(GeneratorSyntaxContext context, CancellationToken token)
     {
         var classSyntax = (ClassDeclarationSyntax)context.Node;
         if (context.SemanticModel.GetDeclaredSymbol(classSyntax) is not INamedTypeSymbol symbol)

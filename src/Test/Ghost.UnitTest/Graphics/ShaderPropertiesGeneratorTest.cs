@@ -9,7 +9,9 @@ public class ShaderPropertiesGeneratorTest
     [TestMethod]
     public unsafe void TestHiddenBlitShaderProperties_LayoutAndConstants()
     {
-        Assert.AreEqual("Hidden/Blit", HiddenBlitShaderProperties.SHADER_NAME);
+#pragma warning disable MSTEST0032 // Assertion condition is always true
+        Assert.AreEqual("Hidden/Blit", (string)HiddenBlitShaderProperties.SHADER_NAME);
+#pragma warning restore MSTEST0032 // Assertion condition is always true
         var size = sizeof(HiddenBlitShaderProperties);
         Assert.AreEqual(8, size); // 2 uint fields = 8 bytes
     }
@@ -17,8 +19,10 @@ public class ShaderPropertiesGeneratorTest
     [TestMethod]
     public unsafe void TestDefaultUnlitShaderProperties_IncludesTemplateBaseAndCustomFields()
     {
-        Assert.AreEqual("Default/Unlit", DefaultUnlitShaderProperties.SHADER_NAME);
-        Assert.AreEqual("Unlit", DefaultUnlitShaderProperties.TEMPLATE_NAME);
+#pragma warning disable MSTEST0032 // Assertion condition is always true
+        Assert.AreEqual("Default/Unlit", (string)DefaultUnlitShaderProperties.SHADER_NAME);
+        Assert.AreEqual("Unlit", (string)DefaultUnlitShaderProperties.TEMPLATE_NAME);
+#pragma warning restore MSTEST0032 // Assertion condition is always true
         var props = new DefaultUnlitShaderProperties
         {
             baseColor = new float4(1, 0, 0, 1),

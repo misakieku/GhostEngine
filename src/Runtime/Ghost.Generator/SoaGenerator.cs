@@ -34,7 +34,7 @@ internal class SoaGenerator : IIncrementalGenerator
                         return null;
                     }
 
-                    return new SoaGenerationContext((INamedTypeSymbol)ctx.TargetSymbol, (bool)attributeData.ConstructorArguments[0].Value);
+                    return new SoaGenerationContext((INamedTypeSymbol)ctx.TargetSymbol, (bool)attributeData.ConstructorArguments[0].Value!);
                 })
             .Where(ctx => ctx != null)
             .Collect();
@@ -42,7 +42,7 @@ internal class SoaGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(soaCandidates, GenerateSoaCode);
     }
 
-    private void GenerateSoaCode(SourceProductionContext context, ImmutableArray<SoaGenerationContext> array)
+    private void GenerateSoaCode(SourceProductionContext context, ImmutableArray<SoaGenerationContext?> array)
     {
         if (array.Length == 0)
         {
@@ -51,6 +51,11 @@ internal class SoaGenerator : IIncrementalGenerator
 
         foreach (var item in array)
         {
+            if (item == null)
+            {
+                continue;
+            }
+
             var symbol = item.TargetType;
 
             var sb = new StringBuilder();

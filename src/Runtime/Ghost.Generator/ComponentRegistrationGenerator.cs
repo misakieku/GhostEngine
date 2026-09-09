@@ -24,7 +24,7 @@ namespace Ghost.Generator
         }
 
         // Extraction Logic for Components
-        private static INamedTypeSymbol GetComponentSymbol(GeneratorSyntaxContext ctx, CancellationToken _)
+        private static INamedTypeSymbol? GetComponentSymbol(GeneratorSyntaxContext ctx, CancellationToken _)
         {
             var structSyntax = (StructDeclarationSyntax)ctx.Node;
             if (ctx.SemanticModel.GetDeclaredSymbol(structSyntax) is not INamedTypeSymbol symbol)
@@ -50,7 +50,7 @@ namespace Ghost.Generator
         }
 
         // The Generation Logic (Stateless)
-        private static void GenerateRegistrationCode(SourceProductionContext context, ImmutableArray<INamedTypeSymbol> components)
+        private static void GenerateRegistrationCode(SourceProductionContext context, ImmutableArray<INamedTypeSymbol?> components)
         {
             if (components.IsDefaultOrEmpty)
             {

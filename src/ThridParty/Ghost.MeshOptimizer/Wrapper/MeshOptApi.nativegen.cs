@@ -81,6 +81,37 @@ public unsafe partial struct MeshOptApi
     }
 
     /// <summary>
+    /// From: <see cref="Api.meshopt_filterIndexBuffer(uint*, uint*, nuint, void*, nuint, nuint, nuint)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static nuint FilterIndexBuffer(uint* destination, uint* indices, nuint index_count, void* vertices, nuint vertex_count, nuint vertex_size, nuint vertex_stride)
+    {
+        return Api.meshopt_filterIndexBuffer(
+            destination,
+            indices,
+            index_count,
+            vertices,
+            vertex_count,
+            vertex_size,
+            vertex_stride);
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.meshopt_filterIndexBufferMulti(uint*, uint*, nuint, nuint, meshopt_Stream*, nuint)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static nuint FilterIndexBufferMulti(uint* destination, uint* indices, nuint index_count, nuint vertex_count, meshopt_Stream* streams, nuint stream_count)
+    {
+        return Api.meshopt_filterIndexBufferMulti(
+            destination,
+            indices,
+            index_count,
+            vertex_count,
+            streams,
+            stream_count);
+    }
+
+    /// <summary>
     /// From: <see cref="Api.meshopt_generateShadowIndexBuffer(uint*, uint*, nuint, void*, nuint, nuint, nuint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -843,6 +874,20 @@ public unsafe partial struct MeshOptApi
     }
 
     /// <summary>
+    /// From: <see cref="Api.meshopt_optimizeMeshletLevel(uint*, nuint, byte*, nuint, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void OptimizeMeshletLevel(uint* meshlet_vertices, nuint vertex_count, byte* meshlet_triangles, nuint triangle_count, int level)
+    {
+        Api.meshopt_optimizeMeshletLevel(
+            meshlet_vertices,
+            vertex_count,
+            meshlet_triangles,
+            triangle_count,
+            level);
+    }
+
+    /// <summary>
     /// From: <see cref="Api.meshopt_computeClusterBounds(uint*, nuint, float*, nuint, nuint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -1028,6 +1073,61 @@ public unsafe partial struct MeshOptApi
     }
 
     /// <summary>
+    /// From: <see cref="Api.meshopt_generateTangents(float*, uint*, nuint, float*, nuint, nuint, float*, nuint, float*, nuint, uint)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void GenerateTangents(float* result, uint* indices, nuint index_count, float* vertex_positions, nuint vertex_count, nuint vertex_positions_stride, float* vertex_normals, nuint vertex_normals_stride, float* vertex_uvs, nuint vertex_uvs_stride, uint options)
+    {
+        Api.meshopt_generateTangents(
+            result,
+            indices,
+            index_count,
+            vertex_positions,
+            vertex_count,
+            vertex_positions_stride,
+            vertex_normals,
+            vertex_normals_stride,
+            vertex_uvs,
+            vertex_uvs_stride,
+            options);
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.meshopt_generateNormals(float*, uint*, nuint, float*, nuint, nuint, float, float)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void GenerateNormals(float* result, uint* indices, nuint index_count, float* vertex_positions, nuint vertex_count, nuint vertex_positions_stride, float crease_angle, float smoothing)
+    {
+        Api.meshopt_generateNormals(
+            result,
+            indices,
+            index_count,
+            vertex_positions,
+            vertex_count,
+            vertex_positions_stride,
+            crease_angle,
+            smoothing);
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.meshopt_remesh(float*, nuint, uint*, nuint, float*, nuint, nuint, int, uint)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static nuint Remesh(float* destination, nuint max_triangle_count, uint* indices, nuint index_count, float* vertex_positions, nuint vertex_count, nuint vertex_positions_stride, int resolution, uint options)
+    {
+        return Api.meshopt_remesh(
+            destination,
+            max_triangle_count,
+            indices,
+            index_count,
+            vertex_positions,
+            vertex_count,
+            vertex_positions_stride,
+            resolution,
+            options);
+    }
+
+    /// <summary>
     /// From: <see cref="Api.meshopt_quantizeHalf(float)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -1054,6 +1154,19 @@ public unsafe partial struct MeshOptApi
     public static float DequantizeHalf(ushort h)
     {
         return Api.meshopt_dequantizeHalf(h);
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.meshopt_computePositionExponent(float*, float*, int, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static int ComputePositionExponent(float* minv, float* maxv, int min_exp, int max_bits)
+    {
+        return Api.meshopt_computePositionExponent(
+            minv,
+            maxv,
+            min_exp,
+            max_bits);
     }
 
     /// <summary>

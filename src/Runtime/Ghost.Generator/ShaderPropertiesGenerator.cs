@@ -71,7 +71,7 @@ namespace Ghost.Generator
                         return null;
                     }
 
-                    return ParseShaderProperties(content);
+                    return ParseShaderProperties(content!);
                 })
                 .Where(x => x != null)
                 .Collect();
