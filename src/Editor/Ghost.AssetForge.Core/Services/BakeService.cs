@@ -141,6 +141,7 @@ public class BakeService
         var ext = Path.GetExtension(sourceFile);
         var cacheFile = Path.Combine(destDir ?? cacheDir, Path.GetFileNameWithoutExtension(sourceFile));
         var metaFile = sourceFile + ".meta";
+        var depsFile = cacheFile + ".deps";
 
         var baker = _bakerRegistry.GetBaker(ext);
         var settingsType = _bakerRegistry.GetSettingsType(ext);
@@ -157,18 +158,47 @@ public class BakeService
 
                 if (cacheTime >= srcTime && cacheTime >= metaTime)
                 {
-                    // Timestamps say the cache file is up to date, but it may have been
-                    // produced by an older baker version or a different settings type.
-                    // Validate the embedded CacheFileHeader (magic + baker version) and
-                    // force a rebake on any mismatch; otherwise stale content could be
-                    // packed silently and crash at runtime.
-                    var expectedBakerVersion = CacheFileHeader.ComputeBakerVersion(baker.GetType(), settingsType);
-                    using var headerFs = new FileStream(cacheFile, FileMode.Open, FileAccess.Read, FileShare.Read);
-                    if (CacheFileHeader.TryReadFrom(headerFs, out var header)
-                        && header.magic == CacheFileHeader.MAGIC
-                        && header.bakerVersion == expectedBakerVersion)
+                    var isUpToDate = true;
+
+                    // If a .deps file exists, verify all dependencies are older than cacheTime
+                    if (File.Exists(depsFile))
                     {
-                        needsBake = false;
+                        foreach (var depLine in File.ReadLines(depsFile))
+                        {
+                            var depPath = depLine.Trim();
+                            if (string.IsNullOrEmpty(depPath))
+                            {
+                                continue;
+                            }
+
+                            if (!File.Exists(depPath) || File.GetLastWriteTimeUtc(depPath) > cacheTime)
+                            {
+                                isUpToDate = false;
+                                break;
+                            }
+                        }
+                    }
+                    else if (baker is IAssetDependencyScanner)
+                    {
+                        // Baker declares dependencies, but .deps file does not exist yet -> must bake to create .deps
+                        isUpToDate = false;
+                    }
+
+                    if (isUpToDate)
+                    {
+                        // Timestamps say the cache file is up to date, but it may have been
+                        // produced by an older baker version or a different settings type.
+                        // Validate the embedded CacheFileHeader (magic + baker version) and
+                        // force a rebake on any mismatch; otherwise stale content could be
+                        // packed silently and crash at runtime.
+                        var expectedBakerVersion = CacheFileHeader.ComputeBakerVersion(baker.GetType(), settingsType);
+                        using var headerFs = new FileStream(cacheFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+                        if (CacheFileHeader.TryReadFrom(headerFs, out var header)
+                            && header.magic == CacheFileHeader.MAGIC
+                            && header.bakerVersion == expectedBakerVersion)
+                        {
+                            needsBake = false;
+                        }
                     }
                 }
             }
@@ -185,6 +215,13 @@ public class BakeService
 
         if (baker == null)
         {
+            if (string.Equals(ext, ".hlsl", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(ext, ".h", StringComparison.OrdinalIgnoreCase))
+            {
+                // Header/include files are dependencies, not standalone runtime assets
+                return BakeOutcome.Skipped;
+            }
+
             Logger.Warning($"No baker for {ext}. Skip.");
             return BakeOutcome.Skipped;
         }
@@ -269,6 +306,12 @@ public class BakeService
 
             foreach (var sub in ctx.SubAssets)
                 Logger.Info($"  Sub-asset: {relativePath}#{sub.SubPath} ({sub.Type})");
+        }
+
+        // Write .deps file if dependencies were tracked or baker is a dependency scanner
+        if (ctx.Dependencies.Count > 0 || baker is IAssetDependencyScanner)
+        {
+            await File.WriteAllLinesAsync(depsFile, ctx.Dependencies, cancellationToken).ConfigureAwait(false);
         }
 
         return BakeOutcome.Succeeded;
