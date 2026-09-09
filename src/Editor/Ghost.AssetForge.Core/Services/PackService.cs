@@ -137,6 +137,17 @@ public class PackService
 
                 var relativePath = kvp.Key;
                 var assetFile = kvp.Value;
+                var ext = Path.GetExtension(assetFile);
+
+                // Skip header/include files that are dependencies and not standalone runtime assets
+                if (string.Equals(ext, ".hlsl", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(ext, ".h", StringComparison.OrdinalIgnoreCase))
+                {
+                    completed++;
+                    OnProgress?.Invoke(completed, total);
+                    continue;
+                }
+
                 var destPath = Path.Combine(cacheDir, relativePath);
                 var destDir = Path.GetDirectoryName(destPath) ?? cacheDir;
                 var cacheFile = Path.Combine(destDir, Path.GetFileNameWithoutExtension(assetFile));

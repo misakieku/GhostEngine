@@ -21,6 +21,7 @@ public readonly struct SubAssetEntry
 public struct AssetBakerContext()
 {
     private readonly List<SubAssetEntry> _subAssets = new();
+    private readonly HashSet<string> _dependencies = new(StringComparer.OrdinalIgnoreCase);
 
     public required ShaderMetadata ShaderMetadata
     {
@@ -33,6 +34,21 @@ public struct AssetBakerContext()
     }
 
     public readonly IReadOnlyList<SubAssetEntry> SubAssets => _subAssets;
+
+    public readonly IReadOnlyCollection<string> Dependencies => _dependencies;
+
+    public void AddDependency(string filePath)
+    {
+        if (!string.IsNullOrWhiteSpace(filePath))
+        {
+            _dependencies.Add(Path.GetFullPath(filePath).Replace('\\', '/'));
+        }
+    }
+
+    internal void ResetDependencies()
+    {
+        _dependencies.Clear();
+    }
 
     internal Func<string, Stream>? SubAssetStreamFactory { get; set; }
 
@@ -52,6 +68,15 @@ public struct AssetBakerContext()
     {
         _subAssets.Clear();
     }
+}
+
+/// <summary>
+/// Optional interface implemented by asset bakers that can discover dependencies
+/// (e.g. shader includes, material textures/shaders, prefab references).
+/// </summary>
+public interface IAssetDependencyScanner
+{
+    IEnumerable<string> ScanDependencies(string sourceFile, IBakeSettings settings, AssetBakerContext ctx);
 }
 
 public interface IAssetBaker

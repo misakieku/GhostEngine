@@ -29,10 +29,21 @@ public partial class ShaderBakeSettings : ObservableObject, IBakeSettings
 }
 
 [AssetBaker(Extensions = [".gshdr", ".gcomp"], Type = AssetType.Shader, SettingsType = typeof(ShaderBakeSettings))]
-internal partial class ShaderBaker : IAssetBaker, IDisposable
+internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner, IDisposable
 {
     private readonly DXCShaderCompiler _compiler = new DXCShaderCompiler();
     private readonly SemaphoreSlim _compileLock = new(1, 1);
+
+    public IEnumerable<string> ScanDependencies(string sourceFile, IBakeSettings settings, AssetBakerContext ctx)
+    {
+        if (!File.Exists(sourceFile))
+        {
+            return Array.Empty<string>();
+        }
+
+        var codeStr = File.ReadAllText(sourceFile);
+        return ShaderIncludeResolver.ResolveDependencies(sourceFile, codeStr, ctx.AssetDirectories, ctx.ShaderMetadata.VirtualShader);
+    }
 
     private static ulong GetLayoutHash(DSL.Models.ShaderReflectionData reflectionData, uint propertyBufferSize, string shaderName)
     {
@@ -115,11 +126,31 @@ internal partial class ShaderBaker : IAssetBaker, IDisposable
         var codeStr = await File.ReadAllTextAsync(src, cancellationToken).ConfigureAwait(false);
         var ext = Path.GetExtension(src);
 
+        var dependencies = ShaderIncludeResolver.ResolveDependencies(src, codeStr, ctx.AssetDirectories, ctx.ShaderMetadata.VirtualShader);
+        foreach (var dep in dependencies)
+        {
+            ctx.AddDependency(dep);
+        }
+
+        var srcDir = Path.GetDirectoryName(Path.GetFullPath(src));
+        var includeDirs = new List<string>(ctx.AssetDirectories.Count + 1);
+        if (!string.IsNullOrEmpty(srcDir))
+        {
+            includeDirs.Add(srcDir);
+        }
+        foreach (var dir in ctx.AssetDirectories)
+        {
+            if (!includeDirs.Contains(dir, StringComparer.OrdinalIgnoreCase))
+            {
+                includeDirs.Add(dir);
+            }
+        }
+
         var configTemplate = new ShaderCompilationConfig
         {
             optimizeLevel = shaderSettings.OptimizeLevel,
             options = shaderSettings.Options,
-            includeDirectories = ctx.AssetDirectories.ToArray(),
+            includeDirectories = includeDirs.ToArray(),
         };
 
         if (string.Equals(ext, ".gshdr", StringComparison.Ordinal))
