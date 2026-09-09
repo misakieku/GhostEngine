@@ -68,7 +68,7 @@ internal partial class TextureBaker
                 baseCubeData.Dispose();
             }
 
-            var mipmapCount = await Task.Run((Func<int>)(() =>
+            var mipmapCount = await Task.Run(() =>
             {
                 if (isHdrCube)
                 {
@@ -78,7 +78,7 @@ internal partial class TextureBaker
                 {
                     return RunMipGenCompressionPipeline(tempFilePath, textureInfo, settings);
                 }
-            }), cancellationToken).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
 
             return (tempFilePath, mipmapCount);
         }
@@ -103,7 +103,7 @@ internal partial class TextureBaker
         using var pOutOpts = new DisposablePtr<NvttOutputOptions>(NvttOutputOptions.Create());
         using var pCtx = new DisposablePtr<NvttContext>(NvttContext.Create());
         using var timing = new DisposablePtr<NvttTimingContext>(NvttTimingContext.Create(3));
-        
+
         var inputFormat = textureInfo.colorComponents == 1
             ? NvttInputFormat.NVTT_InputFormat_R_32F
             : textureInfo.bitsPerChannel > 8

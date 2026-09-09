@@ -1,6 +1,5 @@
 using Ghost.Engine.ShaderProperties;
 using Misaki.HighPerformance.Mathematics;
-using System.Runtime.InteropServices;
 
 namespace Ghost.UnitTest.Graphics;
 
@@ -31,5 +30,15 @@ public class ShaderPropertiesGeneratorTest
             customTintScale = 2.0f
         };
         Assert.AreEqual(1.0f, props.baseColor.x);
+    }
+
+    [TestMethod]
+    public unsafe void TestInternalUpdateGPUSceneShaderProperties_LayoutAndConstants()
+    {
+#pragma warning disable MSTEST0032 // Assertion condition is always true
+        Assert.AreEqual("Internal/UpdateGPUScene", (string)InternalUpdateGPUSceneShaderProperties.SHADER_NAME);
+#pragma warning restore MSTEST0032 // Assertion condition is always true
+        var size = sizeof(InternalUpdateGPUSceneShaderProperties);
+        Assert.AreEqual(20, size); // 5 uint fields = 20 bytes
     }
 }

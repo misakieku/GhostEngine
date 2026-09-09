@@ -56,7 +56,7 @@ shader "Hidden/Blit"
 
             float4 PSMain(PSInput input) : SV_TARGET
             {
-                BlitShaderProperties perMaterialData = LoadData<BlitShaderProperties>(g_PushConstantData.instanceIndex, 0);
+                HiddenBlitShaderProperties perMaterialData = LoadData<HiddenBlitShaderProperties>(g_PushConstantData.instanceIndex, 0);
 
                 float2 uv = input.uv.xy;
                 float4 color = SAMPLE_TEXTURE2D(perMaterialData.mainTex, perMaterialData.sampler_mainTex, uv);

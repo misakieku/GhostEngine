@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Ghost.AssetForge.Core": {
+      "commandName": "Project",
+      "debugEngines": "managed,native"
+    }
+  }
+}

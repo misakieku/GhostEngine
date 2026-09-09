@@ -34,7 +34,7 @@ internal class UpdateGPUInstanceSystem : SystemBase
 
         foreach (var chunk in instanceQuery.GetChunkIterator())
         {
-            if (!chunk.HasChanged<MeshInstance>(LastSystemVersion))
+            if (!chunk.HasChanged<MeshInstance>(LastSystemVersion) && !chunk.HasChanged<LocalToWorld>(LastSystemVersion))
             {
                 continue;
             }

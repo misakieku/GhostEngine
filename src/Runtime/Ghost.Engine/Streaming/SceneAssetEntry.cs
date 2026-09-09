@@ -89,7 +89,7 @@ public partial class AssetManager
 
         var data = openResult.Value;
 
-        if (data.stream.Length < sizeof(SceneContentHeader))
+        if (data.stream.CanSeek && data.stream.Length < sizeof(SceneContentHeader))
         {
             data.Dispose();
             return Result.Failure("Invalid scene file size.");

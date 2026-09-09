@@ -1,8 +1,6 @@
-using Ghost.AssetForge.Core.Bakers;
 using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
-using System.Reflection;
 
 namespace Ghost.AssetForge.CLI;
 
@@ -56,13 +54,7 @@ public class Program
 
         try
         {
-            using var registry = new BakerRegistry(autoDiscover: false);
-
-            var textureAttr = typeof(TextureBaker).GetCustomAttribute<AssetBakerAttribute>()!;
-            registry.Register<TextureBaker>(textureAttr.Type, textureAttr.SettingsType, textureAttr.Extensions);
-
-            var shaderAttr = typeof(ShaderBaker).GetCustomAttribute<AssetBakerAttribute>()!;
-            registry.Register<ShaderBaker>(shaderAttr.Type, shaderAttr.SettingsType, shaderAttr.Extensions);
+            using var registry = new BakerRegistry();
 
             var projectService = new ProjectService(registry);
             projectService.InitializeFromArgs(assetDirs, cacheDir, buildDir, shaderMetadataPaths);

@@ -193,11 +193,12 @@ public interface ICommandBuffer : IRHIObject
     /// Executes a sequence of GPU commands indirectly using the specified command signature and argument buffers.
     /// </summary>
     /// <param name="commandSignature">The command signature that defines the layout and type of commands to execute.</param>
+    /// <param name="maxCommandCount">The maximum number of commands available in this variant's argument range.</param>
     /// <param name="argumentBuffer">A handle to the GPU buffer containing the arguments for each command.</param>
     /// <param name="argumentOffset">The byte offset within the argument buffer at which to begin reading command arguments.</param>
     /// <param name="countBuffer">A handle to the GPU buffer that specifies the number of commands to execute.</param>
     /// <param name="countBufferOffset">The byte offset within the count buffer at which to read the command count.</param>
-    void ExecuteIndirect(ICommandSignature commandSignature, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset);
+    void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset);
 
     /// <summary>
     /// Copies a specified number of bytes from the source graphics buffer to the destination graphics buffer.

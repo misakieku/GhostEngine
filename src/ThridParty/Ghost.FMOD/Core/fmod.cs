@@ -3540,7 +3540,7 @@ namespace Ghost.FMOD.Core
         public readonly RESULT getParameterInfo(int index, out DSP_PARAMETER_DESC desc)
         {
             var result = FMOD5_DSP_GetParameterInfo(handle, index, out var descPtr);
-            desc = (DSP_PARAMETER_DESC)Marshal.PtrToStructure<DSP_PARAMETER_DESC>(descPtr);
+            desc = Marshal.PtrToStructure<DSP_PARAMETER_DESC>(descPtr);
             return result;
         }
         public readonly RESULT getDataParameterIndex(int datatype, out int index)

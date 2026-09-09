@@ -114,7 +114,7 @@ public class InspectorDrawerRegistry
                         if (condProp != null)
                         {
                             var condVal = condProp.GetValue(target);
-                            bool visible = false;
+                            var visible = false;
                             if (condVal != null)
                             {
                                 var expectedVal = Convert.ChangeType(showWhenAttr.Value, condVal.GetType());

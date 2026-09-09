@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
@@ -6,55 +7,11 @@ using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Ghost.Graphics.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
-using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Streaming;
-
-[StructLayout(LayoutKind.Sequential, Size = 192)]
-internal struct MeshContentHeader
-{
-    public const uint MAGIC = 0x48534D47; // GMSH
-    public const uint VERSION = 1;
-
-    public uint magic;
-    public uint version;
-
-    public int vertexCount;
-    public int indexCount;
-    public int materialPartCount;
-    public int meshletCount;
-    public int meshletGroupCount;
-    public int meshletHierarchyNodeCount;
-    public int meshletVertexCount;
-    public int meshletTriangleCount;
-    public int materialSlotCount;
-    public int lodLevelCount;
-
-    public float3 boundsMin;
-    public float3 boundsMax;
-
-    public long vertexOffset;
-    public long indexOffset;
-    public long materialPartOffset;
-    public long meshletOffset;
-    public long meshletGroupOffset;
-    public long meshletHierarchyNodeOffset;
-    public long meshletVertexOffset;
-    public long meshletTriangleOffset;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct MeshContentMaterialPart
-{
-    public int materialIndex;
-    public int indexStart;
-    public int indexCount;
-    public int vertexStart;
-    public int vertexCount;
-}
 
 internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploadableAssetEntry
 {
@@ -117,13 +74,21 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
 
     public Result OnLoadContent(Stream contentStream)
     {
+        _rawData = contentStream.ReadMemory(AllocationHandle.Persistent);
+        if (_rawData.Size < (nuint)sizeof(MeshContentHeader))
+        {
+            return Result.Failure("Mesh content is too short for header.");
+        }
+
+        var pData = (byte*)_rawData.GetUnsafePtr();
+        var header = *(MeshContentHeader*)pData;
+
         bool ValidateRange(long offset, int count, uint stride)
         {
             var size = count * stride;
-            return offset <= contentStream.Length && size <= contentStream.Length - offset;
+            return offset <= (long)_rawData.Size && size <= (long)_rawData.Size - offset;
         }
 
-        var header = contentStream.Read<MeshContentHeader>();
         if (header.magic != MeshContentHeader.MAGIC || header.version != MeshContentHeader.VERSION)
         {
             return Result.Failure("Unsupported mesh content format.");
@@ -152,11 +117,6 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         {
             return Result.Failure("Mesh content contains an invalid material part range.");
         }
-
-        contentStream.Position = 0;
-
-        _rawData = contentStream.ReadMemory(AllocationHandle.Persistent);
-        var pData = (byte*)_rawData.GetUnsafePtr();
 
         _header = header;
         _pVertices = pData + header.vertexOffset;

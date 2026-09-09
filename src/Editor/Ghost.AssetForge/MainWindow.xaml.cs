@@ -92,7 +92,7 @@ public sealed partial class MainWindow : Window
             NavView.SelectedItem = targetItem;
         }
 
-        System.Type? pageType = pageName switch
+        var pageType = pageName switch
         {
             "Dashboard" => typeof(DashboardPage),
             "ProjectExplorer" => typeof(ProjectExplorerPage),

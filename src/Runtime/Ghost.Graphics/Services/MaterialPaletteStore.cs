@@ -106,6 +106,7 @@ internal sealed class MaterialPaletteStore : IDisposable
         _materialIndices = new UnsafeList<uint>(initialCapacity * 4, AllocationHandle.Persistent);
         _pendingFreeSlots = new UnsafeQueue<PendingFreeSlot>(16, AllocationHandle.Persistent);
 
+        _entries.Add(default); // slot 0 is the reserved empty palette
         // Slot 0 is reserved (empty palette). Seed both lists so indices stay in sync.
         _paletteOffsets.Add(0); // palette 0 offset = 0
         _materialIndices.Add(0); // placeholder, never read for palette 0

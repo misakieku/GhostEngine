@@ -12,18 +12,39 @@ public delegate void PassRenderFunc<TPassData, TRenderContext>(ref readonly TPas
 [Flags]
 public enum AccessFlags : byte
 {
+    /// <summary>
+    /// No access is performed on the resource.
+    /// </summary>
     None = 0,
+    /// <summary>
+    /// The resource is read during the pass.
+    /// </summary>
     Read = 1 << 0,
+    /// <summary>
+    /// The resource is written during the pass.
+    /// </summary>
     Write = 1 << 1,
+    /// <summary>
+    /// The resource is discarded during the pass, indicating that its previous contents are no longer needed.
+    /// </summary>
     Discard = 1 << 2,
 
+    /// <summary>
+    /// Indicates that the resource is written and discarded during the pass, meaning that its previous contents are not preserved and will be overwritten.
+    /// </summary>
     WriteAll = Write | Discard,
+    /// <summary>
+    /// Indicates that the resource is both read and written during the pass, allowing for modifications while preserving its previous contents.
+    /// </summary>
     ReadWrite = Read | Write,
 }
 
 [Flags]
 public enum ResourceExtractionFlags : byte
 {
+    /// <summary>
+    /// No special extraction behavior is specified. The resource will be extracted without any additional actions.
+    /// </summary>
     None = 0,
     /// <summary>
     /// Releases the old resource after extraction.

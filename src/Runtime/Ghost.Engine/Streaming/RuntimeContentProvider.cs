@@ -15,6 +15,8 @@ public class RuntimeContentProvider : IContentProvider, IDisposable
     private readonly object _validatedPacksLock = new();
     private readonly HashSet<string> _validatedPacks = new(StringComparer.Ordinal);
 
+    public IReadOnlyList<ShaderCatalogEntry> ShaderCatalog => _manifest.Shaders;
+
     public RuntimeContentProvider(string manifestPath)
     {
         _manifest = Manifest.LoadFromDiskAsync(manifestPath).GetAwaiter().GetResult();

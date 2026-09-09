@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Entities;
-using Ghost.Engine.Editor;
 
 namespace Ghost.Engine.Components;
 

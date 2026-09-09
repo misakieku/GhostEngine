@@ -1,5 +1,5 @@
-using Ghost.Core;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Ghost.Core;
 
 namespace Ghost.AssetForge.Core.Models;
 

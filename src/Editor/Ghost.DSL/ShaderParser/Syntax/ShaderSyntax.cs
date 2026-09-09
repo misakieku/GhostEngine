@@ -18,6 +18,7 @@ public class ComputeShaderSyntax
 {
     public string Name { get; set; } = string.Empty;
     public string ShaderModel { get; set; } = string.Empty;
+    public PropertiesBlockSyntax? Properties { get; set; }
     public DefinesBlockSyntax? Defines { get; set; }
     public IncludesBlockSyntax? Includes { get; set; }
     public HlslBlockSyntax? Hlsl { get; set; }

@@ -10,6 +10,17 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Streaming;
 
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
+public sealed class ResolveAssetAttribute : Attribute
+{
+    public string VirtualPath { get; }
+
+    public ResolveAssetAttribute(string virtualPath)
+    {
+        VirtualPath = virtualPath;
+    }
+}
+
 public struct AssetReadData : IDisposable
 {
     public Guid assetId;
@@ -24,6 +35,7 @@ public struct AssetReadData : IDisposable
 
 public interface IContentProvider
 {
+    IReadOnlyList<ShaderCatalogEntry> ShaderCatalog { get; }
     Guid VirtualPathToGuid(string path);
     bool HasAsset(Guid guid);
     Guid[] GetDependencies(Guid guid);
@@ -68,7 +80,7 @@ internal struct LoadAssetJob : IJob
             var openResult = assetManager.ContentProvider.OpenReadAsync(entry.AssetId);
             if (openResult.IsFailure)
             {
-                entry.State = AssetState.Failed;
+                entry.State = entry.FailureState;
                 Logger.Error($"Failed to open asset {assetID}: {openResult.Message}");
                 return;
             }
@@ -77,7 +89,7 @@ internal struct LoadAssetJob : IJob
             var result = loadable.OnLoadContent(readData.stream);
             if (result.IsFailure)
             {
-                entry.State = AssetState.Failed;
+                entry.State = entry.FailureState;
                 Logger.Error($"Failed to load asset {assetID}: {result.Message}");
                 return;
             }
@@ -91,7 +103,7 @@ internal struct LoadAssetJob : IJob
         }
         catch (Exception ex)
         {
-            entry.State = AssetState.Failed;
+            entry.State = entry.FailureState;
             Logger.Error($"Failed to load asset {assetID}: {ex.Message}");
             return;
         }
@@ -106,11 +118,21 @@ public partial class AssetManager : IDisposable
     private readonly ResourceManager _resourceManager;
     private readonly ResourceStreamingProcessor _streamingProcessor;
     private readonly JobScheduler _jobScheduler;
+    private readonly ShaderVariantRegistry _shaderVariants;
+    private readonly ComputeShaderRegistry _computeShaders;
 
     private readonly ConcurrentDictionary<Guid, AssetEntry> _entries;
 
     internal IContentProvider ContentProvider => _contentProvider;
     internal ResourceStreamingProcessor StreamingProcessor => _streamingProcessor;
+    /// <summary>
+    /// Dense metadata registry for graphics shader variants.
+    /// </summary>
+    public ShaderVariantRegistry ShaderVariants => _shaderVariants;
+    /// <summary>
+    /// Metadata registry for standalone compute shaders.
+    /// </summary>
+    public ComputeShaderRegistry ComputeShaders => _computeShaders;
 
     internal AssetManager(IResourceDatabase resourceDatabase, ResourceManager resourceManager, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler)
     {
@@ -119,6 +141,8 @@ public partial class AssetManager : IDisposable
         _contentProvider = contentProvider;
         _streamingProcessor = streamingProcessor;
         _jobScheduler = jobScheduler;
+        _shaderVariants = new ShaderVariantRegistry(resourceManager, contentProvider.ShaderCatalog);
+        _computeShaders = new ComputeShaderRegistry(resourceManager, contentProvider.ShaderCatalog);
 
         _entries = new ConcurrentDictionary<Guid, AssetEntry>();
     }
@@ -172,6 +196,20 @@ public partial class AssetManager : IDisposable
         // The combined dependency handle is resolved once and cached on the entry; subsequent
         // re-schedules (e.g. reimport) reuse it instead of re-traversing the whole graph (PERF-07).
         var dependency = entry.CombinedDependencyJobHandle;
+
+        // If the entry has no dependencies and it's not a loadable asset, we can skip the job scheduling and directly mark the entry as loaded.
+        if ((dependency.IsValid || entry.Dependencies.Length == 0) && entry is not ILoadableAssetEntry)
+        {
+            entry.State = AssetState.Loaded;
+            if (!StreamingProcessor.EnqueueForProcess(entry))
+            {
+                entry.State = AssetState.Ready;
+            }
+
+            return;
+        }
+
+        // TODO: We are rescheduling the job for ervery dependencies even if it is already loaded. We should only schedule the job for the dependencies that are not loaded yet.
         if (!dependency.IsValid && entry.Dependencies.Length > 0)
         {
             // Avoid stack overflow for deep dependency tree like a scene.
@@ -330,7 +368,8 @@ public partial class AssetManager : IDisposable
         Logger.DebugAssert(_entries.IsEmpty, $"There are still {_entries.Count} assets in the manager. Make sure to release all assets before disposing the manager.");
 
         _entries.Clear();
-
+        _computeShaders.Dispose();
+        _shaderVariants.Dispose();
         if (_contentProvider is IDisposable disposable)
         {
             disposable.Dispose();

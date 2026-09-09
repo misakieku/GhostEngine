@@ -34,7 +34,6 @@ internal sealed class FrameScheduler : IFrameScheduler
     private static int s_nextSchedulerId;
 
     private readonly IGraphicsEngine _graphicsEngine;
-    private readonly SwapChainManager? _swapChainManager;
     private readonly ICommandQueue[] _queues;
     private readonly IFence[] _fences;
     private readonly ulong[] _nextFenceValues;
@@ -71,12 +70,11 @@ internal sealed class FrameScheduler : IFrameScheduler
         private set;
     }
 
-    public FrameScheduler(IGraphicsEngine graphicsEngine, SwapChainManager? swapChainManager = null)
+    public FrameScheduler(IGraphicsEngine graphicsEngine)
     {
         ArgumentNullException.ThrowIfNull(graphicsEngine);
 
         _graphicsEngine = graphicsEngine;
-        _swapChainManager = swapChainManager;
         _queues = new ICommandQueue[QUEUE_COUNT];
         _fences = new IFence[QUEUE_COUNT];
         _nextFenceValues = new ulong[QUEUE_COUNT];
@@ -408,22 +406,11 @@ internal sealed class FrameScheduler : IFrameScheduler
             }
         }
 
-        var lastGraphicsSubmissionIndex = -1;
-        for (var orderIndex = submissionCount - 1; orderIndex >= 0; orderIndex--)
-        {
-            var idx = _executionOrder[orderIndex];
-            if (_submissions[idx].handle.QueueType == CommandQueueType.Graphics)
-            {
-                lastGraphicsSubmissionIndex = idx;
-                break;
-            }
-        }
-
         Array.Clear(_scheduled, 0, submissionCount);
         for (var orderIndex = 0; orderIndex < submissionCount; orderIndex++)
         {
             var submissionIndex = _executionOrder[orderIndex];
-            ExecuteSubmission(submissionIndex, submissionIndex == lastGraphicsSubmissionIndex);
+            ExecuteSubmission(submissionIndex);
             _scheduled[submissionIndex] = true;
         }
     }
@@ -441,7 +428,7 @@ internal sealed class FrameScheduler : IFrameScheduler
         return -1;
     }
 
-    private void ExecuteSubmission(int submissionIndex, bool isLastGraphicsSubmission)
+    private void ExecuteSubmission(int submissionIndex)
     {
         var record = _submissions[submissionIndex];
         var destinationQueueIndex = GetQueueIndex(record.handle.QueueType);
@@ -470,11 +457,6 @@ internal sealed class FrameScheduler : IFrameScheduler
         }
 
         _queues[destinationQueueIndex].Submit(record.commandBuffer);
-
-        if (isLastGraphicsSubmission && _swapChainManager != null)
-        {
-            _swapChainManager.PresentAll();
-        }
 
         _queues[destinationQueueIndex].Signal(_fences[destinationQueueIndex], record.handle.FenceValue);
         _graphicsEngine.ReturnPooledCommandBuffer(record.commandBuffer);

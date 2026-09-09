@@ -390,97 +390,97 @@ public static unsafe partial class Api
     public const int DXC_S_OK = 0;
 
     [NativeTypeName("#define DXC_E_OVERLAPPING_SEMANTICS DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0001))")]
-    public const int DXC_E_OVERLAPPING_SEMANTICS = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0001)))));
+    public const int DXC_E_OVERLAPPING_SEMANTICS = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0001)));
 
     [NativeTypeName("#define DXC_E_MULTIPLE_DEPTH_SEMANTICS DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0002))")]
-    public const int DXC_E_MULTIPLE_DEPTH_SEMANTICS = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0002)))));
+    public const int DXC_E_MULTIPLE_DEPTH_SEMANTICS = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0002)));
 
     [NativeTypeName("#define DXC_E_INPUT_FILE_TOO_LARGE DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0003))")]
-    public const int DXC_E_INPUT_FILE_TOO_LARGE = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0003)))));
+    public const int DXC_E_INPUT_FILE_TOO_LARGE = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0003)));
 
     [NativeTypeName("#define DXC_E_INCORRECT_DXBC DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0004))")]
-    public const int DXC_E_INCORRECT_DXBC = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0004)))));
+    public const int DXC_E_INCORRECT_DXBC = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0004)));
 
     [NativeTypeName("#define DXC_E_ERROR_PARSING_DXBC_BYTECODE DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0005))")]
-    public const int DXC_E_ERROR_PARSING_DXBC_BYTECODE = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0005)))));
+    public const int DXC_E_ERROR_PARSING_DXBC_BYTECODE = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0005)));
 
     [NativeTypeName("#define DXC_E_DATA_TOO_LARGE DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0006))")]
-    public const int DXC_E_DATA_TOO_LARGE = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0006)))));
+    public const int DXC_E_DATA_TOO_LARGE = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0006)));
 
     [NativeTypeName("#define DXC_E_INCOMPATIBLE_CONVERTER_OPTIONS DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0007))")]
-    public const int DXC_E_INCOMPATIBLE_CONVERTER_OPTIONS = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0007)))));
+    public const int DXC_E_INCOMPATIBLE_CONVERTER_OPTIONS = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0007)));
 
     [NativeTypeName("#define DXC_E_IRREDUCIBLE_CFG DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0008))")]
-    public const int DXC_E_IRREDUCIBLE_CFG = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0008)))));
+    public const int DXC_E_IRREDUCIBLE_CFG = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0008)));
 
     [NativeTypeName("#define DXC_E_IR_VERIFICATION_FAILED DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0009))")]
-    public const int DXC_E_IR_VERIFICATION_FAILED = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0009)))));
+    public const int DXC_E_IR_VERIFICATION_FAILED = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0009)));
 
     [NativeTypeName("#define DXC_E_SCOPE_NESTED_FAILED DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x000A))")]
-    public const int DXC_E_SCOPE_NESTED_FAILED = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x000A)))));
+    public const int DXC_E_SCOPE_NESTED_FAILED = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x000A)));
 
     [NativeTypeName("#define DXC_E_NOT_SUPPORTED DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x000B))")]
-    public const int DXC_E_NOT_SUPPORTED = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x000B)))));
+    public const int DXC_E_NOT_SUPPORTED = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x000B)));
 
     [NativeTypeName("#define DXC_E_STRING_ENCODING_FAILED DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x000C))")]
-    public const int DXC_E_STRING_ENCODING_FAILED = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x000C)))));
+    public const int DXC_E_STRING_ENCODING_FAILED = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x000C)));
 
     [NativeTypeName("#define DXC_E_CONTAINER_INVALID DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x000D))")]
-    public const int DXC_E_CONTAINER_INVALID = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x000D)))));
+    public const int DXC_E_CONTAINER_INVALID = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x000D)));
 
     [NativeTypeName("#define DXC_E_CONTAINER_MISSING_DXIL DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x000E))")]
-    public const int DXC_E_CONTAINER_MISSING_DXIL = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x000E)))));
+    public const int DXC_E_CONTAINER_MISSING_DXIL = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x000E)));
 
     [NativeTypeName("#define DXC_E_INCORRECT_DXIL_METADATA DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x000F))")]
-    public const int DXC_E_INCORRECT_DXIL_METADATA = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x000F)))));
+    public const int DXC_E_INCORRECT_DXIL_METADATA = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x000F)));
 
     [NativeTypeName("#define DXC_E_INCORRECT_DDI_SIGNATURE DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0010))")]
-    public const int DXC_E_INCORRECT_DDI_SIGNATURE = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0010)))));
+    public const int DXC_E_INCORRECT_DDI_SIGNATURE = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0010)));
 
     [NativeTypeName("#define DXC_E_DUPLICATE_PART DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0011))")]
-    public const int DXC_E_DUPLICATE_PART = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0011)))));
+    public const int DXC_E_DUPLICATE_PART = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0011)));
 
     [NativeTypeName("#define DXC_E_MISSING_PART DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0012))")]
-    public const int DXC_E_MISSING_PART = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0012)))));
+    public const int DXC_E_MISSING_PART = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0012)));
 
     [NativeTypeName("#define DXC_E_MALFORMED_CONTAINER DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0013))")]
-    public const int DXC_E_MALFORMED_CONTAINER = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0013)))));
+    public const int DXC_E_MALFORMED_CONTAINER = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0013)));
 
     [NativeTypeName("#define DXC_E_INCORRECT_ROOT_SIGNATURE DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0014))")]
-    public const int DXC_E_INCORRECT_ROOT_SIGNATURE = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0014)))));
+    public const int DXC_E_INCORRECT_ROOT_SIGNATURE = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0014)));
 
     [NativeTypeName("#define DXC_E_CONTAINER_MISSING_DEBUG DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0015))")]
-    public const int DXC_E_CONTAINER_MISSING_DEBUG = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0015)))));
+    public const int DXC_E_CONTAINER_MISSING_DEBUG = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0015)));
 
     [NativeTypeName("#define DXC_E_MACRO_EXPANSION_FAILURE DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0016))")]
-    public const int DXC_E_MACRO_EXPANSION_FAILURE = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0016)))));
+    public const int DXC_E_MACRO_EXPANSION_FAILURE = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0016)));
 
     [NativeTypeName("#define DXC_E_OPTIMIZATION_FAILED DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0017))")]
-    public const int DXC_E_OPTIMIZATION_FAILED = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0017)))));
+    public const int DXC_E_OPTIMIZATION_FAILED = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0017)));
 
     [NativeTypeName("#define DXC_E_GENERAL_INTERNAL_ERROR DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0018))")]
-    public const int DXC_E_GENERAL_INTERNAL_ERROR = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0018)))));
+    public const int DXC_E_GENERAL_INTERNAL_ERROR = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0018)));
 
     [NativeTypeName("#define DXC_E_ABORT_COMPILATION_ERROR DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x0019))")]
-    public const int DXC_E_ABORT_COMPILATION_ERROR = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x0019)))));
+    public const int DXC_E_ABORT_COMPILATION_ERROR = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x0019)));
 
     [NativeTypeName("#define DXC_E_EXTENSION_ERROR DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x001A))")]
-    public const int DXC_E_EXTENSION_ERROR = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x001A)))));
+    public const int DXC_E_EXTENSION_ERROR = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x001A)));
 
     [NativeTypeName("#define DXC_E_LLVM_FATAL_ERROR DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x001B))")]
-    public const int DXC_E_LLVM_FATAL_ERROR = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x001B)))));
+    public const int DXC_E_LLVM_FATAL_ERROR = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x001B)));
 
     [NativeTypeName("#define DXC_E_LLVM_UNREACHABLE DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x001C))")]
-    public const int DXC_E_LLVM_UNREACHABLE = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x001C)))));
+    public const int DXC_E_LLVM_UNREACHABLE = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x001C)));
 
     [NativeTypeName("#define DXC_E_LLVM_CAST_ERROR DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x001D))")]
-    public const int DXC_E_LLVM_CAST_ERROR = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x001D)))));
+    public const int DXC_E_LLVM_CAST_ERROR = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x001D)));
 
     [NativeTypeName("#define DXC_E_VALIDATOR_MISSING DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x001E))")]
-    public const int DXC_E_VALIDATOR_MISSING = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x001E)))));
+    public const int DXC_E_VALIDATOR_MISSING = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x001E)));
 
     [NativeTypeName("#define DXC_E_INCORRECT_PROGRAM_VERSION DXC_MAKE_HRESULT(DXC_SEVERITY_ERROR, FACILITY_DXC, (0x001F))")]
-    public const int DXC_E_INCORRECT_PROGRAM_VERSION = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | ((uint)((0x001F)))));
+    public const int DXC_E_INCORRECT_PROGRAM_VERSION = unchecked((int)(((uint)(1) << 31) | ((uint)((0xAA)) << 16) | (0x001F)));
 
     [NativeTypeName("#define DXC_CP_UTF8 65001")]
     public const int DXC_CP_UTF8 = 65001;
@@ -501,34 +501,34 @@ public static unsafe partial class Api
     public const int DXC_HASHFLAG_INCLUDES_SOURCE = 1;
 
     [NativeTypeName("#define DXC_PART_PDB DXC_FOURCC('I', 'L', 'D', 'B')")]
-    public const uint DXC_PART_PDB = ((uint)((byte)('I')) | (uint)((byte)('L')) << 8 | (uint)((byte)('D')) << 16 | (uint)((byte)('B')) << 24);
+    public const uint DXC_PART_PDB = ((byte)('I') | (uint)((byte)('L')) << 8 | (uint)((byte)('D')) << 16 | (uint)((byte)('B')) << 24);
 
     [NativeTypeName("#define DXC_PART_PDB_NAME DXC_FOURCC('I', 'L', 'D', 'N')")]
-    public const uint DXC_PART_PDB_NAME = ((uint)((byte)('I')) | (uint)((byte)('L')) << 8 | (uint)((byte)('D')) << 16 | (uint)((byte)('N')) << 24);
+    public const uint DXC_PART_PDB_NAME = ((byte)('I') | (uint)((byte)('L')) << 8 | (uint)((byte)('D')) << 16 | (uint)((byte)('N')) << 24);
 
     [NativeTypeName("#define DXC_PART_PRIVATE_DATA DXC_FOURCC('P', 'R', 'I', 'V')")]
-    public const uint DXC_PART_PRIVATE_DATA = ((uint)((byte)('P')) | (uint)((byte)('R')) << 8 | (uint)((byte)('I')) << 16 | (uint)((byte)('V')) << 24);
+    public const uint DXC_PART_PRIVATE_DATA = ((byte)('P') | (uint)((byte)('R')) << 8 | (uint)((byte)('I')) << 16 | (uint)((byte)('V')) << 24);
 
     [NativeTypeName("#define DXC_PART_ROOT_SIGNATURE DXC_FOURCC('R', 'T', 'S', '0')")]
-    public const uint DXC_PART_ROOT_SIGNATURE = ((uint)((byte)('R')) | (uint)((byte)('T')) << 8 | (uint)((byte)('S')) << 16 | (uint)((byte)('0')) << 24);
+    public const uint DXC_PART_ROOT_SIGNATURE = ((byte)('R') | (uint)((byte)('T')) << 8 | (uint)((byte)('S')) << 16 | (uint)((byte)('0')) << 24);
 
     [NativeTypeName("#define DXC_PART_DXIL DXC_FOURCC('D', 'X', 'I', 'L')")]
-    public const uint DXC_PART_DXIL = ((uint)((byte)('D')) | (uint)((byte)('X')) << 8 | (uint)((byte)('I')) << 16 | (uint)((byte)('L')) << 24);
+    public const uint DXC_PART_DXIL = ((byte)('D') | (uint)((byte)('X')) << 8 | (uint)((byte)('I')) << 16 | (uint)((byte)('L')) << 24);
 
     [NativeTypeName("#define DXC_PART_REFLECTION_DATA DXC_FOURCC('S', 'T', 'A', 'T')")]
-    public const uint DXC_PART_REFLECTION_DATA = ((uint)((byte)('S')) | (uint)((byte)('T')) << 8 | (uint)((byte)('A')) << 16 | (uint)((byte)('T')) << 24);
+    public const uint DXC_PART_REFLECTION_DATA = ((byte)('S') | (uint)((byte)('T')) << 8 | (uint)((byte)('A')) << 16 | (uint)((byte)('T')) << 24);
 
     [NativeTypeName("#define DXC_PART_SHADER_HASH DXC_FOURCC('H', 'A', 'S', 'H')")]
-    public const uint DXC_PART_SHADER_HASH = ((uint)((byte)('H')) | (uint)((byte)('A')) << 8 | (uint)((byte)('S')) << 16 | (uint)((byte)('H')) << 24);
+    public const uint DXC_PART_SHADER_HASH = ((byte)('H') | (uint)((byte)('A')) << 8 | (uint)((byte)('S')) << 16 | (uint)((byte)('H')) << 24);
 
     [NativeTypeName("#define DXC_PART_INPUT_SIGNATURE DXC_FOURCC('I', 'S', 'G', '1')")]
-    public const uint DXC_PART_INPUT_SIGNATURE = ((uint)((byte)('I')) | (uint)((byte)('S')) << 8 | (uint)((byte)('G')) << 16 | (uint)((byte)('1')) << 24);
+    public const uint DXC_PART_INPUT_SIGNATURE = ((byte)('I') | (uint)((byte)('S')) << 8 | (uint)((byte)('G')) << 16 | (uint)((byte)('1')) << 24);
 
     [NativeTypeName("#define DXC_PART_OUTPUT_SIGNATURE DXC_FOURCC('O', 'S', 'G', '1')")]
-    public const uint DXC_PART_OUTPUT_SIGNATURE = ((uint)((byte)('O')) | (uint)((byte)('S')) << 8 | (uint)((byte)('G')) << 16 | (uint)((byte)('1')) << 24);
+    public const uint DXC_PART_OUTPUT_SIGNATURE = ((byte)('O') | (uint)((byte)('S')) << 8 | (uint)((byte)('G')) << 16 | (uint)((byte)('1')) << 24);
 
     [NativeTypeName("#define DXC_PART_PATCH_CONSTANT_SIGNATURE DXC_FOURCC('P', 'S', 'G', '1')")]
-    public const uint DXC_PART_PATCH_CONSTANT_SIGNATURE = ((uint)((byte)('P')) | (uint)((byte)('S')) << 8 | (uint)((byte)('G')) << 16 | (uint)((byte)('1')) << 24);
+    public const uint DXC_PART_PATCH_CONSTANT_SIGNATURE = ((byte)('P') | (uint)((byte)('S')) << 8 | (uint)((byte)('G')) << 16 | (uint)((byte)('1')) << 24);
 
     [NativeTypeName("#define DXC_ARG_DEBUG L\"-Zi\"")]
     public const string DXC_ARG_DEBUG = "-Zi";

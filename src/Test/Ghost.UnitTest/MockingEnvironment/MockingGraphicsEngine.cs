@@ -1,3 +1,5 @@
+using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 
 namespace Ghost.UnitTest.MockingEnvironment;
@@ -12,6 +14,16 @@ internal class MockingGraphicsEngine : IGraphicsEngine
     private readonly Stack<MockingCommandBuffer>[] _commandBufferPools;
     private readonly Queue<MockingCommandBuffer> _scriptedCommandBuffers;
     private readonly bool _ownsDependencies;
+
+    private sealed class MockingCommandSignature : ICommandSignature
+    {
+        public string Name { get; set; } = nameof(MockingCommandSignature);
+        public IntPtr NativePointer => IntPtr.Zero;
+
+        public void Dispose()
+        {
+        }
+    }
 
     public IRenderDevice Device => _renderDevice;
 
@@ -97,6 +109,11 @@ internal class MockingGraphicsEngine : IGraphicsEngine
     public ICommandBuffer CreateCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
     {
         return new MockingCommandBuffer(_resourceDatabase, type);
+    }
+
+    public ICommandSignature CreateCommandSignature(scoped in CommandSignatureDesc desc, Key128<PipelineState> pipelineKey)
+    {
+        return new MockingCommandSignature();
     }
 
     public IFence CreateFence(ulong initialValue = 0)

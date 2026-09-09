@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Buffer;
@@ -401,7 +402,8 @@ public unsafe class RenderContext
             return;
         }
 
-        var pipelineKey = RHIUtility.CreateComputePipelineKey(compiledHash);
+        var passId = shader.GetEntryID(entryIndex);
+        var pipelineKey = RHIUtility.CreateComputePipelineKey(passId, compiledHash);
 
         if (!PipelineLibrary.HasPipelineStateObject(pipelineKey))
         {
@@ -421,6 +423,7 @@ public unsafe class RenderContext
             var psoDes = new ComputePSODesc
             {
                 CompiledHash = compiledHash,
+                PassId = passId,
 
                 CsCode = byteCodes.Slice((int)byteCodeOffsets[0]),
             };
@@ -429,7 +432,6 @@ public unsafe class RenderContext
         }
 
         CommandBuffer.SetPipelineState(pipelineKey);
-
 
         var propertySpan = MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in property));
         // TODO: Placed resource has 64k alignment requirement, which can waste lots of memory. We can allocate a large buffer and slice it for each dispatch to avoid this issue.
@@ -461,7 +463,7 @@ public unsafe class RenderContext
             propertyBuffer = ResourceDatabase.GetBindlessIndex(properyBuffer.AsResource()),
         };
 
-        CommandBuffer.SetGraphicsRoot32Constants(0, pushConstant.AsUInts());
+        CommandBuffer.SetComputeRoot32Constants(0, pushConstant.AsUInts());
         CommandBuffer.DispatchCompute(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
     }
 }

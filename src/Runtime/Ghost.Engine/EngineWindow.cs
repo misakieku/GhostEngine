@@ -5,6 +5,7 @@ using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel;
+using Misaki.HighPerformance.Mathematics;
 using SDL;
 using System.Runtime.CompilerServices;
 using static SDL.SDL3;
@@ -108,7 +109,10 @@ public unsafe class EngineWindow : IDisposable
                     break;
                 case SDL_EventType.SDL_EVENT_WINDOW_RESIZED:
                     var resizeEvent = e.window;
-                    _swapChain.Resize((uint)resizeEvent.data1, (uint)resizeEvent.data2);
+                    if (resizeEvent.data1 > 0 && resizeEvent.data2 > 0)
+                    {
+                        _renderEngine.RequestSwapChainResize(_swapChain, new uint2((uint)resizeEvent.data1, (uint)resizeEvent.data2));
+                    }
                     break;
             }
 
@@ -134,9 +138,9 @@ public unsafe class PopupWindow : IDisposable
     private readonly SDL_Window* _window;
     private readonly SDL_Renderer* _renderer;
     private readonly SDL_PropertiesID _propID;
-    
+
     public IntPtr Handle => SDL_GetPointerProperty(_propID, EngineWindow.HANDLE_PROPERTY_NAME, 0);
-    
+
     public PopupWindow(string title, int width, int height, Action<SharedPtr<SDL_Renderer>> onRender)
     {
         var windowFlags = SDL_WindowFlags.SDL_WINDOW_BORDERLESS | SDL_WindowFlags.SDL_WINDOW_ALWAYS_ON_TOP;

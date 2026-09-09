@@ -84,9 +84,10 @@ internal static class RenderGraphNativePassBuilder
         }
 
         // Infer load/store operations for all native passes
+        var nativePassesSpan = nativePasses.AsSpan();
         for (var i = 0; i < nativePasses.Count; i++)
         {
-            InferLoadStoreOps(resourceRegistry, nativePasses[i], scheduleIndexByPassIndex, resourceOrdering);
+            InferLoadStoreOps(resourceRegistry, ref nativePassesSpan[i], scheduleIndexByPassIndex, resourceOrdering);
         }
 
         return nativePasses;
@@ -244,7 +245,7 @@ internal static class RenderGraphNativePassBuilder
 
     private static void InferLoadStoreOps(
         RenderGraphResourceRegistry resourceRegistry,
-        NativeRenderPass nativePass,
+        ref NativeRenderPass nativePass,
         ReadOnlySpan<int> scheduleIndexByPassIndex,
         RenderGraphResourceOrdering resourceOrdering)
     {

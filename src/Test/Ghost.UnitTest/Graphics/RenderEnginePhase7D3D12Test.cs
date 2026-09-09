@@ -1,10 +1,7 @@
 #if GHOST_UNITTEST
 
 using Ghost.Core;
-using Ghost.Graphics;
-using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12;
-using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;

@@ -45,6 +45,8 @@ public struct InstanceData
     public float4x4 localToWorld;
     public uint meshBuffer;
     public uint materialPaletteIndex;  // index into PaletteOffsetBuffer (from MaterialPaletteStore)
+    public uint pad0;
+    public uint pad1;
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]

@@ -1,9 +1,9 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.DSL.Models;
+using Ghost.DSL.ShaderCompiler.Templates;
 using Ghost.DSL.ShaderParser;
 using Ghost.DSL.ShaderParser.Syntax;
-using Ghost.DSL.ShaderCompiler.Templates;
 using Misaki.HighPerformance.Utilities;
 using System.Text;
 
@@ -73,8 +73,8 @@ public static class DSLShaderCompiler
             var relativePath = includePath.TrimStart('/', '\\');
             var absolutePath = "/" + relativePath;
 
-            if (virtualShaders.TryGetValue(absolutePath, out var code) || 
-                virtualShaders.TryGetValue(relativePath, out code) || 
+            if (virtualShaders.TryGetValue(absolutePath, out var code) ||
+                virtualShaders.TryGetValue(relativePath, out code) ||
                 virtualShaders.TryGetValue(includePath, out code))
             {
                 sb.AppendLine(code);
@@ -105,7 +105,47 @@ public static class DSLShaderCompiler
 
         return sb.ToString();
     }
-    private static string BuildPropertiesStruct(string shaderName, IReadOnlyList<PropertySemantic> properties)
+    public static uint GetPropertyTypeSize(string type)
+    {
+        return type.Trim().ToLowerInvariant() switch
+        {
+            "float" or "int" or "uint" or "bool" => 4,
+            "float2" or "int2" or "uint2" or "bool2" => 8,
+            "float3" or "int3" or "uint3" or "bool3" => 12,
+            "float4" or "int4" or "uint4" or "bool4" or "quaternion" => 16,
+            "float2x2" => 16,
+            "float3x3" => 36,
+            "float4x3" or "float3x4" => 48,
+            "float4x4" or "matrix4x4" => 64,
+            "texture2d" or "texture3d" or "texturecube" or "texture2darray" or "texturecubearray"
+                or "samplerstate" or "sampler" or "byte_address_buffer" or "struct_buffer" or "structured_buffer"
+                or "texture2dhandle" or "texture3dhandle" or "bufferhandle" => 4,
+            _ => 4
+        };
+    }
+
+    public static uint CalculatePropertyBufferSize(IEnumerable<PropertySemantic>? properties)
+    {
+        if (properties == null)
+        {
+            return 0;
+        }
+
+        uint currentOffset = 0;
+        foreach (var prop in properties)
+        {
+            var typeSize = GetPropertyTypeSize(prop.type);
+            currentOffset += typeSize;
+            if (currentOffset % 4 != 0)
+            {
+                currentOffset += 4 - (currentOffset % 4);
+            }
+        }
+
+        return currentOffset;
+    }
+
+    internal static string BuildPropertiesStruct(string shaderName, IReadOnlyList<PropertySemantic> properties)
     {
         if (properties == null || properties.Count == 0)
         {
@@ -130,6 +170,7 @@ public static class DSLShaderCompiler
         sb.AppendLine("};");
         sb.AppendLine();
         sb.AppendLine($"typedef {structName} MaterialProperties;");
+        sb.AppendLine($"typedef {structName} ComputeProperties;");
         return sb.ToString();
     }
 
@@ -185,15 +226,23 @@ public static class DSLShaderCompiler
             return TemplateStitcher.ResolveShader(templateResult.Value, semantics, reflectionData, virtualShaders);
         }
 
-        var propertiesCode = !string.IsNullOrEmpty(reflectionData.Code)
-            ? reflectionData.Code
-            : BuildPropertiesStruct(semantics.name, semantics.properties);
+        var propertiesCode = BuildPropertiesStruct(semantics.name, semantics.properties);
+        if (string.IsNullOrEmpty(propertiesCode) && !string.IsNullOrEmpty(reflectionData?.Code))
+        {
+            propertiesCode = reflectionData.Code;
+        }
+
+        var propertyBufferSize = CalculatePropertyBufferSize(semantics.properties);
+        if (propertyBufferSize == 0 && reflectionData != null && reflectionData.Size > 0)
+        {
+            propertyBufferSize = reflectionData.Size;
+        }
 
         var passes = semantics.passes == null ? Array.Empty<PassDescriptor>() : new PassDescriptor[semantics.passes.Count];
         for (var i = 0; i < passes.Length; i++)
         {
             var pass = semantics.passes![i];
-            
+
             var localPipeline = MergePipeline(pass.localPipeline, PipelineState.Default);
 
             var result = BuildFinalShaderCode(pass.amplificationShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertiesCode, virtualShaders);
@@ -220,10 +269,18 @@ public static class DSLShaderCompiler
 
             var pixelShaderCode = new ShaderCode { code = result.Value, entryPoint = pass.pixelShader.entry ?? string.Empty };
 
+            var stageMask = ShaderStageMask.Mesh | ShaderStageMask.Pixel;
+            if (amplificationShaderCode.IsCreated)
+            {
+                stageMask |= ShaderStageMask.Amplification;
+            }
+
             passes[i] = new PassDescriptor
             {
                 name = pass.name,
+                semantic = PassSemanticExtensions.FromName(pass.name),
                 localPipeline = localPipeline,
+                stageMask = stageMask,
                 amplificationShaderCode = amplificationShaderCode,
                 meshShaderCode = meshShaderCode,
                 pixelShaderCode = pixelShaderCode,
@@ -234,7 +291,7 @@ public static class DSLShaderCompiler
         var descriptor = new GraphicsShaderDescriptor
         {
             Name = semantics.name,
-            PropertyBufferSize = reflectionData.Size,
+            PropertyBufferSize = propertyBufferSize,
 
             ShaderModel = semantics.shaderModel,
             Passes = passes
@@ -286,10 +343,22 @@ public static class DSLShaderCompiler
 
     public static Result<ComputeShaderDescriptor> ResolveShader(ComputeShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders)
     {
+        var propertiesCode = BuildPropertiesStruct(semantics.name, semantics.properties);
+        if (string.IsNullOrEmpty(propertiesCode) && !string.IsNullOrEmpty(reflectionData?.Code))
+        {
+            propertiesCode = reflectionData.Code;
+        }
+
+        var propertyBufferSize = CalculatePropertyBufferSize(semantics.properties);
+        if (propertyBufferSize == 0 && reflectionData != null && reflectionData.Size > 0)
+        {
+            propertyBufferSize = reflectionData.Size;
+        }
+
         var shaderCodes = new ShaderCode[semantics.entryPoints.Count];
         for (var i = 0; i < shaderCodes.Length; i++)
         {
-            var result = BuildFinalShaderCode(semantics.entryPoints[i].shaderPath, semantics.includes.AsSpan(), semantics.hlsl, reflectionData.Code, virtualShaders);
+            var result = BuildFinalShaderCode(semantics.entryPoints[i].shaderPath, semantics.includes.AsSpan(), semantics.hlsl, propertiesCode, virtualShaders);
             if (result.IsFailure)
             {
                 return Result.Failure($"Failed to build shader code for entry point '{semantics.entryPoints[i].entry}': {result.Message}");
@@ -301,7 +370,7 @@ public static class DSLShaderCompiler
         return new ComputeShaderDescriptor
         {
             Name = semantics.name,
-            PropertyBufferSize = reflectionData.Size,
+            PropertyBufferSize = propertyBufferSize,
             ShaderModel = semantics.shaderModel,
             ShaderCodes = shaderCodes,
             Defines = semantics.defines?.ToArray() ?? Array.Empty<string>(),

@@ -1,4 +1,3 @@
-using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Ghost.UnitTest.MockingEnvironment;

@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RHI;
@@ -196,8 +197,8 @@ public sealed class RenderGraph : IDisposable
                 LastUsePass = res.lastUsePass,
                 ScheduledFirstUseIndex = graph.resourceFirstUseScheduleIndices[i],
                 ScheduledLastUseIndex = graph.resourceLastUseScheduleIndices[i],
-                ProducerPass = [..res.producerPasses],
-                ConsumerPasses = [..res.consumerPasses],
+                ProducerPass = [.. res.producerPasses],
+                ConsumerPasses = [.. res.consumerPasses],
                 AliasedWithResources = placedResult.IsSuccess
                     ? placedResult.Value.aliasedLogicalResources.ToList()
                     : new List<int>()
@@ -466,7 +467,7 @@ public sealed class RenderGraph : IDisposable
     /// Add a new raster render pass to the render graph.
     /// </summary>
     /// <remarks>
-    /// This pass will be merged into native render pass when possible.
+    /// This pass will be merged into native render pass when possible. Viewport and scissor will be set automatically based on the render target size.
     /// </remarks>
     /// <param name="name">The name of the render pass.</param>
     /// <returns>The builder to build the render pass,</returns>

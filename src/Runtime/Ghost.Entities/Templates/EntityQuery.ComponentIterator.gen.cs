@@ -76,7 +76,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentArchetypeIndex = index;
                 _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[index]);
-                
+
                 _requiresFiltering = RequiresEnableableFiltering(in _currentArchetype, in _mask);
                 if (_requiresFiltering)
                 {
@@ -347,7 +347,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentArchetypeIndex = index;
                 _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[index]);
-                
+
                 _requiresFiltering = RequiresEnableableFiltering(in _currentArchetype, in _mask);
                 if (_requiresFiltering)
                 {
@@ -641,7 +641,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentArchetypeIndex = index;
                 _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[index]);
-                
+
                 _requiresFiltering = RequiresEnableableFiltering(in _currentArchetype, in _mask);
                 if (_requiresFiltering)
                 {
@@ -958,7 +958,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentArchetypeIndex = index;
                 _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[index]);
-                
+
                 _requiresFiltering = RequiresEnableableFiltering(in _currentArchetype, in _mask);
                 if (_requiresFiltering)
                 {
@@ -1298,7 +1298,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentArchetypeIndex = index;
                 _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[index]);
-                
+
                 _requiresFiltering = RequiresEnableableFiltering(in _currentArchetype, in _mask);
                 if (_requiresFiltering)
                 {
@@ -1661,7 +1661,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentArchetypeIndex = index;
                 _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[index]);
-                
+
                 _requiresFiltering = RequiresEnableableFiltering(in _currentArchetype, in _mask);
                 if (_requiresFiltering)
                 {
@@ -2047,7 +2047,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentArchetypeIndex = index;
                 _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[index]);
-                
+
                 _requiresFiltering = RequiresEnableableFiltering(in _currentArchetype, in _mask);
                 if (_requiresFiltering)
                 {
@@ -2456,7 +2456,7 @@ public unsafe partial struct EntityQuery
             {
                 _currentArchetypeIndex = index;
                 _currentArchetype = ref _world.ComponentManager.GetArchetypeReference(_matchingArchetypes[index]);
-                
+
                 _requiresFiltering = RequiresEnableableFiltering(in _currentArchetype, in _mask);
                 if (_requiresFiltering)
                 {

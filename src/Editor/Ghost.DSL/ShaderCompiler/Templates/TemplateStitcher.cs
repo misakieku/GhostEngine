@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.DSL.Models;
-using System.Reflection;
 using System.Text;
 
 namespace Ghost.DSL.ShaderCompiler.Templates;
@@ -237,6 +236,7 @@ public static class TemplateStitcher
             var pass = new PassDescriptor
             {
                 name = passDef.name,
+                semantic = passDef.semantic,
                 localPipeline = DSLShaderCompiler.MergePipeline(semantics.pipeline, passDef.pipeline.ToPipelineState()),
                 defines = defines.ToArray(),
             };
@@ -250,6 +250,14 @@ public static class TemplateStitcher
                 }
 
                 var shaderCode = new ShaderCode { code = result.Value, entryPoint = stageDef.entryPoint };
+                pass.stageMask |= stageDef.stage switch
+                {
+                    ShaderStage.AmplificationShader => ShaderStageMask.Amplification,
+                    ShaderStage.MeshShader => ShaderStageMask.Mesh,
+                    ShaderStage.PixelShader => ShaderStageMask.Pixel,
+                    ShaderStage.ComputeShader => ShaderStageMask.Compute,
+                    _ => ShaderStageMask.None,
+                };
 
                 switch (stageDef.stage)
                 {
@@ -278,10 +286,37 @@ public static class TemplateStitcher
             passes[i] = pass;
         }
 
+        var seenProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var allProperties = new List<PropertySemantic>();
+        foreach (var prop in template.BaseProperties)
+        {
+            if (seenProperties.Add(prop.name))
+            {
+                allProperties.Add(new PropertySemantic
+                {
+                    type = prop.type,
+                    name = prop.name,
+                    defaultValue = prop.defaultValue
+                });
+            }
+        }
+        foreach (var prop in semantics.properties)
+        {
+            if (seenProperties.Add(prop.name))
+            {
+                allProperties.Add(prop);
+            }
+        }
+        var propertyBufferSize = DSLShaderCompiler.CalculatePropertyBufferSize(allProperties);
+        if (propertyBufferSize == 0 && reflectionData != null && reflectionData.Size > 0)
+        {
+            propertyBufferSize = reflectionData.Size;
+        }
+
         var descriptor = new GraphicsShaderDescriptor
         {
             Name = semantics.name,
-            PropertyBufferSize = reflectionData.Size,
+            PropertyBufferSize = propertyBufferSize,
             ShaderModel = semantics.shaderModel,
             Passes = passes
         };

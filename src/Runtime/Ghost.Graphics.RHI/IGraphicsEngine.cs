@@ -1,3 +1,6 @@
+using Ghost.Core;
+using Ghost.Core.Graphics;
+
 namespace Ghost.Graphics.RHI;
 
 public readonly struct GraphicsEngineDesc
@@ -43,6 +46,13 @@ public interface IGraphicsEngine : IDisposable
     /// <param name="type">Type of command buffer to create</param>
     /// <returns>A new command buffer instance</returns>
     ICommandBuffer CreateCommandBuffer(CommandBufferType type = CommandBufferType.Graphics);
+
+    /// <summary>
+    /// Creates an indirect command signature compatible with the engine root signature.
+    /// </summary>
+    /// <param name="desc">The indirect argument layout and byte stride.</param>
+    /// <param name="pipelineKey">The pipeline key used when the platform requires pipeline-specific signature validation.</param>
+    ICommandSignature CreateCommandSignature(scoped in CommandSignatureDesc desc, Key128<PipelineState> pipelineKey);
 
     /// <summary>
     /// Gets a command buffer from the pool for recording rendering commands.

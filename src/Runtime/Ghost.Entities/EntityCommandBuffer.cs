@@ -47,7 +47,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
         _writer.Write(ECBOpCode.CreateEntity);
         _writer.Write(entities.Length);
 
-        for (int i = 0; i < entities.Length; i++)
+        for (var i = 0; i < entities.Length; i++)
         {
             var tempId = _nextTempId--;
             entities[i] = new Entity(tempId, -1);
@@ -84,7 +84,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
         _writer.Write(set.SharedComponentData.Length);
         _writer.WriteSpan(set.SharedComponentData);
 
-        for (int i = 0; i < entities.Length; i++)
+        for (var i = 0; i < entities.Length; i++)
         {
             var tempId = _nextTempId--;
             entities[i] = new Entity(tempId, -1);
@@ -201,7 +201,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
     {
         if (entity.ID < 0)
         {
-            int index = (-entity.ID) - 1;
+            var index = (-entity.ID) - 1;
             if (index >= 0 && index < map->Count)
             {
                 return ((Entity*)map->GetUnsafePtr())[index];
@@ -211,8 +211,13 @@ public unsafe struct EntityCommandBuffer : IDisposable
         return entity;
     }
 
-    public readonly void Playback(EntityManager entityManager)
+    public void Playback(EntityManager entityManager)
     {
+        if (_writer.Position == 0)
+        {
+            return;
+        }
+
         var reader = _writer.AsReader();
 
         using var scope = AllocationManager.CreateStackScope();
@@ -259,7 +264,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
                     var sharedData = reader.ReadSpan<byte>(sharedDataLength);
 
                     var set = new ComponentSetView(components, sharedData);
-                    
+
                     if (entityNeedRemap)
                     {
                         if (tempEntities.Capacity < entityCount)
@@ -355,6 +360,8 @@ public unsafe struct EntityCommandBuffer : IDisposable
 
             tempEntities.Clear();
         }
+
+        Reset();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

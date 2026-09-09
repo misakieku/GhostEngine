@@ -26,8 +26,12 @@ internal static class AssetEntryFactory
         {
             AssetType.Texture => new TextureAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
             AssetType.Mesh => new MeshAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
-            AssetType.Material => throw new NotImplementedException(),
-            AssetType.Shader => throw new NotImplementedException(),
+            //AssetType.Material => new MaterialAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
+            // TODO: We should separate the shader and compute shader asset types, but for now we will treat them as the same type.
+            AssetType.Shader => manager.ComputeShaders.TryGetShaderHandle(assetId, out _)
+                ? new ComputeShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies)
+                : new ShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies),
+            AssetType.ComputeShader => new ComputeShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies),
             AssetType.Scene => new SceneAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
             AssetType.Audio => throw new NotImplementedException(),
             AssetType.Video => throw new NotImplementedException(),
@@ -66,6 +70,7 @@ internal abstract class AssetEntry : IAssetEntry
     public AssetType AssetType => _assetType;
     public ReadOnlySpan<Guid> Dependencies => _dependencies;
     public int RefCount => Volatile.Read(ref _refCount);
+    internal virtual AssetState FailureState => AssetState.Failed;
 
     public ref int StateValue => ref _state;
     public AssetState State
@@ -191,4 +196,9 @@ internal interface IUploadableAssetEntry : IAssetEntry
 {
     Result OnRecordUploadCommands(ResourceStreamingContext context);
     void OnUploadComplete(ResourceStreamingContext context);
+}
+
+internal interface IShaderCommitableAssetEntry : IAssetEntry
+{
+    Result CommitShaderBytecode(ShaderLibrary shaderLibrary);
 }

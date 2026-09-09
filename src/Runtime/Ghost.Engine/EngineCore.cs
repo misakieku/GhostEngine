@@ -1,4 +1,5 @@
 using Ghost.Engine.Streaming;
+using Ghost.Engine.RenderPipeline;
 using Ghost.Entities;
 using Ghost.Graphics;
 using Ghost.Graphics.RHI;
@@ -112,7 +113,6 @@ public sealed partial class EngineCore : IDisposable
         {
             GraphicsEngine = renderDesc.GraphicsEngine,
             FrameBufferCount = renderDesc.FrameBufferCount,
-            InitialRenderPipelineSettings = renderDesc.RenderPipelineSettings,
             ShaderCacheDirectory = renderDesc.ShaderCacheDirectory,
             ShaderCompilationBridge = renderDesc.ShaderCompilationBridge,
             ResourceStreamingProcessor = _streamingProcessor,
@@ -120,6 +120,9 @@ public sealed partial class EngineCore : IDisposable
 
         _renderEngine = new RenderEngine(renderingDesc);
         _assetManager = new AssetManager(_renderEngine.GraphicsEngine.ResourceDatabase, _renderEngine.ResourceManager, _contentProvider, _streamingProcessor, _jobScheduler);
+
+        var pipeline = renderDesc.RenderPipelineSettings.CreatePipeline(_renderEngine, _assetManager);
+        _renderEngine.SetRenderPipeline(pipeline);
 
         _stopwatch = new Stopwatch();
     }
@@ -137,6 +140,7 @@ public sealed partial class EngineCore : IDisposable
 
     public void Tick()
     {
+        RenderEngine.WaitForGPUReady(_frameIndex);
         var currentTime = (float)_stopwatch.Elapsed.TotalSeconds;
         var deltaTime = currentTime - _lastFrameTime;
         _lastFrameTime = currentTime;
@@ -154,7 +158,11 @@ public sealed partial class EngineCore : IDisposable
         }
 
         RenderEngine.SignalCPUReady(_frameIndex++);
-        RenderEngine.WaitForGPUReady(_frameIndex);
+
+        foreach (var world in World.GetWorldEnumerator())
+        {
+            world.PlaybackEntityCommandBuffers();
+        }
     }
 
     public void Stop()

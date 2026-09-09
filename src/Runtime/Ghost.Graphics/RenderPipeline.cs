@@ -9,20 +9,33 @@ namespace Ghost.Graphics;
 
 public interface IRenderPayload : IDisposable
 {
+    /// <summary>
+    /// The list of render requests to be processed by the render pipeline.
+    /// </summary>
     ReadOnlySpan<RenderRequest> RenderRequests { get; }
 
+    /// <summary>
+    /// Adds a render request to the stateless payload, which will be processed by the render pipeline during the rendering phase.
+    /// </summary>
+    /// <remarks>
+    /// This method is not thread-safe and should be called from the main thread.
+    /// </remarks>
+    /// <param name="renderRequest">The render request to be added.</param>
     void AddRenderRequest(scoped in RenderRequest renderRequest);
-    void Reset();
-}
 
-public interface IRenderPipelineSettings
-{
-    IRenderPipeline CreatePipeline(RenderEngine renderEngine);
-    IRenderPayload CreatePayload(RenderEngine renderEngine, IRenderPipeline renderPipeline);
+    /// <summary>
+    /// Resets the payload, clearing all render requests and preparing it for the next frame.
+    /// </summary>
+    void Reset();
 }
 
 public interface IRenderPipeline : IDisposable
 {
+    /// <summary>
+    /// Creates a new per-frame payload instance for this render pipeline.
+    /// </summary>
+    IRenderPayload CreatePayload();
+
     /// <summary>
     /// Records pre-graph commands into the open <see cref="RenderContext.CommandBuffer"/> (the frame prelude).
     /// The command buffer must be open when this is called; the outer frame owns Begin, End, and submission.

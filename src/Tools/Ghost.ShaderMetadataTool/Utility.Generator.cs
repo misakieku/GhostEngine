@@ -62,35 +62,35 @@ internal static partial class Utility
     private static void GenerateEnumHLSL(EnumDeclarationSyntax type, StringBuilder sb)
     {
         var enumName = type.Identifier.Text;
-        int currentValue = 0;
+        var currentValue = 0;
 
         foreach (var member in type.Members)
         {
             var memberName = member.Identifier.Text;
-            
+
             if (member.EqualsValue != null)
             {
                 var valueSyntax = member.EqualsValue.Value;
                 if (valueSyntax is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.NumericLiteralExpression))
                 {
-                    if (int.TryParse(literal.Token.ValueText, out int parsedVal))
+                    if (int.TryParse(literal.Token.ValueText, out var parsedVal))
                     {
                         currentValue = parsedVal;
                     }
                 }
             }
-            
+
             var name = $"{CamelCaseToUnderscoreRegex().Replace(enumName, "_$1")}_{memberName}";
-            
+
             string valueStr;
             if (member.EqualsValue != null)
             {
-                 valueStr = member.EqualsValue.Value.ToString();
+                valueStr = member.EqualsValue.Value.ToString();
             }
             else
             {
-                 valueStr = currentValue.ToString();
-                 currentValue++;
+                valueStr = currentValue.ToString();
+                currentValue++;
             }
 
             sb.Append(@$"
@@ -120,7 +120,7 @@ internal static partial class Utility
 
             var nextField = fields[j];
             var nextSize = nextField.ByteSize;
-            
+
             if (nextSize == 0) continue; // Skip unknown sizes
 
             if (nextSize <= size)
@@ -153,9 +153,9 @@ internal static partial class Utility
     {
         var structName = type.Identifier.Text;
         var fieldDecls = type.Members.OfType<FieldDeclarationSyntax>().ToList();
-        
+
         var fieldsList = new List<ShaderFieldInfo>();
-        
+
         foreach (var fieldDecl in fieldDecls)
         {
             // Skip static or const fields
@@ -163,8 +163,8 @@ internal static partial class Utility
                 continue;
 
             var csharpType = fieldDecl.Declaration.Type.ToString();
-            GetHLSLTypeAndSize(csharpType, out string hlslType, out int byteSize);
-            
+            GetHLSLTypeAndSize(csharpType, out var hlslType, out var byteSize);
+
             if (byteSize == 0)
             {
                 Logger.Warning($"Type {csharpType} in struct {structName} has an unknown size. Packing alignment may be incorrect.");

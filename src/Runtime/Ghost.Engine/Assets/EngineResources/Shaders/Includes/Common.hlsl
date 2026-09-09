@@ -24,6 +24,26 @@ struct Meshlet
     uint packedCounts; // byte vertexCount, byte triangleCount, byte localMaterialIndex, byte lodLevel
 };
 
+struct MeshletGroup
+{
+    float4 boundingSphere;
+    float3 boundingBoxMin;
+    float3 boundingBoxMax;
+    float  parentError;
+    uint   meshletStartIndex;
+    uint   meshletCount;
+    uint   lodLevel;
+};
+
+struct MeshletHierarchyNode
+{
+    float4 bounds;
+    float  error;
+    int    groupIndex;
+    uint   childOffset;
+    uint   childCount;
+};
+
 // Resource descriptor heap definitions
 
 #define GLOBAL_TEXTURE2D_HEAP ResourceDescriptorHeap

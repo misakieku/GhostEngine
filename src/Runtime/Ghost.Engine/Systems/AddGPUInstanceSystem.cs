@@ -3,6 +3,7 @@ using Ghost.Engine.Components;
 using Ghost.Engine.RenderPipeline;
 using Ghost.Entities;
 using Ghost.Graphics;
+using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Utilities;
 
 namespace Ghost.Engine.Systems;
@@ -44,6 +45,29 @@ internal class AddGPUInstanceSystem : SystemBase
                 ref readonly var meshInstance = ref meshInstances.GetElementUnsafe(i);
                 var localToWorld = localToWorlds.GetElementUnsafe(i);
                 var entity = entities.GetElementUnsafe(i);
+
+                if (meshInstance.mesh.IsInvalid)
+                {
+                    continue;
+                }
+
+                var meshResult = _renderEngine.ResourceManager.GetMeshReference(meshInstance.mesh);
+                if (meshResult.IsFailure)
+                {
+                    continue;
+                }
+
+                ref readonly var mesh = ref meshResult.Value;
+                if (mesh.MeshletCount <= 0 || mesh.MeshDataBuffer.IsInvalid)
+                {
+                    continue;
+                }
+
+                var bindlessIndex = _renderEngine.GraphicsEngine.ResourceDatabase.GetBindlessIndex(mesh.MeshDataBuffer.AsResource());
+                if (bindlessIndex == uint.MaxValue)
+                {
+                    continue;
+                }
 
                 var index = payload.AddInstance(localToWorld.matrix, in meshInstance);
                 var materialPalette = meshInstance.materialPalette;

@@ -134,41 +134,41 @@ internal unsafe class D3D12SimpleWorkGraph : IDisposable
 
         try
         {
-        // 1. Prepare Program descriptors
-        var setProgramDesc = new D3D12_SET_PROGRAM_DESC
+            // 1. Prepare Program descriptors
+            var setProgramDesc = new D3D12_SET_PROGRAM_DESC
             {
-            Type = D3D12_PROGRAM_TYPE_WORK_GRAPH,
-            WorkGraph = new D3D12_SET_WORK_GRAPH_DESC
-    {
-                ProgramIdentifier = _programIdentifier,
-                Flags = _isInitialized ? D3D12_SET_WORK_GRAPH_FLAG_NONE : D3D12_SET_WORK_GRAPH_FLAG_INITIALIZE,
-                BackingMemory = _backingMemoryRange,
-                NodeLocalRootArgumentsTable = default // Ignored since we are pure bindless setup!
-            }
+                Type = D3D12_PROGRAM_TYPE_WORK_GRAPH,
+                WorkGraph = new D3D12_SET_WORK_GRAPH_DESC
+                {
+                    ProgramIdentifier = _programIdentifier,
+                    Flags = _isInitialized ? D3D12_SET_WORK_GRAPH_FLAG_NONE : D3D12_SET_WORK_GRAPH_FLAG_INITIALIZE,
+                    BackingMemory = _backingMemoryRange,
+                    NodeLocalRootArgumentsTable = default // Ignored since we are pure bindless setup!
+                }
             };
 
-        _isInitialized = true;
+            _isInitialized = true;
 
-        pCmdList->SetProgram(&setProgramDesc);
+            pCmdList->SetProgram(&setProgramDesc);
 
-        // 2. Execute! Map CPU inputs natively directly.
-        fixed (TRecord* pRecords = records)
+            // 2. Execute! Map CPU inputs natively directly.
+            fixed (TRecord* pRecords = records)
             {
-            var cpuInput = new D3D12_NODE_CPU_INPUT
-        {
-                EntrypointIndex = entryPointIndex,
-                NumRecords = (uint)records.Length,
-                pRecords = pRecords,
-                RecordStrideInBytes = (uint)sizeof(TRecord)
-        };
+                var cpuInput = new D3D12_NODE_CPU_INPUT
+                {
+                    EntrypointIndex = entryPointIndex,
+                    NumRecords = (uint)records.Length,
+                    pRecords = pRecords,
+                    RecordStrideInBytes = (uint)sizeof(TRecord)
+                };
 
-            var dispatchDesc = new D3D12_DISPATCH_GRAPH_DESC
-            {
-                Mode = D3D12_DISPATCH_MODE_NODE_CPU_INPUT,
-                NodeCPUInput = cpuInput
-            };
+                var dispatchDesc = new D3D12_DISPATCH_GRAPH_DESC
+                {
+                    Mode = D3D12_DISPATCH_MODE_NODE_CPU_INPUT,
+                    NodeCPUInput = cpuInput
+                };
 
-            pCmdList->DispatchGraph(&dispatchDesc);
+                pCmdList->DispatchGraph(&dispatchDesc);
             }
         }
         finally

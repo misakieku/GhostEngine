@@ -49,6 +49,8 @@ struct InstanceData
     float4x4 localToWorld;
     BYTE_ADDRESS_BUFFER meshBuffer;
     uint materialPaletteIndex;  // index into PaletteOffsetBuffer
+    uint pad0;
+    uint pad1;
 };
 
 struct MeshData

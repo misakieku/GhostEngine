@@ -122,8 +122,8 @@ public partial class World : IDisposable, IEquatable<World>
     private readonly JobScheduler? _jobScheduler;
 
     private readonly EntityManager _entityManager;
-    private readonly EntityCommandBuffer _entityCommandBuffer;
-    private readonly UnsafeArray<EntityCommandBuffer> _threadLocalECBs;
+    private EntityCommandBuffer _entityCommandBuffer;
+    private UnsafeArray<EntityCommandBuffer> _threadLocalECBs;
 
     private readonly ComponentManager _componentManager;
     private readonly SystemManager _systemManager;
@@ -169,7 +169,7 @@ public partial class World : IDisposable, IEquatable<World>
     /// <remarks>
     /// Use <see cref="GetThreadLocalEntityCommandBuffer(int)"/> to get thread-local command buffers for multi-threaded jobs.
     /// </remarks>
-    public EntityCommandBuffer EntityCommandBuffer => _entityCommandBuffer;
+    public ref EntityCommandBuffer EntityCommandBuffer => ref _entityCommandBuffer;
 
     private World(Identifier<World> id, int entityCapacity, JobScheduler? jobScheduler)
     {
@@ -194,17 +194,14 @@ public partial class World : IDisposable, IEquatable<World>
         }
     }
 
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void PlaybackEntityCommandBuffers()
     {
         _entityCommandBuffer.Playback(_entityManager);
-        _entityCommandBuffer.Reset();
 
         for (var i = 0; i < _threadLocalECBs.Length; i++)
         {
             _threadLocalECBs[i].Playback(_entityManager);
-            _threadLocalECBs[i].Reset();
         }
     }
 

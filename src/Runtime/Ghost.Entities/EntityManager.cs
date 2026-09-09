@@ -654,10 +654,13 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="component">The component data.</param>
     /// <returns>The result status of the operation.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Error CreateSingleton<T>(T component = default)
+    public Error CreateSingleton<T>(scoped in T component = default)
         where T : unmanaged, IComponentData
     {
-        return CreateSingleton(ComponentTypeID<T>.Value, &component);
+        fixed (void* pComponent = &component)
+        {
+            return CreateSingleton(ComponentTypeID<T>.Value, pComponent);
+        }
     }
 
     /// <summary>
@@ -854,10 +857,13 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="component">The component data.</param>
     /// <returns>The result status of the operation.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Error AddComponent<T>(Entity entity, T component = default)
+    public Error AddComponent<T>(Entity entity, scoped in T component = default)
         where T : unmanaged, IComponentData
     {
-        return AddComponent(entity, ComponentTypeID<T>.Value, &component);
+        fixed (void* pComponent = &component)
+        {
+            return AddComponent(entity, ComponentTypeID<T>.Value, pComponent);
+        }
     }
 
     /// <summary>
@@ -1002,7 +1008,7 @@ public unsafe partial class EntityManager : IDisposable
         if (location.archetypeID == newArcID)
         {
             ref var currentArchetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
-            
+
             // Check if shared data is exactly the same
             if (currentArchetype._sharedLayouts.Count > 0)
             {
@@ -1359,7 +1365,7 @@ public unsafe partial class EntityManager : IDisposable
                     newSignature.SetBit(index);
                     compCount++;
                 }
-            }   
+            }
 
             if (compCount == 0)
             {

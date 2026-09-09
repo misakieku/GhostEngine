@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/Misaki/orca/workspaces/GhostEngine/feature-asset-pipeline/src/Editor/Ghost.DSL/Grammar/GhostComputeShaderParser.g4 by ANTLR 4.13.1
+// Generated from Grammar/GhostComputeShaderParser.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -42,13 +42,17 @@ public partial class GhostComputeShaderParser : Parser {
 		NUMBER=22, IDENTIFIER=23, WS=24, LINE_COMMENT=25, BLOCK_COMMENT=26, ANY_CHAR=27;
 	public const int
 		RULE_computeFile = 0, RULE_compute = 1, RULE_computeBody = 2, RULE_shaderModel = 3, 
-		RULE_definesBlock = 4, RULE_defineStatement = 5, RULE_includesBlock = 6, 
-		RULE_includeStatement = 7, RULE_hlslBlock = 8, RULE_hlslBody = 9, RULE_computeEntry = 10, 
-		RULE_functionCall = 11, RULE_functionArguments = 12, RULE_functionArgument = 13;
+		RULE_propertiesBlock = 4, RULE_propertyStatement = 5, RULE_propertyDefaultValue = 6, 
+		RULE_propertyDefaultArguments = 7, RULE_propertyDefaultArgument = 8, RULE_definesBlock = 9, 
+		RULE_defineStatement = 10, RULE_includesBlock = 11, RULE_includeStatement = 12, 
+		RULE_hlslBlock = 13, RULE_hlslBody = 14, RULE_computeEntry = 15, RULE_functionCall = 16, 
+		RULE_functionArguments = 17, RULE_functionArgument = 18;
 	public static readonly string[] ruleNames = {
-		"computeFile", "compute", "computeBody", "shaderModel", "definesBlock", 
-		"defineStatement", "includesBlock", "includeStatement", "hlslBlock", "hlslBody", 
-		"computeEntry", "functionCall", "functionArguments", "functionArgument"
+		"computeFile", "compute", "computeBody", "shaderModel", "propertiesBlock", 
+		"propertyStatement", "propertyDefaultValue", "propertyDefaultArguments", 
+		"propertyDefaultArgument", "definesBlock", "defineStatement", "includesBlock", 
+		"includeStatement", "hlslBlock", "hlslBody", "computeEntry", "functionCall", 
+		"functionArguments", "functionArgument"
 	};
 
 	private static readonly string[] _LiteralNames = {
@@ -123,21 +127,21 @@ public partial class GhostComputeShaderParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 29;
+			State = 39;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			do {
 				{
 				{
-				State = 28;
+				State = 38;
 				compute();
 				}
 				}
-				State = 31;
+				State = 41;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			} while ( _la==COMPUTE );
-			State = 33;
+			State = 43;
 			Match(Eof);
 			}
 		}
@@ -180,15 +184,15 @@ public partial class GhostComputeShaderParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 35;
+			State = 45;
 			Match(COMPUTE);
-			State = 36;
+			State = 46;
 			Match(STRING_LITERAL);
-			State = 37;
+			State = 47;
 			Match(LBRACE);
-			State = 38;
+			State = 48;
 			computeBody();
-			State = 39;
+			State = 49;
 			Match(RBRACE);
 			}
 		}
@@ -206,6 +210,12 @@ public partial class GhostComputeShaderParser : Parser {
 	public partial class ComputeBodyContext : ParserRuleContext {
 		[System.Diagnostics.DebuggerNonUserCode] public ShaderModelContext shaderModel() {
 			return GetRuleContext<ShaderModelContext>(0);
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public PropertiesBlockContext[] propertiesBlock() {
+			return GetRuleContexts<PropertiesBlockContext>();
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public PropertiesBlockContext propertiesBlock(int i) {
+			return GetRuleContext<PropertiesBlockContext>(i);
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public DefinesBlockContext[] definesBlock() {
 			return GetRuleContexts<DefinesBlockContext>();
@@ -231,6 +241,12 @@ public partial class GhostComputeShaderParser : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public ComputeEntryContext computeEntry(int i) {
 			return GetRuleContext<ComputeEntryContext>(i);
 		}
+		[System.Diagnostics.DebuggerNonUserCode] public FunctionCallContext[] functionCall() {
+			return GetRuleContexts<FunctionCallContext>();
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public FunctionCallContext functionCall(int i) {
+			return GetRuleContext<FunctionCallContext>(i);
+		}
 		public ComputeBodyContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
@@ -250,60 +266,71 @@ public partial class GhostComputeShaderParser : Parser {
 		EnterRule(_localctx, 4, RULE_computeBody);
 		int _la;
 		try {
-			State = 51;
+			State = 63;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case SM:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 41;
+				State = 51;
 				shaderModel();
 				}
 				break;
 			case DEFINES:
 			case INCLUDES:
+			case PROPERTIES:
 			case HLSL:
 			case RBRACE:
 			case IDENTIFIER:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 48;
+				State = 60;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
-				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 8389216L) != 0)) {
+				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 8389344L) != 0)) {
 					{
-					State = 46;
+					State = 58;
 					ErrorHandler.Sync(this);
-					switch (TokenStream.LA(1)) {
-					case DEFINES:
+					switch ( Interpreter.AdaptivePredict(TokenStream,1,Context) ) {
+					case 1:
 						{
-						State = 42;
+						State = 52;
+						propertiesBlock();
+						}
+						break;
+					case 2:
+						{
+						State = 53;
 						definesBlock();
 						}
 						break;
-					case INCLUDES:
+					case 3:
 						{
-						State = 43;
+						State = 54;
 						includesBlock();
 						}
 						break;
-					case HLSL:
+					case 4:
 						{
-						State = 44;
+						State = 55;
 						hlslBlock();
 						}
 						break;
-					case IDENTIFIER:
+					case 5:
 						{
-						State = 45;
+						State = 56;
 						computeEntry();
 						}
 						break;
-					default:
-						throw new NoViableAltException(this);
+					case 6:
+						{
+						State = 57;
+						functionCall();
+						}
+						break;
 					}
 					}
-					State = 50;
+					State = 62;
 					ErrorHandler.Sync(this);
 					_la = TokenStream.LA(1);
 				}
@@ -348,12 +375,334 @@ public partial class GhostComputeShaderParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 53;
+			State = 65;
 			Match(SM);
-			State = 54;
+			State = 66;
 			Match(IDENTIFIER);
-			State = 55;
+			State = 67;
 			Match(SEMICOLON);
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			ErrorHandler.ReportError(this, re);
+			ErrorHandler.Recover(this, re);
+		}
+		finally {
+			ExitRule();
+		}
+		return _localctx;
+	}
+
+	public partial class PropertiesBlockContext : ParserRuleContext {
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode PROPERTIES() { return GetToken(GhostComputeShaderParser.PROPERTIES, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LBRACE() { return GetToken(GhostComputeShaderParser.LBRACE, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode RBRACE() { return GetToken(GhostComputeShaderParser.RBRACE, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public PropertyStatementContext[] propertyStatement() {
+			return GetRuleContexts<PropertyStatementContext>();
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public PropertyStatementContext propertyStatement(int i) {
+			return GetRuleContext<PropertyStatementContext>(i);
+		}
+		public PropertiesBlockContext(ParserRuleContext parent, int invokingState)
+			: base(parent, invokingState)
+		{
+		}
+		public override int RuleIndex { get { return RULE_propertiesBlock; } }
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
+			IGhostComputeShaderParserVisitor<TResult> typedVisitor = visitor as IGhostComputeShaderParserVisitor<TResult>;
+			if (typedVisitor != null) return typedVisitor.VisitPropertiesBlock(this);
+			else return visitor.VisitChildren(this);
+		}
+	}
+
+	[RuleVersion(0)]
+	public PropertiesBlockContext propertiesBlock() {
+		PropertiesBlockContext _localctx = new PropertiesBlockContext(Context, State);
+		EnterRule(_localctx, 8, RULE_propertiesBlock);
+		int _la;
+		try {
+			EnterOuterAlt(_localctx, 1);
+			{
+			State = 69;
+			Match(PROPERTIES);
+			State = 70;
+			Match(LBRACE);
+			State = 74;
+			ErrorHandler.Sync(this);
+			_la = TokenStream.LA(1);
+			while (_la==IDENTIFIER) {
+				{
+				{
+				State = 71;
+				propertyStatement();
+				}
+				}
+				State = 76;
+				ErrorHandler.Sync(this);
+				_la = TokenStream.LA(1);
+			}
+			State = 77;
+			Match(RBRACE);
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			ErrorHandler.ReportError(this, re);
+			ErrorHandler.Recover(this, re);
+		}
+		finally {
+			ExitRule();
+		}
+		return _localctx;
+	}
+
+	public partial class PropertyStatementContext : ParserRuleContext {
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] IDENTIFIER() { return GetTokens(GhostComputeShaderParser.IDENTIFIER); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode IDENTIFIER(int i) {
+			return GetToken(GhostComputeShaderParser.IDENTIFIER, i);
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SEMICOLON() { return GetToken(GhostComputeShaderParser.SEMICOLON, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode EQUALS() { return GetToken(GhostComputeShaderParser.EQUALS, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public PropertyDefaultValueContext propertyDefaultValue() {
+			return GetRuleContext<PropertyDefaultValueContext>(0);
+		}
+		public PropertyStatementContext(ParserRuleContext parent, int invokingState)
+			: base(parent, invokingState)
+		{
+		}
+		public override int RuleIndex { get { return RULE_propertyStatement; } }
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
+			IGhostComputeShaderParserVisitor<TResult> typedVisitor = visitor as IGhostComputeShaderParserVisitor<TResult>;
+			if (typedVisitor != null) return typedVisitor.VisitPropertyStatement(this);
+			else return visitor.VisitChildren(this);
+		}
+	}
+
+	[RuleVersion(0)]
+	public PropertyStatementContext propertyStatement() {
+		PropertyStatementContext _localctx = new PropertyStatementContext(Context, State);
+		EnterRule(_localctx, 10, RULE_propertyStatement);
+		int _la;
+		try {
+			EnterOuterAlt(_localctx, 1);
+			{
+			State = 79;
+			Match(IDENTIFIER);
+			State = 80;
+			Match(IDENTIFIER);
+			State = 83;
+			ErrorHandler.Sync(this);
+			_la = TokenStream.LA(1);
+			if (_la==EQUALS) {
+				{
+				State = 81;
+				Match(EQUALS);
+				State = 82;
+				propertyDefaultValue();
+				}
+			}
+
+			State = 85;
+			Match(SEMICOLON);
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			ErrorHandler.ReportError(this, re);
+			ErrorHandler.Recover(this, re);
+		}
+		finally {
+			ExitRule();
+		}
+		return _localctx;
+	}
+
+	public partial class PropertyDefaultValueContext : ParserRuleContext {
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode IDENTIFIER() { return GetToken(GhostComputeShaderParser.IDENTIFIER, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LPAREN() { return GetToken(GhostComputeShaderParser.LPAREN, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode RPAREN() { return GetToken(GhostComputeShaderParser.RPAREN, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public PropertyDefaultArgumentsContext propertyDefaultArguments() {
+			return GetRuleContext<PropertyDefaultArgumentsContext>(0);
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode NUMBER() { return GetToken(GhostComputeShaderParser.NUMBER, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode STRING_LITERAL() { return GetToken(GhostComputeShaderParser.STRING_LITERAL, 0); }
+		public PropertyDefaultValueContext(ParserRuleContext parent, int invokingState)
+			: base(parent, invokingState)
+		{
+		}
+		public override int RuleIndex { get { return RULE_propertyDefaultValue; } }
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
+			IGhostComputeShaderParserVisitor<TResult> typedVisitor = visitor as IGhostComputeShaderParserVisitor<TResult>;
+			if (typedVisitor != null) return typedVisitor.VisitPropertyDefaultValue(this);
+			else return visitor.VisitChildren(this);
+		}
+	}
+
+	[RuleVersion(0)]
+	public PropertyDefaultValueContext propertyDefaultValue() {
+		PropertyDefaultValueContext _localctx = new PropertyDefaultValueContext(Context, State);
+		EnterRule(_localctx, 12, RULE_propertyDefaultValue);
+		int _la;
+		try {
+			State = 96;
+			ErrorHandler.Sync(this);
+			switch ( Interpreter.AdaptivePredict(TokenStream,7,Context) ) {
+			case 1:
+				EnterOuterAlt(_localctx, 1);
+				{
+				State = 87;
+				Match(IDENTIFIER);
+				State = 88;
+				Match(LPAREN);
+				State = 90;
+				ErrorHandler.Sync(this);
+				_la = TokenStream.LA(1);
+				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 14680064L) != 0)) {
+					{
+					State = 89;
+					propertyDefaultArguments();
+					}
+				}
+
+				State = 92;
+				Match(RPAREN);
+				}
+				break;
+			case 2:
+				EnterOuterAlt(_localctx, 2);
+				{
+				State = 93;
+				Match(NUMBER);
+				}
+				break;
+			case 3:
+				EnterOuterAlt(_localctx, 3);
+				{
+				State = 94;
+				Match(STRING_LITERAL);
+				}
+				break;
+			case 4:
+				EnterOuterAlt(_localctx, 4);
+				{
+				State = 95;
+				Match(IDENTIFIER);
+				}
+				break;
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			ErrorHandler.ReportError(this, re);
+			ErrorHandler.Recover(this, re);
+		}
+		finally {
+			ExitRule();
+		}
+		return _localctx;
+	}
+
+	public partial class PropertyDefaultArgumentsContext : ParserRuleContext {
+		[System.Diagnostics.DebuggerNonUserCode] public PropertyDefaultArgumentContext[] propertyDefaultArgument() {
+			return GetRuleContexts<PropertyDefaultArgumentContext>();
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public PropertyDefaultArgumentContext propertyDefaultArgument(int i) {
+			return GetRuleContext<PropertyDefaultArgumentContext>(i);
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] COMMA() { return GetTokens(GhostComputeShaderParser.COMMA); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COMMA(int i) {
+			return GetToken(GhostComputeShaderParser.COMMA, i);
+		}
+		public PropertyDefaultArgumentsContext(ParserRuleContext parent, int invokingState)
+			: base(parent, invokingState)
+		{
+		}
+		public override int RuleIndex { get { return RULE_propertyDefaultArguments; } }
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
+			IGhostComputeShaderParserVisitor<TResult> typedVisitor = visitor as IGhostComputeShaderParserVisitor<TResult>;
+			if (typedVisitor != null) return typedVisitor.VisitPropertyDefaultArguments(this);
+			else return visitor.VisitChildren(this);
+		}
+	}
+
+	[RuleVersion(0)]
+	public PropertyDefaultArgumentsContext propertyDefaultArguments() {
+		PropertyDefaultArgumentsContext _localctx = new PropertyDefaultArgumentsContext(Context, State);
+		EnterRule(_localctx, 14, RULE_propertyDefaultArguments);
+		int _la;
+		try {
+			EnterOuterAlt(_localctx, 1);
+			{
+			State = 98;
+			propertyDefaultArgument();
+			State = 103;
+			ErrorHandler.Sync(this);
+			_la = TokenStream.LA(1);
+			while (_la==COMMA) {
+				{
+				{
+				State = 99;
+				Match(COMMA);
+				State = 100;
+				propertyDefaultArgument();
+				}
+				}
+				State = 105;
+				ErrorHandler.Sync(this);
+				_la = TokenStream.LA(1);
+			}
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			ErrorHandler.ReportError(this, re);
+			ErrorHandler.Recover(this, re);
+		}
+		finally {
+			ExitRule();
+		}
+		return _localctx;
+	}
+
+	public partial class PropertyDefaultArgumentContext : ParserRuleContext {
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode NUMBER() { return GetToken(GhostComputeShaderParser.NUMBER, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode IDENTIFIER() { return GetToken(GhostComputeShaderParser.IDENTIFIER, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode STRING_LITERAL() { return GetToken(GhostComputeShaderParser.STRING_LITERAL, 0); }
+		public PropertyDefaultArgumentContext(ParserRuleContext parent, int invokingState)
+			: base(parent, invokingState)
+		{
+		}
+		public override int RuleIndex { get { return RULE_propertyDefaultArgument; } }
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
+			IGhostComputeShaderParserVisitor<TResult> typedVisitor = visitor as IGhostComputeShaderParserVisitor<TResult>;
+			if (typedVisitor != null) return typedVisitor.VisitPropertyDefaultArgument(this);
+			else return visitor.VisitChildren(this);
+		}
+	}
+
+	[RuleVersion(0)]
+	public PropertyDefaultArgumentContext propertyDefaultArgument() {
+		PropertyDefaultArgumentContext _localctx = new PropertyDefaultArgumentContext(Context, State);
+		EnterRule(_localctx, 16, RULE_propertyDefaultArgument);
+		int _la;
+		try {
+			EnterOuterAlt(_localctx, 1);
+			{
+			State = 106;
+			_la = TokenStream.LA(1);
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 14680064L) != 0)) ) {
+			ErrorHandler.RecoverInline(this);
+			}
+			else {
+				ErrorHandler.ReportMatch(this);
+			    Consume();
+			}
 			}
 		}
 		catch (RecognitionException re) {
@@ -393,30 +742,30 @@ public partial class GhostComputeShaderParser : Parser {
 	[RuleVersion(0)]
 	public DefinesBlockContext definesBlock() {
 		DefinesBlockContext _localctx = new DefinesBlockContext(Context, State);
-		EnterRule(_localctx, 8, RULE_definesBlock);
+		EnterRule(_localctx, 18, RULE_definesBlock);
 		int _la;
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 57;
+			State = 108;
 			Match(DEFINES);
-			State = 58;
+			State = 109;
 			Match(LBRACE);
-			State = 62;
+			State = 113;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==IDENTIFIER) {
 				{
 				{
-				State = 59;
+				State = 110;
 				defineStatement();
 				}
 				}
-				State = 64;
+				State = 115;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 65;
+			State = 116;
 			Match(RBRACE);
 			}
 		}
@@ -450,13 +799,13 @@ public partial class GhostComputeShaderParser : Parser {
 	[RuleVersion(0)]
 	public DefineStatementContext defineStatement() {
 		DefineStatementContext _localctx = new DefineStatementContext(Context, State);
-		EnterRule(_localctx, 10, RULE_defineStatement);
+		EnterRule(_localctx, 20, RULE_defineStatement);
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 67;
+			State = 118;
 			Match(IDENTIFIER);
-			State = 68;
+			State = 119;
 			Match(SEMICOLON);
 			}
 		}
@@ -497,30 +846,30 @@ public partial class GhostComputeShaderParser : Parser {
 	[RuleVersion(0)]
 	public IncludesBlockContext includesBlock() {
 		IncludesBlockContext _localctx = new IncludesBlockContext(Context, State);
-		EnterRule(_localctx, 12, RULE_includesBlock);
+		EnterRule(_localctx, 22, RULE_includesBlock);
 		int _la;
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 70;
+			State = 121;
 			Match(INCLUDES);
-			State = 71;
+			State = 122;
 			Match(LBRACE);
-			State = 75;
+			State = 126;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==STRING_LITERAL) {
 				{
 				{
-				State = 72;
+				State = 123;
 				includeStatement();
 				}
 				}
-				State = 77;
+				State = 128;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 78;
+			State = 129;
 			Match(RBRACE);
 			}
 		}
@@ -554,13 +903,13 @@ public partial class GhostComputeShaderParser : Parser {
 	[RuleVersion(0)]
 	public IncludeStatementContext includeStatement() {
 		IncludeStatementContext _localctx = new IncludeStatementContext(Context, State);
-		EnterRule(_localctx, 14, RULE_includeStatement);
+		EnterRule(_localctx, 24, RULE_includeStatement);
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 80;
+			State = 131;
 			Match(STRING_LITERAL);
-			State = 81;
+			State = 132;
 			Match(SEMICOLON);
 			}
 		}
@@ -598,17 +947,17 @@ public partial class GhostComputeShaderParser : Parser {
 	[RuleVersion(0)]
 	public HlslBlockContext hlslBlock() {
 		HlslBlockContext _localctx = new HlslBlockContext(Context, State);
-		EnterRule(_localctx, 16, RULE_hlslBlock);
+		EnterRule(_localctx, 26, RULE_hlslBlock);
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 83;
+			State = 134;
 			Match(HLSL);
-			State = 84;
+			State = 135;
 			Match(LBRACE);
-			State = 85;
+			State = 136;
 			hlslBody();
-			State = 86;
+			State = 137;
 			Match(RBRACE);
 			}
 		}
@@ -654,17 +1003,17 @@ public partial class GhostComputeShaderParser : Parser {
 	[RuleVersion(0)]
 	public HlslBodyContext hlslBody() {
 		HlslBodyContext _localctx = new HlslBodyContext(Context, State);
-		EnterRule(_localctx, 18, RULE_hlslBody);
+		EnterRule(_localctx, 28, RULE_hlslBody);
 		int _la;
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 95;
+			State = 146;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 268431358L) != 0)) {
 				{
-				State = 93;
+				State = 144;
 				ErrorHandler.Sync(this);
 				switch (TokenStream.LA(1)) {
 				case SHADER:
@@ -693,7 +1042,7 @@ public partial class GhostComputeShaderParser : Parser {
 				case BLOCK_COMMENT:
 				case ANY_CHAR:
 					{
-					State = 88;
+					State = 139;
 					_la = TokenStream.LA(1);
 					if ( _la <= 0 || (_la==LBRACE || _la==RBRACE) ) {
 					ErrorHandler.RecoverInline(this);
@@ -706,11 +1055,11 @@ public partial class GhostComputeShaderParser : Parser {
 					break;
 				case LBRACE:
 					{
-					State = 89;
+					State = 140;
 					Match(LBRACE);
-					State = 90;
+					State = 141;
 					hlslBody();
-					State = 91;
+					State = 142;
 					Match(RBRACE);
 					}
 					break;
@@ -718,7 +1067,7 @@ public partial class GhostComputeShaderParser : Parser {
 					throw new NoViableAltException(this);
 				}
 				}
-				State = 97;
+				State = 148;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
@@ -759,19 +1108,19 @@ public partial class GhostComputeShaderParser : Parser {
 	[RuleVersion(0)]
 	public ComputeEntryContext computeEntry() {
 		ComputeEntryContext _localctx = new ComputeEntryContext(Context, State);
-		EnterRule(_localctx, 20, RULE_computeEntry);
+		EnterRule(_localctx, 30, RULE_computeEntry);
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 98;
+			State = 149;
 			Match(IDENTIFIER);
-			State = 99;
+			State = 150;
 			Match(STRING_LITERAL);
-			State = 100;
+			State = 151;
 			Match(COLON);
-			State = 101;
+			State = 152;
 			Match(STRING_LITERAL);
-			State = 102;
+			State = 153;
 			Match(SEMICOLON);
 			}
 		}
@@ -810,28 +1159,28 @@ public partial class GhostComputeShaderParser : Parser {
 	[RuleVersion(0)]
 	public FunctionCallContext functionCall() {
 		FunctionCallContext _localctx = new FunctionCallContext(Context, State);
-		EnterRule(_localctx, 22, RULE_functionCall);
+		EnterRule(_localctx, 32, RULE_functionCall);
 		int _la;
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 104;
+			State = 155;
 			Match(IDENTIFIER);
-			State = 105;
+			State = 156;
 			Match(LPAREN);
-			State = 107;
+			State = 158;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 14680064L) != 0)) {
 				{
-				State = 106;
+				State = 157;
 				functionArguments();
 				}
 			}
 
-			State = 109;
+			State = 160;
 			Match(RPAREN);
-			State = 110;
+			State = 161;
 			Match(SEMICOLON);
 			}
 		}
@@ -873,26 +1222,26 @@ public partial class GhostComputeShaderParser : Parser {
 	[RuleVersion(0)]
 	public FunctionArgumentsContext functionArguments() {
 		FunctionArgumentsContext _localctx = new FunctionArgumentsContext(Context, State);
-		EnterRule(_localctx, 24, RULE_functionArguments);
+		EnterRule(_localctx, 34, RULE_functionArguments);
 		int _la;
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 112;
+			State = 163;
 			functionArgument();
-			State = 117;
+			State = 168;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==COMMA) {
 				{
 				{
-				State = 113;
+				State = 164;
 				Match(COMMA);
-				State = 114;
+				State = 165;
 				functionArgument();
 				}
 				}
-				State = 119;
+				State = 170;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
@@ -929,12 +1278,12 @@ public partial class GhostComputeShaderParser : Parser {
 	[RuleVersion(0)]
 	public FunctionArgumentContext functionArgument() {
 		FunctionArgumentContext _localctx = new FunctionArgumentContext(Context, State);
-		EnterRule(_localctx, 26, RULE_functionArgument);
+		EnterRule(_localctx, 36, RULE_functionArgument);
 		int _la;
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 120;
+			State = 171;
 			_la = TokenStream.LA(1);
 			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 14680064L) != 0)) ) {
 			ErrorHandler.RecoverInline(this);
@@ -957,41 +1306,58 @@ public partial class GhostComputeShaderParser : Parser {
 	}
 
 	private static int[] _serializedATN = {
-		4,1,27,123,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
-		7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,1,0,4,0,30,
-		8,0,11,0,12,0,31,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,2,1,2,1,2,1,2,5,
-		2,47,8,2,10,2,12,2,50,9,2,3,2,52,8,2,1,3,1,3,1,3,1,3,1,4,1,4,1,4,5,4,61,
-		8,4,10,4,12,4,64,9,4,1,4,1,4,1,5,1,5,1,5,1,6,1,6,1,6,5,6,74,8,6,10,6,12,
-		6,77,9,6,1,6,1,6,1,7,1,7,1,7,1,8,1,8,1,8,1,8,1,8,1,9,1,9,1,9,1,9,1,9,5,
-		9,94,8,9,10,9,12,9,97,9,9,1,10,1,10,1,10,1,10,1,10,1,10,1,11,1,11,1,11,
-		3,11,108,8,11,1,11,1,11,1,11,1,12,1,12,1,12,5,12,116,8,12,10,12,12,12,
-		119,9,12,1,13,1,13,1,13,0,0,14,0,2,4,6,8,10,12,14,16,18,20,22,24,26,0,
-		2,1,0,11,12,1,0,21,23,120,0,29,1,0,0,0,2,35,1,0,0,0,4,51,1,0,0,0,6,53,
-		1,0,0,0,8,57,1,0,0,0,10,67,1,0,0,0,12,70,1,0,0,0,14,80,1,0,0,0,16,83,1,
-		0,0,0,18,95,1,0,0,0,20,98,1,0,0,0,22,104,1,0,0,0,24,112,1,0,0,0,26,120,
-		1,0,0,0,28,30,3,2,1,0,29,28,1,0,0,0,30,31,1,0,0,0,31,29,1,0,0,0,31,32,
-		1,0,0,0,32,33,1,0,0,0,33,34,5,0,0,1,34,1,1,0,0,0,35,36,5,2,0,0,36,37,5,
-		21,0,0,37,38,5,11,0,0,38,39,3,4,2,0,39,40,5,12,0,0,40,3,1,0,0,0,41,52,
-		3,6,3,0,42,47,3,8,4,0,43,47,3,12,6,0,44,47,3,16,8,0,45,47,3,20,10,0,46,
-		42,1,0,0,0,46,43,1,0,0,0,46,44,1,0,0,0,46,45,1,0,0,0,47,50,1,0,0,0,48,
-		46,1,0,0,0,48,49,1,0,0,0,49,52,1,0,0,0,50,48,1,0,0,0,51,41,1,0,0,0,51,
-		48,1,0,0,0,52,5,1,0,0,0,53,54,5,10,0,0,54,55,5,23,0,0,55,56,5,17,0,0,56,
-		7,1,0,0,0,57,58,5,5,0,0,58,62,5,11,0,0,59,61,3,10,5,0,60,59,1,0,0,0,61,
-		64,1,0,0,0,62,60,1,0,0,0,62,63,1,0,0,0,63,65,1,0,0,0,64,62,1,0,0,0,65,
-		66,5,12,0,0,66,9,1,0,0,0,67,68,5,23,0,0,68,69,5,17,0,0,69,11,1,0,0,0,70,
-		71,5,6,0,0,71,75,5,11,0,0,72,74,3,14,7,0,73,72,1,0,0,0,74,77,1,0,0,0,75,
-		73,1,0,0,0,75,76,1,0,0,0,76,78,1,0,0,0,77,75,1,0,0,0,78,79,5,12,0,0,79,
-		13,1,0,0,0,80,81,5,21,0,0,81,82,5,17,0,0,82,15,1,0,0,0,83,84,5,9,0,0,84,
-		85,5,11,0,0,85,86,3,18,9,0,86,87,5,12,0,0,87,17,1,0,0,0,88,94,8,0,0,0,
-		89,90,5,11,0,0,90,91,3,18,9,0,91,92,5,12,0,0,92,94,1,0,0,0,93,88,1,0,0,
-		0,93,89,1,0,0,0,94,97,1,0,0,0,95,93,1,0,0,0,95,96,1,0,0,0,96,19,1,0,0,
-		0,97,95,1,0,0,0,98,99,5,23,0,0,99,100,5,21,0,0,100,101,5,20,0,0,101,102,
-		5,21,0,0,102,103,5,17,0,0,103,21,1,0,0,0,104,105,5,23,0,0,105,107,5,13,
-		0,0,106,108,3,24,12,0,107,106,1,0,0,0,107,108,1,0,0,0,108,109,1,0,0,0,
-		109,110,5,14,0,0,110,111,5,17,0,0,111,23,1,0,0,0,112,117,3,26,13,0,113,
-		114,5,18,0,0,114,116,3,26,13,0,115,113,1,0,0,0,116,119,1,0,0,0,117,115,
-		1,0,0,0,117,118,1,0,0,0,118,25,1,0,0,0,119,117,1,0,0,0,120,121,7,1,0,0,
-		121,27,1,0,0,0,10,31,46,48,51,62,75,93,95,107,117
+		4,1,27,174,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
+		7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,14,
+		2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,1,0,4,0,40,8,0,11,0,12,0,41,1,
+		0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,2,1,2,1,2,1,2,1,2,1,2,5,2,59,8,2,10,
+		2,12,2,62,9,2,3,2,64,8,2,1,3,1,3,1,3,1,3,1,4,1,4,1,4,5,4,73,8,4,10,4,12,
+		4,76,9,4,1,4,1,4,1,5,1,5,1,5,1,5,3,5,84,8,5,1,5,1,5,1,6,1,6,1,6,3,6,91,
+		8,6,1,6,1,6,1,6,1,6,3,6,97,8,6,1,7,1,7,1,7,5,7,102,8,7,10,7,12,7,105,9,
+		7,1,8,1,8,1,9,1,9,1,9,5,9,112,8,9,10,9,12,9,115,9,9,1,9,1,9,1,10,1,10,
+		1,10,1,11,1,11,1,11,5,11,125,8,11,10,11,12,11,128,9,11,1,11,1,11,1,12,
+		1,12,1,12,1,13,1,13,1,13,1,13,1,13,1,14,1,14,1,14,1,14,1,14,5,14,145,8,
+		14,10,14,12,14,148,9,14,1,15,1,15,1,15,1,15,1,15,1,15,1,16,1,16,1,16,3,
+		16,159,8,16,1,16,1,16,1,16,1,17,1,17,1,17,5,17,167,8,17,10,17,12,17,170,
+		9,17,1,18,1,18,1,18,0,0,19,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,
+		32,34,36,0,2,1,0,21,23,1,0,11,12,175,0,39,1,0,0,0,2,45,1,0,0,0,4,63,1,
+		0,0,0,6,65,1,0,0,0,8,69,1,0,0,0,10,79,1,0,0,0,12,96,1,0,0,0,14,98,1,0,
+		0,0,16,106,1,0,0,0,18,108,1,0,0,0,20,118,1,0,0,0,22,121,1,0,0,0,24,131,
+		1,0,0,0,26,134,1,0,0,0,28,146,1,0,0,0,30,149,1,0,0,0,32,155,1,0,0,0,34,
+		163,1,0,0,0,36,171,1,0,0,0,38,40,3,2,1,0,39,38,1,0,0,0,40,41,1,0,0,0,41,
+		39,1,0,0,0,41,42,1,0,0,0,42,43,1,0,0,0,43,44,5,0,0,1,44,1,1,0,0,0,45,46,
+		5,2,0,0,46,47,5,21,0,0,47,48,5,11,0,0,48,49,3,4,2,0,49,50,5,12,0,0,50,
+		3,1,0,0,0,51,64,3,6,3,0,52,59,3,8,4,0,53,59,3,18,9,0,54,59,3,22,11,0,55,
+		59,3,26,13,0,56,59,3,30,15,0,57,59,3,32,16,0,58,52,1,0,0,0,58,53,1,0,0,
+		0,58,54,1,0,0,0,58,55,1,0,0,0,58,56,1,0,0,0,58,57,1,0,0,0,59,62,1,0,0,
+		0,60,58,1,0,0,0,60,61,1,0,0,0,61,64,1,0,0,0,62,60,1,0,0,0,63,51,1,0,0,
+		0,63,60,1,0,0,0,64,5,1,0,0,0,65,66,5,10,0,0,66,67,5,23,0,0,67,68,5,17,
+		0,0,68,7,1,0,0,0,69,70,5,7,0,0,70,74,5,11,0,0,71,73,3,10,5,0,72,71,1,0,
+		0,0,73,76,1,0,0,0,74,72,1,0,0,0,74,75,1,0,0,0,75,77,1,0,0,0,76,74,1,0,
+		0,0,77,78,5,12,0,0,78,9,1,0,0,0,79,80,5,23,0,0,80,83,5,23,0,0,81,82,5,
+		19,0,0,82,84,3,12,6,0,83,81,1,0,0,0,83,84,1,0,0,0,84,85,1,0,0,0,85,86,
+		5,17,0,0,86,11,1,0,0,0,87,88,5,23,0,0,88,90,5,13,0,0,89,91,3,14,7,0,90,
+		89,1,0,0,0,90,91,1,0,0,0,91,92,1,0,0,0,92,97,5,14,0,0,93,97,5,22,0,0,94,
+		97,5,21,0,0,95,97,5,23,0,0,96,87,1,0,0,0,96,93,1,0,0,0,96,94,1,0,0,0,96,
+		95,1,0,0,0,97,13,1,0,0,0,98,103,3,16,8,0,99,100,5,18,0,0,100,102,3,16,
+		8,0,101,99,1,0,0,0,102,105,1,0,0,0,103,101,1,0,0,0,103,104,1,0,0,0,104,
+		15,1,0,0,0,105,103,1,0,0,0,106,107,7,0,0,0,107,17,1,0,0,0,108,109,5,5,
+		0,0,109,113,5,11,0,0,110,112,3,20,10,0,111,110,1,0,0,0,112,115,1,0,0,0,
+		113,111,1,0,0,0,113,114,1,0,0,0,114,116,1,0,0,0,115,113,1,0,0,0,116,117,
+		5,12,0,0,117,19,1,0,0,0,118,119,5,23,0,0,119,120,5,17,0,0,120,21,1,0,0,
+		0,121,122,5,6,0,0,122,126,5,11,0,0,123,125,3,24,12,0,124,123,1,0,0,0,125,
+		128,1,0,0,0,126,124,1,0,0,0,126,127,1,0,0,0,127,129,1,0,0,0,128,126,1,
+		0,0,0,129,130,5,12,0,0,130,23,1,0,0,0,131,132,5,21,0,0,132,133,5,17,0,
+		0,133,25,1,0,0,0,134,135,5,9,0,0,135,136,5,11,0,0,136,137,3,28,14,0,137,
+		138,5,12,0,0,138,27,1,0,0,0,139,145,8,1,0,0,140,141,5,11,0,0,141,142,3,
+		28,14,0,142,143,5,12,0,0,143,145,1,0,0,0,144,139,1,0,0,0,144,140,1,0,0,
+		0,145,148,1,0,0,0,146,144,1,0,0,0,146,147,1,0,0,0,147,29,1,0,0,0,148,146,
+		1,0,0,0,149,150,5,23,0,0,150,151,5,21,0,0,151,152,5,20,0,0,152,153,5,21,
+		0,0,153,154,5,17,0,0,154,31,1,0,0,0,155,156,5,23,0,0,156,158,5,13,0,0,
+		157,159,3,34,17,0,158,157,1,0,0,0,158,159,1,0,0,0,159,160,1,0,0,0,160,
+		161,5,14,0,0,161,162,5,17,0,0,162,33,1,0,0,0,163,168,3,36,18,0,164,165,
+		5,18,0,0,165,167,3,36,18,0,166,164,1,0,0,0,167,170,1,0,0,0,168,166,1,0,
+		0,0,168,169,1,0,0,0,169,35,1,0,0,0,170,168,1,0,0,0,171,172,7,0,0,0,172,
+		37,1,0,0,0,15,41,58,60,63,74,83,90,96,103,113,126,144,146,158,168
 	};
 
 	public static readonly ATN _ATN =

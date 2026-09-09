@@ -34,6 +34,7 @@ public sealed class UnlitTemplate : IShaderTemplate
         new TemplatePassDef
         {
             name = "Forward",
+            semantic = PassSemantic.Forward,
             pipeline = new PipelineSemantic
             {
                 zTest = ZTest.LessEqual,
@@ -52,6 +53,7 @@ public sealed class UnlitTemplate : IShaderTemplate
         new TemplatePassDef
         {
             name = "Visibility",
+            semantic = PassSemantic.Visibility,
             pipeline = new PipelineSemantic
             {
                 zTest = ZTest.LessEqual,
@@ -70,6 +72,7 @@ public sealed class UnlitTemplate : IShaderTemplate
         new TemplatePassDef
         {
             name = "Shadow",
+            semantic = PassSemantic.Shadow,
             pipeline = new PipelineSemantic
             {
                 zTest = ZTest.LessEqual,
@@ -103,16 +106,15 @@ public static class TemplateRegistry
         [UnlitTemplate.TemplateName] = new UnlitTemplate(),
         [LitTemplate.TemplateName] = new LitTemplate(),
     };
-    public static IReadOnlyCollection<IShaderTemplate> Templates => s_templates.Values;
 
     public static Result<IShaderTemplate> GetTemplate(string name)
     {
         if (s_templates.TryGetValue(name, out var template))
         {
-            return Result<IShaderTemplate>.Success(template);
+            return Result.Success(template);
         }
 
-        return Result<IShaderTemplate>.Failure($"Unknown shader template '{name}'. Built-in templates: {string.Join(", ", s_templates.Keys)}");
+        return Result.Failure<IShaderTemplate>($"Unknown shader template '{name}'.");
     }
 
     public static bool HasTemplate(string name)

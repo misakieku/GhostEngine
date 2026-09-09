@@ -3,7 +3,6 @@ using Ghost.Core.Graphics;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
-using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
@@ -23,6 +22,9 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     private readonly D3D12ResourceAllocator _resourceAllocator;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly CommandBufferType _type;
+#if DEBUG
+    private readonly List<string> _commandNames = new();
+#endif
 
     private CommandBufferState _state;
 
@@ -80,9 +82,16 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void IncrementCommandCount()
+    private void IncrementCommandCount(
+#if DEBUG
+        [CallerMemberName]string? caller = null
+#endif
+        )
     {
         _state.CommandCount++;
+#if DEBUG
+        _commandNames.Add(caller ?? "Unknown");
+#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -106,7 +115,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
 
         ThrowIfFailed(pNativeObject->Reset(d3d12Allocator.NativeObject, null));
 
-        if (Type == CommandBufferType.Graphics || Type == CommandBufferType.Compute)
+        if (_type == CommandBufferType.Graphics || _type == CommandBufferType.Compute)
         {
             // Set descriptor heaps for bindless resources and samplers
 
@@ -114,6 +123,14 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             heaps[0] = _descriptorAllocator.GetCbvSrvUavHeap(); // Bindless resource Heap
             heaps[1] = _descriptorAllocator.GetSamplerHeap();   // Bindless sampler Heap
             pNativeObject->SetDescriptorHeaps(2, heaps);
+
+            // Set the default root signature for the command list.
+            // We only have one root signature for all pipelines since we are using bindless, so we can set it once at the beginning of the command list.
+            pNativeObject->SetComputeRootSignature(_pipelineLibrary.DefaultRootSignature);
+            if (_type == CommandBufferType.Graphics)
+            {
+                pNativeObject->SetGraphicsRootSignature(_pipelineLibrary.DefaultRootSignature);
+            }
         }
 
         _state.CommandCount = 0;
@@ -125,6 +142,9 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         ThrowIfDisposed();
         AssertRecording();
 
+#if DEBUG
+        _commandNames.Clear();
+#endif
         var hr = pNativeObject->Close();
         if (hr.FAILED)
         {
@@ -257,138 +277,138 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
 
                     break;
                 case BarrierType.Buffer:
+                {
+                    var r = _resourceDatabase.GetResourceRecord(desc.Resource);
+                    if (r.IsFailure)
                     {
-                        var r = _resourceDatabase.GetResourceRecord(desc.Resource);
-                        if (r.IsFailure)
-                        {
-                            RecordError(nameof(Barrier), r.Error);
-                            continue;
-                        }
-
-                        ref var record = ref r.Value;
-                        if (!record.Allocated)
-                        {
-                            return;
-                        }
-
-                        var beforeSync = desc.SyncBefore;
-                        var beforeAccess = desc.IsAliasing ? BarrierAccess.NoAccess : desc.AccessBefore;
-
-                        if (!IsHandoffValid(in desc))
-                        {
-                            RecordError(nameof(Barrier), Error.InvalidArgument);
-                            continue;
-                        }
-
-                        if (!desc.Force
-                            && beforeSync == desc.SyncAfter
-                            && beforeAccess == desc.AccessAfter)
-                        {
-                            continue;
-                        }
-
-                        var syncBefore = FilterSyncForQueue(_type, beforeSync);
-                        var accessBefore = syncBefore == D3D12_BARRIER_SYNC.D3D12_BARRIER_SYNC_NONE
-                            ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
-                            : (D3D12_BARRIER_ACCESS)beforeAccess;
-
-                        var syncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter;
-                        var accessAfter = syncAfter == D3D12_BARRIER_SYNC.D3D12_BARRIER_SYNC_NONE
-                            ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
-                            : (D3D12_BARRIER_ACCESS)desc.AccessAfter;
-
-                        var resource = record.ResourcePtr;
-                        pBufferBarriers[bufferIndex++] = new D3D12_BUFFER_BARRIER
-                        {
-                            SyncBefore = syncBefore,
-                            SyncAfter = syncAfter,
-                            AccessBefore = accessBefore,
-                            AccessAfter = accessAfter,
-                            pResource = resource,
-                            Offset = desc.Offset,
-                            Size = desc.Size
-                        };
+                        RecordError(nameof(Barrier), r.Error);
+                        continue;
                     }
-                    break;
+
+                    ref var record = ref r.Value;
+                    if (!record.Allocated)
+                    {
+                        return;
+                    }
+
+                    var beforeSync = desc.SyncBefore;
+                    var beforeAccess = desc.IsAliasing ? BarrierAccess.NoAccess : desc.AccessBefore;
+
+                    if (!IsHandoffValid(in desc))
+                    {
+                        RecordError(nameof(Barrier), Error.InvalidArgument);
+                        continue;
+                    }
+
+                    if (!desc.Force
+                        && beforeSync == desc.SyncAfter
+                        && beforeAccess == desc.AccessAfter)
+                    {
+                        continue;
+                    }
+
+                    var syncBefore = FilterSyncForQueue(_type, beforeSync);
+                    var accessBefore = syncBefore == D3D12_BARRIER_SYNC.D3D12_BARRIER_SYNC_NONE
+                        ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
+                        : (D3D12_BARRIER_ACCESS)beforeAccess;
+
+                    var syncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter;
+                    var accessAfter = syncAfter == D3D12_BARRIER_SYNC.D3D12_BARRIER_SYNC_NONE
+                        ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
+                        : (D3D12_BARRIER_ACCESS)desc.AccessAfter;
+
+                    var resource = record.ResourcePtr;
+                    pBufferBarriers[bufferIndex++] = new D3D12_BUFFER_BARRIER
+                    {
+                        SyncBefore = syncBefore,
+                        SyncAfter = syncAfter,
+                        AccessBefore = accessBefore,
+                        AccessAfter = accessAfter,
+                        pResource = resource,
+                        Offset = desc.Offset,
+                        Size = desc.Size
+                    };
+                }
+                break;
                 case BarrierType.Texture:
+                {
+                    var r = _resourceDatabase.GetResourceRecord(desc.Resource);
+                    if (r.IsFailure)
                     {
-                        var r = _resourceDatabase.GetResourceRecord(desc.Resource);
-                        if (r.IsFailure)
-                        {
-                            RecordError(nameof(Barrier), r.Error);
-                            continue;
-                        }
-
-                        ref var record = ref r.Value;
-                        if (!record.Allocated)
-                        {
-                            return;
-                        }
-
-                        var beforeLayout = desc.IsAliasing ? BarrierLayout.Undefined : desc.LayoutBefore;
-                        var beforeAccess = desc.IsAliasing ? BarrierAccess.NoAccess : desc.AccessBefore;
-                        var beforeSync = desc.SyncBefore;
-
-                        if (!IsHandoffValid(in desc)
-                            || !IsTextureBarrierLayoutCompatible(_type, beforeLayout, desc.LayoutAfter))
-                        {
-                            RecordError(nameof(Barrier), Error.InvalidArgument);
-                            continue;
-                        }
-
-                        if (!desc.Force
-                            && beforeSync == desc.SyncAfter
-                            && beforeAccess == desc.AccessAfter
-                            && beforeLayout == desc.LayoutAfter)
-                        {
-                            continue;
-                        }
-
-                        var syncBefore = FilterSyncForQueue(_type, beforeSync);
-                        var accessBefore = syncBefore == D3D12_BARRIER_SYNC.D3D12_BARRIER_SYNC_NONE
-                            ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
-                            : (D3D12_BARRIER_ACCESS)beforeAccess;
-
-                        var syncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter;
-                        var accessAfter = syncAfter == D3D12_BARRIER_SYNC.D3D12_BARRIER_SYNC_NONE
-                            ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
-                            : (D3D12_BARRIER_ACCESS)desc.AccessAfter;
-
-                        var discard = desc.Discard || beforeLayout == BarrierLayout.Undefined;
-                        var flags = D3D12_TEXTURE_BARRIER_FLAGS.D3D12_TEXTURE_BARRIER_FLAG_NONE;
-                        if (discard)
-                        {
-                            flags |= D3D12_TEXTURE_BARRIER_FLAGS.D3D12_TEXTURE_BARRIER_FLAG_DISCARD;
-                        }
-
-                        var subres = desc.Subresources;
-                        var subresourceRange = new D3D12_BARRIER_SUBRESOURCE_RANGE
-                        {
-                            IndexOrFirstMipLevel = (subres.IndexOrFirstMipLevel == 0 && subres.NumMipLevels == 0 && subres.NumArraySlices == 0)
-                                ? 0xFFFFFFFF
-                                : subres.IndexOrFirstMipLevel,
-                            NumMipLevels = subres.NumMipLevels,
-                            FirstArraySlice = subres.FirstArraySlice,
-                            NumArraySlices = subres.NumArraySlices,
-                            FirstPlane = subres.FirstPlane,
-                            NumPlanes = subres.NumPlanes
-                        };
-
-                        var resource = record.ResourcePtr;
-                        pTextureBarriers[textureIndex++] = new D3D12_TEXTURE_BARRIER
-                        {
-                            SyncBefore = syncBefore,
-                            SyncAfter = syncAfter,
-                            AccessBefore = accessBefore,
-                            AccessAfter = accessAfter,
-                            LayoutBefore = (D3D12_BARRIER_LAYOUT)beforeLayout,
-                            LayoutAfter = (D3D12_BARRIER_LAYOUT)desc.LayoutAfter,
-                            pResource = resource,
-                            Subresources = subresourceRange,
-                            Flags = flags
-                        };
+                        RecordError(nameof(Barrier), r.Error);
+                        continue;
                     }
-                    break;
+
+                    ref var record = ref r.Value;
+                    if (!record.Allocated)
+                    {
+                        return;
+                    }
+
+                    var beforeLayout = desc.IsAliasing ? BarrierLayout.Undefined : desc.LayoutBefore;
+                    var beforeAccess = desc.IsAliasing ? BarrierAccess.NoAccess : desc.AccessBefore;
+                    var beforeSync = desc.SyncBefore;
+
+                    if (!IsHandoffValid(in desc)
+                        || !IsTextureBarrierLayoutCompatible(_type, beforeLayout, desc.LayoutAfter))
+                    {
+                        RecordError(nameof(Barrier), Error.InvalidArgument);
+                        continue;
+                    }
+
+                    if (!desc.Force
+                        && beforeSync == desc.SyncAfter
+                        && beforeAccess == desc.AccessAfter
+                        && beforeLayout == desc.LayoutAfter)
+                    {
+                        continue;
+                    }
+
+                    var syncBefore = FilterSyncForQueue(_type, beforeSync);
+                    var accessBefore = syncBefore == D3D12_BARRIER_SYNC.D3D12_BARRIER_SYNC_NONE
+                        ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
+                        : (D3D12_BARRIER_ACCESS)beforeAccess;
+
+                    var syncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter;
+                    var accessAfter = syncAfter == D3D12_BARRIER_SYNC.D3D12_BARRIER_SYNC_NONE
+                        ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
+                        : (D3D12_BARRIER_ACCESS)desc.AccessAfter;
+
+                    var discard = desc.Discard || beforeLayout == BarrierLayout.Undefined;
+                    var flags = D3D12_TEXTURE_BARRIER_FLAGS.D3D12_TEXTURE_BARRIER_FLAG_NONE;
+                    if (discard)
+                    {
+                        flags |= D3D12_TEXTURE_BARRIER_FLAGS.D3D12_TEXTURE_BARRIER_FLAG_DISCARD;
+                    }
+
+                    var subres = desc.Subresources;
+                    var subresourceRange = new D3D12_BARRIER_SUBRESOURCE_RANGE
+                    {
+                        IndexOrFirstMipLevel = (subres.IndexOrFirstMipLevel == 0 && subres.NumMipLevels == 0 && subres.NumArraySlices == 0)
+                            ? 0xFFFFFFFF
+                            : subres.IndexOrFirstMipLevel,
+                        NumMipLevels = subres.NumMipLevels,
+                        FirstArraySlice = subres.FirstArraySlice,
+                        NumArraySlices = subres.NumArraySlices,
+                        FirstPlane = subres.FirstPlane,
+                        NumPlanes = subres.NumPlanes
+                    };
+
+                    var resource = record.ResourcePtr;
+                    pTextureBarriers[textureIndex++] = new D3D12_TEXTURE_BARRIER
+                    {
+                        SyncBefore = syncBefore,
+                        SyncAfter = syncAfter,
+                        AccessBefore = accessBefore,
+                        AccessAfter = accessAfter,
+                        LayoutBefore = (D3D12_BARRIER_LAYOUT)beforeLayout,
+                        LayoutAfter = (D3D12_BARRIER_LAYOUT)desc.LayoutAfter,
+                        pResource = resource,
+                        Subresources = subresourceRange,
+                        Flags = flags
+                    };
+                }
+                break;
             }
         }
 
@@ -689,24 +709,24 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             var stencilLoadAccessType = !hasStencil
                 ? D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS
                 : depthDesc.StencilLoadOp switch
-            {
-                AttachmentLoadOp.Load => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE,
-                AttachmentLoadOp.Clear => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,
-                AttachmentLoadOp.DontCare => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,
-                AttachmentLoadOp.NoAccess => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS,
-                _ => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE
-            };
+                {
+                    AttachmentLoadOp.Load => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE,
+                    AttachmentLoadOp.Clear => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,
+                    AttachmentLoadOp.DontCare => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,
+                    AttachmentLoadOp.NoAccess => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS,
+                    _ => D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE
+                };
 
             // Map stencil store operation
             var stencilStoreAccessType = !hasStencil
                 ? D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS
                 : depthDesc.StencilStoreOp switch
-            {
-                AttachmentStoreOp.Store => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,
-                AttachmentStoreOp.DontCare => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,
-                AttachmentStoreOp.NoAccess => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS,
-                _ => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS
-            };
+                {
+                    AttachmentStoreOp.Store => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,
+                    AttachmentStoreOp.DontCare => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,
+                    AttachmentStoreOp.NoAccess => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS,
+                    _ => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS
+                };
 
             var desc = new D3D12_RENDER_PASS_DEPTH_STENCIL_DESC
             {
@@ -790,15 +810,6 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         {
             RecordError(nameof(SetPipelineState), psor.Error);
             return;
-        }
-
-        if (_type == CommandBufferType.Compute)
-        {
-            pNativeObject->SetComputeRootSignature(_pipelineLibrary.DefaultRootSignature);
-        }
-        else
-        {
-            pNativeObject->SetGraphicsRootSignature(_pipelineLibrary.DefaultRootSignature);
         }
 
         pNativeObject->SetPipelineState(psor.Value);
@@ -962,7 +973,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         throw new NotImplementedException();
     }
 
-    public void ExecuteIndirect(ICommandSignature commandSignature, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset)
+    public void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset)
     {
         AssertNotDisposed();
         AssertRecording();
@@ -973,7 +984,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         var resource = _resourceDatabase.GetResource(argumentBuffer.AsResource());
         var countResource = _resourceDatabase.GetResource(countBuffer.AsResource());
 
-        pNativeObject->ExecuteIndirect((ID3D12CommandSignature*)commandSignature.NativePointer, 0,
+        pNativeObject->ExecuteIndirect((ID3D12CommandSignature*)commandSignature.NativePointer, maxCommandCount,
             resource, argumentOffset, countResource, countBufferOffset);
     }
 

@@ -1,10 +1,10 @@
-using System;
-using System.Reflection;
-using System.Numerics;
+using Ghost.AssetForge.Core.Attributes;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Ghost.AssetForge.Core.Attributes;
+using System;
+using System.Numerics;
+using System.Reflection;
 
 namespace Ghost.AssetForge.Views.Inspector;
 
@@ -16,7 +16,7 @@ public class SliderDrawer : IPropertyDrawer
         if (attr == null) return new Grid();
 
         var val = property.GetValue(target);
-        double doubleVal = val != null ? Convert.ToDouble(val) : 0.0;
+        var doubleVal = val != null ? Convert.ToDouble(val) : 0.0;
 
         var panel = new StackPanel { Spacing = 4, Margin = new Thickness(0, 4, 0, 4) };
         var label = new TextBlock
@@ -80,7 +80,7 @@ public class EnumDrawer : IPropertyDrawer
         var val = property.GetValue(target);
         var enumNames = Enum.GetNames(property.PropertyType);
         var enumValues = Enum.GetValues(property.PropertyType);
-        int selectedIndex = val != null ? Array.IndexOf(enumValues, val) : 0;
+        var selectedIndex = val != null ? Array.IndexOf(enumValues, val) : 0;
         if (selectedIndex == -1) selectedIndex = 0;
 
         var panel = new StackPanel { Spacing = 4, Margin = new Thickness(0, 4, 0, 4) };
@@ -254,7 +254,7 @@ public static class XamlInspectorHelper
         if (string.IsNullOrEmpty(name)) return string.Empty;
         var result = new System.Text.StringBuilder();
         result.Append(name[0]);
-        for (int i = 1; i < name.Length; i++)
+        for (var i = 1; i < name.Length; i++)
         {
             if (char.IsUpper(name[i]) && !char.IsUpper(name[i - 1]))
             {

@@ -60,9 +60,10 @@ namespace Ghost.Generator
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            // 1. Watch all .gshdr AdditionalFiles
+            // 1. Watch all .gshdr and .gcomp AdditionalFiles
             var shaderFiles = context.AdditionalTextsProvider
-                .Where(file => file.Path.EndsWith(".gshdr", StringComparison.OrdinalIgnoreCase))
+                .Where(file => file.Path.EndsWith(".gshdr", StringComparison.OrdinalIgnoreCase) ||
+                               file.Path.EndsWith(".gcomp", StringComparison.OrdinalIgnoreCase))
                 .Select((text, ct) =>
                 {
                     var content = text.GetText(ct)?.ToString();
@@ -84,8 +85,8 @@ namespace Ghost.Generator
             // Strip comments
             var cleanText = Regex.Replace(content, @"//.*?$|/\*.*?\*/", "", RegexOptions.Multiline | RegexOptions.Singleline);
 
-            // Match shader declaration: shader "Name" (: "Template")? {
-            var shaderDeclMatch = Regex.Match(cleanText, @"shader\s+""([^""]+)""(?:\s*:\s*""([^""]+)"")?");
+            // Match shader or compute declaration: (shader|compute) "Name" (: "Template")? {
+            var shaderDeclMatch = Regex.Match(cleanText, @"(?:shader|compute)\s+""([^""]+)""(?:\s*:\s*""([^""]+)"")?");
             if (!shaderDeclMatch.Success)
             {
                 return null;

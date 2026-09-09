@@ -41,6 +41,11 @@ internal struct ResourceStreamingContext
         get; init;
     }
 
+    public ShaderLibrary ShaderLibrary
+    {
+        get; init;
+    }
+
     public ICommandBuffer CommandBuffer
     {
         get; init;
@@ -49,5 +54,6 @@ internal struct ResourceStreamingContext
 
 internal interface IResourceStreamingProcessor
 {
+    void ProcessPendingShaderCommits(ResourceStreamingContext context);
     void ProcessPendingUploads(ResourceStreamingContext context);
 }

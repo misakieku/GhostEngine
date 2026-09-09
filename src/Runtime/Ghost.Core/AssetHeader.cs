@@ -1,3 +1,4 @@
+using Ghost.Core.Graphics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -20,7 +21,8 @@ public enum AssetType
     Audio,
     Video,
     Json,
-    EntityPrefab
+    EntityPrefab,
+    ComputeShader
 }
 
 public enum CompressionMethod
@@ -41,11 +43,20 @@ public enum TextureDimension : uint
     Texture2DArray = 5,
     TextureCubeArray = 6
 }
-
 public enum ShaderType : uint
 {
     Graphics = 0,
     Compute = 1,
+}
+
+[Flags]
+public enum ShaderStageMask : byte
+{
+    None = 0,
+    Amplification = 1 << 0,
+    Mesh = 1 << 1,
+    Pixel = 1 << 2,
+    Compute = 1 << 3,
 }
 
 public enum ShaderStage : uint
@@ -107,10 +118,17 @@ public struct TextureContentHeader()
 [StructLayout(LayoutKind.Sequential, Size = 64)]
 public struct ShaderContentHeader()
 {
-
     public struct PassHeader
     {
         public uint entryPointCount;
+        public PassSemantic semantic;
+        public ShaderStageMask stageMask;
+        public ushort reserved;
+        public ulong passId;
+        public PipelineState localPipeline;
+        public long nameOffset; // Offset relative to the start of the asset
+        public uint nameSize;
+        public uint reserved2;
         public long dataOffset; // Offset relative to the start of the asset
         public long dataSize;
     }
@@ -123,13 +141,20 @@ public struct ShaderContentHeader()
     }
 
     public const uint MAGIC = 0x52484453; // SHDR
-    public const uint VERSION = 3;
+    public const uint VERSION = 4;
 
     public uint magic = MAGIC;
     public uint version = VERSION;
 
     public ShaderType shaderType;
     public uint passCount;
+    public uint propertyBufferSize;
+    public ShaderModel shaderModel;
+    public ulong shaderId;
+    public ulong familyId;
+    public ulong layoutHash;
+    public long nameOffset; // Offset relative to the start of the asset
+    public uint nameSize;
 }
 
 /// <summary>
@@ -164,7 +189,7 @@ public struct CacheFileHeader()
     /// </returns>
     public static uint ComputeBakerVersion(Type bakerType, Type settingsType)
     {
-        return Fnv1a($"{bakerType.FullName}:{settingsType.FullName}");
+        return Fnv1a($"v3:{bakerType.FullName}:{settingsType.FullName}");
     }
 
     /// <summary>
@@ -278,10 +303,40 @@ public struct PackFileHeader()
     }
 }
 
+/// <summary>
+/// Runtime metadata for one pass in a baked shader.
+/// </summary>
+public sealed class ShaderCatalogPass
+{
+    public string Name { get; init; } = string.Empty;
+    public PassSemantic Semantic { get; init; }
+    public ShaderStageMask StageMask { get; init; }
+    public uint EntryPointCount { get; init; }
+    public ulong PassId { get; init; }
+    public PipelineState LocalPipeline { get; init; }
+}
+
+/// <summary>
+/// Metadata required to register a shader before its bytecode is streamed.
+/// </summary>
+public sealed class ShaderCatalogEntry
+{
+    public Guid AssetId { get; init; }
+    public ShaderType ShaderType { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public ulong ShaderId { get; init; }
+    public ulong FamilyId { get; init; }
+    public ulong LayoutHash { get; init; }
+    public uint PropertyBufferSize { get; init; }
+    public ShaderModel ShaderModel { get; init; }
+    public ShaderCatalogPass[] Passes { get; init; } = Array.Empty<ShaderCatalogPass>();
+}
+
 public class Manifest
 {
     public CompressionMethod CompressionMethod { get; init; } = CompressionMethod.LZ4;
     public Dictionary<string, AssetInfo> Assets { get; init; } = new();
+    public List<ShaderCatalogEntry> Shaders { get; init; } = new();
 
     public void AddAsset(string assetName, AssetInfo location)
     {

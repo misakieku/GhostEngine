@@ -38,7 +38,6 @@ public class Program
 
             var text = File.ReadAllText(file);
 
-            Utility.ExtractShaderProperties(manifest, text);
             Utility.GenerateHLSLTypes(manifest, text);
         }
 
@@ -55,7 +54,6 @@ public class Program
         });
 
         File.WriteAllText(outputFile, json);
-        Console.WriteLine($"Extracted {manifest.ReflectionDatas.Count} shader properties to {outputFile}");
         Console.WriteLine($"Generated {manifest.VirtualShader.Count} shader codes.");
     }
 }

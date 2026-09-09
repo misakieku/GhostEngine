@@ -191,7 +191,7 @@ public static class RHIUtility
         return Hash.Combine64(passID, compiledHash);
     }
 
-    public static unsafe Key128<PipelineState> CreateGraphicsPipelineKey(ulong compiledHash, PipelineState pipelineState, PassAttachmentHash passAttachmentHash)
+    public static unsafe Key128<PipelineState> CreateGraphicsPipelineKey(ulong passId, ulong compiledHash, PipelineState pipelineState, PassAttachmentHash passAttachmentHash)
     {
         // Order-sensitive 128-bit mix. Cheap and stable, avoids span hashing.
         static ulong Mix64(ulong x)
@@ -212,30 +212,22 @@ public static class RHIUtility
         var pHi = pPasskey[1];
 
         // Distinct constants + cross-feeding to reduce structural collisions.
-        var hi = Mix64(mHi ^ (pHi + 0xC2B2AE3D27D4EB4Ful) ^ (pLo * 0x165667B19E3779F9ul));
-        var lo = Mix64(mLo ^ (pLo + 0x9E3779B97F4A7C15ul) ^ (mHi * 0xD6E8FEB86659FD93ul));
+        var hi = Mix64(mHi ^ (pHi + 0xC2B2AE3D27D4EB4Ful) ^ (pLo * 0x165667B19E3779F9ul) ^ passId);
+        var lo = Mix64(mLo ^ (pLo + 0x9E3779B97F4A7C15ul) ^ (mHi * 0xD6E8FEB86659FD93ul) ^ (passId * 0xA24BAED4963EE407ul));
 
         lo = lo & PIPELINE_KEY_MASK | GRAPHICS_PIPELINE_KEY_FLAG; // Ensure graphics pipeline keys are distinguishable from compute pipeline keys.
 
         return new Key128<PipelineState>(new UInt128(hi, lo));
     }
 
-    public static Key128<PipelineState> CreateComputePipelineKey(ulong compiledHash)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Key128<PipelineState> CreateComputePipelineKey(ulong passId, ulong compiledHash)
     {
-        // Since compute shader don't have blend state or attachment configurations, we can afford a simpler key generation.
-        // Just use the compiled hash with a distinct flag to avoid collisions with graphics pipeline keys.
-#if true
-        return new Key128<PipelineState>(new UInt128(compiledHash, compiledHash ^ COMPUTE_PIPELINE_KEY_FLAG));
-#else
-        var shaderHash = compiledHash;
-        var stateHash = ~compiledHash;
-        // Simple XOR mix. Not as robust as the graphics pipeline key, but sufficient for compute shaders which have fewer variants.
-        var hi = shaderHash ^ (stateHash + 0x9E3779B97F4A7C15ul) ^ (shaderHash * 0xD6E8FEB86659FD93ul);
-        var lo = stateHash ^ (shaderHash + 0xC2B2AE3D27D4EB4Ful) ^ (stateHash * 0x165667B19E3779F9ul);
+        // Include the stable entry-point identity so two entries with identical bytecode cannot alias.
+        var hi = compiledHash ^ (passId + 0x9E3779B97F4A7C15ul);
+        var lo = compiledHash ^ (passId * 0xD6E8FEB86659FD93ul);
         lo = lo & PIPELINE_KEY_MASK | COMPUTE_PIPELINE_KEY_FLAG; // Ensure compute pipeline keys are distinguishable from graphics pipeline keys.
-
-        return new Key128<ComputePipeline>(new UInt128(hi, lo));
-#endif
+        return new Key128<PipelineState>(new UInt128(hi, lo));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
