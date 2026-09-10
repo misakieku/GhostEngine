@@ -256,6 +256,7 @@ public readonly unsafe ref struct ChunkView
     public Span<T> GetComponentDataRW<T>()
         where T : unmanaged, IComponentData
     {
+        // TODO: Do a rw access check here. We need to know the query that produced this chunk view, and the query's writeAccess bitset.
         var compId = ComponentTypeID<T>.Value;
         var layout = GetLayout(compId);
 

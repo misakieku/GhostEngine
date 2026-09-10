@@ -145,6 +145,7 @@ internal static unsafe class D3D12Utility
             TextureFormat.R16_UNorm => DXGI_FORMAT_R16_UNORM,
             TextureFormat.R16_SNorm => DXGI_FORMAT_R16_SNORM,
             TextureFormat.R16_Float => DXGI_FORMAT_R16_FLOAT,
+            TextureFormat.R32_Float => DXGI_FORMAT_R32_FLOAT,
             TextureFormat.R32_UInt => DXGI_FORMAT_R32_UINT,
             TextureFormat.R32_SInt => DXGI_FORMAT_R32_SINT,
 
@@ -154,6 +155,7 @@ internal static unsafe class D3D12Utility
             TextureFormat.R16G16_SNorm => DXGI_FORMAT_R16G16_SNORM,
             TextureFormat.R16G16_Float => DXGI_FORMAT_R16G16_FLOAT,
             TextureFormat.R32G32_Float => DXGI_FORMAT_R32G32_FLOAT,
+            TextureFormat.R32G32_UInt => DXGI_FORMAT_R32G32_UINT,
 
             TextureFormat.R8G8B8A8_UNorm => DXGI_FORMAT_R8G8B8A8_UNORM,
             TextureFormat.R8G8B8A8_SNorm => DXGI_FORMAT_R8G8B8A8_SNORM,
@@ -183,6 +185,7 @@ internal static unsafe class D3D12Utility
             DXGI_FORMAT_R16_UNORM => TextureFormat.R16_UNorm,
             DXGI_FORMAT_R16_SNORM => TextureFormat.R16_SNorm,
             DXGI_FORMAT_R16_FLOAT => TextureFormat.R16_Float,
+            DXGI_FORMAT_R32_FLOAT => TextureFormat.R32_Float,
             DXGI_FORMAT_R32_UINT => TextureFormat.R32_UInt,
             DXGI_FORMAT_R32_SINT => TextureFormat.R32_SInt,
 
@@ -192,6 +195,7 @@ internal static unsafe class D3D12Utility
             DXGI_FORMAT_R16G16_SNORM => TextureFormat.R16G16_SNorm,
             DXGI_FORMAT_R16G16_FLOAT => TextureFormat.R16G16_Float,
             DXGI_FORMAT_R32G32_FLOAT => TextureFormat.R32G32_Float,
+            DXGI_FORMAT_R32G32_UINT => TextureFormat.R32G32_UInt,
 
             DXGI_FORMAT_R8G8B8A8_UNORM => TextureFormat.R8G8B8A8_UNorm,
             DXGI_FORMAT_R8G8B8A8_SNORM => TextureFormat.R8G8B8A8_SNorm,
@@ -917,7 +921,7 @@ internal static unsafe class D3D12Utility
         }
         else // Assumes Structured
         {
-            srvDesc.Format = resourceDesc.Format;
+            srvDesc.Format = DXGI_FORMAT_UNKNOWN;
             srvDesc.Buffer.FirstElement = 0;
             srvDesc.Buffer.NumElements = (uint)(resourceDesc.Width / stride);
             srvDesc.Buffer.StructureByteStride = stride;

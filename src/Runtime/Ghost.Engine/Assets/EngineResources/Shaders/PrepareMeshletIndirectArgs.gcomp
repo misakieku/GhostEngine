@@ -1,0 +1,39 @@
+compute "Internal/PrepareMeshletIndirectArgs"
+{
+    properties
+    {
+        uint counterBuffer;
+        uint indirectArgsBuffer;
+        uint countOffset;
+        uint argsOffset;
+        uint maxCount;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Includes/Properties.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(1, 1, 1)]
+        void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+        {
+            InternalPrepareMeshletIndirectArgsShaderProperties properties = LoadData<InternalPrepareMeshletIndirectArgsShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+
+            RWByteAddressBuffer counterBuffer = ResourceDescriptorHeap[properties.counterBuffer];
+            RWByteAddressBuffer indirectArgsBuffer = ResourceDescriptorHeap[properties.indirectArgsBuffer];
+
+            uint visibleCount = counterBuffer.Load(properties.countOffset);
+            if (visibleCount > properties.maxCount)
+            {
+                visibleCount = properties.maxCount;
+            }
+
+            // D3D12_DISPATCH_MESH_ARGUMENTS: ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ
+            indirectArgsBuffer.Store3(properties.argsOffset, uint3(visibleCount, 1, 1));
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

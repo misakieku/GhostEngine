@@ -55,6 +55,16 @@ public unsafe interface IResourceDatabase : IDisposable
     uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource);
 
     /// <summary>
+    /// Creates a raw byte-address SRV descriptor for a sub-range of a buffer and returns its bindless index.
+    /// </summary>
+    uint AllocateRawBufferSRV(Handle<GPUBuffer> buffer, uint offsetInBytes, uint sizeInBytes);
+
+    /// <summary>
+    /// Releases a raw buffer SRV descriptor previously allocated with AllocateRawBufferSRV.
+    /// </summary>
+    void ReleaseRawBufferSRV(uint descriptorIndex);
+
+    /// <summary>
     /// Retrieves the name of the GPU resource associated with the specified handle.
     /// </summary>
     /// <remarks>

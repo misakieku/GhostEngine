@@ -48,7 +48,7 @@ public unsafe partial class MeshBaker : IAssetBaker
                 else
                 {
                     var subPath = string.IsNullOrWhiteSpace(mesh.Name) ? $"Mesh_{i}" : mesh.Name;
-                    var subStream = ctx.AddSubAsset(subPath, AssetType.Mesh);
+                    using var subStream = ctx.AddSubAsset(subPath, AssetType.Mesh);
                     WriteMeshContent(subStream, mesh, pMeshletData);
                 }
             }

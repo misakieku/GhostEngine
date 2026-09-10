@@ -1,9 +1,12 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.Core.Utilities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
+using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.CompilerServices;
 namespace Ghost.Graphics.RenderGraphModule;
 
 public interface IRenderGraphContext
@@ -16,6 +19,13 @@ public interface IRenderGraphContext
     Handle<GPUResource> GetActualResource(Identifier<RGResource> resource);
     Handle<GPUTexture> GetActualTexture(Identifier<RGTexture> texture);
     Handle<GPUBuffer> GetActualBuffer(Identifier<RGBuffer> buffer);
+
+    uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource);
+    uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource);
+
+    void SetFrameData(uint frameBuffer);
+    void SetViewData(uint viewBuffer);
+    void SetProperties<TProperty>(scoped in TProperty property) where TProperty : unmanaged;
 }
 
 public interface IRasterRenderContext : IRenderGraphContext
@@ -24,6 +34,7 @@ public interface IRasterRenderContext : IRenderGraphContext
     void SetScissorRect(ScissorRectDesc desc);
 
     void SetGlobalData(uint globalIndex, uint viewIndex);
+    void SetGlobalData();
     void SetInstanceIndex(uint instanceIndex);
 
     void SetActiveMaterial(Handle<Material> material);
@@ -36,6 +47,7 @@ public interface IRasterRenderContext : IRenderGraphContext
     void SetActiveMesh(Handle<Mesh> mesh);
     void SetActiveMesh(scoped in Mesh mesh);
     void DispatchMesh(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ);
+    void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset = 0, Handle<GPUBuffer> countBuffer = default, ulong countBufferOffset = 0);
 }
 
 public interface IComputeRenderContext : IRenderGraphContext
@@ -43,11 +55,19 @@ public interface IComputeRenderContext : IRenderGraphContext
     void SetActiveCompute(Handle<ComputeShader> computeShader, int entryIndex);
     bool TrySetActiveShaderPass(Handle<Shader> shader, PassSemantic semantic);
     void DispatchCompute(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ);
-    void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset);
+    void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset = 0, Handle<GPUBuffer> countBuffer = default, ulong countBufferOffset = 0);
+    void SetProgram(scoped in SetProgramDesc desc);
+    void DispatchGraph(scoped in DispatchGraphDesc desc);
+    void SetPushConstants(scoped in PushConstantsData pushConstants);
 }
+
 public interface IUnsafeRenderContext : IRasterRenderContext, IComputeRenderContext
 {
     ICommandBuffer GetCommandBufferUnsafe();
+    unsafe void* MapBuffer(Identifier<RGBuffer> buffer);
+    unsafe void UnmapBuffer(Identifier<RGBuffer> buffer);
+    unsafe void WriteBuffer<T>(Identifier<RGBuffer> buffer, scoped in T data, uint dstOffset = 0) where T : unmanaged;
+    unsafe void WriteBuffer(Identifier<RGBuffer> buffer, void* pData, uint sizeInBytes, uint dstOffset = 0);
 }
 
 internal sealed class RenderGraphContext : IUnsafeRenderContext
@@ -71,6 +91,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
     private uint _activeFrameBuffer;
     private uint _activeViewBuffer;
     private uint _activeInstanceIndex;
+    private readonly RenderGraphPropertyAllocator _propertyAllocator;
 
     public ResourceManager ResourceManager => _resourceManager;
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
@@ -90,11 +111,22 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         _resourceDatabase = resourceDatabase;
         _pipelineLibrary = pipelineLibrary;
         _resources = resources;
+        _propertyAllocator = new RenderGraphPropertyAllocator(resourceManager.ResourceAllocator, resourceDatabase);
 
         _commandBuffer = null!;
 
         _rtvFormats = new TextureFormat[RHIUtility.MAX_RENDER_TARGETS];
         _dsvFormat = TextureFormat.Unknown;
+    }
+
+    internal void ResetPropertyAllocator()
+    {
+        _propertyAllocator.Reset();
+    }
+
+    internal void Dispose()
+    {
+        _propertyAllocator.Dispose();
     }
 
     internal void BeginNewFrame(ICommandBuffer commandBuffer)
@@ -131,6 +163,77 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
     public Handle<GPUBuffer> GetActualBuffer(Identifier<RGBuffer> buffer)
     {
         return _resources.GetResource(buffer.AsResource()).backingResource.AsBuffer();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource)
+    {
+        return _resourceDatabase.GetBindlessIndex(GetActualTexture(texture).AsResource(), access);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource)
+    {
+        return _resourceDatabase.GetBindlessIndex(GetActualBuffer(buffer).AsResource(), access);
+    }
+
+    public void SetFrameData(uint frameBuffer)
+    {
+        _activeFrameBuffer = frameBuffer;
+    }
+
+    public void SetViewData(uint viewBuffer)
+    {
+        _activeViewBuffer = viewBuffer;
+    }
+
+    public void SetProperties<TProperty>(scoped in TProperty property) where TProperty : unmanaged
+    {
+        var descriptor = _propertyAllocator.Allocate(in property);
+        var pushConstants = new PushConstantsData
+        {
+            frameBuffer = _activeFrameBuffer,
+            viewBuffer = _activeViewBuffer,
+            propertyBuffer = descriptor
+        };
+
+        if (_commandBuffer.Type == CommandBufferType.Compute)
+        {
+            _commandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstants.AsUInts());
+        }
+        else
+        {
+            _commandBuffer.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstants.AsUInts());
+            _commandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstants.AsUInts());
+        }
+    }
+
+    public unsafe void* MapBuffer(Identifier<RGBuffer> buffer)
+    {
+        var actual = GetActualBuffer(buffer);
+        return _resourceDatabase.MapResource(actual.AsResource(), 0, null);
+    }
+
+    public unsafe void UnmapBuffer(Identifier<RGBuffer> buffer)
+    {
+        var actual = GetActualBuffer(buffer);
+        _resourceDatabase.UnmapResource(actual.AsResource(), 0, null);
+    }
+
+    public unsafe void WriteBuffer<T>(Identifier<RGBuffer> buffer, scoped in T data, uint dstOffset = 0) where T : unmanaged
+    {
+        fixed (T* pData = &data)
+        {
+            WriteBuffer(buffer, pData, (uint)sizeof(T), dstOffset);
+        }
+    }
+
+    public unsafe void WriteBuffer(Identifier<RGBuffer> buffer, void* pData, uint sizeInBytes, uint dstOffset = 0)
+    {
+        var actual = GetActualBuffer(buffer);
+        var pMapped = (byte*)_resourceDatabase.MapResource(actual.AsResource(), 0, null);
+        MemoryUtility.MemCpy(pMapped + dstOffset, pData, sizeInBytes);
+        _resourceDatabase.UnmapResource(actual.AsResource(), 0, null);
     }
 
     public void SetViewport(ViewportDesc desc)
@@ -458,6 +561,19 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         _activeViewBuffer = viewBuffer;
     }
 
+    public unsafe void SetGlobalData()
+    {
+        var data = new PushConstantsData
+        {
+            frameBuffer = _activeFrameBuffer,
+            viewBuffer = _activeViewBuffer,
+            instanceIndex = _activeInstanceIndex,
+        };
+
+        var pushConstantSpan = new ReadOnlySpan<uint>(&data, sizeof(PushConstantsData) / sizeof(uint));
+        _commandBuffer.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstantSpan);
+    }
+
     public void SetInstanceIndex(uint instanceIndex)
     {
         _activeInstanceIndex = instanceIndex;
@@ -500,10 +616,26 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         _commandBuffer.DispatchCompute(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
     }
 
-    public void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset)
+    public void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset = 0, Handle<GPUBuffer> countBuffer = default, ulong countBufferOffset = 0)
     {
         _commandBuffer.ExecuteIndirect(commandSignature, maxCommandCount, argumentBuffer, argumentOffset, countBuffer, countBufferOffset);
     }
+
+    public void SetProgram(scoped in SetProgramDesc desc)
+    {
+        _commandBuffer.SetProgram(in desc);
+    }
+
+    public void DispatchGraph(scoped in DispatchGraphDesc desc)
+    {
+        _commandBuffer.DispatchGraph(in desc);
+    }
+
+    public void SetPushConstants(scoped in PushConstantsData pushConstants)
+    {
+        _commandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstants.AsUInts());
+    }
+
     public ICommandBuffer GetCommandBufferUnsafe()
     {
         return _commandBuffer;

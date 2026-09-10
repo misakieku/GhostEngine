@@ -156,6 +156,20 @@ public class RenderGraphValidationTest
     }
 
     [TestMethod]
+    public void TestUnsafePassWithRandomAccessBufferPassesValidation()
+    {
+        const string resourceName = "ValidUnsafeUavBuffer";
+        var builder = _renderGraph.AddUnsafeRenderPass<PassData>("ValidUnsafePass");
+        var buffer = builder.CreateBuffer(new BufferDesc { Size = 1024, Usage = BufferUsage.UnorderedAccess }, resourceName);
+        builder.UseRandomAccessBuffer(buffer);
+        builder.SetPassData(new PassData { buffer = buffer });
+        builder.SetRenderFunc<PassData>(static (ref readonly data, ctx) => { });
+
+        // Should not throw
+        builder.Dispose();
+    }
+
+    [TestMethod]
     public void TestCompilerBackstopRejectsRenderTargetStateForBuffer()
     {
         const string resourceName = "InvalidRenderTargetBuffer";

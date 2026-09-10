@@ -4,7 +4,9 @@
     <PropertyGroup>
       <GhostIntermediateOutputPath Condition="$([System.IO.Path]::IsPathRooted('$(IntermediateOutputPath)'))">$(IntermediateOutputPath)</GhostIntermediateOutputPath>
       <GhostIntermediateOutputPath Condition="'$(GhostIntermediateOutputPath)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)</GhostIntermediateOutputPath>
+      <GhostAssetDir Condition="'$(GhostAssetDir)' == '' and Exists('$(MSBuildProjectDirectory)\Assets')">$(MSBuildProjectDirectory)\Assets</GhostAssetDir>
       <GhostAssetDir Condition="'$(GhostAssetDir)' == ''">$(MSBuildProjectDirectory)\Asset</GhostAssetDir>
+      <GhostEngineAssetDir>$(MSBuildThisFileDirectory)Runtime/Ghost.Engine/Assets</GhostEngineAssetDir>
       <GhostAssetCacheDir Condition="'$(GhostAssetCacheDir)' == ''">$(GhostIntermediateOutputPath)AssetCache</GhostAssetCacheDir>
       <GhostAssetBuildDir Condition="'$(GhostAssetBuildDir)' == ''">$(TargetDir)Assets</GhostAssetBuildDir>
       <GhostShaderMetadataPath Condition="'$(GhostShaderMetadataPath)' == ''">$(GhostIntermediateOutputPath)shader_metadata.json</GhostShaderMetadataPath>
@@ -34,7 +36,7 @@
           DependsOnTargets="ComputeGhostPaths"
           AfterTargets="Build"
           Condition="'$(IsGameProject)' == 'true'"
-          Inputs="$(GhostAssetDir)\**\*.*"
+          Inputs="$(GhostAssetDir)\**\*.*;$(GhostEngineAssetDir)\**\*.*"
           Outputs="$(GhostAssetBuildDir)\manifest.json">
           
     <Message Importance="High" Text="Baking and Packing Assets..." />
@@ -43,10 +45,6 @@
     <MSBuild Projects="@(ProjectReference)" Targets="GetGhostShaderMetadataPath" SkipNonexistentTargets="true">
       <Output TaskParameter="TargetOutputs" ItemName="AllMetadata" />
     </MSBuild>
-    
-    <PropertyGroup>
-      <GhostEngineAssetDir>$(MSBuildThisFileDirectory)Runtime/Ghost.Engine/Assets</GhostEngineAssetDir>
-    </PropertyGroup>
     
     <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)Tools/Ghost.AssetForge.CLI/Ghost.AssetForge.CLI.csproj&quot; --no-launch-profile -c Release -- bake --asset-dir &quot;$(GhostEngineAssetDir);$(GhostAssetDir)&quot; --cache-dir &quot;$(GhostAssetCacheDir)&quot; --build-dir &quot;$(GhostAssetBuildDir)&quot; --shader-metadata &quot;$(GhostShaderMetadataPath);@(AllMetadata)&quot;" />
   </Target>

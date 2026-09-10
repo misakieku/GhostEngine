@@ -22,7 +22,8 @@ public enum AssetType
     Video,
     Json,
     EntityPrefab,
-    ComputeShader
+    ComputeShader,
+    WorkGraph
 }
 
 public enum CompressionMethod
@@ -47,6 +48,7 @@ public enum ShaderType : uint
 {
     Graphics = 0,
     Compute = 1,
+    WorkGraph = 2,
 }
 
 [Flags]

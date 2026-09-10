@@ -207,4 +207,9 @@ internal class MockingContentProvider : IContentProvider
 
         return Result<AssetReadData>.Failure($"Mock asset {guid} not found.");
     }
+
+    public void Dispose()
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -178,6 +178,12 @@ public struct RenderView
     public RenderingLayerMask renderingLayerMask;
 }
 
+[InlineArray(16)]
+public struct HZBMipHandles
+{
+    private Handle<GPUTexture> _element0;
+}
+
 public struct RenderRequest
 {
     public RenderView view;
@@ -185,4 +191,11 @@ public struct RenderRequest
     public int swapChainIndex;
     public Handle<GPUTexture> colorTarget;
     public Handle<GPUTexture> depthTarget;
+
+    public HZBMipHandles hzbHistory;
+    public uint hzbMipCount;
+    public uint historyWidth;
+    public uint historyHeight;
+    public bool hasValidHistory;
 }
+

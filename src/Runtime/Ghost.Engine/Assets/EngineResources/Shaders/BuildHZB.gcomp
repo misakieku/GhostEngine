@@ -1,0 +1,50 @@
+compute "Internal/BuildHZB"
+{
+    properties
+    {
+        uint srcTexture;
+        uint dstTexture;
+        uint srcWidth;
+        uint srcHeight;
+        uint dstWidth;
+        uint dstHeight;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Includes/Properties.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(8, 8, 1)]
+        void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+        {
+            InternalBuildHZBShaderProperties properties = LoadData<InternalBuildHZBShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+
+            if (dispatchThreadID.x >= properties.dstWidth || dispatchThreadID.y >= properties.dstHeight)
+            {
+                return;
+            }
+
+            Texture2D<float> srcTexture = GET_TEXTURE2D(properties.srcTexture);
+            RWTexture2D<float> dstTexture = ResourceDescriptorHeap[properties.dstTexture];
+
+            uint x2 = dispatchThreadID.x * 2;
+            uint y2 = dispatchThreadID.y * 2;
+            uint maxSrcX = properties.srcWidth - 1;
+            uint maxSrcY = properties.srcHeight - 1;
+
+            float d0 = srcTexture.Load(int3(min(x2, maxSrcX), min(y2, maxSrcY), 0)).r;
+            float d1 = srcTexture.Load(int3(min(x2 + 1, maxSrcX), min(y2, maxSrcY), 0)).r;
+            float d2 = srcTexture.Load(int3(min(x2, maxSrcX), min(y2 + 1, maxSrcY), 0)).r;
+            float d3 = srcTexture.Load(int3(min(x2 + 1, maxSrcX), min(y2 + 1, maxSrcY), 0)).r;
+
+            // In reversed-Z, conservative reduction for occlusion culling is MIN
+            float minDepth = min(min(d0, d1), min(d2, d3));
+            dstTexture[dispatchThreadID.xy] = minDepth;
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

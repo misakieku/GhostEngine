@@ -178,6 +178,7 @@ public sealed partial class EngineCore : IDisposable
 
     public void Dispose()
     {
+        _renderEngine.ReleasePipeline();
         _assetManager.Dispose();
         _renderEngine.Dispose();
         _jobScheduler.Dispose();

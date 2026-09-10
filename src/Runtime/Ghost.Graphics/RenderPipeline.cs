@@ -105,7 +105,7 @@ public readonly ref struct RenderViewData : IDisposable
 
 public static class RenderPipelineUtility
 {
-    public static void GetVPMatrices(scoped in RenderRequest request, uint2 screenSize, out float4x4 view, out float4x4 projection)
+    public static void GetVPMatrices(scoped in RenderRequest request, uint2 screenSize, out float4x4 view, out float4x4 projection, bool reversedZ = false)
     {
         var aspectScreen = (float)screenSize.x / screenSize.y;
 
@@ -154,8 +154,22 @@ public static class RenderPipelineUtility
 
         var m_11 = 1.0f / math.tan(vfovF * 0.5f);
         var m_00 = m_11 / aspectScreen;
-        var m_22 = request.view.farClipPlane / (request.view.farClipPlane - request.view.nearClipPlane);
-        var m_23 = -(request.view.farClipPlane * request.view.nearClipPlane) / (request.view.farClipPlane - request.view.nearClipPlane);
+
+        float m_22;
+        float m_23;
+
+        if (reversedZ)
+        {
+            // Reversed-Z: Near -> 1.0, Far -> 0.0
+            m_22 = request.view.nearClipPlane / (request.view.nearClipPlane - request.view.farClipPlane);
+            m_23 = (request.view.farClipPlane * request.view.nearClipPlane) / (request.view.farClipPlane - request.view.nearClipPlane);
+        }
+        else
+        {
+            // Standard Z: Near -> 0.0, Far -> 1.0
+            m_22 = request.view.farClipPlane / (request.view.farClipPlane - request.view.nearClipPlane);
+            m_23 = -(request.view.farClipPlane * request.view.nearClipPlane) / (request.view.farClipPlane - request.view.nearClipPlane);
+        }
 
         projection = new float4x4
         (
@@ -164,5 +178,10 @@ public static class RenderPipelineUtility
             0, 0, m_22, m_23,
             0, 0, 1, 0
         );
+    }
+
+    public static void GetVPMatricesReversedZ(scoped in RenderRequest request, uint2 screenSize, out float4x4 view, out float4x4 projection)
+    {
+        GetVPMatrices(in request, screenSize, out view, out projection, reversedZ: true);
     }
 }

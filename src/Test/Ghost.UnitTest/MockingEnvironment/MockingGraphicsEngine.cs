@@ -25,6 +25,33 @@ internal class MockingGraphicsEngine : IGraphicsEngine
         }
     }
 
+    private sealed class MockingWorkGraphProgram : IWorkGraphProgram
+    {
+        public string Name { get; set; } = nameof(MockingWorkGraphProgram);
+        public ProgramIdentifier ProgramIdentifier => default;
+        public Handle<GPUBuffer> BackingMemoryBuffer => default;
+        public ulong BackingMemoryAddress => 0;
+        public ulong BackingMemorySize => 0;
+        public bool IsInitialized => true;
+        public IntPtr NativePointer => IntPtr.Zero;
+
+        public void MarkInitialized()
+        {
+        }
+
+        public void Bind(ICommandBuffer cmdBuffer)
+        {
+        }
+
+        public void Dispatch(ICommandBuffer cmdBuffer, scoped in DispatchGraphDesc desc)
+        {
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
     public IRenderDevice Device => _renderDevice;
 
     public IPipelineLibrary PipelineLibrary => throw new NotImplementedException();
@@ -114,6 +141,11 @@ internal class MockingGraphicsEngine : IGraphicsEngine
     public ICommandSignature CreateCommandSignature(scoped in CommandSignatureDesc desc, Key128<PipelineState> pipelineKey)
     {
         return new MockingCommandSignature();
+    }
+
+    public IWorkGraphProgram CreateWorkGraphProgram(ReadOnlySpan<byte> bytecode, string programName)
+    {
+        return new MockingWorkGraphProgram();
     }
 
     public IFence CreateFence(ulong initialValue = 0)

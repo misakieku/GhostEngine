@@ -55,6 +55,13 @@ public interface IGraphicsEngine : IDisposable
     ICommandSignature CreateCommandSignature(scoped in CommandSignatureDesc desc, Key128<PipelineState> pipelineKey);
 
     /// <summary>
+    /// Creates a D3D12 work graph program from compiled DXIL library bytecode.
+    /// </summary>
+    /// <param name="bytecode">Compiled DXIL library bytecode.</param>
+    /// <param name="programName">The name of the work graph defined in HLSL.</param>
+    IWorkGraphProgram CreateWorkGraphProgram(ReadOnlySpan<byte> bytecode, string programName);
+
+    /// <summary>
     /// Gets a command buffer from the pool for recording rendering commands.
     /// </summary>
     /// <param name="type">Type of command buffer to get from the pool</param>

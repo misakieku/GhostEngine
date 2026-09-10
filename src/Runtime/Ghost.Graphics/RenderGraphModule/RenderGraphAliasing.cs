@@ -370,8 +370,9 @@ internal static class RenderGraphAliasingBuilder
         {
             var resource = registry.GetResourceByIndex(i);
 
-            // Don't memory-alias imported OR extracted resources
-            if (!resource.isImported && !resource.isExtracted)
+            // Don't memory-alias imported, extracted, or upload resources
+            var isUploadBuffer = resource.type == RGResourceType.Buffer && resource.bufferDesc.HeapType == HeapType.Upload;
+            if (!resource.isImported && !resource.isExtracted && !isUploadBuffer)
             {
                 var size = GetResourceSize(resource, allocator);
                 logicalResources.Add(new LogicalResourceEntry(resource.index, resource, size));

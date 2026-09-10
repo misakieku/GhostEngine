@@ -12,7 +12,23 @@ internal unsafe class D3D12CommandSignature : D3D12Object<ID3D12CommandSignature
     private static ID3D12CommandSignature* CreateCommandSignature(D3D12RenderDevice device, D3D12PipelineLibrary pipelineLibrary, ref readonly CommandSignatureDesc desc)
     {
         var pDevice = device.NativeObject.Get();
-        var pRootSignature = pipelineLibrary.DefaultRootSignature;
+
+        var requiresRootSignature = false;
+        for (var i = 0; i < desc.Arguments.Length; i++)
+        {
+            var type = desc.Arguments[i].Type;
+            if (type is IndirectArgumentType.Constant or
+                IndirectArgumentType.ConstantBufferView or
+                IndirectArgumentType.ShaderResourceView or
+                IndirectArgumentType.UnorderedAccessView or
+                IndirectArgumentType.IncrementingConstant)
+            {
+                requiresRootSignature = true;
+                break;
+            }
+        }
+
+        var pRootSignature = requiresRootSignature ? pipelineLibrary.DefaultRootSignature : null;
 
         var pArgumentDescs = stackalloc D3D12_INDIRECT_ARGUMENT_DESC[desc.Arguments.Length];
 

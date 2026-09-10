@@ -19,5 +19,6 @@
   <ItemGroup>
     <AdditionalFiles Include="**\*.gshdr" />
     <AdditionalFiles Include="**\*.gcomp" />
+    <AdditionalFiles Include="**\*.ggraph" />
   </ItemGroup>
 </Project>

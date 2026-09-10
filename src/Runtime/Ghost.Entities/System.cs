@@ -488,6 +488,5 @@ public sealed class SystemManager : IDisposable
 
     public void Dispose()
     {
-        CleanupAll();
     }
 }

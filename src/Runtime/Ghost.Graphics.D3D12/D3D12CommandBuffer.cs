@@ -22,6 +22,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     private readonly D3D12ResourceAllocator _resourceAllocator;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly CommandBufferType _type;
+    private ID3D12GraphicsCommandList10* _pCmdList10;
 #if DEBUG
     private readonly List<string> _commandNames = new();
 #endif
@@ -65,6 +66,12 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         _resourceDatabase = resourceDatabase;
         _resourceAllocator = resourceAllocator;
         _descriptorAllocator = descriptorAllocator;
+
+        ID3D12GraphicsCommandList10* pList10 = default;
+        if (pNativeObject->QueryInterface(__uuidof<ID3D12GraphicsCommandList10>(), (void**)&pList10).SUCCEEDED)
+        {
+            _pCmdList10 = pList10;
+        }
     }
 
     [Conditional("DEBUG")]
@@ -933,7 +940,74 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
 
     public void SetProgram(scoped in SetProgramDesc desc)
     {
-        // TODO
+        AssertNotDisposed();
+        AssertRecording();
+        IncrementCommandCount();
+
+        if (_pCmdList10 == null)
+        {
+            RecordError(nameof(SetProgram), Error.NotSupported);
+            return;
+        }
+
+        var d3d12Desc = new D3D12_SET_PROGRAM_DESC();
+        switch (desc.Type)
+        {
+            case ProgramType.WorkGraph:
+            {
+                d3d12Desc.Type = D3D12_PROGRAM_TYPE_WORK_GRAPH;
+                var progIdSrc = desc.WorkGraph.ProgramIdentifier;
+                var progId = Unsafe.As<ProgramIdentifier, D3D12_PROGRAM_IDENTIFIER>(ref progIdSrc);
+
+                d3d12Desc.WorkGraph = new D3D12_SET_WORK_GRAPH_DESC
+                {
+                    ProgramIdentifier = progId,
+                    Flags = (desc.WorkGraph.Flags & SetWorkGraphFlags.Initialize) != 0
+                        ? D3D12_SET_WORK_GRAPH_FLAG_INITIALIZE
+                        : D3D12_SET_WORK_GRAPH_FLAG_NONE,
+                    BackingMemory = new D3D12_GPU_VIRTUAL_ADDRESS_RANGE
+                    {
+                        StartAddress = desc.WorkGraph.BackingMemoryAddress,
+                        SizeInBytes = desc.WorkGraph.BackingMemorySize,
+                    },
+                    NodeLocalRootArgumentsTable = new D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE
+                    {
+                        StartAddress = desc.WorkGraph.NodeLocalRootArgumentsTableAddress,
+                        SizeInBytes = desc.WorkGraph.NodeLocalRootArgumentsTableSizeInBytes,
+                        StrideInBytes = desc.WorkGraph.NodeLocalRootArgumentsTableStrideInBytes,
+                    }
+                };
+                break;
+            }
+
+            case ProgramType.RaytracingPipeline:
+            {
+                d3d12Desc.Type = D3D12_PROGRAM_TYPE_RAYTRACING_PIPELINE;
+                var progIdSrc = desc.RaytracingPipeline.ProgramIdentifier;
+                var progId = Unsafe.As<ProgramIdentifier, D3D12_PROGRAM_IDENTIFIER>(ref progIdSrc);
+
+                d3d12Desc.RaytracingPipeline = new D3D12_SET_RAYTRACING_PIPELINE_DESC
+                {
+                    ProgramIdentifier = progId,
+                };
+                break;
+            }
+
+            case ProgramType.GenericPipeline:
+            {
+                d3d12Desc.Type = D3D12_PROGRAM_TYPE_GENERIC_PIPELINE;
+                var progIdSrc = desc.GenericPipeline.ProgramIdentifier;
+                var progId = Unsafe.As<ProgramIdentifier, D3D12_PROGRAM_IDENTIFIER>(ref progIdSrc);
+
+                d3d12Desc.GenericPipeline = new D3D12_SET_GENERIC_PIPELINE_DESC
+                {
+                    ProgramIdentifier = progId,
+                };
+                break;
+            }
+        }
+
+        _pCmdList10->SetProgram(&d3d12Desc);
     }
 
     public void DrawIndexed(uint indexCount, uint instanceCount = 1, uint startIndex = 0, int baseVertex = 0, uint startInstance = 0)
@@ -970,7 +1044,52 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
 
     public void DispatchGraph(scoped in DispatchGraphDesc desc)
     {
-        throw new NotImplementedException();
+        AssertNotDisposed();
+        AssertRecording();
+        IncrementCommandCount();
+
+        if (_pCmdList10 == null)
+        {
+            RecordError(nameof(DispatchGraph), Error.NotSupported);
+            return;
+        }
+
+        var d3d12Desc = new D3D12_DISPATCH_GRAPH_DESC();
+        switch (desc.DispatchMode)
+        {
+            case GraphDispatchMode.CPUInput:
+                d3d12Desc.Mode = D3D12_DISPATCH_MODE_NODE_CPU_INPUT;
+                d3d12Desc.NodeCPUInput = new D3D12_NODE_CPU_INPUT
+                {
+                    EntrypointIndex = desc.NodeCPUInput.entryPointIndex,
+                    NumRecords = desc.NodeCPUInput.numRecords,
+                    pRecords = desc.NodeCPUInput.pRecords,
+                    RecordStrideInBytes = desc.NodeCPUInput.recordStrideInBytes,
+                };
+                break;
+
+            case GraphDispatchMode.GPUInput:
+                d3d12Desc.Mode = D3D12_DISPATCH_MODE_NODE_GPU_INPUT;
+                d3d12Desc.NodeGPUInput = desc.NodeGPUInput;
+                break;
+
+            case GraphDispatchMode.MultiCPUInput:
+                d3d12Desc.Mode = D3D12_DISPATCH_MODE_MULTI_NODE_CPU_INPUT;
+                d3d12Desc.MultiNodeCPUInput = new D3D12_MULTI_NODE_CPU_INPUT
+                {
+                    NumNodeInputs = desc.MultiNodeCPUInput.numNodeInputs,
+                    pNodeInputs = (D3D12_NODE_CPU_INPUT*)desc.MultiNodeCPUInput.pNodeInputs,
+                    NodeInputStrideInBytes = desc.MultiNodeCPUInput.nodeInputStrideInBytes,
+                };
+                break;
+
+            case GraphDispatchMode.MultiGPUInput:
+                d3d12Desc.Mode = D3D12_DISPATCH_MODE_MULTI_NODE_GPU_INPUT;
+                d3d12Desc.MultiNodeGPUInput = desc.MultiNodeGPUInput;
+                break;
+        }
+
+        _pCmdList10->DispatchGraph(&d3d12Desc);
     }
 
     public void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset)
@@ -1122,5 +1241,16 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         };
 
         pNativeObject->CopyTextureRegion(&dstLocation, dstRegionV.X, dstRegionV.Y, dstRegionV.Z, &srcLocation, &srcBoc);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (_pCmdList10 != null)
+        {
+            _pCmdList10->Release();
+            _pCmdList10 = null;
+        }
+
+        base.Dispose(disposing);
     }
 }

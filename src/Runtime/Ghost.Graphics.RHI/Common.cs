@@ -1038,7 +1038,7 @@ public ref struct CommandSignatureDesc
 
 public unsafe struct ProgramIdentifier
 {
-    public void* pIdentifier;
+    public fixed ulong OpaqueData[4];
 }
 
 public unsafe struct NodeCPUInput
@@ -1086,6 +1086,31 @@ public struct DispatchGraphDesc
     public ref MultiNodeCPUInput MultiNodeCPUInput => ref _input.multiNodeCPUInput;
     [UnscopedRef]
     public ref ulong MultiNodeGPUInput => ref _input.multiNodeGPUInput;
+
+    public static unsafe DispatchGraphDesc ForCPUInput(uint entryPointIndex, uint numRecords, void* pRecords = null, ulong recordStrideInBytes = 0)
+    {
+        var desc = new DispatchGraphDesc { DispatchMode = GraphDispatchMode.CPUInput };
+        desc.NodeCPUInput = new NodeCPUInput
+        {
+            entryPointIndex = entryPointIndex,
+            numRecords = numRecords,
+            pRecords = pRecords,
+            recordStrideInBytes = recordStrideInBytes,
+        };
+        return desc;
+    }
+
+    public static unsafe DispatchGraphDesc ForEmptyCPUInput(uint entryPointIndex, uint numRecords)
+    {
+        return ForCPUInput(entryPointIndex, numRecords, null, 0);
+    }
+
+    public static DispatchGraphDesc ForGPUInput(ulong gpuAddress)
+    {
+        var desc = new DispatchGraphDesc { DispatchMode = GraphDispatchMode.GPUInput };
+        desc.NodeGPUInput = gpuAddress;
+        return desc;
+    }
 }
 
 public struct WorkGraphMemoryRequirements
@@ -1119,7 +1144,14 @@ public struct WorkGraphSubObjectDesc
     }
 }
 
-public struct SetProgramDesc
+public enum ProgramType
+{
+    GenericPipeline,
+    RaytracingPipeline,
+    WorkGraph
+}
+
+public struct SetWorkGraphDesc
 {
     public ProgramIdentifier ProgramIdentifier
     {
@@ -1131,8 +1163,6 @@ public struct SetProgramDesc
         get; set;
     }
 
-
-    // D3D12_GPU_VIRTUAL_ADDRESS_RANGE
     public ulong BackingMemoryAddress
     {
         get; set;
@@ -1143,8 +1173,6 @@ public struct SetProgramDesc
         get; set;
     }
 
-
-    // D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE
     public ulong NodeLocalRootArgumentsTableAddress
     {
         get; set;
@@ -1158,6 +1186,89 @@ public struct SetProgramDesc
     public ulong NodeLocalRootArgumentsTableStrideInBytes
     {
         get; set;
+    }
+}
+
+public struct SetRaytracingPipelineDesc
+{
+    public ProgramIdentifier ProgramIdentifier
+    {
+        get; set;
+    }
+}
+
+public struct SetGenericPipelineDesc
+{
+    public ProgramIdentifier ProgramIdentifier
+    {
+        get; set;
+    }
+}
+
+public struct SetProgramDesc
+{
+    public ProgramType Type
+    {
+        get; set;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct __union
+    {
+        [FieldOffset(0)]
+        public SetWorkGraphDesc workGraph;
+        [FieldOffset(0)]
+        public SetRaytracingPipelineDesc raytracingPipeline;
+        [FieldOffset(0)]
+        public SetGenericPipelineDesc genericPipeline;
+    }
+
+    private __union _desc;
+
+    [UnscopedRef]
+    public ref SetWorkGraphDesc WorkGraph => ref _desc.workGraph;
+
+    [UnscopedRef]
+    public ref SetRaytracingPipelineDesc RaytracingPipeline => ref _desc.raytracingPipeline;
+
+    [UnscopedRef]
+    public ref SetGenericPipelineDesc GenericPipeline => ref _desc.genericPipeline;
+
+    public static SetProgramDesc ForWorkGraph(
+        ProgramIdentifier identifier,
+        ulong backingMemoryAddress,
+        ulong backingMemorySize,
+        SetWorkGraphFlags flags = SetWorkGraphFlags.None,
+        ulong localRootTableAddress = 0,
+        ulong localRootTableSize = 0,
+        ulong localRootTableStride = 0)
+    {
+        var desc = new SetProgramDesc { Type = ProgramType.WorkGraph };
+        desc.WorkGraph = new SetWorkGraphDesc
+        {
+            ProgramIdentifier = identifier,
+            Flags = flags,
+            BackingMemoryAddress = backingMemoryAddress,
+            BackingMemorySize = backingMemorySize,
+            NodeLocalRootArgumentsTableAddress = localRootTableAddress,
+            NodeLocalRootArgumentsTableSizeInBytes = localRootTableSize,
+            NodeLocalRootArgumentsTableStrideInBytes = localRootTableStride,
+        };
+        return desc;
+    }
+
+    public static SetProgramDesc ForRaytracing(ProgramIdentifier identifier)
+    {
+        var desc = new SetProgramDesc { Type = ProgramType.RaytracingPipeline };
+        desc.RaytracingPipeline = new SetRaytracingPipelineDesc { ProgramIdentifier = identifier };
+        return desc;
+    }
+
+    public static SetProgramDesc ForGeneric(ProgramIdentifier identifier)
+    {
+        var desc = new SetProgramDesc { Type = ProgramType.GenericPipeline };
+        desc.GenericPipeline = new SetGenericPipelineDesc { ProgramIdentifier = identifier };
+        return desc;
     }
 }
 
@@ -1432,6 +1543,7 @@ public enum TextureFormat
     R16_UNorm,
     R16_SNorm,
     R16_Float,
+    R32_Float,
     R32_UInt,
     R32_SInt,
 
@@ -1441,6 +1553,7 @@ public enum TextureFormat
     R16G16_SNorm,
     R16G16_Float,
     R32G32_Float,
+    R32G32_UInt,
 
     R8G8B8A8_UNorm,
     R8G8B8A8_SNorm,

@@ -32,6 +32,7 @@ internal static class AssetEntryFactory
                 ? new ComputeShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies)
                 : new ShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies),
             AssetType.ComputeShader => new ComputeShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies),
+            AssetType.WorkGraph => new WorkGraphAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies),
             AssetType.Scene => new SceneAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
             AssetType.Audio => throw new NotImplementedException(),
             AssetType.Video => throw new NotImplementedException(),

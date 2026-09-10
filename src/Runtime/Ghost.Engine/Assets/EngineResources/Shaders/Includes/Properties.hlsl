@@ -70,13 +70,20 @@ struct MeshData
     uint materialSlotCount;
 };
 
-#if defined(__GRAPHICS__)
-GraphicsPushConstantData g_PushConstantData : register(b0);
-#elif defined(__COMPUTE__)
-ComputePushConstantData g_PushConstantData : register(b0);
-#elif defined(__WORK_GRAPH__)
+#if defined(__WORK_GRAPH__)
 #define WorkGraphPushConstantData ComputePushConstantData
-WorkGraphPushConstantData g_PushConstantData : register(b0);
 #endif
+
+cbuffer PushConstants : register(b0)
+{
+#if defined(__GRAPHICS__)
+    GraphicsPushConstantData g_PushConstantData;
+#elif defined(__COMPUTE__)
+    ComputePushConstantData g_PushConstantData;
+#elif defined(__WORK_GRAPH__)
+    WorkGraphPushConstantData g_PushConstantData;
+#endif
+};
+
 
 #endif // GHOST_PROPERTIES_HLSL

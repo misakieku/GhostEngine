@@ -83,6 +83,15 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         return (uint)handle.ID;
     }
 
+    public uint AllocateRawBufferSRV(Handle<GPUBuffer> buffer, uint offsetInBytes, uint sizeInBytes)
+    {
+        return (uint)Interlocked.Increment(ref _nextToken);
+    }
+
+    public void ReleaseRawBufferSRV(uint descriptorIndex)
+    {
+    }
+
     public ulong GetIntermediateResourceSize(Handle<GPUResource> resource, uint firstSubResource, uint numSubResources)
     {
         return 0; // For testing, we can return 0 because we don't actually allocate memory.

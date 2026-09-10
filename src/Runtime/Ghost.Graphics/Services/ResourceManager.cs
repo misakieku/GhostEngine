@@ -65,6 +65,8 @@ public sealed partial class ResourceManager : IDisposable
     /// </summary>
     public uint MaterialIndexBufferBindlessIndex => _resourceDatabase.GetBindlessIndex(_materialIndexBuffer.AsResource());
 
+    public IResourceAllocator ResourceAllocator => _resourceAllocator;
+
     public ResourceManager(IRenderDevice renderDevice, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase)
     {
         _renderDevice = renderDevice;

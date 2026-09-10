@@ -158,6 +158,21 @@ public interface IRenderPipelineSettings
 
 public class GhostRenderPipelineSettings : IRenderPipelineSettings
 {
+    /// <summary>
+    /// Target screen-space pixel error threshold for meshlet DAG LOD refinement.
+    /// </summary>
+    public float MeshletLodErrorThreshold { get; set; } = 1.0f;
+
+    /// <summary>
+    /// Enables Nanite-style two-pass HZB occlusion culling.
+    /// </summary>
+    public bool EnableTwoPassHZB { get; set; } = true;
+
+    /// <summary>
+    /// Enables HZB occlusion testing during meshlet culling.
+    /// </summary>
+    public bool EnableOcclusionCulling { get; set; } = true;
+
     public IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager)
     {
         return new GhostRenderPipeline(renderEngine, assetManager, this);

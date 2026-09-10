@@ -1,4 +1,5 @@
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.RHI;
@@ -24,9 +25,9 @@ public struct PushConstantsData
     [FieldOffset(8)]
     public uint propertyBuffer;
 
-    public ReadOnlySpan<uint> AsUInts()
+    public readonly ReadOnlySpan<uint> AsUInts()
     {
-        return MemoryMarshal.CreateReadOnlySpan(ref frameBuffer, (int)NUM_32BITS_VALUE);
+        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in frameBuffer), (int)NUM_32BITS_VALUE);
     }
 }
 

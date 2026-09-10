@@ -538,6 +538,7 @@ public sealed class RenderGraph : IDisposable
 
         using var graph = result.Value;
         _context.RelativeScale = graph.scale;
+        _context.ResetPropertyAllocator();
         var error = _executor.Execute(
             executionContext,
             _context,
@@ -590,10 +591,21 @@ public sealed class RenderGraph : IDisposable
         };
     }
 
+    public void SetFrameData(uint frameBuffer)
+    {
+        _context.SetFrameData(frameBuffer);
+    }
+
+    public void SetViewData(uint viewBuffer)
+    {
+        _context.SetViewData(viewBuffer);
+    }
+
     public void Dispose()
     {
         _resourceRegistry.Dispose();
         _compiler.Dispose();
+        _context.Dispose();
 
         for (var i = 0; i < _passes.Count; i++)
         {

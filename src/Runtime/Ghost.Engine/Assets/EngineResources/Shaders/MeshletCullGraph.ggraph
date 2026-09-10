@@ -1,0 +1,449 @@
+compute "Internal/MeshletCullGraph"
+{
+    properties
+    {
+        uint hzbMipCount;
+        uint hzbWidth;
+        uint hzbHeight;
+        uint cullPassIndex;
+        uint visibleMeshletsUav;
+        uint occludedMeshletsUav;
+        uint counterBufferUav;
+        uint maxVisibleMeshlets;
+        float lodErrorThreshold;
+        uint instanceCount;
+        uint hzbMip0;
+        uint hzbMip1;
+        uint hzbMip2;
+        uint hzbMip3;
+        uint hzbMip4;
+        uint hzbMip5;
+        uint hzbMip6;
+        uint hzbMip7;
+        uint hzbMip8;
+        uint hzbMip9;
+        uint hzbMip10;
+        uint hzbMip11;
+        uint hzbMip12;
+        uint hzbMip13;
+        uint hzbMip14;
+        uint hzbMip15;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Includes/Properties.hlsl";
+        "EngineResources/Shaders/Includes/CullCommon.hlsl";
+    }
+
+    hlsl
+    {
+        struct HierarchyNodeRecord
+        {
+            uint instanceIndex;
+            uint nodeIndex;
+            uint meshBufferIndex;
+        };
+
+        struct MeshletCandidateRecord
+        {
+            uint instanceIndex;
+            uint meshletIndex;
+            uint meshBufferIndex;
+        };
+
+        struct VisibleMeshletEntry
+        {
+            uint instanceIndex;
+            uint meshletIndex;
+        };
+
+        // Node 1: Entry point for instance-level culling in Pass 1
+        [Shader("node")]
+        [NodeLaunch("broadcasting")]
+        [NodeIsProgramEntry]
+        [NodeDispatchGrid(1, 1, 1)]
+        [NumThreads(64, 1, 1)]
+        void InstanceCullNode(
+            uint3 dispatchThreadId : SV_DispatchThreadID,
+            [NodeId("HierarchyTraverseNode")] [MaxRecords(64)] NodeOutput<HierarchyNodeRecord> hierarchyQueue,
+            [NodeId("MeshletCullNode")] [MaxRecords(64)] NodeOutput<MeshletCandidateRecord> meshletQueue)
+        {
+            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+
+            uint instanceIndex = dispatchThreadId.x;
+            if (instanceIndex >= props.instanceCount)
+            {
+                return;
+            }
+
+            FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+            ViewData view = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
+
+            ByteAddressBuffer sceneBuffer = GET_BUFFER(frame.instanceBuffer);
+            InstanceData instance = sceneBuffer.Load<InstanceData>(instanceIndex * sizeof(InstanceData));
+
+            if (instance.meshBuffer == 0 || instance.meshBuffer == 0xFFFFFFFF)
+            {
+                return;
+            }
+
+            ByteAddressBuffer meshBuffer = GET_BUFFER(instance.meshBuffer);
+            MeshData mesh = meshBuffer.Load<MeshData>(0);
+
+            float3 worldMin, worldMax;
+            TransformAABB(mesh.worldBoundsMin, mesh.worldBoundsMax, instance.localToWorld, worldMin, worldMax);
+
+            float4x4 viewProj = mul(view.projectionMatrix, view.viewMatrix);
+
+            FrustumTestResult frustumRes = FrustumCullAABB(worldMin, worldMax, viewProj);
+            if (!frustumRes.isVisible)
+            {
+                return;
+            }
+
+            uint hzbMips[16] = {
+                props.hzbMip0, props.hzbMip1, props.hzbMip2, props.hzbMip3,
+                props.hzbMip4, props.hzbMip5, props.hzbMip6, props.hzbMip7,
+                props.hzbMip8, props.hzbMip9, props.hzbMip10, props.hzbMip11,
+                props.hzbMip12, props.hzbMip13, props.hzbMip14, props.hzbMip15
+            };
+
+            if (!frustumRes.intersectsNearPlane && props.hzbMipCount > 0)
+            {
+                float4 screenRect;
+                float nearestDepth;
+                if (ProjectAABBToScreen(worldMin, worldMax, viewProj, screenRect, nearestDepth))
+                {
+                    if (HZBOcclusionTest(screenRect, nearestDepth, props.hzbMipCount, props.hzbWidth, props.hzbHeight, hzbMips))
+                    {
+                        if (props.cullPassIndex == 0)
+                        {
+                            RWStructuredBuffer<VisibleMeshletEntry> occludedBuffer = ResourceDescriptorHeap[props.occludedMeshletsUav];
+                            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBufferUav];
+
+                            uint count = mesh.meshletCount;
+                            uint baseSlot;
+                            counterBuf.InterlockedAdd(4, count, baseSlot);
+
+                            for (uint m = 0; m < count && (baseSlot + m) < props.maxVisibleMeshlets; ++m)
+                            {
+                                VisibleMeshletEntry entry;
+                                entry.instanceIndex = instanceIndex;
+                                entry.meshletIndex = m;
+                                occludedBuffer[baseSlot + m] = entry;
+                            }
+                        }
+                        return;
+                    }
+                }
+            }
+
+            if (mesh.meshletHierarchyBuffer != 0 && mesh.lodLevelCount > 1)
+            {
+                float3 worldCenter = (worldMin + worldMax) * 0.5f;
+                float worldRadius = length(worldMax - worldCenter);
+                float scale = length(float3(instance.localToWorld[0][0], instance.localToWorld[1][0], instance.localToWorld[2][0]));
+
+                ByteAddressBuffer hierarchyBuf = GET_BUFFER(mesh.meshletHierarchyBuffer);
+                uint selectedLOD = 0;
+
+                // Evaluate from coarsest level down to 1
+                for (int lvl = (int)mesh.lodLevelCount - 1; lvl >= 1; --lvl)
+                {
+                    MeshletHierarchyNode prevLodRoot = hierarchyBuf.Load<MeshletHierarchyNode>((uint)(lvl - 1) * sizeof(MeshletHierarchyNode));
+                    if (prevLodRoot.error < 3.4e38F && EvaluateLODDetailSufficient(
+                        prevLodRoot.error * scale,
+                        worldCenter,
+                        worldRadius,
+                        view.cameraPosition,
+                        view.projectionMatrix[1][1],
+                        view.screenSize.y,
+                        props.lodErrorThreshold))
+                    {
+                        selectedLOD = (uint)lvl;
+                        break;
+                    }
+                }
+
+                ThreadNodeOutputRecords<HierarchyNodeRecord> outRec = hierarchyQueue.GetThreadNodeOutputRecords(1);
+                outRec.Get().instanceIndex = instanceIndex;
+                outRec.Get().nodeIndex = selectedLOD;
+                outRec.Get().meshBufferIndex = instance.meshBuffer;
+                outRec.OutputComplete();
+            }
+            else
+            {
+                uint count = min(mesh.meshletCount, 64u);
+                ThreadNodeOutputRecords<MeshletCandidateRecord> outGroup = meshletQueue.GetThreadNodeOutputRecords(count);
+                for (uint i = 0; i < count; ++i)
+                {
+                    outGroup[i].instanceIndex = instanceIndex;
+                    outGroup[i].meshletIndex = i;
+                    outGroup[i].meshBufferIndex = instance.meshBuffer;
+                }
+                outGroup.OutputComplete();
+            }
+        }
+
+        // Node 2: Hierarchical LOD DAG traversal
+        [Shader("node")]
+        [NodeLaunch("broadcasting")]
+        [NodeDispatchGrid(1, 1, 1)]
+        [NumThreads(32, 1, 1)]
+        [NodeMaxRecursionDepth(16)]
+        void HierarchyTraverseNode(
+            DispatchNodeInputRecord<HierarchyNodeRecord> inputRecord,
+            uint3 dispatchThreadId : SV_DispatchThreadID,
+            [NodeId("HierarchyTraverseNode")] [MaxRecords(8)] NodeOutput<HierarchyNodeRecord> selfQueue,
+            [NodeId("MeshletCullNode")] [MaxRecords(64)] NodeOutput<MeshletCandidateRecord> meshletQueue)
+        {
+            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+            HierarchyNodeRecord rec = inputRecord.Get();
+
+            FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+            ViewData view = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
+
+            ByteAddressBuffer sceneBuffer = GET_BUFFER(frame.instanceBuffer);
+            InstanceData instance = sceneBuffer.Load<InstanceData>(rec.instanceIndex * sizeof(InstanceData));
+
+            ByteAddressBuffer meshBuffer = GET_BUFFER(rec.meshBufferIndex);
+            MeshData mesh = meshBuffer.Load<MeshData>(0);
+
+            ByteAddressBuffer hierarchyBuf = GET_BUFFER(mesh.meshletHierarchyBuffer);
+            MeshletHierarchyNode node = hierarchyBuf.Load<MeshletHierarchyNode>(rec.nodeIndex * sizeof(MeshletHierarchyNode));
+
+            float3 worldCenter = mul(instance.localToWorld, float4(node.bounds.xyz, 1.0f)).xyz;
+            float worldRadius = node.bounds.w;
+            float3 worldMin = worldCenter - worldRadius;
+            float3 worldMax = worldCenter + worldRadius;
+
+            float4x4 viewProj = mul(view.projectionMatrix, view.viewMatrix);
+
+            FrustumTestResult frustumRes = FrustumCullAABB(worldMin, worldMax, viewProj);
+            if (!frustumRes.isVisible)
+            {
+                return;
+            }
+
+            uint hzbMips[16] = {
+                props.hzbMip0, props.hzbMip1, props.hzbMip2, props.hzbMip3,
+                props.hzbMip4, props.hzbMip5, props.hzbMip6, props.hzbMip7,
+                props.hzbMip8, props.hzbMip9, props.hzbMip10, props.hzbMip11,
+                props.hzbMip12, props.hzbMip13, props.hzbMip14, props.hzbMip15
+            };
+
+            if (!frustumRes.intersectsNearPlane && props.hzbMipCount > 0)
+            {
+                float4 screenRect;
+                float nearestDepth;
+                if (ProjectAABBToScreen(worldMin, worldMax, viewProj, screenRect, nearestDepth))
+                {
+                    if (HZBOcclusionTest(screenRect, nearestDepth, props.hzbMipCount, props.hzbWidth, props.hzbHeight, hzbMips))
+                    {
+                        return;
+                    }
+                }
+            }
+
+            if (node.childCount > 0)
+            {
+                if (dispatchThreadId.x == 0)
+                {
+                    uint childCount = min(node.childCount, 8u);
+                    ThreadNodeOutputRecords<HierarchyNodeRecord> outChildren = selfQueue.GetThreadNodeOutputRecords(childCount);
+                    for (uint c = 0; c < childCount; ++c)
+                    {
+                        outChildren[c].instanceIndex = rec.instanceIndex;
+                        outChildren[c].nodeIndex = node.childOffset + c;
+                        outChildren[c].meshBufferIndex = rec.meshBufferIndex;
+                    }
+                    outChildren.OutputComplete();
+                }
+            }
+            else if (node.groupIndex >= 0)
+            {
+                if (dispatchThreadId.x == 0)
+                {
+                    ByteAddressBuffer groupBuf = GET_BUFFER(mesh.meshletGroupBuffer);
+                    MeshletGroup group = groupBuf.Load<MeshletGroup>(node.groupIndex * sizeof(MeshletGroup));
+
+                    uint count = min(group.meshletCount, 64u);
+                    ThreadNodeOutputRecords<MeshletCandidateRecord> outGroup = meshletQueue.GetThreadNodeOutputRecords(count);
+                    for (uint i = 0; i < count; ++i)
+                    {
+                        outGroup[i].instanceIndex = rec.instanceIndex;
+                        outGroup[i].meshletIndex = group.meshletStartIndex + i;
+                        outGroup[i].meshBufferIndex = rec.meshBufferIndex;
+                    }
+                    outGroup.OutputComplete();
+                }
+            }
+        }
+
+        // Node 3: Fine cluster/meshlet culling and emission of visible meshlet indices
+        [Shader("node")]
+        [NodeLaunch("thread")]
+        void MeshletCullNode(
+            ThreadNodeInputRecord<MeshletCandidateRecord> inputRecord)
+        {
+            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+            MeshletCandidateRecord rec = inputRecord.Get();
+
+            FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+            ViewData view = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
+
+            ByteAddressBuffer sceneBuffer = GET_BUFFER(frame.instanceBuffer);
+            InstanceData instance = sceneBuffer.Load<InstanceData>(rec.instanceIndex * sizeof(InstanceData));
+
+            ByteAddressBuffer meshBuffer = GET_BUFFER(rec.meshBufferIndex);
+            MeshData mesh = meshBuffer.Load<MeshData>(0);
+
+            ByteAddressBuffer meshletBuf = GET_BUFFER(mesh.meshletBuffer);
+            Meshlet meshlet = meshletBuf.Load<Meshlet>(rec.meshletIndex * sizeof(Meshlet));
+
+            float3 worldMin, worldMax;
+            TransformAABB(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld, worldMin, worldMax);
+
+            float4x4 viewProj = mul(view.projectionMatrix, view.viewMatrix);
+
+            FrustumTestResult frustumRes = FrustumCullAABB(worldMin, worldMax, viewProj);
+            if (!frustumRes.isVisible)
+            {
+                return;
+            }
+
+            uint hzbMips[16] = {
+                props.hzbMip0, props.hzbMip1, props.hzbMip2, props.hzbMip3,
+                props.hzbMip4, props.hzbMip5, props.hzbMip6, props.hzbMip7,
+                props.hzbMip8, props.hzbMip9, props.hzbMip10, props.hzbMip11,
+                props.hzbMip12, props.hzbMip13, props.hzbMip14, props.hzbMip15
+            };
+
+            bool isOccluded = false;
+            if (!frustumRes.intersectsNearPlane && props.hzbMipCount > 0)
+            {
+                float4 screenRect;
+                float nearestDepth;
+                if (ProjectAABBToScreen(worldMin, worldMax, viewProj, screenRect, nearestDepth))
+                {
+                    isOccluded = HZBOcclusionTest(screenRect, nearestDepth, props.hzbMipCount, props.hzbWidth, props.hzbHeight, hzbMips);
+                }
+            }
+
+            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBufferUav];
+
+            if (isOccluded)
+            {
+                if (props.cullPassIndex == 0)
+                {
+                    RWStructuredBuffer<VisibleMeshletEntry> occludedBuffer = ResourceDescriptorHeap[props.occludedMeshletsUav];
+                    uint slot;
+                    counterBuf.InterlockedAdd(4, 1, slot);
+                    if (slot < props.maxVisibleMeshlets)
+                    {
+                        VisibleMeshletEntry entry;
+                        entry.instanceIndex = rec.instanceIndex;
+                        entry.meshletIndex = rec.meshletIndex;
+                        occludedBuffer[slot] = entry;
+                    }
+                }
+                return;
+            }
+
+            RWStructuredBuffer<VisibleMeshletEntry> visibleBuffer = ResourceDescriptorHeap[props.visibleMeshletsUav];
+            uint slot;
+            uint counterOffset = props.cullPassIndex == 0 ? 0 : 8;
+            counterBuf.InterlockedAdd(counterOffset, 1, slot);
+
+            if (slot < props.maxVisibleMeshlets)
+            {
+                VisibleMeshletEntry entry;
+                entry.instanceIndex = rec.instanceIndex;
+                entry.meshletIndex = rec.meshletIndex;
+                visibleBuffer[slot] = entry;
+            }
+        }
+
+        // Node 4: Pass 2 late culling for previously occluded meshlets against current HZB
+        [Shader("node")]
+        [NodeLaunch("broadcasting")]
+        [NodeIsProgramEntry]
+        [NodeDispatchGrid(1, 1, 1)]
+        [NumThreads(64, 1, 1)]
+        void OccludedMeshletCullNode(
+            uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+
+            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBufferUav];
+            uint occludedCount = counterBuf.Load(4);
+
+            uint itemIndex = dispatchThreadId.x;
+            if (itemIndex >= occludedCount)
+            {
+                return;
+            }
+
+            StructuredBuffer<VisibleMeshletEntry> occludedBuffer = ResourceDescriptorHeap[props.occludedMeshletsUav];
+            VisibleMeshletEntry rec = occludedBuffer[itemIndex];
+
+            FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+            ViewData view = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
+
+            ByteAddressBuffer sceneBuffer = GET_BUFFER(frame.instanceBuffer);
+            InstanceData instance = sceneBuffer.Load<InstanceData>(rec.instanceIndex * sizeof(InstanceData));
+
+            ByteAddressBuffer meshBuffer = GET_BUFFER(instance.meshBuffer);
+            MeshData mesh = meshBuffer.Load<MeshData>(0);
+
+            ByteAddressBuffer meshletBuf = GET_BUFFER(mesh.meshletBuffer);
+            Meshlet meshlet = meshletBuf.Load<Meshlet>(rec.meshletIndex * sizeof(Meshlet));
+
+            float3 worldMin, worldMax;
+            TransformAABB(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld, worldMin, worldMax);
+
+            float4x4 viewProj = mul(view.projectionMatrix, view.viewMatrix);
+
+            FrustumTestResult frustumRes = FrustumCullAABB(worldMin, worldMax, viewProj);
+            if (!frustumRes.isVisible)
+            {
+                return;
+            }
+
+            uint hzbMips[16] = {
+                props.hzbMip0, props.hzbMip1, props.hzbMip2, props.hzbMip3,
+                props.hzbMip4, props.hzbMip5, props.hzbMip6, props.hzbMip7,
+                props.hzbMip8, props.hzbMip9, props.hzbMip10, props.hzbMip11,
+                props.hzbMip12, props.hzbMip13, props.hzbMip14, props.hzbMip15
+            };
+
+            if (!frustumRes.intersectsNearPlane && props.hzbMipCount > 0)
+            {
+                float4 screenRect;
+                float nearestDepth;
+                if (ProjectAABBToScreen(worldMin, worldMax, viewProj, screenRect, nearestDepth))
+                {
+                    if (HZBOcclusionTest(screenRect, nearestDepth, props.hzbMipCount, props.hzbWidth, props.hzbHeight, hzbMips))
+                    {
+                        return;
+                    }
+                }
+            }
+
+            RWStructuredBuffer<VisibleMeshletEntry> visibleBuffer = ResourceDescriptorHeap[props.visibleMeshletsUav];
+            uint slot;
+            counterBuf.InterlockedAdd(8, 1, slot);
+
+            if (slot < props.maxVisibleMeshlets)
+            {
+                VisibleMeshletEntry entry;
+                entry.instanceIndex = rec.instanceIndex;
+                entry.meshletIndex = rec.meshletIndex;
+                visibleBuffer[slot] = entry;
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

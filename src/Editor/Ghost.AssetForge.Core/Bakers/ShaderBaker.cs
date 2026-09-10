@@ -28,7 +28,7 @@ public partial class ShaderBakeSettings : ObservableObject, IBakeSettings
     } = CompilerOption.None;
 }
 
-[AssetBaker(Extensions = [".gshdr", ".gcomp"], Type = AssetType.Shader, SettingsType = typeof(ShaderBakeSettings))]
+[AssetBaker(Extensions = [".gshdr", ".gcomp", ".ggraph"], Type = AssetType.Shader, SettingsType = typeof(ShaderBakeSettings))]
 internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner, IDisposable
 {
     private readonly DXCShaderCompiler _compiler = new DXCShaderCompiler();
@@ -326,6 +326,66 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner, IDisp
                     code.Dispose();
                 }
             }
+
+            passHeader.dataOffset = passDataStart - assetStartOffset;
+            passHeader.dataSize = dst.Position - passDataStart;
+            var endOfPass = dst.Position;
+            dst.Position = passHeaderOffset;
+            dst.Write(passHeader);
+            dst.Position = endOfPass;
+            var endOfAsset = dst.Position;
+            dst.Position = assetStartOffset;
+            dst.Write(header);
+            dst.Position = endOfAsset;
+        }
+        else if (string.Equals(ext, ".ggraph", StringComparison.Ordinal))
+        {
+            var syntax = DSLShaderCompiler.ParseComputeShaderSyntax(codeStr).GetValueOrThrow();
+            var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
+
+            var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
+            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader).GetValueOrThrow();
+
+            var assetStartOffset = dst.Position;
+            var header = new ShaderContentHeader
+            {
+                shaderType = ShaderType.WorkGraph,
+                passCount = 1,
+                propertyBufferSize = descriptor.PropertyBufferSize,
+                shaderModel = ShaderModel.SM_6_8,
+                shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
+                familyId = ShaderIdentity.GetShaderId(descriptor.Name),
+                layoutHash = GetLayoutHash(reflectionData, descriptor.PropertyBufferSize, descriptor.Name),
+            };
+
+            dst.Write(header);
+            WriteName(dst, assetStartOffset, descriptor.Name, ref header.nameOffset, ref header.nameSize);
+
+            var passHeaderOffset = dst.Position;
+            var passHeader = new ShaderContentHeader.PassHeader
+            {
+                entryPointCount = 1,
+                semantic = PassSemantic.Custom,
+                stageMask = ShaderStageMask.None,
+                passId = ShaderIdentity.GetPassId(header.shaderId, 0),
+                localPipeline = PipelineState.Default,
+            };
+            dst.Write(passHeader); // Placeholder
+            WriteName(dst, assetStartOffset, descriptor.Name, ref passHeader.nameOffset, ref passHeader.nameSize);
+            var passDataStart = dst.Position;
+
+            var shaderCode = descriptor.ShaderCodes.Length > 0 ? descriptor.ShaderCodes[0] : default;
+            var config = configTemplate with
+            {
+                stage = ShaderStage.Library,
+                model = ShaderModel.SM_6_8,
+                defines = descriptor.Defines,
+                entryPoint = string.Empty,
+                shaderCode = shaderCode.code,
+            };
+
+            using var libraryByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+            await WriteShaderEntries(dst, passDataStart, cancellationToken, (ShaderStage.Library, libraryByteCode));
 
             passHeader.dataOffset = passDataStart - assetStartOffset;
             passHeader.dataSize = dst.Position - passDataStart;

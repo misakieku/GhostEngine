@@ -393,6 +393,16 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
                     res.backingResource = _resourceManager.CreatePooledBuffer(in res.bufferDesc).AsResource();
                 }
             }
+            else if (res.type == RGResourceType.Buffer && res.bufferDesc.HeapType == HeapType.Upload)
+            {
+                var name = GetResourceName(i);
+                res.backingResource = _allocator.CreateBuffer(in res.bufferDesc, name).AsResource();
+                if (res.backingResource.IsInvalid)
+                {
+                    return Error.InvalidState;
+                }
+                _allocatedBackingResources.Add(res.backingResource);
+            }
             else
             {
                 var placedIndex = plan.GetPlacedResourceIndex(i);

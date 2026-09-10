@@ -60,10 +60,11 @@ namespace Ghost.Generator
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            // 1. Watch all .gshdr and .gcomp AdditionalFiles
+            // 1. Watch all .gshdr, .gcomp, and .ggraph AdditionalFiles
             var shaderFiles = context.AdditionalTextsProvider
                 .Where(file => file.Path.EndsWith(".gshdr", StringComparison.OrdinalIgnoreCase) ||
-                               file.Path.EndsWith(".gcomp", StringComparison.OrdinalIgnoreCase))
+                               file.Path.EndsWith(".gcomp", StringComparison.OrdinalIgnoreCase) ||
+                               file.Path.EndsWith(".ggraph", StringComparison.OrdinalIgnoreCase))
                 .Select((text, ct) =>
                 {
                     var content = text.GetText(ct)?.ToString();

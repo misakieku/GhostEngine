@@ -171,9 +171,15 @@ public class PackService
                 var nameWithoutExt = Path.GetFileNameWithoutExtension(relativePath);
                 var key = Path.Combine(dir, nameWithoutExt).Replace('\\', '/');
                 var cacheFileInfo = new FileInfo(cacheFile);
+                if (cacheFileInfo.Length <= CacheFileHeader.SIZE)
+                {
+                    Logger.Error($"Cache file for {relativePath} is empty or corrupted ({cacheFileInfo.Length} bytes). Please rebake.");
+                    continue;
+                }
+
                 // Cache files start with a 16-byte CacheFileHeader; it is not part of the
                 // compressed payload, so exclude it from the size estimate.
-                var uncompressedSize = Math.Max(0, cacheFileInfo.Length - CacheFileHeader.SIZE);
+                var uncompressedSize = cacheFileInfo.Length - CacheFileHeader.SIZE;
 
                 // Should we start a new pack file?
                 // uncompressedSize is the size of the *uncompressed* cache payload (the
@@ -217,7 +223,7 @@ public class PackService
                     UncompressedSize = uncompressedSize,
                 });
 
-                if (metadata.Type == AssetType.Shader || metadata.Type == AssetType.ComputeShader)
+                if (metadata.Type == AssetType.Shader || metadata.Type == AssetType.ComputeShader || metadata.Type == AssetType.WorkGraph)
                 {
                     manifest.Shaders.Add(ReadShaderCatalogEntry(cacheFile, metadata.Id));
                 }

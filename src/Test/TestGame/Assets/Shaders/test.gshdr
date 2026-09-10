@@ -4,7 +4,7 @@ shader "MyShader/Standard"
     {
         pipeline
         {
-            ztest = less_equal;
+            ztest = greater_equal;
             zwrite = on;
             cull = back;
             blend = opaque;
@@ -29,83 +29,29 @@ shader "MyShader/Standard"
                 nointerpolation uint meshletID : MESHLET_ID;
             };
 
-            struct ASPayload
+            struct VisibleMeshletEntry
             {
+                uint instanceIndex;
                 uint meshletIndex;
             };
-
-            groupshared ASPayload s_Payload;
-
-            float BoundsError(float3 center, float radius, float error, float3 cameraPos, float cameraProj, float cameraZNear)
-            {
-                float d = length(center - cameraPos) - radius;
-                return error / max(d, cameraZNear) * (cameraProj * 0.5f);
-            }
-
-            [numthreads(1, 1, 1)]
-            void ASMain(uint3 groupID : SV_GroupID)
-            {
-                FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
-                InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, g_PushConstantData.instanceIndex);
-                MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
-
-                uint meshletIndex = groupID.x;
-                s_Payload.meshletIndex = groupID.x;
-
-                ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
-                Meshlet meshlet = meshletBuffer.Load<Meshlet>(meshletIndex * sizeof(Meshlet));
-
-                ViewData viewData = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
-
-                // Assume uniform scale
-                float scale = length(float3(instanceData.localToWorld[0][0], instanceData.localToWorld[1][0], instanceData.localToWorld[2][0]));
-
-                // Nanite projection metric: cot(fovy / 2) -> projectionMatrix[1][1]
-                // Multiply by screenSize.y to get error in pixels.
-                float cameraProj = viewData.projectionMatrix[1][1] * viewData.screenSize.y; 
-
-                float threshold = 1.0f;
-
-                // Calculate THIS cluster's error using ITS OWN bounding sphere
-                float3 clusterCenter = mul(instanceData.localToWorld, float4(meshlet.boundingSphere.xyz, 1.0f)).xyz;
-                float clusterRadius = meshlet.boundingSphere.w * scale;
-                float clusterError = meshlet.clusterError * scale;
-                float clusterProjError = BoundsError(clusterCenter, clusterRadius, clusterError, viewData.cameraPosition, cameraProj, viewData.nearClip);
-
-                // Calculate the PARENT'S error using the PARENT'S bounding sphere
-                float3 parentCenter = mul(instanceData.localToWorld, float4(meshlet.parentBoundingSphere.xyz, 1.0f)).xyz;
-                float parentRadius = meshlet.parentBoundingSphere.w * scale;
-                float parentError = meshlet.parentError * scale;
-                float parentProjError = BoundsError(parentCenter, parentRadius, parentError, viewData.cameraPosition, cameraProj, viewData.nearClip);
-
-                bool isRoot = meshlet.parentError >= 3.402823466e+38F; // FLT_MAX
-                uint emitMeshlet = ((parentProjError > threshold || isRoot) && clusterProjError <= threshold) ? 1u : 0u;
-
-                // Failsafe: if we are at the finest LOD (LOD 0) and the error is STILL too high,
-                // we must render it anyway because there is no more detailed geometry to fall back on.
-                uint lodLevel = (meshlet.packedCounts >> 24) & 0xFFu;
-                if (lodLevel == 0u && parentProjError > threshold)
-                {
-                    emitMeshlet = 1u;
-                }
-
-                DispatchMesh(emitMeshlet, 1u, 1u, s_Payload);
-            }
 
             [numthreads(128, 1, 1)] // 128 threads to cover max 64 vertices and 124 triangles
             [outputtopology("triangle")]
             void MSMain(
-                in payload ASPayload meshPayload,
+                uint3 groupID : SV_GroupID,
                 uint3 groupThreadID : SV_GroupThreadID,
                 out vertices PixelInput outVerts[64],
                 out indices uint3 outTris[124])
             {
+                StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[g_PushConstantData.instanceIndex];
+                VisibleMeshletEntry visible = visibleMeshlets[groupID.x];
+
                 FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
-                InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, g_PushConstantData.instanceIndex);
+                InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, visible.instanceIndex);
                 MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
                 ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
-                Meshlet meshlet = meshletBuffer.Load<Meshlet>(meshPayload.meshletIndex * sizeof(Meshlet));
+                Meshlet meshlet = meshletBuffer.Load<Meshlet>(visible.meshletIndex * sizeof(Meshlet));
 
                 uint vertexCount = meshlet.packedCounts & 0xFFu;
                 uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
@@ -130,7 +76,7 @@ shader "MyShader/Standard"
                     outVerts[groupThreadID.x].color = v.color;
                     outVerts[groupThreadID.x].normal = normalize(mul((float3x3)instanceData.localToWorld, v.normal));
                     outVerts[groupThreadID.x].uv = v.uv;
-                    outVerts[groupThreadID.x].meshletID = meshPayload.meshletIndex;
+                    outVerts[groupThreadID.x].meshletID = visible.meshletIndex;
                 }
 
                 // Write triangle output (1 thread processes 1 triangle)
@@ -161,7 +107,6 @@ shader "MyShader/Standard"
             }
         }
 
-        as "hlsl_block" : "ASMain";
         ms "hlsl_block" : "MSMain";
         ps "hlsl_block" : "PSMain";
     }

@@ -99,6 +99,11 @@ public class BakerRegistry : IDisposable
             return AssetType.ComputeShader;
         }
 
+        if (string.Equals(extension, ".ggraph", StringComparison.OrdinalIgnoreCase))
+        {
+            return AssetType.WorkGraph;
+        }
+
         return _extToType.TryGetValue(extension, out var type) ? type : AssetType.Unknown;
     }
 

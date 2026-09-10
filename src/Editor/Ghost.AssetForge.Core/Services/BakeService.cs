@@ -95,7 +95,7 @@ public class BakeService
             virtualPathToFile,
             new ParallelOptions
             {
-                MaxDegreeOfParallelism = Environment.ProcessorCount,
+                MaxDegreeOfParallelism = Environment.ProcessorCount / 2,
                 CancellationToken = cancellationToken
             },
             async (kvp, ct) =>
@@ -150,7 +150,7 @@ public class BakeService
         if (baker != null && settingsType != null && File.Exists(cacheFile) && File.Exists(metaFile))
         {
             var fileinfo = new FileInfo(cacheFile);
-            if (fileinfo.Length != 0)
+            if (fileinfo.Length > CacheFileHeader.SIZE)
             {
                 var srcTime = File.GetLastWriteTimeUtc(sourceFile);
                 var metaTime = File.GetLastWriteTimeUtc(metaFile);
@@ -263,58 +263,135 @@ public class BakeService
             AssetDirectories = _context.AssetDirectories,
         };
 
+        var tempCacheFile = cacheFile + ".tmp";
+        var subAssetStreams = new List<Stream>();
         var subAssetCacheDir = cacheFile + ".sub";
         ctx.SubAssetStreamFactory = subPath =>
         {
             var subCachePath = Path.Combine(subAssetCacheDir, subPath.Replace('/', Path.DirectorySeparatorChar));
             Directory.CreateDirectory(Path.GetDirectoryName(subCachePath)!);
-            return new FileStream(subCachePath, FileMode.Create, FileAccess.Write);
+            var stream = new FileStream(subCachePath, FileMode.Create, FileAccess.Write);
+            lock (subAssetStreams)
+            {
+                subAssetStreams.Add(stream);
+            }
+            return stream;
         };
 
         try
         {
-            await using var fs = new FileStream(cacheFile, FileMode.Create, FileAccess.Write);
-
-            // Write the CacheFileHeader (magic + baker version) before the baker's payload
-            // so future bakes can detect incompatible content formats and force a rebake.
-            // settingsType is guaranteed non-null here: BakerRegistry registers the settings
-            // type alongside the baker, and we returned Skipped above when the baker is null.
-            var cacheHeader = new CacheFileHeader
+            await using (var fs = new FileStream(tempCacheFile, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                bakerVersion = CacheFileHeader.ComputeBakerVersion(baker.GetType(), settingsType!)
-            };
-            cacheHeader.WriteTo(fs);
+                // Write the CacheFileHeader (magic + baker version) before the baker's payload
+                // so future bakes can detect incompatible content formats and force a rebake.
+                // settingsType is guaranteed non-null here: BakerRegistry registers the settings
+                // type alongside the baker, and we returned Skipped above when the baker is null.
+                var cacheHeader = new CacheFileHeader
+                {
+                    bakerVersion = CacheFileHeader.ComputeBakerVersion(baker.GetType(), settingsType!)
+                };
+                cacheHeader.WriteTo(fs);
 
-            await baker.BakeAssetAsync(sourceFile, fs, metadata.Settings, ctx, cancellationToken).ConfigureAwait(false);
+                await baker.BakeAssetAsync(sourceFile, fs, metadata.Settings, ctx, cancellationToken).ConfigureAwait(false);
+            }
+
+            // Close any open sub-asset streams before moving files and saving manifests
+            lock (subAssetStreams)
+            {
+                foreach (var stream in subAssetStreams)
+                {
+                    stream.Dispose();
+                }
+                subAssetStreams.Clear();
+            }
+
+            File.Move(tempCacheFile, cacheFile, overwrite: true);
+
+            if (ctx.SubAssets.Count > 0)
+            {
+                var subManifest = new SubAssetManifest();
+                foreach (var sub in ctx.SubAssets)
+                {
+                    subManifest.SubAssets.Add(new SubAssetManifest.SubAssetRecord(sub.SubPath, sub.Type));
+                }
+                subManifest.Save(cacheFile + ".sub.json");
+
+                foreach (var sub in ctx.SubAssets)
+                {
+                    Logger.Info($"  Sub-asset: {relativePath}#{sub.SubPath} ({sub.Type})");
+                }
+            }
+
+            // Write .deps file if dependencies were tracked or baker is a dependency scanner
+            if (ctx.Dependencies.Count > 0 || baker is IAssetDependencyScanner)
+            {
+                await File.WriteAllLinesAsync(depsFile, ctx.Dependencies, cancellationToken).ConfigureAwait(false);
+            }
+
+            return BakeOutcome.Succeeded;
         }
         catch (OperationCanceledException)
         {
+            CleanupFailedBake(cacheFile, tempCacheFile, subAssetCacheDir, depsFile, subAssetStreams);
             throw;
         }
         catch (Exception ex)
         {
+            CleanupFailedBake(cacheFile, tempCacheFile, subAssetCacheDir, depsFile, subAssetStreams);
             Logger.Error($"Failed to bake {relativePath}: {ex.Message}");
             return BakeOutcome.Failed;
         }
+    }
 
-        if (ctx.SubAssets.Count > 0)
+    private static void CleanupFailedBake(string cacheFile, string tempCacheFile, string subAssetCacheDir, string depsFile, List<Stream> subAssetStreams)
+    {
+        lock (subAssetStreams)
         {
-            var subManifest = new SubAssetManifest();
-            foreach (var sub in ctx.SubAssets)
-                subManifest.SubAssets.Add(new SubAssetManifest.SubAssetRecord(sub.SubPath, sub.Type));
-            subManifest.Save(cacheFile + ".sub.json");
-
-            foreach (var sub in ctx.SubAssets)
-                Logger.Info($"  Sub-asset: {relativePath}#{sub.SubPath} ({sub.Type})");
+            foreach (var stream in subAssetStreams)
+            {
+                try
+                {
+                    stream.Dispose();
+                }
+                catch
+                {
+                }
+            }
+            subAssetStreams.Clear();
         }
 
-        // Write .deps file if dependencies were tracked or baker is a dependency scanner
-        if (ctx.Dependencies.Count > 0 || baker is IAssetDependencyScanner)
+        try
         {
-            await File.WriteAllLinesAsync(depsFile, ctx.Dependencies, cancellationToken).ConfigureAwait(false);
-        }
+            if (File.Exists(tempCacheFile))
+            {
+                File.Delete(tempCacheFile);
+            }
 
-        return BakeOutcome.Succeeded;
+            if (File.Exists(cacheFile))
+            {
+                File.Delete(cacheFile);
+            }
+
+            var subJson = cacheFile + ".sub.json";
+            if (File.Exists(subJson))
+            {
+                File.Delete(subJson);
+            }
+
+            if (File.Exists(depsFile))
+            {
+                File.Delete(depsFile);
+            }
+
+            if (Directory.Exists(subAssetCacheDir))
+            {
+                Directory.Delete(subAssetCacheDir, recursive: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning($"Failed to cleanup artifacts after failed bake for {cacheFile}: {ex.Message}");
+        }
     }
 
     private static List<KeyValuePair<string, List<string>>> FindDuplicateBaseNames(Dictionary<string, string> virtualPathToFile)

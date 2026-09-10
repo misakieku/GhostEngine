@@ -33,7 +33,7 @@ public struct AssetReadData : IDisposable
     }
 }
 
-public interface IContentProvider
+public interface IContentProvider : IDisposable
 {
     IReadOnlyList<ShaderCatalogEntry> ShaderCatalog { get; }
     Guid VirtualPathToGuid(string path);
@@ -120,6 +120,7 @@ public partial class AssetManager : IDisposable
     private readonly JobScheduler _jobScheduler;
     private readonly ShaderVariantRegistry _shaderVariants;
     private readonly ComputeShaderRegistry _computeShaders;
+    private readonly WorkGraphRegistry _workGraphs;
 
     private readonly ConcurrentDictionary<Guid, AssetEntry> _entries;
 
@@ -133,6 +134,10 @@ public partial class AssetManager : IDisposable
     /// Metadata registry for standalone compute shaders.
     /// </summary>
     public ComputeShaderRegistry ComputeShaders => _computeShaders;
+    /// <summary>
+    /// Metadata registry for work graphs.
+    /// </summary>
+    public WorkGraphRegistry WorkGraphs => _workGraphs;
 
     internal AssetManager(IResourceDatabase resourceDatabase, ResourceManager resourceManager, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler)
     {
@@ -143,6 +148,7 @@ public partial class AssetManager : IDisposable
         _jobScheduler = jobScheduler;
         _shaderVariants = new ShaderVariantRegistry(resourceManager, contentProvider.ShaderCatalog);
         _computeShaders = new ComputeShaderRegistry(resourceManager, contentProvider.ShaderCatalog);
+        _workGraphs = new WorkGraphRegistry(contentProvider.ShaderCatalog);
 
         _entries = new ConcurrentDictionary<Guid, AssetEntry>();
     }
@@ -324,6 +330,12 @@ public partial class AssetManager : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Guid ResolveAssetID(string virtualPath)
+    {
+        return _contentProvider.VirtualPathToGuid(virtualPath);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IAssetEntry ResolveAsset(Guid assetID)
     {
         if (assetID == Guid.Empty)
@@ -369,11 +381,9 @@ public partial class AssetManager : IDisposable
 
         _entries.Clear();
         _computeShaders.Dispose();
+        _workGraphs.Dispose();
         _shaderVariants.Dispose();
-        if (_contentProvider is IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
+        _contentProvider.Dispose();
 
         GC.SuppressFinalize(this);
     }

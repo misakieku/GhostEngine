@@ -7,6 +7,8 @@ using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
+using static TerraFX.Aliases.D3D12_Alias;
+using static TerraFX.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -259,6 +261,39 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         };
     }
 
+    public uint AllocateRawBufferSRV(Handle<GPUBuffer> buffer, uint offsetInBytes, uint sizeInBytes)
+    {
+        var r = GetResourceRecord(buffer.AsResource());
+        if (r.IsFailure || !r.Value.Allocated)
+        {
+            return uint.MaxValue;
+        }
+
+        var pResource = r.Value.ResourcePtr.Get();
+        var srvDesc = new D3D12_SHADER_RESOURCE_VIEW_DESC
+        {
+            ViewDimension = D3D12_SRV_DIMENSION_BUFFER,
+            Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+            Format = DXGI_FORMAT_R32_TYPELESS,
+        };
+        srvDesc.Buffer.FirstElement = offsetInBytes / 4u;
+        srvDesc.Buffer.NumElements = (sizeInBytes + 3u) / 4u;
+        srvDesc.Buffer.StructureByteStride = 0;
+        srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+
+        var descriptor = _descriptorAllocator.AllocateCbvSrvUav();
+        var cpuHandle = _descriptorAllocator.GetCpuHandle(descriptor);
+        _device.NativeObject.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
+        _descriptorAllocator.CopyToShaderVisible(descriptor);
+
+        return (uint)descriptor.Value;
+    }
+
+    public void ReleaseRawBufferSRV(uint descriptorIndex)
+    {
+        _descriptorAllocator.Release(new Identifier<CbvSrvUavDescriptor>((int)descriptorIndex));
+    }
+
     public string? GetResourceName(Handle<GPUResource> handle)
     {
         Logger.DebugAssert(!_disposed);
@@ -276,33 +311,39 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
     {
         Logger.DebugAssert(!_disposed);
 
-        if (!_resources.TryGetElementAt(handle.ID, handle.Generation, out var record))
+        lock (_writeLock)
         {
-            return;
-        }
+            if (!_resources.TryGetElementAt(handle.ID, handle.Generation, out var record))
+            {
+                return;
+            }
 
-        var entry = new ReleaseEntry(record, _cpuFrame);
+            var entry = new ReleaseEntry(record, _cpuFrame);
 
-        _releaseQueue.Enqueue(entry);
-        _resources.Remove(handle.ID, handle.Generation);
+            _releaseQueue.Enqueue(entry);
+            _resources.Remove(handle.ID, handle.Generation);
 
 #if GHOST_SAFETY_CHECKS
-        _resourceName.Remove(handle, out _);
+            _resourceName.Remove(handle, out _);
 #endif
+        }
     }
 
     public void ReleaseResourceImmediately(Handle<GPUResource> handle)
     {
         Logger.DebugAssert(!_disposed);
 
-        ref var info = ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
-        if (!exist || !info.Allocated)
+        lock (_writeLock)
         {
-            return;
-        }
+            ref var info = ref _resources.GetElementReferenceAt(handle.ID, handle.Generation, out var exist);
+            if (!exist || !info.Allocated)
+            {
+                return;
+            }
 
-        info.Release(_descriptorAllocator);
-        _resources.Remove(handle.ID, handle.Generation);
+            info.Release(_descriptorAllocator);
+            _resources.Remove(handle.ID, handle.Generation);
+        }
     }
 
     public Identifier<Sampler> AddSampler(scoped in SamplerDesc desc, int id)
@@ -499,7 +540,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         foreach (ref var record in _resources)
         {
 #if DEBUG
-            Debug.WriteLine($"[Resource Leak] Resource 0x{record.ResourcePtr:X} is being released without proper disposal. This may indicate a resource leak.");
+            Debug.WriteLine($"[Resource Leak] Resource 0x{(nint)record.ResourcePtr.Get():X} is being released without proper disposal. This may indicate a resource leak.");
 #endif
             record.Release(_descriptorAllocator);
         }

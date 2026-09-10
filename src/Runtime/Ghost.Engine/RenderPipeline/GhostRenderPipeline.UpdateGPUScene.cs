@@ -157,7 +157,12 @@ internal partial class GhostRenderPipeline
         }
     }
 
-    private Handle<ComputeShader> _updateGPUSceneShader = Handle<ComputeShader>.Invalid;
+    internal partial class GPUSceneResource : IPipelineResource
+    {
+        [ResolveAsset("EngineResources/Shaders/UpdateGPUScene")]
+        public Handle<ComputeShader> updateGPUSceneShader;
+    }
+
     private int _lastGpuUpdateProbe = -1;
 
     private void UpdateGPUScene(RenderContext ctx, GhostRenderPayload payload)
@@ -174,14 +179,14 @@ internal partial class GhostRenderPipeline
         }
         _gpuScene.ResizeIfNeeded(ctx.CommandBuffer);
 
-        if (!_updateGPUSceneShader.IsValid)
+        if (!_gpuSceneResource.updateGPUSceneShader.IsValid)
         {
             LogProbe(0, "compute handle invalid.");
             Logger.Warning("UpdateGPUScene shader handle is invalid. Skipping GPU scene update.");
             return;
         }
 
-        var shaderRef = ctx.ResourceManager.GetComputeShaderReference(_updateGPUSceneShader);
+        var shaderRef = ctx.ResourceManager.GetComputeShaderReference(_gpuSceneResource.updateGPUSceneShader);
         if (shaderRef.IsFailure)
         {
             LogProbe(1, "compute handle lookup failed.");
@@ -219,7 +224,7 @@ internal partial class GhostRenderPipeline
         var threadGroups = new uint3((uint)Math.Ceiling(maxCount / 64.0), 1, 1);
 
         LogProbe(4, $"dispatching updates={updateCount}, removes={removeCount}.");
-        ctx.DispatchCompute(_updateGPUSceneShader, 0, in property, threadGroups);
+        ctx.DispatchCompute(_gpuSceneResource.updateGPUSceneShader, 0, in property, threadGroups);
 
         ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(
             _gpuScene.SceneBuffer,

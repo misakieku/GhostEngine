@@ -1178,8 +1178,42 @@ public partial class RenderGraphTest
         Assert.HasCount(3, cachedDump.CommandStream.Where(line => line.Contains("CommandBufferSyncPoint")));
     }
 
-    // ------------------------------------------------------------------------------------------
-    // Phase 1: Structural sync-point command-stream encoding
-    // ------------------------------------------------------------------------------------------
+    [TestMethod]
+    public void TestImportedTextureWithFinalBarrierState_EmitsClosingTransitionToPresent()
+    {
+        var backBufferDesc = new TextureDesc
+        {
+            Width = 1920,
+            Height = 1080,
+            Format = TextureFormat.R8G8B8A8_UNorm,
+            Usage = TextureUsage.RenderTarget
+        };
+        var presentBarrier = new ResourceBarrierData(BarrierLayout.Present, BarrierAccess.NoAccess, BarrierSync.None);
+        var backBufferHandle = _resourceAllocator.CreateTexture(in backBufferDesc);
+        var backBuffer = _renderGraph.ImportTexture(
+            backBufferHandle,
+            initialState: presentBarrier,
+            finalState: presentBarrier,
+            clearColor: new Ghost.Core.Graphics.Color128(0.05f, 0.05f, 0.05f, 1.0f),
+            clearAtFirstUse: true);
 
+        using (var builder = _renderGraph.AddRasterRenderPass<AsyncPlannerPassData>("ForwardPass"))
+        {
+            builder.AllowPassCulling(false);
+            builder.SetColorAttachment(backBuffer, 0);
+            builder.SetPassData(new AsyncPlannerPassData { target = backBuffer });
+            builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080)).GetValueOrThrow();
+
+        var recordedBarriers = GetRecordedBarriers().ToList();
+        var presentBarriers = recordedBarriers
+            .Where(b => b.Resource == backBufferHandle.AsResource() && b.LayoutAfter == BarrierLayout.Present)
+            .ToList();
+
+        Assert.IsNotEmpty(presentBarriers);
+        Assert.AreEqual(BarrierLayout.RenderTarget, presentBarriers[0].LayoutBefore);
+        Assert.AreEqual(BarrierLayout.Present, presentBarriers[0].LayoutAfter);
+    }
 }

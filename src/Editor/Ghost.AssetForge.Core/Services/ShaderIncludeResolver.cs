@@ -48,7 +48,7 @@ public static partial class ShaderIncludeResolver
         {
             ResolveGraphicsShaderDsl(sourceFile, shaderCode, currentFileDir, assetDirectories, virtualShaders, visited, dependencies);
         }
-        else if (ext == ".gcomp")
+        else if (ext == ".gcomp" || ext == ".ggraph")
         {
             ResolveComputeShaderDsl(sourceFile, shaderCode, currentFileDir, assetDirectories, virtualShaders, visited, dependencies);
         }

@@ -64,6 +64,12 @@ public sealed class ShaderVariantRenderingTest
         public Handle<GPUTexture> GetActualTexture(Identifier<RGTexture> texture) => Handle<GPUTexture>.Invalid;
         public Handle<GPUBuffer> GetActualBuffer(Identifier<RGBuffer> buffer) => Handle<GPUBuffer>.Invalid;
 
+        public uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource) => uint.MaxValue;
+        public uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource) => uint.MaxValue;
+        public void SetFrameData(uint frameBuffer) { }
+        public void SetViewData(uint viewBuffer) { }
+        public void SetProperties<TProperty>(scoped in TProperty property) where TProperty : unmanaged { }
+
         public void SetActiveCompute(Handle<ComputeShader> computeShader, int entryIndex)
         {
         }
@@ -81,6 +87,18 @@ public sealed class ShaderVariantRenderingTest
         public void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset, Handle<GPUBuffer> countBuffer, ulong countBufferOffset)
         {
             Executions.Add((maxCommandCount, argumentOffset, countBufferOffset));
+        }
+
+        public void SetProgram(scoped in SetProgramDesc desc)
+        {
+        }
+
+        public void DispatchGraph(scoped in DispatchGraphDesc desc)
+        {
+        }
+
+        public void SetPushConstants(scoped in PushConstantsData pushConstants)
+        {
         }
     }
 

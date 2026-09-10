@@ -192,4 +192,116 @@ public class AssetBakerTests
         var thirdWriteTime = File.GetLastWriteTimeUtc(cachedFile);
         Assert.AreNotEqual(firstWriteTime, thirdWriteTime, "Bake should execute again when source file is modified.");
     }
+
+    [TestMethod]
+    public async Task TestBakeFailure_CleansUpCacheFile_DoesNotLeave16ByteFile()
+    {
+        var projectDir = Path.Combine(_tempDir, "FailedBakeProject");
+        _projectService.CreateProject(projectDir, "FailedBakeProject");
+        _bakeService = new BakeService(_projectService.GetContext(), _bakerRegistry);
+
+        var assetDir = _projectService.AssetDirectories[0];
+        var cacheDir = _projectService.CacheDirectory;
+
+        foreach (var dir in Directory.GetDirectories(assetDir))
+        {
+            Directory.Delete(dir, true);
+        }
+
+        var meshDir = Path.Combine(assetDir, "Meshes");
+        Directory.CreateDirectory(meshDir);
+
+        // Write an invalid/empty OBJ file that will cause MeshBaker to throw
+        var objPath = Path.Combine(meshDir, "corrupt.obj");
+        await File.WriteAllTextAsync(objPath, "# empty obj file with no geometry");
+
+        var meta = new AssetMetadata
+        {
+            Type = AssetType.Mesh,
+            Settings = new MeshBakeSettings()
+        };
+        _projectService.SaveMetadata(objPath + ".meta", meta);
+
+        var result = await _bakeService.BakeProjectAsync();
+        Assert.AreEqual(1, result.Failed, "Corrupt asset should fail to bake.");
+
+        var cachedFile = Path.Combine(cacheDir, "Meshes", "corrupt");
+        var tempFile = cachedFile + ".tmp";
+        Assert.IsFalse(File.Exists(cachedFile), "Cache file should NOT be left behind on failed bake.");
+        Assert.IsFalse(File.Exists(tempFile), "Temporary cache file should NOT be left behind on failed bake.");
+    }
+
+    [TestMethod]
+    public async Task TestBake_When16ByteCorruptFileExists_DoesNotSkipAndRebakes()
+    {
+        var projectDir = Path.Combine(_tempDir, "RebakeCorrupt16ByteProject");
+        _projectService.CreateProject(projectDir, "RebakeCorrupt16ByteProject");
+        _bakeService = new BakeService(_projectService.GetContext(), _bakerRegistry);
+
+        var assetDir = _projectService.AssetDirectories[0];
+        var cacheDir = _projectService.CacheDirectory;
+
+        foreach (var dir in Directory.GetDirectories(assetDir))
+        {
+            Directory.Delete(dir, true);
+        }
+
+        var texDir = Path.Combine(assetDir, "Textures");
+        Directory.CreateDirectory(texDir);
+
+        var pngPath = Path.Combine(texDir, "valid.png");
+        byte[] minimalPng = {
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
+            0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, 0x54, 0x08, 0xD7, 0x63, 0xF8, 0xCF, 0xC0, 0x00,
+            0x00, 0x03, 0x01, 0x01, 0x00, 0x18, 0xDD, 0x8D, 0xB0, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E,
+            0x44, 0xAE, 0x42, 0x60, 0x82
+        };
+        await File.WriteAllBytesAsync(pngPath, minimalPng);
+
+        var meta = new AssetMetadata
+        {
+            Type = AssetType.Texture,
+            Settings = new TextureBakeSettings
+            {
+                Basic = new TextureBakeSettings.BasicSettings
+                {
+                    TextureType = TextureType.Default,
+                    TextureShape = TextureShape.Texture2D,
+                    IsSRGB = true
+                },
+                Advanced = new TextureBakeSettings.AdvancedSettings
+                {
+                    GenerateMipmaps = false,
+                    CompressionLevel = TextureCompressionLevel.Low
+                }
+            }
+        };
+        _projectService.SaveMetadata(pngPath + ".meta", meta);
+
+        // Pre-create a 16-byte CacheFileHeader in the cache location with a future timestamp
+        var cachedDir = Path.Combine(cacheDir, "Textures");
+        Directory.CreateDirectory(cachedDir);
+        var cachedFile = Path.Combine(cachedDir, "valid");
+
+        var baker = _bakerRegistry.GetBaker(".png")!;
+        var settingsType = _bakerRegistry.GetSettingsType(".png")!;
+        var header = new CacheFileHeader
+        {
+            bakerVersion = CacheFileHeader.ComputeBakerVersion(baker.GetType(), settingsType)
+        };
+        using (var fs = new FileStream(cachedFile, FileMode.Create, FileAccess.Write))
+        {
+            header.WriteTo(fs);
+        }
+        Assert.AreEqual(16, new FileInfo(cachedFile).Length);
+        File.SetLastWriteTimeUtc(cachedFile, DateTime.UtcNow.AddHours(1));
+
+        // Baking must NOT skip this 16-byte invalid file; it must detect it has no payload and rebake
+        var result = await _bakeService.BakeProjectAsync();
+        Assert.AreEqual(1, result.Total);
+        Assert.AreEqual(1, result.Succeeded, "Should have rebaked the asset.");
+        Assert.AreEqual(0, result.Skipped, "Should NOT have skipped the 16-byte corrupt file.");
+        Assert.IsGreaterThan(16L, new FileInfo(cachedFile).Length, "Cache file should contain actual baked payload.");
+    }
 }

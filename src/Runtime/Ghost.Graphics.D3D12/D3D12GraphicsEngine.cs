@@ -143,6 +143,12 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         return new D3D12CommandSignature(_device, _pipelineLibrary, in desc, pipelineKey);
     }
 
+    public unsafe IWorkGraphProgram CreateWorkGraphProgram(ReadOnlySpan<byte> bytecode, string programName)
+    {
+        Logger.DebugAssert(!_disposed);
+        return new D3D12WorkGraphProgram(_device, _resourceDatabase, _resourceAllocator, _pipelineLibrary.DefaultRootSignature, bytecode, programName);
+    }
+
     public void BeginFrame(ulong cpuFrame)
     {
         Logger.DebugAssert(!_disposed);

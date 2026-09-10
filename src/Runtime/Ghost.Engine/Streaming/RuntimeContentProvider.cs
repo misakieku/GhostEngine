@@ -6,7 +6,7 @@ using ZstdSharp;
 
 namespace Ghost.Engine.Streaming;
 
-public class RuntimeContentProvider : IContentProvider, IDisposable
+public class RuntimeContentProvider : IContentProvider
 {
     private readonly Manifest _manifest;
     private readonly Dictionary<Guid, AssetInfo> _guidToInfo;
