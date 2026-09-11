@@ -396,7 +396,9 @@ public sealed partial class ResourceManager : IDisposable
                 return 0u;
             }
 
-            return self._resourceDatabase.GetBindlessIndex(r.Value._cBufferCache.GpuResource.AsResource());
+            var cbufferIndex = self._resourceDatabase.GetBindlessIndex(r.Value._cBufferCache.GpuResource.AsResource());
+            var renderType = r.Value.MaterialRenderType & 0xFFu;
+            return (cbufferIndex & 0x00FFFFFFu) | (renderType << 24);
         }, this);
 
         var offsets = _materialPalettes.PaletteOffsets;

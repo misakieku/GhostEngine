@@ -431,6 +431,7 @@ public struct SharedComponentSet : IDisposable
 /// <summary>
 /// Represents an immutable set of component identifiers used to define a group of components within an entity or system.
 /// </summary>
+// TODO: Support default values for components, so we don't need to set them manually after entity creation.
 public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
 {
     private UnsafeArray<Identifier<IComponent>> _components;

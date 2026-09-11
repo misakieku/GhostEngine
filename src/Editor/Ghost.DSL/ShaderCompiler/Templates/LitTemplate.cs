@@ -104,4 +104,13 @@ public sealed class LitTemplate : IShaderTemplate
     public IReadOnlyList<TemplatePassDef> Passes => s_passes;
 
     public IReadOnlyList<string> Defines => Array.Empty<string>();
+
+    private static readonly TemplateOverridePoint[] s_overridePoints = new[]
+    {
+        new TemplateOverridePoint("GetAlphaCoverage", "GHOST_OVERRIDE_GET_ALPHA_COVERAGE", IsAlphaClip: true),
+        new TemplateOverridePoint("GetSurfaceData", "GHOST_OVERRIDE_GET_SURFACE_DATA"),
+        new TemplateOverridePoint("EvaluateBSDF", "GHOST_OVERRIDE_EVALUATE_BSDF"),
+    };
+
+    public IReadOnlyList<TemplateOverridePoint> OverridePoints => s_overridePoints;
 }

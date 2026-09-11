@@ -1,0 +1,144 @@
+shader "Internal/VisibilityBufferMasked"
+{
+    pass "Visibility"
+    {
+        pipeline
+        {
+            ztest = greater_equal;
+            zwrite = on;
+            cull = back;
+            blend = opaque;
+            color_mask = all;
+        }
+
+        includes
+        {
+            "EngineResources/Shaders/Includes/Properties.hlsl";
+        }
+
+        hlsl
+        {
+            struct PixelInput
+            {
+                float4 position : SV_POSITION;
+                float2 uv : TEXCOORD0;
+                nointerpolation uint instanceIndex : INSTANCE_ID;
+                nointerpolation uint meshletIndex : MESHLET_ID;
+                nointerpolation uint localMaterialIndex : MATERIAL_ID;
+                nointerpolation uint cbufferIndex : CBUFFER_ID;
+            };
+
+            struct PrimitiveOutput
+            {
+                uint primitiveID : SV_PrimitiveID;
+            };
+
+            struct VisibleMeshletEntry
+            {
+                uint instanceIndex;
+                uint meshletIndex;
+            };
+
+            struct LitShaderProperties
+            {
+                float4 baseColor;
+                uint baseMap;
+                uint sampler_baseMap;
+                uint normalMap;
+                uint sampler_normalMap;
+                float metallic;
+                float roughness;
+                float occlusion;
+            };
+
+            [numthreads(128, 1, 1)]
+            [outputtopology("triangle")]
+            void MSMain(
+                uint3 groupID : SV_GroupID,
+                uint3 groupThreadID : SV_GroupThreadID,
+                out vertices PixelInput outVerts[64],
+                out indices uint3 outTris[124],
+                out primitives PrimitiveOutput outPrims[124])
+            {
+                StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[g_PushConstantData.instanceIndex];
+                VisibleMeshletEntry visible = visibleMeshlets[groupID.x];
+
+                FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+                InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, visible.instanceIndex);
+                MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
+
+                ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
+                Meshlet meshlet = meshletBuffer.Load<Meshlet>(visible.meshletIndex * sizeof(Meshlet));
+
+                uint vertexCount = meshlet.packedCounts & 0xFFu;
+                uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
+                uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
+
+                SetMeshOutputCounts(vertexCount, triangleCount);
+
+                ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(meshData.meshletVerticesBuffer);
+                ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(meshData.meshletTrianglesBuffer);
+
+                uint packedMaterial = LoadMaterialBindlessIndex(frameData.paletteOffsetBuffer, frameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
+                uint cbufferIndex = packedMaterial & 0x00FFFFFFu;
+
+                if (groupThreadID.x < vertexCount)
+                {
+                    uint vertexIndex = meshletVerticesBuffer.Load((meshlet.vertexOffset + groupThreadID.x) * 4);
+                    ByteAddressBuffer vertices = GET_BUFFER(meshData.vertexBuffer);
+                    Vertex v = vertices.Load<Vertex>(vertexIndex * sizeof(Vertex));
+
+                    ViewData viewData = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
+
+                    float4 worldPos = mul(instanceData.localToWorld, float4(v.position.xyz, 1.0f));
+                    outVerts[groupThreadID.x].position = mul(viewData.viewProjectionMatrix, worldPos);
+                    outVerts[groupThreadID.x].uv = v.uv;
+                    outVerts[groupThreadID.x].instanceIndex = visible.instanceIndex;
+                    outVerts[groupThreadID.x].meshletIndex = visible.meshletIndex;
+                    outVerts[groupThreadID.x].localMaterialIndex = localMaterialIndex;
+                    outVerts[groupThreadID.x].cbufferIndex = cbufferIndex;
+                }
+
+                if (groupThreadID.x < triangleCount)
+                {
+                    uint triangleIndex = groupThreadID.x;
+                    uint packedIndices = meshletTrianglesBuffer.Load((meshlet.triangleOffset + triangleIndex) * 4);
+
+                    uint i0 = packedIndices & 0xFF;
+                    uint i1 = (packedIndices >> 8) & 0xFF;
+                    uint i2 = (packedIndices >> 16) & 0xFF;
+
+                    outTris[triangleIndex] = uint3(i0, i1, i2);
+                    outPrims[triangleIndex].primitiveID = triangleIndex;
+                }
+            }
+
+            uint2 PSMain(PixelInput input, uint primitiveID : SV_PrimitiveID) : SV_TARGET0
+            {
+                float alpha = 1.0f;
+                if (input.cbufferIndex != 0 && input.cbufferIndex != 0xFFFFFFFFu)
+                {
+                    LitShaderProperties matProps = LoadData<LitShaderProperties>(input.cbufferIndex, 0);
+                    if (matProps.baseMap != 0 && matProps.baseMap != 0xFFFFFFFFu)
+                    {
+                        alpha = SAMPLE_TEXTURE2D(matProps.baseMap, matProps.sampler_baseMap, input.uv).a * matProps.baseColor.a;
+                    }
+                    else
+                    {
+                        alpha = matProps.baseColor.a;
+                    }
+                }
+
+                clip(alpha - 0.5f);
+
+                uint2 vbuffer;
+                vbuffer.x = ((input.instanceIndex + 1u) & 0x00FFFFFFu) | ((input.localMaterialIndex & 0xFFu) << 24);
+                vbuffer.y = (input.meshletIndex & 0x00FFFFFFu) | ((primitiveID & 0xFFu) << 24);
+                return vbuffer;
+            }
+        }
+
+        ms "hlsl_block" : "MSMain";
+        ps "hlsl_block" : "PSMain";
+    }
+}

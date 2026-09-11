@@ -108,10 +108,10 @@ public static class TemplateStitcher
     }
 
     /// <summary>
-    /// Detects whether the user HLSL block overrides an injection point function,
+    /// Detects whether the user HLSL block overrides an injection point function defined by the template,
     /// emitting the suppression define for its fallback.
     /// </summary>
-    internal static List<string> CollectOverrideDefines(string? userHlsl)
+    internal static List<string> CollectOverrideDefines(IShaderTemplate template, string? userHlsl)
     {
         var defines = new List<string>();
 
@@ -120,24 +120,12 @@ public static class TemplateStitcher
             return defines;
         }
 
-        if (userHlsl.Contains("GetAlphaCoverage", StringComparison.Ordinal))
+        foreach (var point in template.OverridePoints)
         {
-            defines.Add("GHOST_OVERRIDE_GET_ALPHA_COVERAGE");
-        }
-
-        if (userHlsl.Contains("GetColor", StringComparison.Ordinal))
-        {
-            defines.Add("GHOST_OVERRIDE_GET_COLOR");
-        }
-
-        if (userHlsl.Contains("GetSurfaceData", StringComparison.Ordinal))
-        {
-            defines.Add("GHOST_OVERRIDE_GET_SURFACE_DATA");
-        }
-
-        if (userHlsl.Contains("EvaluateBSDF", StringComparison.Ordinal))
-        {
-            defines.Add("GHOST_OVERRIDE_EVALUATE_BSDF");
+            if (userHlsl.Contains(point.FunctionName, StringComparison.Ordinal))
+            {
+                defines.Add(point.Define);
+            }
         }
 
         return defines;
@@ -178,7 +166,7 @@ public static class TemplateStitcher
         var sb = new StringBuilder();
 
         // Injection-point override suppressors must precede all code.
-        foreach (var define in CollectOverrideDefines(semantics.hlsl))
+        foreach (var define in CollectOverrideDefines(template, semantics.hlsl))
         {
             sb.AppendLine($"#define {define} 1");
         }
@@ -218,8 +206,8 @@ public static class TemplateStitcher
         ShaderReflectionData reflectionData,
         IReadOnlyDictionary<string, string> virtualShaders)
     {
-        var overrideDefines = CollectOverrideDefines(semantics.hlsl);
-        var hasAlphaClip = overrideDefines.Any(d => d.Contains("GHOST_OVERRIDE_GET_ALPHA_COVERAGE", StringComparison.Ordinal));
+        var overrideDefines = CollectOverrideDefines(template, semantics.hlsl);
+        var hasAlphaClip = template.OverridePoints.Any(d => d.IsAlphaClip && overrideDefines.Contains(d.Define));
 
         var passes = new PassDescriptor[template.Passes.Count];
 

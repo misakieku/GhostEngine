@@ -1,113 +1,16 @@
-shader "MyShader/Standard"
+shader "MyShader/Standard" : "Unlit"
 {
-    pass "Forward"
+    properties
     {
-        pipeline
+        float customTintScale = 1.0;
+    }
+
+    hlsl
+    {
+        float4 GetColor(uint materialIndex, float2 uv, inout Payload payload)
         {
-            ztest = greater_equal;
-            zwrite = on;
-            cull = back;
-            blend = opaque;
-            color_mask = all;
+            UnlitShaderProperties props = LoadUnlitProperties(materialIndex);
+            return props.baseColor;
         }
-
-        includes
-        {
-            "/EngineResources/Shaders/Includes/Properties.hlsl";
-            "/EngineResources/Shaders/Includes/Random.hlsl";
-        }
-
-        hlsl
-        {
-            #line 32 "MyShader_Standard_Forward_hlsl_block"
-            struct PixelInput
-            {
-                float4 position : SV_POSITION;
-                float4 color : COLOR;
-                float3 normal : NORMAL;
-                float2 uv : TEXCOORD0;
-                nointerpolation uint meshletID : MESHLET_ID;
-            };
-
-            struct VisibleMeshletEntry
-            {
-                uint instanceIndex;
-                uint meshletIndex;
-            };
-
-            [numthreads(128, 1, 1)] // 128 threads to cover max 64 vertices and 124 triangles
-            [outputtopology("triangle")]
-            void MSMain(
-                uint3 groupID : SV_GroupID,
-                uint3 groupThreadID : SV_GroupThreadID,
-                out vertices PixelInput outVerts[64],
-                out indices uint3 outTris[124])
-            {
-                StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[g_PushConstantData.instanceIndex];
-                VisibleMeshletEntry visible = visibleMeshlets[groupID.x];
-
-                FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
-                InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, visible.instanceIndex);
-                MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
-
-                ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
-                Meshlet meshlet = meshletBuffer.Load<Meshlet>(visible.meshletIndex * sizeof(Meshlet));
-
-                uint vertexCount = meshlet.packedCounts & 0xFFu;
-                uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
-                SetMeshOutputCounts(vertexCount, triangleCount);
-
-                ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(meshData.meshletVerticesBuffer);
-                ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(meshData.meshletTrianglesBuffer);
-
-                // Write vertex output
-                if (groupThreadID.x < vertexCount)
-                {
-                    uint vertexIndex = meshletVerticesBuffer.Load((meshlet.vertexOffset + groupThreadID.x) * 4);
-                    ByteAddressBuffer vertices = GET_BUFFER(meshData.vertexBuffer);
-                    Vertex v = vertices.Load<Vertex>(vertexIndex * sizeof(Vertex));
-
-                    ViewData viewData = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
-
-                    float4 worldPos = mul(instanceData.localToWorld, float4(v.position.xyz, 1.0f));
-                    float4 viewPos = mul(viewData.viewMatrix, worldPos);
-
-                    outVerts[groupThreadID.x].position = mul(viewData.projectionMatrix, viewPos);
-                    outVerts[groupThreadID.x].color = v.color;
-                    outVerts[groupThreadID.x].normal = normalize(mul((float3x3)instanceData.localToWorld, v.normal));
-                    outVerts[groupThreadID.x].uv = v.uv;
-                    outVerts[groupThreadID.x].meshletID = visible.meshletIndex;
-                }
-
-                // Write triangle output (1 thread processes 1 triangle)
-                if (groupThreadID.x < triangleCount)
-                {
-                    uint triangleIndex = groupThreadID.x;
-
-                    // Load the packed 32-bit integer containing the 3 local indices
-                    uint packedIndices = meshletTrianglesBuffer.Load((meshlet.triangleOffset + triangleIndex) * 4);
-
-                    uint i0 = packedIndices & 0xFF;
-                    uint i1 = (packedIndices >> 8) & 0xFF;
-                    uint i2 = (packedIndices >> 16) & 0xFF;
-
-                    outTris[triangleIndex] = uint3(i0, i1, i2);
-                }
-            }
-
-            float4 PSMain(PixelInput input) : SV_TARGET
-            {
-                uint hash = PCGHash(input.meshletID);
-
-                float r = float((hash & 0xFF0000u) >> 16) / 255.0;
-                float g = float((hash & 0x00FF00u) >> 8)  / 255.0;
-                float b = float((hash & 0x0000FFu))       / 255.0;
-
-                return float4(r, g, b, 1.0);
-            }
-        }
-
-        ms "hlsl_block" : "MSMain";
-        ps "hlsl_block" : "PSMain";
     }
 }

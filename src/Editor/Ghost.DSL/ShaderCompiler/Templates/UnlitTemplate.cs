@@ -93,6 +93,14 @@ public sealed class UnlitTemplate : IShaderTemplate
     public IReadOnlyList<TemplatePassDef> Passes => s_passes;
 
     public IReadOnlyList<string> Defines => Array.Empty<string>();
+
+    private static readonly TemplateOverridePoint[] s_overridePoints = new[]
+    {
+        new TemplateOverridePoint("GetAlphaCoverage", "GHOST_OVERRIDE_GET_ALPHA_COVERAGE", IsAlphaClip: true),
+        new TemplateOverridePoint("GetColor", "GHOST_OVERRIDE_GET_COLOR"),
+    };
+
+    public IReadOnlyList<TemplateOverridePoint> OverridePoints => s_overridePoints;
 }
 
 /// <summary>

@@ -53,6 +53,11 @@ public class TemplatePropertyDef
 }
 
 /// <summary>
+/// Defines an injection/override point in a template that the user HLSL block may provide.
+/// </summary>
+public readonly record struct TemplateOverridePoint(string FunctionName, string Define, bool IsAlphaClip = false);
+
+/// <summary>
 /// Defines a built-in shader template: its base properties, the
 /// payload fallback, and the passes/stages it generates.
 /// </summary>
@@ -82,4 +87,9 @@ public interface IShaderTemplate
     /// HLSL defines added to every generated stage of this template.
     /// </summary>
     IReadOnlyList<string> Defines { get; }
+
+    /// <summary>
+    /// Injection points that the user HLSL block may override, mapped to suppression defines.
+    /// </summary>
+    IReadOnlyList<TemplateOverridePoint> OverridePoints { get; }
 }

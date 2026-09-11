@@ -11,12 +11,21 @@ namespace Ghost.Engine.RenderPipeline;
 
 internal partial class GhostRenderPipeline : IRenderPipeline
 {
-    private struct RasterForwardPassData
+    private struct VisibilityPassData
     {
         public Identifier<RGBuffer> visibleMeshlets;
+        public Identifier<RGBuffer> visibleMaskedMeshlets;
         public Identifier<RGBuffer> indirectArgsBuffer;
-        public ulong argumentOffset;
-        public Handle<Material> material;
+        public ulong opaqueArgsOffset;
+        public ulong maskedArgsOffset;
+        public Handle<Shader> visibilityShader;
+        public Handle<Shader> visibilityMaskedShader;
+    }
+
+    private struct BlitPassData
+    {
+        public Identifier<RGTexture> visBuffer;
+        public Handle<Shader> blitShader;
     }
 
     private struct CPUInstanceInfo
@@ -174,6 +183,13 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 clearColor: new Color128(0.05f, 0.05f, 0.05f, 1.0f),
                 clearAtFirstUse: true);
 
+            var vbufferDesc = RGTextureDesc.Absolute(
+                viewData.ScreenSize.x,
+                viewData.ScreenSize.y,
+                TextureFormat.R32G32_UInt,
+                usage: TextureUsage.RenderTarget | TextureUsage.ShaderResource,
+                clearAtFirstUse: true) with { clearColor = default };
+
             var depthDesc = RGTextureDesc.Absolute(
                 viewData.ScreenSize.x,
                 viewData.ScreenSize.y,
@@ -197,11 +213,11 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 in cullingBuffers,
                 cullPassIndex: 0);
 
-            // 4. Pass 1: Forward Rasterization (Early-Z / Previously Visible)
-            var currentDepth = AddRasterForwardPass(
+            // 4. Pass 1: Visibility Buffer Rasterization (Early-Z / Previously Visible)
+            var (currentVisBuffer, currentDepth) = AddVisibilityBufferPass(
                 _renderGraph,
-                colorTarget,
-                depthDesc,
+                in vbufferDesc,
+                in depthDesc,
                 in cullingBuffers,
                 cullPassIndex: 0);
 
@@ -231,14 +247,21 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 in cullingBuffers,
                 cullPassIndex: 1);
 
-            // 8. Pass 2: Forward Rasterization (Late-Z / Newly Visible)
-            AddRasterForwardPass(
+            // 8. Pass 2: Visibility Buffer Rasterization (Late-Z / Newly Visible)
+            AddVisibilityBufferPass(
                 _renderGraph,
-                colorTarget,
-                depthDesc,
+                in vbufferDesc,
+                in depthDesc,
                 in cullingBuffers,
                 cullPassIndex: 1,
+                existingVisBuffer: currentVisBuffer,
                 existingDepth: currentDepth);
+
+            // 9. Blit Visibility Buffer to screen / backbuffer
+            AddBlitPass(
+                _renderGraph,
+                currentVisBuffer,
+                colorTarget);
         }
 
         var result = _renderGraph.CompileAndExecute(executionContext, primaryViewState);
@@ -251,63 +274,113 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         return result.Value;
     }
 
-    private Identifier<RGTexture> AddRasterForwardPass(
+    private unsafe (Identifier<RGTexture> visibilityBuffer, Identifier<RGTexture> depthBuffer) AddVisibilityBufferPass(
         RenderGraph rg,
-        Identifier<RGTexture> colorTarget,
+        scoped in RGTextureDesc vbufferDesc,
         scoped in RGTextureDesc depthDesc,
         in CameraCullingBuffers buffers,
         uint cullPassIndex,
+        Identifier<RGTexture> existingVisBuffer = default,
         Identifier<RGTexture> existingDepth = default)
     {
+        if (!_cullingResource.visibilityShader.IsValid || s_dispatchMeshCommandSignature == null)
+        {
+            return (existingVisBuffer, existingDepth);
+        }
+
         var isPass1 = cullPassIndex == 0;
-        var passName = isPass1 ? "Forward_Pass1_EarlyZ" : "Forward_Pass2_LateZ";
-        using var builder = rg.AddRasterRenderPass<RasterForwardPassData>(passName);
+        var passName = isPass1 ? "Visibility_Pass1_EarlyZ" : "Visibility_Pass2_LateZ";
+        using var builder = rg.AddRasterRenderPass<VisibilityPassData>(passName);
+
+        var visBufferTexture = existingVisBuffer.IsValid
+            ? existingVisBuffer
+            : builder.CreateTexture(in vbufferDesc, "VisibilityBuffer");
 
         var depthTexture = existingDepth.IsValid
             ? existingDepth
             : builder.CreateTexture(in depthDesc, "SceneDepthBuffer");
 
-        builder.SetColorAttachment(colorTarget, 0);
+        builder.SetColorAttachment(visBufferTexture, 0);
         builder.SetDepthAttachment(depthTexture);
 
         var visibleBuffer = isPass1 ? buffers.visibleMeshletsPass1 : buffers.visibleMeshletsPass2;
+        var visibleMaskedBuffer = isPass1 ? buffers.visibleMaskedMeshletsPass1 : buffers.visibleMaskedMeshletsPass2;
         builder.UseBuffer(visibleBuffer, AccessFlags.Read);
+        builder.UseBuffer(visibleMaskedBuffer, AccessFlags.Read);
         builder.UseBuffer(buffers.indirectArgsBuffer, AccessFlags.Read);
 
-        var primaryMaterial = _instanceInfos.Length > 0 ? _instanceInfos[0].material : Handle<Material>.Invalid;
-
-        builder.SetPassData(new RasterForwardPassData
+        builder.SetPassData(new VisibilityPassData
         {
             visibleMeshlets = visibleBuffer,
+            visibleMaskedMeshlets = visibleMaskedBuffer,
             indirectArgsBuffer = buffers.indirectArgsBuffer,
-            argumentOffset = isPass1 ? 0UL : 16UL,
-            material = primaryMaterial
+            opaqueArgsOffset = isPass1 ? 0UL : 32UL,
+            maskedArgsOffset = isPass1 ? 16UL : 48UL,
+            visibilityShader = _cullingResource.visibilityShader,
+            visibilityMaskedShader = _cullingResource.visibilityMaskedShader
         });
 
-        builder.SetRenderFunc<RasterForwardPassData>(static (ref readonly passData, renderCtx) =>
+        builder.SetRenderFunc<VisibilityPassData>(static (ref readonly passData, renderCtx) =>
         {
-            if (!passData.material.IsValid || s_dispatchMeshCommandSignature == null)
-            {
-                return;
-            }
-
-            var psoSet = renderCtx.TrySetActiveMaterialPass(passData.material, PassSemantic.Forward);
-            if (!psoSet)
-            {
-                return;
-            }
-
-            var visibleBufferIndex = renderCtx.ResourceDatabase.GetBindlessIndex(
-                renderCtx.GetActualBuffer(passData.visibleMeshlets).AsResource(),
-                BindlessAccess.ShaderResource);
-
-            renderCtx.SetInstanceIndex(visibleBufferIndex);
-            renderCtx.SetGlobalData();
             var actualIndirectBuf = renderCtx.GetActualBuffer(passData.indirectArgsBuffer);
-            renderCtx.ExecuteIndirect(s_dispatchMeshCommandSignature, 1, actualIndirectBuf, passData.argumentOffset);
+
+            // 1. Draw Opaque Meshlets
+            if (passData.visibilityShader.IsValid &&
+                renderCtx.TrySetActiveShaderPass(passData.visibilityShader, PassSemantic.Visibility))
+            {
+                var visibleBufferIndex = renderCtx.GetActualBindlessIndex(passData.visibleMeshlets);
+                renderCtx.SetInstanceIndex(visibleBufferIndex);
+                renderCtx.SetGlobalData();
+                renderCtx.ExecuteIndirect(s_dispatchMeshCommandSignature, 1, actualIndirectBuf, passData.opaqueArgsOffset);
+            }
+
+            // 2. Draw Masked (Alpha-Clipped) Meshlets
+            if (passData.visibilityMaskedShader.IsValid &&
+                renderCtx.TrySetActiveShaderPass(passData.visibilityMaskedShader, PassSemantic.Visibility))
+            {
+                var visibleMaskedIndex = renderCtx.GetActualBindlessIndex(passData.visibleMaskedMeshlets);
+                renderCtx.SetInstanceIndex(visibleMaskedIndex);
+                renderCtx.SetGlobalData();
+                renderCtx.ExecuteIndirect(s_dispatchMeshCommandSignature, 1, actualIndirectBuf, passData.maskedArgsOffset);
+            }
         });
 
-        return depthTexture;
+        return (visBufferTexture, depthTexture);
+    }
+
+    private unsafe void AddBlitPass(
+        RenderGraph rg,
+        Identifier<RGTexture> srcVisibilityBuffer,
+        Identifier<RGTexture> dstColorTarget)
+    {
+        if (!_cullingResource.blitShader.IsValid)
+        {
+            return;
+        }
+
+        using var builder = rg.AddRasterRenderPass<BlitPassData>("BlitVisibilityBuffer");
+        builder.SetColorAttachment(dstColorTarget, 0, AccessFlags.WriteAll);
+        builder.UseTexture(srcVisibilityBuffer, AccessFlags.Read);
+
+        builder.SetPassData(new BlitPassData
+        {
+            visBuffer = srcVisibilityBuffer,
+            blitShader = _cullingResource.blitShader
+        });
+
+        builder.SetRenderFunc<BlitPassData>(static (ref readonly passData, renderCtx) =>
+        {
+            if (!renderCtx.TrySetActiveShaderPass(passData.blitShader, PassSemantic.Forward))
+            {
+                return;
+            }
+
+            var visBufferIndex = renderCtx.GetActualBindlessIndex(passData.visBuffer);
+
+            renderCtx.SetInstanceIndex(visBufferIndex);
+            renderCtx.SetGlobalData();
+            renderCtx.DispatchMesh(1, 1, 1);
+        });
     }
 
     public void Dispose()

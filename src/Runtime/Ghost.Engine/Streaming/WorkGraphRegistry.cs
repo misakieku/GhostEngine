@@ -25,6 +25,7 @@ public struct WorkGraphRecord
     public WorkGraphState State { get; internal set; }
 }
 
+// TODO: We may don't need this at all.
 public sealed class WorkGraphRegistry : IDisposable
 {
     private readonly Dictionary<Guid, int> _assetToGraph;

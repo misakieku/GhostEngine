@@ -6,7 +6,7 @@ shader "Hidden/Blit"
         SamplerState sampler_mainTex;
     }
 
-    pass "Blit"
+    pass "Forward"
     {
         pipeline
         {
@@ -22,6 +22,7 @@ shader "Hidden/Blit"
             "EngineResources/Shaders/Includes/Common.hlsl";
             "EngineResources/Shaders/Includes/Color.hlsl";
             "EngineResources/Shaders/Includes/Properties.hlsl";
+            "EngineResources/Shaders/Includes/Random.hlsl";
         }
 
         hlsl
@@ -56,14 +57,55 @@ shader "Hidden/Blit"
 
             float4 PSMain(PSInput input) : SV_TARGET
             {
-                HiddenBlitShaderProperties perMaterialData = LoadData<HiddenBlitShaderProperties>(g_PushConstantData.instanceIndex, 0);
+                // g_PushConstantData.instanceIndex contains the bindless SRV descriptor index of the VisBuffer (R32G32_UINT)
+                Texture2D<uint2> visBuffer = ResourceDescriptorHeap[g_PushConstantData.instanceIndex];
+                int2 pixelPos = int2(input.position.xy);
+                uint2 raw = visBuffer.Load(int3(pixelPos, 0));
 
-                float2 uv = input.uv.xy;
-                float4 color = SAMPLE_TEXTURE2D(perMaterialData.mainTex, perMaterialData.sampler_mainTex, uv);
-            #ifdef LINEAR_COLORSPACE
-                color = LinearToSRGB(color);
-            #endif
-                return color;
+                uint instancePlusOne = raw.x & 0x00FFFFFFu;
+                if (instancePlusOne == 0)
+                {
+                    return float4(0.05, 0.05, 0.08, 1.0);
+                }
+
+                uint instanceIndex = instancePlusOne - 1u;
+                uint localMaterialIndex = (raw.x >> 24) & 0xFFu;
+                uint meshletIndex = raw.y & 0x00FFFFFFu;
+                uint primitiveID = (raw.y >> 24) & 0xFFu;
+
+                // Screen-space edge detection to visualize meshlet & triangle boundaries directly from VisBuffer
+                uint2 rawR = visBuffer.Load(int3(pixelPos + int2(1, 0), 0));
+                uint2 rawD = visBuffer.Load(int3(pixelPos + int2(0, 1), 0));
+
+                bool isMeshletEdge = ((raw.y & 0x00FFFFFFu) != (rawR.y & 0x00FFFFFFu)) ||
+                                     ((raw.y & 0x00FFFFFFu) != (rawD.y & 0x00FFFFFFu)) ||
+                                     ((raw.x & 0x00FFFFFFu) != (rawR.x & 0x00FFFFFFu)) ||
+                                     ((raw.x & 0x00FFFFFFu) != (rawD.x & 0x00FFFFFFu));
+
+                bool isTriangleEdge = (raw.y != rawR.y) || (raw.y != rawD.y);
+
+                if (isMeshletEdge)
+                {
+                    return float4(1.0, 1.0, 1.0, 1.0); // Bright white meshlet boundary
+                }
+                if (isTriangleEdge)
+                {
+                    return float4(0.08, 0.08, 0.12, 1.0); // Dark triangle wireframe edge
+                }
+
+                // Triangle-level pseudo-color: combines meshlet cluster hue with per-primitive shading!
+                uint mHash = PCGHash(meshletIndex);
+                float3 meshletColor = float3(
+                    float((mHash >> 16) & 0xFF) / 255.0,
+                    float((mHash >> 8) & 0xFF) / 255.0,
+                    float(mHash & 0xFF) / 255.0
+                );
+
+                // Modulate by primitiveID so each triangle facet within the meshlet is distinctly shaded
+                uint pHash = PCGHash(primitiveID);
+                float triFacet = 0.55 + 0.45 * (float(pHash & 0xFF) / 255.0);
+
+                return float4(meshletColor * triFacet, 1.0);
             }
         }
 

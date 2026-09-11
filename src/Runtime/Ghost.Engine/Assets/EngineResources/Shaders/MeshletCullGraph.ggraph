@@ -7,6 +7,7 @@ compute "Internal/MeshletCullGraph"
         uint hzbHeight;
         uint cullPassIndex;
         uint visibleMeshletsUav;
+        uint visibleMaskedMeshletsUav;
         uint occludedMeshletsUav;
         uint counterBufferUav;
         uint maxVisibleMeshlets;
@@ -286,6 +287,7 @@ compute "Internal/MeshletCullGraph"
             }
 
             bool isVisible = false;
+            uint renderType = 0;
             if (isValid)
             {
                 FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
@@ -296,6 +298,10 @@ compute "Internal/MeshletCullGraph"
 
                 ByteAddressBuffer meshletBuf = GET_BUFFER(rec.meshletBufferIndex);
                 Meshlet meshlet = meshletBuf.Load<Meshlet>(rec.meshletIndex * sizeof(Meshlet));
+
+                uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
+                uint packedMaterial = LoadMaterialBindlessIndex(frame.paletteOffsetBuffer, frame.materialIndexBuffer, instance.materialPaletteIndex, localMaterialIndex);
+                renderType = (packedMaterial >> 24) & 0xFFu;
 
                 float3 worldMin, worldMax;
                 TransformAABB(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld, worldMin, worldMax);
@@ -317,23 +323,37 @@ compute "Internal/MeshletCullGraph"
                 }
             }
 
-            // Wave compaction: exactly 1 global atomic add per wave
-            uint waveVisibleCount = WaveActiveCountBits(isVisible);
-            uint localOffset = WavePrefixCountBits(isVisible);
+            // Wave compaction for Opaque vs Masked
+            bool isOpaque = isVisible && (renderType != 1);
+            bool isMasked = isVisible && (renderType == 1);
+
+            uint waveOpaqueCount = WaveActiveCountBits(isOpaque);
+            uint localOpaqueOffset = WavePrefixCountBits(isOpaque);
+
+            uint waveMaskedCount = WaveActiveCountBits(isMasked);
+            uint localMaskedOffset = WavePrefixCountBits(isMasked);
 
             RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBufferUav];
-            uint counterOffset = (props.cullPassIndex == 0) ? 0 : 8;
+            uint opaqueCounterOffset = (props.cullPassIndex == 0) ? 0 : 8;
+            uint maskedCounterOffset = (props.cullPassIndex == 0) ? 12 : 16;
 
-            uint waveBaseSlot = 0;
-            if (WaveIsFirstLane() && waveVisibleCount > 0)
+            uint waveOpaqueBase = 0;
+            if (WaveIsFirstLane() && waveOpaqueCount > 0)
             {
-                counterBuf.InterlockedAdd(counterOffset, waveVisibleCount, waveBaseSlot);
+                counterBuf.InterlockedAdd(opaqueCounterOffset, waveOpaqueCount, waveOpaqueBase);
             }
-            waveBaseSlot = WaveReadLaneFirst(waveBaseSlot);
+            waveOpaqueBase = WaveReadLaneFirst(waveOpaqueBase);
 
-            if (isVisible)
+            uint waveMaskedBase = 0;
+            if (WaveIsFirstLane() && waveMaskedCount > 0)
             {
-                uint slot = waveBaseSlot + localOffset;
+                counterBuf.InterlockedAdd(maskedCounterOffset, waveMaskedCount, waveMaskedBase);
+            }
+            waveMaskedBase = WaveReadLaneFirst(waveMaskedBase);
+
+            if (isOpaque)
+            {
+                uint slot = waveOpaqueBase + localOpaqueOffset;
                 if (slot < props.maxVisibleMeshlets)
                 {
                     RWStructuredBuffer<VisibleMeshletEntry> visibleBuffer = ResourceDescriptorHeap[props.visibleMeshletsUav];
@@ -341,6 +361,18 @@ compute "Internal/MeshletCullGraph"
                     entry.instanceIndex = rec.instanceIndex;
                     entry.meshletIndex = rec.meshletIndex;
                     visibleBuffer[slot] = entry;
+                }
+            }
+            else if (isMasked)
+            {
+                uint slot = waveMaskedBase + localMaskedOffset;
+                if (slot < props.maxVisibleMeshlets)
+                {
+                    RWStructuredBuffer<VisibleMeshletEntry> maskedBuffer = ResourceDescriptorHeap[props.visibleMaskedMeshletsUav];
+                    VisibleMeshletEntry entry;
+                    entry.instanceIndex = rec.instanceIndex;
+                    entry.meshletIndex = rec.meshletIndex;
+                    maskedBuffer[slot] = entry;
                 }
             }
         }
