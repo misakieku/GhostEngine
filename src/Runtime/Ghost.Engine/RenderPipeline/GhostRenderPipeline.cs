@@ -135,10 +135,12 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
             // Upload ViewData (Reversed-Z: near=1.0, far=0.0)
             RenderPipelineUtility.GetVPMatricesReversedZ(in request, viewData.ScreenSize, out var viewMatrix, out var projMatrix);
+            var viewProjMatrix = math.mul(projMatrix, viewMatrix);
             var viewDataGpu = new ViewData
             {
                 viewMatrix = viewMatrix,
                 projectionMatrix = projMatrix,
+                viewProjectionMatrix = viewProjMatrix,
                 cameraPosition = request.view.localToWorld.c3.xyz,
                 nearClip = request.view.nearClipPlane,
                 cameraDirection = request.view.localToWorld.c2.xyz,
@@ -220,7 +222,8 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 hzbMips,
                 hzbMipCount,
                 viewData.ScreenSize.x,
-                viewData.ScreenSize.y);
+                viewData.ScreenSize.y,
+                _gpuScene.InstanceCount);
 
             // 7. Pass 2: Prepare Indirect Dispatch Arguments
             AddPrepareIndirectArgsPass(

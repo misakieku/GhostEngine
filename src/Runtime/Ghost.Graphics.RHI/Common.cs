@@ -1113,6 +1113,21 @@ public struct DispatchGraphDesc
     }
 }
 
+[StructLayout(LayoutKind.Sequential)]
+public struct WorkGraphDispatchGridRecord
+{
+    public uint GridX;
+    public uint GridY;
+    public uint GridZ;
+
+    public WorkGraphDispatchGridRecord(uint x, uint y = 1, uint z = 1)
+    {
+        GridX = x;
+        GridY = y;
+        GridZ = z;
+    }
+}
+
 public struct WorkGraphMemoryRequirements
 {
     public ulong MinSizeInBytes

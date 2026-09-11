@@ -21,6 +21,7 @@ internal unsafe class D3D12WorkGraphProgram : D3D12Object<ID3D12StateObject>, IW
     private Handle<GPUBuffer> _backingMemory;
     private ulong _backingMemoryAddress;
     private ulong _backingMemorySize;
+    private uint _workGraphIndex;
 
     private bool _isInitialized;
 
@@ -60,11 +61,17 @@ internal unsafe class D3D12WorkGraphProgram : D3D12Object<ID3D12StateObject>, IW
                 Unsafe.CopyBlock(pDst, pSrc, (uint)sizeof(D3D12_PROGRAM_IDENTIFIER));
             }
 
-            var workGraphIndex = pWorkGraphProps->GetWorkGraphIndex(pProgramName);
+            _workGraphIndex = pWorkGraphProps->GetWorkGraphIndex(pProgramName);
+            if (_workGraphIndex == uint.MaxValue)
+            {
+                Logger.Error($"[D3D12WorkGraphProgram] Failed to find work graph index for '{programName}'!");
+            }
+
             D3D12_WORK_GRAPH_MEMORY_REQUIREMENTS memReqs;
-            pWorkGraphProps->GetWorkGraphMemoryRequirements(workGraphIndex, &memReqs);
+            pWorkGraphProps->GetWorkGraphMemoryRequirements(_workGraphIndex, &memReqs);
 
             _backingMemorySize = memReqs.MaxSizeInBytes;
+            Logger.Info($"[D3D12WorkGraphProgram] Work graph '{programName}' (Index {_workGraphIndex}): BackingMemory MinSize = {memReqs.MinSizeInBytes}, MaxSize = {memReqs.MaxSizeInBytes}");
             if (_backingMemorySize > 0)
             {
                 var backingDesc = new BufferDesc
@@ -135,6 +142,33 @@ internal unsafe class D3D12WorkGraphProgram : D3D12Object<ID3D12StateObject>, IW
             ID3D12StateObject* pStateObject;
             ThrowIfFailed(pDevice->CreateStateObject(&stateObjectDesc, __uuidof<ID3D12StateObject>(), (void**)&pStateObject));
             return pStateObject;
+        }
+    }
+
+    public uint GetEntrypointIndex(string nodeName)
+    {
+        if (_workGraphProperties == null)
+        {
+            return 0;
+        }
+
+        fixed (char* pNodeName = nodeName)
+        {
+            var nodeId = new D3D12_NODE_ID
+            {
+                Name = pNodeName,
+                ArrayIndex = 0
+            };
+            var index = _workGraphProperties->GetEntrypointIndex(_workGraphIndex, nodeId);
+            if (index == uint.MaxValue)
+            {
+                Logger.Warning($"[D3D12WorkGraphProgram] Entrypoint '{nodeName}' was NOT found in work graph (Index {_workGraphIndex})!");
+            }
+            else
+            {
+                Logger.Info($"[D3D12WorkGraphProgram] Entrypoint '{nodeName}' resolved to index {index}");
+            }
+            return index;
         }
     }
 

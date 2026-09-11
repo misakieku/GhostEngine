@@ -29,7 +29,7 @@ static inline void TransformAABB(
     outMax = worldCenter + worldExtents;
 }
 
-// Tests an AABB against view-projection frustum in clip space with reversed-Z (0 <= z <= w)
+// Fast 6-plane AABB frustum cull in reversed-Z (0 <= z <= w) with ZERO stack arrays / ZERO alloca
 static inline FrustumTestResult FrustumCullAABB(
     float3 minPt,
     float3 maxPt,
@@ -39,107 +39,119 @@ static inline FrustumTestResult FrustumCullAABB(
     res.isVisible = true;
     res.intersectsNearPlane = false;
 
-    float3 corners[8] = {
-        float3(minPt.x, minPt.y, minPt.z),
-        float3(maxPt.x, minPt.y, minPt.z),
-        float3(minPt.x, maxPt.y, minPt.z),
-        float3(maxPt.x, maxPt.y, minPt.z),
-        float3(minPt.x, minPt.y, maxPt.z),
-        float3(maxPt.x, minPt.y, maxPt.z),
-        float3(minPt.x, maxPt.y, maxPt.z),
-        float3(maxPt.x, maxPt.y, maxPt.z)
-    };
+    // In HLSL, viewProj._m00.._m33 maps to clip = mul(viewProj, float4(p, 1.0))
+    // Rows contributing to clip.x, clip.y, clip.z, clip.w:
+    float4 rowX = float4(viewProj._11, viewProj._12, viewProj._13, viewProj._14);
+    float4 rowY = float4(viewProj._21, viewProj._22, viewProj._23, viewProj._24);
+    float4 rowZ = float4(viewProj._31, viewProj._32, viewProj._33, viewProj._34);
+    float4 rowW = float4(viewProj._41, viewProj._42, viewProj._43, viewProj._44);
 
-    uint maskLeft = 0;
-    uint maskRight = 0;
-    uint maskBottom = 0;
-    uint maskTop = 0;
-    uint maskFar = 0;
-    uint maskNear = 0;
+    // 6 inward-facing frustum planes: [nx, ny, nz, d] where dot(plane.xyz, pos) + plane.w >= 0 is inside
+    // Reversed-Z: Far is z_ndc = 0 (clip.z >= 0), Near is z_ndc = 1 (clip.w - clip.z >= 0)
+    float4 planeLeft   = rowW + rowX;
+    float4 planeRight  = rowW - rowX;
+    float4 planeBottom = rowW + rowY;
+    float4 planeTop    = rowW - rowY;
+    float4 planeFar    = rowZ;
+    float4 planeNear   = rowW - rowZ;
 
-    for (int i = 0; i < 8; ++i)
-    {
-        float4 clip = mul(viewProj, float4(corners[i], 1.0f));
+    // Test positive corner (p-vertex) against each plane. If p-vertex is outside, entire AABB is outside.
+    float3 pLeft = float3(planeLeft.x > 0.0f ? maxPt.x : minPt.x, planeLeft.y > 0.0f ? maxPt.y : minPt.y, planeLeft.z > 0.0f ? maxPt.z : minPt.z);
+    if ((dot(planeLeft.xyz, pLeft) + planeLeft.w) < 0.0f) { res.isVisible = false; return res; }
 
-        if (clip.w <= 0.0f || clip.z > clip.w)
-        {
-            res.intersectsNearPlane = true;
-        }
+    float3 pRight = float3(planeRight.x > 0.0f ? maxPt.x : minPt.x, planeRight.y > 0.0f ? maxPt.y : minPt.y, planeRight.z > 0.0f ? maxPt.z : minPt.z);
+    if ((dot(planeRight.xyz, pRight) + planeRight.w) < 0.0f) { res.isVisible = false; return res; }
 
-        if (clip.x < -clip.w) maskLeft |= (1 << i);
-        if (clip.x >  clip.w) maskRight |= (1 << i);
-        if (clip.y < -clip.w) maskBottom |= (1 << i);
-        if (clip.y >  clip.w) maskTop |= (1 << i);
-        if (clip.z < 0.0f)    maskFar |= (1 << i);      // reversed-Z far plane at z_ndc = 0
-        if (clip.z >  clip.w) maskNear |= (1 << i);     // reversed-Z near plane at z_ndc = 1
-    }
+    float3 pBottom = float3(planeBottom.x > 0.0f ? maxPt.x : minPt.x, planeBottom.y > 0.0f ? maxPt.y : minPt.y, planeBottom.z > 0.0f ? maxPt.z : minPt.z);
+    if ((dot(planeBottom.xyz, pBottom) + planeBottom.w) < 0.0f) { res.isVisible = false; return res; }
 
-    // If all 8 points are outside any single plane, the box is completely outside
-    if (maskLeft == 0xFF || maskRight == 0xFF ||
-        maskBottom == 0xFF || maskTop == 0xFF ||
-        maskFar == 0xFF || maskNear == 0xFF)
-    {
-        res.isVisible = false;
-        return res;
-    }
+    float3 pTop = float3(planeTop.x > 0.0f ? maxPt.x : minPt.x, planeTop.y > 0.0f ? maxPt.y : minPt.y, planeTop.z > 0.0f ? maxPt.z : minPt.z);
+    if ((dot(planeTop.xyz, pTop) + planeTop.w) < 0.0f) { res.isVisible = false; return res; }
+
+    float3 pFar = float3(planeFar.x > 0.0f ? maxPt.x : minPt.x, planeFar.y > 0.0f ? maxPt.y : minPt.y, planeFar.z > 0.0f ? maxPt.z : minPt.z);
+    if ((dot(planeFar.xyz, pFar) + planeFar.w) < 0.0f) { res.isVisible = false; return res; }
+
+    float3 pNear = float3(planeNear.x > 0.0f ? maxPt.x : minPt.x, planeNear.y > 0.0f ? maxPt.y : minPt.y, planeNear.z > 0.0f ? maxPt.z : minPt.z);
+    if ((dot(planeNear.xyz, pNear) + planeNear.w) < 0.0f) { res.isVisible = false; return res; }
+
+    // Test negative corner (n-vertex) against near plane to check if AABB intersects/crosses near plane
+    float3 nNear = float3(planeNear.x > 0.0f ? minPt.x : maxPt.x, planeNear.y > 0.0f ? minPt.y : maxPt.y, planeNear.z > 0.0f ? minPt.z : maxPt.z);
+    res.intersectsNearPlane = ((dot(planeNear.xyz, nNear) + planeNear.w) <= 0.0f);
 
     return res;
 }
 
-// Projects AABB to screen UV rect [uMin, vMin, uMax, vMax] and finds nearest reversed-Z depth (max z)
+// Projects AABB to screen UV rect [uMin, vMin, uMax, vMax] and finds nearest reversed-Z depth analytically
+// Evaluates exact mathematical perspective extrema with ZERO loops, ZERO alloca, and only 4 divisions
 static inline bool ProjectAABBToScreen(
     float3 minPt,
     float3 maxPt,
-    float4x4 viewProj,
+    float4x4 viewMat,
+    float4x4 projMat,
     out float4 screenRect,
     out float nearestDepth)
 {
-    float3 corners[8] = {
-        float3(minPt.x, minPt.y, minPt.z),
-        float3(maxPt.x, minPt.y, minPt.z),
-        float3(minPt.x, maxPt.y, minPt.z),
-        float3(maxPt.x, maxPt.y, minPt.z),
-        float3(minPt.x, minPt.y, maxPt.z),
-        float3(maxPt.x, minPt.y, maxPt.z),
-        float3(minPt.x, maxPt.y, maxPt.z),
-        float3(maxPt.x, maxPt.y, maxPt.z)
-    };
+    float3 center = (minPt + maxPt) * 0.5f;
+    float3 extents = (maxPt - minPt) * 0.5f;
 
-    float2 uvMin = float2(1.0f, 1.0f);
-    float2 uvMax = float2(0.0f, 0.0f);
-    float maxZ = -1.0f;
+    // Transform AABB center and extents to view space
+    float3 cv = mul(viewMat, float4(center, 1.0f)).xyz;
+    float3 ev = abs(viewMat[0].xyz) * extents.x +
+                abs(viewMat[1].xyz) * extents.y +
+                abs(viewMat[2].xyz) * extents.z;
 
-    for (int i = 0; i < 8; ++i)
+    float zMin = cv.z - ev.z;
+    float zMax = cv.z + ev.z;
+
+    // If the box extends behind or crosses the near plane, project to full screen
+    if (zMin <= 0.001f)
     {
-        float4 clip = mul(viewProj, float4(corners[i], 1.0f));
-        if (clip.w <= 0.0f)
-        {
-            // Crosses camera plane, cannot project safely
-            screenRect = float4(0.0f, 0.0f, 1.0f, 1.0f);
-            nearestDepth = 1.0f;
-            return false;
-        }
-
-        float3 ndc = clip.xyz / clip.w;
-        float2 uv = float2(ndc.x * 0.5f + 0.5f, -ndc.y * 0.5f + 0.5f);
-        uvMin = min(uvMin, uv);
-        uvMax = max(uvMax, uv);
-        maxZ = max(maxZ, ndc.z);
+        screenRect = float4(0.0f, 0.0f, 1.0f, 1.0f);
+        nearestDepth = 1.0f;
+        return false;
     }
 
-    screenRect = float4(saturate(uvMin), saturate(uvMax));
-    nearestDepth = saturate(maxZ);
+    float xMin = cv.x - ev.x;
+    float xMax = cv.x + ev.x;
+    float yMin = cv.y - ev.y;
+    float yMax = cv.y + ev.y;
+
+    // Exact analytical extrema of perspective projection
+    float minX_Z = xMin / (xMin >= 0.0f ? zMax : zMin);
+    float maxX_Z = xMax / (xMax >= 0.0f ? zMin : zMax);
+    float minY_Z = yMin / (yMin >= 0.0f ? zMax : zMin);
+    float maxY_Z = yMax / (yMax >= 0.0f ? zMin : zMax);
+
+    float p00 = projMat._11;
+    float p11 = projMat._22;
+
+    float ndcMinX = minX_Z * p00;
+    float ndcMaxX = maxX_Z * p00;
+    float ndcMinY = minY_Z * p11;
+    float ndcMaxY = maxY_Z * p11;
+
+    // Map NDC [-1, 1] to UV [0, 1] (Y flipped for DirectX UV)
+    screenRect.x = saturate(ndcMinX * 0.5f + 0.5f);
+    screenRect.y = saturate(-ndcMaxY * 0.5f + 0.5f);
+    screenRect.z = saturate(ndcMaxX * 0.5f + 0.5f);
+    screenRect.w = saturate(-ndcMinY * 0.5f + 0.5f);
+
+    // Reversed-Z nearest depth at zMin (projMat._33 = m22, projMat._34 = m23)
+    float clipZ = projMat._33 * zMin + projMat._34;
+    nearestDepth = saturate(clipZ / zMin);
+
     return true;
 }
 
 // Tests bounding box against HZB mip chain in reversed-Z (conservative occluder depth = min)
+// Loads mip texture descriptor directly from propertiesBuffer (offset 40 = hzbMip0) to avoid any local array/alloca
 static inline bool HZBOcclusionTest(
     float4 screenRect,
     float nearestDepth,
     uint hzbMipCount,
     uint hzbWidth,
     uint hzbHeight,
-    uint hzbMips[16])
+    uint propertiesBufferIndex)
 {
     float2 size = (screenRect.zw - screenRect.xy) * float2(hzbWidth, hzbHeight);
     float maxDim = max(size.x, size.y);
@@ -153,8 +165,10 @@ static inline bool HZBOcclusionTest(
     int2 minCoord = clamp((int2)(screenRect.xy * float2(mipWidth, mipHeight)), int2(0, 0), int2(mipWidth - 1, mipHeight - 1));
     int2 maxCoord = clamp((int2)(screenRect.zw * float2(mipWidth, mipHeight)), int2(0, 0), int2(mipWidth - 1, mipHeight - 1));
 
-    uint texId = hzbMips[mipLevel];
-    if (texId == 0)
+    ByteAddressBuffer propsBuf = GET_BUFFER(propertiesBufferIndex);
+    // hzbMip0 is at byte offset 40 in InternalMeshletCullGraphShaderProperties
+    uint texId = propsBuf.Load(40 + mipLevel * 4);
+    if (texId == 0 || texId == 0xFFFFFFFF)
     {
         return false; // HZB not available or empty -> not occluded
     }

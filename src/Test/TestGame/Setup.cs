@@ -46,6 +46,11 @@ internal static class Setup
         };
     }
 
+    private static float RandomFloat(float min, float max)
+    {
+        return (float)(Random.Shared.NextSingle() * (max - min) + min);
+    }
+
     [RuntimeInitialize]
     public static void Init(EngineCore engineCore)
     {
@@ -86,21 +91,38 @@ internal static class Setup
         var materialPallette = engineCore.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);
 
         using var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
-        var meshEntity = s_world.EntityManager.CreateEntity(meshSet);
+        var entities = new Entity[5000];
+        s_world.EntityManager.CreateEntities(entities, meshSet);
 
-        s_world.EntityManager.SetComponent(meshEntity, new MeshInstance
+        for (var i = 0; i < entities.Length; i++)
         {
-            mesh = meshHandle,
-            materialPalette = materialPallette,
-            renderingLayerMask = RenderingLayerMask.All,
-            shadowCastingMode = ShadowCastingMode.On,
-            staticShadowCaster = true,
-        });
+            var entity = entities[i];
+            s_world.EntityManager.SetComponent(entity, new MeshInstance
+            {
+                mesh = meshHandle,
+                materialPalette = materialPallette,
+                renderingLayerMask = RenderingLayerMask.All,
+                shadowCastingMode = ShadowCastingMode.On,
+                staticShadowCaster = true,
+            });
 
-        s_world.EntityManager.SetComponent(meshEntity, new LocalToWorld
-        {
-            matrix = float4x4.TRS(new float3(0, -1.0f, 0), quaternion.identity, new float3(1, 1, 1))
-        });
+            var position = new float3(
+                RandomFloat(-5.0f, 5.0f),
+                RandomFloat(-5.0f, 5.0f),
+                RandomFloat(-5.0f, 5.0f)
+            );
+
+            var rotation = quaternion.EulerXYZ(new float3(
+                RandomFloat(0.0f, 360.0f),
+                RandomFloat(0.0f, 360.0f),
+                RandomFloat(0.0f, 360.0f)
+            ));
+
+            s_world.EntityManager.SetComponent(entity, new LocalToWorld
+            {
+                matrix = float4x4.TRS(position, rotation, new float3(0.1f, 0.1f, 0.1f))
+            });
+        }
 
         s_world.SystemManager.AddSystem<RenderSystemGroup>();
 

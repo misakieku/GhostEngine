@@ -35,6 +35,8 @@ internal class MockingGraphicsEngine : IGraphicsEngine
         public bool IsInitialized => true;
         public IntPtr NativePointer => IntPtr.Zero;
 
+        public uint GetEntrypointIndex(string nodeName) => 0;
+
         public void MarkInitialized()
         {
         }

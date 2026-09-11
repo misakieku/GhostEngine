@@ -54,6 +54,7 @@ internal partial class GhostRenderPipeline
         public uint instanceCount;
         public uint maxVisibleMeshlets;
         public uint threadGroupCount;
+        public uint entrypointIndex;
         public ProgramIdentifier programIdentifier;
         public ulong backingMemoryAddress;
         public ulong backingMemorySize;
@@ -69,8 +70,10 @@ internal partial class GhostRenderPipeline
         public uint hzbMipCount;
         public uint hzbWidth;
         public uint hzbHeight;
+        public uint instanceCount;
         public uint maxVisibleMeshlets;
         public uint threadGroupCount;
+        public uint entrypointIndex;
         public ProgramIdentifier programIdentifier;
         public ulong backingMemoryAddress;
         public ulong backingMemorySize;
@@ -165,6 +168,13 @@ internal partial class GhostRenderPipeline
             Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
         };
 
+        var occludedDesc = new BufferDesc
+        {
+            Size = maxVisibleMeshlets * sizeof(uint),
+            Stride = sizeof(uint),
+            Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        };
+
         var counterDesc = new BufferDesc
         {
             Size = 16,
@@ -183,7 +193,7 @@ internal partial class GhostRenderPipeline
         {
             visibleMeshletsPass1 = builder.CreateBuffer(in visibleDesc, "VisibleMeshlets_Pass1"),
             visibleMeshletsPass2 = builder.CreateBuffer(in visibleDesc, "VisibleMeshlets_Pass2"),
-            occludedMeshlets = builder.CreateBuffer(in visibleDesc, "OccludedMeshlets"),
+            occludedMeshlets = builder.CreateBuffer(in occludedDesc, "OccludedInstances"),
             counterBuffer = builder.CreateBuffer(in counterDesc, "CullCounters"),
             indirectArgsBuffer = builder.CreateBuffer(in indirectDesc, "MeshletIndirectArgs")
         };
@@ -231,8 +241,14 @@ internal partial class GhostRenderPipeline
         }
 
         var cullProgram = _cullingResource.CullWorkGraphProgram;
-        var flags = cullProgram.IsInitialized ? SetWorkGraphFlags.None : SetWorkGraphFlags.Initialize;
-        cullProgram.MarkInitialized();
+        var flags = SetWorkGraphFlags.Initialize;
+
+        var entrypointIndex = cullProgram.GetEntrypointIndex("InstanceCullNode");
+        if (entrypointIndex == uint.MaxValue)
+        {
+            Logger.Warning("Entrypoint 'InstanceCullNode' not found in work graph program. Falling back to 0.");
+            entrypointIndex = 0;
+        }
 
         using var builder = rg.AddComputeRenderPass<MeshletCullPass1Data>("MeshletCull_Pass1");
         builder.UseBuffer(buffers.visibleMeshletsPass1, AccessFlags.Write);
@@ -250,6 +266,7 @@ internal partial class GhostRenderPipeline
             instanceCount = instanceCount,
             maxVisibleMeshlets = maxVisibleMeshlets,
             threadGroupCount = Math.Max(1u, (instanceCount + 63) / 64),
+            entrypointIndex = entrypointIndex,
             programIdentifier = cullProgram.ProgramIdentifier,
             backingMemoryAddress = cullProgram.BackingMemoryAddress,
             backingMemorySize = cullProgram.BackingMemorySize,
@@ -316,7 +333,8 @@ internal partial class GhostRenderPipeline
                 passData.flags);
             computeCtx.SetProgram(in setProgramDesc);
 
-            var dispatchDesc = DispatchGraphDesc.ForEmptyCPUInput(0, passData.threadGroupCount);
+            var record = new WorkGraphDispatchGridRecord(passData.threadGroupCount, 1, 1);
+            var dispatchDesc = DispatchGraphDesc.ForCPUInput(passData.entrypointIndex, 1, &record, (ulong)sizeof(WorkGraphDispatchGridRecord));
             computeCtx.DispatchGraph(in dispatchDesc);
         });
     }
@@ -492,6 +510,7 @@ internal partial class GhostRenderPipeline
         uint hzbMipCount,
         uint renderWidth,
         uint renderHeight,
+        uint instanceCount,
         uint maxVisibleMeshlets = 1_048_576)
     {
         _cullingResource.EnsureWorkGraphProgram(_renderEngine);
@@ -502,8 +521,14 @@ internal partial class GhostRenderPipeline
         }
 
         var cullProgram = _cullingResource.CullWorkGraphProgram;
-        var flags = cullProgram.IsInitialized ? SetWorkGraphFlags.None : SetWorkGraphFlags.Initialize;
-        cullProgram.MarkInitialized();
+        var flags = SetWorkGraphFlags.Initialize;
+
+        var entrypointIndex = cullProgram.GetEntrypointIndex("OccludedInstanceCullNode");
+        if (entrypointIndex == uint.MaxValue)
+        {
+            Logger.Warning("Entrypoint 'OccludedInstanceCullNode' not found in work graph program. Falling back to 1.");
+            entrypointIndex = 1;
+        }
 
         using var builder = rg.AddComputeRenderPass<MeshletCullPass2Data>("MeshletCull_Pass2");
         builder.UseBuffer(buffers.occludedMeshlets, AccessFlags.Read);
@@ -518,8 +543,10 @@ internal partial class GhostRenderPipeline
             hzbMipCount = hzbMipCount,
             hzbWidth = Math.Max(1u, renderWidth / 2),
             hzbHeight = Math.Max(1u, renderHeight / 2),
+            instanceCount = instanceCount,
             maxVisibleMeshlets = maxVisibleMeshlets,
-            threadGroupCount = Math.Max(1u, (maxVisibleMeshlets + 63) / 64),
+            threadGroupCount = Math.Max(1u, (instanceCount + 63) / 64),
+            entrypointIndex = entrypointIndex,
             programIdentifier = cullProgram.ProgramIdentifier,
             backingMemoryAddress = cullProgram.BackingMemoryAddress,
             backingMemorySize = cullProgram.BackingMemorySize,
@@ -564,7 +591,7 @@ internal partial class GhostRenderPipeline
                 counterBufferUav = counterUav,
                 maxVisibleMeshlets = passData.maxVisibleMeshlets,
                 lodErrorThreshold = 2.0f,
-                instanceCount = passData.maxVisibleMeshlets,
+                instanceCount = passData.instanceCount,
                 hzbMip0 = hzbIndices[0],
                 hzbMip1 = hzbIndices[1],
                 hzbMip2 = hzbIndices[2],
@@ -592,8 +619,8 @@ internal partial class GhostRenderPipeline
                 passData.flags);
             computeCtx.SetProgram(in setProgramDesc);
 
-            // Program entry 1: OccludedMeshletCullNode
-            var dispatchDesc = DispatchGraphDesc.ForEmptyCPUInput(1, passData.threadGroupCount);
+            var record = new WorkGraphDispatchGridRecord(passData.threadGroupCount, 1, 1);
+            var dispatchDesc = DispatchGraphDesc.ForCPUInput(passData.entrypointIndex, 1, &record, (ulong)sizeof(WorkGraphDispatchGridRecord));
             computeCtx.DispatchGraph(in dispatchDesc);
         });
     }

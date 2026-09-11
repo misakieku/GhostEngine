@@ -37,6 +37,7 @@ struct ViewData
 {
     float4x4 viewMatrix;
     float4x4 projectionMatrix;
+    float4x4 viewProjectionMatrix;
     float3 cameraPosition;
     float nearClip;
     float3 cameraDirection;
