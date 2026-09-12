@@ -5,6 +5,7 @@ using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -43,6 +44,7 @@ public sealed class RenderGraph : IDisposable
     private readonly IResourceDatabase _resourceDatabase;
     private readonly ResourceManager _resourceManager;
 
+    private MemoryPool<TLSF, TLSF.CreationOptions> _memoryPool;
     private readonly RenderGraphObjectPool _objectPool;
     private readonly RenderGraphResourceRegistry _resourceRegistry;
 
@@ -56,8 +58,6 @@ public sealed class RenderGraph : IDisposable
     private readonly RenderGraphBlackboard _blackboard;
     private readonly RenderGraphBuilder _builder;
 
-    private MemoryPool<TLSF, TLSF.CreationOptions> _memoryPool;
-
     public RenderGraphBlackboard Blackboard => _blackboard;
 
     public RenderGraph(IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, IPipelineLibrary pipelineLibrary, ResourceManager resourceManager, ShaderLibrary shaderLibrary)
@@ -65,8 +65,10 @@ public sealed class RenderGraph : IDisposable
         _resourceDatabase = resourceDatabase;
         _resourceManager = resourceManager;
 
+        _memoryPool = new MemoryPool<TLSF, TLSF.CreationOptions>(new TLSF.CreationOptions { alignment = 16, initialChunkSize = 1024 * 1024 * 16 });
+
         _objectPool = new RenderGraphObjectPool();
-        _resourceRegistry = new RenderGraphResourceRegistry(resourceDatabase, resourceAllocator, resourceManager);
+        _resourceRegistry = new RenderGraphResourceRegistry(resourceDatabase, resourceAllocator, resourceManager, _memoryPool.AllocationHandle);
 
         _passes = new List<RenderGraphPass>(32);
 
@@ -83,8 +85,6 @@ public sealed class RenderGraph : IDisposable
 
         _blackboard = new RenderGraphBlackboard();
         _builder = new RenderGraphBuilder(_resourceRegistry, _blackboard);
-
-        _memoryPool = new MemoryPool<TLSF, TLSF.CreationOptions>(new TLSF.CreationOptions { alignment = 16, initialChunkSize = 1024 * 1024 * 16 });
     }
 
     private RenderGraphDump GenerateDump(scoped in CompiledGraph graph, ViewState viewState)
@@ -397,6 +397,36 @@ public sealed class RenderGraph : IDisposable
     public void InvalidateCache()
     {
         _compiler.InvalidateCache();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ref readonly BufferDesc GetBufferDesc(Identifier<RGBuffer> buffer)
+    {
+        return ref _resourceRegistry.GetResource(buffer).bufferDesc;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ref readonly RGTextureDesc GetTextureDesc(Identifier<RGTexture> texture)
+    {
+        return ref _resourceRegistry.GetResource(texture).rgTextureDesc;
+    }
+
+    /// <summary>
+    /// Creates a transient buffer in the render graph.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Identifier<RGBuffer> CreateBuffer(scoped in BufferDesc desc, string? name = null)
+    {
+        return _resourceRegistry.CreateBuffer(in desc, name);
+    }
+
+    /// <summary>
+    /// Creates a transient texture in the render graph.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Identifier<RGTexture> CreateTexture(scoped in RGTextureDesc desc, string? name = null)
+    {
+        return _resourceRegistry.CreateTexture(in desc, name);
     }
 
     /// <summary>

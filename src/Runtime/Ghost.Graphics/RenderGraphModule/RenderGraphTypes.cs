@@ -106,8 +106,15 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
     public uint slice;
     public TextureUsage usage;
 
-    // FIXME: clearAtFirstUse and discardAtLastUse does nothing if the pass is not native pass.
+    /// <summary>
+    /// When set to true, automatically clears the attachment on first use if bound to a raster/native render pass (using hardware fast-clear).
+    /// For non-raster passes (e.g. compute UAV textures), use <see cref="RenderGraphUtility"/> explicit clear passes instead.
+    /// </summary>
     public bool clearAtFirstUse;
+
+    /// <summary>
+    /// When set to true, discards the attachment contents on last use if bound to a raster/native render pass (dropping tile memory without writeback).
+    /// </summary>
     public bool discardAtLastUse;
 
     // Clear operation support
@@ -140,7 +147,7 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
             clearColor = clearColor,
             clearAtFirstUse = clearAtFirstUse,
             discardAtLastUse = discardAtLastUse,
-            clearDepth = 1.0f,
+            clearDepth = 0.0f,
             clearStencil = 0,
             dimension = dimension,
             mipLevels = mipLevels,
@@ -172,7 +179,7 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
             clearColor = clearColor,
             clearAtFirstUse = clearAtFirstUse,
             discardAtLastUse = discardAtLastUse,
-            clearDepth = 1.0f,
+            clearDepth = 0.0f,
             clearStencil = 0,
             dimension = dimension,
             mipLevels = mipLevels,
@@ -205,7 +212,7 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
             clearColor = clearColor,
             clearAtFirstUse = clearAtFirstUse,
             discardAtLastUse = discardAtLastUse,
-            clearDepth = 1.0f,
+            clearDepth = 0.0f,
             clearStencil = 0,
             dimension = dimension,
             mipLevels = mipLevels,
@@ -220,7 +227,7 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
     /// </summary>
     public static RGTextureDesc RelativeDepth(
         float scale,
-        float clearDepth = 1.0f,
+        float clearDepth = 0.0f,
         byte clearStencil = 0,
         bool clearAtFirstUse = true,
         bool discardAtLastUse = true,

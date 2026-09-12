@@ -341,7 +341,8 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
     public void EvictStalePipelines(ulong oldContentHash)
     {
         // Find all pipelines with matching oldContentHash
-        using var keysToRemove = new UnsafeList<UInt128>(8, AllocationHandle.Temp);
+        using var scope = AllocationManager.CreateStackScope();
+        using var keysToRemove = new UnsafeList<UInt128>(8, scope.AllocationHandle);
 
         foreach (var kvp in _pipelineCache)
         {

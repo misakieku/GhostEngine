@@ -613,7 +613,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         _releaseQueue.Clear();
         _pendingSwaps.Clear();
         _resources.Clear();
-#if DEBUG
+#if GHOST_SAFETY_CHECKS
         _resourceName.Clear();
 #endif
     }

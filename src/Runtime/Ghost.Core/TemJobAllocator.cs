@@ -28,6 +28,16 @@ public unsafe partial struct TempJobAllocator
         *s_pAllocator = new TempJobAllocator(s_pAllocator, capacity);
     }
 
+    internal static void Advance()
+    {
+        if (s_pAllocator == null)
+        {
+            return;
+        }
+
+        s_pAllocator->AdvanceFrame();
+    }
+
     internal static void Dispose()
     {
         if (s_pAllocator == null)
@@ -35,7 +45,7 @@ public unsafe partial struct TempJobAllocator
             return;
         }
 
-        for (var i = 0; i < _FRAME_LATENCY; i++)
+        for (var i = 0; i < FRAME_LATENCY; i++)
         {
             s_pAllocator->_pArena[i].Dispose();
         }
@@ -49,14 +59,14 @@ public unsafe partial struct TempJobAllocator
 
 public unsafe partial struct TempJobAllocator : IAllocator
 {
-    private const int _FRAME_LATENCY = 4;
+    private const int FRAME_LATENCY = 4;
 
-    private VirtualArena* _pArena;
-    private AllocationHandle.Allocator* _pAllocator;
+    private readonly VirtualArena* _pArena;
+    private readonly AllocationHandle.Allocator* _pAllocator;
     private int _currentFrameCount;
     private int _currentFrameIndex;
 #if MHP_ENABLE_SAFETY_CHECKS
-    private fixed int _allocationsPerFrame[_FRAME_LATENCY];
+    private fixed int _allocationsPerFrame[FRAME_LATENCY];
 #endif
 
     private readonly AllocationHandle _handle;
@@ -65,11 +75,11 @@ public unsafe partial struct TempJobAllocator : IAllocator
 
     internal TempJobAllocator(void* pSelf, nuint capacity)
     {
-        _pArena = (VirtualArena*)NativeMemory.Alloc((nuint)(sizeof(VirtualArena) * _FRAME_LATENCY));
+        _pArena = (VirtualArena*)NativeMemory.Alloc((nuint)(sizeof(VirtualArena) * FRAME_LATENCY));
         _currentFrameCount = 0;
         _currentFrameIndex = 0;
 
-        for (var i = 0; i < _FRAME_LATENCY; i++)
+        for (var i = 0; i < FRAME_LATENCY; i++)
         {
             _pArena[i] = new VirtualArena(capacity);
 #if MHP_ENABLE_SAFETY_CHECKS
@@ -136,7 +146,7 @@ public unsafe partial struct TempJobAllocator : IAllocator
     public void AdvanceFrame()
     {
         _currentFrameCount++;
-        _currentFrameIndex = _currentFrameCount % _FRAME_LATENCY;
+        _currentFrameIndex = _currentFrameCount % FRAME_LATENCY;
 
         (_pArena + _currentFrameIndex)->Reset();
 
@@ -144,7 +154,7 @@ public unsafe partial struct TempJobAllocator : IAllocator
         var allocations = Interlocked.Exchange(ref _allocationsPerFrame[_currentFrameIndex], 0);
         if (allocations != 0)
         {
-            Logger.Error($"TempJobAllocator: Detected {allocations} leaked allocations from frame {_currentFrameCount - _FRAME_LATENCY}.");
+            Logger.Error($"TempJobAllocator: Detected {allocations} leaked allocations from frame {_currentFrameCount - FRAME_LATENCY}.");
         }
 #endif
     }

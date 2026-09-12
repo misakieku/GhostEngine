@@ -752,13 +752,7 @@ internal static unsafe partial class MeshProcessor
                 clusterError = cluster.bounds.error,
                 parentError = group.simplified.error,
                 localMaterialIndex = (byte)materialIndex,
-                lodLevel = (byte)group.depth,
-                cone = new float4(
-                    optBounds.cone_axis[0],
-                    optBounds.cone_axis[1],
-                    optBounds.cone_axis[2],
-                    optBounds.cone_cutoff
-                )
+                lodLevel = (byte)group.depth
             };
             meshletData->meshlets.Add(meshlet);
 

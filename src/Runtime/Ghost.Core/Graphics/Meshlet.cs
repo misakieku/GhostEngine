@@ -32,7 +32,6 @@ public struct Meshlet
     public byte triangleCount;                  // max 124
     public byte localMaterialIndex;             // mesh-local material slot
     public byte lodLevel;                       // this meshlet's LOD level
-    public float4 cone;                         // 16 bytes: cone_axis.xyz, cone_cutoff
 }
 
 [StructLayout(LayoutKind.Sequential)]

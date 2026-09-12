@@ -6,6 +6,7 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Diagnostics;
+using Ghost.Core;
 
 namespace Ghost.Engine;
 
@@ -163,6 +164,9 @@ public sealed partial class EngineCore : IDisposable
         {
             world.PlaybackEntityCommandBuffers();
         }
+
+        AllocationManager.ResetTempAllocator();
+        TempJobAllocator.Advance();
     }
 
     public void Stop()

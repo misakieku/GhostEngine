@@ -211,9 +211,9 @@ compute "Internal/MeshletCullGraph"
 
             float3 worldCenter = mul(instance.localToWorld, float4(node.bounds.xyz, 1.0f)).xyz;
             float3 scale3 = float3(
-                length(instance.localToWorld[0].xyz),
-                length(instance.localToWorld[1].xyz),
-                length(instance.localToWorld[2].xyz));
+                length(instance.localToWorld._m00_m10_m20),
+                length(instance.localToWorld._m01_m11_m21),
+                length(instance.localToWorld._m02_m12_m22));
             float maxScale = max(scale3.x, max(scale3.y, scale3.z));
             float worldRadius = node.bounds.w * maxScale;
             float3 worldMin = worldCenter - worldRadius;
@@ -302,7 +302,6 @@ compute "Internal/MeshletCullGraph"
             bool isVisible = false;
             uint renderType = 0;
             bool inFrustum = false;
-            bool isBackface = false;
             bool isOccluded = false;
 
             if (isValid)
@@ -325,31 +324,7 @@ compute "Internal/MeshletCullGraph"
                 inFrustum = BBoxIntersectFrustum(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld, view.viewProjectionMatrix, clipMin, clipMax, clipValid);
                 if (inFrustum)
                 {
-                    // 2. Normal Cone (Cluster Backface) Culling
-                    if (meshlet.cone.w < 1.0f)
-                    {
-                        float3 worldCenter = mul(instance.localToWorld, float4(meshlet.boundingSphere.xyz, 1.0f)).xyz;
-                        float3 scale3 = float3(
-                            length(instance.localToWorld[0].xyz),
-                            length(instance.localToWorld[1].xyz),
-                            length(instance.localToWorld[2].xyz));
-                        float maxScale = max(scale3.x, max(scale3.y, scale3.z));
-                        float worldRadius = meshlet.boundingSphere.w * maxScale;
-
-                        float3 worldAxis = normalize(mul((float3x3)instance.localToWorld, meshlet.cone.xyz));
-                        float3 toCluster = worldCenter - view.cameraPosition;
-                        float dist = length(toCluster);
-
-                        if (dist > worldRadius)
-                        {
-                            isBackface = (dot(toCluster, worldAxis) >= meshlet.cone.w * dist + worldRadius);
-                        }
-                    }
-                }
-
-                if (!isBackface)
-                {
-                    // 3. Meshlet-level HZB Occlusion Culling. History HZB is sampled with current clip
+                    // Meshlet-level HZB Occlusion Culling. History HZB is sampled with current clip
                     // rects, so like the hierarchy node above it is only tested when the camera is
                     // bit-static (historyStatic); current-frame HZB (Pass 2) is always tested.
                     if (clipValid && props.hzbMipCount > 0 && (props.cullPassIndex == 1 || props.historyStatic != 0))
@@ -371,7 +346,7 @@ compute "Internal/MeshletCullGraph"
             uint localMaskedOffset = WavePrefixCountBits(isMasked);
 
             // In Pass 1: queue occluded meshlets to be re-evaluated in Pass 2 against current HZB
-            bool isOccludedCandidate = (props.cullPassIndex == 0) && isValid && inFrustum && !isBackface && isOccluded;
+            bool isOccludedCandidate = (props.cullPassIndex == 0) && isValid && inFrustum && isOccluded;
             uint waveOccCount = WaveActiveCountBits(isOccludedCandidate);
             uint localOccOffset = WavePrefixCountBits(isOccludedCandidate);
 
@@ -402,19 +377,16 @@ compute "Internal/MeshletCullGraph"
 
             // Telemetry counters
             bool frustumCulled = isValid && !inFrustum;
-            bool coneCulled = isValid && inFrustum && isBackface;
-            bool hzbCulled = isValid && inFrustum && !isBackface && isOccluded;
+            bool hzbCulled = isValid && inFrustum && isOccluded;
 
             uint waveTotal = WaveActiveCountBits(isValid);
             uint waveFrustumCulled = WaveActiveCountBits(frustumCulled);
-            uint waveConeCulled = WaveActiveCountBits(coneCulled);
             uint waveHzbCulled = WaveActiveCountBits(hzbCulled);
 
             if (WaveIsFirstLane())
             {
                 if (waveTotal > 0) counterBuf.InterlockedAdd(20, waveTotal);
                 if (waveFrustumCulled > 0) counterBuf.InterlockedAdd(24, waveFrustumCulled);
-                if (waveConeCulled > 0) counterBuf.InterlockedAdd(28, waveConeCulled);
                 if (waveHzbCulled > 0) counterBuf.InterlockedAdd(32, waveHzbCulled);
             }
 

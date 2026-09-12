@@ -31,7 +31,7 @@ internal static class Setup
         return new EngineDesc
         {
             AllocationManagerDesc = AllocationManagerDesc.Default,
-            WindowDesc = new WindowDesc { Width = 2560, Height = 1440, Title = "Ghost Engine" },
+            WindowDesc = new WindowDesc { Width = 2560, Height = 1440, Title = "TestGame" },
             JobSchedulerDesc = new JobSchedulerDesc
             {
                 ThreadCount = Environment.ProcessorCount - 2,
@@ -100,7 +100,7 @@ internal static class Setup
 
         s_world.EntityManager.SetComponent(cameraEntity, new LocalToWorld
         {
-            matrix = float4x4.TRS(new float3(0.0f, 1.0f, -5.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
+            matrix = float4x4.TRS(new float3(0.0f, 0.0f, -20.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
         });
 
         s_meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/bunny");
@@ -117,15 +117,8 @@ internal static class Setup
         var materialPallette = engineCore.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);
 
         using var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
-        var entities = new Entity[3];
+        var entities = new Entity[5000];
         s_world.EntityManager.CreateEntities(entities, meshSet);
-
-        var positions = new float3[]
-        {
-            new float3(0.0f, 0.0f, -3.0f),   // Bunny 0: Front (occluder, distance 2m)
-            new float3(0.0f, 0.0f, -1.5f),   // Bunny 1: Behind Bunny 0 (occluded, distance 3.5m)
-            new float3(0.5f, 0.0f, -2.5f)    // Bunny 2: Side (unoccluded)
-        };
 
         for (var i = 0; i < entities.Length; i++)
         {
@@ -139,9 +132,13 @@ internal static class Setup
                 staticShadowCaster = true,
             });
 
+            var position = new float3(RandomFloat(-10.0f, 10.0f), RandomFloat(-10.0f, 10.0f), RandomFloat(-10.0f, 10.0f));
+            var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f)));
+            var scale = new float3(RandomFloat(0.5f, 1.0f), RandomFloat(0.5f, 1.0f), RandomFloat(0.5f, 1.0f));
+
             s_world.EntityManager.SetComponent(entity, new LocalToWorld
             {
-                matrix = float4x4.TRS(positions[i], quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
+                matrix = float4x4.TRS(position, rotation, scale)
             });
         }
 

@@ -265,42 +265,7 @@ public class MeshBakerTests
             }
             Console.WriteLine($"[Diagnostic] ALL LODs: total triangles={totalTriangles}, flipped triangles={totalFlipped}");
 
-            // Test Cone Culling:
-            // Put camera at (0, 0.1, -0.3) looking towards (0, 0.1, 0)
-            var camPos = new Misaki.HighPerformance.Mathematics.float3(0, 0.1f, -0.3f);
-            int totalTested = 0;
-            int backfaceCulled = 0;
-            int coneValid = 0;
-
-            for (int m = 0; m < pMeshletData->meshlets.Count; m++)
-            {
-                ref readonly var ml = ref pMeshletData->meshlets[m];
-                if (ml.lodLevel != 0) continue; // Test on LOD 0
-                totalTested++;
-
-                if (ml.cone.w < 1.0f)
-                {
-                    coneValid++;
-                    var center = ml.boundingSphere.Center;
-                    var radius = ml.boundingSphere.Radius;
-                    var axis = ml.cone.xyz;
-                    var cutoff = ml.cone.w;
-
-                    var toCluster = center - camPos;
-                    var dist = Misaki.HighPerformance.Mathematics.math.length(toCluster);
-                    if (dist > radius)
-                    {
-                        if (Misaki.HighPerformance.Mathematics.math.dot(toCluster, axis) >= cutoff * dist + radius)
-                        {
-                            backfaceCulled++;
-                        }
-                    }
-                }
-            }
-            Console.WriteLine($"[Diagnostic] LOD 0 Cone culling: total={totalTested}, valid cones={coneValid}, backface culled={backfaceCulled} ({backfaceCulled * 100.0 / totalTested:F1}%)");
-
             Assert.AreEqual(0, totalFlipped, $"Found {totalFlipped} flipped triangles out of {totalTriangles} total triangles!");
-            Assert.IsGreaterThan(0, backfaceCulled, "Cone culling should cull backfacing meshlets");
         }
         finally
         {

@@ -394,7 +394,8 @@ public struct SharedComponentSet : IDisposable
     {
         _elements.AsSpan().Sort();
 
-        using var tempBuffer = new UnsafeArray<byte>(_writer.Position, AllocationHandle.Temp);
+        using var scope = AllocationManager.CreateStackScope();
+        using var tempBuffer = new UnsafeArray<byte>(_writer.Position, scope.AllocationHandle);
         var srcSpan = _writer.AsSpan();
         var dstSpan = tempBuffer.AsSpan();
 

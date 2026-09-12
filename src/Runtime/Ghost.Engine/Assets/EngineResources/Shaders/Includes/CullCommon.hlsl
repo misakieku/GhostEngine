@@ -21,9 +21,10 @@ static inline void TransformAABB(
     float3 extents = (maxPt - minPt) * 0.5f;
 
     float3 worldCenter = mul(mat, float4(center, 1.0f)).xyz;
-    float3 worldExtents = abs(mat[0].xyz) * extents.x +
-                          abs(mat[1].xyz) * extents.y +
-                          abs(mat[2].xyz) * extents.z;
+    // GhostEngine uses column-major matrices (mul(mat, v)); columns are the coordinate frame axes.
+    float3 worldExtents = abs(mat._m00_m10_m20) * extents.x +
+                          abs(mat._m01_m11_m21) * extents.y +
+                          abs(mat._m02_m12_m22) * extents.z;
 
     outMin = worldCenter - worldExtents;
     outMax = worldCenter + worldExtents;
@@ -65,6 +66,12 @@ static inline uint ComputeHomogeneousClipMask(float4 homogeneousPos)
 // Directly intersects an object-space AABB with camera frustum using worldToClip = mul(viewProj, world)
 // Outputs clipMin, clipMax (in NDC [-1, 1], with z in [0, 1]) and clipValid.
 // If any corner is behind or crosses the near plane, clipValid is false (cannot be occluded by HZB).
+//
+// OPTIMIZATION TODO: Can be optimized using UE5 Nanite's delta-corner approach (BoxCullFrustumPerspective)
+// by transforming the center and basis delta vectors (DX, DY, DZ) rather than all 8 corners.
+// Note: When porting, remember GhostEngine uses column-major matrices (mul(M, v)), so:
+//   DX = (2.0f * extent.x) * float4(worldToClip._m00_m10_m20_m30),
+//   and depth equation constant term is at viewToClip[2][3] (m_23), not [3][2]!
 static inline bool BBoxIntersectFrustum(
     float3 bboxMin,
     float3 bboxMax,
