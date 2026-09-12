@@ -52,7 +52,7 @@ public class AntlrShaderCompiler
 
     public static ComputeShaderSyntax? ParseComputeShaders(string source, List<DSLShaderError> errors)
     {
-        errors = new List<DSLShaderError>();
+        errors.Clear();
 
         try
         {

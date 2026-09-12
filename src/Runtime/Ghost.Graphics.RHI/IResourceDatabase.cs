@@ -124,6 +124,27 @@ public unsafe interface IResourceDatabase : IDisposable
     /// <param name="src">The handle to the source resource.</param>
     /// <returns>The handle to the replaced resource.</returns>
     Handle<GPUResource> Replace(Handle<GPUResource> dst, Handle<GPUResource> src);
+    /// <summary>
+    /// Queues a replace of the destination handle's resource with the source handle's resource, to be applied
+    /// once the GPU has retired the frame that was being recorded when this was called (same fence rule as
+    /// deferred <see cref="ReleaseResource"/>). Unlike <see cref="Replace"/>, the destination keeps its old
+    /// resource and descriptors until then, so in-flight work reading through the destination handle is unaffected.
+    /// Use this instead of <see cref="Replace"/> for per-frame persistent handoff such as render-graph extraction,
+    /// where the destination is sampled by already-submitted or concurrently-recorded GPU work.
+    /// </summary>
+    /// <param name="dst">The handle to the destination resource.</param>
+    /// <param name="src">The handle to the source resource.</param>
+    void QueueReplace(Handle<GPUResource> dst, Handle<GPUResource> src);
+
+    /// <summary>
+    /// Queues a swap of the resources associated with the two specified handles, to be applied once the GPU has
+    /// retired the frame that was being recorded when this was called (same fence rule as deferred
+    /// <see cref="ReleaseResource"/>). Like <see cref="Swap"/>, the swap itself is skipped if either handle died
+    /// before the op is applied.
+    /// </summary>
+    /// <param name="handleA">The first handle whose associated resource is to be swapped.</param>
+    /// <param name="handleB">The second handle whose associated resource is to be swapped.</param>
+    void QueueSwap(Handle<GPUResource> handleA, Handle<GPUResource> handleB);
 
     /// <summary>
     /// Creates a new GPU resource that is a share of the specified source resource, including all its properties and data.

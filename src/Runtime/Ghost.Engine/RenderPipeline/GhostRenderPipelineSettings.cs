@@ -65,6 +65,16 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _renderRequests.Add(renderRequest);
     }
 
+    public uint AllocateView()
+    {
+        return _renderPipeline.GPUViewManager.AllocateView();
+    }
+
+    public void ReleaseView(uint viewId)
+    {
+        _renderPipeline.GPUViewManager.ReleaseView(viewId);
+    }
+
     /// <summary>
     /// Adds a new instance to the persistent GPU scene and enqueues an update request for it.
     /// </summary>
@@ -151,6 +161,13 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     }
 }
 
+public enum CullDebugMode : uint
+{
+    None = 0,
+    HZBDepth = 1,
+    Pass1VsPass2 = 2
+}
+
 public interface IRenderPipelineSettings
 {
     IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager);
@@ -172,6 +189,14 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     /// Enables HZB occlusion testing during meshlet culling.
     /// </summary>
     public bool EnableOcclusionCulling { get; set; } = true;
+
+    /// <summary>
+    /// Visual debug mode for culling and rasterization:
+    /// None (0): Default meshlet cluster coloring with facet shading and white boundaries.
+    /// HZBDepth (1): False-color Turbo heatmap of HZB depth buffer (Mip 0).
+    /// Pass1VsPass2 (2): Pass 1 Early-Z (Cyan) vs Pass 2 Late-Z Disoccluded (Gold).
+    /// </summary>
+    public CullDebugMode DebugMode { get; set; } = CullDebugMode.None;
 
     public IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager)
     {

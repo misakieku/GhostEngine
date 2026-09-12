@@ -153,10 +153,6 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner, IDisp
             includeDirectories = includeDirs.ToArray(),
         };
 
-#if DEBUG
-        configTemplate.options |= CompilerOption.KeepDebugInfo;
-#endif
-
         if (string.Equals(ext, ".gshdr", StringComparison.Ordinal))
         {
             var syntax = DSLShaderCompiler.ParseGraphicsShaderSyntax(codeStr).GetValueOrThrow();

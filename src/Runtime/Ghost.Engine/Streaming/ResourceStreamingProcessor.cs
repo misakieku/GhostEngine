@@ -52,7 +52,7 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
         return false;
     }
 
-    public void ProcessPendingShaderCommits(ResourceStreamingContext context)
+    public void ProcessPendingShaderCommits(in ResourceStreamingContext context)
     {
         while (_pendingShaderCommit.TryDequeue(out var entry))
         {
@@ -100,7 +100,7 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
         jobScheduler.WaitAll(handles);
     }
 
-    public void ProcessPendingUploads(ResourceStreamingContext context)
+    public void ProcessPendingUploads(in ResourceStreamingContext context)
     {
         // 1. If there is a pending copy batch from a previous frame, check its opaque completion handle.
         if (_pendingCopySubmission.IsValid && context.FrameScheduler.IsComplete(_pendingCopySubmission))

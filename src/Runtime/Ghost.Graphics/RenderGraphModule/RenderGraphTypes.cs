@@ -106,6 +106,7 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
     public uint slice;
     public TextureUsage usage;
 
+    // FIXME: clearAtFirstUse and discardAtLastUse does nothing if the pass is not native pass.
     public bool clearAtFirstUse;
     public bool discardAtLastUse;
 

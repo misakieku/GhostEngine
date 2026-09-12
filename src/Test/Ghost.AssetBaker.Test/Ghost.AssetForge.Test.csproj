@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <Configurations>Debug;Release</Configurations>
     <Platforms>x64;ARM64;X86</Platforms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Editor\Ghost.AssetForge.Core\Ghost.AssetForge.Core.csproj" />

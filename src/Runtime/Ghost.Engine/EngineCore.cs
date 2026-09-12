@@ -102,7 +102,7 @@ public sealed partial class EngineCore : IDisposable
 
     public int FrameIndex => _frameIndex;
 
-    public EngineCore(JobSchedulerDesc jobSchedulerDesc, EngineDesc.Render renderDesc, IContentProvider contentProvider)
+    public EngineCore(in JobSchedulerDesc jobSchedulerDesc, in EngineDesc.Render renderDesc, IContentProvider contentProvider)
     {
         _contentProvider = contentProvider;
 

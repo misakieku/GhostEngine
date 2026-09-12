@@ -167,16 +167,24 @@ public partial class AssetManager : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private AssetEntry GetOrCreateEntry(Guid guid)
     {
-        var entry = _entries.GetOrAdd(guid, static (id, self) =>
+        var isNew = false;
+        if (!_entries.TryGetValue(guid, out var entry))
         {
-            var type = self._contentProvider.GetAssetType(id);
-            var deps = self._contentProvider.GetDependencies(id);
+            var type = _contentProvider.GetAssetType(guid);
+            var deps = _contentProvider.GetDependencies(guid);
+            var newEntry = AssetEntryFactory.CreateNewEntry(this, _resourceDatabase, _resourceManager, guid, type, deps);
 
-            var entry = AssetEntryFactory.CreateNewEntry(self, self._resourceDatabase, self._resourceManager, id, type, deps);
+            entry = _entries.GetOrAdd(guid, newEntry);
+            if (ReferenceEquals(entry, newEntry))
+            {
+                isNew = true;
+            }
+        }
 
-            self.EnsureScheduled(entry);
-            return entry;
-        }, this);
+        if (isNew)
+        {
+            EnsureScheduled(entry);
+        }
 
         entry.AddRef();
         return entry;

@@ -263,6 +263,14 @@ public partial class ResourceManager
 
     private void EndFramePool(ulong completedFrame)
     {
+        // Return swap-displaced handles to the pool only once their frame has retired, so pooled reuse
+        // cannot recycle memory still referenced by in-flight work.
+        while (_deferredPoolReturns.TryPeek(out var poolReturn) && poolReturn.returnFrame < completedFrame)
+        {
+            _deferredPoolReturns.Dequeue();
+            ReleasePooledResource(poolReturn.handle);
+        }
+
         for (var i = 0; i < _activePages.Count; i++)
         {
             ref var page = ref _activePages[i];

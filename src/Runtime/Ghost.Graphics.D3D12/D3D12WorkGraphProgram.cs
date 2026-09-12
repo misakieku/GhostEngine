@@ -71,7 +71,6 @@ internal unsafe class D3D12WorkGraphProgram : D3D12Object<ID3D12StateObject>, IW
             pWorkGraphProps->GetWorkGraphMemoryRequirements(_workGraphIndex, &memReqs);
 
             _backingMemorySize = memReqs.MaxSizeInBytes;
-            Logger.Info($"[D3D12WorkGraphProgram] Work graph '{programName}' (Index {_workGraphIndex}): BackingMemory MinSize = {memReqs.MinSizeInBytes}, MaxSize = {memReqs.MaxSizeInBytes}");
             if (_backingMemorySize > 0)
             {
                 var backingDesc = new BufferDesc
@@ -164,10 +163,7 @@ internal unsafe class D3D12WorkGraphProgram : D3D12Object<ID3D12StateObject>, IW
             {
                 Logger.Warning($"[D3D12WorkGraphProgram] Entrypoint '{nodeName}' was NOT found in work graph (Index {_workGraphIndex})!");
             }
-            else
-            {
-                Logger.Info($"[D3D12WorkGraphProgram] Entrypoint '{nodeName}' resolved to index {index}");
-            }
+
             return index;
         }
     }

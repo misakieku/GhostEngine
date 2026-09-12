@@ -1,4 +1,3 @@
-using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 
@@ -6,7 +5,7 @@ namespace Ghost.Graphics;
 
 internal struct ResourceStreamingContext
 {
-    public required IFrameScheduler FrameScheduler
+    public required FrameScheduler FrameScheduler
     {
         get; init;
     }
@@ -54,6 +53,6 @@ internal struct ResourceStreamingContext
 
 internal interface IResourceStreamingProcessor
 {
-    void ProcessPendingShaderCommits(ResourceStreamingContext context);
-    void ProcessPendingUploads(ResourceStreamingContext context);
+    void ProcessPendingShaderCommits(in ResourceStreamingContext context);
+    void ProcessPendingUploads(in ResourceStreamingContext context);
 }

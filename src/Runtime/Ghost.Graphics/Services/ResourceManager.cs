@@ -34,6 +34,7 @@ public sealed partial class ResourceManager : IDisposable
     private UnsafeSlotMap<ComputeShader> _computeShaders;
 
     private readonly MaterialPaletteStore _materialPalettes;
+    private readonly StaticSampler _staticSampler;
 
     // Persistent GPU buffers for the two-buffer material palette indirection.
     private Handle<GPUBuffer> _paletteOffsetBuffer;
@@ -66,6 +67,7 @@ public sealed partial class ResourceManager : IDisposable
     public uint MaterialIndexBufferBindlessIndex => _resourceDatabase.GetBindlessIndex(_materialIndexBuffer.AsResource());
 
     public IResourceAllocator ResourceAllocator => _resourceAllocator;
+    public StaticSampler StaticSampler => _staticSampler;
 
     public ResourceManager(IRenderDevice renderDevice, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase)
     {
@@ -79,11 +81,13 @@ public sealed partial class ResourceManager : IDisposable
         _computeShaders = new UnsafeSlotMap<ComputeShader>(16, AllocationHandle.Persistent);
 
         _materialPalettes = new MaterialPaletteStore();
+        _staticSampler = new StaticSampler(resourceAllocator, resourceDatabase);
 
         _meshWriteLock = new Lock();
         _materialWriteLock = new Lock();
         _shaderWriteLock = new Lock();
         _computeShaderWriteLock = new Lock();
+        _deferredPoolReturns = new UnsafeQueue<ResourceReturnEntry>(32, AllocationHandle.Persistent);
 
         // Create initial GPU palette buffers. These grow on demand in UploadMaterialPaletteData.
         _paletteOffsetCapacity = PALETTE_BUFFER_INITIAL_CAPACITY;
@@ -594,12 +598,14 @@ public sealed partial class ResourceManager : IDisposable
         _shaders.Dispose();
         _computeShaders.Dispose();
         _materialPalettes.Dispose();
+        _staticSampler.Dispose();
 
         _resourceDatabase.ReleaseResource(_paletteOffsetBuffer.AsResource());
         _resourceDatabase.ReleaseResource(_materialIndexBuffer.AsResource());
 
         DisposeTransientPool();
         DisposePersistentPool();
+        _deferredPoolReturns.Dispose();
 
         _disposed = true;
         GC.SuppressFinalize(this);

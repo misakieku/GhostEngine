@@ -5,11 +5,14 @@ using Ghost.Entities;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.Mathematics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Systems;
 
 [UpdateAfter<AddGPUInstanceSystem>]
-[UpdateAfter<AddGPUViewBufferSystem>]
+[UpdateAfter<AddGPUViewSystem>]
 internal class CameraRenderSystem : SystemBase
 {
     private RenderEngine _renderEngine = null!;
@@ -20,7 +23,7 @@ internal class CameraRenderSystem : SystemBase
         _renderEngine = systemAPI.World.GetService<RenderEngine>();
 
         _cameraQueryID = QueryBuilder.New()
-            .WithAll<Camera, LocalToWorld, GPUViewBufferContainer>()
+            .WithAll<Camera, LocalToWorld, GPUViewRef>()
             .Build(systemAPI.World, true);
 
         RequireQueryForUpdate(_cameraQueryID);
@@ -36,36 +39,13 @@ internal class CameraRenderSystem : SystemBase
         {
             var cameras = chunk.GetComponentData<Camera>();
             var localToWorlds = chunk.GetComponentData<LocalToWorld>();
-            var viewContainers = chunk.GetComponentDataRW<GPUViewBufferContainer>();
+            var viewRefs = chunk.GetComponentData<GPUViewRef>();
 
             for (var i = 0; i < chunk.EntityCount; i++)
             {
                 ref readonly var camera = ref cameras[i];
                 ref readonly var localToWorld = ref localToWorlds[i];
-                ref var container = ref viewContainers[i];
-
-                uint currentWidth = 0;
-                uint currentHeight = 0;
-                if (camera.swapChainIndex >= 0 && _renderEngine.SwapChainManager.TryGetSwapChain(camera.swapChainIndex, out var sc))
-                {
-                    currentWidth = sc.Width;
-                    currentHeight = sc.Height;
-                    _renderEngine.SwapChainManager.ReleaseSwapChain(camera.swapChainIndex);
-                }
-                else if (camera.colorTarget.IsValid)
-                {
-                    var descRes = _renderEngine.GraphicsEngine.ResourceDatabase.GetResourceDescription(camera.colorTarget.AsResource());
-                    if (descRes.IsSuccess)
-                    {
-                        currentWidth = descRes.Value.TextureDescriptor.Width;
-                        currentHeight = descRes.Value.TextureDescriptor.Height;
-                    }
-                }
-
-                var hasValidHistory = container.isHistoryValid &&
-                                      container.historyWidth == currentWidth &&
-                                      container.historyHeight == currentHeight &&
-                                      currentWidth > 0 && currentHeight > 0;
+                ref readonly var viewRef = ref viewRefs[i];
 
                 var renderView = new RenderView
                 {
@@ -87,47 +67,11 @@ internal class CameraRenderSystem : SystemBase
                     view = renderView,
                     swapChainIndex = camera.swapChainIndex,
                     colorTarget = camera.colorTarget,
-                    depthTarget = container.depthTarget,
-                    hzbHistory = container.hzbHistory,
-                    hzbMipCount = container.hzbMipCount,
-                    historyWidth = container.historyWidth,
-                    historyHeight = container.historyHeight,
-                    hasValidHistory = hasValidHistory
+                    depthTarget = camera.depthTarget,
+                    viewId = viewRef.viewId
                 };
 
-                container.historyWidth = currentWidth;
-                container.historyHeight = currentHeight;
-                container.isHistoryValid = true;
-
                 payload.AddRenderRequest(in request);
-            }
-        }
-    }
-    
-    protected override void OnCleanup(scoped in SystemAPI systemAPI)
-    {
-        ref var cameraQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_cameraQueryID);
-        foreach (var chunk in cameraQuery.GetChunkIterator())
-        {
-            var viewContainers = chunk.GetComponentDataRW<GPUViewBufferContainer>();
-            for (var i = 0; i < chunk.EntityCount; i++)
-            {
-                ref var container = ref viewContainers[i];
-
-                for (var m = 0; m < 16; m++)
-                {
-                    if (container.hzbHistory[m].IsValid)
-                    {
-                        _renderEngine.GraphicsEngine.ResourceDatabase.ReleaseResource(container.hzbHistory[m].AsResource());
-                        container.hzbHistory[m] = default;
-                    }
-                }
-
-                if (container.depthTarget.IsValid)
-                {
-                    _renderEngine.GraphicsEngine.ResourceDatabase.ReleaseResource(container.depthTarget.AsResource());
-                    container.depthTarget = default;
-                }
             }
         }
     }

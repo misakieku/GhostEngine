@@ -192,10 +192,6 @@ public struct RenderRequest
     public Handle<GPUTexture> colorTarget;
     public Handle<GPUTexture> depthTarget;
 
-    public HZBMipHandles hzbHistory;
-    public uint hzbMipCount;
-    public uint historyWidth;
-    public uint historyHeight;
-    public bool hasValidHistory;
+    public uint viewId;
 }
 

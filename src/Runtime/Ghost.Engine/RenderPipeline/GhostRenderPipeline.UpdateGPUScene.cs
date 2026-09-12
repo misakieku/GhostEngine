@@ -64,17 +64,11 @@ internal partial class GhostRenderPipeline
                     continue;
                 }
 
-                var meshBufferIndex = resourceDatabase.GetBindlessIndex(mesh.Get().MeshDataBuffer.AsResource());
-                if (meshBufferIndex == uint.MaxValue)
-                {
-                    Logger.Warning($"MeshDataBuffer bindless index for instance {addRequest.instanceId} is invalid (0xFFFFFFFF).");
-                }
-
                 pAddData[i] = new UpdateInstanceData
                 {
                     localToWorld = addRequest.localToWorld,
                     instanceID = addRequest.instanceId,
-                    meshBuffer = meshBufferIndex,
+                    meshBuffer = resourceDatabase.GetBindlessIndex(mesh.Get().MeshDataBuffer.AsResource()),
                     materialPaletteIndex = (uint)addRequest.meshInstance.materialPalette.Value,
                     renderingLayerMask = addRequest.meshInstance.renderingLayerMask,
                     shadowCastingMode = (uint)addRequest.meshInstance.shadowCastingMode
@@ -163,40 +157,24 @@ internal partial class GhostRenderPipeline
         public Handle<ComputeShader> updateGPUSceneShader;
     }
 
-    private int _lastGpuUpdateProbe = -1;
-
     private void UpdateGPUScene(RenderContext ctx, GhostRenderPayload payload)
     {
-        void LogProbe(int state, string message)
-        {
-            if (_lastGpuUpdateProbe == state)
-            {
-                return;
-            }
-
-            _lastGpuUpdateProbe = state;
-            Logger.Info($"GPU scene probe: {message}");
-        }
         _gpuScene.ResizeIfNeeded(ctx.CommandBuffer);
 
         if (!_gpuSceneResource.updateGPUSceneShader.IsValid)
         {
-            LogProbe(0, "compute handle invalid.");
-            Logger.Warning("UpdateGPUScene shader handle is invalid. Skipping GPU scene update.");
             return;
         }
 
         var shaderRef = ctx.ResourceManager.GetComputeShaderReference(_gpuSceneResource.updateGPUSceneShader);
         if (shaderRef.IsFailure)
         {
-            LogProbe(1, "compute handle lookup failed.");
             return;
         }
 
         var (compiledHash, error) = ctx.ShaderLibrary.GetCompiledHash(shaderRef.Value.UniqueID, 0);
         if (error.IsFailure)
         {
-            LogProbe(2, "compute bytecode unavailable.");
             // Compute shader is not compiled/ready yet; keep update requests in queue.
             return;
         }
@@ -206,8 +184,6 @@ internal partial class GhostRenderPipeline
 
         if (updateCount <= 0 && removeCount <= 0)
         {
-            LogProbe(3, "compute ready, no pending updates.");
-            Logger.DebugAssert(updateBuffer.IsInvalid && removeBuffer.IsInvalid, "Buffers should be invalid when there are no updates.");
             return; // No updates needed
         }
 
@@ -223,7 +199,6 @@ internal partial class GhostRenderPipeline
         var maxCount = Math.Max(updateCount, removeCount);
         var threadGroups = new uint3((uint)Math.Ceiling(maxCount / 64.0), 1, 1);
 
-        LogProbe(4, $"dispatching updates={updateCount}, removes={removeCount}.");
         ctx.DispatchCompute(_gpuSceneResource.updateGPUSceneShader, 0, in property, threadGroups);
 
         ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(

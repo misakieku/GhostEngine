@@ -26,6 +26,7 @@ shader "Internal/VisibilityBufferMasked"
                 nointerpolation uint meshletIndex : MESHLET_ID;
                 nointerpolation uint localMaterialIndex : MATERIAL_ID;
                 nointerpolation uint cbufferIndex : CBUFFER_ID;
+                nointerpolation uint passIndex : PASS_ID;
             };
 
             struct PrimitiveOutput
@@ -44,8 +45,6 @@ shader "Internal/VisibilityBufferMasked"
                 float4 baseColor;
                 uint baseMap;
                 uint sampler_baseMap;
-                uint normalMap;
-                uint sampler_normalMap;
                 float metallic;
                 float roughness;
                 float occlusion;
@@ -60,7 +59,9 @@ shader "Internal/VisibilityBufferMasked"
                 out indices uint3 outTris[124],
                 out primitives PrimitiveOutput outPrims[124])
             {
-                StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[g_PushConstantData.instanceIndex];
+                uint visibleBufferIndex = g_PushConstantData.instanceIndex & 0x7FFFFFFFu;
+                uint passBit = (g_PushConstantData.instanceIndex >> 31) & 1u;
+                StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[visibleBufferIndex];
                 VisibleMeshletEntry visible = visibleMeshlets[groupID.x];
 
                 FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
@@ -97,6 +98,7 @@ shader "Internal/VisibilityBufferMasked"
                     outVerts[groupThreadID.x].meshletIndex = visible.meshletIndex;
                     outVerts[groupThreadID.x].localMaterialIndex = localMaterialIndex;
                     outVerts[groupThreadID.x].cbufferIndex = cbufferIndex;
+                    outVerts[groupThreadID.x].passIndex = passBit;
                 }
 
                 if (groupThreadID.x < triangleCount)
@@ -133,7 +135,7 @@ shader "Internal/VisibilityBufferMasked"
 
                 uint2 vbuffer;
                 vbuffer.x = ((input.instanceIndex + 1u) & 0x00FFFFFFu) | ((input.localMaterialIndex & 0xFFu) << 24);
-                vbuffer.y = (input.meshletIndex & 0x00FFFFFFu) | ((primitiveID & 0xFFu) << 24);
+                vbuffer.y = (input.meshletIndex & 0x00FFFFFFu) | ((primitiveID & 0x7Fu) << 24) | ((input.passIndex & 1u) << 31);
                 return vbuffer;
             }
         }

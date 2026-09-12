@@ -564,18 +564,21 @@ public sealed class RenderGraph : IDisposable
             var src = res.backingResource;
             if (res.extractionFlags.HasFlag(ResourceExtractionFlags.ReleaseAfterExtract))
             {
-                // Direct Replace (releases old dst resource immediately inside DB)
-                _resourceDatabase.Replace(dst, src);
+                // Deferred Replace: dst keeps its old resource/descriptors until this frame retires, so
+                // in-flight passes sampling the persistent handle (e.g. next frame's HZB history read)
+                // never observe this frame's not-yet-written transient. The displaced old resource is
+                // released through the deferred release path at apply time.
+                _resourceDatabase.QueueReplace(dst, src);
             }
             else
             {
-                // Swap & Pool Recycle
-                // Swapping swaps dst and src inside IResourceDatabase.
-                // After Swap, src now holds dst's OLD resource handle, which we return to the pool!
-                var err = _resourceDatabase.Swap(dst, src);
-                Logger.DebugAssert(err.IsSuccess, "Failed to swap resources in IResourceDatabase: " + err);
-
-                _resourceManager.ReleasePooledResource(src);
+                // Deferred Swap & Pool Recycle.
+                // Swapping swaps dst and src inside IResourceDatabase once this frame retires.
+                // After Swap, src holds dst's OLD resource handle; its return to the pool is deferred
+                // through ReleasePooledResourceDeferred (plain data, no closures) so pooled reuse also
+                // waits out in-flight readers.
+                _resourceDatabase.QueueSwap(dst, src);
+                _resourceManager.ReleasePooledResourceDeferred(src);
             }
         }
 

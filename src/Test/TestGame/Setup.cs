@@ -20,6 +20,10 @@ internal static class Setup
     private static World s_world = null!;
     private static IAssetEntry s_meshAsset = null!;
     private static IAssetEntry s_shaderAsset = null!;
+    private static readonly GhostRenderPipelineSettings s_pipelineSettings = new GhostRenderPipelineSettings
+    {
+        DebugMode = CullDebugMode.Pass1VsPass2
+    };
 
     [RuntimeConfiguration]
     public static EngineDesc InitEngineDesc()
@@ -27,7 +31,7 @@ internal static class Setup
         return new EngineDesc
         {
             AllocationManagerDesc = AllocationManagerDesc.Default,
-            WindowDesc = new WindowDesc { Width = 800, Height = 600, Title = "Ghost Engine" },
+            WindowDesc = new WindowDesc { Width = 2560, Height = 1440, Title = "Ghost Engine" },
             JobSchedulerDesc = new JobSchedulerDesc
             {
                 ThreadCount = Environment.ProcessorCount - 2,
@@ -38,7 +42,7 @@ internal static class Setup
             {
                 FrameBufferCount = 2,
                 GraphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 }),
-                RenderPipelineSettings = new GhostRenderPipelineSettings(),
+                RenderPipelineSettings = s_pipelineSettings,
                 ShaderCacheDirectory = "ShaderCache",
                 ShaderCompilationBridge = null
             },
@@ -54,6 +58,28 @@ internal static class Setup
     [RuntimeInitialize]
     public static void Init(EngineCore engineCore)
     {
+        EngineWindow.OnEvent += e =>
+        {
+            if (e.Type == SDL.SDL_EventType.SDL_EVENT_KEY_DOWN)
+            {
+                if (e.key.scancode == SDL.SDL_Scancode.SDL_SCANCODE_1)
+                {
+                    s_pipelineSettings.DebugMode = CullDebugMode.None;
+                    Console.WriteLine("[Visual Mode] 0: None (Meshlets + Wireframe)");
+                }
+                else if (e.key.scancode == SDL.SDL_Scancode.SDL_SCANCODE_2)
+                {
+                    s_pipelineSettings.DebugMode = CullDebugMode.HZBDepth;
+                    Console.WriteLine("[Visual Mode] 1: HZB Depth Buffer Heatmap");
+                }
+                else if (e.key.scancode == SDL.SDL_Scancode.SDL_SCANCODE_3)
+                {
+                    s_pipelineSettings.DebugMode = CullDebugMode.Pass1VsPass2;
+                    Console.WriteLine("[Visual Mode] 2: Pass 1 (Cyan) vs Pass 2 (Gold)");
+                }
+            }
+        };
+
         s_world = World.Create(engineCore.JobScheduler, 1024);
 
         using var scope = AllocationManager.CreateStackScope();
@@ -66,7 +92,7 @@ internal static class Setup
             depthTarget = Handle<GPUTexture>.Invalid,
             nearClipPlane = 0.1f,
             farClipPlane = 1000.0f,
-            focalLength = 50.0f,
+            focalLength = 20.0f,
             sensorSize = new float2(36.0f, 24.0f),
             gateFit = GateFit.Vertical,
             renderingLayerMask = RenderingLayerMask.All,
@@ -74,7 +100,7 @@ internal static class Setup
 
         s_world.EntityManager.SetComponent(cameraEntity, new LocalToWorld
         {
-            matrix = float4x4.TRS(new float3(0.0f, 0.0f, -5.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
+            matrix = float4x4.TRS(new float3(0.0f, 1.0f, -5.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
         });
 
         s_meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/bunny");
@@ -91,8 +117,15 @@ internal static class Setup
         var materialPallette = engineCore.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);
 
         using var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
-        var entities = new Entity[5000];
+        var entities = new Entity[3];
         s_world.EntityManager.CreateEntities(entities, meshSet);
+
+        var positions = new float3[]
+        {
+            new float3(0.0f, 0.0f, -3.0f),   // Bunny 0: Front (occluder, distance 2m)
+            new float3(0.0f, 0.0f, -1.5f),   // Bunny 1: Behind Bunny 0 (occluded, distance 3.5m)
+            new float3(0.5f, 0.0f, -2.5f)    // Bunny 2: Side (unoccluded)
+        };
 
         for (var i = 0; i < entities.Length; i++)
         {
@@ -106,21 +139,9 @@ internal static class Setup
                 staticShadowCaster = true,
             });
 
-            var position = new float3(
-                RandomFloat(-5.0f, 5.0f),
-                RandomFloat(-5.0f, 5.0f),
-                RandomFloat(-5.0f, 5.0f)
-            );
-
-            var rotation = quaternion.EulerXYZ(new float3(
-                RandomFloat(0.0f, 360.0f),
-                RandomFloat(0.0f, 360.0f),
-                RandomFloat(0.0f, 360.0f)
-            ));
-
             s_world.EntityManager.SetComponent(entity, new LocalToWorld
             {
-                matrix = float4x4.TRS(position, rotation, new float3(0.1f, 0.1f, 0.1f))
+                matrix = float4x4.TRS(positions[i], quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
             });
         }
 

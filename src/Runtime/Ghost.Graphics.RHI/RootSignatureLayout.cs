@@ -15,6 +15,8 @@ public static class RootSignatureLayout
 public struct PushConstantsData
 {
     public const uint NUM_32BITS_VALUE = 12u / sizeof(uint);
+    public const int PROPERTY_OR_INSTANCE_START = 8;
+    public const int PROPERTY_OR_INSTANCE_OFFSET = 2;
 
     [FieldOffset(0)]
     public uint frameBuffer;

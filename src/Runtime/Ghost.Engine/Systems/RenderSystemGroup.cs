@@ -7,7 +7,8 @@ public class RenderSystemGroup : SystemGroup
     public RenderSystemGroup()
     {
         AddSystem<CameraRenderSystem>();
-        AddSystem<AddGPUViewBufferSystem>();
+        AddSystem<AddGPUViewSystem>();
+        AddSystem<RemoveGPUViewSystem>();
 
         AddSystem<RemoveGPUInstanceSystem>();
         AddSystem<UpdateGPUInstanceSystem>();

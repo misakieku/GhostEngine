@@ -22,6 +22,7 @@ struct Meshlet
     float clusterError;
     float parentError;
     uint packedCounts; // byte vertexCount, byte triangleCount, byte localMaterialIndex, byte lodLevel
+    float4 cone; // xyz: axis, w: cutoff (cos(angle/2))
 };
 
 struct MeshletGroup

@@ -26,9 +26,9 @@ internal struct RenderFrameResources
     public const int MAX_HZB_MIPS = 16;
 
     /// <summary>
-    /// Hierarchical Z-Buffer mip textures for two-pass occlusion culling.
+    /// Hierarchical Z-Buffer packed pyramid atlas texture for two-pass occlusion culling.
     /// </summary>
-    public Identifier<RGTexture>[] HZBMips;
+    public Identifier<RGTexture> HZBAtlas;
 
     /// <summary>
     /// Number of valid mips in the current HZB pyramid.
@@ -149,30 +149,32 @@ internal struct RenderFrameResources
         var mipCount = (uint)Math.Floor(Math.Log2(maxDim)) + 1;
         mipCount = Math.Min(mipCount, (uint)MAX_HZB_MIPS);
 
-        var hzbMips = new Identifier<RGTexture>[mipCount];
-        var curW = hzbWidth;
-        var curH = hzbHeight;
-        for (uint i = 0; i < mipCount; ++i)
+        // Packed atlas dimensions: Mip 0 is on the left (hzbWidth x hzbHeight),
+        // Mips 1..N stack vertically in the right column of width (hzbWidth / 2).
+        var atlasWidth = hzbWidth + Math.Max(1u, (hzbWidth + 1) / 2);
+        uint rightColumnHeight = 0;
+        var rH = hzbHeight;
+        for (uint i = 1; i < mipCount; ++i)
         {
-            var mipDesc = RGTextureDesc.Absolute(
-                curW,
-                curH,
-                TextureFormat.R32_Float,
-                clearColor: default,
-                clearAtFirstUse: false,
-                discardAtLastUse: false,
-                usage: TextureUsage.ShaderResource | TextureUsage.UnorderedAccess);
-
-            hzbMips[i] = builder.CreateTexture(in mipDesc, $"HZBMip_{i}");
-            curW = Math.Max(1u, curW / 2);
-            curH = Math.Max(1u, curH / 2);
+            rH = Math.Max(1u, rH / 2);
+            rightColumnHeight += rH;
         }
+        var atlasHeight = Math.Max(hzbHeight, rightColumnHeight);
+
+        var atlasDesc = RGTextureDesc.Absolute(
+            atlasWidth,
+            atlasHeight,
+            TextureFormat.R32_Float,
+            clearColor: default,
+            clearAtFirstUse: false,
+            discardAtLastUse: false,
+            usage: TextureUsage.ShaderResource | TextureUsage.UnorderedAccess);
 
         return new RenderFrameResources
         {
             VisibilityBuffer = builder.CreateTexture(in visBufferDesc, "VisibilityBuffer"),
             DepthBuffer = externalDepth.IsValid ? externalDepth : builder.CreateTexture(in depthDesc, "SceneDepthBuffer"),
-            HZBMips = hzbMips,
+            HZBAtlas = builder.CreateTexture(in atlasDesc, "HZBAtlas"),
             HZBMipCount = mipCount,
             HZBWidth = hzbWidth,
             HZBHeight = hzbHeight,

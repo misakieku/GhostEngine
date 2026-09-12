@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Graphics.RenderGraphModule;
@@ -405,7 +406,7 @@ internal sealed class RenderGraphExecutor
         }
     }
 
-    private void RollbackRecording(IFrameScheduler frameScheduler, bool insideNativePass)
+    private void RollbackRecording(FrameScheduler frameScheduler, bool insideNativePass)
     {
         var activeCommandBuffer = _commandBufferCount > 0
             ? _commandBuffers[_commandBufferCount - 1]
@@ -438,7 +439,7 @@ internal sealed class RenderGraphExecutor
         ReturnAcquiredCommandBuffers(frameScheduler);
     }
 
-    private void ReturnAcquiredCommandBuffers(IFrameScheduler frameScheduler)
+    private void ReturnAcquiredCommandBuffers(FrameScheduler frameScheduler)
     {
         for (var i = 0; i < _commandBufferCount; i++)
         {

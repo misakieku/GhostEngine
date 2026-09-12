@@ -151,7 +151,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
             name);
     }
 
-    public Result OnRecordUploadCommands(ResourceStreamingContext context)
+    public Result OnRecordUploadCommands(in ResourceStreamingContext context)
     {
         var vertexBuffer = CreateBuffer(context, _pVertices, _header.vertexCount, (uint)sizeof(Vertex),
             BufferUsage.Vertex | BufferUsage.ShaderResource | BufferUsage.Raw, "Mesh_VertexBuffer");
@@ -247,7 +247,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         return Result.Success();
     }
 
-    public void OnUploadComplete(ResourceStreamingContext context)
+    public void OnUploadComplete(in ResourceStreamingContext context)
     {
         var (dstMeshRef, dstError) = context.ResourceManager.GetMeshReference(_actualHandle);
         var (srcMeshRef, srcError) = context.ResourceManager.GetMeshReference(_tempHandle);

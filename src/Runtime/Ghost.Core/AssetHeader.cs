@@ -191,7 +191,7 @@ public struct CacheFileHeader()
     /// </returns>
     public static uint ComputeBakerVersion(Type bakerType, Type settingsType)
     {
-        return Fnv1a($"v3:{bakerType.FullName}:{settingsType.FullName}");
+        return Fnv1a($"v4:{bakerType.FullName}:{settingsType.FullName}");
     }
 
     /// <summary>

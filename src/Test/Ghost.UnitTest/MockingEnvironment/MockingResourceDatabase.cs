@@ -177,6 +177,16 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         ReleaseResource(src);
         return dst;
     }
+    public void QueueReplace(Handle<GPUResource> dst, Handle<GPUResource> src)
+    {
+        Replace(dst, src); // No pipelining in tests: apply immediately.
+    }
+
+    public void QueueSwap(Handle<GPUResource> handleA, Handle<GPUResource> handleB)
+    {
+        Swap(handleA, handleB);
+    }
+
 
 
     public Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB)

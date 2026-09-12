@@ -8,6 +8,7 @@ namespace Ghost.Graphics.Services;
 public partial class ResourceManager
 {
     private UnsafeHashMap<ResourceDesc, UnsafeStack<Handle<GPUResource>>> _resourcePool = new(128, AllocationHandle.Persistent);
+    private UnsafeQueue<ResourceReturnEntry> _deferredPoolReturns;
 
     public Handle<GPUResource> CreatePooledResource(scoped in ResourceDesc desc)
     {
@@ -62,6 +63,16 @@ public partial class ResourceManager
         }
 
         stack.Push(handle);
+    }
+    /// <summary>
+    /// Returns a pooled-resource handle to the pool once the GPU has retired the frame being recorded now
+    /// (same fence rule as deferred releases). Use this instead of <see cref="ReleasePooledResource"/> when the
+    /// handle's resource is still referenced by submitted work, e.g. the displaced handle of a queued swap.
+    /// Allocation-free: the entry is plain data pumped by <c>EndFramePool</c>.
+    /// </summary>
+    public void ReleasePooledResourceDeferred(Handle<GPUResource> handle)
+    {
+        _deferredPoolReturns.Enqueue(new ResourceReturnEntry(handle, _submittedFrame));
     }
 
     private void DisposePersistentPool()

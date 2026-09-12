@@ -100,6 +100,21 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             this.fenceValue = fenceValue;
         }
     }
+    private readonly struct PendingSwapEntry
+    {
+        public readonly Handle<GPUResource> a;
+        public readonly Handle<GPUResource> b;
+        public readonly bool isReplace;
+        public readonly ulong cpuFrame;
+
+        public PendingSwapEntry(Handle<GPUResource> a, Handle<GPUResource> b, bool isReplace, ulong cpuFrame)
+        {
+            this.a = a;
+            this.b = b;
+            this.isReplace = isReplace;
+            this.cpuFrame = cpuFrame;
+        }
+    }
 
     private readonly D3D12RenderDevice _device;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
@@ -111,6 +126,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 #endif
 
     private UnsafeQueue<ReleaseEntry> _releaseQueue;
+    private UnsafeQueue<PendingSwapEntry> _pendingSwaps;
 
     private readonly Lock _writeLock;
 
@@ -129,6 +145,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 #endif
 
         _releaseQueue = new UnsafeQueue<ReleaseEntry>(32, AllocationHandle.Persistent);
+        _pendingSwaps = new UnsafeQueue<PendingSwapEntry>(32, AllocationHandle.Persistent);
         _writeLock = new Lock();
     }
 
@@ -434,6 +451,37 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
         return dst;
     }
+    public void QueueReplace(Handle<GPUResource> dst, Handle<GPUResource> src)
+    {
+        Logger.DebugAssert(!_disposed);
+
+        lock (_writeLock)
+        {
+            if (!_resources.TryGetElementAt(dst.ID, dst.Generation, out _) ||
+                !_resources.TryGetElementAt(src.ID, src.Generation, out _))
+            {
+                return;
+            }
+
+            _pendingSwaps.Enqueue(new PendingSwapEntry(dst, src, true, _cpuFrame));
+        }
+    }
+
+    public void QueueSwap(Handle<GPUResource> handleA, Handle<GPUResource> handleB)
+    {
+        Logger.DebugAssert(!_disposed);
+
+        lock (_writeLock)
+        {
+            if (!_resources.TryGetElementAt(handleA.ID, handleA.Generation, out _) ||
+                !_resources.TryGetElementAt(handleB.ID, handleB.Generation, out _))
+            {
+                return;
+            }
+
+            _pendingSwaps.Enqueue(new PendingSwapEntry(handleA, handleB, false, _cpuFrame));
+        }
+    }
 
     public Handle<GPUResource> CreateShared(Handle<GPUResource> src)
     {
@@ -521,6 +569,23 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
     {
         Logger.DebugAssert(!_disposed);
 
+        // Apply queued replace/swap ops whose frame has retired. Runs before the release pump below:
+        // the ops only touch live records, and Replace funnels the displaced resource through the deferred
+        // release path (tagged with the current frame) instead of destroying it under in-flight readers.
+        // A dead handle at apply time (e.g. owner torn down) skips the swap.
+        while (_pendingSwaps.TryPeek(out var pending) && pending.cpuFrame < gpuFrame)
+        {
+            _pendingSwaps.Dequeue();
+            if (pending.isReplace)
+            {
+                Replace(pending.a, pending.b);
+            }
+            else
+            {
+                Swap(pending.a, pending.b);
+            }
+        }
+
         while (_releaseQueue.TryPeek(out var toRelease) && toRelease.fenceValue < gpuFrame)
         {
             _releaseQueue.Dequeue();
@@ -546,6 +611,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         }
 
         _releaseQueue.Clear();
+        _pendingSwaps.Clear();
         _resources.Clear();
 #if DEBUG
         _resourceName.Clear();
@@ -562,6 +628,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         _resources.Dispose();
         _samplers.Dispose();
         _releaseQueue.Dispose();
+        _pendingSwaps.Dispose();
 
         _disposed = true;
 

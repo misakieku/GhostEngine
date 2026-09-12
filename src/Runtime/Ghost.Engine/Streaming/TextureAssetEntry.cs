@@ -111,7 +111,7 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
         return Result.Success();
     }
 
-    public Result OnRecordUploadCommands(ResourceStreamingContext context)
+    public Result OnRecordUploadCommands(in ResourceStreamingContext context)
     {
         Logger.DebugAssert(_textureData.IsCreated);
 
@@ -133,7 +133,7 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
         return Result.Success();
     }
 
-    public void OnUploadComplete(ResourceStreamingContext context)
+    public void OnUploadComplete(in ResourceStreamingContext context)
     {
         var actualHandle = context.ResourceDatabase.Replace(_actualHandle.AsResource(), _tempHandle.AsResource());
         Logger.DebugAssert(actualHandle.IsValid);

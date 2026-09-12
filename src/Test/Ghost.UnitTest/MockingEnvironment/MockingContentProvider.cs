@@ -96,6 +96,7 @@ internal class MockingContentProvider : IContentProvider
                 triangleCount = 1,
                 localMaterialIndex = 0,
                 lodLevel = 0,
+                cone = new float4(0, 0, 1, 1.0f),
             }
         };
         var groups = new[]

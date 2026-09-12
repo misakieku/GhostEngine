@@ -209,11 +209,52 @@ internal static unsafe partial class MeshProcessor
                 cluster.uniqueVertices.Add(pMeshletVertices[meshlet.vertex_offset + j]);
             }
 
-            for (nuint j = 0; j < meshlet.triangle_count * 3; j++)
+            var posStride = mesh.vertexPositionsStride / (nuint)sizeof(float);
+            var normStride = mesh.vertexAttributesStride / (nuint)sizeof(float);
+
+            for (nuint t = 0; t < meshlet.triangle_count; t++)
             {
-                var localIdx = pMeshletTriangles[meshlet.triangle_offset + j];
-                cluster.localIndices.Add(localIdx);
-                cluster.indices.Add(pMeshletVertices[meshlet.vertex_offset + localIdx]);
+                var i0 = pMeshletTriangles[meshlet.triangle_offset + t * 3 + 0];
+                var i1 = pMeshletTriangles[meshlet.triangle_offset + t * 3 + 1];
+                var i2 = pMeshletTriangles[meshlet.triangle_offset + t * 3 + 2];
+
+                var v0 = pMeshletVertices[meshlet.vertex_offset + i0];
+                var v1 = pMeshletVertices[meshlet.vertex_offset + i1];
+                var v2 = pMeshletVertices[meshlet.vertex_offset + i2];
+
+                if (mesh.vertexAttributes != null && mesh.vertexPositions != null)
+                {
+                    float* p0 = mesh.vertexPositions + v0 * posStride;
+                    float* p1 = mesh.vertexPositions + v1 * posStride;
+                    float* p2 = mesh.vertexPositions + v2 * posStride;
+
+                    var pos0 = new float3(p0[0], p0[1], p0[2]);
+                    var pos1 = new float3(p1[0], p1[1], p1[2]);
+                    var pos2 = new float3(p2[0], p2[1], p2[2]);
+
+                    var geomNormal = math.cross(pos1 - pos0, pos2 - pos0);
+
+                    float* n0 = mesh.vertexAttributes + v0 * normStride;
+                    float* n1 = mesh.vertexAttributes + v1 * normStride;
+                    float* n2 = mesh.vertexAttributes + v2 * normStride;
+                    var normAvg = new float3(n0[0] + n1[0] + n2[0], n0[1] + n1[1] + n2[1], n0[2] + n1[2] + n2[2]);
+
+                    if (math.lengthsq(normAvg) > 1e-8f && math.dot(geomNormal, normAvg) < -1e-6f)
+                    {
+                        // Triangle winding is flipped (counter-clockwise instead of clockwise).
+                        // Swap i1 and i2 (and v1 and v2) to preserve clockwise front-facing winding.
+                        var tempI = i1; i1 = i2; i2 = tempI;
+                        var tempV = v1; v1 = v2; v2 = tempV;
+                    }
+                }
+
+                cluster.localIndices.Add(i0);
+                cluster.localIndices.Add(i1);
+                cluster.localIndices.Add(i2);
+
+                cluster.indices.Add(v0);
+                cluster.indices.Add(v1);
+                cluster.indices.Add(v2);
             }
 
             clusters.Add(cluster);
@@ -628,6 +669,7 @@ internal static unsafe partial class MeshProcessor
         public MeshletMeshData* data;
         public int materialIndex;
         public AllocationHandle allocationHandle;
+        public ClodMesh mesh;
     }
 
     private static int MeshletOutputCallback(MeshletContext context, ClodGroup group, ReadOnlyView<ClodCluster> clusters)
@@ -656,35 +698,67 @@ internal static unsafe partial class MeshProcessor
             meshletData->meshletTriangles = new UnsafeList<uint>(128, handle);
         }
 
-        var meshletGroup = new MeshletGroup
-        {
-            boundingSphere = new SphereBounds(group.simplified.center, group.simplified.radius),
-            boundingBox = new AABB(group.simplified.center - group.simplified.radius, group.simplified.center + group.simplified.radius),
-            parentError = group.simplified.error,
-            meshletStartIndex = (uint)meshletData->meshlets.Count,
-            meshletCount = (uint)clusters.Count,
-            lodLevel = (uint)group.depth
-        };
-        meshletData->groups.Add(meshletGroup);
+        var groupIndex = (uint)meshletData->groups.Count;
+        var groupMin = new float3(float.MaxValue);
+        var groupMax = new float3(float.MinValue);
 
         for (var i = 0; i < clusters.Count; i++)
         {
             var cluster = clusters[i];
+            var triangleCount = cluster.localIndexCount / 3;
+
+            var optBounds = MeshOptApi.ComputeMeshletBounds(
+                cluster.uniqueVertices,
+                cluster.localIndices,
+                triangleCount,
+                context.mesh.vertexPositions,
+                context.mesh.vertexCount,
+                context.mesh.vertexPositionsStride
+            );
+
+            var optCenter = new float3(optBounds.center[0], optBounds.center[1], optBounds.center[2]);
+            var optRadius = optBounds.radius;
+
+            var meshletMin = new float3(float.MaxValue);
+            var meshletMax = new float3(float.MinValue);
+            for (nuint v = 0; v < cluster.vertexCount; v++)
+            {
+                var vIndex = cluster.uniqueVertices[v];
+                var vPtr = (float*)((byte*)context.mesh.vertexPositions + vIndex * context.mesh.vertexPositionsStride);
+                var pos = new float3(vPtr[0], vPtr[1], vPtr[2]);
+                meshletMin = math.min(meshletMin, pos);
+                meshletMax = math.max(meshletMax, pos);
+            }
+
+            if (cluster.vertexCount == 0)
+            {
+                meshletMin = optCenter - optRadius;
+                meshletMax = optCenter + optRadius;
+            }
+
+            groupMin = math.min(groupMin, meshletMin);
+            groupMax = math.max(groupMax, meshletMax);
 
             var meshlet = new Meshlet
             {
-                boundingSphere = new SphereBounds(cluster.bounds.center, cluster.bounds.radius),
+                boundingSphere = new SphereBounds(optCenter, optRadius),
                 parentBoundingSphere = new SphereBounds(group.simplified.center, group.simplified.radius),
-                boundingBox = new AABB(cluster.bounds.center - cluster.bounds.radius, cluster.bounds.center + cluster.bounds.radius),
+                boundingBox = new AABB(meshletMin, meshletMax),
                 vertexCount = (byte)cluster.vertexCount,
-                triangleCount = (byte)(cluster.localIndexCount / 3),
+                triangleCount = (byte)triangleCount,
                 vertexOffset = (uint)meshletData->meshletVertices.Count,
                 triangleOffset = (uint)meshletData->meshletTriangles.Count,
-                groupIndex = (uint)meshletData->groups.Count - 1,
+                groupIndex = groupIndex,
                 clusterError = cluster.bounds.error,
                 parentError = group.simplified.error,
                 localMaterialIndex = (byte)materialIndex,
                 lodLevel = (byte)group.depth,
+                cone = new float4(
+                    optBounds.cone_axis[0],
+                    optBounds.cone_axis[1],
+                    optBounds.cone_axis[2],
+                    optBounds.cone_cutoff
+                )
             };
             meshletData->meshlets.Add(meshlet);
 
@@ -693,7 +767,6 @@ internal static unsafe partial class MeshProcessor
                 meshletData->meshletVertices.Add(cluster.uniqueVertices[j]);
             }
 
-            var triangleCount = cluster.localIndexCount / 3;
             for (nuint j = 0; j < triangleCount; j++)
             {
                 uint i0 = cluster.localIndices[j * 3 + 0];
@@ -703,6 +776,23 @@ internal static unsafe partial class MeshProcessor
                 meshletData->meshletTriangles.Add(packedTriangle);
             }
         }
+
+        if (clusters.Count == 0)
+        {
+            groupMin = group.simplified.center - group.simplified.radius;
+            groupMax = group.simplified.center + group.simplified.radius;
+        }
+
+        var meshletGroup = new MeshletGroup
+        {
+            boundingSphere = new SphereBounds(group.simplified.center, group.simplified.radius),
+            boundingBox = new AABB(groupMin, groupMax),
+            parentError = group.simplified.error,
+            meshletStartIndex = (uint)(meshletData->meshlets.Count - clusters.Count),
+            meshletCount = (uint)clusters.Count,
+            lodLevel = (uint)group.depth
+        };
+        meshletData->groups.Add(meshletGroup);
 
         return meshletData->groups.Count - 1;
     }
@@ -761,7 +851,8 @@ internal static unsafe partial class MeshProcessor
                 {
                     data = meshletData,
                     materialIndex = part.materialIndex,
-                    allocationHandle = allocationHandle
+                    allocationHandle = allocationHandle,
+                    mesh = clodMesh
                 };
 
                 Build(in config, in clodMesh, context, MeshletOutputCallback, allocationHandle);

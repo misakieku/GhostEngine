@@ -23,8 +23,6 @@ public interface IRenderGraphContext
     uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource);
     uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource);
 
-    void SetFrameData(uint frameBuffer);
-    void SetViewData(uint viewBuffer);
     void SetProperties<TProperty>(scoped in TProperty property) where TProperty : unmanaged;
 }
 
@@ -33,8 +31,6 @@ public interface IRasterRenderContext : IRenderGraphContext
     void SetViewport(ViewportDesc desc);
     void SetScissorRect(ScissorRectDesc desc);
 
-    void SetGlobalData(uint globalIndex, uint viewIndex);
-    void SetGlobalData();
     void SetInstanceIndex(uint instanceIndex);
 
     void SetActiveMaterial(Handle<Material> material);
@@ -58,19 +54,18 @@ public interface IComputeRenderContext : IRenderGraphContext
     void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset = 0, Handle<GPUBuffer> countBuffer = default, ulong countBufferOffset = 0);
     void SetProgram(scoped in SetProgramDesc desc);
     void DispatchGraph(scoped in DispatchGraphDesc desc);
-    void SetPushConstants(scoped in PushConstantsData pushConstants);
 }
 
 public interface IUnsafeRenderContext : IRasterRenderContext, IComputeRenderContext
 {
     ICommandBuffer GetCommandBufferUnsafe();
     unsafe void* MapBuffer(Identifier<RGBuffer> buffer);
-    unsafe void UnmapBuffer(Identifier<RGBuffer> buffer);
-    unsafe void WriteBuffer<T>(Identifier<RGBuffer> buffer, scoped in T data, uint dstOffset = 0) where T : unmanaged;
+    void UnmapBuffer(Identifier<RGBuffer> buffer);
+    void WriteBuffer<T>(Identifier<RGBuffer> buffer, scoped in T data, uint dstOffset = 0) where T : unmanaged;
     unsafe void WriteBuffer(Identifier<RGBuffer> buffer, void* pData, uint sizeInBytes, uint dstOffset = 0);
 }
 
-internal sealed class RenderGraphContext : IUnsafeRenderContext
+internal unsafe sealed class RenderGraphContext : IUnsafeRenderContext
 {
     private readonly ResourceManager _resourceManager;
     private readonly ShaderLibrary _shaderLibrary;
@@ -90,7 +85,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
 
     private uint _activeFrameBuffer;
     private uint _activeViewBuffer;
-    private uint _activeInstanceIndex;
+
     private readonly RenderGraphPropertyAllocator _propertyAllocator;
 
     public ResourceManager ResourceManager => _resourceManager;
@@ -190,37 +185,37 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
     public void SetProperties<TProperty>(scoped in TProperty property) where TProperty : unmanaged
     {
         var descriptor = _propertyAllocator.Allocate(in property);
-        var pushConstants = new PushConstantsData
+        var data = new PushConstantsData
         {
             frameBuffer = _activeFrameBuffer,
             viewBuffer = _activeViewBuffer,
-            propertyBuffer = descriptor
+            propertyBuffer = descriptor,
         };
 
         if (_commandBuffer.Type == CommandBufferType.Compute)
         {
-            _commandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstants.AsUInts());
+            _commandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, data.AsUInts());
         }
         else
         {
-            _commandBuffer.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstants.AsUInts());
-            _commandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstants.AsUInts());
+            _commandBuffer.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, data.AsUInts());
+            _commandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, data.AsUInts());
         }
     }
 
-    public unsafe void* MapBuffer(Identifier<RGBuffer> buffer)
+    public void* MapBuffer(Identifier<RGBuffer> buffer)
     {
         var actual = GetActualBuffer(buffer);
         return _resourceDatabase.MapResource(actual.AsResource(), 0, null);
     }
 
-    public unsafe void UnmapBuffer(Identifier<RGBuffer> buffer)
+    public void UnmapBuffer(Identifier<RGBuffer> buffer)
     {
         var actual = GetActualBuffer(buffer);
         _resourceDatabase.UnmapResource(actual.AsResource(), 0, null);
     }
 
-    public unsafe void WriteBuffer<T>(Identifier<RGBuffer> buffer, scoped in T data, uint dstOffset = 0) where T : unmanaged
+    public void WriteBuffer<T>(Identifier<RGBuffer> buffer, scoped in T data, uint dstOffset = 0) where T : unmanaged
     {
         fixed (T* pData = &data)
         {
@@ -228,7 +223,7 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         }
     }
 
-    public unsafe void WriteBuffer(Identifier<RGBuffer> buffer, void* pData, uint sizeInBytes, uint dstOffset = 0)
+    public void WriteBuffer(Identifier<RGBuffer> buffer, void* pData, uint sizeInBytes, uint dstOffset = 0)
     {
         var actual = GetActualBuffer(buffer);
         var pMapped = (byte*)_resourceDatabase.MapResource(actual.AsResource(), 0, null);
@@ -555,41 +550,20 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
         _activeMeshIndexCount = mesh.IndexCount;
     }
 
-    public void SetGlobalData(uint frameBuffer, uint viewBuffer)
-    {
-        _activeFrameBuffer = frameBuffer;
-        _activeViewBuffer = viewBuffer;
-    }
-
-    public unsafe void SetGlobalData()
-    {
-        var data = new PushConstantsData
-        {
-            frameBuffer = _activeFrameBuffer,
-            viewBuffer = _activeViewBuffer,
-            instanceIndex = _activeInstanceIndex,
-        };
-
-        var pushConstantSpan = new ReadOnlySpan<uint>(&data, sizeof(PushConstantsData) / sizeof(uint));
-        _commandBuffer.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstantSpan);
-    }
-
     public void SetInstanceIndex(uint instanceIndex)
     {
-        _activeInstanceIndex = instanceIndex;
-    }
-
-    public unsafe void DispatchMesh(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
-    {
         var data = new PushConstantsData
         {
             frameBuffer = _activeFrameBuffer,
             viewBuffer = _activeViewBuffer,
-            instanceIndex = _activeInstanceIndex,
+            instanceIndex = instanceIndex,
         };
 
-        var pushConstantSpan = new ReadOnlySpan<uint>(&data, sizeof(PushConstantsData) / sizeof(uint));
-        _commandBuffer.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstantSpan);
+        _commandBuffer.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, data.AsUInts());
+    }
+
+    public void DispatchMesh(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)
+    {
         _commandBuffer.DispatchMesh(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
     }
 
@@ -629,11 +603,6 @@ internal sealed class RenderGraphContext : IUnsafeRenderContext
     public void DispatchGraph(scoped in DispatchGraphDesc desc)
     {
         _commandBuffer.DispatchGraph(in desc);
-    }
-
-    public void SetPushConstants(scoped in PushConstantsData pushConstants)
-    {
-        _commandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstants.AsUInts());
     }
 
     public ICommandBuffer GetCommandBufferUnsafe()

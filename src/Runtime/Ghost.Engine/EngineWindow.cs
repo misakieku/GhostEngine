@@ -56,6 +56,8 @@ public unsafe class EngineWindow : IDisposable
 
     private bool _isRunning;
 
+    public static event Action<SDL_Event>? OnEvent;
+
     public IntPtr Handle => SDL_GetPointerProperty(_propID, HANDLE_PROPERTY_NAME, 0);
     public int SwapChainIndex => _swapChainIndex;
 
@@ -97,7 +99,7 @@ public unsafe class EngineWindow : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void PollEvents(Action<SDL_Event>? callback = null)
+    public void PollEvents()
     {
         SDL_Event e;
         while (SDL_PollEvent(&e))
@@ -116,7 +118,7 @@ public unsafe class EngineWindow : IDisposable
                     break;
             }
 
-            callback?.Invoke(e);
+            OnEvent?.Invoke(e);
         }
     }
 

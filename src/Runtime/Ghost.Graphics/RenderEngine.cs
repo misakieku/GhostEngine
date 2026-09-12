@@ -100,7 +100,7 @@ public class RenderEngine : IDisposable
     private readonly ResourceManager _resourceManager;
     private readonly SwapChainManager _swapChainManager;
     private readonly ShaderLibrary _shaderLibrary;
-    private readonly IFrameScheduler _frameScheduler;
+    private readonly FrameScheduler _frameScheduler;
     private readonly FrameResource[] _frameResources;
     private readonly Thread _renderThread;
     private readonly CancellationTokenSource _shutdownCts;
@@ -117,7 +117,7 @@ public class RenderEngine : IDisposable
     public IGraphicsEngine GraphicsEngine => _graphicsEngine;
     public ResourceManager ResourceManager => _resourceManager;
     public SwapChainManager SwapChainManager => _swapChainManager;
-    public IFrameScheduler FrameScheduler => _frameScheduler;
+    public FrameScheduler FrameScheduler => _frameScheduler;
 
     public bool IsRunning => _isRunning;
     public ulong SubmittedFrame => _submittedFrame;

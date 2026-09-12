@@ -3,7 +3,7 @@ using Ghost.Graphics.RHI;
 
 namespace Ghost.Graphics.Services;
 
-internal sealed class FrameScheduler : IFrameScheduler
+public sealed class FrameScheduler : IDisposable
 {
     private readonly struct SubmissionRecord
     {

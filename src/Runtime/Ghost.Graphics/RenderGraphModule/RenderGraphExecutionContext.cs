@@ -1,5 +1,5 @@
-using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Services;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -22,7 +22,7 @@ public readonly struct RenderGraphExecutionContext
     /// <summary>
     /// Gets the frame scheduler that receives ended command buffers.
     /// </summary>
-    public IFrameScheduler FrameScheduler
+    public FrameScheduler FrameScheduler
     {
         get;
     }
@@ -57,7 +57,7 @@ public readonly struct RenderGraphExecutionContext
     /// </summary>
     public RenderGraphExecutionContext(
         IGraphicsEngine graphicsEngine,
-        IFrameScheduler frameScheduler,
+        FrameScheduler frameScheduler,
         ICommandAllocator graphicsCommandAllocator,
         ICommandAllocator computeCommandAllocator)
     {

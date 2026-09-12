@@ -1,15 +1,18 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.RenderPipeline;
 
-internal partial class GhostRenderPipeline : IRenderPipeline
+internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 {
     private struct VisibilityPassData
     {
@@ -20,11 +23,12 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         public ulong maskedArgsOffset;
         public Handle<Shader> visibilityShader;
         public Handle<Shader> visibilityMaskedShader;
+        public uint passIndex;
     }
 
     private struct BlitPassData
     {
-        public Identifier<RGTexture> visBuffer;
+        public Identifier<RGTexture> srcBuffer;
         public Handle<Shader> blitShader;
     }
 
@@ -41,6 +45,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
     private readonly RenderGraph _renderGraph;
     private readonly GPUScene _gpuScene;
+    private readonly GPUViewManager _gpuViewManager;
 
     private CPUInstanceInfo[] _instanceInfos;
     private bool _disposed;
@@ -48,6 +53,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
     private uint _lastInstanceCount = uint.MaxValue;
 
     public GPUScene GPUScene => _gpuScene;
+    public GPUViewManager GPUViewManager => _gpuViewManager;
     public GhostRenderPipelineSettings Settings => _settings;
 
     public GhostRenderPipeline(RenderEngine renderEngine, AssetManager assetManager, GhostRenderPipelineSettings? settings = null)
@@ -66,6 +72,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             renderEngine.ResourceManager,
             renderEngine.ShaderLibrary);
         _gpuScene = new GPUScene(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, 102_400u); // 102.4k objects should be enough for now
+        _gpuViewManager = new GPUViewManager(renderEngine.GraphicsEngine.ResourceDatabase);
         _instanceInfos = new CPUInstanceInfo[64];
 
         InitializeCulling(renderEngine, assetManager);
@@ -87,7 +94,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         UpdateGPUScene(ctx, ghostPayload);
     }
 
-    public unsafe RGExecution ExecuteGraph(RenderContext ctx, int frameIndex, IRenderPayload payload, in RenderGraphExecutionContext executionContext)
+    public RGExecution ExecuteGraph(RenderContext ctx, int frameIndex, IRenderPayload payload, in RenderGraphExecutionContext executionContext)
     {
         var ghostPayload = (GhostRenderPayload)payload;
         _renderGraph.Reset();
@@ -95,7 +102,6 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         {
             _lastRenderRequestCount = ghostPayload.RenderRequests.Length;
             _lastInstanceCount = _gpuScene.InstanceCount;
-            Logger.Info($"Render probe: requests={_lastRenderRequestCount}, gpuInstances={_lastInstanceCount}.");
         }
 
         if (ghostPayload.RenderRequests.Length == 0)
@@ -129,9 +135,6 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
         var primaryViewState = default(ViewState);
 
-        // NOTE: Architectural Rule: Do not hide multiple passes inside an opaque aggregate method (e.g. DoCullingPass).
-        // Keep individual pass registration visible at the pipeline orchestration level in ExecuteGraph so that developers
-        // and tooling can immediately see all scheduled passes and their dependency order.
         for (var requestIndex = 0; requestIndex < ghostPayload.RenderRequests.Length; requestIndex++)
         {
             ref readonly var request = ref ghostPayload.RenderRequests[requestIndex];
@@ -145,6 +148,17 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             // Upload ViewData (Reversed-Z: near=1.0, far=0.0)
             RenderPipelineUtility.GetVPMatricesReversedZ(in request, viewData.ScreenSize, out var viewMatrix, out var projMatrix);
             var viewProjMatrix = math.mul(projMatrix, viewMatrix);
+
+            var viewContext = _gpuViewManager.GetView(request.viewId);
+            viewContext.EnsureResources(
+                ctx.ResourceAllocator,
+                ctx.ResourceDatabase,
+                viewData.ScreenSize.x,
+                viewData.ScreenSize.y);
+
+            var isStatic = AreEqualBits(in viewProjMatrix, in viewContext.prevViewProjMatrix);
+            viewContext.prevViewProjMatrix = viewProjMatrix;
+
             var viewDataGpu = new ViewData
             {
                 viewMatrix = viewMatrix,
@@ -188,32 +202,39 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 viewData.ScreenSize.y,
                 TextureFormat.R32G32_UInt,
                 usage: TextureUsage.RenderTarget | TextureUsage.ShaderResource,
-                clearAtFirstUse: true) with { clearColor = default };
+                clearAtFirstUse: true);
 
             var depthDesc = RGTextureDesc.Absolute(
                 viewData.ScreenSize.x,
                 viewData.ScreenSize.y,
                 TextureFormat.D32_Float,
                 usage: TextureUsage.DepthStencil | TextureUsage.ShaderResource,
-                clearAtFirstUse: true) with { clearDepth = 0.0f };
+                clearAtFirstUse: true);
 
-            // 1. Initialize transient culling & indirect argument buffers for this camera view
+            var hzbAtlas = _renderGraph.ImportTexture(viewContext.hzbAtlas);
+
+            // Initialize transient culling & indirect argument buffers for this camera view
             AddInitializeCullingBuffersPass(_renderGraph, out var cullingBuffers);
 
-            // 2. Pass 1: Early-Z Hierarchical Meshlet Culling (Work Graph)
+            // Pass 1: Early-Z Hierarchical Meshlet Culling (Work Graph)
             AddMeshletCullPass1(
                 _renderGraph,
                 in cullingBuffers,
-                in request,
+                hzbAtlas,
+                viewContext.hzbMipCount,
+                isStatic,
+                viewData.ScreenSize.x,
+                viewData.ScreenSize.y,
+                in viewContext.hzbOffsets0,
+                in viewContext.hzbOffsets1,
+                in viewContext.hzbOffsets2,
+                in viewContext.hzbOffsets3,
                 _gpuScene.InstanceCount);
 
-            // 3. Pass 1: Prepare Indirect Dispatch Arguments
-            AddPrepareIndirectArgsPass(
-                _renderGraph,
-                in cullingBuffers,
-                cullPassIndex: 0);
+            // Pass 1: Prepare Indirect Dispatch Arguments
+            AddPrepareIndirectArgsPass(_renderGraph, in cullingBuffers, 0);
 
-            // 4. Pass 1: Visibility Buffer Rasterization (Early-Z / Previously Visible)
+            // Pass 1: Visibility Buffer Rasterization (Early-Z / Previously Visible)
             var (currentVisBuffer, currentDepth) = AddVisibilityBufferPass(
                 _renderGraph,
                 in vbufferDesc,
@@ -221,33 +242,33 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 in cullingBuffers,
                 cullPassIndex: 0);
 
-            // 5. Build HZB Mip Pyramid (Compute passes downsampling current depth) & Queue Extractions to camera history
+            // Build HZB Mip Pyramid (Compute passes downsampling current depth directly into hzbAtlas)
             AddBuildHZBPasses(
                 _renderGraph,
                 currentDepth,
-                in request,
+                hzbAtlas,
+                viewContext.hzbMipCount,
                 viewData.ScreenSize.x,
-                viewData.ScreenSize.y,
-                out var hzbMips,
-                out var hzbMipCount);
+                viewData.ScreenSize.y);
 
-            // 6. Pass 2: Late-Z Meshlet Culling (Work Graph testing occluded meshlets against current HZB)
+            // Pass 2: Late-Z Meshlet Culling (Work Graph testing occluded meshlets against current HZB)
             AddMeshletCullPass2(
                 _renderGraph,
                 in cullingBuffers,
-                hzbMips,
-                hzbMipCount,
+                hzbAtlas,
+                viewContext.hzbMipCount,
                 viewData.ScreenSize.x,
                 viewData.ScreenSize.y,
+                in viewContext.hzbOffsets0,
+                in viewContext.hzbOffsets1,
+                in viewContext.hzbOffsets2,
+                in viewContext.hzbOffsets3,
                 _gpuScene.InstanceCount);
 
-            // 7. Pass 2: Prepare Indirect Dispatch Arguments
-            AddPrepareIndirectArgsPass(
-                _renderGraph,
-                in cullingBuffers,
-                cullPassIndex: 1);
+            // Pass 2: Prepare Indirect Dispatch Arguments
+            AddPrepareIndirectArgsPass(_renderGraph, in cullingBuffers, 1);
 
-            // 8. Pass 2: Visibility Buffer Rasterization (Late-Z / Newly Visible)
+            // Pass 2: Visibility Buffer Rasterization (Late-Z / Newly Visible)
             AddVisibilityBufferPass(
                 _renderGraph,
                 in vbufferDesc,
@@ -257,11 +278,8 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 existingVisBuffer: currentVisBuffer,
                 existingDepth: currentDepth);
 
-            // 9. Blit Visibility Buffer to screen / backbuffer
-            AddBlitPass(
-                _renderGraph,
-                currentVisBuffer,
-                colorTarget);
+            // Blit Visibility Buffer to screen / backbuffer
+            AddBlitPass(_renderGraph, currentVisBuffer, colorTarget);
         }
 
         var result = _renderGraph.CompileAndExecute(executionContext, primaryViewState);
@@ -274,7 +292,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         return result.Value;
     }
 
-    private unsafe (Identifier<RGTexture> visibilityBuffer, Identifier<RGTexture> depthBuffer) AddVisibilityBufferPass(
+    private (Identifier<RGTexture> visibilityBuffer, Identifier<RGTexture> depthBuffer) AddVisibilityBufferPass(
         RenderGraph rg,
         scoped in RGTextureDesc vbufferDesc,
         scoped in RGTextureDesc depthDesc,
@@ -317,20 +335,21 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             opaqueArgsOffset = isPass1 ? 0UL : 32UL,
             maskedArgsOffset = isPass1 ? 16UL : 48UL,
             visibilityShader = _cullingResource.visibilityShader,
-            visibilityMaskedShader = _cullingResource.visibilityMaskedShader
+            visibilityMaskedShader = _cullingResource.visibilityMaskedShader,
+            passIndex = cullPassIndex
         });
 
         builder.SetRenderFunc<VisibilityPassData>(static (ref readonly passData, renderCtx) =>
         {
             var actualIndirectBuf = renderCtx.GetActualBuffer(passData.indirectArgsBuffer);
+            var passBit = passData.passIndex << 31;
 
             // 1. Draw Opaque Meshlets
             if (passData.visibilityShader.IsValid &&
                 renderCtx.TrySetActiveShaderPass(passData.visibilityShader, PassSemantic.Visibility))
             {
                 var visibleBufferIndex = renderCtx.GetActualBindlessIndex(passData.visibleMeshlets);
-                renderCtx.SetInstanceIndex(visibleBufferIndex);
-                renderCtx.SetGlobalData();
+                renderCtx.SetInstanceIndex(visibleBufferIndex | passBit);
                 renderCtx.ExecuteIndirect(s_dispatchMeshCommandSignature, 1, actualIndirectBuf, passData.opaqueArgsOffset);
             }
 
@@ -339,8 +358,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 renderCtx.TrySetActiveShaderPass(passData.visibilityMaskedShader, PassSemantic.Visibility))
             {
                 var visibleMaskedIndex = renderCtx.GetActualBindlessIndex(passData.visibleMaskedMeshlets);
-                renderCtx.SetInstanceIndex(visibleMaskedIndex);
-                renderCtx.SetGlobalData();
+                renderCtx.SetInstanceIndex(visibleMaskedIndex | passBit);
                 renderCtx.ExecuteIndirect(s_dispatchMeshCommandSignature, 1, actualIndirectBuf, passData.maskedArgsOffset);
             }
         });
@@ -348,9 +366,9 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         return (visBufferTexture, depthTexture);
     }
 
-    private unsafe void AddBlitPass(
+    private void AddBlitPass(
         RenderGraph rg,
-        Identifier<RGTexture> srcVisibilityBuffer,
+        Identifier<RGTexture> srcBuffer,
         Identifier<RGTexture> dstColorTarget)
     {
         if (!_cullingResource.blitShader.IsValid)
@@ -358,13 +376,13 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             return;
         }
 
-        using var builder = rg.AddRasterRenderPass<BlitPassData>("BlitVisibilityBuffer");
+        using var builder = rg.AddRasterRenderPass<BlitPassData>("BlitPass");
         builder.SetColorAttachment(dstColorTarget, 0, AccessFlags.WriteAll);
-        builder.UseTexture(srcVisibilityBuffer, AccessFlags.Read);
+        builder.UseTexture(srcBuffer, AccessFlags.Read);
 
         builder.SetPassData(new BlitPassData
         {
-            visBuffer = srcVisibilityBuffer,
+            srcBuffer = srcBuffer,
             blitShader = _cullingResource.blitShader
         });
 
@@ -375,10 +393,13 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 return;
             }
 
-            var visBufferIndex = renderCtx.GetActualBindlessIndex(passData.visBuffer);
+            var property = new HiddenBlitShaderProperties
+            {
+                mainTex = renderCtx.GetActualBindlessIndex(passData.srcBuffer),
+                sampler_mainTex = (uint)renderCtx.ResourceManager.StaticSampler.LinearClamp.Value,
+            };
 
-            renderCtx.SetInstanceIndex(visBufferIndex);
-            renderCtx.SetGlobalData();
+            renderCtx.SetProperties(property);
             renderCtx.DispatchMesh(1, 1, 1);
         });
     }
@@ -397,5 +418,13 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
         _renderGraph.Dispose();
         _gpuScene.Dispose();
+        _gpuViewManager.Dispose();
+    }
+
+    private static bool AreEqualBits(in float4x4 a, in float4x4 b)
+    {
+        var sa = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in a), 1));
+        var sb = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in b), 1));
+        return sa.SequenceEqual(sb);
     }
 }

@@ -32,6 +32,7 @@ public struct Meshlet
     public byte triangleCount;                  // max 124
     public byte localMaterialIndex;             // mesh-local material slot
     public byte lodLevel;                       // this meshlet's LOD level
+    public float4 cone;                         // 16 bytes: cone_axis.xyz, cone_cutoff
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -99,7 +100,7 @@ public struct MeshletMeshData : IDisposable
 public struct MeshContentHeader
 {
     public const uint MAGIC = 0x48534D47; // GMSH
-    public const uint VERSION = 1;
+    public const uint VERSION = 2;
 
     public uint magic;
     public uint version;

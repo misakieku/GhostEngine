@@ -1,11 +1,12 @@
 using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Services;
 
 namespace Ghost.UnitTest.MockingEnvironment;
 
-internal sealed class FaultInjectingFrameScheduler : IFrameScheduler
+internal sealed class FaultInjectingFrameScheduler
 {
-    private readonly IFrameScheduler _inner;
+    private readonly FrameScheduler _inner;
     private int _addDependencyCallCount;
 
     public int FailOnAddDependencyCall
@@ -16,7 +17,7 @@ internal sealed class FaultInjectingFrameScheduler : IFrameScheduler
 
     public ulong SubmittedFrame => _inner.SubmittedFrame;
 
-    public FaultInjectingFrameScheduler(IFrameScheduler inner)
+    public FaultInjectingFrameScheduler(FrameScheduler inner)
     {
         _inner = inner;
     }
