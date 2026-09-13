@@ -46,7 +46,6 @@ internal partial class GhostRenderPipeline
         public uint4 hzbOffsets2;
         public uint4 hzbOffsets3;
         public uint instanceCount;
-        public bool historyStatic;
         public uint maxVisibleMeshlets;
         public uint threadGroupCount;
         public uint entrypointIndex;
@@ -122,25 +121,25 @@ internal partial class GhostRenderPipeline
         [ResolveAsset("EngineResources/Shaders/Blit")]
         public Handle<Shader> blitShader;
 
-        public IWorkGraphProgram? CullWorkGraphProgram;
+        public IWorkGraphProgram? cullWorkGraphProgram;
 
         public void EnsureWorkGraphProgram(RenderEngine renderEngine)
         {
-            if (CullWorkGraphProgram != null)
+            if (cullWorkGraphProgram != null)
             {
                 return;
             }
 
             if (cullWorkGraphEntry is WorkGraphAssetEntry wgEntry && !wgEntry.Bytecode.IsEmpty)
             {
-                CullWorkGraphProgram = renderEngine.GraphicsEngine.CreateWorkGraphProgram(wgEntry.Bytecode, "MeshletCullGraph");
+                cullWorkGraphProgram = renderEngine.GraphicsEngine.CreateWorkGraphProgram(wgEntry.Bytecode, "MeshletCullGraph");
             }
         }
 
         partial void OnDisposing()
         {
-            CullWorkGraphProgram?.Dispose();
-            CullWorkGraphProgram = null;
+            cullWorkGraphProgram?.Dispose();
+            cullWorkGraphProgram = null;
         }
     }
 
@@ -182,7 +181,7 @@ internal partial class GhostRenderPipeline
         s_dispatchMeshCommandSignature = renderEngine.GraphicsEngine.CreateCommandSignature(in indirectDesc, default);
     }
 
-    private unsafe void AddInitializeCullingBuffersPass(
+    private static unsafe void AddInitializeCullingBuffersPass(
         RenderGraph rg,
         out CameraCullingBuffers buffers,
         uint maxVisibleMeshlets = CullConstants.MAX_VISIBLE_MESHLETS)
@@ -237,7 +236,6 @@ internal partial class GhostRenderPipeline
         in CameraCullingBuffers buffers,
         Identifier<RGTexture> hzbAtlas,
         uint hzbMipCount,
-        bool historyStatic,
         uint screenWidth,
         uint screenHeight,
         in uint4 o0,
@@ -248,12 +246,12 @@ internal partial class GhostRenderPipeline
         uint maxVisibleMeshlets = CullConstants.MAX_VISIBLE_MESHLETS)
     {
         _cullingResource.EnsureWorkGraphProgram(_renderEngine);
-        if (_cullingResource.CullWorkGraphProgram == null)
+        if (_cullingResource.cullWorkGraphProgram == null)
         {
             return;
         }
 
-        var cullProgram = _cullingResource.CullWorkGraphProgram;
+        var cullProgram = _cullingResource.cullWorkGraphProgram;
         var flags = SetWorkGraphFlags.Initialize;
 
         var entrypointIndex = cullProgram.GetEntrypointIndex("InstanceCullNode");
@@ -288,7 +286,6 @@ internal partial class GhostRenderPipeline
             hzbOffsets2 = o2,
             hzbOffsets3 = o3,
             instanceCount = instanceCount,
-            historyStatic = historyStatic,
             maxVisibleMeshlets = maxVisibleMeshlets,
             threadGroupCount = Math.Max(1u, (instanceCount + 63) / 64),
             entrypointIndex = entrypointIndex,
@@ -328,7 +325,6 @@ internal partial class GhostRenderPipeline
                 hzbOffsets1 = passData.hzbOffsets1,
                 hzbOffsets2 = passData.hzbOffsets2,
                 hzbOffsets3 = passData.hzbOffsets3,
-                historyStatic = passData.historyStatic ? 1u : 0u,
             };
 
             var setProgramDesc = SetProgramDesc.ForWorkGraph(
@@ -520,12 +516,12 @@ internal partial class GhostRenderPipeline
         uint maxVisibleMeshlets = CullConstants.MAX_VISIBLE_MESHLETS)
     {
         _cullingResource.EnsureWorkGraphProgram(_renderEngine);
-        if (_cullingResource.CullWorkGraphProgram == null)
+        if (_cullingResource.cullWorkGraphProgram == null)
         {
             return;
         }
 
-        var cullProgram = _cullingResource.CullWorkGraphProgram;
+        var cullProgram = _cullingResource.cullWorkGraphProgram;
         var flags = SetWorkGraphFlags.Initialize;
 
         var entrypointIndex = cullProgram.GetEntrypointIndex("OccludedMeshletCullNode");
@@ -599,7 +595,6 @@ internal partial class GhostRenderPipeline
                 hzbOffsets1 = passData.hzbOffsets1,
                 hzbOffsets2 = passData.hzbOffsets2,
                 hzbOffsets3 = passData.hzbOffsets3,
-                historyStatic = 0u,
             };
 
             var setProgramDesc = SetProgramDesc.ForWorkGraph(

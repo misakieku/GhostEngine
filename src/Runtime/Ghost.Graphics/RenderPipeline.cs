@@ -27,6 +27,16 @@ public interface IRenderPayload : IDisposable
     /// Resets the payload, clearing all render requests and preparing it for the next frame.
     /// </summary>
     void Reset();
+
+    /// <summary>
+    /// Begins recording for the frame on the simulation thread.
+    /// </summary>
+    void BeginRecord() { }
+
+    /// <summary>
+    /// Finalizes recording of the payload for the current frame before handing off to the render thread.
+    /// </summary>
+    void EndRecord() { }
 }
 
 public interface IRenderPipeline : IDisposable
@@ -50,7 +60,7 @@ public interface IRenderPipeline : IDisposable
     /// Terminal submission handles the outer frame uses to declare post-graph dependencies
     /// (e.g. Compute → epilogue). Returns <c>default</c> when the graph is empty or execution fails.
     /// </returns>
-    RGExecution ExecuteGraph(RenderContext ctx, int frameIndex, IRenderPayload payload,
+    Result ExecuteGraph(RenderContext ctx, int frameIndex, IRenderPayload payload,
         in RenderGraphExecutionContext executionContext);
 }
 
@@ -103,7 +113,7 @@ public readonly ref struct RenderViewData : IDisposable
     }
 }
 
-public static class RenderPipelineUtility
+public static unsafe class RenderPipelineUtility
 {
     public static void GetVPMatrices(scoped in RenderRequest request, uint2 screenSize, out float4x4 view, out float4x4 projection, bool reversedZ = false)
     {
@@ -183,5 +193,31 @@ public static class RenderPipelineUtility
     public static void GetVPMatricesReversedZ(scoped in RenderRequest request, uint2 screenSize, out float4x4 view, out float4x4 projection)
     {
         GetVPMatrices(in request, screenSize, out view, out projection, reversedZ: true);
+    }
+
+    public static uint CreateFrameBuffer(RenderContext ctx, uint instanceBuffer)
+    {
+        var frameData = new FrameData
+        {
+            instanceBuffer = instanceBuffer,
+            userBuffer = 0,
+            paletteOffsetBuffer = ctx.ResourceManager.PaletteOffsetBufferBindlessIndex,
+            materialIndexBuffer = ctx.ResourceManager.MaterialIndexBufferBindlessIndex,
+        };
+
+        var frameDesc = new BufferDesc
+        {
+            Size = (uint)sizeof(FrameData),
+            Stride = (uint)sizeof(FrameData),
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            HeapType = HeapType.Upload,
+        };
+
+        var frameGpuBuffer = ctx.ResourceManager.CreateTransientBuffer(in frameDesc, "FrameDataBuffer");
+        var pFrameData = (FrameData*)ctx.ResourceDatabase.MapResource(frameGpuBuffer.AsResource(), 0, null);
+        *pFrameData = frameData;
+        ctx.ResourceDatabase.UnmapResource(frameGpuBuffer.AsResource(), 0, null);
+        var frameBufferIndex = ctx.ResourceDatabase.GetBindlessIndex(frameGpuBuffer.AsResource());
+        return frameBufferIndex;
     }
 }

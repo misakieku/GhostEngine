@@ -65,7 +65,7 @@ public interface IUnsafeRenderContext : IRasterRenderContext, IComputeRenderCont
     unsafe void WriteBuffer(Identifier<RGBuffer> buffer, void* pData, uint sizeInBytes, uint dstOffset = 0);
 }
 
-internal unsafe sealed class RenderGraphContext : IUnsafeRenderContext
+internal unsafe sealed class RenderGraphContext : IUnsafeRenderContext, IDisposable
 {
     private readonly ResourceManager _resourceManager;
     private readonly ShaderLibrary _shaderLibrary;
@@ -114,14 +114,16 @@ internal unsafe sealed class RenderGraphContext : IUnsafeRenderContext
         _dsvFormat = TextureFormat.Unknown;
     }
 
-    internal void ResetPropertyAllocator()
+    internal void Reset()
     {
         _propertyAllocator.Reset();
-    }
+        _activeFrameBuffer = ~0u;
+        _activeViewBuffer = ~0u;
+        _rtvCount = 0;
 
-    internal void Dispose()
-    {
-        _propertyAllocator.Dispose();
+        _dsvFormat = TextureFormat.Unknown;
+
+        Array.Clear(_rtvFormats);
     }
 
     internal void BeginNewFrame(ICommandBuffer commandBuffer)
@@ -608,5 +610,10 @@ internal unsafe sealed class RenderGraphContext : IUnsafeRenderContext
     public ICommandBuffer GetCommandBufferUnsafe()
     {
         return _commandBuffer;
+    }
+
+    public void Dispose()
+    {
+        _propertyAllocator.Dispose();
     }
 }

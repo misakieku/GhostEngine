@@ -12,6 +12,7 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
+using TestGame.Systems;
 
 namespace TestGame;
 
@@ -83,7 +84,7 @@ internal static class Setup
         s_world = World.Create(engineCore.JobScheduler, 1024);
 
         using var scope = AllocationManager.CreateStackScope();
-        using var camSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<Camera>.Value, ComponentTypeID<LocalToWorld>.Value);
+        using var camSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<Camera>.Value, ComponentTypeID<LocalToWorld>.Value, ComponentTypeID<MoveDst>.Value);
         var cameraEntity = s_world.EntityManager.CreateEntity(camSet);
 
         s_world.EntityManager.SetComponent(cameraEntity, new Camera
@@ -101,6 +102,14 @@ internal static class Setup
         s_world.EntityManager.SetComponent(cameraEntity, new LocalToWorld
         {
             matrix = float4x4.TRS(new float3(0.0f, 0.0f, -20.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
+        });
+
+        s_world.EntityManager.SetComponent(cameraEntity, new MoveDst
+        {
+            position = new float3(0.0f, 0.0f, -20.0f),
+            lookAt = float3.zero,
+            range = new float3(20.0f, 20.0f, 20.0f),
+            updateRotation = true
         });
 
         s_meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/bunny");
@@ -142,6 +151,7 @@ internal static class Setup
             });
         }
 
+        s_world.SystemManager.AddSystem<RandomMoveSystem>();
         s_world.SystemManager.AddSystem<RenderSystemGroup>();
 
         s_world.AddService(engineCore.RenderEngine);

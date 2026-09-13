@@ -12,7 +12,7 @@ public class Program
 
         if (args.Length == 0 || args[0] != "bake")
         {
-            Console.WriteLine("Usage: Ghost.AssetForge.CLI bake --asset-dir <dir> --cache-dir <dir> --build-dir <dir>");
+            Console.WriteLine("Usage: Ghost.AssetForge.CLI bake --asset-dir <dir> --cache-dir <dir> --build-dir <dir> --shader-metadata <files>");
             return;
         }
 

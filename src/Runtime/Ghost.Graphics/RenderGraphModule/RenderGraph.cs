@@ -381,6 +381,8 @@ public sealed class RenderGraph : IDisposable
         _blackboard.Reset();
         _resourceRegistry.Reset();
 
+        _context.Reset();
+
         // Return passes to the pool and reset count
         for (var i = 0; i < _passes.Count; i++)
         {
@@ -568,7 +570,6 @@ public sealed class RenderGraph : IDisposable
 
         using var graph = result.Value;
         _context.RelativeScale = graph.scale;
-        _context.ResetPropertyAllocator();
         var error = _executor.Execute(
             executionContext,
             _context,

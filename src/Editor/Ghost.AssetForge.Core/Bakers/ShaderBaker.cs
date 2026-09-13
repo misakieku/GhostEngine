@@ -26,15 +26,21 @@ public partial class ShaderBakeSettings : ObservableObject, IBakeSettings
     {
         get; set;
     } = CompilerOption.None;
+
+    [ObservableProperty]
+    public partial string[] Defines
+    {
+        get; set;
+    } = Array.Empty<string>();
 }
 
-[AssetBaker(Extensions = [".gshdr", ".gcomp", ".ggraph"], Type = AssetType.Shader, SettingsType = typeof(ShaderBakeSettings))]
-internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner, IDisposable
+[AssetBaker(Extensions = [".gshdr"], Type = AssetType.Shader, SettingsType = typeof(ShaderBakeSettings))]
+internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
 {
-    private readonly DXCShaderCompiler _compiler = new DXCShaderCompiler();
-    private readonly SemaphoreSlim _compileLock = new(1, 1);
+    internal static readonly DXCShaderCompiler s_compiler = new DXCShaderCompiler();
+    internal static readonly SemaphoreSlim s_compileLock = new SemaphoreSlim(1, 1);
 
-    public IEnumerable<string> ScanDependencies(string sourceFile, IBakeSettings settings, AssetBakerContext ctx)
+    public static IEnumerable<string> FindDependencies(string sourceFile, IBakeSettings settings, AssetBakerContext ctx)
     {
         if (!File.Exists(sourceFile))
         {
@@ -43,6 +49,11 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner, IDisp
 
         var codeStr = File.ReadAllText(sourceFile);
         return ShaderIncludeResolver.ResolveDependencies(sourceFile, codeStr, ctx.AssetDirectories, ctx.ShaderMetadata.VirtualShader);
+    }
+
+    public IEnumerable<string> ScanDependencies(string sourceFile, IBakeSettings settings, AssetBakerContext ctx)
+    {
+        return FindDependencies(sourceFile, settings, ctx);
     }
 
     private static ulong GetLayoutHash(DSL.Models.ShaderReflectionData reflectionData, uint propertyBufferSize, string shaderName)
@@ -105,18 +116,18 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner, IDisp
     {
         // DXCShaderCompiler is a native handle and is not thread-safe. Serialize
         // concurrent shader bakes through the lock; textures keep running in parallel.
-        await _compileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await s_compileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             await BakeAssetCoreAsync(src, dst, settings, ctx, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            _compileLock.Release();
+            s_compileLock.Release();
         }
     }
 
-    private async Task BakeAssetCoreAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
+    internal static async Task BakeAssetCoreAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
     {
         if (settings is not ShaderBakeSettings shaderSettings)
         {
@@ -138,6 +149,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner, IDisp
         {
             includeDirs.Add(srcDir);
         }
+
         foreach (var dir in ctx.AssetDirectories)
         {
             if (!includeDirs.Contains(dir, StringComparer.OrdinalIgnoreCase))
@@ -203,7 +215,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner, IDisp
                         shaderCode = pass.computeShaderCode.code,
                     };
 
-                    using var csByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                    using var csByteCode = s_compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
                     await WriteShaderEntries(dst, passDataStart, cancellationToken,
                         (ShaderStage.ComputeShader, csByteCode));
                 }
@@ -223,19 +235,19 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner, IDisp
                         entryPoint = pass.meshShaderCode.entryPoint,
                         shaderCode = pass.meshShaderCode.code,
                     };
-                    using var msByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                    using var msByteCode = s_compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
 
                     config.stage = ShaderStage.PixelShader;
                     config.entryPoint = pass.pixelShaderCode.entryPoint;
                     config.shaderCode = pass.pixelShaderCode.code;
-                    using var psByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                    using var psByteCode = s_compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
 
                     if (pass.amplificationShaderCode.IsCreated)
                     {
                         config.stage = ShaderStage.AmplificationShader;
                         config.entryPoint = pass.amplificationShaderCode.entryPoint;
                         config.shaderCode = pass.amplificationShaderCode.code;
-                        using var asByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                        using var asByteCode = s_compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
                         await WriteShaderEntries(dst, passDataStart, cancellationToken,
                             (ShaderStage.AmplificationShader, asByteCode),
                             (ShaderStage.MeshShader, msByteCode),
@@ -313,7 +325,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner, IDisp
                         shaderCode = shaderCode.code,
                     };
 
-                    byteCodes[j] = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                    byteCodes[j] = s_compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
                 }
 
                 var entries = byteCodes.Select((bc, index) => (ShaderStage.ComputeShader, bc)).ToArray();
@@ -384,7 +396,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner, IDisp
                 shaderCode = shaderCode.code,
             };
 
-            using var libraryByteCode = _compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+            using var libraryByteCode = s_compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
             await WriteShaderEntries(dst, passDataStart, cancellationToken, (ShaderStage.Library, libraryByteCode));
 
             passHeader.dataOffset = passDataStart - assetStartOffset;
@@ -403,10 +415,48 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner, IDisp
             throw new NotSupportedException($"Unsupported shader file extension: {ext}");
         }
     }
+}
 
-    public void Dispose()
+[AssetBaker(Extensions = [".gcomp"], Type = AssetType.ComputeShader, SettingsType = typeof(ShaderBakeSettings))]
+internal class ComputeShaderBaker : IAssetBaker, IAssetDependencyScanner
+{
+    public async Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
     {
-        _compiler.Dispose();
-        GC.SuppressFinalize(this);
+        await ShaderBaker.s_compileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await ShaderBaker.BakeAssetCoreAsync(src, dst, settings, ctx, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            ShaderBaker.s_compileLock.Release();
+        }
+    }
+
+    public IEnumerable<string> ScanDependencies(string sourceFile, IBakeSettings settings, AssetBakerContext ctx)
+    {
+        return ShaderBaker.FindDependencies(sourceFile, settings, ctx);
+    }
+}
+
+[AssetBaker(Extensions = [".ggraph"], Type = AssetType.WorkGraph, SettingsType = typeof(ShaderBakeSettings))]
+internal class WorkGraphBaker : IAssetBaker, IAssetDependencyScanner
+{
+    public async Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
+    {
+        await ShaderBaker.s_compileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await ShaderBaker.BakeAssetCoreAsync(src, dst, settings, ctx, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            ShaderBaker.s_compileLock.Release();
+        }
+    }
+
+    public IEnumerable<string> ScanDependencies(string sourceFile, IBakeSettings settings, AssetBakerContext ctx)
+    {
+        return ShaderBaker.FindDependencies(sourceFile, settings, ctx);
     }
 }

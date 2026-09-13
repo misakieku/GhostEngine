@@ -1,12 +1,12 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.Engine.ShaderProperties;
+using Ghost.Engine.Streaming;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
-using Ghost.Engine.Streaming;
-using Ghost.Engine.ShaderProperties;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.RenderPipeline;
@@ -74,8 +74,6 @@ internal partial class GhostRenderPipeline
                     shadowCastingMode = (uint)addRequest.meshInstance.shadowCastingMode
                 };
 
-                SetCPUInstance(addRequest.instanceId, addRequest.meshInstance.mesh, resourceManager.GetMaterialPaletteMaterial(addRequest.meshInstance.materialPalette, 0));
-
                 i++;
             }
 
@@ -113,8 +111,6 @@ internal partial class GhostRenderPipeline
                     swapWithInstanceID = removeRequest.swapWithInstanceId
                 };
 
-                RemoveCPUInstance(removeRequest.instanceId, removeRequest.swapWithInstanceId);
-
                 i++;
             }
 
@@ -128,29 +124,6 @@ internal partial class GhostRenderPipeline
         return default;
     }
 
-    private void SetCPUInstance(uint instanceId, Handle<Mesh> mesh, Handle<Material> material)
-    {
-        if (instanceId >= _instanceInfos.Length)
-        {
-            Array.Resize(ref _instanceInfos, Math.Max(_instanceInfos.Length * 2, (int)instanceId + 1));
-        }
-
-        _instanceInfos[instanceId] = new CPUInstanceInfo
-        {
-            mesh = mesh,
-            material = material
-        };
-    }
-
-    private void RemoveCPUInstance(uint instanceId, uint swapWithInstanceId)
-    {
-        if (instanceId < _instanceInfos.Length && swapWithInstanceId < _instanceInfos.Length)
-        {
-            _instanceInfos[instanceId] = _instanceInfos[swapWithInstanceId];
-            _instanceInfos[swapWithInstanceId] = default;
-        }
-    }
-
     internal partial class GPUSceneResource : IPipelineResource
     {
         [ResolveAsset("EngineResources/Shaders/UpdateGPUScene")]
@@ -159,7 +132,7 @@ internal partial class GhostRenderPipeline
 
     private void UpdateGPUScene(RenderContext ctx, GhostRenderPayload payload)
     {
-        _gpuScene.ResizeIfNeeded(ctx.CommandBuffer);
+        _gpuScene.ResizeIfNeeded(ctx.CommandBuffer, payload.InstanceCount);
 
         if (!_gpuSceneResource.updateGPUSceneShader.IsValid)
         {
@@ -172,7 +145,7 @@ internal partial class GhostRenderPipeline
             return;
         }
 
-        var (compiledHash, error) = ctx.ShaderLibrary.GetCompiledHash(shaderRef.Value.UniqueID, 0);
+        var (_, error) = ctx.ShaderLibrary.GetCompiledHash(shaderRef.Value.UniqueID, 0);
         if (error.IsFailure)
         {
             // Compute shader is not compiled/ready yet; keep update requests in queue.

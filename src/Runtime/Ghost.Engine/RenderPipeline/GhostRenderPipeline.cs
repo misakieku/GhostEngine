@@ -7,8 +7,6 @@ using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.RenderPipeline;
 
@@ -32,22 +30,14 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         public Handle<Shader> blitShader;
     }
 
-    private struct CPUInstanceInfo
-    {
-        public Handle<Mesh> mesh;
-        public Handle<Material> material;
-    }
-
     private readonly RenderEngine _renderEngine;
     private readonly AssetManager _assetManager;
     private readonly GhostRenderPipelineSettings _settings;
     private readonly GPUSceneResource _gpuSceneResource;
 
-    private readonly RenderGraph _renderGraph;
     private readonly GPUScene _gpuScene;
     private readonly GPUViewManager _gpuViewManager;
 
-    private CPUInstanceInfo[] _instanceInfos;
     private bool _disposed;
     private int _lastRenderRequestCount = -1;
     private uint _lastInstanceCount = uint.MaxValue;
@@ -65,15 +55,8 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         _gpuSceneResource = new GPUSceneResource(assetManager);
         _gpuSceneResource.Resolve();
 
-        _renderGraph = new RenderGraph(
-            renderEngine.GraphicsEngine.ResourceDatabase,
-            renderEngine.GraphicsEngine.ResourceAllocator,
-            renderEngine.GraphicsEngine.PipelineLibrary,
-            renderEngine.ResourceManager,
-            renderEngine.ShaderLibrary);
         _gpuScene = new GPUScene(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, 102_400u); // 102.4k objects should be enough for now
         _gpuViewManager = new GPUViewManager(renderEngine.GraphicsEngine.ResourceDatabase);
-        _instanceInfos = new CPUInstanceInfo[64];
 
         InitializeCulling(renderEngine, assetManager);
     }
@@ -94,56 +77,28 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         UpdateGPUScene(ctx, ghostPayload);
     }
 
-    public RGExecution ExecuteGraph(RenderContext ctx, int frameIndex, IRenderPayload payload, in RenderGraphExecutionContext executionContext)
+    public Result ExecuteGraph(RenderContext ctx, int frameIndex, IRenderPayload payload, in RenderGraphExecutionContext executionContext)
     {
         var ghostPayload = (GhostRenderPayload)payload;
-        _renderGraph.Reset();
-        if (_lastRenderRequestCount != ghostPayload.RenderRequests.Length || _lastInstanceCount != _gpuScene.InstanceCount)
+        if (_lastRenderRequestCount != ghostPayload.RenderRequests.Length || _lastInstanceCount != ghostPayload.InstanceCount)
         {
             _lastRenderRequestCount = ghostPayload.RenderRequests.Length;
-            _lastInstanceCount = _gpuScene.InstanceCount;
+            _lastInstanceCount = ghostPayload.InstanceCount;
         }
 
         if (ghostPayload.RenderRequests.Length == 0)
         {
-            return default;
+            return Result.Success();
         }
 
         // Upload FrameData once per frame
-        var frameData = new FrameData
-        {
-            instanceBuffer = ctx.ResourceDatabase.GetBindlessIndex(_gpuScene.SceneBuffer.AsResource()),
-            userBuffer = 0,
-            paletteOffsetBuffer = ctx.ResourceManager.PaletteOffsetBufferBindlessIndex,
-            materialIndexBuffer = ctx.ResourceManager.MaterialIndexBufferBindlessIndex,
-        };
-
-        var frameDesc = new BufferDesc
-        {
-            Size = (uint)sizeof(FrameData),
-            Stride = (uint)sizeof(FrameData),
-            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-            HeapType = HeapType.Upload,
-        };
-        var frameGpuBuffer = ctx.ResourceManager.CreateTransientBuffer(in frameDesc, "FrameDataBuffer");
-        var pFrameData = (FrameData*)ctx.ResourceDatabase.MapResource(frameGpuBuffer.AsResource(), 0, null);
-        *pFrameData = frameData;
-        ctx.ResourceDatabase.UnmapResource(frameGpuBuffer.AsResource(), 0, null);
-        var frameBufferIndex = ctx.ResourceDatabase.GetBindlessIndex(frameGpuBuffer.AsResource());
-
-        _renderGraph.SetFrameData(frameBufferIndex);
-
-        var primaryViewState = default(ViewState);
+        var frameBufferIndex = RenderPipelineUtility.CreateFrameBuffer(ctx, _gpuScene.SceneBufferSrvIndex);
 
         for (var requestIndex = 0; requestIndex < ghostPayload.RenderRequests.Length; requestIndex++)
         {
             ref readonly var request = ref ghostPayload.RenderRequests[requestIndex];
             using var viewData = new RenderViewData(_renderEngine.SwapChainManager, ctx.ResourceDatabase, in request);
             var viewState = new ViewState(viewData.ScreenSize.x, viewData.ScreenSize.y, viewData.ScreenSize.x, viewData.ScreenSize.y);
-            if (requestIndex == 0)
-            {
-                primaryViewState = viewState;
-            }
 
             // Upload ViewData (Reversed-Z: near=1.0, far=0.0)
             RenderPipelineUtility.GetVPMatricesReversedZ(in request, viewData.ScreenSize, out var viewMatrix, out var projMatrix);
@@ -153,23 +108,34 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             viewContext.EnsureResources(
                 ctx.ResourceAllocator,
                 ctx.ResourceDatabase,
+                ctx.PipelineLibrary,
+                ctx.ResourceManager,
+                ctx.ShaderLibrary,
                 viewData.ScreenSize.x,
                 viewData.ScreenSize.y);
 
-            var isStatic = AreEqualBits(in viewProjMatrix, in viewContext.prevViewProjMatrix);
-            viewContext.prevViewProjMatrix = viewProjMatrix;
+            Logger.DebugAssert(viewContext.renderGraph != null);
+
+            viewContext.renderGraph.Reset();
+            viewContext.renderGraph.SetFrameData(frameBufferIndex);
+
+            var isFirstFrame = viewContext.prevViewProjMatrix.Equals(float4x4.zero);
+            var prevVP = isFirstFrame ? viewProjMatrix : viewContext.prevViewProjMatrix;
 
             var viewDataGpu = new ViewData
             {
                 viewMatrix = viewMatrix,
                 projectionMatrix = projMatrix,
                 viewProjectionMatrix = viewProjMatrix,
+                preVPMatrix = prevVP,
                 cameraPosition = request.view.localToWorld.c3.xyz,
                 nearClip = request.view.nearClipPlane,
                 cameraDirection = request.view.localToWorld.c2.xyz,
                 farClip = request.view.farClipPlane,
                 screenSize = new float4(viewData.ScreenSize.x, viewData.ScreenSize.y, 1.0f / viewData.ScreenSize.x, 1.0f / viewData.ScreenSize.y),
             };
+
+            viewContext.prevViewProjMatrix = viewProjMatrix;
 
             var viewDesc = new BufferDesc
             {
@@ -183,14 +149,15 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             *pViewData = viewDataGpu;
             ctx.ResourceDatabase.UnmapResource(viewGpuBuffer.AsResource(), 0, null);
             var viewBufferIndex = ctx.ResourceDatabase.GetBindlessIndex(viewGpuBuffer.AsResource());
-            _renderGraph.SetViewData(viewBufferIndex);
+
+            viewContext.renderGraph.SetViewData(viewBufferIndex);
 
             var presentBarrier = new ResourceBarrierData(
                 BarrierLayout.Present,
                 BarrierAccess.NoAccess,
                 BarrierSync.None);
 
-            var colorTarget = _renderGraph.ImportTexture(
+            var colorTarget = viewContext.renderGraph.ImportTexture(
                 viewData.ColorTexture,
                 initialState: presentBarrier,
                 finalState: presentBarrier,
@@ -211,32 +178,31 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 usage: TextureUsage.DepthStencil | TextureUsage.ShaderResource,
                 clearAtFirstUse: true);
 
-            var hzbAtlas = _renderGraph.ImportTexture(viewContext.hzbAtlas);
+            var hzbAtlas = viewContext.renderGraph.ImportTexture(viewContext.hzbAtlas);
 
             // Initialize transient culling & indirect argument buffers for this camera view
-            AddInitializeCullingBuffersPass(_renderGraph, out var cullingBuffers);
+            AddInitializeCullingBuffersPass(viewContext.renderGraph, out var cullingBuffers);
 
             // Pass 1: Early-Z Hierarchical Meshlet Culling (Work Graph)
             AddMeshletCullPass1(
-                _renderGraph,
+                viewContext.renderGraph,
                 in cullingBuffers,
                 hzbAtlas,
                 viewContext.hzbMipCount,
-                isStatic,
                 viewData.ScreenSize.x,
                 viewData.ScreenSize.y,
                 in viewContext.hzbOffsets0,
                 in viewContext.hzbOffsets1,
                 in viewContext.hzbOffsets2,
                 in viewContext.hzbOffsets3,
-                _gpuScene.InstanceCount);
+                ghostPayload.InstanceCount);
 
             // Pass 1: Prepare Indirect Dispatch Arguments
-            AddPrepareIndirectArgsPass(_renderGraph, in cullingBuffers, 0);
+            AddPrepareIndirectArgsPass(viewContext.renderGraph, in cullingBuffers, 0);
 
             // Pass 1: Visibility Buffer Rasterization (Early-Z / Previously Visible)
             var (currentVisBuffer, currentDepth) = AddVisibilityBufferPass(
-                _renderGraph,
+                viewContext.renderGraph,
                 in vbufferDesc,
                 in depthDesc,
                 in cullingBuffers,
@@ -244,7 +210,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
             // Build HZB Mip Pyramid (Compute passes downsampling current depth directly into hzbAtlas)
             AddBuildHZBPasses(
-                _renderGraph,
+                viewContext.renderGraph,
                 currentDepth,
                 hzbAtlas,
                 viewContext.hzbMipCount,
@@ -253,7 +219,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
             // Pass 2: Late-Z Meshlet Culling (Work Graph testing occluded meshlets against current HZB)
             AddMeshletCullPass2(
-                _renderGraph,
+                viewContext.renderGraph,
                 in cullingBuffers,
                 hzbAtlas,
                 viewContext.hzbMipCount,
@@ -263,14 +229,14 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 in viewContext.hzbOffsets1,
                 in viewContext.hzbOffsets2,
                 in viewContext.hzbOffsets3,
-                _gpuScene.InstanceCount);
+                ghostPayload.InstanceCount);
 
             // Pass 2: Prepare Indirect Dispatch Arguments
-            AddPrepareIndirectArgsPass(_renderGraph, in cullingBuffers, 1);
+            AddPrepareIndirectArgsPass(viewContext.renderGraph, in cullingBuffers, 1);
 
             // Pass 2: Visibility Buffer Rasterization (Late-Z / Newly Visible)
             AddVisibilityBufferPass(
-                _renderGraph,
+                viewContext.renderGraph,
                 in vbufferDesc,
                 in depthDesc,
                 in cullingBuffers,
@@ -279,17 +245,16 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 existingDepth: currentDepth);
 
             // Blit Visibility Buffer to screen / backbuffer
-            AddBlitPass(_renderGraph, currentVisBuffer, colorTarget);
+            AddBlitPass(viewContext.renderGraph, currentVisBuffer, colorTarget);
+
+            var result = viewContext.renderGraph.CompileAndExecute(executionContext, viewState);
+            if (result.IsFailure)
+            {
+                return Result.Failure($"Render graph execution failed: {result.Error}");
+            }
         }
 
-        var result = _renderGraph.CompileAndExecute(executionContext, primaryViewState);
-        if (result.IsFailure)
-        {
-            Logger.Error($"Render graph execution failed: {result.Error}");
-            return default;
-        }
-
-        return result.Value;
+        return Result.Success();
     }
 
     private (Identifier<RGTexture> visibilityBuffer, Identifier<RGTexture> depthBuffer) AddVisibilityBufferPass(
@@ -416,15 +381,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         DisposeCulling();
         _gpuSceneResource.Dispose();
 
-        _renderGraph.Dispose();
         _gpuScene.Dispose();
         _gpuViewManager.Dispose();
-    }
-
-    private static bool AreEqualBits(in float4x4 a, in float4x4 b)
-    {
-        var sa = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in a), 1));
-        var sb = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in b), 1));
-        return sa.SequenceEqual(sb);
     }
 }

@@ -18,7 +18,6 @@ compute "Internal/MeshletCullGraph"
         uint4 hzbOffsets1;
         uint4 hzbOffsets2;
         uint4 hzbOffsets3;
-        uint historyStatic;
     }
 
     includes
@@ -237,19 +236,6 @@ compute "Internal/MeshletCullGraph"
                 return;
             }
 
-            // Pass 1 tests the current-frame HZB unconditionally. Pass 0 tests the history HZB only when
-            // the camera is bit-static (historyStatic): history depth lags a few frames and is sampled with
-            // current clip rects, so testing it under motion would irrecoverably cull visible geometry
-            // (Pass 2 only re-tests meshlets, never hierarchy drops). Skipping the test only over-draws.
-            if (clipValid && props.hzbMipCount > 0 && (props.cullPassIndex == 1 || props.historyStatic != 0))
-            {
-                if (!TestHZB(clipMin, clipMax, props))
-                {
-                    counterBuf.InterlockedAdd(48, 1);
-                    return;
-                }
-            }
-
             if (node.childCount > 0)
             {
                 uint childCount = min(node.childCount, 8u);
@@ -324,12 +310,27 @@ compute "Internal/MeshletCullGraph"
                 inFrustum = BBoxIntersectFrustum(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld, view.viewProjectionMatrix, clipMin, clipMax, clipValid);
                 if (inFrustum)
                 {
-                    // Meshlet-level HZB Occlusion Culling. History HZB is sampled with current clip
-                    // rects, so like the hierarchy node above it is only tested when the camera is
-                    // bit-static (historyStatic); current-frame HZB (Pass 2) is always tested.
-                    if (clipValid && props.hzbMipCount > 0 && (props.cullPassIndex == 1 || props.historyStatic != 0))
+                    if (props.hzbMipCount > 0)
                     {
-                        isOccluded = !TestHZB(clipMin, clipMax, props);
+                        if (props.cullPassIndex == 0)
+                        {
+                            float4 prevClipMin, prevClipMax;
+                            bool prevClipValid;
+                            bool wasInPrevFrustum = BBoxIntersectFrustum(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld, view.preVPMatrix, prevClipMin, prevClipMax, prevClipValid);
+
+                            if (wasInPrevFrustum && prevClipValid)
+                            {
+                                isOccluded = !TestHZB(prevClipMin, prevClipMax, props);
+                            }
+                            else
+                            {
+                                isOccluded = true;
+                            }
+                        }
+                        else if (clipValid)
+                        {
+                            isOccluded = !TestHZB(clipMin, clipMax, props);
+                        }
                     }
                     isVisible = !isOccluded;
                 }

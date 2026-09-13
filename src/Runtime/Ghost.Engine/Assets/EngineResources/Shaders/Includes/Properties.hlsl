@@ -38,6 +38,7 @@ struct ViewData
     float4x4 viewMatrix;
     float4x4 projectionMatrix;
     float4x4 viewProjectionMatrix;
+    float4x4 preVPMatrix;
     float3 cameraPosition;
     float nearClip;
     float3 cameraDirection;

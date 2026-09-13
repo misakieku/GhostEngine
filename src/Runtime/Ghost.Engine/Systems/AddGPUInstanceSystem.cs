@@ -75,7 +75,5 @@ internal class AddGPUInstanceSystem : SystemBase
                 systemAPI.World.EntityCommandBuffer.AddComponent(entity, new GPUInstanceRef { gpuInstanceIndex = index, materialPalette = materialPalette });
             }
         }
-
-        payload.EndRecord();
     }
 }

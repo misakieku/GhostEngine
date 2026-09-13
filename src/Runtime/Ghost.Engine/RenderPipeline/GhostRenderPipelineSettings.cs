@@ -28,6 +28,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     private readonly GhostRenderPipeline _renderPipeline;
 
     private UnsafeList<RenderRequest> _renderRequests;
+    private UnsafeList<uint> _viewsToRelease;
 
     private readonly UnsafeParallelQueue<UpdateInstanceRequest>* _pUpdateRequest;
     private readonly UnsafeParallelQueue<RemoveInstanceRequest>* _pRemoveRequest;
@@ -50,6 +51,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _renderPipeline = renderPipeline;
 
         _renderRequests = new UnsafeList<RenderRequest>(4, AllocationHandle.Persistent);
+        _viewsToRelease = new UnsafeList<uint>(4, AllocationHandle.Persistent);
 
         _pUpdateRequest = (UnsafeParallelQueue<UpdateInstanceRequest>*)MemoryUtility.Malloc(MemoryUtility.SizeOf<UnsafeParallelQueue<UpdateInstanceRequest>>());
         _pRemoveRequest = (UnsafeParallelQueue<RemoveInstanceRequest>*)MemoryUtility.Malloc(MemoryUtility.SizeOf<UnsafeParallelQueue<RemoveInstanceRequest>>());
@@ -72,7 +74,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
 
     public void ReleaseView(uint viewId)
     {
-        _renderPipeline.GPUViewManager.ReleaseView(viewId);
+        _viewsToRelease.Add(viewId);
     }
 
     /// <summary>
@@ -131,7 +133,6 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     {
         // We capture the count here to prevent that main thread continues to add more requests for next frame while the render thread is still processing current frame's requests.
         _instanceCount = _renderPipeline.GPUScene.InstanceCount;
-        Logger.DebugAssert(_instanceCount == _instanceCountBefore + (uint)_pUpdateRequest->Count - (uint)_pRemoveRequest->Count);
     }
 
     public void Reset()
@@ -139,6 +140,12 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _renderRequests.Clear();
         _pUpdateRequest->Clear();
         _pRemoveRequest->Clear();
+
+        for (var i = 0; i < _viewsToRelease.Count; i++)
+        {
+            _renderPipeline.GPUViewManager.ReleaseView(_viewsToRelease[i]);
+        }
+        _viewsToRelease.Clear();
     }
 
     private bool _disposed;
@@ -153,6 +160,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _disposed = true;
 
         _renderRequests.Dispose();
+        _viewsToRelease.Dispose();
         _pUpdateRequest->Dispose();
         _pRemoveRequest->Dispose();
 

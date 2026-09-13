@@ -29,7 +29,6 @@ internal class RemoveGPUInstanceSystem : SystemBase
     protected override void OnUpdate(scoped in SystemAPI systemAPI)
     {
         var payload = (GhostRenderPayload)_renderEngine.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
-        payload.BeginRecord();
 
         ref var gpuInstanceQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_gpuInstanceQueryID);
 

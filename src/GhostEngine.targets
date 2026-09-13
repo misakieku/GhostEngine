@@ -1,12 +1,20 @@
 <Project>
-  <!-- Compute Paths Later to avoid empty $(IntermediateOutputPath) during evaluation -->
+
+  <PropertyGroup>
+    <GhostEngineAssetDir>$(MSBuildThisFileDirectory)Runtime/Ghost.Engine/Assets</GhostEngineAssetDir>
+    <GhostAssetDir Condition="'$(GhostAssetDir)' == '' and Exists('$(MSBuildProjectDirectory)\Assets')">$(MSBuildProjectDirectory)\Assets</GhostAssetDir>
+    <GhostAssetDir Condition="'$(GhostAssetDir)' == ''">$(MSBuildProjectDirectory)\Asset</GhostAssetDir>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsGameProject)' == 'true'">
+    <UpToDateCheckInput Include="$(GhostAssetDir)\**\*.*" />
+    <UpToDateCheckInput Include="$(GhostEngineAssetDir)\**\*.*" />
+  </ItemGroup>
+
   <Target Name="ComputeGhostPaths">
     <PropertyGroup>
       <GhostIntermediateOutputPath Condition="$([System.IO.Path]::IsPathRooted('$(IntermediateOutputPath)'))">$(IntermediateOutputPath)</GhostIntermediateOutputPath>
       <GhostIntermediateOutputPath Condition="'$(GhostIntermediateOutputPath)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)</GhostIntermediateOutputPath>
-      <GhostAssetDir Condition="'$(GhostAssetDir)' == '' and Exists('$(MSBuildProjectDirectory)\Assets')">$(MSBuildProjectDirectory)\Assets</GhostAssetDir>
-      <GhostAssetDir Condition="'$(GhostAssetDir)' == ''">$(MSBuildProjectDirectory)\Asset</GhostAssetDir>
-      <GhostEngineAssetDir>$(MSBuildThisFileDirectory)Runtime/Ghost.Engine/Assets</GhostEngineAssetDir>
       <GhostAssetCacheDir Condition="'$(GhostAssetCacheDir)' == ''">$(GhostIntermediateOutputPath)AssetCache</GhostAssetCacheDir>
       <GhostAssetBuildDir Condition="'$(GhostAssetBuildDir)' == ''">$(TargetDir)Assets</GhostAssetBuildDir>
       <GhostShaderMetadataPath Condition="'$(GhostShaderMetadataPath)' == ''">$(GhostIntermediateOutputPath)shader_metadata.json</GhostShaderMetadataPath>
@@ -24,19 +32,18 @@
     
     <WriteLinesToFile File="$(GhostIntermediateOutputPath)compile_files.txt" Lines="@(Compile)" Overwrite="true" />
     
-    <!-- We use dotnet run so it automatically builds the tool if needed in local dev -->
-    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)Tools/Ghost.ShaderMetadataTool/Ghost.ShaderMetadataTool.csproj&quot; --no-launch-profile -c Release -- &quot;$(GhostIntermediateOutputPath)compile_files.txt&quot; &quot;$(GhostShaderMetadataPath)&quot;" />
+    <Exec Command="Ghost.ShaderMetadataTool &quot;$(GhostIntermediateOutputPath)compile_files.txt&quot; &quot;$(GhostShaderMetadataPath)&quot;" />
   </Target>
 
   <!-- Allow other projects to query this project's shader metadata path -->
   <Target Name="GetGhostShaderMetadataPath" Returns="$(GhostShaderMetadataPath)" DependsOnTargets="ComputeGhostPaths" />
 
-  <!-- Hook Asset Forge CLI (We'll implement this in the next task) -->
+  <!-- Hook Asset Forge CLI -->
   <Target Name="BakeAndPackAssets" 
           DependsOnTargets="ComputeGhostPaths"
           AfterTargets="Build"
           Condition="'$(IsGameProject)' == 'true'"
-          Inputs="$(GhostAssetDir)\**\*.*;$(GhostEngineAssetDir)\**\*.*"
+          Inputs="$(GhostAssetDir)\**\*.*;$(GhostEngineAssetDir)\**\*.*;$(GhostShaderMetadataPath);@(AllMetadata)"
           Outputs="$(GhostAssetBuildDir)\manifest.json">
           
     <Message Importance="High" Text="Baking and Packing Assets..." />
@@ -46,6 +53,14 @@
       <Output TaskParameter="TargetOutputs" ItemName="AllMetadata" />
     </MSBuild>
     
-    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)Tools/Ghost.AssetForge.CLI/Ghost.AssetForge.CLI.csproj&quot; --no-launch-profile -c Release -- bake --asset-dir &quot;$(GhostEngineAssetDir);$(GhostAssetDir)&quot; --cache-dir &quot;$(GhostAssetCacheDir)&quot; --build-dir &quot;$(GhostAssetBuildDir)&quot; --shader-metadata &quot;$(GhostShaderMetadataPath);@(AllMetadata)&quot;" />
+    <Exec Command="Ghost.AssetForge.CLI bake --asset-dir &quot;$(GhostEngineAssetDir);$(GhostAssetDir)&quot; --cache-dir &quot;$(GhostAssetCacheDir)&quot; --build-dir &quot;$(GhostAssetBuildDir)&quot; --shader-metadata &quot;$(GhostShaderMetadataPath);@(AllMetadata)&quot;" />
+  </Target>
+
+  <!-- Clean asset cache on Clean -->
+  <Target Name="CleanGhostAssets" 
+        BeforeTargets="Clean" 
+        DependsOnTargets="ComputeGhostPaths">
+    <Message Importance="High" Text="Cleaning Ghost Asset Cache and Output..." />
+    <RemoveDir Directories="$(GhostAssetCacheDir)" Condition="Exists('$(GhostAssetCacheDir)')" />
   </Target>
 </Project>

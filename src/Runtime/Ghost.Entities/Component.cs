@@ -50,7 +50,7 @@ public static class ComponentTypeID<T>
     }
 }
 
-internal static class ComponentRegistry
+public static class ComponentRegistry
 {
     private static readonly List<ComponentInfo> s_registeredComponents = new();
     private static readonly Dictionary<IntPtr, int> s_typeHandleToID = new();
@@ -118,13 +118,13 @@ internal static class ComponentRegistry
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ComponentInfo GetComponentInfo(Identifier<IComponent> typeId)
+    internal static ComponentInfo GetComponentInfo(Identifier<IComponent> typeId)
     {
         return s_registeredComponents[typeId];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ComponentInfo GetComponentInfo(Type type)
+    internal static ComponentInfo GetComponentInfo(Type type)
     {
         var typeId = GetComponentID(type);
         if (typeId.IsInvalid)
@@ -141,7 +141,7 @@ internal static class ComponentRegistry
     /// every creation and lookup path (CreateEntities, AddComponent, MigrateEntity,
     /// cleanup edges, singletons) agrees on the same hash for the same logical signature.
     /// </summary>
-    public static int GetHashCodeForTypeIDs(params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
+    internal static int GetHashCodeForTypeIDs(params ReadOnlySpan<Identifier<IComponent>> componentTypeIDs)
     {
         if (componentTypeIDs.IsEmpty)
         {
@@ -155,7 +155,7 @@ internal static class ComponentRegistry
         return Unsafe.BitCast<uint, int>(XxHash32.HashToUInt32(MemoryMarshal.AsBytes(sorted)));
     }
 
-    public static int GetHashCodeForSharedData(ReadOnlySpan<byte> data)
+    internal static int GetHashCodeForSharedData(ReadOnlySpan<byte> data)
     {
         if (data.IsEmpty)
         {

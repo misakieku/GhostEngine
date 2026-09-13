@@ -9,7 +9,6 @@ internal unsafe class GPUScene : IDisposable
     private readonly IResourceDatabase _resourceDatabase;
 
     private Handle<GPUBuffer> _sceneBuffer;
-    private Handle<GPUBuffer> _instanceCounterBuffer;
     private uint _instanceCount;
     private uint _capacity;
 
@@ -17,8 +16,9 @@ internal unsafe class GPUScene : IDisposable
     private bool _disposed;
 
     public Handle<GPUBuffer> SceneBuffer => _sceneBuffer;
-    public Handle<GPUBuffer> InstanceCounterBuffer => _instanceCounterBuffer;
     public uint InstanceCount => Volatile.Read(ref _instanceCount);
+
+    public uint SceneBufferSrvIndex => _resourceDatabase.GetBindlessIndex(_sceneBuffer.AsResource());
 
     internal GPUScene(IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, uint initialCount)
     {
@@ -33,19 +33,8 @@ internal unsafe class GPUScene : IDisposable
             HeapType = HeapType.Default,
         };
 
-        var counterBufferDesc = new BufferDesc
-        {
-            Size = sizeof(uint),
-            Stride = sizeof(uint),
-            Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource,
-            HeapType = HeapType.Default,
-        };
-
         _sceneBuffer = _resourceAllocator.CreateBuffer(in bufferDesc, "SceneBuffer");
         Logger.DebugAssert(_sceneBuffer.IsValid, "Failed to create GPUScene buffer.");
-
-        _instanceCounterBuffer = _resourceAllocator.CreateBuffer(in counterBufferDesc, "SceneInstanceCounterBuffer");
-        Logger.DebugAssert(_instanceCounterBuffer.IsValid, "Failed to create GPUScene instance counter buffer.");
 
         _capacity = initialCount;
     }
@@ -55,7 +44,7 @@ internal unsafe class GPUScene : IDisposable
         Dispose();
     }
 
-    public void ResizeIfNeeded(ICommandBuffer cmd)
+    public void ResizeIfNeeded(ICommandBuffer cmd, uint currentInstanceCount = uint.MaxValue)
     {
         if (_requiredResize == 0)
         {
@@ -75,8 +64,13 @@ internal unsafe class GPUScene : IDisposable
         var newBuffer = _resourceAllocator.CreateBuffer(in newBufferDesc, "SceneBuffer_Resized");
         Logger.DebugAssert(newBuffer.IsValid);
 
+        var copyCount = currentInstanceCount != uint.MaxValue ? Math.Min(currentInstanceCount, _capacity) : Math.Min(_instanceCount, _capacity);
+
         // Copy existing data to the new buffer
-        cmd.CopyBuffer(newBuffer, _sceneBuffer, 0, 0, _instanceCount * (ulong)sizeof(InstanceData));
+        if (copyCount > 0)
+        {
+            cmd.CopyBuffer(newBuffer, _sceneBuffer, 0, 0, copyCount * (ulong)sizeof(InstanceData));
+        }
 
         // Replace old buffer with the new one
         _resourceDatabase.ReleaseResource(_sceneBuffer.AsResource());
@@ -117,7 +111,6 @@ internal unsafe class GPUScene : IDisposable
         }
 
         _resourceDatabase.ReleaseResource(_sceneBuffer.AsResource());
-        _resourceDatabase.ReleaseResource(_instanceCounterBuffer.AsResource());
 
         _disposed = true;
         GC.SuppressFinalize(this);

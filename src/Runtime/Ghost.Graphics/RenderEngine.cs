@@ -298,8 +298,14 @@ public class RenderEngine : IDisposable
                             frameResource.GraphicsCommandAllocator,
                             frameResource.ComputeCommandAllocator);
 
-                        var graphExecution = _renderPipeline.ExecuteGraph(
+                        result = _renderPipeline.ExecuteGraph(
                             renderContext, frameIndex, frameResource.RenderPayload, executionContext);
+
+                        if (result.IsFailure)
+                        {
+                            StopRenderLoop(result);
+                            break;
+                        }
                     }
 
                     frameResource.Completion = _frameScheduler.Flush();
@@ -371,6 +377,7 @@ public class RenderEngine : IDisposable
         var eventIndex = frameIndex % _frameResources.Length;
         ref var frameResource = ref _frameResources[eventIndex];
 
+        frameResource.RenderPayload?.EndRecord();
         frameResource.CpuReadyEvent.Set();
     }
 

@@ -58,6 +58,7 @@ public struct ViewData
     public float4x4 viewMatrix;
     public float4x4 projectionMatrix;
     public float4x4 viewProjectionMatrix;
+    public float4x4 preVPMatrix;
     public float3 cameraPosition;
     public float nearClip;
     public float3 cameraDirection;

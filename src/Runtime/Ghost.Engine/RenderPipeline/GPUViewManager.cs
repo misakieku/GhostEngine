@@ -1,11 +1,15 @@
 using Ghost.Core;
+using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
+using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Engine.RenderPipeline;
 
 internal sealed class GPUViewContext : IDisposable
 {
+    public RenderGraph? renderGraph;
+
     public uint viewId;
     public bool isActive;
 
@@ -72,7 +76,10 @@ internal sealed class GPUViewContext : IDisposable
 
     public void EnsureResources(
         IResourceAllocator allocator,
-        IResourceDatabase db,
+        IResourceDatabase database,
+        IPipelineLibrary pipelineLibrary,
+        ResourceManager resourceManager,
+        ShaderLibrary shaderLibrary,
         uint renderWidth,
         uint renderHeight)
     {
@@ -81,11 +88,11 @@ internal sealed class GPUViewContext : IDisposable
             return;
         }
 
-        if (!hzbAtlas.IsValid || this.renderWidth != renderWidth || this.renderHeight != renderHeight)
+        if (!hzbAtlas.IsValid || this.renderWidth != renderWidth || this.renderHeight != renderHeight || renderGraph == null)
         {
             if (hzbAtlas.IsValid)
             {
-                db.ReleaseResource(hzbAtlas.AsResource());
+                database.ReleaseResource(hzbAtlas.AsResource());
                 hzbAtlas = Handle<GPUTexture>.Invalid;
             }
 
@@ -115,6 +122,8 @@ internal sealed class GPUViewContext : IDisposable
             this.renderWidth = renderWidth;
             this.renderHeight = renderHeight;
             prevViewProjMatrix = default; // Zero out so first frame or resize is not static
+
+            renderGraph = new RenderGraph(database, allocator, pipelineLibrary, resourceManager, shaderLibrary);
         }
     }
 
@@ -125,6 +134,10 @@ internal sealed class GPUViewContext : IDisposable
             db.ReleaseResource(hzbAtlas.AsResource());
             hzbAtlas = Handle<GPUTexture>.Invalid;
         }
+
+        renderGraph?.Dispose();
+        renderGraph = null;
+
         renderWidth = 0;
         renderHeight = 0;
         prevViewProjMatrix = default;
@@ -143,6 +156,8 @@ internal sealed class GPUViewManager : IDisposable
     private readonly Stack<uint> _freeIndices = new(MAX_VIEWS);
     private readonly IResourceDatabase _database;
 
+    private readonly Lock _lock = new();
+
     public GPUViewManager(IResourceDatabase database)
     {
         _database = database;
@@ -155,20 +170,27 @@ internal sealed class GPUViewManager : IDisposable
 
     public uint AllocateView()
     {
-        if (_freeIndices.TryPop(out var id))
+        lock (_lock)
         {
-            _views[id].isActive = true;
-            return id;
+            if (_freeIndices.TryPop(out var id))
+            {
+                _views[id].isActive = true;
+                return id;
+            }
+
+            throw new InvalidOperationException($"Exceeded maximum concurrent GPU views ({MAX_VIEWS}).");
         }
-        throw new InvalidOperationException($"Exceeded maximum concurrent GPU views ({MAX_VIEWS}).");
     }
 
     public void ReleaseView(uint viewId)
     {
-        if (viewId < MAX_VIEWS && _views[viewId].isActive)
+        lock (_lock)
         {
-            _views[viewId].ReleaseResources(_database);
-            _freeIndices.Push(viewId);
+            if (viewId < MAX_VIEWS && _views[viewId].isActive)
+            {
+                _views[viewId].ReleaseResources(_database);
+                _freeIndices.Push(viewId);
+            }
         }
     }
 
@@ -178,14 +200,18 @@ internal sealed class GPUViewManager : IDisposable
         {
             throw new ArgumentOutOfRangeException(nameof(viewId), $"Invalid viewId {viewId}.");
         }
+
         return _views[viewId];
     }
 
     public void Dispose()
     {
-        for (var i = 0; i < MAX_VIEWS; i++)
+        lock (_lock)
         {
-            _views[i].ReleaseResources(_database);
+            for (var i = 0; i < MAX_VIEWS; i++)
+            {
+                _views[i].ReleaseResources(_database);
+            }
         }
     }
 }
