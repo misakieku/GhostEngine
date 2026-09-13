@@ -1,6 +1,4 @@
-using Ghost.Core;
 using Ghost.Core.Graphics;
-using Ghost.Core.Utilities;
 using Ghost.MeshOptimizer;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
@@ -209,8 +207,8 @@ internal static unsafe partial class MeshProcessor
                 cluster.uniqueVertices.Add(pMeshletVertices[meshlet.vertex_offset + j]);
             }
 
-            var posStride = mesh.vertexPositionsStride / (nuint)sizeof(float);
-            var normStride = mesh.vertexAttributesStride / (nuint)sizeof(float);
+            var posStride = mesh.vertexPositionsStride / sizeof(float);
+            var normStride = mesh.vertexAttributesStride / sizeof(float);
 
             for (nuint t = 0; t < meshlet.triangle_count; t++)
             {
@@ -224,9 +222,9 @@ internal static unsafe partial class MeshProcessor
 
                 if (mesh.vertexAttributes != null && mesh.vertexPositions != null)
                 {
-                    float* p0 = mesh.vertexPositions + v0 * posStride;
-                    float* p1 = mesh.vertexPositions + v1 * posStride;
-                    float* p2 = mesh.vertexPositions + v2 * posStride;
+                    var p0 = mesh.vertexPositions + v0 * posStride;
+                    var p1 = mesh.vertexPositions + v1 * posStride;
+                    var p2 = mesh.vertexPositions + v2 * posStride;
 
                     var pos0 = new float3(p0[0], p0[1], p0[2]);
                     var pos1 = new float3(p1[0], p1[1], p1[2]);
@@ -234,9 +232,9 @@ internal static unsafe partial class MeshProcessor
 
                     var geomNormal = math.cross(pos1 - pos0, pos2 - pos0);
 
-                    float* n0 = mesh.vertexAttributes + v0 * normStride;
-                    float* n1 = mesh.vertexAttributes + v1 * normStride;
-                    float* n2 = mesh.vertexAttributes + v2 * normStride;
+                    var n0 = mesh.vertexAttributes + v0 * normStride;
+                    var n1 = mesh.vertexAttributes + v1 * normStride;
+                    var n2 = mesh.vertexAttributes + v2 * normStride;
                     var normAvg = new float3(n0[0] + n1[0] + n2[0], n0[1] + n1[1] + n2[1], n0[2] + n1[2] + n2[2]);
 
                     if (math.lengthsq(normAvg) > 1e-8f && math.dot(geomNormal, normAvg) < -1e-6f)
@@ -523,7 +521,7 @@ internal static unsafe partial class MeshProcessor
         {
             float maxEdgeSq = 0;
             var pIdx = (uint*)indices.GetUnsafePtr();
-            var posStride = mesh.vertexPositionsStride / (nuint)sizeof(float);
+            var posStride = mesh.vertexPositionsStride / sizeof(float);
 
             for (var i = 0; i < indices.Count; i += 3)
             {
@@ -615,7 +613,7 @@ internal static unsafe partial class MeshProcessor
 
                 if ((nuint)simplified.Length > (nuint)(merged.Count * config.simplifyThreshold))
                 {
-                    bounds.error = float.MaxValue;
+                    bounds.error = Math.Max(bounds.error * 2.0f, bounds.radius * 2.0f);
                     OutputGroup(in config, in mesh, clusters, groups[i], bounds, depth, outputContext, outputCallback, allocationHandle);
                     continue;
                 }
@@ -650,7 +648,7 @@ internal static unsafe partial class MeshProcessor
         if (pending.Count > 0)
         {
             var bounds = clusters[pending[0]].bounds;
-            bounds.error = float.MaxValue;
+            bounds.error = Math.Max(bounds.error * 2.0f, bounds.radius * 2.0f);
             OutputGroup(in config, in mesh, clusters, pending, bounds, depth, outputContext, outputCallback, allocationHandle);
         }
 
@@ -777,14 +775,39 @@ internal static unsafe partial class MeshProcessor
             groupMax = group.simplified.center + group.simplified.radius;
         }
 
+        var currentLod = (uint)group.depth;
+        var parentError = group.simplified.error;
+
+        var selfError = 0.0f;
+        if (group.depth > 0)
+        {
+            for (var i = 0; i < clusters.Count; i++)
+            {
+                selfError = Math.Max(selfError, clusters[i].bounds.error);
+            }
+        }
+
+        var groupSphere = default(SphereBounds);
+        var meshletStart = meshletData->meshlets.Count - clusters.Count;
+        for (var i = 0; i < clusters.Count; i++)
+        {
+            var mSphere = meshletData->meshlets[meshletStart + i].boundingSphere;
+            groupSphere = (i == 0) ? mSphere : EncloseSphere(groupSphere, mSphere);
+        }
+
+        if (clusters.Count == 0)
+        {
+            groupSphere = new SphereBounds(group.simplified.center, group.simplified.radius);
+        }
+
         var meshletGroup = new MeshletGroup
         {
-            boundingSphere = new SphereBounds(group.simplified.center, group.simplified.radius),
+            boundingSphere = groupSphere,
             boundingBox = new AABB(groupMin, groupMax),
-            parentError = group.simplified.error,
-            meshletStartIndex = (uint)(meshletData->meshlets.Count - clusters.Count),
+            parentError = parentError,
+            meshletStartIndex = (uint)meshletStart,
             meshletCount = (uint)clusters.Count,
-            lodLevel = (uint)group.depth
+            lodLevel = currentLod
         };
         meshletData->groups.Add(meshletGroup);
 
@@ -846,13 +869,14 @@ internal static unsafe partial class MeshProcessor
                     data = meshletData,
                     materialIndex = part.materialIndex,
                     allocationHandle = allocationHandle,
-                    mesh = clodMesh
+                    mesh = clodMesh,
                 };
 
                 Build(in config, in clodMesh, context, MeshletOutputCallback, allocationHandle);
             }
 
             meshletData->meshletCount = meshletData->meshlets.IsCreated ? meshletData->meshlets.Count : 0;
+            meshletData->meshletGroupCount = meshletData->groups.IsCreated ? meshletData->groups.Count : 0;
 
             if (meshletData->groups.IsCreated && meshletData->groups.Count > 0)
             {
@@ -873,6 +897,9 @@ internal static unsafe partial class MeshProcessor
 
             meshletData->materialSlotCount = maxMaterialSlot + 1;
 
+            // Build hierarchical BVH for Work Graph dual-error culling
+            BuildClusterLodHierarchy(meshletData, allocationHandle, 8);
+
             return new DisposablePtr<MeshletMeshData>(meshletData);
         }
         catch
@@ -882,130 +909,352 @@ internal static unsafe partial class MeshProcessor
         }
     }
 
-    public static nuint ClodBuildHierarchyBound(nuint groupCount, nuint nodeWidth, nuint levelCount)
+    private struct TempTreeNode : IDisposable
     {
-        var total = levelCount;
-        for (var frontier = groupCount; frontier > 1; frontier = (frontier + nodeWidth - 1) / nodeWidth)
-        {
-            total += frontier + levelCount;
-        }
+        public SphereBounds bounds;
+        public float error;
+        public int groupIndex;
+        public UnsafeList<int> children;
 
-        return total;
+        public void Dispose()
+        {
+            children.Dispose();
+        }
     }
 
-    private static MeshletHierarchyNode MergeHierarchyNodes(MeshletHierarchyNode* nodes, uint offset, uint count)
+    private static SphereBounds EncloseSphere(SphereBounds a, SphereBounds b)
     {
-        var pNodes = nodes + offset;
-        var pCenters = (float*)pNodes;
-        var pRadii = (float*)pNodes + 3;
-        var stride = (nuint)sizeof(MeshletHierarchyNode);
-
-        var merged = MeshOptApi.ComputeSphereBounds(
-            pCenters,
-            count,
-            stride,
-            pRadii,
-            stride
-        );
-
-        var maxError = 0.0f;
-        for (uint j = 0; j < count; j++)
+        if (a.Radius <= 0.0f)
         {
-            maxError = Math.Max(maxError, pNodes[j].error);
+            return b;
         }
 
-        return new MeshletHierarchyNode
+        if (b.Radius <= 0.0f)
         {
-            bounds = new SphereBounds(new float3(merged.center[0], merged.center[1], merged.center[2]), merged.radius),
-            error = maxError,
-            groupIndex = -1,
-            childOffset = offset,
-            childCount = count
-        };
+            return a;
+        }
+
+        var d = b.Center - a.Center;
+        var dist = math.length(d);
+        if (dist < 1e-6f)
+        {
+            return new SphereBounds(a.Center, Math.Max(a.Radius, b.Radius));
+        }
+        if (dist + b.Radius <= a.Radius)
+        {
+            return a;
+        }
+
+        if (dist + a.Radius <= b.Radius)
+        {
+            return b;
+        }
+
+        var newRadius = (dist + a.Radius + b.Radius) * 0.5f;
+        var newCenter = a.Center + d * ((newRadius - a.Radius) / dist);
+        return new SphereBounds(newCenter, newRadius);
     }
 
     /// <summary>
-    /// Builds a spatial cluster hierarchy over groups per DAG level using bottom-up spatial clustering.
-    /// Matches meshoptimizer's clodBuildHierarchy.
+    /// Builds a hierarchical BVH for continuous LOD and Dual-Error culling in Work Graphs.
+    /// Node 0 is the root node of the hierarchy.
     /// </summary>
-    public static void BuildClusterLodHierarchy(MeshletMeshData* meshletData, AllocationHandle allocationHandle, nuint nodeWidth = 4)
+    public static void BuildClusterLodHierarchy(MeshletMeshData* meshletData, AllocationHandle allocationHandle, nuint maxFanout = 8)
     {
         if (!meshletData->groups.IsCreated || meshletData->groups.Count == 0)
         {
             return;
         }
 
-        var groupCount = (nuint)meshletData->groups.Count;
-        var levelCount = (nuint)meshletData->lodLevelCount;
-        var maxNodes = ClodBuildHierarchyBound(groupCount, nodeWidth, levelCount);
-
-        if (!meshletData->hierarchyNodes.IsCreated)
+        // If the hierarchy has already been built (e.g. during BuildMeshlets), do not rebuild
+        if (meshletData->hierarchyNodes.IsCreated && meshletData->hierarchyNodes.Count > 0)
         {
-            meshletData->hierarchyNodes = new UnsafeList<MeshletHierarchyNode>((int)maxNodes, allocationHandle);
+            return;
         }
 
-        meshletData->hierarchyNodes.Resize((int)maxNodes);
-        var pNodes = (MeshletHierarchyNode*)meshletData->hierarchyNodes.GetUnsafePtr();
+        var groupCount = meshletData->groups.Count;
+        var levelCount = meshletData->lodLevelCount;
 
-        var offset = levelCount;
-
-        using var row = new UnsafeList<MeshletHierarchyNode>((int)groupCount, allocationHandle);
-        using var order = new UnsafeArray<uint>((int)groupCount, allocationHandle);
-
-        for (nuint level = 0; level < levelCount; ++level)
+        // If mesh only has 1 group, create a single root leaf node directly
+        if (groupCount == 1)
         {
-            row.Clear();
-            for (var i = 0; i < (int)groupCount; ++i)
+            if (!meshletData->hierarchyNodes.IsCreated)
             {
-                if (meshletData->groups[i].lodLevel == (uint)level)
+                meshletData->hierarchyNodes = new UnsafeList<MeshletHierarchyNode>(1, allocationHandle);
+            }
+            meshletData->hierarchyNodes.Clear();
+            var bounds = meshletData->groups[0].boundingSphere;
+            var safeError = Math.Max(meshletData->groups[0].parentError, Math.Max(bounds.Radius * 2.0f, 1.0f));
+            meshletData->hierarchyNodes.Add(new MeshletHierarchyNode
+            {
+                bounds = bounds,
+                error = safeError,
+                groupIndex = 0,
+                childOffset = 0,
+                childCount = 0
+            });
+            return;
+        }
+
+        var tempNodes = new UnsafeList<TempTreeNode>(groupCount * 2, allocationHandle);
+        using var lodRoots = new UnsafeList<int>(levelCount, allocationHandle);
+
+        try
+        {
+            // 1. Group all meshlet groups by LOD level
+            using var lodGroupLists = new UnsafeArray<UnsafeList<int>>(levelCount, allocationHandle);
+            for (var i = 0; i < levelCount; i++)
+            {
+                lodGroupLists[i] = new UnsafeList<int>(16, allocationHandle);
+            }
+
+            for (var g = 0; g < groupCount; g++)
+            {
+                var lod = (int)meshletData->groups[g].lodLevel;
+                if (lod >= 0 && lod < levelCount)
                 {
-                    row.Add(new MeshletHierarchyNode
+                    lodGroupLists[lod].Add(g);
+                }
+            }
+
+            // 2. Build bottom-up BVH for each LOD level (from coarsest to finest)
+            for (var lvl = levelCount - 1; lvl >= 0; lvl--)
+            {
+                var groupsInLod = lodGroupLists[lvl];
+                if (groupsInLod.Count == 0)
+                {
+                    continue;
+                }
+
+                // Create leaf nodes for each group in this LOD
+                var currentLevelNodes = new UnsafeList<int>(groupsInLod.Count, allocationHandle);
+                for (var i = 0; i < groupsInLod.Count; i++)
+                {
+                    var g = groupsInLod[i];
+                    var grp = meshletData->groups[g];
+                    var leafIdx = tempNodes.Count;
+
+                    tempNodes.Add(new TempTreeNode
                     {
-                        bounds = meshletData->groups[i].boundingSphere,
-                        error = meshletData->groups[i].parentError,
-                        groupIndex = i,
-                        childOffset = 0,
-                        childCount = 0
+                        bounds = grp.boundingSphere,
+                        error = grp.parentError,
+                        groupIndex = g,
+                        children = new UnsafeList<int>(0, allocationHandle)
                     });
+                    currentLevelNodes.Add(leafIdx);
                 }
+
+                // Build bottom-up BVH for this LOD until a single root remains
+                while (currentLevelNodes.Count > 1)
+                {
+                    var nodeCount = currentLevelNodes.Count;
+                    var nextLevelNodes = new UnsafeList<int>((nodeCount + (int)maxFanout - 1) / (int)maxFanout, allocationHandle);
+
+                    if ((nuint)nodeCount <= maxFanout)
+                    {
+                        // Small enough to fit directly in one parent node
+                        var childList = new UnsafeList<int>(nodeCount, allocationHandle);
+                        childList.AddRange(currentLevelNodes.AsSpan());
+
+                        var mergedBounds = tempNodes[currentLevelNodes[0]].bounds;
+                        var maxError = tempNodes[currentLevelNodes[0]].error;
+
+                        for (var j = 1; j < nodeCount; j++)
+                        {
+                            var childIdx = currentLevelNodes[j];
+                            mergedBounds = EncloseSphere(mergedBounds, tempNodes[childIdx].bounds);
+                            maxError = Math.Max(maxError, tempNodes[childIdx].error);
+                        }
+
+                        var parentIdx = tempNodes.Count;
+                        tempNodes.Add(new TempTreeNode
+                        {
+                            bounds = mergedBounds,
+                            error = maxError,
+                            groupIndex = -1,
+                            children = childList
+                        });
+                        nextLevelNodes.Add(parentIdx);
+                    }
+                    else
+                    {
+                        // Spatial clustering using meshopt_spatialClusterPoints
+                        using var centers = new UnsafeArray<float>(nodeCount * 3, allocationHandle);
+                        for (var i = 0; i < nodeCount; i++)
+                        {
+                            var n = tempNodes[currentLevelNodes[i]];
+                            centers[i * 3 + 0] = n.bounds.Center.x;
+                            centers[i * 3 + 1] = n.bounds.Center.y;
+                            centers[i * 3 + 2] = n.bounds.Center.z;
+                        }
+
+                        using var clusterIndices = new UnsafeArray<uint>(nodeCount, allocationHandle);
+                        MeshOptApi.SpatialClusterPoints(
+                            (uint*)clusterIndices.GetUnsafePtr(),
+                            (float*)centers.GetUnsafePtr(),
+                            (nuint)nodeCount,
+                            (nuint)(sizeof(float) * 3),
+                            maxFanout
+                        );
+
+                        var clusterCount = (nodeCount + (int)maxFanout - 1) / (int)maxFanout;
+                        for (var c = 0; c < clusterCount; c++)
+                        {
+                            var start = c * (int)maxFanout;
+                            var size = Math.Min((int)maxFanout, nodeCount - start);
+                            if (size <= 0) continue;
+
+                            var childList = new UnsafeList<int>(size, allocationHandle);
+                            var firstChildIdx = currentLevelNodes[(int)clusterIndices[start]];
+                            childList.Add(firstChildIdx);
+
+                            var mergedBounds = tempNodes[firstChildIdx].bounds;
+                            var maxError = tempNodes[firstChildIdx].error;
+
+                            for (var j = 1; j < size; j++)
+                            {
+                                var childIdx = currentLevelNodes[(int)clusterIndices[start + j]];
+                                childList.Add(childIdx);
+                                mergedBounds = EncloseSphere(mergedBounds, tempNodes[childIdx].bounds);
+                                maxError = Math.Max(maxError, tempNodes[childIdx].error);
+                            }
+
+                            var parentIdx = tempNodes.Count;
+                            tempNodes.Add(new TempTreeNode
+                            {
+                                bounds = mergedBounds,
+                                error = maxError,
+                                groupIndex = -1,
+                                children = childList
+                            });
+                            nextLevelNodes.Add(parentIdx);
+                        }
+                    }
+
+                    currentLevelNodes.Dispose();
+                    currentLevelNodes = nextLevelNodes;
+                }
+
+                lodRoots.Add(currentLevelNodes[0]);
+                currentLevelNodes.Dispose();
             }
 
-            if (row.Count == 0)
+            for (var i = 0; i < levelCount; i++)
             {
-                pNodes[level] = new MeshletHierarchyNode
+                lodGroupLists[i].Dispose();
+            }
+
+            // 3. Connect LOD roots into a single Top-Level BVH
+            int rootNodeIdx;
+            if (lodRoots.Count == 1)
+            {
+                rootNodeIdx = lodRoots[0];
+            }
+            else
+            {
+                var currentRoots = new UnsafeList<int>(lodRoots.Count, allocationHandle);
+                currentRoots.AddRange(lodRoots.AsSpan());
+
+                while (currentRoots.Count > 1)
                 {
-                    bounds = default,
-                    error = float.MaxValue,
-                    groupIndex = -1,
-                    childOffset = 0,
-                    childCount = 0
+                    var count = currentRoots.Count;
+                    var nextRoots = new UnsafeList<int>((count + (int)maxFanout - 1) / (int)maxFanout, allocationHandle);
+
+                    for (var i = 0; i < count; i += (int)maxFanout)
+                    {
+                        var chunk = Math.Min((int)maxFanout, count - i);
+                        var childList = new UnsafeList<int>(chunk, allocationHandle);
+
+                        var mergedBounds = tempNodes[currentRoots[i]].bounds;
+                        var maxError = tempNodes[currentRoots[i]].error;
+                        childList.Add(currentRoots[i]);
+
+                        for (var j = 1; j < chunk; j++)
+                        {
+                            var childIdx = currentRoots[i + j];
+                            childList.Add(childIdx);
+                            mergedBounds = EncloseSphere(mergedBounds, tempNodes[childIdx].bounds);
+                            maxError = Math.Max(maxError, tempNodes[childIdx].error);
+                        }
+
+                        // Top-level internal nodes take the maximum error of their children
+                        var parentIdx = tempNodes.Count;
+                        tempNodes.Add(new TempTreeNode
+                        {
+                            bounds = mergedBounds,
+                            error = maxError,
+                            groupIndex = -1,
+                            children = childList
+                        });
+                        nextRoots.Add(parentIdx);
+                    }
+
+                    currentRoots.Dispose();
+                    currentRoots = nextRoots;
+                }
+
+                rootNodeIdx = currentRoots[0];
+                currentRoots.Dispose();
+            }
+
+            // 4. Linearize tree in BFS order (Root is placed at index 0)
+            if (!meshletData->hierarchyNodes.IsCreated)
+            {
+                meshletData->hierarchyNodes = new UnsafeList<MeshletHierarchyNode>(tempNodes.Count, allocationHandle);
+            }
+            meshletData->hierarchyNodes.Clear();
+            meshletData->hierarchyNodes.Resize(tempNodes.Count);
+
+            using var bfsQueue = new UnsafeList<int>(tempNodes.Count, allocationHandle);
+            bfsQueue.Add(rootNodeIdx);
+
+            var nextLinearChildIdx = 1;
+            var writePtr = 0;
+
+            while (writePtr < bfsQueue.Count)
+            {
+                var currentTempIdx = bfsQueue[writePtr];
+                var linearIdx = writePtr;
+                writePtr++;
+
+                var temp = tempNodes[currentTempIdx];
+                var childCount = (uint)temp.children.Count;
+                uint childOffset = 0;
+
+                if (childCount > 0)
+                {
+                    childOffset = (uint)nextLinearChildIdx;
+                    for (var c = 0; c < childCount; c++)
+                    {
+                        bfsQueue.Add(temp.children[c]);
+                    }
+                    nextLinearChildIdx += (int)childCount;
+                }
+
+                if (linearIdx >= meshletData->hierarchyNodes.Count)
+                {
+                    meshletData->hierarchyNodes.Resize(linearIdx + 1);
+                }
+
+                meshletData->hierarchyNodes[linearIdx] = new MeshletHierarchyNode
+                {
+                    bounds = temp.bounds,
+                    error = temp.error,
+                    groupIndex = temp.groupIndex,
+                    childOffset = childOffset,
+                    childCount = childCount
                 };
-                continue;
             }
 
-            while (row.Count > 1)
-            {
-                var count = (nuint)row.Count;
-                var pCenters = (float*)row.GetUnsafePtr();
-                MeshOptApi.SpatialClusterPoints((uint*)order.GetUnsafePtr(), pCenters, count, (nuint)sizeof(MeshletHierarchyNode), nodeWidth);
-                for (nuint i = 0; i < count; ++i)
-                {
-                    pNodes[offset + i] = row[(int)order[(int)i]];
-                }
-
-                row.Clear();
-                for (nuint i = 0; i < count; i += nodeWidth)
-                {
-                    var children = (uint)Math.Min(nodeWidth, count - i);
-                    row.Add(MergeHierarchyNodes(pNodes, (uint)(offset + i), children));
-                }
-
-                offset += count;
-            }
-
-            pNodes[level] = row[0];
+            meshletData->hierarchyNodes.UnsafeSetCount(bfsQueue.Count);
         }
-
-        meshletData->hierarchyNodes.UnsafeSetCount((int)offset);
+        finally
+        {
+            for (var i = 0; i < tempNodes.Count; i++)
+            {
+                tempNodes[i].Dispose();
+            }
+            tempNodes.Dispose();
+        }
     }
 }

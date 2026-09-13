@@ -187,6 +187,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
             meshletGroupBuffer = context.ResourceDatabase.GetBindlessIndex(meshletGroupBuffer.AsResource()),
             meshletHierarchyBuffer = context.ResourceDatabase.GetBindlessIndex(meshletHierarchyBuffer.AsResource()),
             meshletCount = (uint)_header.meshletCount,
+            meshletGroupCount = (uint)_header.meshletGroupCount,
             lodLevelCount = (uint)_header.lodLevelCount,
             materialSlotCount = (uint)_header.materialSlotCount,
         };
@@ -231,6 +232,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
             MeshletData = new MeshletMeshData
             {
                 meshletCount = _header.meshletCount,
+                meshletGroupCount = _header.meshletGroupCount,
                 lodLevelCount = _header.lodLevelCount,
                 materialSlotCount = _header.materialSlotCount,
             }

@@ -272,5 +272,101 @@ public class MeshBakerTests
             mesh.Dispose();
         }
     }
+
+    [TestMethod]
+    public unsafe void TestBunnyContinuousLodHierarchy()
+    {
+        var bunnyPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../Test/TestGame/Assets/Meshes/bunny.obj"));
+        if (!File.Exists(bunnyPath))
+        {
+            bunnyPath = @"F:\csharp\GhostEngine\src\Test\TestGame\Assets\Meshes\bunny.obj";
+        }
+        Assert.IsTrue(File.Exists(bunnyPath), $"bunny.obj not found at {bunnyPath}");
+
+        var settings = new MeshBakeSettings
+        {
+            ObjectUpAxis = CoordinateAxis.PositiveY,
+            ObjectForwardAxis = CoordinateAxis.NegativeZ,
+            ObjectRightAxis = CoordinateAxis.PositiveX,
+            UnitMeterScale = 1,
+            NormalDataSource = VertexDataSource.ComputedIfMissing,
+            TangentDataSource = VertexDataSource.ComputedIfMissing,
+            MaxVerticesPerMeshlet = 64,
+            MinTrianglesPerMeshlet = 32,
+            MaxTrianglesPerMeshlet = 124,
+            SimplifyRatio = 0.5f,
+            SimplifyThreshold = 0.85f,
+            OptimizeClusters = true
+        };
+
+        var parseResult = MeshProcessor.ParseModel(bunnyPath, settings, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
+        Assert.IsTrue(parseResult.IsSuccess, parseResult.Message);
+
+        var mesh = parseResult.Value[0];
+        try
+        {
+            using var meshletDataPtr = MeshProcessor.BuildMeshlets(
+                mesh.Vertices.AsReadOnly(),
+                mesh.Indices.AsReadOnly(),
+                mesh.MaterialParts.AsReadOnly(),
+                settings,
+                Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
+
+            var pMeshletData = meshletDataPtr.Get();
+            Assert.IsGreaterThan(0, pMeshletData->hierarchyNodes.Count);
+            Assert.IsGreaterThan(1, pMeshletData->lodLevelCount);
+
+            // Node 0 must be the root node
+            ref readonly var rootNode = ref pMeshletData->hierarchyNodes[0];
+            Assert.IsGreaterThan(0u, rootNode.childCount);
+            Assert.IsLessThanOrEqualTo(8u, rootNode.childCount);
+            Assert.IsGreaterThan(0u, rootNode.childOffset);
+
+
+            // Validate all hierarchy nodes
+            for (int i = 0; i < pMeshletData->hierarchyNodes.Count; i++)
+            {
+                ref readonly var node = ref pMeshletData->hierarchyNodes[i];
+                Assert.IsLessThanOrEqualTo(8u, node.childCount, $"Node {i} exceeds max fanout 8");
+
+                if (node.childCount > 0)
+                {
+                    Assert.IsGreaterThan(0u, node.childOffset, $"Node {i} with children must have positive childOffset");
+                    Assert.IsTrue((int)(node.childOffset + node.childCount) <= pMeshletData->hierarchyNodes.Count,
+                        $"Node {i} children slice out of bounds");
+
+                    for (uint c = 0; c < node.childCount; c++)
+                    {
+                        uint childIdx = node.childOffset + c;
+                        ref readonly var childNode = ref pMeshletData->hierarchyNodes[(int)childIdx];
+
+                        // Error must not be poisoned with float.MaxValue / infinity
+                        Assert.IsFalse(float.IsPositiveInfinity(node.error) || node.error >= 3.4e38f,
+                            $"Node {i} error was poisoned to float.MaxValue/infinity: {node.error}");
+
+                        // Monotonicity: parent error must be >= child error
+                        Assert.IsTrue(node.error >= childNode.error - 1e-5f,
+                            $"Monotonic error violated: parent {i} (error={node.error}) < child {childIdx} (error={childNode.error})");
+
+                        // Conservative bounding: child sphere must be inside parent sphere (with small tolerance)
+                        float dist = Misaki.HighPerformance.Mathematics.math.length(childNode.bounds.Center - node.bounds.Center);
+                        Assert.IsTrue(dist + childNode.bounds.Radius <= node.bounds.Radius + 1e-3f,
+                            $"Parent bounding sphere does not enclose child {childIdx}: dist={dist}, childR={childNode.bounds.Radius}, parentR={node.bounds.Radius}");
+                    }
+                }
+                else
+                {
+                    // Leaf node must reference a valid MeshletGroup
+                    Assert.IsGreaterThanOrEqualTo(0, node.groupIndex, $"Leaf node {i} must reference a valid group");
+                    Assert.IsTrue(node.groupIndex < pMeshletData->groups.Count, $"Leaf node {i} groupIndex out of range");
+                }
+            }
+        }
+        finally
+        {
+            mesh.Dispose();
+        }
+    }
 }
+
 

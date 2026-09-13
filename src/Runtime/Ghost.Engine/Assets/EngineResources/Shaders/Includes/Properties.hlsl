@@ -68,6 +68,7 @@ struct MeshData
     BYTE_ADDRESS_BUFFER meshletGroupBuffer;
     BYTE_ADDRESS_BUFFER meshletHierarchyBuffer;
     uint meshletCount;
+    uint meshletGroupCount;
     uint lodLevelCount;
     uint materialSlotCount;
 };

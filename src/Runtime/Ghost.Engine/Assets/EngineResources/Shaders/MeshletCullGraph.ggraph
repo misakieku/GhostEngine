@@ -91,7 +91,6 @@ compute "Internal/MeshletCullGraph"
             {
                 return;
             }
-            counterBuf.InterlockedAdd(36, 1);
 
             FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
             ViewData view = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
@@ -114,51 +113,16 @@ compute "Internal/MeshletCullGraph"
             bool clipValid;
 
             bool inFrustum = BBoxIntersectFrustum(mesh.worldBoundsMin, mesh.worldBoundsMax, instance.localToWorld, view.viewProjectionMatrix, clipMin, clipMax, clipValid);
-            if (instanceIndex == 0)
-            {
-                counterBuf.Store(108, inFrustum ? 1u : 0u);
-                counterBuf.Store(112, clipValid ? 1u : 0u);
-                counterBuf.Store(116, asuint(worldMin.z));
-                counterBuf.Store(120, asuint(worldMax.z));
-                counterBuf.Store(124, asuint(instance.localToWorld[2][3]));
-            }
             if (!inFrustum)
             {
-                counterBuf.InterlockedAdd(44, 1);
                 return;
             }
-            counterBuf.InterlockedAdd(40, 1);
 
-            if (mesh.meshletHierarchyBuffer != 0 && mesh.lodLevelCount > 1)
+            if (mesh.meshletHierarchyBuffer != 0)
             {
-                float3 worldCenter = (worldMin + worldMax) * 0.5f;
-                float worldRadius = length(worldMax - worldCenter);
-                float scale = length(float3(instance.localToWorld[0][0], instance.localToWorld[1][0], instance.localToWorld[2][0]));
-
-                ByteAddressBuffer hierarchyBuf = GET_BUFFER(mesh.meshletHierarchyBuffer);
-                uint selectedLOD = 0;
-
-                // Evaluate from coarsest level down to 1
-                for (int lvl = (int)mesh.lodLevelCount - 1; lvl >= 1; --lvl)
-                {
-                    MeshletHierarchyNode prevLodRoot = hierarchyBuf.Load<MeshletHierarchyNode>((uint)(lvl - 1) * sizeof(MeshletHierarchyNode));
-                    if (prevLodRoot.error < 3.4e38F && EvaluateLODDetailSufficient(
-                        prevLodRoot.error * scale,
-                        worldCenter,
-                        worldRadius,
-                        view.cameraPosition,
-                        view.projectionMatrix[1][1],
-                        view.screenSize.y,
-                        props.lodErrorThreshold))
-                    {
-                        selectedLOD = (uint)lvl;
-                        break;
-                    }
-                }
-
                 ThreadNodeOutputRecords<HierarchyNodeRecord> outRec = hierarchyQueue.GetThreadNodeOutputRecords(1);
                 outRec.Get().instanceIndex = instanceIndex;
-                outRec.Get().nodeIndex = selectedLOD;
+                outRec.Get().nodeIndex = 0;
                 outRec.Get().meshletHierarchyBuffer = mesh.meshletHierarchyBuffer;
                 outRec.Get().meshletGroupBuffer = mesh.meshletGroupBuffer;
                 outRec.Get().meshletBuffer = mesh.meshletBuffer;
@@ -208,62 +172,83 @@ compute "Internal/MeshletCullGraph"
             ByteAddressBuffer hierarchyBuf = GET_BUFFER(rec.meshletHierarchyBuffer);
             MeshletHierarchyNode node = hierarchyBuf.Load<MeshletHierarchyNode>(rec.nodeIndex * sizeof(MeshletHierarchyNode));
 
-            float3 worldCenter = mul(instance.localToWorld, float4(node.bounds.xyz, 1.0f)).xyz;
+            // 1. Transform bounding sphere and perform frustum culling
             float3 scale3 = float3(
                 length(instance.localToWorld._m00_m10_m20),
                 length(instance.localToWorld._m01_m11_m21),
                 length(instance.localToWorld._m02_m12_m22));
             float maxScale = max(scale3.x, max(scale3.y, scale3.z));
+
+            float3 worldCenter = mul(instance.localToWorld, float4(node.bounds.xyz, 1.0f)).xyz;
             float worldRadius = node.bounds.w * maxScale;
             float3 worldMin = worldCenter - worldRadius;
             float3 worldMax = worldCenter + worldRadius;
 
             float4 clipMin, clipMax;
             bool clipValid;
-            float4x4 identityMat = float4x4(
-                1.0f, 0.0f, 0.0f, 0.0f,
-                0.0f, 1.0f, 0.0f, 0.0f,
-                0.0f, 0.0f, 1.0f, 0.0f,
-                0.0f, 0.0f, 0.0f, 1.0f
-            );
-            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBufferUav];
-            counterBuf.InterlockedAdd(52, 1);
-
-            bool inFrustum = BBoxIntersectFrustum(worldMin, worldMax, identityMat, view.viewProjectionMatrix, clipMin, clipMax, clipValid);
-            if (!inFrustum)
+            float4x4 identityMat = float4x4(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+            if (!BBoxIntersectFrustum(worldMin, worldMax, identityMat, view.viewProjectionMatrix, clipMin, clipMax, clipValid))
             {
-                counterBuf.InterlockedAdd(48, 1);
-                return;
+                return; // Frustum culled: prune this subtree
             }
 
-            if (node.childCount > 0)
+            // 2. Dual-Error Parent Error Pruning:
+            // If the parent (coarser LOD) error already satisfies the screen-space threshold,
+            // the coarser representation is sufficient and this subtree can be pruned.
+            bool isParentDetailSufficient = (node.error < 3.4e38f) && EvaluateLODDetailSufficient(
+                node.error * maxScale,
+                worldCenter,
+                worldRadius,
+                view.cameraPosition,
+                view.projectionMatrix[1][1],
+                view.screenSize.y,
+                props.lodErrorThreshold);
+
+            if (isParentDetailSufficient)
             {
+                return; // Prune branch: coarser LOD is sufficient
+            }
+
+            if (node.groupIndex < 0)
+            {
+                // Internal node: traverse into children
                 uint childCount = min(node.childCount, 8u);
-                ThreadNodeOutputRecords<HierarchyNodeRecord> outChildren = selfQueue.GetThreadNodeOutputRecords(childCount);
-                for (uint c = 0; c < childCount; ++c)
+                if (childCount > 0)
                 {
-                    outChildren[c].instanceIndex = rec.instanceIndex;
-                    outChildren[c].nodeIndex = node.childOffset + c;
-                    outChildren[c].meshletHierarchyBuffer = rec.meshletHierarchyBuffer;
-                    outChildren[c].meshletGroupBuffer = rec.meshletGroupBuffer;
-                    outChildren[c].meshletBuffer = rec.meshletBuffer;
+                    ThreadNodeOutputRecords<HierarchyNodeRecord> outChildren = selfQueue.GetThreadNodeOutputRecords(childCount);
+                    for (uint c = 0; c < childCount; ++c)
+                    {
+                        outChildren[c].instanceIndex = rec.instanceIndex;
+                        outChildren[c].nodeIndex = node.childOffset + c;
+                        outChildren[c].meshletHierarchyBuffer = rec.meshletHierarchyBuffer;
+                        outChildren[c].meshletGroupBuffer = rec.meshletGroupBuffer;
+                        outChildren[c].meshletBuffer = rec.meshletBuffer;
+                    }
+                    outChildren.OutputComplete();
                 }
-                outChildren.OutputComplete();
             }
-            else if (node.groupIndex >= 0)
+            else
             {
+                // Leaf node representing a MeshletGroup: dispatch candidate meshlets to MeshletCullNode
                 ByteAddressBuffer groupBuf = GET_BUFFER(rec.meshletGroupBuffer);
                 MeshletGroup group = groupBuf.Load<MeshletGroup>(node.groupIndex * sizeof(MeshletGroup));
 
-                uint count = min(group.meshletCount, 64u);
-                ThreadNodeOutputRecords<MeshletCandidateRecord> outGroup = meshletQueue.GetThreadNodeOutputRecords(count);
-                for (uint i = 0; i < count; ++i)
+                uint remaining = group.meshletCount;
+                uint offset = 0;
+                while (remaining > 0)
                 {
-                    outGroup[i].instanceIndex = rec.instanceIndex;
-                    outGroup[i].meshletIndex = group.meshletStartIndex + i;
-                    outGroup[i].meshletBufferIndex = rec.meshletBuffer;
+                    uint chunk = min(remaining, 64u);
+                    ThreadNodeOutputRecords<MeshletCandidateRecord> outGroup = meshletQueue.GetThreadNodeOutputRecords(chunk);
+                    for (uint i = 0; i < chunk; ++i)
+                    {
+                        outGroup[i].instanceIndex = rec.instanceIndex;
+                        outGroup[i].meshletIndex = group.meshletStartIndex + offset + i;
+                        outGroup[i].meshletBufferIndex = rec.meshletBuffer;
+                    }
+                    outGroup.OutputComplete();
+                    offset += chunk;
+                    remaining -= chunk;
                 }
-                outGroup.OutputComplete();
             }
         }
 
@@ -301,38 +286,66 @@ compute "Internal/MeshletCullGraph"
                 ByteAddressBuffer meshletBuf = GET_BUFFER(rec.meshletBufferIndex);
                 Meshlet meshlet = meshletBuf.Load<Meshlet>(rec.meshletIndex * sizeof(Meshlet));
 
-                uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
-                uint packedMaterial = LoadMaterialBindlessIndex(frame.paletteOffsetBuffer, frame.materialIndexBuffer, instance.materialPaletteIndex, localMaterialIndex);
-                renderType = (packedMaterial >> 24) & 0xFFu;
+                float3 scale3 = float3(
+                    length(instance.localToWorld._m00_m10_m20),
+                    length(instance.localToWorld._m01_m11_m21),
+                    length(instance.localToWorld._m02_m12_m22));
+                float maxScale = max(scale3.x, max(scale3.y, scale3.z));
 
-                float4 clipMin, clipMax;
-                bool clipValid;
-                inFrustum = BBoxIntersectFrustum(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld, view.viewProjectionMatrix, clipMin, clipMax, clipValid);
-                if (inFrustum)
+                float3 meshletWorldCenter = mul(instance.localToWorld, float4(meshlet.boundingSphere.xyz, 1.0f)).xyz;
+                float meshletWorldRadius = meshlet.boundingSphere.w * maxScale;
+
+                // Dual-Error Cut: Cluster Error test
+                // Discard meshlets that are too coarse; their error exceeds the threshold,
+                // so a finer LOD level must render instead.
+                bool isClusterDetailSufficient = (meshlet.clusterError <= 0.0f) || EvaluateLODDetailSufficient(
+                    meshlet.clusterError * maxScale,
+                    meshletWorldCenter,
+                    meshletWorldRadius,
+                    view.cameraPosition,
+                    view.projectionMatrix[1][1],
+                    view.screenSize.y,
+                    props.lodErrorThreshold);
+
+                if (!isClusterDetailSufficient)
                 {
-                    if (props.hzbMipCount > 0)
-                    {
-                        if (props.cullPassIndex == 0)
-                        {
-                            float4 prevClipMin, prevClipMax;
-                            bool prevClipValid;
-                            bool wasInPrevFrustum = BBoxIntersectFrustum(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld, view.preVPMatrix, prevClipMin, prevClipMax, prevClipValid);
+                    isValid = false;
+                }
+                else
+                {
+                    uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
+                    uint packedMaterial = LoadMaterialBindlessIndex(frame.paletteOffsetBuffer, frame.materialIndexBuffer, instance.materialPaletteIndex, localMaterialIndex);
+                    renderType = (packedMaterial >> 24) & 0xFFu;
 
-                            if (wasInPrevFrustum && prevClipValid)
-                            {
-                                isOccluded = !TestHZB(prevClipMin, prevClipMax, props);
-                            }
-                            else
-                            {
-                                isOccluded = true;
-                            }
-                        }
-                        else if (clipValid)
+                    float4 clipMin, clipMax;
+                    bool clipValid;
+                    inFrustum = BBoxIntersectFrustum(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld, view.viewProjectionMatrix, clipMin, clipMax, clipValid);
+                    if (inFrustum)
+                    {
+                        if (props.hzbMipCount > 0)
                         {
-                            isOccluded = !TestHZB(clipMin, clipMax, props);
+                            if (props.cullPassIndex == 0)
+                            {
+                                float4 prevClipMin, prevClipMax;
+                                bool prevClipValid;
+                                bool wasInPrevFrustum = BBoxIntersectFrustum(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld, view.preVPMatrix, prevClipMin, prevClipMax, prevClipValid);
+
+                                if (wasInPrevFrustum && prevClipValid)
+                                {
+                                    isOccluded = !TestHZB(prevClipMin, prevClipMax, props);
+                                }
+                                else
+                                {
+                                    isOccluded = true;
+                                }
+                            }
+                            else if (clipValid)
+                            {
+                                isOccluded = !TestHZB(clipMin, clipMax, props);
+                            }
                         }
+                        isVisible = !isOccluded;
                     }
-                    isVisible = !isOccluded;
                 }
             }
 

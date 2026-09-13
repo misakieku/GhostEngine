@@ -333,6 +333,7 @@ public unsafe class RenderContext
             meshletGroupBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletGroupBuffer.AsResource()),
             meshletHierarchyBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletHierarchyBuffer.AsResource()),
             meshletCount = (uint)meshData.MeshletData.meshletCount,
+            meshletGroupCount = (uint)meshData.MeshletData.meshletGroupCount,
             lodLevelCount = (uint)meshData.MeshletData.lodLevelCount,
             materialSlotCount = (uint)meshData.MeshletData.materialSlotCount,
         };

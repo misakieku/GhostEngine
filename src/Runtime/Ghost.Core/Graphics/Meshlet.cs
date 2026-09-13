@@ -37,12 +37,12 @@ public struct Meshlet
 [StructLayout(LayoutKind.Sequential)]
 public struct MeshletGroup
 {
-    public SphereBounds boundingSphere;   // 16 bytes
-    public AABB boundingBox;              // 24 bytes
-    public float parentError;             // error of refining to the previous level
-    public uint meshletStartIndex;        // contiguous meshlet range
-    public uint meshletCount;             // number of meshlets in the group
-    public uint lodLevel;                 // group LOD level
+    public SphereBounds boundingSphere;         // 16 bytes
+    public AABB boundingBox;                    // 24 bytes
+    public float parentError;                   // error of refining to the previous level
+    public uint meshletStartIndex;              // contiguous meshlet range
+    public uint meshletCount;                   // number of meshlets in the group
+    public uint lodLevel;                       // group LOD level
 }
 
 [StructLayout(LayoutKind.Sequential, Size = 32)]
@@ -69,6 +69,7 @@ public struct MeshletMeshData : IDisposable
     public UnsafeList<uint> meshletVertices;
     public UnsafeList<uint> meshletTriangles;
     public int meshletCount;
+    public int meshletGroupCount;
     public int lodLevelCount;
     public int materialSlotCount;
 

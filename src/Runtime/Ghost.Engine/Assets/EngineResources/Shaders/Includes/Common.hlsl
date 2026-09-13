@@ -29,10 +29,10 @@ struct MeshletGroup
     float4 boundingSphere;
     float3 boundingBoxMin;
     float3 boundingBoxMax;
-    float  parentError;
-    uint   meshletStartIndex;
-    uint   meshletCount;
-    uint   lodLevel;
+    float parentError;
+    uint meshletStartIndex;
+    uint meshletCount;
+    uint lodLevel;
 };
 
 struct MeshletHierarchyNode
