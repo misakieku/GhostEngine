@@ -1,6 +1,12 @@
 using Ghost.Engine.Streaming;
+using Ghost.Graphics;
 
 namespace Ghost.Engine.RenderPipeline;
+
+public interface IRenderPipelineSettings
+{
+    IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager);
+}
 
 /// <summary>
 /// Represents a container of pipeline resources (shaders, materials, work graphs, textures)

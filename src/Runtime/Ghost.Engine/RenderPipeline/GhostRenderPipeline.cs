@@ -112,7 +112,8 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 ctx.ResourceManager,
                 ctx.ShaderLibrary,
                 viewData.ScreenSize.x,
-                viewData.ScreenSize.y);
+                viewData.ScreenSize.y,
+                _settings.HzbMaxMegapixels);
 
             Logger.DebugAssert(viewContext.renderGraph != null);
 
@@ -214,6 +215,8 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 currentDepth,
                 hzbAtlas,
                 viewContext.hzbMipCount,
+                viewContext.baseWidth,
+                viewContext.baseHeight,
                 viewData.ScreenSize.x,
                 viewData.ScreenSize.y);
 

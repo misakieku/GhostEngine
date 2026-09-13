@@ -139,10 +139,15 @@ static inline int2 GetHZBMipOffset(
     uint4 hzbOffsets2,
     uint4 hzbOffsets3)
 {
+    if (lod == 0)
+    {
+        return int2(0, 0);
+    }
+
     uint packedVal = 0;
     if (lod < 4)
     {
-        packedVal = (lod == 0) ? hzbOffsets0.x : ((lod == 1) ? hzbOffsets0.y : ((lod == 2) ? hzbOffsets0.z : hzbOffsets0.w));
+        packedVal = (lod == 1) ? hzbOffsets0.y : ((lod == 2) ? hzbOffsets0.z : hzbOffsets0.w);
     }
     else if (lod < 8)
     {
@@ -193,7 +198,8 @@ static inline bool HZBVisible(
         return false;
     }
 
-    if (hzbAtlas == 0 || hzbAtlas == 0xFFFFFFFF || hzbMipCount == 0)
+    uint2 hzbBaseSize = uint2(hzbOffsets0.x & 0xFFFFu, hzbOffsets0.x >> 16);
+    if (hzbAtlas == 0 || hzbAtlas == 0xFFFFFFFF || hzbMipCount == 0 || hzbBaseSize.x == 0 || hzbBaseSize.y == 0)
     {
         return true;
     }
@@ -214,8 +220,12 @@ static inline bool HZBVisible(
         return false;
     }
 
-    // Convert from full-res screen pixels to HZB Mip 0 texels (half resolution):
-    int4 hzbTexels = int4(pixels.xy, max(pixels.xy, pixels.zw)) >> 1;
+    // Convert from normalized UV to HZB Mip 0 texels:
+    float2 hzbSize = float2(hzbBaseSize);
+    int4 hzbTexels = int4(rectUV * hzbSize.xyxy + float4(0.5f, 0.5f, -0.5f, -0.5f));
+    hzbTexels.xy = max(hzbTexels.xy, int2(0, 0));
+    hzbTexels.zw = min(hzbTexels.zw, int2(hzbBaseSize) - 1);
+    hzbTexels.zw = max(hzbTexels.xy, hzbTexels.zw);
 
     // Determine target mip level for 4x4 footprint
     int hzbLevel = MipLevelForRect(hzbTexels, 4);
@@ -224,7 +234,7 @@ static inline bool HZBVisible(
     // Transform HZB Mip 0 coordinates to coordinates of selected mip level
     hzbTexels >>= hzbMip;
 
-    int2 mipSize = max(int2(1, 1), int2((int)renderWidth >> (int)(hzbMip + 1), (int)renderHeight >> (int)(hzbMip + 1)));
+    int2 mipSize = max(int2(1, 1), int2(hzbBaseSize >> hzbMip));
     hzbTexels.zw = min(hzbTexels.zw, mipSize - 1);
     hzbTexels.xy = min(hzbTexels.xy, hzbTexels.zw);
 

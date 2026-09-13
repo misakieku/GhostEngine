@@ -47,6 +47,7 @@ internal partial class GhostRenderPipeline
         public uint4 hzbOffsets3;
         public uint instanceCount;
         public uint maxVisibleMeshlets;
+        public float lodErrorThreshold;
         public uint threadGroupCount;
         public uint entrypointIndex;
         public ProgramIdentifier programIdentifier;
@@ -71,6 +72,7 @@ internal partial class GhostRenderPipeline
         public uint4 hzbOffsets3;
         public uint instanceCount;
         public uint maxVisibleMeshlets;
+        public float lodErrorThreshold;
         public uint threadGroupCount;
         public uint entrypointIndex;
         public ProgramIdentifier programIdentifier;
@@ -145,7 +147,6 @@ internal partial class GhostRenderPipeline
 
     public static class CullConstants
     {
-        public const uint MAX_VISIBLE_MESHLETS = 1_048_576;
         public const uint COUNTER_BUFFER_SIZE = 128;
         public const uint INDIRECT_ARGS_BUFFER_SIZE = 64;
 
@@ -181,13 +182,10 @@ internal partial class GhostRenderPipeline
         s_dispatchMeshCommandSignature = renderEngine.GraphicsEngine.CreateCommandSignature(in indirectDesc, default);
     }
 
-    private static unsafe void AddInitializeCullingBuffersPass(
-        RenderGraph rg,
-        out CameraCullingBuffers buffers,
-        uint maxVisibleMeshlets = CullConstants.MAX_VISIBLE_MESHLETS)
+    private unsafe void AddInitializeCullingBuffersPass(RenderGraph rg, out CameraCullingBuffers buffers)
     {
         var entrySize = (uint)sizeof(VisibleMeshletEntry);
-        var bufferSize = maxVisibleMeshlets * entrySize;
+        var bufferSize = _settings.MaxVisibleMeshletsOnScreen * entrySize;
 
         var visibleDesc = new BufferDesc
         {
@@ -198,7 +196,7 @@ internal partial class GhostRenderPipeline
 
         var occludedDesc = new BufferDesc
         {
-            Size = maxVisibleMeshlets * 12,
+            Size = _settings.MaxVisibleMeshletsOnScreen * 12,
             Stride = 12,
             Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
         };
@@ -242,8 +240,7 @@ internal partial class GhostRenderPipeline
         in uint4 o1,
         in uint4 o2,
         in uint4 o3,
-        uint instanceCount,
-        uint maxVisibleMeshlets = CullConstants.MAX_VISIBLE_MESHLETS)
+        uint instanceCount)
     {
         _cullingResource.EnsureWorkGraphProgram(_renderEngine);
         if (_cullingResource.cullWorkGraphProgram == null)
@@ -286,7 +283,8 @@ internal partial class GhostRenderPipeline
             hzbOffsets2 = o2,
             hzbOffsets3 = o3,
             instanceCount = instanceCount,
-            maxVisibleMeshlets = maxVisibleMeshlets,
+            maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
+            lodErrorThreshold = _settings.MeshletLodErrorThreshold,
             threadGroupCount = Math.Max(1u, (instanceCount + 63) / 64),
             entrypointIndex = entrypointIndex,
             programIdentifier = cullProgram.ProgramIdentifier,
@@ -318,7 +316,7 @@ internal partial class GhostRenderPipeline
                 occludedMeshletsUav = occludedUav,
                 counterBufferUav = counterUav,
                 maxVisibleMeshlets = passData.maxVisibleMeshlets,
-                lodErrorThreshold = 2.0f,
+                lodErrorThreshold = passData.lodErrorThreshold,
                 instanceCount = passData.instanceCount,
                 hzbAtlas = hzbAtlasIndex,
                 hzbOffsets0 = passData.hzbOffsets0,
@@ -341,11 +339,7 @@ internal partial class GhostRenderPipeline
         });
     }
 
-    private void AddPrepareIndirectArgsPass(
-        RenderGraph rg,
-        in CameraCullingBuffers buffers,
-        uint cullPassIndex,
-        uint maxVisibleMeshlets = CullConstants.MAX_VISIBLE_MESHLETS)
+    private void AddPrepareIndirectArgsPass(RenderGraph rg, in CameraCullingBuffers buffers, uint cullPassIndex)
     {
         if (!_cullingResource.prepareIndirectArgsShader.IsValid)
         {
@@ -362,7 +356,7 @@ internal partial class GhostRenderPipeline
             indirectArgsBuffer = buffers.indirectArgsBuffer,
             shader = _cullingResource.prepareIndirectArgsShader,
             cullPassIndex = cullPassIndex,
-            maxCount = maxVisibleMeshlets
+            maxCount = _settings.MaxVisibleMeshletsOnScreen
         });
 
         builder.SetRenderFunc<PrepareIndirectArgsPassData>(static (ref readonly passData, computeCtx) =>
@@ -397,12 +391,11 @@ internal partial class GhostRenderPipeline
         Identifier<RGTexture> depthBuffer,
         Identifier<RGTexture> hzbAtlas,
         uint hzbMipCount,
+        uint baseW,
+        uint baseH,
         uint renderWidth,
         uint renderHeight)
     {
-        var baseW = Math.Max(1u, renderWidth / 2);
-        var baseH = Math.Max(1u, renderHeight / 2);
-
         // Mip 0 downsamples from DepthBuffer (size: render resolution -> baseW x baseH at (0, 0))
         using (var builder = rg.AddComputeRenderPass<BuildHZBMipPassData>("BuildHZB_Mip0"))
         {
@@ -512,8 +505,7 @@ internal partial class GhostRenderPipeline
         in uint4 o1,
         in uint4 o2,
         in uint4 o3,
-        uint instanceCount,
-        uint maxVisibleMeshlets = CullConstants.MAX_VISIBLE_MESHLETS)
+        uint instanceCount)
     {
         _cullingResource.EnsureWorkGraphProgram(_renderEngine);
         if (_cullingResource.cullWorkGraphProgram == null)
@@ -556,7 +548,8 @@ internal partial class GhostRenderPipeline
             hzbOffsets2 = o2,
             hzbOffsets3 = o3,
             instanceCount = instanceCount,
-            maxVisibleMeshlets = maxVisibleMeshlets,
+            maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
+            lodErrorThreshold = _settings.MeshletLodErrorThreshold,
             threadGroupCount = Math.Max(1u, Math.Min(16384u, (instanceCount * 2048u + 63) / 64)),
             entrypointIndex = entrypointIndex,
             programIdentifier = cullProgram.ProgramIdentifier,
@@ -588,7 +581,7 @@ internal partial class GhostRenderPipeline
                 occludedMeshletsUav = occludedSrv,
                 counterBufferUav = counterUav,
                 maxVisibleMeshlets = passData.maxVisibleMeshlets,
-                lodErrorThreshold = 2.0f,
+                lodErrorThreshold = passData.lodErrorThreshold,
                 instanceCount = passData.instanceCount,
                 hzbAtlas = hzbAtlasIndex,
                 hzbOffsets0 = passData.hzbOffsets0,

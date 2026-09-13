@@ -21,10 +21,6 @@ internal static class Setup
     private static World s_world = null!;
     private static IAssetEntry s_meshAsset = null!;
     private static IAssetEntry s_shaderAsset = null!;
-    private static readonly GhostRenderPipelineSettings s_pipelineSettings = new GhostRenderPipelineSettings
-    {
-        DebugMode = CullDebugMode.Pass1VsPass2
-    };
 
     [RuntimeConfiguration]
     public static EngineDesc InitEngineDesc()
@@ -43,7 +39,7 @@ internal static class Setup
             {
                 FrameBufferCount = 2,
                 GraphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 }),
-                RenderPipelineSettings = s_pipelineSettings,
+                RenderPipelineSettings = new GhostRenderPipelineSettings(),
                 ShaderCacheDirectory = "ShaderCache",
                 ShaderCompilationBridge = null
             },
@@ -59,28 +55,6 @@ internal static class Setup
     [RuntimeInitialize]
     public static void Init(EngineCore engineCore)
     {
-        EngineWindow.OnEvent += e =>
-        {
-            if (e.Type == SDL.SDL_EventType.SDL_EVENT_KEY_DOWN)
-            {
-                if (e.key.scancode == SDL.SDL_Scancode.SDL_SCANCODE_1)
-                {
-                    s_pipelineSettings.DebugMode = CullDebugMode.None;
-                    Console.WriteLine("[Visual Mode] 0: None (Meshlets + Wireframe)");
-                }
-                else if (e.key.scancode == SDL.SDL_Scancode.SDL_SCANCODE_2)
-                {
-                    s_pipelineSettings.DebugMode = CullDebugMode.HZBDepth;
-                    Console.WriteLine("[Visual Mode] 1: HZB Depth Buffer Heatmap");
-                }
-                else if (e.key.scancode == SDL.SDL_Scancode.SDL_SCANCODE_3)
-                {
-                    s_pipelineSettings.DebugMode = CullDebugMode.Pass1VsPass2;
-                    Console.WriteLine("[Visual Mode] 2: Pass 1 (Cyan) vs Pass 2 (Gold)");
-                }
-            }
-        };
-
         s_world = World.Create(engineCore.JobScheduler, 1024);
 
         using var scope = AllocationManager.CreateStackScope();
@@ -126,7 +100,7 @@ internal static class Setup
         var materialPallette = engineCore.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);
 
         using var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
-        var entities = new Entity[5000];
+        var entities = new Entity[1000];
         s_world.EntityManager.CreateEntities(entities, meshSet);
 
         for (var i = 0; i < entities.Length; i++)

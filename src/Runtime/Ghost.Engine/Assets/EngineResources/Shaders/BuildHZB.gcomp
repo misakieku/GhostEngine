@@ -31,30 +31,40 @@ compute "Internal/BuildHZB"
 
             RWTexture2D<float> dstTexture = ResourceDescriptorHeap[properties.dstTexture];
 
-            uint x2 = dispatchThreadID.x * 2;
-            uint y2 = dispatchThreadID.y * 2;
-            uint maxSrcX = properties.srcWidth - 1;
-            uint maxSrcY = properties.srcHeight - 1;
-
-            float d0, d1, d2, d3;
+            float minDepth;
             if (properties.srcTexture != properties.dstTexture)
             {
                 Texture2D<float> srcTexture = GET_TEXTURE2D(properties.srcTexture);
-                d0 = srcTexture.Load(int3(properties.srcOffset + int2(min(x2, maxSrcX), min(y2, maxSrcY)), 0)).r;
-                d1 = srcTexture.Load(int3(properties.srcOffset + int2(min(x2 + 1, maxSrcX), min(y2, maxSrcY)), 0)).r;
-                d2 = srcTexture.Load(int3(properties.srcOffset + int2(min(x2, maxSrcX), min(y2 + 1, maxSrcY)), 0)).r;
-                d3 = srcTexture.Load(int3(properties.srcOffset + int2(min(x2 + 1, maxSrcX), min(y2 + 1, maxSrcY)), 0)).r;
+                uint xStart = (dispatchThreadID.x * properties.srcWidth) / properties.dstWidth;
+                uint xEnd = min(properties.srcWidth - 1, ((dispatchThreadID.x + 1) * properties.srcWidth + properties.dstWidth - 1) / properties.dstWidth - 1);
+                uint yStart = (dispatchThreadID.y * properties.srcHeight) / properties.dstHeight;
+                uint yEnd = min(properties.srcHeight - 1, ((dispatchThreadID.y + 1) * properties.srcHeight + properties.dstHeight - 1) / properties.dstHeight - 1);
+
+                minDepth = srcTexture.Load(int3(properties.srcOffset + int2(xStart, yStart), 0)).r;
+                for (uint y = yStart; y <= yEnd; ++y)
+                {
+                    for (uint x = xStart; x <= xEnd; ++x)
+                    {
+                        float d = srcTexture.Load(int3(properties.srcOffset + int2(x, y), 0)).r;
+                        minDepth = min(minDepth, d);
+                    }
+                }
             }
             else
             {
-                d0 = dstTexture[properties.srcOffset + int2(min(x2, maxSrcX), min(y2, maxSrcY))];
-                d1 = dstTexture[properties.srcOffset + int2(min(x2 + 1, maxSrcX), min(y2, maxSrcY))];
-                d2 = dstTexture[properties.srcOffset + int2(min(x2, maxSrcX), min(y2 + 1, maxSrcY))];
-                d3 = dstTexture[properties.srcOffset + int2(min(x2 + 1, maxSrcX), min(y2 + 1, maxSrcY))];
+                uint x2 = dispatchThreadID.x * 2;
+                uint y2 = dispatchThreadID.y * 2;
+                uint maxSrcX = properties.srcWidth - 1;
+                uint maxSrcY = properties.srcHeight - 1;
+
+                float d0 = dstTexture[properties.srcOffset + int2(min(x2, maxSrcX), min(y2, maxSrcY))];
+                float d1 = dstTexture[properties.srcOffset + int2(min(x2 + 1, maxSrcX), min(y2, maxSrcY))];
+                float d2 = dstTexture[properties.srcOffset + int2(min(x2, maxSrcX), min(y2 + 1, maxSrcY))];
+                float d3 = dstTexture[properties.srcOffset + int2(min(x2 + 1, maxSrcX), min(y2 + 1, maxSrcY))];
+
+                minDepth = min(min(d0, d1), min(d2, d3));
             }
 
-            // In reversed-Z, conservative reduction for occlusion culling is MIN
-            float minDepth = min(min(d0, d1), min(d2, d3));
             dstTexture[properties.dstOffset + dispatchThreadID.xy] = minDepth;
         }
     }

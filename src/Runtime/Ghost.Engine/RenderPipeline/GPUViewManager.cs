@@ -17,8 +17,11 @@ internal sealed class GPUViewContext : IDisposable
     public uint hzbMipCount;
     public uint atlasWidth;
     public uint atlasHeight;
+    public uint baseWidth;
+    public uint baseHeight;
     public uint renderWidth;
     public uint renderHeight;
+    public float hzbMaxMegapixels;
 
     public uint4 hzbOffsets0;
     public uint4 hzbOffsets1;
@@ -27,9 +30,12 @@ internal sealed class GPUViewContext : IDisposable
 
     public float4x4 prevViewProjMatrix;
 
-    private static unsafe void ComputeHZBMipOffsets(
+    internal static unsafe void ComputeHZBMipOffsets(
         uint renderWidth,
         uint renderHeight,
+        float hzbMaxMegapixels,
+        out uint baseW,
+        out uint baseH,
         out uint hzbMipCount,
         out uint atlasWidth,
         out uint atlasHeight,
@@ -38,15 +44,32 @@ internal sealed class GPUViewContext : IDisposable
         out uint4 o2,
         out uint4 o3)
     {
-        var baseW = Math.Max(1u, renderWidth / 2);
-        var baseH = Math.Max(1u, renderHeight / 2);
+        var rawBaseW = Math.Max(1u, renderWidth / 2);
+        var rawBaseH = Math.Max(1u, renderHeight / 2);
+
+        baseW = rawBaseW;
+        baseH = rawBaseH;
+
+        if (hzbMaxMegapixels > 0f && !float.IsPositiveInfinity(hzbMaxMegapixels))
+        {
+            var budgetPixels = (double)hzbMaxMegapixels * 1_000_000.0;
+            var currentPixels = (double)rawBaseW * rawBaseH;
+            if (currentPixels > budgetPixels)
+            {
+                var scale = Math.Sqrt(budgetPixels / currentPixels);
+                baseW = Math.Max(1u, (uint)Math.Floor(rawBaseW * scale));
+                baseH = Math.Max(1u, (uint)Math.Floor(rawBaseH * scale));
+            }
+        }
+
         var calculatedMipCount = (uint)Math.Floor(Math.Log2(Math.Max(baseW, baseH))) + 1;
         hzbMipCount = Math.Clamp(calculatedMipCount, 1u, 16u);
 
         atlasWidth = baseW + Math.Max(1u, (baseW + 1) / 2);
 
         var packed = stackalloc uint[16];
-        packed[0] = 0; // Mip 0 is at (0, 0)
+        // Mip 0 offset is (0,0); packed[0] stores base resolution (width in low 16 bits, height in high 16 bits)
+        packed[0] = (baseW & 0xFFFFu) | ((baseH & 0xFFFFu) << 16);
 
         uint rightY = 0;
         var prevW = baseW;
@@ -81,14 +104,15 @@ internal sealed class GPUViewContext : IDisposable
         ResourceManager resourceManager,
         ShaderLibrary shaderLibrary,
         uint renderWidth,
-        uint renderHeight)
+        uint renderHeight,
+        float hzbMaxMegapixels = 0f)
     {
         if (renderWidth == 0 || renderHeight == 0)
         {
             return;
         }
 
-        if (!hzbAtlas.IsValid || this.renderWidth != renderWidth || this.renderHeight != renderHeight || renderGraph == null)
+        if (!hzbAtlas.IsValid || this.renderWidth != renderWidth || this.renderHeight != renderHeight || this.hzbMaxMegapixels != hzbMaxMegapixels || renderGraph == null)
         {
             if (hzbAtlas.IsValid)
             {
@@ -99,6 +123,9 @@ internal sealed class GPUViewContext : IDisposable
             ComputeHZBMipOffsets(
                 renderWidth,
                 renderHeight,
+                hzbMaxMegapixels,
+                out baseWidth,
+                out baseHeight,
                 out hzbMipCount,
                 out atlasWidth,
                 out atlasHeight,
@@ -121,6 +148,7 @@ internal sealed class GPUViewContext : IDisposable
             hzbAtlas = allocator.CreateTexture(in desc, $"View_{viewId}_HZBAtlas");
             this.renderWidth = renderWidth;
             this.renderHeight = renderHeight;
+            this.hzbMaxMegapixels = hzbMaxMegapixels;
             prevViewProjMatrix = default; // Zero out so first frame or resize is not static
 
             renderGraph = new RenderGraph(database, allocator, pipelineLibrary, resourceManager, shaderLibrary);
@@ -140,6 +168,9 @@ internal sealed class GPUViewContext : IDisposable
 
         renderWidth = 0;
         renderHeight = 0;
+        baseWidth = 0;
+        baseHeight = 0;
+        hzbMaxMegapixels = 0f;
         prevViewProjMatrix = default;
         isActive = false;
     }

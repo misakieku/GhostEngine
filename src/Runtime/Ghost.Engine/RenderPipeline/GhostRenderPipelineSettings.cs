@@ -1,4 +1,3 @@
-using Ghost.Core;
 using Ghost.Engine.Components;
 using Ghost.Engine.Streaming;
 using Ghost.Graphics;
@@ -176,35 +175,27 @@ public enum CullDebugMode : uint
     Pass1VsPass2 = 2
 }
 
-public interface IRenderPipelineSettings
-{
-    IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager);
-}
-
 public class GhostRenderPipelineSettings : IRenderPipelineSettings
 {
     /// <summary>
     /// Target screen-space pixel error threshold for meshlet DAG LOD refinement.
     /// </summary>
     public float MeshletLodErrorThreshold { get; set; } = 1.0f;
+    
+    /// <summary>
+    /// Maximum number of visible meshlets on screen.
+    /// </summary>
+    public uint MaxVisibleMeshletsOnScreen { get; set; } = 1_048_576;
 
     /// <summary>
-    /// Enables Nanite-style two-pass HZB occlusion culling.
+    /// Maximum megapixel budget for the HZB (Hierarchical Z-Buffer) base mip level (e.g., 1.0f for 1 Megapixel).
     /// </summary>
-    public bool EnableTwoPassHZB { get; set; } = true;
-
-    /// <summary>
-    /// Enables HZB occlusion testing during meshlet culling.
-    /// </summary>
-    public bool EnableOcclusionCulling { get; set; } = true;
-
-    /// <summary>
-    /// Visual debug mode for culling and rasterization:
-    /// None (0): Default meshlet cluster coloring with facet shading and white boundaries.
-    /// HZBDepth (1): False-color Turbo heatmap of HZB depth buffer (Mip 0).
-    /// Pass1VsPass2 (2): Pass 1 Early-Z (Cyan) vs Pass 2 Late-Z Disoccluded (Gold).
-    /// </summary>
-    public CullDebugMode DebugMode { get; set; } = CullDebugMode.None;
+    /// <remarks>
+    /// When half the render resolution exceeds this budget, the base HZB dimensions are clamped while preserving aspect ratio.
+    /// When the screen resolution is small, the HZB remains at half-resolution without being forced up.
+    /// Set to 0 (or float.PositiveInfinity) to disable clamping and always use exact half-resolution.
+    /// </remarks>
+    public float HzbMaxMegapixels { get; set; } = 1.0f;
 
     public IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager)
     {
