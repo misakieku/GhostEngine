@@ -24,6 +24,17 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         public uint passIndex;
     }
 
+    private struct MeshletDebugPassData
+    {
+        public Identifier<RGBuffer> visibleMeshlets;
+        public Identifier<RGBuffer> visibleMaskedMeshlets;
+        public Identifier<RGBuffer> indirectArgsBuffer;
+        public ulong opaqueArgsOffset;
+        public ulong maskedArgsOffset;
+        public Handle<Shader> debugShader;
+        public uint passIndex;
+    }
+
     private struct BlitPassData
     {
         public Identifier<RGTexture> srcBuffer;
@@ -201,54 +212,110 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             // Pass 1: Prepare Indirect Dispatch Arguments
             AddPrepareIndirectArgsPass(viewContext.renderGraph, in cullingBuffers, 0);
 
-            // Pass 1: Visibility Buffer Rasterization (Early-Z / Previously Visible)
-            var (currentVisBuffer, currentDepth) = AddVisibilityBufferPass(
-                viewContext.renderGraph,
-                in vbufferDesc,
-                in depthDesc,
-                in cullingBuffers,
-                cullPassIndex: 0);
+            var isMeshletDebug = _settings.DebugMode == RenderPipelineDebugMode.Meshlet;
+            Identifier<RGTexture> currentDepth;
+            Identifier<RGTexture> currentVisBuffer = default;
 
-            // Build HZB Mip Pyramid (Compute passes downsampling current depth directly into hzbAtlas)
-            AddBuildHZBPasses(
-                viewContext.renderGraph,
-                currentDepth,
-                hzbAtlas,
-                viewContext.hzbMipCount,
-                viewContext.baseWidth,
-                viewContext.baseHeight,
-                viewData.ScreenSize.x,
-                viewData.ScreenSize.y);
+            if (isMeshletDebug)
+            {
+                // Pass 1: Meshlet Debug Rasterization (Early-Z) directly to backbuffer
+                currentDepth = AddMeshletDebugPass(
+                    viewContext.renderGraph,
+                    colorTarget,
+                    in depthDesc,
+                    in cullingBuffers,
+                    cullPassIndex: 0);
 
-            // Pass 2: Late-Z Meshlet Culling (Work Graph testing occluded meshlets against current HZB)
-            AddMeshletCullPass2(
-                viewContext.renderGraph,
-                in cullingBuffers,
-                hzbAtlas,
-                viewContext.hzbMipCount,
-                viewData.ScreenSize.x,
-                viewData.ScreenSize.y,
-                in viewContext.hzbOffsets0,
-                in viewContext.hzbOffsets1,
-                in viewContext.hzbOffsets2,
-                in viewContext.hzbOffsets3,
-                ghostPayload.InstanceCount);
+                // Build HZB Mip Pyramid from current depth
+                AddBuildHZBPasses(
+                    viewContext.renderGraph,
+                    currentDepth,
+                    hzbAtlas,
+                    viewContext.hzbMipCount,
+                    viewContext.baseWidth,
+                    viewContext.baseHeight,
+                    viewData.ScreenSize.x,
+                    viewData.ScreenSize.y);
 
-            // Pass 2: Prepare Indirect Dispatch Arguments
-            AddPrepareIndirectArgsPass(viewContext.renderGraph, in cullingBuffers, 1);
+                // Pass 2: Late-Z Meshlet Culling (Work Graph testing occluded meshlets against current HZB)
+                AddMeshletCullPass2(
+                    viewContext.renderGraph,
+                    in cullingBuffers,
+                    hzbAtlas,
+                    viewContext.hzbMipCount,
+                    viewData.ScreenSize.x,
+                    viewData.ScreenSize.y,
+                    in viewContext.hzbOffsets0,
+                    in viewContext.hzbOffsets1,
+                    in viewContext.hzbOffsets2,
+                    in viewContext.hzbOffsets3,
+                    ghostPayload.InstanceCount);
 
-            // Pass 2: Visibility Buffer Rasterization (Late-Z / Newly Visible)
-            AddVisibilityBufferPass(
-                viewContext.renderGraph,
-                in vbufferDesc,
-                in depthDesc,
-                in cullingBuffers,
-                cullPassIndex: 1,
-                existingVisBuffer: currentVisBuffer,
-                existingDepth: currentDepth);
+                // Pass 2: Prepare Indirect Dispatch Arguments
+                AddPrepareIndirectArgsPass(viewContext.renderGraph, in cullingBuffers, 1);
 
-            // Blit Visibility Buffer to screen / backbuffer
-            AddBlitPass(viewContext.renderGraph, currentVisBuffer, colorTarget);
+                // Pass 2: Meshlet Debug Rasterization (Late-Z) directly to backbuffer
+                AddMeshletDebugPass(
+                    viewContext.renderGraph,
+                    colorTarget,
+                    in depthDesc,
+                    in cullingBuffers,
+                    cullPassIndex: 1,
+                    existingDepth: currentDepth);
+
+                // Skip BlitPass: colorTarget (backbuffer) has already received rendered meshlet debug output directly
+            }
+            else
+            {
+                // Pass 1: Visibility Buffer Rasterization (Early-Z / Previously Visible)
+                (currentVisBuffer, currentDepth) = AddVisibilityBufferPass(
+                    viewContext.renderGraph,
+                    in vbufferDesc,
+                    in depthDesc,
+                    in cullingBuffers,
+                    cullPassIndex: 0);
+
+                // Build HZB Mip Pyramid (Compute passes downsampling current depth directly into hzbAtlas)
+                AddBuildHZBPasses(
+                    viewContext.renderGraph,
+                    currentDepth,
+                    hzbAtlas,
+                    viewContext.hzbMipCount,
+                    viewContext.baseWidth,
+                    viewContext.baseHeight,
+                    viewData.ScreenSize.x,
+                    viewData.ScreenSize.y);
+
+                // Pass 2: Late-Z Meshlet Culling (Work Graph testing occluded meshlets against current HZB)
+                AddMeshletCullPass2(
+                    viewContext.renderGraph,
+                    in cullingBuffers,
+                    hzbAtlas,
+                    viewContext.hzbMipCount,
+                    viewData.ScreenSize.x,
+                    viewData.ScreenSize.y,
+                    in viewContext.hzbOffsets0,
+                    in viewContext.hzbOffsets1,
+                    in viewContext.hzbOffsets2,
+                    in viewContext.hzbOffsets3,
+                    ghostPayload.InstanceCount);
+
+                // Pass 2: Prepare Indirect Dispatch Arguments
+                AddPrepareIndirectArgsPass(viewContext.renderGraph, in cullingBuffers, 1);
+
+                // Pass 2: Visibility Buffer Rasterization (Late-Z / Newly Visible)
+                AddVisibilityBufferPass(
+                    viewContext.renderGraph,
+                    in vbufferDesc,
+                    in depthDesc,
+                    in cullingBuffers,
+                    cullPassIndex: 1,
+                    existingVisBuffer: currentVisBuffer,
+                    existingDepth: currentDepth);
+
+                // Blit Visibility Buffer to screen / backbuffer
+                AddBlitPass(viewContext.renderGraph, currentVisBuffer, colorTarget);
+            }
 
             var result = viewContext.renderGraph.CompileAndExecute(executionContext, viewState);
             if (result.IsFailure)
@@ -258,6 +325,70 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         }
 
         return Result.Success();
+    }
+
+    private Identifier<RGTexture> AddMeshletDebugPass(
+        RenderGraph rg,
+        Identifier<RGTexture> colorTarget,
+        scoped in RGTextureDesc depthDesc,
+        in CameraCullingBuffers buffers,
+        uint cullPassIndex,
+        Identifier<RGTexture> existingDepth = default)
+    {
+        if (!_cullingResource.meshletDebugShader.IsValid || s_dispatchMeshCommandSignature == null)
+        {
+            return existingDepth;
+        }
+
+        var isPass1 = cullPassIndex == 0;
+        var passName = isPass1 ? "MeshletDebug_Pass1_EarlyZ" : "MeshletDebug_Pass2_LateZ";
+        using var builder = rg.AddRasterRenderPass<MeshletDebugPassData>(passName);
+
+        var depthTexture = existingDepth.IsValid
+            ? existingDepth
+            : builder.CreateTexture(in depthDesc, "SceneDepthBuffer");
+
+        builder.SetColorAttachment(colorTarget, 0);
+        builder.SetDepthAttachment(depthTexture);
+
+        var visibleBuffer = isPass1 ? buffers.visibleMeshletsPass1 : buffers.visibleMeshletsPass2;
+        var visibleMaskedBuffer = isPass1 ? buffers.visibleMaskedMeshletsPass1 : buffers.visibleMaskedMeshletsPass2;
+        builder.UseBuffer(visibleBuffer, AccessFlags.Read);
+        builder.UseBuffer(visibleMaskedBuffer, AccessFlags.Read);
+        builder.UseBuffer(buffers.indirectArgsBuffer, AccessFlags.Read);
+
+        builder.SetPassData(new MeshletDebugPassData
+        {
+            visibleMeshlets = visibleBuffer,
+            visibleMaskedMeshlets = visibleMaskedBuffer,
+            indirectArgsBuffer = buffers.indirectArgsBuffer,
+            opaqueArgsOffset = isPass1 ? 0UL : 32UL,
+            maskedArgsOffset = isPass1 ? 16UL : 48UL,
+            debugShader = _cullingResource.meshletDebugShader,
+            passIndex = cullPassIndex
+        });
+
+        builder.SetRenderFunc<MeshletDebugPassData>(static (ref readonly passData, renderCtx) =>
+        {
+            var actualIndirectBuf = renderCtx.GetActualBuffer(passData.indirectArgsBuffer);
+            var passBit = passData.passIndex << 31;
+
+            if (passData.debugShader.IsValid &&
+                renderCtx.TrySetActiveShaderPass(passData.debugShader, PassSemantic.Forward))
+            {
+                // 1. Draw Opaque Meshlets with debug shader
+                var visibleBufferIndex = renderCtx.GetActualBindlessIndex(passData.visibleMeshlets);
+                renderCtx.SetInstanceIndex(visibleBufferIndex | passBit);
+                renderCtx.ExecuteIndirect(s_dispatchMeshCommandSignature, 1, actualIndirectBuf, passData.opaqueArgsOffset);
+
+                // 2. Draw Masked Meshlets with debug shader
+                var visibleMaskedIndex = renderCtx.GetActualBindlessIndex(passData.visibleMaskedMeshlets);
+                renderCtx.SetInstanceIndex(visibleMaskedIndex | passBit);
+                renderCtx.ExecuteIndirect(s_dispatchMeshCommandSignature, 1, actualIndirectBuf, passData.maskedArgsOffset);
+            }
+        });
+
+        return depthTexture;
     }
 
     private (Identifier<RGTexture> visibilityBuffer, Identifier<RGTexture> depthBuffer) AddVisibilityBufferPass(

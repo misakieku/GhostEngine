@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
+using Ghost.Graphics.Utilities;
 using Misaki.HighPerformance.Buffer;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -120,7 +121,6 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
     private readonly IResourceDatabase _database;
     private readonly IResourceAllocator _allocator;
     private readonly ResourceManager _resourceManager;
-    private readonly AllocationHandle _allocationHandle;
 
     private UnsafeList<RenderGraphResource> _resources;
     private UnsafeList<Handle<GPUResource>> _allocatedBackingResources;
@@ -131,12 +131,11 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
 
     internal ReadOnlySpan<RenderGraphResource> Resources => _resources;
 
-    public RenderGraphResourceRegistry(IResourceDatabase database, IResourceAllocator allocator, ResourceManager resourceManager, AllocationHandle allocationHandle)
+    public RenderGraphResourceRegistry(IResourceDatabase database, IResourceAllocator allocator, ResourceManager resourceManager)
     {
         _database = database;
         _allocator = allocator;
         _resourceManager = resourceManager;
-        _allocationHandle = allocationHandle;
 
         _resources = new UnsafeList<RenderGraphResource>(64, AllocationHandle.Persistent);
         _allocatedBackingResources = new UnsafeList<Handle<GPUResource>>(32, AllocationHandle.Persistent);
@@ -162,7 +161,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
         ResourceBarrierData? initialBarrierState = null,
         ResourceBarrierData? finalBarrierState = null)
     {
-        var resource = new RenderGraphResource(_allocationHandle)
+        var resource = new RenderGraphResource(AllocationHandle.RenderThreadTempAllocator)
         {
             type = RGResourceType.Texture,
             index = _resources.Count,
@@ -199,7 +198,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
 
     public Identifier<RGTexture> CreateTexture(scoped in RGTextureDesc desc, string? name)
     {
-        var resource = new RenderGraphResource(_allocationHandle)
+        var resource = new RenderGraphResource(AllocationHandle.RenderThreadTempAllocator)
         {
             type = RGResourceType.Texture,
             index = _resources.Count,
@@ -216,7 +215,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
         ResourceBarrierData? initialBarrierState = null,
         ResourceBarrierData? finalBarrierState = null)
     {
-        var resource = new RenderGraphResource(_allocationHandle)
+        var resource = new RenderGraphResource(AllocationHandle.RenderThreadTempAllocator)
         {
             type = RGResourceType.Buffer,
             index = _resources.Count,
@@ -236,7 +235,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
 
     public Identifier<RGBuffer> CreateBuffer(scoped in BufferDesc desc, string? name)
     {
-        var resource = new RenderGraphResource(_allocationHandle)
+        var resource = new RenderGraphResource(AllocationHandle.RenderThreadTempAllocator)
         {
             type = RGResourceType.Buffer,
             index = _resources.Count,

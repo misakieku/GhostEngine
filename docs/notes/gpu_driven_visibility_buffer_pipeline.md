@@ -189,6 +189,18 @@ Visibility Buffer render target format is `R32G32_UINT`:
 
 ---
 
+### Bug 6: Multi-Pass Geometry Pass Corrupting Screen via `AccessFlags.WriteAll` (D3D12 Discard)
+- **Problem**:
+  In multi-pass raster pipelines (such as Pass 1 Early-Z and Pass 2 Late-Z writing to the same render target), setting the color attachment with `builder.SetColorAttachment(colorTarget, 0, AccessFlags.WriteAll)` in Pass 2 caused severe screen tearing and uninitialized memory corruption ("花屏") when launched directly outside PIX, while running inside PIX appeared deceptively normal.
+- **Root Cause**:
+  `AccessFlags.WriteAll` is defined as `AccessFlags.Write | AccessFlags.Discard`. In `RenderGraphNativePassBuilder.InferLoadStoreOps`, specifying `Discard` infers `AttachmentLoadOp.DontCare`, which translates directly in D3D12 to `D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD`.
+  When Pass 2 executed, the GPU driver treated existing pixels written in Pass 1 as disposable/discarded, erasing Pass 1's geometry.
+  PIX masked the problem because PIX's instrumentation layer, HUD overlay, and capture engine initialize or override discard states to preserve pass history for debugger replay.
+- **Solution & Takeaway**:
+  Never use `AccessFlags.WriteAll` on multi-pass geometry render targets. Use `AccessFlags.Write` (default), ensuring Pass 1 performs the initial clear, and Pass 2 executes with `AttachmentLoadOp.Load` to preserve previously rasterized contents. Reserve `AccessFlags.WriteAll` strictly for full-screen passes (like Blit) that unconditionally overwrite every pixel on screen.
+
+---
+
 ## 4. Source File Reference Map
 
 | Component | File Path | Responsibility |

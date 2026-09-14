@@ -295,7 +295,21 @@ compute "Internal/MeshletCullGraph"
                 float3 meshletWorldCenter = mul(instance.localToWorld, float4(meshlet.boundingSphere.xyz, 1.0f)).xyz;
                 float meshletWorldRadius = meshlet.boundingSphere.w * maxScale;
 
-                // Dual-Error Cut: Cluster Error test
+                float3 meshletParentWorldCenter = mul(instance.localToWorld, float4(meshlet.parentBoundingSphere.xyz, 1.0f)).xyz;
+                float meshletParentWorldRadius = meshlet.parentBoundingSphere.w * maxScale;
+
+                // Dual-Error Cut Condition 1: Parent Error check (Lower bound)
+                // If parent (coarser LOD) is already accurate enough, this fine meshlet must NOT render!
+                bool isParentDetailSufficient = (meshlet.parentError < 3.4e38f) && EvaluateLODDetailSufficient(
+                    meshlet.parentError * maxScale,
+                    meshletParentWorldCenter,
+                    meshletParentWorldRadius,
+                    view.cameraPosition,
+                    view.projectionMatrix[1][1],
+                    view.screenSize.y,
+                    props.lodErrorThreshold);
+
+                // Dual-Error Cut Condition 2: Cluster Error test (Upper bound)
                 // Discard meshlets that are too coarse; their error exceeds the threshold,
                 // so a finer LOD level must render instead.
                 bool isClusterDetailSufficient = (meshlet.clusterError <= 0.0f) || EvaluateLODDetailSufficient(
@@ -307,7 +321,7 @@ compute "Internal/MeshletCullGraph"
                     view.screenSize.y,
                     props.lodErrorThreshold);
 
-                if (!isClusterDetailSufficient)
+                if (isParentDetailSufficient || !isClusterDetailSufficient)
                 {
                     isValid = false;
                 }

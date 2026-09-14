@@ -68,7 +68,7 @@ public sealed class RenderGraph : IDisposable
         _memoryPool = new MemoryPool<TLSF, TLSF.CreationOptions>(new TLSF.CreationOptions { alignment = 16, initialChunkSize = 1024 * 1024 * 16 });
 
         _objectPool = new RenderGraphObjectPool();
-        _resourceRegistry = new RenderGraphResourceRegistry(resourceDatabase, resourceAllocator, resourceManager, _memoryPool.AllocationHandle);
+        _resourceRegistry = new RenderGraphResourceRegistry(resourceDatabase, resourceAllocator, resourceManager);
 
         _passes = new List<RenderGraphPass>(32);
 

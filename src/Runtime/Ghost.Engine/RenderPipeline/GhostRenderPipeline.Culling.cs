@@ -123,6 +123,9 @@ internal partial class GhostRenderPipeline
         [ResolveAsset("EngineResources/Shaders/Blit")]
         public Handle<Shader> blitShader;
 
+        [ResolveAsset("EngineResources/Shaders/MeshletDebug")]
+        public Handle<Shader> meshletDebugShader;
+
         public IWorkGraphProgram? cullWorkGraphProgram;
 
         public void EnsureWorkGraphProgram(RenderEngine renderEngine)

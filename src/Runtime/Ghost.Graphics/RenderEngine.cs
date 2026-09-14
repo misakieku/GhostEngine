@@ -4,6 +4,7 @@ using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
+using Ghost.Graphics.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using System.Collections.Concurrent;
 
@@ -333,6 +334,10 @@ public class RenderEngine : IDisposable
             {
                 StopRenderLoop(Result.Failure($"An exception occurred during rendering: {ex.Message}"));
             }
+            finally
+            {
+                RenderThreadTempAllocatorManager.Reset();
+            }
         }
     }
 
@@ -530,6 +535,8 @@ public class RenderEngine : IDisposable
         _graphicsEngine.Dispose();
 
         _shutdownCts.Dispose();
+
+        RenderThreadTempAllocatorManager.Dispose();
 
         _disposed = true;
         GC.SuppressFinalize(this);

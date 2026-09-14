@@ -378,9 +378,7 @@ internal static unsafe partial class MeshProcessor
             groupClusters.Add(new ClodCluster
             {
                 refined = srcCluster.refined,
-                bounds = (config.optimizeBounds && srcCluster.refined != -1)
-                    ? ComputeBounds(in mesh, srcCluster.indices.AsSpan(), srcCluster.bounds.error)
-                    : srcCluster.bounds,
+                bounds = srcCluster.bounds,
                 indices = (uint*)srcCluster.indices.GetUnsafePtr(),
                 indexCount = (nuint)srcCluster.indices.Count,
                 uniqueVertices = (uint*)srcCluster.uniqueVertices.GetUnsafePtr(),
@@ -647,7 +645,9 @@ internal static unsafe partial class MeshProcessor
 
         if (pending.Count > 0)
         {
-            var bounds = clusters[pending[0]].bounds;
+            var bounds = (pending.Count == 1)
+                ? clusters[pending[0]].bounds
+                : MergeBounds(clusters, pending, allocationHandle);
             bounds.error = Math.Max(bounds.error * 2.0f, bounds.radius * 2.0f);
             OutputGroup(in config, in mesh, clusters, pending, bounds, depth, outputContext, outputCallback, allocationHandle);
         }
@@ -737,17 +737,23 @@ internal static unsafe partial class MeshProcessor
             groupMin = math.min(groupMin, meshletMin);
             groupMax = math.max(groupMax, meshletMax);
 
+            var clusterSphere = (group.depth == 0)
+                ? new SphereBounds(optCenter, optRadius)
+                : new SphereBounds(cluster.bounds.center, cluster.bounds.radius);
+
+            var parentSphere = new SphereBounds(group.simplified.center, group.simplified.radius);
+
             var meshlet = new Meshlet
             {
-                boundingSphere = new SphereBounds(optCenter, optRadius),
-                parentBoundingSphere = new SphereBounds(group.simplified.center, group.simplified.radius),
+                boundingSphere = clusterSphere,
+                parentBoundingSphere = parentSphere,
                 boundingBox = new AABB(meshletMin, meshletMax),
                 vertexCount = (byte)cluster.vertexCount,
                 triangleCount = (byte)triangleCount,
                 vertexOffset = (uint)meshletData->meshletVertices.Count,
                 triangleOffset = (uint)meshletData->meshletTriangles.Count,
                 groupIndex = groupIndex,
-                clusterError = cluster.bounds.error,
+                clusterError = (group.depth == 0) ? 0.0f : cluster.bounds.error,
                 parentError = group.simplified.error,
                 localMaterialIndex = (byte)materialIndex,
                 lodLevel = (byte)group.depth
@@ -776,35 +782,14 @@ internal static unsafe partial class MeshProcessor
         }
 
         var currentLod = (uint)group.depth;
-        var parentError = group.simplified.error;
+        var groupSphere = new SphereBounds(group.simplified.center, group.simplified.radius);
 
-        var selfError = 0.0f;
-        if (group.depth > 0)
-        {
-            for (var i = 0; i < clusters.Count; i++)
-            {
-                selfError = Math.Max(selfError, clusters[i].bounds.error);
-            }
-        }
-
-        var groupSphere = default(SphereBounds);
         var meshletStart = meshletData->meshlets.Count - clusters.Count;
-        for (var i = 0; i < clusters.Count; i++)
-        {
-            var mSphere = meshletData->meshlets[meshletStart + i].boundingSphere;
-            groupSphere = (i == 0) ? mSphere : EncloseSphere(groupSphere, mSphere);
-        }
-
-        if (clusters.Count == 0)
-        {
-            groupSphere = new SphereBounds(group.simplified.center, group.simplified.radius);
-        }
-
         var meshletGroup = new MeshletGroup
         {
             boundingSphere = groupSphere,
             boundingBox = new AABB(groupMin, groupMax),
-            parentError = parentError,
+            parentError = group.simplified.error,
             meshletStartIndex = (uint)meshletStart,
             meshletCount = (uint)clusters.Count,
             lodLevel = currentLod

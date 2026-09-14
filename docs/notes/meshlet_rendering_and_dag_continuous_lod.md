@@ -207,6 +207,37 @@ Let's dissect this intuitive formula:
 
 ---
 
+### 6.4 The Bounding Sphere Alignment Invariant (Why Spheres Must Match Across the Cut)
+
+Even if the mathematical formula $\text{ParentError} > \tau \land \text{ClusterError} \le \tau$ is correctly implemented in HLSL, there is a subtle trap in the offline baker that causes **catastrophic LOD flickering and snapping back to LOD 0**.
+
+Recall how projected error is evaluated:
+$$\text{dist} = \max(\|\mathbf{C}_{\text{sphere}} - \mathbf{P}_{\text{camera}}\| - R_{\text{sphere}}, 0.001)$$
+$$E_{\text{pixel}} = \frac{E \cdot \cot(\frac{\text{FOV}}{2}) \cdot H_{\text{screen}}}{2 \cdot \text{dist}}$$
+
+Notice that projected error depends **directly on the sphere center $\mathbf{C}$ and radius $R$**!
+
+When a fine group $G_k$ is simplified into coarse clusters $M_{k+1}$, geometric error $E_k$ represents the maximum displacement between the two surfaces:
+- Fine group $G_k$ prunes itself when: $\text{EvaluateLODDetailSufficient}(E_k, \mathbf{C}_{\text{parent}}, R_{\text{parent}}) == \text{true}$
+- Coarse cluster $M_{k+1}$ renders when: $\text{EvaluateLODDetailSufficient}(E_k, \mathbf{C}_{\text{cluster}}, R_{\text{cluster}}) == \text{true} \land \dots$
+
+#### The Pitfall
+If the baker computes:
+1. $\mathbf{C}_{\text{parent}}, R_{\text{parent}}$ from the **merged group of fine clusters** $G_k$ ($R \approx 1.5$).
+2. But sets $\mathbf{C}_{\text{cluster}}, R_{\text{cluster}}$ from an individual meshlet's tight bounding sphere via `meshopt_computeMeshletBounds` ($R \approx 0.4$).
+
+Because $R_{\text{group}} \gg R_{\text{meshlet}}$, the calculated surface distance $\text{dist}$ differs by **30% to 50%**!
+- At the transition distance, the fine group decides the parent is sufficient and prunes itself.
+- But the coarse cluster, using its smaller radius, decides its detail is NOT sufficient and also prunes itself (creating a hole or dead zone).
+- Worse: because LOD 0 has $E_{\text{cluster}} = 0.0$ (it always passes detail sufficiency), whenever camera jitter causes the fine group's parent check to wobble across the boundary, LOD 0 abruptly snaps back on and off.
+- **Visual symptom**: When moving the camera, the mesh does not transition smoothly. Instead, it violently oscillates and strobes between LOD 0 and the target LOD until moving well past the transition threshold.
+
+#### The Golden Rule
+$$\boxed{\text{For any transition between level } k \text{ and } k+1:\quad S_{\text{parent}}(G_k) \equiv S_{\text{cluster}}(M_{k+1}) \quad \text{and} \quad E_{\text{parent}}(G_k) \equiv E_{\text{cluster}}(M_{k+1})}$$
+The coarser cluster $M_{k+1}$ MUST inherit the exact bounding sphere of the finer group $G_k$ it was simplified from.
+
+---
+
 ## 7. GPU Execution: DirectX 12 Work Graphs Pipeline
 
 GhostEngine implements this traversal entirely on the GPU inside [`MeshletCullGraph.ggraph`](file:///F:/csharp/GhostEngine/src/Runtime/Ghost.Engine/Assets/EngineResources/Shaders/MeshletCullGraph.ggraph).
@@ -268,7 +299,31 @@ This provides a **32× reduction in memory bus contention**.
 
 ---
 
-## 8. Summary of Relevant Source Files
+## 8. Critical Production Pitfalls & Hard-Learned Lessons
+
+### Pitfall 1: Bounding Sphere Divergence Across LOD Levels (Flickering to LOD 0)
+- **Symptom**: Moving the camera across LOD distances causes violent strobe-like flickering between LOD 0 and LOD 1/2.
+- **Root Cause**: Bounding sphere radii differed between the fine group's `parentBoundingSphere` and the coarse cluster's `boundingSphere`.
+- **Fix**: In [`MeshBaker.Meshlet.cs`](file:///F:/csharp/GhostEngine/src/Editor/Ghost.AssetForge.Core/Bakers/MeshBaker.Meshlet.cs), preserve `cluster.bounds` during simplification and assign it to the coarse meshlet's `boundingSphere`. Ensure LOD 0 explicitly has `clusterError = 0.0f`.
+
+### Pitfall 2: RenderGraph `AccessFlags.WriteAll` (Discard) in Multi-Pass Geometry Rendering
+- **Symptom**: In debug modes (or multi-pass geometry rendering), running the game directly produces garbled screen tearing / "花屏", yet running inside PIX appears completely normal!
+- **Root Cause**: In [`GhostRenderPipeline.cs`](file:///F:/csharp/GhostEngine/src/Runtime/Ghost.Engine/RenderPipeline/GhostRenderPipeline.cs), Pass 2 (Late-Z) called `builder.SetColorAttachment(colorTarget, 0, AccessFlags.WriteAll)`.
+  - `AccessFlags.WriteAll` is defined as `AccessFlags.Write | AccessFlags.Discard`.
+  - The RenderGraph builder inferred `attachment.loadOp = AttachmentLoadOp.DontCare`.
+  - In D3D12, this translates to `D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD`.
+  - When Pass 2 began, the GPU discarded the backbuffer pixels already drawn by Pass 1 (Early-Z)! Only late-visible meshlets were written, leaving the rest of the screen filled with uninitialized VRAM garbage.
+  - **Why PIX masked it**: PIX's instrumentation layer and capture engine often override or initialize render targets to preserve pass history for debugger overlays and draw call inspection.
+- **Fix**: Use `builder.SetColorAttachment(colorTarget, 0)` (defaulting to `AccessFlags.Write`) for multi-pass geometry rendering. Pass 1 clears the target, while Pass 2 preserves it with `AttachmentLoadOp.Load`. Reserve `AccessFlags.WriteAll` strictly for full-screen passes (like Blit) that unconditionally overwrite every pixel.
+
+### Pitfall 3: Terminal Node Error Overflow in DAG Roots
+- **Symptom**: Automated unit tests assert `!float.IsPositiveInfinity(node.error) && node.error < 3.4e38f`.
+- **Root Cause**: Setting the terminal coarsest root nodes' parent error to `float.MaxValue` broke floating-point sanity checks in unit tests.
+- **Fix**: Use `Math.Max(bounds.error * 2.0f, bounds.radius * 2.0f)` for terminal nodes. It is guaranteed to be strictly greater than any child error without triggering floating-point overflow.
+
+---
+
+## 9. Summary of Relevant Source Files
 
 | Component | File Path | Key Functions / Structures |
 | :--- | :--- | :--- |
@@ -277,11 +332,12 @@ This provides a **32× reduction in memory bus contention**.
 | **Culling Functions** | [`CullCommon.hlsl`](file:///F:/csharp/GhostEngine/src/Runtime/Ghost.Engine/Assets/EngineResources/Shaders/Includes/CullCommon.hlsl) | `EvaluateLODDetailSufficient`, `BBoxIntersectFrustum`, `HZBVisible` |
 | **Shader Structs** | [`Common.hlsl`](file:///F:/csharp/GhostEngine/src/Runtime/Ghost.Engine/Assets/EngineResources/Shaders/Includes/Common.hlsl) | `struct Meshlet`, `struct MeshletGroup`, `struct MeshletHierarchyNode` |
 | **C# Runtime Structs** | [`Meshlet.cs`](file:///F:/csharp/GhostEngine/src/Runtime/Ghost.Core/Graphics/Meshlet.cs) | `Meshlet`, `MeshletGroup`, `MeshletHierarchyNode`, `MeshletMeshData` |
+| **Render Pipeline & Debug Pass** | [`GhostRenderPipeline.cs`](file:///F:/csharp/GhostEngine/src/Runtime/Ghost.Engine/RenderPipeline/GhostRenderPipeline.cs) | `AddMeshletDebugPass`, `AddVisibilityBufferPass`, Load/Store Op handling |
 | **Unit & Integration Tests** | [`MeshBakerTests.cs`](file:///F:/csharp/GhostEngine/src/Test/Ghost.AssetBaker.Test/MeshBakerTests.cs) | `TestBunnyContinuousLodHierarchy`, Monotonicity & BVH Containment |
 
 ---
 
-## 9. TL;DR Cheat Sheet
+## 10. TL;DR Cheat Sheet
 
 - **What is a meshlet?** A mini-mesh of $\le 64$ vertices and $\le 124$ triangles that fits in a GPU threadgroup.
 - **Why group clusters?** To simplify interior geometry while locking exterior boundary vertices, preventing holes.
@@ -291,3 +347,6 @@ This provides a **32× reduction in memory bus contention**.
   - $\text{ParentError} > \tau$: Ensures the parent is not good enough (forces refinement).
   - $\text{ClusterError} \le \tau$: Ensures this cluster is good enough (discards over-coarse clusters).
   - Together, they select an exact, continuous, watertight slice across the entire geometry DAG.
+- **Why must bounding spheres match?** If the fine group's parent sphere and the coarse cluster's sphere differ in size, their distance and error calculations diverge, causing violent flickering back to LOD 0.
+- **Why did debug mode tear/corrupt outside PIX?** `AccessFlags.WriteAll` triggered D3D12 RenderPass Discard on Pass 2 Late-Z, wiping out Pass 1 Early-Z rendering. Use `AccessFlags.Write` for multi-pass geometry targets.
+

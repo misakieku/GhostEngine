@@ -168,11 +168,10 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     }
 }
 
-public enum CullDebugMode : uint
+public enum RenderPipelineDebugMode : uint
 {
     None = 0,
-    HZBDepth = 1,
-    Pass1VsPass2 = 2
+    Meshlet = 1 << 0,
 }
 
 public class GhostRenderPipelineSettings : IRenderPipelineSettings
@@ -196,6 +195,8 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     /// Set to 0 (or float.PositiveInfinity) to disable clamping and always use exact half-resolution.
     /// </remarks>
     public float HzbMaxMegapixels { get; set; } = 1.0f;
+
+    public RenderPipelineDebugMode DebugMode { get; set; } = RenderPipelineDebugMode.None;
 
     public IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager)
     {

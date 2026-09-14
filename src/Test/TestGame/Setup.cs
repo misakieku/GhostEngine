@@ -12,6 +12,7 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
+using SDL;
 using TestGame.Systems;
 
 namespace TestGame;
@@ -21,6 +22,8 @@ internal static class Setup
     private static World s_world = null!;
     private static IAssetEntry s_meshAsset = null!;
     private static IAssetEntry s_shaderAsset = null!;
+
+    private static readonly GhostRenderPipelineSettings s_renderPipelineSettings = new GhostRenderPipelineSettings();
 
     [RuntimeConfiguration]
     public static EngineDesc InitEngineDesc()
@@ -39,7 +42,7 @@ internal static class Setup
             {
                 FrameBufferCount = 2,
                 GraphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 }),
-                RenderPipelineSettings = new GhostRenderPipelineSettings(),
+                RenderPipelineSettings = s_renderPipelineSettings,
                 ShaderCacheDirectory = "ShaderCache",
                 ShaderCompilationBridge = null
             },
@@ -55,6 +58,23 @@ internal static class Setup
     [RuntimeInitialize]
     public static void Init(EngineCore engineCore)
     {
+        EngineWindow.OnEvent += (SDL_Event e) =>
+        {
+            // Change debug mode in settings using F1, F2, F3, etc. keys
+            if (e.type == (uint)SDL_EventType.SDL_EVENT_KEY_DOWN)
+            {
+                switch (e.key.key)
+                {
+                    case SDL_Keycode.SDLK_F1:
+                        s_renderPipelineSettings.DebugMode = RenderPipelineDebugMode.None;
+                        break;
+                    case SDL_Keycode.SDLK_F2:
+                        s_renderPipelineSettings.DebugMode = RenderPipelineDebugMode.Meshlet;
+                        break;
+                }
+            }
+        };
+
         s_world = World.Create(engineCore.JobScheduler, 1024);
 
         using var scope = AllocationManager.CreateStackScope();

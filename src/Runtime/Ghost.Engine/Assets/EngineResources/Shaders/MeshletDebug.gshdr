@@ -1,6 +1,6 @@
-shader "Internal/VisibilityBuffer"
+shader "Internal/MeshletDebug"
 {
-    pass "Visibility"
+    pass "Forward"
     {
         pipeline
         {
@@ -14,27 +14,38 @@ shader "Internal/VisibilityBuffer"
         includes
         {
             "EngineResources/Shaders/Includes/Properties.hlsl";
+            "EngineResources/Shaders/Includes/Random.hlsl";
         }
 
         hlsl
         {
-            struct PrimitiveOutput
-            {
-                uint primitiveID : SV_PrimitiveID;
-            };
-
             struct VisibleMeshletEntry
             {
                 uint instanceIndex;
                 uint meshletIndex;
             };
-            
+
             struct PixelInput
             {
                 float4 position : SV_POSITION;
-                nointerpolation uint packedVBufferX : TEXCOORD0;
-                nointerpolation uint packedVBufferYBase : TEXCOORD1;
+                nointerpolation float3 color : COLOR0;
             };
+
+            // Converts HSV to RGB for vibrant, distinct color visualization
+            float3 HsvToRgb(float3 c)
+            {
+                float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                float3 p = abs(frac(c.xxx + K.xyz) * 6.0 - K.www);
+                return c.z * lerp(K.xxx, saturate(p - K.xxx), c.y);
+            }
+
+            float3 MeshletIdToColor(uint meshletIndex)
+            {
+                // Hash the meshlet index to a uniform hue using JenkinsHash from Random.hlsl
+                uint h = JenkinsHash(meshletIndex * 1664525u + 1013904223u);
+                float hue = frac(float(h) * (1.0 / 4294967296.0));
+                return HsvToRgb(float3(hue, 0.75f, 0.95f));
+            }
 
             [numthreads(128, 1, 1)]
             [outputtopology("triangle")]
@@ -42,12 +53,10 @@ shader "Internal/VisibilityBuffer"
                 uint3 groupID : SV_GroupID,
                 uint3 groupThreadID : SV_GroupThreadID,
                 out vertices PixelInput outVerts[64],
-                out indices uint3 outTris[124],
-                out primitives PrimitiveOutput outPrims[124])
+                out indices uint3 outTris[124])
             {
                 uint visibleBufferIndex = g_PushConstantData.instanceIndex & 0x7FFFFFFFu;
-                uint passBit = (g_PushConstantData.instanceIndex >> 31) & 1u;
-    
+
                 StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[visibleBufferIndex];
                 VisibleMeshletEntry visible = visibleMeshlets[groupID.x];
 
@@ -60,12 +69,10 @@ shader "Internal/VisibilityBuffer"
 
                 uint vertexCount = meshlet.packedCounts & 0xFFu;
                 uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
-                uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
 
                 SetMeshOutputCounts(vertexCount, triangleCount);
 
-                uint vbufferX = ((visible.instanceIndex + 1u) & 0x00FFFFFFu) | ((localMaterialIndex & 0xFFu) << 24);
-                uint vbufferYBase = (visible.meshletIndex & 0x00FFFFFFu) | (passBit << 31);
+                float3 meshletColor = MeshletIdToColor(visible.meshletIndex);
 
                 ViewData viewData = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
                 float4x4 worldViewProj = mul(viewData.viewProjectionMatrix, instanceData.localToWorld);
@@ -77,14 +84,12 @@ shader "Internal/VisibilityBuffer"
                 {
                     uint vertexIndex = meshletVerticesBuffer.Load((meshlet.vertexOffset + groupThreadID.x) * 4);
                     ByteAddressBuffer vertices = GET_BUFFER(meshData.vertexBuffer);
-        
-                    // TODO: We only need the position data, maybe we can pack the position data into a separate buffer to reduce memory bandwidth usage.
+
                     uint vertexByteOffset = vertexIndex * 64 + 32;
                     float3 pos = asfloat(vertices.Load3(vertexByteOffset));
 
                     outVerts[groupThreadID.x].position = mul(worldViewProj, float4(pos, 1.0f));
-                    outVerts[groupThreadID.x].packedVBufferX = vbufferX;
-                    outVerts[groupThreadID.x].packedVBufferYBase = vbufferYBase;
+                    outVerts[groupThreadID.x].color = meshletColor;
                 }
 
                 if (groupThreadID.x < triangleCount)
@@ -96,16 +101,12 @@ shader "Internal/VisibilityBuffer"
                         packedIndices & 0xFF,
                         (packedIndices >> 8) & 0xFF,
                         (packedIndices >> 16) & 0xFF);
-                    outPrims[triangleIndex].primitiveID = triangleIndex;
                 }
             }
 
-            uint2 PSMain(PixelInput input, uint primitiveID : SV_PrimitiveID) : SV_TARGET0
+            float4 PSMain(PixelInput input) : SV_TARGET0
             {
-                return uint2(
-                    input.packedVBufferX,
-                    input.packedVBufferYBase | ((primitiveID & 0x7Fu) << 24)
-                );
+                return float4(input.color, 1.0f);
             }
         }
 
