@@ -205,12 +205,6 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
         return handle.Offset(index, Stride);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void CopyToShaderVisibleHeap(int index, int count = 1)
-    {
-        // Direct-to-shader-visible optimization: no-op since descriptors are created directly in shader visible heap
-    }
-
     private bool AllocateResources(int numDescriptors)
     {
         NumDescriptors = numDescriptors;

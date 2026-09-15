@@ -3,6 +3,7 @@ using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -19,15 +20,6 @@ internal sealed partial class D3D12ResourceAllocator
     private const uint MAX_BYTES = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_A_TERM * 1024u * 1024u;
     private const uint MAX_TEXTURE2D_DIMENSION = 16384u;
     private const uint MAX_TEXTURE3D_DIMENSION = 2048u;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void CheckBufferSize(ulong sizeInBytes)
-    {
-        if (sizeInBytes > MAX_BYTES)
-        {
-            throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
-        }
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void CheckTexture2DSize(uint width, uint height)
@@ -79,6 +71,16 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     ~D3D12ResourceAllocator()
     {
         Dispose();
+    }
+
+    [Conditional("DEBUG")]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void CheckBufferSize(ulong sizeInBytes)
+    {
+        if (sizeInBytes > (1ul << (int)_device.DeviceFeture.MaxGPUVirtualAddressBitsPerResource))
+        {
+            throw new InvalidOperationException($"ERROR: Resource size too large for DirectX 12 (size {sizeInBytes})");
+        }
     }
 
     private HRESULT CreateResource(D3D12MA_ALLOCATION_DESC* pAllocationDesc, D3D12_RESOURCE_DESC1* pResourceDesc, D3D12_BARRIER_LAYOUT initialLayout, CreationOptions options, uint numCapatableFormats, DXGI_FORMAT* pCastableFormats, Guid* riid, void** ppv)
@@ -208,7 +210,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         var mipLevels = desc.MipLevels == 0
             ? (uint)(1 + Math.Floor(Math.Log2(Math.Max(desc.Width, Math.Max(desc.Height, desc.Slice)))))
-            : (uint)desc.MipLevels;
+            : desc.MipLevels;
 
         var hasUav = desc.Usage.HasFlag(TextureUsage.UnorderedAccess);
         var needsSubresources = (hasUav && mipLevels > 1) || additionalDesc.ViewCreationFlags != TextureViewCreationFlags.None;
@@ -327,7 +329,6 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         var samplerDescriptor = _descriptorAllocator.AllocateSampler();
         var cpuHandle = _descriptorAllocator.GetCpuHandle(samplerDescriptor);
         _device.NativeObject.Get()->CreateSampler(&samplerDesc, cpuHandle);
-        _descriptorAllocator.CopyToShaderVisible(samplerDescriptor);
 
         return _resourceDatabase.AddSampler(in desc, samplerDescriptor.Value);
     }

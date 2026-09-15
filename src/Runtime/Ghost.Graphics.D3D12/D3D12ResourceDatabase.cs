@@ -384,7 +384,6 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         var descriptor = _descriptorAllocator.AllocateCbvSrvUav();
         var cpuHandle = _descriptorAllocator.GetCpuHandle(descriptor);
         _device.NativeObject.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
-        _descriptorAllocator.CopyToShaderVisible(descriptor);
 
         return (uint)descriptor.Value;
     }

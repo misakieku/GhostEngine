@@ -187,12 +187,6 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         return descriptors;
     }
 
-    public void CopyToShaderVisible(Identifier<CbvSrvUavDescriptor> descriptor)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        _cbvSrvUavHeap.CopyToShaderVisibleHeap(descriptor.Value);
-    }
-
     public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(Identifier<CbvSrvUavDescriptor> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -262,12 +256,6 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         }
 
         return descriptors;
-    }
-
-    public void CopyToShaderVisible(Identifier<SamplerDescriptor> descriptor)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        _samplerHeap.CopyToShaderVisibleHeap(descriptor.Value);
     }
 
     public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(Identifier<SamplerDescriptor> descriptor)

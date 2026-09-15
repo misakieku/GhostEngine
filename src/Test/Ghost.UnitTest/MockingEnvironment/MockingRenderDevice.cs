@@ -14,12 +14,13 @@ internal class MockingRenderDevice : IRenderDevice
 
     public ICommandQueue CopyQueue => _copyCommandQueue;
 
-    public FeatureSupport FeatureSupport => (FeatureSupport)~0;
+    public DeviceFetureSupport DeviceFeture => default;
 
     public string Name
     {
         get; set;
     } = "MockingRenderDevice";
+
 
     public void Dispose()
     {

@@ -123,7 +123,7 @@ internal static class Setup
         var materialPallette = engineCore.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);
 
         using var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
-        var entities = new Entity[1000];
+        var entities = new Entity[10000];
         s_world.EntityManager.CreateEntities(entities, meshSet);
 
         for (var i = 0; i < entities.Length; i++)
@@ -140,7 +140,7 @@ internal static class Setup
 
             var position = new float3(RandomFloat(-10.0f, 10.0f), RandomFloat(-10.0f, 10.0f), RandomFloat(-10.0f, 10.0f));
             var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f)));
-            var scale = new float3(RandomFloat(1f, 2.0f), RandomFloat(1f, 2.0f), RandomFloat(1.0f, 2.0f));
+            var scale = new float3(RandomFloat(0.5f, 1.0f), RandomFloat(0.5f, 1.0f), RandomFloat(0.5f, 1.0f));
 
             s_world.EntityManager.SetComponent(entity, new LocalToWorld
             {

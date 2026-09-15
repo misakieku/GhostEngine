@@ -1242,7 +1242,6 @@ internal static unsafe class D3D12Utility
                 var srvDesc = CreateTextureSrvDesc(pResource, resourceDesc.MipLevels, resourceDesc.DepthOrArraySize, isCubeMap, textureDesc.Format);
 
                 device.NativeObject.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
-                descriptorAllocator.CopyToShaderVisible(resourceDescriptor.srv);
             }
 
             if (textureDesc.Usage.HasFlag(TextureUsage.RenderTarget))
@@ -1270,7 +1269,6 @@ internal static unsafe class D3D12Utility
                 var uavDesc = CreateTextureUavDesc(pResource);
 
                 device.NativeObject.Get()->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
-                descriptorAllocator.CopyToShaderVisible(resourceDescriptor.uav);
             }
         }
         else
@@ -1289,7 +1287,6 @@ internal static unsafe class D3D12Utility
                 };
 
                 device.NativeObject.Get()->CreateConstantBufferView(&cbvDesc, cpuHandle);
-                descriptorAllocator.CopyToShaderVisible(resourceDescriptor.cbv);
             }
 
             if (bufferDesc.Usage.HasFlag(BufferUsage.ShaderResource))
@@ -1299,7 +1296,6 @@ internal static unsafe class D3D12Utility
                 var srvDesc = CreateBufferSrvDesc(pResource, bufferDesc.Stride, isRaw);
 
                 device.NativeObject.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
-                descriptorAllocator.CopyToShaderVisible(resourceDescriptor.srv);
             }
 
             if (bufferDesc.Usage.HasFlag(BufferUsage.UnorderedAccess))
@@ -1309,7 +1305,6 @@ internal static unsafe class D3D12Utility
                 var uavDesc = CreateBufferUavDesc(pResource, bufferDesc.Stride, isRaw);
 
                 device.NativeObject.Get()->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
-                descriptorAllocator.CopyToShaderVisible(resourceDescriptor.uav);
             }
         }
 

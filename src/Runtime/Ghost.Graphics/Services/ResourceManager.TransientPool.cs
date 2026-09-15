@@ -112,7 +112,7 @@ public partial class ResourceManager
                 return texHandle;
             }
 
-            var requiredHeapFlags = _renderDevice.FeatureSupport.HasFlag(FeatureSupport.AliasBuffersAndTextures) ?
+            var requiredHeapFlags = _renderDevice.DeviceFeture.SupportedFeatures.HasFlag(FeatureSupport.AliasBuffersAndTextures) ?
                 HeapFlags.AllowAllBufferAndTexture :
                 isRTOrDS ? HeapFlags.AllowOnlyRTAndDS : HeapFlags.AllowOnlyTextures;
 
@@ -199,7 +199,7 @@ public partial class ResourceManager
                 _ => HeapType.Default
             };
 
-            var requiredHeapFlags = _renderDevice.FeatureSupport.HasFlag(FeatureSupport.AliasBuffersAndTextures) ?
+            var requiredHeapFlags = _renderDevice.DeviceFeture.SupportedFeatures.HasFlag(FeatureSupport.AliasBuffersAndTextures) ?
                 HeapFlags.AllowAllBufferAndTexture : HeapFlags.AllowOnlyBuffers;
 
             var foundPageIndex = -1;

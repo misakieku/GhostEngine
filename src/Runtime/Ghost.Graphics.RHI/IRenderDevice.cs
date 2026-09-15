@@ -11,6 +11,20 @@ public enum FeatureSupport
     BindlessResources = 1 << 4,
     WorkGraphs = 1 << 5,
     AliasBuffersAndTextures = 1 << 6,
+    Int64Atomics = 1 << 7,
+}
+
+public readonly struct DeviceFetureSupport
+{
+    public FeatureSupport SupportedFeatures
+    {
+        get; init;
+    }
+
+    public uint MaxGPUVirtualAddressBitsPerResource
+    {
+        get; init;
+    }
 }
 
 /// <summary>
@@ -42,7 +56,10 @@ public interface IRenderDevice : IRHIObject
         get;
     }
 
-    FeatureSupport FeatureSupport
+    /// <summary>
+    /// Device feature support information
+    /// </summary>
+    DeviceFetureSupport DeviceFeture
     {
         get;
     }

@@ -44,12 +44,13 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
     private readonly D3D12CommandQueue _computeQueue;
     private readonly D3D12CommandQueue _copyQueue;
     private readonly FeatureSupport _featureSupport;
+    private readonly DeviceFetureSupport _deviceFeatureSupport;
 
     public ICommandQueue GraphicsQueue => _graphicsQueue;
     public ICommandQueue ComputeQueue => _computeQueue;
     public ICommandQueue CopyQueue => _copyQueue;
 
-    public FeatureSupport FeatureSupport => _featureSupport;
+    public DeviceFetureSupport DeviceFeture => _deviceFeatureSupport;
 
     public SharedPtr<IDXGIFactory7> DXGIFactory => _dxgiFactory.Share();
     public SharedPtr<IDXGIAdapter1> Adapter => _adapter.Share();
@@ -67,7 +68,7 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
         _computeQueue = new D3D12CommandQueue(this, CommandQueueType.Compute);
         _copyQueue = new D3D12CommandQueue(this, CommandQueueType.Copy);
 
-        _featureSupport = GetFeatureSupport();
+        _deviceFeatureSupport = GetFeatureSupport();
     }
 
     private static ID3D12Device14* CreateDevice(out IDXGIFactory7* dxgiFactory, out IDXGIAdapter1* adapter)
@@ -121,9 +122,10 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
         return pDevice;
     }
 
-    private FeatureSupport GetFeatureSupport()
+    private DeviceFetureSupport GetFeatureSupport()
     {
         var support = FeatureSupport.None;
+        var maxGPUVirtualAddressBitsPerResource = 0u;
 
         D3D12_FEATURE_DATA_D3D12_OPTIONS options = default;
         if (pNativeObject->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, (uint)sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS)).SUCCEEDED)
@@ -136,6 +138,17 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
             if (options.ResourceHeapTier == D3D12_RESOURCE_HEAP_TIER_2)
             {
                 support |= FeatureSupport.AliasBuffersAndTextures;
+            }
+
+            maxGPUVirtualAddressBitsPerResource = options.MaxGPUVirtualAddressBitsPerResource;
+        }
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS1 options1 = default;
+        if (pNativeObject->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS1, &options1, (uint)sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS1)).SUCCEEDED)
+        {
+            if (options1.Int64ShaderOps != 0)
+            {
+                support |= FeatureSupport.Int64Atomics;
             }
         }
 
@@ -180,7 +193,11 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
             }
         }
 
-        return support;
+        return new DeviceFetureSupport
+        {
+            SupportedFeatures = support,
+            MaxGPUVirtualAddressBitsPerResource = maxGPUVirtualAddressBitsPerResource
+        };
     }
 
     protected override void Dispose(bool disposing)
