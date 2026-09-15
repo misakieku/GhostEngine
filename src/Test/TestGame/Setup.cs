@@ -23,7 +23,10 @@ internal static class Setup
     private static IAssetEntry s_meshAsset = null!;
     private static IAssetEntry s_shaderAsset = null!;
 
-    private static readonly GhostRenderPipelineSettings s_renderPipelineSettings = new GhostRenderPipelineSettings();
+    private static readonly GhostRenderPipelineSettings s_renderPipelineSettings = new GhostRenderPipelineSettings
+    {
+        MeshletLodErrorThreshold = 1.0f
+    };
 
     [RuntimeConfiguration]
     public static EngineDesc InitEngineDesc()
@@ -137,7 +140,7 @@ internal static class Setup
 
             var position = new float3(RandomFloat(-10.0f, 10.0f), RandomFloat(-10.0f, 10.0f), RandomFloat(-10.0f, 10.0f));
             var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f)));
-            var scale = new float3(RandomFloat(0.5f, 1.0f), RandomFloat(0.5f, 1.0f), RandomFloat(0.5f, 1.0f));
+            var scale = new float3(RandomFloat(1f, 2.0f), RandomFloat(1f, 2.0f), RandomFloat(1.0f, 2.0f));
 
             s_world.EntityManager.SetComponent(entity, new LocalToWorld
             {

@@ -3,13 +3,17 @@ compute "Internal/BuildHZB"
     properties
     {
         uint srcTexture;
-        uint dstTexture;
-        uint2 srcOffset;
-        uint2 dstOffset;
-        uint srcWidth;
-        uint srcHeight;
-        uint dstWidth;
-        uint dstHeight;
+        uint srcUavMip;
+        uint dstUavMip0;
+        uint dstUavMip1;
+        uint dstUavMip2;
+        uint dstUavMip3;
+        uint minDstCount;
+        uint isFirstBatch;
+        uint2 srcLimit;
+        uint2 _padding;
+        uint4 dstSize01;
+        uint4 dstSize23;
     }
 
     includes
@@ -19,54 +23,229 @@ compute "Internal/BuildHZB"
 
     hlsl
     {
-        [numthreads(8, 8, 1)]
-        void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+        uint2 CoordInTileByIndex(uint i)
+        {
+            // Decode i = [yxxyyx] into Morton 2D coordinate inside 8x8 tile
+            return uint2(
+                (i & 1) | ((i >> 2) & 6),
+                ((i >> 1) & 3) | ((i >> 3) & 4));
+        }
+
+    #if 0
+        // Only needed when merging Mip 3 across Waves in Wave32, only occupies 4 bytes
+        groupshared float s_wave1Min;
+
+        [numthreads(64, 1, 1)]
+        void CSMain(
+            uint threadID : SV_GroupThreadID,
+            uint3 groupID : SV_GroupID)
         {
             InternalBuildHZBShaderProperties properties = LoadData<InternalBuildHZBShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
 
-            if (dispatchThreadID.x >= properties.dstWidth || dispatchThreadID.y >= properties.dstHeight)
-            {
-                return;
-            }
+            int2 dstCoord0 = (int2)((groupID.xy << 3) | CoordInTileByIndex(threadID));
+            int2 readOffsetUL = dstCoord0 << 1;
 
-            RWTexture2D<float> dstTexture = ResourceDescriptorHeap[properties.dstTexture];
+            int2 srcCoord00 = min(readOffsetUL + int2(0, 0), (int2)properties.srcLimit);
+            int2 srcCoord10 = min(readOffsetUL + int2(1, 0), (int2)properties.srcLimit);
+            int2 srcCoord01 = min(readOffsetUL + int2(0, 1), (int2)properties.srcLimit);
+            int2 srcCoord11 = min(readOffsetUL + int2(1, 1), (int2)properties.srcLimit);
 
-            float minDepth;
-            if (properties.srcTexture != properties.dstTexture)
+            float p00, p10, p01, p11;
+            if (properties.isFirstBatch != 0)
             {
                 Texture2D<float> srcTexture = GET_TEXTURE2D(properties.srcTexture);
-                uint xStart = (dispatchThreadID.x * properties.srcWidth) / properties.dstWidth;
-                uint xEnd = min(properties.srcWidth - 1, ((dispatchThreadID.x + 1) * properties.srcWidth + properties.dstWidth - 1) / properties.dstWidth - 1);
-                uint yStart = (dispatchThreadID.y * properties.srcHeight) / properties.dstHeight;
-                uint yEnd = min(properties.srcHeight - 1, ((dispatchThreadID.y + 1) * properties.srcHeight + properties.dstHeight - 1) / properties.dstHeight - 1);
-
-                minDepth = srcTexture.Load(int3(properties.srcOffset + int2(xStart, yStart), 0)).r;
-                for (uint y = yStart; y <= yEnd; ++y)
-                {
-                    for (uint x = xStart; x <= xEnd; ++x)
-                    {
-                        float d = srcTexture.Load(int3(properties.srcOffset + int2(x, y), 0)).r;
-                        minDepth = min(minDepth, d);
-                    }
-                }
+                p00 = srcTexture.Load(int3(srcCoord00, 0)).r;
+                p10 = srcTexture.Load(int3(srcCoord10, 0)).r;
+                p01 = srcTexture.Load(int3(srcCoord01, 0)).r;
+                p11 = srcTexture.Load(int3(srcCoord11, 0)).r;
             }
             else
             {
-                uint x2 = dispatchThreadID.x * 2;
-                uint y2 = dispatchThreadID.y * 2;
-                uint maxSrcX = properties.srcWidth - 1;
-                uint maxSrcY = properties.srcHeight - 1;
-
-                float d0 = dstTexture[properties.srcOffset + int2(min(x2, maxSrcX), min(y2, maxSrcY))];
-                float d1 = dstTexture[properties.srcOffset + int2(min(x2 + 1, maxSrcX), min(y2, maxSrcY))];
-                float d2 = dstTexture[properties.srcOffset + int2(min(x2, maxSrcX), min(y2 + 1, maxSrcY))];
-                float d3 = dstTexture[properties.srcOffset + int2(min(x2 + 1, maxSrcX), min(y2 + 1, maxSrcY))];
-
-                minDepth = min(min(d0, d1), min(d2, d3));
+                RWTexture2D<float> srcMip = ResourceDescriptorHeap[properties.srcUavMip];
+                p00 = srcMip[srcCoord00];
+                p10 = srcMip[srcCoord10];
+                p01 = srcMip[srcCoord01];
+                p11 = srcMip[srcCoord11];
             }
 
-            dstTexture[properties.dstOffset + dispatchThreadID.xy] = minDepth;
+            float minDepth = min(min(p00, p10), min(p01, p11));
+
+            // Write Mip 0
+            if (properties.minDstCount >= 1 && all(dstCoord0 < (int2)properties.dstSize01.xy))
+            {
+                RWTexture2D<float> dstMip0 = ResourceDescriptorHeap[properties.dstUavMip0];
+                dstMip0[dstCoord0] = minDepth;
+            }
+
+            uint laneID = WaveGetLaneIndex();
+            
+            // Mip 1
+            minDepth = min(minDepth, WaveReadLaneAt(minDepth, laneID ^ 1));
+            minDepth = min(minDepth, WaveReadLaneAt(minDepth, laneID ^ 2));
+
+            if (properties.minDstCount >= 2 && (threadID & 0x3) == 0)
+            {
+                int2 dstCoord1 = dstCoord0 >> 1;
+                if (all(dstCoord1 < (int2)properties.dstSize01.zw))
+                {
+                    RWTexture2D<float> dstMip1 = ResourceDescriptorHeap[properties.dstUavMip1];
+                    dstMip1[dstCoord1] = minDepth;
+                }
+            }
+
+            // Mip 2
+            minDepth = min(minDepth, WaveReadLaneAt(minDepth, laneID ^ 4));
+            minDepth = min(minDepth, WaveReadLaneAt(minDepth, laneID ^ 8));
+
+            if (properties.minDstCount >= 3 && (threadID & 0xF) == 0)
+            {
+                int2 dstCoord2 = dstCoord0 >> 2;
+                if (all(dstCoord2 < (int2)properties.dstSize23.xy))
+                {
+                    RWTexture2D<float> dstMip2 = ResourceDescriptorHeap[properties.dstUavMip2];
+                    dstMip2[dstCoord2] = minDepth;
+                }
+            }
+
+            // Mip 3
+            // Cut the 32 threads in half first (Lane 0 gets the extreme value of the current Wave)
+            minDepth = min(minDepth, WaveReadLaneAt(minDepth, laneID ^ 16));
+
+            if (WaveGetLaneCount() >= 64)
+            {
+                // For AMD Wave64: 2 waves cooperate, need 1 sync and 1 float exchange
+                minDepth = min(minDepth, WaveReadLaneAt(minDepth, laneID ^ 32));
+            }
+            else
+            {
+                // For NVIDIA Wave32: 2 waves cooperate, need 1 sync and 1 float exchange
+                if (threadID == 32)
+                {
+                    s_wave1Min = minDepth;
+                }
+
+                GroupMemoryBarrierWithGroupSync();
+
+                if (threadID == 0)
+                {
+                    minDepth = min(minDepth, s_wave1Min);
+                }
+            }
+
+            if (properties.minDstCount >= 4 && threadID == 0)
+            {
+                int2 dstCoord3 = dstCoord0 >> 3;
+                if (all(dstCoord3 < (int2)properties.dstSize23.zw))
+                {
+                    RWTexture2D<float> dstMip3 = ResourceDescriptorHeap[properties.dstUavMip3];
+                    dstMip3[dstCoord3] = minDepth;
+                }
+            }
         }
+    #else
+        groupshared float s_minDepth[32];
+        
+        void SubgroupMergeDepths(uint threadID, uint bitIndex, inout float minDepth)
+        {
+            uint highIndex = threadID >> (bitIndex + 1);
+            uint lowIndex = threadID & ((1 << (bitIndex + 1)) - 1);
+        
+            if (lowIndex == (1 << bitIndex))
+            {
+                s_minDepth[highIndex] = minDepth;
+            }
+            GroupMemoryBarrierWithGroupSync();
+        
+            if (lowIndex == 0)
+            {
+                minDepth = min(minDepth, s_minDepth[highIndex]);
+            }
+            GroupMemoryBarrierWithGroupSync();
+        }
+
+        
+        [numthreads(64, 1, 1)]
+        void CSMain(
+            uint threadID : SV_GroupThreadID,
+            uint3 groupID : SV_GroupID)
+        {
+            InternalBuildHZBShaderProperties properties = LoadData<InternalBuildHZBShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+
+            int2 dstCoord0 = (int2)((groupID.xy << 3) | CoordInTileByIndex(threadID));
+            int2 readOffsetUL = dstCoord0 << 1;
+
+            int2 srcCoord00 = min(readOffsetUL + int2(0, 0), (int2)properties.srcLimit);
+            int2 srcCoord10 = min(readOffsetUL + int2(1, 0), (int2)properties.srcLimit);
+            int2 srcCoord01 = min(readOffsetUL + int2(0, 1), (int2)properties.srcLimit);
+            int2 srcCoord11 = min(readOffsetUL + int2(1, 1), (int2)properties.srcLimit);
+
+            float p00, p10, p01, p11;
+            if (properties.isFirstBatch != 0)
+            {
+                Texture2D<float> srcTexture = GET_TEXTURE2D(properties.srcTexture);
+                p00 = srcTexture.Load(int3(srcCoord00, 0)).r;
+                p10 = srcTexture.Load(int3(srcCoord10, 0)).r;
+                p01 = srcTexture.Load(int3(srcCoord01, 0)).r;
+                p11 = srcTexture.Load(int3(srcCoord11, 0)).r;
+            }
+            else
+            {
+                RWTexture2D<float> srcMip = ResourceDescriptorHeap[properties.srcUavMip];
+                p00 = srcMip[srcCoord00];
+                p10 = srcMip[srcCoord10];
+                p01 = srcMip[srcCoord01];
+                p11 = srcMip[srcCoord11];
+            }
+
+            float minDepth = min(min(p00, p10), min(p01, p11));
+
+            // Write Mip 0
+            if (properties.minDstCount >= 1 && all(dstCoord0 < (int2)properties.dstSize01.xy))
+            {
+                RWTexture2D<float> dstMip0 = ResourceDescriptorHeap[properties.dstUavMip0];
+                dstMip0[dstCoord0] = minDepth;
+            }
+
+            // Merge to thread 0 in subgroup size 4 (Mip 1)
+            SubgroupMergeDepths(threadID, 0, minDepth);
+            SubgroupMergeDepths(threadID, 1, minDepth);
+            if (properties.minDstCount >= 2 && (threadID & 0x3) == 0)
+            {
+                int2 dstCoord1 = dstCoord0 >> 1;
+                if (all(dstCoord1 < (int2)properties.dstSize01.zw))
+                {
+                    RWTexture2D<float> dstMip1 = ResourceDescriptorHeap[properties.dstUavMip1];
+                    dstMip1[dstCoord1] = minDepth;
+                }
+            }
+
+            // Merge to thread 0 in subgroup size 16 (Mip 2)
+            SubgroupMergeDepths(threadID, 2, minDepth);
+            SubgroupMergeDepths(threadID, 3, minDepth);
+            if (properties.minDstCount >= 3 && (threadID & 0xF) == 0)
+            {
+                int2 dstCoord2 = dstCoord0 >> 2;
+                if (all(dstCoord2 < (int2)properties.dstSize23.xy))
+                {
+                    RWTexture2D<float> dstMip2 = ResourceDescriptorHeap[properties.dstUavMip2];
+                    dstMip2[dstCoord2] = minDepth;
+                }
+            }
+
+            // Merge to thread 0 in subgroup size 64 (Mip 3)
+            SubgroupMergeDepths(threadID, 4, minDepth);
+            SubgroupMergeDepths(threadID, 5, minDepth);
+            if (properties.minDstCount >= 4 && (threadID & 0x3F) == 0)
+            {
+                int2 dstCoord3 = dstCoord0 >> 3;
+                if (all(dstCoord3 < (int2)properties.dstSize23.zw))
+                {
+                    RWTexture2D<float> dstMip3 = ResourceDescriptorHeap[properties.dstUavMip3];
+                    dstMip3[dstCoord3] = minDepth;
+                }
+            }
+        }
+    #endif
     }
 
     cs "hlsl_block" : "CSMain";

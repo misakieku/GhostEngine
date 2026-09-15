@@ -33,6 +33,8 @@ public enum BindlessAccess
 
 public unsafe interface IResourceDatabase : IDisposable
 {
+    public const uint AllSubresources = 0xFFFFFFFF;
+
     /// <summary>
     /// Checks if a resource with the specified handle exists in the database.
     /// </summary>
@@ -51,8 +53,11 @@ public unsafe interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="handle">A handle to the GPU resource for which to obtain the bindless index. Must reference a valid, currently registered resource.</param>
     /// <param name="access">The type of bindless access for which to obtain the index.</param>
+    /// <param name="subResource">The sub-resource index of the resource to get. Defaults to <see cref="AllSubresources"/> for the primary/full-resource view.</param>
     /// <returns>The bindless index corresponding to the specified GPU resource handle. ~0 if the resource does not support bindless access or is not found.</returns>
-    uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource);
+    uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = AllSubresources);
+
+    void GetBindlessIndices(Handle<GPUResource> handle, ReadOnlySpan<uint> subResources, Span<uint> outIndices, BindlessAccess access = BindlessAccess.ShaderResource);
 
     /// <summary>
     /// Creates a raw byte-address SRV descriptor for a sub-range of a buffer and returns its bindless index.

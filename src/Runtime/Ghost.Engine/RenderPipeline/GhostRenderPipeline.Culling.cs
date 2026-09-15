@@ -37,14 +37,12 @@ internal partial class GhostRenderPipeline
         public Identifier<RGBuffer> visibleMaskedMeshletsPass1;
         public Identifier<RGBuffer> occludedMeshlets;
         public Identifier<RGBuffer> counterBuffer;
-        public Identifier<RGTexture> hzbAtlas;
+        public Identifier<RGTexture> hzbTexture;
         public uint hzbMipCount;
         public uint renderWidth;
         public uint renderHeight;
-        public uint4 hzbOffsets0;
-        public uint4 hzbOffsets1;
-        public uint4 hzbOffsets2;
-        public uint4 hzbOffsets3;
+        public uint hzbBaseWidth;
+        public uint hzbBaseHeight;
         public uint instanceCount;
         public uint maxVisibleMeshlets;
         public float lodErrorThreshold;
@@ -62,14 +60,12 @@ internal partial class GhostRenderPipeline
         public Identifier<RGBuffer> visibleMaskedMeshletsPass2;
         public Identifier<RGBuffer> occludedMeshlets;
         public Identifier<RGBuffer> counterBuffer;
-        public Identifier<RGTexture> hzbAtlas;
+        public Identifier<RGTexture> hzbTexture;
         public uint hzbMipCount;
         public uint renderWidth;
         public uint renderHeight;
-        public uint4 hzbOffsets0;
-        public uint4 hzbOffsets1;
-        public uint4 hzbOffsets2;
-        public uint4 hzbOffsets3;
+        public uint hzbBaseWidth;
+        public uint hzbBaseHeight;
         public uint instanceCount;
         public uint maxVisibleMeshlets;
         public float lodErrorThreshold;
@@ -95,12 +91,13 @@ internal partial class GhostRenderPipeline
         public Identifier<RGTexture> srcTex;
         public Identifier<RGTexture> dstTex;
         public Handle<ComputeShader> shader;
-        public uint2 srcOffset;
-        public uint2 dstOffset;
-        public uint srcWidth;
-        public uint srcHeight;
-        public uint dstWidth;
-        public uint dstHeight;
+        public uint startMip;
+        public uint minDstCount;
+        public uint isFirstBatch;
+        public uint2 srcLimit;
+        public uint4 dstSize01;
+        public uint4 dstSize23;
+        public uint2 dispatchSize;
     }
 
     internal partial class CullingResource : IPipelineResource
@@ -235,14 +232,12 @@ internal partial class GhostRenderPipeline
     private unsafe void AddMeshletCullPass1(
         RenderGraph rg,
         in CameraCullingBuffers buffers,
-        Identifier<RGTexture> hzbAtlas,
+        Identifier<RGTexture> hzbTexture,
         uint hzbMipCount,
         uint screenWidth,
         uint screenHeight,
-        in uint4 o0,
-        in uint4 o1,
-        in uint4 o2,
-        in uint4 o3,
+        uint hzbBaseWidth,
+        uint hzbBaseHeight,
         uint instanceCount)
     {
         _cullingResource.EnsureWorkGraphProgram(_renderEngine);
@@ -266,9 +261,9 @@ internal partial class GhostRenderPipeline
         builder.UseBuffer(buffers.occludedMeshlets, AccessFlags.Write);
         builder.UseBuffer(buffers.counterBuffer, AccessFlags.ReadWrite);
 
-        if (hzbAtlas.IsValid)
+        if (hzbTexture.IsValid)
         {
-            builder.UseTexture(hzbAtlas, AccessFlags.Read);
+            builder.UseTexture(hzbTexture, AccessFlags.Read);
         }
 
         var passData = new MeshletCullPass1Data
@@ -277,14 +272,12 @@ internal partial class GhostRenderPipeline
             visibleMaskedMeshletsPass1 = buffers.visibleMaskedMeshletsPass1,
             occludedMeshlets = buffers.occludedMeshlets,
             counterBuffer = buffers.counterBuffer,
-            hzbAtlas = hzbAtlas,
+            hzbTexture = hzbTexture,
             hzbMipCount = hzbMipCount,
             renderWidth = screenWidth,
             renderHeight = screenHeight,
-            hzbOffsets0 = o0,
-            hzbOffsets1 = o1,
-            hzbOffsets2 = o2,
-            hzbOffsets3 = o3,
+            hzbBaseWidth = hzbBaseWidth,
+            hzbBaseHeight = hzbBaseHeight,
             instanceCount = instanceCount,
             maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
             lodErrorThreshold = _settings.MeshletLodErrorThreshold,
@@ -304,8 +297,8 @@ internal partial class GhostRenderPipeline
             var occludedUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.occludedMeshlets).AsResource(), BindlessAccess.UnorderedAccess);
             var counterUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
 
-            var hzbAtlasIndex = (passData.hzbMipCount > 0 && passData.hzbAtlas.IsValid)
-                ? computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.hzbAtlas).AsResource(), BindlessAccess.ShaderResource)
+            var hzbTextureIndex = (passData.hzbMipCount > 0 && passData.hzbTexture.IsValid)
+                ? computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.hzbTexture).AsResource(), BindlessAccess.ShaderResource)
                 : uint.MaxValue;
 
             var props = new InternalMeshletCullGraphShaderProperties
@@ -321,11 +314,9 @@ internal partial class GhostRenderPipeline
                 maxVisibleMeshlets = passData.maxVisibleMeshlets,
                 lodErrorThreshold = passData.lodErrorThreshold,
                 instanceCount = passData.instanceCount,
-                hzbAtlas = hzbAtlasIndex,
-                hzbOffsets0 = passData.hzbOffsets0,
-                hzbOffsets1 = passData.hzbOffsets1,
-                hzbOffsets2 = passData.hzbOffsets2,
-                hzbOffsets3 = passData.hzbOffsets3,
+                hzbTexture = hzbTextureIndex,
+                hzbBaseWidth = passData.hzbBaseWidth,
+                hzbBaseHeight = passData.hzbBaseHeight,
             };
 
             var setProgramDesc = SetProgramDesc.ForWorkGraph(
@@ -392,122 +383,142 @@ internal partial class GhostRenderPipeline
     private void AddBuildHZBPasses(
         RenderGraph rg,
         Identifier<RGTexture> depthBuffer,
-        Identifier<RGTexture> hzbAtlas,
+        Identifier<RGTexture> hzbTexture,
         uint hzbMipCount,
         uint baseW,
         uint baseH,
         uint renderWidth,
         uint renderHeight)
     {
-        // Mip 0 downsamples from DepthBuffer (size: render resolution -> baseW x baseH at (0, 0))
-        using (var builder = rg.AddComputeRenderPass<BuildHZBMipPassData>("BuildHZB_Mip0"))
+        if (hzbMipCount == 0)
         {
-            builder.UseTexture(depthBuffer, AccessFlags.Read);
-            builder.UseTexture(hzbAtlas, AccessFlags.Write);
-
-            builder.SetPassData(new BuildHZBMipPassData
-            {
-                srcTex = depthBuffer,
-                dstTex = hzbAtlas,
-                shader = _cullingResource.buildHZBShader,
-                srcOffset = default,
-                dstOffset = default,
-                srcWidth = renderWidth,
-                srcHeight = renderHeight,
-                dstWidth = baseW,
-                dstHeight = baseH
-            });
-
-            builder.SetRenderFunc<BuildHZBMipPassData>(static (ref readonly passData, computeCtx) =>
-            {
-                ExecuteHZBDownsamplePass(in passData, computeCtx);
-            });
+            return;
         }
 
-        // Mips 1..N downsample from previous HZB mip in atlas
-        var prevW = baseW;
-        var prevH = baseH;
-        uint srcX = 0;
-        uint srcY = 0;
-        uint rightY = 0;
+        Span<uint2> mipSizes = stackalloc uint2[(int)hzbMipCount];
+        mipSizes[0] = new uint2(baseW, baseH);
 
-        for (uint i = 1; i < hzbMipCount; ++i)
+        for (var i = 1; i < (int)hzbMipCount; ++i)
         {
-            var curW = Math.Max(1u, prevW / 2);
-            var curH = Math.Max(1u, prevH / 2);
-            var dstX = baseW;
-            var dstY = rightY;
-            rightY += curH;
+            var prev = mipSizes[i - 1];
+            mipSizes[i] = new uint2(Math.Max(1u, prev.x / 2), Math.Max(1u, prev.y / 2));
+        }
 
-            using var builder = rg.AddComputeRenderPass<BuildHZBMipPassData>(StringUtility.DebugFormat("BuildHZB_Mip{0}", i));
-            builder.UseTexture(hzbAtlas, AccessFlags.ReadWrite);
+        var startMip = 0u;
+        var batchIndex = 0u;
 
-            builder.SetPassData(new BuildHZBMipPassData
+        while (startMip < hzbMipCount)
+        {
+            var mipsInThisBatch = Math.Min(hzbMipCount - startMip, 4u);
+            var isFirstBatch = (startMip == 0);
+
+            var srcLimit = isFirstBatch
+                ? new uint2(renderWidth - 1, renderHeight - 1)
+                : new uint2(mipSizes[(int)startMip - 1].x - 1, mipSizes[(int)startMip - 1].y - 1);
+
+            var s0 = (mipsInThisBatch >= 1) ? mipSizes[(int)startMip] : default;
+            var s1 = (mipsInThisBatch >= 2) ? mipSizes[(int)startMip + 1] : default;
+            var s2 = (mipsInThisBatch >= 3) ? mipSizes[(int)startMip + 2] : default;
+            var s3 = (mipsInThisBatch >= 4) ? mipSizes[(int)startMip + 3] : default;
+
+            var passName = StringUtility.DebugFormat("BuildHZB_Batch{0}", batchIndex);
+            using (var builder = rg.AddComputeRenderPass<BuildHZBMipPassData>(passName))
             {
-                srcTex = hzbAtlas,
-                dstTex = hzbAtlas,
-                shader = _cullingResource.buildHZBShader,
-                srcOffset = new uint2(srcX, srcY),
-                dstOffset = new uint2(dstX, dstY),
-                srcWidth = prevW,
-                srcHeight = prevH,
-                dstWidth = curW,
-                dstHeight = curH
-            });
+                if (isFirstBatch)
+                {
+                    builder.UseTexture(depthBuffer, AccessFlags.Read);
+                    builder.UseTexture(hzbTexture, AccessFlags.Write);
+                }
+                else
+                {
+                    builder.UseTexture(hzbTexture, AccessFlags.ReadWrite);
+                }
 
-            builder.SetRenderFunc<BuildHZBMipPassData>(static (ref readonly passData, computeCtx) =>
-            {
-                ExecuteHZBDownsamplePass(in passData, computeCtx);
-            });
+                builder.SetPassData(new BuildHZBMipPassData
+                {
+                    srcTex = isFirstBatch ? depthBuffer : hzbTexture,
+                    dstTex = hzbTexture,
+                    shader = _cullingResource.buildHZBShader,
+                    startMip = startMip,
+                    minDstCount = mipsInThisBatch,
+                    isFirstBatch = isFirstBatch ? 1u : 0u,
+                    srcLimit = srcLimit,
+                    dstSize01 = new uint4(s0.x, s0.y, s1.x, s1.y),
+                    dstSize23 = new uint4(s2.x, s2.y, s3.x, s3.y),
+                    dispatchSize = s0
+                });
 
-            srcX = dstX;
-            srcY = dstY;
-            prevW = curW;
-            prevH = curH;
+                builder.SetRenderFunc<BuildHZBMipPassData>(static (ref readonly passData, computeCtx) =>
+                {
+                    ExecuteHZBDownsamplePass(in passData, computeCtx);
+                });
+            }
+
+            startMip += mipsInThisBatch;
+            batchIndex++;
         }
     }
 
     private static void ExecuteHZBDownsamplePass(scoped in BuildHZBMipPassData passData, IComputeRenderContext computeCtx)
     {
-        var srcActual = computeCtx.GetActualTexture(passData.srcTex);
         var dstActual = computeCtx.GetActualTexture(passData.dstTex);
+        var dstRes = dstActual.AsResource();
 
-        var dstIndex = computeCtx.ResourceDatabase.GetBindlessIndex(dstActual.AsResource(), BindlessAccess.UnorderedAccess);
-        var srcIndex = (passData.srcTex == passData.dstTex)
-            ? dstIndex
-            : computeCtx.ResourceDatabase.GetBindlessIndex(srcActual.AsResource(), BindlessAccess.ShaderResource);
+        uint srcTexture = 0;
+        uint srcUavMip = 0;
+
+        if (passData.isFirstBatch != 0)
+        {
+            var srcActual = computeCtx.GetActualTexture(passData.srcTex);
+            srcTexture = computeCtx.ResourceDatabase.GetBindlessIndex(srcActual.AsResource(), BindlessAccess.ShaderResource);
+        }
+        else
+        {
+            srcUavMip = computeCtx.ResourceDatabase.GetBindlessIndex(dstRes, BindlessAccess.UnorderedAccess, passData.startMip - 1);
+        }
+
+        Span<uint> requestedMips = stackalloc uint[4];
+        Span<uint> dstUavs = stackalloc uint[4];
+        for (var i = 0u; i < passData.minDstCount; i++)
+        {
+            requestedMips[(int)i] = passData.startMip + i;
+        }
+
+        computeCtx.GetActualBindlessIndices(passData.dstTex, requestedMips.Slice(0, (int)passData.minDstCount), dstUavs.Slice(0, (int)passData.minDstCount), BindlessAccess.UnorderedAccess);
 
         var props = new InternalBuildHZBShaderProperties
         {
-            srcTexture = srcIndex,
-            dstTexture = dstIndex,
-            srcOffset = passData.srcOffset,
-            dstOffset = passData.dstOffset,
-            srcWidth = passData.srcWidth,
-            srcHeight = passData.srcHeight,
-            dstWidth = passData.dstWidth,
-            dstHeight = passData.dstHeight,
+            srcTexture = srcTexture,
+            srcUavMip = srcUavMip,
+            dstUavMip0 = dstUavs[0],
+            dstUavMip1 = passData.minDstCount >= 2 ? dstUavs[1] : uint.MaxValue,
+            dstUavMip2 = passData.minDstCount >= 3 ? dstUavs[2] : uint.MaxValue,
+            dstUavMip3 = passData.minDstCount >= 4 ? dstUavs[3] : uint.MaxValue,
+            minDstCount = passData.minDstCount,
+            isFirstBatch = passData.isFirstBatch,
+            srcLimit = passData.srcLimit,
+            _padding = default,
+            dstSize01 = passData.dstSize01,
+            dstSize23 = passData.dstSize23,
         };
 
         computeCtx.SetActiveCompute(passData.shader, 0);
         computeCtx.SetProperties(in props);
 
-        var threadGroupsX = Math.Max(1u, (passData.dstWidth + 7) / 8);
-        var threadGroupsY = Math.Max(1u, (passData.dstHeight + 7) / 8);
+        var threadGroupsX = Math.Max(1u, (passData.dispatchSize.x + 7) / 8);
+        var threadGroupsY = Math.Max(1u, (passData.dispatchSize.y + 7) / 8);
         computeCtx.DispatchCompute(threadGroupsX, threadGroupsY, 1);
     }
 
     private unsafe void AddMeshletCullPass2(
         RenderGraph rg,
         in CameraCullingBuffers buffers,
-        Identifier<RGTexture> hzbAtlas,
+        Identifier<RGTexture> hzbTexture,
         uint hzbMipCount,
         uint renderWidth,
         uint renderHeight,
-        in uint4 o0,
-        in uint4 o1,
-        in uint4 o2,
-        in uint4 o3,
+        uint hzbBaseWidth,
+        uint hzbBaseHeight,
         uint instanceCount)
     {
         _cullingResource.EnsureWorkGraphProgram(_renderEngine);
@@ -531,9 +542,9 @@ internal partial class GhostRenderPipeline
         builder.UseBuffer(buffers.visibleMaskedMeshletsPass2, AccessFlags.Write);
         builder.UseBuffer(buffers.counterBuffer, AccessFlags.ReadWrite);
 
-        if (hzbAtlas.IsValid)
+        if (hzbTexture.IsValid)
         {
-            builder.UseTexture(hzbAtlas, AccessFlags.Read);
+            builder.UseTexture(hzbTexture, AccessFlags.Read);
         }
 
         var passData = new MeshletCullPass2Data
@@ -542,14 +553,12 @@ internal partial class GhostRenderPipeline
             visibleMaskedMeshletsPass2 = buffers.visibleMaskedMeshletsPass2,
             occludedMeshlets = buffers.occludedMeshlets,
             counterBuffer = buffers.counterBuffer,
-            hzbAtlas = hzbAtlas,
+            hzbTexture = hzbTexture,
             hzbMipCount = hzbMipCount,
             renderWidth = renderWidth,
             renderHeight = renderHeight,
-            hzbOffsets0 = o0,
-            hzbOffsets1 = o1,
-            hzbOffsets2 = o2,
-            hzbOffsets3 = o3,
+            hzbBaseWidth = hzbBaseWidth,
+            hzbBaseHeight = hzbBaseHeight,
             instanceCount = instanceCount,
             maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
             lodErrorThreshold = _settings.MeshletLodErrorThreshold,
@@ -569,8 +578,8 @@ internal partial class GhostRenderPipeline
             var occludedSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.occludedMeshlets).AsResource(), BindlessAccess.ShaderResource);
             var counterUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
 
-            var hzbAtlasIndex = (passData.hzbMipCount > 0 && passData.hzbAtlas.IsValid)
-                ? computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.hzbAtlas).AsResource(), BindlessAccess.ShaderResource)
+            var hzbTextureIndex = (passData.hzbMipCount > 0 && passData.hzbTexture.IsValid)
+                ? computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.hzbTexture).AsResource(), BindlessAccess.ShaderResource)
                 : uint.MaxValue;
 
             var props = new InternalMeshletCullGraphShaderProperties
@@ -586,11 +595,9 @@ internal partial class GhostRenderPipeline
                 maxVisibleMeshlets = passData.maxVisibleMeshlets,
                 lodErrorThreshold = passData.lodErrorThreshold,
                 instanceCount = passData.instanceCount,
-                hzbAtlas = hzbAtlasIndex,
-                hzbOffsets0 = passData.hzbOffsets0,
-                hzbOffsets1 = passData.hzbOffsets1,
-                hzbOffsets2 = passData.hzbOffsets2,
-                hzbOffsets3 = passData.hzbOffsets3,
+                hzbTexture = hzbTextureIndex,
+                hzbBaseWidth = passData.hzbBaseWidth,
+                hzbBaseHeight = passData.hzbBaseHeight,
             };
 
             var setProgramDesc = SetProgramDesc.ForWorkGraph(

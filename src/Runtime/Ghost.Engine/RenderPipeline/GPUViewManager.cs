@@ -13,36 +13,23 @@ internal sealed class GPUViewContext : IDisposable
     public uint viewId;
     public bool isActive;
 
-    public Handle<GPUTexture> hzbAtlas;
+    public Handle<GPUTexture> hzbTexture;
     public uint hzbMipCount;
-    public uint atlasWidth;
-    public uint atlasHeight;
     public uint baseWidth;
     public uint baseHeight;
     public uint renderWidth;
     public uint renderHeight;
     public float hzbMaxMegapixels;
 
-    public uint4 hzbOffsets0;
-    public uint4 hzbOffsets1;
-    public uint4 hzbOffsets2;
-    public uint4 hzbOffsets3;
-
     public float4x4 prevViewProjMatrix;
 
-    internal static unsafe void ComputeHZBMipOffsets(
+    internal static void ComputeHZBDimensions(
         uint renderWidth,
         uint renderHeight,
         float hzbMaxMegapixels,
         out uint baseW,
         out uint baseH,
-        out uint hzbMipCount,
-        out uint atlasWidth,
-        out uint atlasHeight,
-        out uint4 o0,
-        out uint4 o1,
-        out uint4 o2,
-        out uint4 o3)
+        out uint hzbMipCount)
     {
         var rawBaseW = Math.Max(1u, renderWidth / 2);
         var rawBaseH = Math.Max(1u, renderHeight / 2);
@@ -64,37 +51,6 @@ internal sealed class GPUViewContext : IDisposable
 
         var calculatedMipCount = (uint)Math.Floor(Math.Log2(Math.Max(baseW, baseH))) + 1;
         hzbMipCount = Math.Clamp(calculatedMipCount, 1u, 16u);
-
-        atlasWidth = baseW + Math.Max(1u, (baseW + 1) / 2);
-
-        var packed = stackalloc uint[16];
-        // Mip 0 offset is (0,0); packed[0] stores base resolution (width in low 16 bits, height in high 16 bits)
-        packed[0] = (baseW & 0xFFFFu) | ((baseH & 0xFFFFu) << 16);
-
-        uint rightY = 0;
-        var prevW = baseW;
-        var prevH = baseH;
-        for (uint i = 1; i < hzbMipCount; ++i)
-        {
-            var curW = Math.Max(1u, prevW / 2);
-            var curH = Math.Max(1u, prevH / 2);
-            packed[i] = (baseW & 0xFFFFu) | ((rightY & 0xFFFFu) << 16);
-            rightY += curH;
-            prevW = curW;
-            prevH = curH;
-        }
-
-        for (var i = (int)hzbMipCount; i < 16; i++)
-        {
-            packed[i] = 0;
-        }
-
-        atlasHeight = Math.Max(baseH, rightY);
-
-        o0 = new uint4(packed[0], packed[1], packed[2], packed[3]);
-        o1 = new uint4(packed[4], packed[5], packed[6], packed[7]);
-        o2 = new uint4(packed[8], packed[9], packed[10], packed[11]);
-        o3 = new uint4(packed[12], packed[13], packed[14], packed[15]);
     }
 
     public void EnsureResources(
@@ -112,40 +68,34 @@ internal sealed class GPUViewContext : IDisposable
             return;
         }
 
-        if (!hzbAtlas.IsValid || this.renderWidth != renderWidth || this.renderHeight != renderHeight || this.hzbMaxMegapixels != hzbMaxMegapixels || renderGraph == null)
+        if (!hzbTexture.IsValid || this.renderWidth != renderWidth || this.renderHeight != renderHeight || this.hzbMaxMegapixels != hzbMaxMegapixels || renderGraph == null)
         {
-            if (hzbAtlas.IsValid)
+            if (hzbTexture.IsValid)
             {
-                database.ReleaseResource(hzbAtlas.AsResource());
-                hzbAtlas = Handle<GPUTexture>.Invalid;
+                database.ReleaseResource(hzbTexture.AsResource());
+                hzbTexture = Handle<GPUTexture>.Invalid;
             }
 
-            ComputeHZBMipOffsets(
+            ComputeHZBDimensions(
                 renderWidth,
                 renderHeight,
                 hzbMaxMegapixels,
                 out baseWidth,
                 out baseHeight,
-                out hzbMipCount,
-                out atlasWidth,
-                out atlasHeight,
-                out hzbOffsets0,
-                out hzbOffsets1,
-                out hzbOffsets2,
-                out hzbOffsets3);
+                out hzbMipCount);
 
             var desc = new TextureDesc
             {
-                Width = atlasWidth,
-                Height = atlasHeight,
+                Width = baseWidth,
+                Height = baseHeight,
                 Format = TextureFormat.R32_Float,
                 Dimension = TextureDimension.Texture2D,
-                MipLevels = 1,
+                MipLevels = (ushort)hzbMipCount,
                 Slice = 1,
                 Usage = TextureUsage.UnorderedAccess | TextureUsage.ShaderResource
             };
 
-            hzbAtlas = allocator.CreateTexture(in desc, $"View_{viewId}_HZBAtlas");
+            hzbTexture = allocator.CreateTexture(in desc, $"View_{viewId}_HZB");
             this.renderWidth = renderWidth;
             this.renderHeight = renderHeight;
             this.hzbMaxMegapixels = hzbMaxMegapixels;
@@ -157,10 +107,10 @@ internal sealed class GPUViewContext : IDisposable
 
     public void ReleaseResources(IResourceDatabase db)
     {
-        if (hzbAtlas.IsValid)
+        if (hzbTexture.IsValid)
         {
-            db.ReleaseResource(hzbAtlas.AsResource());
-            hzbAtlas = Handle<GPUTexture>.Invalid;
+            db.ReleaseResource(hzbTexture.AsResource());
+            hzbTexture = Handle<GPUTexture>.Invalid;
         }
 
         renderGraph?.Dispose();

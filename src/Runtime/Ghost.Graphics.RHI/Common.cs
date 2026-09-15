@@ -816,14 +816,6 @@ public record struct TextureDesc
     }
 }
 
-public ref struct AdditionalTextureDesc
-{
-    public ReadOnlySpan<TextureFormat> CastableFormat
-    {
-        get; set;
-    }
-}
-
 public record struct SamplerDesc
 {
     public TextureFilterMode FilterMode

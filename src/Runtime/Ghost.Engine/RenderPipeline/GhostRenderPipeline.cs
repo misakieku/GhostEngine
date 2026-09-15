@@ -190,7 +190,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 usage: TextureUsage.DepthStencil | TextureUsage.ShaderResource,
                 clearAtFirstUse: true);
 
-            var hzbAtlas = viewContext.renderGraph.ImportTexture(viewContext.hzbAtlas);
+            var hzb = viewContext.renderGraph.ImportTexture(viewContext.hzbTexture);
 
             // Initialize transient culling & indirect argument buffers for this camera view
             AddInitializeCullingBuffersPass(viewContext.renderGraph, out var cullingBuffers);
@@ -199,122 +199,116 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             AddMeshletCullPass1(
                 viewContext.renderGraph,
                 in cullingBuffers,
-                hzbAtlas,
+                hzb,
                 viewContext.hzbMipCount,
                 viewData.ScreenSize.x,
                 viewData.ScreenSize.y,
-                in viewContext.hzbOffsets0,
-                in viewContext.hzbOffsets1,
-                in viewContext.hzbOffsets2,
-                in viewContext.hzbOffsets3,
+                viewContext.baseWidth,
+                viewContext.baseHeight,
                 ghostPayload.InstanceCount);
 
             // Pass 1: Prepare Indirect Dispatch Arguments
             AddPrepareIndirectArgsPass(viewContext.renderGraph, in cullingBuffers, 0);
 
-            var isMeshletDebug = _settings.DebugMode == RenderPipelineDebugMode.Meshlet;
             Identifier<RGTexture> currentDepth;
             Identifier<RGTexture> currentVisBuffer = default;
 
-            if (isMeshletDebug)
+            switch (_settings.DebugMode)
             {
-                // Pass 1: Meshlet Debug Rasterization (Early-Z) directly to backbuffer
-                currentDepth = AddMeshletDebugPass(
-                    viewContext.renderGraph,
-                    colorTarget,
-                    in depthDesc,
-                    in cullingBuffers,
-                    cullPassIndex: 0);
+                case RenderPipelineDebugMode.Meshlet:
+                    // Pass 1: Meshlet Debug Rasterization (Early-Z) directly to backbuffer
+                    currentDepth = AddMeshletDebugPass(
+                        viewContext.renderGraph,
+                        colorTarget,
+                        in depthDesc,
+                        in cullingBuffers,
+                        cullPassIndex: 0);
 
-                // Build HZB Mip Pyramid from current depth
-                AddBuildHZBPasses(
-                    viewContext.renderGraph,
-                    currentDepth,
-                    hzbAtlas,
-                    viewContext.hzbMipCount,
-                    viewContext.baseWidth,
-                    viewContext.baseHeight,
-                    viewData.ScreenSize.x,
-                    viewData.ScreenSize.y);
+                    // Build HZB Mip Pyramid from current depth
+                    AddBuildHZBPasses(
+                        viewContext.renderGraph,
+                        currentDepth,
+                        hzb,
+                        viewContext.hzbMipCount,
+                        viewContext.baseWidth,
+                        viewContext.baseHeight,
+                        viewData.ScreenSize.x,
+                        viewData.ScreenSize.y);
 
-                // Pass 2: Late-Z Meshlet Culling (Work Graph testing occluded meshlets against current HZB)
-                AddMeshletCullPass2(
-                    viewContext.renderGraph,
-                    in cullingBuffers,
-                    hzbAtlas,
-                    viewContext.hzbMipCount,
-                    viewData.ScreenSize.x,
-                    viewData.ScreenSize.y,
-                    in viewContext.hzbOffsets0,
-                    in viewContext.hzbOffsets1,
-                    in viewContext.hzbOffsets2,
-                    in viewContext.hzbOffsets3,
-                    ghostPayload.InstanceCount);
+                    // Pass 2: Late-Z Meshlet Culling (Work Graph testing occluded meshlets against current HZB)
+                    AddMeshletCullPass2(
+                        viewContext.renderGraph,
+                        in cullingBuffers,
+                        hzb,
+                        viewContext.hzbMipCount,
+                        viewData.ScreenSize.x,
+                        viewData.ScreenSize.y,
+                        viewContext.baseWidth,
+                        viewContext.baseHeight,
+                        ghostPayload.InstanceCount);
 
-                // Pass 2: Prepare Indirect Dispatch Arguments
-                AddPrepareIndirectArgsPass(viewContext.renderGraph, in cullingBuffers, 1);
+                    // Pass 2: Prepare Indirect Dispatch Arguments
+                    AddPrepareIndirectArgsPass(viewContext.renderGraph, in cullingBuffers, 1);
 
-                // Pass 2: Meshlet Debug Rasterization (Late-Z) directly to backbuffer
-                AddMeshletDebugPass(
-                    viewContext.renderGraph,
-                    colorTarget,
-                    in depthDesc,
-                    in cullingBuffers,
-                    cullPassIndex: 1,
-                    existingDepth: currentDepth);
+                    // Pass 2: Meshlet Debug Rasterization (Late-Z) directly to backbuffer
+                    AddMeshletDebugPass(
+                        viewContext.renderGraph,
+                        colorTarget,
+                        in depthDesc,
+                        in cullingBuffers,
+                        cullPassIndex: 1,
+                        existingDepth: currentDepth);
 
-                // Skip BlitPass: colorTarget (backbuffer) has already received rendered meshlet debug output directly
-            }
-            else
-            {
-                // Pass 1: Visibility Buffer Rasterization (Early-Z / Previously Visible)
-                (currentVisBuffer, currentDepth) = AddVisibilityBufferPass(
-                    viewContext.renderGraph,
-                    in vbufferDesc,
-                    in depthDesc,
-                    in cullingBuffers,
-                    cullPassIndex: 0);
+                    // Skip BlitPass: colorTarget (backbuffer) has already received rendered meshlet debug output directly
+                    break;
+                default:
+                    // Pass 1: Visibility Buffer Rasterization (Early-Z / Previously Visible)
+                    (currentVisBuffer, currentDepth) = AddVisibilityBufferPass(
+                        viewContext.renderGraph,
+                        in vbufferDesc,
+                        in depthDesc,
+                        in cullingBuffers,
+                        cullPassIndex: 0);
 
-                // Build HZB Mip Pyramid (Compute passes downsampling current depth directly into hzbAtlas)
-                AddBuildHZBPasses(
-                    viewContext.renderGraph,
-                    currentDepth,
-                    hzbAtlas,
-                    viewContext.hzbMipCount,
-                    viewContext.baseWidth,
-                    viewContext.baseHeight,
-                    viewData.ScreenSize.x,
-                    viewData.ScreenSize.y);
+                    // Build HZB Mip Pyramid (Compute passes downsampling current depth directly into hzb)
+                    AddBuildHZBPasses(
+                        viewContext.renderGraph,
+                        currentDepth,
+                        hzb,
+                        viewContext.hzbMipCount,
+                        viewContext.baseWidth,
+                        viewContext.baseHeight,
+                        viewData.ScreenSize.x,
+                        viewData.ScreenSize.y);
 
-                // Pass 2: Late-Z Meshlet Culling (Work Graph testing occluded meshlets against current HZB)
-                AddMeshletCullPass2(
-                    viewContext.renderGraph,
-                    in cullingBuffers,
-                    hzbAtlas,
-                    viewContext.hzbMipCount,
-                    viewData.ScreenSize.x,
-                    viewData.ScreenSize.y,
-                    in viewContext.hzbOffsets0,
-                    in viewContext.hzbOffsets1,
-                    in viewContext.hzbOffsets2,
-                    in viewContext.hzbOffsets3,
-                    ghostPayload.InstanceCount);
+                    // Pass 2: Late-Z Meshlet Culling (Work Graph testing occluded meshlets against current HZB)
+                    AddMeshletCullPass2(
+                        viewContext.renderGraph,
+                        in cullingBuffers,
+                        hzb,
+                        viewContext.hzbMipCount,
+                        viewData.ScreenSize.x,
+                        viewData.ScreenSize.y,
+                        viewContext.baseWidth,
+                        viewContext.baseHeight,
+                        ghostPayload.InstanceCount);
 
-                // Pass 2: Prepare Indirect Dispatch Arguments
-                AddPrepareIndirectArgsPass(viewContext.renderGraph, in cullingBuffers, 1);
+                    // Pass 2: Prepare Indirect Dispatch Arguments
+                    AddPrepareIndirectArgsPass(viewContext.renderGraph, in cullingBuffers, 1);
 
-                // Pass 2: Visibility Buffer Rasterization (Late-Z / Newly Visible)
-                AddVisibilityBufferPass(
-                    viewContext.renderGraph,
-                    in vbufferDesc,
-                    in depthDesc,
-                    in cullingBuffers,
-                    cullPassIndex: 1,
-                    existingVisBuffer: currentVisBuffer,
-                    existingDepth: currentDepth);
+                    // Pass 2: Visibility Buffer Rasterization (Late-Z / Newly Visible)
+                    AddVisibilityBufferPass(
+                        viewContext.renderGraph,
+                        in vbufferDesc,
+                        in depthDesc,
+                        in cullingBuffers,
+                        cullPassIndex: 1,
+                        existingVisBuffer: currentVisBuffer,
+                        existingDepth: currentDepth);
 
-                // Blit Visibility Buffer to screen / backbuffer
-                AddBlitPass(viewContext.renderGraph, currentVisBuffer, colorTarget);
+                    // Blit Visibility Buffer to screen / backbuffer
+                    AddBlitPass(viewContext.renderGraph, currentVisBuffer, colorTarget);
+                    break;
             }
 
             var result = viewContext.renderGraph.CompileAndExecute(executionContext, viewState);

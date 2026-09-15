@@ -26,6 +26,29 @@ public struct CreationOptions
     }
 }
 
+[Flags]
+public enum TextureViewCreationFlags : uint
+{
+    None = 0,
+    CreatePerMipSrv = 1 << 0,
+    CreatePerMipRtv = 1 << 1,
+    CreatePerSliceSrv = 1 << 2,
+    CreatePerSliceRtv = 1 << 3,
+}
+
+public ref struct AdditionalTextureDesc
+{
+    public ReadOnlySpan<TextureFormat> CastableFormat
+    {
+        get; set;
+    }
+
+    public TextureViewCreationFlags ViewCreationFlags
+    {
+        get; set;
+    }
+}
+
 public enum HeapType
 {
     Default,

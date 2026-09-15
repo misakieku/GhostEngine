@@ -64,7 +64,8 @@ public sealed class ShaderVariantRenderingTest
         public Handle<GPUTexture> GetActualTexture(Identifier<RGTexture> texture) => Handle<GPUTexture>.Invalid;
         public Handle<GPUBuffer> GetActualBuffer(Identifier<RGBuffer> buffer) => Handle<GPUBuffer>.Invalid;
 
-        public uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource) => uint.MaxValue;
+        public uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.AllSubresources) => uint.MaxValue;
+        public void GetActualBindlessIndices(Identifier<RGTexture> texture, ReadOnlySpan<uint> subResources, Span<uint> outIndices, BindlessAccess access = BindlessAccess.ShaderResource) => outIndices.Fill(uint.MaxValue);
         public uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource) => uint.MaxValue;
         public void SetFrameData(uint frameBuffer) { }
         public void SetViewData(uint viewBuffer) { }

@@ -2,6 +2,8 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
@@ -806,7 +808,14 @@ internal static unsafe class D3D12Utility
     public static D3D12_DEPTH_STENCILOP_DESC D3D12_DEPTH_STENCILOP_DESC_DEFAULT => D3D12_DEPTH_STENCILOP_DESC_CREATE(D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS);
 
 
-    public static D3D12_SHADER_RESOURCE_VIEW_DESC CreateTextureSrvDesc(ID3D12Resource* pResource, uint mipLevels, uint arraySize, bool isCubeMap, TextureFormat originalFormat)
+    public static D3D12_SHADER_RESOURCE_VIEW_DESC CreateTextureSrvDesc(
+        ID3D12Resource* pResource,
+        uint mipLevels,
+        uint arraySize,
+        bool isCubeMap,
+        TextureFormat originalFormat,
+        uint mostDetailedMip = 0,
+        uint firstArraySlice = 0)
     {
         var resourceDesc = pResource->GetDesc();
         var srvDesc = new D3D12_SHADER_RESOURCE_VIEW_DESC
@@ -832,7 +841,9 @@ internal static unsafe class D3D12Utility
                     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
                     srvDesc.Texture1DArray = new D3D12_TEX1D_ARRAY_SRV
                     {
+                        MostDetailedMip = mostDetailedMip,
                         MipLevels = mipLevels,
+                        FirstArraySlice = firstArraySlice,
                         ArraySize = arraySize,
                     };
                 }
@@ -841,6 +852,7 @@ internal static unsafe class D3D12Utility
                     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
                     srvDesc.Texture1D = new D3D12_TEX1D_SRV
                     {
+                        MostDetailedMip = mostDetailedMip,
                         MipLevels = mipLevels,
                     };
                 }
@@ -854,7 +866,9 @@ internal static unsafe class D3D12Utility
                         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
                         srvDesc.TextureCubeArray = new D3D12_TEXCUBE_ARRAY_SRV
                         {
+                            MostDetailedMip = mostDetailedMip,
                             MipLevels = mipLevels,
+                            First2DArrayFace = firstArraySlice,
                             NumCubes = arraySize / 6,
                         };
                     }
@@ -863,7 +877,9 @@ internal static unsafe class D3D12Utility
                         srvDesc.ViewDimension = resourceDesc.SampleDesc.Count > 1 ? D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY : D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
                         srvDesc.Texture2DArray = new D3D12_TEX2D_ARRAY_SRV
                         {
+                            MostDetailedMip = mostDetailedMip,
                             MipLevels = mipLevels,
+                            FirstArraySlice = firstArraySlice,
                             ArraySize = arraySize,
                         };
                     }
@@ -875,6 +891,7 @@ internal static unsafe class D3D12Utility
                         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
                         srvDesc.TextureCube = new D3D12_TEXCUBE_SRV
                         {
+                            MostDetailedMip = mostDetailedMip,
                             MipLevels = mipLevels,
                         };
                     }
@@ -883,6 +900,7 @@ internal static unsafe class D3D12Utility
                         srvDesc.ViewDimension = resourceDesc.SampleDesc.Count > 1 ? D3D12_SRV_DIMENSION_TEXTURE2DMS : D3D12_SRV_DIMENSION_TEXTURE2D;
                         srvDesc.Texture2D = new D3D12_TEX2D_SRV
                         {
+                            MostDetailedMip = mostDetailedMip,
                             MipLevels = mipLevels,
                         };
                     }
@@ -892,6 +910,7 @@ internal static unsafe class D3D12Utility
             case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
                 srvDesc.Texture3D = new D3D12_TEX3D_SRV
                 {
+                    MostDetailedMip = mostDetailedMip,
                     MipLevels = mipLevels,
                 };
                 break;
@@ -1095,7 +1114,7 @@ internal static unsafe class D3D12Utility
         return dsvDesc;
     }
 
-    public static D3D12_UNORDERED_ACCESS_VIEW_DESC CreateTextureUavDesc(ID3D12Resource* pResource, uint mipSlice = 0, uint firstArraySlice = 0, uint planeSlice = 0)
+    public static D3D12_UNORDERED_ACCESS_VIEW_DESC CreateTextureUavDesc(ID3D12Resource* pResource, uint mipSlice = 0, uint firstArraySlice = 0, uint planeSlice = 0, uint arraySize = 0)
     {
         var resourceDesc = pResource->GetDesc();
         var uavDesc = new D3D12_UNORDERED_ACCESS_VIEW_DESC
@@ -1113,7 +1132,7 @@ internal static unsafe class D3D12Utility
                     {
                         MipSlice = mipSlice,
                         FirstArraySlice = firstArraySlice,
-                        ArraySize = resourceDesc.ArraySize() - firstArraySlice
+                        ArraySize = arraySize > 0 ? arraySize : resourceDesc.ArraySize() - firstArraySlice
                     };
                 }
                 else
@@ -1134,7 +1153,7 @@ internal static unsafe class D3D12Utility
                     {
                         MipSlice = mipSlice,
                         FirstArraySlice = firstArraySlice,
-                        ArraySize = resourceDesc.ArraySize() - firstArraySlice,
+                        ArraySize = arraySize > 0 ? arraySize : resourceDesc.ArraySize() - firstArraySlice,
                         PlaneSlice = planeSlice
                     };
                 }
@@ -1155,7 +1174,7 @@ internal static unsafe class D3D12Utility
                 {
                     MipSlice = mipSlice,
                     FirstWSlice = firstArraySlice,
-                    WSize = resourceDesc.Depth() - firstArraySlice
+                    WSize = arraySize > 0 ? arraySize : resourceDesc.Depth() - firstArraySlice
                 };
                 break;
 
@@ -1295,5 +1314,86 @@ internal static unsafe class D3D12Utility
         }
 
         return resourceDescriptor;
+    }
+
+    public static UnsafeArray<ResourceViewGroup> CreateSubresourceDescriptors(
+        D3D12RenderDevice device,
+        D3D12DescriptorAllocator descriptorAllocator,
+        in TextureDesc desc,
+        ID3D12Resource* pResource,
+        TextureViewCreationFlags flags = TextureViewCreationFlags.None,
+        UnsafeArray<ResourceViewGroup> preallocated = default)
+    {
+        var mipLevels = desc.MipLevels == 0
+            ? (uint)(1 + Math.Floor(Math.Log2(Math.Max(desc.Width, Math.Max(desc.Height, desc.Slice)))))
+            : (uint)desc.MipLevels;
+
+        var arraySize = desc.Dimension switch
+        {
+            TextureDimension.TextureCube => 6u,
+            TextureDimension.TextureCubeArray => (uint)(desc.Slice * 6),
+            TextureDimension.Texture2DArray => (uint)desc.Slice,
+            _ => 1u,
+        };
+
+        var totalSubresources = mipLevels * arraySize;
+        var subResourceViews = preallocated.IsCreated && preallocated.Length == totalSubresources
+            ? preallocated
+            : new UnsafeArray<ResourceViewGroup>((int)totalSubresources, AllocationHandle.Persistent, AllocationOption.Clear);
+
+        var hasUav = desc.Usage.HasFlag(TextureUsage.UnorderedAccess);
+        var perMipSrv = flags.HasFlag(TextureViewCreationFlags.CreatePerMipSrv);
+        var perMipRtv = flags.HasFlag(TextureViewCreationFlags.CreatePerMipRtv);
+        var perSliceSrv = flags.HasFlag(TextureViewCreationFlags.CreatePerSliceSrv);
+        var perSliceRtv = flags.HasFlag(TextureViewCreationFlags.CreatePerSliceRtv);
+
+        for (var slice = 0u; slice < arraySize; slice++)
+        {
+            for (var mip = 0u; mip < mipLevels; mip++)
+            {
+                var subresourceIndex = (int)(mip + slice * mipLevels);
+                var vg = subResourceViews[subresourceIndex];
+
+                // UAV per mip (default for all multi-mip UAV textures)
+                if (hasUav || vg.uav.IsValid)
+                {
+                    if (!vg.uav.IsValid)
+                    {
+                        vg.uav = descriptorAllocator.AllocateCbvSrvUav();
+                    }
+                    var cpuHandle = descriptorAllocator.GetCpuHandle(vg.uav);
+                    var uavDesc = CreateTextureUavDesc(pResource, mipSlice: mip, firstArraySlice: slice, planeSlice: 0, arraySize: 1);
+                    device.NativeObject.Get()->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
+                }
+
+                // Per-mip or per-slice SRV
+                if (perMipSrv || (perSliceSrv && arraySize > 1) || vg.srv.IsValid)
+                {
+                    if (!vg.srv.IsValid)
+                    {
+                        vg.srv = descriptorAllocator.AllocateCbvSrvUav();
+                    }
+                    var cpuHandle = descriptorAllocator.GetCpuHandle(vg.srv);
+                    var srvDesc = CreateTextureSrvDesc(pResource, mipLevels: 1, arraySize: 1, isCubeMap: false, desc.Format, mostDetailedMip: mip, firstArraySlice: slice);
+                    device.NativeObject.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
+                }
+
+                // Per-mip or per-slice RTV
+                if (((perMipRtv || perSliceRtv) && desc.Usage.HasFlag(TextureUsage.RenderTarget)) || vg.rtv.IsValid)
+                {
+                    if (!vg.rtv.IsValid)
+                    {
+                        vg.rtv = descriptorAllocator.AllocateRTV();
+                    }
+                    var cpuHandle = descriptorAllocator.GetCpuHandle(vg.rtv);
+                    var rtvDesc = CreateRtvDesc(pResource, mipSlice: mip, firstArraySlice: slice);
+                    device.NativeObject.Get()->CreateRenderTargetView(pResource, &rtvDesc, cpuHandle);
+                }
+
+                subResourceViews[subresourceIndex] = vg;
+            }
+        }
+
+        return subResourceViews;
     }
 }

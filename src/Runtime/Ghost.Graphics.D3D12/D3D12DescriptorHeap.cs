@@ -4,6 +4,7 @@ using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 
 using static TerraFX.Aliases.D3D12_Alias;
@@ -17,7 +18,6 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
     private readonly D3D12RenderDevice _device;
 
     private UniquePtr<ID3D12DescriptorHeap> _heap;
-    private UniquePtr<ID3D12DescriptorHeap> _shaderVisibleHeap;
 
     private D3D12_CPU_DESCRIPTOR_HANDLE _startCpuHandle;
     private D3D12_CPU_DESCRIPTOR_HANDLE _startCpuHandleShaderVisible;
@@ -54,7 +54,7 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
     }
 
     public ID3D12DescriptorHeap* Heap => _heap.Get();
-    public ID3D12DescriptorHeap* ShaderVisibleHeap => _shaderVisibleHeap.Get();
+    public ID3D12DescriptorHeap* ShaderVisibleHeap => _heap.Get();
 
     public D3D12DescriptorHeap(string name, D3D12RenderDevice device, D3D12_DESCRIPTOR_HEAP_TYPE type, int numDescriptors)
     {
@@ -70,11 +70,7 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
         var success = AllocateResources(numDescriptors);
         Logger.DebugAssert(success);
 
-        _heap.Get()->SetName(name);
-        if (ShaderVisible)
-        {
-            _shaderVisibleHeap.Get()->SetName($"{name} Shader Visible");
-        }
+        _heap.Get()->SetName(ShaderVisible ? $"{name} Shader Visible" : name);
     }
 
     public int AllocateDescriptor() => AllocateDescriptors(1);
@@ -209,22 +205,22 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
         return handle.Offset(index, Stride);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CopyToShaderVisibleHeap(int index, int count = 1)
     {
-        _device.NativeObject.Get()->CopyDescriptorsSimple((uint)count, GetCpuHandleShaderVisible(index), GetCpuHandle(index), HeapType);
+        // Direct-to-shader-visible optimization: no-op since descriptors are created directly in shader visible heap
     }
 
     private bool AllocateResources(int numDescriptors)
     {
         NumDescriptors = numDescriptors;
         _heap.Dispose();
-        _shaderVisibleHeap.Dispose();
 
         D3D12_DESCRIPTOR_HEAP_DESC heapDesc = new()
         {
             Type = HeapType,
             NumDescriptors = (uint)numDescriptors,
-            Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+            Flags = ShaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
             NodeMask = 0
         };
 
@@ -239,6 +235,12 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
 
         _startCpuHandle = _heap.Get()->GetCPUDescriptorHandleForHeapStart();
 
+        if (ShaderVisible)
+        {
+            _startCpuHandleShaderVisible = _startCpuHandle;
+            _startGpuHandleShaderVisible = _heap.Get()->GetGPUDescriptorHandleForHeapStart();
+        }
+
         if (!_allocatedDescriptors.IsCreated)
         {
             _allocatedDescriptors = new UnsafeBitSet(numDescriptors, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent, Misaki.HighPerformance.LowLevel.Buffer.AllocationOption.Clear);
@@ -248,28 +250,17 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
             _allocatedDescriptors.Resize(numDescriptors, Misaki.HighPerformance.LowLevel.Buffer.AllocationOption.Clear);
         }
 
-        if (ShaderVisible)
-        {
-            ID3D12DescriptorHeap* pShaderVisibleHeap = default;
-
-            heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-            hr = _device.NativeObject.Get()->CreateDescriptorHeap(&heapDesc, __uuidof(pShaderVisibleHeap), (void**)&pShaderVisibleHeap);
-            if (hr.FAILED)
-            {
-                return false;
-            }
-
-            _startCpuHandleShaderVisible = pShaderVisibleHeap->GetCPUDescriptorHandleForHeapStart();
-            _startGpuHandleShaderVisible = pShaderVisibleHeap->GetGPUDescriptorHandleForHeapStart();
-
-            _shaderVisibleHeap.Attach(pShaderVisibleHeap);
-        }
-
         return true;
     }
 
     private bool Grow(int minRequiredSize)
     {
+        if (ShaderVisible)
+        {
+            Logger.Error($"Cannot grow shader-visible descriptor heap beyond {NumDescriptors}. Max initial size should be pre-allocated.");
+            return false;
+        }
+
         var oldSize = NumDescriptors;
         var newSize = (int)BitOperations.RoundUpToPowerOf2((uint)minRequiredSize);
 
@@ -283,11 +274,6 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
             }
 
             _device.NativeObject.Get()->CopyDescriptorsSimple((uint)oldSize, _startCpuHandle, oldHeap->GetCPUDescriptorHandleForHeapStart(), HeapType);
-
-            if (_shaderVisibleHeap.Get() != null)
-            {
-                _device.NativeObject.Get()->CopyDescriptorsSimple((uint)oldSize, _startCpuHandleShaderVisible, oldHeap->GetCPUDescriptorHandleForHeapStart(), HeapType);
-            }
         }
         finally
         {
@@ -303,7 +289,6 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
         Logger.DebugAssert(NumAllocatedDescriptors == 0);
 
         _heap.Dispose();
-        _shaderVisibleHeap.Dispose();
         _allocatedDescriptors.Dispose();
     }
 }

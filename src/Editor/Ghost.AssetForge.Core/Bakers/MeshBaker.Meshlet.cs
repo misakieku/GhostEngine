@@ -220,32 +220,6 @@ internal static unsafe partial class MeshProcessor
                 var v1 = pMeshletVertices[meshlet.vertex_offset + i1];
                 var v2 = pMeshletVertices[meshlet.vertex_offset + i2];
 
-                if (mesh.vertexAttributes != null && mesh.vertexPositions != null)
-                {
-                    var p0 = mesh.vertexPositions + v0 * posStride;
-                    var p1 = mesh.vertexPositions + v1 * posStride;
-                    var p2 = mesh.vertexPositions + v2 * posStride;
-
-                    var pos0 = new float3(p0[0], p0[1], p0[2]);
-                    var pos1 = new float3(p1[0], p1[1], p1[2]);
-                    var pos2 = new float3(p2[0], p2[1], p2[2]);
-
-                    var geomNormal = math.cross(pos1 - pos0, pos2 - pos0);
-
-                    var n0 = mesh.vertexAttributes + v0 * normStride;
-                    var n1 = mesh.vertexAttributes + v1 * normStride;
-                    var n2 = mesh.vertexAttributes + v2 * normStride;
-                    var normAvg = new float3(n0[0] + n1[0] + n2[0], n0[1] + n1[1] + n2[1], n0[2] + n1[2] + n2[2]);
-
-                    if (math.lengthsq(normAvg) > 1e-8f && math.dot(geomNormal, normAvg) < -1e-6f)
-                    {
-                        // Triangle winding is flipped (counter-clockwise instead of clockwise).
-                        // Swap i1 and i2 (and v1 and v2) to preserve clockwise front-facing winding.
-                        var tempI = i1; i1 = i2; i2 = tempI;
-                        var tempV = v1; v1 = v2; v2 = tempV;
-                    }
-                }
-
                 cluster.localIndices.Add(i0);
                 cluster.localIndices.Add(i1);
                 cluster.localIndices.Add(i2);
@@ -261,46 +235,73 @@ internal static unsafe partial class MeshProcessor
         return clusters;
     }
 
-    internal static void LockBoundary(UnsafeArray<byte> locks, UnsafeList<UnsafeList<int>> groups, UnsafeList<Cluster> clusters, UnsafeArray<uint> remap, byte* vertexLock)
+    internal static void LockBoundary(
+        UnsafeArray<byte> locks,
+        UnsafeArray<byte> baseLocks,
+        UnsafeList<UnsafeList<int>> groups,
+        UnsafeList<Cluster> clusters,
+        UnsafeArray<uint> remap,
+        byte* vertexLock,
+        AllocationHandle allocationHandle)
     {
         var pLocks = (byte*)locks.GetUnsafePtr();
+        var pBaseLocks = (byte*)baseLocks.GetUnsafePtr();
         var pRemap = (uint*)remap.GetUnsafePtr();
+        var vertexCount = locks.Length;
 
-        for (var i = 0; i < locks.Length; i++)
+        Unsafe.CopyBlock(pLocks, pBaseLocks, (uint)vertexCount);
+
+        uint maxPosId = 0;
+        for (var v = 0; v < vertexCount; v++)
         {
-            pLocks[i] = unchecked((byte)(pLocks[i] & ~((1 << 0) | (1 << 7))));
-        }
-
-        for (var i = 0; i < groups.Count; i++)
-        {
-            for (var j = 0; j < groups[i].Count; j++)
+            if (pRemap[v] > maxPosId)
             {
-                var cluster = clusters[groups[i][j]];
-                for (var k = 0; k < cluster.indices.Count; k++)
-                {
-                    var r = pRemap[(int)cluster.indices[k]];
-                    pLocks[r] |= (byte)(pLocks[r] >> 7);
-                }
-            }
-
-            for (var j = 0; j < groups[i].Count; j++)
-            {
-                var cluster = clusters[groups[i][j]];
-                for (var k = 0; k < cluster.indices.Count; k++)
-                {
-                    var r = pRemap[(int)cluster.indices[k]];
-                    pLocks[r] |= 1 << 7;
-                }
+                maxPosId = pRemap[v];
             }
         }
 
-        for (var i = 0; i < locks.Length; i++)
+        using var owner = new UnsafeArray<int>((int)maxPosId + 1, allocationHandle);
+        using var lockedPos = new UnsafeArray<byte>((int)maxPosId + 1, allocationHandle, AllocationOption.Clear);
+        var pOwner = (int*)owner.GetUnsafePtr();
+        var pLockedPos = (byte*)lockedPos.GetUnsafePtr();
+
+        for (var i = 0; i <= (int)maxPosId; i++)
         {
-            var r = pRemap[i];
-            pLocks[i] = (byte)((pLocks[r] & 1) | (pLocks[i] & (byte)SimplifyVertexOptions.Protect & 0xFF));
+            pOwner[i] = -1;
+        }
+
+        for (var gi = 0; gi < groups.Count; gi++)
+        {
+            var group = groups[gi];
+            for (var j = 0; j < group.Count; j++)
+            {
+                var cluster = clusters[group[j]];
+                for (var k = 0; k < cluster.uniqueVertices.Count; k++)
+                {
+                    uint v = cluster.uniqueVertices[k];
+                    uint pid = pRemap[(int)v];
+                    if (pOwner[(int)pid] == -1)
+                    {
+                        pOwner[(int)pid] = gi;
+                    }
+                    else if (pOwner[(int)pid] != gi)
+                    {
+                        pLockedPos[(int)pid] = 1;
+                    }
+                }
+            }
+        }
+
+        for (var v = 0; v < vertexCount; v++)
+        {
+            if (pLockedPos[(int)pRemap[v]] != 0)
+            {
+                pLocks[v] |= (byte)SimplifyVertexOptions.Lock;
+            }
+
             if (vertexLock != null)
             {
-                pLocks[i] |= vertexLock[i];
+                pLocks[v] |= vertexLock[v];
             }
         }
     }
@@ -548,26 +549,42 @@ internal static unsafe partial class MeshProcessor
 
     private static nuint Build(ref readonly ClodConfig config, ref readonly ClodMesh mesh, MeshletContext outputContext, ClodOutputDelegate? outputCallback, AllocationHandle allocationHandle)
     {
-        using var locks = new UnsafeArray<byte>((int)mesh.vertexCount, allocationHandle, AllocationOption.Clear);
+        using var locks = new UnsafeArray<byte>((int)mesh.vertexCount, allocationHandle);
+        using var baseLocks = new UnsafeArray<byte>((int)mesh.vertexCount, allocationHandle, AllocationOption.Clear);
         using var remap = new UnsafeArray<uint>((int)mesh.vertexCount, allocationHandle);
 
         MeshOptApi.GeneratePositionRemap((uint*)remap.GetUnsafePtr(), mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride);
 
-        if (mesh.attributeProtectMask != 0)
+        if (config.simplifyPermissive && mesh.vertexAttributes != null && mesh.attributeCount > 0)
         {
-            var maxAttributes = mesh.vertexAttributesStride / sizeof(float);
+            var pBaseLocks = (byte*)baseLocks.GetUnsafePtr();
+            var pRemap = (uint*)remap.GetUnsafePtr();
+            var normStride = mesh.vertexAttributesStride / sizeof(float);
+
             for (nuint i = 0; i < mesh.vertexCount; i++)
             {
-                var r = ((uint*)remap.GetUnsafePtr())[(int)i];
-                for (nuint j = 0; j < maxAttributes; j++)
+                var r = pRemap[(int)i];
+                if (r == (uint)i)
                 {
-                    if ((r != i) && ((mesh.attributeProtectMask & (1u << (int)j)) != 0))
+                    continue;
+                }
+
+                var ni = mesh.vertexAttributes + i * normStride;
+                var nr = mesh.vertexAttributes + r * normStride;
+                var differ = false;
+                for (nuint a = 0; a < mesh.attributeCount; a++)
+                {
+                    if (ni[a] != nr[a])
                     {
-                        if (mesh.vertexAttributes[i * maxAttributes + j] != mesh.vertexAttributes[r * maxAttributes + j])
-                        {
-                            ((byte*)locks.GetUnsafePtr())[i] |= (byte)SimplifyVertexOptions.Protect & 0xFF;
-                        }
+                        differ = true;
+                        break;
                     }
+                }
+
+                if (differ)
+                {
+                    pBaseLocks[i] |= (byte)SimplifyVertexOptions.Protect;
+                    pBaseLocks[r] |= (byte)SimplifyVertexOptions.Protect;
                 }
             }
         }
@@ -592,7 +609,7 @@ internal static unsafe partial class MeshProcessor
             using var groups = Partition(in config, in mesh, clusters, pending, remap, allocationHandle);
             pending.Clear();
 
-            LockBoundary(locks, groups, clusters, remap, mesh.vertexLock);
+            LockBoundary(locks, baseLocks, groups, clusters, remap, mesh.vertexLock, allocationHandle);
 
             for (var i = 0; i < groups.Count; i++)
             {
@@ -834,6 +851,7 @@ internal static unsafe partial class MeshProcessor
 
         try
         {
+            var weights = stackalloc float[] { 0.5f, 0.5f, 0.5f, 0.1f, 0.1f };
             for (var i = 0; i < parts.Length; i++)
             {
                 ref readonly var part = ref parts[i];
@@ -844,6 +862,8 @@ internal static unsafe partial class MeshProcessor
                     vertexPositionsStride = (nuint)sizeof(Vertex),
                     vertexAttributes = (float*)Unsafe.AsPointer(in vertices[0].normal),
                     vertexAttributesStride = (nuint)sizeof(Vertex),
+                    attributeWeights = weights,
+                    attributeCount = 5,
                     indices = (uint*)indices.GetUnsafePtr() + part.indexStart,
                     indexCount = (nuint)part.indexCount,
                     attributeProtectMask = 0,

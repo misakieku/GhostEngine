@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
+using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -205,15 +206,38 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             return Handle<GPUTexture>.Invalid;
         }
 
+        var mipLevels = desc.MipLevels == 0
+            ? (uint)(1 + Math.Floor(Math.Log2(Math.Max(desc.Width, Math.Max(desc.Height, desc.Slice)))))
+            : (uint)desc.MipLevels;
+
+        var hasUav = desc.Usage.HasFlag(TextureUsage.UnorderedAccess);
+        var needsSubresources = (hasUav && mipLevels > 1) || additionalDesc.ViewCreationFlags != TextureViewCreationFlags.None;
+
+        UnsafeArray<ResourceViewGroup> subResourceViews = default;
+        if (needsSubresources)
+        {
+            subResourceViews = D3D12Utility.CreateSubresourceDescriptors(_device, _descriptorAllocator, desc, pResource, additionalDesc.ViewCreationFlags);
+        }
+
         var resourceDescriptor = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, ResourceDesc.Texture(desc), pResource);
+
+        if (subResourceViews.IsCreated && hasUav)
+        {
+            if (resourceDescriptor.uav.IsValid)
+            {
+                _descriptorAllocator.Release(resourceDescriptor.uav);
+            }
+            resourceDescriptor.uav = subResourceViews[0].uav;
+        }
+
         Handle<GPUResource> resource;
         if (isSubAllocation)
         {
-            resource = _resourceDatabase.ImportExternalResource(pResource, resourceDescriptor, ResourceDesc.Texture(desc), name);
+            resource = _resourceDatabase.ImportExternalResource(pResource, resourceDescriptor, ResourceDesc.Texture(desc), name, subResourceViews);
         }
         else
         {
-            resource = _resourceDatabase.AddAllocation(pAllocation, resourceDescriptor, ResourceDesc.Texture(desc), name);
+            resource = _resourceDatabase.AddAllocation(pAllocation, resourceDescriptor, ResourceDesc.Texture(desc), name, subResourceViews);
         }
 
         return resource.AsTexture();

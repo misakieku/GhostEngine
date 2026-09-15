@@ -140,6 +140,18 @@ Visibility Buffer render target format is `R32G32_UINT`:
 - **Target 1 (`.y`)**: `[MeshletIndex (24 bits)]  | [PrimitiveID (8 bits) << 24]`
 - **Depth Target**: Standard 32-bit hardware floating point depth (`D32_FLOAT`).
 
+### 2.6 Batched 4-Mip Subgroup Tree Reduction for HZB Generation
+Rather than dispatching 10+ individual compute passes with global pipeline barriers between every single mip level, [`BuildHZB.gcomp`](file:///F:/csharp/GhostEngine/src/Runtime/Ghost.Engine/Assets/EngineResources/Shaders/BuildHZB.gcomp) generates **up to 4 mip levels in a single dispatch** using a Morton Z-curve mapping and threadgroup shared memory:
+- **LDS Footprint**: Only `groupshared float s_minDepth[32];` (128 bytes total), ensuring zero occupancy penalty on GPU compute units.
+- **Morton Z-Curve Swizzle (`CoordInTileByIndex`)**: Maps 64 linear threads into an $8 \times 8$ pixel footprint where every 4 threads form a $2 \times 2$ pixel quad.
+- **Hierarchical Reduction**:
+  1. All 64 threads sample source depth and write Mip 0 ($8 \times 8$).
+  2. Binary reduction (`SubgroupMergeDepths`) merges 4 values into 1; 16 threads write Mip 1 ($4 \times 4$).
+  3. Binary reduction merges 16 values into 1; 4 threads write Mip 2 ($2 \times 2$).
+  4. Final reduction merges 64 values into thread 0; 1 thread writes Mip 3 ($1 \times 1$).
+- **Dynamic Mip Count (`minDstCount`)**: The CPU dynamically loops `Math.Min(remainingMips, 4u)`, gracefully handling arbitrary mip counts (e.g. 10 or 11 mips across just 3 batches) with zero deadlocks and zero unused writes.
+- **Performance Impact**: Collapses ~20 compute passes per frame down to ~6 compute passes per frame, eliminating over 70% of GPU pipeline sync barriers.
+
 ---
 
 ## 3. Important Bugs Encountered & Solutions

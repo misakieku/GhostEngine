@@ -132,41 +132,6 @@ static inline FrustumTestResult FrustumCullAABB(
     return res;
 }
 
-static inline int2 GetHZBMipOffset(
-    uint lod,
-    uint4 hzbOffsets0,
-    uint4 hzbOffsets1,
-    uint4 hzbOffsets2,
-    uint4 hzbOffsets3)
-{
-    if (lod == 0)
-    {
-        return int2(0, 0);
-    }
-
-    uint packedVal = 0;
-    if (lod < 4)
-    {
-        packedVal = (lod == 1) ? hzbOffsets0.y : ((lod == 2) ? hzbOffsets0.z : hzbOffsets0.w);
-    }
-    else if (lod < 8)
-    {
-        uint l = lod - 4;
-        packedVal = (l == 0) ? hzbOffsets1.x : ((l == 1) ? hzbOffsets1.y : ((l == 2) ? hzbOffsets1.z : hzbOffsets1.w));
-    }
-    else if (lod < 12)
-    {
-        uint l = lod - 8;
-        packedVal = (l == 0) ? hzbOffsets2.x : ((l == 1) ? hzbOffsets2.y : ((l == 2) ? hzbOffsets2.z : hzbOffsets2.w));
-    }
-    else
-    {
-        uint l = lod - 12;
-        packedVal = (l == 0) ? hzbOffsets3.x : ((l == 1) ? hzbOffsets3.y : ((l == 2) ? hzbOffsets3.z : hzbOffsets3.w));
-    }
-    return int2(packedVal & 0xFFFF, packedVal >> 16);
-}
-
 // Nanite's MipLevelForRect for 4x4 footprint
 static inline int MipLevelForRect(int4 rectPixels, int desiredFootprintPixels = 4)
 {
@@ -180,26 +145,24 @@ static inline int MipLevelForRect(int4 rectPixels, int desiredFootprintPixels = 
     return mipLevel;
 }
 
-// Evaluates whether a projected clip-space bounding box is visible against the HZB pyramid atlas
+// Evaluates whether a projected clip-space bounding box is visible against the HZB pyramid
 static inline bool HZBVisible(
     float4 clipMin,
     float4 clipMax,
     uint hzbMipCount,
     uint renderWidth,
     uint renderHeight,
-    uint hzbAtlas,
-    uint4 hzbOffsets0,
-    uint4 hzbOffsets1,
-    uint4 hzbOffsets2,
-    uint4 hzbOffsets3)
+    uint hzbTexture,
+    uint hzbBaseWidth,
+    uint hzbBaseHeight)
 {
     if (clipMin.x > 1.0f || clipMin.y > 1.0f || clipMax.x < -1.0f || clipMax.y < -1.0f)
     {
         return false;
     }
 
-    uint2 hzbBaseSize = uint2(hzbOffsets0.x & 0xFFFFu, hzbOffsets0.x >> 16);
-    if (hzbAtlas == 0 || hzbAtlas == 0xFFFFFFFF || hzbMipCount == 0 || hzbBaseSize.x == 0 || hzbBaseSize.y == 0)
+    uint2 hzbBaseSize = uint2(hzbBaseWidth, hzbBaseHeight);
+    if (hzbTexture == 0 || hzbTexture == 0xFFFFFFFF || hzbMipCount == 0 || hzbBaseSize.x == 0 || hzbBaseSize.y == 0)
     {
         return true;
     }
@@ -241,32 +204,31 @@ static inline bool HZBVisible(
     int4 xCoords = min(hzbTexels.x + int4(0, 1, 2, 3), hzbTexels.z);
     int4 yCoords = min(hzbTexels.y + int4(0, 1, 2, 3), hzbTexels.w);
 
-    int2 mipOffset = GetHZBMipOffset(hzbMip, hzbOffsets0, hzbOffsets1, hzbOffsets2, hzbOffsets3);
-    Texture2D<float> hzbAtlasTex = GET_TEXTURE2D(hzbAtlas);
+    Texture2D<float> hzbTex = GET_TEXTURE2D(hzbTexture);
 
     float4 row0 = float4(
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.x, yCoords.x), 0)).r,
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.y, yCoords.x), 0)).r,
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.z, yCoords.x), 0)).r,
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.w, yCoords.x), 0)).r
+        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.x)],
+        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.x)],
+        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.x)],
+        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.x)]
     );
     float4 row1 = float4(
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.x, yCoords.y), 0)).r,
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.y, yCoords.y), 0)).r,
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.z, yCoords.y), 0)).r,
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.w, yCoords.y), 0)).r
+        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.y)],
+        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.y)],
+        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.y)],
+        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.y)]
     );
     float4 row2 = float4(
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.x, yCoords.z), 0)).r,
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.y, yCoords.z), 0)).r,
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.z, yCoords.z), 0)).r,
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.w, yCoords.z), 0)).r
+        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.z)],
+        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.z)],
+        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.z)],
+        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.z)]
     );
     float4 row3 = float4(
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.x, yCoords.w), 0)).r,
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.y, yCoords.w), 0)).r,
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.z, yCoords.w), 0)).r,
-        hzbAtlasTex.Load(int3(mipOffset + int2(xCoords.w, yCoords.w), 0)).r
+        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.w)],
+        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.w)],
+        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.w)],
+        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.w)]
     );
 
     float4 minRow = min(min(row0, row1), min(row2, row3));

@@ -288,40 +288,50 @@ internal static unsafe partial class MeshProcessor
             }
 
             var numIndices = (uint)flatVertices.Count;
-            using var weldedIndices = new UnsafeArray<uint>((int)numIndices, allocationHandle);
-            using var cachedIndices = new UnsafeArray<uint>((int)numIndices, allocationHandle);
+            using var remap = new UnsafeArray<uint>((int)numIndices, allocationHandle);
 
-            var stream = new ufbx_vertex_stream
-            {
-                data = flatVertices.GetUnsafePtr(),
-                vertex_count = numIndices,
-                vertex_size = (nuint)sizeof(Vertex)
-            };
-
-            var error = new ufbx_error();
-            var numUniqueVertices = UfbxApi.GenerateIndices([stream], weldedIndices, null, &error);
-            if (numUniqueVertices == 0 && error.type != ufbx_error_type.UFBX_ERROR_NONE)
-            {
-                flatVertices.Dispose();
-                continue;
-            }
-
-            MeshOptApi.OptimizeVertexCache((uint*)cachedIndices.GetUnsafePtr(), (uint*)weldedIndices.GetUnsafePtr(), numIndices, numUniqueVertices);
-
-            var partVertices = new UnsafeList<Vertex>((int)numUniqueVertices, allocationHandle);
-            var partIndices = new UnsafeList<uint>((int)numIndices, allocationHandle);
-
-            var finalVertexCount = MeshOptApi.OptimizeVertexFetch(
-                partVertices.GetUnsafePtr(),
-                (uint*)cachedIndices.GetUnsafePtr(),
+            var numUniqueVertices = (uint)MeshOptApi.GenerateVertexRemap(
+                (uint*)remap.GetUnsafePtr(),
+                null,
                 numIndices,
                 flatVertices.GetUnsafePtr(),
                 numIndices,
                 (nuint)sizeof(Vertex));
 
-            partVertices.UnsafeSetCount((int)finalVertexCount);
-            MemoryUtility.MemCpy(partIndices.GetUnsafePtr(), cachedIndices.GetUnsafePtr(), numIndices * sizeof(uint));
+            var partVertices = new UnsafeList<Vertex>((int)numUniqueVertices, allocationHandle);
+            partVertices.UnsafeSetCount((int)numUniqueVertices);
+
+            var partIndices = new UnsafeList<uint>((int)numIndices, allocationHandle);
             partIndices.UnsafeSetCount((int)numIndices);
+
+            MeshOptApi.RemapIndexBuffer(
+                (uint*)partIndices.GetUnsafePtr(),
+                null,
+                numIndices,
+                (uint*)remap.GetUnsafePtr());
+
+            MeshOptApi.RemapVertexBuffer(
+                partVertices.GetUnsafePtr(),
+                flatVertices.GetUnsafePtr(),
+                numIndices,
+                (nuint)sizeof(Vertex),
+                (uint*)remap.GetUnsafePtr());
+
+            MeshOptApi.OptimizeVertexCache(
+                (uint*)partIndices.GetUnsafePtr(),
+                (uint*)partIndices.GetUnsafePtr(),
+                numIndices,
+                numUniqueVertices);
+
+            var finalVertexCount = MeshOptApi.OptimizeVertexFetch(
+                partVertices.GetUnsafePtr(),
+                (uint*)partIndices.GetUnsafePtr(),
+                numIndices,
+                partVertices.GetUnsafePtr(),
+                numUniqueVertices,
+                (nuint)sizeof(Vertex));
+
+            partVertices.UnsafeSetCount((int)finalVertexCount);
 
             var part = new GeometryPart
             {

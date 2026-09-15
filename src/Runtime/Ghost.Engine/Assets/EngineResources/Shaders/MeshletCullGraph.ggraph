@@ -13,11 +13,9 @@ compute "Internal/MeshletCullGraph"
         uint maxVisibleMeshlets;
         float lodErrorThreshold;
         uint instanceCount;
-        uint hzbAtlas;
-        uint4 hzbOffsets0;
-        uint4 hzbOffsets1;
-        uint4 hzbOffsets2;
-        uint4 hzbOffsets3;
+        uint hzbTexture;
+        uint hzbBaseWidth;
+        uint hzbBaseHeight;
     }
 
     includes
@@ -63,11 +61,9 @@ compute "Internal/MeshletCullGraph"
                 props.hzbMipCount,
                 props.renderWidth,
                 props.renderHeight,
-                props.hzbAtlas,
-                props.hzbOffsets0,
-                props.hzbOffsets1,
-                props.hzbOffsets2,
-                props.hzbOffsets3);
+                props.hzbTexture,
+                props.hzbBaseWidth,
+                props.hzbBaseHeight);
         }
 
         // Node 1: Entry point for instance-level culling in Pass 1
