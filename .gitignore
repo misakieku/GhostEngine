@@ -10,16 +10,10 @@
 *.userosscache
 *.sln.docstates
 
-.opencode/
-.code-review-graph/
-.antigravitycli/
-.pi-subagents/
-.pi-tasks/
-.pi/
+docs/documents/api/
 
 ref/
 docfx/
-NUL
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
