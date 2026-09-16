@@ -11,6 +11,12 @@
 
 // TODO: This should be auto generated to match the c# side.
 
+struct Frustum
+{
+    float4 planes[6];
+    float3 corners[8];
+};
+
 struct GraphicsPushConstantData
 {
     BYTE_ADDRESS_BUFFER frameBuffer;
@@ -44,6 +50,7 @@ struct ViewData
     float3 cameraDirection;
     float farClip;
     float4 screenSize; // xy: size, zw: 1/size
+    Frustum frustum;
 };
 
 struct InstanceData

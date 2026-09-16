@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Entities;
+using Misaki.HighPerformance.Jobs;
 
 namespace Ghost.UnitTest.ECS;
 
@@ -10,13 +11,20 @@ public class WorldTests
     private struct CompA : IComponentData { public int value; }
     private struct CompB : IComponentData { public int value; }
 
+    private JobScheduler _scheduler = null!;
     private World _world = null!;
     private EntityManager _entityManager = null!;
 
     [TestInitialize]
     public void Setup()
     {
-        _world = World.Create(entityCapacity: 128);
+        var desc = new JobSchedulerDesc
+        {
+            DependencyChainCapacity = 0,
+            ThreadCount = 0,
+        };
+        _scheduler = new JobScheduler(in desc);
+        _world = World.Create(_scheduler, 128);
         _entityManager = _world.EntityManager;
     }
 
@@ -24,6 +32,7 @@ public class WorldTests
     public void Cleanup()
     {
         _world.Dispose();
+        _scheduler.Dispose();
     }
 
     [TestMethod]
@@ -83,7 +92,7 @@ public class WorldTests
     [TestMethod]
     public void DestroyEntity_ReturnsNotFound_OnDoubleDestroy()
     {
-        using var world = World.Create(null, 64);
+        using var world = World.Create(_scheduler, 64);
         var e = world.EntityManager.CreateEntity();
 
         var err1 = world.EntityManager.DestroyEntity(e);
@@ -96,7 +105,7 @@ public class WorldTests
     [TestMethod]
     public void TestWorld_MultipleWorlds_Isolation()
     {
-        var worldB = World.Create(null, 64);
+        var worldB = World.Create(_scheduler, 64);
         try
         {
             var eA = _world.EntityManager.CreateEntity();

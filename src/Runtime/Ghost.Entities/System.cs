@@ -391,7 +391,6 @@ public sealed class SystemManager : IDisposable
     internal SystemManager(World world)
     {
         _world = world;
-        AddSystem<DefaultSystemGroup>();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

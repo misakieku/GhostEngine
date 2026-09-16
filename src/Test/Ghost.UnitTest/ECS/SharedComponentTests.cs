@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Entities;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 
 namespace Ghost.UnitTest.ECS;
@@ -27,19 +28,26 @@ public class SharedComponentTests
         public int subID;
     }
 
-
+    private JobScheduler _scheduler = null!;
     private World _world = null!;
 
     [TestInitialize]
     public void Setup()
     {
-        _world = World.Create(null, 64);
+        var desc = new JobSchedulerDesc
+        {
+            DependencyChainCapacity = 0,
+            ThreadCount = 0,
+        };
+        _scheduler = new JobScheduler(in desc);
+        _world = World.Create(_scheduler, 64);
     }
 
     [TestCleanup]
     public void Cleanup()
     {
         _world.Dispose();
+        _scheduler.Dispose();
     }
 
 

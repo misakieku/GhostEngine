@@ -280,6 +280,7 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
+        // FIXME: How can this get -1 in cbv srv uav heap?
         Logger.DebugAssert(NumAllocatedDescriptors == 0);
 
         _heap.Dispose();

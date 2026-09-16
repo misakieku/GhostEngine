@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using System.Runtime.CompilerServices;
 
@@ -75,7 +76,8 @@ public static class RenderGraphUtility
             Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
             HeapType = HeapType.Upload
         };
-        var uploadBuffer = builder.CreateBuffer(in uploadDesc, $"{passName}_Upload");
+
+        var uploadBuffer = builder.CreateBuffer(in uploadDesc, StringUtility.DebugFormat("{0}_Upload", passName));
 
         builder.UseBuffer(uploadBuffer, AccessFlags.Read);
         builder.UseRandomAccessBuffer(targetBuffer);
@@ -129,8 +131,8 @@ public static class RenderGraphUtility
     {
         if (numBytes == 0)
         {
-            var dstSize = (ulong)rg.GetBufferDesc(dstBuffer).Size;
-            var srcSize = (ulong)rg.GetBufferDesc(srcBuffer).Size;
+            var dstSize = rg.GetBufferDesc(dstBuffer).Size;
+            var srcSize = rg.GetBufferDesc(srcBuffer).Size;
             numBytes = Math.Min(dstSize - dstOffset, srcSize - srcOffset);
         }
 

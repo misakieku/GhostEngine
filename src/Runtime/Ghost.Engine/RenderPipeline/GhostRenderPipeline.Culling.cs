@@ -60,21 +60,15 @@ internal partial class GhostRenderPipeline
         public Identifier<RGBuffer> visibleMaskedMeshletsPass2;
         public Identifier<RGBuffer> occludedMeshlets;
         public Identifier<RGBuffer> counterBuffer;
+        public Identifier<RGBuffer> indirectArgsBuffer;
         public Identifier<RGTexture> hzbTexture;
+        public Handle<ComputeShader> shader;
         public uint hzbMipCount;
         public uint renderWidth;
         public uint renderHeight;
         public uint hzbBaseWidth;
         public uint hzbBaseHeight;
-        public uint instanceCount;
         public uint maxVisibleMeshlets;
-        public float lodErrorThreshold;
-        public uint threadGroupCount;
-        public uint entrypointIndex;
-        public ProgramIdentifier programIdentifier;
-        public ulong backingMemoryAddress;
-        public ulong backingMemorySize;
-        public SetWorkGraphFlags flags;
     }
 
     private struct PrepareIndirectArgsPassData
@@ -104,6 +98,9 @@ internal partial class GhostRenderPipeline
     {
         [ResolveAsset("EngineResources/Shaders/MeshletCullGraph")]
         public IAssetEntry cullWorkGraphEntry = null!;
+
+        [ResolveAsset("EngineResources/Shaders/OccludedMeshletCull")]
+        public Handle<ComputeShader> occludedMeshletCullShader;
 
         [ResolveAsset("EngineResources/Shaders/BuildHZB")]
         public Handle<ComputeShader> buildHZBShader;
@@ -148,7 +145,7 @@ internal partial class GhostRenderPipeline
     public static class CullConstants
     {
         public const uint COUNTER_BUFFER_SIZE = 128;
-        public const uint INDIRECT_ARGS_BUFFER_SIZE = 64;
+        public const uint INDIRECT_ARGS_BUFFER_SIZE = 128;
 
         // Counter byte offsets matching CullCommon.hlsl
         public const uint OFFSET_PASS1_OPAQUE_COUNT = 0;
@@ -162,10 +159,12 @@ internal partial class GhostRenderPipeline
         public const uint INDIRECT_OFFSET_PASS1_MASKED = 16;
         public const uint INDIRECT_OFFSET_PASS2_OPAQUE = 32;
         public const uint INDIRECT_OFFSET_PASS2_MASKED = 48;
+        public const uint INDIRECT_OFFSET_PASS2_CULL = 64;
     }
 
     private readonly CullingResource _cullingResource = new();
     private static ICommandSignature s_dispatchMeshCommandSignature = null!;
+    private static ICommandSignature s_dispatchCommandSignature = null!;
 
     private void InitializeCulling(RenderEngine renderEngine, AssetManager assetManager)
     {
@@ -180,6 +179,16 @@ internal partial class GhostRenderPipeline
             }
         };
         s_dispatchMeshCommandSignature = renderEngine.GraphicsEngine.CreateCommandSignature(in indirectDesc, default);
+
+        var dispatchDesc = new CommandSignatureDesc
+        {
+            Stride = 12,
+            Arguments = new IndirectArgumentDesc[]
+            {
+                new() { Type = IndirectArgumentType.Dispatch }
+            }
+        };
+        s_dispatchCommandSignature = renderEngine.GraphicsEngine.CreateCommandSignature(in dispatchDesc, default);
     }
 
     private unsafe void AddInitializeCullingBuffersPass(RenderGraph rg, out CameraCullingBuffers buffers)
@@ -359,6 +368,8 @@ internal partial class GhostRenderPipeline
             var opaqueArgsOffset = passData.cullPassIndex == 0 ? CullConstants.INDIRECT_OFFSET_PASS1_OPAQUE : CullConstants.INDIRECT_OFFSET_PASS2_OPAQUE;
             var maskedCountOffset = passData.cullPassIndex == 0 ? CullConstants.OFFSET_PASS1_MASKED_COUNT : CullConstants.OFFSET_PASS2_MASKED_COUNT;
             var maskedArgsOffset = passData.cullPassIndex == 0 ? CullConstants.INDIRECT_OFFSET_PASS1_MASKED : CullConstants.INDIRECT_OFFSET_PASS2_MASKED;
+            var occludedCountOffset = passData.cullPassIndex == 0 ? CullConstants.OFFSET_PASS1_OCCLUDED_COUNT : uint.MaxValue;
+            var cullArgsOffset = passData.cullPassIndex == 0 ? CullConstants.INDIRECT_OFFSET_PASS2_CULL : uint.MaxValue;
 
             var counterUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
             var indirectUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.indirectArgsBuffer).AsResource(), BindlessAccess.UnorderedAccess);
@@ -372,6 +383,8 @@ internal partial class GhostRenderPipeline
                 maskedCountOffset = maskedCountOffset,
                 maskedArgsOffset = maskedArgsOffset,
                 maxCount = passData.maxCount,
+                occludedCountOffset = occludedCountOffset,
+                cullArgsOffset = cullArgsOffset,
             };
 
             computeCtx.SetActiveCompute(passData.shader, 0);
@@ -518,22 +531,11 @@ internal partial class GhostRenderPipeline
         uint renderWidth,
         uint renderHeight,
         uint hzbBaseWidth,
-        uint hzbBaseHeight,
-        uint instanceCount)
+        uint hzbBaseHeight)
     {
-        _cullingResource.EnsureWorkGraphProgram(_renderEngine);
-        if (_cullingResource.cullWorkGraphProgram == null)
+        if (!_cullingResource.occludedMeshletCullShader.IsValid || s_dispatchCommandSignature == null)
         {
             return;
-        }
-
-        var cullProgram = _cullingResource.cullWorkGraphProgram;
-        var flags = SetWorkGraphFlags.Initialize;
-
-        var entrypointIndex = cullProgram.GetEntrypointIndex("OccludedMeshletCullNode");
-        if (entrypointIndex == uint.MaxValue)
-        {
-            entrypointIndex = 1;
         }
 
         using var builder = rg.AddComputeRenderPass<MeshletCullPass2Data>("MeshletCull_Pass2");
@@ -541,6 +543,7 @@ internal partial class GhostRenderPipeline
         builder.UseBuffer(buffers.visibleMeshletsPass2, AccessFlags.Write);
         builder.UseBuffer(buffers.visibleMaskedMeshletsPass2, AccessFlags.Write);
         builder.UseBuffer(buffers.counterBuffer, AccessFlags.ReadWrite);
+        builder.UseBuffer(buffers.indirectArgsBuffer, AccessFlags.Read);
 
         if (hzbTexture.IsValid)
         {
@@ -553,21 +556,15 @@ internal partial class GhostRenderPipeline
             visibleMaskedMeshletsPass2 = buffers.visibleMaskedMeshletsPass2,
             occludedMeshlets = buffers.occludedMeshlets,
             counterBuffer = buffers.counterBuffer,
+            indirectArgsBuffer = buffers.indirectArgsBuffer,
             hzbTexture = hzbTexture,
+            shader = _cullingResource.occludedMeshletCullShader,
             hzbMipCount = hzbMipCount,
             renderWidth = renderWidth,
             renderHeight = renderHeight,
             hzbBaseWidth = hzbBaseWidth,
             hzbBaseHeight = hzbBaseHeight,
-            instanceCount = instanceCount,
-            maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
-            lodErrorThreshold = _settings.MeshletLodErrorThreshold,
-            threadGroupCount = Math.Max(1u, Math.Min(16384u, (instanceCount * 2048u + 63) / 64)),
-            entrypointIndex = entrypointIndex,
-            programIdentifier = cullProgram.ProgramIdentifier,
-            backingMemoryAddress = cullProgram.BackingMemoryAddress,
-            backingMemorySize = cullProgram.BackingMemorySize,
-            flags = flags
+            maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen
         };
 
         builder.SetPassData(passData);
@@ -582,35 +579,26 @@ internal partial class GhostRenderPipeline
                 ? computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.hzbTexture).AsResource(), BindlessAccess.ShaderResource)
                 : uint.MaxValue;
 
-            var props = new InternalMeshletCullGraphShaderProperties
+            var props = new InternalOccludedMeshletCullShaderProperties
             {
                 hzbMipCount = passData.hzbMipCount,
                 renderWidth = passData.renderWidth,
                 renderHeight = passData.renderHeight,
-                cullPassIndex = 1,
                 visibleMeshletsUav = visibleUav,
                 visibleMaskedMeshletsUav = visibleMaskedUav,
                 occludedMeshletsUav = occludedSrv,
                 counterBufferUav = counterUav,
                 maxVisibleMeshlets = passData.maxVisibleMeshlets,
-                lodErrorThreshold = passData.lodErrorThreshold,
-                instanceCount = passData.instanceCount,
                 hzbTexture = hzbTextureIndex,
                 hzbBaseWidth = passData.hzbBaseWidth,
                 hzbBaseHeight = passData.hzbBaseHeight,
             };
 
-            var setProgramDesc = SetProgramDesc.ForWorkGraph(
-                passData.programIdentifier,
-                passData.backingMemoryAddress,
-                passData.backingMemorySize,
-                passData.flags);
-            computeCtx.SetProgram(in setProgramDesc);
+            computeCtx.SetActiveCompute(passData.shader, 0);
             computeCtx.SetProperties(in props);
 
-            var record = new WorkGraphDispatchGridRecord(passData.threadGroupCount, 1, 1);
-            var dispatchDesc = DispatchGraphDesc.ForCPUInput(passData.entrypointIndex, 1, &record, (ulong)sizeof(WorkGraphDispatchGridRecord));
-            computeCtx.DispatchGraph(in dispatchDesc);
+            var actualIndirectBuf = computeCtx.GetActualBuffer(passData.indirectArgsBuffer);
+            computeCtx.ExecuteIndirect(s_dispatchCommandSignature, 1, actualIndirectBuf, CullConstants.INDIRECT_OFFSET_PASS2_CULL);
         });
     }
 
@@ -620,5 +608,8 @@ internal partial class GhostRenderPipeline
 
         s_dispatchMeshCommandSignature?.Dispose();
         s_dispatchMeshCommandSignature = null!;
+
+        s_dispatchCommandSignature?.Dispose();
+        s_dispatchCommandSignature = null!;
     }
 }

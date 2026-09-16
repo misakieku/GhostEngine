@@ -19,35 +19,18 @@ internal sealed class GPUViewContext : IDisposable
     public uint baseHeight;
     public uint renderWidth;
     public uint renderHeight;
-    public float hzbMaxMegapixels;
 
     public float4x4 prevViewProjMatrix;
 
     internal static void ComputeHZBDimensions(
         uint renderWidth,
         uint renderHeight,
-        float hzbMaxMegapixels,
         out uint baseW,
         out uint baseH,
         out uint hzbMipCount)
     {
-        var rawBaseW = Math.Max(1u, renderWidth / 2);
-        var rawBaseH = Math.Max(1u, renderHeight / 2);
-
-        baseW = rawBaseW;
-        baseH = rawBaseH;
-
-        if (hzbMaxMegapixels > 0f && !float.IsPositiveInfinity(hzbMaxMegapixels))
-        {
-            var budgetPixels = (double)hzbMaxMegapixels * 1_000_000.0;
-            var currentPixels = (double)rawBaseW * rawBaseH;
-            if (currentPixels > budgetPixels)
-            {
-                var scale = Math.Sqrt(budgetPixels / currentPixels);
-                baseW = Math.Max(1u, (uint)Math.Floor(rawBaseW * scale));
-                baseH = Math.Max(1u, (uint)Math.Floor(rawBaseH * scale));
-            }
-        }
+        baseW = Math.Max(1u, (renderWidth + 1) / 2);
+        baseH = Math.Max(1u, (renderHeight + 1) / 2);
 
         var calculatedMipCount = (uint)Math.Floor(Math.Log2(Math.Max(baseW, baseH))) + 1;
         hzbMipCount = Math.Clamp(calculatedMipCount, 1u, 16u);
@@ -60,15 +43,14 @@ internal sealed class GPUViewContext : IDisposable
         ResourceManager resourceManager,
         ShaderLibrary shaderLibrary,
         uint renderWidth,
-        uint renderHeight,
-        float hzbMaxMegapixels = 0f)
+        uint renderHeight)
     {
         if (renderWidth == 0 || renderHeight == 0)
         {
             return;
         }
 
-        if (!hzbTexture.IsValid || this.renderWidth != renderWidth || this.renderHeight != renderHeight || this.hzbMaxMegapixels != hzbMaxMegapixels || renderGraph == null)
+        if (!hzbTexture.IsValid || this.renderWidth != renderWidth || this.renderHeight != renderHeight || renderGraph == null)
         {
             if (hzbTexture.IsValid)
             {
@@ -79,7 +61,6 @@ internal sealed class GPUViewContext : IDisposable
             ComputeHZBDimensions(
                 renderWidth,
                 renderHeight,
-                hzbMaxMegapixels,
                 out baseWidth,
                 out baseHeight,
                 out hzbMipCount);
@@ -98,7 +79,6 @@ internal sealed class GPUViewContext : IDisposable
             hzbTexture = allocator.CreateTexture(in desc, $"View_{viewId}_HZB");
             this.renderWidth = renderWidth;
             this.renderHeight = renderHeight;
-            this.hzbMaxMegapixels = hzbMaxMegapixels;
             prevViewProjMatrix = default; // Zero out so first frame or resize is not static
 
             renderGraph = new RenderGraph(database, allocator, pipelineLibrary, resourceManager, shaderLibrary);
@@ -120,7 +100,6 @@ internal sealed class GPUViewContext : IDisposable
         renderHeight = 0;
         baseWidth = 0;
         baseHeight = 0;
-        hzbMaxMegapixels = 0f;
         prevViewProjMatrix = default;
         isActive = false;
     }

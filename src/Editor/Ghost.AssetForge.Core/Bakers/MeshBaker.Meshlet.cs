@@ -903,7 +903,7 @@ internal static unsafe partial class MeshProcessor
             meshletData->materialSlotCount = maxMaterialSlot + 1;
 
             // Build hierarchical BVH for Work Graph dual-error culling
-            BuildClusterLodHierarchy(meshletData, allocationHandle, 8);
+            BuildClusterLodHierarchy(meshletData, allocationHandle);
 
             return new DisposablePtr<MeshletMeshData>(meshletData);
         }
@@ -964,7 +964,7 @@ internal static unsafe partial class MeshProcessor
     /// Builds a hierarchical BVH for continuous LOD and Dual-Error culling in Work Graphs.
     /// Node 0 is the root node of the hierarchy.
     /// </summary>
-    public static void BuildClusterLodHierarchy(MeshletMeshData* meshletData, AllocationHandle allocationHandle, nuint maxFanout = 8)
+    public static void BuildClusterLodHierarchy(MeshletMeshData* meshletData, AllocationHandle allocationHandle, nuint maxFanout = 7)
     {
         if (!meshletData->groups.IsCreated || meshletData->groups.Count == 0)
         {

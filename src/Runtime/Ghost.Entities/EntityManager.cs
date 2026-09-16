@@ -36,7 +36,7 @@ internal struct EntityLocation : IComparable<EntityLocation>
 /// <remarks>
 /// All methods in this class are not thread-safe and all of them will cause structural changes if not mentioned otherwise.
 /// Use <see cref="EntityCommandBuffer"/> to defer structural changes to a safe point.
-/// Use <see cref="World.GetThreadLocalEntityCommandBuffer(int)"/> to get a thread-local command buffer for multithreaded scenarios.
+/// Use <see cref="World.GetThreadLocalEntityCommandBufferRef(int)"/> to get a thread-local command buffer for multithreaded scenarios.
 /// </remarks>
 public unsafe partial class EntityManager : IDisposable
 {

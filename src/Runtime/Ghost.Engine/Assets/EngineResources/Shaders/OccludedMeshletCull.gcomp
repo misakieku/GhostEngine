@@ -1,0 +1,139 @@
+compute "Internal/OccludedMeshletCull"
+{
+    properties
+    {
+        uint hzbMipCount;
+        uint renderWidth;
+        uint renderHeight;
+        uint visibleMeshletsUav;
+        uint visibleMaskedMeshletsUav;
+        uint occludedMeshletsUav;
+        uint counterBufferUav;
+        uint maxVisibleMeshlets;
+        uint hzbTexture;
+        uint hzbBaseWidth;
+        uint hzbBaseHeight;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Includes/Properties.hlsl";
+        "EngineResources/Shaders/Includes/CullCommon.hlsl";
+    }
+
+    hlsl
+    {
+        static inline bool TestHZB(float4 clipMin, float4 clipMax, InternalOccludedMeshletCullShaderProperties props)
+        {
+            return HZBVisible(
+                clipMin,
+                clipMax,
+                props.hzbMipCount,
+                props.renderWidth,
+                props.renderHeight,
+                props.hzbTexture,
+                props.hzbBaseWidth,
+                props.hzbBaseHeight);
+        }
+
+        [numthreads(64, 1, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            InternalOccludedMeshletCullShaderProperties props = LoadData<InternalOccludedMeshletCullShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+
+            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBufferUav];
+            uint occludedCount = WaveReadLaneFirst(counterBuf.Load(4));
+
+            uint slotIndex = dispatchThreadId.x;
+            bool isValid = (slotIndex < occludedCount);
+
+            bool isVisible = false;
+            uint renderType = 0;
+            MeshletCandidateRecord rec = (MeshletCandidateRecord)0;
+
+            if (isValid)
+            {
+                StructuredBuffer<MeshletCandidateRecord> occludedBuffer = ResourceDescriptorHeap[props.occludedMeshletsUav];
+                rec = occludedBuffer[slotIndex];
+
+                FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+                ViewData view = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
+
+                ByteAddressBuffer sceneBuffer = GET_BUFFER(frame.instanceBuffer);
+                InstanceData instance = sceneBuffer.Load<InstanceData>(rec.instanceIndex * sizeof(InstanceData));
+
+                ByteAddressBuffer meshletBuf = GET_BUFFER(rec.meshletBufferIndex);
+                Meshlet meshlet = meshletBuf.Load<Meshlet>(rec.meshletIndex * sizeof(Meshlet));
+
+                uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
+                uint packedMaterial = LoadMaterialBindlessIndex(frame.paletteOffsetBuffer, frame.materialIndexBuffer, instance.materialPaletteIndex, localMaterialIndex);
+                renderType = (packedMaterial >> 24) & 0xFFu;
+
+                float4 clipMin, clipMax;
+                bool clipValid;
+                bool inFrustum = BBoxIntersectFrustum(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld, view.viewProjectionMatrix, clipMin, clipMax, clipValid);
+                if (inFrustum)
+                {
+                    if (clipValid && props.hzbMipCount > 0)
+                    {
+                        isVisible = TestHZB(clipMin, clipMax, props);
+                    }
+                    else
+                    {
+                        isVisible = true;
+                    }
+                }
+            }
+
+            bool isOpaque = isVisible && (renderType != 1);
+            bool isMasked = isVisible && (renderType == 1);
+
+            uint waveOpaqueCount = WaveActiveCountBits(isOpaque);
+            uint localOpaqueOffset = WavePrefixCountBits(isOpaque);
+
+            uint waveMaskedCount = WaveActiveCountBits(isMasked);
+            uint localMaskedOffset = WavePrefixCountBits(isMasked);
+
+            uint waveOpaqueBase = 0;
+            if (WaveIsFirstLane() && waveOpaqueCount > 0)
+            {
+                counterBuf.InterlockedAdd(8, waveOpaqueCount, waveOpaqueBase);
+            }
+            waveOpaqueBase = WaveReadLaneFirst(waveOpaqueBase);
+
+            uint waveMaskedBase = 0;
+            if (WaveIsFirstLane() && waveMaskedCount > 0)
+            {
+                counterBuf.InterlockedAdd(16, waveMaskedCount, waveMaskedBase);
+            }
+            waveMaskedBase = WaveReadLaneFirst(waveMaskedBase);
+
+            if (isOpaque)
+            {
+                uint slot = waveOpaqueBase + localOpaqueOffset;
+                if (slot < props.maxVisibleMeshlets)
+                {
+                    RWStructuredBuffer<VisibleMeshletEntry> visibleBuffer = ResourceDescriptorHeap[props.visibleMeshletsUav];
+                    VisibleMeshletEntry entry;
+                    entry.instanceIndex = rec.instanceIndex;
+                    entry.meshletIndex = rec.meshletIndex;
+                    visibleBuffer[slot] = entry;
+                }
+            }
+            else if (isMasked)
+            {
+                uint slot = waveMaskedBase + localMaskedOffset;
+                if (slot < props.maxVisibleMeshlets)
+                {
+                    RWStructuredBuffer<VisibleMeshletEntry> maskedBuffer = ResourceDescriptorHeap[props.visibleMaskedMeshletsUav];
+                    VisibleMeshletEntry entry;
+                    entry.instanceIndex = rec.instanceIndex;
+                    entry.meshletIndex = rec.meshletIndex;
+                    maskedBuffer[slot] = entry;
+                }
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

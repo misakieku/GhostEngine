@@ -51,7 +51,7 @@ public partial class World
 
     public static int WorldCount => s_worlds.Count - s_freeWorldSlots.Count;
 
-    public static World Create(JobScheduler? jobScheduler = null, int entityCapacity = 16)
+    public static World Create(JobScheduler jobScheduler, int entityCapacity = 16)
     {
         if (s_freeWorldSlots.TryDequeue(out var index))
         {
@@ -119,7 +119,7 @@ public partial class World
 public partial class World : IDisposable, IEquatable<World>
 {
     private readonly Identifier<World> _id;
-    private readonly JobScheduler? _jobScheduler;
+    private readonly JobScheduler _jobScheduler;
 
     private readonly EntityManager _entityManager;
     private EntityCommandBuffer _entityCommandBuffer;
@@ -141,7 +141,7 @@ public partial class World : IDisposable, IEquatable<World>
     /// <summary>
     /// Gets the job scheduler associated with this world.
     /// </summary>
-    public JobScheduler? JobScheduler => _jobScheduler;
+    public JobScheduler JobScheduler => _jobScheduler;
 
     /// <summary>
     /// Gets the publicntity manager for this world.
@@ -167,11 +167,11 @@ public partial class World : IDisposable, IEquatable<World>
     /// Gets the main entity command buffer for this world.
     /// </summary>
     /// <remarks>
-    /// Use <see cref="GetThreadLocalEntityCommandBuffer(int)"/> to get thread-local command buffers for multi-threaded jobs.
+    /// Use <see cref="GetThreadLocalEntityCommandBufferRef(int)"/> to get thread-local command buffers for multi-threaded jobs.
     /// </remarks>
     public ref EntityCommandBuffer EntityCommandBuffer => ref _entityCommandBuffer;
 
-    private World(Identifier<World> id, int entityCapacity, JobScheduler? jobScheduler)
+    private World(Identifier<World> id, int entityCapacity, JobScheduler jobScheduler)
     {
         _id = id;
         _jobScheduler = jobScheduler;
@@ -215,14 +215,14 @@ public partial class World : IDisposable, IEquatable<World>
     /// Gets the thread-local entity command buffer for the specified thread index.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public EntityCommandBuffer GetThreadLocalEntityCommandBuffer(int threadIndex)
+    public ref EntityCommandBuffer GetThreadLocalEntityCommandBufferRef(int threadIndex)
     {
         if (!_threadLocalECBs.IsCreated || _threadLocalECBs.Length == 0)
         {
             throw new InvalidOperationException("This world does not have a JobScheduler associated with it.");
         }
 
-        return _threadLocalECBs[threadIndex];
+        return ref _threadLocalECBs[threadIndex];
     }
 
     /// <summary>

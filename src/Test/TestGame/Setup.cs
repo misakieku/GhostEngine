@@ -25,7 +25,7 @@ internal static class Setup
 
     private static readonly GhostRenderPipelineSettings s_renderPipelineSettings = new GhostRenderPipelineSettings
     {
-        MeshletLodErrorThreshold = 1.0f
+        MeshletLodErrorThreshold = 5.0f,
     };
 
     [RuntimeConfiguration]
@@ -61,7 +61,7 @@ internal static class Setup
     [RuntimeInitialize]
     public static void Init(EngineCore engineCore)
     {
-        EngineWindow.OnEvent += (SDL_Event e) =>
+        EngineWindow.OnEvent += e =>
         {
             // Change debug mode in settings using F1, F2, F3, etc. keys
             if (e.type == (uint)SDL_EventType.SDL_EVENT_KEY_DOWN)
@@ -78,7 +78,9 @@ internal static class Setup
             }
         };
 
-        s_world = World.Create(engineCore.JobScheduler, 1024);
+        const int entityCapacity = 1000;
+
+        s_world = World.Create(engineCore.JobScheduler, entityCapacity);
 
         using var scope = AllocationManager.CreateStackScope();
         using var camSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<Camera>.Value, ComponentTypeID<LocalToWorld>.Value, ComponentTypeID<MoveDst>.Value);
@@ -109,7 +111,7 @@ internal static class Setup
             updateRotation = true
         });
 
-        s_meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/bunny");
+        s_meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/dragon");
         s_shaderAsset = engineCore.AssetManager.ResolveAsset("Shaders/test");
 
         var meshHandle = default(Handle<Mesh>);
@@ -123,7 +125,7 @@ internal static class Setup
         var materialPallette = engineCore.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);
 
         using var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
-        var entities = new Entity[10000];
+        var entities = new Entity[entityCapacity];
         s_world.EntityManager.CreateEntities(entities, meshSet);
 
         for (var i = 0; i < entities.Length; i++)
@@ -148,7 +150,11 @@ internal static class Setup
             });
         }
 
-        s_world.SystemManager.AddSystem<RandomMoveSystem>();
+        var defaultSystemGroup = new DefaultSystemGroup();
+        defaultSystemGroup.AddSystem<RandomMoveSystem>();
+        defaultSystemGroup.SortSystems();
+
+        s_world.SystemManager.AddSystem(defaultSystemGroup);
         s_world.SystemManager.AddSystem<RenderSystemGroup>();
 
         s_world.AddService(engineCore.RenderEngine);

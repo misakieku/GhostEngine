@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
 
@@ -7,7 +8,7 @@ namespace Ghost.Entities;
 
 public interface IJobChunk
 {
-    void Execute(ChunkView view, ref readonly JobExecutionContext ctx);
+    void Execute(ChunkView chunk, ref readonly JobExecutionContext ctx);
 }
 
 internal unsafe struct ChunkInfo
@@ -17,7 +18,7 @@ internal unsafe struct ChunkInfo
 }
 
 internal unsafe struct JobChunkBatch<TJob> : IJobParallelFor
-    where TJob : unmanaged, IJobChunk
+    where TJob : IJobChunk
 {
     public TJob userJob;
     public ReadOnlyView<ChunkInfo> chunkInfos;
@@ -25,9 +26,9 @@ internal unsafe struct JobChunkBatch<TJob> : IJobParallelFor
     public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
     {
         var info = chunkInfos[loopIndex];
-        var view = new ChunkView(in *info.pArchetype, in *info.pChunk);
+        var chunk = new ChunkView(in *info.pArchetype, in *info.pChunk);
 
-        userJob.Execute(view, in ctx);
+        userJob.Execute(chunk, in ctx);
     }
 }
 
@@ -44,7 +45,7 @@ internal struct DisposeJobChunk : IJob
 public unsafe partial struct EntityQuery
 {
     public JobHandle ScheduleChunkParallel<TJob>(TJob job, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobChunk
+        where TJob : IJobChunk
     {
         var world = World.GetWorld(_worldID);
         if (world is null)
@@ -57,7 +58,7 @@ public unsafe partial struct EntityQuery
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
         }
 
-        var chunkInfos = new UnsafeList<ChunkInfo>(_matchingArchetypes.Count * 2, TempJobAllocator.AllocationHandle);
+        var chunkInfos = new UnsafeList<ChunkInfo>(_matchingArchetypes.Count * 2, AllocationHandle.TempJob);
 
         foreach (var archID in _matchingArchetypes)
         {
@@ -66,12 +67,13 @@ public unsafe partial struct EntityQuery
             for (var i = 0; i < arch.ChunkCount; i++)
             {
                 var pChunk = (Chunk*)arch._chunks.GetUnsafePtr() + i;
-
-                chunkInfos.Add(new ChunkInfo
+                var info = new ChunkInfo
                 {
                     pArchetype = (Archetype*)Unsafe.AsPointer(ref arch),
                     pChunk = pChunk
-                });
+                };
+
+                chunkInfos.Add(info);
             }
         }
 

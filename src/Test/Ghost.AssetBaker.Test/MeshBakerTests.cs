@@ -367,6 +367,75 @@ public class MeshBakerTests
         }
     }
 
+    [TestMethod]
+    public unsafe void TestDiagnoseDragon()
+    {
+        var dragonPath = @"F:\csharp\GhostEngine\src\Test\TestGame\Assets\Meshes\dragon.obj";
+        if (!File.Exists(dragonPath))
+        {
+            Assert.Inconclusive("dragon.obj not found");
+            return;
+        }
+
+        var settings = new MeshBakeSettings
+        {
+            ObjectUpAxis = CoordinateAxis.PositiveY,
+            ObjectForwardAxis = CoordinateAxis.NegativeZ,
+            ObjectRightAxis = CoordinateAxis.PositiveX,
+            UnitMeterScale = 1,
+            NormalDataSource = VertexDataSource.ComputedIfMissing,
+            TangentDataSource = VertexDataSource.ComputedIfMissing,
+            MaxVerticesPerMeshlet = 64,
+            MinTrianglesPerMeshlet = 32,
+            MaxTrianglesPerMeshlet = 124,
+            SimplifyRatio = 0.5f,
+            SimplifyThreshold = 0.85f,
+            OptimizeClusters = true
+        };
+
+        var parseResult = MeshProcessor.ParseModel(dragonPath, settings, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
+        Assert.IsTrue(parseResult.IsSuccess, parseResult.Message);
+
+        var mesh = parseResult.Value[0];
+        try
+        {
+            using var meshletDataPtr = MeshProcessor.BuildMeshlets(
+                mesh.Vertices.AsReadOnly(),
+                mesh.Indices.AsReadOnly(),
+                mesh.MaterialParts.AsReadOnly(),
+                settings,
+                Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
+
+            var pMeshletData = meshletDataPtr.Get();
+            Console.WriteLine($"Total meshlets: {pMeshletData->meshletCount}");
+            Console.WriteLine($"Total groups: {pMeshletData->groups.Count}");
+            Console.WriteLine($"Total LOD levels: {pMeshletData->lodLevelCount}");
+            Console.WriteLine($"Hierarchy nodes: {pMeshletData->hierarchyNodes.Count}");
+
+            for (uint lvl = 0; lvl < pMeshletData->lodLevelCount; lvl++)
+            {
+                int groupCount = 0;
+                uint meshletCount = 0;
+                float minError = float.MaxValue;
+                float maxError = 0;
+                for (int g = 0; g < pMeshletData->groups.Count; g++)
+                {
+                    if (pMeshletData->groups[g].lodLevel == lvl)
+                    {
+                        groupCount++;
+                        meshletCount += pMeshletData->groups[g].meshletCount;
+                        minError = Math.Min(minError, pMeshletData->groups[g].parentError);
+                        maxError = Math.Max(maxError, pMeshletData->groups[g].parentError);
+                    }
+                }
+                Console.WriteLine($"LOD {lvl}: groups={groupCount}, meshlets={meshletCount}, error=[{minError:F4} .. {maxError:F4}]");
+            }
+        }
+        finally
+        {
+            mesh.Dispose();
+        }
+    }
 }
 
 

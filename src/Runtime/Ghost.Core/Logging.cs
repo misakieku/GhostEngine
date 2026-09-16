@@ -299,12 +299,12 @@ public static class Logger
     [Conditional("GHOST_EDITOR")]
     public static void DebugAssert([DoesNotReturnIf(false)] bool condition, [CallerArgumentExpression(nameof(condition))] string? message = null)
     {
+        s_logger.Assert(condition, message?.ToString() ?? "null");
 #if DEBUG
         if (!condition)
         {
             Debugger.Break();
         }
 #endif
-        s_logger.Assert(condition, message?.ToString() ?? "null");
     }
 }

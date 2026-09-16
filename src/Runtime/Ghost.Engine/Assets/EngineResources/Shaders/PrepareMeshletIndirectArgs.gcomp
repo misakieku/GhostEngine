@@ -9,6 +9,8 @@ compute "Internal/PrepareMeshletIndirectArgs"
         uint maskedCountOffset;
         uint maskedArgsOffset;
         uint maxCount;
+        uint occludedCountOffset;
+        uint cullArgsOffset;
     }
 
     includes
@@ -18,7 +20,7 @@ compute "Internal/PrepareMeshletIndirectArgs"
 
     hlsl
     {
-        [numthreads(2, 1, 1)]
+        [numthreads(3, 1, 1)]
         void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         {
             InternalPrepareMeshletIndirectArgsShaderProperties properties = LoadData<InternalPrepareMeshletIndirectArgsShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
@@ -47,6 +49,21 @@ compute "Internal/PrepareMeshletIndirectArgs"
 
                 // D3D12_DISPATCH_MESH_ARGUMENTS: ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ
                 indirectArgsBuffer.Store3(properties.maskedArgsOffset, uint3(visibleCount, 1, 1));
+            }
+            else if (dispatchThreadID.x == 2)
+            {
+                if (properties.cullArgsOffset != 0xFFFFFFFF && properties.occludedCountOffset != 0xFFFFFFFF)
+                {
+                    uint occludedCount = counterBuffer.Load(properties.occludedCountOffset);
+                    if (occludedCount > properties.maxCount)
+                    {
+                        occludedCount = properties.maxCount;
+                    }
+
+                    uint threadGroupCountX = (occludedCount + 63) / 64;
+                    // D3D12_DISPATCH_ARGUMENTS: ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ
+                    indirectArgsBuffer.Store3(properties.cullArgsOffset, uint3(threadGroupCountX, 1, 1));
+                }
             }
         }
     }

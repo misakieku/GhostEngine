@@ -5,6 +5,31 @@ namespace Ghost.Graphics.Utilities;
 
 public static unsafe class RenderThreadTempAllocatorManager
 {
+    private partial struct RenderThreadTempAllocator : IDisposable
+    {
+        private MemoryPool<VirtualArena, VirtualArena.CreationOptions> _arena;
+
+        public readonly AllocationHandle AllocationHandle => _arena.AllocationHandle;
+
+        public RenderThreadTempAllocator()
+        {
+            _arena = new MemoryPool<VirtualArena, VirtualArena.CreationOptions>(new VirtualArena.CreationOptions
+            {
+                reserveCapacity = 64 * 1024 * 1024, // 64 MB
+            });
+        }
+
+        public readonly void Reset()
+        {
+            _arena.Allocator.Reset();
+        }
+
+        public void Dispose()
+        {
+            _arena.Dispose();
+        }
+    }
+
     private static readonly RenderThreadTempAllocator* s_pAllocator;
 
     static RenderThreadTempAllocatorManager()
@@ -26,31 +51,6 @@ public static unsafe class RenderThreadTempAllocatorManager
 
     extension(AllocationHandle)
     {
-        public static AllocationHandle RenderThreadTempAllocator => s_pAllocator->AllocationHandle;
-    }
-}
-
-internal partial struct RenderThreadTempAllocator : IDisposable
-{
-    private MemoryPool<VirtualArena, VirtualArena.CreationOptions> _arena;
-
-    public readonly AllocationHandle AllocationHandle => _arena.AllocationHandle;
-
-    public RenderThreadTempAllocator()
-    {
-        _arena = new MemoryPool<VirtualArena, VirtualArena.CreationOptions>(new VirtualArena.CreationOptions
-        {
-            reserveCapacity = 1024 * 1024 * 1024, // 1 GB
-        });
-    }
-
-    public readonly void Reset()
-    {
-        _arena.Allocator.Reset();
-    }
-
-    public void Dispose()
-    {
-        _arena.Dispose();
+        public static AllocationHandle TempRender => s_pAllocator->AllocationHandle;
     }
 }

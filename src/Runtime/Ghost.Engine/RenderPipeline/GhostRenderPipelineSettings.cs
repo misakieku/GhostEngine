@@ -186,16 +186,6 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     /// </summary>
     public uint MaxVisibleMeshletsOnScreen { get; set; } = 1_048_576;
 
-    /// <summary>
-    /// Maximum megapixel budget for the HZB (Hierarchical Z-Buffer) base mip level (e.g., 1.0f for 1 Megapixel).
-    /// </summary>
-    /// <remarks>
-    /// When half the render resolution exceeds this budget, the base HZB dimensions are clamped while preserving aspect ratio.
-    /// When the screen resolution is small, the HZB remains at half-resolution without being forced up.
-    /// Set to 0 (or float.PositiveInfinity) to disable clamping and always use exact half-resolution.
-    /// </remarks>
-    public float HzbMaxMegapixels { get; set; } = 1.0f;
-
     public RenderPipelineDebugMode DebugMode { get; set; } = RenderPipelineDebugMode.None;
 
     public IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager)

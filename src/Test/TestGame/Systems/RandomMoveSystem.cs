@@ -8,7 +8,6 @@ using System.Runtime.CompilerServices;
 
 namespace TestGame.Systems;
 
-[UpdateBefore<RenderSystemGroup>]
 internal class RandomMoveSystem : SystemBase
 {
     private Identifier<EntityQuery> _cameraQueryID;

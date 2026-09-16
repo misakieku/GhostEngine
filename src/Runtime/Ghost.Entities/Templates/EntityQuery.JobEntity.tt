@@ -7,8 +7,7 @@
 using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Collections;
-using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
+using Misaki.HighPerformance.LowLevel.Buffer;
 
 namespace Ghost.Entities;
 
@@ -42,7 +41,7 @@ internal unsafe struct JobBatchContext<#= i #>
 }
 
 internal unsafe struct JobEntityBatch<TJob, <#= generics #>> : IJobParallelFor
-    where TJob : unmanaged, IJobEntity<<#= generics #>>
+    where TJob : IJobEntity<<#= generics #>>
 <#= restrictions #>
 {
     public fixed int componentIDs[<#= i #>];
@@ -155,7 +154,7 @@ public unsafe partial struct EntityQuery
             throw new InvalidOperationException("The World has no JobScheduler assigned.");
         }
 
-        var batches = new UnsafeList<JobBatchContext<#= i #>>(128, TempJobAllocator.AllocationHandle);
+        var batches = new UnsafeList<JobBatchContext<#= i #>>(128, AllocationHandle.TempJob);
         var hiddenOffsets = stackalloc int[16];
 
         foreach (var archID in _matchingArchetypes)

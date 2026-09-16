@@ -114,6 +114,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             // Upload ViewData (Reversed-Z: near=1.0, far=0.0)
             RenderPipelineUtility.GetVPMatricesReversedZ(in request, viewData.ScreenSize, out var viewMatrix, out var projMatrix);
             var viewProjMatrix = math.mul(projMatrix, viewMatrix);
+            var frustum = Frustum.Create(viewProjMatrix, request.view.localToWorld.c3.xyz, request.view.localToWorld.c2.xyz, request.view.nearClipPlane, request.view.farClipPlane);
 
             var viewContext = _gpuViewManager.GetView(request.viewId);
             viewContext.EnsureResources(
@@ -123,8 +124,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 ctx.ResourceManager,
                 ctx.ShaderLibrary,
                 viewData.ScreenSize.x,
-                viewData.ScreenSize.y,
-                _settings.HzbMaxMegapixels);
+                viewData.ScreenSize.y);
 
             Logger.DebugAssert(viewContext.renderGraph != null);
 
@@ -145,6 +145,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 cameraDirection = request.view.localToWorld.c2.xyz,
                 farClip = request.view.farClipPlane,
                 screenSize = new float4(viewData.ScreenSize.x, viewData.ScreenSize.y, 1.0f / viewData.ScreenSize.x, 1.0f / viewData.ScreenSize.y),
+                frustum = frustum
             };
 
             viewContext.prevViewProjMatrix = viewProjMatrix;
@@ -235,7 +236,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                         viewData.ScreenSize.x,
                         viewData.ScreenSize.y);
 
-                    // Pass 2: Late-Z Meshlet Culling (Work Graph testing occluded meshlets against current HZB)
+                    // Pass 2: Late-Z Meshlet Culling (Compute Shader testing occluded meshlets against current HZB via ExecuteIndirect)
                     AddMeshletCullPass2(
                         viewContext.renderGraph,
                         in cullingBuffers,
@@ -244,8 +245,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                         viewData.ScreenSize.x,
                         viewData.ScreenSize.y,
                         viewContext.baseWidth,
-                        viewContext.baseHeight,
-                        ghostPayload.InstanceCount);
+                        viewContext.baseHeight);
 
                     // Pass 2: Prepare Indirect Dispatch Arguments
                     AddPrepareIndirectArgsPass(viewContext.renderGraph, in cullingBuffers, 1);
@@ -281,7 +281,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                         viewData.ScreenSize.x,
                         viewData.ScreenSize.y);
 
-                    // Pass 2: Late-Z Meshlet Culling (Work Graph testing occluded meshlets against current HZB)
+                    // Pass 2: Late-Z Meshlet Culling (Compute Shader testing occluded meshlets against current HZB via ExecuteIndirect)
                     AddMeshletCullPass2(
                         viewContext.renderGraph,
                         in cullingBuffers,
@@ -290,8 +290,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                         viewData.ScreenSize.x,
                         viewData.ScreenSize.y,
                         viewContext.baseWidth,
-                        viewContext.baseHeight,
-                        ghostPayload.InstanceCount);
+                        viewContext.baseHeight);
 
                     // Pass 2: Prepare Indirect Dispatch Arguments
                     AddPrepareIndirectArgsPass(viewContext.renderGraph, in cullingBuffers, 1);

@@ -7,6 +7,7 @@ using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Diagnostics;
 using Ghost.Core;
+using Ghost.Engine.Utilities;
 
 namespace Ghost.Engine;
 
@@ -167,7 +168,7 @@ public sealed partial class EngineCore : IDisposable
         }
 
         AllocationManager.ResetTempAllocator();
-        TempJobAllocator.Advance();
+        TempJobAllocatorManager.AdvanceFrame();
     }
 
     public void Stop()
@@ -183,6 +184,7 @@ public sealed partial class EngineCore : IDisposable
 
     public void Dispose()
     {
+        TempJobAllocatorManager.Dispose();
         _renderEngine.ReleasePipeline();
         _assetManager.Dispose();
         _renderEngine.Dispose();

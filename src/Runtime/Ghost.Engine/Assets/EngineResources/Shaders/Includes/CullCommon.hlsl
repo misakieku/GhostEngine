@@ -9,13 +9,21 @@ struct FrustumTestResult
     bool intersectsNearPlane;
 };
 
+struct MeshletCandidateRecord
+{
+    uint instanceIndex;
+    uint meshletIndex;
+    uint meshletBufferIndex;
+};
+
+struct VisibleMeshletEntry
+{
+    uint instanceIndex;
+    uint meshletIndex;
+};
+
 // Transforms an AABB by a 4x4 matrix, returning the tight world AABB
-static inline void TransformAABB(
-    float3 minPt,
-    float3 maxPt,
-    float4x4 mat,
-    out float3 outMin,
-    out float3 outMax)
+static inline void TransformAABB(float3 minPt, float3 maxPt, float4x4 mat, out float3 outMin, out float3 outMax)
 {
     float3 center = (minPt + maxPt) * 0.5f;
     float3 extents = (maxPt - minPt) * 0.5f;
@@ -31,7 +39,7 @@ static inline void TransformAABB(
 }
 
 #define CULL_EPSILON 1.2e-07f
-#define DEPTH_EPSILON 1.2e-07f
+#define DEPTH_EPSILON 1e-3f
 
 static inline float4 BuildAabbCorner(float3 bboxMin, float3 bboxMax, uint cornerIndex)
 {
@@ -72,14 +80,7 @@ static inline uint ComputeHomogeneousClipMask(float4 homogeneousPos)
 // Note: When porting, remember GhostEngine uses column-major matrices (mul(M, v)), so:
 //   DX = (2.0f * extent.x) * float4(worldToClip._m00_m10_m20_m30),
 //   and depth equation constant term is at viewToClip[2][3] (m_23), not [3][2]!
-static inline bool BBoxIntersectFrustum(
-    float3 bboxMin,
-    float3 bboxMax,
-    float4x4 worldMatrix,
-    float4x4 viewProjMatrix,
-    out float4 clipMinOut,
-    out float4 clipMaxOut,
-    out bool clipValidOut)
+static inline bool BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 worldMatrix, float4x4 viewProjMatrix, out float4 clipMinOut, out float4 clipMaxOut, out bool clipValidOut)
 {
     const float4x4 worldToClip = mul(viewProjMatrix, worldMatrix);
 
@@ -111,11 +112,42 @@ static inline bool BBoxIntersectFrustum(
     return (rejectMask == 0u);
 }
 
+static inline bool SphereIntersectFrustum(float3 center, float radius, float4 planes[6])
+{
+    [unroll]
+    for (uint i = 0u; i < 6u; ++i)
+    {
+        float distance = dot(planes[i].xyz, center) + planes[i].w;
+        if (distance < -radius)
+        {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+static inline bool AABBIntersectFrustum(float3 minPt, float3 maxPt, float4 planes[6])
+{
+    float3 center = (minPt + maxPt) * 0.5f;
+    float3 extents = (maxPt - minPt) * 0.5f;
+    
+    [unroll]
+    for (uint i = 0u; i < 6u; ++i)
+    {
+        // Calculate the projected radius of the AABB onto the plane normal
+        float projRadius = dot(abs(planes[i].xyz), extents);
+        if (dot(planes[i].xyz, center) + planes[i].w < -projRadius)
+        {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 // Fast 6-plane AABB frustum cull wrapper
-static inline FrustumTestResult FrustumCullAABB(
-    float3 minPt,
-    float3 maxPt,
-    float4x4 viewProj)
+static inline FrustumTestResult FrustumCullAABB(float3 minPt, float3 maxPt, float4x4 viewProj)
 {
     float4 clipMin, clipMax;
     bool clipValid;
@@ -146,15 +178,7 @@ static inline int MipLevelForRect(int4 rectPixels, int desiredFootprintPixels = 
 }
 
 // Evaluates whether a projected clip-space bounding box is visible against the HZB pyramid
-static inline bool HZBVisible(
-    float4 clipMin,
-    float4 clipMax,
-    uint hzbMipCount,
-    uint renderWidth,
-    uint renderHeight,
-    uint hzbTexture,
-    uint hzbBaseWidth,
-    uint hzbBaseHeight)
+static inline bool HZBVisible(float4 clipMin, float4 clipMax, uint hzbMipCount, uint renderWidth, uint renderHeight, uint hzbTexture, uint hzbBaseWidth, uint hzbBaseHeight)
 {
     if (clipMin.x > 1.0f || clipMin.y > 1.0f || clipMax.x < -1.0f || clipMax.y < -1.0f)
     {
@@ -185,9 +209,13 @@ static inline bool HZBVisible(
 
     // Convert from normalized UV to HZB Mip 0 texels:
     float2 hzbSize = float2(hzbBaseSize);
-    int4 hzbTexels = int4(rectUV * hzbSize.xyxy + float4(0.5f, 0.5f, -0.5f, -0.5f));
-    hzbTexels.xy = max(hzbTexels.xy, int2(0, 0));
-    hzbTexels.zw = min(hzbTexels.zw, int2(hzbBaseSize) - 1);
+    //int4 hzbTexels = int4(rectUV * hzbSize.xyxy + float4(0.5f, 0.5f, -0.5f, -0.5f));
+    //hzbTexels.xy = max(hzbTexels.xy, int2(0, 0));
+    //hzbTexels.zw = min(hzbTexels.zw, int2(hzbBaseSize) - 1);
+    //hzbTexels.zw = max(hzbTexels.xy, hzbTexels.zw);
+    int4 hzbTexels;
+    hzbTexels.xy = max((int2) floor(rectUV.xy * hzbSize), int2(0, 0));
+    hzbTexels.zw = min((int2) ceil(rectUV.zw * hzbSize) - 1, int2(hzbBaseSize) - 1);
     hzbTexels.zw = max(hzbTexels.xy, hzbTexels.zw);
 
     // Determine target mip level for 4x4 footprint
@@ -240,14 +268,7 @@ static inline bool HZBVisible(
 }
 
 // Evaluates screen-space geometric error for meshlet DAG refinement
-static inline bool EvaluateLODDetailSufficient(
-    float objectError,
-    float3 sphereCenter,
-    float sphereRadius,
-    float3 cameraPos,
-    float proj11,
-    float screenHeight,
-    float errorThreshold)
+static inline bool EvaluateLODDetailSufficient(float objectError, float3 sphereCenter, float sphereRadius, float3 cameraPos, float proj11, float screenHeight, float errorThreshold)
 {
     float dist = max(length(sphereCenter - cameraPos) - sphereRadius, 0.001f);
     float pixelError = (objectError * proj11 * screenHeight) / (2.0f * dist);
