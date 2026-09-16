@@ -177,14 +177,21 @@ public enum RenderPipelineDebugMode : uint
 public class GhostRenderPipelineSettings : IRenderPipelineSettings
 {
     /// <summary>
-    /// Target screen-space pixel error threshold for meshlet DAG LOD refinement.
+    /// Target screen-space pixel error threshold for meshlet DAG LOD refinement. Default is 1.0f.
     /// </summary>
+    /// <remarks>
+    /// This value controls the level of detail for meshlet rendering. A lower value results in higher detail (more meshlets), while a higher value results in lower detail (fewer meshlets). Adjust this value based on performance and visual quality requirements.
+    /// </remarks>
     public float MeshletLodErrorThreshold { get; set; } = 1.0f;
-    
+
     /// <summary>
-    /// Maximum number of visible meshlets on screen.
+    /// Maximum number of visible meshlets on screen. Default is 2,097,152 (2^21).
     /// </summary>
-    public uint MaxVisibleMeshletsOnScreen { get; set; } = 1_048_576;
+    /// <remarks>
+    /// This value controls the maximum number of meshlets that can be visible on screen at any given time. Adjust this value based on performance and visual quality requirements.
+    /// If the number of visible meshlets exceeds this limit, some meshlets may be culled or not rendered and cause visual artifacts. It is recommended to set this value based on the expected scene complexity and the capabilities of the target hardware.
+    /// </remarks>
+    public uint MaxVisibleMeshletsOnScreen { get; set; } = 2_097_152;
 
     public RenderPipelineDebugMode DebugMode { get; set; } = RenderPipelineDebugMode.None;
 

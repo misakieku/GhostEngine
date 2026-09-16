@@ -88,16 +88,18 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
                 }
             }
 
+            descriptorAllocator.Release(viewGroup);
+            
             if (subResourceView.IsCreated)
             {
-                for (var i = 0; i < subResourceView.Length; i++)
+                for (var i = 1; i < subResourceView.Length; i++)
                 {
                     descriptorAllocator.Release(subResourceView[i]);
                 }
+
                 subResourceView.Dispose();
             }
 
-            descriptorAllocator.Release(viewGroup);
             return refCount;
         }
     }

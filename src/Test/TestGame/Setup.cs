@@ -25,7 +25,6 @@ internal static class Setup
 
     private static readonly GhostRenderPipelineSettings s_renderPipelineSettings = new GhostRenderPipelineSettings
     {
-        MeshletLodErrorThreshold = 5.0f,
     };
 
     [RuntimeConfiguration]
@@ -78,7 +77,7 @@ internal static class Setup
             }
         };
 
-        const int entityCapacity = 1000;
+        const int entityCapacity = 10000;
 
         s_world = World.Create(engineCore.JobScheduler, entityCapacity);
 
@@ -111,7 +110,7 @@ internal static class Setup
             updateRotation = true
         });
 
-        s_meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/dragon");
+        s_meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/bunny");
         s_shaderAsset = engineCore.AssetManager.ResolveAsset("Shaders/test");
 
         var meshHandle = default(Handle<Mesh>);

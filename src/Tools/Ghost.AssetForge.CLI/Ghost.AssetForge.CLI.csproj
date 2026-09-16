@@ -12,4 +12,10 @@
     <ProjectReference Include="..\..\Editor\Ghost.AssetForge.Core\Ghost.AssetForge.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="Misaki.CommandLine.Args">
+      <HintPath>..\..\..\..\Class\Misaki.CommandLine\Misaki.CommandLine.ArgsParser\bin\Release\net9.0\Misaki.CommandLine.Args.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

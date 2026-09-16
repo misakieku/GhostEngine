@@ -210,7 +210,6 @@ public class BakeService
             return BakeOutcome.Skipped;
         }
 
-        Logger.Info($"Baking {relativePath}...");
         var metadata = _context.LoadMetadata(metaFile);
 
         if (baker == null)
@@ -225,6 +224,8 @@ public class BakeService
             Logger.Warning($"No baker for {ext}. Skip.");
             return BakeOutcome.Skipped;
         }
+
+        Logger.Info($"Baking {relativePath}...");
 
         var detectedAssetType = _bakerRegistry.DetectAssetType(ext);
         if (metadata == null)

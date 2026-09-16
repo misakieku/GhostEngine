@@ -1,8 +1,38 @@
 using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
+using Misaki.CommandLine.Args;
 using Misaki.HighPerformance.LowLevel.Buffer;
 
 namespace Ghost.AssetForge.CLI;
+
+internal class BakeOptions
+{
+    [Option("asset-dir", Description = "The directory containing the assets to bake. Use semicolon to separate multiple directories.", IsRequired = true)]
+    public string AssetDirs { get; set; } = string.Empty;
+
+    [Option("cache-dir", Description = "The directory to use for caching baked assets.", IsRequired = true)]
+    public string CacheDir { get; set; } = string.Empty;
+
+    [Option("build-dir", Description = "The directory to use for building the project.", IsRequired = true)]
+    public string BuildDir { get; set; } = string.Empty;
+
+    [Option("shader-metadata", Description = "The path to the shader metadata file(s). Use semicolon to separate multiple files.", IsRequired = true)]
+    public string ShaderMetadataPaths { get; set; } = string.Empty;
+}
+
+internal enum MetdataCommandMode
+{
+    Update,
+    Validate
+}
+
+internal class MetadataOptions
+{
+    [Option("mode", Description = "The mode to run the metadata command in. Can be 'update' or 'validate'.", IsRequired = true)]
+    public MetdataCommandMode Mode { get; set; }
+    [Option("asset-dir", Description = "The directory containing the assets to bake. Use semicolon to separate multiple directories.", IsRequired = true)]
+    public string AssetDirs { get; set; } = string.Empty;
+}
 
 public class Program
 {
@@ -10,83 +40,85 @@ public class Program
     {
         Logger.Impl.OnLogAdded += static log => Console.WriteLine($"[{log.Level}] {log.Message}");
 
-        if (args.Length == 0 || args[0] != "bake")
-        {
-            Console.WriteLine("Usage: Ghost.AssetForge.CLI bake --asset-dir <dir> --cache-dir <dir> --build-dir <dir> --shader-metadata <files>");
-            return;
-        }
-
-        var assetDirs = new List<string>();
-        string? cacheDir = null;
-        string? buildDir = null;
-        var shaderMetadataPaths = new List<string>();
-
-        for (var i = 1; i < args.Length; i++)
-        {
-            if (args[i] == "--asset-dir" && i + 1 < args.Length)
-            {
-                var paths = args[++i].Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-                assetDirs.AddRange(paths);
-            }
-            else if (args[i] == "--cache-dir" && i + 1 < args.Length)
-            {
-                cacheDir = args[++i];
-            }
-            else if (args[i] == "--build-dir" && i + 1 < args.Length)
-            {
-                buildDir = args[++i];
-            }
-            else if (args[i] == "--shader-metadata" && i + 1 < args.Length)
-            {
-                // Can be semicolon separated from MSBuild
-                var paths = args[++i].Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-                shaderMetadataPaths.AddRange(paths);
-            }
-        }
-
-        if (assetDirs.Count == 0 || cacheDir == null || buildDir == null)
-        {
-            Console.WriteLine("Error: Missing required directory arguments.");
-            return;
-        }
+        var root = CommandBuilder.Create("root")
+            .AddSubCommand(
+                CommandBuilder.Create("bake")
+                .AddOption<BakeOptions>()
+                .SetAsyncCommandAction(BuildCommandActionAsync)
+                .Build())
+            .AddSubCommand(
+                CommandBuilder.Create("metadata")
+                .AddOption<MetadataOptions>()
+                .SetAsyncCommandAction(BuildMetadataCommandActionAsync)
+                .Build())
+            .Build();
 
         AllocationManager.Initialize();
 
         try
         {
-            using var registry = new BakerRegistry();
-
-            var projectService = new ProjectService(registry);
-            projectService.InitializeFromArgs(assetDirs, cacheDir, buildDir, shaderMetadataPaths);
-            var context = projectService.GetContext();
-
-            var bakeService = new BakeService(context, registry);
-            var packService = new PackService(context, registry);
-
-            Console.WriteLine($"Starting asset bake & pack pipeline...");
-            Console.WriteLine($"Assets: {string.Join(", ", assetDirs)}");
-            Console.WriteLine($"Cache: {cacheDir}");
-            Console.WriteLine($"Build: {buildDir}");
-
-            var bakeResult = await bakeService.BakeProjectAsync();
-            if (bakeResult.Failed > 0)
-            {
-                Console.WriteLine($"Bake failed: {bakeResult.Failed} of {bakeResult.Total} assets failed.");
-                foreach (var failedAsset in bakeResult.FailedAssets)
-                {
-                    Console.WriteLine($"  Failed: {failedAsset}");
-                }
-                Environment.Exit(1);
-            }
-
-            await packService.PackProjectAsync();
-
-            Console.WriteLine("Asset bake & pack complete.");
-            Environment.Exit(0);
+            await root.InvokeAsync(args);
         }
         finally
         {
             AllocationManager.Dispose();
         }
+    }
+
+    private static async Task BuildCommandActionAsync(CommandContext context, CancellationToken cancellationToken)
+    {
+        var opts = context.Bind<BakeOptions>();
+        var assetDirs = opts.AssetDirs.Split(';');
+        var shaderMetadataPaths = opts.ShaderMetadataPaths.Split(';');
+
+        using var registry = new BakerRegistry();
+
+        var projectService = new ProjectService(registry);
+        projectService.InitializeFromArgs(assetDirs, opts.CacheDir, opts.BuildDir, shaderMetadataPaths);
+        var projContext = projectService.GetContext();
+
+        var bakeService = new BakeService(projContext, registry);
+        var packService = new PackService(projContext, registry);
+
+        Console.WriteLine($"Starting asset bake & pack pipeline...");
+        Console.WriteLine($"Assets: {string.Join(", ", assetDirs)}");
+        Console.WriteLine($"Cache: {opts.CacheDir}");
+        Console.WriteLine($"Build: {opts.BuildDir}");
+        Console.WriteLine($"Shader Metadata: {string.Join(", ", shaderMetadataPaths)}");
+
+        var bakeResult = await bakeService.BakeProjectAsync(cancellationToken);
+        if (bakeResult.Failed > 0)
+        {
+            Console.WriteLine($"Bake failed: {bakeResult.Failed} of {bakeResult.Total} assets failed.");
+            foreach (var failedAsset in bakeResult.FailedAssets)
+            {
+                Console.WriteLine($"  Failed: {failedAsset}");
+            }
+            Environment.Exit(1);
+        }
+
+        await packService.PackProjectAsync(cancellationToken);
+
+        Console.WriteLine("Asset bake & pack complete.");
+    }
+
+    private static async Task BuildMetadataCommandActionAsync(CommandContext context, CancellationToken cancellationToken)
+    {
+        Console.WriteLine("Metadata action is not supported yet.");
+        return;
+
+        // var opts = context.Bind<MetadataOptions>();
+        // 
+        // using var registry = new BakerRegistry();
+        // 
+        // switch (opts.Mode)
+        // {
+        //     case MetdataCommandMode.Update:
+        //         break;
+        //     case MetdataCommandMode.Validate:
+        //         break;
+        //     default:
+        //         break;
+        // }
     }
 }

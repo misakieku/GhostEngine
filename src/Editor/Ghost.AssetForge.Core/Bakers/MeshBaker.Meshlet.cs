@@ -278,8 +278,8 @@ internal static unsafe partial class MeshProcessor
                 var cluster = clusters[group[j]];
                 for (var k = 0; k < cluster.uniqueVertices.Count; k++)
                 {
-                    uint v = cluster.uniqueVertices[k];
-                    uint pid = pRemap[(int)v];
+                    var v = cluster.uniqueVertices[k];
+                    var pid = pRemap[(int)v];
                     if (pOwner[(int)pid] == -1)
                     {
                         pOwner[(int)pid] = gi;
@@ -713,107 +713,215 @@ internal static unsafe partial class MeshProcessor
             meshletData->meshletTriangles = new UnsafeList<uint>(128, handle);
         }
 
-        var groupIndex = (uint)meshletData->groups.Count;
-        var groupMin = new float3(float.MaxValue);
-        var groupMax = new float3(float.MinValue);
-
-        for (var i = 0; i < clusters.Count; i++)
-        {
-            var cluster = clusters[i];
-            var triangleCount = cluster.localIndexCount / 3;
-
-            var optBounds = MeshOptApi.ComputeMeshletBounds(
-                cluster.uniqueVertices,
-                cluster.localIndices,
-                triangleCount,
-                context.mesh.vertexPositions,
-                context.mesh.vertexCount,
-                context.mesh.vertexPositionsStride
-            );
-
-            var optCenter = new float3(optBounds.center[0], optBounds.center[1], optBounds.center[2]);
-            var optRadius = optBounds.radius;
-
-            var meshletMin = new float3(float.MaxValue);
-            var meshletMax = new float3(float.MinValue);
-            for (nuint v = 0; v < cluster.vertexCount; v++)
-            {
-                var vIndex = cluster.uniqueVertices[v];
-                var vPtr = (float*)((byte*)context.mesh.vertexPositions + vIndex * context.mesh.vertexPositionsStride);
-                var pos = new float3(vPtr[0], vPtr[1], vPtr[2]);
-                meshletMin = math.min(meshletMin, pos);
-                meshletMax = math.max(meshletMax, pos);
-            }
-
-            if (cluster.vertexCount == 0)
-            {
-                meshletMin = optCenter - optRadius;
-                meshletMax = optCenter + optRadius;
-            }
-
-            groupMin = math.min(groupMin, meshletMin);
-            groupMax = math.max(groupMax, meshletMax);
-
-            var clusterSphere = (group.depth == 0)
-                ? new SphereBounds(optCenter, optRadius)
-                : new SphereBounds(cluster.bounds.center, cluster.bounds.radius);
-
-            var parentSphere = new SphereBounds(group.simplified.center, group.simplified.radius);
-
-            var meshlet = new Meshlet
-            {
-                boundingSphere = clusterSphere,
-                parentBoundingSphere = parentSphere,
-                boundingBox = new AABB(meshletMin, meshletMax),
-                vertexCount = (byte)cluster.vertexCount,
-                triangleCount = (byte)triangleCount,
-                vertexOffset = (uint)meshletData->meshletVertices.Count,
-                triangleOffset = (uint)meshletData->meshletTriangles.Count,
-                groupIndex = groupIndex,
-                clusterError = (group.depth == 0) ? 0.0f : cluster.bounds.error,
-                parentError = group.simplified.error,
-                localMaterialIndex = (byte)materialIndex,
-                lodLevel = (byte)group.depth
-            };
-            meshletData->meshlets.Add(meshlet);
-
-            for (nuint j = 0; j < cluster.vertexCount; j++)
-            {
-                meshletData->meshletVertices.Add(cluster.uniqueVertices[j]);
-            }
-
-            for (nuint j = 0; j < triangleCount; j++)
-            {
-                uint i0 = cluster.localIndices[j * 3 + 0];
-                uint i1 = cluster.localIndices[j * 3 + 1];
-                uint i2 = cluster.localIndices[j * 3 + 2];
-                var packedTriangle = i0 | (i1 << 8) | (i2 << 16);
-                meshletData->meshletTriangles.Add(packedTriangle);
-            }
-        }
-
-        if (clusters.Count == 0)
-        {
-            groupMin = group.simplified.center - group.simplified.radius;
-            groupMax = group.simplified.center + group.simplified.radius;
-        }
-
+        const int MAX_GROUP_MESHLETS = 32;
+        var totalClusters = clusters.Count;
         var currentLod = (uint)group.depth;
         var groupSphere = new SphereBounds(group.simplified.center, group.simplified.radius);
 
-        var meshletStart = meshletData->meshlets.Count - clusters.Count;
-        var meshletGroup = new MeshletGroup
+        if (totalClusters <= MAX_GROUP_MESHLETS)
         {
-            boundingSphere = groupSphere,
-            boundingBox = new AABB(groupMin, groupMax),
-            parentError = group.simplified.error,
-            meshletStartIndex = (uint)meshletStart,
-            meshletCount = (uint)clusters.Count,
-            lodLevel = currentLod
-        };
-        meshletData->groups.Add(meshletGroup);
+            var groupIndex = (uint)meshletData->groups.Count;
+            var groupMin = new float3(float.MaxValue);
+            var groupMax = new float3(float.MinValue);
+            var meshletStart = (uint)meshletData->meshlets.Count;
 
-        return meshletData->groups.Count - 1;
+            for (var i = 0; i < totalClusters; i++)
+            {
+                var cluster = clusters[i];
+                var triangleCount = cluster.localIndexCount / 3;
+
+                var optBounds = MeshOptApi.ComputeMeshletBounds(
+                    cluster.uniqueVertices,
+                    cluster.localIndices,
+                    triangleCount,
+                    context.mesh.vertexPositions,
+                    context.mesh.vertexCount,
+                    context.mesh.vertexPositionsStride
+                );
+
+                var optCenter = new float3(optBounds.center[0], optBounds.center[1], optBounds.center[2]);
+                var optRadius = optBounds.radius;
+
+                var meshletMin = new float3(float.MaxValue);
+                var meshletMax = new float3(float.MinValue);
+                for (nuint v = 0; v < cluster.vertexCount; v++)
+                {
+                    var vIndex = cluster.uniqueVertices[v];
+                    var vPtr = (float*)((byte*)context.mesh.vertexPositions + vIndex * context.mesh.vertexPositionsStride);
+                    var pos = new float3(vPtr[0], vPtr[1], vPtr[2]);
+                    meshletMin = math.min(meshletMin, pos);
+                    meshletMax = math.max(meshletMax, pos);
+                }
+
+                if (cluster.vertexCount == 0)
+                {
+                    meshletMin = optCenter - optRadius;
+                    meshletMax = optCenter + optRadius;
+                }
+
+                groupMin = math.min(groupMin, meshletMin);
+                groupMax = math.max(groupMax, meshletMax);
+
+                var clusterSphere = (group.depth == 0)
+                    ? new SphereBounds(optCenter, optRadius)
+                    : new SphereBounds(cluster.bounds.center, cluster.bounds.radius);
+
+                var parentSphere = new SphereBounds(group.simplified.center, group.simplified.radius);
+
+                var meshlet = new Meshlet
+                {
+                    boundingSphere = clusterSphere,
+                    parentBoundingSphere = parentSphere,
+                    boundingBox = new AABB(meshletMin, meshletMax),
+                    vertexCount = (byte)cluster.vertexCount,
+                    triangleCount = (byte)triangleCount,
+                    vertexOffset = (uint)meshletData->meshletVertices.Count,
+                    triangleOffset = (uint)meshletData->meshletTriangles.Count,
+                    groupIndex = groupIndex,
+                    clusterError = (group.depth == 0) ? 0.0f : cluster.bounds.error,
+                    parentError = group.simplified.error,
+                    localMaterialIndex = (byte)materialIndex,
+                    lodLevel = (byte)group.depth
+                };
+                meshletData->meshlets.Add(meshlet);
+
+                for (nuint j = 0; j < cluster.vertexCount; j++)
+                {
+                    meshletData->meshletVertices.Add(cluster.uniqueVertices[j]);
+                }
+
+                for (nuint j = 0; j < triangleCount; j++)
+                {
+                    uint i0 = cluster.localIndices[j * 3 + 0];
+                    uint i1 = cluster.localIndices[j * 3 + 1];
+                    uint i2 = cluster.localIndices[j * 3 + 2];
+                    var packedTriangle = i0 | (i1 << 8) | (i2 << 16);
+                    meshletData->meshletTriangles.Add(packedTriangle);
+                }
+            }
+
+            if (totalClusters == 0)
+            {
+                groupMin = group.simplified.center - group.simplified.radius;
+                groupMax = group.simplified.center + group.simplified.radius;
+            }
+
+            var meshletGroup = new MeshletGroup
+            {
+                boundingSphere = groupSphere,
+                boundingBox = new AABB(groupMin, groupMax),
+                parentError = group.simplified.error,
+                meshletStartIndex = meshletStart,
+                meshletCount = (uint)totalClusters,
+                lodLevel = currentLod
+            };
+            meshletData->groups.Add(meshletGroup);
+
+            return meshletData->groups.Count - 1;
+        }
+        else
+        {
+            var chunkStart = 0;
+            var lastGroupIdx = -1;
+            while (chunkStart < totalClusters)
+            {
+                var chunkSize = Math.Min(MAX_GROUP_MESHLETS, totalClusters - chunkStart);
+                var groupIndex = (uint)meshletData->groups.Count;
+                var groupMin = new float3(float.MaxValue);
+                var groupMax = new float3(float.MinValue);
+                var meshletStart = (uint)meshletData->meshlets.Count;
+
+                for (var i = 0; i < chunkSize; i++)
+                {
+                    var cluster = clusters[chunkStart + i];
+                    var triangleCount = cluster.localIndexCount / 3;
+
+                    var optBounds = MeshOptApi.ComputeMeshletBounds(
+                        cluster.uniqueVertices,
+                        cluster.localIndices,
+                        triangleCount,
+                        context.mesh.vertexPositions,
+                        context.mesh.vertexCount,
+                        context.mesh.vertexPositionsStride
+                    );
+
+                    var optCenter = new float3(optBounds.center[0], optBounds.center[1], optBounds.center[2]);
+                    var optRadius = optBounds.radius;
+
+                    var meshletMin = new float3(float.MaxValue);
+                    var meshletMax = new float3(float.MinValue);
+                    for (nuint v = 0; v < cluster.vertexCount; v++)
+                    {
+                        var vIndex = cluster.uniqueVertices[v];
+                        var vPtr = (float*)((byte*)context.mesh.vertexPositions + vIndex * context.mesh.vertexPositionsStride);
+                        var pos = new float3(vPtr[0], vPtr[1], vPtr[2]);
+                        meshletMin = math.min(meshletMin, pos);
+                        meshletMax = math.max(meshletMax, pos);
+                    }
+
+                    if (cluster.vertexCount == 0)
+                    {
+                        meshletMin = optCenter - optRadius;
+                        meshletMax = optCenter + optRadius;
+                    }
+
+                    groupMin = math.min(groupMin, meshletMin);
+                    groupMax = math.max(groupMax, meshletMax);
+
+                    var clusterSphere = (group.depth == 0)
+                        ? new SphereBounds(optCenter, optRadius)
+                        : new SphereBounds(cluster.bounds.center, cluster.bounds.radius);
+
+                    var parentSphere = new SphereBounds(group.simplified.center, group.simplified.radius);
+
+                    var meshlet = new Meshlet
+                    {
+                        boundingSphere = clusterSphere,
+                        parentBoundingSphere = parentSphere,
+                        boundingBox = new AABB(meshletMin, meshletMax),
+                        vertexCount = (byte)cluster.vertexCount,
+                        triangleCount = (byte)triangleCount,
+                        vertexOffset = (uint)meshletData->meshletVertices.Count,
+                        triangleOffset = (uint)meshletData->meshletTriangles.Count,
+                        groupIndex = groupIndex,
+                        clusterError = (group.depth == 0) ? 0.0f : cluster.bounds.error,
+                        parentError = group.simplified.error,
+                        localMaterialIndex = (byte)materialIndex,
+                        lodLevel = (byte)group.depth
+                    };
+                    meshletData->meshlets.Add(meshlet);
+
+                    for (nuint j = 0; j < cluster.vertexCount; j++)
+                    {
+                        meshletData->meshletVertices.Add(cluster.uniqueVertices[j]);
+                    }
+
+                    for (nuint j = 0; j < triangleCount; j++)
+                    {
+                        uint i0 = cluster.localIndices[j * 3 + 0];
+                        uint i1 = cluster.localIndices[j * 3 + 1];
+                        uint i2 = cluster.localIndices[j * 3 + 2];
+                        var packedTriangle = i0 | (i1 << 8) | (i2 << 16);
+                        meshletData->meshletTriangles.Add(packedTriangle);
+                    }
+                }
+
+                var meshletGroup = new MeshletGroup
+                {
+                    boundingSphere = groupSphere,
+                    boundingBox = new AABB(groupMin, groupMax),
+                    parentError = group.simplified.error,
+                    meshletStartIndex = meshletStart,
+                    meshletCount = (uint)chunkSize,
+                    lodLevel = currentLod
+                };
+                meshletData->groups.Add(meshletGroup);
+                lastGroupIdx = (int)groupIndex;
+                chunkStart += chunkSize;
+            }
+
+            return lastGroupIdx;
+        }
     }
 
     public static DisposablePtr<MeshletMeshData> BuildMeshlets(
@@ -830,7 +938,7 @@ internal static unsafe partial class MeshProcessor
             maxTriangles = (nuint)settings.MaxTrianglesPerMeshlet,
 
             partitionSpatial = true,
-            partitionSize = 16,
+            partitionSize = (nuint)Math.Clamp(settings.PartitionSize, 4, 32),
 
             clusterSpatial = false,
             clusterSplitFactor = 2.0f,
@@ -840,11 +948,11 @@ internal static unsafe partial class MeshProcessor
 
             simplifyRatio = settings.SimplifyRatio,
             simplifyThreshold = settings.SimplifyThreshold,
-            simplifyErrorMergePrevious = 1.0f,
-            simplifyErrorFactorSloppy = 2.0f,
+            simplifyErrorMergePrevious = settings.SimplifyErrorMergePrevious,
+            simplifyErrorFactorSloppy = settings.SimplifyErrorFactorSloppy,
             simplifyPermissive = true,
-            simplifyFallbackPermissive = false,
-            simplifyFallbackSloppy = true,
+            simplifyFallbackPermissive = settings.SimplifyFallbackPermissive,
+            simplifyFallbackSloppy = settings.SimplifyFallbackSloppy,
         };
 
         var meshletData = (MeshletMeshData*)NativeMemory.AllocZeroed((nuint)sizeof(MeshletMeshData));
@@ -1098,7 +1206,7 @@ internal static unsafe partial class MeshProcessor
                             (uint*)clusterIndices.GetUnsafePtr(),
                             (float*)centers.GetUnsafePtr(),
                             (nuint)nodeCount,
-                            (nuint)(sizeof(float) * 3),
+                            sizeof(float) * 3,
                             maxFanout
                         );
 

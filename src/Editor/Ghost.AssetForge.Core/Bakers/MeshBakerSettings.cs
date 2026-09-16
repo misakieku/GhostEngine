@@ -55,5 +55,20 @@ public partial class MeshBakeSettings : ObservableObject, IBakeSettings
     public partial float SimplifyThreshold { get; set; } = 0.85f;
 
     [ObservableProperty]
+    public partial int PartitionSize { get; set; } = 32;
+
+    [ObservableProperty]
+    public partial float SimplifyErrorMergePrevious { get; set; } = 1.0f;
+
+    [ObservableProperty]
+    public partial float SimplifyErrorFactorSloppy { get; set; } = 2.0f;
+
+    [ObservableProperty]
+    public partial bool SimplifyFallbackPermissive { get; set; } = false;
+
+    [ObservableProperty]
+    public partial bool SimplifyFallbackSloppy { get; set; } = true;
+
+    [ObservableProperty]
     public partial bool OptimizeClusters { get; set; } = true;
 }
