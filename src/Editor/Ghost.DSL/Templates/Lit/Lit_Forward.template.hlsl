@@ -28,7 +28,7 @@ groupshared ASPayload s_Payload;
 void ASMain(uint3 groupID : SV_GroupID)
 {
     FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
-    InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, g_PushConstantData.instanceIndex);
+    InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, g_PushConstantData.userData0);
     MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
     ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
@@ -36,7 +36,7 @@ void ASMain(uint3 groupID : SV_GroupID)
 
     uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
     s_Payload.meshletIndex = groupID.x;
-    s_Payload.instanceIndex = g_PushConstantData.instanceIndex;
+    s_Payload.instanceIndex = g_PushConstantData.userData0;
     s_Payload.materialIndex = LoadMaterialBindlessIndex(
         frameData.paletteOffsetBuffer,
         frameData.materialIndexBuffer,

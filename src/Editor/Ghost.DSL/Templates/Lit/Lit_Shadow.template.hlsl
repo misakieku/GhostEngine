@@ -23,7 +23,7 @@ groupshared ASPayload s_Payload;
 void ASMain(uint3 groupID : SV_GroupID)
 {
     FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
-    InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, g_PushConstantData.instanceIndex);
+    InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, g_PushConstantData.userData0);
     MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
     ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
@@ -49,7 +49,7 @@ void MSMain(
     out indices uint3 outTris[124])
 {
     FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
-    InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, g_PushConstantData.instanceIndex);
+    InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, g_PushConstantData.userData0);
     MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
     ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);

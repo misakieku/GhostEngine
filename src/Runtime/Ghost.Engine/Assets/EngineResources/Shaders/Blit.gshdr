@@ -55,7 +55,7 @@ shader "Hidden/Blit"
 
             float4 PSMain(PSInput input) : SV_TARGET
             {
-                HiddenBlitShaderProperties properties = LoadData<HiddenBlitShaderProperties>(g_PushConstantData.instanceIndex, 0);
+                HiddenBlitShaderProperties properties = LoadData<HiddenBlitShaderProperties>(g_PushConstantData.userData0, 0);
                 return float4(SAMPLE_TEXTURE2D(properties.mainTex, properties.sampler_mainTex, input.uv.xy).xyz, 1.0);
             }
         }

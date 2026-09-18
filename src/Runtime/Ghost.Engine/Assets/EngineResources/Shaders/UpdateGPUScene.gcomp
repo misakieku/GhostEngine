@@ -20,7 +20,7 @@ compute "Internal/UpdateGPUScene"
         [numthreads(64, 1, 1)]
         void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         {
-            InternalUpdateGPUSceneShaderProperties properties = LoadData<InternalUpdateGPUSceneShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+            InternalUpdateGPUSceneShaderProperties properties = LoadData<InternalUpdateGPUSceneShaderProperties>(g_PushConstantData.userData0, 0);
             RWByteAddressBuffer gpuSceneBuffer = GET_BUFFER(properties.gpuSceneBuffer);
 
             if (dispatchThreadID.x < properties.updateCount)

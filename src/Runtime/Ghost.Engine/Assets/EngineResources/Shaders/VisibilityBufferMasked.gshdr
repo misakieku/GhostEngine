@@ -59,8 +59,8 @@ shader "Internal/VisibilityBufferMasked"
                 out indices uint3 outTris[124],
                 out primitives PrimitiveOutput outPrims[124])
             {
-                uint visibleBufferIndex = g_PushConstantData.instanceIndex & 0x7FFFFFFFu;
-                uint passBit = (g_PushConstantData.instanceIndex >> 31) & 1u;
+                uint visibleBufferIndex = g_PushConstantData.userData0 & 0x7FFFFFFFu;
+                uint passBit = (g_PushConstantData.userData0 >> 31) & 1u;
                 StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[visibleBufferIndex];
                 VisibleMeshletEntry visible = visibleMeshlets[groupID.x];
 

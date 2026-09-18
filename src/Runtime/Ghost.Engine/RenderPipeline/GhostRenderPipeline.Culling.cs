@@ -334,7 +334,7 @@ internal partial class GhostRenderPipeline
                 passData.backingMemorySize,
                 passData.flags);
             computeCtx.SetProgram(in setProgramDesc);
-            computeCtx.SetProperties(in props);
+            computeCtx.SetUserDataWithProperties(in props);
 
             var record = new WorkGraphDispatchGridRecord(passData.threadGroupCount, 1, 1);
             var dispatchDesc = DispatchGraphDesc.ForCPUInput(passData.entrypointIndex, 1, &record, (ulong)sizeof(WorkGraphDispatchGridRecord));
@@ -388,7 +388,7 @@ internal partial class GhostRenderPipeline
             };
 
             computeCtx.SetActiveCompute(passData.shader, 0);
-            computeCtx.SetProperties(in props);
+            computeCtx.SetUserDataWithProperties(in props);
             computeCtx.DispatchCompute(1, 1, 1);
         });
     }
@@ -516,7 +516,7 @@ internal partial class GhostRenderPipeline
         };
 
         computeCtx.SetActiveCompute(passData.shader, 0);
-        computeCtx.SetProperties(in props);
+        computeCtx.SetUserDataWithProperties(in props);
 
         var threadGroupsX = Math.Max(1u, (passData.dispatchSize.x + 7) / 8);
         var threadGroupsY = Math.Max(1u, (passData.dispatchSize.y + 7) / 8);
@@ -595,7 +595,7 @@ internal partial class GhostRenderPipeline
             };
 
             computeCtx.SetActiveCompute(passData.shader, 0);
-            computeCtx.SetProperties(in props);
+            computeCtx.SetUserDataWithProperties(in props);
 
             var actualIndirectBuf = computeCtx.GetActualBuffer(passData.indirectArgsBuffer);
             computeCtx.ExecuteIndirect(s_dispatchCommandSignature, 1, actualIndirectBuf, CullConstants.INDIRECT_OFFSET_PASS2_CULL);

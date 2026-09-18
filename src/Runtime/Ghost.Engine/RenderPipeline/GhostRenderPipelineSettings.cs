@@ -185,7 +185,7 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     public float MeshletLodErrorThreshold { get; set; } = 1.0f;
 
     /// <summary>
-    /// Maximum number of visible meshlets on screen. Default is 2,097,152 (2^21).
+    /// Maximum number of visible meshlets on screen. Default is 2,097,152 (2^21). Maximum is 16,777,216 (2^24).
     /// </summary>
     /// <remarks>
     /// This value controls the maximum number of meshlets that can be visible on screen at any given time. Adjust this value based on performance and visual quality requirements.

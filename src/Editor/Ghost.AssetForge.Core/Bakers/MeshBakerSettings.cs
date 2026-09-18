@@ -40,15 +40,6 @@ public partial class MeshBakeSettings : ObservableObject, IBakeSettings
     public partial VertexDataSource TangentDataSource { get; set; } = VertexDataSource.ComputedIfMissing;
 
     [ObservableProperty]
-    public partial int MaxVerticesPerMeshlet { get; set; } = 64;
-
-    [ObservableProperty]
-    public partial int MinTrianglesPerMeshlet { get; set; } = 32;
-
-    [ObservableProperty]
-    public partial int MaxTrianglesPerMeshlet { get; set; } = 124;
-
-    [ObservableProperty]
     public partial float SimplifyRatio { get; set; } = 0.5f;
 
     [ObservableProperty]

@@ -164,11 +164,11 @@ static inline FrustumTestResult FrustumCullAABB(float3 minPt, float3 maxPt, floa
     return res;
 }
 
-// Nanite's MipLevelForRect for 4x4 footprint
-static inline int MipLevelForRect(int4 rectPixels, int desiredFootprintPixels = 4)
+// Nanite's MipLevelForRect adapted for 2x2 footprint
+static inline int MipLevelForRect(int4 rectPixels, int desiredFootprintPixels = 2)
 {
-    const int maxPixelOffset = desiredFootprintPixels - 1; // 3
-    const int mipOffset = 1; // (int)log2(4) - 1 = 1
+    const int maxPixelOffset = desiredFootprintPixels - 1; // 1
+    const int mipOffset = (desiredFootprintPixels == 2) ? 0 : 1;
 
     int2 mipLevelXY = firstbithigh((uint2)max(rectPixels.zw - rectPixels.xy, int2(0, 0)));
     int mipLevel = max(max(mipLevelXY.x, mipLevelXY.y) - mipOffset, 0);
@@ -209,17 +209,13 @@ static inline bool HZBVisible(float4 clipMin, float4 clipMax, uint hzbMipCount, 
 
     // Convert from normalized UV to HZB Mip 0 texels:
     float2 hzbSize = float2(hzbBaseSize);
-    //int4 hzbTexels = int4(rectUV * hzbSize.xyxy + float4(0.5f, 0.5f, -0.5f, -0.5f));
-    //hzbTexels.xy = max(hzbTexels.xy, int2(0, 0));
-    //hzbTexels.zw = min(hzbTexels.zw, int2(hzbBaseSize) - 1);
-    //hzbTexels.zw = max(hzbTexels.xy, hzbTexels.zw);
     int4 hzbTexels;
     hzbTexels.xy = max((int2) floor(rectUV.xy * hzbSize), int2(0, 0));
     hzbTexels.zw = min((int2) ceil(rectUV.zw * hzbSize) - 1, int2(hzbBaseSize) - 1);
     hzbTexels.zw = max(hzbTexels.xy, hzbTexels.zw);
 
-    // Determine target mip level for 4x4 footprint
-    int hzbLevel = MipLevelForRect(hzbTexels, 4);
+    // Determine target mip level for 2x2 footprint (at most 4 texels to sample)
+    int hzbLevel = MipLevelForRect(hzbTexels, 2);
     uint hzbMip = min((uint)hzbLevel, hzbMipCount - 1);
 
     // Transform HZB Mip 0 coordinates to coordinates of selected mip level
@@ -229,38 +225,18 @@ static inline bool HZBVisible(float4 clipMin, float4 clipMax, uint hzbMipCount, 
     hzbTexels.zw = min(hzbTexels.zw, mipSize - 1);
     hzbTexels.xy = min(hzbTexels.xy, hzbTexels.zw);
 
-    int4 xCoords = min(hzbTexels.x + int4(0, 1, 2, 3), hzbTexels.z);
-    int4 yCoords = min(hzbTexels.y + int4(0, 1, 2, 3), hzbTexels.w);
+    int2 minCoord = hzbTexels.xy;
+    int2 maxCoord = min(hzbTexels.zw, minCoord + 1);
 
     Texture2D<float> hzbTex = GET_TEXTURE2D(hzbTexture);
 
-    float4 row0 = float4(
-        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.x)],
-        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.x)],
-        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.x)],
-        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.x)]
-    );
-    float4 row1 = float4(
-        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.y)],
-        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.y)],
-        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.y)],
-        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.y)]
-    );
-    float4 row2 = float4(
-        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.z)],
-        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.z)],
-        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.z)],
-        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.z)]
-    );
-    float4 row3 = float4(
-        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.w)],
-        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.w)],
-        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.w)],
-        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.w)]
-    );
+    // 4 point samples (75% reduction in texture instructions vs 16 samples)
+    float d00 = hzbTex.mips[hzbMip][int2(minCoord.x, minCoord.y)];
+    float d10 = hzbTex.mips[hzbMip][int2(maxCoord.x, minCoord.y)];
+    float d01 = hzbTex.mips[hzbMip][int2(minCoord.x, maxCoord.y)];
+    float d11 = hzbTex.mips[hzbMip][int2(maxCoord.x, maxCoord.y)];
 
-    float4 minRow = min(min(row0, row1), min(row2, row3));
-    float minOccluderDepth = min(min(minRow.x, minRow.y), min(minRow.z, minRow.w));
+    float minOccluderDepth = min(min(d00, d10), min(d01, d11));
 
     // In reversed-Z, clipMax.z is the nearest point of the bounding box to the camera
     // If the object's nearest point is closer than the occluder's furthest point (plus epsilon), it is VISIBLE!

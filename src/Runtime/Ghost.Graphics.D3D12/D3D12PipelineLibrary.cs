@@ -92,7 +92,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
             {
                 ShaderRegister = 0, // b0
                 RegisterSpace = 0,  // space0
-                Num32BitValues = PushConstantsData.NUM_32BITS_VALUE // 3
+                Num32BitValues = PushConstantsData.NUM_32BITS_VALUE // 4
             }
         };
 

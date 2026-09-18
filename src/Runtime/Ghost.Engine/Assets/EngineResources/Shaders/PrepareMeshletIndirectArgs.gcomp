@@ -23,7 +23,7 @@ compute "Internal/PrepareMeshletIndirectArgs"
         [numthreads(3, 1, 1)]
         void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         {
-            InternalPrepareMeshletIndirectArgsShaderProperties properties = LoadData<InternalPrepareMeshletIndirectArgsShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+            InternalPrepareMeshletIndirectArgsShaderProperties properties = LoadData<InternalPrepareMeshletIndirectArgsShaderProperties>(g_PushConstantData.userData0, 0);
 
             RWByteAddressBuffer counterBuffer = ResourceDescriptorHeap[properties.counterBuffer];
             RWByteAddressBuffer indirectArgsBuffer = ResourceDescriptorHeap[properties.indirectArgsBuffer];

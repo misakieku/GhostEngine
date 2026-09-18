@@ -172,9 +172,6 @@ public class MeshBakerTests
             UnitMeterScale = 1,
             NormalDataSource = VertexDataSource.ComputedIfMissing,
             TangentDataSource = VertexDataSource.ComputedIfMissing,
-            MaxVerticesPerMeshlet = 64,
-            MinTrianglesPerMeshlet = 32,
-            MaxTrianglesPerMeshlet = 124,
             SimplifyRatio = 0.5f,
             SimplifyThreshold = 0.85f,
             OptimizeClusters = true
@@ -290,9 +287,6 @@ public class MeshBakerTests
             UnitMeterScale = 1,
             NormalDataSource = VertexDataSource.ComputedIfMissing,
             TangentDataSource = VertexDataSource.ComputedIfMissing,
-            MaxVerticesPerMeshlet = 64,
-            MinTrianglesPerMeshlet = 32,
-            MaxTrianglesPerMeshlet = 124,
             SimplifyRatio = 0.5f,
             SimplifyThreshold = 0.85f,
             OptimizeClusters = true
@@ -385,9 +379,6 @@ public class MeshBakerTests
             UnitMeterScale = 1,
             NormalDataSource = VertexDataSource.ComputedIfMissing,
             TangentDataSource = VertexDataSource.ComputedIfMissing,
-            MaxVerticesPerMeshlet = 64,
-            MinTrianglesPerMeshlet = 32,
-            MaxTrianglesPerMeshlet = 124,
             SimplifyRatio = 0.5f,
             SimplifyThreshold = 0.85f,
             OptimizeClusters = true

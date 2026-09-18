@@ -40,7 +40,7 @@ compute "Internal/BuildHZB"
             uint threadID : SV_GroupThreadID,
             uint3 groupID : SV_GroupID)
         {
-            InternalBuildHZBShaderProperties properties = LoadData<InternalBuildHZBShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+            InternalBuildHZBShaderProperties properties = LoadData<InternalBuildHZBShaderProperties>(g_PushConstantData.userData0, 0);
 
             int2 dstCoord0 = (int2)((groupID.xy << 3) | CoordInTileByIndex(threadID));
             int2 readOffsetUL = dstCoord0 << 1;
@@ -169,7 +169,7 @@ compute "Internal/BuildHZB"
             uint threadID : SV_GroupThreadID,
             uint3 groupID : SV_GroupID)
         {
-            InternalBuildHZBShaderProperties properties = LoadData<InternalBuildHZBShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+            InternalBuildHZBShaderProperties properties = LoadData<InternalBuildHZBShaderProperties>(g_PushConstantData.userData0, 0);
 
             int2 dstCoord0 = (int2)((groupID.xy << 3) | CoordInTileByIndex(threadID));
             int2 readOffsetUL = dstCoord0 << 1;

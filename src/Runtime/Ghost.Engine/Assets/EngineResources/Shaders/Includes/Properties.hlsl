@@ -17,18 +17,12 @@ struct Frustum
     float3 corners[8];
 };
 
-struct GraphicsPushConstantData
+struct PushConstantData
 {
     BYTE_ADDRESS_BUFFER frameBuffer;
     BYTE_ADDRESS_BUFFER viewBuffer;
-    uint instanceIndex;
-};
-
-struct ComputePushConstantData
-{
-    BYTE_ADDRESS_BUFFER frameBuffer;
-    BYTE_ADDRESS_BUFFER viewBuffer;
-    BYTE_ADDRESS_BUFFER propertiesBuffer;
+    uint userData0;
+    uint userData1;
 };
 
 struct FrameData
@@ -80,19 +74,9 @@ struct MeshData
     uint materialSlotCount;
 };
 
-#if defined(__WORK_GRAPH__)
-#define WorkGraphPushConstantData ComputePushConstantData
-#endif
-
 cbuffer PushConstants : register(b0)
 {
-#if defined(__GRAPHICS__)
-    GraphicsPushConstantData g_PushConstantData;
-#elif defined(__COMPUTE__)
-    ComputePushConstantData g_PushConstantData;
-#elif defined(__WORK_GRAPH__)
-    WorkGraphPushConstantData g_PushConstantData;
-#endif
+    PushConstantData g_PushConstantData;
 };
 
 

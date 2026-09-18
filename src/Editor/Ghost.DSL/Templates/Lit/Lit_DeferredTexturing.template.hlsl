@@ -10,7 +10,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     // Minimal placeholder compute kernel for deferred material surface evaluation
     Payload payload = (Payload)0;
     MaterialContext ctx = (MaterialContext)0;
-    ctx.materialIndex = g_PushConstantData.propertiesBuffer;
+    ctx.materialIndex = g_PushConstantData.userData0;
 
     SurfaceData surface;
     GetSurfaceData(ctx, payload, surface);

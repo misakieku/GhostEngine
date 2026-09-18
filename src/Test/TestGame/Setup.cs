@@ -25,6 +25,7 @@ internal static class Setup
 
     private static readonly GhostRenderPipelineSettings s_renderPipelineSettings = new GhostRenderPipelineSettings
     {
+        MaxVisibleMeshletsOnScreen = 2_097_152 * 1
     };
 
     [RuntimeConfiguration]
@@ -77,7 +78,9 @@ internal static class Setup
             }
         };
 
-        const int entityCapacity = 10000;
+        const int entityCapacity = 1000;
+        const float size = 10.0f;
+        const float baseScale = 1.0f;
 
         s_world = World.Create(engineCore.JobScheduler, entityCapacity);
 
@@ -110,7 +113,7 @@ internal static class Setup
             updateRotation = true
         });
 
-        s_meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/bunny");
+        s_meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/dragon");
         s_shaderAsset = engineCore.AssetManager.ResolveAsset("Shaders/test");
 
         var meshHandle = default(Handle<Mesh>);
@@ -139,9 +142,9 @@ internal static class Setup
                 staticShadowCaster = true,
             });
 
-            var position = new float3(RandomFloat(-10.0f, 10.0f), RandomFloat(-10.0f, 10.0f), RandomFloat(-10.0f, 10.0f));
+            var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
             var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f)));
-            var scale = new float3(RandomFloat(0.5f, 1.0f), RandomFloat(0.5f, 1.0f), RandomFloat(0.5f, 1.0f));
+            var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
 
             s_world.EntityManager.SetComponent(entity, new LocalToWorld
             {

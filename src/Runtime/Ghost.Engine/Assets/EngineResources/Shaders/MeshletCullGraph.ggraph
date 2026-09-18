@@ -68,7 +68,7 @@ compute "Internal/MeshletCullGraph"
             [NodeId("HierarchyTraverseNode")] [MaxRecords(1)] NodeOutput<HierarchyNodeRecord> hierarchyQueue,
             [NodeId("MeshletCullNode")] [MaxRecords(64)] NodeOutput<MeshletCandidateRecord> meshletQueue)
         {
-            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
 
             RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBufferUav];
 
@@ -137,7 +137,7 @@ compute "Internal/MeshletCullGraph"
             [NodeId("HierarchyTraverseNode")] [MaxRecords(7)] NodeOutput<HierarchyNodeRecord> selfQueue,
             [NodeId("ExpandGroupNode")]       [MaxRecords(1)] NodeOutput<MeshletGroupRecord> groupQueue)
         {
-            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
             HierarchyNodeRecord rec = inputRecord.Get();
 
             FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
@@ -249,7 +249,7 @@ compute "Internal/MeshletCullGraph"
             [MaxRecords(32)] GroupNodeInputRecords<MeshletCandidateRecord> inputRecords,
             uint groupIndex : SV_GroupIndex)
         {
-            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
 
             uint numRecords = inputRecords.Count();
             bool isValid = (groupIndex < numRecords);
@@ -347,6 +347,7 @@ compute "Internal/MeshletCullGraph"
                                 isOccluded = !TestHZB(clipMin, clipMax, props);
                             }
                         }
+
                         isVisible = !isOccluded;
                     }
                 }

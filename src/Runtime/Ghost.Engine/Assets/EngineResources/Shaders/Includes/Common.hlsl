@@ -44,6 +44,9 @@ struct MeshletHierarchyNode
     uint   childCount;
 };
 
+#define MAX_VERTEX_PER_MESHLET 64
+#define MAX_TRIS_PER_MESHLET 124
+
 // Resource descriptor heap definitions
 
 #define GLOBAL_TEXTURE2D_HEAP ResourceDescriptorHeap
@@ -132,11 +135,7 @@ static inline T LoadData(BYTE_ADDRESS_BUFFER buffer, uint index)
 ///   materialIndexBuffer  : from FrameData — packed bindless CBuffer indices for all palettes
 ///   paletteIndex         : per-instance value from InstanceData.materialPaletteIndex
 ///   localMaterialIndex   : per-meshlet value from Meshlet.packedCounts byte 2
-static inline uint LoadMaterialBindlessIndex(
-    BYTE_ADDRESS_BUFFER paletteOffsetBuffer,
-    BYTE_ADDRESS_BUFFER materialIndexBuffer,
-    uint paletteIndex,
-    uint localMaterialIndex)
+static inline uint LoadMaterialBindlessIndex(BYTE_ADDRESS_BUFFER paletteOffsetBuffer, BYTE_ADDRESS_BUFFER materialIndexBuffer, uint paletteIndex, uint localMaterialIndex)
 {
     ByteAddressBuffer offsets = GET_BUFFER(paletteOffsetBuffer);
     ByteAddressBuffer indices = GET_BUFFER(materialIndexBuffer);

@@ -39,10 +39,10 @@ compute "Internal/OccludedMeshletCull"
         [numthreads(64, 1, 1)]
         void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         {
-            InternalOccludedMeshletCullShaderProperties props = LoadData<InternalOccludedMeshletCullShaderProperties>(g_PushConstantData.propertiesBuffer, 0);
+            InternalOccludedMeshletCullShaderProperties props = LoadData<InternalOccludedMeshletCullShaderProperties>(g_PushConstantData.userData0, 0);
 
             RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBufferUav];
-            uint occludedCount = WaveReadLaneFirst(counterBuf.Load(4));
+            uint occludedCount = counterBuf.Load(4);
 
             uint slotIndex = dispatchThreadId.x;
             bool isValid = (slotIndex < occludedCount);
@@ -53,8 +53,15 @@ compute "Internal/OccludedMeshletCull"
 
             if (isValid)
             {
-                StructuredBuffer<MeshletCandidateRecord> occludedBuffer = ResourceDescriptorHeap[props.occludedMeshletsUav];
-                rec = occludedBuffer[slotIndex];
+                if (WaveIsFirstLane())
+                {
+                    StructuredBuffer<MeshletCandidateRecord> occludedBuffer = ResourceDescriptorHeap[props.occludedMeshletsUav];
+                    rec = occludedBuffer[slotIndex];
+                }
+
+                rec.instanceIndex = WaveReadLaneFirst(rec.instanceIndex);
+                rec.meshletIndex = WaveReadLaneFirst(rec.meshletIndex);
+                rec.meshletBufferIndex = WaveReadLaneFirst(rec.meshletBufferIndex);
 
                 FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
                 ViewData view = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);

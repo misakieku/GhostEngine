@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
-using Ghost.Core.Utilities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
@@ -24,7 +23,11 @@ public interface IRenderGraphContext
     void GetActualBindlessIndices(Identifier<RGTexture> texture, ReadOnlySpan<uint> subResources, Span<uint> outIndices, BindlessAccess access = BindlessAccess.ShaderResource);
     uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource);
 
-    void SetProperties<TProperty>(scoped in TProperty property) where TProperty : unmanaged;
+    void SetUserData(uint instanceIndex, uint userData1 = uint.MaxValue);
+    void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue) where TProperty : unmanaged;
+
+    bool TrySetActiveShaderPass(Handle<Shader> shader, PassSemantic semantic);
+    void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset = 0, Handle<GPUBuffer> countBuffer = default, ulong countBufferOffset = 0);
 }
 
 public interface IRasterRenderContext : IRenderGraphContext
@@ -32,27 +35,21 @@ public interface IRasterRenderContext : IRenderGraphContext
     void SetViewport(ViewportDesc desc);
     void SetScissorRect(ScissorRectDesc desc);
 
-    void SetInstanceIndex(uint instanceIndex);
-
     void SetActiveMaterial(Handle<Material> material);
     void SetActiveMaterial(scoped in Material material);
     void SetActiveMaterialPass(Handle<Material> material, PassSemantic semantic);
     void SetActiveMaterialPass(scoped in Material material, PassSemantic semantic);
     bool TrySetActiveMaterialPass(Handle<Material> material, PassSemantic semantic);
     bool TrySetActiveMaterialPass(scoped in Material material, PassSemantic semantic);
-    bool TrySetActiveShaderPass(Handle<Shader> shader, PassSemantic semantic);
     void SetActiveMesh(Handle<Mesh> mesh);
     void SetActiveMesh(scoped in Mesh mesh);
     void DispatchMesh(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ);
-    void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset = 0, Handle<GPUBuffer> countBuffer = default, ulong countBufferOffset = 0);
 }
 
 public interface IComputeRenderContext : IRenderGraphContext
 {
     void SetActiveCompute(Handle<ComputeShader> computeShader, int entryIndex);
-    bool TrySetActiveShaderPass(Handle<Shader> shader, PassSemantic semantic);
     void DispatchCompute(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ);
-    void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset = 0, Handle<GPUBuffer> countBuffer = default, ulong countBufferOffset = 0);
     void SetProgram(scoped in SetProgramDesc desc);
     void DispatchGraph(scoped in DispatchGraphDesc desc);
 }
@@ -66,7 +63,7 @@ public interface IUnsafeRenderContext : IRasterRenderContext, IComputeRenderCont
     unsafe void WriteBuffer(Identifier<RGBuffer> buffer, void* pData, uint sizeInBytes, uint dstOffset = 0);
 }
 
-internal unsafe sealed class RenderGraphContext : IUnsafeRenderContext, IDisposable
+internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposable
 {
     private readonly ResourceManager _resourceManager;
     private readonly ShaderLibrary _shaderLibrary;
@@ -191,7 +188,20 @@ internal unsafe sealed class RenderGraphContext : IUnsafeRenderContext, IDisposa
         _activeViewBuffer = viewBuffer;
     }
 
-    public void SetProperties<TProperty>(scoped in TProperty property) where TProperty : unmanaged
+    public void SetUserData(uint instanceIndex, uint userData1 = uint.MaxValue)
+    {
+        var data = new PushConstantsData
+        {
+            frameBuffer = _activeFrameBuffer,
+            viewBuffer = _activeViewBuffer,
+            instanceIndex = instanceIndex,
+            userData = userData1,
+        };
+
+        _commandBuffer.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, data.AsUInts());
+    }
+
+    public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue) where TProperty : unmanaged
     {
         var descriptor = _propertyAllocator.Allocate(in property);
         var data = new PushConstantsData
@@ -199,6 +209,7 @@ internal unsafe sealed class RenderGraphContext : IUnsafeRenderContext, IDisposa
             frameBuffer = _activeFrameBuffer,
             viewBuffer = _activeViewBuffer,
             propertyBuffer = descriptor,
+            userData = userData1,
         };
 
         if (_commandBuffer.Type == CommandBufferType.Compute)
@@ -557,18 +568,6 @@ internal unsafe sealed class RenderGraphContext : IUnsafeRenderContext, IDisposa
     {
         _activePerMeshData = mesh.MeshDataBuffer;
         _activeMeshIndexCount = mesh.IndexCount;
-    }
-
-    public void SetInstanceIndex(uint instanceIndex)
-    {
-        var data = new PushConstantsData
-        {
-            frameBuffer = _activeFrameBuffer,
-            viewBuffer = _activeViewBuffer,
-            instanceIndex = instanceIndex,
-        };
-
-        _commandBuffer.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, data.AsUInts());
     }
 
     public void DispatchMesh(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ)

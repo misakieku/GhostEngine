@@ -55,7 +55,7 @@ shader "Internal/MeshletDebug"
                 out vertices PixelInput outVerts[64],
                 out indices uint3 outTris[124])
             {
-                uint visibleBufferIndex = g_PushConstantData.instanceIndex & 0x7FFFFFFFu;
+                uint visibleBufferIndex = g_PushConstantData.userData0 & 0x7FFFFFFFu;
 
                 StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[visibleBufferIndex];
                 VisibleMeshletEntry visible = visibleMeshlets[groupID.x];

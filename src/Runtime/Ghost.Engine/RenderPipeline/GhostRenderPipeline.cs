@@ -371,12 +371,12 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             {
                 // 1. Draw Opaque Meshlets with debug shader
                 var visibleBufferIndex = renderCtx.GetActualBindlessIndex(passData.visibleMeshlets);
-                renderCtx.SetInstanceIndex(visibleBufferIndex | passBit);
+                renderCtx.SetUserData(visibleBufferIndex | passBit);
                 renderCtx.ExecuteIndirect(s_dispatchMeshCommandSignature, 1, actualIndirectBuf, passData.opaqueArgsOffset);
 
                 // 2. Draw Masked Meshlets with debug shader
                 var visibleMaskedIndex = renderCtx.GetActualBindlessIndex(passData.visibleMaskedMeshlets);
-                renderCtx.SetInstanceIndex(visibleMaskedIndex | passBit);
+                renderCtx.SetUserData(visibleMaskedIndex | passBit);
                 renderCtx.ExecuteIndirect(s_dispatchMeshCommandSignature, 1, actualIndirectBuf, passData.maskedArgsOffset);
             }
         });
@@ -441,7 +441,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 renderCtx.TrySetActiveShaderPass(passData.visibilityShader, PassSemantic.Visibility))
             {
                 var visibleBufferIndex = renderCtx.GetActualBindlessIndex(passData.visibleMeshlets);
-                renderCtx.SetInstanceIndex(visibleBufferIndex | passBit);
+                renderCtx.SetUserData(visibleBufferIndex | passBit);
                 renderCtx.ExecuteIndirect(s_dispatchMeshCommandSignature, 1, actualIndirectBuf, passData.opaqueArgsOffset);
             }
 
@@ -450,7 +450,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 renderCtx.TrySetActiveShaderPass(passData.visibilityMaskedShader, PassSemantic.Visibility))
             {
                 var visibleMaskedIndex = renderCtx.GetActualBindlessIndex(passData.visibleMaskedMeshlets);
-                renderCtx.SetInstanceIndex(visibleMaskedIndex | passBit);
+                renderCtx.SetUserData(visibleMaskedIndex | passBit);
                 renderCtx.ExecuteIndirect(s_dispatchMeshCommandSignature, 1, actualIndirectBuf, passData.maskedArgsOffset);
             }
         });
@@ -491,7 +491,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 sampler_mainTex = (uint)renderCtx.ResourceManager.StaticSampler.LinearClamp.Value,
             };
 
-            renderCtx.SetProperties(property);
+            renderCtx.SetUserDataWithProperties(property);
             renderCtx.DispatchMesh(1, 1, 1);
         });
     }

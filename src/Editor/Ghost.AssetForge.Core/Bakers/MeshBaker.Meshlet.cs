@@ -931,11 +931,15 @@ internal static unsafe partial class MeshProcessor
         MeshBakeSettings settings,
         AllocationHandle allocationHandle)
     {
+        const nuint MAX_VERTICES_PER_MESHLET = 64;
+        const nuint MIN_TRIANGLES_PER_MESHLET = 32;
+        const nuint MAX_TRIANGLES_PER_MESHLET = 126;
+
         var config = new ClodConfig
         {
-            maxVertices = (nuint)settings.MaxVerticesPerMeshlet,
-            minTriangles = (nuint)settings.MinTrianglesPerMeshlet,
-            maxTriangles = (nuint)settings.MaxTrianglesPerMeshlet,
+            maxVertices = MAX_VERTICES_PER_MESHLET,
+            minTriangles = MIN_TRIANGLES_PER_MESHLET,
+            maxTriangles = MAX_TRIANGLES_PER_MESHLET,
 
             partitionSpatial = true,
             partitionSize = (nuint)Math.Clamp(settings.PartitionSize, 4, 32),

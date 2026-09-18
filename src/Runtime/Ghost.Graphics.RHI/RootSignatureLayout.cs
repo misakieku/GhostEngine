@@ -13,10 +13,10 @@ public static class RootSignatureLayout
     public const int ROOT_PARAMETER_COUNT = 1;
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 12)]
+[StructLayout(LayoutKind.Explicit, Size = 16)]
 public struct PushConstantsData
 {
-    public const uint NUM_32BITS_VALUE = 12u / sizeof(uint);
+    public const uint NUM_32BITS_VALUE = 16u / sizeof(uint);
     public const int PROPERTY_OR_INSTANCE_START = 8;
     public const int PROPERTY_OR_INSTANCE_OFFSET = 2;
 
@@ -28,6 +28,8 @@ public struct PushConstantsData
     public uint instanceIndex;
     [FieldOffset(8)]
     public uint propertyBuffer;
+    [FieldOffset(12)]
+    public uint userData;
 
     public readonly ReadOnlySpan<uint> AsUInts()
     {
