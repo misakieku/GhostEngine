@@ -197,7 +197,7 @@ public class PipelineResourceGenerator : IIncrementalGenerator
                 indent += "    ";
             }
 
-            string typeKindString = symbol.TypeKind switch
+            var typeKindString = symbol.TypeKind switch
             {
                 TypeKind.Struct => "struct",
                 _ => "class"
@@ -228,7 +228,7 @@ public class PipelineResourceGenerator : IIncrementalGenerator
                 }
             }
 
-            bool hasExplicitConstructors = symbol.Constructors.Any(c => !c.IsImplicitlyDeclared);
+            var hasExplicitConstructors = symbol.Constructors.Any(c => !c.IsImplicitlyDeclared);
             if (!hasExplicitConstructors && symbol.TypeKind == TypeKind.Class)
             {
                 sb.AppendLine();
@@ -317,7 +317,7 @@ public class PipelineResourceGenerator : IIncrementalGenerator
             sb.AppendLine($"{indent}}}");
 
             // Close containing types
-            for (int i = parentList.Count - 1; i >= 0; i--)
+            for (var i = parentList.Count - 1; i >= 0; i--)
             {
                 indent = indent.Substring(0, indent.Length - 4);
                 sb.AppendLine($"{indent}}}");

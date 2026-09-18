@@ -1321,13 +1321,13 @@ internal static unsafe class D3D12Utility
     {
         var mipLevels = desc.MipLevels == 0
             ? (uint)(1 + Math.Floor(Math.Log2(Math.Max(desc.Width, Math.Max(desc.Height, desc.Slice)))))
-            : (uint)desc.MipLevels;
+            : desc.MipLevels;
 
         var arraySize = desc.Dimension switch
         {
             TextureDimension.TextureCube => 6u,
-            TextureDimension.TextureCubeArray => (uint)(desc.Slice * 6),
-            TextureDimension.Texture2DArray => (uint)desc.Slice,
+            TextureDimension.TextureCubeArray => desc.Slice * 6,
+            TextureDimension.Texture2DArray => desc.Slice,
             _ => 1u,
         };
 

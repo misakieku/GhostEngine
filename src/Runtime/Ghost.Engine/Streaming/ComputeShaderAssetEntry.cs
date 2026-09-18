@@ -145,7 +145,7 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
             return Result.Failure($"Compute shader asset {assetId} is incompatible with the active catalog generation.");
         }
 
-        var entryHeadersSize = (long)pass.entryPointCount * sizeof(ShaderContentHeader.EntryPointHeader);
+        var entryHeadersSize = pass.entryPointCount * sizeof(ShaderContentHeader.EntryPointHeader);
         if (entryHeadersSize > pass.dataSize)
         {
             return Result.Failure($"Compute shader asset {assetId} contains an invalid entry-point table.");

@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;

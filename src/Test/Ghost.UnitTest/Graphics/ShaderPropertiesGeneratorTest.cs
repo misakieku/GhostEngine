@@ -10,7 +10,7 @@ public class ShaderPropertiesGeneratorTest
     public unsafe void TestHiddenBlitShaderProperties_LayoutAndConstants()
     {
 #pragma warning disable MSTEST0032 // Assertion condition is always true
-        Assert.AreEqual("Hidden/Blit", (string)HiddenBlitShaderProperties.SHADER_NAME);
+        Assert.AreEqual("Hidden/Blit", HiddenBlitShaderProperties.SHADER_NAME);
 #pragma warning restore MSTEST0032 // Assertion condition is always true
         var size = sizeof(HiddenBlitShaderProperties);
         Assert.AreEqual(8, size); // 2 uint fields = 8 bytes
@@ -36,7 +36,7 @@ public class ShaderPropertiesGeneratorTest
     public unsafe void TestInternalUpdateGPUSceneShaderProperties_LayoutAndConstants()
     {
 #pragma warning disable MSTEST0032 // Assertion condition is always true
-        Assert.AreEqual("Internal/UpdateGPUScene", (string)InternalUpdateGPUSceneShaderProperties.SHADER_NAME);
+        Assert.AreEqual("Internal/UpdateGPUScene", InternalUpdateGPUSceneShaderProperties.SHADER_NAME);
 #pragma warning restore MSTEST0032 // Assertion condition is always true
         var size = sizeof(InternalUpdateGPUSceneShaderProperties);
         Assert.AreEqual(20, size); // 5 uint fields = 20 bytes

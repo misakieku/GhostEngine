@@ -91,7 +91,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void IncrementCommandCount(
 #if DEBUG
-        [CallerMemberName]string? caller = null
+        [CallerMemberName] string? caller = null
 #endif
         )
     {

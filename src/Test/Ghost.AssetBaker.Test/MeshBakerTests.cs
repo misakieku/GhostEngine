@@ -184,13 +184,13 @@ public class MeshBakerTests
         try
         {
             // First check the parsed mesh itself (LOD 0 source triangles before clustering)
-            int flippedInputTris = 0;
-            int totalInputTris = mesh.Indices.Count / 3;
-            for (int t = 0; t < totalInputTris; t++)
+            var flippedInputTris = 0;
+            var totalInputTris = mesh.Indices.Count / 3;
+            for (var t = 0; t < totalInputTris; t++)
             {
-                uint idx0 = mesh.Indices[t * 3 + 0];
-                uint idx1 = mesh.Indices[t * 3 + 1];
-                uint idx2 = mesh.Indices[t * 3 + 2];
+                var idx0 = mesh.Indices[t * 3 + 0];
+                var idx1 = mesh.Indices[t * 3 + 1];
+                var idx2 = mesh.Indices[t * 3 + 2];
 
                 var p0 = mesh.Vertices[(int)idx0].position;
                 var p1 = mesh.Vertices[(int)idx1].position;
@@ -216,25 +216,25 @@ public class MeshBakerTests
             var pMeshletData = meshletDataPtr.Get();
             Console.WriteLine($"[Diagnostic] Total meshlets: {pMeshletData->meshlets.Count}, groups: {pMeshletData->groups.Count}, lods: {pMeshletData->lodLevelCount}");
 
-            int totalTriangles = 0;
-            int totalFlipped = 0;
+            var totalTriangles = 0;
+            var totalFlipped = 0;
             var flippedPerLod = new int[pMeshletData->lodLevelCount + 1];
             var totalPerLod = new int[pMeshletData->lodLevelCount + 1];
 
-            for (int m = 0; m < pMeshletData->meshlets.Count; m++)
+            for (var m = 0; m < pMeshletData->meshlets.Count; m++)
             {
                 ref readonly var ml = ref pMeshletData->meshlets[m];
                 int lod = ml.lodLevel;
-                for (int t = 0; t < ml.triangleCount; t++)
+                for (var t = 0; t < ml.triangleCount; t++)
                 {
-                    uint packed = pMeshletData->meshletTriangles[(int)ml.triangleOffset + t];
-                    uint i0 = packed & 0xFF;
-                    uint i1 = (packed >> 8) & 0xFF;
-                    uint i2 = (packed >> 16) & 0xFF;
+                    var packed = pMeshletData->meshletTriangles[(int)ml.triangleOffset + t];
+                    var i0 = packed & 0xFF;
+                    var i1 = (packed >> 8) & 0xFF;
+                    var i2 = (packed >> 16) & 0xFF;
 
-                    uint v0 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i0];
-                    uint v1 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i1];
-                    uint v2 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i2];
+                    var v0 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i0];
+                    var v1 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i1];
+                    var v2 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i2];
 
                     var p0 = mesh.Vertices[(int)v0].position;
                     var p1 = mesh.Vertices[(int)v1].position;
@@ -253,7 +253,7 @@ public class MeshBakerTests
                 }
             }
 
-            for (int l = 0; l < pMeshletData->lodLevelCount; l++)
+            for (var l = 0; l < pMeshletData->lodLevelCount; l++)
             {
                 Console.WriteLine($"[Diagnostic] LOD {l}: total triangles={totalPerLod[l]}, flipped triangles={flippedPerLod[l]}");
             }
@@ -317,7 +317,7 @@ public class MeshBakerTests
 
 
             // Validate all hierarchy nodes
-            for (int i = 0; i < pMeshletData->hierarchyNodes.Count; i++)
+            for (var i = 0; i < pMeshletData->hierarchyNodes.Count; i++)
             {
                 ref readonly var node = ref pMeshletData->hierarchyNodes[i];
                 Assert.IsLessThanOrEqualTo(8u, node.childCount, $"Node {i} exceeds max fanout 8");
@@ -330,7 +330,7 @@ public class MeshBakerTests
 
                     for (uint c = 0; c < node.childCount; c++)
                     {
-                        uint childIdx = node.childOffset + c;
+                        var childIdx = node.childOffset + c;
                         ref readonly var childNode = ref pMeshletData->hierarchyNodes[(int)childIdx];
 
                         // Error must not be poisoned with float.MaxValue / infinity
@@ -342,7 +342,7 @@ public class MeshBakerTests
                             $"Monotonic error violated: parent {i} (error={node.error}) < child {childIdx} (error={childNode.error})");
 
                         // Conservative bounding: child sphere must be inside parent sphere (with small tolerance)
-                        float dist = Misaki.HighPerformance.Mathematics.math.length(childNode.bounds.Center - node.bounds.Center);
+                        var dist = Misaki.HighPerformance.Mathematics.math.length(childNode.bounds.Center - node.bounds.Center);
                         Assert.IsTrue(dist + childNode.bounds.Radius <= node.bounds.Radius + 1e-3f,
                             $"Parent bounding sphere does not enclose child {childIdx}: dist={dist}, childR={childNode.bounds.Radius}, parentR={node.bounds.Radius}");
                     }
@@ -405,11 +405,11 @@ public class MeshBakerTests
 
             for (uint lvl = 0; lvl < pMeshletData->lodLevelCount; lvl++)
             {
-                int groupCount = 0;
+                var groupCount = 0;
                 uint meshletCount = 0;
-                float minError = float.MaxValue;
+                var minError = float.MaxValue;
                 float maxError = 0;
-                for (int g = 0; g < pMeshletData->groups.Count; g++)
+                for (var g = 0; g < pMeshletData->groups.Count; g++)
                 {
                     if (pMeshletData->groups[g].lodLevel == lvl)
                     {

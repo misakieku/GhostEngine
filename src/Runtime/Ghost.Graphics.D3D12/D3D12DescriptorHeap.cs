@@ -4,7 +4,6 @@ using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using TerraFX.Interop.DirectX;
 
 using static TerraFX.Aliases.D3D12_Alias;

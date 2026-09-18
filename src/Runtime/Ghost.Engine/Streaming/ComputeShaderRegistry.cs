@@ -1,6 +1,6 @@
 using Ghost.Core;
-using Ghost.Graphics.Core;
 using Ghost.Core.Graphics;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.Services;
 using System.Runtime.CompilerServices;
 

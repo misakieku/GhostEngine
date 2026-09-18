@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Core.Graphics;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 
@@ -147,7 +146,7 @@ internal struct RenderFrameResources
         var hzbHeight = Math.Max(1u, height / 2);
         var maxDim = Math.Max(hzbWidth, hzbHeight);
         var mipCount = (uint)Math.Floor(Math.Log2(maxDim)) + 1;
-        mipCount = Math.Min(mipCount, (uint)MAX_HZB_MIPS);
+        mipCount = Math.Min(mipCount, MAX_HZB_MIPS);
 
         // Packed atlas dimensions: Mip 0 is on the left (hzbWidth x hzbHeight),
         // Mips 1..N stack vertically in the right column of width (hzbWidth / 2).

@@ -89,7 +89,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             }
 
             descriptorAllocator.Release(viewGroup);
-            
+
             if (subResourceView.IsCreated)
             {
                 for (var i = 1; i < subResourceView.Length; i++)

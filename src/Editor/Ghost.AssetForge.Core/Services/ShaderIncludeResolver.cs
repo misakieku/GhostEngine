@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.DSL.Models;
 using Ghost.DSL.ShaderCompiler;
 using System.Text;
 using System.Text.RegularExpressions;

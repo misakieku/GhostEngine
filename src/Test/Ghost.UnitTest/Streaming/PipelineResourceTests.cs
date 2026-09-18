@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Engine.RenderPipeline;
 using Ghost.Graphics.Core;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Ghost.UnitTest.Streaming;
 

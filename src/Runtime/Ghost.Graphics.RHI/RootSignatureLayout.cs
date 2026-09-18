@@ -1,6 +1,5 @@
 using Ghost.Core.Graphics;
 using Misaki.HighPerformance.Mathematics;
-using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 

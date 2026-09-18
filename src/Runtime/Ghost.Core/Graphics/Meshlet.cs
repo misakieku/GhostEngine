@@ -1,7 +1,7 @@
-using Misaki.HighPerformance.Mathematics;
 using Ghost.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Runtime.InteropServices;
 
