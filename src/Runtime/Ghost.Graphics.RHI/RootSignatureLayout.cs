@@ -39,7 +39,7 @@ public struct PushConstantsData
 [StructLayout(LayoutKind.Sequential)]
 public struct FrameData
 {
-    public uint instanceBuffer;
+    public uint sceneBuffer;
     public uint userBuffer;
     public uint paletteOffsetBuffer;   // bindless index into PaletteOffsetBuffer
     public uint materialIndexBuffer;   // bindless index into MaterialIndexBuffer

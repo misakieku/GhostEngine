@@ -195,11 +195,11 @@ public static unsafe class RenderPipelineUtility
         GetVPMatrices(in request, screenSize, out view, out projection, reversedZ: true);
     }
 
-    public static uint CreateFrameBuffer(RenderContext ctx, uint instanceBuffer)
+    public static uint CreateFrameBuffer(RenderContext ctx, uint sceneBuffer)
     {
         var frameData = new FrameData
         {
-            instanceBuffer = instanceBuffer,
+            sceneBuffer = sceneBuffer,
             userBuffer = 0,
             paletteOffsetBuffer = ctx.ResourceManager.PaletteOffsetBufferBindlessIndex,
             materialIndexBuffer = ctx.ResourceManager.MaterialIndexBufferBindlessIndex,
@@ -219,5 +219,38 @@ public static unsafe class RenderPipelineUtility
         ctx.ResourceDatabase.UnmapResource(frameGpuBuffer.AsResource(), 0, null);
         var frameBufferIndex = ctx.ResourceDatabase.GetBindlessIndex(frameGpuBuffer.AsResource());
         return frameBufferIndex;
+    }
+
+    public static uint CreateViewDataBuffer(RenderContext ctx, RenderRequest request, RenderViewData renderView, float4x4 viewMatrix, float4x4 projMatrix, float4x4 viewProjMatrix, Frustum frustum, ref float4x4 prevVP)
+    {
+        var viewData = new ViewData
+        {
+            viewMatrix = viewMatrix,
+            projectionMatrix = projMatrix,
+            viewProjectionMatrix = viewProjMatrix,
+            preVPMatrix = prevVP,
+            cameraPosition = request.view.localToWorld.c3.xyz,
+            nearClip = request.view.nearClipPlane,
+            cameraDirection = request.view.localToWorld.c2.xyz,
+            farClip = request.view.farClipPlane,
+            screenSize = new float4(renderView.ScreenSize.x, renderView.ScreenSize.y, 1.0f / renderView.ScreenSize.x, 1.0f / renderView.ScreenSize.y),
+            frustum = frustum
+        };
+
+        prevVP = viewProjMatrix;
+
+        var viewDesc = new BufferDesc
+        {
+            Size = (uint)sizeof(ViewData),
+            Stride = (uint)sizeof(ViewData),
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            HeapType = HeapType.Upload,
+        };
+        var viewGpuBuffer = ctx.ResourceManager.CreateTransientBuffer(in viewDesc, "ViewDataBuffer");
+        var pViewData = (ViewData*)ctx.ResourceDatabase.MapResource(viewGpuBuffer.AsResource(), 0, null);
+        *pViewData = viewData;
+        ctx.ResourceDatabase.UnmapResource(viewGpuBuffer.AsResource(), 0, null);
+        var viewBufferIndex = ctx.ResourceDatabase.GetBindlessIndex(viewGpuBuffer.AsResource());
+        return viewBufferIndex;
     }
 }

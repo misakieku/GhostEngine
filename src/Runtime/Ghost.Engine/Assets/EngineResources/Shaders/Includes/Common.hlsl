@@ -44,9 +44,6 @@ struct MeshletHierarchyNode
     uint   childCount;
 };
 
-#define MAX_VERTEX_PER_MESHLET 64
-#define MAX_TRIS_PER_MESHLET 124
-
 // Resource descriptor heap definitions
 
 #define GLOBAL_TEXTURE2D_HEAP ResourceDescriptorHeap
@@ -88,6 +85,10 @@ struct MeshletHierarchyNode
 
 #define ZERO_INIT(T) (T)0
 
+#define MAX_VERTICES_PER_MESHLET 64
+#define MAX_TRIANGLES_PER_MESHLET 126
+
+#define INVALID_BUFFER_INDEX 0xFFFFFFFF
 
 static inline float4 SampleTexture2D(uint texId, uint sampId, float2 uv)
 {

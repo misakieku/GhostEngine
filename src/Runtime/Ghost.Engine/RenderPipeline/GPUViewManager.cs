@@ -8,26 +8,82 @@ namespace Ghost.Engine.RenderPipeline;
 
 internal sealed class GPUViewContext : IDisposable
 {
-    public RenderGraph? renderGraph;
+    private readonly IResourceAllocator _allocator;
+    private readonly IResourceDatabase _database;
+    private readonly IPipelineLibrary _pipelineLibrary;
+    private readonly ResourceManager _resourceManager;
+    private readonly ShaderLibrary _shaderLibrary;
 
-    public uint viewId;
-    public bool isActive;
+    private RenderGraph? _renderGraph;
 
-    public Handle<GPUTexture> hzbTexture;
-    public uint hzbMipCount;
-    public uint baseWidth;
-    public uint baseHeight;
-    public uint renderWidth;
-    public uint renderHeight;
+    public RenderGraph RenderGraph
+    {
+        get
+        {
+            return _renderGraph ?? throw new InvalidOperationException("RenderGraph is not initialized. Call EnsureResources() first.");
+        }
+    }
+
+    public uint ViewId
+    {
+        get;
+    }
+
+    public bool IsActive
+    {
+        get; private set;
+    }
+
+    public Handle<GPUTexture> HzbTexture
+    {
+        get; private set;
+    }
+
+    public uint HzbMipCount
+    {
+        get; private set;
+    }
+
+    public uint BaseWidth
+    {
+        get; private set;
+    }
+
+    public uint BaseHeight
+    {
+        get; private set;
+    }
+
+    public uint RenderWidth
+    {
+        get; private set;
+    }
+
+    public uint RenderHeight
+    {
+        get; private set;
+    }
+
 
     public float4x4 prevViewProjMatrix;
 
-    internal static void ComputeHZBDimensions(
-        uint renderWidth,
-        uint renderHeight,
-        out uint baseW,
-        out uint baseH,
-        out uint hzbMipCount)
+    public GPUViewContext(IResourceAllocator allocator, IResourceDatabase database, IPipelineLibrary pipelineLibrary, ResourceManager resourceManager, ShaderLibrary shaderLibrary, uint viewId)
+    {
+        _allocator = allocator;
+        _database = database;
+        _pipelineLibrary = pipelineLibrary;
+        _resourceManager = resourceManager;
+        _shaderLibrary = shaderLibrary;
+
+        ViewId = viewId;
+    }
+
+    internal void Active()
+    {
+        IsActive = true;
+    }
+
+    internal static void ComputeHZBDimensions(uint renderWidth, uint renderHeight, out uint baseW, out uint baseH, out uint hzbMipCount)
     {
         baseW = Math.Max(1u, (renderWidth + 1) / 2);
         baseH = Math.Max(1u, (renderHeight + 1) / 2);
@@ -36,28 +92,22 @@ internal sealed class GPUViewContext : IDisposable
         hzbMipCount = Math.Clamp(calculatedMipCount, 1u, 16u);
     }
 
-    public void EnsureResources(
-        IResourceAllocator allocator,
-        IResourceDatabase database,
-        IPipelineLibrary pipelineLibrary,
-        ResourceManager resourceManager,
-        ShaderLibrary shaderLibrary,
-        uint renderWidth,
-        uint renderHeight)
+    public void EnsureResources(uint renderWidth, uint renderHeight)
     {
         if (renderWidth == 0 || renderHeight == 0)
         {
             return;
         }
 
-        if (!hzbTexture.IsValid || this.renderWidth != renderWidth || this.renderHeight != renderHeight || renderGraph == null)
+        if (!HzbTexture.IsValid || this.RenderWidth != renderWidth || this.RenderHeight != renderHeight || RenderGraph == null)
         {
-            if (hzbTexture.IsValid)
+            if (HzbTexture.IsValid)
             {
-                database.ReleaseResource(hzbTexture.AsResource());
-                hzbTexture = Handle<GPUTexture>.Invalid;
+                _database.ReleaseResource(HzbTexture.AsResource());
+                HzbTexture = Handle<GPUTexture>.Invalid;
             }
 
+            uint baseWidth, baseHeight, hzbMipCount;
             ComputeHZBDimensions(
                 renderWidth,
                 renderHeight,
@@ -65,43 +115,47 @@ internal sealed class GPUViewContext : IDisposable
                 out baseHeight,
                 out hzbMipCount);
 
+            BaseWidth = baseWidth;
+            BaseHeight = baseHeight;
+            HzbMipCount = hzbMipCount;
+
             var desc = new TextureDesc
             {
-                Width = baseWidth,
-                Height = baseHeight,
+                Width = BaseWidth,
+                Height = BaseHeight,
                 Format = TextureFormat.R32_Float,
                 Dimension = TextureDimension.Texture2D,
-                MipLevels = (ushort)hzbMipCount,
+                MipLevels = (ushort)HzbMipCount,
                 Slice = 1,
                 Usage = TextureUsage.UnorderedAccess | TextureUsage.ShaderResource
             };
 
-            hzbTexture = allocator.CreateTexture(in desc, $"View_{viewId}_HZB");
-            this.renderWidth = renderWidth;
-            this.renderHeight = renderHeight;
+            HzbTexture = _allocator.CreateTexture(in desc, $"View_{ViewId}_HZB");
+            RenderWidth = renderWidth;
+            RenderHeight = renderHeight;
             prevViewProjMatrix = default; // Zero out so first frame or resize is not static
 
-            renderGraph = new RenderGraph(database, allocator, pipelineLibrary, resourceManager, shaderLibrary);
+            _renderGraph = new RenderGraph(_database, _allocator, _pipelineLibrary, _resourceManager, _shaderLibrary);
         }
     }
 
     public void ReleaseResources(IResourceDatabase db)
     {
-        if (hzbTexture.IsValid)
+        if (HzbTexture.IsValid)
         {
-            db.ReleaseResource(hzbTexture.AsResource());
-            hzbTexture = Handle<GPUTexture>.Invalid;
+            db.ReleaseResource(HzbTexture.AsResource());
+            HzbTexture = Handle<GPUTexture>.Invalid;
         }
 
-        renderGraph?.Dispose();
-        renderGraph = null;
+        _renderGraph?.Dispose();
+        _renderGraph = null;
 
-        renderWidth = 0;
-        renderHeight = 0;
-        baseWidth = 0;
-        baseHeight = 0;
+        RenderWidth = 0;
+        RenderHeight = 0;
+        BaseWidth = 0;
+        BaseHeight = 0;
         prevViewProjMatrix = default;
-        isActive = false;
+        IsActive = false;
     }
 
     public void Dispose()
@@ -118,12 +172,13 @@ internal sealed class GPUViewManager : IDisposable
 
     private readonly Lock _lock = new();
 
-    public GPUViewManager(IResourceDatabase database)
+    public GPUViewManager(IResourceAllocator allocator, IResourceDatabase database, IPipelineLibrary pipelineLibrary, ResourceManager resourceManager, ShaderLibrary shaderLibrary)
     {
         _database = database;
+
         for (uint i = 0; i < MAX_VIEWS; i++)
         {
-            _views[i] = new GPUViewContext { viewId = i };
+            _views[i] = new GPUViewContext(allocator, database, pipelineLibrary, resourceManager, shaderLibrary, i);
             _freeIndices.Push(MAX_VIEWS - 1 - i);
         }
     }
@@ -134,7 +189,7 @@ internal sealed class GPUViewManager : IDisposable
         {
             if (_freeIndices.TryPop(out var id))
             {
-                _views[id].isActive = true;
+                _views[id].Active();
                 return id;
             }
 
@@ -146,7 +201,7 @@ internal sealed class GPUViewManager : IDisposable
     {
         lock (_lock)
         {
-            if (viewId < MAX_VIEWS && _views[viewId].isActive)
+            if (viewId < MAX_VIEWS && _views[viewId].IsActive)
             {
                 _views[viewId].ReleaseResources(_database);
                 _freeIndices.Push(viewId);

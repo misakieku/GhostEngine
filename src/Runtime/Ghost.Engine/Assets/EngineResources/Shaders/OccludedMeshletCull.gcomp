@@ -65,12 +65,8 @@ compute "Internal/OccludedMeshletCull"
 
                 FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
                 ViewData view = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
-
-                ByteAddressBuffer sceneBuffer = GET_BUFFER(frame.instanceBuffer);
-                InstanceData instance = sceneBuffer.Load<InstanceData>(rec.instanceIndex * sizeof(InstanceData));
-
-                ByteAddressBuffer meshletBuf = GET_BUFFER(rec.meshletBufferIndex);
-                Meshlet meshlet = meshletBuf.Load<Meshlet>(rec.meshletIndex * sizeof(Meshlet));
+                InstanceData instance = LoadData<InstanceData>(frame.sceneBuffer, rec.instanceIndex);
+                Meshlet meshlet = LoadData<Meshlet>(rec.meshletBufferIndex, rec.meshletIndex);
 
                 uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
                 uint packedMaterial = LoadMaterialBindlessIndex(frame.paletteOffsetBuffer, frame.materialIndexBuffer, instance.materialPaletteIndex, localMaterialIndex);

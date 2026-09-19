@@ -103,7 +103,7 @@ public unsafe partial struct Shader : IResourceReleasable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ref readonly ShaderPass GetPassReference(int index)
+    public readonly ref readonly ShaderPass GetPassReference(int index)
     {
         return ref _shaderPasses[index];
     }

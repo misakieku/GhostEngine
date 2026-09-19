@@ -81,7 +81,7 @@ compute "Internal/MeshletCullGraph"
             FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
             ViewData view = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
 
-            ByteAddressBuffer sceneBuffer = GET_BUFFER(frame.instanceBuffer);
+            ByteAddressBuffer sceneBuffer = GET_BUFFER(frame.sceneBuffer);
             InstanceData instance = sceneBuffer.Load<InstanceData>(instanceIndex * sizeof(InstanceData));
 
             if (instance.meshBuffer == 0 || instance.meshBuffer == 0xFFFFFFFF)
@@ -142,15 +142,9 @@ compute "Internal/MeshletCullGraph"
 
             FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
             ViewData view = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
-
-            ByteAddressBuffer sceneBuffer = GET_BUFFER(frame.instanceBuffer);
-            InstanceData instance = sceneBuffer.Load<InstanceData>(rec.instanceIndex * sizeof(InstanceData));
-
-            ByteAddressBuffer meshBuffer = GET_BUFFER(instance.meshBuffer);
-            MeshData mesh = meshBuffer.Load<MeshData>(0);
-
-            ByteAddressBuffer hierarchyBuf = GET_BUFFER(mesh.meshletHierarchyBuffer);
-            MeshletHierarchyNode node = hierarchyBuf.Load<MeshletHierarchyNode>(rec.nodeIndex * sizeof(MeshletHierarchyNode));
+            InstanceData instance = LoadData<InstanceData>(frame.sceneBuffer, rec.instanceIndex);
+            MeshData mesh = LoadData<MeshData>(instance.meshBuffer, 0);
+            MeshletHierarchyNode node = LoadData<MeshletHierarchyNode>(mesh.meshletHierarchyBuffer, rec.nodeIndex);
 
             // 1. Frustum culling with bounding sphere
             float3 scale3 = float3(
@@ -223,13 +217,9 @@ compute "Internal/MeshletCullGraph"
             MeshletGroupRecord rec = inputRecord.Get();
 
             FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
-            ByteAddressBuffer sceneBuffer = GET_BUFFER(frame.instanceBuffer);
-            InstanceData instance = sceneBuffer.Load<InstanceData>(rec.instanceIndex * sizeof(InstanceData));
-            ByteAddressBuffer meshBuffer = GET_BUFFER(instance.meshBuffer);
-            MeshData mesh = meshBuffer.Load<MeshData>(0);
-
-            ByteAddressBuffer groupBuf = GET_BUFFER(mesh.meshletGroupBuffer);
-            MeshletGroup group = groupBuf.Load<MeshletGroup>(rec.groupIndex * sizeof(MeshletGroup));
+            InstanceData instance = LoadData<InstanceData>(frame.sceneBuffer, rec.instanceIndex);
+            MeshData mesh = LoadData<MeshData>(instance.meshBuffer, 0);
+            MeshletGroup group = LoadData<MeshletGroup>(mesh.meshletGroupBuffer, rec.groupIndex);
 
             if (groupThreadId < group.meshletCount)
             {
@@ -247,9 +237,11 @@ compute "Internal/MeshletCullGraph"
         [NumThreads(32, 1, 1)]
         void MeshletCullNode(
             [MaxRecords(32)] GroupNodeInputRecords<MeshletCandidateRecord> inputRecords,
-            uint groupIndex : SV_GroupIndex)
+            uint groupIndex : SV_GroupIndex,
+            uint groupThreadId : SV_GroupThreadID)
         {
-            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
+            FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+            ViewData viewData = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
 
             uint numRecords = inputRecords.Count();
             bool isValid = (groupIndex < numRecords);
@@ -259,32 +251,28 @@ compute "Internal/MeshletCullGraph"
                 rec = inputRecords.Get(groupIndex);
             }
 
+            InstanceData instanceData = LoadData<InstanceData>(frameData.sceneBuffer, rec.instanceIndex);
+            Meshlet meshlet = LoadData<Meshlet>(rec.meshletBufferIndex, rec.meshletIndex);
+
             bool isVisible = false;
             uint renderType = 0;
             bool inFrustum = false;
             bool isOccluded = false;
+            
+            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
 
             if (isValid)
             {
-                FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
-                ViewData view = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
-
-                ByteAddressBuffer sceneBuffer = GET_BUFFER(frame.instanceBuffer);
-                InstanceData instance = sceneBuffer.Load<InstanceData>(rec.instanceIndex * sizeof(InstanceData));
-
-                ByteAddressBuffer meshletBuf = GET_BUFFER(rec.meshletBufferIndex);
-                Meshlet meshlet = meshletBuf.Load<Meshlet>(rec.meshletIndex * sizeof(Meshlet));
-
                 float3 scale3 = float3(
-                    length(instance.localToWorld._m00_m10_m20),
-                    length(instance.localToWorld._m01_m11_m21),
-                    length(instance.localToWorld._m02_m12_m22));
+                    length(instanceData.localToWorld._m00_m10_m20),
+                    length(instanceData.localToWorld._m01_m11_m21),
+                    length(instanceData.localToWorld._m02_m12_m22));
                 float maxScale = max(scale3.x, max(scale3.y, scale3.z));
 
-                float3 meshletWorldCenter = mul(instance.localToWorld, float4(meshlet.boundingSphere.xyz, 1.0f)).xyz;
+                float3 meshletWorldCenter = mul(instanceData.localToWorld, float4(meshlet.boundingSphere.xyz, 1.0f)).xyz;
                 float meshletWorldRadius = meshlet.boundingSphere.w * maxScale;
 
-                float3 meshletParentWorldCenter = mul(instance.localToWorld, float4(meshlet.parentBoundingSphere.xyz, 1.0f)).xyz;
+                float3 meshletParentWorldCenter = mul(instanceData.localToWorld, float4(meshlet.parentBoundingSphere.xyz, 1.0f)).xyz;
                 float meshletParentWorldRadius = meshlet.parentBoundingSphere.w * maxScale;
 
                 // Dual-Error Cut Condition 1: Parent Error check (Lower bound)
@@ -293,9 +281,9 @@ compute "Internal/MeshletCullGraph"
                     meshlet.parentError * maxScale,
                     meshletParentWorldCenter,
                     meshletParentWorldRadius,
-                    view.cameraPosition,
-                    view.projectionMatrix[1][1],
-                    view.screenSize.y,
+                    viewData.cameraPosition,
+                    viewData.projectionMatrix[1][1],
+                    viewData.screenSize.y,
                     props.lodErrorThreshold);
 
                 // Dual-Error Cut Condition 2: Cluster Error test (Upper bound)
@@ -305,9 +293,9 @@ compute "Internal/MeshletCullGraph"
                     meshlet.clusterError * maxScale,
                     meshletWorldCenter,
                     meshletWorldRadius,
-                    view.cameraPosition,
-                    view.projectionMatrix[1][1],
-                    view.screenSize.y,
+                    viewData.cameraPosition,
+                    viewData.projectionMatrix[1][1],
+                    viewData.screenSize.y,
                     props.lodErrorThreshold);
 
                 if (isParentDetailSufficient || !isClusterDetailSufficient)
@@ -317,12 +305,12 @@ compute "Internal/MeshletCullGraph"
                 else
                 {
                     uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
-                    uint packedMaterial = LoadMaterialBindlessIndex(frame.paletteOffsetBuffer, frame.materialIndexBuffer, instance.materialPaletteIndex, localMaterialIndex);
+                    uint packedMaterial = LoadMaterialBindlessIndex(frameData.paletteOffsetBuffer, frameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
                     renderType = (packedMaterial >> 24) & 0xFFu;
 
                     float4 clipMin, clipMax;
                     bool clipValid;
-                    inFrustum = BBoxIntersectFrustum(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld, view.viewProjectionMatrix, clipMin, clipMax, clipValid);
+                    inFrustum = BBoxIntersectFrustum(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld, viewData.viewProjectionMatrix, clipMin, clipMax, clipValid);
                     if (inFrustum)
                     {
                         if (props.hzbMipCount > 0)
@@ -331,7 +319,7 @@ compute "Internal/MeshletCullGraph"
                             {
                                 float4 prevClipMin, prevClipMax;
                                 bool prevClipValid;
-                                bool wasInPrevFrustum = BBoxIntersectFrustum(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld, view.preVPMatrix, prevClipMin, prevClipMax, prevClipValid);
+                                bool wasInPrevFrustum = BBoxIntersectFrustum(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld, viewData.preVPMatrix, prevClipMin, prevClipMax, prevClipValid);
 
                                 if (wasInPrevFrustum && prevClipValid)
                                 {

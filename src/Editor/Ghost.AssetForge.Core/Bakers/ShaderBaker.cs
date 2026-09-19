@@ -171,7 +171,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
             var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
 
             var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
-            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader).GetValueOrThrow();
+            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader, src).GetValueOrThrow();
 
             var assetStartOffset = dst.Position;
             var header = new ShaderContentHeader
@@ -280,7 +280,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
             var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
 
             var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
-            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader).GetValueOrThrow();
+            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader, src).GetValueOrThrow();
 
             var assetStartOffset = dst.Position;
             var header = new ShaderContentHeader
@@ -356,7 +356,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
             var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
 
             var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
-            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader).GetValueOrThrow();
+            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader, src).GetValueOrThrow();
 
             var assetStartOffset = dst.Position;
             var header = new ShaderContentHeader

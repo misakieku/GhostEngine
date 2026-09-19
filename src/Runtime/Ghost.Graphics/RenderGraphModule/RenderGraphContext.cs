@@ -26,7 +26,8 @@ public interface IRenderGraphContext
     void SetUserData(uint instanceIndex, uint userData1 = uint.MaxValue);
     void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue) where TProperty : unmanaged;
 
-    bool TrySetActiveShaderPass(Handle<Shader> shader, PassSemantic semantic);
+    bool TrySetActiveShaderPass(Handle<Shader> shader, int passIndex, PipelineState? pipelineOverride = null);
+    bool TrySetActiveShaderPass(Handle<Shader> shader, PassSemantic semantic, PipelineState? pipelineOverride = null);
     void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset = 0, Handle<GPUBuffer> countBuffer = default, ulong countBufferOffset = 0);
 }
 
@@ -510,21 +511,8 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
         return true;
     }
 
-    public bool TrySetActiveShaderPass(Handle<Shader> shaderHandle, PassSemantic semantic)
+    private bool TrySetActiveShaderPass(ref readonly Shader shader, int passIndex, PipelineState? pipelineOverride = null)
     {
-        return TrySetActiveShaderPass(shaderHandle, semantic, null);
-    }
-
-    public bool TrySetActiveShaderPass(Handle<Shader> shaderHandle, PassSemantic semantic, PipelineState? pipelineOverride)
-    {
-        var r = _resourceManager.GetShaderReference(shaderHandle);
-        if (r.IsFailure)
-        {
-            return false;
-        }
-
-        ref var shader = ref r.Value;
-        var passIndex = shader.GetPassIndex(semantic);
         if (passIndex < 0)
         {
             return false;
@@ -550,6 +538,31 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
 
         _commandBuffer.SetPipelineState(graphicsPipelineKey);
         return true;
+    }
+
+    public bool TrySetActiveShaderPass(Handle<Shader> shaderHandle, int passIndex, PipelineState? pipelineOverride = null)
+    {
+        var r = _resourceManager.GetShaderReference(shaderHandle);
+        if (r.IsFailure)
+        {
+            return false;
+        }
+
+        ref readonly var shader = ref r.Value;
+        return TrySetActiveShaderPass(in shader, passIndex, pipelineOverride);
+    }
+
+    public bool TrySetActiveShaderPass(Handle<Shader> shaderHandle, PassSemantic semantic, PipelineState? pipelineOverride = null)
+    {
+        var r = _resourceManager.GetShaderReference(shaderHandle);
+        if (r.IsFailure)
+        {
+            return false;
+        }
+
+        ref var shader = ref r.Value;
+        var passIndex = shader.GetPassIndex(semantic);
+        return TrySetActiveShaderPass(in shader, passIndex, pipelineOverride);
     }
 
     public void SetActiveMesh(Handle<Mesh> mesh)

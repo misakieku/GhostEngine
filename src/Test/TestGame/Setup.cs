@@ -78,7 +78,7 @@ internal static class Setup
             }
         };
 
-        const int entityCapacity = 1000;
+        const int entityCapacity = 10000;
         const float size = 10.0f;
         const float baseScale = 1.0f;
 

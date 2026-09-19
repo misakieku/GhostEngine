@@ -56,19 +56,24 @@ internal sealed partial class DXCShaderCompiler
     {
         var argsArray = new List<string>
         {
-            "-T", GetProfileString(config.stage, config.model),   // Target profile (ms_6_6, ps_6_6, lib_6_8)
+            "-T", GetProfileString(config.stage, config.model),           // Target profile (ms_6_6, ps_6_6, lib_6_8)
         };
 
         if (config.stage != ShaderStage.Library && !string.IsNullOrEmpty(config.entryPoint))
         {
             argsArray.Add("-E");
-            argsArray.Add(config.entryPoint);                     // Entry point
+            argsArray.Add(config.entryPoint);                               // Entry point
         }
 
         argsArray.Add("-HV");
-        argsArray.Add("2021");                                    // HLSL version 2021
-        argsArray.Add("-enable-16bit-types");                     // Enable 16-bit types
-        argsArray.Add(GetOptimizeLevelString(config.optimizeLevel)); // Optimization level
+        argsArray.Add("2021");                                              // HLSL version 2021
+        argsArray.Add("-enable-16bit-types");                               // Enable 16-bit types
+        argsArray.Add(GetOptimizeLevelString(config.optimizeLevel));  // Optimization level
+
+        if (config.optimizeLevel == CompilerOptimizeLevel.O3)
+        {
+            argsArray.Add("-ffinite-math-only");
+        }
 
         foreach (var define in config.defines)
         {
@@ -103,9 +108,10 @@ internal sealed partial class DXCShaderCompiler
             argsArray.Add("__WORK_GRAPH__");
         }
 
-        if (!config.options.HasFlag(CompilerOption.KeepDebugInfo))
+        if (config.options.HasFlag(CompilerOption.KeepDebugInfo))
         {
-            argsArray.Add("-Qstrip_debug");
+            argsArray.Add("-Zi");
+            argsArray.Add("-Qembed_debug");
         }
 
         if (!config.options.HasFlag(CompilerOption.KeepReflections))

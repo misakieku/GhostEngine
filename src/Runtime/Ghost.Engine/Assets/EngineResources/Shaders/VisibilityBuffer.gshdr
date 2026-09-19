@@ -36,27 +36,25 @@ shader "Internal/VisibilityBuffer"
                 nointerpolation uint packedVBufferYBase : TEXCOORD1;
             };
 
-            [numthreads(64, 1, 1)]
+            #define MS_THREADS 64
+
+            [numthreads(MS_THREADS, 1, 1)]
             [outputtopology("triangle")]
             void MSMain(
-                uint3 groupID : SV_GroupID,
-                uint3 groupThreadID : SV_GroupThreadID,
-                out vertices PixelInput outVerts[64],
-                out indices uint3 outTris[124],
-                out primitives PrimitiveOutput outPrims[124])
+                uint groupID : SV_GroupID,
+                uint groupThreadID : SV_GroupThreadID,
+                out vertices PixelInput outVerts[MAX_VERTICES_PER_MESHLET],
+                out indices uint3 outTris[MAX_TRIANGLES_PER_MESHLET],
+                out primitives PrimitiveOutput outPrims[MAX_TRIANGLES_PER_MESHLET])
             {
                 uint visibleBufferIndex = g_PushConstantData.userData0 & 0x7FFFFFFFu;
-                uint passBit = (g_PushConstantData.userData0 >> 31) & 1u;
-    
+
                 StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[visibleBufferIndex];
-                VisibleMeshletEntry visible = visibleMeshlets[groupID.x];
+                VisibleMeshletEntry visible = visibleMeshlets[groupID];
 
-                FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
-                InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, visible.instanceIndex);
+                InstanceData instanceData = LoadData<InstanceData>(g_PushConstantData.userData1, visible.instanceIndex);
                 MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
-
-                ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
-                Meshlet meshlet = meshletBuffer.Load<Meshlet>(visible.meshletIndex * sizeof(Meshlet));
+                Meshlet meshlet = LoadData<Meshlet>(meshData.meshletBuffer, visible.meshletIndex);
 
                 uint vertexCount = meshlet.packedCounts & 0xFFu;
                 uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
@@ -64,6 +62,7 @@ shader "Internal/VisibilityBuffer"
 
                 SetMeshOutputCounts(vertexCount, triangleCount);
 
+                uint passBit = (g_PushConstantData.userData0 >> 31) & 1u;
                 uint vbufferX = ((visible.instanceIndex + 1u) & 0x00FFFFFFu) | ((localMaterialIndex & 0xFFu) << 24);
                 uint vbufferYBase = (visible.meshletIndex & 0x00FFFFFFu) | (passBit << 31);
 
@@ -73,23 +72,24 @@ shader "Internal/VisibilityBuffer"
                 ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(meshData.meshletVerticesBuffer);
                 ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(meshData.meshletTrianglesBuffer);
 
-                if (groupThreadID.x < vertexCount)
+                if (groupThreadID < vertexCount)
                 {
-                    uint vertexIndex = meshletVerticesBuffer.Load((meshlet.vertexOffset + groupThreadID.x) * 4);
+                    uint vertexIndex = meshletVerticesBuffer.Load((meshlet.vertexOffset + groupThreadID) * 4);
                     ByteAddressBuffer vertices = GET_BUFFER(meshData.vertexBuffer);
-        
+
                     // TODO: We only need the position data, maybe we can pack the position data into a separate buffer to reduce memory bandwidth usage.
                     uint vertexByteOffset = vertexIndex * 64 + 32;
                     float3 pos = asfloat(vertices.Load3(vertexByteOffset));
 
-                    outVerts[groupThreadID.x].position = mul(worldViewProj, float4(pos, 1.0f));
-                    outVerts[groupThreadID.x].packedVBufferX = vbufferX;
-                    outVerts[groupThreadID.x].packedVBufferYBase = vbufferYBase;
+                    outVerts[groupThreadID].position = mul(worldViewProj, float4(pos, 1.0f));
+                    outVerts[groupThreadID].packedVBufferX = vbufferX;
+                    outVerts[groupThreadID].packedVBufferYBase = vbufferYBase;
                 }
 
-                if (groupThreadID.x < triangleCount)
+                if (groupThreadID < triangleCount)
                 {
-                    for (uint i = groupThreadID.x; i < triangleCount; i += 64)
+                    [unroll(2)]
+                    for (uint i = groupThreadID; i < triangleCount; i += MS_THREADS)
                     {
                         uint packedIndices = meshletTrianglesBuffer.Load((meshlet.triangleOffset + i) * 4);
                         outTris[i] = uint3(packedIndices & 0xFF, (packedIndices >> 8) & 0xFF, (packedIndices >> 16) & 0xFF);

@@ -27,7 +27,7 @@ struct PushConstantData
 
 struct FrameData
 {
-    BYTE_ADDRESS_BUFFER instanceBuffer;
+    BYTE_ADDRESS_BUFFER sceneBuffer;
     BYTE_ADDRESS_BUFFER userBuffer;
     BYTE_ADDRESS_BUFFER paletteOffsetBuffer;   // global PaletteOffsetBuffer
     BYTE_ADDRESS_BUFFER materialIndexBuffer;   // global MaterialIndexBuffer

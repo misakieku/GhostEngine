@@ -65,7 +65,7 @@ shader "Internal/VisibilityBufferMasked"
                 VisibleMeshletEntry visible = visibleMeshlets[groupID.x];
 
                 FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
-                InstanceData instanceData = LoadData<InstanceData>(frameData.instanceBuffer, visible.instanceIndex);
+                InstanceData instanceData = LoadData<InstanceData>(frameData.sceneBuffer, visible.instanceIndex);
                 MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
                 ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);

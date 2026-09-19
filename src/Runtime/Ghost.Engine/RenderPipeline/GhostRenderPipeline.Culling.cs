@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Utilities;
 using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
+using Ghost.Engine.Utilities;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
@@ -142,7 +143,7 @@ internal partial class GhostRenderPipeline
         }
     }
 
-    public static class CullConstants
+    private static class CullConstants
     {
         public const uint COUNTER_BUFFER_SIZE = 128;
         public const uint INDIRECT_ARGS_BUFFER_SIZE = 128;
@@ -162,9 +163,10 @@ internal partial class GhostRenderPipeline
         public const uint INDIRECT_OFFSET_PASS2_CULL = 64;
     }
 
-    private readonly CullingResource _cullingResource = new();
     private static ICommandSignature s_dispatchMeshCommandSignature = null!;
     private static ICommandSignature s_dispatchCommandSignature = null!;
+
+    private readonly CullingResource _cullingResource = new();
 
     private void InitializeCulling(RenderEngine renderEngine, AssetManager assetManager)
     {
@@ -344,7 +346,7 @@ internal partial class GhostRenderPipeline
 
     private void AddPrepareIndirectArgsPass(RenderGraph rg, in CameraCullingBuffers buffers, uint cullPassIndex)
     {
-        if (!_cullingResource.prepareIndirectArgsShader.IsValid)
+        if (_cullingResource.prepareIndirectArgsShader.IsInvalid)
         {
             return;
         }
@@ -393,15 +395,7 @@ internal partial class GhostRenderPipeline
         });
     }
 
-    private void AddBuildHZBPasses(
-        RenderGraph rg,
-        Identifier<RGTexture> depthBuffer,
-        Identifier<RGTexture> hzbTexture,
-        uint hzbMipCount,
-        uint baseW,
-        uint baseH,
-        uint renderWidth,
-        uint renderHeight)
+    private void AddBuildHZBPasses(RenderGraph rg, Identifier<RGTexture> depthBuffer, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint baseW, uint baseH, uint renderWidth, uint renderHeight)
     {
         if (hzbMipCount == 0)
         {
@@ -523,15 +517,7 @@ internal partial class GhostRenderPipeline
         computeCtx.DispatchCompute(threadGroupsX, threadGroupsY, 1);
     }
 
-    private unsafe void AddMeshletCullPass2(
-        RenderGraph rg,
-        in CameraCullingBuffers buffers,
-        Identifier<RGTexture> hzbTexture,
-        uint hzbMipCount,
-        uint renderWidth,
-        uint renderHeight,
-        uint hzbBaseWidth,
-        uint hzbBaseHeight)
+    private void AddMeshletCullPass2(RenderGraph rg, in CameraCullingBuffers buffers, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint renderWidth, uint renderHeight, uint hzbBaseWidth, uint hzbBaseHeight)
     {
         if (!_cullingResource.occludedMeshletCullShader.IsValid || s_dispatchCommandSignature == null)
         {
