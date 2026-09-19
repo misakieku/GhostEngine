@@ -35,9 +35,9 @@ compute "Internal/MeshletCullGraph"
         struct MeshletGroupRecord
         {
             uint instanceIndex;
-            uint groupIndex;
+            uint meshletStartIndex;
+            uint meshletCount;
             uint meshletBuffer;
-            uint meshletGroupBuffer;
         };
 
         struct WorkGraphDispatchGridRecord
@@ -65,65 +65,43 @@ compute "Internal/MeshletCullGraph"
         [NodeMaxDispatchGrid(65535, 1, 1)]
         [NumThreads(64, 1, 1)]
         void InstanceCullNode(
-            DispatchNodeInputRecord<WorkGraphDispatchGridRecord> inputRecord,
-            uint3 dispatchThreadId : SV_DispatchThreadID,
-            [NodeId("HierarchyTraverseNode")] [MaxRecords(1)] NodeOutput<HierarchyNodeRecord> hierarchyQueue,
-            [NodeId("MeshletCullNode")] [MaxRecords(64)] NodeOutput<MeshletCandidateRecord> meshletQueue)
+        DispatchNodeInputRecord< WorkGraphDispatchGridRecord> inputRecord,
+        uint3 dispatchThreadId : SV_DispatchThreadID,
+        [NodeId("HierarchyTraverseNode")] [MaxRecords(64)] NodeOutput<HierarchyNodeRecord> hierarchyQueue)
         {
-            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
-
-            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBufferUav];
+            InternalMeshletCullGraphShaderProperties props = LoadData < InternalMeshletCullGraphShaderProperties > (g_PushConstantData.userData0, 0);
 
             uint instanceIndex = dispatchThreadId.x;
-            if (instanceIndex >= props.instanceCount)
+
+            bool isVisible = false;
+            if (instanceIndex < props.instanceCount)
             {
-                return;
-            }
+                InstanceData instance = LoadData < InstanceData > (g_FrameData.sceneBuffer, instanceIndex);
 
-            InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, instanceIndex);
-
-            if (instance.meshBuffer == 0 || instance.meshBuffer == 0xFFFFFFFF)
-            {
-                return;
-            }
-
-            ByteAddressBuffer meshBuffer = GET_BUFFER(instance.meshBuffer);
-            MeshData mesh = meshBuffer.Load<MeshData>(0);
-
-            float3 worldMin, worldMax;
-            TransformAABB(mesh.worldBoundsMin, mesh.worldBoundsMax, instance.localToWorld, worldMin, worldMax);
-
-            if (!AABBIntersectFrustum(worldMin, worldMax, g_ViewData.frustum.planes))
-            {
-                return;
-            }
-
-            if (mesh.meshletHierarchyBuffer != 0)
-            {
-                ThreadNodeOutputRecords<HierarchyNodeRecord> outRec = hierarchyQueue.GetThreadNodeOutputRecords(1);
-                outRec.Get().instanceIndex = instanceIndex;
-                outRec.Get().nodeIndex = 0;
-                outRec.OutputComplete();
-            }
-            else
-            {
-                uint remaining = mesh.meshletCount;
-                uint offset = 0;
-                while (remaining > 0)
+                if (instance.meshBuffer != INVALID_BUFFER_INDEX)
                 {
-                    uint chunk = min(remaining, 64u);
-                    ThreadNodeOutputRecords<MeshletCandidateRecord> outGroup = meshletQueue.GetThreadNodeOutputRecords(chunk);
-                    for (uint i = 0; i < chunk; ++i)
-                    {
-                        outGroup[i].instanceIndex = instanceIndex;
-                        outGroup[i].meshletIndex = offset + i;
-                        outGroup[i].meshletBufferIndex = mesh.meshletBuffer;
-                    }
-                    outGroup.OutputComplete();
-                    offset += chunk;
-                    remaining -= chunk;
+                    MeshData mesh = LoadData<MeshData>(instance.meshBuffer, 0);
+
+                    float3 worldMin, worldMax;
+                    TransformAABB(mesh.worldBoundsMin, mesh.worldBoundsMax, instance.localToWorld, worldMin, worldMax);
+
+                    isVisible = AABBIntersectFrustum(worldMin, worldMax, g_ViewData.frustum.planes);
                 }
             }
+
+            // Output record handles are group-uniform: both the allocation call and OutputComplete()
+            // must be reached by every thread in the group. The early-out is therefore carried by the
+            // per-thread record *count* rather than by control flow.
+            ThreadNodeOutputRecords<HierarchyNodeRecord> outRec =
+            hierarchyQueue.GetThreadNodeOutputRecords(isVisible ? 1u : 0u);
+
+            if (isVisible)
+            {
+                outRec.Get().instanceIndex = instanceIndex;
+                outRec.Get().nodeIndex = 0;
+            }
+
+            outRec.OutputComplete();
         }
 
         // Node 2: Hierarchical LOD DAG traversal
@@ -131,22 +109,22 @@ compute "Internal/MeshletCullGraph"
         [NodeLaunch("thread")]
         [NodeMaxRecursionDepth(16)]
         void HierarchyTraverseNode(
-            ThreadNodeInputRecord<HierarchyNodeRecord> inputRecord,
-            [NodeId("HierarchyTraverseNode")] [MaxRecords(7)] NodeOutput<HierarchyNodeRecord> selfQueue,
-            [NodeId("ExpandGroupNode")]       [MaxRecords(1)] NodeOutput<MeshletGroupRecord> groupQueue)
+        ThreadNodeInputRecord< HierarchyNodeRecord> inputRecord,
+        [NodeId("HierarchyTraverseNode")] [MaxRecords(7)] NodeOutput<HierarchyNodeRecord> selfQueue,
+        [NodeId("MeshletCullNode")]       [MaxRecords(1)] NodeOutput<MeshletGroupRecord> groupQueue)
         {
-            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
+            InternalMeshletCullGraphShaderProperties props = LoadData < InternalMeshletCullGraphShaderProperties > (g_PushConstantData.userData0, 0);
             HierarchyNodeRecord rec = inputRecord.Get();
 
-            InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
-            MeshData mesh = LoadData<MeshData>(instance.meshBuffer, 0);
-            MeshletHierarchyNode node = LoadData<MeshletHierarchyNode>(mesh.meshletHierarchyBuffer, rec.nodeIndex);
+            InstanceData instance = LoadData < InstanceData > (g_FrameData.sceneBuffer, rec.instanceIndex);
+            MeshData mesh = LoadData < MeshData > (instance.meshBuffer, 0);
+            MeshletHierarchyNode node = LoadData < MeshletHierarchyNode > (mesh.meshletHierarchyBuffer, rec.nodeIndex);
 
             // 1. Frustum culling with bounding sphere
             float3 scale3 = float3(
-                length(instance.localToWorld._m00_m10_m20),
-                length(instance.localToWorld._m01_m11_m21),
-                length(instance.localToWorld._m02_m12_m22));
+            length(instance.localToWorld._m00_m10_m20),
+            length(instance.localToWorld._m01_m11_m21),
+            length(instance.localToWorld._m02_m12_m22));
             float maxScale = max(scale3.x, max(scale3.y, scale3.z));
 
             float3 worldCenter = mul(instance.localToWorld, float4(node.bounds.xyz, 1.0f)).xyz;
@@ -161,13 +139,13 @@ compute "Internal/MeshletCullGraph"
             // If the parent (coarser LOD) error already satisfies the screen-space threshold,
             // the coarser representation is sufficient and this subtree can be pruned.
             bool isParentDetailSufficient = (node.error < 3.4e38f) && EvaluateLODDetailSufficient(
-                node.error * maxScale,
-                worldCenter,
-                worldRadius,
-                g_ViewData.cameraPosition,
-                g_ViewData.projectionMatrix[1][1],
-                g_ViewData.screenSize.y,
-                props.lodErrorThreshold);
+            node.error * maxScale,
+            worldCenter,
+            worldRadius,
+            g_ViewData.cameraPosition,
+            g_ViewData.projectionMatrix[1][1],
+            g_ViewData.screenSize.y,
+            props.lodErrorThreshold);
 
             if (isParentDetailSufficient)
             {
@@ -181,7 +159,7 @@ compute "Internal/MeshletCullGraph"
                 if (childCount > 0)
                 {
                     ThreadNodeOutputRecords<HierarchyNodeRecord> outChildren = selfQueue.GetThreadNodeOutputRecords(childCount);
-                    for (uint c = 0; c < childCount; ++c)
+                    for (uint c = 0;c < childCount;++c)
                     {
                         outChildren[c].instanceIndex = rec.instanceIndex;
                         outChildren[c].nodeIndex = node.childOffset + c;
@@ -193,80 +171,64 @@ compute "Internal/MeshletCullGraph"
             {
                 if (node.groupIndex >= 0)
                 {
+                    // Emit the group straight to the cull node. One record launches ceil(count / 32)
+                    // thread groups (see the cull node's consumer logic). This replaces the former
+                    // broadcasting "ExpandGroupNode" amplifier, which existed only because a
+                    // thread-launch node cannot emit more than 8 records / 128 bytes, and whose
+                    // group-wide OutputComplete cost one device-scope publish per meshlet group.
+                    MeshletGroup group = LoadData < MeshletGroup > (mesh.meshletGroupBuffer, (uint) node.groupIndex);
+
                     ThreadNodeOutputRecords<MeshletGroupRecord> outGroup = groupQueue.GetThreadNodeOutputRecords(1);
-                    outGroup.Get().instanceIndex = rec.instanceIndex;
-                    outGroup.Get().groupIndex = (uint)node.groupIndex;
-                    outGroup.Get().meshletBuffer = mesh.meshletBuffer;
-                    outGroup.Get().meshletGroupBuffer = mesh.meshletGroupBuffer;
+                    outGroup.Get().instanceIndex = rec.
+                    instanceIndex;
+                    outGroup.Get().meshletStartIndex = group.
+                    meshletStartIndex;
+                    outGroup.Get().meshletCount = group.
+                    meshletCount;
+                    outGroup.Get().meshletBuffer = mesh.
+                    meshletBuffer;
                     outGroup.OutputComplete();
                 }
             }
         }
 
-        groupshared uint s_meshletCount;
-        groupshared uint s_meshletStartIndex;
-
+        // Node 3: Fine cluster/meshlet culling with wave compaction (32x reduction in atomics).
+        // Consumes one MeshletGroupRecord per meshlet group. The baker caps a group at 32 meshlets, so a
+        // single 32-thread group covers it, and this node has no output ports - it writes results
+        // straight to UAVs. That makes it a leaf that never blocks on output space reservation, which is
+        // what previously forced producers and consumers to alternate.
         [Shader("node")]
         [NodeLaunch("broadcasting")]
         [NodeDispatchGrid(1, 1, 1)]
-        [NumThreads(64, 1, 1)]
-        void ExpandGroupNode(
-            DispatchNodeInputRecord<MeshletGroupRecord> inputRecord,
-            uint groupThreadId : SV_GroupThreadID,
-            [NodeId("MeshletCullNode")] [MaxRecords(64)] NodeOutput<MeshletCandidateRecord> meshletQueue)
-        {
-            MeshletGroupRecord rec = inputRecord.Get();
-
-            if (groupThreadId == 0)
-            {
-                MeshletGroup group = LoadData<MeshletGroup>(rec.meshletGroupBuffer, rec.groupIndex);
-                s_meshletCount = min(group.meshletCount, 64u);
-                s_meshletStartIndex = group.meshletStartIndex;
-            }
-
-            GroupMemoryBarrierWithGroupSync();
-
-            uint meshletCount = s_meshletCount;
-            uint meshletStartIndex = s_meshletStartIndex;
-
-            GroupNodeOutputRecords<MeshletCandidateRecord> outRecords = meshletQueue.GetGroupNodeOutputRecords(meshletCount);
-
-            if (groupThreadId < meshletCount)
-            {
-                outRecords[groupThreadId].instanceIndex = rec.instanceIndex;
-                outRecords[groupThreadId].meshletIndex = meshletStartIndex + groupThreadId;
-                outRecords[groupThreadId].meshletBufferIndex = rec.meshletBuffer;
-            }
-
-            outRecords.OutputComplete();
-        }
-
-        // Node 3: Coalesced fine cluster/meshlet culling with wave compaction (32x reduction in atomics)
-        [Shader("node")]
-        [NodeLaunch("coalescing")]
-        [NumThreads(64, 1, 1)]
+        [NumThreads(32, 1, 1)]
         void MeshletCullNode(
-            [MaxRecords(64)] GroupNodeInputRecords<MeshletCandidateRecord> inputRecords,
-            uint groupIndex : SV_GroupIndex,
-            uint groupThreadId : SV_GroupThreadID)
+        DispatchNodeInputRecord< MeshletGroupRecord> inputRecord,
+        uint3 dispatchThreadId : SV_DispatchThreadID)
         {
-            uint numRecords = inputRecords.Count();
-            bool isValid = (groupIndex < numRecords);
-            MeshletCandidateRecord rec = (MeshletCandidateRecord)0;
-            if (isValid)
-            {
-                rec = inputRecords.Get(groupIndex);
-            }
+            MeshletGroupRecord groupRec = inputRecord.Get();
 
-            InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
-            Meshlet meshlet = LoadData<Meshlet>(rec.meshletBufferIndex, rec.meshletIndex);
+            uint meshletIndex = groupRec.meshletStartIndex + dispatchThreadId.x;
+
+            bool isValid = (dispatchThreadId.x < groupRec.meshletCount);
+            MeshletCandidateRecord rec = (MeshletCandidateRecord) 0;
+            rec.instanceIndex = groupRec.instanceIndex;
+            rec.meshletIndex = meshletIndex;
+            rec.meshletBufferIndex = groupRec.meshletBuffer;
+
+            // Keeping the loads below group-uniform costs one redundant load for inactive lanes; the
+            // results are discarded by the isValid guards. meshletIndex is always an in-range meshlet
+            // index for this mesh, so the redundant load is well defined.
+            uint safeMeshletIndex = isValid ? meshletIndex : groupRec.meshletStartIndex;
+
+            InstanceData instanceData = LoadData < InstanceData > (g_FrameData.sceneBuffer, rec.instanceIndex);
+            Meshlet meshlet = LoadData < Meshlet > (rec.meshletBufferIndex, safeMeshletIndex);
 
             bool isVisible = false;
             uint renderType = 0;
             bool inFrustum = false;
             bool isOccluded = false;
-            
-            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
+
+            InternalMeshletCullGraphShaderProperties props = LoadData < InternalMeshletCullGraphShaderProperties > (g_PushConstantData.userData0, 0);
 
             if (isValid)
             {
@@ -311,7 +273,7 @@ compute "Internal/MeshletCullGraph"
                 }
                 else
                 {
-                    BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld);
+                    BBoxFrustumResult cullResult = BBoxIntersectFrustum < false > (meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld);
                     inFrustum = cullResult.isVisible;
                     if (inFrustum)
                     {
@@ -323,7 +285,7 @@ compute "Internal/MeshletCullGraph"
                         {
                             if (props.cullPassIndex == 0)
                             {
-                                BBoxFrustumResult prevCullResult = BBoxIntersectFrustum<true>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld);
+                                BBoxFrustumResult prevCullResult = BBoxIntersectFrustum < true > (meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld);
                                 if (prevCullResult.isVisible && prevCullResult.clipValid)
                                 {
                                     isOccluded = !TestHZB(prevCullResult.clipMin, prevCullResult.clipMax, props);
@@ -390,9 +352,12 @@ compute "Internal/MeshletCullGraph"
 
             if (WaveIsFirstLane())
             {
-                if (waveTotal > 0) counterBuf.InterlockedAdd(20, waveTotal);
-                if (waveFrustumCulled > 0) counterBuf.InterlockedAdd(24, waveFrustumCulled);
-                if (waveHzbCulled > 0) counterBuf.InterlockedAdd(32, waveHzbCulled);
+                if (waveTotal > 0)
+                    counterBuf.InterlockedAdd(20, waveTotal);
+                if (waveFrustumCulled > 0)
+                    counterBuf.InterlockedAdd(24, waveFrustumCulled);
+                if (waveHzbCulled > 0)
+                    counterBuf.InterlockedAdd(32, waveHzbCulled);
             }
 
             if (isOpaque)

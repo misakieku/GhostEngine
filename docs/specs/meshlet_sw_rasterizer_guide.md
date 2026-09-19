@@ -85,9 +85,6 @@ For a screen with dimensions $W \times H$:
                [HierarchyTraverseNode]
                            │
                            ▼
-                  [ExpandGroupNode]
-                           │
-                           ▼
                   [MeshletCullNode]
                            │
          ┌─────────────────┴─────────────────┐

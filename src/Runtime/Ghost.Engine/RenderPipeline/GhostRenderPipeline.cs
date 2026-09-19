@@ -139,6 +139,11 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             {
                 return Result.Failure($"Render graph execution failed: {result.Error}");
             }
+
+            // The graph has now actually consumed its backing memory, so subsequent dispatches must not
+            // re-specify D3D12_SET_WORK_GRAPH_FLAG_INITIALIZE. Latching here (rather than at pass-build
+            // time) keeps the flag honest if this frame's graph was compiled but failed to execute.
+            _cullingResource.cullWorkGraphProgram?.MarkInitialized();
         }
 
         return Result.Success();
@@ -147,74 +152,23 @@ internal partial class GhostRenderPipeline : IRenderPipeline
     private void AddCullingAndVbufferPasses(GhostRenderPayload ghostPayload, RenderViewData renderView, GPUViewContext viewContext, Identifier<RGTexture> hzb, uint sceneBuffer,
         out Identifier<RGTexture> currentDepth, out Identifier<RGTexture> currentVisBuffer)
     {
+        currentVisBuffer = Identifier<RGTexture>.Invalid;
+        currentDepth = Identifier<RGTexture>.Invalid;
+
         // Initialize transient culling & indirect argument buffers for this camera view
         AddInitializeCullingBuffersPass(viewContext.RenderGraph, out var cullingBuffers);
 
         // Pass 1: Early-Z Hierarchical Meshlet Culling
-        AddMeshletCullPass1(
-            viewContext.RenderGraph,
-            in cullingBuffers,
-            hzb,
-            viewContext.HzbMipCount,
-            renderView.ScreenSize.x,
-            renderView.ScreenSize.y,
-            viewContext.BaseWidth,
-            viewContext.BaseHeight,
-            ghostPayload.InstanceCount);
-
+        AddMeshletCullPass1(viewContext.RenderGraph, in cullingBuffers, hzb, viewContext.HzbMipCount, renderView.ScreenSize, viewContext.BaseSize, ghostPayload.InstanceCount);
         AddPrepareIndirectArgsPass(viewContext.RenderGraph, in cullingBuffers, 0);
-
-        currentVisBuffer = Identifier<RGTexture>.Invalid;
-        currentDepth = Identifier<RGTexture>.Invalid;
-
-        AddVisibilityBufferPass(
-            viewContext.RenderGraph,
-            in cullingBuffers,
-            0,
-            sceneBuffer,
-            ref currentVisBuffer,
-            ref currentDepth);
-
-        AddBuildHZBPasses(
-            viewContext.RenderGraph,
-            currentDepth,
-            hzb,
-            viewContext.HzbMipCount,
-            viewContext.BaseWidth,
-            viewContext.BaseHeight,
-            renderView.ScreenSize.x,
-            renderView.ScreenSize.y);
+        AddVisibilityBufferPass(viewContext.RenderGraph, in cullingBuffers, 0, sceneBuffer, ref currentVisBuffer, ref currentDepth);
+        AddBuildHZBPasses(viewContext.RenderGraph, currentDepth, hzb, viewContext.HzbMipCount, viewContext.BaseSize, renderView.ScreenSize);
 
         // Pass 2: Late-Z Meshlet Culling
-        AddMeshletCullPass2(
-            viewContext.RenderGraph,
-            in cullingBuffers,
-            hzb,
-            viewContext.HzbMipCount,
-            renderView.ScreenSize.x,
-            renderView.ScreenSize.y,
-            viewContext.BaseWidth,
-            viewContext.BaseHeight);
-
+        AddMeshletCullPass2(viewContext.RenderGraph, in cullingBuffers, hzb, viewContext.HzbMipCount, renderView.ScreenSize, viewContext.BaseSize);
         AddPrepareIndirectArgsPass(viewContext.RenderGraph, in cullingBuffers, 1);
-
-        AddVisibilityBufferPass(
-            viewContext.RenderGraph,
-            in cullingBuffers,
-            1,
-            sceneBuffer,
-            ref currentVisBuffer,
-            ref currentDepth);
-
-        AddBuildHZBPasses(
-            viewContext.RenderGraph,
-            currentDepth,
-            hzb,
-            viewContext.HzbMipCount,
-            viewContext.BaseWidth,
-            viewContext.BaseHeight,
-            renderView.ScreenSize.x,
-            renderView.ScreenSize.y);
+        AddVisibilityBufferPass(viewContext.RenderGraph, in cullingBuffers, 1, sceneBuffer, ref currentVisBuffer, ref currentDepth);
+        AddBuildHZBPasses(viewContext.RenderGraph, currentDepth, hzb, viewContext.HzbMipCount, viewContext.BaseSize, renderView.ScreenSize);
     }
 
     public void Dispose()

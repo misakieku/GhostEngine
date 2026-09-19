@@ -254,27 +254,28 @@ GhostEngine implements this traversal entirely on the GPU inside [`MeshletCullGr
                                │ HierarchyNodeRecord
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ Node 2: HierarchyTraverseNode (Broadcasting, 1 thread)      │
+│ Node 2: HierarchyTraverseNode (Thread, 1 thread)            │
 │   • Frustum cull node bounding sphere                       │
 │   • Test ParentError:                                       │
 │       if (EvaluateLODDetailSufficient(node.error))          │
 │           return; // PRUNED: Coarser LOD is sufficient!     │
 │   • if (node.groupIndex < 0):                               │
-│       Dispatch children to HierarchyTraverseNode (Max 8)    │
+│       Dispatch children to HierarchyTraverseNode (Max 7)    │
 │   • else:                                                   │
-│       Dispatch meshlets to MeshletCullNode (Max 64 chunks)  │
+│       Emit the group to MeshletCullNode (1 record)          │
 └──────────────────────────────┬──────────────────────────────┘
-                               │ MeshletCandidateRecord
+                               │ MeshletGroupRecord
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ Node 3: MeshletCullNode (Coalescing, 32 threads)            │
+│   • Batches up to 256 group records per launch              │
 │   • Test ClusterError:                                      │
 │       if (!EvaluateLODDetailSufficient(meshlet.clusterError))│
 │           isValid = false; // DISCARD: Too coarse!          │
 │   • Frustum Culling (Meshlet AABB)                          │
 │   • Pass 1 HZB Occlusion Culling                            │
 │   • Wave Compaction (WaveActiveCountBits / WavePrefixCount) │
-│   • Emits Visible Meshlet Draw Payloads (Opaque / Masked)   │
+│   • Writes Visible Meshlet entries straight to UAVs         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -284,11 +285,11 @@ In [`MeshBaker.Meshlet.cs`](file:///F:/csharp/GhostEngine/src/Editor/Ghost.Asset
 - In `HierarchyTraverseNode`, if an internal node satisfies $\text{ParentError} \le \tau$, the **entire subtree** (thousands of candidate meshlets) is pruned in a single GPU clock cycle!
 
 ### 7.2 Why 1 Thread for HierarchyTraverseNode?
-Work Graphs enforce strict record allocation limits: `[MaxRecords(8)] NodeOutput<HierarchyNodeRecord>` and `[MaxRecords(64)] NodeOutput<MeshletCandidateRecord>`.
-By using `[NumThreads(1, 1, 1)]` and `[NodeDispatchGrid(1, 1, 1)]`, exactly 1 thread executes per traversed node. This:
-- Completely avoids allocating idle threads.
-- Eliminates threadgroup synchronization overhead.
-- Satisfies D3D12 output allocation memory budgets safely.
+Work Graphs enforce strict record allocation limits on thread launch nodes: `MaxRecords <= 8` (summed across all outputs) and `MaxOutputSize <= 128 bytes`. By using a thread launch node with a single recursion output (`[MaxRecords(7)]`) plus one group output (`[MaxRecords(1)]`, 16 bytes), the traversal sits exactly at that cap (8 records / 72 bytes), while `[NumThreads(1,1,1)]` matches one thread per traversed node — no idle threads are allocated and no threadgroup synchronization is needed.
+
+Note that a thread launch node could not emit one record per meshlet (a 32-meshlet group would need 32 records / 384 bytes). The traversal therefore emits exactly one `MeshletGroupRecord` per surviving group, and `MeshletCullNode` — a coalescing node — covers the group's meshlets with a single 32-lane wave. An earlier revision inserted a separate broadcasting `ExpandGroupNode` to fan the group out into per-meshlet records; that stage was removed because it added a group-wide `OutputComplete` (one device-scope record publish) per meshlet group while producing the same work.
+
+Because `MaxRecords` on a thread launch node is capped at 8 **summed across all outputs**, the traversal cannot widen its group output to give the cull node a deeper queue — the recursion budget (7 × 8 bytes) plus the 16-byte group record already sits exactly at the limit. Overlap is therefore obtained on the consumer side: `MeshletCullNode` is coalescing with `[MaxRecords(256)]`, so the system may run it with a large batch and decouple its launch rate from the traversal's, instead of the two nodes ping-ponging one record at a time. These `MaxRecords` limits are not enforced by the compiler or validation layer; exceeding them produces undefined behaviour (typically driver-owned memory corruption), so they must be respected by construction.
 
 ### 7.3 Wave Compaction in MeshletCullNode
 In `MeshletCullNode`, 32 threads cooperate as a single SIMD Wave. Instead of 32 threads each firing an atomic add (`InterlockedAdd`) to global VRAM:

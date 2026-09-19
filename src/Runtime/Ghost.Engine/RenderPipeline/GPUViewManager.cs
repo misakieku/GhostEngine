@@ -64,6 +64,8 @@ internal sealed class GPUViewContext : IDisposable
         get; private set;
     }
 
+    public uint2 BaseSize => new uint2(BaseWidth, BaseHeight);
+
 
     public float4x4 prevViewProjMatrix;
 

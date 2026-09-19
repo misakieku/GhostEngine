@@ -1,9 +1,3 @@
-using Ghost.Core;
-using Ghost.Graphics.RenderGraphModule;
-using Ghost.Graphics.RHI;
-using Ghost.Graphics.Services;
-using Ghost.UnitTest.MockingEnvironment;
-
 namespace Ghost.UnitTest.Graphics;
 
 #if GHOST_UNITTEST

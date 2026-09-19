@@ -116,10 +116,10 @@ shader "Internal/VisibilityBufferMasked"
             uint2 PSMain(PixelInput input, uint primitiveID : SV_PrimitiveID) : SV_TARGET0
             {
                 float alpha = 1.0f;
-                if (input.cbufferIndex != 0 && input.cbufferIndex != 0xFFFFFFFFu)
+                if (input.cbufferIndex != INVALID_BUFFER_INDEX)
                 {
                     LitShaderProperties matProps = LoadData<LitShaderProperties>(input.cbufferIndex, 0);
-                    if (matProps.baseMap != 0 && matProps.baseMap != 0xFFFFFFFFu)
+                    if (matProps.baseMap != INVALID_BUFFER_INDEX)
                     {
                         alpha = SAMPLE_TEXTURE2D(matProps.baseMap, matProps.sampler_baseMap, input.uv).a * matProps.baseColor.a;
                     }

@@ -1,5 +1,4 @@
 using Ghost.Engine.ShaderProperties;
-using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.UnitTest.Graphics;
 

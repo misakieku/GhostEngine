@@ -1250,32 +1250,34 @@ public struct SetProgramDesc
         ulong localRootTableSize = 0,
         ulong localRootTableStride = 0)
     {
-        var desc = new SetProgramDesc { Type = ProgramType.WorkGraph };
-        desc.WorkGraph = new SetWorkGraphDesc
+        return new SetProgramDesc
         {
-            ProgramIdentifier = identifier,
-            Flags = flags,
-            BackingMemoryAddress = backingMemoryAddress,
-            BackingMemorySize = backingMemorySize,
-            NodeLocalRootArgumentsTableAddress = localRootTableAddress,
-            NodeLocalRootArgumentsTableSizeInBytes = localRootTableSize,
-            NodeLocalRootArgumentsTableStrideInBytes = localRootTableStride,
+            Type = ProgramType.WorkGraph,
+            WorkGraph = new SetWorkGraphDesc
+            {
+                ProgramIdentifier = identifier,
+                Flags = flags,
+                BackingMemoryAddress = backingMemoryAddress,
+                BackingMemorySize = backingMemorySize,
+                NodeLocalRootArgumentsTableAddress = localRootTableAddress,
+                NodeLocalRootArgumentsTableSizeInBytes = localRootTableSize,
+                NodeLocalRootArgumentsTableStrideInBytes = localRootTableStride,
+            }
         };
-        return desc;
     }
 
     public static SetProgramDesc ForRaytracing(ProgramIdentifier identifier)
     {
-        var desc = new SetProgramDesc { Type = ProgramType.RaytracingPipeline };
-        desc.RaytracingPipeline = new SetRaytracingPipelineDesc { ProgramIdentifier = identifier };
-        return desc;
+        return new SetProgramDesc { Type = ProgramType.RaytracingPipeline, RaytracingPipeline = new SetRaytracingPipelineDesc { ProgramIdentifier = identifier } };
     }
 
     public static SetProgramDesc ForGeneric(ProgramIdentifier identifier)
     {
-        var desc = new SetProgramDesc { Type = ProgramType.GenericPipeline };
-        desc.GenericPipeline = new SetGenericPipelineDesc { ProgramIdentifier = identifier };
-        return desc;
+        return new SetProgramDesc
+        {
+            Type = ProgramType.GenericPipeline,
+            GenericPipeline = new SetGenericPipelineDesc { ProgramIdentifier = identifier }
+        };
     }
 }
 

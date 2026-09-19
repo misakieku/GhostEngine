@@ -30,13 +30,7 @@ internal unsafe class D3D12WorkGraphProgram : D3D12Object<ID3D12StateObject>, IW
     public ulong BackingMemorySize => _backingMemorySize;
     public bool IsInitialized => _isInitialized;
 
-    internal D3D12WorkGraphProgram(
-        D3D12RenderDevice device,
-        D3D12ResourceDatabase resourceDatabase,
-        D3D12ResourceAllocator resourceAllocator,
-        ID3D12RootSignature* globalRootSignature,
-        ReadOnlySpan<byte> bytecode,
-        string programName)
+    internal D3D12WorkGraphProgram(D3D12RenderDevice device, D3D12ResourceDatabase resourceDatabase, D3D12ResourceAllocator resourceAllocator, ID3D12RootSignature* globalRootSignature, ReadOnlySpan<byte> bytecode, string programName)
         : base(CreateStateObject(device, globalRootSignature, bytecode, programName))
     {
         _resourceDatabase = resourceDatabase;
@@ -87,11 +81,7 @@ internal unsafe class D3D12WorkGraphProgram : D3D12Object<ID3D12StateObject>, IW
         }
     }
 
-    private static ID3D12StateObject* CreateStateObject(
-        D3D12RenderDevice device,
-        ID3D12RootSignature* globalRootSignature,
-        ReadOnlySpan<byte> bytecode,
-        string programName)
+    private static ID3D12StateObject* CreateStateObject(D3D12RenderDevice device, ID3D12RootSignature* globalRootSignature, ReadOnlySpan<byte> bytecode, string programName)
     {
         var subobjects = stackalloc D3D12_STATE_SUBOBJECT[3];
 
