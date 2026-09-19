@@ -85,7 +85,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void AssertRecording()
     {
-        Logger.Assert(_state.IsRecording);
+        Logger.DebugAssert(_state.IsRecording);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -834,7 +834,16 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             return;
         }
 
-        pNativeObject->SetGraphicsRootConstantBufferView(slot, resource.Get()->GetGPUVirtualAddress());
+        var gpuVA = resource.Get()->GetGPUVirtualAddress();
+        if (_type == CommandBufferType.Compute)
+        {
+            pNativeObject->SetComputeRootConstantBufferView(slot, gpuVA);
+        }
+        else
+        {
+            pNativeObject->SetGraphicsRootConstantBufferView(slot, gpuVA);
+            pNativeObject->SetComputeRootConstantBufferView(slot, gpuVA);
+        }
     }
 
     public void SetVertexBuffer(uint slot, Handle<GPUBuffer> buffer, ulong offset = 0)

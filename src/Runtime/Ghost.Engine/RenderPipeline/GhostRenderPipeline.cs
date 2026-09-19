@@ -85,7 +85,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         }
 
         // Upload FrameData once per frame
-        var frameBufferIndex = RenderPipelineUtility.CreateFrameBuffer(ctx, _gpuScene.SceneBufferSrvIndex);
+        var frameBuffer = RenderPipelineUtility.CreateFrameBuffer(ctx, _gpuScene.SceneBufferSrvIndex);
 
         for (var requestIndex = 0; requestIndex < ghostPayload.RenderRequests.Length; requestIndex++)
         {
@@ -109,11 +109,11 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 viewContext.prevViewProjMatrix = viewProjMatrix;
             }
 
-            var viewBufferIndex = RenderPipelineUtility.CreateViewDataBuffer(ctx, request, renderView, viewMatrix, projMatrix, viewProjMatrix, frustum, ref viewContext.prevViewProjMatrix);
+            var viewBuffer = RenderPipelineUtility.CreateViewDataBuffer(ctx, request, renderView, viewMatrix, projMatrix, viewProjMatrix, frustum, ref viewContext.prevViewProjMatrix);
 
             viewContext.RenderGraph.Reset();
-            viewContext.RenderGraph.SetFrameData(frameBufferIndex);
-            viewContext.RenderGraph.SetViewData(viewBufferIndex);
+            viewContext.RenderGraph.SetFrameData(frameBuffer);
+            viewContext.RenderGraph.SetViewData(viewBuffer);
 
             var presentBarrier = new ResourceBarrierData(
                 BarrierLayout.Present,

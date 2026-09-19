@@ -23,8 +23,8 @@ public interface IRenderGraphContext
     void GetActualBindlessIndices(Identifier<RGTexture> texture, ReadOnlySpan<uint> subResources, Span<uint> outIndices, BindlessAccess access = BindlessAccess.ShaderResource);
     uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource);
 
-    void SetUserData(uint instanceIndex, uint userData1 = uint.MaxValue);
-    void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue) where TProperty : unmanaged;
+    void SetUserData(uint instanceIndex, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue);
+    void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue) where TProperty : unmanaged;
 
     bool TrySetActiveShaderPass(Handle<Shader> shader, int passIndex, PipelineState? pipelineOverride = null);
     bool TrySetActiveShaderPass(Handle<Shader> shader, PassSemantic semantic, PipelineState? pipelineOverride = null);
@@ -82,8 +82,8 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
     private Handle<GPUBuffer> _activePerMeshData;
     private int _activeMeshIndexCount;
 
-    private uint _activeFrameBuffer;
-    private uint _activeViewBuffer;
+    private Handle<GPUBuffer> _activeFrameBuffer;
+    private Handle<GPUBuffer> _activeViewBuffer;
 
     private readonly RenderGraphPropertyAllocator _propertyAllocator;
 
@@ -115,9 +115,10 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
 
     internal void Reset()
     {
+        _commandBuffer = null!;
         _propertyAllocator.Reset();
-        _activeFrameBuffer = ~0u;
-        _activeViewBuffer = ~0u;
+        _activeFrameBuffer = default;
+        _activeViewBuffer = default;
         _rtvCount = 0;
 
         _dsvFormat = TextureFormat.Unknown;
@@ -128,6 +129,12 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
     internal void BeginNewFrame(ICommandBuffer commandBuffer)
     {
         _commandBuffer = commandBuffer;
+        BindFrameAndViewData();
+    }
+
+    internal void EndFrame()
+    {
+        _commandBuffer = null!;
     }
 
     internal void SetRenderTargetFormats(ReadOnlySpan<TextureFormat> rtvFormats, TextureFormat dsvFormat)
@@ -179,38 +186,61 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
         return _resourceDatabase.GetBindlessIndex(GetActualBuffer(buffer).AsResource(), access);
     }
 
-    public void SetFrameData(uint frameBuffer)
+    public void SetFrameData(Handle<GPUBuffer> frameBuffer)
     {
         _activeFrameBuffer = frameBuffer;
+        if (_commandBuffer != null && _commandBuffer.State.IsRecording && _activeFrameBuffer.IsValid)
+        {
+            _commandBuffer.SetConstantBufferView(RootSignatureLayout.FRAME_DATA_CBV_SLOT, _activeFrameBuffer);
+        }
     }
 
-    public void SetViewData(uint viewBuffer)
+    public void SetViewData(Handle<GPUBuffer> viewBuffer)
     {
         _activeViewBuffer = viewBuffer;
+        if (_commandBuffer != null && _commandBuffer.State.IsRecording && _activeViewBuffer.IsValid)
+        {
+            _commandBuffer.SetConstantBufferView(RootSignatureLayout.VIEW_DATA_CBV_SLOT, _activeViewBuffer);
+        }
     }
 
-    public void SetUserData(uint instanceIndex, uint userData1 = uint.MaxValue)
+    internal void BindFrameAndViewData()
+    {
+        if (_commandBuffer != null && _commandBuffer.State.IsRecording)
+        {
+            if (_activeViewBuffer.IsValid)
+            {
+                _commandBuffer.SetConstantBufferView(RootSignatureLayout.VIEW_DATA_CBV_SLOT, _activeViewBuffer);
+            }
+            if (_activeFrameBuffer.IsValid)
+            {
+                _commandBuffer.SetConstantBufferView(RootSignatureLayout.FRAME_DATA_CBV_SLOT, _activeFrameBuffer);
+            }
+        }
+    }
+
+    public void SetUserData(uint instanceIndex, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue)
     {
         var data = new PushConstantsData
         {
-            frameBuffer = _activeFrameBuffer,
-            viewBuffer = _activeViewBuffer,
-            instanceIndex = instanceIndex,
-            userData = userData1,
+            userData0 = instanceIndex,
+            userData1 = userData1,
+            userData2 = userData2,
+            userData3 = userData3,
         };
 
         _commandBuffer.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, data.AsUInts());
     }
 
-    public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue) where TProperty : unmanaged
+    public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue) where TProperty : unmanaged
     {
         var descriptor = _propertyAllocator.Allocate(in property);
         var data = new PushConstantsData
         {
-            frameBuffer = _activeFrameBuffer,
-            viewBuffer = _activeViewBuffer,
-            propertyBuffer = descriptor,
-            userData = userData1,
+            userData0 = descriptor,
+            userData1 = userData1,
+            userData2 = userData2,
+            userData3 = userData3,
         };
 
         if (_commandBuffer.Type == CommandBufferType.Compute)

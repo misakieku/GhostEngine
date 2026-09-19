@@ -458,13 +458,10 @@ public unsafe class RenderContext
 
         var pushConstant = new PushConstantsData
         {
-            // TODO: Support frame and view buffer.
-            frameBuffer = 0,
-            viewBuffer = 0,
             propertyBuffer = ResourceDatabase.GetBindlessIndex(properyBuffer.AsResource()),
         };
 
-        CommandBuffer.SetComputeRoot32Constants(0, pushConstant.AsUInts());
+        CommandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstant.AsUInts());
         CommandBuffer.DispatchCompute(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
     }
 }

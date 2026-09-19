@@ -8,31 +8,33 @@ namespace Ghost.Graphics.RHI;
 public static class RootSignatureLayout
 {
     public const int PUSH_CONSTANT_SLOT = 0;
+    public const int VIEW_DATA_CBV_SLOT = 1;
+    public const int FRAME_DATA_CBV_SLOT = 2;
 
-    public const int ROOT_PARAMETER_COUNT = 1;
+    public const int ROOT_PARAMETER_COUNT = 3;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 16)]
 public struct PushConstantsData
 {
     public const uint NUM_32BITS_VALUE = 16u / sizeof(uint);
-    public const int PROPERTY_OR_INSTANCE_START = 8;
-    public const int PROPERTY_OR_INSTANCE_OFFSET = 2;
 
     [FieldOffset(0)]
-    public uint frameBuffer;
-    [FieldOffset(4)]
-    public uint viewBuffer;
-    [FieldOffset(8)]
+    public uint userData0;
+    [FieldOffset(0)]
     public uint instanceIndex;
-    [FieldOffset(8)]
+    [FieldOffset(0)]
     public uint propertyBuffer;
+    [FieldOffset(4)]
+    public uint userData1;
+    [FieldOffset(8)]
+    public uint userData2;
     [FieldOffset(12)]
-    public uint userData;
+    public uint userData3;
 
     public readonly ReadOnlySpan<uint> AsUInts()
     {
-        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in frameBuffer), (int)NUM_32BITS_VALUE);
+        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in userData0), (int)NUM_32BITS_VALUE);
     }
 }
 
@@ -67,12 +69,12 @@ public struct Frustum
     [InlineArray(8)]
     public struct __corner_array
     {
-        private float3 corner;
+        private float4 corner;
     }
 
     [GenerateAsHLSLType("float4[6]")]
     public __plane_array planes;
-    [GenerateAsHLSLType("float3[8]")]
+    [GenerateAsHLSLType("float4[8]")]
     public __corner_array corners;
 
     private static void CalculateFrustumPlanes(float4x4 finalMatrix, ref __plane_array outPlanes)
@@ -218,14 +220,14 @@ public struct Frustum
         frustum.planes[5] = new float4(-viewDir, farD);
 
         // Compute corners from the planes instead of projection matrix. Otherwise you get the same issue with near and far for oblique projection.
-        frustum.corners[0] = IntersectFrustumPlanes(frustum.planes[0], frustum.planes[3], frustum.planes[4]);
-        frustum.corners[1] = IntersectFrustumPlanes(frustum.planes[1], frustum.planes[3], frustum.planes[4]);
-        frustum.corners[2] = IntersectFrustumPlanes(frustum.planes[0], frustum.planes[2], frustum.planes[4]);
-        frustum.corners[3] = IntersectFrustumPlanes(frustum.planes[1], frustum.planes[2], frustum.planes[4]);
-        frustum.corners[4] = IntersectFrustumPlanes(frustum.planes[0], frustum.planes[3], frustum.planes[5]);
-        frustum.corners[5] = IntersectFrustumPlanes(frustum.planes[1], frustum.planes[3], frustum.planes[5]);
-        frustum.corners[6] = IntersectFrustumPlanes(frustum.planes[0], frustum.planes[2], frustum.planes[5]);
-        frustum.corners[7] = IntersectFrustumPlanes(frustum.planes[1], frustum.planes[2], frustum.planes[5]);
+        frustum.corners[0] = new float4(IntersectFrustumPlanes(frustum.planes[0], frustum.planes[3], frustum.planes[4]), 0.0f);
+        frustum.corners[1] = new float4(IntersectFrustumPlanes(frustum.planes[1], frustum.planes[3], frustum.planes[4]), 0.0f);
+        frustum.corners[2] = new float4(IntersectFrustumPlanes(frustum.planes[0], frustum.planes[2], frustum.planes[4]), 0.0f);
+        frustum.corners[3] = new float4(IntersectFrustumPlanes(frustum.planes[1], frustum.planes[2], frustum.planes[4]), 0.0f);
+        frustum.corners[4] = new float4(IntersectFrustumPlanes(frustum.planes[0], frustum.planes[3], frustum.planes[5]), 0.0f);
+        frustum.corners[5] = new float4(IntersectFrustumPlanes(frustum.planes[1], frustum.planes[3], frustum.planes[5]), 0.0f);
+        frustum.corners[6] = new float4(IntersectFrustumPlanes(frustum.planes[0], frustum.planes[2], frustum.planes[5]), 0.0f);
+        frustum.corners[7] = new float4(IntersectFrustumPlanes(frustum.planes[1], frustum.planes[2], frustum.planes[5]), 0.0f);
 
         return frustum;
     }

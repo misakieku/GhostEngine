@@ -7,6 +7,14 @@ struct FrustumTestResult
 {
     bool isVisible;
     bool intersectsNearPlane;
+    
+    static FrustumTestResult Create(bool visible, bool nearIntersect)
+    {
+        FrustumTestResult r;
+        r.isVisible = visible;
+        r.intersectsNearPlane = nearIntersect;
+        return r;
+    }
 };
 
 struct MeshletCandidateRecord
@@ -20,6 +28,14 @@ struct VisibleMeshletEntry
 {
     uint instanceIndex;
     uint meshletIndex;
+};
+
+struct BBoxFrustumResult
+{
+    bool isVisible;
+    bool clipValid;
+    float4 clipMin;
+    float4 clipMax;
 };
 
 // Transforms an AABB by a 4x4 matrix, returning the tight world AABB
@@ -71,46 +87,123 @@ static inline uint ComputeHomogeneousClipMask(float4 homogeneousPos)
     return mask;
 }
 
-// Directly intersects an object-space AABB with camera frustum using worldToClip = mul(viewProj, world)
-// Outputs clipMin, clipMax (in NDC [-1, 1], with z in [0, 1]) and clipValid.
-// If any corner is behind or crosses the near plane, clipValid is false (cannot be occluded by HZB).
-//
-// OPTIMIZATION TODO: Can be optimized using UE5 Nanite's delta-corner approach (BoxCullFrustumPerspective)
-// by transforming the center and basis delta vectors (DX, DY, DZ) rather than all 8 corners.
-// Note: When porting, remember GhostEngine uses column-major matrices (mul(M, v)), so:
-//   DX = (2.0f * extent.x) * float4(worldToClip._m00_m10_m20_m30),
-//   and depth equation constant term is at viewToClip[2][3] (m_23), not [3][2]!
-static inline bool BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 worldMatrix, float4x4 viewProjMatrix, out float4 clipMinOut, out float4 clipMaxOut, out bool clipValidOut)
+#define ACCUMULATE_CLIP_CORNER(P, minXY, maxXY, minZ, maxZ) \
+{ \
+    float rcpW = rcp((P).w); \
+    minXY = min(minXY, (P).xy * rcpW); \
+    maxXY = max(maxXY, (P).xy * rcpW); \
+    minZ  = min(minZ,  (P).z  * rcpW); \
+    maxZ  = max(maxZ,  (P).z  * rcpW); \
+}
+
+template<bool usePreVP>
+BBoxFrustumResult BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 worldMatrix)
 {
-    const float4x4 worldToClip = mul(viewProjMatrix, worldMatrix);
+    BBoxFrustumResult result = ZERO_INIT(BBoxFrustumResult);
 
-    bool validClip = false;
-    float4 homogeneousPos = mul(worldToClip, BuildAabbCorner(bboxMin, bboxMax, 0u));
-    float4 clipPos = ProjectToClip(homogeneousPos, validClip);
+    // 1. Object space center and half-extents
+    float3 boxCenter = 0.5f * (bboxMin + bboxMax);
+    float3 boxExtent = 0.5f * (bboxMax - bboxMin);
 
-    uint rejectMask = ComputeHomogeneousClipMask(homogeneousPos);
-    float4 clipMin = clipPos;
-    float4 clipMax = clipPos;
-    bool allCornersValid = validClip;
+    // 2. Transform to world space using column vectors (GhostEngine is column-major: mul(M, v))
+    float3 centerWorld = mul(worldMatrix, float4(boxCenter, 1.0f)).xyz;
+    float3 dXWorld = worldMatrix._m00_m10_m20 * boxExtent.x;
+    float3 dYWorld = worldMatrix._m01_m11_m21 * boxExtent.y;
+    float3 dZWorld = worldMatrix._m02_m12_m22 * boxExtent.z;
 
-    [unroll]
-    for (uint corner = 1u; corner < 8u; ++corner)
+    // 3. Transform to clip space using constant buffer view-projection
+    float4 cClip, dX, dY, dZ;
+    if (usePreVP)
     {
-        homogeneousPos = mul(worldToClip, BuildAabbCorner(bboxMin, bboxMax, corner));
-        clipPos = ProjectToClip(homogeneousPos, validClip);
-        rejectMask &= ComputeHomogeneousClipMask(homogeneousPos);
-
-        clipMin = min(clipMin, clipPos);
-        clipMax = max(clipMax, clipPos);
-        allCornersValid = allCornersValid && validClip;
+        cClip = mul(g_ViewData.preVPMatrix, float4(centerWorld, 1.0f));
+        dX = mul(g_ViewData.preVPMatrix, float4(dXWorld, 0.0f));
+        dY = mul(g_ViewData.preVPMatrix, float4(dYWorld, 0.0f));
+        dZ = mul(g_ViewData.preVPMatrix, float4(dZWorld, 0.0f));
+    }
+    else
+    {
+        cClip = mul(g_ViewData.viewProjectionMatrix, float4(centerWorld, 1.0f));
+        dX = mul(g_ViewData.viewProjectionMatrix, float4(dXWorld, 0.0f));
+        dY = mul(g_ViewData.viewProjectionMatrix, float4(dYWorld, 0.0f));
+        dZ = mul(g_ViewData.viewProjectionMatrix, float4(dZWorld, 0.0f));
     }
 
-    clipValidOut = allCornersValid;
-    clipMinOut = float4(clamp(clipMin.xy, float2(-1.0f, -1.0f), float2(1.0f, 1.0f)), clipMin.zw);
-    clipMaxOut = float4(clamp(clipMax.xy, float2(-1.0f, -1.0f), float2(1.0f, 1.0f)), clipMax.zw);
+    // 4. Frustum culling (6 homogeneous clip-space plane tests in reversed-Z)
+    // Left: x + w >= 0
+    float rLeft = abs(dX.x + dX.w) + abs(dY.x + dY.w) + abs(dZ.x + dZ.w);
+    if ((cClip.x + cClip.w) + rLeft < 0.0f)
+        return result;
 
-    return (rejectMask == 0u);
+    // Right: w - x >= 0
+    float rRight = abs(dX.w - dX.x) + abs(dY.w - dY.x) + abs(dZ.w - dZ.x);
+    if ((cClip.w - cClip.x) + rRight < 0.0f)
+        return result;
+
+    // Bottom: y + w >= 0
+    float rBottom = abs(dX.y + dX.w) + abs(dY.y + dY.w) + abs(dZ.y + dZ.w);
+    if ((cClip.y + cClip.w) + rBottom < 0.0f)
+        return result;
+
+    // Top: w - y >= 0
+    float rTop = abs(dX.w - dX.y) + abs(dY.w - dY.y) + abs(dZ.w - dZ.y);
+    if ((cClip.w - cClip.y) + rTop < 0.0f)
+        return result;
+
+    // Far plane (Reversed-Z: z >= 0)
+    float rFar = abs(dX.z) + abs(dY.z) + abs(dZ.z);
+    if (cClip.z + rFar < 0.0f)
+        return result;
+
+    // Near plane (Reversed-Z: w - z >= 0)
+    float rNear = abs(dX.w - dX.z) + abs(dY.w - dY.z) + abs(dZ.w - dZ.z);
+    if ((cClip.w - cClip.z) + rNear < 0.0f)
+        return result;
+
+    // 5. Near plane crossing test (cannot project 2D NDC if any corner is behind eye or penetrates near plane)
+    result.isVisible = true;
+    float minW = cClip.w - (abs(dX.w) + abs(dY.w) + abs(dZ.w));
+    float minNear = (cClip.w - cClip.z) - rNear;
+    if (minW <= CULL_EPSILON || minNear < 0.0f)
+    {
+        result.clipValid = false;
+        return result;
+    }
+
+    // 6. Project 8 corners to 2D NDC clip bounds and depth
+    result.clipValid = true;
+    float2 minXY = float2(1e9f, 1e9f);
+    float2 maxXY = float2(-1e9f, -1e9f);
+    float minZVal = 1e9f;
+    float maxZVal = -1e9f;
+
+    // -Z plane
+    float4 pZ0 = cClip - dZ;
+    float4 pZ0_Y0 = pZ0 - dY;
+    ACCUMULATE_CLIP_CORNER(pZ0_Y0 - dX, minXY, maxXY, minZVal, maxZVal);
+    ACCUMULATE_CLIP_CORNER(pZ0_Y0 + dX, minXY, maxXY, minZVal, maxZVal);
+
+    float4 pZ0_Y1 = pZ0 + dY;
+    ACCUMULATE_CLIP_CORNER(pZ0_Y1 - dX, minXY, maxXY, minZVal, maxZVal);
+    ACCUMULATE_CLIP_CORNER(pZ0_Y1 + dX, minXY, maxXY, minZVal, maxZVal);
+
+    // +Z plane
+    float4 pZ1 = cClip + dZ;
+    float4 pZ1_Y0 = pZ1 - dY;
+    ACCUMULATE_CLIP_CORNER(pZ1_Y0 - dX, minXY, maxXY, minZVal, maxZVal);
+    ACCUMULATE_CLIP_CORNER(pZ1_Y0 + dX, minXY, maxXY, minZVal, maxZVal);
+
+    float4 pZ1_Y1 = pZ1 + dY;
+    ACCUMULATE_CLIP_CORNER(pZ1_Y1 - dX, minXY, maxXY, minZVal, maxZVal);
+    ACCUMULATE_CLIP_CORNER(pZ1_Y1 + dX, minXY, maxXY, minZVal, maxZVal);
+
+    // In reversed-Z, minZVal is furthest depth (clipMin.z) and maxZVal is nearest depth (clipMax.z)
+    result.clipMin = float4(clamp(minXY, float2(-1.0f, -1.0f), float2(1.0f, 1.0f)), minZVal, 0.0f);
+    result.clipMax = float4(clamp(maxXY, float2(-1.0f, -1.0f), float2(1.0f, 1.0f)), maxZVal, 0.0f);
+
+    return result;
 }
+
+#undef ACCUMULATE_CLIP_CORNER
 
 static inline bool SphereIntersectFrustum(float3 center, float radius, float4 planes[6])
 {
@@ -147,20 +240,47 @@ static inline bool AABBIntersectFrustum(float3 minPt, float3 maxPt, float4 plane
 }
 
 // Fast 6-plane AABB frustum cull wrapper
-static inline FrustumTestResult FrustumCullAABB(float3 minPt, float3 maxPt, float4x4 viewProj)
+static inline FrustumTestResult FrustumCullAABB(float3 minPt, float3 maxPt, float4x4 viewProjectionMatrix)
 {
-    float4 clipMin, clipMax;
-    bool clipValid;
-    float4x4 identityMat = float4x4(
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f
-    );
-    bool inFrustum = BBoxIntersectFrustum(minPt, maxPt, identityMat, viewProj, clipMin, clipMax, clipValid);
+    float3 boxCenter = 0.5f * (minPt + maxPt);
+    float3 boxExtent = 0.5f * (maxPt - minPt);
+
+    float4 cClip = mul(viewProjectionMatrix, float4(boxCenter, 1.0f));
+    float4 dX = viewProjectionMatrix._m00_m10_m20_m30 * boxExtent.x;
+    float4 dY = viewProjectionMatrix._m01_m11_m21_m31 * boxExtent.y;
+    float4 dZ = viewProjectionMatrix._m02_m12_m22_m32 * boxExtent.z;
+
+    float rLeft = abs(dX.x + dX.w) + abs(dY.x + dY.w) + abs(dZ.x + dZ.w);
+    if ((cClip.x + cClip.w) + rLeft < 0.0f)
+        return FrustumTestResult::Create(false, false);
+
+    float rRight = abs(dX.w - dX.x) + abs(dY.w - dY.x) + abs(dZ.w - dZ.x);
+    if ((cClip.w - cClip.x) + rRight < 0.0f)
+        return FrustumTestResult::Create(false, false);
+
+    float rBottom = abs(dX.y + dX.w) + abs(dY.y + dY.w) + abs(dZ.y + dZ.w);
+    if ((cClip.y + cClip.w) + rBottom < 0.0f)
+        return FrustumTestResult::Create(false, false);
+
+    float rTop = abs(dX.w - dX.y) + abs(dY.w - dY.y) + abs(dZ.w - dZ.y);
+    if ((cClip.w - cClip.y) + rTop < 0.0f)
+        return FrustumTestResult::Create(false, false);
+
+    float rFar = abs(dX.z) + abs(dY.z) + abs(dZ.z);
+    if (cClip.z + rFar < 0.0f)
+        return FrustumTestResult::Create(false, false);
+
+    float rNear = abs(dX.w - dX.z) + abs(dY.w - dY.z) + abs(dZ.w - dZ.z);
+    if ((cClip.w - cClip.z) + rNear < 0.0f)
+        return FrustumTestResult::Create(false, false);
+
+    float minW = cClip.w - (abs(dX.w) + abs(dY.w) + abs(dZ.w));
+    float minNear = (cClip.w - cClip.z) - rNear;
+    bool intersectsNear = (minW <= CULL_EPSILON || minNear < 0.0f);
+
     FrustumTestResult res;
-    res.isVisible = inFrustum;
-    res.intersectsNearPlane = !clipValid;
+    res.isVisible = true;
+    res.intersectsNearPlane = intersectsNear;
     return res;
 }
 

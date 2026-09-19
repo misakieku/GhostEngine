@@ -60,7 +60,7 @@ shader "Internal/MeshletDebug"
                 StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[visibleBufferIndex];
                 VisibleMeshletEntry visible = visibleMeshlets[groupID.x];
 
-                FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+                FrameData frameData = g_FrameData;
                 InstanceData instanceData = LoadData<InstanceData>(frameData.sceneBuffer, visible.instanceIndex);
                 MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
@@ -74,8 +74,7 @@ shader "Internal/MeshletDebug"
 
                 float3 meshletColor = MeshletIdToColor(visible.meshletIndex);
 
-                ViewData viewData = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
-                float4x4 worldViewProj = mul(viewData.viewProjectionMatrix, instanceData.localToWorld);
+                float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, instanceData.localToWorld);
 
                 ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(meshData.meshletVerticesBuffer);
                 ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(meshData.meshletTrianglesBuffer);

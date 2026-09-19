@@ -625,12 +625,12 @@ public sealed class RenderGraph : IDisposable
         };
     }
 
-    public void SetFrameData(uint frameBuffer)
+    public void SetFrameData(Handle<GPUBuffer> frameBuffer)
     {
         _context.SetFrameData(frameBuffer);
     }
 
-    public void SetViewData(uint viewBuffer)
+    public void SetViewData(Handle<GPUBuffer> viewBuffer)
     {
         _context.SetViewData(viewBuffer);
     }

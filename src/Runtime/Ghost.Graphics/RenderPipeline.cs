@@ -195,7 +195,7 @@ public static unsafe class RenderPipelineUtility
         GetVPMatrices(in request, screenSize, out view, out projection, reversedZ: true);
     }
 
-    public static uint CreateFrameBuffer(RenderContext ctx, uint sceneBuffer)
+    public static Handle<GPUBuffer> CreateFrameBuffer(RenderContext ctx, uint sceneBuffer)
     {
         var frameData = new FrameData
         {
@@ -205,11 +205,12 @@ public static unsafe class RenderPipelineUtility
             materialIndexBuffer = ctx.ResourceManager.MaterialIndexBufferBindlessIndex,
         };
 
+        var alignedSize = ((uint)sizeof(FrameData) + 255u) & ~255u;
         var frameDesc = new BufferDesc
         {
-            Size = (uint)sizeof(FrameData),
-            Stride = (uint)sizeof(FrameData),
-            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            Size = alignedSize,
+            Stride = alignedSize,
+            Usage = BufferUsage.Constant | BufferUsage.ShaderResource,
             HeapType = HeapType.Upload,
         };
 
@@ -217,11 +218,10 @@ public static unsafe class RenderPipelineUtility
         var pFrameData = (FrameData*)ctx.ResourceDatabase.MapResource(frameGpuBuffer.AsResource(), 0, null);
         *pFrameData = frameData;
         ctx.ResourceDatabase.UnmapResource(frameGpuBuffer.AsResource(), 0, null);
-        var frameBufferIndex = ctx.ResourceDatabase.GetBindlessIndex(frameGpuBuffer.AsResource());
-        return frameBufferIndex;
+        return frameGpuBuffer;
     }
 
-    public static uint CreateViewDataBuffer(RenderContext ctx, RenderRequest request, RenderViewData renderView, float4x4 viewMatrix, float4x4 projMatrix, float4x4 viewProjMatrix, Frustum frustum, ref float4x4 prevVP)
+    public static Handle<GPUBuffer> CreateViewDataBuffer(RenderContext ctx, RenderRequest request, RenderViewData renderView, float4x4 viewMatrix, float4x4 projMatrix, float4x4 viewProjMatrix, Frustum frustum, ref float4x4 prevVP)
     {
         var viewData = new ViewData
         {
@@ -239,18 +239,18 @@ public static unsafe class RenderPipelineUtility
 
         prevVP = viewProjMatrix;
 
+        var alignedSize = ((uint)sizeof(ViewData) + 255u) & ~255u;
         var viewDesc = new BufferDesc
         {
-            Size = (uint)sizeof(ViewData),
-            Stride = (uint)sizeof(ViewData),
-            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            Size = alignedSize,
+            Stride = alignedSize,
+            Usage = BufferUsage.Constant | BufferUsage.ShaderResource,
             HeapType = HeapType.Upload,
         };
         var viewGpuBuffer = ctx.ResourceManager.CreateTransientBuffer(in viewDesc, "ViewDataBuffer");
         var pViewData = (ViewData*)ctx.ResourceDatabase.MapResource(viewGpuBuffer.AsResource(), 0, null);
         *pViewData = viewData;
         ctx.ResourceDatabase.UnmapResource(viewGpuBuffer.AsResource(), 0, null);
-        var viewBufferIndex = ctx.ResourceDatabase.GetBindlessIndex(viewGpuBuffer.AsResource());
-        return viewBufferIndex;
+        return viewGpuBuffer;
     }
 }

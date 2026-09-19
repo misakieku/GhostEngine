@@ -22,7 +22,7 @@ groupshared ASPayload s_Payload;
 [numthreads(1, 1, 1)]
 void ASMain(uint3 groupID : SV_GroupID)
 {
-    FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+    FrameData frameData = g_FrameData;
     InstanceData instanceData = LoadData<InstanceData>(frameData.sceneBuffer, g_PushConstantData.userData0);
     MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
@@ -48,7 +48,7 @@ void MSMain(
     out vertices PSInput outVerts[64],
     out indices uint3 outTris[124])
 {
-    FrameData frameData = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
+    FrameData frameData = g_FrameData;
     InstanceData instanceData = LoadData<InstanceData>(frameData.sceneBuffer, g_PushConstantData.userData0);
     MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
@@ -68,12 +68,10 @@ void MSMain(
         ByteAddressBuffer vertices = GET_BUFFER(meshData.vertexBuffer);
         Vertex v = vertices.Load<Vertex>(vertexIndex * sizeof(Vertex));
 
-        ViewData viewData = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
-
         float4 worldPos = mul(instanceData.localToWorld, float4(v.position.xyz, 1.0f));
-        float4 viewPos = mul(viewData.viewMatrix, worldPos);
+        float4 viewPos = mul(g_ViewData.viewMatrix, worldPos);
 
-        outVerts[groupThreadID.x].position = mul(viewData.projectionMatrix, viewPos);
+        outVerts[groupThreadID.x].position = mul(g_ViewData.projectionMatrix, viewPos);
         outVerts[groupThreadID.x].uv = v.uv;
         outVerts[groupThreadID.x].materialIndex = asPayload.materialIndex;
     }

@@ -250,6 +250,10 @@ internal sealed class RenderGraphExecutor
             Logger.Error(ex);
             return Error.InternalError;
         }
+        finally
+        {
+            context.EndFrame();
+        }
 
         return SubmitCommandBuffers(executionContext, out graphicsSubmission, out computeSubmission);
     }

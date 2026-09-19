@@ -59,6 +59,11 @@ public class Program
         {
             await root.InvokeAsync(args);
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            Environment.Exit(1);
+        }
         finally
         {
             AllocationManager.Dispose();

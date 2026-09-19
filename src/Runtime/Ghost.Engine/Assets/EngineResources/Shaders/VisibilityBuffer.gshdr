@@ -66,8 +66,7 @@ shader "Internal/VisibilityBuffer"
                 uint vbufferX = ((visible.instanceIndex + 1u) & 0x00FFFFFFu) | ((localMaterialIndex & 0xFFu) << 24);
                 uint vbufferYBase = (visible.meshletIndex & 0x00FFFFFFu) | (passBit << 31);
 
-                ViewData viewData = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
-                float4x4 worldViewProj = mul(viewData.viewProjectionMatrix, instanceData.localToWorld);
+                float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, instanceData.localToWorld);
 
                 ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(meshData.meshletVerticesBuffer);
                 ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(meshData.meshletTrianglesBuffer);

@@ -53,33 +53,22 @@ compute "Internal/OccludedMeshletCull"
 
             if (isValid)
             {
-                if (WaveIsFirstLane())
-                {
-                    StructuredBuffer<MeshletCandidateRecord> occludedBuffer = ResourceDescriptorHeap[props.occludedMeshletsUav];
-                    rec = occludedBuffer[slotIndex];
-                }
+                StructuredBuffer<MeshletCandidateRecord> occludedBuffer = ResourceDescriptorHeap[props.occludedMeshletsUav];
+                rec = occludedBuffer[slotIndex];
 
-                rec.instanceIndex = WaveReadLaneFirst(rec.instanceIndex);
-                rec.meshletIndex = WaveReadLaneFirst(rec.meshletIndex);
-                rec.meshletBufferIndex = WaveReadLaneFirst(rec.meshletBufferIndex);
-
-                FrameData frame = LoadData<FrameData>(g_PushConstantData.frameBuffer, 0);
-                ViewData view = LoadData<ViewData>(g_PushConstantData.viewBuffer, 0);
-                InstanceData instance = LoadData<InstanceData>(frame.sceneBuffer, rec.instanceIndex);
+                InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
                 Meshlet meshlet = LoadData<Meshlet>(rec.meshletBufferIndex, rec.meshletIndex);
 
                 uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
-                uint packedMaterial = LoadMaterialBindlessIndex(frame.paletteOffsetBuffer, frame.materialIndexBuffer, instance.materialPaletteIndex, localMaterialIndex);
+                uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instance.materialPaletteIndex, localMaterialIndex);
                 renderType = (packedMaterial >> 24) & 0xFFu;
 
-                float4 clipMin, clipMax;
-                bool clipValid;
-                bool inFrustum = BBoxIntersectFrustum(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld, view.viewProjectionMatrix, clipMin, clipMax, clipValid);
-                if (inFrustum)
+                BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld);
+                if (cullResult.isVisible)
                 {
-                    if (clipValid && props.hzbMipCount > 0)
+                    if (cullResult.clipValid && props.hzbMipCount > 0)
                     {
-                        isVisible = TestHZB(clipMin, clipMax, props);
+                        isVisible = TestHZB(cullResult.clipMin, cullResult.clipMax, props);
                     }
                     else
                     {

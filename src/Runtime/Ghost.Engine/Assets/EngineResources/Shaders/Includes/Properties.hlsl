@@ -7,22 +7,24 @@
     "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | " \
     "CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED | " \
     "SAMPLER_HEAP_DIRECTLY_INDEXED), " \
-    "RootConstants(num32BitConstants=3, b0, space=0)"
+    "RootConstants(num32BitConstants=4, b0, space=0), " \
+    "CBV(b1, space=0, flags=DATA_STATIC_WHILE_SET_AT_EXECUTE), " \
+    "CBV(b2, space=0, flags=DATA_STATIC_WHILE_SET_AT_EXECUTE)"
 
 // TODO: This should be auto generated to match the c# side.
 
 struct Frustum
 {
     float4 planes[6];
-    float3 corners[8];
+    float4 corners[8];
 };
 
 struct PushConstantData
 {
-    BYTE_ADDRESS_BUFFER frameBuffer;
-    BYTE_ADDRESS_BUFFER viewBuffer;
     uint userData0;
     uint userData1;
+    uint userData2;
+    uint userData3;
 };
 
 struct FrameData
@@ -77,6 +79,16 @@ struct MeshData
 cbuffer PushConstants : register(b0)
 {
     PushConstantData g_PushConstantData;
+};
+
+cbuffer cbViewData : register(b1)
+{
+    ViewData g_ViewData;
+};
+
+cbuffer cbFrameData : register(b2)
+{
+    FrameData g_FrameData;
 };
 
 

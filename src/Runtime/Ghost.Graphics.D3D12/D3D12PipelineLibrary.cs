@@ -84,7 +84,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
         // NOTE: Since we are targeting SM 6.6, we can use ResourceDescriptorHeap and SamplerDescriptorHeap directly without needing to set up viewGroup tables.
         var rootParameters = stackalloc D3D12_ROOT_PARAMETER1[RootSignatureLayout.ROOT_PARAMETER_COUNT];
 
-        rootParameters[0] = new D3D12_ROOT_PARAMETER1
+        rootParameters[RootSignatureLayout.PUSH_CONSTANT_SLOT] = new D3D12_ROOT_PARAMETER1
         {
             ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
             ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
@@ -93,6 +93,30 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
                 ShaderRegister = 0, // b0
                 RegisterSpace = 0,  // space0
                 Num32BitValues = PushConstantsData.NUM_32BITS_VALUE // 4
+            }
+        };
+
+        rootParameters[RootSignatureLayout.VIEW_DATA_CBV_SLOT] = new D3D12_ROOT_PARAMETER1
+        {
+            ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+            ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+            Descriptor = new D3D12_ROOT_DESCRIPTOR1
+            {
+                ShaderRegister = 1, // b1
+                RegisterSpace = 0,
+                Flags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE
+            }
+        };
+
+        rootParameters[RootSignatureLayout.FRAME_DATA_CBV_SLOT] = new D3D12_ROOT_PARAMETER1
+        {
+            ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+            ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+            Descriptor = new D3D12_ROOT_DESCRIPTOR1
+            {
+                ShaderRegister = 2, // b2
+                RegisterSpace = 0,
+                Flags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE
             }
         };
 

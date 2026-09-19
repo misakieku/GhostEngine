@@ -67,15 +67,16 @@ public sealed class ShaderVariantRenderingTest
         public uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.AllSubresources) => uint.MaxValue;
         public void GetActualBindlessIndices(Identifier<RGTexture> texture, ReadOnlySpan<uint> subResources, Span<uint> outIndices, BindlessAccess access = BindlessAccess.ShaderResource) => outIndices.Fill(uint.MaxValue);
         public uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource) => uint.MaxValue;
-        public void SetFrameData(uint frameBuffer) { }
-        public void SetViewData(uint viewBuffer) { }
-        public void SetProperties<TProperty>(scoped in TProperty property) where TProperty : unmanaged { }
+        public void SetUserData(uint instanceIndex, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue) { }
+        public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue) where TProperty : unmanaged { }
 
         public void SetActiveCompute(Handle<ComputeShader> computeShader, int entryIndex)
         {
         }
 
-        public bool TrySetActiveShaderPass(Handle<Shader> shader, PassSemantic semantic)
+        public bool TrySetActiveShaderPass(Handle<Shader> shader, int passIndex, PipelineState? pipelineOverride = null) => false;
+
+        public bool TrySetActiveShaderPass(Handle<Shader> shader, PassSemantic semantic, PipelineState? pipelineOverride = null)
         {
             BindAttempts.Add(shader);
             return shader != _rejectedShader;

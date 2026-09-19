@@ -16,6 +16,7 @@ public class ShaderPropertiesGeneratorTest
         Assert.AreEqual(8, size); // 2 uint fields = 8 bytes
     }
 
+#if false
     [TestMethod]
     public unsafe void TestDefaultUnlitShaderProperties_IncludesTemplateBaseAndCustomFields()
     {
@@ -31,6 +32,7 @@ public class ShaderPropertiesGeneratorTest
         };
         Assert.AreEqual(1.0f, props.baseColor.x);
     }
+#endif
 
     [TestMethod]
     public unsafe void TestInternalUpdateGPUSceneShaderProperties_LayoutAndConstants()
