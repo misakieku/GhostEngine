@@ -45,6 +45,7 @@ internal partial class GhostRenderPipeline
         public uint instanceCount;
         public uint maxVisibleMeshlets;
         public float lodErrorThreshold;
+        public float cullingThreshold;
         public uint threadGroupCount;
         public uint entrypointIndex;
         public ProgramIdentifier programIdentifier;
@@ -281,6 +282,7 @@ internal partial class GhostRenderPipeline
             instanceCount = instanceCount,
             maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
             lodErrorThreshold = _settings.MeshletLodErrorThreshold,
+            cullingThreshold = _settings.InstanceCullingThreshold,
             threadGroupCount = Math.Max(1u, (instanceCount + 63) / 64),
             entrypointIndex = entrypointIndex,
             programIdentifier = cullProgram.ProgramIdentifier,
@@ -313,6 +315,7 @@ internal partial class GhostRenderPipeline
                 counterBufferUav = counterUav,
                 maxVisibleMeshlets = passData.maxVisibleMeshlets,
                 lodErrorThreshold = passData.lodErrorThreshold,
+                cullingThreshold = passData.cullingThreshold,
                 instanceCount = passData.instanceCount,
                 hzbTexture = hzbTextureIndex,
                 hzbBaseWidth = passData.hzbBaseSize.x,

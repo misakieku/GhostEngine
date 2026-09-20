@@ -210,7 +210,7 @@ public static class RenderGraphUtility
                 sampler_mainTex = (uint)renderCtx.ResourceManager.StaticSampler.LinearClamp.Value,
             };
 
-            renderCtx.SetUserDataWithProperties(property);
+            renderCtx.SetUserDataWithProperties(property, target: DataTarget.Graphics);
             renderCtx.DispatchMesh(1, 1, 1);
         });
     }

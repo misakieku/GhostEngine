@@ -12,6 +12,7 @@ compute "Internal/MeshletCullGraph"
         uint counterBufferUav;
         uint maxVisibleMeshlets;
         float lodErrorThreshold;
+        float cullingThreshold;
         uint instanceCount;
         uint hzbTexture;
         uint hzbBaseWidth;
@@ -66,17 +67,17 @@ compute "Internal/MeshletCullGraph"
         [NumThreads(64, 1, 1)]
         void InstanceCullNode(
         DispatchNodeInputRecord< WorkGraphDispatchGridRecord> inputRecord,
-        uint3 dispatchThreadId : SV_DispatchThreadID,
-        [NodeId("HierarchyTraverseNode")] [MaxRecords(64)] NodeOutput<HierarchyNodeRecord> hierarchyQueue)
+            uint3 dispatchThreadId : SV_DispatchThreadID,
+            [NodeId("HierarchyTraverseNode")] [MaxRecords(64)] NodeOutput<HierarchyNodeRecord> hierarchyQueue)
         {
-            InternalMeshletCullGraphShaderProperties props = LoadData < InternalMeshletCullGraphShaderProperties > (g_PushConstantData.userData0, 0);
+            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
 
             uint instanceIndex = dispatchThreadId.x;
 
             bool isVisible = false;
             if (instanceIndex < props.instanceCount)
             {
-                InstanceData instance = LoadData < InstanceData > (g_FrameData.sceneBuffer, instanceIndex);
+                InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, instanceIndex);
 
                 if (instance.meshBuffer != INVALID_BUFFER_INDEX)
                 {
@@ -109,26 +110,29 @@ compute "Internal/MeshletCullGraph"
         [NodeLaunch("thread")]
         [NodeMaxRecursionDepth(16)]
         void HierarchyTraverseNode(
-        ThreadNodeInputRecord< HierarchyNodeRecord> inputRecord,
-        [NodeId("HierarchyTraverseNode")] [MaxRecords(7)] NodeOutput<HierarchyNodeRecord> selfQueue,
-        [NodeId("MeshletCullNode")]       [MaxRecords(1)] NodeOutput<MeshletGroupRecord> groupQueue)
+            ThreadNodeInputRecord< HierarchyNodeRecord> inputRecord,
+            [NodeId("HierarchyTraverseNode")] [MaxRecords(7)] NodeOutput<HierarchyNodeRecord> selfQueue,
+            [NodeId("MeshletCullNode")]       [MaxRecords(1)] NodeOutput<MeshletGroupRecord> groupQueue)
         {
-            InternalMeshletCullGraphShaderProperties props = LoadData < InternalMeshletCullGraphShaderProperties > (g_PushConstantData.userData0, 0);
+            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
             HierarchyNodeRecord rec = inputRecord.Get();
 
-            InstanceData instance = LoadData < InstanceData > (g_FrameData.sceneBuffer, rec.instanceIndex);
-            MeshData mesh = LoadData < MeshData > (instance.meshBuffer, 0);
-            MeshletHierarchyNode node = LoadData < MeshletHierarchyNode > (mesh.meshletHierarchyBuffer, rec.nodeIndex);
+            InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
+            MeshData mesh = LoadData<MeshData>(instance.meshBuffer, 0);
+            MeshletHierarchyNode node = LoadData<MeshletHierarchyNode>(mesh.meshletHierarchyBuffer, rec.nodeIndex);
 
             // 1. Frustum culling with bounding sphere
             float3 scale3 = float3(
-            length(instance.localToWorld._m00_m10_m20),
-            length(instance.localToWorld._m01_m11_m21),
-            length(instance.localToWorld._m02_m12_m22));
+                length(instance.localToWorld._m00_m10_m20),
+                length(instance.localToWorld._m01_m11_m21),
+                length(instance.localToWorld._m02_m12_m22));
             float maxScale = max(scale3.x, max(scale3.y, scale3.z));
 
             float3 worldCenter = mul(instance.localToWorld, float4(node.bounds.xyz, 1.0f)).xyz;
             float worldRadius = node.bounds.w * maxScale;
+            
+            float z_view = dot(worldCenter - g_ViewData.cameraPosition, g_ViewData.cameraDirection);
+            float r_percentage = (worldRadius * g_ViewData.projectionMatrix[1][1] * 100.0f) / (2.0f * z_view );
 
             if (!SphereIntersectFrustum(worldCenter, worldRadius, g_ViewData.frustum.planes))
             {
@@ -139,13 +143,13 @@ compute "Internal/MeshletCullGraph"
             // If the parent (coarser LOD) error already satisfies the screen-space threshold,
             // the coarser representation is sufficient and this subtree can be pruned.
             bool isParentDetailSufficient = (node.error < 3.4e38f) && EvaluateLODDetailSufficient(
-            node.error * maxScale,
-            worldCenter,
-            worldRadius,
-            g_ViewData.cameraPosition,
-            g_ViewData.projectionMatrix[1][1],
-            g_ViewData.screenSize.y,
-            props.lodErrorThreshold);
+                node.error * maxScale,
+                worldCenter,
+                worldRadius,
+                g_ViewData.cameraPosition,
+                g_ViewData.projectionMatrix[1][1],
+                g_ViewData.screenSize.y,
+                props.lodErrorThreshold);
 
             if (isParentDetailSufficient)
             {
@@ -176,17 +180,13 @@ compute "Internal/MeshletCullGraph"
                     // broadcasting "ExpandGroupNode" amplifier, which existed only because a
                     // thread-launch node cannot emit more than 8 records / 128 bytes, and whose
                     // group-wide OutputComplete cost one device-scope publish per meshlet group.
-                    MeshletGroup group = LoadData < MeshletGroup > (mesh.meshletGroupBuffer, (uint) node.groupIndex);
+                    MeshletGroup group = LoadData<MeshletGroup>(mesh.meshletGroupBuffer, (uint) node.groupIndex);
 
                     ThreadNodeOutputRecords<MeshletGroupRecord> outGroup = groupQueue.GetThreadNodeOutputRecords(1);
-                    outGroup.Get().instanceIndex = rec.
-                    instanceIndex;
-                    outGroup.Get().meshletStartIndex = group.
-                    meshletStartIndex;
-                    outGroup.Get().meshletCount = group.
-                    meshletCount;
-                    outGroup.Get().meshletBuffer = mesh.
-                    meshletBuffer;
+                    outGroup.Get().instanceIndex = rec.instanceIndex;
+                    outGroup.Get().meshletStartIndex = group.meshletStartIndex;
+                    outGroup.Get().meshletCount = group.meshletCount;
+                    outGroup.Get().meshletBuffer = mesh.meshletBuffer;
                     outGroup.OutputComplete();
                 }
             }
@@ -202,8 +202,8 @@ compute "Internal/MeshletCullGraph"
         [NodeDispatchGrid(1, 1, 1)]
         [NumThreads(32, 1, 1)]
         void MeshletCullNode(
-        DispatchNodeInputRecord< MeshletGroupRecord> inputRecord,
-        uint3 dispatchThreadId : SV_DispatchThreadID)
+            DispatchNodeInputRecord< MeshletGroupRecord> inputRecord,
+            uint3 dispatchThreadId : SV_DispatchThreadID)
         {
             MeshletGroupRecord groupRec = inputRecord.Get();
 
@@ -211,6 +211,7 @@ compute "Internal/MeshletCullGraph"
 
             bool isValid = (dispatchThreadId.x < groupRec.meshletCount);
             MeshletCandidateRecord rec = (MeshletCandidateRecord) 0;
+
             rec.instanceIndex = groupRec.instanceIndex;
             rec.meshletIndex = meshletIndex;
             rec.meshletBufferIndex = groupRec.meshletBuffer;
@@ -220,15 +221,15 @@ compute "Internal/MeshletCullGraph"
             // index for this mesh, so the redundant load is well defined.
             uint safeMeshletIndex = isValid ? meshletIndex : groupRec.meshletStartIndex;
 
-            InstanceData instanceData = LoadData < InstanceData > (g_FrameData.sceneBuffer, rec.instanceIndex);
-            Meshlet meshlet = LoadData < Meshlet > (rec.meshletBufferIndex, safeMeshletIndex);
+            InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
+            Meshlet meshlet = LoadData<Meshlet>(rec.meshletBufferIndex, safeMeshletIndex);
 
             bool isVisible = false;
             uint renderType = 0;
             bool inFrustum = false;
             bool isOccluded = false;
 
-            InternalMeshletCullGraphShaderProperties props = LoadData < InternalMeshletCullGraphShaderProperties > (g_PushConstantData.userData0, 0);
+            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
 
             if (isValid)
             {
@@ -273,7 +274,7 @@ compute "Internal/MeshletCullGraph"
                 }
                 else
                 {
-                    BBoxFrustumResult cullResult = BBoxIntersectFrustum < false > (meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld);
+                    BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld);
                     inFrustum = cullResult.isVisible;
                     if (inFrustum)
                     {
@@ -285,7 +286,7 @@ compute "Internal/MeshletCullGraph"
                         {
                             if (props.cullPassIndex == 0)
                             {
-                                BBoxFrustumResult prevCullResult = BBoxIntersectFrustum < true > (meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld);
+                                BBoxFrustumResult prevCullResult = BBoxIntersectFrustum<true>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld);
                                 if (prevCullResult.isVisible && prevCullResult.clipValid)
                                 {
                                     isOccluded = !TestHZB(prevCullResult.clipMin, prevCullResult.clipMax, props);
@@ -303,7 +304,7 @@ compute "Internal/MeshletCullGraph"
             }
 
             // Wave compaction for Opaque vs Masked visible meshlets
-            bool isOpaque = isVisible && (renderType != 1);
+            bool isOpaque = isVisible && (renderType == 0);
             bool isMasked = isVisible && (renderType == 1);
 
             uint waveOpaqueCount = WaveActiveCountBits(isOpaque);

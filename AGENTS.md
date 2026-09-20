@@ -108,7 +108,7 @@ To run a specific test class, edit `Program.cs` to call `TestRunner.Run<YourTest
 
 ### EditorConfig (enforced — `src/.editorconfig`)
 
-- Max line length: **200**
+- Max line length: **400**
 - Opening braces always on a **new line** for all C# constructs
 - Single-line statements/blocks **preserved**
 - **No** primary constructors (`csharp_style_prefer_primary_constructors = false`)

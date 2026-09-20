@@ -25,7 +25,8 @@ internal static class Setup
 
     private static readonly GhostRenderPipelineSettings s_renderPipelineSettings = new GhostRenderPipelineSettings
     {
-        MaxVisibleMeshletsOnScreen = 2_097_152 * 1
+        MaxVisibleMeshletsOnScreen = 2_097_152 * 1,
+        MeshletLodErrorThreshold = 3.0f,
     };
 
     [RuntimeConfiguration]

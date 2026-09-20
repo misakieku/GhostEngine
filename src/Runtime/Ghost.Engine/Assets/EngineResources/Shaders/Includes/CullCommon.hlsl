@@ -87,6 +87,15 @@ static inline uint ComputeHomogeneousClipMask(float4 homogeneousPos)
     return mask;
 }
 
+static inline bool IsTriangleOutsideFrustum(float4 h0, float4 h1, float4 h2)
+{
+    uint cullBits =
+        ComputeHomogeneousClipMask(h0) &
+        ComputeHomogeneousClipMask(h1) &
+        ComputeHomogeneousClipMask(h2);
+    return cullBits != 0;
+}
+
 #define ACCUMULATE_CLIP_CORNER(P, minXY, maxXY, minZ, maxZ) \
 { \
     float rcpW = rcp((P).w); \
@@ -278,10 +287,7 @@ static inline FrustumTestResult FrustumCullAABB(float3 minPt, float3 maxPt, floa
     float minNear = (cClip.w - cClip.z) - rNear;
     bool intersectsNear = (minW <= CULL_EPSILON || minNear < 0.0f);
 
-    FrustumTestResult res;
-    res.isVisible = true;
-    res.intersectsNearPlane = intersectsNear;
-    return res;
+    return FrustumTestResult::Create(true, intersectsNear);
 }
 
 // Nanite's MipLevelForRect adapted for 2x2 footprint

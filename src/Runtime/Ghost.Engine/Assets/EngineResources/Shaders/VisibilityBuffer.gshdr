@@ -14,6 +14,7 @@ shader "Internal/VisibilityBuffer"
         includes
         {
             "EngineResources/Shaders/Includes/Properties.hlsl";
+            "EngineResources/Shaders/Includes/CullCommon.hlsl";
         }
 
         hlsl
@@ -21,12 +22,6 @@ shader "Internal/VisibilityBuffer"
             struct PrimitiveOutput
             {
                 uint primitiveID : SV_PrimitiveID;
-            };
-
-            struct VisibleMeshletEntry
-            {
-                uint instanceIndex;
-                uint meshletIndex;
             };
             
             struct PixelInput
@@ -52,48 +47,42 @@ shader "Internal/VisibilityBuffer"
                 StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[visibleBufferIndex];
                 VisibleMeshletEntry visible = visibleMeshlets[groupID];
 
-                InstanceData instanceData = LoadData<InstanceData>(g_PushConstantData.userData1, visible.instanceIndex);
+                InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
                 MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
                 Meshlet meshlet = LoadData<Meshlet>(meshData.meshletBuffer, visible.meshletIndex);
 
+                ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(meshData.meshletVerticesBuffer);
+                ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(meshData.meshletTrianglesBuffer);
+                ByteAddressBuffer vertices = GET_BUFFER(meshData.vertexBuffer);
+
+                uint vertexIndex = meshletVerticesBuffer.Load((meshlet.vertexOffset + groupThreadID) * 4);
+                uint vertexByteOffset = vertexIndex * 64 + 32;
+                float3 pos = asfloat(vertices.Load3(vertexByteOffset));
+
                 uint vertexCount = meshlet.packedCounts & 0xFFu;
                 uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
-                uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
 
                 SetMeshOutputCounts(vertexCount, triangleCount);
 
                 uint passBit = (g_PushConstantData.userData0 >> 31) & 1u;
+                uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
                 uint vbufferX = ((visible.instanceIndex + 1u) & 0x00FFFFFFu) | ((localMaterialIndex & 0xFFu) << 24);
                 uint vbufferYBase = (visible.meshletIndex & 0x00FFFFFFu) | (passBit << 31);
-
                 float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, instanceData.localToWorld);
-
-                ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(meshData.meshletVerticesBuffer);
-                ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(meshData.meshletTrianglesBuffer);
 
                 if (groupThreadID < vertexCount)
                 {
-                    uint vertexIndex = meshletVerticesBuffer.Load((meshlet.vertexOffset + groupThreadID) * 4);
-                    ByteAddressBuffer vertices = GET_BUFFER(meshData.vertexBuffer);
-
-                    // TODO: We only need the position data, maybe we can pack the position data into a separate buffer to reduce memory bandwidth usage.
-                    uint vertexByteOffset = vertexIndex * 64 + 32;
-                    float3 pos = asfloat(vertices.Load3(vertexByteOffset));
-
                     outVerts[groupThreadID].position = mul(worldViewProj, float4(pos, 1.0f));
                     outVerts[groupThreadID].packedVBufferX = vbufferX;
                     outVerts[groupThreadID].packedVBufferYBase = vbufferYBase;
                 }
 
-                if (groupThreadID < triangleCount)
+                [unroll(2)]
+                for (uint i = groupThreadID; i < triangleCount; i += MS_THREADS)
                 {
-                    [unroll(2)]
-                    for (uint i = groupThreadID; i < triangleCount; i += MS_THREADS)
-                    {
-                        uint packedIndices = meshletTrianglesBuffer.Load((meshlet.triangleOffset + i) * 4);
-                        outTris[i] = uint3(packedIndices & 0xFF, (packedIndices >> 8) & 0xFF, (packedIndices >> 16) & 0xFF);
-                        outPrims[i].primitiveID = i;
-                    }
+                    uint packedIndices = meshletTrianglesBuffer.Load((meshlet.triangleOffset + i) * 4);
+                    outTris[i] = uint3(packedIndices & 0xFF, (packedIndices >> 8) & 0xFF, (packedIndices >> 16) & 0xFF);
+                    outPrims[i].primitiveID = i;
                 }
             }
 

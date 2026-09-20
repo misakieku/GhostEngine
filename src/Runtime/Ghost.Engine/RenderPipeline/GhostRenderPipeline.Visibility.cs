@@ -84,7 +84,7 @@ internal partial class GhostRenderPipeline
                 renderCtx.TrySetActiveShaderPass(passData.visibilityShader, PassSemantic.Visibility))
             {
                 var visibleBufferIndex = renderCtx.GetActualBindlessIndex(passData.visibleMeshlets);
-                renderCtx.SetUserData(visibleBufferIndex | passBit, passData.sceneBuffer);
+                renderCtx.SetUserData(visibleBufferIndex | passBit);
                 renderCtx.ExecuteIndirect(s_dispatchMeshCommandSignature, 1, actualIndirectBuf, passData.opaqueArgsOffset);
             }
 
@@ -93,7 +93,7 @@ internal partial class GhostRenderPipeline
                 renderCtx.TrySetActiveShaderPass(passData.visibilityMaskedShader, PassSemantic.Visibility))
             {
                 var visibleMaskedIndex = renderCtx.GetActualBindlessIndex(passData.visibleMaskedMeshlets);
-                renderCtx.SetUserData(visibleMaskedIndex | passBit, passData.sceneBuffer);
+                renderCtx.SetUserData(visibleMaskedIndex | passBit);
                 renderCtx.ExecuteIndirect(s_dispatchMeshCommandSignature, 1, actualIndirectBuf, passData.maskedArgsOffset);
             }
         });

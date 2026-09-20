@@ -8,6 +8,12 @@ using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 namespace Ghost.Graphics.RenderGraphModule;
 
+public enum DataTarget
+{
+    Graphics,
+    Compute,
+}
+
 public interface IRenderGraphContext
 {
     ResourceManager ResourceManager { get; }
@@ -23,8 +29,9 @@ public interface IRenderGraphContext
     void GetActualBindlessIndices(Identifier<RGTexture> texture, ReadOnlySpan<uint> subResources, Span<uint> outIndices, BindlessAccess access = BindlessAccess.ShaderResource);
     uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource);
 
-    void SetUserData(uint instanceIndex, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue);
-    void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue) where TProperty : unmanaged;
+    void SetUserData(uint userData0, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue, DataTarget target = DataTarget.Graphics);
+    void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue, DataTarget target = DataTarget.Compute)
+        where TProperty : unmanaged;
 
     bool TrySetActiveShaderPass(Handle<Shader> shader, int passIndex, PipelineState? pipelineOverride = null);
     bool TrySetActiveShaderPass(Handle<Shader> shader, PassSemantic semantic, PipelineState? pipelineOverride = null);
@@ -219,39 +226,32 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
         }
     }
 
-    public void SetUserData(uint instanceIndex, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue)
+    public void SetUserData(uint userData0, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue, DataTarget target = DataTarget.Graphics)
     {
         var data = new PushConstantsData
         {
-            userData0 = instanceIndex,
+            userData0 = userData0,
             userData1 = userData1,
             userData2 = userData2,
             userData3 = userData3,
         };
 
-        _commandBuffer.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, data.AsUInts());
+        switch (target)
+        {
+            case DataTarget.Graphics:
+                _commandBuffer.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, data.AsUInts());
+                break;
+            case DataTarget.Compute:
+                _commandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, data.AsUInts());
+                break;
+        }
     }
 
-    public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue) where TProperty : unmanaged
+    public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue, DataTarget target = DataTarget.Compute)
+        where TProperty : unmanaged
     {
         var descriptor = _propertyAllocator.Allocate(in property);
-        var data = new PushConstantsData
-        {
-            userData0 = descriptor,
-            userData1 = userData1,
-            userData2 = userData2,
-            userData3 = userData3,
-        };
-
-        if (_commandBuffer.Type == CommandBufferType.Compute)
-        {
-            _commandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, data.AsUInts());
-        }
-        else
-        {
-            _commandBuffer.SetGraphicsRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, data.AsUInts());
-            _commandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, data.AsUInts());
-        }
+        SetUserData(descriptor, userData1, userData2, userData3, target);
     }
 
     public void* MapBuffer(Identifier<RGBuffer> buffer)

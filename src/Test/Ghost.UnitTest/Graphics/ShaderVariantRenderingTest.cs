@@ -67,7 +67,7 @@ public sealed class ShaderVariantRenderingTest
         public uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.AllSubresources) => uint.MaxValue;
         public void GetActualBindlessIndices(Identifier<RGTexture> texture, ReadOnlySpan<uint> subResources, Span<uint> outIndices, BindlessAccess access = BindlessAccess.ShaderResource) => outIndices.Fill(uint.MaxValue);
         public uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource) => uint.MaxValue;
-        public void SetUserData(uint instanceIndex, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue) { }
+        public void SetUserData(uint userData0, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue) { }
         public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue) where TProperty : unmanaged { }
 
         public void SetActiveCompute(Handle<ComputeShader> computeShader, int entryIndex)

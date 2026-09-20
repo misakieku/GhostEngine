@@ -64,8 +64,7 @@ shader "Internal/VisibilityBufferMasked"
                 StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[visibleBufferIndex];
                 VisibleMeshletEntry visible = visibleMeshlets[groupID.x];
 
-                FrameData frameData = g_FrameData;
-                InstanceData instanceData = LoadData<InstanceData>(frameData.sceneBuffer, visible.instanceIndex);
+                InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
                 MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
                 ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
@@ -80,7 +79,7 @@ shader "Internal/VisibilityBufferMasked"
                 ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(meshData.meshletVerticesBuffer);
                 ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(meshData.meshletTrianglesBuffer);
 
-                uint packedMaterial = LoadMaterialBindlessIndex(frameData.paletteOffsetBuffer, frameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
+                uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
                 uint cbufferIndex = packedMaterial & 0x00FFFFFFu;
 
                 if (groupThreadID.x < vertexCount)
