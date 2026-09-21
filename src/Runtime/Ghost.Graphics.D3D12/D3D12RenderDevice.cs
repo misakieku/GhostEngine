@@ -43,7 +43,6 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
     private readonly D3D12CommandQueue _graphicsQueue;
     private readonly D3D12CommandQueue _computeQueue;
     private readonly D3D12CommandQueue _copyQueue;
-    private readonly FeatureSupport _featureSupport;
     private readonly DeviceFetureSupport _deviceFeatureSupport;
 
     public ICommandQueue GraphicsQueue => _graphicsQueue;

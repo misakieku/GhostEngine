@@ -102,6 +102,16 @@ public sealed class ShaderVariantRenderingTest
         public void SetPushConstants(scoped in PushConstantsData pushConstants)
         {
         }
+
+        public void SetUserData(uint userData0, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue, DataTarget target = DataTarget.Graphics)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue, DataTarget target = DataTarget.Compute) where TProperty : unmanaged
+        {
+            throw new NotImplementedException();
+        }
     }
 
     [TestMethod]

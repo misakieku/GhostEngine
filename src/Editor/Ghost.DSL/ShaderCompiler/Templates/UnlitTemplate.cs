@@ -56,17 +56,16 @@ public sealed class UnlitTemplate : IShaderTemplate
             semantic = PassSemantic.Visibility,
             pipeline = new PipelineSemantic
             {
-                zTest = ZTest.LessEqual,
-                zWrite = ZWrite.On,
+                zTest = ZTest.Disabled,
+                zWrite = ZWrite.Off,
                 cull = Cull.Back,
                 blend = Blend.Opaque,
                 colorMask = ColorWriteMask.None
             },
             stages = new List<TemplateStage>
             {
-                new() { templateFile = "Unlit/Unlit_Visibility.template.hlsl", entryPoint = "ASMain", stage = ShaderStage.AmplificationShader },
-                new() { templateFile = "Unlit/Unlit_Visibility.template.hlsl", entryPoint = "MSMain", stage = ShaderStage.MeshShader },
-                new() { templateFile = "Unlit/Unlit_Visibility.template.hlsl", entryPoint = "PSMain", stage = ShaderStage.PixelShader },
+                new() { templateFile = "Common/Visibility.template.hlsl", entryPoint = "MSMain", stage = ShaderStage.MeshShader },
+                new() { templateFile = "Common/Visibility.template.hlsl", entryPoint = "PSMain", stage = ShaderStage.PixelShader },
             }
         },
         new TemplatePassDef
@@ -92,7 +91,8 @@ public sealed class UnlitTemplate : IShaderTemplate
 
     public IReadOnlyList<TemplatePassDef> Passes => s_passes;
 
-    public IReadOnlyList<string> Defines => Array.Empty<string>();
+    private static readonly string[] s_defines = new[] { "GHOST_TEMPLATE_UNLIT" };
+    public IReadOnlyList<string> Defines => s_defines;
 
     private static readonly TemplateOverridePoint[] s_overridePoints = new[]
     {

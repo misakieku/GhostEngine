@@ -7,7 +7,6 @@ compute "Internal/MeshletCullGraph"
         uint renderHeight;
         uint cullPassIndex;
         uint visibleMeshletsUav;
-        uint visibleMaskedMeshletsUav;
         uint occludedMeshletsUav;
         uint counterBufferUav;
         uint maxVisibleMeshlets;
@@ -17,12 +16,14 @@ compute "Internal/MeshletCullGraph"
         uint hzbTexture;
         uint hzbBaseWidth;
         uint hzbBaseHeight;
+        uint cullPassSemantic;
     }
 
     includes
     {
         "EngineResources/Shaders/Includes/Properties.hlsl";
         "EngineResources/Shaders/Includes/CullCommon.hlsl";
+        "EngineResources/Shaders/Includes/MaterialEncoding.hlsl";
     }
 
     hlsl
@@ -274,44 +275,51 @@ compute "Internal/MeshletCullGraph"
                 }
                 else
                 {
-                    BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld);
-                    inFrustum = cullResult.isVisible;
-                    if (inFrustum)
-                    {
-                        uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
-                        uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
-                        renderType = (packedMaterial >> 24) & 0xFFu;
+                    uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
+                    uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
+                    uint variantIndex = UnpackMaterialVariantIndex(packedMaterial);
 
-                        if (props.hzbMipCount > 0)
+                    if (g_FrameData.userBuffer != INVALID_BUFFER_INDEX)
+                    {
+                        ByteAddressBuffer metaBuf = GET_BUFFER(g_FrameData.userBuffer);
+                        uint supportedPasses = metaBuf.Load(variantIndex * 4);
+                        if ((supportedPasses & (1u << props.cullPassSemantic)) == 0)
                         {
-                            if (props.cullPassIndex == 0)
+                            isValid = false;
+                        }
+                    }
+
+                    if (isValid)
+                    {
+                        BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld);
+                        inFrustum = cullResult.isVisible;
+                        if (inFrustum)
+                        {
+                            if (props.hzbMipCount > 0)
                             {
-                                BBoxFrustumResult prevCullResult = BBoxIntersectFrustum<true>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld);
-                                if (prevCullResult.isVisible && prevCullResult.clipValid)
+                                if (props.cullPassIndex == 0)
                                 {
-                                    isOccluded = !TestHZB(prevCullResult.clipMin, prevCullResult.clipMax, props);
+                                    BBoxFrustumResult prevCullResult = BBoxIntersectFrustum<true>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld);
+                                    if (prevCullResult.isVisible && prevCullResult.clipValid)
+                                    {
+                                        isOccluded = !TestHZB(prevCullResult.clipMin, prevCullResult.clipMax, props);
+                                    }
+                                }
+                                else if (cullResult.clipValid)
+                                {
+                                    isOccluded = !TestHZB(cullResult.clipMin, cullResult.clipMax, props);
                                 }
                             }
-                            else if (cullResult.clipValid)
-                            {
-                                isOccluded = !TestHZB(cullResult.clipMin, cullResult.clipMax, props);
-                            }
-                        }
 
-                        isVisible = !isOccluded;
+                            isVisible = !isOccluded;
+                        }
                     }
                 }
             }
 
-            // Wave compaction for Opaque vs Masked visible meshlets
-            bool isOpaque = isVisible && (renderType == 0);
-            bool isMasked = isVisible && (renderType == 1);
-
-            uint waveOpaqueCount = WaveActiveCountBits(isOpaque);
-            uint localOpaqueOffset = WavePrefixCountBits(isOpaque);
-
-            uint waveMaskedCount = WaveActiveCountBits(isMasked);
-            uint localMaskedOffset = WavePrefixCountBits(isMasked);
+            // Wave compaction for visible meshlets
+            uint waveVisibleCount = WaveActiveCountBits(isVisible);
+            uint localVisibleOffset = WavePrefixCountBits(isVisible);
 
             // In Pass 1: queue occluded meshlets to be re-evaluated in Pass 2 against current HZB
             bool isOccludedCandidate = (props.cullPassIndex == 0) && isValid && inFrustum && isOccluded;
@@ -319,22 +327,14 @@ compute "Internal/MeshletCullGraph"
             uint localOccOffset = WavePrefixCountBits(isOccludedCandidate);
 
             RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBufferUav];
-            uint opaqueCounterOffset = (props.cullPassIndex == 0) ? 0 : 8;
-            uint maskedCounterOffset = (props.cullPassIndex == 0) ? 12 : 16;
+            uint visibleCounterOffset = (props.cullPassIndex == 0) ? 0 : 8;
 
-            uint waveOpaqueBase = 0;
-            if (WaveIsFirstLane() && waveOpaqueCount > 0)
+            uint waveVisibleBase = 0;
+            if (WaveIsFirstLane() && waveVisibleCount > 0)
             {
-                counterBuf.InterlockedAdd(opaqueCounterOffset, waveOpaqueCount, waveOpaqueBase);
+                counterBuf.InterlockedAdd(visibleCounterOffset, waveVisibleCount, waveVisibleBase);
             }
-            waveOpaqueBase = WaveReadLaneFirst(waveOpaqueBase);
-
-            uint waveMaskedBase = 0;
-            if (WaveIsFirstLane() && waveMaskedCount > 0)
-            {
-                counterBuf.InterlockedAdd(maskedCounterOffset, waveMaskedCount, waveMaskedBase);
-            }
-            waveMaskedBase = WaveReadLaneFirst(waveMaskedBase);
+            waveVisibleBase = WaveReadLaneFirst(waveVisibleBase);
 
             uint waveOccBase = 0;
             if (WaveIsFirstLane() && waveOccCount > 0)
@@ -361,9 +361,9 @@ compute "Internal/MeshletCullGraph"
                     counterBuf.InterlockedAdd(32, waveHzbCulled);
             }
 
-            if (isOpaque)
+            if (isVisible)
             {
-                uint slot = waveOpaqueBase + localOpaqueOffset;
+                uint slot = waveVisibleBase + localVisibleOffset;
                 if (slot < props.maxVisibleMeshlets)
                 {
                     RWStructuredBuffer<VisibleMeshletEntry> visibleBuffer = ResourceDescriptorHeap[props.visibleMeshletsUav];
@@ -371,18 +371,6 @@ compute "Internal/MeshletCullGraph"
                     entry.instanceIndex = rec.instanceIndex;
                     entry.meshletIndex = rec.meshletIndex;
                     visibleBuffer[slot] = entry;
-                }
-            }
-            else if (isMasked)
-            {
-                uint slot = waveMaskedBase + localMaskedOffset;
-                if (slot < props.maxVisibleMeshlets)
-                {
-                    RWStructuredBuffer<VisibleMeshletEntry> maskedBuffer = ResourceDescriptorHeap[props.visibleMaskedMeshletsUav];
-                    VisibleMeshletEntry entry;
-                    entry.instanceIndex = rec.instanceIndex;
-                    entry.meshletIndex = rec.meshletIndex;
-                    maskedBuffer[slot] = entry;
                 }
             }
 

@@ -1,0 +1,41 @@
+compute "Internal/ExportVisibilityDepth"
+{
+    properties
+    {
+        uint visBufferIndex;
+        uint depthTextureUav;
+        uint renderWidth;
+        uint renderHeight;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Includes/Properties.hlsl";
+        "EngineResources/Shaders/Includes/VisibilityBufferEncoding.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(16, 16, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            InternalExportVisibilityDepthShaderProperties props = LoadData<InternalExportVisibilityDepthShaderProperties>(g_PushConstantData.userData0, 0);
+
+            if (dispatchThreadId.x >= props.renderWidth || dispatchThreadId.y >= props.renderHeight)
+            {
+                return;
+            }
+
+            uint byteAddress = ComputePixelByteAddress(dispatchThreadId.xy, props.renderWidth);
+            ByteAddressBuffer visBuffer = ResourceDescriptorHeap[props.visBufferIndex];
+            uint64_t val = visBuffer.Load<uint64_t>(byteAddress);
+
+            float depth = asfloat((uint)(val >> VBUFFER_DEPTH_SHIFT));
+
+            RWTexture2D<float> depthTexture = ResourceDescriptorHeap[props.depthTextureUav];
+            depthTexture[dispatchThreadId.xy] = depth;
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

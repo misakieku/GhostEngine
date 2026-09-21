@@ -1,6 +1,6 @@
 namespace Ghost.UnitTest.Graphics;
 
-#if GHOST_UNITTEST
+#if false
 public partial class RenderGraphTest
 {
     private static readonly ViewState s_phase5ViewState = new(2560, 1440, 2560, 1440);

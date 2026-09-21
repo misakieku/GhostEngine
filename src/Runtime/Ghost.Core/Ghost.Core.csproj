@@ -28,4 +28,8 @@
     <PackageReference Include="TerraFX.Interop.Mimalloc" Version="1.6.7.2" />
     <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.26100.6" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System.Runtime.CompilerServices" />
+  </ItemGroup>
 </Project>

@@ -65,10 +65,19 @@ public struct Material : IResourceReleasable
         get; set;
     }
 
-    // For now, 0 means opaque, 1 means transparent, may be we need 2 means ui, etc. but higher values are reserved for user-defined render types.
-    public uint MaterialRenderType
+    /// <summary>
+    /// Dense runtime variant index in the shader variant registry.
+    /// </summary>
+    public uint VariantIndex
     {
         get; set;
+    }
+
+    [Obsolete("Use VariantIndex instead.")]
+    public uint MaterialRenderType
+    {
+        get => VariantIndex;
+        set => VariantIndex = value;
     }
 
     public Error SetShader(Handle<Shader> shaderId, ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
@@ -88,6 +97,7 @@ public struct Material : IResourceReleasable
         }
 
         ref var shader = ref r.Value;
+        VariantIndex = shader.VariantIndex;
         if (_passPipelineOverride.Count < shader.PassCount)
         {
             if (!_passPipelineOverride.IsCreated)

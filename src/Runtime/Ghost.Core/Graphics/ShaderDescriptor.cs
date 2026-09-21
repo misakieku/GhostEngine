@@ -122,6 +122,11 @@ public class GraphicsShaderDescriptor
     {
         get; init;
     }
+
+    public uint VariantIndex
+    {
+        get; init;
+    } = uint.MaxValue;
 }
 
 public class ComputeShaderDescriptor

@@ -6,7 +6,6 @@ compute "Internal/OccludedMeshletCull"
         uint renderWidth;
         uint renderHeight;
         uint visibleMeshletsUav;
-        uint visibleMaskedMeshletsUav;
         uint occludedMeshletsUav;
         uint counterBufferUav;
         uint maxVisibleMeshlets;
@@ -48,7 +47,6 @@ compute "Internal/OccludedMeshletCull"
             bool isValid = (slotIndex < occludedCount);
 
             bool isVisible = false;
-            uint renderType = 0;
             MeshletCandidateRecord rec = (MeshletCandidateRecord)0;
 
             if (isValid)
@@ -58,10 +56,6 @@ compute "Internal/OccludedMeshletCull"
 
                 InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
                 Meshlet meshlet = LoadData<Meshlet>(rec.meshletBufferIndex, rec.meshletIndex);
-
-                uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
-                uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instance.materialPaletteIndex, localMaterialIndex);
-                renderType = (packedMaterial >> 24) & 0xFFu;
 
                 BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld);
                 if (cullResult.isVisible)
@@ -77,32 +71,19 @@ compute "Internal/OccludedMeshletCull"
                 }
             }
 
-            bool isOpaque = isVisible && (renderType != 1);
-            bool isMasked = isVisible && (renderType == 1);
+            uint waveVisibleCount = WaveActiveCountBits(isVisible);
+            uint localVisibleOffset = WavePrefixCountBits(isVisible);
 
-            uint waveOpaqueCount = WaveActiveCountBits(isOpaque);
-            uint localOpaqueOffset = WavePrefixCountBits(isOpaque);
-
-            uint waveMaskedCount = WaveActiveCountBits(isMasked);
-            uint localMaskedOffset = WavePrefixCountBits(isMasked);
-
-            uint waveOpaqueBase = 0;
-            if (WaveIsFirstLane() && waveOpaqueCount > 0)
+            uint waveVisibleBase = 0;
+            if (WaveIsFirstLane() && waveVisibleCount > 0)
             {
-                counterBuf.InterlockedAdd(8, waveOpaqueCount, waveOpaqueBase);
+                counterBuf.InterlockedAdd(8, waveVisibleCount, waveVisibleBase);
             }
-            waveOpaqueBase = WaveReadLaneFirst(waveOpaqueBase);
+            waveVisibleBase = WaveReadLaneFirst(waveVisibleBase);
 
-            uint waveMaskedBase = 0;
-            if (WaveIsFirstLane() && waveMaskedCount > 0)
+            if (isVisible)
             {
-                counterBuf.InterlockedAdd(16, waveMaskedCount, waveMaskedBase);
-            }
-            waveMaskedBase = WaveReadLaneFirst(waveMaskedBase);
-
-            if (isOpaque)
-            {
-                uint slot = waveOpaqueBase + localOpaqueOffset;
+                uint slot = waveVisibleBase + localVisibleOffset;
                 if (slot < props.maxVisibleMeshlets)
                 {
                     RWStructuredBuffer<VisibleMeshletEntry> visibleBuffer = ResourceDescriptorHeap[props.visibleMeshletsUav];
@@ -110,18 +91,6 @@ compute "Internal/OccludedMeshletCull"
                     entry.instanceIndex = rec.instanceIndex;
                     entry.meshletIndex = rec.meshletIndex;
                     visibleBuffer[slot] = entry;
-                }
-            }
-            else if (isMasked)
-            {
-                uint slot = waveMaskedBase + localMaskedOffset;
-                if (slot < props.maxVisibleMeshlets)
-                {
-                    RWStructuredBuffer<VisibleMeshletEntry> maskedBuffer = ResourceDescriptorHeap[props.visibleMaskedMeshletsUav];
-                    VisibleMeshletEntry entry;
-                    entry.instanceIndex = rec.instanceIndex;
-                    entry.meshletIndex = rec.meshletIndex;
-                    maskedBuffer[slot] = entry;
                 }
             }
         }

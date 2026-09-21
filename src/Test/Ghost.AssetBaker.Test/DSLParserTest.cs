@@ -102,7 +102,10 @@ shader ""Custom/MyUnlit"" : ""Unlit""
 
         foreach (var pass in descriptor.Passes)
         {
-            Assert.IsTrue(pass.amplificationShaderCode.IsCreated, $"Pass {pass.name} missing AS");
+            if (pass.semantic != PassSemantic.Visibility)
+            {
+                Assert.IsTrue(pass.amplificationShaderCode.IsCreated, $"Pass {pass.name} missing AS");
+            }
             Assert.IsTrue(pass.meshShaderCode.IsCreated, $"Pass {pass.name} missing MS");
             Assert.IsTrue(pass.pixelShaderCode.IsCreated, $"Pass {pass.name} missing PS");
             StringAssert.Contains(pass.pixelShaderCode.code, "CustomMyUnlitShaderProperties");

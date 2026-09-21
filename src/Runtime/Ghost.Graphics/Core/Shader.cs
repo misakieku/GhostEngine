@@ -33,6 +33,7 @@ public unsafe partial struct Shader : IResourceReleasable
 {
     private readonly ulong _nameHash;
     private readonly uint _propertyBufferSize;
+    private readonly uint _variantIndex;
     private UnsafeArray<ShaderPass> _shaderPasses;
     private UnsafeHashMap<int, int> _passIDToLocal;
     private fixed sbyte _semanticPassMap[8];
@@ -40,11 +41,13 @@ public unsafe partial struct Shader : IResourceReleasable
     public readonly ulong UniqueID => _nameHash;
     public readonly int PassCount => _shaderPasses.Count;
     public readonly uint PropertyBufferSize => _propertyBufferSize;
+    public readonly uint VariantIndex => _variantIndex;
 
     internal Shader(GraphicsShaderDescriptor descriptor)
     {
         _nameHash = RHIUtility.GetShaderID(descriptor.Name);
         _propertyBufferSize = descriptor.PropertyBufferSize;
+        _variantIndex = descriptor.VariantIndex;
         _shaderPasses = new UnsafeArray<ShaderPass>(descriptor.Passes.Length, AllocationHandle.Persistent);
         _passIDToLocal = new UnsafeHashMap<int, int>(descriptor.Passes.Length, AllocationHandle.Persistent);
 

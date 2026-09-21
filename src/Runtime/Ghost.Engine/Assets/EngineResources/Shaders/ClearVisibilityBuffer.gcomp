@@ -1,0 +1,32 @@
+compute "Internal/ClearVisibilityBuffer"
+{
+    properties
+    {
+        uint visBufferIndex;
+        uint totalPixels;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Includes/Properties.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(64, 1, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            InternalClearVisibilityBufferShaderProperties props = LoadData<InternalClearVisibilityBufferShaderProperties>(g_PushConstantData.userData0, 0);
+
+            if (dispatchThreadId.x >= props.totalPixels)
+            {
+                return;
+            }
+
+            RWByteAddressBuffer visBuffer = ResourceDescriptorHeap[props.visBufferIndex];
+            visBuffer.Store2(dispatchThreadId.x * 8u, uint2(0, 0));
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

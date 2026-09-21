@@ -165,6 +165,12 @@ public static class TemplateStitcher
 
         var sb = new StringBuilder();
 
+        // Template-level defines (e.g. GHOST_TEMPLATE_LIT / GHOST_TEMPLATE_UNLIT).
+        foreach (var define in template.Defines)
+        {
+            sb.AppendLine($"#define {define} 1");
+        }
+
         // Injection-point override suppressors must precede all code.
         foreach (var define in CollectOverrideDefines(template, semantics.hlsl))
         {

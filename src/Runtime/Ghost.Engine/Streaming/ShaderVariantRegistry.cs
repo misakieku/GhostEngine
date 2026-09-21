@@ -132,7 +132,7 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
                     supportedPasses |= 1u << (int)semantic;
                 }
 
-                var descriptor = CreateDescriptor(entry);
+                var descriptor = CreateDescriptor(entry, (uint)variantIndex);
                 var shaderHandle = resourceManager.CreateShader(descriptor);
                 if (shaderHandle.IsInvalid)
                 {
@@ -338,7 +338,7 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
         return false;
     }
 
-    private static GraphicsShaderDescriptor CreateDescriptor(ShaderCatalogEntry entry)
+    private static GraphicsShaderDescriptor CreateDescriptor(ShaderCatalogEntry entry, uint variantIndex)
     {
         var passes = new PassDescriptor[entry.Passes.Length];
         for (var i = 0; i < passes.Length; i++)
@@ -360,6 +360,7 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
             PropertyBufferSize = entry.PropertyBufferSize,
             ShaderModel = entry.ShaderModel,
             Passes = passes,
+            VariantIndex = variantIndex,
         };
 
         for (var i = 0; i < passes.Length; i++)

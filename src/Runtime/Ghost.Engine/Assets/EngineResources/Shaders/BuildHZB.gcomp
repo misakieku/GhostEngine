@@ -2,7 +2,7 @@ compute "Internal/BuildHZB"
 {
     properties
     {
-        uint srcTexture;
+        uint srcBuffer;
         uint srcUavMip;
         uint dstUavMip0;
         uint dstUavMip1;
@@ -53,11 +53,18 @@ compute "Internal/BuildHZB"
             float p00, p10, p01, p11;
             if (properties.isFirstBatch != 0)
             {
-                Texture2D<float> srcTexture = GET_TEXTURE2D(properties.srcTexture);
-                p00 = srcTexture.Load(int3(srcCoord00, 0)).r;
-                p10 = srcTexture.Load(int3(srcCoord10, 0)).r;
-                p01 = srcTexture.Load(int3(srcCoord01, 0)).r;
-                p11 = srcTexture.Load(int3(srcCoord11, 0)).r;
+                ByteAddressBuffer visBuffer = ResourceDescriptorHeap[properties.srcBuffer];
+                uint renderWidth = properties.srcLimit.x + 1;
+
+                uint addr00 = (srcCoord00.y * renderWidth + srcCoord00.x) * 8u + 4u;
+                uint addr10 = (srcCoord10.y * renderWidth + srcCoord10.x) * 8u + 4u;
+                uint addr01 = (srcCoord01.y * renderWidth + srcCoord01.x) * 8u + 4u;
+                uint addr11 = (srcCoord11.y * renderWidth + srcCoord11.x) * 8u + 4u;
+
+                p00 = asfloat(visBuffer.Load(addr00));
+                p10 = asfloat(visBuffer.Load(addr10));
+                p01 = asfloat(visBuffer.Load(addr01));
+                p11 = asfloat(visBuffer.Load(addr11));
             }
             else
             {
@@ -182,11 +189,18 @@ compute "Internal/BuildHZB"
             float p00, p10, p01, p11;
             if (properties.isFirstBatch != 0)
             {
-                Texture2D<float> srcTexture = GET_TEXTURE2D(properties.srcTexture);
-                p00 = srcTexture.Load(int3(srcCoord00, 0)).r;
-                p10 = srcTexture.Load(int3(srcCoord10, 0)).r;
-                p01 = srcTexture.Load(int3(srcCoord01, 0)).r;
-                p11 = srcTexture.Load(int3(srcCoord11, 0)).r;
+                ByteAddressBuffer visBuffer = ResourceDescriptorHeap[properties.srcBuffer];
+                uint renderWidth = properties.srcLimit.x + 1;
+
+                uint addr00 = (srcCoord00.y * renderWidth + srcCoord00.x) * 8u + 4u;
+                uint addr10 = (srcCoord10.y * renderWidth + srcCoord10.x) * 8u + 4u;
+                uint addr01 = (srcCoord01.y * renderWidth + srcCoord01.x) * 8u + 4u;
+                uint addr11 = (srcCoord11.y * renderWidth + srcCoord11.x) * 8u + 4u;
+
+                p00 = asfloat(visBuffer.Load(addr00));
+                p10 = asfloat(visBuffer.Load(addr10));
+                p01 = asfloat(visBuffer.Load(addr01));
+                p11 = asfloat(visBuffer.Load(addr11));
             }
             else
             {

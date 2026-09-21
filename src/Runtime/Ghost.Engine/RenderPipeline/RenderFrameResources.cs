@@ -10,9 +10,9 @@ namespace Ghost.Engine.RenderPipeline;
 internal struct RenderFrameResources
 {
     /// <summary>
-    /// Visibility Buffer (64 bpp: R32G32_UInt, packing instanceID/meshletID + primitiveID).
+    /// Visibility Buffer (64-bit atomic raw ByteAddressBuffer, packing depth, instanceID, and primitiveID).
     /// </summary>
-    public Identifier<RGTexture> VisibilityBuffer;
+    public Identifier<RGBuffer> VisibilityBuffer;
 
     /// <summary>
     /// Scene Depth Buffer (D32_Float, reversed-Z where near=1.0, far=0.0).
@@ -86,13 +86,12 @@ internal struct RenderFrameResources
     {
         var depthClear = useReversedZ ? 0.0f : 1.0f;
 
-        var visBufferDesc = RGTextureDesc.Relative(
-            1.0f,
-            TextureFormat.R32G32_UInt,
-            clearColor: default,
-            clearAtFirstUse: true,
-            discardAtLastUse: true,
-            usage: TextureUsage.RenderTarget | TextureUsage.ShaderResource | TextureUsage.UnorderedAccess);
+        var visBufferDesc = new BufferDesc
+        {
+            Size = width * height * 8u,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        };
 
         var depthDesc = RGTextureDesc.RelativeDepth(
             1.0f,
@@ -171,7 +170,7 @@ internal struct RenderFrameResources
 
         return new RenderFrameResources
         {
-            VisibilityBuffer = builder.CreateTexture(in visBufferDesc, "VisibilityBuffer"),
+            VisibilityBuffer = builder.CreateBuffer(in visBufferDesc, "VisibilityBuffer"),
             DepthBuffer = externalDepth.IsValid ? externalDepth : builder.CreateTexture(in depthDesc, "SceneDepthBuffer"),
             HZBAtlas = builder.CreateTexture(in atlasDesc, "HZBAtlas"),
             HZBMipCount = mipCount,
