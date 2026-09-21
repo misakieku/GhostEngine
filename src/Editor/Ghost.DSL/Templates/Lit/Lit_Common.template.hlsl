@@ -71,7 +71,7 @@ static inline void GetSurfaceData(in MaterialContext ctx, inout Payload payload,
 #endif
 
 #ifndef GHOST_OVERRIDE_GET_ALPHA_COVERAGE
-static inline float GetAlphaCoverage(uint materialIndex, float2 uv, inout Payload payload)
+static inline float GetAlphaCoverage(in MaterialProperties props, float2 uv, inout Payload payload)
 {
     return 1.0f;
 }

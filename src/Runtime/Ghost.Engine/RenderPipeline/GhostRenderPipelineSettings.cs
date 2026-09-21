@@ -185,10 +185,10 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     public float MeshletLodErrorThreshold { get; set; } = 2.0f;
 
     /// <summary>
-    /// The threshold for instance culling. Default is 2.0f.
+    /// The screen percentage threshold for instance culling. Default is 2.0f.
     /// </summary>
     /// <remarks>
-    /// This value controls the threshold for culling instance based on their screen-percentage. A lower value results in more aggressive culling (fewer instance rendered), while a higher value results in less aggressive culling (more instance rendered). Adjust this value based on performance and visual quality requirements.
+    /// This value controls the threshold for culling instance based on their size in screen-percentage. A lower value results in more aggressive culling (fewer instance rendered), while a higher value results in less aggressive culling (more instance rendered). Adjust this value based on performance and visual quality requirements.
     /// </remarks>
     public float InstanceCullingThreshold { get; set; } = 2.0f;
 

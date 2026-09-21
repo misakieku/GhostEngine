@@ -213,7 +213,6 @@ public static class TemplateStitcher
         IReadOnlyDictionary<string, string> virtualShaders)
     {
         var overrideDefines = CollectOverrideDefines(template, semantics.hlsl);
-        var hasAlphaClip = template.OverridePoints.Any(d => d.IsAlphaClip && overrideDefines.Contains(d.Define));
 
         var passes = new PassDescriptor[template.Passes.Count];
 
@@ -222,10 +221,7 @@ public static class TemplateStitcher
             var passDef = template.Passes[i];
             var defines = new List<string>(template.Defines);
             defines.AddRange(overrideDefines);
-            if (hasAlphaClip)
-            {
-                defines.Add("GHOST_HAS_ALPHA_CLIP");
-            }
+            defines.Add($"GHOST_TEMPLATE_{template.Name.ToUpperInvariant()}");
 
             var pass = new PassDescriptor
             {

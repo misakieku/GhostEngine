@@ -25,11 +25,6 @@ $GHOST_PROPERTIES_STRUCT$
 
 $GHOST_PAYLOAD_STRUCT$
 
-static inline UnlitShaderProperties LoadUnlitProperties(uint materialBindlessIndex)
-{
-    return LoadData<UnlitShaderProperties>(materialBindlessIndex, 0);
-}
-
 $GHOST_USER_HLSL$
 
 // ============================================================
@@ -37,23 +32,16 @@ $GHOST_USER_HLSL$
 // ============================================================
 
 #ifndef GHOST_OVERRIDE_GET_ALPHA_COVERAGE
-static inline float GetAlphaCoverage(uint materialIndex, float2 uv, inout Payload payload)
+static inline float GetAlphaCoverage(in MaterialProperties props, float2 uv, inout Payload payload)
 {
     return 1.0f;
 }
 #endif
 
 #ifndef GHOST_OVERRIDE_GET_COLOR
-static inline float4 GetColor(uint materialIndex, float2 uv, inout Payload payload)
+static inline float4 GetColor(in MaterialProperties props, float2 uv, inout Payload payload)
 {
-    UnlitShaderProperties props = LoadUnlitProperties(materialIndex);
-
-    if (props.baseMap != 0)
-    {
-        return SAMPLE_TEXTURE2D(props.baseMap, props.sampler_baseMap, uv) * props.baseColor;
-    }
-
-    return props.baseColor;
+    return 1.0f;
 }
 #endif
 

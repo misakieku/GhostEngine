@@ -88,22 +88,25 @@ void PSMain(VisibilityPixelInput input, uint primitiveID : SV_PrimitiveID)
     uint byteAddress;
     uint64_t currentVal;
 
-    // 1. Speculative early-Z test (non-atomic read)
+    // Speculative early-Z test (non-atomic read)
     if (!VisibilitySpeculativeEarlyZ((uint2)input.position.xy, input.position.z, visBufferIndex, byteAddress, currentVal))
     {
         return;
     }
 
-    // 2. Dynamic alpha-clip hook
+    // Dynamic alpha-clip hook
     Payload payload = (Payload)0;
-#if defined(GHOST_OVERRIDE_GET_ALPHA_COVERAGE) || defined(GHOST_HAS_ALPHA_CLIP)
-    float coverage = GetAlphaCoverage(input.cbufferIndex, input.uv, payload);
-    if (coverage < 0.5f)
+    MaterialProperties props = LoadData<MaterialProperties>(input.cbufferIndex, 0);
+    
+    if (props.alphaClip)
     {
-        return;
+        float coverage = GetAlphaCoverage(props, input.uv, payload);
+        if (coverage < props.alphaClipThreshold)
+        {
+            discard;
+        }
     }
-#endif
 
-    // 3. 64-bit atomic max write
+    // 64-bit atomic max write
     VisibilityWritePixelAtomic(visBufferIndex, byteAddress, input.position.z, input.instanceIndex, primitiveID);
 }

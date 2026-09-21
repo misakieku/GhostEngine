@@ -67,7 +67,7 @@ compute "Internal/MeshletCullGraph"
         [NodeMaxDispatchGrid(65535, 1, 1)]
         [NumThreads(64, 1, 1)]
         void InstanceCullNode(
-        DispatchNodeInputRecord< WorkGraphDispatchGridRecord> inputRecord,
+            DispatchNodeInputRecord<WorkGraphDispatchGridRecord> inputRecord,
             uint3 dispatchThreadId : SV_DispatchThreadID,
             [NodeId("HierarchyTraverseNode")] [MaxRecords(64)] NodeOutput<HierarchyNodeRecord> hierarchyQueue)
         {
@@ -111,7 +111,7 @@ compute "Internal/MeshletCullGraph"
         [NodeLaunch("thread")]
         [NodeMaxRecursionDepth(16)]
         void HierarchyTraverseNode(
-            ThreadNodeInputRecord< HierarchyNodeRecord> inputRecord,
+            ThreadNodeInputRecord<HierarchyNodeRecord> inputRecord,
             [NodeId("HierarchyTraverseNode")] [MaxRecords(7)] NodeOutput<HierarchyNodeRecord> selfQueue,
             [NodeId("MeshletCullNode")]       [MaxRecords(1)] NodeOutput<MeshletGroupRecord> groupQueue)
         {
@@ -194,36 +194,55 @@ compute "Internal/MeshletCullGraph"
         }
 
         // Node 3: Fine cluster/meshlet culling with wave compaction (32x reduction in atomics).
-        // Consumes one MeshletGroupRecord per meshlet group. The baker caps a group at 32 meshlets, so a
-        // single 32-thread group covers it, and this node has no output ports - it writes results
-        // straight to UAVs. That makes it a leaf that never blocks on output space reservation, which is
-        // what previously forced producers and consumers to alternate.
+        // Coalesces multiple MeshletGroupRecords into 128-thread groups (4 warps / records).
+        // Each 32-lane wave independently processes one group of up to 32 meshlets, ensuring full
+        // wave convergence, uniform instance loads per wave, and eliminating the independent
+        // single-warp grid dispatch bottleneck that restricted active warps to 22-24 on hardware.
         [Shader("node")]
-        [NodeLaunch("broadcasting")]
-        [NodeDispatchGrid(1, 1, 1)]
-        [NumThreads(32, 1, 1)]
+        [NodeLaunch("coalescing")]
+        [NumThreads(128, 1, 1)]
+        [WaveSize(32)]
         void MeshletCullNode(
-            DispatchNodeInputRecord< MeshletGroupRecord> inputRecord,
-            uint3 dispatchThreadId : SV_DispatchThreadID)
+            [MaxRecords(4)] GroupNodeInputRecords<MeshletGroupRecord> inputRecords,
+            uint groupThreadId : SV_GroupThreadID)
         {
-            MeshletGroupRecord groupRec = inputRecord.Get();
+            uint recordIndex = groupThreadId / 32;
+            uint laneIndex = groupThreadId % 32;
 
-            uint meshletIndex = groupRec.meshletStartIndex + dispatchThreadId.x;
+            if (recordIndex >= inputRecords.Count())
+            {
+                return;
+            }
 
-            bool isValid = (dispatchThreadId.x < groupRec.meshletCount);
+            MeshletGroupRecord groupRec = inputRecords.Get(recordIndex);
+
+            uint meshletIndex = groupRec.meshletStartIndex + laneIndex;
+
+            bool isValid = (laneIndex < groupRec.meshletCount);
             MeshletCandidateRecord rec = (MeshletCandidateRecord) 0;
 
             rec.instanceIndex = groupRec.instanceIndex;
             rec.meshletIndex = meshletIndex;
             rec.meshletBufferIndex = groupRec.meshletBuffer;
 
-            // Keeping the loads below group-uniform costs one redundant load for inactive lanes; the
+            // Keeping the loads below wave-uniform costs one redundant load for inactive lanes; the
             // results are discarded by the isValid guards. meshletIndex is always an in-range meshlet
             // index for this mesh, so the redundant load is well defined.
             uint safeMeshletIndex = isValid ? meshletIndex : groupRec.meshletStartIndex;
 
             InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
             Meshlet meshlet = LoadData<Meshlet>(rec.meshletBufferIndex, safeMeshletIndex);
+
+            float maxScale = 1.0f;
+            if (WaveIsFirstLane())
+            {
+                float3 scale3 = float3(
+                    length(instanceData.localToWorld._m00_m10_m20),
+                    length(instanceData.localToWorld._m01_m11_m21),
+                    length(instanceData.localToWorld._m02_m12_m22));
+                maxScale = max(scale3.x, max(scale3.y, scale3.z));
+            }
+            maxScale = WaveReadLaneFirst(maxScale);
 
             bool isVisible = false;
             uint renderType = 0;
@@ -234,12 +253,6 @@ compute "Internal/MeshletCullGraph"
 
             if (isValid)
             {
-                float3 scale3 = float3(
-                    length(instanceData.localToWorld._m00_m10_m20),
-                    length(instanceData.localToWorld._m01_m11_m21),
-                    length(instanceData.localToWorld._m02_m12_m22));
-                float maxScale = max(scale3.x, max(scale3.y, scale3.z));
-
                 float3 meshletWorldCenter = mul(instanceData.localToWorld, float4(meshlet.boundingSphere.xyz, 1.0f)).xyz;
                 float meshletWorldRadius = meshlet.boundingSphere.w * maxScale;
 
@@ -343,24 +356,6 @@ compute "Internal/MeshletCullGraph"
             }
             waveOccBase = WaveReadLaneFirst(waveOccBase);
 
-            // Telemetry counters
-            bool frustumCulled = isValid && !inFrustum;
-            bool hzbCulled = isValid && inFrustum && isOccluded;
-
-            uint waveTotal = WaveActiveCountBits(isValid);
-            uint waveFrustumCulled = WaveActiveCountBits(frustumCulled);
-            uint waveHzbCulled = WaveActiveCountBits(hzbCulled);
-
-            if (WaveIsFirstLane())
-            {
-                if (waveTotal > 0)
-                    counterBuf.InterlockedAdd(20, waveTotal);
-                if (waveFrustumCulled > 0)
-                    counterBuf.InterlockedAdd(24, waveFrustumCulled);
-                if (waveHzbCulled > 0)
-                    counterBuf.InterlockedAdd(32, waveHzbCulled);
-            }
-
             if (isVisible)
             {
                 uint slot = waveVisibleBase + localVisibleOffset;
@@ -382,6 +377,24 @@ compute "Internal/MeshletCullGraph"
                     RWStructuredBuffer<MeshletCandidateRecord> occludedBuf = ResourceDescriptorHeap[props.occludedMeshletsUav];
                     occludedBuf[slot] = rec;
                 }
+            }
+
+            // Telemetry counters
+            bool frustumCulled = isValid && !inFrustum;
+            bool hzbCulled = isValid && inFrustum && isOccluded;
+
+            uint waveTotal = WaveActiveCountBits(isValid);
+            uint waveFrustumCulled = WaveActiveCountBits(frustumCulled);
+            uint waveHzbCulled = WaveActiveCountBits(hzbCulled);
+
+            if (WaveIsFirstLane())
+            {
+                if (waveTotal > 0)
+                    counterBuf.InterlockedAdd(20, waveTotal);
+                if (waveFrustumCulled > 0)
+                    counterBuf.InterlockedAdd(24, waveFrustumCulled);
+                if (waveHzbCulled > 0)
+                    counterBuf.InterlockedAdd(32, waveHzbCulled);
             }
         }
     }

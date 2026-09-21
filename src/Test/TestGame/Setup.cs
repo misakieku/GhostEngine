@@ -26,7 +26,7 @@ internal static class Setup
     private static readonly GhostRenderPipelineSettings s_renderPipelineSettings = new GhostRenderPipelineSettings
     {
         MaxVisibleMeshletsOnScreen = 2_097_152 * 1,
-        MeshletLodErrorThreshold = 3.0f,
+        MeshletLodErrorThreshold = 1.0f,
     };
 
     [RuntimeConfiguration]
@@ -114,7 +114,7 @@ internal static class Setup
             updateRotation = true
         });
 
-        s_meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/dragon");
+        s_meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/bunny");
         s_shaderAsset = engineCore.AssetManager.ResolveAsset("Shaders/test");
 
         var meshHandle = default(Handle<Mesh>);

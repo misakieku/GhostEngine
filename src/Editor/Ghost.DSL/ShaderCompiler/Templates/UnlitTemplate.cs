@@ -22,34 +22,14 @@ public sealed class UnlitTemplate : IShaderTemplate
 
     private static readonly TemplatePropertyDef[] s_baseProperties = new[]
     {
-        new TemplatePropertyDef("float4", "baseColor", "float4(1, 1, 1, 1)"),
-        new TemplatePropertyDef("uint", "baseMap", "0"),
-        new TemplatePropertyDef("uint", "sampler_baseMap", "0"),
+        new TemplatePropertyDef("bool", "alphaClip", "false"),
+        new TemplatePropertyDef("float", "alphaClipThreshold", "0.5"),
     };
 
     public IReadOnlyList<TemplatePropertyDef> BaseProperties => s_baseProperties;
 
     private static readonly List<TemplatePassDef> s_passes = new()
     {
-        new TemplatePassDef
-        {
-            name = "Forward",
-            semantic = PassSemantic.Forward,
-            pipeline = new PipelineSemantic
-            {
-                zTest = ZTest.LessEqual,
-                zWrite = ZWrite.On,
-                cull = Cull.Back,
-                blend = Blend.Opaque,
-                colorMask = ColorWriteMask.All
-            },
-            stages = new List<TemplateStage>
-            {
-                new() { templateFile = "Unlit/Unlit_Forward.template.hlsl", entryPoint = "ASMain", stage = ShaderStage.AmplificationShader },
-                new() { templateFile = "Unlit/Unlit_Forward.template.hlsl", entryPoint = "MSMain", stage = ShaderStage.MeshShader },
-                new() { templateFile = "Unlit/Unlit_Forward.template.hlsl", entryPoint = "PSMain", stage = ShaderStage.PixelShader },
-            }
-        },
         new TemplatePassDef
         {
             name = "Visibility",
@@ -67,31 +47,12 @@ public sealed class UnlitTemplate : IShaderTemplate
                 new() { templateFile = "Common/Visibility.template.hlsl", entryPoint = "MSMain", stage = ShaderStage.MeshShader },
                 new() { templateFile = "Common/Visibility.template.hlsl", entryPoint = "PSMain", stage = ShaderStage.PixelShader },
             }
-        },
-        new TemplatePassDef
-        {
-            name = "Shadow",
-            semantic = PassSemantic.Shadow,
-            pipeline = new PipelineSemantic
-            {
-                zTest = ZTest.LessEqual,
-                zWrite = ZWrite.On,
-                cull = Cull.Back,
-                blend = Blend.Opaque,
-                colorMask = ColorWriteMask.None
-            },
-            stages = new List<TemplateStage>
-            {
-                new() { templateFile = "Unlit/Unlit_Shadow.template.hlsl", entryPoint = "ASMain", stage = ShaderStage.AmplificationShader },
-                new() { templateFile = "Unlit/Unlit_Shadow.template.hlsl", entryPoint = "MSMain", stage = ShaderStage.MeshShader },
-                new() { templateFile = "Unlit/Unlit_Shadow.template.hlsl", entryPoint = "PSMain", stage = ShaderStage.PixelShader },
-            }
-        },
+        }
     };
 
     public IReadOnlyList<TemplatePassDef> Passes => s_passes;
 
-    private static readonly string[] s_defines = new[] { "GHOST_TEMPLATE_UNLIT" };
+    private static readonly string[] s_defines = Array.Empty<string>();
     public IReadOnlyList<string> Defines => s_defines;
 
     private static readonly TemplateOverridePoint[] s_overridePoints = new[]

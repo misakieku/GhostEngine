@@ -7,10 +7,9 @@ shader "MyShader/Standard" : "Unlit"
 
     hlsl
     {
-        float4 GetColor(uint materialIndex, float2 uv, inout Payload payload)
+        float4 GetColor(in MaterialProperties props, float2 uv, inout Payload payload)
         {
-            UnlitShaderProperties props = LoadUnlitProperties(materialIndex);
-            return props.baseColor;
+            return 0.5f;
         }
     }
 }
