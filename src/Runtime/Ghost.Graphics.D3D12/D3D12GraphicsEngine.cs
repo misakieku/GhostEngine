@@ -1,7 +1,3 @@
-#if DEBUG
-#define ENABLE_DEBUG_LAYER
-#endif
-
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
@@ -12,9 +8,9 @@ namespace Ghost.Graphics.D3D12;
 public static class D3D12GraphicsEngineFactory
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IGraphicsEngine Create(GraphicsEngineDesc desc)
+    public static IGraphicsEngine Create(GraphicsEngineDesc desc, bool enableDebugLayer = false)
     {
-        return new D3D12GraphicsEngine(desc);
+        return new D3D12GraphicsEngine(desc, enableDebugLayer);
     }
 }
 
@@ -34,9 +30,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 
     private readonly GraphicsEngineDesc _desc;
 
-#if ENABLE_DEBUG_LAYER
-    private readonly D3D12DebugLayer _debugLayer;
-#endif
+    private readonly D3D12DebugLayer? _debugLayer;
     private readonly D3D12RenderDevice _device;
     private readonly D3D12DescriptorAllocator _descriptorAllocator;
     private readonly D3D12ResourceDatabase _resourceDatabase;
@@ -54,13 +48,11 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
     public IResourceAllocator ResourceAllocator => _resourceAllocator;
 
-    public D3D12GraphicsEngine(GraphicsEngineDesc desc)
+    public D3D12GraphicsEngine(GraphicsEngineDesc desc, bool enableDebugLayer = false)
     {
         _desc = desc;
 
-#if ENABLE_DEBUG_LAYER
-        _debugLayer = new D3D12DebugLayer();
-#endif
+        _debugLayer = enableDebugLayer ? new D3D12DebugLayer() : null;
         _device = new D3D12RenderDevice();
         _descriptorAllocator = new D3D12DescriptorAllocator(_device);
 
@@ -200,9 +192,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
 
         _descriptorAllocator.Dispose();
         _device.Dispose();
-#if ENABLE_DEBUG_LAYER
-        _debugLayer.Dispose();
-#endif
+        _debugLayer?.Dispose();
 
         _disposed = true;
         GC.SuppressFinalize(this);

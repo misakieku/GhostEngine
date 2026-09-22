@@ -13,7 +13,6 @@ using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 using SDL;
-using TestGame.Systems;
 
 namespace TestGame;
 
@@ -22,6 +21,7 @@ internal static class Setup
     private static World s_world = null!;
     private static IAssetEntry s_meshAsset = null!;
     private static IAssetEntry s_shaderAsset = null!;
+    private static Entity s_camera;
 
     private static readonly GhostRenderPipelineSettings s_renderPipelineSettings = new GhostRenderPipelineSettings
     {
@@ -32,6 +32,7 @@ internal static class Setup
     [RuntimeConfiguration]
     public static EngineDesc InitEngineDesc()
     {
+#pragma warning disable CA1416 // Validate platform compatibility
         return new EngineDesc
         {
             AllocationManagerDesc = AllocationManagerDesc.Default,
@@ -45,13 +46,20 @@ internal static class Setup
             RenderDescFactory = static () => new EngineDesc.Render
             {
                 FrameBufferCount = 2,
-                GraphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 }),
+                GraphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 },
+#if DEBUG
+                true
+#else
+                false
+#endif
+                ),
                 RenderPipelineSettings = s_renderPipelineSettings,
                 ShaderCacheDirectory = "ShaderCache",
                 ShaderCompilationBridge = null
             },
             ContentProviderFactory = static () => new RuntimeContentProvider("Assets/manifest.json")
         };
+#pragma warning restore CA1416 // Validate platform compatibility
     }
 
     private static float RandomFloat(float min, float max)
@@ -70,10 +78,16 @@ internal static class Setup
                 switch (e.key.key)
                 {
                     case SDL_Keycode.SDLK_F1:
-                        s_renderPipelineSettings.DebugMode = RenderPipelineDebugMode.None;
+                        s_world.EntityManager.SetComponent(s_camera, new LocalToWorld
+                        {
+                            matrix = float4x4.TRS(new float3(0.0f, 0.0f, -30.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
+                        });
                         break;
                     case SDL_Keycode.SDLK_F2:
-                        s_renderPipelineSettings.DebugMode = RenderPipelineDebugMode.Meshlet;
+                        s_world.EntityManager.SetComponent(s_camera, new LocalToWorld
+                        {
+                            matrix = float4x4.TRS(new float3(0.0f, 0.0f, -10.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
+                        });
                         break;
                 }
             }
@@ -81,15 +95,15 @@ internal static class Setup
 
         const int entityCapacity = 10000;
         const float size = 10.0f;
-        const float baseScale = 1.0f;
+        const float baseScale = 0.5f;
 
         s_world = World.Create(engineCore.JobScheduler, entityCapacity);
 
         using var scope = AllocationManager.CreateStackScope();
         using var camSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<Camera>.Value, ComponentTypeID<LocalToWorld>.Value, ComponentTypeID<MoveDst>.Value);
-        var cameraEntity = s_world.EntityManager.CreateEntity(camSet);
+        s_camera = s_world.EntityManager.CreateEntity(camSet);
 
-        s_world.EntityManager.SetComponent(cameraEntity, new Camera
+        s_world.EntityManager.SetComponent(s_camera, new Camera
         {
             swapChainIndex = 0,
             depthTarget = Handle<GPUTexture>.Invalid,
@@ -101,12 +115,12 @@ internal static class Setup
             renderingLayerMask = RenderingLayerMask.All,
         });
 
-        s_world.EntityManager.SetComponent(cameraEntity, new LocalToWorld
+        s_world.EntityManager.SetComponent(s_camera, new LocalToWorld
         {
-            matrix = float4x4.TRS(new float3(0.0f, 0.0f, -20.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
+            matrix = float4x4.TRS(new float3(0.0f, 0.0f, -10.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
         });
 
-        s_world.EntityManager.SetComponent(cameraEntity, new MoveDst
+        s_world.EntityManager.SetComponent(s_camera, new MoveDst
         {
             position = new float3(0.0f, 0.0f, -20.0f),
             lookAt = float3.zero,
@@ -114,7 +128,7 @@ internal static class Setup
             updateRotation = true
         });
 
-        s_meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/bunny");
+        s_meshAsset = engineCore.AssetManager.ResolveAsset("Meshes/dragon");
         s_shaderAsset = engineCore.AssetManager.ResolveAsset("Shaders/test");
 
         var meshHandle = default(Handle<Mesh>);
@@ -153,11 +167,11 @@ internal static class Setup
             });
         }
 
-        var defaultSystemGroup = new DefaultSystemGroup();
-        defaultSystemGroup.AddSystem<RandomMoveSystem>();
-        defaultSystemGroup.SortSystems();
-
-        s_world.SystemManager.AddSystem(defaultSystemGroup);
+        //var defaultSystemGroup = new DefaultSystemGroup();
+        //defaultSystemGroup.AddSystem<RandomMoveSystem>();
+        //defaultSystemGroup.SortSystems();
+        //
+        //s_world.SystemManager.AddSystem(defaultSystemGroup);
         s_world.SystemManager.AddSystem<RenderSystemGroup>();
 
         s_world.AddService(engineCore.RenderEngine);

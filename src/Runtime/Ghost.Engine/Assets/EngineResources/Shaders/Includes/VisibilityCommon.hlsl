@@ -12,9 +12,9 @@ struct VisibilityPixelInput
 {
     float4 position : SV_POSITION;
     float2 uv : TEXCOORD0;
-    nointerpolation uint instanceIndex : INSTANCE_ID;
+    nointerpolation uint visibleMeshletIndex : INSTANCE_ID;
     nointerpolation uint localMaterialIndex : MATERIAL_ID;
-    nointerpolation uint cbufferIndex : CBUFFER_ID;
+    nointerpolation uint materialBufferIndex : CBUFFER_ID;
     nointerpolation uint variantIndex : VARIANT_ID;
 };
 
@@ -49,11 +49,11 @@ static inline void VisibilityWritePixelAtomic(
     uint visBufferIndex,
     uint byteAddress,
     float depth,
-    uint instanceIndex,
+    uint visibleMeshletIndex,
     uint primitiveID)
 {
     RWByteAddressBuffer visBuffer = ResourceDescriptorHeap[visBufferIndex];
-    uint64_t newPacked = PackVisibility64(depth, instanceIndex, primitiveID);
+    uint64_t newPacked = PackVisibility64(depth, visibleMeshletIndex, primitiveID);
     visBuffer.InterlockedMax64(byteAddress, newPacked);
 }
 

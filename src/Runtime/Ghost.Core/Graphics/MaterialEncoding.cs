@@ -15,16 +15,16 @@ public static class MaterialEncoding
     /// Packs a bindless constant buffer index (24 bits) and a shader variant index (8 bits).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint Encode(uint cbufferIndex, uint variantIndex)
+    public static uint Encode(uint materialBufferIndex, uint variantIndex)
     {
-        return (cbufferIndex & CBUFFER_INDEX_MASK) | ((variantIndex & VARIANT_INDEX_MASK) << VARIANT_INDEX_SHIFT);
+        return (materialBufferIndex & CBUFFER_INDEX_MASK) | ((variantIndex & VARIANT_INDEX_MASK) << VARIANT_INDEX_SHIFT);
     }
 
     /// <summary>
     /// Extracts the bindless constant buffer index from the packed material entry.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint GetCBufferIndex(uint packedMaterial) => packedMaterial & CBUFFER_INDEX_MASK;
+    public static uint GetMaterialBufferIndex(uint packedMaterial) => packedMaterial & CBUFFER_INDEX_MASK;
 
     /// <summary>
     /// Extracts the dense shader variant index from the packed material entry.

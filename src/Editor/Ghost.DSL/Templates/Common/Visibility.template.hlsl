@@ -50,7 +50,7 @@ void MSMain(
         instanceData.materialPaletteIndex,
         localMaterialIndex);
 
-    uint cbufferIndex = UnpackMaterialCBufferIndex(packedMaterial);
+    uint materialBufferIndex = UnpackMaterialMaterialBufferIndex(packedMaterial);
     uint variantIndex = UnpackMaterialVariantIndex(packedMaterial);
 
     uint targetVariantIndex = g_PushConstantData.userData2;
@@ -67,9 +67,9 @@ void MSMain(
 
         outVerts[groupThreadID].position = mul(worldViewProj, float4(v.position, 1.0f));
         outVerts[groupThreadID].uv = v.uv;
-        outVerts[groupThreadID].instanceIndex = visible.instanceIndex;
+        outVerts[groupThreadID].visibleMeshletIndex = groupID;
         outVerts[groupThreadID].localMaterialIndex = localMaterialIndex;
-        outVerts[groupThreadID].cbufferIndex = cbufferIndex;
+        outVerts[groupThreadID].materialBufferIndex = materialBufferIndex;
         outVerts[groupThreadID].variantIndex = variantIndex;
     }
 
@@ -96,7 +96,7 @@ void PSMain(VisibilityPixelInput input, uint primitiveID : SV_PrimitiveID)
 
     // Dynamic alpha-clip hook
     Payload payload = (Payload)0;
-    MaterialProperties props = LoadData<MaterialProperties>(input.cbufferIndex, 0);
+    MaterialProperties props = LoadData<MaterialProperties>(input.materialBufferIndex, 0);
     
     if (props.alphaClip)
     {
@@ -108,5 +108,5 @@ void PSMain(VisibilityPixelInput input, uint primitiveID : SV_PrimitiveID)
     }
 
     // 64-bit atomic max write
-    VisibilityWritePixelAtomic(visBufferIndex, byteAddress, input.position.z, input.instanceIndex, primitiveID);
+    VisibilityWritePixelAtomic(visBufferIndex, byteAddress, input.position.z, input.visibleMeshletIndex, primitiveID);
 }

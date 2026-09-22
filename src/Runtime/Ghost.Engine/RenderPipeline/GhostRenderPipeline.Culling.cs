@@ -280,7 +280,7 @@ internal partial class GhostRenderPipeline
             programIdentifier = cullProgram.ProgramIdentifier,
             backingMemoryAddress = cullProgram.BackingMemoryAddress,
             backingMemorySize = cullProgram.BackingMemorySize,
-            flags = SetWorkGraphFlags.Initialize, // flags,
+            flags = flags,
             cullPassSemantic = (uint)PassSemantic.Visibility
         };
 
