@@ -14,7 +14,7 @@ namespace Ghost.Engine.RenderPipeline;
 internal partial class GhostRenderPipeline
 {
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Includes/Generated/GhostRenderPipeline.hlsl")]
+    [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl")]
     private struct UpdateInstanceData
     {
         public float4x4 localToWorld;
@@ -29,7 +29,7 @@ internal partial class GhostRenderPipeline
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Includes/Generated/GhostRenderPipeline.hlsl")]
+    [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl")]
     private struct RemoveInstanceData
     {
         public uint instanceID;

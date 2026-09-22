@@ -18,8 +18,8 @@ compute "Internal/BuildHZB"
 
     includes
     {
-        "EngineResources/Shaders/Includes/Properties.hlsl";
-        "EngineResources/Shaders/Includes/VisibilityBufferEncoding.hlsl";
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/VisibilityBufferEncoding.hlsl";
     }
 
     hlsl

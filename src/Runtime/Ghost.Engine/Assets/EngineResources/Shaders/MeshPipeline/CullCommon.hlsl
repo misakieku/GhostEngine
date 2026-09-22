@@ -1,7 +1,7 @@
 #ifndef GHOST_CULL_COMMON_HLSL
 #define GHOST_CULL_COMMON_HLSL
 
-#include "Common.hlsl"
+#include "EngineResources/Shaders/Common.hlsl"
 
 struct FrustumTestResult
 {

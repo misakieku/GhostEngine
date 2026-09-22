@@ -18,13 +18,13 @@ internal partial class GhostRenderPipeline
 
     private partial class ClassificationResource : IPipelineResource
     {
-        [ResolveAsset("EngineResources/Shaders/TileMaterialClassification")]
+        [ResolveAsset("EngineResources/Shaders/MaterialPipeline/TileMaterialClassification")]
         public Handle<ComputeShader> tileMaterialClassificationShader;
 
-        [ResolveAsset("EngineResources/Shaders/ClearClassificationCounters")]
+        [ResolveAsset("EngineResources/Shaders/MaterialPipeline/ClearClassificationCounters")]
         public Handle<ComputeShader> clearClassificationCountersShader;
 
-        [ResolveAsset("EngineResources/Shaders/PrepareDeferredTexturingIndirectArgs")]
+        [ResolveAsset("EngineResources/Shaders/MaterialPipeline/PrepareDeferredTexturingIndirectArgs")]
         public Handle<ComputeShader> prepareDeferredTexturingIndirectArgsShader;
 
         [ResolveAsset("EngineResources/Shaders/DebugClassification")]

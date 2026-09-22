@@ -1,10 +1,10 @@
 #ifndef GHOST_VISIBILITY_COMMON_HLSL
 #define GHOST_VISIBILITY_COMMON_HLSL
 
-#include "Properties.hlsl"
-#include "CullCommon.hlsl"
-#include "MaterialEncoding.hlsl"
-#include "VisibilityBufferEncoding.hlsl"
+#include "EngineResources/Shaders/Properties.hlsl"
+#include "EngineResources/Shaders/MeshPipeline/CullCommon.hlsl"
+#include "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl"
+#include "EngineResources/Shaders/MaterialPipeline/VisibilityBufferEncoding.hlsl"
 
 #define VISIBILITY_MS_THREADS 64
 

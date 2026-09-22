@@ -19,8 +19,8 @@ shader "Hidden/Blit"
 
         includes
         {
-            "EngineResources/Shaders/Includes/Common.hlsl";
-            "EngineResources/Shaders/Includes/Properties.hlsl";
+            "EngineResources/Shaders/Common.hlsl";
+            "EngineResources/Shaders/Properties.hlsl";
         }
 
         hlsl

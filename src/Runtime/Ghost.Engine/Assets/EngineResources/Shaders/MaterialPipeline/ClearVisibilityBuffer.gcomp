@@ -8,7 +8,7 @@ compute "Internal/ClearVisibilityBuffer"
 
     includes
     {
-        "EngineResources/Shaders/Includes/Properties.hlsl";
+        "EngineResources/Shaders/Properties.hlsl";
     }
 
     hlsl

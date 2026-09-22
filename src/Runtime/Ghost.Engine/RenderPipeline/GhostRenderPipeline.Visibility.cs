@@ -14,10 +14,10 @@ internal partial class GhostRenderPipeline
 {
     private partial class VisibilityResource : IPipelineResource
     {
-        [ResolveAsset("EngineResources/Shaders/ExportVisibilityDepth")]
+        [ResolveAsset("EngineResources/Shaders/MaterialPipeline/ExportVisibilityDepth")]
         public Handle<ComputeShader> exportVisibilityDepthShader;
 
-        [ResolveAsset("EngineResources/Shaders/ClearVisibilityBuffer")]
+        [ResolveAsset("EngineResources/Shaders/MaterialPipeline/ClearVisibilityBuffer")]
         public Handle<ComputeShader> clearVisibilityBufferShader;
     }
 

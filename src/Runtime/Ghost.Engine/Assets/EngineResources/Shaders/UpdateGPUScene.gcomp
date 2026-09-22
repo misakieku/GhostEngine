@@ -11,8 +11,8 @@ compute "Internal/UpdateGPUScene"
 
     includes
     {
-        "EngineResources/Shaders/Includes/Properties.hlsl";
-        "EngineResources/Shaders/Includes/Generated/GhostRenderPipeline.hlsl";
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl";
     }
 
     hlsl

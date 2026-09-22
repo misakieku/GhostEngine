@@ -3,7 +3,6 @@ using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
-using Ghost.Engine.Utilities;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
@@ -85,16 +84,16 @@ internal unsafe partial class GhostRenderPipeline
 
     internal partial class CullingResource : IPipelineResource
     {
-        [ResolveAsset("EngineResources/Shaders/MeshletCullGraph")]
+        [ResolveAsset("EngineResources/Shaders/MeshPipeline/MeshletCullGraph")]
         public IAssetEntry cullWorkGraphEntry = null!;
 
-        [ResolveAsset("EngineResources/Shaders/OccludedMeshletCull")]
+        [ResolveAsset("EngineResources/Shaders/MeshPipeline/OccludedMeshletCull")]
         public Handle<ComputeShader> occludedMeshletCullShader;
 
-        [ResolveAsset("EngineResources/Shaders/BuildHZB")]
+        [ResolveAsset("EngineResources/Shaders/MeshPipeline/BuildHZB")]
         public Handle<ComputeShader> buildHZBShader;
 
-        [ResolveAsset("EngineResources/Shaders/PrepareMeshletIndirectArgs")]
+        [ResolveAsset("EngineResources/Shaders/MeshPipeline/PrepareMeshletIndirectArgs")]
         public Handle<ComputeShader> prepareIndirectArgsShader;
 
         [ResolveAsset("EngineResources/Shaders/Blit")]

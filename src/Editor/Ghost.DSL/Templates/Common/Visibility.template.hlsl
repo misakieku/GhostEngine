@@ -8,11 +8,11 @@
 #include "Unlit/Unlit_Common.template.hlsl"
 #endif
 
-#include "EngineResources/Shaders/Includes/Properties.hlsl"
-#include "EngineResources/Shaders/Includes/CullCommon.hlsl"
-#include "EngineResources/Shaders/Includes/MaterialEncoding.hlsl"
-#include "EngineResources/Shaders/Includes/VisibilityBufferEncoding.hlsl"
-#include "EngineResources/Shaders/Includes/VisibilityCommon.hlsl"
+#include "EngineResources/Shaders/Properties.hlsl"
+#include "EngineResources/Shaders/MeshPipeline/CullCommon.hlsl"
+#include "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl"
+#include "EngineResources/Shaders/MaterialPipeline/VisibilityBufferEncoding.hlsl"
+#include "EngineResources/Shaders/MaterialPipeline/VisibilityCommon.hlsl"
 
 #define VISIBILITY_MS_THREADS 64
 

@@ -16,12 +16,11 @@ compute "Internal/TileMaterialClassification"
 
     includes
     {
-        "EngineResources/Shaders/Includes/Common.hlsl";
-        "EngineResources/Shaders/Includes/Properties.hlsl";
-        "EngineResources/Shaders/Includes/CullCommon.hlsl";
-        "EngineResources/Shaders/Includes/MaterialEncoding.hlsl";
-        "EngineResources/Shaders/Includes/VisibilityBufferEncoding.hlsl";
-        "EngineResources/Shaders/Includes/ClassificationCommon.hlsl";
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/MeshPipeline/CullCommon.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/VisibilityBufferEncoding.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/ClassificationCommon.hlsl";
     }
 
     hlsl

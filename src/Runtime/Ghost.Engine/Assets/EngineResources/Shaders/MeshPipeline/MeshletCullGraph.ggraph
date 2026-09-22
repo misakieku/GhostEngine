@@ -21,9 +21,9 @@ compute "Internal/MeshletCullGraph"
 
     includes
     {
-        "EngineResources/Shaders/Includes/Properties.hlsl";
-        "EngineResources/Shaders/Includes/CullCommon.hlsl";
-        "EngineResources/Shaders/Includes/MaterialEncoding.hlsl";
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/MeshPipeline/CullCommon.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl";
     }
 
     hlsl

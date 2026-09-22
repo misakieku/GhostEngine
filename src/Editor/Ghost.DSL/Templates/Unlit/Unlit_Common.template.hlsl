@@ -18,8 +18,7 @@
 //   float4 GetColor(uint materialIndex, float2 uv, inout Payload payload)
 // ============================================================
 
-#include "EngineResources/Shaders/Includes/Common.hlsl"
-#include "EngineResources/Shaders/Includes/Properties.hlsl"
+#include "EngineResources/Shaders/Properties.hlsl"
 
 $GHOST_PROPERTIES_STRUCT$
 
