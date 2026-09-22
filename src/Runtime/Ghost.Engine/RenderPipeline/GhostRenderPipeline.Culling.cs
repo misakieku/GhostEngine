@@ -13,22 +13,13 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.RenderPipeline;
 
-internal partial class GhostRenderPipeline
+internal unsafe partial class GhostRenderPipeline
 {
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
     public struct VisibleMeshletEntry
     {
         public uint instanceIndex;
         public uint meshletIndex;
-    }
-
-    public struct CameraCullingBuffers
-    {
-        public Identifier<RGBuffer> visibleMeshletsPass1;
-        public Identifier<RGBuffer> visibleMeshletsPass2;
-        public Identifier<RGBuffer> occludedMeshlets;
-        public Identifier<RGBuffer> counterBuffer;
-        public Identifier<RGBuffer> indirectArgsBuffer;
     }
 
     private struct MeshletCullPass1Data
@@ -65,6 +56,8 @@ internal partial class GhostRenderPipeline
         public uint2 renderSize;
         public uint2 hzbBaseSize;
         public uint maxVisibleMeshlets;
+
+        public ICommandSignature commandSignature;
     }
 
     private struct PrepareIndirectArgsPassData
@@ -104,17 +97,8 @@ internal partial class GhostRenderPipeline
         [ResolveAsset("EngineResources/Shaders/PrepareMeshletIndirectArgs")]
         public Handle<ComputeShader> prepareIndirectArgsShader;
 
-        [ResolveAsset("EngineResources/Shaders/ExportVisibilityDepth")]
-        public Handle<ComputeShader> exportVisibilityDepthShader;
-
-        [ResolveAsset("EngineResources/Shaders/ClearVisibilityBuffer")]
-        public Handle<ComputeShader> clearVisibilityBufferShader;
-
         [ResolveAsset("EngineResources/Shaders/Blit")]
         public Handle<Shader> blitShader;
-
-        [ResolveAsset("EngineResources/Shaders/MeshletDebug")]
-        public Handle<Shader> meshletDebugShader;
 
         public IWorkGraphProgram? cullWorkGraphProgram;
 
@@ -154,90 +138,28 @@ internal partial class GhostRenderPipeline
         public const uint INDIRECT_OFFSET_PASS2_CULL = 32;
     }
 
-    private static ICommandSignature s_dispatchMeshCommandSignature = null!;
-    private static ICommandSignature s_dispatchCommandSignature = null!;
-    private static IShaderVariantSource s_shaderVariants = null!;
+    private ICommandSignature _dispatchCommandSignature = null!;
 
-    private readonly CullingResource _cullingResource = new();
+    private readonly CullingResource _cullingResource = new CullingResource();
 
     private void InitializeCulling(RenderEngine renderEngine, AssetManager assetManager)
     {
         _cullingResource.Resolve(assetManager);
-        s_shaderVariants = assetManager.ShaderVariants;
-
-        var indirectDesc = new CommandSignatureDesc
-        {
-            Stride = 12,
-            Arguments = new IndirectArgumentDesc[]
-            {
-                new() { Type = IndirectArgumentType.DispatchMesh }
-            }
-        };
-        s_dispatchMeshCommandSignature = renderEngine.GraphicsEngine.CreateCommandSignature(in indirectDesc, default);
-
-        var dispatchDesc = new CommandSignatureDesc
+        _dispatchCommandSignature = renderEngine.GraphicsEngine.CreateCommandSignature(new CommandSignatureDesc
         {
             Stride = 12,
             Arguments = new IndirectArgumentDesc[]
             {
                 new() { Type = IndirectArgumentType.Dispatch }
             }
-        };
-        s_dispatchCommandSignature = renderEngine.GraphicsEngine.CreateCommandSignature(in dispatchDesc, default);
+        }, default);
     }
 
-    private unsafe void AddInitializeCullingBuffersPass(RenderGraph rg, out CameraCullingBuffers buffers)
-    {
-        var entrySize = (uint)sizeof(VisibleMeshletEntry);
-        var bufferSize = _settings.MaxVisibleMeshletsOnScreen * entrySize;
-
-        var visibleDesc = new BufferDesc
-        {
-            Size = bufferSize,
-            Stride = entrySize,
-            Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-        };
-
-        var occludedDesc = new BufferDesc
-        {
-            Size = _settings.MaxVisibleMeshletsOnScreen * 12,
-            Stride = 12,
-            Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-        };
-
-        var counterDesc = new BufferDesc
-        {
-            Size = CullConstants.COUNTER_BUFFER_SIZE,
-            Stride = 4,
-            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-        };
-
-        var indirectDesc = new BufferDesc
-        {
-            Size = CullConstants.INDIRECT_ARGS_BUFFER_SIZE,
-            Stride = 4,
-            Usage = BufferUsage.IndirectArgument | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-        };
-
-        buffers = new CameraCullingBuffers
-        {
-            visibleMeshletsPass1 = rg.CreateBuffer(in visibleDesc, "VisibleMeshlets_Pass1"),
-            visibleMeshletsPass2 = rg.CreateBuffer(in visibleDesc, "VisibleMeshlets_Pass2"),
-            occludedMeshlets = rg.CreateBuffer(in occludedDesc, "OccludedInstances"),
-            counterBuffer = rg.CreateBuffer(in counterDesc, "CullCounters"),
-            indirectArgsBuffer = rg.CreateBuffer(in indirectDesc, "MeshletIndirectArgs")
-        };
-
-        rg.AddClearBufferPass(buffers.counterBuffer, CullConstants.COUNTER_BUFFER_SIZE, 0, "InitCullingCounters");
-    }
-
-    private unsafe void AddMeshletCullPass1(RenderGraph rg, in CameraCullingBuffers buffers, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 screenSize, uint2 hzbBaseSize, uint instanceCount)
+    private void AddMeshletCullPass1(RenderGraph rg, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 screenSize, uint2 hzbBaseSize, uint instanceCount,
+        out Identifier<RGBuffer> visibleMeshlets, out Identifier<RGBuffer> occludedMeshlets, out Identifier<RGBuffer> counterBuffer)
     {
         _cullingResource.EnsureWorkGraphProgram(_renderEngine);
-        if (_cullingResource.cullWorkGraphProgram == null)
-        {
-            return;
-        }
+        Logger.DebugAssert(_cullingResource.cullWorkGraphProgram != null, "Cull work graph program should be initialized.");
 
         var cullProgram = _cullingResource.cullWorkGraphProgram;
         var flags = cullProgram.IsInitialized ? SetWorkGraphFlags.None : SetWorkGraphFlags.Initialize;
@@ -253,9 +175,33 @@ internal partial class GhostRenderPipeline
         // This pass carries the one-time backing memory initialization, so it must never be culled.
         builder.AllowPassCulling(false);
 
-        builder.UseBuffer(buffers.visibleMeshletsPass1, AccessFlags.Write);
-        builder.UseBuffer(buffers.occludedMeshlets, AccessFlags.Write);
-        builder.UseBuffer(buffers.counterBuffer, AccessFlags.ReadWrite);
+        var entrySize = (uint)sizeof(VisibleMeshletEntry);
+        var bufferSize = _settings.MaxVisibleMeshletsOnScreen * entrySize;
+
+        visibleMeshlets = builder.CreateBuffer(new BufferDesc
+        {
+            Size = bufferSize,
+            Stride = entrySize,
+            Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, "VisibleMeshlets_Pass1");
+
+        occludedMeshlets = builder.CreateBuffer(new BufferDesc
+        {
+            Size = _settings.MaxVisibleMeshletsOnScreen * 12,
+            Stride = 12,
+            Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, "OccludedInstances");
+
+        counterBuffer = builder.CreateBuffer(new BufferDesc
+        {
+            Size = CullConstants.COUNTER_BUFFER_SIZE,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, "CounterBuffer");
+
+        builder.UseBuffer(visibleMeshlets, AccessFlags.Write);
+        builder.UseBuffer(occludedMeshlets, AccessFlags.Write);
+        builder.UseBuffer(counterBuffer, AccessFlags.ReadWrite);
 
         if (hzbTexture.IsValid)
         {
@@ -264,9 +210,9 @@ internal partial class GhostRenderPipeline
 
         var passData = new MeshletCullPass1Data
         {
-            visibleMeshletsPass1 = buffers.visibleMeshletsPass1,
-            occludedMeshlets = buffers.occludedMeshlets,
-            counterBuffer = buffers.counterBuffer,
+            visibleMeshletsPass1 = visibleMeshlets,
+            occludedMeshlets = occludedMeshlets,
+            counterBuffer = counterBuffer,
             hzbTexture = hzbTexture,
             hzbMipCount = hzbMipCount,
             renderSize = screenSize,
@@ -287,6 +233,8 @@ internal partial class GhostRenderPipeline
         builder.SetPassData(passData);
         builder.SetRenderFunc<MeshletCullPass1Data>(static (ref readonly passData, computeCtx) =>
         {
+            computeCtx.ClearBuffer(passData.counterBuffer, CullConstants.COUNTER_BUFFER_SIZE);
+
             var visibleUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visibleMeshletsPass1).AsResource(), BindlessAccess.UnorderedAccess);
             var occludedUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.occludedMeshlets).AsResource(), BindlessAccess.UnorderedAccess);
             var counterUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
@@ -328,21 +276,24 @@ internal partial class GhostRenderPipeline
         });
     }
 
-    private void AddPrepareIndirectArgsPass(RenderGraph rg, in CameraCullingBuffers buffers, uint cullPassIndex)
+    private Identifier<RGBuffer> AddPrepareIndirectArgsPass(RenderGraph rg, Identifier<RGBuffer> counterBuffer, uint cullPassIndex)
     {
-        if (_cullingResource.prepareIndirectArgsShader.IsInvalid)
-        {
-            return;
-        }
-
         using var builder = rg.AddComputeRenderPass<PrepareIndirectArgsPassData>(StringUtility.DebugFormat("PrepareIndirectArgs_Pass{0}", cullPassIndex + 1));
-        builder.UseBuffer(buffers.counterBuffer, AccessFlags.Read);
-        builder.UseBuffer(buffers.indirectArgsBuffer, AccessFlags.Write);
+
+        var indirectArgBuffer = builder.CreateBuffer(new BufferDesc
+        {
+            Size = CullConstants.INDIRECT_ARGS_BUFFER_SIZE,
+            Stride = 4,
+            Usage = BufferUsage.IndirectArgument | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, "IndirectArgsBuffer");
+
+        builder.UseBuffer(counterBuffer, AccessFlags.Read);
+        builder.UseBuffer(indirectArgBuffer, AccessFlags.Write);
 
         builder.SetPassData(new PrepareIndirectArgsPassData
         {
-            counterBuffer = buffers.counterBuffer,
-            indirectArgsBuffer = buffers.indirectArgsBuffer,
+            counterBuffer = counterBuffer,
+            indirectArgsBuffer = indirectArgBuffer,
             shader = _cullingResource.prepareIndirectArgsShader,
             cullPassIndex = cullPassIndex,
             maxCount = _settings.MaxVisibleMeshletsOnScreen
@@ -373,6 +324,8 @@ internal partial class GhostRenderPipeline
             computeCtx.SetUserDataWithProperties(in props);
             computeCtx.DispatchCompute(1, 1, 1);
         });
+
+        return indirectArgBuffer;
     }
 
     private void AddBuildHZBPasses(RenderGraph rg, Identifier<RGBuffer> visBuffer, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 baseSize, uint2 renderSize)
@@ -497,18 +450,17 @@ internal partial class GhostRenderPipeline
         computeCtx.DispatchCompute(threadGroupsX, threadGroupsY, 1);
     }
 
-    private void AddMeshletCullPass2(RenderGraph rg, in CameraCullingBuffers buffers, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 renderSize, uint2 hzbBaseSize)
+    private Identifier<RGBuffer> AddMeshletCullPass2(RenderGraph rg, Identifier<RGBuffer> occludedMeshlets, Identifier<RGBuffer> counter, Identifier<RGBuffer> indirectArgument, Identifier<RGBuffer> visibleMeshlets, Identifier<RGTexture> hzbTexture,
+        uint hzbMipCount, uint2 renderSize, uint2 hzbBaseSize)
     {
-        if (!_cullingResource.occludedMeshletCullShader.IsValid || s_dispatchCommandSignature == null)
-        {
-            return;
-        }
-
         using var builder = rg.AddComputeRenderPass<MeshletCullPass2Data>("MeshletCull_Pass2");
-        builder.UseBuffer(buffers.occludedMeshlets, AccessFlags.Read);
-        builder.UseBuffer(buffers.visibleMeshletsPass2, AccessFlags.Write);
-        builder.UseBuffer(buffers.counterBuffer, AccessFlags.ReadWrite);
-        builder.UseBuffer(buffers.indirectArgsBuffer, AccessFlags.Read);
+
+        var visibleMeshlets2 = builder.CreateBuffer(visibleMeshlets, "VisibleMeshlets_Pass2");
+
+        builder.UseBuffer(visibleMeshlets2, AccessFlags.Write);
+        builder.UseBuffer(occludedMeshlets, AccessFlags.Read);
+        builder.UseBuffer(counter, AccessFlags.ReadWrite);
+        builder.UseBuffer(indirectArgument, AccessFlags.Read);
 
         if (hzbTexture.IsValid)
         {
@@ -517,16 +469,17 @@ internal partial class GhostRenderPipeline
 
         var passData = new MeshletCullPass2Data
         {
-            visibleMeshletsPass2 = buffers.visibleMeshletsPass2,
-            occludedMeshlets = buffers.occludedMeshlets,
-            counterBuffer = buffers.counterBuffer,
-            indirectArgsBuffer = buffers.indirectArgsBuffer,
+            visibleMeshletsPass2 = visibleMeshlets2,
+            occludedMeshlets = occludedMeshlets,
+            counterBuffer = counter,
+            indirectArgsBuffer = indirectArgument,
             hzbTexture = hzbTexture,
             shader = _cullingResource.occludedMeshletCullShader,
             hzbMipCount = hzbMipCount,
             renderSize = renderSize,
             hzbBaseSize = hzbBaseSize,
-            maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen
+            maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
+            commandSignature = _dispatchCommandSignature
         };
 
         builder.SetPassData(passData);
@@ -558,20 +511,17 @@ internal partial class GhostRenderPipeline
             computeCtx.SetUserDataWithProperties(in props);
 
             var actualIndirectBuf = computeCtx.GetActualBuffer(passData.indirectArgsBuffer);
-            computeCtx.ExecuteIndirect(s_dispatchCommandSignature, 1, actualIndirectBuf, CullConstants.INDIRECT_OFFSET_PASS2_CULL);
+            computeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, CullConstants.INDIRECT_OFFSET_PASS2_CULL);
         });
+
+        return visibleMeshlets2;
     }
 
     private void DisposeCulling()
     {
         _cullingResource.Dispose();
 
-        s_dispatchMeshCommandSignature?.Dispose();
-        s_dispatchMeshCommandSignature = null!;
-
-        s_dispatchCommandSignature?.Dispose();
-        s_dispatchCommandSignature = null!;
-
-        s_shaderVariants = null!;
+        _dispatchCommandSignature?.Dispose();
+        _dispatchCommandSignature = null!;
     }
 }

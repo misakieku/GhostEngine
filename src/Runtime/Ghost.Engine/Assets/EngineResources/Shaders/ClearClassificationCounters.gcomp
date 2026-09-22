@@ -1,0 +1,33 @@
+compute "Internal/ClearClassificationCounters"
+{
+    properties
+    {
+        uint countersBufferUav;
+        uint maxVariants;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Includes/Properties.hlsl";
+        "EngineResources/Shaders/Includes/ClassificationCommon.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(64, 1, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            InternalClearClassificationCountersShaderProperties props = LoadData<InternalClearClassificationCountersShaderProperties>(g_PushConstantData.userData0, 0);
+
+            if (dispatchThreadId.x >= props.maxVariants)
+            {
+                return;
+            }
+
+            RWByteAddressBuffer counters = ResourceDescriptorHeap[props.countersBufferUav];
+            counters.Store2(dispatchThreadId.x * VARIANT_COUNTER_STRIDE, uint2(0, 0));
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

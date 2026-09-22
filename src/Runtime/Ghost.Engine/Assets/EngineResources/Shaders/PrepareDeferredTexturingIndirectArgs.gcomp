@@ -1,0 +1,45 @@
+compute "Internal/PrepareDeferredTexturingIndirectArgs"
+{
+    properties
+    {
+        uint countersBufferIndex;
+        uint indirectArgsBufferUav;
+        uint maxVariants;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Includes/Properties.hlsl";
+        "EngineResources/Shaders/Includes/ClassificationCommon.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(64, 1, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            InternalPrepareDeferredTexturingIndirectArgsShaderProperties props = LoadData<InternalPrepareDeferredTexturingIndirectArgsShaderProperties>(g_PushConstantData.userData0, 0);
+
+            uint v = dispatchThreadId.x;
+            if (v >= props.maxVariants)
+            {
+                return;
+            }
+
+            ByteAddressBuffer counters = ResourceDescriptorHeap[props.countersBufferIndex];
+            RWByteAddressBuffer indirectArgs = ResourceDescriptorHeap[props.indirectArgsBufferUav];
+
+            // tileCount is at offset 0 (VARIANT_COUNTER_STRIDE = 8u)
+            uint tileCount = counters.Load(v * VARIANT_COUNTER_STRIDE);
+
+            // Format D3D12_DISPATCH_ARGUMENTS (16-byte aligned per variant slot)
+            // Offset 0: ThreadGroupCountX = tileCount
+            // Offset 4: ThreadGroupCountY = 1
+            // Offset 8: ThreadGroupCountZ = 1
+            // Offset 12: unused padding
+            indirectArgs.Store4(v * INDIRECT_ARGS_STRIDE, uint4(tileCount, 1u, 1u, 0u));
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

@@ -36,6 +36,8 @@ public interface IRenderGraphContext
     bool TrySetActiveShaderPass(Handle<Shader> shader, int passIndex, PipelineState? pipelineOverride = null);
     bool TrySetActiveShaderPass(Handle<Shader> shader, PassSemantic semantic, PipelineState? pipelineOverride = null);
     void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset = 0, Handle<GPUBuffer> countBuffer = default, ulong countBufferOffset = 0);
+
+    void ClearBuffer(Identifier<RGBuffer> buffer, uint sizeInBytes, uint clearValue = 0, uint dstOffset = 0);
 }
 
 public interface IRasterRenderContext : IRenderGraphContext
@@ -654,6 +656,38 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
     public void DispatchGraph(scoped in DispatchGraphDesc desc)
     {
         _commandBuffer.DispatchGraph(in desc);
+    }
+
+    public void ClearBuffer(Identifier<RGBuffer> buffer, uint sizeInBytes, uint clearValue = 0, uint dstOffset = 0)
+    {
+        var desc = new BufferDesc
+        {
+            Size = sizeInBytes,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            HeapType = HeapType.Upload,
+        };
+
+        var tempBuffer = _resourceManager.CreateTransientBuffer(desc);
+        var ptr = (uint*)_resourceDatabase.MapResource(tempBuffer.AsResource(), 0, null);
+        if (ptr != null)
+        {
+            if (clearValue == 0)
+            {
+                Unsafe.InitBlockUnaligned(ptr, 0, sizeInBytes);
+            }
+            else
+            {
+                var count = (int)(sizeInBytes / 4);
+                for (var i = 0; i < count; i++)
+                {
+                    (ptr)[i] = clearValue;
+                }
+            }
+
+            _resourceDatabase.UnmapResource(tempBuffer.AsResource(), 0, null);
+            _commandBuffer.CopyBuffer(GetActualBuffer(buffer), tempBuffer, dstOffset, 0, sizeInBytes);
+        }
     }
 
     public ICommandBuffer GetCommandBufferUnsafe()

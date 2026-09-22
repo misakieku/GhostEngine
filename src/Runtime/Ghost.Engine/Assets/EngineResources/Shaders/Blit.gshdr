@@ -33,11 +33,7 @@ shader "Hidden/Blit"
 
             [numthreads(4, 1, 1)]
             [outputtopology("triangle")]
-            void MSMain(
-                uint gtid : SV_GroupThreadID,
-                out vertices PSInput verts[4],
-                out indices uint3 tris[2]
-            )
+            void MSMain(uint gtid : SV_GroupThreadID, out vertices PSInput verts[4], out indices uint3 tris[2])
             {
                 SetMeshOutputCounts(4, 2);
 

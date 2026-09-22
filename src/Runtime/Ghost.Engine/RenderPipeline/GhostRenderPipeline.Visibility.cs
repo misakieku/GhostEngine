@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Engine.ShaderProperties;
+using Ghost.Engine.Streaming;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
@@ -11,6 +12,15 @@ namespace Ghost.Engine.RenderPipeline;
 
 internal partial class GhostRenderPipeline
 {
+    private partial class VisibilityResource : IPipelineResource
+    {
+        [ResolveAsset("EngineResources/Shaders/ExportVisibilityDepth")]
+        public Handle<ComputeShader> exportVisibilityDepthShader;
+
+        [ResolveAsset("EngineResources/Shaders/ClearVisibilityBuffer")]
+        public Handle<ComputeShader> clearVisibilityBufferShader;
+    }
+
     private struct ClearVisibilityBufferPassData
     {
         public Identifier<RGBuffer> visBuffer;
@@ -27,6 +37,8 @@ internal partial class GhostRenderPipeline
         public uint passIndex;
         public uint sceneBuffer;
         public uint2 screenSize;
+        public ShaderVariantRegistry variantRegistry;
+        public ICommandSignature commandSignature;
     }
 
     private struct ExportVisibilityDepthPassData
@@ -37,20 +49,34 @@ internal partial class GhostRenderPipeline
         public uint2 renderSize;
     }
 
+    internal ICommandSignature _dispatchMeshCommandSignature = null!;
+
+    private readonly VisibilityResource _visibilityResource = new VisibilityResource();
+
+    private void InitializeVisibility(RenderEngine renderEngine, AssetManager assetManager)
+    {
+        _visibilityResource.Resolve(assetManager);
+
+        var indirectDesc = new CommandSignatureDesc
+        {
+            Stride = 12,
+            Arguments = new IndirectArgumentDesc[]
+            {
+                new() { Type = IndirectArgumentType.DispatchMesh }
+            }
+        };
+        _dispatchMeshCommandSignature = renderEngine.GraphicsEngine.CreateCommandSignature(in indirectDesc, default);
+    }
+
     private void AddClearVisibilityBufferPass(RenderGraph rg, Identifier<RGBuffer> visBuffer, uint totalPixels)
     {
-        if (!_cullingResource.clearVisibilityBufferShader.IsValid)
-        {
-            return;
-        }
-
         using var builder = rg.AddComputeRenderPass<ClearVisibilityBufferPassData>("ClearVisibilityBuffer");
         builder.UseBuffer(visBuffer, AccessFlags.Write);
 
         builder.SetPassData(new ClearVisibilityBufferPassData
         {
             visBuffer = visBuffer,
-            shader = _cullingResource.clearVisibilityBufferShader,
+            shader = _visibilityResource.clearVisibilityBufferShader,
             totalPixels = totalPixels
         });
 
@@ -70,13 +96,8 @@ internal partial class GhostRenderPipeline
         });
     }
 
-    private void AddVisibilityBufferPass(RenderGraph rg, in CameraCullingBuffers buffers, uint cullPassIndex, uint sceneBuffer, uint2 screenSize, ref Identifier<RGBuffer> existingVisBuffer)
+    private void AddVisibilityBufferPass(RenderGraph rg, Identifier<RGBuffer> visibleMeshlets, Identifier<RGBuffer> indirectArgsBuffer, uint cullPassIndex, uint sceneBuffer, uint2 screenSize, ref Identifier<RGBuffer> existingVisBuffer)
     {
-        if (s_dispatchMeshCommandSignature == null)
-        {
-            return;
-        }
-
         var isPass1 = cullPassIndex == 0;
         var passName = isPass1 ? "Visibility_Pass1_EarlyZ" : "Visibility_Pass2_LateZ";
 
@@ -85,7 +106,7 @@ internal partial class GhostRenderPipeline
             var tilesX = (screenSize.x + 7u) / 8u;
             var tilesY = (screenSize.y + 7u) / 8u;
             var totalAllocatedPixels = tilesX * tilesY * 64u;
-            var vbufferSize = (ulong)totalAllocatedPixels * 8UL;
+            var vbufferSize = totalAllocatedPixels * 8UL;
             var vbufferDesc = new BufferDesc
             {
                 Size = (uint)vbufferSize,
@@ -98,20 +119,21 @@ internal partial class GhostRenderPipeline
 
         using var builder = rg.AddUnsafeRenderPass<VisibilityPassData>(passName);
 
-        var visibleBuffer = isPass1 ? buffers.visibleMeshletsPass1 : buffers.visibleMeshletsPass2;
-        builder.UseBuffer(visibleBuffer, AccessFlags.Read);
+        builder.UseBuffer(visibleMeshlets, AccessFlags.Read);
         builder.UseRandomAccessBuffer(existingVisBuffer);
-        builder.UseBuffer(buffers.indirectArgsBuffer, AccessFlags.Read);
+        builder.UseBuffer(indirectArgsBuffer, AccessFlags.Read);
 
         builder.SetPassData(new VisibilityPassData
         {
-            visibleMeshlets = visibleBuffer,
+            visibleMeshlets = visibleMeshlets,
             visBuffer = existingVisBuffer,
-            indirectArgsBuffer = buffers.indirectArgsBuffer,
+            indirectArgsBuffer = indirectArgsBuffer,
             indirectArgsOffset = isPass1 ? CullConstants.INDIRECT_OFFSET_PASS1_VISIBLE : CullConstants.INDIRECT_OFFSET_PASS2_VISIBLE,
             passIndex = cullPassIndex,
             sceneBuffer = sceneBuffer,
-            screenSize = screenSize
+            screenSize = screenSize,
+            variantRegistry = _assetManager.ShaderVariants,
+            commandSignature = _dispatchMeshCommandSignature
         });
 
         builder.SetRenderFunc<VisibilityPassData>(static (ref readonly passData, unsafeCtx) =>
@@ -137,12 +159,7 @@ internal partial class GhostRenderPipeline
             var visibleBufferIndex = unsafeCtx.ResourceDatabase.GetBindlessIndex(unsafeCtx.GetActualBuffer(passData.visibleMeshlets).AsResource(), BindlessAccess.ShaderResource);
             var visBufferUav = unsafeCtx.ResourceDatabase.GetBindlessIndex(unsafeCtx.GetActualBuffer(passData.visBuffer).AsResource(), BindlessAccess.UnorderedAccess);
 
-            if (s_shaderVariants == null)
-            {
-                return;
-            }
-
-            var dispatchVariants = s_shaderVariants.GetDispatchVariants(PassSemantic.Visibility);
+            var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.Visibility);
             for (var i = 0; i < dispatchVariants.Length; i++)
             {
                 ref readonly var variant = ref dispatchVariants[i];
@@ -156,19 +173,21 @@ internal partial class GhostRenderPipeline
                         userData3: passData.passIndex,
                         target: DataTarget.Graphics);
 
-                    unsafeCtx.ExecuteIndirect(s_dispatchMeshCommandSignature, 1, actualIndirectBuf, passData.indirectArgsOffset);
+                    unsafeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, passData.indirectArgsOffset);
                 }
             }
         });
     }
 
+    private void DisposeVisibility()
+    {
+        _visibilityResource.Dispose();
+        _dispatchMeshCommandSignature?.Dispose();
+        _dispatchMeshCommandSignature = null!;
+    }
+
     private void AddExportVisibilityDepthPass(RenderGraph rg, Identifier<RGBuffer> visBuffer, uint2 screenSize, ref Identifier<RGTexture> existingDepth)
     {
-        if (!_cullingResource.exportVisibilityDepthShader.IsValid)
-        {
-            return;
-        }
-
         if (existingDepth.IsInvalid)
         {
             var depthDesc = RGTextureDesc.Relative(
@@ -187,7 +206,7 @@ internal partial class GhostRenderPipeline
         {
             visBuffer = visBuffer,
             depthTexture = existingDepth,
-            shader = _cullingResource.exportVisibilityDepthShader,
+            shader = _visibilityResource.exportVisibilityDepthShader,
             renderSize = screenSize
         });
 

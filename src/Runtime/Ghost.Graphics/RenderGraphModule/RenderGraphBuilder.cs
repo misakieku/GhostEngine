@@ -61,20 +61,36 @@ public interface IRenderGraphBuilder : IDisposable
     void AllowPassCulling(bool value);
 
     /// <summary>
-    /// Creates a new texture heap based on the specified desc.
+    /// Creates a new texture based on the specified desc.
     /// </summary>
     /// <param name="desc">A structure that defines the properties and configuration of the texture to create.</param>
-    /// <param name="name">The name of the texture heap.</param>
-    /// <returns>An identifier for the newly created texture heap.</returns>
+    /// <param name="name">The name of the texture.</param>
+    /// <returns>An identifier for the newly created texture.</returns>
     Identifier<RGTexture> CreateTexture(scoped in RGTextureDesc desc, string? name = null);
 
     /// <summary>
-    /// Creates a new buffer heap based on the specified desc.
+    /// Creates a new texture based on the specified texture.
+    /// </summary>
+    /// <param name="texture">The identifier of the texture to copy the description from.</param>
+    /// <param name="name">The name of the texture.</param>
+    /// <returns>An identifier for the newly created texture.</returns>
+    Identifier<RGTexture> CreateTexture(Identifier<RGTexture> texture, string? name = null);
+
+    /// <summary>
+    /// Creates a new buffer based on the specified desc.
     /// </summary>
     /// <param name="desc">A structure that defines the properties and configuration of the buffer to create.</param>
-    /// <param name="name">The name of the buffer heap.</param>
-    /// <returns>An identifier for the newly created buffer heap.</returns>
+    /// <param name="name">The name of the buffer.</param>
+    /// <returns>An identifier for the newly created buffer.</returns>
     Identifier<RGBuffer> CreateBuffer(scoped in BufferDesc desc, string? name = null);
+
+    /// <summary>
+    /// Creates a new buffer based on the specified buffer.
+    /// </summary>
+    /// <param name="buffer">The identifier of the buffer to copy the description from.</param>
+    /// <param name="name">The name of the buffer.</param>
+    /// <returns>An identifier for the newly created buffer.</returns>
+    Identifier<RGBuffer> CreateBuffer(Identifier<RGBuffer> buffer, string? name = null);
 
     /// <summary>
     /// Registers the specified texture for use in the current render graph pass with the given access mode.
@@ -94,7 +110,7 @@ public interface IRenderGraphBuilder : IDisposable
     Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags accessMode);
 
     /// <summary>
-    /// Extracts the actual texture heap associated with the given identifier for use in outside of the render graph execution context.
+    /// Extracts the actual texture associated with the given identifier for use in outside of the render graph execution context.
     /// </summary>
     /// <param name="src">The identifier of the render graph texture to be extracted.</param>
     /// <param name="dst">The handle to receive the actual GPU texture.</param>
@@ -102,7 +118,7 @@ public interface IRenderGraphBuilder : IDisposable
     void QueueTextureExtraction(Identifier<RGTexture> src, Handle<GPUTexture> dst, ResourceExtractionFlags flags = ResourceExtractionFlags.None);
 
     /// <summary>
-    /// Extracts the actual buffer heap associated with the given identifier for use in outside of the render graph execution context.
+    /// Extracts the actual buffer associated with the given identifier for use in outside of the render graph execution context.
     /// </summary>
     /// <param name="src">The identifier of the render graph buffer to be extracted.</param>
     /// <param name="dst">The handle to receive the actual GPU buffer.</param>
@@ -129,7 +145,7 @@ public interface IRasterRenderGraphBuilder : IRenderGraphBuilder
     /// <summary>
     /// Specifies that the given buffer will be used for random access operations with the specified access mode within the current context.
     /// </summary>
-    /// <param name="buffer">An identifier for the buffer to be used for random access. Must reference a valid buffer heap.</param>
+    /// <param name="buffer">An identifier for the buffer to be used for random access. Must reference a valid buffer.</param>
     /// <returns>An identifier for the buffer.</returns>
     Identifier<RGBuffer> UseRandomAccessBuffer(Identifier<RGBuffer> buffer);
 
@@ -304,6 +320,24 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         return handle;
     }
 
+    public Identifier<RGTexture> CreateTexture(Identifier<RGTexture> texture, string? name = null)
+    {
+        ThrowIfDisposed();
+
+        if (texture.IsInvalid)
+        {
+            return Identifier<RGTexture>.Invalid;
+        }
+
+        ref readonly var res = ref _resourceRegistry.GetResource(texture);
+        if (Unsafe.IsNullRef(in res))
+        {
+            Reject("Failed to retrieve texture description from resource registry.");
+        }
+
+        return CreateTexture(res.rgTextureDesc, name);
+    }
+
     public Identifier<RGBuffer> CreateBuffer(scoped in BufferDesc desc, string? name = null)
     {
         ThrowIfDisposed();
@@ -312,6 +346,24 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         _pass.resourceCreates[(int)RGResourceType.Buffer].Add(handle.AsResource());
         _resourceRegistry.SetProducer(handle.AsResource(), _pass.index);
         return handle;
+    }
+
+    public Identifier<RGBuffer> CreateBuffer(Identifier<RGBuffer> buffer, string? name = null)
+    {
+        ThrowIfDisposed();
+
+        if (buffer.IsInvalid)
+        {
+            return Identifier<RGBuffer>.Invalid;
+        }
+
+        ref readonly var res = ref _resourceRegistry.GetResource(buffer);
+        if (Unsafe.IsNullRef(in res))
+        {
+            Reject("Failed to retrieve buffer description from resource registry.");
+        }
+
+        return CreateBuffer(in res.bufferDesc, name);
     }
 
     public Identifier<RGTexture> UseTexture(Identifier<RGTexture> texture, AccessFlags flags)

@@ -1,0 +1,148 @@
+compute "Internal/TileMaterialClassification"
+{
+    properties
+    {
+        uint visBufferIndex;
+        uint visibleMeshletsPass1;
+        uint visibleMeshletsPass2;
+        uint variantTileCountersUav;
+        uint variantTileListUav;
+        uint renderWidth;
+        uint renderHeight;
+        uint tilesPerRow;
+        uint maxTilesPerVariant;
+        uint2 deferredVariantMask;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Includes/Common.hlsl";
+        "EngineResources/Shaders/Includes/Properties.hlsl";
+        "EngineResources/Shaders/Includes/CullCommon.hlsl";
+        "EngineResources/Shaders/Includes/MaterialEncoding.hlsl";
+        "EngineResources/Shaders/Includes/VisibilityBufferEncoding.hlsl";
+        "EngineResources/Shaders/Includes/ClassificationCommon.hlsl";
+    }
+
+    hlsl
+    {
+        groupshared uint2 s_tileVariantMask;
+
+        [numthreads(CLASSIFICATION_TILE_SIZE, CLASSIFICATION_TILE_SIZE, 1)]
+        void CSMain(
+            uint3 dispatchThreadId : SV_DispatchThreadID,
+            uint3 groupID : SV_GroupID,
+            uint3 groupThreadId : SV_GroupThreadID,
+            uint groupIndex : SV_GroupIndex)
+        {
+            InternalTileMaterialClassificationShaderProperties props = LoadData<InternalTileMaterialClassificationShaderProperties>(g_PushConstantData.userData0, 0);
+
+            if (groupIndex == 0)
+            {
+                s_tileVariantMask = uint2(0, 0);
+            }
+            GroupMemoryBarrierWithGroupSync();
+
+            uint2 pixelCoord = groupID.xy * CLASSIFICATION_TILE_SIZE + groupThreadId.xy;
+            uint tileIndex = EncodeTileIndex(groupID.xy, props.tilesPerRow);
+
+            bool isValid = false;
+            uint variantIndex = 0xFFFFFFFFu;
+
+            if (pixelCoord.x < props.renderWidth && pixelCoord.y < props.renderHeight)
+            {
+                uint byteAddress = ComputePixelByteAddress(pixelCoord, props.renderWidth);
+                ByteAddressBuffer visBuffer = ResourceDescriptorHeap[props.visBufferIndex];
+                uint64_t raw = visBuffer.Load<uint64_t>(byteAddress);
+
+                float depth;
+                uint visibleMeshletIndex;
+                uint primitiveID;
+                UnpackVisibility64(raw, depth, visibleMeshletIndex, primitiveID);
+
+                // Reversed-Z: depth > 0.0f indicates valid geometry
+                if (depth > 0.0f)
+                {
+                    uint passBit = (visibleMeshletIndex >> 23u) & 1u;
+                    uint rawMeshletIndex = visibleMeshletIndex & 0x7FFFFFu;
+
+                    uint visibleBufferIndex = (passBit == 0u) ? props.visibleMeshletsPass1 : props.visibleMeshletsPass2;
+                    StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[visibleBufferIndex];
+                    VisibleMeshletEntry visible = visibleMeshlets[rawMeshletIndex];
+
+                    InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
+                    MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
+
+                    ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
+                    Meshlet meshlet = meshletBuffer.Load<Meshlet>(visible.meshletIndex * sizeof(Meshlet));
+                    uint localMaterialIndex = (meshlet.packedCounts >> 16u) & 0xFFu;
+
+                    uint packedMaterial = LoadMaterialBindlessIndex(
+                        g_FrameData.paletteOffsetBuffer,
+                        g_FrameData.materialIndexBuffer,
+                        instanceData.materialPaletteIndex,
+                        localMaterialIndex);
+
+                    uint candidateVariant = UnpackMaterialVariantIndex(packedMaterial);
+
+                    if (IsDeferredVariant(candidateVariant, props.deferredVariantMask))
+                    {
+                        variantIndex = candidateVariant;
+                        isValid = true;
+                    }
+                }
+            }
+
+            // Subgroup reduction: vote across wave lanes
+            uint64_t laneBit = (isValid && variantIndex < MAX_CLASSIFICATION_VARIANTS) ? (1ULL << variantIndex) : 0ULL;
+            uint64_t waveBits = WaveActiveBitOr(laneBit);
+
+            if (WaveIsFirstLane() && waveBits != 0ULL)
+            {
+                uint low = (uint)(waveBits & 0xFFFFFFFFu);
+                uint high = (uint)(waveBits >> 32u);
+                if (low != 0u)
+                {
+                    InterlockedOr(s_tileVariantMask.x, low);
+                }
+                if (high != 0u)
+                {
+                    InterlockedOr(s_tileVariantMask.y, high);
+                }
+            }
+            GroupMemoryBarrierWithGroupSync();
+
+            // Threads 0..63 test their variant bit and append tileIndex to VariantTileList
+            if (groupIndex < MAX_CLASSIFICATION_VARIANTS)
+            {
+                uint v = groupIndex;
+                bool isPresent = false;
+                if (v < 32u)
+                {
+                    isPresent = (s_tileVariantMask.x & (1u << v)) != 0u;
+                }
+                else
+                {
+                    isPresent = (s_tileVariantMask.y & (1u << (v - 32u))) != 0u;
+                }
+
+                if (isPresent)
+                {
+                    RWByteAddressBuffer counters = ResourceDescriptorHeap[props.variantTileCountersUav];
+                    RWByteAddressBuffer tileList = ResourceDescriptorHeap[props.variantTileListUav];
+
+                    uint tileSlot;
+                    counters.InterlockedAdd(v * VARIANT_COUNTER_STRIDE, 1u, tileSlot);
+
+                    if (tileSlot < props.maxTilesPerVariant)
+                    {
+                        uint writeOffset = (v * props.maxTilesPerVariant + tileSlot) * 4u;
+                        tileList.Store(writeOffset, tileIndex);
+                    }
+                }
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

@@ -66,8 +66,8 @@ void MSMain(
         float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, instanceData.localToWorld);
 
         outVerts[groupThreadID].position = mul(worldViewProj, float4(v.position, 1.0f));
-        outVerts[groupThreadID].uv = v.uv;
-        outVerts[groupThreadID].visibleMeshletIndex = groupID;
+        uint passBit = (g_PushConstantData.userData3 & 1u) << 23u;
+        outVerts[groupThreadID].visibleMeshletIndex = (groupID & 0x7FFFFFu) | passBit;
         outVerts[groupThreadID].localMaterialIndex = localMaterialIndex;
         outVerts[groupThreadID].materialBufferIndex = materialBufferIndex;
         outVerts[groupThreadID].variantIndex = variantIndex;

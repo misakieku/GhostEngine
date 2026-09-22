@@ -44,12 +44,12 @@ internal sealed class GPUViewContext : IDisposable
         get; private set;
     }
 
-    public uint BaseWidth
+    public uint HzbWidth
     {
         get; private set;
     }
 
-    public uint BaseHeight
+    public uint HzbHeight
     {
         get; private set;
     }
@@ -64,8 +64,8 @@ internal sealed class GPUViewContext : IDisposable
         get; private set;
     }
 
-    public uint2 BaseSize => new uint2(BaseWidth, BaseHeight);
-
+    public uint2 HzbSize => new uint2(HzbWidth, HzbHeight);
+    public uint2 RenderSize => new uint2(RenderWidth, RenderHeight);
 
     public float4x4 prevViewProjMatrix;
 
@@ -109,22 +109,21 @@ internal sealed class GPUViewContext : IDisposable
                 HzbTexture = Handle<GPUTexture>.Invalid;
             }
 
-            uint baseWidth, baseHeight, hzbMipCount;
             ComputeHZBDimensions(
                 renderWidth,
                 renderHeight,
-                out baseWidth,
-                out baseHeight,
-                out hzbMipCount);
+                out var baseWidth,
+                out var baseHeight,
+                out var hzbMipCount);
 
-            BaseWidth = baseWidth;
-            BaseHeight = baseHeight;
+            HzbWidth = baseWidth;
+            HzbHeight = baseHeight;
             HzbMipCount = hzbMipCount;
 
             var desc = new TextureDesc
             {
-                Width = BaseWidth,
-                Height = BaseHeight,
+                Width = HzbWidth,
+                Height = HzbHeight,
                 Format = TextureFormat.R32_Float,
                 Dimension = TextureDimension.Texture2D,
                 MipLevels = (ushort)HzbMipCount,
@@ -154,8 +153,8 @@ internal sealed class GPUViewContext : IDisposable
 
         RenderWidth = 0;
         RenderHeight = 0;
-        BaseWidth = 0;
-        BaseHeight = 0;
+        HzbWidth = 0;
+        HzbHeight = 0;
         prevViewProjMatrix = default;
         IsActive = false;
     }

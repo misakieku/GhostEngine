@@ -504,7 +504,7 @@ public sealed class RenderGraph : IDisposable
     /// <param name="name">The name of the render pass.</param>
     /// <returns>The builder to build the render pass,</returns>
     public IRasterRenderGraphBuilder AddRasterRenderPass<TPassData>(string name)
-        where TPassData : unmanaged
+        where TPassData : struct
     {
         var renderPass = _objectPool.Rent<RasterRenderGraphPass<TPassData>>();
         renderPass.Init(_passes.Count, name, RenderPassType.Raster);
@@ -522,7 +522,7 @@ public sealed class RenderGraph : IDisposable
     /// <param name="passData">The data that will be used during rendering.</param>
     /// <returns>The builder to build the render pass,</returns>
     public IComputeRenderGraphBuilder AddComputeRenderPass<TPassData>(string name)
-        where TPassData : unmanaged
+        where TPassData : struct
     {
         var renderPass = _objectPool.Rent<ComputeRenderGraphPass<TPassData>>();
         renderPass.Init(_passes.Count, name, RenderPassType.Compute);
@@ -540,7 +540,7 @@ public sealed class RenderGraph : IDisposable
     /// <param name="passData">The data that will be used during rendering.</param>
     /// <returns>The builder to build the render pass,</returns>
     public IUnsafeRenderGraphBuilder AddUnsafeRenderPass<TPassData>(string name)
-        where TPassData : unmanaged
+        where TPassData : struct
     {
         var renderPass = _objectPool.Rent<UnsafeRenderGraphPass<TPassData>>();
         renderPass.Init(_passes.Count, name, RenderPassType.Unsafe);

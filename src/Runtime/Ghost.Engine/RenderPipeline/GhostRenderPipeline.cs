@@ -15,6 +15,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
     private readonly RenderEngine _renderEngine;
     private readonly AssetManager _assetManager;
     private readonly GhostRenderPipelineSettings _settings;
+
     private readonly GPUSceneResource _gpuSceneResource;
 
     private readonly GPUScene _gpuScene;
@@ -41,6 +42,8 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         _gpuViewManager = new GPUViewManager(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, renderEngine.GraphicsEngine.PipelineLibrary, renderEngine.ResourceManager, renderEngine.ShaderLibrary);
 
         InitializeCulling(renderEngine, assetManager);
+        InitializeVisibility(renderEngine, assetManager);
+        InitializeClassification(assetManager);
     }
 
     public IRenderPayload CreatePayload()
@@ -118,7 +121,11 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
             var hzb = viewContext.RenderGraph.ImportTexture(viewContext.HzbTexture);
 
-            AddCullingAndVbufferPasses(ghostPayload, renderView, viewContext, hzb, _gpuScene.SceneBufferSrvIndex, renderView.ScreenSize, out var currentDepth, out var currentVisBuffer);
+            AddCullingAndVbufferPasses(viewContext, ghostPayload.InstanceCount, hzb, _gpuScene.SceneBufferSrvIndex,
+                out var currentDepth, out var currentVisBuffer,
+                out var visibleMeshlets0, out var visibleMeshlets1);
+
+            AddTileClassificationPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, viewContext.RenderSize);
 
             // Blit Depth Buffer to screen / backbuffer
             viewContext.RenderGraph.AddBlitPass(currentDepth, colorTarget, _cullingResource.blitShader);
@@ -138,29 +145,32 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         return Result.Success();
     }
 
-    private void AddCullingAndVbufferPasses(GhostRenderPayload ghostPayload, RenderViewData renderView, GPUViewContext viewContext, Identifier<RGTexture> hzb, uint sceneBuffer, uint2 screenSize,
-        out Identifier<RGTexture> currentDepth, out Identifier<RGBuffer> currentVisBuffer)
+    private void AddCullingAndVbufferPasses(GPUViewContext viewContext, uint instanceCount, Identifier<RGTexture> hzb, uint sceneBuffer,
+        out Identifier<RGTexture> currentDepth, out Identifier<RGBuffer> currentVisBuffer, out Identifier<RGBuffer> visibleMeshlets0, out Identifier<RGBuffer> visibleMeshlets1)
     {
         currentVisBuffer = Identifier<RGBuffer>.Invalid;
         currentDepth = Identifier<RGTexture>.Invalid;
 
-        // Initialize transient culling & indirect argument buffers for this camera view
-        AddInitializeCullingBuffersPass(viewContext.RenderGraph, out var cullingBuffers);
-
         // Pass 1: Early-Z Hierarchical Meshlet Culling
-        AddMeshletCullPass1(viewContext.RenderGraph, in cullingBuffers, hzb, viewContext.HzbMipCount, renderView.ScreenSize, viewContext.BaseSize, ghostPayload.InstanceCount);
-        AddPrepareIndirectArgsPass(viewContext.RenderGraph, in cullingBuffers, 0);
-        AddVisibilityBufferPass(viewContext.RenderGraph, in cullingBuffers, 0, sceneBuffer, screenSize, ref currentVisBuffer);
-        AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzb, viewContext.HzbMipCount, viewContext.BaseSize, renderView.ScreenSize);
+
+        AddMeshletCullPass1(viewContext.RenderGraph, hzb, viewContext.HzbMipCount, viewContext.RenderSize, viewContext.HzbSize, instanceCount,
+            out visibleMeshlets0, out var occludedMeshlets, out var counterBuffer);
+        
+        var indirectArg = AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 0);
+        AddVisibilityBufferPass(viewContext.RenderGraph, visibleMeshlets0, indirectArg, 0,sceneBuffer, viewContext.RenderSize, ref currentVisBuffer);
+        AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzb, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize);
 
         // Pass 2: Late-Z Meshlet Culling
-        AddMeshletCullPass2(viewContext.RenderGraph, in cullingBuffers, hzb, viewContext.HzbMipCount, renderView.ScreenSize, viewContext.BaseSize);
-        AddPrepareIndirectArgsPass(viewContext.RenderGraph, in cullingBuffers, 1);
-        AddVisibilityBufferPass(viewContext.RenderGraph, in cullingBuffers, 1, sceneBuffer, screenSize, ref currentVisBuffer);
-        AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzb, viewContext.HzbMipCount, viewContext.BaseSize, renderView.ScreenSize);
+        
+        visibleMeshlets1 = AddMeshletCullPass2(viewContext.RenderGraph, occludedMeshlets, counterBuffer, indirectArg, visibleMeshlets0, hzb,
+            viewContext.HzbMipCount, viewContext.RenderSize, viewContext.HzbSize);
+        
+        AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 1);
+        AddVisibilityBufferPass(viewContext.RenderGraph, visibleMeshlets1, indirectArg, 1, sceneBuffer, viewContext.RenderSize, ref currentVisBuffer);
+        AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzb, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize);
 
         // Export stable depth ONCE at the end of geometry passes
-        AddExportVisibilityDepthPass(viewContext.RenderGraph, currentVisBuffer, screenSize, ref currentDepth);
+        AddExportVisibilityDepthPass(viewContext.RenderGraph, currentVisBuffer, viewContext.RenderSize, ref currentDepth);
     }
 
     public void Dispose()
@@ -173,8 +183,10 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         _disposed = true;
 
         DisposeCulling();
-        _gpuSceneResource.Dispose();
+        DisposeVisibility();
+        DisposeClassification();
 
+        _gpuSceneResource.Dispose();
         _gpuScene.Dispose();
         _gpuViewManager.Dispose();
     }
