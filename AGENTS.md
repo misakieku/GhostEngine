@@ -19,16 +19,16 @@ All commands below should be run from the `src/` directory unless noted.
 
 ```shell
 # Build entire solution (x64, Debug_Editor)
-dotnet build GhostEngine.slnx -c Debug -p:Platform=x64
+dotnet build src/GhostEngine.slnx -c Debug -p:Platform=x64
 
 # Build entire solution (Release_Editor)
-dotnet build GhostEngine.slnx -c Release -p:Platform=x64
+dotnet build src/GhostEngine.slnx -c Release -p:Platform=x64
 
 # Build a single project (uses Debug/Release; Editor configs handled by Directory.Build.props)
-dotnet build Runtime/Ghost.Entities/Ghost.Entities.csproj -c Release
+dotnet build src/Runtime/Ghost.Entities/Ghost.Entities.csproj -c Release
 
 # Clean
-dotnet clean GhostEngine.slnx
+dotnet clean src/GhostEngine.slnx
 ```
 
 **4 build configs** (defined in `src/Directory.Build.props`):
@@ -73,17 +73,17 @@ Two test frameworks, no shared infrastructure:
 Runs via `dotnet test`. Uses `Microsoft.Testing.Platform` (configured in `global.json`).
 
 ```shell
-# Run all MSTest tests
-dotnet test Test/Ghost.UnitTest/Ghost.UnitTest.csproj -c Debug -p:Platform=x64
+# Run all MTP tests
+dotnet rub --project src/Test/Ghost.UnitTest/Ghost.UnitTest.csproj -c Debug -p:Platform=x64
 
 # Single test method
-dotnet test Test/Ghost.UnitTest/Ghost.UnitTest.csproj --filter "FullyQualifiedName~TestAutoMetaGeneration_WhenFileCreated"
+dotnet run --project src/Test/Ghost.UnitTest/Ghost.UnitTest.csproj --filter "FullyQualifiedName~TestAutoMetaGeneration_WhenFileCreated"
 
 # Single test class
-dotnet test Test/Ghost.UnitTest/Ghost.UnitTest.csproj --filter "ClassName~AssetDatabaseIntegrationTest"
+dotnet run --project src/Test/Ghost.UnitTest/Ghost.UnitTest.csproj --filter "ClassName~AssetDatabaseIntegrationTest"
 
 # AssetForge tests (uses MSTest.Sdk meta-package)
-dotnet test Test/Ghost.AssetBaker.Test/Ghost.AssetForge.Test.csproj -c Debug -p:Platform=x64
+dotnet run --project src/Test/Ghost.AssetBaker.Test/Ghost.AssetForge.Test.csproj -c Debug -p:Platform=x64
 ```
 
 `Ghost.UnitTest` targets `net10.0-windows10.0.22621.0` (Windows-only). Editor integration tests are `#if false`-guarded until asset service is fully wired.

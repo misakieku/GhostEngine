@@ -153,7 +153,8 @@ internal unsafe class DXGISwapChain : ISwapChain
 
             var view = ResourceViewGroup.Invalid with
             {
-                rtv = rtv
+                rtv = rtv,
+                rtvCount = 1,
             };
 
             var handle = _resourceDatabase.ImportExternalResource(pBackBuffer, view, D3D12Utility.GetResourceDesc(pBackBuffer, view));

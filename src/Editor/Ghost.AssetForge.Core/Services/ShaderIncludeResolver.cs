@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.DSL.ShaderCompiler;
+using Ghost.DSL.ShaderCompiler.Templates;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -77,6 +78,43 @@ public static partial class ShaderIncludeResolver
             if (semanticsResult.IsSuccess && semanticsResult.Value != null)
             {
                 var semantics = semanticsResult.Value;
+
+                // Resolve template dependencies if inheriting from a built-in template (e.g. : "Unlit" or : "Lit")
+                if (!string.IsNullOrEmpty(semantics.templateName))
+                {
+                    var templateResult = TemplateRegistry.GetTemplate(semantics.templateName!);
+                    if (templateResult.IsSuccess && templateResult.Value != null)
+                    {
+                        var template = templateResult.Value;
+
+                        var commonSource = TemplateStitcher.LoadTemplateSource(template.CommonTemplateFile);
+                        if (commonSource.IsSuccess && !string.IsNullOrEmpty(commonSource.Value))
+                        {
+                            ResolveHlslFile(commonSource.Value, currentFileDir, assetDirectories, virtualShaders, visited, dependencies);
+                        }
+
+                        if (template.Passes != null)
+                        {
+                            foreach (var pass in template.Passes)
+                            {
+                                if (pass.stages != null)
+                                {
+                                    foreach (var stage in pass.stages)
+                                    {
+                                        if (!string.IsNullOrEmpty(stage.templateFile))
+                                        {
+                                            var stageSource = TemplateStitcher.LoadTemplateSource(stage.templateFile);
+                                            if (stageSource.IsSuccess && !string.IsNullOrEmpty(stageSource.Value))
+                                            {
+                                                ResolveHlslFile(stageSource.Value, currentFileDir, assetDirectories, virtualShaders, visited, dependencies);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
 
                 // DSL top-level or pass includes
                 if (semantics.passes != null)

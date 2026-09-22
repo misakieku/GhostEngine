@@ -19,6 +19,7 @@ compute "Internal/BuildHZB"
     includes
     {
         "EngineResources/Shaders/Includes/Properties.hlsl";
+        "EngineResources/Shaders/Includes/VisibilityBufferEncoding.hlsl";
     }
 
     hlsl
@@ -56,10 +57,10 @@ compute "Internal/BuildHZB"
                 ByteAddressBuffer visBuffer = ResourceDescriptorHeap[properties.srcBuffer];
                 uint renderWidth = properties.srcLimit.x + 1;
 
-                uint addr00 = (srcCoord00.y * renderWidth + srcCoord00.x) * 8u + 4u;
-                uint addr10 = (srcCoord10.y * renderWidth + srcCoord10.x) * 8u + 4u;
-                uint addr01 = (srcCoord01.y * renderWidth + srcCoord01.x) * 8u + 4u;
-                uint addr11 = (srcCoord11.y * renderWidth + srcCoord11.x) * 8u + 4u;
+                uint addr00 = ComputePixelDepthByteAddress((uint2)srcCoord00, renderWidth);
+                uint addr10 = ComputePixelDepthByteAddress((uint2)srcCoord10, renderWidth);
+                uint addr01 = ComputePixelDepthByteAddress((uint2)srcCoord01, renderWidth);
+                uint addr11 = ComputePixelDepthByteAddress((uint2)srcCoord11, renderWidth);
 
                 p00 = asfloat(visBuffer.Load(addr00));
                 p10 = asfloat(visBuffer.Load(addr10));
@@ -192,10 +193,10 @@ compute "Internal/BuildHZB"
                 ByteAddressBuffer visBuffer = ResourceDescriptorHeap[properties.srcBuffer];
                 uint renderWidth = properties.srcLimit.x + 1;
 
-                uint addr00 = (srcCoord00.y * renderWidth + srcCoord00.x) * 8u + 4u;
-                uint addr10 = (srcCoord10.y * renderWidth + srcCoord10.x) * 8u + 4u;
-                uint addr01 = (srcCoord01.y * renderWidth + srcCoord01.x) * 8u + 4u;
-                uint addr11 = (srcCoord11.y * renderWidth + srcCoord11.x) * 8u + 4u;
+                uint addr00 = ComputePixelDepthByteAddress((uint2)srcCoord00, renderWidth);
+                uint addr10 = ComputePixelDepthByteAddress((uint2)srcCoord10, renderWidth);
+                uint addr01 = ComputePixelDepthByteAddress((uint2)srcCoord01, renderWidth);
+                uint addr11 = ComputePixelDepthByteAddress((uint2)srcCoord11, renderWidth);
 
                 p00 = asfloat(visBuffer.Load(addr00));
                 p10 = asfloat(visBuffer.Load(addr10));

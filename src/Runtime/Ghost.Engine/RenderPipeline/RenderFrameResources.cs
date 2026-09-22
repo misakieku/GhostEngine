@@ -86,9 +86,13 @@ internal struct RenderFrameResources
     {
         var depthClear = useReversedZ ? 0.0f : 1.0f;
 
+        var tilesX = (width + 7u) / 8u;
+        var tilesY = (height + 7u) / 8u;
+        var totalAllocatedPixels = tilesX * tilesY * 64u;
+
         var visBufferDesc = new BufferDesc
         {
-            Size = width * height * 8u,
+            Size = totalAllocatedPixels * 8u,
             Stride = 4,
             Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
         };

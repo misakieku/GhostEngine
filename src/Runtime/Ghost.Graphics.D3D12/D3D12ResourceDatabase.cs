@@ -39,7 +39,6 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         public ResourceDesc desc;
         public ResourceViewGroup viewGroup;
         public __resource_union resource;
-        public UnsafeArray<ResourceViewGroup> subResourceView;
 
         public bool isExternal;
         public bool isShared;
@@ -47,7 +46,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         public readonly bool Allocated => isExternal ? resource.resource.Get() != null : resource.allocation.Get() != null;
         public readonly SharedPtr<ID3D12Resource> ResourcePtr => isExternal ? resource.resource.Get() : resource.allocation.Get()->GetResource();
 
-        public ResourceRecord(D3D12MA_Allocation* allocation, ResourceViewGroup viewGroup, ResourceDesc desc, UnsafeArray<ResourceViewGroup> subResourceView = default)
+        public ResourceRecord(D3D12MA_Allocation* allocation, ResourceViewGroup viewGroup, ResourceDesc desc)
         {
             this.resource = new __resource_union(allocation);
             this.isExternal = false;
@@ -55,10 +54,9 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
             this.viewGroup = viewGroup;
             this.desc = desc;
-            this.subResourceView = subResourceView;
         }
 
-        public ResourceRecord(ID3D12Resource* resource, ResourceViewGroup viewGroup, ResourceDesc desc, UnsafeArray<ResourceViewGroup> subResourceView = default)
+        public ResourceRecord(ID3D12Resource* resource, ResourceViewGroup viewGroup, ResourceDesc desc)
         {
             this.resource = new __resource_union(resource);
             this.isExternal = true;
@@ -66,7 +64,6 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
             this.viewGroup = viewGroup;
             this.desc = desc;
-            this.subResourceView = subResourceView;
         }
         public readonly uint Release(D3D12DescriptorAllocator descriptorAllocator)
         {
@@ -89,16 +86,6 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             }
 
             descriptorAllocator.Release(viewGroup);
-
-            if (subResourceView.IsCreated)
-            {
-                for (var i = 1; i < subResourceView.Length; i++)
-                {
-                    descriptorAllocator.Release(subResourceView[i]);
-                }
-
-                subResourceView.Dispose();
-            }
 
             return refCount;
         }
@@ -169,7 +156,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         Dispose();
     }
 
-    internal Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceViewGroup viewGroup, ResourceDesc desc, string? name = null, UnsafeArray<ResourceViewGroup> subResourceViews = default)
+    internal Handle<GPUResource> ImportExternalResource(ID3D12Resource* pResource, ResourceViewGroup viewGroup, ResourceDesc desc, string? name = null)
     {
         Logger.DebugAssert(!_disposed);
 
@@ -186,7 +173,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         // We do not choose a concurrent collection here because we want maximum access speed for read operations.
         lock (_writeLock)
         {
-            var id = _resources.Add(new ResourceRecord(pResource, viewGroup, desc, subResourceViews), out var generation);
+            var id = _resources.Add(new ResourceRecord(pResource, viewGroup, desc), out var generation);
             var handle = new Handle<GPUResource>(id, generation);
 
 #if GHOST_SAFETY_CHECKS
@@ -201,7 +188,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         }
     }
 
-    internal Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null, UnsafeArray<ResourceViewGroup> subResourceViews = default)
+    internal Handle<GPUResource> AddAllocation(D3D12MA_Allocation* allocation, ResourceViewGroup resourceDescriptor, ResourceDesc desc, string? name = null)
     {
         Logger.DebugAssert(!_disposed);
 
@@ -215,7 +202,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
         lock (_writeLock)
         {
-            var id = _resources.Add(new ResourceRecord(allocation, resourceDescriptor, desc, subResourceViews), out var generation);
+            var id = _resources.Add(new ResourceRecord(allocation, resourceDescriptor, desc), out var generation);
             var handle = new Handle<GPUResource>(id, generation);
 
 #if GHOST_SAFETY_CHECKS
@@ -284,32 +271,52 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             return uint.MaxValue;
         }
 
-        ref readonly var record = ref r.Value;
+        ref readonly var vg = ref r.Value.viewGroup;
 
-        if (subResource == IResourceDatabase.AllSubresources || !record.subResourceView.IsCreated)
+        switch (access)
         {
-            return access switch
-            {
-                BindlessAccess.ShaderResource => (uint)record.viewGroup.srv.Value,
-                BindlessAccess.ConstantBuffer => (uint)record.viewGroup.cbv.Value,
-                BindlessAccess.UnorderedAccess => (uint)record.viewGroup.uav.Value,
-                _ => uint.MaxValue,
-            };
-        }
+            case BindlessAccess.ShaderResource:
+                if (!vg.srv.IsValid)
+                {
+                    return uint.MaxValue;
+                }
 
-        if (subResource < (uint)record.subResourceView.Length)
-        {
-            ref readonly var subView = ref record.subResourceView[(int)subResource];
-            return access switch
-            {
-                BindlessAccess.ShaderResource => subView.srv.IsValid ? (uint)subView.srv.Value : (uint)record.viewGroup.srv.Value,
-                BindlessAccess.ConstantBuffer => (uint)subView.cbv.Value,
-                BindlessAccess.UnorderedAccess => subView.uav.IsValid ? (uint)subView.uav.Value : (uint)record.viewGroup.uav.Value,
-                _ => uint.MaxValue,
-            };
-        }
+                if (subResource == IResourceDatabase.AllSubresources)
+                {
+                    return (uint)vg.srv.Value;
+                }
 
-        return uint.MaxValue;
+                if (vg.srvCount > 1)
+                {
+                    return subResource < (uint)(vg.srvCount - 1)
+                        ? (uint)(vg.srv.Value + 1 + (int)subResource)
+                        : uint.MaxValue;
+                }
+
+                // Fast path when subresource SRV is not created: requesting subResource = 0 returns main srv
+                return subResource == 0 ? (uint)vg.srv.Value : uint.MaxValue;
+
+            case BindlessAccess.UnorderedAccess:
+                if (!vg.uav.IsValid)
+                {
+                    return uint.MaxValue;
+                }
+
+                if (subResource == IResourceDatabase.AllSubresources)
+                {
+                    return (uint)vg.uav.Value;
+                }
+
+                return subResource < (uint)vg.uavCount
+                    ? (uint)(vg.uav.Value + (int)subResource)
+                    : uint.MaxValue;
+
+            case BindlessAccess.ConstantBuffer:
+                return vg.cbv.IsValid ? (uint)vg.cbv.Value : uint.MaxValue;
+
+            default:
+                return uint.MaxValue;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -322,14 +329,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             return;
         }
 
-        ref readonly var record = ref r.Value;
-#if GHOST_SAFETY_CHECKS
-        if (!record.subResourceView.IsCreated)
-        {
-            var name = _resourceName[handle];
-            throw new InvalidOperationException($"Resource {name} does not have sub resource.");
-        }
-#endif
+        ref readonly var vg = ref r.Value.viewGroup;
 
         var count = Math.Min(subResources.Length, outIndices.Length);
         for (var i = 0; i < count; i++)
@@ -339,24 +339,25 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             {
                 outIndices[i] = access switch
                 {
-                    BindlessAccess.ShaderResource => (uint)record.viewGroup.srv.Value,
-                    BindlessAccess.ConstantBuffer => (uint)record.viewGroup.cbv.Value,
-                    BindlessAccess.UnorderedAccess => (uint)record.viewGroup.uav.Value,
+                    BindlessAccess.ShaderResource => vg.srv.IsValid ? (uint)vg.srv.Value : uint.MaxValue,
+                    BindlessAccess.ConstantBuffer => vg.cbv.IsValid ? (uint)vg.cbv.Value : uint.MaxValue,
+                    BindlessAccess.UnorderedAccess => vg.uav.IsValid ? (uint)vg.uav.Value : uint.MaxValue,
                     _ => uint.MaxValue,
                 };
             }
-            else if (sub >= (uint)record.subResourceView.Length)
-            {
-                outIndices[i] = uint.MaxValue;
-            }
             else
             {
-                ref readonly var subView = ref record.subResourceView[(int)sub];
                 outIndices[i] = access switch
                 {
-                    BindlessAccess.ShaderResource => subView.srv.IsValid ? (uint)subView.srv.Value : (uint)record.viewGroup.srv.Value,
-                    BindlessAccess.ConstantBuffer => (uint)subView.cbv.Value,
-                    BindlessAccess.UnorderedAccess => subView.uav.IsValid ? (uint)subView.uav.Value : (uint)record.viewGroup.uav.Value,
+                    BindlessAccess.ShaderResource => vg.srv.IsValid
+                        ? (vg.srvCount > 1
+                            ? (sub < (uint)(vg.srvCount - 1) ? (uint)(vg.srv.Value + 1 + (int)sub) : uint.MaxValue)
+                            : (sub == 0 ? (uint)vg.srv.Value : uint.MaxValue))
+                        : uint.MaxValue,
+                    BindlessAccess.UnorderedAccess => vg.uav.IsValid
+                        ? (sub < (uint)vg.uavCount ? (uint)(vg.uav.Value + (int)sub) : uint.MaxValue)
+                        : uint.MaxValue,
+                    BindlessAccess.ConstantBuffer => vg.cbv.IsValid ? (uint)vg.cbv.Value : uint.MaxValue,
                     _ => uint.MaxValue,
                 };
             }
@@ -486,36 +487,20 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             return Error.NotFound;
         }
 
-        // ViewGroups and subResourceViews are pinned to their slots — save before swap
+        // ViewGroups are pinned to their slots — save before swap
         var viewA = recordA.viewGroup;
         var viewB = recordB.viewGroup;
-        var subA = recordA.subResourceView;
-        var subB = recordB.subResourceView;
 
         var temp = recordA;
         recordA = recordB;
         recordB = temp;
 
-        // Restore viewGroups and subResourceViews to their original slots
+        // Restore viewGroups to their original slots
         recordA.viewGroup = viewA;
         recordB.viewGroup = viewB;
-        recordA.subResourceView = subA;
-        recordB.subResourceView = subB;
 
         recordA.viewGroup = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordA.desc, recordA.ResourcePtr, viewA);
         recordB.viewGroup = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordB.desc, recordB.ResourcePtr, viewB);
-
-        if (subA.IsCreated && recordA.desc.Type == ResourceType.Texture)
-        {
-            ref readonly var descA = ref recordA.desc.TextureDescriptor;
-            D3D12Utility.CreateSubresourceDescriptors(_device, _descriptorAllocator, descA, recordA.ResourcePtr, preallocated: subA);
-        }
-
-        if (subB.IsCreated && recordB.desc.Type == ResourceType.Texture)
-        {
-            ref readonly var descB = ref recordB.desc.TextureDescriptor;
-            D3D12Utility.CreateSubresourceDescriptors(_device, _descriptorAllocator, descB, recordB.ResourcePtr, preallocated: subB);
-        }
 
         return Error.None;
     }

@@ -66,11 +66,24 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         return descriptors;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(Identifier<RTVDescriptor> descriptor)
+    public Identifier<RTVDescriptor> AllocateRtvRange(int count)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _rtvHeap.GetCpuHandle(descriptor.Value);
+
+        var baseIndex = _rtvHeap.AllocateDescriptors(count);
+        if (baseIndex == -1)
+        {
+            throw new InvalidOperationException($"Failed to allocate {count} RTV descriptors");
+        }
+
+        return new Identifier<RTVDescriptor>(baseIndex);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(Identifier<RTVDescriptor> descriptor, int offset = 0)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _rtvHeap.GetCpuHandle(descriptor.Value + offset);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -78,6 +91,13 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         _rtvHeap.ReleaseDescriptor(descriptor.Value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Release(Identifier<RTVDescriptor> descriptor, int count)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _rtvHeap.ReleaseDescriptors(descriptor.Value, count);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -187,28 +207,52 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
         return descriptors;
     }
 
-    public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(Identifier<CbvSrvUavDescriptor> descriptor)
+    public Identifier<CbvSrvUavDescriptor> AllocateCbvSrvUavRange(int count)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _cbvSrvUavHeap.GetCpuHandle(descriptor.Value);
+
+        var baseIndex = _cbvSrvUavHeap.AllocateDescriptors(count);
+        if (baseIndex == -1)
+        {
+            throw new InvalidOperationException($"Failed to allocate {count} CBV/SRV/UAV descriptors");
+        }
+
+        return new Identifier<CbvSrvUavDescriptor>(baseIndex);
     }
 
-    public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandleShaderVisible(Identifier<CbvSrvUavDescriptor> descriptor)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(Identifier<CbvSrvUavDescriptor> descriptor, int offset = 0)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _cbvSrvUavHeap.GetCpuHandleShaderVisible(descriptor.Value);
+        return _cbvSrvUavHeap.GetCpuHandle(descriptor.Value + offset);
     }
 
-    public D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(Identifier<CbvSrvUavDescriptor> descriptor)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandleShaderVisible(Identifier<CbvSrvUavDescriptor> descriptor, int offset = 0)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _cbvSrvUavHeap.GetGpuHandle(descriptor.Value);
+        return _cbvSrvUavHeap.GetCpuHandleShaderVisible(descriptor.Value + offset);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(Identifier<CbvSrvUavDescriptor> descriptor, int offset = 0)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _cbvSrvUavHeap.GetGpuHandle(descriptor.Value + offset);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Release(Identifier<CbvSrvUavDescriptor> descriptor)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         _cbvSrvUavHeap.ReleaseDescriptor(descriptor.Value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Release(Identifier<CbvSrvUavDescriptor> descriptor, int count)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _cbvSrvUavHeap.ReleaseDescriptors(descriptor.Value, count);
     }
 
     public void Release(ReadOnlySpan<Identifier<CbvSrvUavDescriptor>> descriptors)
@@ -299,12 +343,35 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        Release(descriptor.rtv);
-        Release(descriptor.dsv);
-        Release(descriptor.srv);
-        Release(descriptor.cbv);
-        Release(descriptor.uav);
-        Release(descriptor.sampler);
+        if (descriptor.rtv.IsValid)
+        {
+            Release(descriptor.rtv, Math.Max(1, (int)descriptor.rtvCount));
+        }
+
+        if (descriptor.dsv.IsValid)
+        {
+            Release(descriptor.dsv);
+        }
+
+        if (descriptor.srv.IsValid)
+        {
+            Release(descriptor.srv, Math.Max(1, (int)descriptor.srvCount));
+        }
+
+        if (descriptor.cbv.IsValid)
+        {
+            Release(descriptor.cbv);
+        }
+
+        if (descriptor.uav.IsValid)
+        {
+            Release(descriptor.uav, Math.Max(1, (int)descriptor.uavCount));
+        }
+
+        if (descriptor.sampler.IsValid)
+        {
+            Release(descriptor.sampler);
+        }
     }
 
     #region Utility Methods

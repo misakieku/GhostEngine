@@ -18,7 +18,7 @@ public static class TemplateStitcher
     /// <summary>
     /// Loads an embedded template file by its template-relative path (e.g. "Unlit/Unlit_Forward.template.hlsl").
     /// </summary>
-    internal static Result<string> LoadTemplateSource(string templateFile)
+    public static Result<string> LoadTemplateSource(string templateFile)
     {
         var resourceName = ResourcePrefix + templateFile.Replace('/', '.').Replace('\\', '.');
 

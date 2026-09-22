@@ -37,7 +37,7 @@ internal partial class GhostRenderPipeline
         public uint2 renderSize;
     }
 
-    private void AddClearVisibilityBufferPass(RenderGraph rg, Identifier<RGBuffer> visBuffer, uint2 screenSize)
+    private void AddClearVisibilityBufferPass(RenderGraph rg, Identifier<RGBuffer> visBuffer, uint totalPixels)
     {
         if (!_cullingResource.clearVisibilityBufferShader.IsValid)
         {
@@ -47,7 +47,6 @@ internal partial class GhostRenderPipeline
         using var builder = rg.AddComputeRenderPass<ClearVisibilityBufferPassData>("ClearVisibilityBuffer");
         builder.UseBuffer(visBuffer, AccessFlags.Write);
 
-        var totalPixels = screenSize.x * screenSize.y;
         builder.SetPassData(new ClearVisibilityBufferPassData
         {
             visBuffer = visBuffer,
@@ -83,7 +82,10 @@ internal partial class GhostRenderPipeline
 
         if (existingVisBuffer.IsInvalid)
         {
-            var vbufferSize = (ulong)screenSize.x * screenSize.y * 8UL;
+            var tilesX = (screenSize.x + 7u) / 8u;
+            var tilesY = (screenSize.y + 7u) / 8u;
+            var totalAllocatedPixels = tilesX * tilesY * 64u;
+            var vbufferSize = (ulong)totalAllocatedPixels * 8UL;
             var vbufferDesc = new BufferDesc
             {
                 Size = (uint)vbufferSize,
@@ -91,7 +93,7 @@ internal partial class GhostRenderPipeline
                 Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
             };
             existingVisBuffer = rg.CreateBuffer(in vbufferDesc, "VisibilityBuffer");
-            AddClearVisibilityBufferPass(rg, existingVisBuffer, screenSize);
+            AddClearVisibilityBufferPass(rg, existingVisBuffer, totalAllocatedPixels);
         }
 
         using var builder = rg.AddUnsafeRenderPass<VisibilityPassData>(passName);

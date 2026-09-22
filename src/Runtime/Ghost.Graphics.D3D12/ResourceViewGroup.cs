@@ -17,6 +17,10 @@ internal struct ResourceViewGroup
     public Identifier<CbvSrvUavDescriptor> uav;
     public Identifier<SamplerDescriptor> sampler;
 
+    public ushort rtvCount;
+    public ushort srvCount;
+    public ushort uavCount;
+
     public static ResourceViewGroup Invalid => new()
     {
         rtv = Identifier<RTVDescriptor>.Invalid,
@@ -25,6 +29,9 @@ internal struct ResourceViewGroup
         cbv = Identifier<CbvSrvUavDescriptor>.Invalid,
         uav = Identifier<CbvSrvUavDescriptor>.Invalid,
         sampler = Identifier<SamplerDescriptor>.Invalid,
+        rtvCount = 0,
+        srvCount = 0,
+        uavCount = 0,
     };
 
     public readonly TextureUsage GetTextureUsage()

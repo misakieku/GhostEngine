@@ -1224,7 +1224,13 @@ internal static unsafe class D3D12Utility
         return uavDesc;
     }
 
-    public static ResourceViewGroup CreateResourceDescriptor(D3D12RenderDevice device, D3D12DescriptorAllocator descriptorAllocator, in ResourceDesc desc, ID3D12Resource* pResource, ResourceViewGroup originalGroup = default)
+    public static ResourceViewGroup CreateResourceDescriptor(
+        D3D12RenderDevice device,
+        D3D12DescriptorAllocator descriptorAllocator,
+        in ResourceDesc desc,
+        ID3D12Resource* pResource,
+        ResourceViewGroup originalGroup = default,
+        TextureViewCreationFlags viewCreationFlags = TextureViewCreationFlags.None)
     {
         var resourceDescriptor = new ResourceViewGroup();
         var resourceDesc = pResource->GetDesc();
@@ -1233,24 +1239,88 @@ internal static unsafe class D3D12Utility
         {
             ref readonly var textureDesc = ref desc.TextureDescriptor;
 
+            var mipLevels = resourceDesc.MipLevels;
+            var arraySize = textureDesc.Dimension switch
+            {
+                TextureDimension.TextureCube => 6u,
+                TextureDimension.TextureCubeArray => textureDesc.Slice * 6,
+                TextureDimension.Texture2DArray => textureDesc.Slice,
+                _ => 1u,
+            };
+
+            var totalSubresources = mipLevels * arraySize;
+            var isCubeMap = textureDesc.Dimension == TextureDimension.TextureCube || textureDesc.Dimension == TextureDimension.TextureCubeArray;
+
+            var perMipSrv = viewCreationFlags.HasFlag(TextureViewCreationFlags.CreatePerMipSrv);
+            var perSliceSrv = viewCreationFlags.HasFlag(TextureViewCreationFlags.CreatePerSliceSrv);
+            var perMipRtv = viewCreationFlags.HasFlag(TextureViewCreationFlags.CreatePerMipRtv);
+            var perSliceRtv = viewCreationFlags.HasFlag(TextureViewCreationFlags.CreatePerSliceRtv);
+
+            var needsSubresourceSrv = perMipSrv || (perSliceSrv && arraySize > 1) || originalGroup.srvCount > 1;
+            var needsSubresourceRtv = ((perMipRtv || perSliceRtv) && textureDesc.Usage.HasFlag(TextureUsage.RenderTarget)) || originalGroup.rtvCount > 1;
+
             if (textureDesc.Usage.HasFlag(TextureUsage.ShaderResource))
             {
-                resourceDescriptor.srv = originalGroup.srv.IsValid ? originalGroup.srv : descriptorAllocator.AllocateCbvSrvUav();
-                var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.srv);
+                if (needsSubresourceSrv)
+                {
+                    var srvCount = (ushort)(1 + totalSubresources);
+                    resourceDescriptor.srv = originalGroup.srv.IsValid ? originalGroup.srv : descriptorAllocator.AllocateCbvSrvUavRange(srvCount);
+                    resourceDescriptor.srvCount = srvCount;
 
-                var isCubeMap = textureDesc.Dimension == TextureDimension.TextureCube || textureDesc.Dimension == TextureDimension.TextureCubeArray;
-                var srvDesc = CreateTextureSrvDesc(pResource, resourceDesc.MipLevels, resourceDesc.DepthOrArraySize, isCubeMap, textureDesc.Format);
+                    var mainCpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.srv, 0);
+                    var mainSrvDesc = CreateTextureSrvDesc(pResource, resourceDesc.MipLevels, resourceDesc.DepthOrArraySize, isCubeMap, textureDesc.Format);
+                    device.NativeObject.Get()->CreateShaderResourceView(pResource, &mainSrvDesc, mainCpuHandle);
 
-                device.NativeObject.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
+                    for (var slice = 0u; slice < arraySize; slice++)
+                    {
+                        for (var mip = 0u; mip < mipLevels; mip++)
+                        {
+                            var subIndex = (int)(mip + slice * mipLevels);
+                            var subCpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.srv, 1 + subIndex);
+                            var subSrvDesc = CreateTextureSrvDesc(pResource, mipLevels: 1, arraySize: 1, isCubeMap: false, textureDesc.Format, mostDetailedMip: mip, firstArraySlice: slice);
+                            device.NativeObject.Get()->CreateShaderResourceView(pResource, &subSrvDesc, subCpuHandle);
+                        }
+                    }
+                }
+                else
+                {
+                    resourceDescriptor.srv = originalGroup.srv.IsValid ? originalGroup.srv : descriptorAllocator.AllocateCbvSrvUav();
+                    resourceDescriptor.srvCount = 1;
+
+                    var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.srv);
+                    var srvDesc = CreateTextureSrvDesc(pResource, resourceDesc.MipLevels, resourceDesc.DepthOrArraySize, isCubeMap, textureDesc.Format);
+                    device.NativeObject.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
+                }
             }
 
             if (textureDesc.Usage.HasFlag(TextureUsage.RenderTarget))
             {
-                resourceDescriptor.rtv = originalGroup.rtv.IsValid ? originalGroup.rtv : descriptorAllocator.AllocateRTV();
-                var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.rtv);
-                var rtvDesc = CreateRtvDesc(pResource);
+                if (needsSubresourceRtv)
+                {
+                    var rtvCount = (ushort)totalSubresources;
+                    resourceDescriptor.rtv = originalGroup.rtv.IsValid ? originalGroup.rtv : descriptorAllocator.AllocateRtvRange(rtvCount);
+                    resourceDescriptor.rtvCount = rtvCount;
 
-                device.NativeObject.Get()->CreateRenderTargetView(pResource, &rtvDesc, cpuHandle);
+                    for (var slice = 0u; slice < arraySize; slice++)
+                    {
+                        for (var mip = 0u; mip < mipLevels; mip++)
+                        {
+                            var subIndex = (int)(mip + slice * mipLevels);
+                            var subCpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.rtv, subIndex);
+                            var rtvDesc = CreateRtvDesc(pResource, mipSlice: mip, firstArraySlice: slice);
+                            device.NativeObject.Get()->CreateRenderTargetView(pResource, &rtvDesc, subCpuHandle);
+                        }
+                    }
+                }
+                else
+                {
+                    resourceDescriptor.rtv = originalGroup.rtv.IsValid ? originalGroup.rtv : descriptorAllocator.AllocateRTV();
+                    resourceDescriptor.rtvCount = 1;
+
+                    var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.rtv);
+                    var rtvDesc = CreateRtvDesc(pResource);
+                    device.NativeObject.Get()->CreateRenderTargetView(pResource, &rtvDesc, cpuHandle);
+                }
             }
 
             if (textureDesc.Usage.HasFlag(TextureUsage.DepthStencil))
@@ -1258,17 +1328,25 @@ internal static unsafe class D3D12Utility
                 resourceDescriptor.dsv = originalGroup.dsv.IsValid ? originalGroup.dsv : descriptorAllocator.AllocateDSV();
                 var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.dsv);
                 var dsvDesc = CreateDsvDesc(pResource, 0, 0, D3D12_DSV_FLAG_NONE, textureDesc.Format);
-
                 device.NativeObject.Get()->CreateDepthStencilView(pResource, &dsvDesc, cpuHandle);
             }
 
             if (textureDesc.Usage.HasFlag(TextureUsage.UnorderedAccess))
             {
-                resourceDescriptor.uav = originalGroup.uav.IsValid ? originalGroup.uav : descriptorAllocator.AllocateCbvSrvUav();
-                var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.uav);
-                var uavDesc = CreateTextureUavDesc(pResource);
+                var uavCount = (ushort)totalSubresources;
+                resourceDescriptor.uav = originalGroup.uav.IsValid ? originalGroup.uav : (uavCount > 1 ? descriptorAllocator.AllocateCbvSrvUavRange(uavCount) : descriptorAllocator.AllocateCbvSrvUav());
+                resourceDescriptor.uavCount = uavCount;
 
-                device.NativeObject.Get()->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
+                for (var slice = 0u; slice < arraySize; slice++)
+                {
+                    for (var mip = 0u; mip < mipLevels; mip++)
+                    {
+                        var subIndex = (int)(mip + slice * mipLevels);
+                        var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.uav, subIndex);
+                        var uavDesc = CreateTextureUavDesc(pResource, mipSlice: mip, firstArraySlice: slice, planeSlice: 0, arraySize: 1);
+                        device.NativeObject.Get()->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
+                    }
+                }
             }
         }
         else
@@ -1292,6 +1370,7 @@ internal static unsafe class D3D12Utility
             if (bufferDesc.Usage.HasFlag(BufferUsage.ShaderResource))
             {
                 resourceDescriptor.srv = originalGroup.srv.IsValid ? originalGroup.srv : descriptorAllocator.AllocateCbvSrvUav();
+                resourceDescriptor.srvCount = 1;
                 var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.srv);
                 var srvDesc = CreateBufferSrvDesc(pResource, bufferDesc.Stride, isRaw);
 
@@ -1301,6 +1380,7 @@ internal static unsafe class D3D12Utility
             if (bufferDesc.Usage.HasFlag(BufferUsage.UnorderedAccess))
             {
                 resourceDescriptor.uav = originalGroup.uav.IsValid ? originalGroup.uav : descriptorAllocator.AllocateCbvSrvUav();
+                resourceDescriptor.uavCount = 1;
                 var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.uav);
                 var uavDesc = CreateBufferUavDesc(pResource, bufferDesc.Stride, isRaw);
 
@@ -1309,86 +1389,5 @@ internal static unsafe class D3D12Utility
         }
 
         return resourceDescriptor;
-    }
-
-    public static UnsafeArray<ResourceViewGroup> CreateSubresourceDescriptors(
-        D3D12RenderDevice device,
-        D3D12DescriptorAllocator descriptorAllocator,
-        in TextureDesc desc,
-        ID3D12Resource* pResource,
-        TextureViewCreationFlags flags = TextureViewCreationFlags.None,
-        UnsafeArray<ResourceViewGroup> preallocated = default)
-    {
-        var mipLevels = desc.MipLevels == 0
-            ? (uint)(1 + Math.Floor(Math.Log2(Math.Max(desc.Width, Math.Max(desc.Height, desc.Slice)))))
-            : desc.MipLevels;
-
-        var arraySize = desc.Dimension switch
-        {
-            TextureDimension.TextureCube => 6u,
-            TextureDimension.TextureCubeArray => desc.Slice * 6,
-            TextureDimension.Texture2DArray => desc.Slice,
-            _ => 1u,
-        };
-
-        var totalSubresources = mipLevels * arraySize;
-        var subResourceViews = preallocated.IsCreated && preallocated.Length == totalSubresources
-            ? preallocated
-            : new UnsafeArray<ResourceViewGroup>((int)totalSubresources, AllocationHandle.Persistent, AllocationOption.Clear);
-
-        var hasUav = desc.Usage.HasFlag(TextureUsage.UnorderedAccess);
-        var perMipSrv = flags.HasFlag(TextureViewCreationFlags.CreatePerMipSrv);
-        var perMipRtv = flags.HasFlag(TextureViewCreationFlags.CreatePerMipRtv);
-        var perSliceSrv = flags.HasFlag(TextureViewCreationFlags.CreatePerSliceSrv);
-        var perSliceRtv = flags.HasFlag(TextureViewCreationFlags.CreatePerSliceRtv);
-
-        for (var slice = 0u; slice < arraySize; slice++)
-        {
-            for (var mip = 0u; mip < mipLevels; mip++)
-            {
-                var subresourceIndex = (int)(mip + slice * mipLevels);
-                var vg = subResourceViews[subresourceIndex];
-
-                // UAV per mip (default for all multi-mip UAV textures)
-                if (hasUav || vg.uav.IsValid)
-                {
-                    if (!vg.uav.IsValid)
-                    {
-                        vg.uav = descriptorAllocator.AllocateCbvSrvUav();
-                    }
-                    var cpuHandle = descriptorAllocator.GetCpuHandle(vg.uav);
-                    var uavDesc = CreateTextureUavDesc(pResource, mipSlice: mip, firstArraySlice: slice, planeSlice: 0, arraySize: 1);
-                    device.NativeObject.Get()->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
-                }
-
-                // Per-mip or per-slice SRV
-                if (perMipSrv || (perSliceSrv && arraySize > 1) || vg.srv.IsValid)
-                {
-                    if (!vg.srv.IsValid)
-                    {
-                        vg.srv = descriptorAllocator.AllocateCbvSrvUav();
-                    }
-                    var cpuHandle = descriptorAllocator.GetCpuHandle(vg.srv);
-                    var srvDesc = CreateTextureSrvDesc(pResource, mipLevels: 1, arraySize: 1, isCubeMap: false, desc.Format, mostDetailedMip: mip, firstArraySlice: slice);
-                    device.NativeObject.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
-                }
-
-                // Per-mip or per-slice RTV
-                if (((perMipRtv || perSliceRtv) && desc.Usage.HasFlag(TextureUsage.RenderTarget)) || vg.rtv.IsValid)
-                {
-                    if (!vg.rtv.IsValid)
-                    {
-                        vg.rtv = descriptorAllocator.AllocateRTV();
-                    }
-                    var cpuHandle = descriptorAllocator.GetCpuHandle(vg.rtv);
-                    var rtvDesc = CreateRtvDesc(pResource, mipSlice: mip, firstArraySlice: slice);
-                    device.NativeObject.Get()->CreateRenderTargetView(pResource, &rtvDesc, cpuHandle);
-                }
-
-                subResourceViews[subresourceIndex] = vg;
-            }
-        }
-
-        return subResourceViews;
     }
 }
