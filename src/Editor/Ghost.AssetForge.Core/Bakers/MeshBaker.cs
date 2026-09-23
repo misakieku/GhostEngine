@@ -32,9 +32,9 @@ public unsafe partial class MeshBaker : IAssetBaker
                 cancellationToken.ThrowIfCancellationRequested();
 
                 using var meshletDataPtr = MeshProcessor.BuildMeshlets(
-                    mesh.Vertices.AsReadOnly(),
-                    mesh.Indices.AsReadOnly(),
-                    mesh.MaterialParts.AsReadOnly(),
+                    mesh.vertices.AsReadOnly(),
+                    mesh.indices.AsReadOnly(),
+                    mesh.materialParts.AsReadOnly(),
                     meshSettings,
                     AllocationHandle.Persistent);
 
@@ -72,9 +72,9 @@ public unsafe partial class MeshBaker : IAssetBaker
         {
             magic = MeshContentHeader.MAGIC,
             version = MeshContentHeader.VERSION,
-            vertexCount = mesh.Vertices.Count,
-            indexCount = mesh.Indices.Count,
-            materialPartCount = mesh.MaterialParts.Length,
+            vertexCount = mesh.vertices.Count,
+            indexCount = mesh.indices.Count,
+            materialPartCount = mesh.materialParts.Length,
             meshletCount = meshletData->meshlets.Count,
             meshletGroupCount = meshletData->groups.Count,
             meshletHierarchyNodeCount = meshletData->hierarchyNodes.Count,
@@ -82,21 +82,21 @@ public unsafe partial class MeshBaker : IAssetBaker
             meshletTriangleCount = meshletData->meshletTriangles.Count,
             materialSlotCount = meshletData->materialSlotCount,
             lodLevelCount = meshletData->lodLevelCount,
-            boundsMin = mesh.BoundingBox.Min,
-            boundsMax = mesh.BoundingBox.Max,
+            boundsMin = mesh.boundingBox.Min,
+            boundsMax = mesh.boundingBox.Max,
         };
 
         // Write header placeholder
         stream.Write(header);
 
         header.vertexOffset = stream.Position - assetStartOffset;
-        stream.Write(mesh.Vertices.AsSpan());
+        stream.Write(mesh.vertices.AsSpan());
 
         header.indexOffset = stream.Position - assetStartOffset;
-        stream.Write(mesh.Indices.AsSpan());
+        stream.Write(mesh.indices.AsSpan());
 
         header.materialPartOffset = stream.Position - assetStartOffset;
-        WriteMaterialParts(stream, mesh.MaterialParts.AsSpan());
+        WriteMaterialParts(stream, mesh.materialParts.AsSpan());
 
         header.meshletOffset = stream.Position - assetStartOffset;
         stream.Write(meshletData->meshlets.AsSpan());

@@ -185,17 +185,17 @@ public class MeshBakerTests
         {
             // First check the parsed mesh itself (LOD 0 source triangles before clustering)
             var flippedInputTris = 0;
-            var totalInputTris = mesh.Indices.Count / 3;
+            var totalInputTris = mesh.indices.Count / 3;
             for (var t = 0; t < totalInputTris; t++)
             {
-                var idx0 = mesh.Indices[t * 3 + 0];
-                var idx1 = mesh.Indices[t * 3 + 1];
-                var idx2 = mesh.Indices[t * 3 + 2];
+                var idx0 = mesh.indices[t * 3 + 0];
+                var idx1 = mesh.indices[t * 3 + 1];
+                var idx2 = mesh.indices[t * 3 + 2];
 
-                var p0 = mesh.Vertices[(int)idx0].position;
-                var p1 = mesh.Vertices[(int)idx1].position;
-                var p2 = mesh.Vertices[(int)idx2].position;
-                var nAvg = (mesh.Vertices[(int)idx0].normal + mesh.Vertices[(int)idx1].normal + mesh.Vertices[(int)idx2].normal) / 3.0f;
+                var p0 = mesh.vertices[(int)idx0].position;
+                var p1 = mesh.vertices[(int)idx1].position;
+                var p2 = mesh.vertices[(int)idx2].position;
+                var nAvg = (mesh.vertices[(int)idx0].normal + mesh.vertices[(int)idx1].normal + mesh.vertices[(int)idx2].normal) / 3.0f;
 
                 var geomNormal = Misaki.HighPerformance.Mathematics.math.cross(p1 - p0, p2 - p0);
                 if (Misaki.HighPerformance.Mathematics.math.dot(geomNormal, nAvg) < -1e-6f)
@@ -207,9 +207,9 @@ public class MeshBakerTests
             Console.WriteLine($"[Diagnostic] Input mesh: total triangles={totalInputTris}, flipped triangles={flippedInputTris}");
 
             using var meshletDataPtr = MeshProcessor.BuildMeshlets(
-                mesh.Vertices.AsReadOnly(),
-                mesh.Indices.AsReadOnly(),
-                mesh.MaterialParts.AsReadOnly(),
+                mesh.vertices.AsReadOnly(),
+                mesh.indices.AsReadOnly(),
+                mesh.materialParts.AsReadOnly(),
                 settings,
                 Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
 
@@ -236,10 +236,10 @@ public class MeshBakerTests
                     var v1 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i1];
                     var v2 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i2];
 
-                    var p0 = mesh.Vertices[(int)v0].position;
-                    var p1 = mesh.Vertices[(int)v1].position;
-                    var p2 = mesh.Vertices[(int)v2].position;
-                    var nAvg = (mesh.Vertices[(int)v0].normal + mesh.Vertices[(int)v1].normal + mesh.Vertices[(int)v2].normal) / 3.0f;
+                    var p0 = mesh.vertices[(int)v0].position;
+                    var p1 = mesh.vertices[(int)v1].position;
+                    var p2 = mesh.vertices[(int)v2].position;
+                    var nAvg = (mesh.vertices[(int)v0].normal + mesh.vertices[(int)v1].normal + mesh.vertices[(int)v2].normal) / 3.0f;
 
                     var geomNormal = Misaki.HighPerformance.Mathematics.math.cross(p1 - p0, p2 - p0);
                     totalTriangles++;
@@ -262,6 +262,153 @@ public class MeshBakerTests
             // At LOD 0, the meshlets preserve the imported mesh geometry exactly.
             // (Only 1 micro-sliver with near-zero area at the bottom cap has dot < -1e-6 in Stanford Bunny).
             Assert.IsLessThanOrEqualTo(1, flippedPerLod[0], $"LOD 0 has {flippedPerLod[0]} flipped triangles!");
+        }
+        finally
+        {
+            mesh.Dispose();
+        }
+    }
+
+    [TestMethod]
+    public unsafe void TestDragonMeshletsForFlippedTriangles()
+    {
+        var dragonPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../Test/TestGame/Assets/Meshes/dragon.obj"));
+        if (!File.Exists(dragonPath))
+        {
+            dragonPath = @"F:\csharp\GhostEngine\src\Test\TestGame\Assets\Meshes\dragon.obj";
+        }
+        Assert.IsTrue(File.Exists(dragonPath), $"dragon.obj not found at {dragonPath}");
+
+        var settings = new MeshBakeSettings
+        {
+            ObjectUpAxis = CoordinateAxis.PositiveY,
+            ObjectForwardAxis = CoordinateAxis.NegativeZ,
+            ObjectRightAxis = CoordinateAxis.PositiveX,
+            UnitMeterScale = 1,
+            NormalDataSource = VertexDataSource.ComputedIfMissing,
+            TangentDataSource = VertexDataSource.ComputedIfMissing,
+            SimplifyRatio = 0.5f,
+            SimplifyThreshold = 0.85f,
+            OptimizeClusters = true
+        };
+
+        var parseResult = MeshProcessor.ParseModel(dragonPath, settings, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
+        Assert.IsTrue(parseResult.IsSuccess, parseResult.Message);
+
+        var mesh = parseResult.Value[0];
+        try
+        {
+            var count010 = 0;
+            int sampleV = -1;
+            for (var v = 0; v < mesh.vertices.Count; v++)
+            {
+                var n = mesh.vertices[v].normal;
+                if (n.x == 0 && n.y == 1 && n.z == 0)
+                {
+                    if (sampleV == -1) sampleV = v;
+                    count010++;
+                }
+            }
+            Console.WriteLine($"[Dragon Vertices] Total vertices={mesh.vertices.Count}, vertices with normal (0, 1, 0)={count010}");
+            if (sampleV != -1)
+            {
+                Console.WriteLine($"[Sample Vertex {sampleV}] pos={mesh.vertices[sampleV].position}");
+                for (var t = 0; t < mesh.indices.Count / 3; t++)
+                {
+                    var i0 = mesh.indices[t * 3 + 0];
+                    var i1 = mesh.indices[t * 3 + 1];
+                    var i2 = mesh.indices[t * 3 + 2];
+                    if (i0 == sampleV || i1 == sampleV || i2 == sampleV)
+                    {
+                        var p0 = mesh.vertices[(int)i0].position;
+                        var p1 = mesh.vertices[(int)i1].position;
+                        var p2 = mesh.vertices[(int)i2].position;
+                        var fn = Misaki.HighPerformance.Mathematics.math.cross(p1 - p0, p2 - p0);
+                        Console.WriteLine($"   Tri {t} (i0={i0}, i1={i1}, i2={i2}) cross={fn}, lenSq={Misaki.HighPerformance.Mathematics.math.lengthsq(fn)}");
+                    }
+                }
+            }
+            var flippedInputTris = 0;
+            var totalInputTris = mesh.indices.Count / 3;
+            for (var t = 0; t < totalInputTris; t++)
+            {
+                var idx0 = mesh.indices[t * 3 + 0];
+                var idx1 = mesh.indices[t * 3 + 1];
+                var idx2 = mesh.indices[t * 3 + 2];
+
+                var p0 = mesh.vertices[(int)idx0].position;
+                var p1 = mesh.vertices[(int)idx1].position;
+                var p2 = mesh.vertices[(int)idx2].position;
+                var nAvg = (mesh.vertices[(int)idx0].normal + mesh.vertices[(int)idx1].normal + mesh.vertices[(int)idx2].normal) / 3.0f;
+
+                var geomNormal = Misaki.HighPerformance.Mathematics.math.cross(p1 - p0, p2 - p0);
+                if (Misaki.HighPerformance.Mathematics.math.dot(geomNormal, nAvg) < -1e-6f)
+                {
+                    if (flippedInputTris < 10)
+                    {
+                        Console.WriteLine($"[Dragon Tri {t}] idx=({idx0}, {idx1}, {idx2}) n0={mesh.vertices[(int)idx0].normal}, n1={mesh.vertices[(int)idx1].normal}, n2={mesh.vertices[(int)idx2].normal}");
+                        Console.WriteLine($"               p0={p0}, p1={p1}, p2={p2}, geomN={geomNormal}, nAvg={nAvg}, dot={Misaki.HighPerformance.Mathematics.math.dot(geomNormal, nAvg)}");
+                    }
+                    flippedInputTris++;
+                }
+            }
+            Console.WriteLine($"[Diagnostic Dragon] Input mesh: total triangles={totalInputTris}, flipped triangles={flippedInputTris}");
+
+            using var meshletDataPtr = MeshProcessor.BuildMeshlets(
+                mesh.vertices.AsReadOnly(),
+                mesh.indices.AsReadOnly(),
+                mesh.materialParts.AsReadOnly(),
+                settings,
+                Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
+
+            var pMeshletData = meshletDataPtr.Get();
+            Console.WriteLine($"[Diagnostic Dragon] Total meshlets: {pMeshletData->meshlets.Count}, groups: {pMeshletData->groups.Count}, lods: {pMeshletData->lodLevelCount}");
+
+            var totalTriangles = 0;
+            var totalFlipped = 0;
+            var flippedPerLod = new int[pMeshletData->lodLevelCount + 1];
+            var totalPerLod = new int[pMeshletData->lodLevelCount + 1];
+
+            var meshletsPerLod = new int[pMeshletData->lodLevelCount + 1];
+
+            for (var m = 0; m < pMeshletData->meshlets.Count; m++)
+            {
+                ref readonly var ml = ref pMeshletData->meshlets[m];
+                int lod = ml.lodLevel;
+                meshletsPerLod[lod]++;
+                for (var t = 0; t < ml.triangleCount; t++)
+                {
+                    var packed = pMeshletData->meshletTriangles[(int)ml.triangleOffset + t];
+                    var i0 = packed & 0xFF;
+                    var i1 = (packed >> 8) & 0xFF;
+                    var i2 = (packed >> 16) & 0xFF;
+
+                    var v0 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i0];
+                    var v1 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i1];
+                    var v2 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i2];
+
+                    var p0 = mesh.vertices[(int)v0].position;
+                    var p1 = mesh.vertices[(int)v1].position;
+                    var p2 = mesh.vertices[(int)v2].position;
+                    var nAvg = (mesh.vertices[(int)v0].normal + mesh.vertices[(int)v1].normal + mesh.vertices[(int)v2].normal) / 3.0f;
+
+                    var geomNormal = Misaki.HighPerformance.Mathematics.math.cross(p1 - p0, p2 - p0);
+                    totalTriangles++;
+                    totalPerLod[lod]++;
+
+                    if (Misaki.HighPerformance.Mathematics.math.dot(geomNormal, nAvg) < -1e-6f)
+                    {
+                        totalFlipped++;
+                        flippedPerLod[lod]++;
+                    }
+                }
+            }
+
+            for (var l = 0; l < pMeshletData->lodLevelCount; l++)
+            {
+                Console.WriteLine($"[Diagnostic Dragon] LOD {l}: meshlets={meshletsPerLod[l]}, total triangles={totalPerLod[l]}, flipped triangles={flippedPerLod[l]}");
+            }
+            Console.WriteLine($"[Diagnostic Dragon] ALL LODs: total triangles={totalTriangles}, flipped triangles={totalFlipped}");
         }
         finally
         {
@@ -299,9 +446,9 @@ public class MeshBakerTests
         try
         {
             using var meshletDataPtr = MeshProcessor.BuildMeshlets(
-                mesh.Vertices.AsReadOnly(),
-                mesh.Indices.AsReadOnly(),
-                mesh.MaterialParts.AsReadOnly(),
+                mesh.vertices.AsReadOnly(),
+                mesh.indices.AsReadOnly(),
+                mesh.materialParts.AsReadOnly(),
                 settings,
                 Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
 
@@ -391,9 +538,9 @@ public class MeshBakerTests
         try
         {
             using var meshletDataPtr = MeshProcessor.BuildMeshlets(
-                mesh.Vertices.AsReadOnly(),
-                mesh.Indices.AsReadOnly(),
-                mesh.MaterialParts.AsReadOnly(),
+                mesh.vertices.AsReadOnly(),
+                mesh.indices.AsReadOnly(),
+                mesh.materialParts.AsReadOnly(),
                 settings,
                 Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
 

@@ -15,7 +15,7 @@ public class TestRunner
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Test failed with exception: {ex.Message}");
+            Console.WriteLine($"Test failed with exception: {ex}");
         }
 
         Console.WriteLine("Test completed.");

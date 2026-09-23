@@ -135,6 +135,11 @@ compute "Internal/MeshletCullGraph"
             float z_view = dot(worldCenter - g_ViewData.cameraPosition, g_ViewData.cameraDirection);
             float r_percentage = (worldRadius * g_ViewData.projectionMatrix[1][1] * 100.0f) / (2.0f * z_view );
 
+            if (r_percentage < props.cullingThreshold)
+            {
+                return;
+            }
+
             if (!SphereIntersectFrustum(worldCenter, worldRadius, g_ViewData.frustum.planes))
             {
                 return;

@@ -27,6 +27,7 @@ internal static class Setup
     {
         MaxVisibleMeshletsOnScreen = 2_097_152 * 1,
         MeshletLodErrorThreshold = 1.0f,
+        InstanceCullingThreshold = 2.0f,
     };
 
     [RuntimeConfiguration]
@@ -75,27 +76,37 @@ internal static class Setup
             // Change debug mode in settings using F1, F2, F3, etc. keys
             if (e.type == (uint)SDL_EventType.SDL_EVENT_KEY_DOWN)
             {
+                const float delta = 0.1f;
+                ref var matrix = ref s_world.EntityManager.GetComponent<LocalToWorld>(s_camera).matrix;
+                MathUtility.GetTRS(matrix, out var position, out var rotation, out var scale);
+
                 switch (e.key.key)
                 {
-                    case SDL_Keycode.SDLK_F1:
-                        s_world.EntityManager.SetComponent(s_camera, new LocalToWorld
-                        {
-                            matrix = float4x4.TRS(new float3(0.0f, 0.0f, -30.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
-                        });
+                    case SDL_Keycode.SDLK_W:
+                        matrix = float4x4.TRS(position + new float3(0.0f, 0.0f, delta), quaternion.identity, new float3(1.0f, 1.0f, 1.0f));
                         break;
-                    case SDL_Keycode.SDLK_F2:
-                        s_world.EntityManager.SetComponent(s_camera, new LocalToWorld
-                        {
-                            matrix = float4x4.TRS(new float3(0.0f, 0.0f, -10.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
-                        });
+                    case SDL_Keycode.SDLK_S:
+                        matrix = float4x4.TRS(position - new float3(0.0f, 0.0f, delta), quaternion.identity, new float3(1.0f, 1.0f, 1.0f));
+                        break;
+                    case SDL_Keycode.SDLK_A:
+                        matrix = float4x4.TRS(position - new float3(delta, 0.0f, 0.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f));
+                        break;
+                    case SDL_Keycode.SDLK_D:
+                        matrix = float4x4.TRS(position + new float3(delta, 0.0f, 0.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f));
+                        break;
+                    case SDL_Keycode.SDLK_Q:
+                        matrix = float4x4.TRS(position + new float3(0.0f, delta, 0.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f));
+                        break;
+                    case SDL_Keycode.SDLK_E:
+                        matrix = float4x4.TRS(position - new float3(0.0f, delta, 0.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f));
                         break;
                 }
             }
         };
 
-        const int entityCapacity = 10000;
-        const float size = 10.0f;
-        const float baseScale = 0.5f;
+        const int entityCapacity = 100;
+        const float size = 5.0f;
+        const float baseScale = 3.0f;
 
         s_world = World.Create(engineCore.JobScheduler, entityCapacity);
 
@@ -159,7 +170,8 @@ internal static class Setup
 
             var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
             var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f)));
-            var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
+            // var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
+            var scale = float3.one * 3.0f;
 
             s_world.EntityManager.SetComponent(entity, new LocalToWorld
             {
@@ -168,9 +180,9 @@ internal static class Setup
         }
 
         //var defaultSystemGroup = new DefaultSystemGroup();
-        //defaultSystemGroup.AddSystem<RandomMoveSystem>();
+        //defaultSystemGroup.AddSystem<Systems.RandomMoveSystem>();
         //defaultSystemGroup.SortSystems();
-        //
+
         //s_world.SystemManager.AddSystem(defaultSystemGroup);
         s_world.SystemManager.AddSystem<RenderSystemGroup>();
 

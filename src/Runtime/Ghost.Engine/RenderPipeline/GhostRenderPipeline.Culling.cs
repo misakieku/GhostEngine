@@ -82,45 +82,6 @@ internal unsafe partial class GhostRenderPipeline
         public uint2 dispatchSize;
     }
 
-    internal partial class CullingResource : IPipelineResource
-    {
-        [ResolveAsset("EngineResources/Shaders/MeshPipeline/MeshletCullGraph")]
-        public IAssetEntry cullWorkGraphEntry = null!;
-
-        [ResolveAsset("EngineResources/Shaders/MeshPipeline/OccludedMeshletCull")]
-        public Handle<ComputeShader> occludedMeshletCullShader;
-
-        [ResolveAsset("EngineResources/Shaders/MeshPipeline/BuildHZB")]
-        public Handle<ComputeShader> buildHZBShader;
-
-        [ResolveAsset("EngineResources/Shaders/MeshPipeline/PrepareMeshletIndirectArgs")]
-        public Handle<ComputeShader> prepareIndirectArgsShader;
-
-        [ResolveAsset("EngineResources/Shaders/Blit")]
-        public Handle<Shader> blitShader;
-
-        public IWorkGraphProgram? cullWorkGraphProgram;
-
-        public void EnsureWorkGraphProgram(RenderEngine renderEngine)
-        {
-            if (cullWorkGraphProgram != null)
-            {
-                return;
-            }
-
-            if (cullWorkGraphEntry is WorkGraphAssetEntry wgEntry && !wgEntry.Bytecode.IsEmpty)
-            {
-                cullWorkGraphProgram = renderEngine.GraphicsEngine.CreateWorkGraphProgram(wgEntry.Bytecode, "MeshletCullGraph");
-            }
-        }
-
-        partial void OnDisposing()
-        {
-            cullWorkGraphProgram?.Dispose();
-            cullWorkGraphProgram = null;
-        }
-    }
-
     private static class CullConstants
     {
         public const uint COUNTER_BUFFER_SIZE = 128;
@@ -139,11 +100,8 @@ internal unsafe partial class GhostRenderPipeline
 
     private ICommandSignature _dispatchCommandSignature = null!;
 
-    private readonly CullingResource _cullingResource = new CullingResource();
-
     private void InitializeCulling(RenderEngine renderEngine, AssetManager assetManager)
     {
-        _cullingResource.Resolve(assetManager);
         _dispatchCommandSignature = renderEngine.GraphicsEngine.CreateCommandSignature(new CommandSignatureDesc
         {
             Stride = 12,
@@ -157,11 +115,15 @@ internal unsafe partial class GhostRenderPipeline
     private void AddMeshletCullPass1(RenderGraph rg, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 screenSize, uint2 hzbBaseSize, uint instanceCount,
         out Identifier<RGBuffer> visibleMeshlets, out Identifier<RGBuffer> occludedMeshlets, out Identifier<RGBuffer> counterBuffer)
     {
-        _cullingResource.EnsureWorkGraphProgram(_renderEngine);
-        Logger.DebugAssert(_cullingResource.cullWorkGraphProgram != null, "Cull work graph program should be initialized.");
+        _meshPipelineResource.EnsureWorkGraphProgram(_renderEngine);
+        Logger.DebugAssert(_meshPipelineResource.cullWorkGraphProgram != null, "Cull work graph program should be initialized.");
 
-        var cullProgram = _cullingResource.cullWorkGraphProgram;
+        var cullProgram = _meshPipelineResource.cullWorkGraphProgram;
+#if DEBUG
+        var flags = SetWorkGraphFlags.Initialize; // Always initialize in debug mode so pix can capture the graph state.
+#else
         var flags = cullProgram.IsInitialized ? SetWorkGraphFlags.None : SetWorkGraphFlags.Initialize;
+#endif
 
         var entrypointIndex = cullProgram.GetEntrypointIndex("InstanceCullNode");
         if (entrypointIndex == uint.MaxValue)
@@ -293,7 +255,7 @@ internal unsafe partial class GhostRenderPipeline
         {
             counterBuffer = counterBuffer,
             indirectArgsBuffer = indirectArgBuffer,
-            shader = _cullingResource.prepareIndirectArgsShader,
+            shader = _meshPipelineResource.prepareIndirectArgsShader,
             cullPassIndex = cullPassIndex,
             maxCount = _settings.MaxVisibleMeshletsOnScreen
         });
@@ -377,7 +339,7 @@ internal unsafe partial class GhostRenderPipeline
                 {
                     srcBuffer = visBuffer,
                     dstTex = hzbTexture,
-                    shader = _cullingResource.buildHZBShader,
+                    shader = _meshPipelineResource.buildHZBShader,
                     startMip = startMip,
                     minDstCount = mipsInThisBatch,
                     isFirstBatch = isFirstBatch ? 1u : 0u,
@@ -473,7 +435,7 @@ internal unsafe partial class GhostRenderPipeline
             counterBuffer = counter,
             indirectArgsBuffer = indirectArgument,
             hzbTexture = hzbTexture,
-            shader = _cullingResource.occludedMeshletCullShader,
+            shader = _meshPipelineResource.occludedMeshletCullShader,
             hzbMipCount = hzbMipCount,
             renderSize = renderSize,
             hzbBaseSize = hzbBaseSize,
@@ -518,8 +480,6 @@ internal unsafe partial class GhostRenderPipeline
 
     private void DisposeCulling()
     {
-        _cullingResource.Dispose();
-
         _dispatchCommandSignature?.Dispose();
         _dispatchCommandSignature = null!;
     }

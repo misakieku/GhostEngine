@@ -57,10 +57,44 @@ Editor projects require `net10.0-windows10.*` and Windows App SDK. They only bui
 
 ### Build System Quirks
 
-`GhostEngine.targets` (imported by `Ghost.Engine` and `TestGame`) defines two MSBuild targets:
+`GhostEngine.targets` (imported by `Ghost.Engine` and `TestGame`) defines MSBuild targets:
 
 - **GenerateShaderMetadata** — runs before `CoreCompile`, extracts shader metadata into `shader_properties.json` using `Ghost.ShaderMetadataTool`
-- **BakeAndPackAssets** — runs after `Build`, triggered by `<IsGameProject>true</IsGameProject>` (set in `TestGame.csproj`). Bakes assets using `Ghost.AssetForge.CLI`
+- **BakeAndPackAssets** — runs after `Build`, triggered by `<IsGameProject>true</IsGameProject>` (set in `TestGame.csproj`). Bakes assets using the external `Ghost.AssetForge.CLI` tool
+- **CleanGhostAssets** — runs after `Clean`, deletes `$(GhostAssetCacheDir)` and `$(GhostAssetBuildDir)`
+
+#### Modifying Bakers & Re-baking Workflow (IMPORTANT)
+
+The MSBuild asset target invokes `Ghost.AssetForge.CLI` from the system PATH (which executes `src/Tools/Ghost.AssetForge.CLI/bin/Release/Publish/Ghost.AssetForge.CLI.exe`).
+
+When editing baker logic (`Ghost.AssetForge.Core`, `MeshBaker.*`, `TextureBaker`, etc.) or DSL shaders, changes will **NOT** automatically reflect in the baked game assets unless you publish the CLI tool and clean the cache.
+
+A helper script is provided in `src/Test/TestGame/` to automate this entire pipeline:
+
+```powershell
+src/Test/TestGame/run-this-when-assets-forge-changed.ps1 -c Debug -p:Platform=x64
+
+# Or with any other dotnet configuration / arguments:
+src/Test/TestGame/run-this-when-assets-forge-changed.ps1 -c Release -p:Platform=x64
+```
+
+Under the hood, this automates:
+```shell
+# 1. Publish the updated CLI tool
+dotnet publish src/Tools/Ghost.AssetForge.CLI/Ghost.AssetForge.CLI.csproj -c Release -o src/Tools/Ghost.AssetForge.CLI/bin/Release/Publish
+
+# 2. Clean the asset cache and pack output (CleanGhostAssets target removes AssetCache/ and Assets/)
+dotnet clean src/Test/TestGame/TestGame.csproj
+
+# 3. Build to re-bake fresh assets with the updated baker
+dotnet build src/Test/TestGame/TestGame.csproj -c Debug -p:Platform=x64
+```
+
+### Communication & Troubleshooting Guidelines
+
+- **Ask early on weird issues**: GhostEngine is a 140,000+ line engine with custom memory managers, unmanaged collections, ECS, GPU pipelines, and bespoke asset baking. If you encounter puzzling, strange, or unexpected behavior (e.g., unexpected data corruption, mystery buffer values, obscure pipeline artifacts), **ask the user / creator directly and early**. Do not spend prolonged time guessing or spinning in circles—the creator understands the entire architecture and can clarify expected behavior immediately.
+- **Root causes over symptom patches**: Never flip normals (`-normal`, `!isFrontFacing`), hide bad values with clamps, or hack shader returns to mask invalid data upstream. The data must be correct at the point of origin.
+- **Language**: English only.
 
 ---
 

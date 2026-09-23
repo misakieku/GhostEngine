@@ -45,12 +45,7 @@ static inline bool VisibilitySpeculativeEarlyZ(
 }
 
 // Writes visibility buffer entry via 64-bit atomic max
-static inline void VisibilityWritePixelAtomic(
-    uint visBufferIndex,
-    uint byteAddress,
-    float depth,
-    uint visibleMeshletIndex,
-    uint primitiveID)
+static inline void VisibilityWritePixelAtomic(uint visBufferIndex, uint byteAddress, float depth, uint visibleMeshletIndex, uint primitiveID)
 {
     RWByteAddressBuffer visBuffer = ResourceDescriptorHeap[visBufferIndex];
     uint64_t newPacked = PackVisibility64(depth, visibleMeshletIndex, primitiveID);

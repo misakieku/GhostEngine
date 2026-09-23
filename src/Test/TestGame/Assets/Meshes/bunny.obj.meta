@@ -1,0 +1,19 @@
+{
+  "Id": "e9467996-9925-4cc4-be64-9f8c8eb0919c",
+  "Type": "Mesh",
+  "SettingsType": "Ghost.AssetForge.Core.Bakers.MeshBakeSettings",
+  "Settings": {
+    "ObjectUpAxis": "PositiveY",
+    "ObjectForwardAxis": "NegativeZ",
+    "ObjectRightAxis": "PositiveX",
+    "UnitMeterScale": 1,
+    "NormalDataSource": "ComputedIfMissing",
+    "TangentDataSource": "ComputedIfMissing",
+    "MaxVerticesPerMeshlet": 64,
+    "MinTrianglesPerMeshlet": 32,
+    "MaxTrianglesPerMeshlet": 124,
+    "SimplifyRatio": 0.5,
+    "SimplifyThreshold": 0.85,
+    "OptimizeClusters": true
+  }
+}

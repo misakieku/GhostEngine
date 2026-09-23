@@ -9,7 +9,7 @@ shader "MyShader/Standard" : "Unlit"
     {
         float4 GetColor(in MaterialProperties props, float2 uv, inout Payload payload)
         {
-            return 0.5f;
+            return float4(uv.x, uv.y, 0.0f, 1.0f);
         }
     }
 }

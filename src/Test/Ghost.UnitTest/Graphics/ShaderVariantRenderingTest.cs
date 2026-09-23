@@ -74,6 +74,8 @@ public sealed class ShaderVariantRenderingTest
         {
         }
 
+        public void ClearBuffer(Identifier<RGBuffer> buffer, uint sizeInBytes, uint clearValue = 0, uint dstOffset = 0) { }
+
         public bool TrySetActiveShaderPass(Handle<Shader> shader, int passIndex, PipelineState? pipelineOverride = null) => false;
 
         public bool TrySetActiveShaderPass(Handle<Shader> shader, PassSemantic semantic, PipelineState? pipelineOverride = null)

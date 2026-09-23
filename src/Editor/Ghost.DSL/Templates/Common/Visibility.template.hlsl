@@ -44,11 +44,7 @@ void MSMain(
     uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
     uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
 
-    uint packedMaterial = LoadMaterialBindlessIndex(
-        g_FrameData.paletteOffsetBuffer,
-        g_FrameData.materialIndexBuffer,
-        instanceData.materialPaletteIndex,
-        localMaterialIndex);
+    uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer,g_FrameData.materialIndexBuffer,instanceData.materialPaletteIndex, localMaterialIndex);
 
     uint materialBufferIndex = UnpackMaterialMaterialBufferIndex(packedMaterial);
     uint variantIndex = UnpackMaterialVariantIndex(packedMaterial);
@@ -64,9 +60,10 @@ void MSMain(
     if (groupThreadID < vertexCount)
     {
         float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, instanceData.localToWorld);
+        uint passBit = (g_PushConstantData.userData3 & 1u) << 23u;
 
         outVerts[groupThreadID].position = mul(worldViewProj, float4(v.position, 1.0f));
-        uint passBit = (g_PushConstantData.userData3 & 1u) << 23u;
+        outVerts[groupThreadID].uv = v.uv;
         outVerts[groupThreadID].visibleMeshletIndex = (groupID & 0x7FFFFFu) | passBit;
         outVerts[groupThreadID].localMaterialIndex = localMaterialIndex;
         outVerts[groupThreadID].materialBufferIndex = materialBufferIndex;

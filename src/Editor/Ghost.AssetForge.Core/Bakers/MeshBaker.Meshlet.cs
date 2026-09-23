@@ -486,7 +486,7 @@ internal static unsafe partial class MeshProcessor
 
         lod.Resize((int)resultSize);
 
-        if ((nuint)lod.Length > targetCount && config.simplifyFallbackPermissive && !config.simplifyPermissive)
+        if ((nuint)lod.Length > (nuint)(indices.Count * config.simplifyThreshold) && config.simplifyFallbackPermissive && !config.simplifyPermissive)
         {
             options |= SimplifyOptions.Permissive;
             resultSize = MeshOptApi.SimplifyWithAttributes(
@@ -510,7 +510,7 @@ internal static unsafe partial class MeshProcessor
             lod.Resize((int)resultSize);
         }
 
-        if ((nuint)lod.Length > targetCount && config.simplifyFallbackSloppy)
+        if ((nuint)lod.Length > (nuint)(indices.Count * config.simplifyThreshold) && config.simplifyFallbackSloppy)
         {
             SimplifyFallback(ref lod, in mesh, indices, locks, targetCount, error, allocationHandle);
             *error *= config.simplifyErrorFactorSloppy;
@@ -555,36 +555,25 @@ internal static unsafe partial class MeshProcessor
 
         MeshOptApi.GeneratePositionRemap((uint*)remap.GetUnsafePtr(), mesh.vertexPositions, mesh.vertexCount, mesh.vertexPositionsStride);
 
-        if (config.simplifyPermissive && mesh.vertexAttributes != null && mesh.attributeCount > 0)
+        // set up protect bits on UV seams for permissive mode
+        if (mesh.attributeProtectMask != 0 && mesh.vertexAttributes != null)
         {
             var pBaseLocks = (byte*)baseLocks.GetUnsafePtr();
             var pRemap = (uint*)remap.GetUnsafePtr();
-            var normStride = mesh.vertexAttributesStride / sizeof(float);
+            var maxAttributes = mesh.vertexAttributesStride / sizeof(float);
 
-            for (nuint i = 0; i < mesh.vertexCount; i++)
+            for (nuint i = 0; i < mesh.vertexCount; ++i)
             {
                 var r = pRemap[(int)i];
-                if (r == (uint)i)
-                {
-                    continue;
-                }
 
-                var ni = mesh.vertexAttributes + i * normStride;
-                var nr = mesh.vertexAttributes + r * normStride;
-                var differ = false;
-                for (nuint a = 0; a < mesh.attributeCount; a++)
+                for (nuint j = 0; j < maxAttributes; ++j)
                 {
-                    if (ni[a] != nr[a])
+                    if (r != (uint)i && (mesh.attributeProtectMask & (1u << (int)j)) != 0 &&
+                        mesh.vertexAttributes[i * maxAttributes + j] != mesh.vertexAttributes[r * maxAttributes + j])
                     {
-                        differ = true;
-                        break;
+                        pBaseLocks[i] |= (byte)SimplifyVertexOptions.Protect;
+                        pBaseLocks[r] |= (byte)SimplifyVertexOptions.Protect;
                     }
-                }
-
-                if (differ)
-                {
-                    pBaseLocks[i] |= (byte)SimplifyVertexOptions.Protect;
-                    pBaseLocks[r] |= (byte)SimplifyVertexOptions.Protect;
                 }
             }
         }
@@ -620,7 +609,7 @@ internal static unsafe partial class MeshProcessor
                     merged.AddRange(clusterIndices.AsSpan());
                 }
 
-                var targetSize = (nuint)(merged.Count / 3 * config.simplifyRatio * 3.0f);
+                var targetSize = (nuint)((nuint)(merged.Count / 3 * config.simplifyRatio) * 3);
                 var bounds = MergeBounds(clusters, groups[i], allocationHandle);
 
                 var error = 0.0f;
@@ -954,7 +943,7 @@ internal static unsafe partial class MeshProcessor
             simplifyThreshold = settings.SimplifyThreshold,
             simplifyErrorMergePrevious = settings.SimplifyErrorMergePrevious,
             simplifyErrorFactorSloppy = settings.SimplifyErrorFactorSloppy,
-            simplifyPermissive = true,
+            simplifyPermissive = settings.SimplifyPermissive,
             simplifyFallbackPermissive = settings.SimplifyFallbackPermissive,
             simplifyFallbackSloppy = settings.SimplifyFallbackSloppy,
         };
@@ -963,7 +952,19 @@ internal static unsafe partial class MeshProcessor
 
         try
         {
-            var weights = stackalloc float[] { 0.5f, 0.5f, 0.5f, 0.1f, 0.1f };
+            var hasUv = false;
+            for (var v = 0; v < vertices.Count; v++)
+            {
+                if (vertices[v].uv.x != 0.0f || vertices[v].uv.y != 0.0f)
+                {
+                    hasUv = true;
+                    break;
+                }
+            }
+
+            var weights = stackalloc float[] { 0.5f, 0.5f, 0.5f };
+            var attributeProtectMask = hasUv ? ((1u << 3) | (1u << 4)) : 0u;
+
             for (var i = 0; i < parts.Length; i++)
             {
                 ref readonly var part = ref parts[i];
@@ -975,10 +976,10 @@ internal static unsafe partial class MeshProcessor
                     vertexAttributes = (float*)Unsafe.AsPointer(in vertices[0].normal),
                     vertexAttributesStride = (nuint)sizeof(Vertex),
                     attributeWeights = weights,
-                    attributeCount = 5,
+                    attributeCount = 3,
                     indices = (uint*)indices.GetUnsafePtr() + part.indexStart,
                     indexCount = (nuint)part.indexCount,
-                    attributeProtectMask = 0,
+                    attributeProtectMask = attributeProtectMask,
                 };
 
                 var context = new MeshletContext

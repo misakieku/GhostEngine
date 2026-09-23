@@ -93,8 +93,10 @@ shader "Hidden/DebugClassification"
 
             float4 PSMain(PSInput input) : SV_TARGET
             {
-                float2 pixelInTile = input.uv * (float)CLASSIFICATION_TILE_SIZE;
-                bool isBorder = (pixelInTile.x < 1.0 || pixelInTile.x >= 15.0 || pixelInTile.y < 1.0 || pixelInTile.y >= 15.0);
+                uint2 pixelCoord = (uint2)input.position.xy;
+                uint2 inTile = pixelCoord & (CLASSIFICATION_TILE_SIZE - 1u);
+                bool isBorder = (inTile.x == 0u || inTile.x == (CLASSIFICATION_TILE_SIZE - 1u) ||
+                                 inTile.y == 0u || inTile.y == (CLASSIFICATION_TILE_SIZE - 1u));
 
                 if (isBorder)
                 {

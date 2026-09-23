@@ -1,0 +1,9 @@
+{
+  "Id": "c21d89b3-3fa8-4b71-9683-91ee0e44f832",
+  "Type": "WorkGraph",
+  "SettingsType": "Ghost.AssetForge.Core.Bakers.ShaderBakeSettings",
+  "Settings": {
+    "OptimizeLevel": "O3",
+    "Options": "KeepDebugInfo"
+  }
+}

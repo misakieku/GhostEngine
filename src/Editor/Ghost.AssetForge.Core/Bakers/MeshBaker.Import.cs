@@ -15,16 +15,16 @@ namespace Ghost.AssetForge.Core.Bakers;
 internal sealed class ParsedMesh : IDisposable
 {
     public string Name { get; set; } = string.Empty;
-    public UnsafeList<Vertex> Vertices;
-    public UnsafeList<uint> Indices;
-    public UnsafeArray<MaterialPartInfo> MaterialParts;
-    public AABB BoundingBox;
+    public UnsafeList<Vertex> vertices;
+    public UnsafeList<uint> indices;
+    public UnsafeArray<MaterialPartInfo> materialParts;
+    public AABB boundingBox;
 
     public void Dispose()
     {
-        Vertices.Dispose();
-        Indices.Dispose();
-        MaterialParts.Dispose();
+        vertices.Dispose();
+        indices.Dispose();
+        materialParts.Dispose();
     }
 }
 
@@ -103,7 +103,7 @@ internal static unsafe partial class MeshProcessor
         for (var i = 0; i < vertices.Length; i++)
         {
             var n = vertices[i].normal;
-            if (math.lengthsq(n) > 1e-10f)
+            if (math.lengthsq(n) > 1e-24f)
             {
                 vertices[i].normal = math.normalize(n);
             }
@@ -185,8 +185,11 @@ internal static unsafe partial class MeshProcessor
             }
             else
             {
-                var fallbackT = MathF.Abs(n.x) < 0.9f ? new float3(1, 0, 0) : new float3(0, 1, 0);
-                var tangent = math.normalize(fallbackT - n * math.dot(n, fallbackT));
+                // Continuous orthonormal basis from normal (Duff et al. 2017)
+                var sign = n.z >= 0.0f ? 1.0f : -1.0f;
+                var a = -1.0f / (sign + n.z);
+                var b = n.x * n.y * a;
+                var tangent = new float3(1.0f + sign * n.x * n.x * a, sign * b, -sign * n.x);
                 vertices[i].tangent = new float4(tangent.xyz, 1.0f);
             }
         }
@@ -202,8 +205,8 @@ internal static unsafe partial class MeshProcessor
         var numMaterials = pMesh->materials.count > 0 ? (int)pMesh->materials.count : 1;
 
         using var materialBuckets = new UnsafeArray<UnsafeList<Vertex>>(numMaterials, allocationHandle);
-        using var missingNormalsBucket = new UnsafeArray<bool>(numMaterials, allocationHandle);
-        using var missingTangentsBucket = new UnsafeArray<bool>(numMaterials, allocationHandle);
+        using var missingNormalsBucket = new UnsafeArray<bool>(numMaterials, allocationHandle, AllocationOption.Clear);
+        using var missingTangentsBucket = new UnsafeArray<bool>(numMaterials, allocationHandle, AllocationOption.Clear);
 
         for (var i = 0; i < numMaterials; i++)
         {
@@ -262,14 +265,14 @@ internal static unsafe partial class MeshProcessor
 
                 materialBuckets[materialIdx].Add(vertex);
 
-                if (!missingNormalsBucket[materialIdx])
+                if (normIdx == uint.MaxValue)
                 {
-                    missingNormalsBucket[materialIdx] = normIdx == uint.MaxValue;
+                    missingNormalsBucket[materialIdx] = true;
                 }
 
-                if (!missingTangentsBucket[materialIdx])
+                if (tanIdx == uint.MaxValue || btanIdx == uint.MaxValue)
                 {
-                    missingTangentsBucket[materialIdx] = tanIdx == uint.MaxValue || btanIdx == uint.MaxValue;
+                    missingTangentsBucket[materialIdx] = true;
                 }
             }
         }
@@ -367,7 +370,6 @@ internal static unsafe partial class MeshProcessor
         for (var i = 0; i < partResults.Count; i++)
         {
             ref var part = ref partResults[i];
-
             if (settings.NormalDataSource == VertexDataSource.Computed || (settings.NormalDataSource == VertexDataSource.ComputedIfMissing && part.missingNormals))
             {
                 ComputeNormals(part.vertices.AsSpan(), part.indices.AsSpan());
@@ -412,10 +414,10 @@ internal static unsafe partial class MeshProcessor
         return new ParsedMesh
         {
             Name = pMesh->name.ToString(),
-            Vertices = mergedVertices,
-            Indices = mergedIndices,
-            MaterialParts = materialParts,
-            BoundingBox = new AABB(min, max)
+            vertices = mergedVertices,
+            indices = mergedIndices,
+            materialParts = materialParts,
+            boundingBox = new AABB(min, max)
         };
     }
 

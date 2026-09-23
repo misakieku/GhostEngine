@@ -12,15 +12,6 @@ namespace Ghost.Engine.RenderPipeline;
 
 internal partial class GhostRenderPipeline
 {
-    private partial class VisibilityResource : IPipelineResource
-    {
-        [ResolveAsset("EngineResources/Shaders/MaterialPipeline/ExportVisibilityDepth")]
-        public Handle<ComputeShader> exportVisibilityDepthShader;
-
-        [ResolveAsset("EngineResources/Shaders/MaterialPipeline/ClearVisibilityBuffer")]
-        public Handle<ComputeShader> clearVisibilityBufferShader;
-    }
-
     private struct ClearVisibilityBufferPassData
     {
         public Identifier<RGBuffer> visBuffer;
@@ -51,12 +42,8 @@ internal partial class GhostRenderPipeline
 
     internal ICommandSignature _dispatchMeshCommandSignature = null!;
 
-    private readonly VisibilityResource _visibilityResource = new VisibilityResource();
-
     private void InitializeVisibility(RenderEngine renderEngine, AssetManager assetManager)
     {
-        _visibilityResource.Resolve(assetManager);
-
         var indirectDesc = new CommandSignatureDesc
         {
             Stride = 12,
@@ -76,7 +63,7 @@ internal partial class GhostRenderPipeline
         builder.SetPassData(new ClearVisibilityBufferPassData
         {
             visBuffer = visBuffer,
-            shader = _visibilityResource.clearVisibilityBufferShader,
+            shader = _materialPipelineResource.clearVisibilityBufferShader,
             totalPixels = totalPixels
         });
 
@@ -179,13 +166,6 @@ internal partial class GhostRenderPipeline
         });
     }
 
-    private void DisposeVisibility()
-    {
-        _visibilityResource.Dispose();
-        _dispatchMeshCommandSignature?.Dispose();
-        _dispatchMeshCommandSignature = null!;
-    }
-
     private void AddExportVisibilityDepthPass(RenderGraph rg, Identifier<RGBuffer> visBuffer, uint2 screenSize, ref Identifier<RGTexture> existingDepth)
     {
         if (existingDepth.IsInvalid)
@@ -206,7 +186,7 @@ internal partial class GhostRenderPipeline
         {
             visBuffer = visBuffer,
             depthTexture = existingDepth,
-            shader = _visibilityResource.exportVisibilityDepthShader,
+            shader = _materialPipelineResource.exportVisibilityDepthShader,
             renderSize = screenSize
         });
 
@@ -230,5 +210,11 @@ internal partial class GhostRenderPipeline
             var threadGroupsY = Math.Max(1u, (passData.renderSize.y + 15) / 16);
             computeCtx.DispatchCompute(threadGroupsX, threadGroupsY, 1);
         });
+    }
+
+    private void DisposeVisibility()
+    {
+        _dispatchMeshCommandSignature?.Dispose();
+        _dispatchMeshCommandSignature = null!;
     }
 }

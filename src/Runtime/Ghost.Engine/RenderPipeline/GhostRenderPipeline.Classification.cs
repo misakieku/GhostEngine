@@ -16,21 +16,6 @@ internal partial class GhostRenderPipeline
     private const uint VARIANT_COUNTER_STRIDE = 8u;
     private const uint INDIRECT_ARGS_STRIDE = 16u;
 
-    private partial class ClassificationResource : IPipelineResource
-    {
-        [ResolveAsset("EngineResources/Shaders/MaterialPipeline/TileMaterialClassification")]
-        public Handle<ComputeShader> tileMaterialClassificationShader;
-
-        [ResolveAsset("EngineResources/Shaders/MaterialPipeline/ClearClassificationCounters")]
-        public Handle<ComputeShader> clearClassificationCountersShader;
-
-        [ResolveAsset("EngineResources/Shaders/MaterialPipeline/PrepareDeferredTexturingIndirectArgs")]
-        public Handle<ComputeShader> prepareDeferredTexturingIndirectArgsShader;
-
-        [ResolveAsset("EngineResources/Shaders/DebugClassification")]
-        public Handle<Shader> debugClassificationShader;
-    }
-
     private struct ClearClassificationCountersPassData
     {
         public Identifier<RGBuffer> countersBuffer;
@@ -74,18 +59,6 @@ internal partial class GhostRenderPipeline
         public uint2 renderSize;
     }
 
-    private readonly ClassificationResource _classificationResource = new ClassificationResource();
-
-    private void InitializeClassification(AssetManager assetManager)
-    {
-        _classificationResource.Resolve(assetManager);
-    }
-
-    private void DisposeClassification()
-    {
-        _classificationResource.Dispose();
-    }
-
     private Identifier<RGBuffer> AddClearClassificationCountersPass(RenderGraph rg, uint maxVariants)
     {
         using var builder = rg.AddComputeRenderPass<ClearClassificationCountersPassData>("ClearClassificationCounters");
@@ -102,7 +75,7 @@ internal partial class GhostRenderPipeline
         builder.SetPassData(new ClearClassificationCountersPassData
         {
             countersBuffer = countersBuffer,
-            shader = _classificationResource.clearClassificationCountersShader,
+            shader = _materialPipelineResource.clearClassificationCountersShader,
             maxVariants = maxVariants
         });
 
@@ -153,13 +126,13 @@ internal partial class GhostRenderPipeline
             visibleMeshletsPass2 = visibleMeshlets1,
             variantTileCounters = countersBuffer,
             variantTileList = tileListBuffer,
-            shader = _classificationResource.tileMaterialClassificationShader,
+            shader = _materialPipelineResource.tileMaterialClassificationShader,
             renderSize = screenSize,
             tilesPerRow = tilesX,
             maxTilesPerVariant = maxTilesPerVariant,
             deferredVariantMask = deferredVariantMask,
             dispatchGroups = new uint2(tilesX, tilesY)
-        }, addToBlackboard: true);
+        });
 
         builder.SetRenderFunc<TileMaterialClassificationPassData>(static (ref readonly passData, computeCtx) =>
         {
@@ -210,9 +183,9 @@ internal partial class GhostRenderPipeline
         {
             variantTileCounters = countersBuffer,
             indirectArgsBuffer = indirectArgsBuffer,
-            shader = _classificationResource.prepareDeferredTexturingIndirectArgsShader,
+            shader = _materialPipelineResource.prepareDeferredTexturingIndirectArgsShader,
             maxVariants = maxVariants
-        }, addToBlackboard: true);
+        });
 
         builder.SetRenderFunc<PrepareDeferredTexturingIndirectArgsPassData>(static (ref readonly passData, computeCtx) =>
         {
@@ -250,7 +223,7 @@ internal partial class GhostRenderPipeline
             variantTileList = tileListBuffer,
             indirectArgsBuffer = indirectArgsBuffer,
             targetTexture = targetTexture,
-            shader = _classificationResource.debugClassificationShader,
+            shader = _materialPipelineResource.debugClassificationShader,
             commandSignature = _dispatchMeshCommandSignature,
             variantRegistry = _assetManager.ShaderVariants,
             tilesPerRow = tilesX,
@@ -260,7 +233,7 @@ internal partial class GhostRenderPipeline
 
         builder.SetRenderFunc<DebugClassificationPassData>(static (ref readonly passData, renderCtx) =>
         {
-            if (!renderCtx.TrySetActiveShaderPass(passData.shader, PassSemantic.Forward))
+            if (!renderCtx.TrySetActiveShaderPass(passData.shader, 0))
             {
                 return;
             }
@@ -288,7 +261,8 @@ internal partial class GhostRenderPipeline
         });
     }
 
-    private void AddTileClassificationPass(RenderGraph rg, Identifier<RGBuffer> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, uint2 screenSize)
+    private void AddTileClassificationPass(RenderGraph rg, Identifier<RGBuffer> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, uint2 screenSize,
+        out Identifier<RGBuffer> tileListBuffer, out Identifier<RGBuffer> indirectArgsBuffer)
     {
         var tilesX = (screenSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
         var tilesY = (screenSize.y + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
@@ -312,7 +286,7 @@ internal partial class GhostRenderPipeline
         }
 
         var countersBuffer = AddClearClassificationCountersPass(rg, MAX_CLASSIFICATION_VARIANTS);
-        var tileListBuffer = AddTileMaterialClassificationPass(rg, visBuffer, visibleMeshlets0, visibleMeshlets1, countersBuffer, screenSize, maxTilesPerVariant, deferredVariantMask);
-        var indirectArgsBuffer = AddPrepareDeferredTexturingIndirectArgsPass(rg, countersBuffer, MAX_CLASSIFICATION_VARIANTS);
+        tileListBuffer = AddTileMaterialClassificationPass(rg, visBuffer, visibleMeshlets0, visibleMeshlets1, countersBuffer, screenSize, maxTilesPerVariant, deferredVariantMask);
+        indirectArgsBuffer = AddPrepareDeferredTexturingIndirectArgsPass(rg, countersBuffer, MAX_CLASSIFICATION_VARIANTS);
     }
 }

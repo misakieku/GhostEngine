@@ -55,6 +55,9 @@ public partial class MeshBakeSettings : ObservableObject, IBakeSettings
     public partial float SimplifyErrorFactorSloppy { get; set; } = 2.0f;
 
     [ObservableProperty]
+    public partial bool SimplifyPermissive { get; set; } = true;
+
+    [ObservableProperty]
     public partial bool SimplifyFallbackPermissive { get; set; } = false;
 
     [ObservableProperty]

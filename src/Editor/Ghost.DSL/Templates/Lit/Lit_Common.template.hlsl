@@ -52,20 +52,13 @@ $GHOST_USER_HLSL$
 #ifndef GHOST_OVERRIDE_GET_SURFACE_DATA
 static inline void GetSurfaceData(in MaterialContext ctx, inout Payload payload, out SurfaceData surface)
 {
-    LitShaderProperties props = LoadLitProperties(ctx.materialIndex);
-
     surface = (SurfaceData)0;
-    surface.albedo = props.baseColor.rgb;
-
-    if (props.baseMap != 0)
-    {
-        surface.albedo *= SAMPLE_TEXTURE2D(props.baseMap, props.sampler_baseMap, ctx.uv).rgb;
-    }
-
+    surface.albedo = float3(0.73f, 0.73f, 0.73f);
     surface.normalWS = ctx.normalWS;
-    surface.metallic = props.metallic;
-    surface.roughness = props.roughness;
-    surface.occlusion = props.occlusion;
+    surface.metallic = 0.0f;
+    surface.roughness = 0.5f;
+    surface.occlusion = 1.0f;
+    surface.emissive = float3(0.0f, 0.0f, 0.0f);
 }
 #endif
 

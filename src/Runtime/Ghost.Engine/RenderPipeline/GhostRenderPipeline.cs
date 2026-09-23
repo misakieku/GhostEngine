@@ -16,10 +16,12 @@ internal partial class GhostRenderPipeline : IRenderPipeline
     private readonly AssetManager _assetManager;
     private readonly GhostRenderPipelineSettings _settings;
 
-    private readonly GPUSceneResource _gpuSceneResource;
-
     private readonly GPUScene _gpuScene;
     private readonly GPUViewManager _gpuViewManager;
+
+    private readonly GPUSceneResource _gpuSceneResource;
+    private readonly MeshPipelineResource _meshPipelineResource;
+    private readonly MaterialPipelineResource _materialPipelineResource;
 
     private bool _disposed;
     private int _lastRenderRequestCount = -1;
@@ -36,14 +38,19 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         _settings = settings;
 
         _gpuSceneResource = new GPUSceneResource(assetManager);
-        _gpuSceneResource.Resolve();
+        _meshPipelineResource = new MeshPipelineResource(assetManager);
+        _materialPipelineResource = new MaterialPipelineResource(assetManager);
 
         _gpuScene = new GPUScene(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, settings.MaxVisibleMeshletsOnScreen / 64);
         _gpuViewManager = new GPUViewManager(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, renderEngine.GraphicsEngine.PipelineLibrary, renderEngine.ResourceManager, renderEngine.ShaderLibrary);
 
+        _gpuSceneResource.Resolve();
+        _meshPipelineResource.Resolve();
+        _materialPipelineResource.Resolve();
+
         InitializeCulling(renderEngine, assetManager);
         InitializeVisibility(renderEngine, assetManager);
-        InitializeClassification(assetManager);
+        InitializeDeferredTexturing(renderEngine);
     }
 
     public IRenderPayload CreatePayload()
@@ -125,10 +132,13 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 out var currentDepth, out var currentVisBuffer,
                 out var visibleMeshlets0, out var visibleMeshlets1);
 
-            AddTileClassificationPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, viewContext.RenderSize);
+            AddTileClassificationPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, viewContext.RenderSize,
+                out var tileListBuffer, out var indirectArgsBuffer);
 
-            // Blit Depth Buffer to screen / backbuffer
-            viewContext.RenderGraph.AddBlitPass(currentDepth, colorTarget, _cullingResource.blitShader);
+            var gbuffer = AddDeferredTexturingPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, indirectArgsBuffer, viewContext.RenderSize);
+
+            // Blit GBuffer0 (Albedo) to screen / backbuffer
+            viewContext.RenderGraph.AddBlitPass(gbuffer.GBuffer1, colorTarget, _meshPipelineResource.blitShader);
 
             var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewState);
             if (result.IsFailure)
@@ -139,7 +149,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             // The graph has now actually consumed its backing memory, so subsequent dispatches must not
             // re-specify D3D12_SET_WORK_GRAPH_FLAG_INITIALIZE. Latching here (rather than at pass-build
             // time) keeps the flag honest if this frame's graph was compiled but failed to execute.
-            _cullingResource.cullWorkGraphProgram?.MarkInitialized();
+            _meshPipelineResource.cullWorkGraphProgram?.MarkInitialized();
         }
 
         return Result.Success();
@@ -164,8 +174,8 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         
         visibleMeshlets1 = AddMeshletCullPass2(viewContext.RenderGraph, occludedMeshlets, counterBuffer, indirectArg, visibleMeshlets0, hzb,
             viewContext.HzbMipCount, viewContext.RenderSize, viewContext.HzbSize);
-        
-        AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 1);
+
+        indirectArg = AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 1);
         AddVisibilityBufferPass(viewContext.RenderGraph, visibleMeshlets1, indirectArg, 1, sceneBuffer, viewContext.RenderSize, ref currentVisBuffer);
         AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzb, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize);
 
@@ -184,9 +194,12 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
         DisposeCulling();
         DisposeVisibility();
-        DisposeClassification();
+        DisposeDeferredTexturing();
 
         _gpuSceneResource.Dispose();
+        _meshPipelineResource.Dispose();
+        _materialPipelineResource.Dispose();
+
         _gpuScene.Dispose();
         _gpuViewManager.Dispose();
     }

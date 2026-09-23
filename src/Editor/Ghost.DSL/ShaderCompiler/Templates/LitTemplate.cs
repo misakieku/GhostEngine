@@ -43,6 +43,23 @@ public sealed class LitTemplate : IShaderTemplate
                 new() { templateFile = "Common/Visibility.template.hlsl", entryPoint = "MSMain", stage = ShaderStage.MeshShader },
                 new() { templateFile = "Common/Visibility.template.hlsl", entryPoint = "PSMain", stage = ShaderStage.PixelShader },
             }
+        },
+        new TemplatePassDef
+        {
+            name = "DeferredTexturing",
+            semantic = PassSemantic.DeferredTexturing,
+            pipeline = new PipelineSemantic
+            {
+                zTest = ZTest.Disabled,
+                zWrite = ZWrite.Off,
+                cull = Cull.Back,
+                blend = Blend.Opaque,
+                colorMask = ColorWriteMask.All
+            },
+            stages = new List<TemplateStage>
+            {
+                new() { templateFile = "Lit/Lit_DeferredTexturing.template.hlsl", entryPoint = "CSMain", stage = ShaderStage.ComputeShader }
+            }
         }
     };
 

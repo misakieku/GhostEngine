@@ -40,4 +40,27 @@ static inline uint2 DecodeTileCoord(uint tileIndex, uint tilesPerRow)
     return uint2(tileIndex % tilesPerRow, tileIndex / tilesPerRow);
 }
 
+static inline uint2 DecodeTilePixelCoord(uint tileIndex, uint2 inTileCoord, uint tilesPerRow)
+{
+    uint2 tileCoord = DecodeTileCoord(tileIndex, tilesPerRow);
+    return tileCoord * CLASSIFICATION_TILE_SIZE + inTileCoord;
+}
+
+struct DeferredTexturingShaderProperties
+{
+    uint visBufferIndex;
+    uint visibleMeshletsPass1;
+    uint visibleMeshletsPass2;
+    uint variantTileListIndex;
+    uint maxTilesPerVariant;
+    uint tilesPerRow;
+    uint renderWidth;
+    uint renderHeight;
+    uint gbuffer0Uav;
+    uint gbuffer1Uav;
+    uint gbuffer2Uav;
+    uint gbuffer3Uav;
+    uint variantIndex;
+};
+
 #endif // GHOST_CLASSIFICATION_COMMON_HLSL

@@ -31,20 +31,13 @@ namespace Ghost.Generator
             {
                 ["Lit"] = new[]
                 {
-                    new ParsedProperty { Type = "float4", Name = "baseColor" },
-                    new ParsedProperty { Type = "uint", Name = "baseMap" },
-                    new ParsedProperty { Type = "uint", Name = "sampler_baseMap" },
-                    new ParsedProperty { Type = "uint", Name = "normalMap" },
-                    new ParsedProperty { Type = "uint", Name = "sampler_normalMap" },
-                    new ParsedProperty { Type = "float", Name = "metallic" },
-                    new ParsedProperty { Type = "float", Name = "roughness" },
-                    new ParsedProperty { Type = "float", Name = "occlusion" },
+                    new ParsedProperty { Type = "bool", Name = "alphaClip" },
+                    new ParsedProperty { Type = "float", Name = "alphaClipThreshold" },
                 },
                 ["Unlit"] = new[]
                 {
-                    new ParsedProperty { Type = "float4", Name = "baseColor" },
-                    new ParsedProperty { Type = "uint", Name = "baseMap" },
-                    new ParsedProperty { Type = "uint", Name = "sampler_baseMap" },
+                    new ParsedProperty { Type = "bool", Name = "alphaClip" },
+                    new ParsedProperty { Type = "float", Name = "alphaClipThreshold" },
                 },
                 ["Sky"] = new[]
                 {
