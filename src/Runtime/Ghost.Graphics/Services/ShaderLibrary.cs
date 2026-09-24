@@ -67,13 +67,13 @@ public unsafe class ShaderLibrary : IDisposable
     private UnsafeList<RetiredShaderCache> _retiredShaderCaches;
     private UnsafeList<RetiredCacheEntry> _retiredCacheEntries;
 
-    private readonly string _cacheDirectory;
+    private readonly string? _cacheDirectory;
     private readonly IShaderCompilationBridge? _shaderCompilationBridge;
     private readonly IPipelineLibrary? _pipelineLibrary;
     private ulong _currentFrame;
     internal int RetiredCacheCount => _retiredShaderCaches.Count + _retiredCacheEntries.Count;
 
-    internal ShaderLibrary(IShaderCompilationBridge? shaderCompilationBridge, IPipelineLibrary? pipelineLibrary, string cacheDirectory)
+    internal ShaderLibrary(IShaderCompilationBridge? shaderCompilationBridge, IPipelineLibrary? pipelineLibrary, string? cacheDirectory)
     {
         _inMemoryCache = new UnsafeHashMap<ulong, CacheEntry>(16, AllocationHandle.Persistent);
         _retiredShaderCaches = new UnsafeList<RetiredShaderCache>(8, AllocationHandle.Persistent);
@@ -102,6 +102,11 @@ public unsafe class ShaderLibrary : IDisposable
 
     private string GetShaderCacheFilePath(ulong hash)
     {
+        if (string.IsNullOrEmpty(_cacheDirectory))
+        {
+            throw new InvalidOperationException("Shader cache directory is not set.");
+        }
+
         var hashString = hash.ToString("X16");
         var folderName = hashString[..2];
         var folderPath = Path.Combine(_cacheDirectory, folderName);

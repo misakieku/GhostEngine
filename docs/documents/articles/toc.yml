@@ -1,3 +1,6 @@
 - name: ECS 
   href: ecs/toc.yml
   topicHref: ecs/getting-started.md
+- name: Render Graph
+  href: render-graph/toc.yml
+  topicHref: render-graph/overview.md

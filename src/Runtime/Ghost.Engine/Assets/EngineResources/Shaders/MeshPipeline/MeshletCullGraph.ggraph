@@ -86,6 +86,16 @@ compute "Internal/MeshletCullGraph"
 
                     float3 worldMin, worldMax;
                     TransformAABB(mesh.worldBoundsMin, mesh.worldBoundsMax, instance.localToWorld, worldMin, worldMax);
+                    
+                    float3 worldCenter = (worldMin + worldMax) * 0.5f;
+                    float worldRadius = length(worldMax - worldCenter);
+                    float z_view = dot(worldCenter - g_ViewData.cameraPosition, g_ViewData.cameraDirection);
+                    float r_percentage = (worldRadius * g_ViewData.projectionMatrix[1][1] * 100.0f) / (2.0f * z_view );
+
+                    if (r_percentage < props.cullingThreshold)
+                    {
+                        return;
+                    }
 
                     isVisible = AABBIntersectFrustum(worldMin, worldMax, g_ViewData.frustum.planes);
                 }
@@ -131,14 +141,6 @@ compute "Internal/MeshletCullGraph"
 
             float3 worldCenter = mul(instance.localToWorld, float4(node.bounds.xyz, 1.0f)).xyz;
             float worldRadius = node.bounds.w * maxScale;
-            
-            float z_view = dot(worldCenter - g_ViewData.cameraPosition, g_ViewData.cameraDirection);
-            float r_percentage = (worldRadius * g_ViewData.projectionMatrix[1][1] * 100.0f) / (2.0f * z_view );
-
-            if (r_percentage < props.cullingThreshold)
-            {
-                return;
-            }
 
             if (!SphereIntersectFrustum(worldCenter, worldRadius, g_ViewData.frustum.planes))
             {

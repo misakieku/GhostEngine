@@ -1,0 +1,15 @@
+shader "MyShader/Standard2" : "Unlit"
+{
+    properties
+    {
+        float customTintScale = 1.0;
+    }
+
+    hlsl
+    {
+        float4 GetColor(in MaterialProperties props, float2 uv, inout Payload payload)
+        {
+            return 0.73f;
+        }
+    }
+}

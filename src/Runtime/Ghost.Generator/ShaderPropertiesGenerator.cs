@@ -14,16 +14,16 @@ namespace Ghost.Generator
     {
         private struct ParsedProperty
         {
-            public string Type;
-            public string Name;
-            public string DefaultValue;
+            public string type;
+            public string name;
+            public string defaultValue;
         }
 
         private class ParsedShader
         {
-            public string ShaderName = string.Empty;
-            public string TemplateName = string.Empty;
-            public List<ParsedProperty> Properties = new List<ParsedProperty>();
+            public string shaderName = string.Empty;
+            public string templateName = string.Empty;
+            public List<ParsedProperty> properties = new List<ParsedProperty>();
         }
 
         private static readonly Dictionary<string, ParsedProperty[]> s_templateProperties =
@@ -31,23 +31,23 @@ namespace Ghost.Generator
             {
                 ["Lit"] = new[]
                 {
-                    new ParsedProperty { Type = "bool", Name = "alphaClip" },
-                    new ParsedProperty { Type = "float", Name = "alphaClipThreshold" },
+                    new ParsedProperty { type = "bool", name = "alphaClip" },
+                    new ParsedProperty { type = "float", name = "alphaClipThreshold" },
                 },
                 ["Unlit"] = new[]
                 {
-                    new ParsedProperty { Type = "bool", Name = "alphaClip" },
-                    new ParsedProperty { Type = "float", Name = "alphaClipThreshold" },
+                    new ParsedProperty { type = "bool", name = "alphaClip" },
+                    new ParsedProperty { type = "float", name = "alphaClipThreshold" },
                 },
                 ["Sky"] = new[]
                 {
-                    new ParsedProperty { Type = "float4", Name = "skyTint" },
-                    new ParsedProperty { Type = "float", Name = "exposure" },
+                    new ParsedProperty { type = "float4", name = "skyTint" },
+                    new ParsedProperty { type = "float", name = "exposure" },
                 },
                 ["UI"] = new[]
                 {
-                    new ParsedProperty { Type = "float4", Name = "color" },
-                    new ParsedProperty { Type = "uint", Name = "mainTex" },
+                    new ParsedProperty { type = "float4", name = "color" },
+                    new ParsedProperty { type = "uint", name = "mainTex" },
                 }
             };
 
@@ -88,8 +88,8 @@ namespace Ghost.Generator
 
             var shader = new ParsedShader
             {
-                ShaderName = shaderDeclMatch.Groups[1].Value,
-                TemplateName = shaderDeclMatch.Groups[2].Success ? shaderDeclMatch.Groups[2].Value : string.Empty
+                shaderName = shaderDeclMatch.Groups[1].Value,
+                templateName = shaderDeclMatch.Groups[2].Success ? shaderDeclMatch.Groups[2].Value : string.Empty
             };
 
             // Match properties { ... }
@@ -101,11 +101,11 @@ namespace Ghost.Generator
                 var propStatements = Regex.Matches(propsBlock, @"([a-zA-Z0-9_]+)\s+([a-zA-Z0-9_]+)(?:\s*=\s*([^;]+))?\s*;");
                 foreach (Match stmt in propStatements)
                 {
-                    shader.Properties.Add(new ParsedProperty
+                    shader.properties.Add(new ParsedProperty
                     {
-                        Type = stmt.Groups[1].Value,
-                        Name = stmt.Groups[2].Value,
-                        DefaultValue = stmt.Groups[3].Success ? stmt.Groups[3].Value.Trim() : string.Empty
+                        type = stmt.Groups[1].Value,
+                        name = stmt.Groups[2].Value,
+                        defaultValue = stmt.Groups[3].Success ? stmt.Groups[3].Value.Trim() : string.Empty
                     });
                 }
             }
@@ -122,24 +122,24 @@ namespace Ghost.Generator
 
             foreach (var shader in shaders)
             {
-                if (shader == null || string.IsNullOrEmpty(shader.ShaderName))
+                if (shader == null || string.IsNullOrEmpty(shader.shaderName))
                 {
                     continue;
                 }
 
-                var structName = SanitizeToIdentifier(shader.ShaderName);
+                var structName = SanitizeToIdentifier(shader.shaderName);
                 var allProperties = new List<ParsedProperty>();
 
                 // 1. Injected base properties from template
-                if (!string.IsNullOrEmpty(shader.TemplateName) && s_templateProperties.TryGetValue(shader.TemplateName, out var baseProps))
+                if (!string.IsNullOrEmpty(shader.templateName) && s_templateProperties.TryGetValue(shader.templateName, out var baseProps))
                 {
                     allProperties.AddRange(baseProps);
                 }
 
                 // 2. Custom properties declared in .gshdr (excluding any duplicate base property names)
-                foreach (var prop in shader.Properties)
+                foreach (var prop in shader.properties)
                 {
-                    var isDuplicate = allProperties.Any(p => string.Equals(p.Name, prop.Name, StringComparison.OrdinalIgnoreCase));
+                    var isDuplicate = allProperties.Any(p => string.Equals(p.name, prop.name, StringComparison.OrdinalIgnoreCase));
                     if (!isDuplicate)
                     {
                         allProperties.Add(prop);
@@ -147,7 +147,7 @@ namespace Ghost.Generator
                 }
 
                 // If no properties at all, omit generation
-                if (allProperties.Count == 0 && string.IsNullOrEmpty(shader.TemplateName))
+                if (allProperties.Count == 0 && string.IsNullOrEmpty(shader.templateName))
                 {
                     continue;
                 }
@@ -164,31 +164,31 @@ namespace Ghost.Generator
                 sb.AppendLine($"    public partial struct {structName}");
                 sb.AppendLine("    {");
 
-                var hasTemplate = !string.IsNullOrEmpty(shader.TemplateName) && s_templateProperties.ContainsKey(shader.TemplateName);
-                var basePropCount = hasTemplate ? s_templateProperties[shader.TemplateName].Length : 0;
+                var hasTemplate = !string.IsNullOrEmpty(shader.templateName) && s_templateProperties.ContainsKey(shader.templateName);
+                var basePropCount = hasTemplate ? s_templateProperties[shader.templateName].Length : 0;
 
                 for (var i = 0; i < allProperties.Count; i++)
                 {
                     var prop = allProperties[i];
-                    var csType = MapHlslTypeToCSharp(prop.Type);
+                    var csType = MapHlslTypeToCSharp(prop.type);
 
                     if (i == 0 && basePropCount > 0)
                     {
-                        sb.AppendLine($"        // --- Base properties from template: {shader.TemplateName} ---");
+                        sb.AppendLine($"        // --- Base properties from template: {shader.templateName} ---");
                     }
                     else if (i == basePropCount && allProperties.Count > basePropCount)
                     {
-                        sb.AppendLine($"        // --- Custom properties from shader: {shader.ShaderName} ---");
+                        sb.AppendLine($"        // --- Custom properties from shader: {shader.shaderName} ---");
                     }
 
-                    sb.AppendLine($"        public {csType} {prop.Name};");
+                    sb.AppendLine($"        public {csType} {prop.name};");
                 }
 
                 sb.AppendLine();
-                sb.AppendLine($"        public const string SHADER_NAME = \"{shader.ShaderName}\";");
-                if (!string.IsNullOrEmpty(shader.TemplateName))
+                sb.AppendLine($"        public const string SHADER_NAME = \"{shader.shaderName}\";");
+                if (!string.IsNullOrEmpty(shader.templateName))
                 {
-                    sb.AppendLine($"        public const string TEMPLATE_NAME = \"{shader.TemplateName}\";");
+                    sb.AppendLine($"        public const string TEMPLATE_NAME = \"{shader.templateName}\";");
                 }
 
                 sb.AppendLine("    }");
@@ -200,43 +200,33 @@ namespace Ghost.Generator
 
         private static string MapHlslTypeToCSharp(string hlslType)
         {
-            switch (hlslType.Trim().ToLowerInvariant())
+            return hlslType.Trim().ToLowerInvariant() switch
             {
-                case "float": return "float";
-                case "float2": return "float2";
-                case "float3": return "float3";
-                case "float4": return "float4";
-                case "float2x2": return "float2x2";
-                case "float3x3": return "float3x3";
-                case "float4x4": return "float4x4";
-                case "float4x3": return "float4x3";
-                case "float3x4": return "float3x4";
-                case "int": return "int";
-                case "int2": return "int2";
-                case "int3": return "int3";
-                case "int4": return "int4";
-                case "int2x4": return "int2x4";
-                case "uint": return "uint";
-                case "uint2": return "uint2";
-                case "uint3": return "uint3";
-                case "uint4": return "uint4";
-                case "bool": return "bool";
-                case "bool2": return "bool2";
-                case "bool3": return "bool3";
-                case "bool4": return "bool4";
-                case "texture2d":
-                case "texture3d":
-                case "texturecube":
-                case "texture2darray":
-                case "texturecubearray":
-                case "samplerstate":
-                case "sampler":
-                case "byte_address_buffer":
-                case "struct_buffer":
-                    return "uint";
-                default:
-                    return hlslType;
-            }
+                "float" => "float",
+                "float2" => "float2",
+                "float3" => "float3",
+                "float4" => "float4",
+                "float2x2" => "float2x2",
+                "float3x3" => "float3x3",
+                "float4x4" => "float4x4",
+                "float4x3" => "float4x3",
+                "float3x4" => "float3x4",
+                "int" => "int",
+                "int2" => "int2",
+                "int3" => "int3",
+                "int4" => "int4",
+                "int2x4" => "int2x4",
+                "uint" => "uint",
+                "uint2" => "uint2",
+                "uint3" => "uint3",
+                "uint4" => "uint4",
+                "bool" => "uint",
+                "bool2" => "uint2",
+                "bool3" => "uint3",
+                "bool4" => "uint4",
+                "texture2d" or "texture3d" or "texturecube" or "texture2darray" or "texturecubearray" or "samplerstate" or "sampler" or "byte_address_buffer" or "struct_buffer" => "uint",
+                _ => hlslType,
+            };
         }
 
         private static string SanitizeToIdentifier(string shaderName)

@@ -13,14 +13,14 @@ namespace Ghost.DSL.ShaderCompiler.Templates;
 /// </summary>
 public static class TemplateStitcher
 {
-    private const string ResourcePrefix = "Ghost.DSL.Templates.";
+    private const string RESOURCE_PREFIX = "Ghost.DSL.Templates.";
 
     /// <summary>
     /// Loads an embedded template file by its template-relative path (e.g. "Unlit/Unlit_Forward.template.hlsl").
     /// </summary>
     public static Result<string> LoadTemplateSource(string templateFile)
     {
-        var resourceName = ResourcePrefix + templateFile.Replace('/', '.').Replace('\\', '.');
+        var resourceName = RESOURCE_PREFIX + templateFile.Replace('/', '.').Replace('\\', '.');
 
         var assembly = typeof(TemplateStitcher).Assembly;
         using var stream = assembly.GetManifestResourceStream(resourceName);

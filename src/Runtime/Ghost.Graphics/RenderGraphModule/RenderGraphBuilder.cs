@@ -179,7 +179,16 @@ public interface IComputeRenderGraphBuilder : IRenderGraphBuilder
     /// Marks the compute pass as eligible for asynchronous compute scheduling.
     /// </summary>
     /// <remarks>
-    /// This is a scheduling hint, not a guarantee of compute-queue execution. Until dependency-aware queue batching is implemented, eligible passes execute on the graphics/direct queue.
+    /// <para>
+    /// This is a scheduling hint, not a guarantee of compute-queue execution. The dependency-window planner
+    /// moves the pass onto a Compute command buffer only when it finds a legal overlap window: independent
+    /// graphics work between this pass and the first pass that consumes its results. Otherwise the pass stays
+    /// on the Graphics queue.
+    /// </para>
+    /// <para>
+    /// A pass is only considered a candidate when it is a compute pass with no side effects and no raster
+    /// attachments. Inspect <see cref="PassDumpInfo.QueueDecision"/> to see which decision was taken.
+    /// </para>
     /// </remarks>
     /// <param name="value"><see langword="true"/> to request asynchronous compute eligibility; otherwise, <see langword="false"/>.</param>
     void EnableAsyncCompute(bool value);
@@ -215,6 +224,13 @@ public interface IUnsafeRenderGraphBuilder : IRenderGraphBuilder
     /// <param name="buffer">An identifier for the buffer to be used for random access. Must reference a valid buffer heap.</param>
     /// <returns>An identifier for the buffer.</returns>
     Identifier<RGBuffer> UseRandomAccessBuffer(Identifier<RGBuffer> buffer);
+
+    /// <summary>
+    /// Explicitly permits this unsafe pass to execute within an asynchronous compute overlap window.
+    /// Caller guarantees that native operations in this pass do not conflict with concurrent compute queues.
+    /// </summary>
+    /// <param name="allow">True to allow overlap with async compute, false to invalidate the overlap window.</param>
+    void AllowAsyncComputeOverlap(bool allow = true);
 
     /// <summary>
     /// Sets the function used to render a pass with the specified pass data and render context.
@@ -308,6 +324,11 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
     public void EnableAsyncCompute(bool value)
     {
         _pass.asyncCompute = value;
+    }
+
+    public void AllowAsyncComputeOverlap(bool value = true)
+    {
+        _pass.allowAsyncComputeOverlap = value;
     }
 
     public Identifier<RGTexture> CreateTexture(scoped in RGTextureDesc desc, string? name = null)

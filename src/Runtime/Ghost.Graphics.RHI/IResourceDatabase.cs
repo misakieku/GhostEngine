@@ -16,6 +16,14 @@ public struct ResourceBarrierData
     public BarrierAccess access;
     public BarrierSync sync;
 
+    public static readonly ResourceBarrierData Common = new ResourceBarrierData(BarrierLayout.Common, BarrierAccess.Common, BarrierSync.None);
+    public static readonly ResourceBarrierData RenderTarget = new ResourceBarrierData(BarrierLayout.RenderTarget, BarrierAccess.RenderTarget, BarrierSync.RenderTarget);
+    public static readonly ResourceBarrierData DepthStencilRead = new ResourceBarrierData(BarrierLayout.DepthStencilRead, BarrierAccess.DepthStencilRead, BarrierSync.DepthStencil);
+    public static readonly ResourceBarrierData DepthStencilWrite = new ResourceBarrierData(BarrierLayout.DepthStencilWrite, BarrierAccess.DepthStencilWrite, BarrierSync.DepthStencil);
+    public static readonly ResourceBarrierData ShaderResource = new ResourceBarrierData(BarrierLayout.ShaderResource, BarrierAccess.ShaderResource, BarrierSync.AllShading);
+    public static readonly ResourceBarrierData UnorderedAccess = new ResourceBarrierData(BarrierLayout.UnorderedAccess, BarrierAccess.UnorderedAccess, BarrierSync.AllShading);
+    public static readonly ResourceBarrierData Present = new ResourceBarrierData(BarrierLayout.Present, BarrierAccess.NoAccess, BarrierSync.None);
+
     public ResourceBarrierData(BarrierLayout layout, BarrierAccess access, BarrierSync sync)
     {
         this.layout = layout;

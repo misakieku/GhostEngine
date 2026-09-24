@@ -21,6 +21,7 @@ internal abstract class RenderGraphPass
     public RenderPassType type;
     public bool allowCulling = true;
     public bool asyncCompute;
+    public bool allowAsyncComputeOverlap;
 
     public TextureAccess depthAccess;
     public TextureAccessArray colorAccess;
@@ -59,6 +60,7 @@ internal abstract class RenderGraphPass
         type = RenderPassType.Raster;
         allowCulling = true;
         asyncCompute = false;
+        allowAsyncComputeOverlap = false;
 
         depthAccess = default;
         colorAccess = default;

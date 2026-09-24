@@ -586,6 +586,11 @@ public readonly struct PassDumpInfo
         get; init;
     }
 
+    public bool AllowAsyncComputeOverlap
+    {
+        get; init;
+    }
+
     public CommandQueueType? EffectiveQueue
     {
         get; init;

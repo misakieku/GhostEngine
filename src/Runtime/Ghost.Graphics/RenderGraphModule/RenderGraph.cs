@@ -154,6 +154,7 @@ public sealed class RenderGraph : IDisposable
                 IsCulled = pass.culled,
                 AsyncCompute = pass.asyncCompute,
                 AsyncRequested = pass.asyncCompute,
+                AllowAsyncComputeOverlap = pass.allowAsyncComputeOverlap,
                 EffectiveQueue = effectiveQueue,
                 QueueDecision = GetQueueDecision(pass, effectiveQueue),
                 SyncBoundaryBefore = syncBoundariesBefore.TryGetValue(pass.index, out var boundaryBefore)

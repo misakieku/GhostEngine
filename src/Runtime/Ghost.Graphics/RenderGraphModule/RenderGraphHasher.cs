@@ -51,7 +51,15 @@ internal static unsafe class RenderGraphHasher
     {
         using var scope = AllocationManager.CreateStackScope();
         using var writer = new BufferWriter(2048, scope.AllocationHandle);
-        using var scratch = new UnsafeArray<int>(resources.ResourceCount, scope.AllocationHandle);
+        using var scratch = new UnsafeArray<int>(Math.Max(1, resources.ResourceCount), scope.AllocationHandle);
+
+        // Hash resource definitions
+        writer.Write(resources.ResourceCount);
+        for (var i = 0; i < resources.ResourceCount; i++)
+        {
+            ref readonly var resource = ref resources.Resources[i];
+            ComputeResourceHash(&writer, in resource);
+        }
 
         // Hash pass count
         writer.Write(passes.Count);
@@ -64,18 +72,21 @@ internal static unsafe class RenderGraphHasher
             writer.Write(pass.type);
             writer.Write(pass.allowCulling);
             writer.Write(pass.asyncCompute);
+            writer.Write(pass.allowAsyncComputeOverlap);
             writer.Write(WritesExternalResource(pass, resources));
 
             // Hash depth attachment
-            ComputeTextureHash(&writer, pass.depthAccess.id, resources);
-
+            writer.Write(pass.depthAccess.id.Value);
             writer.Write(pass.depthAccess.accessFlags);
-            writer.Write(pass.maxColorIndex);
+            writer.Write(pass.depthAccess.usage);
 
+            // Hash color attachments
+            writer.Write(pass.maxColorIndex);
             for (var j = 0; j <= pass.maxColorIndex; j++)
             {
-                ComputeTextureHash(&writer, pass.colorAccess[j].id, resources);
+                writer.Write(pass.colorAccess[j].id.Value);
                 writer.Write(pass.colorAccess[j].accessFlags);
+                writer.Write(pass.colorAccess[j].usage);
             }
 
             for (var j = 0; j < (int)RGResourceType.Count; j++)
@@ -99,62 +110,81 @@ internal static unsafe class RenderGraphHasher
     }
 
     /// <summary>
-    /// Computes a hash of a texture heap's structural properties.
-    /// For imported textures, hashes the backing handle.
-    /// For transient textures, hashes the descriptor (respecting size mode).
+    /// Computes a hash of a resource's structural properties.
+    /// For imported resources, hashes format, dimension, usage, size rather than dynamic handles.
+    /// For transient textures, hashes the descriptor respecting size mode (Absolute vs Relative).
+    /// For transient buffers, hashes Size, Stride, Usage, HeapType.
     /// </summary>
-    private static void ComputeTextureHash(BufferWriter* writer, Identifier<RGTexture> texture, RenderGraphResourceRegistry resources)
+    private static void ComputeResourceHash(BufferWriter* writer, scoped ref readonly RenderGraphResource resource)
     {
-        if (texture.IsInvalid)
-        {
-            return;
-        }
-
-        ref readonly var resource = ref resources.GetResource(texture.AsResource());
-
-        // For imported textures, hash structural properties (format, dimension, usage, size) rather than dynamic handle
+        writer->Write(resource.type);
         writer->Write(resource.isImported);
-        if (resource.isImported)
-        {
-            writer->Write(resource.rgTextureDesc.format);
-            writer->Write(resource.rgTextureDesc.dimension);
-            writer->Write(resource.rgTextureDesc.usage);
-            writer->Write(resource.rgTextureDesc.width);
-            writer->Write(resource.rgTextureDesc.height);
-            return;
-        }
-
         writer->Write(resource.isExtracted);
+
         if (resource.isExtracted)
         {
             writer->Write(resource.extractionTarget.GetHashCode());
             writer->Write((byte)resource.extractionFlags);
         }
 
-        var desc = resource.rgTextureDesc;
-
-        writer->Write(desc.format);
-        writer->Write(desc.sizeMode);
-
-        // Hash size specification based on mode
-        if (desc.sizeMode == RGTextureSizeMode.Absolute)
+        writer->Write(resource.hasInitialBarrierState);
+        if (resource.hasInitialBarrierState)
         {
-            // Absolute mode: hash actual dimensions
-            writer->Write(desc.width);
-            writer->Write(desc.height);
-        }
-        else
-        {
-            // Relative mode: hash scale factors (NOT resolved dimensions)
-            writer->Write(desc.scaleX);
-            writer->Write(desc.scaleY);
+            writer->Write(resource.initialBarrierState);
         }
 
-        // Hash other structural properties
-        writer->Write(desc.dimension);
-        writer->Write(desc.mipLevels);
-        writer->Write(desc.usage);
-        writer->Write(desc.clearAtFirstUse);
-        writer->Write(desc.discardAtLastUse);
+        writer->Write(resource.hasFinalBarrierState);
+        if (resource.hasFinalBarrierState)
+        {
+            writer->Write(resource.finalBarrierState);
+        }
+
+        if (resource.type == RGResourceType.Texture)
+        {
+            if (resource.isImported)
+            {
+                writer->Write(resource.rgTextureDesc.format);
+                writer->Write(resource.rgTextureDesc.dimension);
+                writer->Write(resource.rgTextureDesc.usage);
+                writer->Write(resource.rgTextureDesc.width);
+                writer->Write(resource.rgTextureDesc.height);
+                writer->Write(resource.rgTextureDesc.mipLevels);
+                writer->Write(resource.rgTextureDesc.slice);
+                return;
+            }
+
+            var desc = resource.rgTextureDesc;
+            writer->Write(desc.format);
+            writer->Write(desc.sizeMode);
+
+            if (desc.sizeMode == RGTextureSizeMode.Absolute)
+            {
+                writer->Write(desc.width);
+                writer->Write(desc.height);
+            }
+            else
+            {
+                writer->Write(desc.scaleX);
+                writer->Write(desc.scaleY);
+            }
+
+            writer->Write(desc.dimension);
+            writer->Write(desc.mipLevels);
+            writer->Write(desc.slice);
+            writer->Write(desc.usage);
+            writer->Write(desc.clearAtFirstUse);
+            writer->Write(desc.discardAtLastUse);
+            writer->Write(desc.clearColor);
+            writer->Write(desc.clearDepth);
+            writer->Write(desc.clearStencil);
+        }
+        else if (resource.type == RGResourceType.Buffer)
+        {
+            var desc = resource.bufferDesc;
+            writer->Write(desc.Size);
+            writer->Write(desc.Stride);
+            writer->Write(desc.Usage);
+            writer->Write(desc.HeapType);
+        }
     }
 }

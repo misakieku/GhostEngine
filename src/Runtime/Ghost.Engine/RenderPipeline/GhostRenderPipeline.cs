@@ -114,19 +114,14 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             viewContext.RenderGraph.SetFrameData(frameBuffer);
             viewContext.RenderGraph.SetViewData(viewBuffer);
 
-            var presentBarrier = new ResourceBarrierData(
-                BarrierLayout.Present,
-                BarrierAccess.NoAccess,
-                BarrierSync.None);
-
             var colorTarget = viewContext.RenderGraph.ImportTexture(
                 renderView.ColorTexture,
-                initialState: presentBarrier,
-                finalState: presentBarrier,
+                initialState: ResourceBarrierData.Present,
+                finalState: ResourceBarrierData.Present,
                 clearColor: new Color128(0.05f, 0.05f, 0.05f, 1.0f),
                 clearAtFirstUse: true);
 
-            var hzb = viewContext.RenderGraph.ImportTexture(viewContext.HzbTexture);
+            var hzb = viewContext.RenderGraph.ImportTexture(viewContext.HzbTexture, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
             AddCullingAndVbufferPasses(viewContext, ghostPayload.InstanceCount, hzb, _gpuScene.SceneBufferSrvIndex,
                 out var currentDepth, out var currentVisBuffer,
@@ -138,7 +133,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             var gbuffer = AddDeferredTexturingPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, indirectArgsBuffer, viewContext.RenderSize);
 
             // Blit GBuffer0 (Albedo) to screen / backbuffer
-            viewContext.RenderGraph.AddBlitPass(gbuffer.GBuffer1, colorTarget, _meshPipelineResource.blitShader);
+            viewContext.RenderGraph.AddBlitPass(gbuffer.GBuffer3, colorTarget, _meshPipelineResource.blitShader);
 
             var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewState);
             if (result.IsFailure)
@@ -165,13 +160,13 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
         AddMeshletCullPass1(viewContext.RenderGraph, hzb, viewContext.HzbMipCount, viewContext.RenderSize, viewContext.HzbSize, instanceCount,
             out visibleMeshlets0, out var occludedMeshlets, out var counterBuffer);
-        
+
         var indirectArg = AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 0);
-        AddVisibilityBufferPass(viewContext.RenderGraph, visibleMeshlets0, indirectArg, 0,sceneBuffer, viewContext.RenderSize, ref currentVisBuffer);
+        AddVisibilityBufferPass(viewContext.RenderGraph, visibleMeshlets0, indirectArg, 0, sceneBuffer, viewContext.RenderSize, ref currentVisBuffer);
         AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzb, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize);
 
         // Pass 2: Late-Z Meshlet Culling
-        
+
         visibleMeshlets1 = AddMeshletCullPass2(viewContext.RenderGraph, occludedMeshlets, counterBuffer, indirectArg, visibleMeshlets0, hzb,
             viewContext.HzbMipCount, viewContext.RenderSize, viewContext.HzbSize);
 

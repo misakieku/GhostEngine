@@ -27,7 +27,7 @@ internal readonly struct RenderEngineDesc
         get; init;
     }
 
-    public required string ShaderCacheDirectory
+    public string? ShaderCacheDirectory
     {
         get; init;
     }

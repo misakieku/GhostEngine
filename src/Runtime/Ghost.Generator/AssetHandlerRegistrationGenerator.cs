@@ -78,14 +78,8 @@ internal class AssetHandlerRegistrationGenerator // : IIncrementalGenerator
             var extensionsTypesConstants = GetValuesOrDefault(properties, "Extensions");
             var extensions = string.Join(", ", extensionsTypesConstants.Select(v => v.ToCSharpString()));
 
-            sb.AppendLine("        global::Ghost.Editor.Core.Assets.AssetHandlerRegistry.RegisterHandler(");
-            sb.AppendLine($"            typeof({symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}),");
-            sb.AppendLine($"            System.Guid.Parse(\"{id}\"),");
-            sb.AppendLine($"            (Ghost.Engine.Streaming.AssetType){runtimeType},");
-            sb.AppendLine($"            {version},");
-            sb.AppendLine($"            {allowCaching},");
-            sb.AppendLine($"            new string[] {{ {extensions} }});");
-            sb.AppendLine();
+            sb.AppendLine(@$"
+        global::Ghost.Editor.Core.Assets.AssetHandlerRegistry.RegisterHandler(typeof({symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}), System.Guid.Parse(""{id}""), (Ghost.Engine.Streaming.AssetType){runtimeType}, {version}, {allowCaching}, new string[] {{ {extensions} }});");
         }
 
         var registerTypeName = "g_assethandler_registeration";

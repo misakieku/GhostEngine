@@ -3,16 +3,11 @@ using Ghost.Core.Graphics;
 
 namespace Ghost.DSL.ShaderCompiler.Templates;
 
-/// <summary>
-/// TODO: This Lit template is a placeholder for testing and framework validation only.
-/// As the GPU-driven rendering pipeline (V-Buffer, compute deferred texturing, G-Buffer layout,
-/// clustered lighting) continues to evolve, this template will be fully expanded.
-/// </summary>
-public sealed class LitTemplate : IShaderTemplate
+internal sealed class LitTemplate : IShaderTemplate
 {
-    public const string TemplateName = "Lit";
+    public const string TEMPLATE_NAME = "Lit";
 
-    public string Name => TemplateName;
+    public string Name => TEMPLATE_NAME;
 
     public string CommonTemplateFile => "Lit/Lit_Common.template.hlsl";
 
@@ -20,6 +15,8 @@ public sealed class LitTemplate : IShaderTemplate
     {
         new TemplatePropertyDef("bool", "alphaClip", "false"),
         new TemplatePropertyDef("float", "alphaClipThreshold", "0.5"),
+        // mirror: 1.0f, 1.0f, -1.0f, 1.0f, flip: -1.0f, -1.0f, -1.0f, 1.0f. w is used to determine if the material is double-sided or not. If w is 0, the material is double-sided.
+        new TemplatePropertyDef("float4", "doubleSidedConstants", "float4(1.0, 1.0, 1.0, 0.0)"),
     };
 
     public IReadOnlyList<TemplatePropertyDef> BaseProperties => s_baseProperties;

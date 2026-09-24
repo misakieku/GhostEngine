@@ -778,13 +778,21 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         syncBoundaries.Clear();
 
         var passCount = compiledPasses.Length;
-        if (passCount < 4)
+        if (passCount < 3)
         {
             return;
         }
 
-        for (var candidateIndex = 1; candidateIndex < passCount; candidateIndex++)
+        var currentGfxCbId = 0;
+        var nextCbId = 1;
+
+        for (var candidateIndex = 0; candidateIndex < passCount; candidateIndex++)
         {
+            if (syncBoundaries[candidateIndex].isValid)
+            {
+                continue;
+            }
+
             var candidate = passes[compiledPasses[candidateIndex]];
             if (!IsAsyncComputeCandidate(candidate))
             {
@@ -818,8 +826,13 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 var overlapPass = passes[compiledPasses[overlapIndex]];
                 if (overlapPass.type == RenderPassType.Unsafe)
                 {
-                    legalWindow = false;
-                    break;
+                    if (!overlapPass.allowAsyncComputeOverlap)
+                    {
+                        legalWindow = false;
+                        break;
+                    }
+
+                    hasIndependentGraphicsWork = true;
                 }
 
                 if (overlapPass.type == RenderPassType.Raster)
@@ -836,6 +849,11 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             var hasGraphicsProducer = false;
             for (var producerIndex = 0; producerIndex < candidateIndex && !hasGraphicsProducer; producerIndex++)
             {
+                if (effectiveQueues[producerIndex] == CommandQueueType.Compute)
+                {
+                    continue;
+                }
+
                 for (var computeIndex = candidateIndex; computeIndex <= groupEndIndex; computeIndex++)
                 {
                     if (reachability[(producerIndex * passCount) + computeIndex] != 0)
@@ -851,31 +869,34 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 effectiveQueues[computeIndex] = CommandQueueType.Compute;
             }
 
+            var computeCbId = nextCbId++;
+            var overlapGfxCbId = nextCbId++;
+            var joinGfxCbId = nextCbId++;
+
             syncBoundaries[candidateIndex] = new SyncBoundary
             {
                 isValid = true,
                 nextCommandBufferType = CommandQueueType.Compute,
-                nextCommandBufferId = 1,
-                producerCommandBufferId = hasGraphicsProducer ? 0 : -1
+                nextCommandBufferId = computeCbId,
+                producerCommandBufferId = hasGraphicsProducer ? currentGfxCbId : -1
             };
             syncBoundaries[groupEndIndex + 1] = new SyncBoundary
             {
                 isValid = true,
                 nextCommandBufferType = CommandQueueType.Graphics,
-                nextCommandBufferId = 2,
+                nextCommandBufferId = overlapGfxCbId,
                 producerCommandBufferId = -1
             };
             syncBoundaries[joinIndex] = new SyncBoundary
             {
                 isValid = true,
                 nextCommandBufferType = CommandQueueType.Graphics,
-                nextCommandBufferId = 3,
-                producerCommandBufferId = 1
+                nextCommandBufferId = joinGfxCbId,
+                producerCommandBufferId = computeCbId
             };
 
-            // The initial planner materializes one active Compute region. Later candidates are
-            // deterministically demoted by original pass order unless they joined this group.
-            break;
+            currentGfxCbId = joinGfxCbId;
+            candidateIndex = joinIndex;
         }
     }
 

@@ -3,20 +3,11 @@ using Ghost.Core.Graphics;
 
 namespace Ghost.DSL.ShaderCompiler.Templates;
 
-/// <summary>
-/// The built-in Unlit template. Emits unlit (emissive-only) surface programs:
-/// forward pass for translucent/emissive geometry, plus visibility and
-/// shadow depth passes for GPU-driven occlusion.
-///
-/// Injection points the user may override in their hlsl block:
-///   float  GetAlphaCoverage(uint materialBindlessIndex, float2 uv, inout Payload payload)
-///   float4 GetColor(inout Payload payload)
-/// </summary>
-public sealed class UnlitTemplate : IShaderTemplate
+internal sealed class UnlitTemplate : IShaderTemplate
 {
-    public const string TemplateName = "Unlit";
+    public const string TEMPLATE_NAME = "Unlit";
 
-    public string Name => TemplateName;
+    public string Name => TEMPLATE_NAME;
 
     public string CommonTemplateFile => "Unlit/Unlit_Common.template.hlsl";
 
@@ -24,6 +15,8 @@ public sealed class UnlitTemplate : IShaderTemplate
     {
         new TemplatePropertyDef("bool", "alphaClip", "false"),
         new TemplatePropertyDef("float", "alphaClipThreshold", "0.5"),
+        // mirror: 1.0f, 1.0f, -1.0f, 1.0f, flip: -1.0f, -1.0f, -1.0f, 1.0f. w is used to determine if the material is double-sided or not. If w is 0, the material is double-sided.
+        new TemplatePropertyDef("float4", "doubleSidedConstants", "float4(1.0, 1.0, 1.0, 0.0)"),
     };
 
     public IReadOnlyList<TemplatePropertyDef> BaseProperties => s_baseProperties;
@@ -89,8 +82,8 @@ public static class TemplateRegistry
 {
     private static readonly Dictionary<string, IShaderTemplate> s_templates = new(StringComparer.Ordinal)
     {
-        [UnlitTemplate.TemplateName] = new UnlitTemplate(),
-        [LitTemplate.TemplateName] = new LitTemplate(),
+        [UnlitTemplate.TEMPLATE_NAME] = new UnlitTemplate(),
+        [LitTemplate.TEMPLATE_NAME] = new LitTemplate(),
     };
 
     public static Result<IShaderTemplate> GetTemplate(string name)

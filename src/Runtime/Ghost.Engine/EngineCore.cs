@@ -30,34 +30,6 @@ public sealed class RuntimeShutdownAttribute : Attribute;
 
 public struct EngineDesc
 {
-    public struct Render
-    {
-        public required IGraphicsEngine GraphicsEngine
-        {
-            get; set;
-        }
-
-        public required uint FrameBufferCount
-        {
-            get; set;
-        }
-
-        public required IRenderPipelineSettings RenderPipelineSettings
-        {
-            get; set;
-        }
-
-        public required string ShaderCacheDirectory
-        {
-            get; set;
-        }
-
-        public IShaderCompilationBridge? ShaderCompilationBridge
-        {
-            get; set;
-        }
-    }
-
     public required AllocationManagerDesc AllocationManagerDesc
     {
         get; set;
@@ -72,13 +44,31 @@ public struct EngineDesc
     {
         get; set;
     }
+}
 
-    public required Func<Render> RenderDescFactory
+public struct GraphicsDesc
+{
+    public required uint FrameBufferCount
     {
         get; set;
     }
 
-    public required Func<IContentProvider> ContentProviderFactory
+    public required IGraphicsEngine GraphicsEngine
+    {
+        get; set;
+    }
+
+    public required IRenderPipelineSettings RenderPipelineSettings
+    {
+        get; set;
+    }
+
+    public string? ShaderCacheDirectory
+    {
+        get; set;
+    }
+
+    public IShaderCompilationBridge? ShaderCompilationBridge
     {
         get; set;
     }
@@ -103,7 +93,7 @@ public sealed partial class EngineCore : IDisposable
 
     public int FrameIndex => _frameIndex;
 
-    public EngineCore(in JobSchedulerDesc jobSchedulerDesc, in EngineDesc.Render renderDesc, IContentProvider contentProvider)
+    public EngineCore(in JobSchedulerDesc jobSchedulerDesc, in GraphicsDesc renderDesc, IContentProvider contentProvider)
     {
         _contentProvider = contentProvider;
 
