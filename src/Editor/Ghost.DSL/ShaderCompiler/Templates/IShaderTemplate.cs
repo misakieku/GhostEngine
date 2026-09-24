@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.Generator.Templates;
 namespace Ghost.DSL.ShaderCompiler.Templates;
 
 /// <summary>
@@ -34,23 +35,7 @@ public class TemplatePassDef
     public List<TemplateStage> stages = new List<TemplateStage>();
 }
 
-/// <summary>
-/// A property declared by a built-in template. These are injected
-/// into the flat properties struct of every shader using the template.
-/// </summary>
-public class TemplatePropertyDef
-{
-    public TemplatePropertyDef(string type, string name, string? defaultValue = null)
-    {
-        this.type = type;
-        this.name = name;
-        this.defaultValue = defaultValue;
-    }
 
-    public string type;
-    public string name;
-    public string? defaultValue;
-}
 
 /// <summary>
 /// Defines an injection/override point in a template that the user HLSL block may provide.

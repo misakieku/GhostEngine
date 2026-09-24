@@ -111,18 +111,19 @@ public static class DSLShaderCompiler
     {
         return type.Trim().ToLowerInvariant() switch
         {
-            "float" or "int" or "uint" or "bool" => 4,
-            "float2" or "int2" or "uint2" or "bool2" => 8,
-            "float3" or "int3" or "uint3" or "bool3" => 12,
-            "float4" or "int4" or "uint4" or "bool4" or "quaternion" => 16,
-            "float2x2" => 16,
-            "float3x3" => 36,
-            "float4x3" or "float3x4" => 48,
-            "float4x4" or "matrix4x4" => 64,
+            "float" or "int" or "uint" or "bool" => 4u,
+            "float2" or "int2" or "uint2" or "bool2" => 8u,
+            "float3" or "int3" or "uint3" or "bool3" => 12u,
+            "float4" or "int4" or "uint4" or "bool4" or "quaternion" => 16u,
+            "float2x2" => 16u,
+            "float3x3" => 36u,
+            "float4x3" or "float3x4" => 48u,
+            "float4x4" or "matrix4x4" => 64u,
+            "int2x4" => 32u,
             "texture2d" or "texture3d" or "texturecube" or "texture2darray" or "texturecubearray"
                 or "samplerstate" or "sampler" or "byte_address_buffer" or "struct_buffer" or "structured_buffer"
-                or "texture2dhandle" or "texture3dhandle" or "bufferhandle" => 4,
-            _ => 4
+                or "texture2dhandle" or "texture3dhandle" or "bufferhandle" => 4u,
+            _ => 4u
         };
     }
 

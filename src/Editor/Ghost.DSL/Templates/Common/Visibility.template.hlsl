@@ -116,26 +116,29 @@ void MSMain(
     
     uint i;
     [unroll(2)]
-    for (i = groupThreadID; i < triangleCount; i += VISIBILITY_MS_THREADS)
+    for (i = 0; i < MAX_TRIANGLES_PER_MESHLET; i += VISIBILITY_MS_THREADS)
     {
-        // const uint primId = i + groupThreadID;
-        uint packedIndices = meshletTrianglesBuffer.Load((meshlet.triangleOffset + i) * 4);
-        uint3 indices = uint3(packedIndices & 0xFF, (packedIndices >> 8) & 0xFF, (packedIndices >> 16) & 0xFF);
+        const uint primId = i + groupThreadID;
+        if (primId < triangleCount)
+        {
+            uint packedIndices = meshletTrianglesBuffer.Load((meshlet.triangleOffset + primId) * 4);
+            uint3 indices = uint3(packedIndices & 0xFF, (packedIndices >> 8) & 0xFF, (packedIndices >> 16) & 0xFF);
         
-        float2 uv0, uv1, uv2;
-        float4 v0 = GetVertexClipPosition(indices.x, meshlet.vertexOffset, meshletVerticesBuffer, vertices, worldViewProj, uv0);
-        float4 v1 = GetVertexClipPosition(indices.y, meshlet.vertexOffset, meshletVerticesBuffer, vertices, worldViewProj, uv1);
-        float4 v2 = GetVertexClipPosition(indices.z, meshlet.vertexOffset, meshletVerticesBuffer, vertices, worldViewProj, uv2);
+            float2 uv0, uv1, uv2;
+            float4 v0 = GetVertexClipPosition(indices.x, meshlet.vertexOffset, meshletVerticesBuffer, vertices, worldViewProj, uv0);
+            float4 v1 = GetVertexClipPosition(indices.y, meshlet.vertexOffset, meshletVerticesBuffer, vertices, worldViewProj, uv1);
+            float4 v2 = GetVertexClipPosition(indices.z, meshlet.vertexOffset, meshletVerticesBuffer, vertices, worldViewProj, uv2);
         
-        g_VertexPositions[indices.x] = v0;
-        g_VertexPositions[indices.y] = v1;
-        g_VertexPositions[indices.z] = v2;
+            g_VertexPositions[indices.x] = v0;
+            g_VertexPositions[indices.y] = v1;
+            g_VertexPositions[indices.z] = v2;
         
-        g_VertexUVs[indices.x] = uv0;
-        g_VertexUVs[indices.y] = uv1;
-        g_VertexUVs[indices.z] = uv2;
+            g_VertexUVs[indices.x] = uv0;
+            g_VertexUVs[indices.y] = uv1;
+            g_VertexUVs[indices.z] = uv2;
         
-        g_PackedIndices[i] = packedIndices;
+            g_PackedIndices[primId] = packedIndices;
+        }
     }
     
     GroupMemoryBarrierWithGroupSync();
@@ -165,7 +168,7 @@ void MSMain(
         outTris[i] = indices;
         
         outPrims[i].primitiveID = i;
-        outPrims[i].cullPrim = props.doubleSidedConstants.w == 0.0f && !IsFrontFacing(v0, v1, v2);
+        outPrims[i].cullPrim = props.doubleSidedConstants.w == 0.0f && !IsFrontFacing(v2, v1, v0);
     }
 }
 

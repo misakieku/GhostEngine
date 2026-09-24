@@ -19,6 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\Runtime\Ghost.Generator\Templates\BuiltInTemplateProperties.cs" Link="ShaderCompiler\Templates\BuiltInTemplateProperties.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
         <ProjectReference Include="../../Runtime/Ghost.Core/Ghost.Core.csproj" />
   </ItemGroup>
 

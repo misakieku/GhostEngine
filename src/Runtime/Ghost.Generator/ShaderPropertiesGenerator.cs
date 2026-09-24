@@ -1,3 +1,4 @@
+using Ghost.Generator.Templates;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using System;
@@ -12,48 +13,23 @@ namespace Ghost.Generator
     [Generator]
     internal class ShaderPropertiesGenerator : IIncrementalGenerator
     {
-        private struct ParsedProperty
+        private sealed class PropertyModel
         {
-            public string type;
-            public string name;
-            public string defaultValue;
+            public string type = string.Empty;
+            public string name = string.Empty;
+            public string defaultValue = string.Empty;
+            public bool isFromTemplate;
         }
 
-        private class ParsedShader
+        private sealed class ParsedShader
         {
             public string shaderName = string.Empty;
             public string templateName = string.Empty;
-            public List<ParsedProperty> properties = new List<ParsedProperty>();
+            public List<PropertyModel> properties = new List<PropertyModel>();
         }
-
-        private static readonly Dictionary<string, ParsedProperty[]> s_templateProperties =
-            new Dictionary<string, ParsedProperty[]>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["Lit"] = new[]
-                {
-                    new ParsedProperty { type = "bool", name = "alphaClip" },
-                    new ParsedProperty { type = "float", name = "alphaClipThreshold" },
-                },
-                ["Unlit"] = new[]
-                {
-                    new ParsedProperty { type = "bool", name = "alphaClip" },
-                    new ParsedProperty { type = "float", name = "alphaClipThreshold" },
-                },
-                ["Sky"] = new[]
-                {
-                    new ParsedProperty { type = "float4", name = "skyTint" },
-                    new ParsedProperty { type = "float", name = "exposure" },
-                },
-                ["UI"] = new[]
-                {
-                    new ParsedProperty { type = "float4", name = "color" },
-                    new ParsedProperty { type = "uint", name = "mainTex" },
-                }
-            };
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            // 1. Watch all .gshdr, .gcomp, and .ggraph AdditionalFiles
             var shaderFiles = context.AdditionalTextsProvider
                 .Where(file => file.Path.EndsWith(".gshdr", StringComparison.OrdinalIgnoreCase) ||
                                file.Path.EndsWith(".gcomp", StringComparison.OrdinalIgnoreCase) ||
@@ -76,10 +52,8 @@ namespace Ghost.Generator
 
         private static ParsedShader? ParseShaderProperties(string content)
         {
-            // Strip comments
             var cleanText = Regex.Replace(content, @"//.*?$|/\*.*?\*/", "", RegexOptions.Multiline | RegexOptions.Singleline);
 
-            // Match shader or compute declaration: (shader|compute) "Name" (: "Template")? {
             var shaderDeclMatch = Regex.Match(cleanText, @"(?:shader|compute)\s+""([^""]+)""(?:\s*:\s*""([^""]+)"")?");
             if (!shaderDeclMatch.Success)
             {
@@ -92,20 +66,19 @@ namespace Ghost.Generator
                 templateName = shaderDeclMatch.Groups[2].Success ? shaderDeclMatch.Groups[2].Value : string.Empty
             };
 
-            // Match properties { ... }
             var propertiesMatch = Regex.Match(cleanText, @"properties\s*\{([^}]*)\}", RegexOptions.Singleline);
             if (propertiesMatch.Success)
             {
                 var propsBlock = propertiesMatch.Groups[1].Value;
-                // Match each property statement: type name (= default)?;
                 var propStatements = Regex.Matches(propsBlock, @"([a-zA-Z0-9_]+)\s+([a-zA-Z0-9_]+)(?:\s*=\s*([^;]+))?\s*;");
                 foreach (Match stmt in propStatements)
                 {
-                    shader.properties.Add(new ParsedProperty
+                    shader.properties.Add(new PropertyModel
                     {
                         type = stmt.Groups[1].Value,
                         name = stmt.Groups[2].Value,
-                        defaultValue = stmt.Groups[3].Success ? stmt.Groups[3].Value.Trim() : string.Empty
+                        defaultValue = stmt.Groups[3].Success ? stmt.Groups[3].Value.Trim() : string.Empty,
+                        isFromTemplate = false
                     });
                 }
             }
@@ -128,15 +101,25 @@ namespace Ghost.Generator
                 }
 
                 var structName = SanitizeToIdentifier(shader.shaderName);
-                var allProperties = new List<ParsedProperty>();
+                var allProperties = new List<PropertyModel>();
 
-                // 1. Injected base properties from template
-                if (!string.IsNullOrEmpty(shader.templateName) && s_templateProperties.TryGetValue(shader.templateName, out var baseProps))
+                // 1. Template base properties from BuiltInTemplateProperties
+                if (!string.IsNullOrEmpty(shader.templateName) &&
+                    BuiltInTemplateProperties.TryGetBaseProperties(shader.templateName, out var baseProps))
                 {
-                    allProperties.AddRange(baseProps);
+                    foreach (var prop in baseProps)
+                    {
+                        allProperties.Add(new PropertyModel
+                        {
+                            type = prop.type,
+                            name = prop.name,
+                            defaultValue = prop.defaultValue ?? string.Empty,
+                            isFromTemplate = true
+                        });
+                    }
                 }
 
-                // 2. Custom properties declared in .gshdr (excluding any duplicate base property names)
+                // 2. Custom properties declared in shader (deduplicating against template base properties)
                 foreach (var prop in shader.properties)
                 {
                     var isDuplicate = allProperties.Any(p => string.Equals(p.name, prop.name, StringComparison.OrdinalIgnoreCase));
@@ -146,55 +129,71 @@ namespace Ghost.Generator
                     }
                 }
 
-                // If no properties at all, omit generation
                 if (allProperties.Count == 0 && string.IsNullOrEmpty(shader.templateName))
                 {
                     continue;
                 }
 
-                var sb = new StringBuilder();
-                sb.AppendLine("// <auto-generated/>");
-                sb.AppendLine("#nullable enable");
-                sb.AppendLine("using System.Runtime.InteropServices;");
-                sb.AppendLine("using Misaki.HighPerformance.Mathematics;");
-                sb.AppendLine();
-                sb.AppendLine("namespace Ghost.Engine.ShaderProperties");
-                sb.AppendLine("{");
-                sb.AppendLine("    [StructLayout(LayoutKind.Sequential, Pack = 4)]");
-                sb.AppendLine($"    public partial struct {structName}");
-                sb.AppendLine("    {");
-
-                var hasTemplate = !string.IsNullOrEmpty(shader.templateName) && s_templateProperties.ContainsKey(shader.templateName);
-                var basePropCount = hasTemplate ? s_templateProperties[shader.templateName].Length : 0;
+                // 3. Generate field code with initializers
+                var fieldsSb = new StringBuilder();
+                var inCustomSection = false;
 
                 for (var i = 0; i < allProperties.Count; i++)
                 {
                     var prop = allProperties[i];
                     var csType = MapHlslTypeToCSharp(prop.type);
 
-                    if (i == 0 && basePropCount > 0)
+                    if (i == 0 && prop.isFromTemplate)
                     {
-                        sb.AppendLine($"        // --- Base properties from template: {shader.templateName} ---");
+                        fieldsSb.AppendLine($"        // --- Base properties from template: {shader.templateName} ---");
                     }
-                    else if (i == basePropCount && allProperties.Count > basePropCount)
+                    else if (!prop.isFromTemplate && !inCustomSection)
                     {
-                        sb.AppendLine($"        // --- Custom properties from shader: {shader.shaderName} ---");
+                        inCustomSection = true;
+                        if (i > 0)
+                        {
+                            fieldsSb.AppendLine();
+                        }
+                        fieldsSb.AppendLine($"        // --- Custom properties from shader: {shader.shaderName} ---");
                     }
 
-                    sb.AppendLine($"        public {csType} {prop.name};");
+                    var defVal = FormatDefaultValueToCSharp(prop.type, csType, prop.defaultValue);
+                    if (!string.IsNullOrEmpty(defVal))
+                    {
+                        fieldsSb.AppendLine($"        public {csType} {prop.name} = {defVal};");
+                    }
+                    else
+                    {
+                        fieldsSb.AppendLine($"        public {csType} {prop.name};");
+                    }
                 }
 
-                sb.AppendLine();
-                sb.AppendLine($"        public const string SHADER_NAME = \"{shader.shaderName}\";");
-                if (!string.IsNullOrEmpty(shader.templateName))
-                {
-                    sb.AppendLine($"        public const string TEMPLATE_NAME = \"{shader.templateName}\";");
-                }
+                var fieldsCode = fieldsSb.ToString().TrimEnd();
 
-                sb.AppendLine("    }");
-                sb.AppendLine("}");
+                var templateConstCode = string.IsNullOrEmpty(shader.templateName)
+                    ? string.Empty
+                    : $"\n        public const string TEMPLATE_NAME = \"{shader.templateName}\";";
 
-                context.AddSource($"{structName}.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+                // 4. Emit formatted C# struct using multiline raw string literal
+                var code = $$"""
+// <auto-generated/>
+#nullable enable
+using System.Runtime.InteropServices;
+using Misaki.HighPerformance.Mathematics;
+
+namespace Ghost.Engine.ShaderProperties
+{
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    public partial struct {{structName}}()
+    {
+{{fieldsCode}}
+
+        public const string SHADER_NAME = "{{shader.shaderName}}";{{templateConstCode}}
+    }
+}
+""";
+
+                context.AddSource($"{structName}.g.cs", SourceText.From(code, Encoding.UTF8));
             }
         }
 
@@ -206,27 +205,109 @@ namespace Ghost.Generator
                 "float2" => "float2",
                 "float3" => "float3",
                 "float4" => "float4",
-                "float2x2" => "float2x2",
-                "float3x3" => "float3x3",
-                "float4x4" => "float4x4",
-                "float4x3" => "float4x3",
-                "float3x4" => "float3x4",
+
                 "int" => "int",
                 "int2" => "int2",
                 "int3" => "int3",
                 "int4" => "int4",
-                "int2x4" => "int2x4",
+
                 "uint" => "uint",
                 "uint2" => "uint2",
                 "uint3" => "uint3",
                 "uint4" => "uint4",
+
                 "bool" => "uint",
                 "bool2" => "uint2",
                 "bool3" => "uint3",
                 "bool4" => "uint4",
-                "texture2d" or "texture3d" or "texturecube" or "texture2darray" or "texturecubearray" or "samplerstate" or "sampler" or "byte_address_buffer" or "struct_buffer" => "uint",
+
+                "float2x2" => "float2x2",
+                "float3x3" => "float3x3",
+                "float4x4" or "matrix4x4" => "float4x4",
+                "float4x3" => "float4x3",
+                "float3x4" => "float3x4",
+                "int2x4" => "int2x4",
+
+                "texture2d" or "texture3d" or "texturecube" or "texture2darray" or "texturecubearray"
+                    or "samplerstate" or "sampler" or "byte_address_buffer" or "struct_buffer" or "structured_buffer"
+                    or "texture2dhandle" or "texture3dhandle" or "bufferhandle" => "uint",
+
                 _ => hlslType,
             };
+        }
+
+        private static string FormatDefaultValueToCSharp(string hlslType, string csType, string defaultValue)
+        {
+            if (string.IsNullOrWhiteSpace(defaultValue))
+            {
+                return string.Empty;
+            }
+
+            defaultValue = defaultValue.Trim();
+            var hlslLower = hlslType.Trim().ToLowerInvariant();
+
+            if (hlslLower == "bool")
+            {
+                if (bool.TryParse(defaultValue, out var bVal))
+                {
+                    return bVal ? "1u" : "0u";
+                }
+                return defaultValue.Equals("1") ? "1u" : "0u";
+            }
+
+            switch (csType)
+            {
+                case "uint":
+                    if (defaultValue.EndsWith("u", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return defaultValue;
+                    }
+                    return defaultValue + "u";
+
+                case "int":
+                    return defaultValue;
+
+                case "float":
+                    if (!defaultValue.EndsWith("f", StringComparison.OrdinalIgnoreCase) &&
+                        !defaultValue.EndsWith("F", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!defaultValue.Contains("."))
+                        {
+                            return defaultValue + ".0f";
+                        }
+                        return defaultValue + "f";
+                    }
+                    return defaultValue;
+
+                case "float2" or "float3" or "float4" or "uint2" or "uint3" or "uint4" or "int2" or "int3" or "int4":
+                    var parenStart = defaultValue.IndexOf('(');
+                    var parenEnd = defaultValue.LastIndexOf(')');
+                    if (parenStart >= 0 && parenEnd > parenStart)
+                    {
+                        var innerArgs = defaultValue.Substring(parenStart + 1, parenEnd - parenStart - 1);
+                        var args = innerArgs.Split(',');
+                        var formattedArgs = args.Select(a =>
+                        {
+                            a = a.Trim();
+                            if (csType.StartsWith("float") &&
+                                !a.EndsWith("f", StringComparison.OrdinalIgnoreCase) &&
+                                !a.EndsWith("F", StringComparison.OrdinalIgnoreCase))
+                            {
+                                return a.Contains(".") ? a + "f" : a + ".0f";
+                            }
+                            if (csType.StartsWith("uint") && !a.EndsWith("u", StringComparison.OrdinalIgnoreCase))
+                            {
+                                return a + "u";
+                            }
+                            return a;
+                        });
+                        return $"new {csType}({string.Join(", ", formattedArgs)})";
+                    }
+                    return $"new {csType}()";
+
+                default:
+                    return defaultValue;
+            }
         }
 
         private static string SanitizeToIdentifier(string shaderName)
