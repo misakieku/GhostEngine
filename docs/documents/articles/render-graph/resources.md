@@ -1,228 +1,128 @@
-# Resources and Aliasing
+# Resources
 
-A render graph resource is a *descriptor plus a lifetime*, not a GPU allocation. The graph creates the real resource only at compile time, once it knows which offsets can be shared. This page covers the three resource kinds, how sizes are resolved, and how aliasing is proven safe.
+A resource is a texture or a buffer the graph knows about. Creating one describes it rather than allocating it — the GPU memory arrives at compile time, once the graph knows which resources can share. This page is about the choices you make: which kind, what size, and how long it lives.
 
-## The three kinds
+## Choosing a Kind
 
-| Kind | Created by | Owned by | Aliased? | Backed by |
-|---|---|---|---|---|
-| **Transient** | `CreateTexture` / `CreateBuffer` | The graph | Yes | A suballocation in the graph's heap |
-| **Imported** | `ImportTexture` / `ImportBuffer` | Outside code, before the frame | No | The existing handle you passed in |
-| **Extracted** | a transient plus `QueueTextureExtraction` / `QueueBufferExtraction` | Outside code, after the frame | No | A pooled resource, swapped into your handle at retire |
+Ask what owns the data:
 
-The distinction that matters is *whether the graph may reuse the memory*. Transients are graph-owned and disposable; imported and extracted resources have a life outside the frame, so they are pinned. Declaring the wrong one is the difference between a correct frame and a resource whose contents were recycled by an unrelated pass.
+- **Something temporary inside this frame?** Create it transiently with `CreateTexture` / `CreateBuffer`. The graph allocates it, recycles its memory, and deletes it when the frame ends.
+- **It already exists and outlives the frame?** Import it with `ImportTexture` / `ImportBuffer` — the swap-chain back buffer, a persistent history texture, a scene buffer built earlier.
+- **This frame produces it and next frame consumes it?** Create it transiently, then extract it so a persistent handle receives the result.
 
-## Identifiers
+| Kind | Created by | Lives | Shares memory with other resources |
+|---|---|---|---|
+| Transient | `CreateTexture` / `CreateBuffer` | One frame | Yes |
+| Imported | `ImportTexture` / `ImportBuffer` | Beyond the graph | No |
+| Extracted | transient + `QueueTextureExtraction` / `QueueBufferExtraction` | Beyond the graph, after the frame | No |
 
-Resources are addressed by typed integer handles: `Identifier<RGTexture>` and `Identifier<RGBuffer>`. They are indices into the graph's resource registry, valid for one frame only, and `Identifier<T>.Invalid` is the null value. `RGResourceExtensions.AsResource()` bitcasts between the typed handles and the unified `Identifier<RGResource>` used internally — you rarely need it, but it is why a texture and a buffer can share dependency and aliasing machinery.
+The distinction that matters is whether the graph may reuse the memory. Transients are disposable; imported and extracted resources have a life outside the frame and are pinned. Getting this wrong is the difference between a correct frame and a resource whose contents were quietly recycled by an unrelated pass.
 
-Because identifiers are integers, they are cheap to store in `TPassData` and to hash. They are **not** stable across frames: `Reset()` clears the registry, so index 3 in one frame may be a different texture in the next. Never cache an identifier outside the frame that produced it.
+Resources are addressed by `Identifier<RGTexture>` / `Identifier<RGBuffer>`, which are integers valid for one frame. `Reset()` clears the registry, so index 3 in one frame is a different texture the next. Never cache an identifier across frames — persist a `Handle<GPUTexture>` by importing or extracting instead.
 
-## Creating transients
-
-```csharp
-Identifier<RGTexture> CreateTexture(scoped in RGTextureDesc desc, string? name = null)
-Identifier<RGBuffer>  CreateBuffer(scoped in BufferDesc desc, string? name = null)
-```
-
-Both record a descriptor and return immediately. No GPU memory is touched, and no validation of size or format happens until compile.
-
-`RGTextureDesc` has four factory methods:
-
-| Factory | Result |
-|---|---|
-| `Absolute(width, height, format, ...)` | Fixed pixel dimensions. |
-| `Relative(scale, format, ...)` | Uniform fraction of the viewport. |
-| `Relative(scaleX, scaleY, format, ...)` | Independent horizontal and vertical fractions. |
-| `RelativeDepth(scale, clearDepth, ...)` | Relative depth-stencil, defaulting to `D32_Float` and `TextureUsage.DepthStencil`. |
-
-All four default to `clearAtFirstUse = true` and `discardAtLastUse = true`, and the colour factories default to `TextureUsage.RenderTarget | TextureUsage.ShaderResource`. Buffers take a plain RHI `BufferDesc`, including its `HeapType`.
-
-There is also a copy form, which clones an existing resource's descriptor under a new name:
+## Creating a Transient
 
 ```csharp
-Identifier<RGTexture> CreateTexture(Identifier<RGTexture> texture, string? name = null)
-```
+var sceneColor = builder.CreateTexture(
+    RGTextureDesc.Relative(1.0f, TextureFormat.R8G8B8A8_UNorm),
+    "SceneColor");
 
-It returns `Identifier<RGTexture>.Invalid` if handed an invalid source, so it composes with the optional-resource idiom from [Authoring Passes](authoring-passes.md).
-
-### Clear and discard flags
-
-`RGTextureDesc` carries `clearAtFirstUse`, `discardAtLastUse`, `clearColor`, `clearDepth` and `clearStencil`. These are **hardware load/store actions**, not CPU operations, and they only take effect when the texture is bound as a raster or native attachment.
-
-`clearAtFirstUse` turns the attachment's load op into `Clear`; if it is false and the resource is at its first use, the load op becomes `DontCare`. `discardAtLastUse` turns the store op of the final attachment use into `DontCare`, dropping tile memory without writeback. Both are inferred per native pass — see [Synchronization](synchronization.md).
-
-For a resource that is **not** an attachment — a compute UAV, or an imported texture — these flags do nothing. Clear it explicitly instead, with `ctx.ClearBuffer` inside a pass or with `AddClearBufferPass`, which stages through an upload buffer and a DMA copy.
-
-## Relative sizing and `ViewState`
-
-Relative textures are resolved against a `ViewState` immediately before compilation:
-
-```csharp
-public struct ViewState
+var counter = builder.CreateBuffer(new BufferDesc
 {
-    public uint viewportWidth, viewportHeight;   // what Relative scales against
-    public uint actualWidth, actualHeight;       // pre-upscale render size
-}
+    Size = 128,
+    Stride = 4,
+    Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+}, "CounterBuffer");
 ```
 
-`ResolveTextureSizes` multiplies `scaleX/scaleY` by `viewportWidth/Height` and stores `resolvedWidth/resolvedHeight`. Imported textures are skipped — their dimensions are already fixed.
+Textures take an `RGTextureDesc`; buffers take the RHI's `BufferDesc`. Neither touches GPU memory, and neither validates size or format until compile.
 
-`actualWidth/actualHeight` exist for upscalers that need the render resolution distinct from the presentation resolution. They participate in `ViewState` equality and hashing, so changing them changes the view state even when the viewport does not.
+`RGTextureDesc` has four factories: `Absolute(width, height, format)`, `Relative(scale, format)`, `Relative(scaleX, scaleY, format)`, and `RelativeDepth(scale)` for depth-stencil. They default to `clearAtFirstUse` and `discardAtLastUse` both true, and the colour factories to `TextureUsage.RenderTarget | ShaderResource`.
 
-The reason relative mode exists at all is the compilation cache. The graph hash records **scale factors, not resolved dimensions** (`RenderGraphHasher.ComputeTextureHash`). A window resize therefore produces the same hash, hits the cache, and only needs heap placements resized — not the graph recompiled. Absolute-sized transients defeat this: every distinct size is a distinct hash and a full recompile. Prefer `Relative` for anything resolution-derived, and reserve `Absolute` for genuinely fixed-size resources such as counter buffers.
+There is also `CreateTexture(existingTexture, "name")`, which clones another resource's descriptor — useful for a ping-pong pair, and it returns an invalid identifier if handed one, so it composes with optional inputs.
 
-## Importing external resources
+## Sizing for the Viewport
+
+Relative textures are resolved against a `ViewState` at compile time:
 
 ```csharp
-Identifier<RGTexture> ImportTexture(
-    Handle<GPUTexture> texture,
-    ResourceBarrierData? initialState = null,
-    ResourceBarrierData? finalState = null,
-    Color128 clearColor = default, float clearDepth = 1.0f, byte clearStencil = 0,
-    bool clearAtFirstUse = false, bool discardAtLastUse = false)
+var viewState = new ViewState(
+    renderView.ScreenSize.x, renderView.ScreenSize.y,   // what Relative scales against
+    renderView.ScreenSize.x, renderView.ScreenSize.y);  // pre-upscale render size
 
-Identifier<RGBuffer> ImportBuffer(
-    Handle<GPUBuffer> buffer,
-    ResourceBarrierData? initialBarrierState = null,
-    ResourceBarrierData? finalBarrierState = null)
+renderGraph.CompileAndExecute(executionContext, viewState);
 ```
 
-The descriptor is read back from the resource database, so the import reflects the real resource rather than a guess. A failed lookup logs an error and returns an invalid identifier — check `IsValid` before using the result.
+`Relative(0.5f, ...)` is half the viewport, whatever the window is doing. The fourth and fifth fields exist for upscalers that render at one resolution and present at another.
 
-`initialState` and `finalState` are the graph's contract with the world outside it. The initial state is assumed as the resource's state when the frame begins, so no transition is emitted to reach it; the final state is restored by closing barriers after the last pass. Omitting them means the graph tracks whatever state the resource actually ends in and emits no transition back, which is wrong for anything another subsystem touches next frame.
+**Prefer `Relative` for anything resolution-derived.** The graph caches a frame's compilation, keyed on the resource descriptors — and for relative textures it records the *scale*, not the resolved pixel size. Dragging the window therefore reuses the cached compilation and only resizes the memory. An `Absolute` texture bakes its dimensions into that key, so every distinct size is a fresh compile. Reserve `Absolute` for genuinely fixed sizes: counter buffers, indirect argument buffers, small lookup tables.
 
-The back buffer is the canonical case — it must be in `Present` state both entering and leaving the graph:
+## Importing an Existing Resource
 
 ```csharp
-var presentBarrier = new ResourceBarrierData(BarrierLayout.Present, BarrierAccess.NoAccess, BarrierSync.None);
+var backBuffer = renderGraph.ImportTexture(renderView.ColorTexture);
+var sceneBuffer = renderGraph.ImportBuffer(gpuScene.InstanceBuffer);
+```
+
+The descriptor is read back from the resource database, so the import reflects the real resource rather than your estimate. A failed lookup logs an error and returns an invalid identifier — check `IsValid` before using it.
+
+Imports can declare the state the resource is in when the frame starts, and the state to leave it in at the end. You need these when something outside the graph touches the resource on either side — the back buffer is the clear case, since it must be presentable after the frame and is in present state before it:
+
+```csharp
+var present = new ResourceBarrierData(BarrierLayout.Present, BarrierAccess.NoAccess, BarrierSync.None);
 
 var colorTarget = renderGraph.ImportTexture(
     renderView.ColorTexture,
-    initialState: presentBarrier,
-    finalState: presentBarrier,
+    initialState: present,
+    finalState: present,
     clearColor: new Color128(0.05f, 0.05f, 0.05f, 1.0f),
     clearAtFirstUse: true);
 ```
 
-Persistent resources that only the graph ever touches still need care: an imported resource with no `initialState` begins the frame in `Undefined`, so its first use emits a **discard** transition. If a pass reads prior-frame contents — history buffers, temporal accumulation — supply `initialState` matching the state the resource was left in, or the read is undefined. The back buffer below is the clear-cut case; anything with cross-frame data follows the same rule.
+> **Note:** An import with no `initialState` starts the frame with unknown contents as far as the graph is concerned, so its first use **discards** rather than loads. If a pass reads what a previous frame wrote — history buffers, temporal accumulation, an HZB carried across frames — supply `initialState`. Without it the read is undefined.
 
-## Extracting transients
+## Keeping a Resource for Next Frame
 
-Extraction hands a transient out of the graph to a persistent handle you own. Both methods live on the **pass builder**, not on `RenderGraph`, and are called while authoring the pass that produces the resource:
-
-```csharp
-void QueueTextureExtraction(Identifier<RGTexture> src, Handle<GPUTexture> dst, ResourceExtractionFlags flags = ResourceExtractionFlags.None)
-void QueueBufferExtraction(Identifier<RGBuffer> src, Handle<GPUBuffer> dst, ResourceExtractionFlags flags = ResourceExtractionFlags.None)
-```
-
-Calling it marks the resource extracted, which pins it out of the aliasing plan and gives it a fresh pooled backing resource each frame. It also declares the resource as read by that pass, so the extraction itself creates a dependency — you do not need a separate `UseTexture`.
-
-`ResourceExtractionFlags.ReleaseAfterExtract` selects between two deferred behaviours, both applied after execution and both taking effect only when the frame **retires**:
-
-| Flag | Path | Effect |
-|---|---|---|
-| `None` (default) | `QueueSwap(dst, src)` plus `ReleasePooledResourceDeferred(src)` | `dst` and `src` exchange resources inside the resource database; the displaced old resource recycles into the pool once it is no longer in flight. |
-| `ReleaseAfterExtract` | `QueueReplace(dst, src)` | `dst` takes the new resource outright; the old one is released through the deferred path. |
-
-Both exist because the swap cannot happen at record time. In-flight GPU work may still be sampling the persistent handle — the classic case is next frame reading this frame's history. Applying the substitution immediately would let that reader observe this frame's not-yet-written transient. Deferring to retire is what makes history-buffer patterns (HZB, temporal accumulation) correct without an explicit stall.
-
-## Backing allocation
-
-Compile produces exactly one heap for transients:
+Extract it from the pass that produces it:
 
 ```csharp
-var allocationDesc = new AllocationDesc
+using (var builder = renderGraph.AddComputeRenderPass<BuildHzbPassData>("BuildHZB"))
 {
-    Size = plan.totalHeapSize + 65536,               // 64 KB padding against overflow
-    Alignment = 65536,                               // D3D12PlacedResourceOffset alignment
-    HeapFlags = HeapFlags.AllowAllBufferAndTexture,  // buffers and textures may share the heap
-    HeapType = HeapType.Default
-};
-_resourceHeap = allocator.Allocate(in allocationDesc, "RenderGraphResourceHeap");
+    var hzb = builder.CreateTexture(RGTextureDesc.Absolute(...), "Hzb");
+    builder.UseRandomAccessTexture(hzb);
+    builder.QueueTextureExtraction(hzb, persistentHzbHandle);
+    // ...
+}
 ```
 
-`HeapFlags` is a single-valued enum, not a bitfield; `AllowAllBufferAndTexture` is the member that permits mixed suballocation. Every aliasable resource is then created with `ResourceAllocationType.Suballocation` at its planned offset. Resources that cannot share the heap get their own path:
+Extraction pins the resource out of memory sharing and gives it a fresh pooled backing each frame. It also counts as a read of the resource, so the pass that extracts it does not need a separate `UseTexture`.
 
-| Resource | Backing |
-|---|---|
-| Imported | The handle you supplied; nothing allocated. |
-| Extracted | `CreatePooledTexture` / `CreatePooledBuffer`, fresh each frame. |
-| `HeapType.Upload` buffers | A dedicated committed buffer — CPU-mapped resources must not alias. |
-| Everything else | Suballocated from `_resourceHeap` at `heapOffset`. |
+The handover happens when the frame **retires**, not immediately. That is deliberate: GPU work in flight may still be sampling `persistentHzbHandle`, and swapping it at record time would let that reader see this frame's not-yet-written texture. Deferring is what makes history-buffer patterns correct without an explicit stall — but it also means you must not read `persistentHzbHandle` expecting this frame's results.
 
-The heap is released and recreated whenever the aliasing plan is rebuilt, and `Reset()` does not destroy it — placements are cached across frames.
+`ResourceExtractionFlags.ReleaseAfterExtract` replaces the destination's resource instead of swapping the two. Use the default unless you have a reason.
 
-## Aliasing
+## Letting the Graph Share Memory
 
-### Lifetime and the happens-before test
+Transient resources whose uses never overlap are placed at the same offset in one video-memory heap, so a frame's memory follows its peak concurrency rather than its total size. You do not configure this, and you do not opt in — every transient is eligible.
 
-Aliasing two resources requires proof that their uses cannot interleave. Interval overlap on `[firstUse, lastUse]` is not that proof, because a schedule is only a partial order: two resources whose intervals overlap may still be unordered, and two that do not may still be unsafe if a third dependency puts them in an ambiguous relationship.
+Three consequences reach into your code:
 
-The graph instead builds a per-resource **use bitmask** over schedule indices — every pass that reads or writes the resource — and a per-pass reachability matrix. Resource A may alias B when every use of A happens before every use of B, or vice versa:
+**Contents are undefined before the first write.** A transient's memory held something else earlier in the frame, and the graph discards it rather than preserving it. If a pass reads a texture before writing it, that read is garbage. Either declare the read so the graph knows to preserve contents, or clear it first.
 
-```text
-AllUsesHappenBefore(A, B)  ==  ∀ pass p using A, ∀ pass q:  q is reachable from p  OR  q does not use B
-CanAlias(A, B)             ==  AllUsesHappenBefore(A, B) || AllUsesHappenBefore(B, A)
-```
+**Granularity is the whole resource.** Aliasing and state are decided per texture or buffer, never per mip level or array slice. Reading one mip still keeps the entire texture alive, so a mip chain that is partly dead and partly live should be two resources.
 
-Bitmask intersection answers this in `WordCount` (`ceil(passes / 64)`) word operations rather than a graph walk. `RenderGraphResourceOrdering.CanAlias` is the only gate the placement allocator consults.
+**A capture tool shows one allocation with several names.** This confuses debugging more than anything else in the graph. See [Debugging and Validation](debugging.md).
 
-This is also why the async-compute planner runs *before* aliasing: reachability must include command-buffer segment ordering, or two passes on different queues would look unordered when they are in fact serialized.
+Two things are excluded because sharing them would be wrong: buffers created with `HeapType.Upload`, which the CPU maps, and anything imported or extracted, which outlives the frame.
 
-### Placement
+## Avoid
 
-`RenderGraphAliasingBuilder.Build` runs a simulation over an unbounded heap:
-
-1. Collect aliasable resources, computing each size through `IResourceAllocator.GetSizeInfo`.
-2. Sort **size descending**.
-3. First-fit each resource into the simulated heap, testing every overlapping occupied block with `CanAlias`.
-4. Take the peak extent, aligned to 64 KB, as `totalHeapSize`.
-
-Alignment is 64 KB (`DEFAULT_TEXTURE_ALIGNMENT` / `DEFAULT_BUFFER_ALIGNMENT`) for both textures and buffers, matching D3D12's placed-resource offset requirement.
-
-Placement is deliberately strict about *exact* slots. A candidate may overlap an occupied block only when it starts at the same offset and does not extend past it:
-
-```csharp
-// Alias membership and first-use barriers are represented per exact slot.
-if (offset != block.offset || endOffset > blockEnd)
-    return false;
-```
-
-Partial overlaps are refused outright. The consequence is that a slot is a set of resources sharing one offset and one membership list, which is what makes aliasing barriers well-defined. Resources in the same slot record each other in `aliasedLogicalResources` — they remain distinct logical resources with distinct descriptors, and the dump reports the whole set per resource.
-
-### Aliasing barriers
-
-Reusing an offset is only correct if the GPU agrees to forget the previous occupant. When a resource's first use is reached and it shares a slot, the compiler resolves the most recent former occupant — the alias candidate with the largest last-use schedule index that provably precedes it — and emits a barrier carrying `aliasingPredecessor` plus `FirstUsage | Discard`. At the RHI that becomes an aliasing transition (`isAliasing: true`), which forces the before-state to `Undefined` / `NoAccess` and sets the D3D12 texture-barrier discard flag, invalidating the old resource's contents at that offset. No residency management is involved: the backend places resources through D3D12MA, so this is a discard rather than an eviction and re-reside.
-
-The same `FirstUsage | Discard` combination is emitted for any resource whose tracked state is invalid at first use, so a fresh transient with no alias predecessor still gets a discard rather than a load of garbage.
-
-### Resizing without recompiling
-
-When the cache hits but the view state grew, `ResizeCachedSlots` recomputes offsets and sizes while **preserving alias groups exactly**: it walks the cached placements, reuses each slot's representative offset for members sharing the old offset, and re-derives slot sizes from the new resolved dimensions. Command bytes, culled flags, native passes and schedule indices are untouched — which is the property `TestPhase3_ViewportGrowthPreservesAliasGroupsAndCommandBytes` asserts.
-
-## Two lifetime representations
-
-The registry keeps `firstUsePass` / `lastUsePass` in **pass index** space, accumulated as passes declare access. The ordering structure keeps first/last use in **schedule index** space, computed after culling and reordering. Only the schedule-index version feeds aliasing, barriers and load-store inference. The dump exposes both (`FirstUsePass` and `ScheduledFirstUseIndex`) precisely so a mismatch is diagnosable.
-
-## Ownership and leaks
-
-`RenderGraph.Dispose()` releases every tracked backing resource, the heap, and the registry. `_allocatedBackingResources` covers the suballocated and dedicated-upload allocations so dispose and heap-rebuild paths cannot miss one; **extracted resources are deliberately absent**, because their pooled handles belong to `ResourceManager`. `GPUResourceLeakException` exists to report a non-zero reference count at destroy time, but it currently has **no call site** — do not rely on it to catch a leak.
-
-Transient identifiers must not outlive the frame. Nothing enforces this — an identifier is an integer, and using a stale one reads whatever the registry now holds at that index. Persistent state belongs in imported or extracted resources, never in a cached transient identifier.
-
-## Rules that bite
-
-1. **Identifiers die at `Reset()`.** Persist through import or extraction, not by caching.
-2. **Transients alias; imported and extracted never do.** If a resource must survive the frame, it has to be one of the latter two.
-3. **Upload buffers are excluded from aliasing.** CPU-mapped resources cannot share offsets.
-4. **`clearAtFirstUse` / `discardAtLastUse` only apply to attachments.** UAVs and imports need explicit clears.
-5. **Prefer `Relative` sizing for resolution-derived resources.** It keeps the graph hash stable across resizes.
-6. **Imported resources whose prior contents matter need `initialState`.** Without it the first use discards, and a history read is undefined. `finalState` is needed whenever anything outside the graph touches the resource next.
-7. **Extraction takes effect at retire, not at record time.** Do not read the destination handle expecting this frame's data.
-8. **`ImportTexture` can return invalid.** Check `IsValid`; a failed lookup logs and continues.
-9. **Usage classes are whole-resource.** Aliasing and barriers are decided per resource, never per mip or slice; `GetActualBindlessIndex(..., subResource:)` selects a descriptor for reading one subresource, but that does not narrow the resource's lifetime or state.
+- Caching an `Identifier<RGTexture>` in a field for next frame.
+- Building a descriptor from frame-varying data — a resolution, a count that changes — instead of putting that value in pass data. It invalidates the cached compilation every frame.
+- Leaving `initialState` off an import that a later frame reads.
+- Reading an extraction's destination handle in the same frame that queued it.
+- Storing a `Handle<GPUTexture>` in pass data rather than the graph identifier. Resolve it inside the render function with `GetActualTexture`.
 
 ## Next
 
-- [Synchronization](synchronization.md) — how the compiler turns these declarations into barriers, load/store ops, native passes and queue assignments.
+- [Synchronization](synchronization.md) — what the graph derives from the declarations you wrote.

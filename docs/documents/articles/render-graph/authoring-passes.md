@@ -1,305 +1,246 @@
-# Authoring Passes
+# Writing Render Passes
 
-Everything a frame is made of is a pass. This page covers the authoring surface end to end: creating a pass, declaring what it touches, attaching a payload, supplying the render function, and the controls that steer culling and queue assignment.
+A pass is one unit of rendering work — a compute dispatch, a set of draws, a clear. This page walks through writing them, from the smallest useful example up to the controls that steer culling and queue assignment.
 
-All types named here live in `Ghost.Graphics.RenderGraphModule`. The engine-side helpers live in `Ghost.Engine.Utilities.RenderGraphUtility`.
+Every example here is complete for the graph's side of the work. Binding meshes, materials and shader properties in detail belongs to the RHI, and is linked where it matters.
 
-## The builder lifecycle
+## The Shape of a Pass
 
-`RenderGraph` exposes three entry points, one per pass type:
-
-```csharp
-IRasterRenderGraphBuilder  AddRasterRenderPass<TPassData>(string name)
-IComputeRenderGraphBuilder AddComputeRenderPass<TPassData>(string name)
-IUnsafeRenderGraphBuilder  AddUnsafeRenderPass<TPassData>(string name)
-    where TPassData : struct
-```
-
-Each returns a builder, and every one of them returns **the same `RenderGraphBuilder` instance**. The graph holds one builder for its lifetime and calls `Reset(pass)` on it each time you add a pass. Two consequences follow, and both are strict rules rather than style preferences:
-
-- **Consume the builder before adding another pass.** The reference you hold is silently repointed at the next pass. Keeping a builder around and calling into it later configures a different pass than the one you meant to.
-- **Dispose the builder to close the pass.** `Dispose()` is not cleanup — it is the finalize step. It runs the per-pass validation rules and marks the pass immutable. Always write `using var builder = ...` or an explicit `using` block.
+Every pass is written the same four steps:
 
 ```csharp
-using (var builder = rg.AddComputeRenderPass<MyPassData>("MyPass"))
+using (var builder = renderGraph.AddComputeRenderPass<MyPassData>("MyPass"))   // 1. create
 {
-    // declare resources, attachments, pass data, render func
-}   // <- pass is finalized here
+    var output = builder.CreateBuffer(desc, "MyOutput");                       // 2. declare
+    builder.UseBuffer(output, AccessFlags.Write);
+
+    builder.SetPassData(new MyPassData { output = output });                   // 3. hand over data
+
+    builder.SetRenderFunc<MyPassData>(static (ref readonly data, ctx) =>       // 4. record GPU work
+    {
+        // ctx.DispatchCompute(...);
+    });
+}
 ```
 
-After disposal, further calls on that builder throw `ObjectDisposedException` in `DEBUG` builds. The next `Add*RenderPass` call resets the flag along with the rest of the builder's state, so the single instance is reusable across the frame — the exception exists to catch a builder held past its own pass, not to forbid adding a second pass. If a declaration was rejected under `GHOST_SAFETY_CHECKS`, the builder records the fault and disposal completes quietly instead of throwing a second, unrelated error on top of the real one.
+The builder is what you declare on; the pass data struct carries values into the render function; the render function records the actual GPU commands against a context. The `using` is not decoration — **disposing the builder is what closes the pass** and runs its validation.
 
-Calling `Add*RenderPass` without disposing the previous builder does **not** finalize that pass — the reset simply abandons it mid-construction, unvalidated. Always let the `using` run.
+> **Note:** `RenderGraph` reuses a single builder object for the whole frame, so the one you hold starts configuring the *next* pass as soon as you call `Add*RenderPass` again. Always finish a pass inside its `using` block.
 
-### Pass names and resource names
+## Your First Pass: Fill a Texture
 
-Pass names are stored unconditionally and appear in dumps and disassembly. Resource names (`CreateTexture(desc, "SceneColor")`) are retained **only under `GHOST_SAFETY_CHECKS`**; in release they cost nothing and diagnostics fall back to `Resource_<index>`. Never make engine logic depend on a resource name — treat names as a debug-build affordance.
+A raster pass drawing fullscreen into one transient texture:
 
-## Declaring resource access
+```csharp
+private struct FillPassData
+{
+    public Identifier<RGTexture> target;
+    public Handle<Shader> shader;
+}
 
-The graph knows about a resource only if you say so. A read or write that is not declared is invisible to dependency analysis, barrier insertion, lifetime calculation and culling. This is the single most important rule in the module.
+Identifier<RGTexture> sceneColor;
+using (var builder = renderGraph.AddRasterRenderPass<FillPassData>("FillSceneColor"))
+{
+    sceneColor = builder.CreateTexture(
+        RGTextureDesc.Relative(1.0f, TextureFormat.R8G8B8A8_UNorm),
+        "SceneColor");
 
-### AccessFlags
+    builder.SetColorAttachment(sceneColor, 0, AccessFlags.WriteAll);
+    builder.SetPassData(new FillPassData { target = sceneColor, shader = myShader });
+
+    builder.SetRenderFunc<FillPassData>(static (ref readonly data, ctx) =>
+    {
+        if (!ctx.TrySetActiveShaderPass(data.shader, PassSemantic.Forward))
+        {
+            return;
+        }
+
+        ctx.DispatchMesh(1, 1, 1);
+    });
+}
+```
+
+Three things to notice. The texture is created *inside* the pass that first writes it, which is what lets the graph see it as this pass's output. A raster pass must declare at least one color or depth attachment — with none, there is no render pass to draw into. And the viewport and scissor are set for you from the attachment's size, so this pass does not mention them.
+
+`TrySetActiveShaderPass` returns `false` when pipeline state cannot be resolved, which is why the early return is there. The un-prefixed `SetActive*` variants throw instead; prefer `Try` and bail out.
+
+## Reading and Writing Resources
+
+Tell the graph what a pass touches with `UseTexture` and `UseBuffer`, both of which return the resource so you can use the result inline:
+
+```csharp
+var scene       = builder.UseBuffer(importedScene, AccessFlags.Read);
+var depth       = builder.UseTexture(depthTexture, AccessFlags.Read);
+var history     = builder.UseTexture(historyTexture, AccessFlags.ReadWrite);
+```
+
+The access flags say how, and they matter beyond dependency tracking:
 
 | Flag | Meaning |
 |---|---|
-| `None` | No access. |
-| `Read` | The pass samples or loads the resource. Existing contents must survive. |
-| `Write` | The pass modifies the resource. Other pixels may already be there. |
+| `Read` | Sample or load. Existing contents must survive. |
+| `Write` | Modify. Other pixels may already be there. |
 | `Discard` | Previous contents are not needed. |
-| `WriteAll` | `Write \| Discard` — the pass overwrites everything. Use for fullscreen passes. |
-| `ReadWrite` | `Read \| Write` — read-modify-write. |
+| `WriteAll` | `Write | Discard` — overwrite everything. Use for fullscreen passes. |
+| `ReadWrite` | Read-modify-write. |
 
-`Discard` is not advisory. It drives load-op inference for attachments (`DontCare` instead of `Load`) and participates in aliasing and first-use barriers, so choosing `WriteAll` over `Write` on a fullscreen pass is a real bandwidth saving on tile-based hardware.
+`Discard` is not advisory: it turns an attachment's load action into "don't care" instead of "load", so passing `WriteAll` on a fullscreen pass is a real bandwidth saving rather than a hint the compiler may ignore.
 
-### The declaration methods
+> **Note:** Undeclared access is invisible. A read you do not declare gets no barrier before it, and the memory behind it may already have been handed to another resource. Declare everything.
+
+## Running a Compute Pass
+
+Compute passes declare writes with `UseTexture` / `UseBuffer` and `AccessFlags.Write`, which the graph reads as unordered-access usage — that is the only way a compute pass gets a UAV:
 
 ```csharp
-Identifier<RGTexture> UseTexture(Identifier<RGTexture> texture, AccessFlags accessMode)
-Identifier<RGBuffer>  UseBuffer(Identifier<RGBuffer> buffer, AccessFlags accessMode)
+private struct ReducePassData
+{
+    public Identifier<RGTexture> source;
+    public Identifier<RGBuffer> result;
+    public Handle<ComputeShader> shader;
+    public uint groupCount;
+}
+
+using (var builder = renderGraph.AddComputeRenderPass<ReducePassData>("Reduce"))
+{
+    var result = builder.CreateBuffer(new BufferDesc
+    {
+        Size = 1024 * 4,
+        Stride = 4,
+        Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+    }, "ReduceResult");
+
+    builder.UseTexture(source, AccessFlags.Read);
+    builder.UseBuffer(result, AccessFlags.Write);
+
+    builder.SetPassData(new ReducePassData { source = source, result = result, shader = computeShader, groupCount = 16 });
+
+    builder.SetRenderFunc<ReducePassData>(static (ref readonly data, ctx) =>
+    {
+        ctx.SetActiveCompute(data.shader, 0);
+
+        var props = new ReduceProperties
+        {
+            sourceIndex = ctx.GetActualBindlessIndex(data.source, BindlessAccess.ShaderResource),
+            resultIndex = ctx.GetActualBindlessIndex(data.result, BindlessAccess.UnorderedAccess),
+        };
+
+        ctx.SetUserDataWithProperties(in props, target: DataTarget.Compute);
+        ctx.DispatchCompute(data.groupCount, 1, 1);
+    });
+}
 ```
 
-Both return the resource they were given, which is what makes the chaining idiom work — create and declare in one expression, or declare at the point of use:
+Bindless indices cannot be known while you are building the frame — the memory does not exist yet — which is why they are resolved inside the render function rather than passed in. `GetActualBindlessIndex` is only valid there for the same reason.
+
+A compute pass may not declare attachments, and a raster or unsafe pass may not declare a plain `Write`: the graph cannot tell whether you meant an attachment, a UAV, or an explicit view clear, so it rejects the ambiguity rather than guessing. Raster and unsafe passes use `UseRandomAccessTexture` / `UseRandomAccessBuffer` for UAV access instead.
+
+## Passing Data to the Render Function
+
+The pass data struct is copied into the pass at build time and handed back to you by reference at execute time. It is the only channel from frame construction into GPU recording, so anything the render function needs travels in it — shader handles, dispatch sizes, viewport rectangles, indices.
 
 ```csharp
-var scene = builder.UseBuffer(importedScene, AccessFlags.Read);
-var hzb   = builder.UseTexture(hzbTexture, AccessFlags.Read);
+builder.SetPassData(new ReducePassData { source = source, groupCount = groupCount });
 ```
 
-For unordered access, use the explicit methods rather than `UseTexture(..., ReadWrite)`:
+Keep it a plain unmanaged struct of small values. Storing `Identifier<RG*>` is normal and expected; storing a `Handle<GPUTexture>` is not, because the real resource does not exist until compile.
+
+**Write the render function as a `static` lambda.** The delegate is stored on the pass and invoked later; a lambda that captures locals allocates a closure every frame. A static lambda has nothing to capture, so everything it needs must be in the data struct:
 
 ```csharp
-Identifier<RGTexture> UseRandomAccessTexture(Identifier<RGTexture> texture)   // raster + unsafe builders
-Identifier<RGBuffer>  UseRandomAccessBuffer(Identifier<RGBuffer> buffer)      // raster + unsafe builders
-Identifier<RGTexture> UseRenderTargetTexture(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.Write)  // unsafe builder only
+builder.SetRenderFunc<ReducePassData>(static (ref readonly data, ctx) => ctx.DispatchCompute(data.groupCount, 1, 1));
 ```
 
-`UseRandomAccess*` implies `ReadWrite`, records the resource in the pass's random-access set, and selects the UAV barrier state. `UseRenderTargetTexture` is the unsafe builder's way of saying "this pass writes a render-target view without a native render pass" — it exists so UAV/copy passes can still declare RT writes legibly.
+The graph does not reject a capturing lambda — it just costs you an allocation per frame per pass, and silently invalidates the compilation cache, because the graph hash includes the delegate's identity. If your frames recompile for no visible reason, a non-static lambda is the usual cause.
 
-### Attachments (raster passes only)
+## Clearing a Target
+
+For a texture bound as an attachment, the clear is a load action, not a pass:
 
 ```csharp
-void SetColorAttachment(Identifier<RGTexture> texture, int index, AccessFlags flags = AccessFlags.Write)
-void SetDepthAttachment(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.ReadWrite)
+var desc = RGTextureDesc.Relative(1.0f, TextureFormat.R8G8B8A8_UNorm, clearColor: new Color128(0, 0, 0, 1));
+
+using (var builder = renderGraph.AddRasterRenderPass<ClearPassData>("ClearSceneColor"))
+{
+    builder.SetColorAttachment(sceneColor, 0, AccessFlags.WriteAll);
+    builder.SetPassData(new ClearPassData { target = sceneColor });
+    builder.SetRenderFunc<ClearPassData>(static (ref readonly data, ctx) => { });
+}
 ```
 
-Color slots run `0 .. RHIUtility.MAX_RENDER_TARGETS - 1` (currently **8**). Setting a slot to a different texture than the one already bound there is rejected; re-setting it to the same texture is a no-op that lets you widen the access flags.
+An empty render function is legal and correct here — `clearAtFirstUse` (the default on `RGTextureDesc.Relative`) makes the hardware clear the attachment when the render pass begins. Depth uses `RGTextureDesc.RelativeDepth` with `clearDepth`, and `SetDepthAttachment`.
 
-`SetDepthAttachment` derives its usage class from the flags: `Write` selects depth-write, otherwise depth-read. The defaults are deliberately conservative — `Write` assumes a partial update, so a fullscreen clear or blit should pass `WriteAll` explicitly.
+Buffers have no load actions, so clear them explicitly: `ctx.ClearBuffer(id, sizeInBytes)` inside a pass, or `AddClearBufferPass` to add a dedicated clear pass.
 
-Attachments are the mechanism that enables [native render pass merging](synchronization.md). A raster pass that reads a texture and writes the result through a UAV instead of an attachment forfeits that optimization, and pays a transition instead.
+## Depth and Multiple Targets
 
-### Which pass types may declare what
-
-| Declaration | Raster | Compute | Unsafe |
-|---|---|---|---|
-| `UseTexture` / `UseBuffer` with `Read` | yes | yes | yes |
-| `UseTexture` / `UseBuffer` with `Write` | **rejected** | yes (resolves to UAV) | **rejected** |
-| `SetColorAttachment` / `SetDepthAttachment` | yes | **rejected** | **rejected** |
-| `UseRandomAccessTexture` / `UseRandomAccessBuffer` | yes | **not on the interface** — declare `Write` instead | yes |
-| `UseRenderTargetTexture` | n/a | n/a | yes |
-
-The "rejected" cells are validation errors under `GHOST_SAFETY_CHECKS`, not silent misbehaviour. A generic write on a raster or unsafe pass is ambiguous — the graph cannot tell whether you meant an attachment, a UAV, or an RTV clear — so it refuses to guess: *"generic writes are ambiguous for `{pass.type}` passes; declare an attachment, random-access usage, or explicit unsafe usage."* Compute passes are the exception: a declared write there means UAV access, which is unambiguous, and it is the **only** way a compute pass obtains a texture or buffer UAV.
-
-### Conflicting usages
-
-Each resource may hold one concrete usage class per pass — colour attachment, depth (read or write), or unordered access, the first two requiring a texture. Declaring the same resource under two different classes in one pass is rejected: *"`UnorderedAccess` conflicts with `ColorAttachment` for the whole-resource range."*
-
-## Supplying the render function
+A raster pass binds up to eight color slots and one depth attachment:
 
 ```csharp
-public delegate void PassRenderFunc<TPassData, TRenderContext>(ref readonly TPassData data, TRenderContext ctx)
-    where TPassData : struct
-    where TRenderContext : IRenderGraphContext;
-
-builder.SetRenderFunc<TPassData>(PassRenderFunc<TPassData, IRasterRenderContext>  renderFunc);  // raster
-builder.SetRenderFunc<TPassData>(PassRenderFunc<TPassData, IComputeRenderContext> renderFunc);  // compute
-builder.SetRenderFunc<TPassData>(PassRenderFunc<TPassData, IUnsafeRenderContext>  renderFunc);  // unsafe
+builder.SetColorAttachment(gbuffer0, 0, AccessFlags.WriteAll);
+builder.SetColorAttachment(gbuffer1, 1, AccessFlags.WriteAll);
+builder.SetDepthAttachment(depth, AccessFlags.ReadWrite);
 ```
 
-The context parameter type is what ties the builder to the pass type — a raster pass cannot be given a compute render function, and the overload set makes that a compile error.
+Consecutive raster passes with the *same* attachment set are merged into one hardware render pass, which is where most of the graph's performance comes from. Two habits protect merging: keep a pass's resource touches to its own attachments, and prefer attachments over UAV writes for anything a raster pass produces. [Synchronization](synchronization.md) explains what breaks merging.
 
-**Write the lambda as `static`.** The delegate is stored on the pooled pass object and invoked at replay time. A `static` lambda converts to a cached delegate with no target object; a capturing lambda allocates a closure every frame, which defeats the zero-GC-per-frame contract. Everything the render function needs must therefore travel in `TPassData` — including shader handles, dispatch sizes, and bindless indices you cannot know until execute time. A pass with no render function is a validation error, but an **empty** render function is legal and is the correct shape for a pure hardware clear: bind the attachment, set `clearAtFirstUse` on the descriptor, and let the load op do the work. Nothing needs to be drawn. Note that such a pass is only kept if something consumes its output or it writes an imported/extracted resource — otherwise culling removes it, so clear-only passes on dead transients need `AllowPassCulling(false)`.
+The viewport and scissor follow the attachments automatically. Override with `ctx.SetViewport` / `ctx.SetScissorRect` only for sub-region passes.
 
-## Pass data and the blackboard
+## Copies and Raw Commands
+
+The unsafe pass type exists for work the graph cannot model. It exposes the raw command buffer plus buffer mapping:
 
 ```csharp
-void SetPassData<T>(scoped in T passData, bool addToBlackboard = false) where T : struct
+using (var builder = renderGraph.AddUnsafeRenderPass<UploadPassData>("UploadIndirectArgs"))
+{
+    builder.UseRandomAccessBuffer(indirectArgs);
+    builder.SetPassData(new UploadPassData { target = indirectArgs, count = drawCount });
+
+    builder.SetRenderFunc<UploadPassData>(static (ref readonly data, ctx) =>
+    {
+        ctx.WriteBuffer(data.target, in data.count, offset);
+    });
+}
 ```
 
-The struct is copied into the pooled pass object. If `T` does not match the pass's own `TPassData`, `SetPassData` throws `ArgumentException` — in every configuration, since it is a plain programming error rather than a data-validation one.
+`GetCommandBufferUnsafe()`, `MapBuffer` / `UnmapBuffer`, `WriteBuffer<T>` and the full raster and compute surfaces are all available here. Use it sparingly: an unsafe pass always breaks render pass merging, and it is never a candidate for async compute.
 
-`TPassData` is a build-time payload: assembled while you author the frame, read back inside the render function at replay time. Keep it unmanaged and cheap to copy. Storing `Identifier<RG*>` values is the normal pattern — they are integers, stable for the frame, and resolvable to real resources only inside a pass lambda.
+Plain GPU-to-GPU copies are the one gap. A DMA copy wants a copy-source and copy-destination state, which the graph cannot currently declare, so `AddCopyTexturePass` and `AddCopyBufferPass` are rejected by validation and unused by the engine. For now, blit with `AddBlitPass(src, dst, shader)` — a raster pass with a fullscreen blit shader — or copy from a compute pass through UAVs.
 
-The optional blackboard lets later build code read an earlier pass's payload. `RenderGraphBlackboard` is keyed by `TPassData` type, so **one pass per data type** can be registered — a second registration of the same type overwrites the first. `Get<T>()` throws `KeyNotFoundException` when absent; `TryGet<T>(out bool exist)` returns a null reference instead, so check the flag before dereferencing. The blackboard is cleared by `Reset()`, making it strictly a within-frame build-time facility. It has no effect on dependencies, barriers, or culling — the graph does not know that a blackboard read is a resource read, so anything touching a resource still needs a `Use*` declaration.
+## Keeping a Pass from Being Culled
 
-## Steering culling
-
-```csharp
-void AllowPassCulling(bool value)   // default: true
-```
-
-A pass is culled when nothing observable consumes its outputs. Because culling is derived from declared access, a pass whose only side effect is something the graph cannot see — writing to a persistent buffer through a raw command call, updating a CPU-visible mapping — must opt out with `AllowPassCulling(false)`.
-
-The engine's meshlet cull pass is the canonical case; it owns the one-time work-graph backing memory initialization, so dropping it would corrupt every later dispatch:
+A pass is removed when nothing observable consumes its output. That is usually what you want, but a pass whose real effect the graph cannot see — writing persistent memory through a raw call, initializing a work-graph program — must opt out:
 
 ```csharp
-using var builder = rg.AddComputeRenderPass<MeshletCullPass1Data>("MeshletCull_Pass1");
+using var builder = renderGraph.AddComputeRenderPass<MeshletCullPass1Data>("MeshletCull_Pass1");
 
 // This pass carries the one-time backing memory initialization, so it must never be culled.
 builder.AllowPassCulling(false);
 ```
 
-You get the same protection for free when a pass writes an **imported** or **extracted** resource: such a write marks the pass as having side effects, and side-effecting passes are never culled regardless of `allowCulling`.
+Writing an imported or extracted resource already grants this protection, since the graph treats a write outside itself as a side effect and never culls such a pass.
 
-## Steering queue assignment
-
-```csharp
-void EnableAsyncCompute(bool value)              // compute builder
-void AllowAsyncComputeOverlap(bool allow = true) // unsafe builder
-```
-
-`EnableAsyncCompute(true)` is a **hint**. The dependency-window planner promotes the pass to a Compute command buffer only when it can find independent graphics work to overlap it with; otherwise the pass stays on Graphics and nothing bad happens. A pass is only ever considered when it is a compute pass with no side effects and no raster attachments. The mechanics are on [Synchronization](synchronization.md); to find out what actually happened for a given frame, read `PassDumpInfo.QueueDecision`.
-
-`AllowAsyncComputeOverlap` is the unsafe builder's counterpart. An unsafe pass inside an overlap window normally invalidates that window, because raw command-buffer work cannot be reasoned about. Calling `AllowAsyncComputeOverlap(true)` asserts that the pass's native operations do not conflict with a concurrent compute queue, which both permits the window and lets the unsafe pass count as the independent graphics work the planner needs. It is opt-in per pass, defaults to off, and is part of the graph hash — flipping it recompiles.
-
-## The execute-time context
-
-Inside a render function you get one of `IRasterRenderContext`, `IComputeRenderContext`, or `IUnsafeRenderContext`. All three extend `IRenderGraphContext`:
-
-| Member | Purpose |
-|---|---|
-| `GetActualTexture` / `GetActualBuffer` / `GetActualResource` | Resolve a graph identifier to its backing `Handle<GPU*>`. |
-| `GetActualBindlessIndex(texture \| buffer, access, subResource)` | Bindless descriptor index, optionally for one subresource. `GetActualBindlessIndices` is the batched variant for mip chains and arrays. |
-| `SetUserData(u0, u1, u2, u3, target)` | Push constants — four `uint`s, `uint.MaxValue` meaning "unset". |
-| `SetUserDataWithProperties<TProperty>(in property, u1, u2, u3, target)` | Copy an unmanaged property struct into the property ring buffer and bind it. |
-| `TrySetActiveShaderPass(shader, passIndex \| semantic, pipelineOverride)` | Resolve and bind a PSO. Returns `false` when the pipeline cannot be resolved. |
-| `ExecuteIndirect(cmdSignature, maxCommandCount, argBuffer, argOffset, countBuffer, countOffset)` | Indirect dispatch/draw. |
-| `ClearBuffer(buffer, sizeInBytes, clearValue, dstOffset)` | Zero or fill a buffer through a staging upload buffer. |
-| `ResourceManager`, `ResourceDatabase`, `RelativeScale` | Direct engine resource services, and the resolved relative-size scale for this frame. |
-
-`IRasterRenderContext` adds material and mesh binding plus mesh-shader dispatch: `SetActiveMaterial`, `SetActiveMaterialPass`, `TrySetActiveMaterialPass`, `SetActiveMesh`, `DispatchMesh`, `SetViewport`, `SetScissorRect`. `IComputeRenderContext` adds `SetActiveCompute`, `DispatchCompute`, and the work-graph pair `SetProgram` / `DispatchGraph`. `IUnsafeRenderContext` inherits both surfaces and adds the escapes: `GetCommandBufferUnsafe`, `MapBuffer`, `UnmapBuffer`, `WriteBuffer<T>`.
-
-Two behaviours are worth knowing before you write a pass:
-
-- **`TrySetActive*` versus `SetActive*`.** The `Try` variants return `false` when pipeline state cannot be resolved — a missing shader cache entry, an incompatible stage topology — and log a warning. The throwing variants raise `InvalidResourceHandleException` on a bad handle. Prefer `Try` and bail out of the pass; that is what `AddBlitPass` does.
-- **PSO keys include the current attachments.** Graphics pipeline keys fold in the render-target and depth-stencil formats of the active native pass, so the same shader in a different attachment configuration is a different pipeline. Bind attachments through `SetColorAttachment` / `SetDepthAttachment` and the graph keeps those formats correct; bypassing to raw command calls breaks the correspondence.
-
-### Frame and view constant buffers
-
-`RenderGraph.SetFrameData(Handle<GPUBuffer>)` and `SetViewData(Handle<GPUBuffer>)` supply per-frame and per-view constant buffers, bound at fixed root-signature slots (`FRAME_DATA_CBV_SLOT` = 2, `VIEW_DATA_CBV_SLOT` = 1). They are set once per frame outside any pass, and the graph re-binds them at the start of **every command-buffer segment** — including after each async-compute sync boundary. You never rebind them in a render function.
-
-### Push constants and the property ring buffer
-
-Push constants are the cheap path: four 32-bit values at root-signature slot 0, set per pass or per draw, no descriptor traffic.
-
-For anything larger, `SetUserDataWithProperties<TProperty>` copies `TProperty` into a 1 MB persistently-mapped ring buffer with 256-byte alignment and returns a bindless raw-SRV index for that slice. The struct's field layout is the shader-visible contract, and the whole struct must fit the ring's wraparound rules — when the offset would exceed 1 MB, the allocator wraps to the start rather than growing. Property slices are released at the start of the next frame.
-
-Note the differing defaults: `SetUserData` targets `DataTarget.Graphics`, while `SetUserDataWithProperties` targets `DataTarget.Compute`. Pass `target:` explicitly rather than relying on either default.
-
-### A real compute pass
-
-The engine's meshlet cull pass shows the intended shape — declare access, fill a payload, resolve bindless indices at replay time, bind properties, dispatch:
+## Asking for Async Compute
 
 ```csharp
-using var builder = rg.AddComputeRenderPass<MeshletCullPass1Data>("MeshletCull_Pass1");
-builder.AllowPassCulling(false);
-
-visibleMeshlets = builder.CreateBuffer(new BufferDesc
-{
-    Size = bufferSize,
-    Stride = entrySize,
-    Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-}, "VisibleMeshlets_Pass1");
-
-builder.UseBuffer(visibleMeshlets, AccessFlags.Write);
-builder.UseBuffer(counterBuffer, AccessFlags.ReadWrite);
-
-if (hzbTexture.IsValid)
-{
-    builder.UseTexture(hzbTexture, AccessFlags.Read);
-}
-
-builder.SetPassData(passData);
-builder.SetRenderFunc<MeshletCullPass1Data>(static (ref readonly passData, computeCtx) =>
-{
-    computeCtx.ClearBuffer(passData.counterBuffer, CullConstants.COUNTER_BUFFER_SIZE);
-
-    var visibleUav = computeCtx.ResourceDatabase.GetBindlessIndex(
-        computeCtx.GetActualBuffer(passData.visibleMeshletsPass1).AsResource(), BindlessAccess.UnorderedAccess);
-
-    var props = new InternalMeshletCullGraphShaderProperties { visibleMeshletsUav = visibleUav, /* ... */ };
-
-    // setProgramDesc is built from passData's work-graph program identifier and flags.
-    computeCtx.SetProgram(in setProgramDesc);
-    computeCtx.SetUserDataWithProperties(in props, target: DataTarget.Compute);
-});
+builder.EnableAsyncCompute(true);
 ```
 
-(`passData.visibleMeshletsPass1` is the payload field; the local `visibleMeshlets` above is the identifier stored into it when the payload was assembled.)
+This is a hint, not a command. The graph moves the pass to the compute queue only when it finds graphics work that can run alongside it — some independent raster pass between this one and the first pass that reads its results. Otherwise the pass stays on the graphics queue and the frame is correct either way.
 
-The `if (hzbTexture.IsValid)` guard is idiomatic and worth copying: an invalid identifier declared as a use is a declaration against a nonexistent resource, while skipping the declaration simply means the pass has no dependency on it. Optional inputs should be conditionally declared, never declared-as-invalid.
+A pass is only eligible if it is a compute pass with no attachments and no side effects. To confirm what happened in a given frame, read `QueueDecision` from a dump — see [Debugging and Validation](debugging.md).
 
-### A real utility pass
+## Common Mistakes
 
-`RenderGraphUtility.AddBlitPass` is the compact form of a raster pass, and the pattern to imitate for simple fullscreen work:
-
-```csharp
-using var builder = rg.AddRasterRenderPass<BlitPassData>("BlitPass");
-builder.SetColorAttachment(dst, 0, AccessFlags.WriteAll);
-builder.UseTexture(src, AccessFlags.Read);
-
-builder.SetPassData(new BlitPassData { srcBuffer = src, blitShader = blitShader });
-builder.SetRenderFunc<BlitPassData>(static (ref readonly passData, renderCtx) =>
-{
-    if (!renderCtx.TrySetActiveShaderPass(passData.blitShader, PassSemantic.Forward))
-    {
-        return;
-    }
-
-    var property = new HiddenBlitShaderProperties
-    {
-        mainTex = renderCtx.GetActualBindlessIndex(passData.srcBuffer),
-        sampler_mainTex = (uint)renderCtx.ResourceManager.StaticSampler.LinearClamp.Value,
-    };
-
-    renderCtx.SetUserDataWithProperties(property, target: DataTarget.Graphics);
-    renderCtx.DispatchMesh(1, 1, 1);
-});
-```
-
-## Viewport, scissor, and the engine helpers
-
-You do not set viewport or scissor for ordinary raster work. At `BeginNativePass` the executor derives both from the attachment extents — depth-stencil if present, otherwise color slot 0 — and applies them before the merged passes run. `SetViewport` and `SetScissorRect` remain on `IRasterRenderContext` for sub-region passes.
-
-`RenderGraphUtility` provides the common pass shapes; using them keeps the pipeline consistent:
-
-| Helper | Pass type | Use |
-|---|---|---|
-| `AddBlitPass(src, dst, blitShader)` | Raster | Blit a texture through a shader. |
-| `AddClearBufferPass(targetBuffer, sizeInBytes, clearValue)` | Unsafe | Clear a buffer via upload staging plus DMA copy. |
-| `AddCopyBufferPass(dst, src, numBytes, dstOffset, srcOffset)` | Unsafe | DMA buffer copy. |
-| `AddCopyTexturePass(dst, src)` | Unsafe | Full-region texture copy. |
-| `AddClearRenderTargetPass(target, clearColor)` | Unsafe | Explicit RTV clear. |
-| `AddClearDepthStencilPass(target, ...)` | Unsafe | Explicit DSV clear. |
-
-Prefer a hardware clear on an attachment (`clearAtFirstUse`) over `AddClearRenderTargetPass`; the latter is for when no native render pass is involved. These helpers each add a real pass to the graph — they are not free.
-
-> **Known issue.** The four copy/clear-view helpers declare a generic write on an unsafe pass (`UseTexture(dst, WriteAll)` and friends), which the validator rejects with *"generic writes are ambiguous for Unsafe passes"* at builder disposal. They therefore throw in `GHOST_SAFETY_CHECKS` builds and have no engine call sites yet; only `AddBlitPass` and `AddClearBufferPass` are usable as written. Each needs migrating to `UseRenderTargetTexture` or `UseRandomAccess*`. Until then, write those passes yourself following the rules above.
-
-## Rules that bite
-
-1. **Undeclared access is invisible.** No dependency, no barrier, no lifetime extension, no protection from culling. The graph will happily reorder, alias, or delete the pass you forgot to declare.
-2. **One builder, reused, and disposal finalizes it.** Never hold a `IRenderGraphBuilder` across an `Add*RenderPass` call, and always wrap it in `using`.
-3. **A raster pass needs an attachment.** Color slot 0 or a depth attachment, otherwise validation fails.
-4. **Non-compute passes cannot declare generic writes.** Use an attachment, `UseRandomAccess*`, or `UseRenderTargetTexture`.
-5. **One usage class per resource per pass.** Attachment plus UAV on the same resource in one pass is a conflict.
-6. **`static` lambdas only.** A capturing lambda allocates per frame.
-7. **`SetPassData` type must match the pass,** and the blackboard holds one entry per payload type at build time only — it creates no dependencies.
-8. **`EnableAsyncCompute` is a hint.** Verify with `QueueDecision`, do not assume.
-9. **Optional resources: skip the declaration, don't declare invalid.**
-10. **Names are debug-build-only for resources.** Never key logic on `GetResourceName`.
+- **Forgetting a declaration.** The symptom is garbage in a resource that "obviously" was written earlier. Declare every read and write.
+- **Skipping the `using`.** The pass is never finalized or validated, and the next `Add*RenderPass` abandons it mid-construction.
+- **A non-static render lambda.** Costs an allocation per frame and breaks the compilation cache.
+- **Declaring a write on a raster pass.** Rejected; use an attachment or `UseRandomAccess*`.
+- **Attachment plus UAV on the same resource in one pass.** Rejected; one usage class per resource per pass.
+- **Caching an identifier across frames.** Identifiers die at `Reset()`. Import or extract instead — see [Resources](resources.md).
+- **Assuming async compute happened.** Check `QueueDecision`.
 
 ## Next
 
-- [Resources and Aliasing](resources.md) — what `CreateTexture` and `ImportTexture` actually create, relative sizing, and how transient memory is shared.
+- [Resources](resources.md) — transient, imported and extracted, and sizing for the viewport.
+- [Synchronization](synchronization.md) — what the graph derives from what you declared.

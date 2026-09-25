@@ -1,12 +1,10 @@
 - name: Overview
   href: overview.md
-- name: Authoring Passes
+- name: Writing Render Passes
   href: authoring-passes.md
-- name: Resources and Aliasing
+- name: Resources
   href: resources.md
 - name: Synchronization
   href: synchronization.md
-- name: Compilation and Caching
-  href: compilation.md
 - name: Debugging and Validation
   href: debugging.md
