@@ -1087,11 +1087,39 @@ public unsafe partial class EntityManager : IDisposable
     /// <typeparam name="T">The component space.</typeparam>
     /// <param name="entity">The entity to set the component data for.</param>
     /// <param name="component">The component data.</param>
+    /// <returns>The result status of the operation.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Error SetComponent<T>(Entity entity, T component)
         where T : unmanaged, IComponentData
     {
         return SetComponent(entity, ComponentTypeID<T>.Value, &component);
+    }
+
+    /// <summary>
+    /// Set multiple components for the specified entity.
+    /// </summary>
+    /// <param name="entity">The entity to set the component data for.</param>
+    /// <param name="componentIDs">The component space IDs to set.</param>
+    /// <param name="pComponents">The pointers to the component data.</param>
+    /// <returns>The result status of the operation.</returns>
+    public Error SetComponents(Entity entity, ReadOnlySpan<Identifier<IComponent>> componentIDs, void** pComponents)
+    {
+        if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
+        {
+            return Error.NotFound;
+        }
+
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+        for (var i = 0; i < componentIDs.Length; i++)
+        {
+            var error = archetype.SetComponentData(location.chunkIndex, location.rowIndex, componentIDs[i], pComponents[i]);
+            if (error != Error.None)
+            {
+                return error;
+            }
+        }
+
+        return Error.None;
     }
 
     /// <summary>

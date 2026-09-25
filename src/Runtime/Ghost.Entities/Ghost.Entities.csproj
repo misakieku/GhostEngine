@@ -39,6 +39,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Templates\EntityManager.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>EntityManager.gen.cs</LastGenOutput>
+    </None>
     <None Update="Templates\EntityQuery.ForEach.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>EntityQuery.ForEach.gen.cs</LastGenOutput>
@@ -62,6 +66,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Templates\EntityManager.gen.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>EntityManager.tt</DependentUpon>
+    </Compile>
     <Compile Update="Templates\EntityQuery.ForEach.gen.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

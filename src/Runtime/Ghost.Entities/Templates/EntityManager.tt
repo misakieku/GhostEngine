@@ -1,0 +1,74 @@
+<#@ template language="C#" #>
+<#@ output extension=".gen.cs" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ include file="Helpers.ttinclude" #>
+using Ghost.Core;
+using Misaki.HighPerformance.LowLevel;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.CompilerServices;
+
+namespace Ghost.Entities;
+
+public unsafe partial class EntityManager
+{
+<# for (var i = 1; i <= Amount; i++)
+{
+    var generics = AppendParameters(i, "T{0}");
+    var compGenerics = AppendParameters(i, "scoped in T{0} component{0}");
+    var deconstrictOutPrams = AppendParameters(i, "out Ref<T{0}> component{0}");
+    var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponentData", 2);
+#>
+    /// <summary>
+    /// Creates an entity with the specified components.
+    /// </summary>
+<# for (var j = 0; j < i; j++) { #>
+    /// <typeparam name="T<#= j #>">The type of the component.</typeparam>
+<# } #>
+<# for (var j = 0; j < i; j++) { #>
+    /// <param name="component<#= j #>">The component to add to the entity.</param>
+<# } #>
+    /// <returns>The result status of the operation.</returns>
+    public Error CreateEntity<<#= generics #>>(<#= compGenerics #>)
+<#= restrictions #>
+    {
+        using var scope = AllocationManager.CreateStackScope();
+        using var set = new ComponentSet(scope.AllocationHandle
+<# for (var j = 0; j < i; j++) { #>
+            , ComponentTypeID<T<#= j #>>.Value
+<# } #>
+        );
+
+        var entity = CreateEntity(set);
+        return SetComponents(entity, <#= InlineFor(0, i, "in component{0}") #>);
+    }
+
+    /// <summary>
+    /// Sets the specified components for an existing entity.
+    /// </summary>
+<# for (var j = 0; j < i; j++) { #>
+    /// <typeparam name="T<#= j #>">The type of the component.</typeparam>
+<# } #>
+    /// <param name="entity">The entity to set the components for.</param>
+<# for (var j = 0; j < i; j++) { #>
+    /// <param name="component<#= j #>">The component to add to the entity.</param>
+<# } #>
+    /// <returns>The result status of the operation.</returns>
+    public Error SetComponents<<#= generics #>>(Entity entity, <#= compGenerics #>)
+<#= restrictions #>
+    {
+        var ppv = stackalloc void*[<#= i #>];
+        var ids = stackalloc Identifier<IComponent>[<#= i #>];
+
+<# for (var j = 0; j < i; j++) { #>
+        ppv[<#= j #>] = Unsafe.AsPointer(in component<#= j #>);
+        ids[<#= j #>] = ComponentTypeID<T<#= j #>>.Value;
+<# } #>
+
+        return SetComponents(entity, new ReadOnlySpan<Identifier<IComponent>>(ids, <#= i #>), ppv);
+    }
+
+<# } #>
+}

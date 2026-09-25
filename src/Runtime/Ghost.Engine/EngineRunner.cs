@@ -18,6 +18,12 @@ public interface IEngineLanunchProfile
 
 public static class EngineRunner
 {
+    /// <summary>
+    /// Runs the engine with a specified launch profile.
+    /// </summary>
+    /// <typeparam name="T">The type of the launch profile to use. Must implement IEngineLanunchProfile.</typeparam>
+    /// <param name="profile">The launch profile to use for running the engine.</param>
+    /// <exception cref="Exception">Thrown if SDL initialization fails.</exception>
     public static void Run<T>(T profile)
         where T : IEngineLanunchProfile
     {
@@ -66,6 +72,10 @@ public static class EngineRunner
         }
     }
 
+    /// <summary>
+    /// Runs the engine with a specified launch profile type.
+    /// </summary>
+    /// <typeparam name="T">The type of the launch profile to use. Must implement IEngineLanunchProfile and have a parameterless constructor.</typeparam>
     public static void Run<T>()
         where T : IEngineLanunchProfile, new()
     {

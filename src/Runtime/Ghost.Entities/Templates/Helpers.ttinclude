@@ -5,6 +5,20 @@
     public int Amount = 8;
     public int ExtensionAmount = 3;
 
+    public string InlineFor(int start, int end, string template)
+    {
+        var sb = new StringBuilder();
+        for (var i = start; i < end; i++)
+        {
+            sb.Append(string.Format(template, i));
+            if (i < end - 1)
+            {
+                sb.Append(", ");
+            }
+        }
+        return sb.ToString();
+    }
+
     public string Indent(StringBuilder sb, int spaces)
     {
         var indent = new string(' ', spaces);

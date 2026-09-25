@@ -1,11 +1,12 @@
 using Ghost.Core;
 using Ghost.Engine.Components;
 using Ghost.Engine.Input;
+using Ghost.Engine.Systems;
 using Ghost.Engine.Utilities;
 using Ghost.Entities;
 using Misaki.HighPerformance.Mathematics;
 
-namespace Ghost.Engine.Systems;
+namespace TestGame.Systems;
 
 [UpdateAfter<InputEvaluationSystem>]
 [UpdateBefore<CameraRenderSystem>]
@@ -65,8 +66,8 @@ public class FirstPersonCameraSystem : SystemBase
                 var lookInput = input.GetVector2(ActionAxis.LookX, ActionAxis.LookY);
                 var isGamepad = _rawInput.ActiveDevice == DeviceType.Gamepad;
 
-                var canLookWithMouse = !cam.RequireRightClickToLook || _rawInput.RelativeMouseMode;
-                if (cam.RequireRightClickToLook)
+                var canLookWithMouse = !cam.requireRightClickToLook || _rawInput.RelativeMouseMode;
+                if (cam.requireRightClickToLook)
                 {
                     var isRightClickDown = input.IsDown(ActionButton.Secondary) ||
                         _rawInput.ReadButton(InputControl.Mouse(MouseControl.RightButton));
@@ -76,24 +77,24 @@ public class FirstPersonCameraSystem : SystemBase
                 if (math.lengthsq(lookInput) > 1e-5f && (isGamepad || canLookWithMouse))
                 {
                     var sensitivity = isGamepad
-                        ? cam.GamepadSensitivity * dt
-                        : cam.MouseSensitivity;
+                        ? cam.gamepadSensitivity * dt
+                        : cam.mouseSensitivity;
 
-                    cam.Yaw += lookInput.x * sensitivity;
+                    cam.yaw += lookInput.x * sensitivity;
 
                     var pitchDelta = lookInput.y * sensitivity;
-                    if (cam.InvertY)
+                    if (cam.invertY)
                     {
                         pitchDelta = -pitchDelta;
                     }
-                    cam.Pitch += pitchDelta;
+                    cam.pitch += pitchDelta;
 
-                    cam.Pitch = math.clamp(cam.Pitch, -PITCH_LIMIT, PITCH_LIMIT);
+                    cam.pitch = math.clamp(cam.pitch, -PITCH_LIMIT, PITCH_LIMIT);
                 }
 
                 // Construct rotation quaternion: Yaw around world Up, Pitch around camera Right
-                var rotY = quaternion.AxisAngle(new float3(0.0f, 1.0f, 0.0f), cam.Yaw);
-                var rotX = quaternion.AxisAngle(new float3(1.0f, 0.0f, 0.0f), cam.Pitch);
+                var rotY = quaternion.AxisAngle(new float3(0.0f, 1.0f, 0.0f), cam.yaw);
+                var rotX = quaternion.AxisAngle(new float3(1.0f, 0.0f, 0.0f), cam.pitch);
                 var rotation = math.mul(rotY, rotX);
 
                 // 3. Movement (Displacement along view forward / right / world up)
@@ -105,7 +106,7 @@ public class FirstPersonCameraSystem : SystemBase
                 var right = math.mul(rotation, new float3(1.0f, 0.0f, 0.0f));
                 var up = new float3(0.0f, 1.0f, 0.0f);
 
-                var speed = cam.MoveSpeed * (isSprinting ? cam.SprintMultiplier : 1.0f);
+                var speed = cam.moveSpeed * (isSprinting ? cam.sprintMultiplier : 1.0f);
                 var moveDir = (forward * moveInput.y) + (right * moveInput.x) + (up * elevation);
 
                 var position = transform.matrix.c3.xyz;

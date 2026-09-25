@@ -78,18 +78,6 @@ src/Test/TestGame/run-this-when-assets-forge-changed.ps1 -c Debug -p:Platform=x6
 src/Test/TestGame/run-this-when-assets-forge-changed.ps1 -c Release -p:Platform=x64
 ```
 
-Under the hood, this automates:
-```shell
-# 1. Publish the updated CLI tool
-dotnet publish src/Tools/Ghost.AssetForge.CLI/Ghost.AssetForge.CLI.csproj -c Release -o src/Tools/Ghost.AssetForge.CLI/bin/Release/Publish
-
-# 2. Clean the asset cache and pack output (CleanGhostAssets target removes AssetCache/ and Assets/)
-dotnet clean src/Test/TestGame/TestGame.csproj
-
-# 3. Build to re-bake fresh assets with the updated baker
-dotnet build src/Test/TestGame/TestGame.csproj -c Debug -p:Platform=x64
-```
-
 ### Communication & Troubleshooting Guidelines
 
 - **Ask early on weird issues**: GhostEngine is a 140,000+ line engine with custom memory managers, unmanaged collections, ECS, GPU pipelines, and bespoke asset baking. If you encounter puzzling, strange, or unexpected behavior (e.g., unexpected data corruption, mystery buffer values, obscure pipeline artifacts), **ask the user / creator directly and early**. Do not spend prolonged time guessing or spinning in circles—the creator understands the entire architecture and can clarify expected behavior immediately.
@@ -172,7 +160,7 @@ To run a specific test class, edit `Program.cs` to call `TestRunner.Run<YourTest
 | Private fields                           | `_camelCase`                  | `_jobScheduler`                          |
 | Private static fields                    | `s_camelCase`                 | `s_worlds`, `s_logger`                   |
 | Constants (public/private)               | `UPPER_SNAKE_CASE`            | `ASSET_EXTENSION`, `ASSETS_FOLDER_NAME`  |
-| Properties &amp; public members          | `PascalCase`                  | `EntityManager`, `IsSuccess`             |
+| Properties                               | `PascalCase`                  | `EntityManager`, `IsSuccess`             |
 | Local variables / params / public fields | `camelCase`                   | `entityCapacity`, `signatureHash`        |
 | Interfaces                               | `I` prefix                    | `IComponent`, `ISystem`, `ITest`         |
 | Generic type parameters                  | `T`, `TKey`, `TValue`, `E`    |                                          |

@@ -14,6 +14,7 @@ using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 using SDL;
+using TestGame.Systems;
 
 namespace TestGame;
 
@@ -110,27 +111,25 @@ internal class LaunchProfile : IEngineLanunchProfile
             ComponentTypeID<InputReceiver>.Value,
             ComponentTypeID<ActionState>.Value);
         _camera = _world.EntityManager.CreateEntity(camSet);
-
-        _world.EntityManager.SetComponent(_camera, new Camera
-        {
-            swapChainIndex = 0,
-            depthTarget = Handle<GPUTexture>.Invalid,
-            nearClipPlane = 0.1f,
-            farClipPlane = 1000.0f,
-            focalLength = 20.0f,
-            sensorSize = new float2(36.0f, 24.0f),
-            gateFit = GateFit.Vertical,
-            renderingLayerMask = RenderingLayerMask.All,
-        });
-
-        _world.EntityManager.SetComponent(_camera, new LocalToWorld
-        {
-            matrix = float4x4.TRS(new float3(0.0f, 0.0f, -10.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
-        });
-
-        _world.EntityManager.SetComponent(_camera, FirstPersonCamera.Default);
-        _world.EntityManager.SetComponent(_camera, new InputReceiver(InputProfileDatabase.FIRST_PERSON_CAMERA_PROFILE_ID, true));
-        _world.EntityManager.SetComponent(_camera, default(ActionState));
+        _world.EntityManager.CreateEntity(
+            new Camera
+            {
+                swapChainIndex = 0,
+                depthTarget = Handle<GPUTexture>.Invalid,
+                nearClipPlane = 0.1f,
+                farClipPlane = 1000.0f,
+                focalLength = 20.0f,
+                sensorSize = new float2(36.0f, 24.0f),
+                gateFit = GateFit.Vertical,
+                renderingLayerMask = RenderingLayerMask.All,
+            },
+            new LocalToWorld
+            {
+                matrix = float4x4.TRS(new float3(0.0f, 0.0f, -10.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
+            },
+            FirstPersonCamera.Default,
+            new InputReceiver(InputProfileDatabase.FIRST_PERSON_CAMERA_PROFILE_ID, true),
+            default(ActionState)).ThrowIfFailed();
 
         _meshAsset = engine.AssetManager.ResolveAsset("Meshes/dragon");
         _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/test");
@@ -175,11 +174,6 @@ internal class LaunchProfile : IEngineLanunchProfile
             });
         }
 
-        //var defaultSystemGroup = new DefaultSystemGroup();
-        //defaultSystemGroup.AddSystem<Systems.RandomMoveSystem>();
-        //defaultSystemGroup.SortSystems();
-
-        //s_world.SystemManager.AddSystem(defaultSystemGroup);
         var profileDb = new InputProfileDatabase();
         _world.AddService(profileDb);
 
