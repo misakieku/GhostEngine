@@ -5,10 +5,6 @@ namespace Ghost.Graphics.RHI;
 
 public readonly struct GraphicsEngineDesc
 {
-    public uint FrameBufferCount
-    {
-        get; init;
-    }
 }
 
 public interface IGraphicsEngine : IDisposable
@@ -81,8 +77,9 @@ public interface IGraphicsEngine : IDisposable
     /// Creates a swap chain for presentation
     /// </summary>
     /// <param name="desc">Swap chain description</param>
+    /// <param name="frameBufferCount">Number of frame buffers in the swap chain</param>
     /// <returns>A new swap chain instance</returns>
-    ISwapChain CreateSwapChain(SwapChainDesc desc);
+    ISwapChain CreateSwapChain(SwapChainDesc desc, uint frameBufferCount);
 
     /// <summary>
     /// Creates a fence for GPU synchronization with an optional initial value.

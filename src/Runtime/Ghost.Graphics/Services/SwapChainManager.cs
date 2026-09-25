@@ -59,10 +59,12 @@ public class SwapChainManager : IDisposable
     public const int MAX_SWAP_CHAINS = 8;
     private readonly IGraphicsEngine _graphicsEngine;
     private readonly SwapChainRecord?[] _swapChains = new SwapChainRecord?[MAX_SWAP_CHAINS];
+    private readonly uint _frameBufferCount;
 
-    public SwapChainManager(IGraphicsEngine graphicsEngine)
+    public SwapChainManager(IGraphicsEngine graphicsEngine, uint framBufferCount)
     {
         _graphicsEngine = graphicsEngine;
+        _frameBufferCount = framBufferCount;
     }
 
     public ISwapChain EnsureSwapChain(int index, SwapChainDesc desc)
@@ -82,7 +84,7 @@ public class SwapChainManager : IDisposable
                 continue;
             }
 
-            var newRecord = new SwapChainRecord(_graphicsEngine.CreateSwapChain(desc), false);
+            var newRecord = new SwapChainRecord(_graphicsEngine.CreateSwapChain(desc, _frameBufferCount), false);
             var previous = Interlocked.CompareExchange(ref _swapChains[index], newRecord, null);
 
             if (previous == null)
@@ -103,7 +105,7 @@ public class SwapChainManager : IDisposable
             var record = Volatile.Read(ref _swapChains[i]);
             if (record == null)
             {
-                var newRecord = new SwapChainRecord(_graphicsEngine.CreateSwapChain(desc), vsync);
+                var newRecord = new SwapChainRecord(_graphicsEngine.CreateSwapChain(desc, _frameBufferCount), vsync);
                 var previous = Interlocked.CompareExchange(ref _swapChains[i], newRecord, null);
                 if (previous == null)
                 {

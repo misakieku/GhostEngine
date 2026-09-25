@@ -24,11 +24,31 @@ struct MeshletCandidateRecord
     uint meshletBufferIndex;
 };
 
+struct UnbinnedMeshletEntry
+{
+    uint instanceIndex;
+    uint meshletIndex;
+    uint variantIndex;
+};
+
 struct VisibleMeshletEntry
 {
     uint instanceIndex;
     uint meshletIndex;
 };
+
+#define MAX_CULL_VARIANTS 256u
+#define OFFSET_PASS1_VISIBLE_COUNT 0u
+#define OFFSET_PASS1_OCCLUDED_COUNT 4u
+#define OFFSET_PASS2_VISIBLE_COUNT 8u
+#define OFFSET_PASS1_VARIANT_COUNTS 16u
+#define OFFSET_PASS2_VARIANT_COUNTS (16u + MAX_CULL_VARIANTS * 4u)
+#define CULL_COUNTER_BUFFER_BYTE_SIZE (16u + MAX_CULL_VARIANTS * 8u)
+
+#define INDIRECT_OFFSET_PASS1_VARIANTS 0u
+#define INDIRECT_OFFSET_PASS2_VARIANTS (MAX_CULL_VARIANTS * 16u)
+#define INDIRECT_OFFSET_PASS2_CULL (MAX_CULL_VARIANTS * 32u)
+#define CULL_INDIRECT_ARGS_BYTE_SIZE (MAX_CULL_VARIANTS * 32u + 16u)
 
 struct BBoxFrustumResult
 {

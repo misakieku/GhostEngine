@@ -83,14 +83,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
     public ICommandBuffer CreateCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
     {
         Logger.DebugAssert(!_disposed);
-
-        return new D3D12CommandBuffer(
-            _device,
-            _pipelineLibrary,
-            _resourceDatabase,
-            _resourceAllocator,
-            _descriptorAllocator,
-            type);
+        return new D3D12CommandBuffer(_device, _pipelineLibrary, _resourceDatabase, _resourceAllocator, _descriptorAllocator, type);
     }
 
     public ICommandBuffer GetPooledCommandBuffer(CommandBufferType type = CommandBufferType.Graphics)
@@ -117,10 +110,10 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _commandBufferReturnQueue.Enqueue(new CommandBufferReturnEntry(commandBuffer, _cpuFrame));
     }
 
-    public ISwapChain CreateSwapChain(SwapChainDesc desc)
+    public ISwapChain CreateSwapChain(SwapChainDesc desc, uint frameBufferCount)
     {
         Logger.DebugAssert(!_disposed);
-        return new DXGISwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, _desc.FrameBufferCount);
+        return new DXGISwapChain(_resourceDatabase, _descriptorAllocator, _device, desc, frameBufferCount);
     }
 
     public IFence CreateFence(ulong initialValue = 0)

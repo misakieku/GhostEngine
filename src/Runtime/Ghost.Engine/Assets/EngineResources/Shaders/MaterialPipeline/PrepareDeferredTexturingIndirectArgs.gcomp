@@ -2,8 +2,10 @@ compute "Internal/PrepareDeferredTexturingIndirectArgs"
 {
     properties
     {
-        uint countersBufferIndex;
-        uint indirectArgsBufferUav;
+        uint counterBuffer;
+        uint indirectArgsBuffer;
+        uint binOffsetsBuffer;
+        uint binScatterCounters;
         uint maxVariants;
     }
 
@@ -15,29 +17,55 @@ compute "Internal/PrepareDeferredTexturingIndirectArgs"
 
     hlsl
     {
-        [numthreads(64, 1, 1)]
+        #define SCAN_THREADS 256
+
+        groupshared uint s_scan[SCAN_THREADS];
+
+        [numthreads(SCAN_THREADS, 1, 1)]
         void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         {
             InternalPrepareDeferredTexturingIndirectArgsShaderProperties props = LoadData<InternalPrepareDeferredTexturingIndirectArgsShaderProperties>(g_PushConstantData.userData0, 0);
 
+            RWByteAddressBuffer counterBuffer = ResourceDescriptorHeap[props.counterBuffer];
+            RWByteAddressBuffer indirectArgsBuffer = ResourceDescriptorHeap[props.indirectArgsBuffer];
+            RWByteAddressBuffer binOffsets = ResourceDescriptorHeap[props.binOffsetsBuffer];
+            RWByteAddressBuffer binCounters = ResourceDescriptorHeap[props.binScatterCounters];
+
             uint v = dispatchThreadId.x;
-            if (v >= props.maxVariants)
+            uint count = 0;
+            if (v < props.maxVariants)
             {
-                return;
+                count = counterBuffer.Load(CLASSIFICATION_OFFSET_VARIANT_COUNTS + v * 4u);
             }
 
-            ByteAddressBuffer counters = ResourceDescriptorHeap[props.countersBufferIndex];
-            RWByteAddressBuffer indirectArgs = ResourceDescriptorHeap[props.indirectArgsBufferUav];
+            s_scan[v] = count;
+            GroupMemoryBarrierWithGroupSync();
 
-            // tileCount is at offset 0 (VARIANT_COUNTER_STRIDE = 8u)
-            uint tileCount = counters.Load(v * VARIANT_COUNTER_STRIDE);
+            // Parallel inclusive prefix sum (Hillis-Steele algorithm)
+            [unroll]
+            for (uint stride = 1; stride < SCAN_THREADS; stride <<= 1)
+            {
+                uint temp = 0;
+                if (v >= stride)
+                {
+                    temp = s_scan[v - stride];
+                }
+                GroupMemoryBarrierWithGroupSync();
+                s_scan[v] += temp;
+                GroupMemoryBarrierWithGroupSync();
+            }
 
-            // Format D3D12_DISPATCH_ARGUMENTS (16-byte aligned per variant slot)
-            // Offset 0: ThreadGroupCountX = tileCount
-            // Offset 4: ThreadGroupCountY = 1
-            // Offset 8: ThreadGroupCountZ = 1
-            // Offset 12: unused padding
-            indirectArgs.Store4(v * INDIRECT_ARGS_STRIDE, uint4(tileCount, 1u, 1u, 0u));
+            // Convert inclusive scan to exclusive prefix sum
+            uint exclusiveOffset = (v > 0) ? s_scan[v - 1] : 0;
+
+            if (v < props.maxVariants)
+            {
+                binOffsets.Store(v * 4u, exclusiveOffset);
+                binCounters.Store(v * 4u, exclusiveOffset);
+
+                // D3D12_DISPATCH_ARGUMENTS: ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ, padding
+                indirectArgsBuffer.Store4(v * INDIRECT_ARGS_STRIDE, uint4(count, 1u, 1u, 0u));
+            }
         }
     }
 

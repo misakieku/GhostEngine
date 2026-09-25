@@ -3,9 +3,9 @@ shader "Hidden/DebugClassification"
     properties
     {
         uint variantTileListIndex;
+        uint tileOffsetsBufferIndex;
         uint variantIndex;
         uint tilesPerRow;
-        uint maxTilesPerVariant;
         uint renderWidth;
         uint renderHeight;
     }
@@ -49,9 +49,12 @@ shader "Hidden/DebugClassification"
 
                 HiddenDebugClassificationShaderProperties properties = LoadData<HiddenDebugClassificationShaderProperties>(g_PushConstantData.userData0, 0);
 
+                ByteAddressBuffer tileOffsetsBuffer = ResourceDescriptorHeap[properties.tileOffsetsBufferIndex];
+                uint tileOffset = tileOffsetsBuffer.Load(properties.variantIndex * 4u);
+
                 ByteAddressBuffer tileList = ResourceDescriptorHeap[properties.variantTileListIndex];
                 uint tileSlot = groupID.x;
-                uint tileIndex = tileList.Load((properties.variantIndex * properties.maxTilesPerVariant + tileSlot) * 4u);
+                uint tileIndex = tileList.Load((tileOffset + tileSlot) * 4u);
                 uint2 tileCoord = DecodeTileCoord(tileIndex, properties.tilesPerRow);
 
                 // Compute pixel extents for this 16x16 tile

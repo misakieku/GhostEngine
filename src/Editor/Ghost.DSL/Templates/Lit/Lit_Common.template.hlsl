@@ -9,7 +9,7 @@
 // clustered lighting) continues to evolve, this template will be fully expanded.
 //
 // Injection points:
-//   void  GetSurfaceData(in MaterialContext ctx, inout Payload payload, out SurfaceData surface)
+//   void  GetSurfaceData(in MaterialContext ctx, in MaterialProperties props, inout Payload payload, out SurfaceData surface)
 //   float GetAlphaCoverage(uint materialIndex, float2 uv, inout Payload payload)
 // ============================================================
 
@@ -50,7 +50,7 @@ $GHOST_USER_HLSL$
 // ============================================================
 
 #ifndef GHOST_OVERRIDE_GET_SURFACE_DATA
-static inline void GetSurfaceData(in MaterialContext ctx, inout Payload payload, out SurfaceData surface)
+static inline void GetSurfaceData(in MaterialContext ctx, in MaterialProperties props, inout Payload payload, out SurfaceData surface)
 {
     surface = (SurfaceData)0;
     surface.albedo = float3(0.73f, 0.73f, 0.73f);

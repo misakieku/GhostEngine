@@ -20,7 +20,7 @@ internal partial class GhostRenderPipeline
         public uint visibleMeshletsPass1;
         public uint visibleMeshletsPass2;
         public uint variantTileListIndex;
-        public uint maxTilesPerVariant;
+        public uint tileOffsetsBufferIndex;
         public uint tilesPerRow;
         public uint renderWidth;
         public uint renderHeight;
@@ -57,6 +57,7 @@ internal partial class GhostRenderPipeline
         public Identifier<RGBuffer> visibleMeshletsPass1;
         public Identifier<RGBuffer> visibleMeshletsPass2;
         public Identifier<RGBuffer> variantTileList;
+        public Identifier<RGBuffer> tileOffsetsBuffer;
         public Identifier<RGBuffer> indirectArgsBuffer;
         public Identifier<RGTexture> gbuffer0;
         public Identifier<RGTexture> gbuffer1;
@@ -65,7 +66,6 @@ internal partial class GhostRenderPipeline
         public ICommandSignature commandSignature;
         public ShaderVariantRegistry variantRegistry;
         public uint tilesPerRow;
-        public uint maxTilesPerVariant;
         public uint2 renderSize;
     }
 
@@ -81,11 +81,9 @@ internal partial class GhostRenderPipeline
         }, default);
     }
 
-    private GBufferResources AddDeferredTexturingPass(RenderGraph rg, Identifier<RGBuffer> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, Identifier<RGBuffer> tileListBuffer, Identifier<RGBuffer> indirectArgsBuffer, uint2 screenSize)
+    private GBufferResources AddDeferredTexturingPass(RenderGraph rg, Identifier<RGBuffer> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, Identifier<RGBuffer> tileListBuffer, Identifier<RGBuffer> tileOffsetsBuffer, Identifier<RGBuffer> indirectArgsBuffer, uint2 screenSize)
     {
         var tilesX = (screenSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
-        var tilesY = (screenSize.y + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
-        var totalTiles = Math.Max(1u, tilesX * tilesY);
 
         using var builder = rg.AddComputeRenderPass<DeferredTexturingPassData>("DeferredTexturing");
 
@@ -117,6 +115,7 @@ internal partial class GhostRenderPipeline
         builder.UseBuffer(visibleMeshlets0, AccessFlags.Read);
         builder.UseBuffer(visibleMeshlets1, AccessFlags.Read);
         builder.UseBuffer(tileListBuffer, AccessFlags.Read);
+        builder.UseBuffer(tileOffsetsBuffer, AccessFlags.Read);
         builder.UseBuffer(indirectArgsBuffer, AccessFlags.Read);
 
         builder.UseTexture(gbuffer0, AccessFlags.Write);
@@ -130,6 +129,7 @@ internal partial class GhostRenderPipeline
             visibleMeshletsPass1 = visibleMeshlets0,
             visibleMeshletsPass2 = visibleMeshlets1,
             variantTileList = tileListBuffer,
+            tileOffsetsBuffer = tileOffsetsBuffer,
             indirectArgsBuffer = indirectArgsBuffer,
             gbuffer0 = gbuffer0,
             gbuffer1 = gbuffer1,
@@ -138,7 +138,6 @@ internal partial class GhostRenderPipeline
             commandSignature = _deferredTexturingCommandSignature,
             variantRegistry = _assetManager.ShaderVariants,
             tilesPerRow = tilesX,
-            maxTilesPerVariant = totalTiles,
             renderSize = screenSize
         });
 
@@ -148,6 +147,7 @@ internal partial class GhostRenderPipeline
             var meshlets0Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visibleMeshletsPass1).AsResource(), BindlessAccess.ShaderResource);
             var meshlets1Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visibleMeshletsPass2).AsResource(), BindlessAccess.ShaderResource);
             var tileListSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.variantTileList).AsResource(), BindlessAccess.ShaderResource);
+            var tileOffsetsSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.tileOffsetsBuffer).AsResource(), BindlessAccess.ShaderResource);
             var actualIndirectArgs = computeCtx.GetActualBuffer(passData.indirectArgsBuffer);
 
             var gb0Uav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.gbuffer0).AsResource(), BindlessAccess.UnorderedAccess);
@@ -172,7 +172,7 @@ internal partial class GhostRenderPipeline
                     visibleMeshletsPass1 = meshlets0Srv,
                     visibleMeshletsPass2 = meshlets1Srv,
                     variantTileListIndex = tileListSrv,
-                    maxTilesPerVariant = passData.maxTilesPerVariant,
+                    tileOffsetsBufferIndex = tileOffsetsSrv,
                     tilesPerRow = passData.tilesPerRow,
                     renderWidth = passData.renderSize.x,
                     renderHeight = passData.renderSize.y,

@@ -53,9 +53,35 @@ public class ShaderPropertiesGeneratorTest
         Assert.AreEqual("Internal/TileMaterialClassification", InternalTileMaterialClassificationShaderProperties.SHADER_NAME);
 #pragma warning restore MSTEST0032 // Assertion condition is always true
         var size = sizeof(InternalTileMaterialClassificationShaderProperties);
-        Assert.AreEqual(44, size); // 9 uint fields + 1 uint2 field = 44 bytes
+        Assert.AreEqual(68, size); // 2 uint4 fields + 9 uint fields = 68 bytes
 
-        var offset = (int)Marshal.OffsetOf<InternalTileMaterialClassificationShaderProperties>(nameof(InternalTileMaterialClassificationShaderProperties.deferredVariantMask));
-        Assert.AreEqual(36, offset); // Exactly at byte 36, matching HLSL ByteAddressBuffer packing!
+        var offset0 = (int)Marshal.OffsetOf<InternalTileMaterialClassificationShaderProperties>(nameof(InternalTileMaterialClassificationShaderProperties.deferredVariantMask0));
+        Assert.AreEqual(0, offset0);
+
+        var offset1 = (int)Marshal.OffsetOf<InternalTileMaterialClassificationShaderProperties>(nameof(InternalTileMaterialClassificationShaderProperties.deferredVariantMask1));
+        Assert.AreEqual(16, offset1);
+
+        var offsetVis = (int)Marshal.OffsetOf<InternalTileMaterialClassificationShaderProperties>(nameof(InternalTileMaterialClassificationShaderProperties.visBufferIndex));
+        Assert.AreEqual(32, offsetVis);
+    }
+
+    [TestMethod]
+    public unsafe void TestInternalPrepareDeferredTexturingIndirectArgsShaderProperties_LayoutAndConstants()
+    {
+#pragma warning disable MSTEST0032 // Assertion condition is always true
+        Assert.AreEqual("Internal/PrepareDeferredTexturingIndirectArgs", InternalPrepareDeferredTexturingIndirectArgsShaderProperties.SHADER_NAME);
+#pragma warning restore MSTEST0032 // Assertion condition is always true
+        var size = sizeof(InternalPrepareDeferredTexturingIndirectArgsShaderProperties);
+        Assert.AreEqual(20, size); // 5 uint fields = 20 bytes
+    }
+
+    [TestMethod]
+    public unsafe void TestInternalScatterVariantTilesShaderProperties_LayoutAndConstants()
+    {
+#pragma warning disable MSTEST0032 // Assertion condition is always true
+        Assert.AreEqual("Internal/ScatterVariantTiles", InternalScatterVariantTilesShaderProperties.SHADER_NAME);
+#pragma warning restore MSTEST0032 // Assertion condition is always true
+        var size = sizeof(InternalScatterVariantTilesShaderProperties);
+        Assert.AreEqual(20, size); // 5 uint fields = 20 bytes
     }
 }

@@ -2,16 +2,17 @@ compute "Internal/TileMaterialClassification"
 {
     properties
     {
+        uint4 deferredVariantMask0;
+        uint4 deferredVariantMask1;
         uint visBufferIndex;
         uint visibleMeshletsPass1;
         uint visibleMeshletsPass2;
-        uint variantTileCountersUav;
-        uint variantTileListUav;
+        uint counterBufferUav;
+        uint unbinnedTilesUav;
         uint renderWidth;
         uint renderHeight;
         uint tilesPerRow;
-        uint maxTilesPerVariant;
-        uint2 deferredVariantMask;
+        uint maxUnbinnedEntries;
     }
 
     includes
@@ -25,7 +26,9 @@ compute "Internal/TileMaterialClassification"
 
     hlsl
     {
-        groupshared uint2 s_tileVariantMask;
+        groupshared uint s_tileVariantMask[8];
+        groupshared uint s_tileEntryCount;
+        groupshared uint s_tileEntryBase;
 
         [numthreads(CLASSIFICATION_TILE_SIZE, CLASSIFICATION_TILE_SIZE, 1)]
         void CSMain(
@@ -36,9 +39,14 @@ compute "Internal/TileMaterialClassification"
         {
             InternalTileMaterialClassificationShaderProperties props = LoadData<InternalTileMaterialClassificationShaderProperties>(g_PushConstantData.userData0, 0);
 
-            if (groupIndex == 0)
+            if (groupIndex < 8u)
             {
-                s_tileVariantMask = uint2(0, 0);
+                s_tileVariantMask[groupIndex] = 0u;
+            }
+            if (groupIndex == 0u)
+            {
+                s_tileEntryCount = 0u;
+                s_tileEntryBase = 0u;
             }
             GroupMemoryBarrierWithGroupSync();
 
@@ -84,7 +92,8 @@ compute "Internal/TileMaterialClassification"
 
                     uint candidateVariant = UnpackMaterialVariantIndex(packedMaterial);
 
-                    if (IsDeferredVariant(candidateVariant, props.deferredVariantMask))
+                    if (candidateVariant < MAX_CLASSIFICATION_VARIANTS &&
+                        IsDeferredVariant(candidateVariant, props.deferredVariantMask0, props.deferredVariantMask1))
                     {
                         variantIndex = candidateVariant;
                         isValid = true;
@@ -92,52 +101,46 @@ compute "Internal/TileMaterialClassification"
                 }
             }
 
-            // Subgroup reduction: vote across wave lanes
-            uint64_t laneBit = (isValid && variantIndex < MAX_CLASSIFICATION_VARIANTS) ? (1ULL << variantIndex) : 0ULL;
-            uint64_t waveBits = WaveActiveBitOr(laneBit);
-
-            if (WaveIsFirstLane() && waveBits != 0ULL)
+            if (isValid)
             {
-                uint low = (uint)(waveBits & 0xFFFFFFFFu);
-                uint high = (uint)(waveBits >> 32u);
-                if (low != 0u)
-                {
-                    InterlockedOr(s_tileVariantMask.x, low);
-                }
-                if (high != 0u)
-                {
-                    InterlockedOr(s_tileVariantMask.y, high);
-                }
+                InterlockedOr(s_tileVariantMask[variantIndex >> 5u], 1u << (variantIndex & 31u));
             }
             GroupMemoryBarrierWithGroupSync();
 
-            // Threads 0..63 test their variant bit and append tileIndex to VariantTileList
-            if (groupIndex < MAX_CLASSIFICATION_VARIANTS)
+            // Thread v (groupIndex 0..255) checks if variant v is present in this tile
+            uint v = groupIndex;
+            bool isPresent = false;
+            if (v < MAX_CLASSIFICATION_VARIANTS)
             {
-                uint v = groupIndex;
-                bool isPresent = false;
-                if (v < 32u)
-                {
-                    isPresent = (s_tileVariantMask.x & (1u << v)) != 0u;
-                }
-                else
-                {
-                    isPresent = (s_tileVariantMask.y & (1u << (v - 32u))) != 0u;
-                }
+                isPresent = (s_tileVariantMask[v >> 5u] & (1u << (v & 31u))) != 0u;
+            }
 
-                if (isPresent)
+            uint localSlot = 0u;
+            if (isPresent)
+            {
+                InterlockedAdd(s_tileEntryCount, 1u, localSlot);
+            }
+            GroupMemoryBarrierWithGroupSync();
+
+            // Thread 0 allocates unbinned slots for this tile in the global counter buffer
+            if (groupIndex == 0u && s_tileEntryCount > 0u)
+            {
+                RWByteAddressBuffer counters = ResourceDescriptorHeap[props.counterBufferUav];
+                counters.InterlockedAdd(CLASSIFICATION_OFFSET_TOTAL_ENTRIES, s_tileEntryCount, s_tileEntryBase);
+            }
+            GroupMemoryBarrierWithGroupSync();
+
+            // Each present variant writes its unbinned entry and tallies its variant count
+            if (isPresent)
+            {
+                RWByteAddressBuffer counters = ResourceDescriptorHeap[props.counterBufferUav];
+                counters.InterlockedAdd(CLASSIFICATION_OFFSET_VARIANT_COUNTS + v * 4u, 1u);
+
+                uint unbinnedSlot = s_tileEntryBase + localSlot;
+                if (unbinnedSlot < props.maxUnbinnedEntries)
                 {
-                    RWByteAddressBuffer counters = ResourceDescriptorHeap[props.variantTileCountersUav];
-                    RWByteAddressBuffer tileList = ResourceDescriptorHeap[props.variantTileListUav];
-
-                    uint tileSlot;
-                    counters.InterlockedAdd(v * VARIANT_COUNTER_STRIDE, 1u, tileSlot);
-
-                    if (tileSlot < props.maxTilesPerVariant)
-                    {
-                        uint writeOffset = (v * props.maxTilesPerVariant + tileSlot) * 4u;
-                        tileList.Store(writeOffset, tileIndex);
-                    }
+                    RWByteAddressBuffer unbinned = ResourceDescriptorHeap[props.unbinnedTilesUav];
+                    unbinned.Store2(unbinnedSlot * 8u, uint2(tileIndex, v));
                 }
             }
         }

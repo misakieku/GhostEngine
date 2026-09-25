@@ -128,9 +128,9 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 out var visibleMeshlets0, out var visibleMeshlets1);
 
             AddTileClassificationPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, viewContext.RenderSize,
-                out var tileListBuffer, out var indirectArgsBuffer);
+                out var tileListBuffer, out var tileOffsetsBuffer, out var indirectArgsBuffer);
 
-            var gbuffer = AddDeferredTexturingPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, indirectArgsBuffer, viewContext.RenderSize);
+            var gbuffer = AddDeferredTexturingPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, tileOffsetsBuffer, indirectArgsBuffer, viewContext.RenderSize);
 
             // Blit GBuffer0 (Albedo) to screen / backbuffer
             viewContext.RenderGraph.AddBlitPass(gbuffer.GBuffer3, colorTarget, _meshPipelineResource.blitShader);
@@ -159,19 +159,21 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         // Pass 1: Early-Z Hierarchical Meshlet Culling
 
         AddMeshletCullPass1(viewContext.RenderGraph, hzb, viewContext.HzbMipCount, viewContext.RenderSize, viewContext.HzbSize, instanceCount,
-            out visibleMeshlets0, out var occludedMeshlets, out var counterBuffer);
+            out var unbinnedMeshlets0, out var occludedMeshlets, out var counterBuffer);
 
-        var indirectArg = AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 0);
-        AddVisibilityBufferPass(viewContext.RenderGraph, visibleMeshlets0, indirectArg, 0, sceneBuffer, viewContext.RenderSize, ref currentVisBuffer);
+        AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 0, out var indirectArg0, out var binOffsets0, out var binScatterCounters0);
+        visibleMeshlets0 = AddScatterMeshletsPass(viewContext.RenderGraph, unbinnedMeshlets0, binScatterCounters0, counterBuffer, 0);
+        AddVisibilityBufferPass(viewContext.RenderGraph, visibleMeshlets0, binOffsets0, indirectArg0, 0, sceneBuffer, viewContext.RenderSize, ref currentVisBuffer);
         AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzb, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize);
 
         // Pass 2: Late-Z Meshlet Culling
 
-        visibleMeshlets1 = AddMeshletCullPass2(viewContext.RenderGraph, occludedMeshlets, counterBuffer, indirectArg, visibleMeshlets0, hzb,
+        var unbinnedMeshlets1 = AddMeshletCullPass2(viewContext.RenderGraph, occludedMeshlets, counterBuffer, indirectArg0, hzb,
             viewContext.HzbMipCount, viewContext.RenderSize, viewContext.HzbSize);
 
-        indirectArg = AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 1);
-        AddVisibilityBufferPass(viewContext.RenderGraph, visibleMeshlets1, indirectArg, 1, sceneBuffer, viewContext.RenderSize, ref currentVisBuffer);
+        AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 1, out var indirectArg1, out var binOffsets1, out var binScatterCounters1);
+        visibleMeshlets1 = AddScatterMeshletsPass(viewContext.RenderGraph, unbinnedMeshlets1, binScatterCounters1, counterBuffer, 1);
+        AddVisibilityBufferPass(viewContext.RenderGraph, visibleMeshlets1, binOffsets1, indirectArg1, 1, sceneBuffer, viewContext.RenderSize, ref currentVisBuffer);
         AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzb, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize);
 
         // Export stable depth ONCE at the end of geometry passes

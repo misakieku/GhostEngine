@@ -1,0 +1,56 @@
+compute "Internal/ScatterVariantTiles"
+{
+    properties
+    {
+        uint unbinnedTilesBuffer;
+        uint binnedTileListBuffer;
+        uint binScatterCounters;
+        uint counterBuffer;
+        uint maxTileEntries;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/ClassificationCommon.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(64, 1, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            InternalScatterVariantTilesShaderProperties props = LoadData<InternalScatterVariantTilesShaderProperties>(g_PushConstantData.userData0, 0);
+
+            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBuffer];
+            uint totalEntries = counterBuf.Load(CLASSIFICATION_OFFSET_TOTAL_ENTRIES);
+            if (totalEntries > props.maxTileEntries)
+            {
+                totalEntries = props.maxTileEntries;
+            }
+
+            uint slotIndex = dispatchThreadId.x;
+            if (slotIndex >= totalEntries)
+            {
+                return;
+            }
+
+            ByteAddressBuffer unbinned = ResourceDescriptorHeap[props.unbinnedTilesBuffer];
+            uint2 entry = unbinned.Load2(slotIndex * 8u);
+            uint tileIndex = entry.x;
+            uint variantIndex = entry.y;
+
+            RWByteAddressBuffer scatterCounters = ResourceDescriptorHeap[props.binScatterCounters];
+            uint dstSlot;
+            scatterCounters.InterlockedAdd(variantIndex * 4u, 1u, dstSlot);
+
+            if (dstSlot < props.maxTileEntries)
+            {
+                RWByteAddressBuffer binned = ResourceDescriptorHeap[props.binnedTileListBuffer];
+                binned.Store(dstSlot * 4u, tileIndex);
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

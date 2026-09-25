@@ -21,9 +21,12 @@ void CSMain(
     DeferredTexturingShaderProperties props = LoadData<DeferredTexturingShaderProperties>(g_PushConstantData.userData0, 0);
 
     // groupID.x is the tile slot in VariantTileList for props.variantIndex
+    ByteAddressBuffer tileOffsetsBuffer = ResourceDescriptorHeap[props.tileOffsetsBufferIndex];
+    uint tileOffset = tileOffsetsBuffer.Load(props.variantIndex * 4u);
+
     ByteAddressBuffer tileList = ResourceDescriptorHeap[props.variantTileListIndex];
     uint tileSlot = groupID.x;
-    uint tileIndex = tileList.Load((props.variantIndex * props.maxTilesPerVariant + tileSlot) * 4u);
+    uint tileIndex = tileList.Load((tileOffset + tileSlot) * 4u);
     uint2 pixelCoord = DecodeTilePixelCoord(tileIndex, groupThreadId.xy, props.tilesPerRow);
 
     if (pixelCoord.x >= props.renderWidth || pixelCoord.y >= props.renderHeight)
@@ -82,9 +85,10 @@ void CSMain(
     ctx.normalWS = attrs.normalWS;
     ctx.uv = attrs.uv;
 
+    MaterialProperties matProps = LoadData<MaterialProperties>(attrs.cbufferIndex, 0);
     Payload payload = (Payload)0;
     SurfaceData surface = (SurfaceData)0;
-    GetSurfaceData(ctx, payload, surface);
+    GetSurfaceData(ctx, matProps, payload, surface);
 
     // Pack GBuffer outputs
     GBufferOutputs outputs;

@@ -21,6 +21,14 @@ internal unsafe partial class GhostRenderPipeline
         public uint meshletIndex;
     }
 
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    public struct UnbinnedMeshletEntry
+    {
+        public uint instanceIndex;
+        public uint meshletIndex;
+        public uint variantIndex;
+    }
+
     private struct MeshletCullPass1Data
     {
         public Identifier<RGBuffer> visibleMeshletsPass1;
@@ -63,9 +71,23 @@ internal unsafe partial class GhostRenderPipeline
     {
         public Identifier<RGBuffer> counterBuffer;
         public Identifier<RGBuffer> indirectArgsBuffer;
+        public Identifier<RGBuffer> binOffsetsBuffer;
+        public Identifier<RGBuffer> binScatterCounters;
         public Handle<ComputeShader> shader;
         public uint cullPassIndex;
         public uint maxCount;
+        public uint maxVariants;
+    }
+
+    private struct ScatterMeshletsPassData
+    {
+        public Identifier<RGBuffer> unbinnedBuffer;
+        public Identifier<RGBuffer> binnedBuffer;
+        public Identifier<RGBuffer> binScatterCounters;
+        public Identifier<RGBuffer> counterBuffer;
+        public Handle<ComputeShader> shader;
+        public uint totalVisibleOffset;
+        public uint maxVisibleMeshlets;
     }
 
     private struct BuildHZBMipPassData
@@ -84,18 +106,21 @@ internal unsafe partial class GhostRenderPipeline
 
     private static class CullConstants
     {
-        public const uint COUNTER_BUFFER_SIZE = 128;
-        public const uint INDIRECT_ARGS_BUFFER_SIZE = 128;
+        public const uint MAX_VARIANTS = 256u;
 
         // Counter byte offsets matching CullCommon.hlsl
         public const uint OFFSET_PASS1_VISIBLE_COUNT = 0;
         public const uint OFFSET_PASS1_OCCLUDED_COUNT = 4;
         public const uint OFFSET_PASS2_VISIBLE_COUNT = 8;
+        public const uint OFFSET_PASS1_VARIANT_COUNTS = 16;
+        public const uint OFFSET_PASS2_VARIANT_COUNTS = 16 + MAX_VARIANTS * 4; // 1040
+        public const uint COUNTER_BUFFER_SIZE = 16 + MAX_VARIANTS * 8; // 2064
 
         // Indirect draw arguments byte offsets matching CullCommon.hlsl
-        public const uint INDIRECT_OFFSET_PASS1_VISIBLE = 0;
-        public const uint INDIRECT_OFFSET_PASS2_VISIBLE = 16;
-        public const uint INDIRECT_OFFSET_PASS2_CULL = 32;
+        public const uint INDIRECT_OFFSET_PASS1_VARIANTS = 0;
+        public const uint INDIRECT_OFFSET_PASS2_VARIANTS = MAX_VARIANTS * 16; // 4096
+        public const uint INDIRECT_OFFSET_PASS2_CULL = MAX_VARIANTS * 32; // 8192
+        public const uint INDIRECT_ARGS_BUFFER_SIZE = MAX_VARIANTS * 32 + 16; // 8208
     }
 
     private ICommandSignature _dispatchCommandSignature = null!;
@@ -136,7 +161,7 @@ internal unsafe partial class GhostRenderPipeline
         // This pass carries the one-time backing memory initialization, so it must never be culled.
         builder.AllowPassCulling(false);
 
-        var entrySize = (uint)sizeof(VisibleMeshletEntry);
+        var entrySize = (uint)sizeof(UnbinnedMeshletEntry);
         var bufferSize = _settings.MaxVisibleMeshletsOnScreen * entrySize;
 
         visibleMeshlets = builder.CreateBuffer(new BufferDesc
@@ -144,7 +169,7 @@ internal unsafe partial class GhostRenderPipeline
             Size = bufferSize,
             Stride = entrySize,
             Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-        }, "VisibleMeshlets_Pass1");
+        }, "UnbinnedMeshlets_Pass1");
 
         occludedMeshlets = builder.CreateBuffer(new BufferDesc
         {
@@ -237,46 +262,70 @@ internal unsafe partial class GhostRenderPipeline
         });
     }
 
-    private Identifier<RGBuffer> AddPrepareIndirectArgsPass(RenderGraph rg, Identifier<RGBuffer> counterBuffer, uint cullPassIndex)
+    private void AddPrepareIndirectArgsPass(RenderGraph rg, Identifier<RGBuffer> counterBuffer, uint cullPassIndex, out Identifier<RGBuffer> indirectArgs, out Identifier<RGBuffer> binOffsets, out Identifier<RGBuffer> binScatterCounters)
     {
         using var builder = rg.AddComputeRenderPass<PrepareIndirectArgsPassData>(StringUtility.DebugFormat("PrepareIndirectArgs_Pass{0}", cullPassIndex + 1));
 
-        var indirectArgBuffer = builder.CreateBuffer(new BufferDesc
+        indirectArgs = builder.CreateBuffer(new BufferDesc
         {
             Size = CullConstants.INDIRECT_ARGS_BUFFER_SIZE,
             Stride = 4,
             Usage = BufferUsage.IndirectArgument | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-        }, "IndirectArgsBuffer");
+        }, StringUtility.DebugFormat("IndirectArgsBuffer_Pass{0}", cullPassIndex + 1));
+
+        binOffsets = builder.CreateBuffer(new BufferDesc
+        {
+            Size = CullConstants.MAX_VARIANTS * 4u,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, StringUtility.DebugFormat("BinOffsetsBuffer_Pass{0}", cullPassIndex + 1));
+
+        binScatterCounters = builder.CreateBuffer(new BufferDesc
+        {
+            Size = CullConstants.MAX_VARIANTS * 4u,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, StringUtility.DebugFormat("BinScatterCounters_Pass{0}", cullPassIndex + 1));
 
         builder.UseBuffer(counterBuffer, AccessFlags.Read);
-        builder.UseBuffer(indirectArgBuffer, AccessFlags.Write);
+        builder.UseBuffer(indirectArgs, AccessFlags.Write);
+        builder.UseBuffer(binOffsets, AccessFlags.Write);
+        builder.UseBuffer(binScatterCounters, AccessFlags.Write);
 
         builder.SetPassData(new PrepareIndirectArgsPassData
         {
             counterBuffer = counterBuffer,
-            indirectArgsBuffer = indirectArgBuffer,
+            indirectArgsBuffer = indirectArgs,
+            binOffsetsBuffer = binOffsets,
+            binScatterCounters = binScatterCounters,
             shader = _meshPipelineResource.prepareIndirectArgsShader,
             cullPassIndex = cullPassIndex,
-            maxCount = _settings.MaxVisibleMeshletsOnScreen
+            maxCount = _settings.MaxVisibleMeshletsOnScreen,
+            maxVariants = CullConstants.MAX_VARIANTS
         });
 
         builder.SetRenderFunc<PrepareIndirectArgsPassData>(static (ref readonly passData, computeCtx) =>
         {
-            var visibleCountOffset = passData.cullPassIndex == 0 ? CullConstants.OFFSET_PASS1_VISIBLE_COUNT : CullConstants.OFFSET_PASS2_VISIBLE_COUNT;
-            var visibleArgsOffset = passData.cullPassIndex == 0 ? CullConstants.INDIRECT_OFFSET_PASS1_VISIBLE : CullConstants.INDIRECT_OFFSET_PASS2_VISIBLE;
+            var variantCountsOffset = passData.cullPassIndex == 0 ? CullConstants.OFFSET_PASS1_VARIANT_COUNTS : CullConstants.OFFSET_PASS2_VARIANT_COUNTS;
+            var visibleArgsOffset = passData.cullPassIndex == 0 ? CullConstants.INDIRECT_OFFSET_PASS1_VARIANTS : CullConstants.INDIRECT_OFFSET_PASS2_VARIANTS;
             var occludedCountOffset = passData.cullPassIndex == 0 ? CullConstants.OFFSET_PASS1_OCCLUDED_COUNT : uint.MaxValue;
             var cullArgsOffset = passData.cullPassIndex == 0 ? CullConstants.INDIRECT_OFFSET_PASS2_CULL : uint.MaxValue;
 
             var counterUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
             var indirectUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.indirectArgsBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+            var binOffsetsUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binOffsetsBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+            var binCountersUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binScatterCounters).AsResource(), BindlessAccess.UnorderedAccess);
 
             var props = new InternalPrepareMeshletIndirectArgsShaderProperties
             {
                 counterBuffer = counterUav,
                 indirectArgsBuffer = indirectUav,
-                visibleCountOffset = visibleCountOffset,
+                binOffsetsBuffer = binOffsetsUav,
+                binScatterCounters = binCountersUav,
+                variantCountsOffset = variantCountsOffset,
                 visibleArgsOffset = visibleArgsOffset,
                 maxCount = passData.maxCount,
+                maxVariants = passData.maxVariants,
                 occludedCountOffset = occludedCountOffset,
                 cullArgsOffset = cullArgsOffset,
             };
@@ -285,8 +334,65 @@ internal unsafe partial class GhostRenderPipeline
             computeCtx.SetUserDataWithProperties(in props);
             computeCtx.DispatchCompute(1, 1, 1);
         });
+    }
 
-        return indirectArgBuffer;
+    private Identifier<RGBuffer> AddScatterMeshletsPass(RenderGraph rg, Identifier<RGBuffer> unbinnedBuffer, Identifier<RGBuffer> binScatterCounters, Identifier<RGBuffer> counterBuffer, uint cullPassIndex)
+    {
+        using var builder = rg.AddComputeRenderPass<ScatterMeshletsPassData>(StringUtility.DebugFormat("ScatterMeshlets_Pass{0}", cullPassIndex + 1));
+
+        var entrySize = (uint)sizeof(VisibleMeshletEntry);
+        var bufferSize = _settings.MaxVisibleMeshletsOnScreen * entrySize;
+
+        var binnedBuffer = builder.CreateBuffer(new BufferDesc
+        {
+            Size = bufferSize,
+            Stride = entrySize,
+            Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, StringUtility.DebugFormat("BinnedVisibleMeshlets_Pass{0}", cullPassIndex + 1));
+
+        builder.UseBuffer(unbinnedBuffer, AccessFlags.Read);
+        builder.UseBuffer(binnedBuffer, AccessFlags.Write);
+        builder.UseBuffer(binScatterCounters, AccessFlags.ReadWrite);
+        builder.UseBuffer(counterBuffer, AccessFlags.Read);
+
+        var totalVisibleOffset = cullPassIndex == 0 ? CullConstants.OFFSET_PASS1_VISIBLE_COUNT : CullConstants.OFFSET_PASS2_VISIBLE_COUNT;
+
+        builder.SetPassData(new ScatterMeshletsPassData
+        {
+            unbinnedBuffer = unbinnedBuffer,
+            binnedBuffer = binnedBuffer,
+            binScatterCounters = binScatterCounters,
+            counterBuffer = counterBuffer,
+            shader = _meshPipelineResource.scatterMeshletsShader,
+            totalVisibleOffset = totalVisibleOffset,
+            maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen
+        });
+
+        builder.SetRenderFunc<ScatterMeshletsPassData>(static (ref readonly passData, computeCtx) =>
+        {
+            var unbinnedSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.unbinnedBuffer).AsResource(), BindlessAccess.ShaderResource);
+            var binnedUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binnedBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+            var countersUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binScatterCounters).AsResource(), BindlessAccess.UnorderedAccess);
+            var counterBufUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+
+            var props = new InternalScatterMeshletsShaderProperties
+            {
+                unbinnedBuffer = unbinnedSrv,
+                binnedBuffer = binnedUav,
+                binScatterCounters = countersUav,
+                counterBuffer = counterBufUav,
+                totalVisibleOffset = passData.totalVisibleOffset,
+                maxVisibleMeshlets = passData.maxVisibleMeshlets
+            };
+
+            computeCtx.SetActiveCompute(passData.shader, 0);
+            computeCtx.SetUserDataWithProperties(in props);
+
+            var threadGroups = Math.Max(1u, (passData.maxVisibleMeshlets + 63u) / 64u);
+            computeCtx.DispatchCompute(threadGroups, 1, 1);
+        });
+
+        return binnedBuffer;
     }
 
     private void AddBuildHZBPasses(RenderGraph rg, Identifier<RGBuffer> visBuffer, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 baseSize, uint2 renderSize)
@@ -411,14 +517,22 @@ internal unsafe partial class GhostRenderPipeline
         computeCtx.DispatchCompute(threadGroupsX, threadGroupsY, 1);
     }
 
-    private Identifier<RGBuffer> AddMeshletCullPass2(RenderGraph rg, Identifier<RGBuffer> occludedMeshlets, Identifier<RGBuffer> counter, Identifier<RGBuffer> indirectArgument, Identifier<RGBuffer> visibleMeshlets, Identifier<RGTexture> hzbTexture,
+    private Identifier<RGBuffer> AddMeshletCullPass2(RenderGraph rg, Identifier<RGBuffer> occludedMeshlets, Identifier<RGBuffer> counter, Identifier<RGBuffer> indirectArgument, Identifier<RGTexture> hzbTexture,
         uint hzbMipCount, uint2 renderSize, uint2 hzbBaseSize)
     {
         using var builder = rg.AddComputeRenderPass<MeshletCullPass2Data>("MeshletCull_Pass2");
 
-        var visibleMeshlets2 = builder.CreateBuffer(visibleMeshlets, "VisibleMeshlets_Pass2");
+        var entrySize = (uint)sizeof(UnbinnedMeshletEntry);
+        var bufferSize = _settings.MaxVisibleMeshletsOnScreen * entrySize;
 
-        builder.UseBuffer(visibleMeshlets2, AccessFlags.Write);
+        var unbinnedMeshlets2 = builder.CreateBuffer(new BufferDesc
+        {
+            Size = bufferSize,
+            Stride = entrySize,
+            Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, "UnbinnedMeshlets_Pass2");
+
+        builder.UseBuffer(unbinnedMeshlets2, AccessFlags.Write);
         builder.UseBuffer(occludedMeshlets, AccessFlags.Read);
         builder.UseBuffer(counter, AccessFlags.ReadWrite);
         builder.UseBuffer(indirectArgument, AccessFlags.Read);
@@ -430,7 +544,7 @@ internal unsafe partial class GhostRenderPipeline
 
         var passData = new MeshletCullPass2Data
         {
-            visibleMeshletsPass2 = visibleMeshlets2,
+            visibleMeshletsPass2 = unbinnedMeshlets2,
             occludedMeshlets = occludedMeshlets,
             counterBuffer = counter,
             indirectArgsBuffer = indirectArgument,
@@ -475,7 +589,7 @@ internal unsafe partial class GhostRenderPipeline
             computeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, CullConstants.INDIRECT_OFFSET_PASS2_CULL);
         });
 
-        return visibleMeshlets2;
+        return unbinnedMeshlets2;
     }
 
     private void DisposeCulling()

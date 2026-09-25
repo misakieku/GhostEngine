@@ -22,6 +22,7 @@ internal partial class GhostRenderPipeline
     private struct VisibilityPassData
     {
         public Identifier<RGBuffer> visibleMeshlets;
+        public Identifier<RGBuffer> binOffsetsBuffer;
         public Identifier<RGBuffer> visBuffer;
         public Identifier<RGBuffer> indirectArgsBuffer;
         public ulong indirectArgsOffset;
@@ -83,7 +84,7 @@ internal partial class GhostRenderPipeline
         });
     }
 
-    private void AddVisibilityBufferPass(RenderGraph rg, Identifier<RGBuffer> visibleMeshlets, Identifier<RGBuffer> indirectArgsBuffer, uint cullPassIndex, uint sceneBuffer, uint2 screenSize, ref Identifier<RGBuffer> existingVisBuffer)
+    private void AddVisibilityBufferPass(RenderGraph rg, Identifier<RGBuffer> visibleMeshlets, Identifier<RGBuffer> binOffsetsBuffer, Identifier<RGBuffer> indirectArgsBuffer, uint cullPassIndex, uint sceneBuffer, uint2 screenSize, ref Identifier<RGBuffer> existingVisBuffer)
     {
         var isPass1 = cullPassIndex == 0;
         var passName = isPass1 ? "Visibility_Pass1_EarlyZ" : "Visibility_Pass2_LateZ";
@@ -107,15 +108,17 @@ internal partial class GhostRenderPipeline
         using var builder = rg.AddUnsafeRenderPass<VisibilityPassData>(passName);
 
         builder.UseBuffer(visibleMeshlets, AccessFlags.Read);
+        builder.UseBuffer(binOffsetsBuffer, AccessFlags.Read);
         builder.UseRandomAccessBuffer(existingVisBuffer);
         builder.UseBuffer(indirectArgsBuffer, AccessFlags.Read);
 
         builder.SetPassData(new VisibilityPassData
         {
             visibleMeshlets = visibleMeshlets,
+            binOffsetsBuffer = binOffsetsBuffer,
             visBuffer = existingVisBuffer,
             indirectArgsBuffer = indirectArgsBuffer,
-            indirectArgsOffset = isPass1 ? CullConstants.INDIRECT_OFFSET_PASS1_VISIBLE : CullConstants.INDIRECT_OFFSET_PASS2_VISIBLE,
+            indirectArgsOffset = isPass1 ? CullConstants.INDIRECT_OFFSET_PASS1_VARIANTS : CullConstants.INDIRECT_OFFSET_PASS2_VARIANTS,
             passIndex = cullPassIndex,
             sceneBuffer = sceneBuffer,
             screenSize = screenSize,
@@ -144,6 +147,7 @@ internal partial class GhostRenderPipeline
 
             var actualIndirectBuf = unsafeCtx.GetActualBuffer(passData.indirectArgsBuffer);
             var visibleBufferIndex = unsafeCtx.ResourceDatabase.GetBindlessIndex(unsafeCtx.GetActualBuffer(passData.visibleMeshlets).AsResource(), BindlessAccess.ShaderResource);
+            var binOffsetsIndex = unsafeCtx.ResourceDatabase.GetBindlessIndex(unsafeCtx.GetActualBuffer(passData.binOffsetsBuffer).AsResource(), BindlessAccess.ShaderResource);
             var visBufferUav = unsafeCtx.ResourceDatabase.GetBindlessIndex(unsafeCtx.GetActualBuffer(passData.visBuffer).AsResource(), BindlessAccess.UnorderedAccess);
 
             var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.Visibility);
@@ -153,14 +157,16 @@ internal partial class GhostRenderPipeline
                 if (variant.Shader.IsValid &&
                     unsafeCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.Visibility))
                 {
+                    var v = (uint)variant.DenseIndex;
                     unsafeCtx.SetUserData(
                         userData0: visibleBufferIndex,
                         userData1: visBufferUav,
-                        userData2: (uint)variant.DenseIndex,
-                        userData3: passData.passIndex,
+                        userData2: binOffsetsIndex,
+                        userData3: (v << 1) | (passData.passIndex & 1u),
                         target: DataTarget.Graphics);
 
-                    unsafeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, passData.indirectArgsOffset);
+                    ulong variantIndirectOffset = passData.indirectArgsOffset + (ulong)v * 16UL;
+                    unsafeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, variantIndirectOffset);
                 }
             }
         });

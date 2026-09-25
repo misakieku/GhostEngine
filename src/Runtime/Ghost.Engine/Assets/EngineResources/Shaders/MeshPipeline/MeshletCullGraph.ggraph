@@ -255,6 +255,7 @@ compute "Internal/MeshletCullGraph"
             uint renderType = 0;
             bool inFrustum = false;
             bool isOccluded = false;
+            uint variantIndex = 0;
 
             InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
 
@@ -297,7 +298,7 @@ compute "Internal/MeshletCullGraph"
                 {
                     uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
                     uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
-                    uint variantIndex = UnpackMaterialVariantIndex(packedMaterial);
+                    variantIndex = UnpackMaterialVariantIndex(packedMaterial);
 
                     if (g_FrameData.userBuffer != INVALID_BUFFER_INDEX)
                     {
@@ -368,12 +369,32 @@ compute "Internal/MeshletCullGraph"
                 uint slot = waveVisibleBase + localVisibleOffset;
                 if (slot < props.maxVisibleMeshlets)
                 {
-                    RWStructuredBuffer<VisibleMeshletEntry> visibleBuffer = ResourceDescriptorHeap[props.visibleMeshletsUav];
-                    VisibleMeshletEntry entry;
+                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = ResourceDescriptorHeap[props.visibleMeshletsUav];
+                    UnbinnedMeshletEntry entry;
                     entry.instanceIndex = rec.instanceIndex;
                     entry.meshletIndex = rec.meshletIndex;
+                    entry.variantIndex = variantIndex;
                     visibleBuffer[slot] = entry;
                 }
+            }
+
+            // Count visible meshlets per variant for prefix-sum binning
+            uint activeMask = WaveActiveBallot(isVisible).x;
+            while (activeMask != 0)
+            {
+                uint firstLane = firstbitlow(activeMask);
+                uint v = WaveReadLaneAt(variantIndex, firstLane);
+                bool match = isVisible && (variantIndex == v);
+                uint count = WaveActiveCountBits(match);
+
+                if (WaveGetLaneIndex() == firstLane && v < MAX_CULL_VARIANTS)
+                {
+                    uint variantCounterOffset = (props.cullPassIndex == 0)
+                        ? (OFFSET_PASS1_VARIANT_COUNTS + v * 4u)
+                        : (OFFSET_PASS2_VARIANT_COUNTS + v * 4u);
+                    counterBuf.InterlockedAdd(variantCounterOffset, count);
+                }
+                activeMask &= ~WaveActiveBallot(match).x;
             }
 
             if (isOccludedCandidate)

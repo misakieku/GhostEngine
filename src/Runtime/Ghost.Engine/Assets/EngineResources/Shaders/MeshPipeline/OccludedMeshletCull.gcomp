@@ -18,6 +18,7 @@ compute "Internal/OccludedMeshletCull"
     {
         "EngineResources/Shaders/Properties.hlsl";
         "EngineResources/Shaders/MeshPipeline/CullCommon.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl";
     }
 
     hlsl
@@ -47,6 +48,7 @@ compute "Internal/OccludedMeshletCull"
             bool isValid = (slotIndex < occludedCount);
 
             bool isVisible = false;
+            uint variantIndex = 0;
             MeshletCandidateRecord rec = (MeshletCandidateRecord)0;
 
             if (isValid)
@@ -56,6 +58,10 @@ compute "Internal/OccludedMeshletCull"
 
                 InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
                 Meshlet meshlet = LoadData<Meshlet>(rec.meshletBufferIndex, rec.meshletIndex);
+
+                uint localMaterialIndex = (meshlet.packedCounts >> 16u) & 0xFFu;
+                uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instance.materialPaletteIndex, localMaterialIndex);
+                variantIndex = UnpackMaterialVariantIndex(packedMaterial);
 
                 BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld);
                 if (cullResult.isVisible)
@@ -86,12 +92,29 @@ compute "Internal/OccludedMeshletCull"
                 uint slot = waveVisibleBase + localVisibleOffset;
                 if (slot < props.maxVisibleMeshlets)
                 {
-                    RWStructuredBuffer<VisibleMeshletEntry> visibleBuffer = ResourceDescriptorHeap[props.visibleMeshletsUav];
-                    VisibleMeshletEntry entry;
+                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = ResourceDescriptorHeap[props.visibleMeshletsUav];
+                    UnbinnedMeshletEntry entry;
                     entry.instanceIndex = rec.instanceIndex;
                     entry.meshletIndex = rec.meshletIndex;
+                    entry.variantIndex = variantIndex;
                     visibleBuffer[slot] = entry;
                 }
+            }
+
+            // Count visible meshlets per variant for prefix-sum binning in Pass 2
+            uint activeMask = WaveActiveBallot(isVisible).x;
+            while (activeMask != 0)
+            {
+                uint firstLane = firstbitlow(activeMask);
+                uint v = WaveReadLaneAt(variantIndex, firstLane);
+                bool match = isVisible && (variantIndex == v);
+                uint count = WaveActiveCountBits(match);
+
+                if (WaveGetLaneIndex() == firstLane && v < MAX_CULL_VARIANTS)
+                {
+                    counterBuf.InterlockedAdd(OFFSET_PASS2_VARIANT_COUNTS + v * 4u, count);
+                }
+                activeMask &= ~WaveActiveBallot(match).x;
             }
         }
     }

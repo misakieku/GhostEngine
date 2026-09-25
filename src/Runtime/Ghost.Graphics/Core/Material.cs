@@ -168,16 +168,7 @@ public struct Material : IResourceReleasable
         }
 
         var dataSpan = MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in data));
-        var cacheSpan = _cBufferCache.CpuData.AsSpan();
-        if (cacheSpan.SequenceEqual(dataSpan))
-        {
-            return Error.None;
-        }
-
-        dataSpan.CopyTo(cacheSpan);
-        _isDirty = true;
-
-        return Error.None;
+        return SetRawPropertyCache(dataSpan);
     }
 
     public Error SetRawPropertyCache(ReadOnlySpan<byte> data)

@@ -21,9 +21,12 @@ void CSMain(
     DeferredTexturingShaderProperties props = LoadData<DeferredTexturingShaderProperties>(g_PushConstantData.userData0, 0);
 
     // groupID.x is the tile slot in VariantTileList for props.variantIndex
+    ByteAddressBuffer tileOffsetsBuffer = ResourceDescriptorHeap[props.tileOffsetsBufferIndex];
+    uint tileOffset = tileOffsetsBuffer.Load(props.variantIndex * 4u);
+
     ByteAddressBuffer tileList = ResourceDescriptorHeap[props.variantTileListIndex];
     uint tileSlot = groupID.x;
-    uint tileIndex = tileList.Load((props.variantIndex * props.maxTilesPerVariant + tileSlot) * 4u);
+    uint tileIndex = tileList.Load((tileOffset + tileSlot) * 4u);
     uint2 pixelCoord = DecodeTilePixelCoord(tileIndex, groupThreadId.xy, props.tilesPerRow);
 
     if (pixelCoord.x >= props.renderWidth || pixelCoord.y >= props.renderHeight)

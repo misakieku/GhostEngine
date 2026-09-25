@@ -82,8 +82,16 @@ void MSMain(
     out primitives VisibilityPrimitiveOutput outPrims[MAX_TRIANGLES_PER_MESHLET])
 {
     uint visibleBufferIndex = g_PushConstantData.userData0;
+    uint binOffsetsIndex = g_PushConstantData.userData2;
+    uint targetVariantIndex = g_PushConstantData.userData3 >> 1u;
+    uint passBit = (g_PushConstantData.userData3 & 1u) << 23u;
+
+    ByteAddressBuffer binOffsetsBuffer = ResourceDescriptorHeap[binOffsetsIndex];
+    uint binStartOffset = binOffsetsBuffer.Load(targetVariantIndex * 4u);
+    uint binnedSlot = binStartOffset + groupID;
+
     StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[visibleBufferIndex];
-    VisibleMeshletEntry visible = visibleMeshlets[groupID];
+    VisibleMeshletEntry visible = visibleMeshlets[binnedSlot];
 
     InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
     MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
@@ -103,12 +111,6 @@ void MSMain(
     uint variantIndex = UnpackMaterialVariantIndex(packedMaterial);
     
     MaterialProperties props = LoadData<MaterialProperties>(materialBufferIndex, 0);
-
-    uint targetVariantIndex = g_PushConstantData.userData2;
-    bool isVisible = (targetVariantIndex == 0xFFFFFFFF || variantIndex == targetVariantIndex);
-    
-    vertexCount = isVisible ? vertexCount : 0;
-    triangleCount = isVisible ? triangleCount : 0;
 
     SetMeshOutputCounts(vertexCount, triangleCount);
     
@@ -145,11 +147,9 @@ void MSMain(
 
     if (groupThreadID < vertexCount)
     {
-        uint passBit = (g_PushConstantData.userData3 & 1u) << 23u;
-
         outVerts[groupThreadID].position = g_VertexPositions[groupThreadID];
         outVerts[groupThreadID].uv = g_VertexUVs[groupThreadID];
-        outVerts[groupThreadID].visibleMeshletIndex = (groupID & 0x7FFFFFu) | passBit;
+        outVerts[groupThreadID].visibleMeshletIndex = (binnedSlot & 0x7FFFFFu) | passBit;
         outVerts[groupThreadID].localMaterialIndex = localMaterialIndex;
         outVerts[groupThreadID].materialBufferIndex = materialBufferIndex;
         outVerts[groupThreadID].variantIndex = variantIndex;

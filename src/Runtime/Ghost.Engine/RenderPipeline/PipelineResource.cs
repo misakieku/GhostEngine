@@ -20,6 +20,9 @@ internal partial class MeshPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/MeshPipeline/PrepareMeshletIndirectArgs")]
     public Handle<ComputeShader> prepareIndirectArgsShader;
 
+    [ResolveAsset("EngineResources/Shaders/MeshPipeline/ScatterMeshlets")]
+    public Handle<ComputeShader> scatterMeshletsShader;
+
     [ResolveAsset("EngineResources/Shaders/Blit")]
     public Handle<Shader> blitShader;
 
@@ -55,6 +58,9 @@ internal partial class MaterialPipelineResource : IPipelineResource
 
     [ResolveAsset("EngineResources/Shaders/MaterialPipeline/PrepareDeferredTexturingIndirectArgs")]
     public Handle<ComputeShader> prepareDeferredTexturingIndirectArgsShader;
+
+    [ResolveAsset("EngineResources/Shaders/MaterialPipeline/ScatterVariantTiles")]
+    public Handle<ComputeShader> scatterVariantTilesShader;
 
     [ResolveAsset("EngineResources/Shaders/DebugClassification")]
     public Handle<Shader> debugClassificationShader;

@@ -2,7 +2,6 @@ using Ghost.Core;
 using Ghost.Engine;
 using Ghost.Engine.Components;
 using Ghost.Engine.RenderPipeline;
-using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Systems;
 using Ghost.Engine.Utilities;
@@ -29,7 +28,7 @@ internal class LaunchProfile : IEngineLanunchProfile
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
         MaxVisibleMeshletsOnScreen = 2_097_152 * 1,
-        MeshletLodErrorThreshold = 1.0f,
+        MeshletLodErrorThreshold = 3.0f,
         InstanceCullingThreshold = 2.0f,
     };
 
@@ -64,7 +63,7 @@ internal class LaunchProfile : IEngineLanunchProfile
 
         if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041, 0))
         {
-            graphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 }, enableDebugLayer);
+            graphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc(), enableDebugLayer);
         }
         else
         {
@@ -76,8 +75,6 @@ internal class LaunchProfile : IEngineLanunchProfile
             FrameBufferCount = 2,
             GraphicsEngine = graphicsEngine,
             RenderPipelineSettings = _renderPipelineSettings,
-            ShaderCacheDirectory = "ShaderCache",
-            ShaderCompilationBridge = null
         };
     }
 
@@ -93,9 +90,9 @@ internal class LaunchProfile : IEngineLanunchProfile
 
     public void OnEngineInitialized(EngineCore engine)
     {
-        const int entityCapacity = 100;
-        const float size = 5.0f;
-        const float baseScale = 2.0f;
+        const int entityCapacity = 1000;
+        const float size = 20.0f;
+        const float baseScale = 1.0f;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -140,7 +137,6 @@ internal class LaunchProfile : IEngineLanunchProfile
         var shaderHandle2 = default(Handle<Shader>);
         _shaderAsset2.ReadAssetData(ref shaderHandle2);
 
-        // TODO: Create material from shader
         var mat = engine.RenderEngine.ResourceManager.CreateMaterial(shaderHandle);
         var mat2 = engine.RenderEngine.ResourceManager.CreateMaterial(shaderHandle2);
         var materialPallette = engine.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);

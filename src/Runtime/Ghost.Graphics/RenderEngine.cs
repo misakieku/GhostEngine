@@ -132,7 +132,7 @@ public class RenderEngine : IDisposable
         _streamingProcessor = desc.ResourceStreamingProcessor;
 
         _resourceManager = new ResourceManager(_graphicsEngine.Device, _graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
-        _swapChainManager = new SwapChainManager(_graphicsEngine);
+        _swapChainManager = new SwapChainManager(_graphicsEngine, desc.FrameBufferCount);
         _frameScheduler = new FrameScheduler(_graphicsEngine);
 
         // Create frame resources for synchronization

@@ -1,0 +1,58 @@
+compute "Internal/ScatterMeshlets"
+{
+    properties
+    {
+        uint unbinnedBuffer;
+        uint binnedBuffer;
+        uint binScatterCounters;
+        uint counterBuffer;
+        uint totalVisibleOffset;
+        uint maxVisibleMeshlets;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/MeshPipeline/CullCommon.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(64, 1, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            InternalScatterMeshletsShaderProperties props = LoadData<InternalScatterMeshletsShaderProperties>(g_PushConstantData.userData0, 0);
+
+            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBuffer];
+            uint totalVisible = counterBuf.Load(props.totalVisibleOffset);
+            if (totalVisible > props.maxVisibleMeshlets)
+            {
+                totalVisible = props.maxVisibleMeshlets;
+            }
+
+            uint slotIndex = dispatchThreadId.x;
+            if (slotIndex >= totalVisible)
+            {
+                return;
+            }
+
+            StructuredBuffer<UnbinnedMeshletEntry> unbinned = ResourceDescriptorHeap[props.unbinnedBuffer];
+            UnbinnedMeshletEntry entry = unbinned[slotIndex];
+
+            RWByteAddressBuffer scatterCounters = ResourceDescriptorHeap[props.binScatterCounters];
+            uint dstSlot;
+            scatterCounters.InterlockedAdd(entry.variantIndex * 4u, 1u, dstSlot);
+
+            if (dstSlot < props.maxVisibleMeshlets)
+            {
+                RWStructuredBuffer<VisibleMeshletEntry> binned = ResourceDescriptorHeap[props.binnedBuffer];
+                VisibleMeshletEntry visible;
+                visible.instanceIndex = entry.instanceIndex;
+                visible.meshletIndex = entry.meshletIndex;
+                binned[dstSlot] = visible;
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

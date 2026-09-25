@@ -4,9 +4,12 @@ compute "Internal/PrepareMeshletIndirectArgs"
     {
         uint counterBuffer;
         uint indirectArgsBuffer;
-        uint visibleCountOffset;
+        uint binOffsetsBuffer;
+        uint binScatterCounters;
+        uint variantCountsOffset;
         uint visibleArgsOffset;
         uint maxCount;
+        uint maxVariants;
         uint occludedCountOffset;
         uint cullArgsOffset;
     }
@@ -18,26 +21,62 @@ compute "Internal/PrepareMeshletIndirectArgs"
 
     hlsl
     {
-        [numthreads(2, 1, 1)]
+        #define SCAN_THREADS 256
+
+        groupshared uint s_scan[SCAN_THREADS];
+
+        [numthreads(SCAN_THREADS, 1, 1)]
         void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         {
             InternalPrepareMeshletIndirectArgsShaderProperties properties = LoadData<InternalPrepareMeshletIndirectArgsShaderProperties>(g_PushConstantData.userData0, 0);
 
             RWByteAddressBuffer counterBuffer = ResourceDescriptorHeap[properties.counterBuffer];
             RWByteAddressBuffer indirectArgsBuffer = ResourceDescriptorHeap[properties.indirectArgsBuffer];
+            RWByteAddressBuffer binOffsets = ResourceDescriptorHeap[properties.binOffsetsBuffer];
+            RWByteAddressBuffer binCounters = ResourceDescriptorHeap[properties.binScatterCounters];
 
-            if (dispatchThreadID.x == 0)
+            uint v = dispatchThreadID.x;
+            uint count = 0;
+            if (v < properties.maxVariants)
             {
-                uint visibleCount = counterBuffer.Load(properties.visibleCountOffset);
-                if (visibleCount > properties.maxCount)
+                count = counterBuffer.Load(properties.variantCountsOffset + v * 4u);
+                if (count > properties.maxCount)
                 {
-                    visibleCount = properties.maxCount;
+                    count = properties.maxCount;
                 }
+            }
+
+            s_scan[v] = count;
+            GroupMemoryBarrierWithGroupSync();
+
+            // Parallel inclusive prefix sum (Hillis-Steele algorithm)
+            [unroll]
+            for (uint stride = 1; stride < SCAN_THREADS; stride <<= 1)
+            {
+                uint temp = 0;
+                if (v >= stride)
+                {
+                    temp = s_scan[v - stride];
+                }
+                GroupMemoryBarrierWithGroupSync();
+                s_scan[v] += temp;
+                GroupMemoryBarrierWithGroupSync();
+            }
+
+            // Convert inclusive scan to exclusive prefix sum
+            uint exclusiveOffset = (v > 0) ? s_scan[v - 1] : 0;
+
+            if (v < properties.maxVariants)
+            {
+                binOffsets.Store(v * 4u, exclusiveOffset);
+                binCounters.Store(v * 4u, exclusiveOffset);
 
                 // D3D12_DISPATCH_MESH_ARGUMENTS: ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ
-                indirectArgsBuffer.Store3(properties.visibleArgsOffset, uint3(visibleCount, 1, 1));
+                indirectArgsBuffer.Store3(properties.visibleArgsOffset + v * 16u, uint3(count, 1, 1));
             }
-            else if (dispatchThreadID.x == 1)
+
+            // Thread 0 also prepares the Pass 2 cull dispatch arguments if requested
+            if (v == 0)
             {
                 if (properties.cullArgsOffset != 0xFFFFFFFF && properties.occludedCountOffset != 0xFFFFFFFF)
                 {
