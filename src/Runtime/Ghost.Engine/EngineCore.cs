@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Engine.Input;
 using Ghost.Engine.RenderPipeline;
 using Ghost.Engine.Streaming;
 using Ghost.Entities;
@@ -82,6 +83,7 @@ public sealed partial class EngineCore : IDisposable
     private readonly ResourceStreamingProcessor _streamingProcessor;
     private readonly RenderEngine _renderEngine;
     private readonly AssetManager _assetManager;
+    private readonly RawInputManager _inputManager;
 
     private readonly Stopwatch _stopwatch;
     private float _lastFrameTime;
@@ -90,6 +92,7 @@ public sealed partial class EngineCore : IDisposable
     public JobScheduler JobScheduler => _jobScheduler;
     public RenderEngine RenderEngine => _renderEngine;
     public AssetManager AssetManager => _assetManager;
+    public RawInputManager InputManager => _inputManager;
 
     public int FrameIndex => _frameIndex;
 
@@ -115,6 +118,7 @@ public sealed partial class EngineCore : IDisposable
         var pipeline = renderDesc.RenderPipelineSettings.CreatePipeline(_renderEngine, _assetManager);
         _renderEngine.SetRenderPipeline(pipeline);
 
+        _inputManager = new RawInputManager();
         _stopwatch = new Stopwatch();
     }
 
@@ -125,6 +129,7 @@ public sealed partial class EngineCore : IDisposable
 
         foreach (var world in World.GetWorldEnumerator())
         {
+            world.AddService(_inputManager);
             world.SystemManager.InitializeAll();
         }
     }
@@ -156,6 +161,8 @@ public sealed partial class EngineCore : IDisposable
             world.PlaybackEntityCommandBuffers();
         }
 
+        _inputManager.EndFrame();
+
         AllocationManager.ResetTempAllocator();
         TempJobAllocatorManager.AdvanceFrame();
     }
@@ -178,5 +185,6 @@ public sealed partial class EngineCore : IDisposable
         _assetManager.Dispose();
         _renderEngine.Dispose();
         _jobScheduler.Dispose();
+        _inputManager.Dispose();
     }
 }

@@ -61,6 +61,13 @@ public unsafe class EngineWindow : IDisposable
 
     public bool IsRunning => _isRunning;
 
+    internal SDL_Window* WindowHandle => _window;
+
+    internal void AttachToInputManager(Ghost.Engine.Input.RawInputManager inputManager)
+    {
+        inputManager.AttachWindow(_window);
+    }
+
     public EngineWindow(RenderEngine renderEngine, WindowDesc desc)
     {
         _renderEngine = renderEngine;
@@ -97,7 +104,7 @@ public unsafe class EngineWindow : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void PollEvents(Action<SDL_Event>? engineEvent, Action<SDL_Event> userEvent)
+    public void PollEvents(Action<SDL_Event> engineEvent, Action<SDL_Event>? userEvent)
     {
         SDL_Event e;
         while (SDL_PollEvent(&e))
@@ -116,7 +123,7 @@ public unsafe class EngineWindow : IDisposable
                     break;
             }
 
-            engineEvent?.Invoke(e);
+            engineEvent.Invoke(e);
             userEvent?.Invoke(e);
         }
     }

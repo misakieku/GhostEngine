@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Engine;
 using Ghost.Engine.Components;
+using Ghost.Engine.Input;
 using Ghost.Engine.RenderPipeline;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Systems;
@@ -31,6 +32,11 @@ internal class LaunchProfile : IEngineLanunchProfile
         MeshletLodErrorThreshold = 3.0f,
         InstanceCullingThreshold = 2.0f,
     };
+
+    public Action<SDL_Event>? OnWindowEvent
+    {
+        get;
+    } = null;
 
     public EngineDesc GetEngineDesc()
     {
@@ -97,7 +103,12 @@ internal class LaunchProfile : IEngineLanunchProfile
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
         using var scope = AllocationManager.CreateStackScope();
-        using var camSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<Camera>.Value, ComponentTypeID<LocalToWorld>.Value, ComponentTypeID<MoveDst>.Value);
+        using var camSet = new ComponentSet(scope.AllocationHandle,
+            ComponentTypeID<Camera>.Value,
+            ComponentTypeID<LocalToWorld>.Value,
+            ComponentTypeID<FirstPersonCamera>.Value,
+            ComponentTypeID<InputReceiver>.Value,
+            ComponentTypeID<ActionState>.Value);
         _camera = _world.EntityManager.CreateEntity(camSet);
 
         _world.EntityManager.SetComponent(_camera, new Camera
@@ -117,13 +128,9 @@ internal class LaunchProfile : IEngineLanunchProfile
             matrix = float4x4.TRS(new float3(0.0f, 0.0f, -10.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f))
         });
 
-        _world.EntityManager.SetComponent(_camera, new MoveDst
-        {
-            position = new float3(0.0f, 0.0f, -20.0f),
-            lookAt = float3.zero,
-            range = new float3(20.0f, 20.0f, 20.0f),
-            updateRotation = true
-        });
+        _world.EntityManager.SetComponent(_camera, FirstPersonCamera.Default);
+        _world.EntityManager.SetComponent(_camera, new InputReceiver(InputProfileDatabase.FIRST_PERSON_CAMERA_PROFILE_ID, true));
+        _world.EntityManager.SetComponent(_camera, default(ActionState));
 
         _meshAsset = engine.AssetManager.ResolveAsset("Meshes/dragon");
         _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/test");
@@ -173,42 +180,16 @@ internal class LaunchProfile : IEngineLanunchProfile
         //defaultSystemGroup.SortSystems();
 
         //s_world.SystemManager.AddSystem(defaultSystemGroup);
+        var profileDb = new InputProfileDatabase();
+        _world.AddService(profileDb);
+
+        _world.SystemManager.AddSystem<InputEvaluationSystem>();
+        _world.SystemManager.AddSystem<FirstPersonCameraSystem>();
         _world.SystemManager.AddSystem<RenderSystemGroup>();
 
         _world.AddService(engine.RenderEngine);
-    }
 
-    public void OnWindowEvent(SDL_Event sdlEvent)
-    {
-        if (sdlEvent.type == (uint)SDL_EventType.SDL_EVENT_KEY_DOWN)
-        {
-            const float delta = 0.1f;
-            ref var matrix = ref _world.EntityManager.GetComponent<LocalToWorld>(_camera).matrix;
-            //MathUtility.GetTRS(matrix, out var position, out var rotation, out var scale);
-            var position = matrix.c3.xyz;
-
-            switch (sdlEvent.key.key)
-            {
-                case SDL_Keycode.SDLK_W:
-                    matrix = float4x4.TRS(position + new float3(0.0f, 0.0f, delta), quaternion.identity, new float3(1.0f, 1.0f, 1.0f));
-                    break;
-                case SDL_Keycode.SDLK_S:
-                    matrix = float4x4.TRS(position - new float3(0.0f, 0.0f, delta), quaternion.identity, new float3(1.0f, 1.0f, 1.0f));
-                    break;
-                case SDL_Keycode.SDLK_A:
-                    matrix = float4x4.TRS(position - new float3(delta, 0.0f, 0.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f));
-                    break;
-                case SDL_Keycode.SDLK_D:
-                    matrix = float4x4.TRS(position + new float3(delta, 0.0f, 0.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f));
-                    break;
-                case SDL_Keycode.SDLK_Q:
-                    matrix = float4x4.TRS(position + new float3(0.0f, delta, 0.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f));
-                    break;
-                case SDL_Keycode.SDLK_E:
-                    matrix = float4x4.TRS(position - new float3(0.0f, delta, 0.0f), quaternion.identity, new float3(1.0f, 1.0f, 1.0f));
-                    break;
-            }
-        }
+        engine.InputManager.RelativeMouseMode = true;
     }
 
     public void OnEngineShutdown(EngineCore engine)

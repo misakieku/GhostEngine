@@ -6,13 +6,14 @@ namespace Ghost.Engine;
 
 public interface IEngineLanunchProfile
 {
-    public EngineDesc GetEngineDesc();
-    public GraphicsDesc GetGraphicsDesc();
-    public IContentProvider GetContentProvider();
+    Action<SDL_Event>? OnWindowEvent { get; }
 
-    public void OnEngineInitialized(EngineCore engine);
-    public void OnWindowEvent(SDL_Event sdlEvent);
-    public void OnEngineShutdown(EngineCore engine);
+    EngineDesc GetEngineDesc();
+    GraphicsDesc GetGraphicsDesc();
+    IContentProvider GetContentProvider();
+
+    void OnEngineInitialized(EngineCore engine);
+    void OnEngineShutdown(EngineCore engine);
 }
 
 public static class EngineRunner
@@ -24,7 +25,7 @@ public static class EngineRunner
 
         AllocationManager.Initialize(engineDesc.AllocationManagerDesc);
 
-        if (!SDL3.SDL_Init(SDL_InitFlags.SDL_INIT_VIDEO))
+        if (!SDL3.SDL_Init(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_GAMEPAD))
         {
             AllocationManager.Dispose();
             var errorMessage = SDL3.SDL_GetError();
@@ -40,12 +41,13 @@ public static class EngineRunner
             try
             {
                 using var window = new EngineWindow(engineCore.RenderEngine, engineDesc.WindowDesc);
+                window.AttachToInputManager(engineCore.InputManager);
 
                 engineCore.Start();
 
                 while (window.IsRunning)
                 {
-                    window.PollEvents(null, profile.OnWindowEvent);
+                    window.PollEvents(engineCore.InputManager.ProcessEvent, profile.OnWindowEvent);
                     engineCore.Tick();
                 }
 
