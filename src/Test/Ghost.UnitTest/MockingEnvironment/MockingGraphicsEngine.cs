@@ -155,7 +155,7 @@ internal class MockingGraphicsEngine : IGraphicsEngine
         return new MockingFence(initialValue);
     }
 
-    public ISwapChain CreateSwapChain(SwapChainDesc desc)
+    public ISwapChain CreateSwapChain(SwapChainDesc desc, uint frameBufferCount)
     {
         throw new NotImplementedException();
     }

@@ -71,3 +71,14 @@ internal partial class MaterialPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/MaterialPipeline/ClearVisibilityBuffer")]
     public Handle<ComputeShader> clearVisibilityBufferShader;
 }
+
+internal partial class LightingPipelineResource : IPipelineResource
+{
+    [ResolveAsset("EngineResources/Shaders/Lighting/TileLightCulling")]
+    public Handle<ComputeShader> tileLightCullingShader;
+
+    [ResolveAsset("EngineResources/Shaders/Lighting/DebugTileLightHeatmap")]
+    public Handle<Shader> debugTileLightHeatmapShader;
+}
+
+

@@ -14,6 +14,8 @@ public class RenderSystemGroup : SystemGroup
         AddSystem<UpdateGPUInstanceSystem>();
         AddSystem<AddGPUInstanceSystem>();
 
+        AddSystem<LightGatherSystem>();
+
         SortSystems();
     }
 }

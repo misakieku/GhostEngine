@@ -87,7 +87,7 @@ public class RenderEnginePhase7D3D12Test
     [TestMethod]
     public void TestPhase7_RealD3D12_RepresentativePipelineMultiFrame()
     {
-        using var graphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 });
+        using var graphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc());
         using var graphicsAllocator = graphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics);
         using var computeAllocator = graphicsEngine.CreateCommandAllocator(CommandBufferType.Compute);
         using var scheduler = new FrameScheduler(graphicsEngine);
@@ -153,7 +153,7 @@ public class RenderEnginePhase7D3D12Test
     [TestMethod]
     public void TestPhase7_RealD3D12_ForceGraphicsFallback()
     {
-        using var graphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 });
+        using var graphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc());
         using var graphicsAllocator = graphicsEngine.CreateCommandAllocator(CommandBufferType.Graphics);
         using var computeAllocator = graphicsEngine.CreateCommandAllocator(CommandBufferType.Compute);
         using var scheduler = new FrameScheduler(graphicsEngine);

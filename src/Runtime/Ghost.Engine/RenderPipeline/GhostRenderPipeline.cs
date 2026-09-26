@@ -22,6 +22,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
     private readonly GPUSceneResource _gpuSceneResource;
     private readonly MeshPipelineResource _meshPipelineResource;
     private readonly MaterialPipelineResource _materialPipelineResource;
+    private readonly LightingPipelineResource _lightingPipelineResource;
 
     private bool _disposed;
     private int _lastRenderRequestCount = -1;
@@ -40,6 +41,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         _gpuSceneResource = new GPUSceneResource(assetManager);
         _meshPipelineResource = new MeshPipelineResource(assetManager);
         _materialPipelineResource = new MaterialPipelineResource(assetManager);
+        _lightingPipelineResource = new LightingPipelineResource(assetManager);
 
         _gpuScene = new GPUScene(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, settings.MaxVisibleMeshletsOnScreen / 64);
         _gpuViewManager = new GPUViewManager(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, renderEngine.GraphicsEngine.PipelineLibrary, renderEngine.ResourceManager, renderEngine.ShaderLibrary);
@@ -47,6 +49,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         _gpuSceneResource.Resolve();
         _meshPipelineResource.Resolve();
         _materialPipelineResource.Resolve();
+        _lightingPipelineResource.Resolve();
 
         InitializeCulling(renderEngine, assetManager);
         InitializeVisibility(renderEngine, assetManager);
@@ -83,8 +86,18 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             return Result.Success();
         }
 
+        // Upload light data to transient buffers
+        UploadLights(ctx, ghostPayload, out var punctualLightsSrv, out var punctualLightCount, out var directionalLightSrv);
+
         // Upload FrameData once per frame
-        var frameBuffer = RenderPipelineUtility.CreateFrameBuffer(ctx, _gpuScene.SceneBufferSrvIndex);
+        var dwordsPerTile = _settings.HighDensityLightTiles ? 32u : 16u;
+        var frameBuffer = RenderPipelineUtility.CreateFrameBuffer(
+            ctx,
+            _gpuScene.SceneBufferSrvIndex,
+            dwordsPerTile: dwordsPerTile,
+            punctualLightsBuffer: punctualLightsSrv,
+            punctualLightCount: punctualLightCount,
+            directionalLightBuffer: directionalLightSrv);
 
         for (var requestIndex = 0; requestIndex < ghostPayload.RenderRequests.Length; requestIndex++)
         {
@@ -127,13 +140,22 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 out var currentDepth, out var currentVisBuffer,
                 out var visibleMeshlets0, out var visibleMeshlets1);
 
+            var tileLightList = AddTileLightCullingPass(viewContext.RenderGraph, currentDepth, viewContext.RenderSize);
+
             AddTileClassificationPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, viewContext.RenderSize,
                 out var tileListBuffer, out var tileOffsetsBuffer, out var indirectArgsBuffer);
 
             var gbuffer = AddDeferredTexturingPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, tileOffsetsBuffer, indirectArgsBuffer, viewContext.RenderSize);
 
-            // Blit GBuffer0 (Albedo) to screen / backbuffer
-            viewContext.RenderGraph.AddBlitPass(gbuffer.GBuffer3, colorTarget, _meshPipelineResource.blitShader);
+            if (_settings.DebugMode == RenderPipelineDebugMode.TileLightHeatmap)
+            {
+                AddDebugTileLightHeatmapPass(viewContext.RenderGraph, tileLightList, currentDepth, colorTarget, viewContext.RenderSize);
+            }
+            else
+            {
+                // Blit GBuffer3 to screen / backbuffer
+                viewContext.RenderGraph.AddBlitPass(gbuffer.GBuffer3, colorTarget, _meshPipelineResource.blitShader);
+            }
 
             var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewState);
             if (result.IsFailure)
@@ -196,6 +218,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         _gpuSceneResource.Dispose();
         _meshPipelineResource.Dispose();
         _materialPipelineResource.Dispose();
+        _lightingPipelineResource.Dispose();
 
         _gpuScene.Dispose();
         _gpuViewManager.Dispose();

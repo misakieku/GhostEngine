@@ -13,7 +13,7 @@ public class D3D12SubresourceViewTest
     [TestMethod]
     public void TestSubresource_UavPerMipCreatedByDefault()
     {
-        using var graphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 });
+        using var graphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc());
         var resourceAllocator = graphicsEngine.ResourceAllocator;
         var resourceDatabase = graphicsEngine.ResourceDatabase;
 
@@ -82,7 +82,7 @@ public class D3D12SubresourceViewTest
     [TestMethod]
     public void TestSubresource_CreatePerMipSrvFlag()
     {
-        using var graphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 });
+        using var graphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc());
         var resourceAllocator = graphicsEngine.ResourceAllocator;
         var resourceDatabase = graphicsEngine.ResourceDatabase;
 
@@ -127,7 +127,7 @@ public class D3D12SubresourceViewTest
     [TestMethod]
     public void TestSubresource_NoSubresourceFlags_FastPath()
     {
-        using var graphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 });
+        using var graphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc());
         var resourceAllocator = graphicsEngine.ResourceAllocator;
         var resourceDatabase = graphicsEngine.ResourceDatabase;
 
@@ -165,7 +165,7 @@ public class D3D12SubresourceViewTest
     [TestMethod]
     public void TestSubresource_SwapPreservesSubresourceBindings()
     {
-        using var graphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc { FrameBufferCount = 2 });
+        using var graphicsEngine = D3D12GraphicsEngineFactory.Create(new GraphicsEngineDesc());
         var resourceAllocator = graphicsEngine.ResourceAllocator;
         var resourceDatabase = graphicsEngine.ResourceDatabase;
 

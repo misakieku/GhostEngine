@@ -37,10 +37,11 @@ flowchart TD
         DTE --> GB3["GBuffer3: Emissive"]
     end
 
-    subgraph LIGHT_SHADOW ["5. Clustered Light Grid and Shadows"]
+    subgraph LIGHT_SHADOW ["5. Tiled & Clustered Light Grids and Shadows"]
         HZD --> HIZ["Hi-Z Pyramid Downsample"]
-        LGT["ECS Lights"] --> CLC["Cluster and Z-Bin Light Culling"]
-        CLC --> CLG["Flat Light Bitmask Grid (Scalarized)"]
+        LGT["ECS Lights"] --> TLC["Tile & Cluster Light Culling Compute"]
+        TLC --> TLG["2D Tile Light List (FPTL 16-bit Packed Indices)"]
+        TLC --> CLG["3D Clustered Light Grid (Froxels for Transparents & Fog)"]
         SHD["Directional / Point Shadows"] --> SM["Shadow Maps / VSM"]
     end
 
@@ -57,7 +58,7 @@ flowchart TD
         GB1 --> DFL
         GB2 --> DFL
         GB3 --> DFL
-        CLG --> DFL
+        TLG --> DFL
         SM --> DFL
         GTAO --> DFL
         SSR --> DFL
@@ -66,7 +67,7 @@ flowchart TD
         CLG --> FWD["Forward+ Transparents and VFX"]
         HZD --> FWD
         FWD --> HDR
-        HDR --> VOL["Volumetric Fog Froxels"]
+        CLG --> VOL["Volumetric Fog Froxels"]
         VOL --> HDR
     end
 
@@ -199,17 +200,49 @@ By recording a **32-bit Feature Bitmask** during tile classification:
 
 ---
 
-### 4. Clustered Light Grid: Infinity Ward's Lessons (CoD: Infinite Warfare)
+### 4. Dual-Grid Lighting Architecture: 2D FPTL Tiles & 3D Clustered Froxels
 
-Infinity Ward proved that in dense or open-world scenes, standard 3D cluster grids ($X \times Y \times Z$ AABBs) suffer from:
-1. **High Memory Overhead**: A fine 3D grid with pointer-based light lists explodes cache footprints.
-2. **Wavefront Divergence**: When threads in a wave iterate over different light lists, vector ALU and memory units serialize.
+While a flat bitmask (e.g. 256 bits) provides branch-free bitwise operations, it imposes a hard ceiling of $\le 256$ total lights across the entire camera frustum. In open worlds, dense cities, or multi-room environments, scenes easily have thousands of lights within camera range, even if each individual screen tile only intersects a small fraction of them.
 
-#### Infinity Ward Innovations Adopted in GhostEngine:
-1. **Flat Bit Array**: Represent light visibility using a bitmask (e.g. 256 bits = 8 `uint32` words). An entity's index corresponds to its bit index in the per-frame visible light list.
-2. **Z-Binning**: Depth range is subdivided into uniform Z-Bins. A lightweight 1D table stores the `[minLightIndex, maxLightIndex]` active at that depth. In the shader, the 2D tile bitmask is masked by the 1D Z-Bin word range:
-   $$\text{activeMask} = \text{tileMask}[\text{word}] \ \& \ \text{zBinMask}[\text{word}]$$
-3. **Wave Scalarization Loop**: Instead of evaluating lights per-lane (vectorized divergence), loop over the active lights scalarized across the wave using `WaveActiveBitOr`, broadcasting light constants via scalar registers (SGPR/SMEM).
+To achieve both optimal opaque shading throughput and artifact-free transparent/volumetric illumination, GhostEngine adopts a **Dual-Grid Lighting Architecture** (combining Fine-Pruned Tiled Lighting and 3D Clustered Froxels, as proven in Unity HDRP / Frostbite):
+
+```mermaid
+flowchart TD
+    LGT["Punctual Lights StructuredBuffer (up to 4096)"] --> CULL["Light Culling Compute Pass"]
+    HZB["Hi-Z / Depth Buffer"] --> CULL
+
+    CULL -->|"Fine-Pruned 2D Frustums"| FPTL["2D Tile Light List (16x16 tiles, 16-bit indices)"]
+    CULL -->|"3D Voxel AABBs"| CLUST["3D Clustered Froxel Grid (32x32 tiles x 32 depth slices)"]
+
+    FPTL --> DEF["Phase 7: Deferred Opaque Lighting (Deferred.compute)"]
+    CLUST --> FWD["Phase 9: Forward+ Transparents & VFX"]
+    CLUST --> VOL["Phase 9: Volumetric Fog Froxels (160x90x64)"]
+```
+
+#### 1. Dedicated Directional Light (Sun/Moon)
+The Sun/Moon is completely decoupled from local light grids into a dedicated `DirectionalLight` ECS component and constant buffer. It carries Cascaded Shadow Map (CSM) splits, biases, sun disk parameters, and atmospheric scattering coupling without polluting local light culling grids.
+
+#### 2. Grid A: 2D Fine-Pruned Tiled Lighting (FPTL for Deferred Opaque)
+- **Why 2D Tiles**: In GBuffer deferred shading, every pixel represents a single opaque surface at a known depth. Culling lights against the tile's tight $[Z_{\min}, Z_{\max}]$ depth bounds from the depth buffer yields the highest screen-space cache density, lowest register pressure, and avoids 3D slice search overhead.
+- **16-bit Packed Light Index Grid (Deterministic Stride)**:
+  - Screen is divided into $16 \times 16$ tiles.
+  - Each tile is allocated a fixed slice of DWORDs: `DWORD_PER_TILE = 16` (or 32), supporting up to 31 (or 63) lights per tile.
+  - Slot 0 stores the tile's `lightCount & 0xFFFF`.
+  - Subsequent slots pack pairs of 16-bit light indices: `(uLow & 0xFFFF) | (uHigh << 16)`.
+  - Global light capacity: up to 65,535 lights addressable via 16-bit indices (supporting 4,096 visible lights per frame).
+  - Deterministic buffer footprint: strictly $W_{\text{tiles}} \times H_{\text{tiles}} \times \text{DWORD\_PER\_TILE} \times 4$ bytes (e.g. $\approx 1.04\text{ MB}$ at 1080p). **Zero atomic contention on global indirect append buffers!**
+- **Wave Scalarization with Index Lists**:
+  - Rather than divergent per-lane loads, the shading loop coordinates lanes using `WaveActiveMin(v_lightIdx)` and `WaveReadLaneFirst`.
+  - The active light index is broadcast to scalar registers (SGPR), loading `GPUPunctualLight` once per wavefront through the scalar cache (SMEM/L1).
+
+#### 3. Grid B: 3D Clustered Froxel Grid (for Forward+ Transparents & Volumetric Fog)
+- **Why 3D Clusters are Required**: Translucent surfaces (glass, water, smoke particles) and volumetric fog do **not** have a single depth value. Along a single camera ray, you may have fog at 3m, a glass window at 15m, water spray at 40m, and a cloud at 100m. If transparents sampled a 2D tile list, the tile's depth range would span near-to-far, causing catastrophic over-evaluation of all lights in that column.
+- **Froxel Geometry**:
+  - Screen is divided into $32 \times 32$ tiles with 32 exponential / logarithmic depth slices:
+    $$\text{clusterIndex} = \text{GetLightClusterIndex}(\text{tileCoord}, \text{linearDepth})$$
+  - `g_ClusterOffsetsBuffer`: stores `{ uint offset, uint count }` packed per froxel cell.
+  - `g_ClusterLightIndices`: flat global index buffer storing the lights intersecting each 3D froxel.
+- **Zero Depth Bleed**: Any transparent fragment or volumetric raymarch step at view depth $Z$ directly samples its exact 3D cluster, evaluating only the lights that touch that 3D volume.
 
 ---
 
@@ -221,7 +254,7 @@ flowchart LR
     P2 --> P3["Phase 3: Visibility Buffer Generation (MS+PS)"]
     P3 --> P4["Phase 4: Tile Material & Feature Classification"]
     P4 --> P5["Phase 5: Decoupled Deferred Texturing"]
-    P5 --> P6["Phase 6: Clustered Z-Bin Lights & Shadows"]
+    P5 --> P6["Phase 6: Tiled & Clustered Light Culling & Shadows"]
     P6 --> P7["Phase 7: Sky, IBL & Deferred Lighting"]
     P7 --> P8["Phase 8: Screen-Space Effects (GTAO, SSR)"]
     P8 --> P9["Phase 9: Forward+ Transparents & Volumetric Fog"]
@@ -235,10 +268,10 @@ flowchart LR
 | **Phase 3** | **Visibility Buffer Generation** | `VisibilityPass.hlsl` (Mesh Shader + Pixel Shader), `VisibilityBufferPass.cs`, slim 64 bpp format (`R32G32_UINT`), indirect dispatch mesh. | Inspected in PIX: distinct instances, meshlets, and triangle IDs visualized cleanly. | Pending Approval |
 | **Phase 4** | **Tile Material & Feature Classification** | `TileMaterialClassification.hlsl`, `BuildIndirectArgs.hlsl`, `MaterialClassificationPass.cs` (16x16 tiles, feature bitmasks). | Material tile queues contain non-zero counts only for visible materials on screen. | Pending |
 | **Phase 5** | **Deferred Texturing (Software GBuffer)** | `Lit_DeferredTexturing.template.hlsl`, barycentric attribute interpolation, analytic $ddx, ddy$ screen derivatives, GBuffer0..3 writeout. | Visual parity with forward pass, but with 0 quad overshading on high-density meshes. | Pending |
-| **Phase 6** | **Clustered Z-Bin Lights & Shadows** | `ClusterLightCulling.hlsl` (Flat 256-bit mask + Z-Binning), `ContactShadows.hlsl`, Cascaded Shadow Maps (CSM). | Scalarized lighting loops verified in Nsight/PIX; smooth shadow projections. | Pending |
+| **Phase 6** | **Tiled & Clustered Light Culling & Shadows** | `TileAndClusterLightCulling.hlsl` (2D FPTL tile grid + 3D Froxel cluster grid), `DirectionalLight` & `PunctualLight` ECS components, `ContactShadows.hlsl`, Cascaded Shadow Maps (CSM). | Dual light grids correctly populated with 0 buffer contention; scalarized lighting loops verified in Nsight/PIX; smooth shadow projections. | Pending |
 | **Phase 7** | **Sky, IBL & Deferred Lighting** | `DeferredLighting.hlsl` (Cook-Torrance BRDF, low-VGPR permutations), `BRDF.hlsl`, `AtmosphericSky.hlsl`. | Physically plausible PBR illumination written into `HDRColorBuffer` (RGBA16_FLOAT). | Pending |
 | **Phase 8** | **Screen-Space Effects (GTAO, SSR)** | `GTAO.hlsl` (horizon search + bilateral denoise), `SSR.hlsl` (Hi-Z raymarching + IBL fallback). | Soft contact ambient occlusion in crevices and realistic reflections on glossy floors. | Pending |
-| **Phase 9** | **Forward+ Transparents & Volumetric Fog** | `ForwardTransparentPass.cs` (accessing flat light bitmask), `VolumetricFog.hlsl` (3D Froxels 160x90x64). | Translucent particles lit by clustered lights; volumetric light shafts in shadowed areas. | Pending |
+| **Phase 9** | **Forward+ Transparents & Volumetric Fog** | `ForwardTransparentPass.cs` (accessing 3D Clustered Froxel Grid), `VolumetricFog.hlsl` (3D Froxels 160x90x64 sampled against cluster light grid). | Translucent particles lit by clustered lights; volumetric light shafts in shadowed areas. | Pending |
 | **Phase 10** | **TAA, Post-Processing & UI Blit** | `TAA.hlsl` (YCoCg variance clipping + CAS sharpening), `Bloom.hlsl` (dual-filtering pyramid), `Tonemapping.hlsl` (ACES/AgX), `FinalBlitPass.cs`. | Stable, anti-aliased image with cinematic tonemapping and UI overlay presented to swapchain. | Pending |
 
 ---

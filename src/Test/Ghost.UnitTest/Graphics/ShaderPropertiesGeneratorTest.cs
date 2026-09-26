@@ -84,4 +84,22 @@ public class ShaderPropertiesGeneratorTest
         var size = sizeof(InternalScatterVariantTilesShaderProperties);
         Assert.AreEqual(20, size); // 5 uint fields = 20 bytes
     }
+
+    [TestMethod]
+    public unsafe void TestInternalTileLightCullingShaderProperties_LayoutAndConstants()
+    {
+#pragma warning disable MSTEST0032 // Assertion condition is always true
+        Assert.AreEqual("Internal/TileLightCulling", InternalTileLightCullingShaderProperties.SHADER_NAME);
+#pragma warning restore MSTEST0032 // Assertion condition is always true
+        var size = sizeof(InternalTileLightCullingShaderProperties);
+        Assert.AreEqual(24, size); // 6 uint fields = 24 bytes
+
+        Assert.AreEqual(0, (int)Marshal.OffsetOf<InternalTileLightCullingShaderProperties>(nameof(InternalTileLightCullingShaderProperties.depthTextureIndex)));
+        Assert.AreEqual(4, (int)Marshal.OffsetOf<InternalTileLightCullingShaderProperties>(nameof(InternalTileLightCullingShaderProperties.tileLightListUav)));
+        Assert.AreEqual(8, (int)Marshal.OffsetOf<InternalTileLightCullingShaderProperties>(nameof(InternalTileLightCullingShaderProperties.renderWidth)));
+        Assert.AreEqual(12, (int)Marshal.OffsetOf<InternalTileLightCullingShaderProperties>(nameof(InternalTileLightCullingShaderProperties.renderHeight)));
+        Assert.AreEqual(16, (int)Marshal.OffsetOf<InternalTileLightCullingShaderProperties>(nameof(InternalTileLightCullingShaderProperties.tilesX)));
+        Assert.AreEqual(20, (int)Marshal.OffsetOf<InternalTileLightCullingShaderProperties>(nameof(InternalTileLightCullingShaderProperties.tilesY)));
+    }
 }
+

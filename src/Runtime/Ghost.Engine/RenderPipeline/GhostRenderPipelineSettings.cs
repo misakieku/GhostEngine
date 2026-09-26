@@ -29,6 +29,10 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     private UnsafeList<RenderRequest> _renderRequests;
     private UnsafeList<uint> _viewsToRelease;
 
+    private UnsafeList<GPUPunctualLight> _punctualLights;
+    private GPUDirectionalLight _currentSunLight;
+    private bool _hasDirectionalLight;
+
     private readonly UnsafeParallelQueue<UpdateInstanceRequest>* _pUpdateRequest;
     private readonly UnsafeParallelQueue<RemoveInstanceRequest>* _pRemoveRequest;
 
@@ -39,6 +43,10 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     private uint _instanceCount;
 
     public ReadOnlySpan<RenderRequest> RenderRequests => _renderRequests;
+    public ReadOnlySpan<GPUPunctualLight> PunctualLights => _punctualLights;
+    public uint PunctualLightCount => (uint)_punctualLights.Count;
+    public ref readonly GPUDirectionalLight CurrentSunLight => ref _currentSunLight;
+    public bool HasDirectionalLight => _hasDirectionalLight;
 
     public UnsafeParallelQueue<UpdateInstanceRequest>.ParallelConsumer UpdateRequest => _pUpdateRequest->AsParallelConsumer();
     public UnsafeParallelQueue<RemoveInstanceRequest>.ParallelConsumer RemoveRequest => _pRemoveRequest->AsParallelConsumer();
@@ -51,6 +59,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
 
         _renderRequests = new UnsafeList<RenderRequest>(4, AllocationHandle.Persistent);
         _viewsToRelease = new UnsafeList<uint>(4, AllocationHandle.Persistent);
+        _punctualLights = new UnsafeList<GPUPunctualLight>(64, AllocationHandle.Persistent);
 
         _pUpdateRequest = (UnsafeParallelQueue<UpdateInstanceRequest>*)MemoryUtility.Malloc(MemoryUtility.SizeOf<UnsafeParallelQueue<UpdateInstanceRequest>>());
         _pRemoveRequest = (UnsafeParallelQueue<RemoveInstanceRequest>*)MemoryUtility.Malloc(MemoryUtility.SizeOf<UnsafeParallelQueue<RemoveInstanceRequest>>());
@@ -64,6 +73,17 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     public void AddRenderRequest(scoped in RenderRequest renderRequest)
     {
         _renderRequests.Add(renderRequest);
+    }
+
+    public void AddPunctualLight(scoped in GPUPunctualLight light)
+    {
+        _punctualLights.Add(light);
+    }
+
+    public void SetDirectionalLight(scoped in GPUDirectionalLight light)
+    {
+        _currentSunLight = light;
+        _hasDirectionalLight = true;
     }
 
     public uint AllocateView()
@@ -137,6 +157,9 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     public void Reset()
     {
         _renderRequests.Clear();
+        _punctualLights.Clear();
+        _currentSunLight = default;
+        _hasDirectionalLight = false;
         _pUpdateRequest->Clear();
         _pRemoveRequest->Clear();
 
@@ -160,6 +183,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
 
         _renderRequests.Dispose();
         _viewsToRelease.Dispose();
+        _punctualLights.Dispose();
         _pUpdateRequest->Dispose();
         _pRemoveRequest->Dispose();
 
@@ -172,7 +196,9 @@ public enum RenderPipelineDebugMode : uint
 {
     None = 0,
     Meshlet = 1 << 0,
+    TileLightHeatmap = 1 << 1,
 }
+
 
 public class GhostRenderPipelineSettings : IRenderPipelineSettings
 {
@@ -202,6 +228,32 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     public uint MaxVisibleMeshletsOnScreen { get; set; } = 2_097_152;
 
     public RenderPipelineDebugMode DebugMode { get; set; } = RenderPipelineDebugMode.None;
+
+    /// <summary>
+    /// When true, allocates 32 DWORDs per 16x16 tile (supporting up to 63 lights per tile).
+    /// When false, allocates 16 DWORDs per 16x16 tile (supporting up to 31 lights per tile).
+    /// </summary>
+    public bool HighDensityLightTiles { get; set; } = false;
+
+    /// <summary>
+    /// Resolution of the primary directional shadow map Texture2DArray (per cascade slice). Default is 2048.
+    /// </summary>
+    public uint DirectionalShadowResolution { get; set; } = 2048;
+
+    /// <summary>
+    /// Number of Cascaded Shadow Map (CSM) splits for the primary directional light (1 to 4). Default is 4.
+    /// </summary>
+    public uint DirectionalShadowCascades { get; set; } = 4;
+
+    /// <summary>
+    /// Maximum shadow distance in meters for directional cascaded shadows. Default is 150.0m.
+    /// </summary>
+    public float DirectionalShadowDistance { get; set; } = 150.0f;
+
+    /// <summary>
+    /// Blend factor between logarithmic and linear cascade splits. Default is 0.85f.
+    /// </summary>
+    public float DirectionalShadowSplitLambda { get; set; } = 0.85f;
 
     public IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager)
     {

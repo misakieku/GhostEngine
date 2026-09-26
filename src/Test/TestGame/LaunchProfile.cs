@@ -13,11 +13,12 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
+using SDL;
 using TestGame.Systems;
 
 namespace TestGame;
 
-internal class LaunchProfile : IEngineLanunchProfile
+internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
 {
     private World _world = null!;
     private IAssetEntry _meshAsset = null!;
@@ -31,7 +32,9 @@ internal class LaunchProfile : IEngineLanunchProfile
         MaxVisibleMeshletsOnScreen = 2_097_152,
         MeshletLodErrorThreshold = 2.0f,
         InstanceCullingThreshold = 2.0f,
+        DebugMode = RenderPipelineDebugMode.TileLightHeatmap,
     };
+
 
     public EngineDesc GetEngineDesc()
     {
@@ -91,7 +94,7 @@ internal class LaunchProfile : IEngineLanunchProfile
 
     public void OnEngineInitialized(EngineCore engine)
     {
-        const int entityCapacity = 10000;
+        const int entityCapacity = 100;
         const float size = 20.0f;
         const float baseScale = 0.5f;
 
@@ -161,6 +164,41 @@ internal class LaunchProfile : IEngineLanunchProfile
             });
         }
 
+        // Add Sun (Directional Light)
+        _world.EntityManager.CreateEntity(
+            new DirectionalLight
+            {
+                color = new float3(1.0f, 0.95f, 0.85f),
+                intensity = 2.5f,
+                castShadows = true
+            },
+            new LocalToWorld
+            {
+                matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(new float3(45.0f, 30.0f, 0.0f)), new float3(1.0f, 1.0f, 1.0f))
+            });
+
+        // Add 64 random punctual lights (Point and Spot)
+        for (var i = 0; i < 64; i++)
+        {
+            var pos = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
+            var color = new float3(RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f));
+            var isSpot = (i % 3 == 0);
+            _world.EntityManager.CreateEntity(
+                new PunctualLight
+                {
+                    type = isSpot ? PunctualLightType.Spot : PunctualLightType.Point,
+                    color = color,
+                    intensity = RandomFloat(1.5f, 5.0f),
+                    range = RandomFloat(5.0f, 15.0f),
+                    innerSpotAngle = math.radians(15.0f),
+                    outerSpotAngle = math.radians(40.0f)
+                },
+                new LocalToWorld
+                {
+                    matrix = float4x4.TRS(pos, quaternion.EulerXYZ(new float3(RandomFloat(-60.0f, 60.0f), RandomFloat(0.0f, 360.0f), 0.0f)), new float3(1.0f, 1.0f, 1.0f))
+                });
+        }
+
         var profileDb = new InputProfileDatabase();
         _world.AddService(profileDb);
 
@@ -171,6 +209,20 @@ internal class LaunchProfile : IEngineLanunchProfile
         _world.AddService(engine.RenderEngine);
 
         engine.InputManager.RelativeMouseMode = true;
+    }
+
+    public void ProcessEvent(SDL_Event e)
+    {
+        if (e.Type == SDL_EventType.SDL_EVENT_KEY_DOWN && !e.key.repeat)
+        {
+            if (e.key.key == SDL_Keycode.SDLK_F1 || e.key.key == SDL_Keycode.SDLK_H)
+            {
+                _renderPipelineSettings.DebugMode = _renderPipelineSettings.DebugMode == RenderPipelineDebugMode.TileLightHeatmap
+                    ? RenderPipelineDebugMode.None
+                    : RenderPipelineDebugMode.TileLightHeatmap;
+                Logger.Info($"[TestGame] Toggled DebugMode: {_renderPipelineSettings.DebugMode}");
+            }
+        }
     }
 
     public void OnEngineShutdown(EngineCore engine)

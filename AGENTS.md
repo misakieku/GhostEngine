@@ -278,3 +278,7 @@ TestGame ──> Ghost.Engine ──> Ghost.Generator (analyzer)
  Ghost.MicroTest ──> Ghost.DSL, Ghost.Core, Ghost.DXC, Ghost.Nvtt, Ghost.StbI, Ghost.Ufbx
  Ghost.AssetForge ──> Ghost.AssetForge.Core ──> Ghost.Core, Ghost.DSL, Ghost.DXC, Ghost.MeshOptimizer, Ghost.Nvtt, Ghost.StbI, Ghost.Ufbx
 ```
+
+## Documents
+
+To find how to use a specific system, you can find documents in `F:\csharp\GhostEngine\docs\documents` Not every system have a document currently.

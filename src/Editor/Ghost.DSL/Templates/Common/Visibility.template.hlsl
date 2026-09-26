@@ -117,7 +117,7 @@ void MSMain(
     if (groupThreadID < vertexCount)
     {
         uint vIdx = meshletVerticesBuffer.Load((meshlet.vertexOffset + groupThreadID) * 4u);
-        Vertex v = meshletVerticesBuffer.Load<Vertex>(vIdx * sizeof(Vertex));
+        Vertex v = vertices.Load<Vertex>(vIdx * sizeof(Vertex));
         
         float2 uv = v.uv;
         float4 clipPos = mul(worldViewProj, float4(v.position, 1.0f));
@@ -131,6 +131,8 @@ void MSMain(
         outVerts[groupThreadID].materialBufferIndex = materialBufferIndex;
         outVerts[groupThreadID].variantIndex = variantIndex;
     }
+
+    GroupMemoryBarrierWithGroupSync();
 
     [unroll(2)]
     for (uint primId = groupThreadID; primId < triangleCount; primId += VISIBILITY_MS_THREADS)

@@ -33,6 +33,38 @@ struct FrameData
     BYTE_ADDRESS_BUFFER userBuffer;
     BYTE_ADDRESS_BUFFER paletteOffsetBuffer;   // global PaletteOffsetBuffer
     BYTE_ADDRESS_BUFFER materialIndexBuffer;   // global MaterialIndexBuffer
+    uint dwordsPerTile;                        // FPTL tile stride: 16 (default) or 32
+    BYTE_ADDRESS_BUFFER punctualLightsBuffer;  // global GPUPunctualLight buffer
+    uint punctualLightCount;                   // number of punctual lights
+    BYTE_ADDRESS_BUFFER directionalLightBuffer; // global GPUDirectionalLight buffer
+};
+
+// Exactly 64 bytes (four float4 vectors), matching 1 GPU L1 cache line
+struct PunctualLightData
+{
+    float3 positionWS;
+    float  range;               // Attenuation cutoff radius (meters) — directly used for culling bounding sphere
+
+    float3 color;               // Linear RGB * intensity
+    uint   lightTypeAndFlags;   // bits 0..3: type (0=Point, 1=Spot), bits 4..31: flags
+
+    float3 directionWS;         // Spot forward direction (normalized)
+    float  spotAngleScale;      // 1.0 / max(0.001, cosInner - cosOuter)
+
+    float  spotAngleOffset;     // -cosOuter * spotAngleScale
+    float  invRangeSq;          // 1.0 / (range * range) for fast attenuation
+    int    shadowIndex;         // Index into shadow array (-1 if unshadowed)
+    float  sourceRadius;        // GGX normalization / contact shadow radius
+};
+
+struct DirectionalLightData
+{
+    float3 directionWS;
+    uint   castShadows;
+    float3 color;
+    float  shadowBiasMultiplier;
+    float4 cascadeSplits;       // View-space Z split planes for 4 CSM cascades
+    float4x4 shadowMatrices[4]; // 4 CSM view-projection matrices
 };
 
 struct ViewData
