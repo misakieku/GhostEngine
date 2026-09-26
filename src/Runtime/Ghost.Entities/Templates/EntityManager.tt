@@ -27,11 +27,31 @@ public unsafe partial class EntityManager
 <# for (var j = 0; j < i; j++) { #>
     /// <typeparam name="T<#= j #>">The type of the component.</typeparam>
 <# } #>
+    /// <returns>The Entity that was created with the specified components.</returns>
+    public Entity CreateEntity<<#= generics #>>()
+<#= restrictions #>
+    {
+        using var scope = AllocationManager.CreateStackScope();
+        using var set = new ComponentSet(scope.AllocationHandle
+<# for (var j = 0; j < i; j++) { #>
+            , ComponentTypeID<T<#= j #>>.Value
+<# } #>
+        );
+
+        return CreateEntity(set);
+    }
+
+    /// <summary>
+    /// Creates an entity with the specified components.
+    /// </summary>
+<# for (var j = 0; j < i; j++) { #>
+    /// <typeparam name="T<#= j #>">The type of the component.</typeparam>
+<# } #>
 <# for (var j = 0; j < i; j++) { #>
     /// <param name="component<#= j #>">The component to add to the entity.</param>
 <# } #>
-    /// <returns>The result status of the operation.</returns>
-    public Error CreateEntity<<#= generics #>>(<#= compGenerics #>)
+    /// <returns>The Entity that was created with the specified components.</returns>
+    public Entity CreateEntity<<#= generics #>>(<#= compGenerics #>)
 <#= restrictions #>
     {
         using var scope = AllocationManager.CreateStackScope();
@@ -42,7 +62,14 @@ public unsafe partial class EntityManager
         );
 
         var entity = CreateEntity(set);
-        return SetComponents(entity, <#= InlineFor(0, i, "in component{0}") #>);
+        var err = SetComponents(entity, <#= InlineFor(0, i, "in component{0}") #>);
+        if (err != Error.None)
+        {
+            DestroyEntity(entity);
+            return Entity.Invalid;
+        }
+
+        return entity;
     }
 
     /// <summary>

@@ -1,3 +1,4 @@
+using Ghost.Engine.Input;
 using Ghost.Engine.Streaming;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using SDL;
@@ -6,8 +7,6 @@ namespace Ghost.Engine;
 
 public interface IEngineLanunchProfile
 {
-    Action<SDL_Event>? OnWindowEvent { get; }
-
     EngineDesc GetEngineDesc();
     GraphicsDesc GetGraphicsDesc();
     IContentProvider GetContentProvider();
@@ -46,6 +45,7 @@ public static class EngineRunner
 
             try
             {
+                var userHandler = profile is IInputHandler inputHandler ? inputHandler : null;
                 using var window = new EngineWindow(engineCore.RenderEngine, engineDesc.WindowDesc);
                 window.AttachToInputManager(engineCore.InputManager);
 
@@ -53,7 +53,7 @@ public static class EngineRunner
 
                 while (window.IsRunning)
                 {
-                    window.PollEvents(engineCore.InputManager.ProcessEvent, profile.OnWindowEvent);
+                    window.PollEvents(engineCore.InputManager, userHandler);
                     engineCore.Tick();
                 }
 

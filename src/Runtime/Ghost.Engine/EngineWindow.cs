@@ -1,6 +1,7 @@
 #define PLATFORM_WINDOWNS
 
 using Ghost.Core;
+using Ghost.Engine.Input;
 using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
@@ -104,7 +105,9 @@ public unsafe class EngineWindow : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void PollEvents(Action<SDL_Event> engineEvent, Action<SDL_Event>? userEvent)
+    public void PollEvents<T0, T1>(T0 engineHandler, T1? userHandler)
+        where T0 : IInputHandler
+        where T1 : IInputHandler
     {
         SDL_Event e;
         while (SDL_PollEvent(&e))
@@ -123,8 +126,8 @@ public unsafe class EngineWindow : IDisposable
                     break;
             }
 
-            engineEvent.Invoke(e);
-            userEvent?.Invoke(e);
+            engineHandler.ProcessEvent(e);
+            userHandler?.ProcessEvent(e);
         }
     }
 

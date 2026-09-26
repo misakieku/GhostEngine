@@ -4,7 +4,7 @@ namespace TestGame;
 
 internal class Program
 {
-    private static void Main(string[] args)
+    private static void Main()
     {
         EngineRunner.Run<LaunchProfile>();
     }

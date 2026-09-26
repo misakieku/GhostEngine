@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Input;
 
-public sealed unsafe class RawInputManager : IDisposable
+public sealed unsafe class RawInputManager : IInputHandler, IDisposable
 {
     private const int KEY_COUNT = 512;
     private const int MAX_GAMEPADS = 4;

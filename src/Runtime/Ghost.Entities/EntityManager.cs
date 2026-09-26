@@ -1100,9 +1100,9 @@ public unsafe partial class EntityManager : IDisposable
     /// </summary>
     /// <param name="entity">The entity to set the component data for.</param>
     /// <param name="componentIDs">The component space IDs to set.</param>
-    /// <param name="pComponents">The pointers to the component data.</param>
+    /// <param name="ppComponents">The pointers to the component data.</param>
     /// <returns>The result status of the operation.</returns>
-    public Error SetComponents(Entity entity, ReadOnlySpan<Identifier<IComponent>> componentIDs, void** pComponents)
+    public Error SetComponents(Entity entity, ReadOnlySpan<Identifier<IComponent>> componentIDs, void** ppComponents)
     {
         if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
         {
@@ -1112,7 +1112,7 @@ public unsafe partial class EntityManager : IDisposable
         ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
         for (var i = 0; i < componentIDs.Length; i++)
         {
-            var error = archetype.SetComponentData(location.chunkIndex, location.rowIndex, componentIDs[i], pComponents[i]);
+            var error = archetype.SetComponentData(location.chunkIndex, location.rowIndex, componentIDs[i], ppComponents[i]);
             if (error != Error.None)
             {
                 return error;

@@ -13,7 +13,6 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
-using SDL;
 using TestGame.Systems;
 
 namespace TestGame;
@@ -29,15 +28,10 @@ internal class LaunchProfile : IEngineLanunchProfile
 
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
-        MaxVisibleMeshletsOnScreen = 2_097_152 * 1,
-        MeshletLodErrorThreshold = 3.0f,
+        MaxVisibleMeshletsOnScreen = 2_097_152,
+        MeshletLodErrorThreshold = 2.0f,
         InstanceCullingThreshold = 2.0f,
     };
-
-    public Action<SDL_Event>? OnWindowEvent
-    {
-        get;
-    } = null;
 
     public EngineDesc GetEngineDesc()
     {
@@ -97,21 +91,14 @@ internal class LaunchProfile : IEngineLanunchProfile
 
     public void OnEngineInitialized(EngineCore engine)
     {
-        const int entityCapacity = 1000;
+        const int entityCapacity = 10000;
         const float size = 20.0f;
-        const float baseScale = 1.0f;
+        const float baseScale = 0.5f;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
         using var scope = AllocationManager.CreateStackScope();
-        using var camSet = new ComponentSet(scope.AllocationHandle,
-            ComponentTypeID<Camera>.Value,
-            ComponentTypeID<LocalToWorld>.Value,
-            ComponentTypeID<FirstPersonCamera>.Value,
-            ComponentTypeID<InputReceiver>.Value,
-            ComponentTypeID<ActionState>.Value);
-        _camera = _world.EntityManager.CreateEntity(camSet);
-        _world.EntityManager.CreateEntity(
+        _camera = _world.EntityManager.CreateEntity(
             new Camera
             {
                 swapChainIndex = 0,
@@ -129,7 +116,7 @@ internal class LaunchProfile : IEngineLanunchProfile
             },
             FirstPersonCamera.Default,
             new InputReceiver(InputProfileDatabase.FIRST_PERSON_CAMERA_PROFILE_ID, true),
-            default(ActionState)).ThrowIfFailed();
+            default(ActionState));
 
         _meshAsset = engine.AssetManager.ResolveAsset("Meshes/dragon");
         _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/test");

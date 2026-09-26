@@ -69,8 +69,6 @@ static inline float4 GetVertexClipPosition(uint vertexIndex, uint meshletVertexO
 #define VISIBILITY_MS_THREADS 64
 
 groupshared float4 g_VertexPositions[MAX_VERTICES_PER_MESHLET];
-groupshared float2 g_VertexUVs[MAX_VERTICES_PER_MESHLET];
-groupshared uint g_PackedIndices[MAX_TRIANGLES_PER_MESHLET];
 
 [numthreads(VISIBILITY_MS_THREADS, 1, 1)]
 [outputtopology("triangle")]
@@ -115,40 +113,19 @@ void MSMain(
     SetMeshOutputCounts(vertexCount, triangleCount);
     
     float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, instanceData.localToWorld);
-    
-    uint i;
-    [unroll(2)]
-    for (i = 0; i < MAX_TRIANGLES_PER_MESHLET; i += VISIBILITY_MS_THREADS)
-    {
-        const uint primId = i + groupThreadID;
-        if (primId < triangleCount)
-        {
-            uint packedIndices = meshletTrianglesBuffer.Load((meshlet.triangleOffset + primId) * 4);
-            uint3 indices = uint3(packedIndices & 0xFF, (packedIndices >> 8) & 0xFF, (packedIndices >> 16) & 0xFF);
-        
-            float2 uv0, uv1, uv2;
-            float4 v0 = GetVertexClipPosition(indices.x, meshlet.vertexOffset, meshletVerticesBuffer, vertices, worldViewProj, uv0);
-            float4 v1 = GetVertexClipPosition(indices.y, meshlet.vertexOffset, meshletVerticesBuffer, vertices, worldViewProj, uv1);
-            float4 v2 = GetVertexClipPosition(indices.z, meshlet.vertexOffset, meshletVerticesBuffer, vertices, worldViewProj, uv2);
-        
-            g_VertexPositions[indices.x] = v0;
-            g_VertexPositions[indices.y] = v1;
-            g_VertexPositions[indices.z] = v2;
-        
-            g_VertexUVs[indices.x] = uv0;
-            g_VertexUVs[indices.y] = uv1;
-            g_VertexUVs[indices.z] = uv2;
-        
-            g_PackedIndices[primId] = packedIndices;
-        }
-    }
-    
-    GroupMemoryBarrierWithGroupSync();
 
     if (groupThreadID < vertexCount)
     {
-        outVerts[groupThreadID].position = g_VertexPositions[groupThreadID];
-        outVerts[groupThreadID].uv = g_VertexUVs[groupThreadID];
+        uint vIdx = meshletVerticesBuffer.Load((meshlet.vertexOffset + groupThreadID) * 4u);
+        Vertex v = meshletVerticesBuffer.Load<Vertex>(vIdx * sizeof(Vertex));
+        
+        float2 uv = v.uv;
+        float4 clipPos = mul(worldViewProj, float4(v.position, 1.0f));
+        
+        g_VertexPositions[groupThreadID] = clipPos;
+
+        outVerts[groupThreadID].position = clipPos;
+        outVerts[groupThreadID].uv = uv;
         outVerts[groupThreadID].visibleMeshletIndex = (binnedSlot & 0x7FFFFFu) | passBit;
         outVerts[groupThreadID].localMaterialIndex = localMaterialIndex;
         outVerts[groupThreadID].materialBufferIndex = materialBufferIndex;
@@ -156,19 +133,25 @@ void MSMain(
     }
 
     [unroll(2)]
-    for (i = groupThreadID; i < triangleCount; i += VISIBILITY_MS_THREADS)
+    for (uint primId = groupThreadID; primId < triangleCount; primId += VISIBILITY_MS_THREADS)
     {
-        uint packedIndices = g_PackedIndices[i];
+        uint packedIndices = meshletTrianglesBuffer.Load((meshlet.triangleOffset + primId) * 4);
         uint3 indices = uint3(packedIndices & 0xFF, (packedIndices >> 8) & 0xFF, (packedIndices >> 16) & 0xFF);
-        
+
         float4 v0 = g_VertexPositions[indices.x];
         float4 v1 = g_VertexPositions[indices.y];
         float4 v2 = g_VertexPositions[indices.z];
+
+        outTris[primId] = indices;
+        outPrims[primId].primitiveID = primId;
+
+        bool isCulled = false;
+        if (props.doubleSidedConstants.w == 0.0f)
+        {
+            isCulled = !IsFrontFacing(v2, v1, v0);
+        }
         
-        outTris[i] = indices;
-        
-        outPrims[i].primitiveID = i;
-        outPrims[i].cullPrim = props.doubleSidedConstants.w == 0.0f && !IsFrontFacing(v2, v1, v0);
+        outPrims[primId].cullPrim = isCulled;
     }
 }
 
