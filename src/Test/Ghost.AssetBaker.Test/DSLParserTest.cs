@@ -85,10 +85,9 @@ shader ""Custom/MyUnlit"" : ""Unlit""
 
     hlsl
     {
-        float4 GetColor(uint materialIndex, float2 uv, inout Payload payload)
+        void GetSurfaceData(in MaterialProperties props, float2 uv, inout Payload payload, out SurfaceData surface)
         {
-            UnlitShaderProperties props = LoadUnlitProperties(materialIndex);
-            return props.baseColor * props.customGlow;
+            surface = (SurfaceData)0;
         }
     }
 }

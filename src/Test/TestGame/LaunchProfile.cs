@@ -94,7 +94,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
 
     public void OnEngineInitialized(EngineCore engine)
     {
-        const int entityCapacity = 10;
+        const int entityCapacity = 1000;
         const float size = 10.0f;
         const float baseScale = 1.0f;
 
@@ -178,7 +178,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
             });
 
         // Add 64 random punctual lights (Point and Spot)
-        for (var i = 0; i < 16; i++)
+        for (var i = 0; i < 64; i++)
         {
             var pos = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
             var color = new float3(RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f));

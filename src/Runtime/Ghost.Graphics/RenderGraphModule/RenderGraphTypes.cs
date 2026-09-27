@@ -455,6 +455,11 @@ public sealed class RenderGraphDump
         get; init;
     }
 
+    public ulong SizeWithoutAliasing
+    {
+        get; init;
+    }
+
     public List<HeapBlockDumpInfo> MemoryBlocks
     {
         get; init;

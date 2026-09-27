@@ -60,8 +60,8 @@ internal sealed class UnlitTemplate : IShaderTemplate
 
     private static readonly TemplateOverridePoint[] s_overridePoints = new[]
     {
-        new TemplateOverridePoint("GetAlphaCoverage", "GHOST_OVERRIDE_GET_ALPHA_COVERAGE", IsAlphaClip: true),
-        new TemplateOverridePoint("GetColor", "GHOST_OVERRIDE_GET_COLOR"),
+        new TemplateOverridePoint("GetAlphaCoverage", "GHOST_OVERRIDE_GET_ALPHA_COVERAGE"),
+        new TemplateOverridePoint("GetSurfaceData", "GHOST_OVERRIDE_GET_SURFACE_DATA"),
     };
 
     public IReadOnlyList<TemplateOverridePoint> OverridePoints => s_overridePoints;

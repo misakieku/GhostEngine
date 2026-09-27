@@ -15,10 +15,16 @@
 //
 // Injection points (user overrides in their hlsl block):
 //   float  GetAlphaCoverage(uint materialIndex, float2 uv, inout Payload payload)
-//   float4 GetColor(uint materialIndex, float2 uv, inout Payload payload)
+//   void GetSurfaceData(in MaterialProperties props, float2 uv, inout Payload payload, out SurfaceData surface)
 // ============================================================
 
 #include "EngineResources/Shaders/Properties.hlsl"
+
+struct SurfaceData
+{
+    float3 albedo;
+    float3 emissive;
+};
 
 $GHOST_PROPERTIES_STRUCT$
 
@@ -37,10 +43,10 @@ static inline float GetAlphaCoverage(in MaterialProperties props, float2 uv, ino
 }
 #endif
 
-#ifndef GHOST_OVERRIDE_GET_COLOR
-static inline float4 GetColor(in MaterialProperties props, float2 uv, inout Payload payload)
+#ifndef GHOST_OVERRIDE_GET_SURFACE_DATA
+static inline void GetSurfaceData(in MaterialProperties props, float2 uv, inout Payload payload, out SurfaceData surface)
 {
-    return 1.0f;
+    surface = (SurfaceData)0;
 }
 #endif
 

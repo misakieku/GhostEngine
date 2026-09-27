@@ -1,19 +1,19 @@
 # Fine-Pruned Tiled Light Culling (FPTL) & Spherical Ray-Cone Intersection
 
-This document details the architectural design, mathematical foundations, data layouts, and critical debugging lessons learned during the development of GhostEngine's **Fine-Pruned Tiled Light Culling (FPTL)** pipeline in [`TileLightCulling.gcomp`](file:///f:/csharp/GhostEngine/src/Runtime/Ghost.Engine/Assets/EngineResources/Shaders/Lighting/TileLightCulling.gcomp) and [`DebugTileLightHeatmap.gshdr`](file:///f:/csharp/GhostEngine/src/Runtime/Ghost.Engine/Assets/EngineResources/Shaders/Lighting/DebugTileLightHeatmap.gshdr).
+This document details the architectural design, mathematical foundations, data layouts, and critical debugging lessons learned during the development of GhostEngine's **Fine-Pruned Tiled Light Culling (FPTL)** pipeline.
 
 ---
 
-## 1. Architectural Overview & Motivation
+# Architectural Overview & Motivation
 
-### 1.1 The Forward+ / Tiled Deferred Problem
+## The Forward+ / Tiled Deferred Problem
 In modern high-performance rendering engines, evaluating all lights for every pixel in a naive $O(\text{Pixels} \times \text{Lights})$ loop is prohibitively expensive. Tiled Deferred Shading divides the screen into regular screen-space tiles (typically $16 \times 16$ pixels) and executes a compute shader to build a compact list of lights affecting each tile.
 
 However, naive tile frustum culling suffers from two critical flaws:
 1. **Rectilinear Bounding Box Artifacts**: Testing 4 lateral planes ($x \ge x_0 z, x \le x_1 z, y \ge y_0 z, y \le y_1 z$) in clip space clips lights using independent 1D thresholds, producing an axis-aligned rectangular footprint on planar surfaces rather than a smooth spherical footprint.
 2. **Depth Discontinuity / Light Leakage**: When a tile contains a foreground object at $Z = 2\,\text{m}$ and a background wall at $Z = 50\,\text{m}$, the tile depth bounds are $[2, 50]$. A light hovering at $Z = 20\,\text{m}$ in empty air overlaps the tile depth range and gets assigned to the tile, wasting shading cycles. Furthermore, a surface outside the light's 3D radius still receives the light if it falls within the tile's screen frustum.
 
-### 1.2 The Unity HDRP / DICE Two-Stage Solution
+## The Unity HDRP / DICE Two-Stage Solution
 GhostEngine implements a state-of-the-art two-stage light culling pipeline inspired by Unity HDRP (`lightlistbuild.compute` / `LightingConvexHullUtils.hlsl`) and DICE FPTL:
 
 ```mermaid
@@ -37,13 +37,13 @@ flowchart TD
 
 ---
 
-## 2. Root Cause Analysis: The 2D Frustum Plane Flaw
+# Root Cause Analysis: The 2D Frustum Plane Flaw
 
 During initial development, light culling produced severe visual artifacts:
 1. **Image 5 Case**: A single punctual light shone on a flat surface produced a razor-sharp axis-aligned **rectangle** across tiles instead of a circle.
 2. **Images 1 & 2 Case**: Viewing a Stanford Bunny from the bottom showed illuminated ears; rotating the camera to the side caused the ears to abruptly turn solid black (`count = 0`), even though 3D light-to-surface interaction is strictly view-independent.
 
-### 2.1 Why 4 Frustum Planes Form Rectangles
+## Why 4 Frustum Planes Form Rectangles
 The naive frustum culling approach constructed four side planes passing through the view-space origin $(0, 0, 0)$:
 ```hlsl
 s_FrustumPlanes[0] = float4(normalize(float3(1.0f,  0.0f, -x0)), 0.0f); // Left
@@ -58,7 +58,7 @@ Notice that each plane is an independent 1D threshold in screen space $(x/z, y/z
 
 On a planar surface where every pixel has approximately the same depth $Z_{\text{wall}}$, every tile inside this 2D bounding box passes the coarse test. Because depth bounds alone $[Z_{\text{wall}}, Z_{\text{wall}}]$ cannot prune based on lateral radius on the surface, the tile assignment forms a literal rectangle on the wall.
 
-### 2.2 Why Screen-Space Culling Breaks View Independence
+## Why Screen-Space Culling Breaks View Independence
 When rotating or panning the camera, the light's center in view space changes. If culling is evaluated against screen columns, rotating the camera causes the light's screen bounding column $[X_{\min}, X_{\max}]$ to shift across the screen. 
 
 If geometry (e.g. bunny ears) is at screen coordinate $X > X_{\max}$, it gets zero lights. But when looking from another angle, the ears fall within the screen bounding columns of that same light. Because 3D Euclidean distance between a surface and a light is an invariant:
@@ -67,11 +67,11 @@ any culling algorithm that relies purely on screen-space columns violates view i
 
 ---
 
-## 3. Stage 1: Coarse Spherical Ray-Cone Culling
+# Coarse Spherical Ray-Cone Culling
 
 To eliminate rectangular tile boundaries and false positives at tile corners, GhostEngine adopts the analytical ray-cone vs sphere intersection method from Unity HDRP (`LightingConvexHullUtils.hlsl`).
 
-### 3.1 Mathematical Derivation
+## Mathematical Derivation
 Instead of testing 4 separate plane half-spaces, we test whether a single ray $\mathbf{V}$ passing through the **center** of the tile intersects the light's bounding sphere, expanded by the diagonal radius of the tile at that depth.
 
 ```
@@ -113,20 +113,20 @@ Instead of testing 4 separate plane half-spaces, we test whether a single ray $\
 
 Because this evaluates Euclidean distance to a central ray, the set of rays satisfying this test forms an **elliptical/circular cone** across screen tiles, eliminating rectilinear box boundaries.
 
-### 3.2 Depth Slice Overlap
+## Depth Slice Overlap
 In addition to the ray-cone test, the light's view-space $Z$ interval $[C_z - R, C_z + R]$ is tested against the tile's linear view-space depth range $[\text{minViewZ}, \text{maxViewZ}]$:
 $$\text{centerVS.z} + R \ge \text{minViewZ} \quad \land \quad \text{centerVS.z} - R \le \text{maxViewZ}$$
 If either test fails, the light is rejected immediately. Surviving lights are stored in `s_CoarseLightIndices`.
 
 ---
 
-## 4. Stage 2: Fine Pruning (`FinePruneLights`)
+# Fine Pruning (`FinePruneLights`)
 
 While coarse spherical ray-cone culling prunes lights outside the tile frustum, it still cannot solve the problem of surfaces inside the frustum that are physically out of range of the light in 3D world space (e.g., flat floor tiles 20 meters away from a small 5-meter radius light).
 
 **Fine Pruning** solves this by testing the light's 3D sphere directly against the actual reconstructed 3D surface geometry inside the tile.
 
-### 4.1 Surface Position Reconstruction
+## Surface Position Reconstruction
 Each thread $t \in [0, 255]$ in the compute threadgroup corresponds to exactly one pixel in the $16 \times 16$ tile. If `deviceDepth > 0.0f` (indicating valid geometry in Reversed-Z):
 ```hlsl
 float zView = (n * f) / ((f - n) * deviceDepth + n);
@@ -137,7 +137,7 @@ float2 ndc = float2(
 float3 pixelPosVS = float3((ndc.x / m00) * zView, (ndc.y / m11) * zView, zView);
 ```
 
-### 4.2 Per-Pixel 3D Distance Test & Bitmask Accumulation
+## Per-Pixel 3D Distance Test & Bitmask Accumulation
 For each coarse light $l \in [0, \min(s\_CoarseLightCount, 64))$:
 1. Each thread evaluates the squared 3D Euclidean distance:
    $$\mathbf{toLight} = \mathbf{C}_{VS} - \mathbf{P}_{VS}$$
@@ -170,7 +170,7 @@ For each coarse light $l \in [0, \min(s\_CoarseLightCount, 64))$:
    }
    ```
 
-### 4.3 Theoretical Guarantees
+## Theoretical Guarantees
 1. **Circular Surface Footprints**: On a flat plane, the intersection of a 3D sphere with the plane is a circle:
    $$\{\mathbf{P} \in \mathbb{R}^3 : \|\mathbf{P} - \mathbf{C}\| \le R \land \mathbf{n} \cdot \mathbf{P} + d = 0\} \implies \text{Circle}$$
    Fine pruning ensures that only tiles containing surface points within this circle accept the light.
@@ -179,27 +179,14 @@ For each coarse light $l \in [0, \min(s\_CoarseLightCount, 64))$:
 
 ---
 
-## 5. Tile Light List Buffer Layout
+# Tile Light List Buffer Layout
 
 The output `TileLightList` buffer is stored as a raw byte-address buffer (`ByteAddressBuffer` / `RWByteAddressBuffer`) indexed per tile:
 
 $$\text{TileIndex} = \text{tileY} \times \text{TilesX} + \text{tileX}$$
 $$\text{TileByteOffset} = \text{TileIndex} \times (\text{DWORDS\_PER\_TILE} \times 4)$$
 
-### 5.1 Packing Specification
-GhostEngine supports two stride configurations:
-- **16 DWORDS (64 bytes)**: Supports up to 31 lights per tile. Fits exactly into a single GPU L1 cache line.
-- **32 DWORDS (128 bytes)**: Supports up to 63 lights per tile.
-
-```
-DWORD 0:  [ Bits 0..15: Light Count ] | [ Bits 16..31: Light 0 Index ]
-DWORD 1:  [ Bits 0..15: Light 1 Index ] | [ Bits 16..31: Light 2 Index ]
-DWORD 2:  [ Bits 0..15: Light 3 Index ] | [ Bits 16..31: Light 4 Index ]
-...
-DWORD k:  [ Bits 0..15: Light (2k - 1) Index ] | [ Bits 16..31: Light 2k Index ]
-```
-
-### 5.2 HLSL Decoding (`LightGridCommon.hlsl`)
+## HLSL Decoding (`LightGridCommon.hlsl`)
 Shaders consuming the tile list unpack lights via inline functions:
 ```hlsl
 template<uint DWORDS>
@@ -220,34 +207,3 @@ uint GetTileLightIndex(ByteAddressBuffer tileLightList, uint tileIndex, uint off
     return ((offset + 1u) & 1u) != 0u ? (raw >> 16u) : (raw & 0xFFFFu);
 }
 ```
-
----
-
-## 6. Debug Heatmap Visualization
-
-[`DebugTileLightHeatmap.gshdr`](file:///f:/csharp/GhostEngine/src/Runtime/Ghost.Engine/Assets/EngineResources/Shaders/Lighting/DebugTileLightHeatmap.gshdr) provides real-time verification of the light culling pipeline:
-- **Count Normalization**: Normalized against target budget (default: 16 lights = yellow, 32+ lights = red, 1 light = blue).
-- **Background Dimming**: Pixels with `depth <= 0.0f` (sky) are dimmed by $0.25\times$ to clearly silhouette geometry.
-- **Tile Grid Overlay**: Pixel coordinates on $16 \times 16$ tile boundaries are multiplied by $0.4\times$ to render subtle dark gridlines.
-- **Light Center Dots**: A 3-pixel white dot is rendered at the projected screen-space coordinate of each punctual light to immediately verify light positions relative to tile illumination.
-
----
-
-## 7. Performance & Resource Characteristics
-
-| Property | Value | Notes |
-| :--- | :--- | :--- |
-| **Compute Threadgroup Size** | $16 \times 16 \times 1$ (256 threads) | 1 thread per pixel in tile |
-| **Shared Memory (LDS)** | 1,348 bytes (~1.3 KB) | Well under D3D12 32 KB limit |
-| **Max Coarse Lights / Tile** | 64 | Bounded by 64-bit reduction mask |
-| **Max Fine Lights / Tile** | 31 (16 DWORDS) or 63 (32 DWORDS) | Configurable via `g_FrameData.dwordsPerTile` |
-| **ALU Operations** | $O(\text{CoarseLights})$ | Only touches lights surviving ray-cone check |
-| **Sync Barriers** | 5 total | Depth min/max, view setup, coarse cull, bitmask reduction, unpack |
-
----
-
-## 8. Summary of Lessons Learned
-
-1. **Never Cull 3D Volumes with 2D Screen Planes**: 4-plane lateral culling tests independent 1D bounds in screen space. A sphere projected through 4 lateral planes produces an axis-aligned 2D rectangle in tile space, causing rectangular light slabs on surfaces and camera-rotation pops.
-2. **Ray-Cone Expansion is the Standard for Coarse Culling**: Expanding the sphere by $s \times \text{halfTileSize}$ and intersecting with the tile center ray $\mathbf{V}$ produces true circular/elliptical bounding footprints.
-3. **Fine Pruning is Mandatory for Tiled Deferred**: Coarse tile bounds only test the tile frustum volume, not the surfaces within it. Reconstructing 3D surface positions from depth and testing Euclidean distance is essential to prune lights in empty space and ensure strict camera-rotation invariance.

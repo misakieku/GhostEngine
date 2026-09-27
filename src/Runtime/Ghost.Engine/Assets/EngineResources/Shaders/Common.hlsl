@@ -83,7 +83,9 @@ struct MeshletHierarchyNode
 #define SAMPLE_TEXTURE2D_ARRAY(texId, sampId, uvw) SampleTextureArray(texId, sampId, uvw)
 
 
-#define ZERO_INIT(T) (T)0
+#define ZERO(T) (T)0
+#define ZERO_INIT(T, V) (V) = ZERO(T)
+#define ZERO_CREATE(T, V) T V = ZERO(T)
 
 #define MAX_VERTICES_PER_MESHLET 64
 #define MAX_TRIANGLES_PER_MESHLET 126

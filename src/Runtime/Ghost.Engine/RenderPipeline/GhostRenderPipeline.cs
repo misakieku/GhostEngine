@@ -152,8 +152,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             }
             else
             {
-                // Blit GBuffer3 to screen / backbuffer
-                viewContext.RenderGraph.AddBlitPass(gbuffer.GBuffer3, colorTarget, _meshPipelineResource.blitShader);
+                viewContext.RenderGraph.AddBlitPass(gbuffer.GBuffer0, colorTarget, _meshPipelineResource.blitShader);
             }
 
             var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewState);

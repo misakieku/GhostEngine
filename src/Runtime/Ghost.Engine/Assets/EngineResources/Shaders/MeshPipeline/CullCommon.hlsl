@@ -128,7 +128,7 @@ static inline bool IsTriangleOutsideFrustum(float4 h0, float4 h1, float4 h2)
 template<bool usePreVP>
 BBoxFrustumResult BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 worldMatrix)
 {
-    BBoxFrustumResult result = ZERO_INIT(BBoxFrustumResult);
+    ZERO_CREATE(BBoxFrustumResult, result);
 
     // 1. Object space center and half-extents
     float3 boxCenter = 0.5f * (bboxMin + bboxMax);

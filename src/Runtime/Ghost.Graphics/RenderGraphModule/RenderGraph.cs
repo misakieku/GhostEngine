@@ -89,10 +89,17 @@ public sealed class RenderGraph : IDisposable
 
     private RenderGraphDump GenerateDump(scoped in CompiledGraph graph, ViewState viewState)
     {
+        var sizeWithoutAliasing = 0UL;
+        for (var i = 0; i < graph.plan.placedResources.Count; i++)
+        {
+            sizeWithoutAliasing += graph.plan.placedResources[i].sizeInBytes;
+        }
+
         var dump = new RenderGraphDump
         {
             GraphHash = graph.graphHash,
             TotalHeapSize = graph.plan.totalHeapSize,
+            SizeWithoutAliasing = sizeWithoutAliasing,
             IsCacheHit = graph.cacheHit,
             ViewState = viewState
         };

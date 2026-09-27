@@ -60,7 +60,7 @@ internal sealed class LitTemplate : IShaderTemplate
 
     private static readonly TemplateOverridePoint[] s_overridePoints = new[]
     {
-        new TemplateOverridePoint("GetAlphaCoverage", "GHOST_OVERRIDE_GET_ALPHA_COVERAGE", IsAlphaClip: true),
+        new TemplateOverridePoint("GetAlphaCoverage", "GHOST_OVERRIDE_GET_ALPHA_COVERAGE"),
         new TemplateOverridePoint("GetSurfaceData", "GHOST_OVERRIDE_GET_SURFACE_DATA"),
         new TemplateOverridePoint("EvaluateBSDF", "GHOST_OVERRIDE_EVALUATE_BSDF"),
     };

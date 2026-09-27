@@ -80,18 +80,19 @@ void CSMain(
     
     MaterialProperties matProps = LoadData<MaterialProperties>(attrs.cbufferIndex, 0);
     Payload payload = (Payload)0;
-    float4 unlitColor = GetColor(matProps, attrs.uv, payload);
+    SurfaceData surfaceData;
+    GetSurfaceData(matProps, attrs.uv, payload, surfaceData);
     
     // Pack GBuffer outputs
     GBufferOutputs outputs;
-    // GBuffer0: Empty for unlit
-    outputs.gbuffer0 = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    // GBuffer0: BaseColor (rgb) + ShadingModel/Flags (a)
+    outputs.gbuffer0 = float4(surfaceData.albedo, asfloat(0xFFFFFFFF)); // 0xFFFFFFFF = Unlit
     // GBuffer1: Normal, roughness=1, metallic=0
     outputs.gbuffer1 = float4(OctahedralEncode(attrs.normalWS), 1.0f, 0.0f);
     // GBuffer2: Motion Vectors (xy) + Occlusion (z) + FeatureBitmask (w)
     outputs.gbuffer2 = float4(attrs.motionVectors, 1.0f, 0.0f);
     // GBuffer3: Emissive Color (rgb) + Unlit flag (1.0f)
-    outputs.gbuffer3 = float4(unlitColor.rgb, 1.0f);
+    outputs.gbuffer3 = float4(surfaceData.emissive, 1.0f);
     
     WriteGBuffer(pixelCoord, outputs, props.gbuffer0Uav, props.gbuffer1Uav, props.gbuffer2Uav, props.gbuffer3Uav);
 }

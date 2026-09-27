@@ -87,7 +87,7 @@ void CSMain(
 
     MaterialProperties matProps = LoadData<MaterialProperties>(attrs.cbufferIndex, 0);
     Payload payload = (Payload)0;
-    SurfaceData surface = (SurfaceData)0;
+    SurfaceData surface;
     GetSurfaceData(ctx, matProps, payload, surface);
 
     // Pack GBuffer outputs

@@ -40,7 +40,7 @@ public class TemplatePassDef
 /// <summary>
 /// Defines an injection/override point in a template that the user HLSL block may provide.
 /// </summary>
-public readonly record struct TemplateOverridePoint(string FunctionName, string Define, bool IsAlphaClip = false);
+public readonly record struct TemplateOverridePoint(string FunctionName, string Define);
 
 /// <summary>
 /// Defines a built-in shader template: its base properties, the
