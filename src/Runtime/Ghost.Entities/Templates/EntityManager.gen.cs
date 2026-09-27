@@ -17,11 +17,10 @@ public unsafe partial class EntityManager
     public Entity CreateEntity<T0>()
         where T0 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[1];
+        ids[0] = ComponentTypeID<T0>.Value;
 
+        var set = new ComponentSetView(ids);
         return CreateEntity(set);
     }
 
@@ -34,13 +33,13 @@ public unsafe partial class EntityManager
     public Entity CreateEntity<T0>(scoped in T0 component0)
         where T0 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[1];
+        ids[0] = ComponentTypeID<T0>.Value;
 
+        var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0);
+        
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -61,12 +60,12 @@ public unsafe partial class EntityManager
         where T0 : unmanaged, IComponentData
     {
         var ppv = stackalloc void*[1];
-        var ids = stackalloc Identifier<IComponent>[1];
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[1];
 
         ppv[0] = Unsafe.AsPointer(in component0);
         ids[0] = ComponentTypeID<T0>.Value;
 
-        return SetComponents(entity, new ReadOnlySpan<Identifier<IComponent>>(ids, 1), ppv);
+        return SetComponents(entity, ids, ppv);
     }
 
     /// <summary>
@@ -79,12 +78,11 @@ public unsafe partial class EntityManager
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-            , ComponentTypeID<T1>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[2];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
 
+        var set = new ComponentSetView(ids);
         return CreateEntity(set);
     }
 
@@ -100,14 +98,14 @@ public unsafe partial class EntityManager
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-            , ComponentTypeID<T1>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[2];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
 
+        var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0, in component1);
+        
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -131,14 +129,14 @@ public unsafe partial class EntityManager
         where T1 : unmanaged, IComponentData
     {
         var ppv = stackalloc void*[2];
-        var ids = stackalloc Identifier<IComponent>[2];
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[2];
 
         ppv[0] = Unsafe.AsPointer(in component0);
         ids[0] = ComponentTypeID<T0>.Value;
         ppv[1] = Unsafe.AsPointer(in component1);
         ids[1] = ComponentTypeID<T1>.Value;
 
-        return SetComponents(entity, new ReadOnlySpan<Identifier<IComponent>>(ids, 2), ppv);
+        return SetComponents(entity, ids, ppv);
     }
 
     /// <summary>
@@ -153,13 +151,12 @@ public unsafe partial class EntityManager
         where T1 : unmanaged, IComponentData
         where T2 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-            , ComponentTypeID<T1>.Value
-            , ComponentTypeID<T2>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[3];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
 
+        var set = new ComponentSetView(ids);
         return CreateEntity(set);
     }
 
@@ -178,15 +175,15 @@ public unsafe partial class EntityManager
         where T1 : unmanaged, IComponentData
         where T2 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-            , ComponentTypeID<T1>.Value
-            , ComponentTypeID<T2>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[3];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
 
+        var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0, in component1, in component2);
+        
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -213,7 +210,7 @@ public unsafe partial class EntityManager
         where T2 : unmanaged, IComponentData
     {
         var ppv = stackalloc void*[3];
-        var ids = stackalloc Identifier<IComponent>[3];
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[3];
 
         ppv[0] = Unsafe.AsPointer(in component0);
         ids[0] = ComponentTypeID<T0>.Value;
@@ -222,7 +219,7 @@ public unsafe partial class EntityManager
         ppv[2] = Unsafe.AsPointer(in component2);
         ids[2] = ComponentTypeID<T2>.Value;
 
-        return SetComponents(entity, new ReadOnlySpan<Identifier<IComponent>>(ids, 3), ppv);
+        return SetComponents(entity, ids, ppv);
     }
 
     /// <summary>
@@ -239,14 +236,13 @@ public unsafe partial class EntityManager
         where T2 : unmanaged, IComponentData
         where T3 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-            , ComponentTypeID<T1>.Value
-            , ComponentTypeID<T2>.Value
-            , ComponentTypeID<T3>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[4];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
 
+        var set = new ComponentSetView(ids);
         return CreateEntity(set);
     }
 
@@ -268,16 +264,16 @@ public unsafe partial class EntityManager
         where T2 : unmanaged, IComponentData
         where T3 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-            , ComponentTypeID<T1>.Value
-            , ComponentTypeID<T2>.Value
-            , ComponentTypeID<T3>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[4];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
 
+        var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0, in component1, in component2, in component3);
+        
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -307,7 +303,7 @@ public unsafe partial class EntityManager
         where T3 : unmanaged, IComponentData
     {
         var ppv = stackalloc void*[4];
-        var ids = stackalloc Identifier<IComponent>[4];
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[4];
 
         ppv[0] = Unsafe.AsPointer(in component0);
         ids[0] = ComponentTypeID<T0>.Value;
@@ -318,7 +314,7 @@ public unsafe partial class EntityManager
         ppv[3] = Unsafe.AsPointer(in component3);
         ids[3] = ComponentTypeID<T3>.Value;
 
-        return SetComponents(entity, new ReadOnlySpan<Identifier<IComponent>>(ids, 4), ppv);
+        return SetComponents(entity, ids, ppv);
     }
 
     /// <summary>
@@ -337,15 +333,14 @@ public unsafe partial class EntityManager
         where T3 : unmanaged, IComponentData
         where T4 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-            , ComponentTypeID<T1>.Value
-            , ComponentTypeID<T2>.Value
-            , ComponentTypeID<T3>.Value
-            , ComponentTypeID<T4>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[5];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
 
+        var set = new ComponentSetView(ids);
         return CreateEntity(set);
     }
 
@@ -370,17 +365,17 @@ public unsafe partial class EntityManager
         where T3 : unmanaged, IComponentData
         where T4 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-            , ComponentTypeID<T1>.Value
-            , ComponentTypeID<T2>.Value
-            , ComponentTypeID<T3>.Value
-            , ComponentTypeID<T4>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[5];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
 
+        var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0, in component1, in component2, in component3, in component4);
+        
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -413,7 +408,7 @@ public unsafe partial class EntityManager
         where T4 : unmanaged, IComponentData
     {
         var ppv = stackalloc void*[5];
-        var ids = stackalloc Identifier<IComponent>[5];
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[5];
 
         ppv[0] = Unsafe.AsPointer(in component0);
         ids[0] = ComponentTypeID<T0>.Value;
@@ -426,7 +421,7 @@ public unsafe partial class EntityManager
         ppv[4] = Unsafe.AsPointer(in component4);
         ids[4] = ComponentTypeID<T4>.Value;
 
-        return SetComponents(entity, new ReadOnlySpan<Identifier<IComponent>>(ids, 5), ppv);
+        return SetComponents(entity, ids, ppv);
     }
 
     /// <summary>
@@ -447,16 +442,15 @@ public unsafe partial class EntityManager
         where T4 : unmanaged, IComponentData
         where T5 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-            , ComponentTypeID<T1>.Value
-            , ComponentTypeID<T2>.Value
-            , ComponentTypeID<T3>.Value
-            , ComponentTypeID<T4>.Value
-            , ComponentTypeID<T5>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[6];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
+        ids[5] = ComponentTypeID<T5>.Value;
 
+        var set = new ComponentSetView(ids);
         return CreateEntity(set);
     }
 
@@ -484,18 +478,18 @@ public unsafe partial class EntityManager
         where T4 : unmanaged, IComponentData
         where T5 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-            , ComponentTypeID<T1>.Value
-            , ComponentTypeID<T2>.Value
-            , ComponentTypeID<T3>.Value
-            , ComponentTypeID<T4>.Value
-            , ComponentTypeID<T5>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[6];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
+        ids[5] = ComponentTypeID<T5>.Value;
 
+        var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0, in component1, in component2, in component3, in component4, in component5);
+        
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -531,7 +525,7 @@ public unsafe partial class EntityManager
         where T5 : unmanaged, IComponentData
     {
         var ppv = stackalloc void*[6];
-        var ids = stackalloc Identifier<IComponent>[6];
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[6];
 
         ppv[0] = Unsafe.AsPointer(in component0);
         ids[0] = ComponentTypeID<T0>.Value;
@@ -546,7 +540,7 @@ public unsafe partial class EntityManager
         ppv[5] = Unsafe.AsPointer(in component5);
         ids[5] = ComponentTypeID<T5>.Value;
 
-        return SetComponents(entity, new ReadOnlySpan<Identifier<IComponent>>(ids, 6), ppv);
+        return SetComponents(entity, ids, ppv);
     }
 
     /// <summary>
@@ -569,17 +563,16 @@ public unsafe partial class EntityManager
         where T5 : unmanaged, IComponentData
         where T6 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-            , ComponentTypeID<T1>.Value
-            , ComponentTypeID<T2>.Value
-            , ComponentTypeID<T3>.Value
-            , ComponentTypeID<T4>.Value
-            , ComponentTypeID<T5>.Value
-            , ComponentTypeID<T6>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[7];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
+        ids[5] = ComponentTypeID<T5>.Value;
+        ids[6] = ComponentTypeID<T6>.Value;
 
+        var set = new ComponentSetView(ids);
         return CreateEntity(set);
     }
 
@@ -610,19 +603,19 @@ public unsafe partial class EntityManager
         where T5 : unmanaged, IComponentData
         where T6 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-            , ComponentTypeID<T1>.Value
-            , ComponentTypeID<T2>.Value
-            , ComponentTypeID<T3>.Value
-            , ComponentTypeID<T4>.Value
-            , ComponentTypeID<T5>.Value
-            , ComponentTypeID<T6>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[7];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
+        ids[5] = ComponentTypeID<T5>.Value;
+        ids[6] = ComponentTypeID<T6>.Value;
 
+        var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0, in component1, in component2, in component3, in component4, in component5, in component6);
+        
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -661,7 +654,7 @@ public unsafe partial class EntityManager
         where T6 : unmanaged, IComponentData
     {
         var ppv = stackalloc void*[7];
-        var ids = stackalloc Identifier<IComponent>[7];
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[7];
 
         ppv[0] = Unsafe.AsPointer(in component0);
         ids[0] = ComponentTypeID<T0>.Value;
@@ -678,7 +671,7 @@ public unsafe partial class EntityManager
         ppv[6] = Unsafe.AsPointer(in component6);
         ids[6] = ComponentTypeID<T6>.Value;
 
-        return SetComponents(entity, new ReadOnlySpan<Identifier<IComponent>>(ids, 7), ppv);
+        return SetComponents(entity, ids, ppv);
     }
 
     /// <summary>
@@ -703,18 +696,17 @@ public unsafe partial class EntityManager
         where T6 : unmanaged, IComponentData
         where T7 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-            , ComponentTypeID<T1>.Value
-            , ComponentTypeID<T2>.Value
-            , ComponentTypeID<T3>.Value
-            , ComponentTypeID<T4>.Value
-            , ComponentTypeID<T5>.Value
-            , ComponentTypeID<T6>.Value
-            , ComponentTypeID<T7>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[8];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
+        ids[5] = ComponentTypeID<T5>.Value;
+        ids[6] = ComponentTypeID<T6>.Value;
+        ids[7] = ComponentTypeID<T7>.Value;
 
+        var set = new ComponentSetView(ids);
         return CreateEntity(set);
     }
 
@@ -748,20 +740,20 @@ public unsafe partial class EntityManager
         where T6 : unmanaged, IComponentData
         where T7 : unmanaged, IComponentData
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
-            , ComponentTypeID<T0>.Value
-            , ComponentTypeID<T1>.Value
-            , ComponentTypeID<T2>.Value
-            , ComponentTypeID<T3>.Value
-            , ComponentTypeID<T4>.Value
-            , ComponentTypeID<T5>.Value
-            , ComponentTypeID<T6>.Value
-            , ComponentTypeID<T7>.Value
-        );
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[8];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
+        ids[5] = ComponentTypeID<T5>.Value;
+        ids[6] = ComponentTypeID<T6>.Value;
+        ids[7] = ComponentTypeID<T7>.Value;
 
+        var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0, in component1, in component2, in component3, in component4, in component5, in component6, in component7);
+        
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -803,7 +795,7 @@ public unsafe partial class EntityManager
         where T7 : unmanaged, IComponentData
     {
         var ppv = stackalloc void*[8];
-        var ids = stackalloc Identifier<IComponent>[8];
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[8];
 
         ppv[0] = Unsafe.AsPointer(in component0);
         ids[0] = ComponentTypeID<T0>.Value;
@@ -822,7 +814,7 @@ public unsafe partial class EntityManager
         ppv[7] = Unsafe.AsPointer(in component7);
         ids[7] = ComponentTypeID<T7>.Value;
 
-        return SetComponents(entity, new ReadOnlySpan<Identifier<IComponent>>(ids, 8), ppv);
+        return SetComponents(entity, ids, ppv);
     }
 
 }

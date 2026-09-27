@@ -78,6 +78,8 @@ src/Test/TestGame/run-this-when-assets-forge-changed.ps1 -c Debug -p:Platform=x6
 src/Test/TestGame/run-this-when-assets-forge-changed.ps1 -c Release -p:Platform=x64
 ```
 
+**You don't need to run this script when just changing the asset but not baker related**
+
 ### Communication & Troubleshooting Guidelines
 
 - **Ask early on weird issues**: GhostEngine is a 140,000+ line engine with custom memory managers, unmanaged collections, ECS, GPU pipelines, and bespoke asset baking. If you encounter puzzling, strange, or unexpected behavior (e.g., unexpected data corruption, mystery buffer values, obscure pipeline artifacts), **ask the user / creator directly and early**. Do not spend prolonged time guessing or spinning in circles—the creator understands the entire architecture and can clarify expected behavior immediately.

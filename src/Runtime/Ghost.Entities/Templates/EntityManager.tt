@@ -31,13 +31,12 @@ public unsafe partial class EntityManager
     public Entity CreateEntity<<#= generics #>>()
 <#= restrictions #>
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[<#= i #>];
 <# for (var j = 0; j < i; j++) { #>
-            , ComponentTypeID<T<#= j #>>.Value
+        ids[<#= j #>] = ComponentTypeID<T<#= j #>>.Value;
 <# } #>
-        );
 
+        var set = new ComponentSetView(ids);
         return CreateEntity(set);
     }
 
@@ -54,15 +53,15 @@ public unsafe partial class EntityManager
     public Entity CreateEntity<<#= generics #>>(<#= compGenerics #>)
 <#= restrictions #>
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var set = new ComponentSet(scope.AllocationHandle
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[<#= i #>];
 <# for (var j = 0; j < i; j++) { #>
-            , ComponentTypeID<T<#= j #>>.Value
+        ids[<#= j #>] = ComponentTypeID<T<#= j #>>.Value;
 <# } #>
-        );
 
+        var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, <#= InlineFor(0, i, "in component{0}") #>);
+        
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -87,14 +86,14 @@ public unsafe partial class EntityManager
 <#= restrictions #>
     {
         var ppv = stackalloc void*[<#= i #>];
-        var ids = stackalloc Identifier<IComponent>[<#= i #>];
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[<#= i #>];
 
 <# for (var j = 0; j < i; j++) { #>
         ppv[<#= j #>] = Unsafe.AsPointer(in component<#= j #>);
         ids[<#= j #>] = ComponentTypeID<T<#= j #>>.Value;
 <# } #>
 
-        return SetComponents(entity, new ReadOnlySpan<Identifier<IComponent>>(ids, <#= i #>), ppv);
+        return SetComponents(entity, ids, ppv);
     }
 
 <# } #>

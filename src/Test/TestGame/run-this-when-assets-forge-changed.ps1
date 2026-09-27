@@ -1,6 +1,6 @@
 echo "Publising Ghost.AssetForge.CLI"
 dotnet publish src/Tools/Ghost.AssetForge.CLI/Ghost.AssetForge.CLI.csproj -c Release -o src/Tools/Ghost.AssetForge.CLI/bin/Release/Publish
 echo "Cleaning old asset caches"
-dotnet clean src/Test/TestGame.csproj $args
+dotnet clean src/Test/TestGame/TestGame.csproj $args
 echo "Building TestGame"
-dotnet build src/Test/TestGame.csproj $args
+dotnet build src/Test/TestGame/TestGame.csproj $args

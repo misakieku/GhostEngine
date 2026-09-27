@@ -30,10 +30,8 @@ struct PushConstantData
 struct FrameData
 {
     BYTE_ADDRESS_BUFFER sceneBuffer;
-    BYTE_ADDRESS_BUFFER userBuffer;
     BYTE_ADDRESS_BUFFER paletteOffsetBuffer;   // global PaletteOffsetBuffer
     BYTE_ADDRESS_BUFFER materialIndexBuffer;   // global MaterialIndexBuffer
-    uint dwordsPerTile;                        // FPTL tile stride: 16 (default) or 32
     BYTE_ADDRESS_BUFFER punctualLightsBuffer;  // global GPUPunctualLight buffer
     uint punctualLightCount;                   // number of punctual lights
     BYTE_ADDRESS_BUFFER directionalLightBuffer; // global GPUDirectionalLight buffer

@@ -13,17 +13,17 @@ internal static partial class Utility
 {
     private struct ShaderFieldInfo
     {
-        public string Name;
-        public string CSharpType;
-        public string HLSLType;
-        public int ByteSize;
+        public string name;
+        public string csharpType;
+        public string hlslType;
+        public int byteSize;
 
         public ShaderFieldInfo(string name, string csharpType, string hlslType, int byteSize)
         {
-            Name = name;
-            CSharpType = csharpType;
-            HLSLType = hlslType;
-            ByteSize = byteSize;
+            this.name = name;
+            this.csharpType = csharpType;
+            this.hlslType = hlslType;
+            this.byteSize = byteSize;
         }
     }
 
@@ -119,7 +119,7 @@ internal static partial class Utility
             }
 
             var nextField = fields[j];
-            var nextSize = nextField.ByteSize;
+            var nextSize = nextField.byteSize;
 
             if (nextSize == 0) continue; // Skip unknown sizes
 
@@ -154,13 +154,27 @@ internal static partial class Utility
         var structName = type.Identifier.Text;
         var fieldDecls = type.Members.OfType<FieldDeclarationSyntax>().ToList();
 
+        var constList = new List<(string name, string value)>();
         var fieldsList = new List<ShaderFieldInfo>();
 
         foreach (var fieldDecl in fieldDecls)
         {
             // Skip static or const fields
-            if (fieldDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword) || m.IsKind(SyntaxKind.ConstKeyword)))
+            if (fieldDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword)))
+            {
                 continue;
+            }
+
+            if (fieldDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.ConstKeyword)))
+            {
+                foreach (var variable in fieldDecl.Declaration.Variables)
+                {
+                    var constValue = variable.Initializer?.Value.ToString() ?? "0";
+                    constList.Add((variable.Identifier.Text, constValue));
+                }
+
+                continue;
+            }
 
             var csharpType = fieldDecl.Declaration.Type.ToString();
             GetHLSLTypeAndSize(csharpType, out var hlslType, out var byteSize);
@@ -203,7 +217,7 @@ internal static partial class Utility
                 if (looked[i]) continue;
 
                 var field = fields[i];
-                var size = field.ByteSize;
+                var size = field.byteSize;
 
                 sortedFields.Add(field);
                 looked[i] = true;
@@ -249,17 +263,25 @@ internal static partial class Utility
             }
         }
 
-        sb.Append(@$"
-struct {structName}
-{{");
-        foreach (var field in shaderFields)
+        if (constList.Count != 0)
         {
-            sb.Append(@$"
-    {field.HLSLType} {field.Name};");
+            sb.Append(@$"{string.Join(Environment.NewLine, constList.Select(t => $"#define {t.name} {t.value}"))}");
         }
 
-        sb.AppendLine(@"
+        if (shaderFields.Length != 0)
+        {
+            sb.Append(@$"
+struct {structName}
+{{");
+            foreach (var field in shaderFields)
+            {
+                sb.Append(@$"
+    {field.hlslType} {field.name};");
+            }
+
+            sb.AppendLine(@"
 };");
+        }
     }
 
     public static void GenerateHLSLTypes(ShaderMetadata manifest, string text)

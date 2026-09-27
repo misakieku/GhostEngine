@@ -49,6 +49,8 @@ internal unsafe partial class GhostRenderPipeline
         public ulong backingMemorySize;
         public SetWorkGraphFlags flags;
         public uint cullPassSemantic;
+        public uint4 supportedVariantMask0;
+        public uint4 supportedVariantMask1;
     }
 
     private struct MeshletCullPass2Data
@@ -194,6 +196,18 @@ internal unsafe partial class GhostRenderPipeline
             builder.UseTexture(hzbTexture, AccessFlags.Read);
         }
 
+        var cullPassSemantic = (uint)PassSemantic.Visibility;
+        var supportedVariants = _assetManager.ShaderVariants.GetVariants((PassSemantic)cullPassSemantic);
+        Span<uint> maskWords = stackalloc uint[8];
+        for (var i = 0; i < supportedVariants.Length; i++)
+        {
+            var idx = (uint)supportedVariants[i].Value;
+            if (idx < 256)
+            {
+                maskWords[(int)(idx >> 5)] |= 1u << (int)(idx & 31);
+            }
+        }
+
         var passData = new MeshletCullPass1Data
         {
             visibleMeshletsPass1 = visibleMeshlets,
@@ -213,7 +227,9 @@ internal unsafe partial class GhostRenderPipeline
             backingMemoryAddress = cullProgram.BackingMemoryAddress,
             backingMemorySize = cullProgram.BackingMemorySize,
             flags = flags,
-            cullPassSemantic = (uint)PassSemantic.Visibility
+            cullPassSemantic = cullPassSemantic,
+            supportedVariantMask0 = new uint4(maskWords[0], maskWords[1], maskWords[2], maskWords[3]),
+            supportedVariantMask1 = new uint4(maskWords[4], maskWords[5], maskWords[6], maskWords[7]),
         };
 
         builder.SetPassData(passData);
@@ -246,6 +262,9 @@ internal unsafe partial class GhostRenderPipeline
                 hzbBaseWidth = passData.hzbBaseSize.x,
                 hzbBaseHeight = passData.hzbBaseSize.y,
                 cullPassSemantic = passData.cullPassSemantic,
+                _padding = default,
+                supportedVariantMask0 = passData.supportedVariantMask0,
+                supportedVariantMask1 = passData.supportedVariantMask1,
             };
 
             var setProgramDesc = SetProgramDesc.ForWorkGraph(

@@ -196,14 +196,20 @@ public class TileLightCullingTests
 
         // Near plane device depth = 1.0f
         float linearNear = m23 / (1.0f - m22);
+        float closedNear = (nearClip * farClip) / ((farClip - nearClip) * 1.0f + nearClip);
         Assert.AreEqual(nearClip, linearNear, 1e-4f);
+        Assert.AreEqual(nearClip, closedNear, 1e-4f);
 
         // Far plane device depth = 0.0f
         float linearFar = m23 / (0.0f - m22);
+        float closedFar = (nearClip * farClip) / ((farClip - nearClip) * 0.0f + nearClip);
         Assert.AreEqual(farClip, linearFar, 1e-2f);
+        Assert.AreEqual(farClip, closedFar, 1e-2f);
 
         // Intermediate depth: device depth 0.5f
         float linearMid = m23 / (0.5f - m22);
+        float closedMid = (nearClip * farClip) / ((farClip - nearClip) * 0.5f + nearClip);
+        Assert.AreEqual(linearMid, closedMid, 1e-4f);
         Assert.IsGreaterThan(nearClip, linearMid);
         Assert.IsLessThan(farClip, linearMid);
     }

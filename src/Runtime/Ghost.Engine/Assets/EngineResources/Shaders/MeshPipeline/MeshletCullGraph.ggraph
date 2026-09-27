@@ -17,6 +17,9 @@ compute "Internal/MeshletCullGraph"
         uint hzbBaseWidth;
         uint hzbBaseHeight;
         uint cullPassSemantic;
+        uint _padding;
+        uint4 supportedVariantMask0;
+        uint4 supportedVariantMask1;
     }
 
     includes
@@ -300,14 +303,12 @@ compute "Internal/MeshletCullGraph"
                     uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
                     variantIndex = UnpackMaterialVariantIndex(packedMaterial);
 
-                    if (g_FrameData.userBuffer != INVALID_BUFFER_INDEX)
+                    uint wordIdx = variantIndex >> 5u;
+                    uint bitIdx = variantIndex & 31u;
+                    uint4 maskVec = (wordIdx < 4u) ? props.supportedVariantMask0 : props.supportedVariantMask1;
+                    if ((maskVec[wordIdx & 3u] & (1u << bitIdx)) == 0u)
                     {
-                        ByteAddressBuffer metaBuf = GET_BUFFER(g_FrameData.userBuffer);
-                        uint supportedPasses = metaBuf.Load(variantIndex * 4);
-                        if ((supportedPasses & (1u << props.cullPassSemantic)) == 0)
-                        {
-                            isValid = false;
-                        }
+                        isValid = false;
                     }
 
                     if (isValid)

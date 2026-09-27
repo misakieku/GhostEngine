@@ -195,22 +195,13 @@ public static unsafe class RenderPipelineUtility
         GetVPMatrices(in request, screenSize, out view, out projection, reversedZ: true);
     }
 
-    public static Handle<GPUBuffer> CreateFrameBuffer(
-        RenderContext ctx,
-        uint sceneBuffer,
-        uint userBuffer = uint.MaxValue,
-        uint dwordsPerTile = 16,
-        uint punctualLightsBuffer = uint.MaxValue,
-        uint punctualLightCount = 0,
-        uint directionalLightBuffer = uint.MaxValue)
+    public static Handle<GPUBuffer> CreateFrameBuffer(RenderContext ctx, uint sceneBuffer, uint punctualLightsBuffer, uint punctualLightCount, uint directionalLightBuffer)
     {
         var frameData = new FrameData
         {
             sceneBuffer = sceneBuffer,
-            userBuffer = userBuffer,
             paletteOffsetBuffer = ctx.ResourceManager.PaletteOffsetBufferBindlessIndex,
             materialIndexBuffer = ctx.ResourceManager.MaterialIndexBufferBindlessIndex,
-            dwordsPerTile = dwordsPerTile,
             punctualLightsBuffer = punctualLightsBuffer,
             punctualLightCount = punctualLightCount,
             directionalLightBuffer = directionalLightBuffer

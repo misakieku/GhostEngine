@@ -94,9 +94,9 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
 
     public void OnEngineInitialized(EngineCore engine)
     {
-        const int entityCapacity = 100;
-        const float size = 20.0f;
-        const float baseScale = 0.5f;
+        const int entityCapacity = 10;
+        const float size = 10.0f;
+        const float baseScale = 1.0f;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -121,7 +121,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
             new InputReceiver(InputProfileDatabase.FIRST_PERSON_CAMERA_PROFILE_ID, true),
             default(ActionState));
 
-        _meshAsset = engine.AssetManager.ResolveAsset("Meshes/dragon");
+        _meshAsset = engine.AssetManager.ResolveAsset("Meshes/bunny");
         _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/test");
         _shaderAsset2 = engine.AssetManager.ResolveAsset("Shaders/test2");
 
@@ -178,7 +178,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
             });
 
         // Add 64 random punctual lights (Point and Spot)
-        for (var i = 0; i < 64; i++)
+        for (var i = 0; i < 16; i++)
         {
             var pos = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
             var color = new float3(RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f));

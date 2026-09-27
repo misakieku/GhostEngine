@@ -25,6 +25,7 @@ shader "Hidden/DebugTileLightHeatmap"
             "EngineResources/Shaders/Common.hlsl";
             "EngineResources/Shaders/Properties.hlsl";
             "EngineResources/Shaders/Lighting/LightGridCommon.hlsl";
+            "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl";
         }
 
         hlsl
@@ -101,12 +102,32 @@ shader "Hidden/DebugTileLightHeatmap"
                 uint tileIndex = tileCoord.y * props.tilesX + tileCoord.x;
 
                 ByteAddressBuffer tileLightList = ResourceDescriptorHeap[props.tileLightListBufferIndex];
-                uint count = (g_FrameData.dwordsPerTile == 32u)
-                    ? GetTileLightCount<32u>(tileLightList, tileIndex)
-                    : GetTileLightCount<16u>(tileLightList, tileIndex);
+                uint count = GetTileLightCount<DWORDS_PER_TILE>(tileLightList, tileIndex);
 
                 Texture2D<float> depthTexture = ResourceDescriptorHeap[props.depthTextureIndex];
                 float depth = depthTexture[pixelCoord];
+
+                // Debug light visualization: screen-space center dot (3 pixels radius)
+                if (g_FrameData.punctualLightsBuffer != 0xFFFFFFFFu && g_FrameData.punctualLightCount > 0u)
+                {
+                    for (uint i = 0; i < g_FrameData.punctualLightCount; ++i)
+                    {
+                        PunctualLightData light = LoadData<PunctualLightData>(g_FrameData.punctualLightsBuffer, i);
+                        float4 clipLight = mul(g_ViewData.viewProjectionMatrix, float4(light.positionWS, 1.0f));
+                        if (clipLight.w > 0.001f)
+                        {
+                            float2 ndcLight = clipLight.xy / clipLight.w;
+                            float2 lightPixel = float2(
+                                (ndcLight.x * 0.5f + 0.5f) * float(props.renderWidth),
+                                (1.0f - (ndcLight.y * 0.5f + 0.5f)) * float(props.renderHeight)
+                            );
+                            if (length(float2(pixelCoord) - lightPixel) <= 3.0f)
+                            {
+                                return float4(1.0f, 1.0f, 1.0f, 1.0f);
+                            }
+                        }
+                    }
+                }
 
                 float4 color = GetHeatmapColor(count);
 

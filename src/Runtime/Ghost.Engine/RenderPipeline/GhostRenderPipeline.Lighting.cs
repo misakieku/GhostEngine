@@ -1,12 +1,10 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Engine.ShaderProperties;
-using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
-using System;
 
 namespace Ghost.Engine.RenderPipeline;
 
@@ -26,8 +24,7 @@ internal partial class GhostRenderPipeline
     {
         var tilesX = (renderSize.x + 15u) / 16u;
         var tilesY = (renderSize.y + 15u) / 16u;
-        var dwordsPerTile = _settings.HighDensityLightTiles ? 32u : 16u;
-        var bufferSize = (nuint)(tilesX * tilesY * dwordsPerTile * 4u);
+        var bufferSize = (nuint)(tilesX * tilesY * PipelineConstants.DWORDS_PER_TILE * 4u);
 
         var tileBufferDesc = new BufferDesc
         {
@@ -138,7 +135,7 @@ internal partial class GhostRenderPipeline
         if (punctualLightCount > 0)
         {
             var lights = payload.PunctualLights;
-            var bufferSize = (nuint)punctualLightCount * (nuint)sizeof(GPUPunctualLight);
+            var bufferSize = punctualLightCount * (nuint)sizeof(GPUPunctualLight);
             var desc = new BufferDesc
             {
                 Size = bufferSize,

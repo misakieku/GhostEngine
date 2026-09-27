@@ -12,6 +12,13 @@ namespace Ghost.Engine.RenderPipeline;
 
 internal partial class GhostRenderPipeline : IRenderPipeline
 {
+    [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl")]
+    private struct PipelineConstants
+    {
+        public const uint DWORDS_PER_TILE = 32u;
+        public const uint MAX_LIGHTS_PER_TILE = 63u;
+    }
+
     private readonly RenderEngine _renderEngine;
     private readonly AssetManager _assetManager;
     private readonly GhostRenderPipelineSettings _settings;
@@ -90,14 +97,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         UploadLights(ctx, ghostPayload, out var punctualLightsSrv, out var punctualLightCount, out var directionalLightSrv);
 
         // Upload FrameData once per frame
-        var dwordsPerTile = _settings.HighDensityLightTiles ? 32u : 16u;
-        var frameBuffer = RenderPipelineUtility.CreateFrameBuffer(
-            ctx,
-            _gpuScene.SceneBufferSrvIndex,
-            dwordsPerTile: dwordsPerTile,
-            punctualLightsBuffer: punctualLightsSrv,
-            punctualLightCount: punctualLightCount,
-            directionalLightBuffer: directionalLightSrv);
+        var frameBuffer = RenderPipelineUtility.CreateFrameBuffer(ctx, _gpuScene.SceneBufferSrvIndex, punctualLightsSrv, punctualLightCount, directionalLightSrv);
 
         for (var requestIndex = 0; requestIndex < ghostPayload.RenderRequests.Length; requestIndex++)
         {
@@ -140,13 +140,12 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 out var currentDepth, out var currentVisBuffer,
                 out var visibleMeshlets0, out var visibleMeshlets1);
 
-            var tileLightList = AddTileLightCullingPass(viewContext.RenderGraph, currentDepth, viewContext.RenderSize);
-
             AddTileClassificationPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, viewContext.RenderSize,
                 out var tileListBuffer, out var tileOffsetsBuffer, out var indirectArgsBuffer);
 
             var gbuffer = AddDeferredTexturingPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, tileOffsetsBuffer, indirectArgsBuffer, viewContext.RenderSize);
-
+            var tileLightList = AddTileLightCullingPass(viewContext.RenderGraph, currentDepth, viewContext.RenderSize);
+            
             if (_settings.DebugMode == RenderPipelineDebugMode.TileLightHeatmap)
             {
                 AddDebugTileLightHeatmapPass(viewContext.RenderGraph, tileLightList, currentDepth, colorTarget, viewContext.RenderSize);

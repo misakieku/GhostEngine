@@ -15,13 +15,24 @@ compute "Internal/TileLightCulling"
         "EngineResources/Shaders/Properties.hlsl";
         "EngineResources/Shaders/Common.hlsl";
         "EngineResources/Shaders/Lighting/LightGridCommon.hlsl";
+        "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl";
     }
 
     hlsl
     {
+        #define MAX_COARSE_LIGHTS 64u
+
         groupshared uint s_MinDeviceZ;
         groupshared uint s_MaxDeviceZ;
-        groupshared float4 s_FrustumPlanes[6]; // xyz: normal pointing inward, w: plane distance D
+        groupshared float s_MinViewZ;
+        groupshared float s_MaxViewZ;
+        groupshared float3 s_TileCenterRay;
+        groupshared float s_HalfTileSizeAtZDistOne;
+
+        groupshared uint s_CoarseLightCount;
+        groupshared uint s_CoarseLightIndices[MAX_COARSE_LIGHTS];
+
+        groupshared uint s_DoesLightIntersect[2];
         groupshared uint s_TileLightCount;
         groupshared uint s_TileLightIndices[63]; // Max lights: 32 DWORDS -> 63 lights
 
@@ -60,6 +71,29 @@ compute "Internal/TileLightCulling"
             }
         }
 
+        // Ray-cone vs sphere intersection (Unity HDRP / DICE FPTL algorithm)
+        bool DoesSphereOverlapTile(float3 dir, float halfTileSizeAtZDistOne, float3 sphCen, float sphRadiusIn)
+        {
+            float3 V = dir; // Ray direction down center of tile
+
+            float3 maxZdir = float3(-sphCen.z * sphCen.x, -sphCen.z * sphCen.y, sphCen.x * sphCen.x + sphCen.y * sphCen.y);
+            float len = length(maxZdir);
+            float scalarProj = len > 0.0001f ? (maxZdir.z / len) : len;
+            float offs = scalarProj * sphRadiusIn;
+
+            // In Left-Hand camera space (+Z forward):
+            float s = max(sphCen.z + offs, 0.0f);
+            float sphRadius = sphRadiusIn + s * halfTileSizeAtZDistOne;
+
+            float a = dot(V, V);
+            float CdotV = dot(sphCen, V);
+            float c = dot(sphCen, sphCen) - sphRadius * sphRadius;
+
+            float fDescDivFour = CdotV * CdotV - a * c;
+
+            return (c < 0.0f) || (fDescDivFour > 0.0f && CdotV > 0.0f);
+        }
+
         [numthreads(FPTL_TILE_SIZE, FPTL_TILE_SIZE, 1)]
         void CSMain(
             uint3 dispatchThreadId : SV_DispatchThreadID,
@@ -69,30 +103,39 @@ compute "Internal/TileLightCulling"
         {
             InternalTileLightCullingShaderProperties props = LoadData<InternalTileLightCullingShaderProperties>(g_PushConstantData.userData0, 0);
 
-            // Step 1: Initialize shared memory
+            // Initialize shared memory
             if (groupIndex == 0u)
             {
                 s_MinDeviceZ = 0xFFFFFFFFu;
                 s_MaxDeviceZ = 0u;
+                s_CoarseLightCount = 0u;
                 s_TileLightCount = 0u;
+                s_DoesLightIntersect[0] = 0u;
+                s_DoesLightIntersect[1] = 0u;
             }
+
             GroupMemoryBarrierWithGroupSync();
 
-            // Step 2: Sample depth texture and find min/max device depth within tile
+            // Sample depth texture and find min/max device depth within tile
             uint2 pixelCoord = groupID.xy * FPTL_TILE_SIZE + groupThreadId.xy;
+            float deviceDepth = 0.0f;
+            bool hasValidDepth = false;
+
             if (pixelCoord.x < props.renderWidth && pixelCoord.y < props.renderHeight)
             {
                 Texture2D<float> depthTexture = ResourceDescriptorHeap[props.depthTextureIndex];
-                float deviceDepth = depthTexture[pixelCoord];
+                deviceDepth = depthTexture[pixelCoord];
 
                 // In Reversed-Z: geometry is in (0.0, 1.0], while 0.0 is background/clear/sky
                 if (deviceDepth > 0.0f)
                 {
+                    hasValidDepth = true;
                     uint depthUint = asuint(deviceDepth);
                     InterlockedMin(s_MinDeviceZ, depthUint);
                     InterlockedMax(s_MaxDeviceZ, depthUint);
                 }
             }
+
             GroupMemoryBarrierWithGroupSync();
 
             uint tileIndex = groupID.y * props.tilesX + groupID.x;
@@ -102,120 +145,128 @@ compute "Internal/TileLightCulling"
             // If the tile has no geometry (all sky), clear light list and exit
             if (!hasGeometry)
             {
-                if (g_FrameData.dwordsPerTile == 32u)
-                {
-                    ClearTileLightList<32u>(tileLightListUav, tileIndex, groupIndex);
-                }
-                else
-                {
-                    ClearTileLightList<16u>(tileLightListUav, tileIndex, groupIndex);
-                }
+                ClearTileLightList<DWORDS_PER_TILE>(tileLightListUav, tileIndex, groupIndex);
                 return;
             }
 
-            // Step 3: Thread 0 builds the 6 tile frustum planes in view space
+            // Thread 0 computes tile ray, depth range, and angular size in view space
+            float n = g_ViewData.nearClip;
+            float f = g_ViewData.farClip;
+            float m00 = g_ViewData.projectionMatrix[0][0];
+            float m11 = g_ViewData.projectionMatrix[1][1];
+
             if (groupIndex == 0u)
             {
                 float minDevZ = asfloat(s_MinDeviceZ);
                 float maxDevZ = asfloat(s_MaxDeviceZ);
 
                 // Reversed-Z linear eye depth:
-                // z_view = m23 / (z_dev - m22)
-                float m22 = g_ViewData.projectionMatrix[2][2];
-                float m23 = g_ViewData.projectionMatrix[2][3];
+                // z_view = (near * far) / ((far - near) * z_dev + near)
+                s_MinViewZ = max((n * f) / ((f - n) * maxDevZ + n), n);
+                s_MaxViewZ = min((n * f) / ((f - n) * minDevZ + n), f);
 
-                // maxDevZ (closest to 1.0) -> minViewZ (closest to camera)
-                // minDevZ (closest to 0.0) -> maxViewZ (furthest from camera)
-                float minViewZ = m23 / (maxDevZ - m22);
-                float maxViewZ = m23 / (minDevZ - m22);
+                // Tile center pixel in NDC [-1, 1]
+                float2 tileCenterPixel = float2(groupID.xy * FPTL_TILE_SIZE + (FPTL_TILE_SIZE / 2u));
+                float2 tileCenterNDC = float2(
+                    (tileCenterPixel.x * g_ViewData.screenSize.z) * 2.0f - 1.0f,
+                    1.0f - (tileCenterPixel.y * g_ViewData.screenSize.w) * 2.0f
+                );
+                s_TileCenterRay = float3(tileCenterNDC.x / m00, tileCenterNDC.y / m11, 1.0f);
 
-                minViewZ = max(minViewZ, g_ViewData.nearClip);
-                maxViewZ = min(maxViewZ, g_ViewData.farClip);
-
-                // Compute tile boundaries in clip space [-1, 1]
-                float px0 = float(groupID.x * FPTL_TILE_SIZE);
-                float px1 = float(min((groupID.x + 1u) * FPTL_TILE_SIZE, props.renderWidth));
-                float py0 = float(groupID.y * FPTL_TILE_SIZE);
-                float py1 = float(min((groupID.y + 1u) * FPTL_TILE_SIZE, props.renderHeight));
-
-                float clipX0 = (px0 * g_ViewData.screenSize.z) * 2.0f - 1.0f;
-                float clipX1 = (px1 * g_ViewData.screenSize.z) * 2.0f - 1.0f;
-                float clipY0 = 1.0f - (py0 * g_ViewData.screenSize.w) * 2.0f;
-                float clipY1 = 1.0f - (py1 * g_ViewData.screenSize.w) * 2.0f;
-
-                // View-space slopes at z = 1
-                float m00 = g_ViewData.projectionMatrix[0][0];
-                float m11 = g_ViewData.projectionMatrix[1][1];
-
-                float x0 = clipX0 / m00;
-                float x1 = clipX1 / m00;
-                float y0 = clipY1 / m11; // clipY1 is bottom (< clipY0)
-                float y1 = clipY0 / m11; // clipY0 is top (> clipY1)
-
-                // 4 side planes passing through view-space origin (0, 0, 0), normals pointing inward:
-                // Left plane: x >= x0 * z -> (1, 0, -x0)
-                s_FrustumPlanes[0] = float4(normalize(float3(1.0f, 0.0f, -x0)), 0.0f);
-
-                // Right plane: x <= x1 * z -> (-1, 0, x1)
-                s_FrustumPlanes[1] = float4(normalize(float3(-1.0f, 0.0f, x1)), 0.0f);
-
-                // Bottom plane: y >= y0 * z -> (0, 1, -y0)
-                s_FrustumPlanes[2] = float4(normalize(float3(0.0f, 1.0f, -y0)), 0.0f);
-
-                // Top plane: y <= y1 * z -> (0, -1, y1)
-                s_FrustumPlanes[3] = float4(normalize(float3(0.0f, -1.0f, y1)), 0.0f);
-
-                // Near slice plane: z >= minViewZ -> (0, 0, 1) . P - minViewZ >= 0
-                s_FrustumPlanes[4] = float4(0.0f, 0.0f, 1.0f, -minViewZ);
-
-                // Far slice plane: z <= maxViewZ -> (0, 0, -1) . P + maxViewZ >= 0
-                s_FrustumPlanes[5] = float4(0.0f, 0.0f, -1.0f, maxViewZ);
+                // View-space tile half-size at Z = 1
+                float dx = (2.0f * g_ViewData.screenSize.z) / m00;
+                float dy = (2.0f * g_ViewData.screenSize.w) / m11;
+                s_HalfTileSizeAtZDistOne = float(FPTL_TILE_SIZE / 2u) * length(float2(dx, dy));
             }
+
             GroupMemoryBarrierWithGroupSync();
 
-            // Step 4: Cooperatively test all punctual lights against the 6 tile frustum planes
-            uint maxLights = (g_FrameData.dwordsPerTile == 32u) ? 63u : 31u;
+            // Each thread reconstructs its pixel's view-space surface position
+            float3 pixelPosVS = float3(0.0f, 0.0f, 0.0f);
+            if (hasValidDepth)
+            {
+                float zView = (n * f) / ((f - n) * deviceDepth + n);
+                float2 ndc = float2(
+                    ((float(pixelCoord.x) + 0.5f) * g_ViewData.screenSize.z) * 2.0f - 1.0f,
+                    1.0f - ((float(pixelCoord.y) + 0.5f) * g_ViewData.screenSize.w) * 2.0f
+                );
+                pixelPosVS = float3((ndc.x / m00) * zView, (ndc.y / m11) * zView, zView);
+            }
 
+            // Coarse culling (spherical ray-cone test + depth slice test)
             for (uint lightIndex = groupIndex; lightIndex < g_FrameData.punctualLightCount; lightIndex += 256u)
             {
                 PunctualLightData light = LoadData<PunctualLightData>(g_FrameData.punctualLightsBuffer, lightIndex);
-
-                // Transform light center to view space
                 float3 centerVS = mul(g_ViewData.viewMatrix, float4(light.positionWS, 1.0f)).xyz;
                 float radius = light.range;
 
-                bool visible = true;
-                [unroll]
-                for (int p = 0; p < 6; ++p)
+                if (centerVS.z + radius >= s_MinViewZ && centerVS.z - radius <= s_MaxViewZ)
                 {
-                    if (dot(s_FrustumPlanes[p].xyz, centerVS) + s_FrustumPlanes[p].w < -radius)
+                    if (DoesSphereOverlapTile(s_TileCenterRay, s_HalfTileSizeAtZDistOne, centerVS, radius))
                     {
-                        visible = false;
-                        break;
+                        uint slot;
+                        InterlockedAdd(s_CoarseLightCount, 1u, slot);
+                        if (slot < MAX_COARSE_LIGHTS)
+                        {
+                            s_CoarseLightIndices[slot] = lightIndex;
+                        }
                     }
                 }
+            }
 
-                if (visible)
+            GroupMemoryBarrierWithGroupSync();
+
+            // Fine pruning (per-pixel 3D Euclidean distance test against tile surface geometry)
+            uint coarseCount = min(s_CoarseLightCount, MAX_COARSE_LIGHTS);
+            uint uLightsFlags[2] = { 0u, 0u };
+
+            if (hasValidDepth)
+            {
+                for (uint l = 0u; l < coarseCount; ++l)
                 {
-                    uint slot;
-                    InterlockedAdd(s_TileLightCount, 1u, slot);
-                    if (slot < maxLights)
+                    uint lightIndex = s_CoarseLightIndices[l];
+                    PunctualLightData light = LoadData<PunctualLightData>(g_FrameData.punctualLightsBuffer, lightIndex);
+                    float3 centerVS = mul(g_ViewData.viewMatrix, float4(light.positionWS, 1.0f)).xyz;
+                    float radiusSq = light.range * light.range;
+
+                    float3 toLight = centerVS - pixelPosVS;
+                    if (dot(toLight, toLight) <= radiusSq)
                     {
-                        s_TileLightIndices[slot] = lightIndex;
+                        uLightsFlags[l >> 5u] |= (1u << (l & 31u));
                     }
                 }
+            }
+
+            if (uLightsFlags[0] != 0u)
+            {
+                InterlockedOr(s_DoesLightIntersect[0], uLightsFlags[0]);
+            }
+            if (uLightsFlags[1] != 0u)
+            {
+                InterlockedOr(s_DoesLightIntersect[1], uLightsFlags[1]);
+            }
+
+            GroupMemoryBarrierWithGroupSync();
+
+            if (groupIndex == 0u)
+            {
+                uint count = 0u;
+                for (uint w = 0u; w < 2u; ++w)
+                {
+                    uint mask = s_DoesLightIntersect[w];
+                    while (mask != 0u && count < MAX_LIGHTS_PER_TILE)
+                    {
+                        uint bit = firstbitlow(mask);
+                        mask &= ~(1u << bit);
+                        s_TileLightIndices[count++] = s_CoarseLightIndices[w * 32u + bit];
+                    }
+                }
+                s_TileLightCount = count;
             }
             GroupMemoryBarrierWithGroupSync();
 
-            // Step 5: Write packed tile light list to RWByteAddressBuffer
-            if (g_FrameData.dwordsPerTile == 32u)
-            {
-                WriteTileLightList<32u>(tileLightListUav, tileIndex, groupIndex);
-            }
-            else
-            {
-                WriteTileLightList<16u>(tileLightListUav, tileIndex, groupIndex);
-            }
+            // Write packed tile light list to RWByteAddressBuffer
+            WriteTileLightList<DWORDS_PER_TILE>(tileLightListUav, tileIndex, groupIndex);
         }
     }
 
