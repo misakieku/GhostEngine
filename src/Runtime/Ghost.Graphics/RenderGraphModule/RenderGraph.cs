@@ -562,15 +562,12 @@ public sealed class RenderGraph : IDisposable
     /// <summary>
     /// Compiles the render graph and executes all compiled passes.
     /// </summary>
-    public Result<RGExecution, Error> CompileAndExecute(
-        in RenderGraphExecutionContext executionContext,
-        ViewState viewState,
-        RGExecutionFlags flags = RGExecutionFlags.Default)
+    public Result<RGExecution, Error> CompileAndExecute(in RenderGraphExecutionContext executionContext, ViewState viewState, RGFlags flags = RGFlags.Default)
     {
         _resourceRegistry.ResolveTextureSizes(in viewState);
 
         var graphHash = RenderGraphHasher.ComputeGraphHash(_passes, _resourceRegistry);
-        var result = _compiler.Compile(in viewState, graphHash, _passes, _memoryPool.AllocationHandle);
+        var result = _compiler.Compile(in viewState, graphHash, _passes, flags, _memoryPool.AllocationHandle);
         if (result.IsFailure)
         {
             return result.Error;
@@ -578,14 +575,8 @@ public sealed class RenderGraph : IDisposable
 
         using var graph = result.Value;
         _context.RelativeScale = graph.scale;
-        var error = _executor.Execute(
-            executionContext,
-            _context,
-            graph,
-            flags,
-            out var graphicsSubmission,
-            out var computeSubmission);
 
+        var error = _executor.Execute(executionContext, _context, graph, flags, out var graphicsSubmission, out var computeSubmission);
         if (error.IsFailure)
         {
             return error;
@@ -621,7 +612,7 @@ public sealed class RenderGraph : IDisposable
             }
         }
 
-        var dump = flags.HasFlag(RGExecutionFlags.GenerateDump)
+        var dump = flags.HasFlag(RGFlags.GenerateDump)
             ? GenerateDump(graph, viewState)
             : null;
 

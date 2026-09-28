@@ -23,7 +23,6 @@
 struct SurfaceData
 {
     float3 albedo;
-    float3 emissive;
 };
 
 struct MaterialContext
@@ -32,6 +31,7 @@ struct MaterialContext
     uint materialIndex;
     float3 worldPos;
     float3 normalWS;
+    float4 tangentWS;
     float2 uv;
 };
 

@@ -79,4 +79,28 @@ struct DeferredTexturingShaderProperties
     uint variantIndex;
 };
 
+#define SHADING_MODEL_UNLIT       0u
+#define SHADING_MODEL_SIMPLE_LIT  1u
+#define SHADING_MODEL_STANDARD    2u
+#define SHADING_MODEL_SUBSURFACE  3u
+#define SHADING_MODEL_HAIR        4u
+#define SHADING_MODEL_CLOTH       5u
+#define SHADING_MODEL_CLEAR_COAT  6u
+
+struct DeferredLightingShaderProperties
+{
+    uint gbuffer0Srv;
+    uint gbuffer1Srv;
+    uint gbuffer2Srv;
+    uint gbuffer3Srv;
+    uint depthTextureIndex;
+    uint tileLightListBufferIndex;
+    uint tileShadingModelMaskBufferIndex;
+    uint litColorUav;
+    uint renderWidth;
+    uint renderHeight;
+    uint tilesPerRow;
+    uint shadingModelId;
+};
+
 #endif // GHOST_CLASSIFICATION_COMMON_HLSL

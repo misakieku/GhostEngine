@@ -4,6 +4,7 @@ shader "Hidden/Blit"
     {
         Texture2D mainTex;
         SamplerState sampler_mainTex;
+        bool linearToSRGB;
     }
 
     pass "Forward"
@@ -19,8 +20,8 @@ shader "Hidden/Blit"
 
         includes
         {
-            "EngineResources/Shaders/Common.hlsl";
             "EngineResources/Shaders/Properties.hlsl";
+            "EngineResources/Shaders/Utilities/Color.hlsl";
         }
 
         hlsl
@@ -52,7 +53,14 @@ shader "Hidden/Blit"
             float4 PSMain(PSInput input) : SV_TARGET
             {
                 HiddenBlitShaderProperties properties = LoadData<HiddenBlitShaderProperties>(g_PushConstantData.userData0, 0);
-                return float4(SAMPLE_TEXTURE2D(properties.mainTex, properties.sampler_mainTex, input.uv.xy).xyz, 1.0);
+                float4 color = SAMPLE_TEXTURE2D(properties.mainTex, properties.sampler_mainTex, input.uv.xy);
+                
+                if (properties.linearToSRGB)
+                {
+                    color = LinearToSRGB(color);
+                }
+
+                return color;
             }
         }
 

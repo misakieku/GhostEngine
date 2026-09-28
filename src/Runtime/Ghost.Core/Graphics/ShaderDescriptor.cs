@@ -51,6 +51,7 @@ public static class PassSemanticExtensions
             "Visibility" => PassSemantic.Visibility,
             "Shadow" => PassSemantic.Shadow,
             "DeferredTexturing" => PassSemantic.DeferredTexturing,
+            "DeferredLighting" => PassSemantic.DeferredLighting,
             _ => PassSemantic.Custom,
         };
     }

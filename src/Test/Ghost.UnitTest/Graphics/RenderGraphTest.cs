@@ -100,10 +100,10 @@ public partial class RenderGraphTest
 
     private Result<RGExecution, Error> CompileAndExecute(
         ViewState viewState,
-        RGExecutionFlags flags = RGExecutionFlags.Default)
+        RGFlags flags = RGFlags.Default)
     {
         _graphicsEngine.ResetCommandBufferTracking();
-        return _renderGraph.CompileAndExecute(_executionContext, viewState, flags | RGExecutionFlags.ForceGraphics);
+        return _renderGraph.CompileAndExecute(_executionContext, viewState, flags | RGFlags.ForceGraphics);
     }
 
     private IEnumerable<BarrierDesc> GetRecordedBarriers()
@@ -306,7 +306,7 @@ public partial class RenderGraphTest
 
     private RenderGraphDump CompilePlannerDump()
     {
-        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execution.Dump);
         return execution.Dump;
     }
@@ -338,7 +338,7 @@ public partial class RenderGraphTest
             actualHeight = 1080,
             viewportWidth = 1920,
             viewportHeight = 1080
-        }, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        }, RGFlags.GenerateDump).GetValueOrThrow();
 
         Assert.IsNotNull(execution.Dump);
 
@@ -377,7 +377,7 @@ public partial class RenderGraphTest
 
         // Frame 1: Initial compilation (Cache Miss)
         SetupTestRenderPipeline();
-        var execFrame1 = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execFrame1 = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execFrame1.Dump);
         Assert.IsFalse(execFrame1.Dump.IsCacheHit, "Frame 1 should be a cache miss.");
 
@@ -385,7 +385,7 @@ public partial class RenderGraphTest
 
         // Frame 2: Same pipeline setup (Cache Hit)
         SetupTestRenderPipeline();
-        var execFrame2 = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execFrame2 = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execFrame2.Dump);
         Assert.IsTrue(execFrame2.Dump.IsCacheHit, "Frame 2 should be a cache hit.");
 
@@ -442,7 +442,7 @@ public partial class RenderGraphTest
         }
 
         SetupMergedPasses();
-        var freshExecution = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var freshExecution = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(freshExecution.Dump);
         var freshPasses = freshExecution.Dump.Passes.Where(pass => pass.Name.StartsWith("MergedPass", StringComparison.Ordinal)).ToList();
         Assert.HasCount(2, freshPasses);
@@ -453,7 +453,7 @@ public partial class RenderGraphTest
         _renderGraph.Reset();
 
         SetupMergedPasses();
-        var cachedExecution = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var cachedExecution = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(cachedExecution.Dump);
         Assert.IsTrue(cachedExecution.Dump.IsCacheHit);
         var cachedPasses = cachedExecution.Dump.Passes.Where(pass => pass.Name.StartsWith("MergedPass", StringComparison.Ordinal)).ToList();
@@ -514,7 +514,7 @@ public partial class RenderGraphTest
             actualHeight = 1080,
             viewportWidth = 1920,
             viewportHeight = 1080
-        }, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        }, RGFlags.GenerateDump).GetValueOrThrow();
 
         Assert.IsNotNull(exec.Dump);
 
@@ -629,13 +629,13 @@ public partial class RenderGraphTest
         }
 
         var (before, after) = AddAliasingBufferPasses();
-        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         AssertAliasingTransition(execution, before, after);
 
         _renderGraph.Reset();
 
         var (cachedBefore, cachedAfter) = AddAliasingBufferPasses();
-        var cachedExecution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var cachedExecution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(cachedExecution.Dump);
         Assert.IsTrue(cachedExecution.Dump.IsCacheHit, "The second equivalent graph must replay the cached barrier stream.");
         AssertAliasingTransition(cachedExecution, cachedBefore, cachedAfter);
@@ -679,7 +679,7 @@ public partial class RenderGraphTest
             actualHeight = 1080,
             viewportWidth = 1920,
             viewportHeight = 1080
-        }, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        }, RGFlags.GenerateDump).GetValueOrThrow();
 
         Assert.IsNotNull(exec.Dump);
 
@@ -752,7 +752,7 @@ public partial class RenderGraphTest
             builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execution.Dump);
 
         var resourceLabel = $"[Buffer #{readWriteBuffer.Value}]";
@@ -783,7 +783,7 @@ public partial class RenderGraphTest
         }
 
         var repeatedBuffer = SetupReadPass(repeatDeclaration: true);
-        var repeatedExecution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var repeatedExecution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(repeatedExecution.Dump);
 
         var repeatedPass = repeatedExecution.Dump.Passes.Single(pass => pass.Name == "RepeatedRead");
@@ -795,7 +795,7 @@ public partial class RenderGraphTest
         _renderGraph.Reset();
 
         SetupReadPass(repeatDeclaration: false);
-        var singleExecution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var singleExecution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(singleExecution.Dump);
         Assert.AreEqual(repeatedExecution.Dump.GraphHash, singleExecution.Dump.GraphHash, "Duplicate declarations must not alter the structural graph hash.");
         Assert.IsTrue(singleExecution.Dump.IsCacheHit, "Canonical declarations must reuse the compilation cached for the equivalent graph.");
@@ -825,7 +825,7 @@ public partial class RenderGraphTest
             builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execution.Dump);
 
         var pass = execution.Dump.Passes.Single(item => item.Name == "RepeatedRandomAccess");
@@ -861,7 +861,7 @@ public partial class RenderGraphTest
         AddPass("WriteC", AccessFlags.Write);
         AddPass("WriteD", AccessFlags.Write);
 
-        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execution.Dump);
 
         var executionOrder = execution.Dump.CommandStream.Where(line => line.Contains("ExecutePass")).ToList();
@@ -912,14 +912,14 @@ public partial class RenderGraphTest
         }
 
         SetupPipeline(false);
-        var firstExecution = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var firstExecution = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(firstExecution.Dump);
         Assert.IsFalse(firstExecution.Dump.IsCacheHit);
 
         _renderGraph.Reset();
 
         SetupPipeline(true);
-        var secondExecution = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var secondExecution = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(secondExecution.Dump);
         Assert.IsTrue(secondExecution.Dump.IsCacheHit);
         Assert.AreEqual(firstExecution.Dump.GraphHash, secondExecution.Dump.GraphHash);
@@ -956,7 +956,7 @@ public partial class RenderGraphTest
             builder.SetRenderFunc<VBufferPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var execResult = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump);
+        var execResult = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump);
 
         Assert.IsTrue(execResult.IsSuccess, "Async-eligible compute should execute successfully on the graphics queue.");
         var exec = execResult.Value;
@@ -1006,13 +1006,13 @@ public partial class RenderGraphTest
         }
 
         SetupComputePass(asyncRequested: true);
-        var asyncExecution = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var asyncExecution = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(asyncExecution.Dump);
 
         _renderGraph.Reset();
 
         SetupComputePass(asyncRequested: false);
-        var graphicsExecution = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var graphicsExecution = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(graphicsExecution.Dump);
 
         Assert.AreNotEqual(asyncExecution.Dump.GraphHash, graphicsExecution.Dump.GraphHash, "Async scheduling intent must remain part of the graph hash.");

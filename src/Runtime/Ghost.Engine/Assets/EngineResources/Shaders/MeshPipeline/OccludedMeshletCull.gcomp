@@ -25,15 +25,7 @@ compute "Internal/OccludedMeshletCull"
     {
         static inline bool TestHZB(float4 clipMin, float4 clipMax, InternalOccludedMeshletCullShaderProperties props)
         {
-            return HZBVisible(
-                clipMin,
-                clipMax,
-                props.hzbMipCount,
-                props.renderWidth,
-                props.renderHeight,
-                props.hzbTexture,
-                props.hzbBaseWidth,
-                props.hzbBaseHeight);
+            return HZBVisible(clipMin, clipMax, props.hzbMipCount, props.renderWidth, props.renderHeight, props.hzbTexture, props.hzbBaseWidth, props.hzbBaseHeight);
         }
 
         [numthreads(64, 1, 1)]
@@ -69,6 +61,7 @@ compute "Internal/OccludedMeshletCull"
                     if (cullResult.clipValid && props.hzbMipCount > 0)
                     {
                         isVisible = TestHZB(cullResult.clipMin, cullResult.clipMax, props);
+                        // isVisible = true;
                     }
                     else
                     {

@@ -14,7 +14,7 @@ public partial class RenderGraphTest
     public void TestPhase4_SyncMarkersRecordAndSubmitEndedGraphicsCommandBuffersInOrder()
     {
         SetupPhase4SplitPipeline();
-        var execution = CompileAndExecute(s_phase4ViewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(s_phase4ViewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execution.Dump);
 
         var expectedSegmentCount = GetCommandBufferSegmentCount(execution.Dump);
@@ -165,14 +165,14 @@ public partial class RenderGraphTest
     public void TestPhase4_CacheHitPreservesNativeCommandBufferSplitting()
     {
         SetupPhase4SplitPipeline();
-        var firstExecution = CompileAndExecute(s_phase4ViewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var firstExecution = CompileAndExecute(s_phase4ViewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(firstExecution.Dump);
         var firstSegmentCount = _graphicsEngine.AcquiredCommandBuffers.Count;
         var firstRequestedTypes = _graphicsEngine.RequestedCommandBufferTypes.ToArray();
 
         ResetPhase4Scenario();
         SetupPhase4SplitPipeline();
-        var cachedExecution = CompileAndExecute(s_phase4ViewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var cachedExecution = CompileAndExecute(s_phase4ViewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(cachedExecution.Dump);
 
         Assert.IsTrue(cachedExecution.Dump.IsCacheHit);

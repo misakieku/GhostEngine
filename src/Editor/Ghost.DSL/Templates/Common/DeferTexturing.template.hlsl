@@ -109,13 +109,13 @@ void CSMain(
     outputs.gbuffer3 = float4(surface.emissive, 0.0f);
 #elif defined(GHOST_TEMPLATE_UNLIT)
     // GBuffer0: BaseColor (rgb) + ShadingModel/Flags (a)
-    outputs.gbuffer0 = float4(surface.albedo, asfloat(0xFFFFFFFF)); // 0xFFFFFFFF = Unlit
+    outputs.gbuffer0 = float4(0.0f, 0.0f, 0.0f, asfloat(0xFFFFFFFF)); // 0xFFFFFFFF = Unlit
     // GBuffer1: Normal, roughness=1, metallic=0
     outputs.gbuffer1 = float4(OctahedralEncode(attrs.normalWS), 1.0f, 0.0f);
     // GBuffer2: Motion Vectors (xy) + Occlusion (z) + FeatureBitmask (w)
     outputs.gbuffer2 = float4(attrs.motionVectors, 1.0f, 0.0f);
     // GBuffer3: Emissive Color (rgb) + Unlit flag (1.0f)
-    outputs.gbuffer3 = float4(surface.emissive, 1.0f);
+    outputs.gbuffer3 = float4(surface.albedo, 1.0f); // Treat albedo as emissive for unlit materials
 #else
     #error "Unsupported template type for deferred texturing"
 #endif

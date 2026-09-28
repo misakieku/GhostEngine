@@ -356,12 +356,38 @@ internal static class RenderGraphAliasingBuilder
     /// <summary>
     /// Builds a memory aliasing plan for all transient resources in the registry.
     /// </summary>
-    public static AliasingPlan Build(
-        RenderGraphResourceRegistry registry,
-        IResourceAllocator allocator,
-        RenderGraphResourceOrdering ordering,
-        AllocationHandle allocationHandle)
+    public static AliasingPlan Build(RenderGraphResourceRegistry registry, IResourceAllocator allocator, RenderGraphResourceOrdering ordering, bool noAliasing, AllocationHandle allocationHandle)
     {
+        var plan = new AliasingPlan(allocationHandle);
+
+        if (noAliasing)
+        {
+            for (var i = 0; i < registry.ResourceCount; i++)
+            {
+                var resource = registry.GetResourceByIndex(i);
+                if (!resource.isImported && !resource.isExtracted)
+                {
+                    var size = GetResourceSize(resource, allocator);
+                    var placed = new PlacedResource(allocationHandle)
+                    {
+                        index = plan.placedResources.Count,
+                        type = resource.type,
+                        heapOffset = plan.totalHeapSize,
+                        sizeInBytes = size,
+                        firstUsePass = ordering.GetFirstUseScheduleIndex(resource.index),
+                        lastUsePass = ordering.GetLastUseScheduleIndex(resource.index)
+                    };
+
+                    placed.aliasedLogicalResources.Add(resource.index);
+                    plan.placedResources.Add(placed);
+                    plan.logicalToPlaced[resource.index] = placed.index;
+                    plan.totalHeapSize += size;
+                }
+            }
+
+            return plan;
+        }
+
         using var scope = AllocationManager.CreateStackScope();
         // Build list of all logical resources with their lifetimes
         using var logicalResources = new UnsafeList<LogicalResourceEntry>(registry.ResourceCount, scope.AllocationHandle);
@@ -382,8 +408,6 @@ internal static class RenderGraphAliasingBuilder
         // Sort by size descending
         // TODO: Avoid closure.
         logicalResources.AsSpan().Sort(default(ResourceSizeDescendingComparer));
-
-        var plan = new AliasingPlan(allocationHandle);
 
         // Simulate allocation to find peak memory usage
         using var simulationHeap = new ResourceHeap(0, ulong.MaxValue, ordering, scope.AllocationHandle);
@@ -415,6 +439,7 @@ internal static class RenderGraphAliasingBuilder
                 lastUsePass = lastUseScheduleIndex,
                 memoryInfo = memInfo
             };
+
             assignedPlaced.aliasedLogicalResources.Add(item.index);
 
             plan.placedResources.Add(assignedPlaced);

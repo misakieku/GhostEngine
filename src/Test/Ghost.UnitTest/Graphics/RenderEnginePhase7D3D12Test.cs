@@ -190,7 +190,7 @@ public class RenderEnginePhase7D3D12Test
             renderGraph.Reset();
             BuildRepresentativePipeline(renderGraph, backBufferHandle);
 
-            var result = renderGraph.CompileAndExecute(executionContext, viewState, RGExecutionFlags.ForceGraphics);
+            var result = renderGraph.CompileAndExecute(executionContext, viewState, RGFlags.ForceGraphics);
             Assert.IsTrue(result.IsSuccess, $"ForceGraphics execution must succeed. Error: {result.Error}");
 
             var execution = result.Value;

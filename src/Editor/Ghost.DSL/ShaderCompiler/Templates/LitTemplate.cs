@@ -79,8 +79,8 @@ internal sealed class LitTemplate : IShaderTemplate
     {
         new TemplateOverridePoint("GetAlphaCoverage", "GHOST_OVERRIDE_GET_ALPHA_COVERAGE"),
         new TemplateOverridePoint("GetSurfaceData", "GHOST_OVERRIDE_GET_SURFACE_DATA"),
-        new TemplateOverridePoint("EvaluateDirectLighting", "GHOST_OVERRIDE_EVALUATE_DIRECT_LIGHTING"),
-        new TemplateOverridePoint("EvaluateIndirectLighting", "GHOST_OVERRIDE_EVALUATE_INDIRECT_LIGHTING"),
+        new TemplateOverridePoint("EvaluateDirectLighting", "GHOST_OVERRIDE_EVALUATE_BSDF"),
+        new TemplateOverridePoint("PostEvaluateBSDF", "GHOST_OVERRIDE_EVALUATE_BSDF"),
     };
 
     public IReadOnlyList<TemplateOverridePoint> OverridePoints => s_overridePoints;

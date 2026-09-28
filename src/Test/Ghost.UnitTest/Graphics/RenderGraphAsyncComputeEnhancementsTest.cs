@@ -147,14 +147,14 @@ public partial class RenderGraphTest
         }
 
         SetupTwoRegions();
-        var exec1 = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var exec1 = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(exec1.Dump);
         Assert.IsFalse(exec1.Dump.IsCacheHit);
 
         _renderGraph.Reset();
 
         SetupTwoRegions();
-        var exec2 = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var exec2 = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(exec2.Dump);
         Assert.IsTrue(exec2.Dump.IsCacheHit);
         Assert.AreEqual(exec1.Dump.GraphHash, exec2.Dump.GraphHash);
@@ -185,7 +185,7 @@ public partial class RenderGraphTest
 
         // Frame 1: buffer size = 256
         SetupBufferPass(256);
-        var exec1 = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var exec1 = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(exec1.Dump);
         Assert.IsFalse(exec1.Dump.IsCacheHit);
         var res1 = exec1.Dump.Resources.Single(r => r.Name == "TransientBuffer");
@@ -195,7 +195,7 @@ public partial class RenderGraphTest
 
         // Frame 2: same pass name, same topology, but buffer size = 4096
         SetupBufferPass(4096);
-        var exec2 = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var exec2 = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(exec2.Dump);
         Assert.AreNotEqual(exec1.Dump.GraphHash, exec2.Dump.GraphHash, "Changing buffer Size must invalidate the graph hash.");
         Assert.IsFalse(exec2.Dump.IsCacheHit, "Buffer size mutation must not result in a stale cache hit.");
@@ -231,7 +231,7 @@ public partial class RenderGraphTest
 
         // Frame 1: UAV format = R8G8B8A8_UNorm
         SetupUavTexturePass(TextureFormat.R8G8B8A8_UNorm);
-        var exec1 = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var exec1 = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(exec1.Dump);
         Assert.IsFalse(exec1.Dump.IsCacheHit);
 
@@ -239,7 +239,7 @@ public partial class RenderGraphTest
 
         // Frame 2: same pass name and topology, but UAV format = R32G32B32A32_Float
         SetupUavTexturePass(TextureFormat.R32G32B32A32_Float);
-        var exec2 = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var exec2 = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(exec2.Dump);
         Assert.AreNotEqual(exec1.Dump.GraphHash, exec2.Dump.GraphHash, "Changing UAV texture format must invalidate the graph hash.");
         Assert.IsFalse(exec2.Dump.IsCacheHit, "UAV texture format mutation must not result in a stale cache hit.");
@@ -281,14 +281,14 @@ public partial class RenderGraphTest
         }
 
         SetupPass();
-        var exec1 = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var exec1 = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(exec1.Dump);
         Assert.IsFalse(exec1.Dump.IsCacheHit);
 
         _renderGraph.Reset();
 
         SetupPass();
-        var exec2 = CompileAndExecute(viewState, RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var exec2 = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(exec2.Dump);
         Assert.IsTrue(exec2.Dump.IsCacheHit, "Identical non-attachment descriptors across frames must hit compilation cache.");
         Assert.AreEqual(exec1.Dump.GraphHash, exec2.Dump.GraphHash);
@@ -309,7 +309,7 @@ public partial class RenderGraphTest
 
         // Frame 1: 4K (3840x2160)
         SetupPipeline();
-        var exec4K = CompileAndExecute(new ViewState(3840, 2160, 3840, 2160), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var exec4K = CompileAndExecute(new ViewState(3840, 2160, 3840, 2160), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(exec4K.Dump);
         Assert.IsFalse(exec4K.Dump.IsCacheHit);
         var res4K = exec4K.Dump.Resources.Single(r => r.Name == "RelativeTarget");
@@ -319,7 +319,7 @@ public partial class RenderGraphTest
 
         // Frame 2: Resize down to 2K (1920x1080)
         SetupPipeline();
-        var exec2K = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGExecutionFlags.GenerateDump).GetValueOrThrow();
+        var exec2K = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(exec2K.Dump);
         Assert.AreEqual(exec4K.Dump.GraphHash, exec2K.Dump.GraphHash, "Relative texture graph hash must remain identical across viewport resize.");
         Assert.IsTrue(exec2K.Dump.IsCacheHit, "Downsizing viewport must be a cache hit.");

@@ -34,7 +34,7 @@ compute "Internal/TileLightCulling"
 
         groupshared uint s_DoesLightIntersect[2];
         groupshared uint s_TileLightCount;
-        groupshared uint s_TileLightIndices[63]; // Max lights: 32 DWORDS -> 63 lights
+        groupshared uint s_TileLightIndices[MAX_LIGHTS_PER_TILE]; // Max lights: 32 DWORDS -> 63 lights
 
         template<uint DWORDS>
         void ClearTileLightList(RWByteAddressBuffer tileLightListUav, uint tileIndex, uint groupIndex)

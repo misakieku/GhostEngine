@@ -15,6 +15,7 @@
 
 #include "EngineResources/Shaders/Properties.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl"
+#include "EngineResources/Shaders/Material/Lit/Lit.hlsl"
 
 struct MaterialContext
 {
@@ -41,34 +42,16 @@ struct BSDFData
 {
     uint materialFeatures;
     float3 diffuseColor;
-    //float3 fersnel0;
-    //float fersnel90;
+    float3 fresnel0;
     float ambientOcclusion;
     float specularOcclusion;
     float3 normalWS;
     float perceptualRoughness;
     float3 tangentWS;
     float3 bitangentWS;
-    //float roughnessT;
-    //float roughnessB;
-};
-
-struct DirectLighting
-{
-    float3 diffuse;
-    float3 specular;
-};
-
-struct IndirectLighting
-{
-    float3 specularReflected;
-    float3 specularTransmitted;
-};
-
-struct AggregateLighting
-{
-    DirectLighting direct;
-    IndirectLighting indirect;
+    float roughnessT;
+    float roughnessB;
+    float3 emissive;
 };
 
 $GHOST_PROPERTIES_STRUCT$
@@ -114,36 +97,41 @@ static inline SurfaceData ExtractSurfaceData(in GBufferOutputs gbuffer)
     surface.metallic = gbuffer.gbuffer1.a;
     surface.occlusion = gbuffer.gbuffer2.b;
     surface.emissive = gbuffer.gbuffer3.rgb;
+    return surface;
 }
 
 static inline BSDFData GetBSDFData(in MaterialContext ctx, in SurfaceData surface)
 {
-    BSDFData bsdf = (BSDFData) 0;
+    BSDFData bsdf = (BSDFData)0;
     bsdf.materialFeatures = surface.materialFeatures;
     bsdf.diffuseColor = surface.albedo;
+    bsdf.fresnel0 = lerp(float3(0.04f, 0.04f, 0.04f), surface.albedo, surface.metallic);
     bsdf.ambientOcclusion = surface.occlusion;
     bsdf.specularOcclusion = 1.0f;
     bsdf.normalWS = surface.normalWS;
-    bsdf.perceptualRoughness = sqrt(surface.roughness);
-    bsdf.tangentWS = ctx.tangentWS;
-    bsdf.bitangentWS = cross(surface.normalWS, ctx.tangentWS) * sign(ctx.tangentWS.w);
+    bsdf.perceptualRoughness = sqrt(max(0.001f, surface.roughness));
+    bsdf.tangentWS = ctx.tangentWS.xyz;
+    bsdf.bitangentWS = cross(surface.normalWS, ctx.tangentWS.xyz) * sign(ctx.tangentWS.w);
+    bsdf.emissive = surface.emissive;
     
     return bsdf;
 }
 
-#ifndef GHOST_OVERRIDE_EVALUATE_DIRECT_LIGHTING
-static inline DirectLighting EvaluateDirectLighting(in MaterialContext ctx, in MaterialProperties props, in SurfaceData surface, inout Payload payload)
+#ifndef GHOST_OVERRIDE_EVALUATE_BSDF
+static inline DirectLighting EvaluateDirectLighting(in BSDFData bsdf, float3 V, float3 L, float3 lightRadiance)
 {
-    DirectLighting light = (DirectLighting)0;
-    return light;
+    DirectLighting direct = (DirectLighting)0;
+    float NdotL = max(0.0f, dot(bsdf.normalWS, L));
+    direct.diffuse = bsdf.diffuseColor * NdotL * lightRadiance;
+    return direct;
 }
-#endif
 
-#ifndef GHOST_OVERRIDE_EVALUATE_INDIRECT_LIGHTING
-static inline IndirectLighting EvaluateIndirectLighting(in MaterialContext ctx, in MaterialProperties props, in SurfaceData surface, inout Payload payload)
+static inline LightLoopOutput PostEvaluateBSDF(in AggregateLighting lighting, in BSDFData bsdf, float3 V)
 {
-    IndirectLighting light = (IndirectLighting) 0;
-    return light;
+    LightLoopOutput output = (LightLoopOutput)0;
+    output.diffuse = lighting.direct.diffuse + bsdf.emissive; // + ambient lighting
+    output.specular = lighting.direct.specular + lighting.indirect.specularReflected;
+    return output;
 }
 #endif
 

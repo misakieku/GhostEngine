@@ -75,7 +75,7 @@ static inline void TransformAABB(float3 minPt, float3 maxPt, float4x4 mat, out f
 }
 
 #define CULL_EPSILON 1.2e-07f
-#define DEPTH_EPSILON 1e-3f
+#define DEPTH_EPSILON (2.0 / float(1 << 24))
 
 static inline float4 BuildAabbCorner(float3 bboxMin, float3 bboxMax, uint cornerIndex)
 {
@@ -128,6 +128,7 @@ static inline bool IsTriangleOutsideFrustum(float4 h0, float4 h1, float4 h2)
 template<bool usePreVP>
 BBoxFrustumResult BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 worldMatrix)
 {
+#if false
     ZERO_CREATE(BBoxFrustumResult, result);
 
     // 1. Object space center and half-extents
@@ -230,6 +231,85 @@ BBoxFrustumResult BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 
     result.clipMax = float4(clamp(maxXY, float2(-1.0f, -1.0f), float2(1.0f, 1.0f)), maxZVal, 0.0f);
 
     return result;
+#else
+    ZERO_CREATE(BBoxFrustumResult, result);
+
+    float4x4 vp = usePreVP ? g_ViewData.preVPMatrix : g_ViewData.viewProjectionMatrix;
+    float4x4 wvp = mul(vp, worldMatrix);
+
+    float3 corners[8] = {
+        float3(bboxMin.x, bboxMin.y, bboxMin.z),
+        float3(bboxMax.x, bboxMin.y, bboxMin.z),
+        float3(bboxMin.x, bboxMax.y, bboxMin.z),
+        float3(bboxMax.x, bboxMax.y, bboxMin.z),
+        float3(bboxMin.x, bboxMin.y, bboxMax.z),
+        float3(bboxMax.x, bboxMin.y, bboxMax.z),
+        float3(bboxMin.x, bboxMax.y, bboxMax.z),
+        float3(bboxMax.x, bboxMax.y, bboxMax.z)
+    };
+
+    float4 clipCorners[8];
+    uint outOfBoundsMask = 0x3Fu; // 6 planes: bits 0..5
+
+    [unroll]
+    for (int i = 0; i < 8; ++i)
+    {
+        clipCorners[i] = mul(wvp, float4(corners[i], 1.0f));
+        outOfBoundsMask &= ComputeHomogeneousClipMask(clipCorners[i]);
+    }
+
+    // If all 8 corners are outside any frustum plane, the AABB is outside the frustum
+    if ((outOfBoundsMask & 0x3Fu) != 0u)
+    {
+        return result; // isVisible = false
+    }
+
+    result.isVisible = true;
+
+    // Check if any corner penetrates the near plane (reversed-Z: z > w or w <= 0)
+    bool intersectsNear = false;
+    [unroll]
+    for (int j = 0; j < 8; ++j)
+    {
+        if (clipCorners[j].w <= CULL_EPSILON || clipCorners[j].z > clipCorners[j].w)
+        {
+            intersectsNear = true;
+            break;
+        }
+    }
+
+    if (intersectsNear)
+    {
+        // When crossing the near plane, 2D screen bounding box cannot be accurately derived from 8 corners
+        result.clipValid = false;
+        return result;
+    }
+
+    result.clipValid = true;
+    float2 minXY = float2(1e9f, 1e9f);
+    float2 maxXY = float2(-1e9f, -1e9f);
+    float minZVal = 1e9f;
+    float maxZVal = -1e9f;
+
+    [unroll]
+    for (int k = 0; k < 8; ++k)
+    {
+        float rcpW = rcp(clipCorners[k].w);
+        float2 ndcXY = clipCorners[k].xy * rcpW;
+        float ndcZ = clipCorners[k].z * rcpW;
+
+        minXY = min(minXY, ndcXY);
+        maxXY = max(maxXY, ndcXY);
+        minZVal = min(minZVal, ndcZ);
+        maxZVal = max(maxZVal, ndcZ);
+    }
+
+    // In reversed-Z, minZVal is furthest depth (clipMin.z) and maxZVal is nearest depth (clipMax.z)
+    result.clipMin = float4(clamp(minXY, float2(-1.0f, -1.0f), float2(1.0f, 1.0f)), minZVal, 0.0f);
+    result.clipMax = float4(clamp(maxXY, float2(-1.0f, -1.0f), float2(1.0f, 1.0f)), maxZVal, 0.0f);
+
+    return result;
+#endif
 }
 
 #undef ACCUMULATE_CLIP_CORNER
@@ -310,20 +390,20 @@ static inline FrustumTestResult FrustumCullAABB(float3 minPt, float3 maxPt, floa
     return FrustumTestResult::Create(true, intersectsNear);
 }
 
-// Nanite's MipLevelForRect adapted for 2x2 footprint
-static inline int MipLevelForRect(int4 rectPixels, int desiredFootprintPixels = 2)
+// Selects HZB mip level such that the rect footprint is at most desiredFootprintPixels (4x4)
+static inline int MipLevelForRect(int4 rectPixels, int desiredFootprintPixels = 4)
 {
-    const int maxPixelOffset = desiredFootprintPixels - 1; // 1
-    const int mipOffset = (desiredFootprintPixels == 2) ? 0 : 1;
+    const int maxPixelOffset = desiredFootprintPixels - 1; // 3
+    const int footprintMipBias = int(log2((float)desiredFootprintPixels)) - 1; // 1
 
     int2 mipLevelXY = firstbithigh((uint2)max(rectPixels.zw - rectPixels.xy, int2(0, 0)));
-    int mipLevel = max(max(mipLevelXY.x, mipLevelXY.y) - mipOffset, 0);
+    int mipLevel = max(max(mipLevelXY.x, mipLevelXY.y) - footprintMipBias, 0);
 
-    mipLevel += any((rectPixels.zw >> mipLevel) - (rectPixels.xy >> mipLevel) > maxPixelOffset) ? 1 : 0;
+    mipLevel += any(((rectPixels.zw >> mipLevel) - (rectPixels.xy >> mipLevel)) > maxPixelOffset) ? 1 : 0;
     return mipLevel;
 }
 
-// Evaluates whether a projected clip-space bounding box is visible against the HZB pyramid
+// Evaluates whether a projected clip-space bounding box is visible against the HZB pyramid using a 4x4 footprint (16 samples)
 static inline bool HZBVisible(float4 clipMin, float4 clipMax, uint hzbMipCount, uint renderWidth, uint renderHeight, uint hzbTexture, uint hzbBaseWidth, uint hzbBaseHeight)
 {
     if (clipMin.x > 1.0f || clipMin.y > 1.0f || clipMax.x < -1.0f || clipMax.y < -1.0f)
@@ -331,61 +411,69 @@ static inline bool HZBVisible(float4 clipMin, float4 clipMax, uint hzbMipCount, 
         return false;
     }
 
-    uint2 hzbBaseSize = uint2(hzbBaseWidth, hzbBaseHeight);
-    if (hzbTexture == 0 || hzbTexture == 0xFFFFFFFF || hzbMipCount == 0 || hzbBaseSize.x == 0 || hzbBaseSize.y == 0)
+    if (hzbTexture == 0xFFFFFFFF || hzbMipCount == 0 || hzbBaseWidth == 0 || hzbBaseHeight == 0)
     {
         return true;
     }
 
-    // Map NDC [-1, 1] to UV [0, 1] with inverted Y:
-    float4 rectUV = saturate(float4(clipMin.xy, clipMax.xy) * float2(0.5f, -0.5f).xyxy + 0.5f).xwzy;
+    // Map NDC [-1, 1] to UV [0, 1] with inverted Y: (minX, minY, maxX, maxY)
+    float4 uvRect = saturate(float4(clipMin.xy, clipMax.xy) * float2(0.5f, -0.5f).xyxy + 0.5f).xwzy;
 
-    // In Nanite: calculate pixel footprint in FULL render resolution, testing pixel center overlap
-    int4 screenViewRect = int4(0, 0, (int)renderWidth, (int)renderHeight);
-    float2 viewSize = float2(renderWidth, renderHeight);
-    int4 pixels = int4(rectUV * viewSize.xyxy + float4(0.5f, 0.5f, -0.5f, -0.5f));
-    pixels.xy = max(pixels.xy, screenViewRect.xy);
-    pixels.zw = min(pixels.zw, screenViewRect.zw - 1);
+    // Convert projected bounds to an inclusive pixel rectangle. The minimum edge
+    // must round outward toward zero and the maximum edge must round outward away
+    // from zero; rounding both edges to nearest can omit a boundary pixel.
+    float4 pixelBounds = uvRect * float4((float)renderWidth, (float)renderHeight, (float)renderWidth, (float)renderHeight) - 0.5f;
+    int2 viewportMax = int2((int)renderWidth - 1, (int)renderHeight - 1);
+    int2 rectMin = clamp((int2)floor(pixelBounds.xy), int2(0, 0), viewportMax);
+    int2 rectMax = clamp((int2)ceil(pixelBounds.zw), int2(0, 0), viewportMax);
+    int4 pixelsRect = int4(rectMin, rectMax);
 
-    // If rectangle doesn't even overlap a pixel center, it cannot produce any fragments
-    if (any(pixels.zw < pixels.xy))
-    {
-        return false;
-    }
+    // Convert from full viewport pixels to HZB Mip 0 texels (half resolution)
+    int4 coarseRect = pixelsRect >> 1;
 
-    // Convert from normalized UV to HZB Mip 0 texels:
-    float2 hzbSize = float2(hzbBaseSize);
-    int4 hzbTexels;
-    hzbTexels.xy = max((int2) floor(rectUV.xy * hzbSize), int2(0, 0));
-    hzbTexels.zw = min((int2) ceil(rectUV.zw * hzbSize) - 1, int2(hzbBaseSize) - 1);
-    hzbTexels.zw = max(hzbTexels.xy, hzbTexels.zw);
-
-    // Determine target mip level for 2x2 footprint (at most 4 texels to sample)
-    int hzbLevel = MipLevelForRect(hzbTexels, 2);
+    // Determine target mip level for 4x4 footprint
+    int hzbLevel = MipLevelForRect(coarseRect, 4);
     uint hzbMip = min((uint)hzbLevel, hzbMipCount - 1);
+    coarseRect >>= hzbMip;
 
-    // Transform HZB Mip 0 coordinates to coordinates of selected mip level
-    hzbTexels >>= hzbMip;
+    int2 mipSize = max(int2(1, 1), int2(hzbBaseWidth >> hzbMip, hzbBaseHeight >> hzbMip));
+    coarseRect.xy = clamp(coarseRect.xy, int2(0, 0), mipSize - 1);
+    coarseRect.zw = clamp(coarseRect.zw, int2(0, 0), mipSize - 1);
 
-    int2 mipSize = max(int2(1, 1), int2(hzbBaseSize >> hzbMip));
-    hzbTexels.zw = min(hzbTexels.zw, mipSize - 1);
-    hzbTexels.xy = min(hzbTexels.xy, hzbTexels.zw);
-
-    int2 minCoord = hzbTexels.xy;
-    int2 maxCoord = min(hzbTexels.zw, minCoord + 1);
+    // 16 samples covering the complete 4x4 grid across the bounding box interior & borders
+    int4 xCoords = min(coarseRect.x + int4(0, 1, 2, 3), coarseRect.z);
+    int4 yCoords = min(coarseRect.y + int4(0, 1, 2, 3), coarseRect.w);
 
     Texture2D<float> hzbTex = GET_TEXTURE2D(hzbTexture);
 
-    // 4 point samples (75% reduction in texture instructions vs 16 samples)
-    float d00 = hzbTex.mips[hzbMip][int2(minCoord.x, minCoord.y)];
-    float d10 = hzbTex.mips[hzbMip][int2(maxCoord.x, minCoord.y)];
-    float d01 = hzbTex.mips[hzbMip][int2(minCoord.x, maxCoord.y)];
-    float d11 = hzbTex.mips[hzbMip][int2(maxCoord.x, maxCoord.y)];
+    float4 row0 = float4(
+        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.x)],
+        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.x)],
+        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.x)],
+        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.x)]);
 
-    float minOccluderDepth = min(min(d00, d10), min(d01, d11));
+    float4 row1 = float4(
+        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.y)],
+        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.y)],
+        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.y)],
+        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.y)]);
 
-    // In reversed-Z, clipMax.z is the nearest point of the bounding box to the camera
-    // If the object's nearest point is closer than the occluder's furthest point (plus epsilon), it is VISIBLE!
+    float4 row2 = float4(
+        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.z)],
+        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.z)],
+        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.z)],
+        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.z)]);
+
+    float4 row3 = float4(
+        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.w)],
+        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.w)],
+        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.w)],
+        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.w)]);
+
+    float4 minByCol = min(min(min(row0, row1), row2), row3);
+    float minOccluderDepth = min(min(min(minByCol.x, minByCol.y), minByCol.z), minByCol.w);
+
+    // In reversed-Z: clipMax.z is the nearest point of the bounding box to the camera.
     return (clipMax.z + DEPTH_EPSILON >= minOccluderDepth);
 }
 

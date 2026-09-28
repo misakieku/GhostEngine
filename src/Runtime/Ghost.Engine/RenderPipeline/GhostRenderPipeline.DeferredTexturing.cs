@@ -95,7 +95,7 @@ internal partial class GhostRenderPipeline
 
         var gbuffer1Desc = RGTextureDesc.Relative(
             1.0f,
-            TextureFormat.R8G8B8A8_UNorm,
+            TextureFormat.R16G16B16A16_Float,
             usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
         var gbuffer1 = builder.CreateTexture(in gbuffer1Desc, "GBuffer1_NormalRoughMetal");
 

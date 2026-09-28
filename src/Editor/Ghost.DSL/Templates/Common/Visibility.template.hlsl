@@ -58,9 +58,19 @@ static inline void VisibilityWritePixelAtomic(uint visBufferIndex, uint byteAddr
     visBuffer.InterlockedMax64(byteAddress, newPacked);
 }
 
-static inline bool IsFrontFacing(float4 h0, float4 h1, float4 h2)
+static inline bool IsFrontFacingAndVisible(float4 h0, float4 h1, float4 h2, float subpixelThreshold = 0.0f)
 {
-    return determinant(float3x3(h0.xyw, h1.xyw, h2.xyw)) >= 0;
+    if (min(h0.w, min(h1.w, h2.w)) <= 0.0f)
+    {
+        return true;
+    }
+
+    float2 e0 = h1.xy * h0.w - h0.xy * h1.w;
+    float2 e1 = h2.xy * h0.w - h0.xy * h2.w;
+
+    float crossProduct = e0.x * e1.y - e0.y * e1.x;
+
+    return crossProduct > subpixelThreshold;
 }
 
 static inline float4 GetVertexClipPosition(uint vertexIndex, uint meshletVertexOffset, ByteAddressBuffer meshletVerticesBuffer, ByteAddressBuffer vertexBuffer, float4x4 worldViewProj, out float2 uv)
@@ -155,7 +165,7 @@ void MSMain(
         bool isCulled = false;
         if (props.doubleSidedConstants.w == 0.0f)
         {
-            isCulled = !IsFrontFacing(v2, v1, v0);
+            isCulled = !IsFrontFacingAndVisible(v2, v1, v0);
         }
         
         outPrims[primId].cullPrim = isCulled;

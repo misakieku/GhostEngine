@@ -23,7 +23,6 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
     private World _world = null!;
     private IAssetEntry _meshAsset = null!;
     private IAssetEntry _shaderAsset = null!;
-    private IAssetEntry _shaderAsset2 = null!;
 
     private Entity _camera;
 
@@ -32,7 +31,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
         MaxVisibleMeshletsOnScreen = 2_097_152,
         MeshletLodErrorThreshold = 2.0f,
         InstanceCullingThreshold = 2.0f,
-        DebugMode = RenderPipelineDebugMode.TileLightHeatmap,
+        DebugMode = RenderPipelineDebugMode.None,
     };
 
 
@@ -94,8 +93,8 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
 
     public void OnEngineInitialized(EngineCore engine)
     {
-        const int entityCapacity = 1000;
-        const float size = 10.0f;
+        const int entityCapacity = 10000;
+        const float size = 20.0f;
         const float baseScale = 1.0f;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
@@ -106,7 +105,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
             {
                 swapChainIndex = 0,
                 depthTarget = Handle<GPUTexture>.Invalid,
-                nearClipPlane = 0.1f,
+                nearClipPlane = 0.01f,
                 farClipPlane = 1000.0f,
                 focalLength = 20.0f,
                 sensorSize = new float2(36.0f, 24.0f),
@@ -122,21 +121,16 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
             default(ActionState));
 
         _meshAsset = engine.AssetManager.ResolveAsset("Meshes/bunny");
-        _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/test");
-        _shaderAsset2 = engine.AssetManager.ResolveAsset("Shaders/test2");
+        _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/SimpleLit");
 
         var meshHandle = default(Handle<Mesh>);
         _meshAsset.ReadAssetData(ref meshHandle);
 
         var shaderHandle = default(Handle<Shader>);
         _shaderAsset.ReadAssetData(ref shaderHandle);
-        var shaderHandle2 = default(Handle<Shader>);
-        _shaderAsset2.ReadAssetData(ref shaderHandle2);
 
         var mat = engine.RenderEngine.ResourceManager.CreateMaterial(shaderHandle);
-        var mat2 = engine.RenderEngine.ResourceManager.CreateMaterial(shaderHandle2);
         var materialPallette = engine.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);
-        var materialPallette2 = engine.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat2]);
 
         using var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
         var entities = new Entity[entityCapacity];
@@ -148,7 +142,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
             _world.EntityManager.SetComponent(entity, new MeshInstance
             {
                 mesh = meshHandle,
-                materialPalette = i % 2 == 0 ? materialPallette : materialPallette2,
+                materialPalette = materialPallette,
                 renderingLayerMask = RenderingLayerMask.All,
                 shadowCastingMode = ShadowCastingMode.On,
                 staticShadowCaster = true,
@@ -157,6 +151,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
             var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
             var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f)));
             var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
+            //var scale = new float3(baseScale);
 
             _world.EntityManager.SetComponent(entity, new LocalToWorld
             {
@@ -164,21 +159,21 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
             });
         }
 
-        // Add Sun (Directional Light)
-        _world.EntityManager.CreateEntity(
-            new DirectionalLight
-            {
-                color = new float3(1.0f, 0.95f, 0.85f),
-                intensity = 2.5f,
-                castShadows = true
-            },
-            new LocalToWorld
-            {
-                matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(new float3(45.0f, 30.0f, 0.0f)), new float3(1.0f, 1.0f, 1.0f))
-            });
+        //// Add Sun(Directional Light)
+        //_world.EntityManager.CreateEntity(
+        //    new DirectionalLight
+        //    {
+        //        color = new float3(1.0f, 0.95f, 0.85f),
+        //        intensity = 1.0f,
+        //        castShadows = true
+        //    },
+        //    new LocalToWorld
+        //    {
+        //        matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(new float3(45.0f, 30.0f, 0.0f)), new float3(1.0f, 1.0f, 1.0f))
+        //    });
 
         // Add 64 random punctual lights (Point and Spot)
-        for (var i = 0; i < 64; i++)
+        for (var i = 0; i < 512; i++)
         {
             var pos = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
             var color = new float3(RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f));
@@ -231,6 +226,5 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
 
         _meshAsset.Release();
         _shaderAsset.Release();
-        _shaderAsset2.Release();
     }
 }

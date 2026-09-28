@@ -78,11 +78,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
     /// <summary>
     /// Compiles the render graph by culling passes, allocating resources, and preparing barriers.
     /// </summary>
-    public Result<CompiledGraph, Error> Compile(
-        in ViewState viewState,
-        ulong graphHash,
-        List<RenderGraphPass> passes,
-        AllocationHandle allocationHandle)
+    public Result<CompiledGraph, Error> Compile(in ViewState viewState, ulong graphHash, List<RenderGraphPass> passes, RGFlags flags, AllocationHandle allocationHandle)
     {
 #if GHOST_SAFETY_CHECKS
         if (!_hasValidatedGraphHash || _validatedGraphHash != graphHash)
@@ -196,37 +192,15 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             using var commandBufferIds = new UnsafeArray<int>(compiledPassCount, schedulingScope.AllocationHandle);
             using var reachability = new UnsafeArray<byte>(compiledPassCount * compiledPassCount, schedulingScope.AllocationHandle);
 
-            BuildPassReachability(
-                compiledPasses.AsSpan(),
-                nodes.AsSpan(),
-                scheduleIndexByPassIndex.AsSpan(),
-                reachability.AsSpan());
-            BuildDependencyWindowSchedule(
-                passes,
-                compiledPasses.AsSpan(),
-                effectiveQueues.AsSpan(),
-                syncBoundaries.AsSpan(),
-                reachability.AsSpan());
-            FinalizeScheduleReachability(
-                effectiveQueues.AsSpan(),
-                syncBoundaries.AsSpan(),
-                commandBufferIds.AsSpan(),
-                reachability.AsSpan());
+            BuildPassReachability(compiledPasses, nodes, scheduleIndexByPassIndex, reachability);
+            BuildDependencyWindowSchedule(passes,compiledPasses, effectiveQueues, syncBoundaries, reachability);
+            FinalizeScheduleReachability(effectiveQueues, syncBoundaries, commandBufferIds, reachability);
 
-            using var resourceOrdering = RenderGraphResourceOrdering.Build(
-                _resourceRegistry,
-                scheduleIndexByPassIndex.AsSpan(),
-                reachability.AsSpan(),
-                compiledPassCount,
-                schedulingScope.AllocationHandle);
+            using var resourceOrdering = RenderGraphResourceOrdering.Build(_resourceRegistry, scheduleIndexByPassIndex, reachability, compiledPassCount, schedulingScope.AllocationHandle);
 
-            aliasingPlan = RenderGraphAliasingBuilder.Build(
-                _resourceRegistry,
-                _resourceAllocator,
-                resourceOrdering,
-                allocationHandle);
-
+            aliasingPlan = RenderGraphAliasingBuilder.Build(_resourceRegistry, _resourceAllocator, resourceOrdering, flags.HasFlag(RGFlags.NoAliasing), allocationHandle);
             error = _resourceRegistry.AllocateBackingResources(aliasingPlan, _compilationCache);
+
             if (error != Error.None)
             {
                 return error;
@@ -236,8 +210,8 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 _resourceRegistry,
                 passes,
                 compiledPasses,
-                syncBoundaries.AsSpan(),
-                scheduleIndexByPassIndex.AsSpan(),
+                syncBoundaries,
+                scheduleIndexByPassIndex,
                 aliasingPlan,
                 resourceOrdering,
                 allocationHandle);
@@ -252,10 +226,10 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     nativePasses,
                     aliasingPlan,
                     resourceOrdering,
-                    effectiveQueues.AsSpan(),
-                    syncBoundaries.AsSpan(),
-                    commandBufferIds.AsSpan(),
-                    reachability.AsSpan());
+                    effectiveQueues,
+                    syncBoundaries,
+                    commandBufferIds,
+                    reachability);
 
                 ref readonly var cacheData = ref _compilationCache.SetCached(
                     _resourceRegistry,

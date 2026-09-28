@@ -58,6 +58,7 @@ public static class RenderGraphUtility
     {
         public Identifier<RGTexture> srcBuffer;
         public Handle<Shader> blitShader;
+        public bool gammaCorrection;
     }
 
     /// <summary>
@@ -180,7 +181,7 @@ public static class RenderGraphUtility
     /// <summary>
     /// Adds an explicit pass to blit a texture to another texture using a specified blit shader.
     /// </summary>
-    public static void AddBlitPass(this RenderGraph rg, Identifier<RGTexture> src, Identifier<RGTexture> dst, Handle<Shader> blitShader)
+    public static void AddBlitPass(this RenderGraph rg, Identifier<RGTexture> src, Identifier<RGTexture> dst, Handle<Shader> blitShader, bool gammaCorrection = false)
     {
         if (blitShader.IsInvalid)
         {
@@ -194,7 +195,8 @@ public static class RenderGraphUtility
         builder.SetPassData(new BlitPassData
         {
             srcBuffer = src,
-            blitShader = blitShader
+            blitShader = blitShader,
+            gammaCorrection = gammaCorrection
         });
 
         builder.SetRenderFunc<BlitPassData>(static (ref readonly passData, renderCtx) =>
@@ -208,6 +210,7 @@ public static class RenderGraphUtility
             {
                 mainTex = renderCtx.GetActualBindlessIndex(passData.srcBuffer),
                 sampler_mainTex = (uint)renderCtx.ResourceManager.StaticSampler.LinearClamp.Value,
+                linearToSRGB = passData.gammaCorrection ? 1u : 0u
             };
 
             renderCtx.SetUserDataWithProperties(property, target: DataTarget.Graphics);

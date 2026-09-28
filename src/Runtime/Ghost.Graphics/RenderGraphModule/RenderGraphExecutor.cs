@@ -86,13 +86,8 @@ internal sealed class RenderGraphExecutor
         context.SetScissorRect(scissorDesc);
     }
 
-    public unsafe Error Execute(
-        in RenderGraphExecutionContext executionContext,
-        RenderGraphContext context,
-        scoped in CompiledGraph graph,
-        RGExecutionFlags flags,
-        out SubmissionHandle graphicsSubmission,
-        out SubmissionHandle computeSubmission)
+    public unsafe Error Execute(in RenderGraphExecutionContext executionContext, RenderGraphContext context, scoped in CompiledGraph graph, RGFlags flags,
+        out SubmissionHandle graphicsSubmission, out SubmissionHandle computeSubmission)
     {
         Logger.DebugAssert(_commandBufferCount == 0, "Render-graph execution scratch was not cleared after the previous execution.");
         graphicsSubmission = default;
@@ -103,11 +98,7 @@ internal sealed class RenderGraphExecutor
 
         try
         {
-            activeCommandBuffer = AcquireCommandBuffer(
-                executionContext,
-                CommandQueueType.Graphics,
-                ReadOnlySpan<int>.Empty,
-                flags);
+            activeCommandBuffer = AcquireCommandBuffer(executionContext, CommandQueueType.Graphics, ReadOnlySpan<int>.Empty, flags);
             context.BeginNewFrame(activeCommandBuffer);
 
             var pPassRTDescs = stackalloc PassRenderTargetDesc[8];
@@ -262,7 +253,7 @@ internal sealed class RenderGraphExecutor
         in RenderGraphExecutionContext executionContext,
         CommandQueueType requestedQueueType,
         ReadOnlySpan<int> producerCommandBufferIds,
-        RGExecutionFlags flags)
+        RGFlags flags)
     {
         if (requestedQueueType is not CommandQueueType.Graphics and not CommandQueueType.Compute)
         {
@@ -273,7 +264,7 @@ internal sealed class RenderGraphExecutor
         EnsureScratchCapacity(_commandBufferCount + 1);
         EnsureProducerIdCapacity(_producerCommandBufferIdCount + producerCommandBufferIds.Length);
 
-        var queueType = flags.HasFlag(RGExecutionFlags.ForceGraphics)
+        var queueType = flags.HasFlag(RGFlags.ForceGraphics)
             ? CommandQueueType.Graphics
             : requestedQueueType;
         var commandBufferType = queueType == CommandQueueType.Graphics
@@ -512,14 +503,14 @@ internal sealed class RenderGraphExecutor
         ICommandBuffer cmd,
         int barrierCount,
         ref SpanReader reader,
-        RGExecutionFlags flags)
+        RGFlags flags)
     {
         if (barrierCount <= 0)
         {
             return Error.None;
         }
 
-        var forceGraphics = flags.HasFlag(RGExecutionFlags.ForceGraphics);
+        var forceGraphics = flags.HasFlag(RGFlags.ForceGraphics);
         const int MaxBatch = 64;
         using var scope = Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.CreateStackScope();
         using var barriers = new UnsafeList<BarrierDesc>(MaxBatch, scope.AllocationHandle);

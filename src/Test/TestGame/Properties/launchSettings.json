@@ -3,7 +3,7 @@
     "TestGame": {
       "commandName": "Project",
       "workingDirectory": "$(TargetDir)",
-      "debugEngines": "managed,native"
+      "debugEngines": "managed"
     }
   }
 }

@@ -416,7 +416,7 @@ internal enum RGExecutionOpType : byte
 }
 
 [Flags]
-public enum RGExecutionFlags
+public enum RGFlags
 {
     /// <summary>
     /// Default execution behavior without any special flags.
@@ -430,6 +430,10 @@ public enum RGExecutionFlags
     /// Record every structural segment on the Graphics queue and suppress internal cross-queue dependencies.
     /// </summary>
     ForceGraphics = 1 << 1,
+    /// <summary>
+    /// Prevent memory heap aliasing for resources, ensuring each resource has a unique memory allocation.
+    /// </summary>
+    NoAliasing = 1 << 2,
 }
 
 public sealed class RenderGraphDump

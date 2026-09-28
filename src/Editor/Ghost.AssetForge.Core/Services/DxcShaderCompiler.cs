@@ -70,10 +70,10 @@ internal sealed partial class DXCShaderCompiler
         argsArray.Add("-enable-16bit-types");                               // Enable 16-bit types
         argsArray.Add(GetOptimizeLevelString(config.optimizeLevel));  // Optimization level
 
-        if (config.optimizeLevel == CompilerOptimizeLevel.O3)
-        {
-            argsArray.Add("-ffinite-math-only");
-        }
+        // if (config.optimizeLevel == CompilerOptimizeLevel.O3)
+        // {
+        //     argsArray.Add("-ffinite-math-only");
+        // }
 
         foreach (var define in config.defines)
         {

@@ -52,15 +52,7 @@ compute "Internal/MeshletCullGraph"
 
         static inline bool TestHZB(float4 clipMin, float4 clipMax, InternalMeshletCullGraphShaderProperties props)
         {
-            return HZBVisible(
-                clipMin,
-                clipMax,
-                props.hzbMipCount,
-                props.renderWidth,
-                props.renderHeight,
-                props.hzbTexture,
-                props.hzbBaseWidth,
-                props.hzbBaseHeight);
+            return HZBVisible(clipMin, clipMax, props.hzbMipCount, props.renderWidth, props.renderHeight, props.hzbTexture, props.hzbBaseWidth, props.hzbBaseHeight);
         }
 
         // Node 1: Entry point for instance-level culling in Pass 1
@@ -93,14 +85,19 @@ compute "Internal/MeshletCullGraph"
                     float3 worldCenter = (worldMin + worldMax) * 0.5f;
                     float worldRadius = length(worldMax - worldCenter);
                     float z_view = dot(worldCenter - g_ViewData.cameraPosition, g_ViewData.cameraDirection);
-                    float r_percentage = (worldRadius * g_ViewData.projectionMatrix[1][1] * 100.0f) / (2.0f * z_view );
 
-                    if (r_percentage < props.cullingThreshold)
+                    if (z_view > worldRadius && length(worldCenter - g_ViewData.cameraPosition) > worldRadius)
                     {
-                        return;
+                        float r_percentage = (worldRadius * g_ViewData.projectionMatrix[1][1] * 100.0f) / (2.0f * z_view );
+                        if (r_percentage > props.cullingThreshold)
+                        {
+                            isVisible = AABBIntersectFrustum(worldMin, worldMax, g_ViewData.frustum.planes);
+                        }
                     }
-
-                    isVisible = AABBIntersectFrustum(worldMin, worldMax, g_ViewData.frustum.planes);
+                    else
+                    {
+                        isVisible = AABBIntersectFrustum(worldMin, worldMax, g_ViewData.frustum.planes);
+                    }
                 }
             }
 
@@ -325,6 +322,7 @@ compute "Internal/MeshletCullGraph"
                                     if (prevCullResult.isVisible && prevCullResult.clipValid)
                                     {
                                         isOccluded = !TestHZB(prevCullResult.clipMin, prevCullResult.clipMax, props);
+                                        // isOccluded = false;
                                     }
                                 }
                                 else if (cullResult.clipValid)

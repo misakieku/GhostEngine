@@ -152,10 +152,11 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             }
             else
             {
-                viewContext.RenderGraph.AddBlitPass(gbuffer.GBuffer0, colorTarget, _meshPipelineResource.blitShader);
+                var litColor = AddDeferredLightingPass(viewContext.RenderGraph, gbuffer, currentDepth, tileLightList, viewContext.RenderSize);
+                viewContext.RenderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
             }
 
-            var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewState);
+            var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewState, RGFlags.Default);
             if (result.IsFailure)
             {
                 return Result.Failure($"Render graph execution failed: {result.Error}");

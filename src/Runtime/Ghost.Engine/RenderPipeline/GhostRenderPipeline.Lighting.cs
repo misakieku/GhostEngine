@@ -1,10 +1,12 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Engine.ShaderProperties;
+using Ghost.Engine.Streaming;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.RenderPipeline;
 
@@ -125,6 +127,123 @@ internal partial class GhostRenderPipeline
         });
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct InternalDeferredLightingShaderProperties
+    {
+        public uint gbuffer0Srv;
+        public uint gbuffer1Srv;
+        public uint gbuffer2Srv;
+        public uint gbuffer3Srv;
+        public uint depthTextureIndex;
+        public uint tileLightListBufferIndex;
+        public uint tileShadingModelMaskBufferIndex;
+        public uint litColorUav;
+        public uint renderWidth;
+        public uint renderHeight;
+        public uint tilesPerRow;
+        public uint shadingModelId;
+    }
+
+    private struct DeferredLightingPassData
+    {
+        public Identifier<RGTexture> gbuffer0;
+        public Identifier<RGTexture> gbuffer1;
+        public Identifier<RGTexture> gbuffer2;
+        public Identifier<RGTexture> gbuffer3;
+        public Identifier<RGTexture> depthTexture;
+        public Identifier<RGBuffer> tileLightList;
+        public Identifier<RGTexture> litColorTarget;
+        public ShaderVariantRegistry variantRegistry;
+        public uint tilesPerRow;
+        public uint tilesY;
+        public uint2 renderSize;
+    }
+
+    private Identifier<RGTexture> AddDeferredLightingPass(
+        RenderGraph rg,
+        in GBufferResources gbuffer,
+        Identifier<RGTexture> depthTexture,
+        Identifier<RGBuffer> tileLightList,
+        uint2 renderSize)
+    {
+        var tilesX = (renderSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
+        var tilesY = (renderSize.y + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
+
+        var litColorDesc = RGTextureDesc.Relative(
+            1.0f,
+            TextureFormat.R16G16B16A16_Float,
+            usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
+
+        using var builder = rg.AddComputeRenderPass<DeferredLightingPassData>("DeferredLighting");
+
+        var litColorTarget = builder.CreateTexture(in litColorDesc, "HDRColorBuffer");
+
+        builder.UseTexture(gbuffer.GBuffer0, AccessFlags.Read);
+        builder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
+        builder.UseTexture(gbuffer.GBuffer2, AccessFlags.Read);
+        builder.UseTexture(gbuffer.GBuffer3, AccessFlags.Read);
+        builder.UseTexture(depthTexture, AccessFlags.Read);
+        builder.UseBuffer(tileLightList, AccessFlags.Read);
+        builder.UseTexture(litColorTarget, AccessFlags.Write);
+
+        builder.SetPassData(new DeferredLightingPassData
+        {
+            gbuffer0 = gbuffer.GBuffer0,
+            gbuffer1 = gbuffer.GBuffer1,
+            gbuffer2 = gbuffer.GBuffer2,
+            gbuffer3 = gbuffer.GBuffer3,
+            depthTexture = depthTexture,
+            tileLightList = tileLightList,
+            litColorTarget = litColorTarget,
+            variantRegistry = _assetManager.ShaderVariants,
+            tilesPerRow = tilesX,
+            tilesY = tilesY,
+            renderSize = renderSize
+        });
+
+        builder.SetRenderFunc<DeferredLightingPassData>(static (ref readonly passData, computeCtx) =>
+        {
+            var gb0Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.gbuffer0).AsResource(), BindlessAccess.ShaderResource);
+            var gb1Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.gbuffer1).AsResource(), BindlessAccess.ShaderResource);
+            var gb2Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.gbuffer2).AsResource(), BindlessAccess.ShaderResource);
+            var gb3Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.gbuffer3).AsResource(), BindlessAccess.ShaderResource);
+            var depthSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.depthTexture).AsResource(), BindlessAccess.ShaderResource);
+            var tileLightListSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.tileLightList).AsResource(), BindlessAccess.ShaderResource);
+            var litColorUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.litColorTarget).AsResource(), BindlessAccess.UnorderedAccess);
+
+            var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.DeferredLighting);
+            for (var i = 0; i < dispatchVariants.Length; i++)
+            {
+                ref readonly var variant = ref dispatchVariants[i];
+                if (!passData.variantRegistry.IsBytecodeReady(variant.DenseIndex) ||
+                    !computeCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.DeferredLighting))
+                {
+                    continue;
+                }
+
+                var props = new InternalDeferredLightingShaderProperties
+                {
+                    gbuffer0Srv = gb0Srv,
+                    gbuffer1Srv = gb1Srv,
+                    gbuffer2Srv = gb2Srv,
+                    gbuffer3Srv = gb3Srv,
+                    depthTextureIndex = depthSrv,
+                    tileLightListBufferIndex = tileLightListSrv,
+                    tileShadingModelMaskBufferIndex = uint.MaxValue,
+                    litColorUav = litColorUav,
+                    renderWidth = passData.renderSize.x,
+                    renderHeight = passData.renderSize.y,
+                    tilesPerRow = passData.tilesPerRow,
+                    shadingModelId = 1u // SHADING_MODEL_SIMPLE_LIT
+                };
+
+                computeCtx.SetUserDataWithProperties(in props, target: DataTarget.Compute);
+                computeCtx.DispatchCompute(passData.tilesPerRow, passData.tilesY, 1);
+            }
+        });
+
+        return litColorTarget;
+    }
 
     private unsafe void UploadLights(RenderContext ctx, GhostRenderPayload payload, out uint punctualLightsSrv, out uint punctualLightCount, out uint directionalLightSrv)
     {
