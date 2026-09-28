@@ -48,7 +48,24 @@ internal sealed class LitTemplate : IShaderTemplate
             },
             stages = new List<TemplateStage>
             {
-                new() { templateFile = "Lit/Lit_DeferredTexturing.template.hlsl", entryPoint = "CSMain", stage = ShaderStage.ComputeShader }
+                new() { templateFile = "Common/DeferTexturing.template.hlsl", entryPoint = "CSMain", stage = ShaderStage.ComputeShader }
+            }
+        },
+        new TemplatePassDef
+        {
+            name = "DeferredLighting",
+            semantic = PassSemantic.DeferredLighting,
+            pipeline = new PipelineSemantic
+            {
+                zTest = ZTest.Disabled,
+                zWrite = ZWrite.Off,
+                cull = Cull.Back,
+                blend = Blend.Opaque,
+                colorMask = ColorWriteMask.All
+            },
+            stages = new List<TemplateStage>
+            {
+                new() { templateFile = "Lit/Lit_DeferredLighting.template.hlsl", entryPoint = "CSMain", stage = ShaderStage.ComputeShader },
             }
         }
     };
@@ -62,7 +79,8 @@ internal sealed class LitTemplate : IShaderTemplate
     {
         new TemplateOverridePoint("GetAlphaCoverage", "GHOST_OVERRIDE_GET_ALPHA_COVERAGE"),
         new TemplateOverridePoint("GetSurfaceData", "GHOST_OVERRIDE_GET_SURFACE_DATA"),
-        new TemplateOverridePoint("EvaluateBSDF", "GHOST_OVERRIDE_EVALUATE_BSDF"),
+        new TemplateOverridePoint("EvaluateDirectLighting", "GHOST_OVERRIDE_EVALUATE_DIRECT_LIGHTING"),
+        new TemplateOverridePoint("EvaluateIndirectLighting", "GHOST_OVERRIDE_EVALUATE_INDIRECT_LIGHTING"),
     };
 
     public IReadOnlyList<TemplateOverridePoint> OverridePoints => s_overridePoints;

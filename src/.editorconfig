@@ -1,5 +1,5 @@
 [*]
-max_line_length = 400
+max_line_length = 200
 
 [*.cs]
 csharp_new_line_before_open_brace = all

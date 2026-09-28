@@ -7,11 +7,13 @@ shader "MyShader/Standard" : "Unlit"
 
     hlsl
     {
-        void GetSurfaceData(in MaterialProperties props, float2 uv, inout Payload payload, out SurfaceData surface)
+        SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props, inout Payload payload)
         {
-            surface = (SurfaceData)0;
+            SurfaceData surface = (SurfaceData)0;
             surface.albedo = float3(1.0, 0.0, 0.0);
             surface.emissive = float3(0.0, 0.0, 0.0);
+
+            return surface;
         }
     }
 }

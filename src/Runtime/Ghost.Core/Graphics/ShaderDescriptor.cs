@@ -36,7 +36,8 @@ public enum PassSemantic : byte
     Visibility = 1,
     Shadow = 2,
     DeferredTexturing = 3,
-    Custom = 4,
+    DeferredLighting = 4,
+    Custom = 5,
     Count = 8
 }
 

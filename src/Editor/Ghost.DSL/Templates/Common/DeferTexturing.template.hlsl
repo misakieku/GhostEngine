@@ -1,9 +1,15 @@
-#ifndef GHOST_UNLIT_DEFERTEXTURING_HLSL
-#define GHOST_UNLIT_DEFERTEXTURING_HLSL
+#ifndef GHOST_TEMPLATE_DEFERTEXTURING
+#define GHOST_TEMPLATE_DEFERTEXTURING
 
-#include "Unlit_Common.template.hlsl"
+#if defined(GHOST_TEMPLATE_LIT)
+#include "Lit/Lit_Common.template.hlsl"
+#elif defined(GHOST_TEMPLATE_UNLIT)
+#include "Unlit/Unlit_Common.template.hlsl"
+#else
+#error "Unsupported template type for deferred texturing"
+#endif
+
 #include "EngineResources/Shaders/Properties.hlsl"
-#include "EngineResources/Shaders/Common.hlsl"
 #include "EngineResources/Shaders/MeshPipeline/CullCommon.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/VisibilityBufferEncoding.hlsl"
@@ -62,39 +68,59 @@ void CSMain(
 
     InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, instanceIndex);
     MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
-    
     Meshlet meshlet = LoadData<Meshlet>(meshData.meshletBuffer, visible.meshletIndex);
     uint localMaterialIndex = (meshlet.packedCounts >> 16u) & 0xFFu;
-    
+
     uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
+
     uint candidateVariant = UnpackMaterialVariantIndex(packedMaterial);
-    
+
     // Check if pixel actually belongs to this shader variant
     if (candidateVariant != props.variantIndex)
     {
         return;
     }
-    
+
     // Evaluate barycentrics and interpolated vertex attributes
     InterpolatedAttributes attrs = EvaluateBarycentricsAndDerivatives(pixelCoord, depth, instanceIndex, visible.meshletIndex, primitiveID, meshData);
-    
+
+    MaterialContext ctx;
+    ctx.instanceIndex = instanceIndex;
+    ctx.materialIndex = attrs.cbufferIndex;
+    ctx.worldPos = attrs.worldPos;
+    ctx.normalWS = attrs.normalWS;
+    ctx.tangentWS = attrs.tangentWS;
+    ctx.uv = attrs.uv;
+
     MaterialProperties matProps = LoadData<MaterialProperties>(attrs.cbufferIndex, 0);
     Payload payload = (Payload)0;
-    SurfaceData surfaceData;
-    GetSurfaceData(matProps, attrs.uv, payload, surfaceData);
-    
+    SurfaceData surface = GetSurfaceData(ctx, matProps, payload);
+
     // Pack GBuffer outputs
     GBufferOutputs outputs;
+#if defined(GHOST_TEMPLATE_LIT)
     // GBuffer0: BaseColor (rgb) + ShadingModel/Flags (a)
-    outputs.gbuffer0 = float4(surfaceData.albedo, asfloat(0xFFFFFFFF)); // 0xFFFFFFFF = Unlit
+    outputs.gbuffer0 = float4(surface.albedo, asfloat(surface.materialFeatures));
+    // GBuffer1: Octahedral Normal (rg) + Roughness (b) + Metallic (a)
+    outputs.gbuffer1 = float4(OctahedralEncode(surface.normalWS), surface.roughness, surface.metallic);
+    // GBuffer2: Motion Vectors (xy) + Occlusion (z) + FeatureBitmask (w)
+    outputs.gbuffer2 = float4(attrs.motionVectors, surface.occlusion, 0.0f);
+    // GBuffer3: Emissive (rgb) + Unlit flag (a)
+    outputs.gbuffer3 = float4(surface.emissive, 0.0f);
+#elif defined(GHOST_TEMPLATE_UNLIT)
+    // GBuffer0: BaseColor (rgb) + ShadingModel/Flags (a)
+    outputs.gbuffer0 = float4(surface.albedo, asfloat(0xFFFFFFFF)); // 0xFFFFFFFF = Unlit
     // GBuffer1: Normal, roughness=1, metallic=0
     outputs.gbuffer1 = float4(OctahedralEncode(attrs.normalWS), 1.0f, 0.0f);
     // GBuffer2: Motion Vectors (xy) + Occlusion (z) + FeatureBitmask (w)
     outputs.gbuffer2 = float4(attrs.motionVectors, 1.0f, 0.0f);
     // GBuffer3: Emissive Color (rgb) + Unlit flag (1.0f)
-    outputs.gbuffer3 = float4(surfaceData.emissive, 1.0f);
-    
+    outputs.gbuffer3 = float4(surface.emissive, 1.0f);
+#else
+    #error "Unsupported template type for deferred texturing"
+#endif
+
     WriteGBuffer(pixelCoord, outputs, props.gbuffer0Uav, props.gbuffer1Uav, props.gbuffer2Uav, props.gbuffer3Uav);
 }
 
-#endif // GHOST_UNLIT_DEFERTEXTURING_HLSL
+#endif // GHOST_TEMPLATE_DEFERTEXTURING

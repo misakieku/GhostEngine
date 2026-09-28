@@ -48,7 +48,7 @@ internal sealed class UnlitTemplate : IShaderTemplate
             },
             stages = new List<TemplateStage>
             {
-                new() { templateFile = "Unlit/Unlit_DeferTexturing.template.hlsl", entryPoint = "CSMain", stage = ShaderStage.ComputeShader },
+                new() { templateFile = "Common/DeferTexturing.template.hlsl", entryPoint = "CSMain", stage = ShaderStage.ComputeShader },
             }
         }
     };

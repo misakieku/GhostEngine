@@ -27,9 +27,9 @@ shader ""Custom/CarPaint"" : ""Lit""
 
     hlsl
     {
-        void GetSurfaceData(in MaterialContext ctx, inout Payload payload, out SurfaceData surface)
+        SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props, inout Payload payload)
         {
-            surface = DefaultSurfaceData();
+            return DefaultSurfaceData();
         }
     }
 }
@@ -85,9 +85,9 @@ shader ""Custom/MyUnlit"" : ""Unlit""
 
     hlsl
     {
-        void GetSurfaceData(in MaterialProperties props, float2 uv, inout Payload payload, out SurfaceData surface)
+        SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props, inout Payload payload)
         {
-            surface = (SurfaceData)0;
+            return (SurfaceData)0;
         }
     }
 }
@@ -132,15 +132,17 @@ shader ""Custom/CarPaint"" : ""Lit""
 
     hlsl
     {
-        void GetSurfaceData(in MaterialContext ctx, inout Payload payload, out SurfaceData surface)
+        SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props, inout Payload payload)
         {
             CustomCarPaintShaderProperties props = LoadLitProperties(ctx.materialIndex);
-            surface = (SurfaceData)0;
+            SurfaceData surface = (SurfaceData)0;
             surface.albedo = props.baseColor.rgb;
             surface.normalWS = ctx.normalWS;
             surface.metallic = props.metallic;
             surface.roughness = props.roughness;
             surface.occlusion = props.occlusion;
+
+            return surface;
         }
     }
 }

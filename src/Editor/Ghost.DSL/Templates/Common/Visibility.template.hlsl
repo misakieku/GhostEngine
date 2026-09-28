@@ -2,10 +2,15 @@
 // GhostEngine Unified Visibility Pass (Lit / Unlit)
 // ============================================================
 
+#ifndef GHOST_TEMPLATE_VISIBILITY
+#define GHOST_TEMPLATE_VISIBILITY
+
 #if defined(GHOST_TEMPLATE_LIT)
 #include "Lit/Lit_Common.template.hlsl"
 #elif defined(GHOST_TEMPLATE_UNLIT)
 #include "Unlit/Unlit_Common.template.hlsl"
+#else
+#error "Unsupported template type for visibility."
 #endif
 
 #include "EngineResources/Shaders/Properties.hlsl"
@@ -185,3 +190,5 @@ void PSMain(VisibilityPixelInput input, uint primitiveID : SV_PrimitiveID)
     // 64-bit atomic max write
     VisibilityWritePixelAtomic(visBufferIndex, byteAddress, input.position.z, input.visibleMeshletIndex, primitiveID);
 }
+
+#endif // GHOST_TEMPLATE_VISIBILITY

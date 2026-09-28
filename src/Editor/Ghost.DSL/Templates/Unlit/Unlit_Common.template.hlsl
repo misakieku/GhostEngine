@@ -14,8 +14,8 @@
 // it through the mesh pipeline to the pixel stage.
 //
 // Injection points (user overrides in their hlsl block):
-//   float  GetAlphaCoverage(uint materialIndex, float2 uv, inout Payload payload)
-//   void GetSurfaceData(in MaterialProperties props, float2 uv, inout Payload payload, out SurfaceData surface)
+//   float GetAlphaCoverage(uint materialIndex, float2 uv, inout Payload payload)
+//   SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props, inout Payload payload)
 // ============================================================
 
 #include "EngineResources/Shaders/Properties.hlsl"
@@ -24,6 +24,15 @@ struct SurfaceData
 {
     float3 albedo;
     float3 emissive;
+};
+
+struct MaterialContext
+{
+    uint instanceIndex;
+    uint materialIndex;
+    float3 worldPos;
+    float3 normalWS;
+    float2 uv;
 };
 
 $GHOST_PROPERTIES_STRUCT$
@@ -44,9 +53,10 @@ static inline float GetAlphaCoverage(in MaterialProperties props, float2 uv, ino
 #endif
 
 #ifndef GHOST_OVERRIDE_GET_SURFACE_DATA
-static inline void GetSurfaceData(in MaterialProperties props, float2 uv, inout Payload payload, out SurfaceData surface)
+static inline SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props, inout Payload payload)
 {
-    surface = (SurfaceData)0;
+    SurfaceData surface = (SurfaceData)0;
+    return surface;
 }
 #endif
 

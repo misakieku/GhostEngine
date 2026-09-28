@@ -10,8 +10,7 @@ GhostEngine is a C# game engine targeting .NET 10 / Windows, built around:
 - **Third-party bindings** (`Ghost.FMOD`, `Ghost.MeshOptimizer`, `Ghost.Nvtt`, `Ghost.Ufbx`, `Ghost.DXC`, `Ghost.StbI`)
 - **Tools** (`Ghost.NativeWrapperGen`, `Ghost.ShaderMetadataTool`, `Ghost.AssetForge.CLI`)
 
-Solution file: `src/GhostEngine.slnx`
-All commands below should be run from the `src/` directory unless noted.
+Solution file: `GhostEngine.slnx`
 
 ---
 
@@ -19,16 +18,16 @@ All commands below should be run from the `src/` directory unless noted.
 
 ```shell
 # Build entire solution (x64, Debug_Editor)
-dotnet build src/GhostEngine.slnx -c Debug -p:Platform=x64
+dotnet build GhostEngine.slnx -c Debug -p:Platform=x64
 
 # Build entire solution (Release_Editor)
-dotnet build src/GhostEngine.slnx -c Release -p:Platform=x64
+dotnet build GhostEngine.slnx -c Release -p:Platform=x64
 
 # Build a single project (uses Debug/Release; Editor configs handled by Directory.Build.props)
 dotnet build src/Runtime/Ghost.Entities/Ghost.Entities.csproj -c Release
 
 # Clean
-dotnet clean src/GhostEngine.slnx
+dotnet clean GhostEngine.slnx
 ```
 
 **4 build configs** (defined in `src/Directory.Build.props`):
@@ -132,7 +131,7 @@ To run a specific test class, edit `Program.cs` to call `TestRunner.Run<YourTest
 
 ### EditorConfig (enforced — `src/.editorconfig`)
 
-- Max line length: **400**
+- Max line length: **200** (**NEVER WRITE PARAMETERS OF A METHOD IN MULTIPLE LINES IF THERE ARE SHORTER THAN 200*)
 - Opening braces always on a **new line** for all C# constructs
 - Single-line statements/blocks **preserved**
 - **No** primary constructors (`csharp_style_prefer_primary_constructors = false`)
@@ -232,8 +231,8 @@ Use public fields only for data-container structs. Prefer private field + public
 ## Project Structure
 
 ```
+GhostEngine.slnx              # Solution (MSBuild 2024+ .slnx format)
 src/
-  GhostEngine.slnx              # Solution (MSBuild 2024+ .slnx format)
   .editorconfig                 # Formatting rules
   global.json                   # Test runner: Microsoft.Testing.Platform
   Directory.Build.props         # Shared build config (4 configs)

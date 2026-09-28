@@ -20,16 +20,17 @@ namespace Ghost.Generator.Templates
     {
         public static readonly TemplatePropertyDef[] Lit = new[]
         {
+            new TemplatePropertyDef("float4", "doubleSidedConstants", "float4(1.0, 1.0, 1.0, 0.0)"),
             new TemplatePropertyDef("bool", "alphaClip", "false"),
             new TemplatePropertyDef("float", "alphaClipThreshold", "0.5"),
-            new TemplatePropertyDef("float4", "doubleSidedConstants", "float4(1.0, 1.0, 1.0, 0.0)"),
+            new TemplatePropertyDef("uint", "materialFeatureMask", "0"),
         };
 
         public static readonly TemplatePropertyDef[] Unlit = new[]
         {
+            new TemplatePropertyDef("float4", "doubleSidedConstants", "float4(1.0, 1.0, 1.0, 0.0)"),
             new TemplatePropertyDef("bool", "alphaClip", "false"),
             new TemplatePropertyDef("float", "alphaClipThreshold", "0.5"),
-            new TemplatePropertyDef("float4", "doubleSidedConstants", "float4(1.0, 1.0, 1.0, 0.0)"),
         };
 
         public static readonly TemplatePropertyDef[] Sky = new[]
