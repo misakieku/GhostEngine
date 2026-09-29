@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-
 namespace Ghost.Core.Utilities;
 
 public static class StringUtility

@@ -142,8 +142,8 @@ internal class LightGatherSystem : SystemBase
                 var dirWS = math.lengthsq(forward) > 1e-6f ? math.normalize(forward) : new float3(0.0f, 0.0f, 1.0f);
                 var invRangeSq = 1.0f / (light.range * light.range);
 
-                float spotAngleScale = 0.0f;
-                float spotAngleOffset = 0.0f;
+                var spotAngleScale = 0.0f;
+                var spotAngleOffset = 0.0f;
                 if (light.type == PunctualLightType.Spot)
                 {
                     var inner = math.min(light.innerSpotAngle, light.outerSpotAngle);

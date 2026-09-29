@@ -236,6 +236,16 @@ public partial class World : IDisposable, IEquatable<World>
     }
 
     /// <summary>
+    /// Registers or overwrites a global resource in the world.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void AddService<T>()
+        where T : class, new()
+    {
+        _services[typeof(T)] = new T();
+    }
+
+    /// <summary>
     /// Retrieves a global resource from the world.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

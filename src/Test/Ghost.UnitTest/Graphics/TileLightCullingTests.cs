@@ -1,6 +1,3 @@
-using System;
-using Ghost.Engine.RenderPipeline;
-using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.UnitTest.Graphics;
@@ -10,20 +7,20 @@ public class TileLightCullingTests
 {
     private static void PackTileLights(Span<uint> tileDwords, ReadOnlySpan<uint> lightIndices, uint dwords)
     {
-        uint maxLights = 2u * dwords - 1u;
-        uint count = (uint)Math.Min(lightIndices.Length, (int)maxLights);
+        var maxLights = 2u * dwords - 1u;
+        var count = (uint)Math.Min(lightIndices.Length, (int)maxLights);
 
         // Slot 0: bits 0..15 = count, bits 16..31 = light 0
-        uint firstLight = (count > 0) ? lightIndices[0] : 0u;
+        var firstLight = (count > 0) ? lightIndices[0] : 0u;
         tileDwords[0] = (count & 0xFFFFu) | (firstLight << 16);
 
         // Slots 1..dwords-1: pairs of 16-bit indices
         for (uint k = 1; k < dwords; ++k)
         {
-            uint idxA = 2u * k - 1u;
-            uint idxB = 2u * k;
-            uint lightA = (idxA < count) ? lightIndices[(int)idxA] : 0u;
-            uint lightB = (idxB < count) ? lightIndices[(int)idxB] : 0u;
+            var idxA = 2u * k - 1u;
+            var idxB = 2u * k;
+            var lightA = (idxA < count) ? lightIndices[(int)idxA] : 0u;
+            var lightB = (idxB < count) ? lightIndices[(int)idxB] : 0u;
             tileDwords[(int)k] = (lightA & 0xFFFFu) | (lightB << 16);
         }
     }
@@ -37,8 +34,8 @@ public class TileLightCullingTests
     {
         if (lightOffset == 0)
         {
-            uint dword0 = tileDwords[0];
-            uint count = dword0 & 0xFFFFu;
+            var dword0 = tileDwords[0];
+            var count = dword0 & 0xFFFFu;
             if (count > 0)
             {
                 return (dword0 >> 16, true);
@@ -46,11 +43,11 @@ public class TileLightCullingTests
             return (0, false);
         }
 
-        uint dwordIndex = (lightOffset + 1u) / 2u;
+        var dwordIndex = (lightOffset + 1u) / 2u;
         if (dwordIndex < dwords)
         {
-            uint raw = tileDwords[(int)dwordIndex];
-            uint index = ((lightOffset + 1u) & 1u) != 0 ? (raw >> 16) : (raw & 0xFFFFu);
+            var raw = tileDwords[(int)dwordIndex];
+            var index = ((lightOffset + 1u) & 1u) != 0 ? (raw >> 16) : (raw & 0xFFFFu);
             return (index, true);
         }
 
@@ -185,30 +182,30 @@ public class TileLightCullingTests
     [TestMethod]
     public void TestReversedZ_LinearEyeDepthReconstruction()
     {
-        float nearClip = 0.1f;
-        float farClip = 1000.0f;
+        var nearClip = 0.1f;
+        var farClip = 1000.0f;
 
         // Reversed-Z projection matrix elements (from RenderPipeline.cs):
         // m_22 = near / (near - far)
         // m_23 = (far * near) / (far - near)
-        float m22 = nearClip / (nearClip - farClip);
-        float m23 = (farClip * nearClip) / (farClip - nearClip);
+        var m22 = nearClip / (nearClip - farClip);
+        var m23 = (farClip * nearClip) / (farClip - nearClip);
 
         // Near plane device depth = 1.0f
-        float linearNear = m23 / (1.0f - m22);
-        float closedNear = (nearClip * farClip) / ((farClip - nearClip) * 1.0f + nearClip);
+        var linearNear = m23 / (1.0f - m22);
+        var closedNear = (nearClip * farClip) / ((farClip - nearClip) * 1.0f + nearClip);
         Assert.AreEqual(nearClip, linearNear, 1e-4f);
         Assert.AreEqual(nearClip, closedNear, 1e-4f);
 
         // Far plane device depth = 0.0f
-        float linearFar = m23 / (0.0f - m22);
-        float closedFar = (nearClip * farClip) / ((farClip - nearClip) * 0.0f + nearClip);
+        var linearFar = m23 / (0.0f - m22);
+        var closedFar = (nearClip * farClip) / ((farClip - nearClip) * 0.0f + nearClip);
         Assert.AreEqual(farClip, linearFar, 1e-2f);
         Assert.AreEqual(farClip, closedFar, 1e-2f);
 
         // Intermediate depth: device depth 0.5f
-        float linearMid = m23 / (0.5f - m22);
-        float closedMid = (nearClip * farClip) / ((farClip - nearClip) * 0.5f + nearClip);
+        var linearMid = m23 / (0.5f - m22);
+        var closedMid = (nearClip * farClip) / ((farClip - nearClip) * 0.5f + nearClip);
         Assert.AreEqual(linearMid, closedMid, 1e-4f);
         Assert.IsGreaterThan(nearClip, linearMid);
         Assert.IsLessThan(farClip, linearMid);

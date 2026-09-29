@@ -1,5 +1,5 @@
-using System.Runtime.InteropServices;
 using Ghost.Engine.ShaderProperties;
+using System.Runtime.InteropServices;
 
 namespace Ghost.UnitTest.Graphics;
 

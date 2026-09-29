@@ -1,5 +1,3 @@
-using Misaki.HighPerformance.Mathematics;
-
 namespace Ghost.Engine.Input;
 
 public enum ActionButton : byte

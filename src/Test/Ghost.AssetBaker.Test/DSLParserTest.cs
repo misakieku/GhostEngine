@@ -1,5 +1,3 @@
-using Ghost.Core;
-using Ghost.Core.Graphics;
 using Ghost.DSL.ShaderCompiler;
 
 namespace Ghost.AssetForge.Test;

@@ -609,7 +609,7 @@ internal static unsafe partial class MeshProcessor
                     merged.AddRange(clusterIndices.AsSpan());
                 }
 
-                var targetSize = (nuint)((nuint)(merged.Count / 3 * config.simplifyRatio) * 3);
+                var targetSize = (nuint)(merged.Count / 3 * config.simplifyRatio) * 3;
                 var bounds = MergeBounds(clusters, groups[i], allocationHandle);
 
                 var error = 0.0f;

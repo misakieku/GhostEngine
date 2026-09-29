@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Streaming;
 
+// How can we handle virtual texture streaming?
 internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUploadableAssetEntry
 {
     private Handle<GPUTexture> _actualHandle;

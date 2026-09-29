@@ -13,6 +13,7 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Streaming;
 
+// TODO: How can we handle meshlet streaming?
 internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploadableAssetEntry
 {
     private Handle<Mesh> _actualHandle;

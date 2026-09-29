@@ -307,7 +307,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
                     return (uint)vg.uav.Value;
                 }
 
-                return subResource < (uint)vg.uavCount
+                return subResource < vg.uavCount
                     ? (uint)(vg.uav.Value + (int)subResource)
                     : uint.MaxValue;
 
@@ -355,7 +355,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
                             : (sub == 0 ? (uint)vg.srv.Value : uint.MaxValue))
                         : uint.MaxValue,
                     BindlessAccess.UnorderedAccess => vg.uav.IsValid
-                        ? (sub < (uint)vg.uavCount ? (uint)(vg.uav.Value + (int)sub) : uint.MaxValue)
+                        ? (sub < vg.uavCount ? (uint)(vg.uav.Value + (int)sub) : uint.MaxValue)
                         : uint.MaxValue,
                     BindlessAccess.ConstantBuffer => vg.cbv.IsValid ? (uint)vg.cbv.Value : uint.MaxValue,
                     _ => uint.MaxValue,

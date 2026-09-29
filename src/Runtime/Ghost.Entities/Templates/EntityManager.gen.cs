@@ -1,8 +1,5 @@
 
 using Ghost.Core;
-using Misaki.HighPerformance.LowLevel;
-using Misaki.HighPerformance.LowLevel.Buffer;
-using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
@@ -39,7 +36,7 @@ public unsafe partial class EntityManager
         var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0);
-        
+
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -105,7 +102,7 @@ public unsafe partial class EntityManager
         var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0, in component1);
-        
+
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -183,7 +180,7 @@ public unsafe partial class EntityManager
         var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0, in component1, in component2);
-        
+
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -273,7 +270,7 @@ public unsafe partial class EntityManager
         var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0, in component1, in component2, in component3);
-        
+
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -375,7 +372,7 @@ public unsafe partial class EntityManager
         var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0, in component1, in component2, in component3, in component4);
-        
+
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -489,7 +486,7 @@ public unsafe partial class EntityManager
         var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0, in component1, in component2, in component3, in component4, in component5);
-        
+
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -615,7 +612,7 @@ public unsafe partial class EntityManager
         var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0, in component1, in component2, in component3, in component4, in component5, in component6);
-        
+
         if (err != Error.None)
         {
             DestroyEntity(entity);
@@ -753,7 +750,7 @@ public unsafe partial class EntityManager
         var set = new ComponentSetView(ids);
         var entity = CreateEntity(set);
         var err = SetComponents(entity, in component0, in component1, in component2, in component3, in component4, in component5, in component6, in component7);
-        
+
         if (err != Error.None)
         {
             DestroyEntity(entity);

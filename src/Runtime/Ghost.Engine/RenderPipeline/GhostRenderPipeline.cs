@@ -139,7 +139,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
             var gbuffer = AddDeferredTexturingPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, tileOffsetsBuffer, indirectArgsBuffer, viewContext.RenderSize);
             var tileLightList = AddTileLightCullingPass(viewContext.RenderGraph, currentDepth, viewContext.RenderSize);
-            
+
             if (_settings.DebugMode == RenderPipelineDebugMode.TileLightHeatmap)
             {
                 AddDebugTileLightHeatmapPass(viewContext.RenderGraph, tileLightList, currentDepth, colorTarget, viewContext.RenderSize);

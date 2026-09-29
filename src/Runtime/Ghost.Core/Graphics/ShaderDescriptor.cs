@@ -1,6 +1,5 @@
 using Ghost.Core.Utilities;
 using System.IO.Hashing;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Core.Graphics;

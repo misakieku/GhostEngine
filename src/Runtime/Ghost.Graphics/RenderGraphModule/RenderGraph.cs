@@ -72,7 +72,7 @@ public sealed class RenderGraph : IDisposable
 
         _passes = new List<RenderGraphPass>(32);
 
-        _context = new RenderGraphContext( resourceManager, shaderLibrary, resourceDatabase, pipelineLibrary, _resourceRegistry);
+        _context = new RenderGraphContext(resourceManager, shaderLibrary, resourceDatabase, pipelineLibrary, _resourceRegistry);
 
         _compiler = new RenderGraphCompiler(resourceAllocator, _resourceRegistry);
         _executor = new RenderGraphExecutor(_resourceRegistry);

@@ -165,7 +165,7 @@ internal partial class GhostRenderPipeline
                         userData3: (v << 1) | (passData.passIndex & 1u),
                         target: DataTarget.Graphics);
 
-                    ulong variantIndirectOffset = passData.indirectArgsOffset + (ulong)v * 16UL;
+                    var variantIndirectOffset = passData.indirectArgsOffset + v * 16UL;
                     unsafeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, variantIndirectOffset);
                 }
             }

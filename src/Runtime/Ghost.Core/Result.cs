@@ -1,5 +1,4 @@
 using Misaki.HighPerformance.LowLevel;
-using System.Runtime.CompilerServices;
 
 namespace Ghost.Core;
 

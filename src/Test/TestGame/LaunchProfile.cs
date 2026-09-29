@@ -197,8 +197,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
                 });
         }
 
-        var profileDb = new InputProfileDatabase();
-        _world.AddService(profileDb);
+        _world.AddService<InputProfileDatabase>();
 
         _world.SystemManager.AddSystem<InputEvaluationSystem>();
         _world.SystemManager.AddSystem<FirstPersonCameraSystem>();

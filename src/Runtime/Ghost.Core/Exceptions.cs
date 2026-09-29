@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using TerraFX.Interop.Windows;
 

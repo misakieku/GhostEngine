@@ -61,6 +61,9 @@ public struct Material : IResourceReleasable
     public readonly Handle<Shader> Shader => _shader;
     public readonly bool IsDirty => _isDirty;
 
+    /// <summary>
+    /// Active pass index for the material. This is used to determine which pass to use when rendering the material.
+    /// </summary>
     public int ActivePassIndex
     {
         get; set;
@@ -74,17 +77,25 @@ public struct Material : IResourceReleasable
         get; set;
     }
 
-    public Error SetShader(Handle<Shader> shaderId, ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
+    /// <summary>
+    /// Sets the shader for the material and initializes the property buffer and pipeline overrides based on the shader's passes.
+    /// </summary>
+    /// <param name="shade">The handle of the shader to set.</param>
+    /// <param name="resourceManager">The resource manager to use.</param>
+    /// <param name="resourceDatabase">The resource database to use.</param>
+    /// <param name="resourceAllocator">The resource allocator to use.</param>
+    /// <returns>The error code indicating the result of the operation.</returns>
+    public Error SetShader(Handle<Shader> shade, ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
     {
-        if (!shaderId.IsValid)
+        if (!shade.IsValid)
         {
             return Error.InvalidArgument;
         }
 
         _cBufferCache.ReleaseResource(resourceDatabase);
-        _shader = shaderId;
+        _shader = shade;
 
-        var r = resourceManager.GetShaderReference(shaderId);
+        var r = resourceManager.GetShaderReference(shade);
         if (r.IsFailure)
         {
             return r.Error;
@@ -130,6 +141,11 @@ public struct Material : IResourceReleasable
         return Error.None;
     }
 
+    /// <summary>
+    /// Gets the property cache of the material as a struct of type T.
+    /// </summary>
+    /// <typeparam name="T">The type of the property cache.</typeparam>
+    /// <returns>The property cache as a struct of type T. <see cref="Error.InvalidArgument"/> if the size of T does not match the size of the property cache.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly unsafe Result<T, Error> GetPropertyCache<T>()
         where T : unmanaged
@@ -142,17 +158,27 @@ public struct Material : IResourceReleasable
         return *(T*)_cBufferCache.CpuData.GetUnsafePtr();
     }
 
+    /// <summary>
+    /// Gets the raw property cache of the material as a ReadOnlySpan of bytes.
+    /// </summary>
+    /// <returns>The raw property cache as a ReadOnlySpan of bytes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ReadOnlySpan<byte> GetRawPropertyCache()
     {
         if (_cBufferCache.Size == 0)
         {
-            return [];
+            return Span<byte>.Empty;
         }
 
         return _cBufferCache.CpuData.AsSpan(0, (int)_cBufferCache.Size);
     }
 
+    /// <summary>
+    /// Sets the property cache of the material with a struct of type T. The size of T must match the size of the property cache.
+    /// </summary>
+    /// <typeparam name="T">The type of the property cache.</typeparam>
+    /// <param name="data">The data to set.</param>
+    /// <returns>The error code indicating the result of the operation.</returns>
     public unsafe Error SetPropertyCache<T>(scoped in T data)
         where T : unmanaged
     {
@@ -165,6 +191,11 @@ public struct Material : IResourceReleasable
         return SetRawPropertyCache(dataSpan);
     }
 
+    /// <summary>
+    /// Sets the raw property cache of the material with a ReadOnlySpan of bytes. The length of the span must match the size of the property cache.
+    /// </summary>
+    /// <param name="data">The data to set.</param>
+    /// <returns>The error code indicating the result of the operation.</returns>
     public Error SetRawPropertyCache(ReadOnlySpan<byte> data)
     {
         if (data.Length != _cBufferCache.Size)
@@ -184,12 +215,22 @@ public struct Material : IResourceReleasable
         return Error.None;
     }
 
+    /// <summary>
+    /// Gets the pipeline state override for a specific pass index. If no override is set, it returns the default pipeline state for that pass.
+    /// </summary>
+    /// <param name="passIndex">The index of the pass for which to get the pipeline state override.</param>
+    /// <returns>The pipeline state override for the specified pass, or the default pipeline state if no override is set.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly PipelineState GetPassPipelineOverride(int passIndex)
     {
         return _passPipelineOverride[passIndex].options;
     }
 
+    /// <summary>
+    /// Sets the pipeline state override for a specific pass index. This allows customization of the rendering behavior for that pass.
+    /// </summary>
+    /// <param name="passIndex">The index of the pass for which to set the pipeline state override.</param>
+    /// <param name="options">The pipeline state options to set.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetPassPipelineOverride(int passIndex, scoped in PipelineState options)
     {

@@ -299,7 +299,7 @@ public class MeshBakerTests
         try
         {
             var count010 = 0;
-            int sampleV = -1;
+            var sampleV = -1;
             for (var v = 0; v < mesh.vertices.Count; v++)
             {
                 var n = mesh.vertices[v].normal;

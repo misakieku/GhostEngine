@@ -193,7 +193,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             using var reachability = new UnsafeArray<byte>(compiledPassCount * compiledPassCount, schedulingScope.AllocationHandle);
 
             BuildPassReachability(compiledPasses, nodes, scheduleIndexByPassIndex, reachability);
-            BuildDependencyWindowSchedule(passes,compiledPasses, effectiveQueues, syncBoundaries, reachability);
+            BuildDependencyWindowSchedule(passes, compiledPasses, effectiveQueues, syncBoundaries, reachability);
             FinalizeScheduleReachability(effectiveQueues, syncBoundaries, commandBufferIds, reachability);
 
             using var resourceOrdering = RenderGraphResourceOrdering.Build(_resourceRegistry, scheduleIndexByPassIndex, reachability, compiledPassCount, schedulingScope.AllocationHandle);

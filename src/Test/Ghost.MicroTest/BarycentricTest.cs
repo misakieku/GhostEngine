@@ -27,8 +27,8 @@ internal unsafe class BarycentricTest : ITest
 
         // Triangle vertices in local space
         var v0Pos = new float3(-0.5f, -0.5f, 0.0f);
-        var v1Pos = new float3( 0.5f, -0.5f, 0.0f);
-        var v2Pos = new float3( 0.0f,  0.5f, 0.0f);
+        var v1Pos = new float3(0.5f, -0.5f, 0.0f);
+        var v2Pos = new float3(0.0f, 0.5f, 0.0f);
 
         // A fixed 3D surface point with known barycentrics (0.5, 0.3, 0.2)
         var trueBary = new float3(0.5f, 0.3f, 0.2f);
@@ -52,14 +52,14 @@ internal unsafe class BarycentricTest : ITest
     {
         var viewMatrix = math.inverse(TRS(camPos, camRot, new float3(1, 1, 1)));
 
-        float vfov = 2.0f * math.atan(24.0f / (2.0f * 20.0f));
-        float aspectScreen = screenSize.x / screenSize.y;
-        float m_11 = 1.0f / math.tan(vfov * 0.5f);
-        float m_00 = m_11 / aspectScreen;
-        float nearClip = 0.1f;
-        float farClip = 1000.0f;
-        float m_22 = nearClip / (nearClip - farClip);
-        float m_23 = (farClip * nearClip) / (farClip - nearClip);
+        var vfov = 2.0f * math.atan(24.0f / (2.0f * 20.0f));
+        var aspectScreen = screenSize.x / screenSize.y;
+        var m_11 = 1.0f / math.tan(vfov * 0.5f);
+        var m_00 = m_11 / aspectScreen;
+        var nearClip = 0.1f;
+        var farClip = 1000.0f;
+        var m_22 = nearClip / (nearClip - farClip);
+        var m_23 = (farClip * nearClip) / (farClip - nearClip);
 
         var projMatrix = new float4x4(
             m_00, 0, 0, 0,

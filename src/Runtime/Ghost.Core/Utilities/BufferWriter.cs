@@ -1,6 +1,5 @@
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Core.Utilities;
