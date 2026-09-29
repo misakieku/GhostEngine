@@ -44,24 +44,28 @@ public interface IRenderPipeline : IDisposable
     /// <summary>
     /// Creates a new per-frame payload instance for this render pipeline.
     /// </summary>
+    /// <returns>A new instance of <see cref="IRenderPayload"/>.</returns>
     IRenderPayload CreatePayload();
 
     /// <summary>
     /// Records pre-graph commands into the open <see cref="RenderContext.CommandBuffer"/> (the frame prelude).
     /// The command buffer must be open when this is called; the outer frame owns Begin, End, and submission.
     /// </summary>
+    /// <param name="ctx">The render context for the current frame.</param>
+    /// <param name="frameIndex">The index of the current frame.</param>
+    /// <param name="payload">The payload containing the render requests for the current frame.</param>
     void RecordPrelude(RenderContext ctx, int frameIndex, IRenderPayload payload);
 
     /// <summary>
     /// Compiles and executes the render graph, submitting its native command buffers through the
     /// frame scheduler embedded in <paramref name="executionContext"/>.
     /// </summary>
-    /// <returns>
-    /// Terminal submission handles the outer frame uses to declare post-graph dependencies
-    /// (e.g. Compute → epilogue). Returns <c>default</c> when the graph is empty or execution fails.
-    /// </returns>
-    Result ExecuteGraph(RenderContext ctx, int frameIndex, IRenderPayload payload,
-        in RenderGraphExecutionContext executionContext);
+    /// <param name="ctx">The resource context for the current frame.</param>
+    /// <param name="frameIndex">The index of the current frame.</param>
+    /// <param name="payload">The payload containing the render requests for the current frame.</param>
+    /// <param name="executionContext">The execution context containing the frame scheduler and command allocators.</param>
+    /// <returns>The result of the graph execution.</returns>
+    Result ExecuteGraph(ResourceContext ctx, int frameIndex, IRenderPayload payload, in RenderGraphExecutionContext executionContext);
 }
 
 public readonly ref struct RenderViewData : IDisposable
@@ -195,7 +199,7 @@ public static unsafe class RenderPipelineUtility
         GetVPMatrices(in request, screenSize, out view, out projection, reversedZ: true);
     }
 
-    public static Handle<GPUBuffer> CreateFrameBuffer(RenderContext ctx, uint sceneBuffer, uint punctualLightsBuffer, uint punctualLightCount, uint directionalLightBuffer)
+    public static Handle<GPUBuffer> CreateFrameBuffer(ResourceContext ctx, uint sceneBuffer, uint punctualLightsBuffer, uint punctualLightCount, uint directionalLightBuffer)
     {
         var frameData = new FrameData
         {
@@ -223,7 +227,7 @@ public static unsafe class RenderPipelineUtility
         return frameGpuBuffer;
     }
 
-    public static Handle<GPUBuffer> CreateViewDataBuffer(RenderContext ctx, RenderRequest request, RenderViewData renderView, float4x4 viewMatrix, float4x4 projMatrix, float4x4 viewProjMatrix, Frustum frustum, ref float4x4 prevVP)
+    public static Handle<GPUBuffer> CreateViewDataBuffer(ResourceContext ctx, RenderRequest request, RenderViewData renderView, float4x4 viewMatrix, float4x4 projMatrix, float4x4 viewProjMatrix, Frustum frustum, ref float4x4 prevVP)
     {
         var viewData = new ViewData
         {

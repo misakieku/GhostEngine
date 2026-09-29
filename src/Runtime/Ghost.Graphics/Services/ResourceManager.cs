@@ -94,6 +94,8 @@ public sealed partial class ResourceManager : IDisposable
         _materialIndexCapacity = PALETTE_BUFFER_INITIAL_CAPACITY * 4;
         _paletteOffsetBuffer = CreatePaletteBuffer(_paletteOffsetCapacity, "PaletteOffsetBuffer");
         _materialIndexBuffer = CreatePaletteBuffer(_materialIndexCapacity, "MaterialIndexBuffer");
+
+        InitializeTransientPool();
     }
 
     ~ResourceManager()
@@ -374,6 +376,23 @@ public sealed partial class ResourceManager : IDisposable
     {
         Logger.DebugAssert(!_disposed);
         return _materialPalettes.GetMaterial(paletteID, localMaterialIndex);
+    }
+
+    /// <summary>
+    /// Uploads all dirty materials to the GPU. Must be called once per frame on the render thread, before any draw calls.
+    /// </summary>
+    /// <param name="ctx">The render context to use for the upload.</param>
+    public void UploadMaterials(RenderContext ctx)
+    {
+        Logger.DebugAssert(!_disposed);
+
+        foreach (ref var material in _materials)
+        {
+            if (material.IsDirty)
+            {
+                material.UploadData(ctx);
+            }
+        }
     }
 
     /// <summary>

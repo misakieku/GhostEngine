@@ -3,6 +3,7 @@ using Ghost.Engine;
 using Ghost.Engine.Components;
 using Ghost.Engine.Input;
 using Ghost.Engine.RenderPipeline;
+using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Systems;
 using Ghost.Engine.Utilities;
@@ -27,7 +28,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
         MaxVisibleMeshletsOnScreen = 2_097_152 * 2,
-        MeshletLodErrorThreshold = 1.0f,
+        MeshletLodErrorThreshold = 2.0f,
         InstanceCullingThreshold = 2.0f,
         DebugMode = RenderPipelineDebugMode.None,
     };
@@ -128,6 +129,12 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
         _shaderAsset.ReadAssetData(ref shaderHandle);
 
         var mat = engine.RenderEngine.ResourceManager.CreateMaterial(shaderHandle);
+        ref var matRef = ref engine.RenderEngine.ResourceManager.GetMaterialReference(mat).GetValueOrThrow();
+        matRef.SetPropertyCache(new MyShaderSimpleLitShaderProperties
+        {
+            roughness = 0.15f,
+        });
+
         var materialPallette = engine.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);
 
         using var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
@@ -157,21 +164,19 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
             });
         }
 
-        //// Add Sun(Directional Light)
-        //_world.EntityManager.CreateEntity(
-        //    new DirectionalLight
-        //    {
-        //        color = new float3(1.0f, 0.95f, 0.85f),
-        //        intensity = 1.0f,
-        //        castShadows = true
-        //    },
-        //    new LocalToWorld
-        //    {
-        //        matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(new float3(45.0f, 30.0f, 0.0f)), new float3(1.0f, 1.0f, 1.0f))
-        //    });
+        _world.EntityManager.CreateEntity(
+            new DirectionalLight
+            {
+                color = new float3(1.0f, 0.95f, 0.85f),
+                intensity = 1.0f,
+                castShadows = true
+            },
+            new LocalToWorld
+            {
+                matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(new float3(45.0f, 30.0f, 0.0f)), new float3(1.0f, 1.0f, 1.0f))
+            });
 
-        // Add 64 random punctual lights (Point and Spot)
-        for (var i = 0; i < 512; i++)
+        for (var i = 0; i < 0; i++)
         {
             var pos = new float3(RandomFloat(-lightSize, lightSize), RandomFloat(-lightSize, lightSize), RandomFloat(-lightSize, lightSize));
             var color = new float3(RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f));

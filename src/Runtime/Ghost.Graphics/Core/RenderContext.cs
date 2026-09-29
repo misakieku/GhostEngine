@@ -1,22 +1,54 @@
 using Ghost.Core;
-using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
-using Misaki.HighPerformance.LowLevel.Buffer;
-using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Core;
 
-// TODO: Temporary rendering context for heap creation and data upload. We will refactor it later when we have a better understanding of the engine architecture.
-public unsafe class RenderContext
+public readonly struct ResourceContext
 {
+    public ResourceManager ResourceManager
+    {
+        get; init;
+    }
+
+    public IResourceAllocator ResourceAllocator
+    {
+        get; init;
+    }
+
+    public IResourceDatabase ResourceDatabase
+    {
+        get; init;
+    }
+
+    public IPipelineLibrary PipelineLibrary
+    {
+        get; init;
+    }
+
+    internal ShaderLibrary ShaderLibrary
+    {
+        get; init;
+    }
+}
+
+public sealed unsafe class RenderContext
+{
+    private const ulong UPLOAD_BUFFER_SIZE = 64 * 1024 * 1024; // 64 MB
+
+    private ICommandBuffer? _commandBuffer;
+
     public ICommandBuffer CommandBuffer
     {
-        get; internal set;
-    } = null!;
+        get
+        {
+            Logger.DebugAssert(_commandBuffer != null, "Command buffer is not set. Call BeginFrame() before using the render context.");
+            return _commandBuffer;
+        }
+    }
 
     public ResourceManager ResourceManager
     {
@@ -43,6 +75,15 @@ public unsafe class RenderContext
         get;
     }
 
+    public ResourceContext ResourceContext => new ResourceContext
+    {
+        ResourceManager = ResourceManager,
+        ResourceAllocator = ResourceAllocator,
+        ResourceDatabase = ResourceDatabase,
+        PipelineLibrary = PipelineLibrary,
+        ShaderLibrary = ShaderLibrary,
+    };
+
     internal RenderContext(ResourceManager resourceManager, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, ShaderLibrary shaderLibrary)
     {
         ResourceManager = resourceManager;
@@ -52,27 +93,9 @@ public unsafe class RenderContext
         ShaderLibrary = shaderLibrary;
     }
 
-    private void TransitionBarrier(
-        Handle<GPUResource> resource,
-        bool isTexture,
-        BarrierLayout layoutBefore,
-        BarrierLayout layoutAfter,
-        BarrierAccess accessBefore,
-        BarrierAccess accessAfter,
-        BarrierSync syncBefore,
-        BarrierSync syncAfter)
+    internal void BeginFrame(ICommandBuffer commandBuffer)
     {
-        BarrierDesc desc;
-        if (isTexture)
-        {
-            desc = BarrierDesc.Texture(resource.AsTexture(), syncBefore, syncAfter, accessBefore, accessAfter, layoutBefore, layoutAfter);
-        }
-        else
-        {
-            desc = BarrierDesc.Buffer(resource.AsBuffer(), syncBefore, syncAfter, accessBefore, accessAfter);
-        }
-
-        CommandBuffer.Barrier(desc);
+        _commandBuffer = commandBuffer;
     }
 
     public void UploadBuffer<T>(Handle<GPUBuffer> buffer, params ReadOnlySpan<T> data)
@@ -87,9 +110,9 @@ public unsafe class RenderContext
         Logger.DebugAssert(r.Value.Type == ResourceType.Buffer);
 
         var sizeInBytes = (nuint)(data.Length * sizeof(T));
-        var memoryType = r.Value.BufferDescriptor.HeapType;
+        var heapType = r.Value.BufferDescriptor.HeapType;
 
-        if (memoryType == HeapType.Upload)
+        if (heapType == HeapType.Upload)
         {
             fixed (T* pData = data)
             {
@@ -107,20 +130,16 @@ public unsafe class RenderContext
                 HeapType = HeapType.Upload,
             };
 
-            var uploadHandle = ResourceManager.CreateTransientBuffer(in uploadDesc);
-            if (uploadHandle.IsInvalid)
-            {
-                throw new OutOfMemoryException("Failed to create upload buffer for buffer data.");
-            }
+            var uploadHandle = ResourceManager.CreateTransientUploadBuffer(uploadDesc, out var srcOffset);
 
             fixed (T* pData = data)
             {
                 var mappedData = ResourceDatabase.MapResource(uploadHandle.AsResource(), 0, null);
-                MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
+                MemoryUtility.MemCpy((byte*)mappedData + srcOffset, pData, sizeInBytes);
                 ResourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
             }
 
-            CommandBuffer.CopyBuffer(buffer, uploadHandle, 0, 0, sizeInBytes);
+            CommandBuffer.CopyBuffer(buffer, uploadHandle, 0, srcOffset, sizeInBytes);
         }
     }
 
@@ -137,7 +156,6 @@ public unsafe class RenderContext
         }
 
         var sizeInBytes = (nuint)(data.Length * sizeof(T));
-
         var uploadDesc = new BufferDesc
         {
             Size = sizeInBytes,
@@ -145,248 +163,16 @@ public unsafe class RenderContext
             HeapType = HeapType.Upload,
         };
 
-        var uploadHandle = ResourceManager.CreateTransientBuffer(in uploadDesc);
-        if (uploadHandle.IsInvalid)
-        {
-            throw new OutOfMemoryException("Failed to create upload buffer for range upload.");
-        }
+        var uploadHandle = ResourceManager.CreateTransientUploadBuffer(uploadDesc, out var srcOffset);
 
         fixed (T* pData = data)
         {
             var mappedData = ResourceDatabase.MapResource(uploadHandle.AsResource(), 0, null);
-            MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
+            MemoryUtility.MemCpy((byte*)mappedData + srcOffset, pData, sizeInBytes);
             ResourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
         }
 
-        CommandBuffer.CopyBuffer(buffer, uploadHandle, byteOffset, 0, sizeInBytes);
-    }
-
-    public Handle<Mesh> CreateMesh(UnsafeList<Vertex> vertices, UnsafeList<uint> indices, bool staticMesh)
-    {
-        var mesh = ResourceManager.CreateMesh(vertices, indices);
-        var r = ResourceManager.GetMeshReference(mesh);
-        if (r.IsFailure)
-        {
-            return mesh;
-        }
-
-        ref var meshData = ref r.Value;
-        var vertexHandle = meshData.VertexBuffer.AsResource();
-        var indexHandle = meshData.IndexBuffer.AsResource();
-
-        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
-        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
-
-        UploadBuffer(meshData.VertexBuffer, meshData.Vertices.AsSpan());
-        UploadBuffer(meshData.IndexBuffer, meshData.Indices.AsSpan());
-
-        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.VertexShading);
-        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.IndexBuffer, BarrierSync.Copy, BarrierSync.IndexInput);
-
-        if (staticMesh)
-        {
-            //meshData.CookMeshlets();
-            UploadMeshlets(mesh);
-            meshData.ReleaseCpuResources();
-        }
-
-        return mesh;
-    }
-
-    public Handle<Mesh> CreateMesh(ReadOnlySpan<Vertex> vertices, ReadOnlySpan<uint> indices, bool staticMesh)
-    {
-        var vertexList = new UnsafeList<Vertex>(vertices.Length, AllocationHandle.Persistent);
-        var indexList = new UnsafeList<uint>(indices.Length, AllocationHandle.Persistent);
-
-        vertexList.CopyFrom(vertices);
-        indexList.CopyFrom(indices);
-
-        return CreateMesh(vertexList, indexList, staticMesh);
-    }
-
-    /// <summary>
-    /// Uploads the mesh data to the GPU.
-    /// </summary>
-    /// <param name="mesh">The handle point to the mesh buffer</param>
-    /// <param name="markMeshStatic">Whether to mark the mesh as static. If it's true, the cpu buffer of the mesh will not be avaliable any more</param>
-    public void UploadMesh(Handle<Mesh> mesh, bool markMeshStatic)
-    {
-        var r = ResourceManager.GetMeshReference(mesh);
-        if (r.IsFailure)
-        {
-            return;
-        }
-
-        ref var meshRef = ref r.Value;
-        var vertexHandle = meshRef.VertexBuffer.AsResource();
-        var indexHandle = meshRef.IndexBuffer.AsResource();
-
-        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
-        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
-
-        UploadBuffer(meshRef.VertexBuffer, meshRef.Vertices.AsSpan());
-        UploadBuffer(meshRef.IndexBuffer, meshRef.Indices.AsSpan());
-
-        TransitionBarrier(vertexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.VertexShading);
-        TransitionBarrier(indexHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.IndexBuffer, BarrierSync.Copy, BarrierSync.IndexInput);
-
-        if (markMeshStatic)
-        {
-            meshRef.ReleaseCpuResources();
-        }
-    }
-
-    public void UploadMeshlets(Handle<Mesh> mesh)
-    {
-        var r = ResourceManager.GetMeshReference(mesh);
-        if (r.IsFailure)
-        {
-            return;
-        }
-
-        ref var meshRef = ref r.Value;
-        ref readonly var meshletData = ref meshRef.MeshletData;
-
-        if (!meshletData.meshlets.IsCreated || meshletData.meshlets.Count == 0) return;
-
-        var meshletDesc = new BufferDesc
-        {
-            Size = (uint)(meshletData.meshlets.Count * sizeof(Meshlet)),
-            Stride = (uint)sizeof(Meshlet),
-            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-            HeapType = HeapType.Default,
-        };
-        var verticesDesc = new BufferDesc
-        {
-            Size = (uint)(meshletData.meshletVertices.Count * sizeof(uint)),
-            Stride = sizeof(uint),
-            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-            HeapType = HeapType.Default,
-        };
-        // Ensure size is multiple of 4 for Raw buffer
-        var trianglesSize = (uint)meshletData.meshletTriangles.Count * sizeof(uint);
-        var trianglesDesc = new BufferDesc
-        {
-            Size = trianglesSize,
-            Stride = sizeof(uint),
-            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-            HeapType = HeapType.Default,
-        };
-        var groupsDesc = new BufferDesc
-        {
-            Size = (uint)(meshletData.groups.Count * sizeof(MeshletGroup)),
-            Stride = (uint)sizeof(MeshletGroup),
-            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-            HeapType = HeapType.Default,
-        };
-        var hierarchyDesc = new BufferDesc
-        {
-            Size = (uint)(meshletData.hierarchyNodes.Count * sizeof(MeshletHierarchyNode)),
-            Stride = (uint)sizeof(MeshletHierarchyNode),
-            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-            HeapType = HeapType.Default,
-        };
-
-        meshRef.MeshletBuffer = ResourceAllocator.CreateBuffer(in meshletDesc, "Meshlets");
-        meshRef.MeshletVerticesBuffer = ResourceAllocator.CreateBuffer(in verticesDesc, "MeshletVertices");
-        meshRef.MeshletTrianglesBuffer = ResourceAllocator.CreateBuffer(in trianglesDesc, "MeshletTriangles");
-        meshRef.MeshletGroupBuffer = ResourceAllocator.CreateBuffer(in groupsDesc, "MeshletGroups");
-        meshRef.MeshletHierarchyBuffer = ResourceAllocator.CreateBuffer(in hierarchyDesc, "MeshletHierarchy");
-
-        TransitionBarrier(meshRef.MeshletBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
-        TransitionBarrier(meshRef.MeshletVerticesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
-        TransitionBarrier(meshRef.MeshletTrianglesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
-        TransitionBarrier(meshRef.MeshletGroupBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
-        TransitionBarrier(meshRef.MeshletHierarchyBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
-
-        UploadBuffer(meshRef.MeshletBuffer, meshletData.meshlets.AsSpan());
-        UploadBuffer(meshRef.MeshletVerticesBuffer, meshletData.meshletVertices.AsSpan());
-        UploadBuffer(meshRef.MeshletTrianglesBuffer, meshletData.meshletTriangles.AsSpan());
-        UploadBuffer(meshRef.MeshletGroupBuffer, meshletData.groups.AsSpan());
-        UploadBuffer(meshRef.MeshletHierarchyBuffer, meshletData.hierarchyNodes.AsSpan());
-
-        TransitionBarrier(meshRef.MeshletBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
-        TransitionBarrier(meshRef.MeshletVerticesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
-        TransitionBarrier(meshRef.MeshletTrianglesBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
-        TransitionBarrier(meshRef.MeshletGroupBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
-        TransitionBarrier(meshRef.MeshletHierarchyBuffer.AsResource(), false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.NonPixelShading | BarrierSync.PixelShading);
-    }
-
-    public void UpdateObjectData(Handle<Mesh> mesh)
-    {
-        var r = ResourceManager.GetMeshReference(mesh);
-        if (r.IsFailure)
-        {
-            return;
-        }
-
-        ref readonly var meshData = ref r.Value;
-        var data = new MeshData
-        {
-            worldBoundsMin = meshData.BoundingBox.Min,
-            worldBoundsMax = meshData.BoundingBox.Max,
-            vertexBuffer = ResourceDatabase.GetBindlessIndex(meshData.VertexBuffer.AsResource()),
-            indexBuffer = ResourceDatabase.GetBindlessIndex(meshData.IndexBuffer.AsResource()),
-            meshletBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletBuffer.AsResource()),
-            meshletVerticesBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletVerticesBuffer.AsResource()),
-            meshletTrianglesBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletTrianglesBuffer.AsResource()),
-            meshletGroupBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletGroupBuffer.AsResource()),
-            meshletHierarchyBuffer = ResourceDatabase.GetBindlessIndex(meshData.MeshletHierarchyBuffer.AsResource()),
-            meshletCount = (uint)meshData.MeshletData.meshletCount,
-            meshletGroupCount = (uint)meshData.MeshletData.meshletGroupCount,
-            lodLevelCount = (uint)meshData.MeshletData.lodLevelCount,
-            materialSlotCount = (uint)meshData.MeshletData.materialSlotCount,
-        };
-
-        var bufferHandle = meshData.MeshDataBuffer.AsResource();
-
-        TransitionBarrier(bufferHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
-        UploadBuffer(meshData.MeshDataBuffer, data);
-        TransitionBarrier(bufferHandle, false, BarrierLayout.Undefined, BarrierLayout.Undefined, BarrierAccess.CopyDest, BarrierAccess.ShaderResource, BarrierSync.Copy, BarrierSync.PixelShading | BarrierSync.NonPixelShading);
-    }
-
-    public Handle<GPUTexture> CreateTexture<T>(scoped in TextureDesc desc, ReadOnlySpan<T> data, string name)
-        where T : unmanaged
-    {
-        var handle = ResourceAllocator.CreateTexture(in desc, name);
-        UploadTexture(handle, data);
-
-        return handle;
-    }
-
-    public void UploadTexture<T>(Handle<GPUTexture> texture, ReadOnlySpan<T> data)
-        where T : unmanaged
-    {
-        var desc = ResourceDatabase.GetResourceDescription(texture.AsResource()).GetValueOrThrow();
-        desc.TextureDescriptor.Format.GetSurfaceInfo(desc.TextureDescriptor.Width, desc.TextureDescriptor.Height, out var rowPitch, out var slicePitch, out _);
-
-        var requiredSize = ResourceDatabase.GetIntermediateResourceSize(texture.AsResource(), 0, 1);
-        var uploadDesc = new BufferDesc
-        {
-            Size = requiredSize,
-            Usage = BufferUsage.Upload,
-            HeapType = HeapType.Upload,
-        };
-
-        var uploadHandle = ResourceManager.CreateTransientBuffer(in uploadDesc);
-        if (uploadHandle.IsInvalid)
-        {
-            throw new OutOfMemoryException("Failed to create upload buffer for texture data.");
-        }
-
-        TransitionBarrier(texture.AsResource(), true, BarrierLayout.Undefined, BarrierLayout.CopyDest, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierSync.None, BarrierSync.Copy);
-
-        fixed (T* pData = data)
-        {
-            var subresourceData = new SubResourceData
-            {
-                pData = pData,
-                rowPitch = rowPitch,
-                slicePitch = slicePitch
-            };
-
-            CommandBuffer.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresourceData);
-        }
+        CommandBuffer.CopyBuffer(buffer, uploadHandle, byteOffset, srcOffset, sizeInBytes);
     }
 
     public void DispatchCompute<T>(Handle<ComputeShader> compute, int entryIndex, scoped in T property, uint3 threadGroupCount)

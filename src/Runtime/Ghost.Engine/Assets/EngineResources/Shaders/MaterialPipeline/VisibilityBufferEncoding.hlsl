@@ -29,6 +29,8 @@ void UnpackVisibility64(uint64_t val, out float depth, out uint visibleMeshletIn
 #define VBUFFER_TILE_SIZE 8u
 #define VBUFFER_TILE_SIZE_LOG2 3u
 
+// TODO: Use RWTexture2D<uint64_t> instead of RWByteAddressBuffer for visibility buffer. Buffer can't scale in render graph so window resize will break the cache.
+
 uint Morton2D_3Bits(uint2 coord)
 {
     uint x = coord.x & 7u;

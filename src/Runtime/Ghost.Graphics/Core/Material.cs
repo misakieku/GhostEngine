@@ -55,6 +55,7 @@ public struct Material : IResourceReleasable
     private UnsafeArray<PipelineOverride> _passPipelineOverride;
     private bool _isDirty;
 
+    // TODO: We should have a global material buffer cache to avoid creating a new buffer for each material. This is a temporary solution.
     internal CBufferCache _cBufferCache;
 
     public readonly Handle<Shader> Shader => _shader;
@@ -71,13 +72,6 @@ public struct Material : IResourceReleasable
     public uint VariantIndex
     {
         get; set;
-    }
-
-    [Obsolete("Use VariantIndex instead.")]
-    public uint MaterialRenderType
-    {
-        get => VariantIndex;
-        set => VariantIndex = value;
     }
 
     public Error SetShader(Handle<Shader> shaderId, ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
@@ -159,7 +153,7 @@ public struct Material : IResourceReleasable
         return _cBufferCache.CpuData.AsSpan(0, (int)_cBufferCache.Size);
     }
 
-    public unsafe Error SetPropertyCache<T>(scoped ref readonly T data)
+    public unsafe Error SetPropertyCache<T>(scoped in T data)
         where T : unmanaged
     {
         if (sizeof(T) != _cBufferCache.Size)
@@ -197,20 +191,15 @@ public struct Material : IResourceReleasable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetPassPipelineOverride(int passIndex, scoped ref readonly PipelineState options)
+    public void SetPassPipelineOverride(int passIndex, scoped in PipelineState options)
     {
         ref var pipelineOverride = ref _passPipelineOverride[passIndex];
         pipelineOverride.options = options;
         _isDirty = true;
     }
 
-    public readonly void UploadData(RenderContext ctx)
+    internal readonly void UploadData(RenderContext ctx)
     {
-        if (!_isDirty)
-        {
-            return;
-        }
-
         var cbufferResource = _cBufferCache.GpuResource;
         var desc = BarrierDesc.Buffer(
             cbufferResource,

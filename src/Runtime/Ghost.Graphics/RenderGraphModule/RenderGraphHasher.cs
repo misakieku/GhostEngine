@@ -1,4 +1,3 @@
-using Ghost.Core;
 using Ghost.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
@@ -141,31 +140,36 @@ internal static unsafe class RenderGraphHasher
 
         if (resource.type == RGResourceType.Texture)
         {
-            if (resource.isImported)
-            {
-                writer->Write(resource.rgTextureDesc.format);
-                writer->Write(resource.rgTextureDesc.dimension);
-                writer->Write(resource.rgTextureDesc.usage);
-                writer->Write(resource.rgTextureDesc.width);
-                writer->Write(resource.rgTextureDesc.height);
-                writer->Write(resource.rgTextureDesc.mipLevels);
-                writer->Write(resource.rgTextureDesc.slice);
-                return;
-            }
+            // This will break the scaling optimization.
+            // if (resource.isImported)
+            // {
+            //     writer->Write(resource.rgTextureDesc.format);
+            //     writer->Write(resource.rgTextureDesc.dimension);
+            //     writer->Write(resource.rgTextureDesc.usage);
+            //     writer->Write(resource.rgTextureDesc.width);
+            //     writer->Write(resource.rgTextureDesc.height);
+            //     writer->Write(resource.rgTextureDesc.mipLevels);
+            //     writer->Write(resource.rgTextureDesc.slice);
+            //     return;
+            // }
 
             var desc = resource.rgTextureDesc;
             writer->Write(desc.format);
-            writer->Write(desc.sizeMode);
 
-            if (desc.sizeMode == RGTextureSizeMode.Absolute)
+            // Hash the resolved size for aliasable resources. Non-aliasable resources never break the graph topology no matter what their size is, so we don't need to hash it.
+            if (resource.CanBeAliased)
             {
-                writer->Write(desc.width);
-                writer->Write(desc.height);
-            }
-            else
-            {
-                writer->Write(desc.scaleX);
-                writer->Write(desc.scaleY);
+                writer->Write(desc.sizeMode);
+                if (desc.sizeMode == RGTextureSizeMode.Absolute)
+                {
+                    writer->Write(desc.width);
+                    writer->Write(desc.height);
+                }
+                else
+                {
+                    writer->Write(desc.scaleX);
+                    writer->Write(desc.scaleY);
+                }
             }
 
             writer->Write(desc.dimension);

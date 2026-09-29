@@ -72,14 +72,14 @@ internal partial class GhostRenderPipeline : IRenderPipeline
     {
         var ghostPayload = (GhostRenderPayload)payload;
 
-        // Upload dirty material palette tables to the GPU before any rendering or shading
+        ctx.ResourceManager.UploadMaterials(ctx);
         ctx.ResourceManager.UploadMaterialPaletteData(ctx);
 
         // Update GPU scene instance buffer once per frame prelude
         UpdateGPUScene(ctx, ghostPayload);
     }
 
-    public Result ExecuteGraph(RenderContext ctx, int frameIndex, IRenderPayload payload, in RenderGraphExecutionContext executionContext)
+    public Result ExecuteGraph(ResourceContext ctx, int frameIndex, IRenderPayload payload, in RenderGraphExecutionContext executionContext)
     {
         var ghostPayload = (GhostRenderPayload)payload;
         if (_lastRenderRequestCount != ghostPayload.RenderRequests.Length || _lastInstanceCount != ghostPayload.InstanceCount)
@@ -112,7 +112,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             var frustum = Frustum.Create(viewProjMatrix, request.view.localToWorld.c3.xyz, request.view.localToWorld.c2.xyz, request.view.nearClipPlane, request.view.farClipPlane);
 
             var viewContext = _gpuViewManager.GetView(request.viewId);
-            viewContext.EnsureResources(renderView.ScreenSize.x, renderView.ScreenSize.y);
+            viewContext.EnsureResources(renderView.ScreenSize);
 
             Logger.DebugAssert(viewContext.RenderGraph != null);
 
@@ -127,13 +127,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             viewContext.RenderGraph.SetFrameData(frameBuffer);
             viewContext.RenderGraph.SetViewData(viewBuffer);
 
-            var colorTarget = viewContext.RenderGraph.ImportTexture(
-                renderView.ColorTexture,
-                initialState: ResourceBarrierData.Present,
-                finalState: ResourceBarrierData.Present,
-                clearColor: new Color128(0.05f, 0.05f, 0.05f, 1.0f),
-                clearAtFirstUse: true);
-
+            var colorTarget = viewContext.RenderGraph.ImportTexture(renderView.ColorTexture, ResourceBarrierData.Present, ResourceBarrierData.Present);
             var hzb = viewContext.RenderGraph.ImportTexture(viewContext.HzbTexture, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
             AddCullingAndVbufferPasses(viewContext, ghostPayload.InstanceCount, hzb, _gpuScene.SceneBufferSrvIndex,

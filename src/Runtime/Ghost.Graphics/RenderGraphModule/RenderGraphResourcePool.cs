@@ -100,6 +100,21 @@ internal record struct RenderGraphResource : IDisposable
     public Handle<GPUResource> extractionTarget;
     public ResourceExtractionFlags extractionFlags;
 
+    public readonly bool CanBeAliased
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            var canBeAliased = !isImported && !isExtracted;
+            if (type == RGResourceType.Buffer)
+            {
+                canBeAliased &= !bufferDesc.HeapType.HasFlag(HeapType.Upload);
+            }
+
+            return canBeAliased;
+        }
+    }
+
     public RenderGraphResource(AllocationHandle allocationHandle)
     {
         firstUsePass = -1;
@@ -150,7 +165,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
     private void AddResource(RenderGraphResource resource, string? name)
     {
 #if GHOST_SAFETY_CHECKS
-        _resourceName[_resources.Count] = name ?? "Unknow";
+        _resourceName[_resources.Count] = name ?? "UnknownResource";
 #endif
         _resources.Add(resource);
     }
@@ -158,8 +173,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
     public Identifier<RGTexture> ImportTexture(scoped in TextureDesc desc, Handle<GPUTexture> texture, string? name,
         Color128 clearColor = default, float clearDepth = 1.0f, byte clearStencil = 0,
         bool clearAtFirstUse = false, bool discardAtLastUse = false,
-        ResourceBarrierData? initialBarrierState = null,
-        ResourceBarrierData? finalBarrierState = null)
+        ResourceBarrierData? initialBarrierState = null, ResourceBarrierData? finalBarrierState = null)
     {
         var resource = new RenderGraphResource(AllocationHandle.TempRender)
         {
@@ -211,9 +225,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
         return new Identifier<RGTexture>(resource.index);
     }
 
-    public Identifier<RGBuffer> ImportBuffer(scoped in BufferDesc desc, Handle<GPUBuffer> buffer, string? name,
-        ResourceBarrierData? initialBarrierState = null,
-        ResourceBarrierData? finalBarrierState = null)
+    public Identifier<RGBuffer> ImportBuffer(scoped in BufferDesc desc, Handle<GPUBuffer> buffer, string? name, ResourceBarrierData? initialBarrierState = null, ResourceBarrierData? finalBarrierState = null)
     {
         var resource = new RenderGraphResource(AllocationHandle.TempRender)
         {
@@ -269,9 +281,9 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
     public string GetResourceName(Identifier<RGResource> resource)
     {
 #if GHOST_SAFETY_CHECKS
-        return _resourceName.GetValueOrDefault(resource.Value, $"Resource_{resource.Value}");
+        return _resourceName.GetValueOrDefault(resource.Value, $"UnknownResource");
 #else
-        return $"Resource_{resource.Value}";
+        return string.Empty;
 #endif
     }
 

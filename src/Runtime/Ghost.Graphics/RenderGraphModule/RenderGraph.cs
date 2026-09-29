@@ -72,13 +72,7 @@ public sealed class RenderGraph : IDisposable
 
         _passes = new List<RenderGraphPass>(32);
 
-        _context = new RenderGraphContext(
-            resourceManager,
-            shaderLibrary,
-            resourceDatabase,
-            pipelineLibrary,
-            _resourceRegistry
-        );
+        _context = new RenderGraphContext( resourceManager, shaderLibrary, resourceDatabase, pipelineLibrary, _resourceRegistry);
 
         _compiler = new RenderGraphCompiler(resourceAllocator, _resourceRegistry);
         _executor = new RenderGraphExecutor(_resourceRegistry);
@@ -108,12 +102,7 @@ public sealed class RenderGraph : IDisposable
         var syncBoundariesBefore = new Dictionary<int, PassSyncBoundaryDumpInfo>();
         var syncBoundariesAfter = new Dictionary<int, PassSyncBoundaryDumpInfo>();
         var reader = new SpanReader(graph.commandStream.AsSpan());
-        dump.CommandStream.AddRange(DisassembleCommandStream(
-            ref reader,
-            graph.nativePasses.AsSpan(),
-            effectiveQueues,
-            syncBoundariesBefore,
-            syncBoundariesAfter));
+        dump.CommandStream.AddRange(DisassembleCommandStream(ref reader, graph.nativePasses, effectiveQueues, syncBoundariesBefore, syncBoundariesAfter));
 
         // Collect Memory Placement Blocks (Heap Blocks)
         var uniqueBlocks = graph.plan.placedResources.AsSpan().ToArray()
@@ -218,12 +207,7 @@ public sealed class RenderGraph : IDisposable
         return dump;
     }
 
-    private List<string> DisassembleCommandStream(
-        ref SpanReader reader,
-        ReadOnlySpan<NativeRenderPass> nativePasses,
-        Dictionary<int, CommandQueueType> effectiveQueues,
-        Dictionary<int, PassSyncBoundaryDumpInfo> syncBoundariesBefore,
-        Dictionary<int, PassSyncBoundaryDumpInfo> syncBoundariesAfter)
+    private List<string> DisassembleCommandStream(ref SpanReader reader, ReadOnlySpan<NativeRenderPass> nativePasses, Dictionary<int, CommandQueueType> effectiveQueues, Dictionary<int, PassSyncBoundaryDumpInfo> syncBoundariesBefore, Dictionary<int, PassSyncBoundaryDumpInfo> syncBoundariesAfter)
     {
         var lines = new List<string>();
         var commandBufferTypes = new List<CommandQueueType> { CommandQueueType.Graphics };
@@ -445,14 +429,9 @@ public sealed class RenderGraph : IDisposable
     /// <param name="texture">The external texture handle.</param>
     /// <returns>The identifier of the imported render graph texture. Invalid if import fails.</returns>
     public Identifier<RGTexture> ImportTexture(
-        Handle<GPUTexture> texture,
-        ResourceBarrierData? initialState = null,
-        ResourceBarrierData? finalState = null,
-        Color128 clearColor = default,
-        float clearDepth = 1.0f,
-        byte clearStencil = 0,
-        bool clearAtFirstUse = false,
-        bool discardAtLastUse = false)
+        Handle<GPUTexture> texture, ResourceBarrierData? initialState = null, ResourceBarrierData? finalState = null,
+        Color128 clearColor = default, float clearDepth = 1.0f, byte clearStencil = 0,
+        bool clearAtFirstUse = false, bool discardAtLastUse = false)
     {
         var r = _resourceDatabase.GetResourceDescription(texture.AsResource());
         if (r.IsFailure)
@@ -464,16 +443,10 @@ public sealed class RenderGraph : IDisposable
         var desc = r.Value;
         var name = _resourceDatabase.GetResourceName(texture.AsResource());
         return _resourceRegistry.ImportTexture(
-            in desc.TextureDescriptor,
-            texture,
-            name,
-            clearColor,
-            clearDepth,
-            clearStencil,
-            clearAtFirstUse,
-            discardAtLastUse,
-            initialState,
-            finalState);
+            in desc.TextureDescriptor, texture, name,
+            clearColor, clearDepth, clearStencil,
+            clearAtFirstUse, discardAtLastUse,
+            initialState, finalState);
     }
 
     /// <summary>
@@ -481,10 +454,7 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     /// <param name="buffer">The external buffer handle.</param>
     /// <returns>The identifier of the imported render graph buffer. Invalid if import fails.</returns>
-    public Identifier<RGBuffer> ImportBuffer(
-        Handle<GPUBuffer> buffer,
-        ResourceBarrierData? initialBarrierState = null,
-        ResourceBarrierData? finalBarrierState = null)
+    public Identifier<RGBuffer> ImportBuffer(Handle<GPUBuffer> buffer, ResourceBarrierData? initialBarrierState = null, ResourceBarrierData? finalBarrierState = null)
     {
         var r = _resourceDatabase.GetResourceDescription(buffer.AsResource());
         if (r.IsFailure)
@@ -495,12 +465,7 @@ public sealed class RenderGraph : IDisposable
 
         var desc = r.Value;
         var name = _resourceDatabase.GetResourceName(buffer.AsResource());
-        return _resourceRegistry.ImportBuffer(
-            in desc.BufferDescriptor,
-            buffer,
-            name,
-            initialBarrierState,
-            finalBarrierState);
+        return _resourceRegistry.ImportBuffer(in desc.BufferDescriptor, buffer, name, initialBarrierState, finalBarrierState);
     }
 
     /// <summary>

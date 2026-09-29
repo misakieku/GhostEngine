@@ -5,7 +5,7 @@ using Misaki.HighPerformance.LowLevel.Utilities;
 
 namespace Ghost.Graphics.Utilities;
 
-public static unsafe class RenderingUtility
+public static unsafe class ResourceUtility
 {
     public static Error UploadBuffer(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUBuffer> buffer, void* pData, nuint sizeInBytes)
     {

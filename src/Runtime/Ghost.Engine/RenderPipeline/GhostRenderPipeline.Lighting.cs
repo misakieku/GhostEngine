@@ -240,7 +240,7 @@ internal partial class GhostRenderPipeline
         return litColorTarget;
     }
 
-    private unsafe void UploadLights(RenderContext ctx, GhostRenderPayload payload, out uint punctualLightsSrv, out uint punctualLightCount, out uint directionalLightSrv)
+    private unsafe void UploadLights(ResourceContext ctx, GhostRenderPayload payload, out uint punctualLightsSrv, out uint punctualLightCount, out uint directionalLightSrv)
     {
         punctualLightsSrv = uint.MaxValue;
         punctualLightCount = (uint)payload.PunctualLights.Length;
@@ -289,4 +289,3 @@ internal partial class GhostRenderPipeline
         }
     }
 }
-

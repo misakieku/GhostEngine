@@ -3,6 +3,7 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Services;
 
@@ -35,9 +36,27 @@ public partial class ResourceManager
 
     private readonly Lock _transientWriteLock = new Lock();
 
+    private Handle<GPUBuffer> _uploadBuffer;
+    private ulong _uploadBufferOffset;
+    private uint _uploadBufferSrvIndex;
+    private readonly Lock _uploadBufferLock = new Lock();
+
     private static bool IsHeapFlagsCompatible(HeapFlags pageHeapFlags, HeapFlags requiredHeapFlags)
     {
         return pageHeapFlags == requiredHeapFlags || pageHeapFlags == HeapFlags.AllowAllBufferAndTexture;
+    }
+
+    private void InitializeTransientPool()
+    {
+        _uploadBufferOffset = 0;
+        _uploadBuffer = _resourceAllocator.CreateBuffer(new BufferDesc
+        {
+            Size = DEFAULT_TRANSIENT_PAGE_SIZE,
+            Usage = BufferUsage.Upload,
+            HeapType = HeapType.Upload,
+        }, "Transient Upload Buffer");
+
+        _uploadBufferSrvIndex = _resourceDatabase.GetBindlessIndex(_uploadBuffer.AsResource(), BindlessAccess.ShaderResource);
     }
 
     private bool TryRentReusablePage(HeapType heapType, HeapFlags heapFlags, out Page page)
@@ -148,7 +167,7 @@ public partial class ResourceManager
                 var error = CreateNewActivePage(HeapType.Default, requiredHeapFlags);
                 if (error != Error.None)
                 {
-                    Debug.Fail($"Failed to create a new page for transient texture: {error}");
+                    Logger.Error($"Failed to create a new page for transient texture: {error}");
                     return Handle<GPUTexture>.Invalid;
                 }
 
@@ -234,7 +253,7 @@ public partial class ResourceManager
                 var error = CreateNewActivePage(requiredHeapType, requiredHeapFlags);
                 if (error != Error.None)
                 {
-                    Debug.Fail($"Failed to create a new page for transient buffer: {error}");
+                    Logger.Error($"Failed to create a new page for transient buffer: {error}");
                     return Handle<GPUBuffer>.Invalid;
                 }
 
@@ -259,6 +278,33 @@ public partial class ResourceManager
 
             return handle;
         }
+    }
+
+    public Handle<GPUBuffer> CreateTransientUploadBuffer(BufferDesc desc, out ulong offset, out uint srvIndex)
+    {
+        lock (_uploadBufferLock)
+        {
+            if (_uploadBufferOffset + desc.Size > DEFAULT_TRANSIENT_PAGE_SIZE)
+            {
+                var handle = CreateTransientBuffer(desc);
+                offset = 0;
+                srvIndex = _resourceDatabase.GetBindlessIndex(handle.AsResource());
+                return handle;
+            }
+
+            offset = _uploadBufferOffset;
+            srvIndex = _uploadBufferSrvIndex;
+
+            _uploadBufferOffset += desc.Size;
+
+            return _uploadBuffer;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Handle<GPUBuffer> CreateTransientUploadBuffer(BufferDesc desc, out ulong offset)
+    {
+        return CreateTransientUploadBuffer(desc, out offset, out _);
     }
 
     private void EndFramePool(ulong completedFrame)
@@ -298,6 +344,7 @@ public partial class ResourceManager
         }
 
         _frameTransientResources.Clear();
+        _uploadBufferOffset = 0;
     }
 
     private void DisposeTransientPool()
@@ -321,6 +368,8 @@ public partial class ResourceManager
         {
             _resourceDatabase.ReleaseResourceImmediately(page.page.heap);
         }
+
+        _resourceDatabase.ReleaseResource(_uploadBuffer.AsResource());
 
         _activePages.Dispose();
         _freePages.Dispose();

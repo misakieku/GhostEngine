@@ -140,7 +140,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
             HeapType = HeapType.Default,
         };
 
-        return RenderingUtility.CreateBuffer(
+        return ResourceUtility.CreateBuffer(
             context.ResourceManager,
             context.ResourceDatabase,
             context.ResourceAllocator,
@@ -200,7 +200,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
             HeapType = HeapType.Default,
         };
 
-        var meshDataBuffer = RenderingUtility.CreateBuffer(
+        var meshDataBuffer = ResourceUtility.CreateBuffer(
             context.ResourceManager,
             context.ResourceDatabase,
             context.ResourceAllocator,
