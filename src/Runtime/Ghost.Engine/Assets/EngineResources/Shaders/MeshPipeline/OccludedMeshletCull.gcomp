@@ -23,7 +23,7 @@ compute "Internal/OccludedMeshletCull"
 
     hlsl
     {
-        static inline bool TestHZB(float4 clipMin, float4 clipMax, InternalOccludedMeshletCullShaderProperties props)
+        bool TestHZB(float4 clipMin, float4 clipMax, InternalOccludedMeshletCullShaderProperties props)
         {
             return HZBVisible(clipMin, clipMax, props.hzbMipCount, props.renderWidth, props.renderHeight, props.hzbTexture, props.hzbBaseWidth, props.hzbBaseHeight);
         }

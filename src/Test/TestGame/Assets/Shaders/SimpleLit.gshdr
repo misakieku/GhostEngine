@@ -7,6 +7,7 @@ shader "MyShader/SimpleLit" : "Lit"
 
     hlsl
     {
+    #if GHOST_PASS_DEFERREDTEXTURING
         SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props, inout Payload payload)
         {
             SurfaceData surface = (SurfaceData)0;
@@ -16,11 +17,57 @@ shader "MyShader/SimpleLit" : "Lit"
             surface.metallic = 0.0;
             surface.occlusion = 1.0;
             surface.materialFeatures = 1u;
-
             return surface;
         }
+    #endif
 
-        static inline DirectLighting EvaluateDirectLighting(in BSDFData bsdf, float3 V, float3 L, float3 lightRadiance)
+    #if GHOST_PASS_DEFERREDLIGHTING
+        struct BSDFData
+        {
+            uint materialFeatures;
+            float3 diffuseColor;
+            float3 fresnel0;
+            float ambientOcclusion;
+            float specularOcclusion;
+            float3 normalWS;
+            float perceptualRoughness;
+            float3 tangentWS;
+            float3 bitangentWS;
+            float roughnessT;
+            float roughnessB;
+            float3 emissive;
+        };
+
+        struct PreLightData
+        {
+            float NdotV;
+        };
+
+        BSDFData GetBSDFData(in MaterialContext ctx, in SurfaceData surface)
+        {
+            BSDFData bsdf = (BSDFData)0;
+            bsdf.materialFeatures = surface.materialFeatures;
+            bsdf.diffuseColor = surface.albedo;
+            bsdf.fresnel0 = lerp(float3(0.04f, 0.04f, 0.04f), surface.albedo, surface.metallic);
+            bsdf.ambientOcclusion = surface.occlusion;
+            bsdf.specularOcclusion = 1.0f;
+            bsdf.normalWS = surface.normalWS;
+            bsdf.perceptualRoughness = sqrt(max(0.001f, surface.roughness));
+            bsdf.tangentWS = ctx.tangentWS.xyz;
+            bsdf.bitangentWS = cross(surface.normalWS, ctx.tangentWS.xyz) * sign(ctx.tangentWS.w);
+            bsdf.emissive = surface.emissive;
+    
+            return bsdf;
+        }
+
+        PreLightData GetPreLightData(in ShadingContext ctx, float3 V, inout BSDFData bsdf)
+        {
+            PreLightData data = (PreLightData)0;
+            data.NdotV = max(0.0f, dot(bsdf.normalWS, V));
+            return data;
+        }
+
+        DirectLighting EvaluateDirectLighting(in BSDFData bsdf, in PreLightData preLightData, float3 V, float3 L, float3 lightRadiance)
         {
             DirectLighting direct = (DirectLighting)0;
             float NdotL = max(0.0f, dot(bsdf.normalWS, L));
@@ -33,13 +80,14 @@ shader "MyShader/SimpleLit" : "Lit"
             return direct;
         }
 
-        static inline LightLoopOutput PostEvaluateBSDF(in AggregateLighting lighting, in BSDFData bsdf, float3 V)
+        LightLoopOutput PostEvaluateBSDF(in AggregateLighting lighting, in BSDFData bsdf, in PreLightData preLightData, float3 V)
         {
             LightLoopOutput output = (LightLoopOutput)0;
             output.diffuse = lighting.direct.diffuse + bsdf.emissive; // + ambient lighting
             output.specular = lighting.direct.specular + lighting.indirect.specularReflected;
             return output;
         }
+    #endif
     }
 }
 

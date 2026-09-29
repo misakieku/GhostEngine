@@ -24,16 +24,13 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
     private IAssetEntry _meshAsset = null!;
     private IAssetEntry _shaderAsset = null!;
 
-    private Entity _camera;
-
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
-        MaxVisibleMeshletsOnScreen = 2_097_152,
-        MeshletLodErrorThreshold = 2.0f,
+        MaxVisibleMeshletsOnScreen = 2_097_152 * 2,
+        MeshletLodErrorThreshold = 1.0f,
         InstanceCullingThreshold = 2.0f,
         DebugMode = RenderPipelineDebugMode.None,
     };
-
 
     public EngineDesc GetEngineDesc()
     {
@@ -95,12 +92,13 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
     {
         const int entityCapacity = 10000;
         const float size = 20.0f;
+        const float lightSize = size * 2.0f;
         const float baseScale = 1.0f;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
         using var scope = AllocationManager.CreateStackScope();
-        _camera = _world.EntityManager.CreateEntity(
+        _world.EntityManager.CreateEntity(
             new Camera
             {
                 swapChainIndex = 0,
@@ -120,7 +118,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
             new InputReceiver(InputProfileDatabase.FIRST_PERSON_CAMERA_PROFILE_ID, true),
             default(ActionState));
 
-        _meshAsset = engine.AssetManager.ResolveAsset("Meshes/bunny");
+        _meshAsset = engine.AssetManager.ResolveAsset("Meshes/dragon");
         _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/SimpleLit");
 
         var meshHandle = default(Handle<Mesh>);
@@ -175,7 +173,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
         // Add 64 random punctual lights (Point and Spot)
         for (var i = 0; i < 512; i++)
         {
-            var pos = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
+            var pos = new float3(RandomFloat(-lightSize, lightSize), RandomFloat(-lightSize, lightSize), RandomFloat(-lightSize, lightSize));
             var color = new float3(RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f));
             var isSpot = (i % 3 == 0);
             _world.EntityManager.CreateEntity(

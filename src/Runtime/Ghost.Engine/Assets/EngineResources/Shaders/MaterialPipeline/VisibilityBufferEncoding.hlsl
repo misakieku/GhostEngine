@@ -6,19 +6,19 @@
 #define VBUFFER_INSTANCE_INDEX_MASK 0x00FFFFFFu
 #define VBUFFER_PRIMITIVE_ID_MASK 0xFFu
 
-static inline uint PackVisibilityPayload(uint visibleMeshletIndex, uint primitiveID)
+uint PackVisibilityPayload(uint visibleMeshletIndex, uint primitiveID)
 {
     return (visibleMeshletIndex & VBUFFER_INSTANCE_INDEX_MASK) | ((primitiveID & VBUFFER_PRIMITIVE_ID_MASK) << VBUFFER_PRIMITIVE_ID_SHIFT);
 }
 
-static inline uint64_t PackVisibility64(float depth, uint visibleMeshletIndex, uint primitiveID)
+uint64_t PackVisibility64(float depth, uint visibleMeshletIndex, uint primitiveID)
 {
     uint64_t depthInt = (uint64_t)asuint(depth);
     uint64_t payload = (uint64_t)PackVisibilityPayload(visibleMeshletIndex, primitiveID);
     return (depthInt << VBUFFER_DEPTH_SHIFT) | payload;
 }
 
-static inline void UnpackVisibility64(uint64_t val, out float depth, out uint visibleMeshletIndex, out uint primitiveID)
+void UnpackVisibility64(uint64_t val, out float depth, out uint visibleMeshletIndex, out uint primitiveID)
 {
     depth = asfloat((uint)(val >> VBUFFER_DEPTH_SHIFT));
     uint payload = (uint)(val & 0xFFFFFFFFu);
@@ -29,7 +29,7 @@ static inline void UnpackVisibility64(uint64_t val, out float depth, out uint vi
 #define VBUFFER_TILE_SIZE 8u
 #define VBUFFER_TILE_SIZE_LOG2 3u
 
-static inline uint Morton2D_3Bits(uint2 coord)
+uint Morton2D_3Bits(uint2 coord)
 {
     uint x = coord.x & 7u;
     uint y = coord.y & 7u;
@@ -43,7 +43,7 @@ static inline uint Morton2D_3Bits(uint2 coord)
     return x | (y << 1u);
 }
 
-static inline uint ComputePixelByteAddress(uint2 pixelCoord, uint renderWidth)
+uint ComputePixelByteAddress(uint2 pixelCoord, uint renderWidth)
 {
     uint tilesPerRow = (renderWidth + (VBUFFER_TILE_SIZE - 1u)) >> VBUFFER_TILE_SIZE_LOG2;
     uint2 tileCoord = pixelCoord >> VBUFFER_TILE_SIZE_LOG2;
@@ -55,7 +55,7 @@ static inline uint ComputePixelByteAddress(uint2 pixelCoord, uint renderWidth)
     return (tileIndex << 9u) | (localMorton << 3u);
 }
 
-static inline uint ComputePixelDepthByteAddress(uint2 pixelCoord, uint renderWidth)
+uint ComputePixelDepthByteAddress(uint2 pixelCoord, uint renderWidth)
 {
     return ComputePixelByteAddress(pixelCoord, renderWidth) + 4u;
 }

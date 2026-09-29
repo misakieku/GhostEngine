@@ -249,11 +249,7 @@ internal sealed class RenderGraphExecutor
         return SubmitCommandBuffers(executionContext, out graphicsSubmission, out computeSubmission);
     }
 
-    private ICommandBuffer AcquireCommandBuffer(
-        in RenderGraphExecutionContext executionContext,
-        CommandQueueType requestedQueueType,
-        ReadOnlySpan<int> producerCommandBufferIds,
-        RGFlags flags)
+    private ICommandBuffer AcquireCommandBuffer(in RenderGraphExecutionContext executionContext, CommandQueueType requestedQueueType, ReadOnlySpan<int> producerCommandBufferIds, RGFlags flags)
     {
         if (requestedQueueType is not CommandQueueType.Graphics and not CommandQueueType.Compute)
         {
@@ -323,10 +319,7 @@ internal sealed class RenderGraphExecutor
         return Error.InternalError;
     }
 
-    private Error SubmitCommandBuffers(
-        in RenderGraphExecutionContext executionContext,
-        out SubmissionHandle graphicsSubmission,
-        out SubmissionHandle computeSubmission)
+    private Error SubmitCommandBuffers(in RenderGraphExecutionContext executionContext, out SubmissionHandle graphicsSubmission, out SubmissionHandle computeSubmission)
     {
         graphicsSubmission = default;
         computeSubmission = default;
@@ -499,11 +492,7 @@ internal sealed class RenderGraphExecutor
         _producerCommandBufferIdCount = 0;
     }
 
-    private Error ExecuteBarrierBatch(
-        ICommandBuffer cmd,
-        int barrierCount,
-        ref SpanReader reader,
-        RGFlags flags)
+    private Error ExecuteBarrierBatch(ICommandBuffer cmd, int barrierCount, ref SpanReader reader, RGFlags flags)
     {
         if (barrierCount <= 0)
         {
@@ -511,7 +500,7 @@ internal sealed class RenderGraphExecutor
         }
 
         var forceGraphics = flags.HasFlag(RGFlags.ForceGraphics);
-        const int MaxBatch = 64;
+        const int MaxBatch = 16;
         using var scope = Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.CreateStackScope();
         using var barriers = new UnsafeList<BarrierDesc>(MaxBatch, scope.AllocationHandle);
 

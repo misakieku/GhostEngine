@@ -129,7 +129,7 @@ RasterTriangle SetupTriangle(int4 scissorRect, float4 verts[3])
     return tri;
 }
 
-static inline void WritePixel(uint2 pixelPose, float3 c3, RasterTriangle tri, uint renderWidth, RWByteAddressBuffer vbuffer, uint pixelValue)
+void WritePixel(uint2 pixelPose, float3 c3, RasterTriangle tri, uint renderWidth, RWByteAddressBuffer vbuffer, uint pixelValue)
 {
     uint byteAddress = (pixelPose.y * renderWidth + pixelPose.x) * 16;
     float depth = tri.depthPlane.x + tri.depthPlane.y * c3.y + tri.depthPlane.z * c3.z;

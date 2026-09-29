@@ -14,6 +14,7 @@ namespace Ghost.DSL.ShaderCompiler.Templates;
 public static class TemplateStitcher
 {
     private const string RESOURCE_PREFIX = "Ghost.DSL.Templates.";
+    private static readonly char[] s_separator = new[] { '/', '\\', '.', ' ', '-' };
 
     /// <summary>
     /// Loads an embedded template file by its template-relative path (e.g. "Unlit/Unlit_Forward.template.hlsl").
@@ -111,9 +112,9 @@ public static class TemplateStitcher
     /// Detects whether the user HLSL block overrides an injection point function defined by the template,
     /// emitting the suppression define for its fallback.
     /// </summary>
-    internal static List<string> CollectOverrideDefines(IShaderTemplate template, string? userHlsl)
+    internal static IEnumerable<string> CollectOverrideDefines(IShaderTemplate template, string? userHlsl)
     {
-        var defines = new List<string>();
+        var defines = new HashSet<string>();
 
         if (string.IsNullOrEmpty(userHlsl))
         {
@@ -122,7 +123,8 @@ public static class TemplateStitcher
 
         foreach (var point in template.OverridePoints)
         {
-            if (userHlsl.Contains(point.FunctionName, StringComparison.Ordinal))
+            if (userHlsl.Contains(point.FunctionName, StringComparison.Ordinal)
+                && !defines.Contains(point.Define))
             {
                 defines.Add(point.Define);
             }
@@ -134,12 +136,7 @@ public static class TemplateStitcher
     /// <summary>
     /// Stitches one template file into a complete translation unit for a stage.
     /// </summary>
-    private static Result<string> StitchStage(
-        IShaderTemplate template,
-        GraphicsShaderSemantics semantics,
-        ShaderReflectionData reflectionData,
-        IReadOnlyDictionary<string, string> virtualShaders,
-        string templateFile)
+    private static Result<string> StitchStage(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders, string templateFile)
     {
         var templateResult = LoadTemplateSource(templateFile);
         if (templateResult.IsFailure)
@@ -206,11 +203,7 @@ public static class TemplateStitcher
     /// <summary>
     /// Resolves a template-based shader into a complete multi-pass descriptor.
     /// </summary>
-    public static Result<GraphicsShaderDescriptor> ResolveShader(
-        IShaderTemplate template,
-        GraphicsShaderSemantics semantics,
-        ShaderReflectionData reflectionData,
-        IReadOnlyDictionary<string, string> virtualShaders)
+    public static Result<GraphicsShaderDescriptor> ResolveShader(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders)
     {
         var overrideDefines = CollectOverrideDefines(template, semantics.hlsl);
 
@@ -220,8 +213,10 @@ public static class TemplateStitcher
         {
             var passDef = template.Passes[i];
             var defines = new List<string>(template.Defines);
+
             defines.AddRange(overrideDefines);
             defines.Add($"GHOST_TEMPLATE_{template.Name.ToUpperInvariant()}");
+            defines.Add($"GHOST_PASS_{passDef.name.ToUpperInvariant()}");
 
             var pass = new PassDescriptor
             {
@@ -321,7 +316,7 @@ public static class TemplateStitcher
 
     public static string SanitizeToIdentifier(string shaderName)
     {
-        var parts = shaderName.Split(new[] { '/', '\\', '.', ' ', '-' }, StringSplitOptions.RemoveEmptyEntries);
+        var parts = shaderName.Split(s_separator, StringSplitOptions.RemoveEmptyEntries);
         var sb = new StringBuilder();
         foreach (var part in parts)
         {
@@ -330,7 +325,7 @@ public static class TemplateStitcher
                 sb.Append(char.ToUpperInvariant(part[0]));
                 if (part.Length > 1)
                 {
-                    sb.Append(part.Substring(1));
+                    sb.Append(part.AsSpan(1));
                 }
             }
         }

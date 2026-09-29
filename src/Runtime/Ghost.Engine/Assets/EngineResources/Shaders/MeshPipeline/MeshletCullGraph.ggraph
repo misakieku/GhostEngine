@@ -50,7 +50,7 @@ compute "Internal/MeshletCullGraph"
             uint3 dispatchGrid : SV_DispatchGrid;
         };
 
-        static inline bool TestHZB(float4 clipMin, float4 clipMax, InternalMeshletCullGraphShaderProperties props)
+        bool TestHZB(float4 clipMin, float4 clipMax, InternalMeshletCullGraphShaderProperties props)
         {
             return HZBVisible(clipMin, clipMax, props.hzbMipCount, props.renderWidth, props.renderHeight, props.hzbTexture, props.hzbBaseWidth, props.hzbBaseHeight);
         }
@@ -88,8 +88,8 @@ compute "Internal/MeshletCullGraph"
 
                     if (z_view > worldRadius && length(worldCenter - g_ViewData.cameraPosition) > worldRadius)
                     {
-                        float r_percentage = (worldRadius * g_ViewData.projectionMatrix[1][1] * 100.0f) / (2.0f * z_view );
-                        if (r_percentage > props.cullingThreshold)
+                        float d_percentage = (worldRadius * g_ViewData.projectionMatrix[1][1] * 100.0f) / z_view;
+                        if (d_percentage > props.cullingThreshold)
                         {
                             isVisible = AABBIntersectFrustum(worldMin, worldMax, g_ViewData.frustum.planes);
                         }

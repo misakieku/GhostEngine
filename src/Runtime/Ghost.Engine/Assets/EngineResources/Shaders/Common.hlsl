@@ -92,28 +92,28 @@ struct MeshletHierarchyNode
 
 #define INVALID_BUFFER_INDEX 0xFFFFFFFF
 
-static inline float4 SampleTexture2D(uint texId, uint sampId, float2 uv)
+float4 SampleTexture2D(uint texId, uint sampId, float2 uv)
 {
     Texture2D tex = GET_TEXTURE2D(texId);
     SamplerState samp = GET_SAMPLER(sampId);
     return tex.Sample(samp, uv);
 }
 
-static inline float4 SampleTexture2DLevel(uint texId, uint sampId, float2 uv, float level)
+float4 SampleTexture2DLevel(uint texId, uint sampId, float2 uv, float level)
 {
     Texture2D tex = GET_TEXTURE2D(texId);
     SamplerState samp = GET_SAMPLER(sampId);
     return tex.SampleLevel(samp, uv, level);
 }
 
-static inline float4 SampleTextureArray(uint texId, uint sampId, float3 uvw)
+float4 SampleTextureArray(uint texId, uint sampId, float3 uvw)
 {
     Texture2DArray tex = GET_TEXTURE2D_ARRAY(texId);
     SamplerState samp = GET_SAMPLER(sampId);
     return tex.Sample(samp, uvw);
 }
 
-static inline Vertex LoadVertexData(uint vertexID, uint groupID, BYTE_ADDRESS_BUFFER vertexBuffer, BYTE_ADDRESS_BUFFER indexBuffer)
+Vertex LoadVertexData(uint vertexID, uint groupID, BYTE_ADDRESS_BUFFER vertexBuffer, BYTE_ADDRESS_BUFFER indexBuffer)
 {
     ByteAddressBuffer vertices = GET_BUFFER(vertexBuffer);
     ByteAddressBuffer indices = GET_BUFFER(indexBuffer);
@@ -126,7 +126,7 @@ static inline Vertex LoadVertexData(uint vertexID, uint groupID, BYTE_ADDRESS_BU
 }
 
 template<typename T>
-static inline T LoadData(BYTE_ADDRESS_BUFFER buffer, uint index)
+T LoadData(BYTE_ADDRESS_BUFFER buffer, uint index)
 {
     ByteAddressBuffer buf = GET_BUFFER(buffer);
     return buf.Load<T>(index * sizeof(T));
@@ -138,7 +138,7 @@ static inline T LoadData(BYTE_ADDRESS_BUFFER buffer, uint index)
 ///   materialIndexBuffer  : from FrameData — packed bindless CBuffer indices for all palettes
 ///   paletteIndex         : per-instance value from InstanceData.materialPaletteIndex
 ///   localMaterialIndex   : per-meshlet value from Meshlet.packedCounts byte 2
-static inline uint LoadMaterialBindlessIndex(BYTE_ADDRESS_BUFFER paletteOffsetBuffer, BYTE_ADDRESS_BUFFER materialIndexBuffer, uint paletteIndex, uint localMaterialIndex)
+uint LoadMaterialBindlessIndex(BYTE_ADDRESS_BUFFER paletteOffsetBuffer, BYTE_ADDRESS_BUFFER materialIndexBuffer, uint paletteIndex, uint localMaterialIndex)
 {
     ByteAddressBuffer offsets = GET_BUFFER(paletteOffsetBuffer);
     ByteAddressBuffer indices = GET_BUFFER(materialIndexBuffer);

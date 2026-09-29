@@ -5,7 +5,7 @@
 #include "EngineResources/Shaders/Properties.hlsl"
 
 // Octahedral normal encoding into [0, 1]^2
-static inline float2 OctahedralEncode(float3 n)
+float2 OctahedralEncode(float3 n)
 {
     n /= (abs(n.x) + abs(n.y) + abs(n.z));
     float2 oct = (n.z >= 0.0f) ? n.xy : ((1.0f - abs(n.yx)) * select(n.xy >= 0.0f, 1.0f, -1.0f));
@@ -13,7 +13,7 @@ static inline float2 OctahedralEncode(float3 n)
 }
 
 // Octahedral normal decoding from [0, 1]^2 to normalized float3
-static inline float3 OctahedralDecode(float2 enc)
+float3 OctahedralDecode(float2 enc)
 {
     float2 f = enc * 2.0f - 1.0f;
     float3 n = float3(f.x, f.y, 1.0f - abs(f.x) - abs(f.y));
@@ -30,7 +30,7 @@ struct GBufferOutputs
     float4 gbuffer3; // Emissive (rgb) + UnlitFlag (a)
 };
 
-static inline void WriteGBuffer(uint2 pixelCoord, in GBufferOutputs outputs, uint gbuffer0Uav, uint gbuffer1Uav, uint gbuffer2Uav, uint gbuffer3Uav)
+void WriteGBuffer(uint2 pixelCoord, in GBufferOutputs outputs, uint gbuffer0Uav, uint gbuffer1Uav, uint gbuffer2Uav, uint gbuffer3Uav)
 {
     RWTexture2D<float4> gb0 = ResourceDescriptorHeap[gbuffer0Uav];
     RWTexture2D<float4> gb1 = ResourceDescriptorHeap[gbuffer1Uav];

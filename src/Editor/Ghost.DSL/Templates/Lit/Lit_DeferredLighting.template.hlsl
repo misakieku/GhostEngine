@@ -81,21 +81,29 @@ void CSMain(
         1.0f - ((float(pixelCoord.y) + 0.5f) * g_ViewData.screenSize.w) * 2.0f
     );
     float3 posVS = float3((ndc.x / m00) * zView, (ndc.y / m11) * zView, zView);
-    float3 worldPos = g_ViewData.cameraPosition + mul(transpose((float3x3)g_ViewData.viewMatrix), posVS);
-    float3 V = normalize(g_ViewData.cameraPosition - worldPos);
+    float3 positionWS = g_ViewData.cameraPosition + mul(transpose((float3x3)g_ViewData.viewMatrix), posVS);
+    float3 V = normalize(g_ViewData.cameraPosition - positionWS);
 
     // 5. Unpack Surface & BSDF Data
     SurfaceData surface = ExtractSurfaceData(gbuffer);
-    MaterialContext ctx = (MaterialContext)0;
-    ctx.worldPos = worldPos;
-    ctx.normalWS = surface.normalWS;
-    ctx.tangentWS = float4(1.0f, 0.0f, 0.0f, 1.0f);
+    MaterialContext matCtx = (MaterialContext)0;
+    matCtx.positionWS = positionWS;
+    matCtx.normalWS = surface.normalWS;
+    matCtx.tangentWS = float4(1.0f, 0.0f, 0.0f, 1.0f);
 
-    BSDFData bsdf = GetBSDFData(ctx, surface);
+    BSDFData bsdf = GetBSDFData(matCtx, surface);
+    
+    ShadingContext shadingCtx;
+    shadingCtx.positionWS = positionWS;
+    shadingCtx.positionNDC = ndc;
+    shadingCtx.positionSS = pixelCoord;
+    shadingCtx.tileCoord = groupID.xy;
+    shadingCtx.depth = depth;
+    shadingCtx.linearDepth = zView;
 
     // 6. Execute Light Loop
     ByteAddressBuffer tileLightList = ResourceDescriptorHeap[props.tileLightListBufferIndex];
-    LightLoopOutput light = ExecuteLightLoop(bsdf, worldPos, V, groupID.xy, tileLightList, props.tilesPerRow);
+    LightLoopOutput light = ExecuteLightLoop(shadingCtx, bsdf, V, tileLightList, props.tilesPerRow);
     
     float3 finalColor = light.diffuse + light.specular;
 

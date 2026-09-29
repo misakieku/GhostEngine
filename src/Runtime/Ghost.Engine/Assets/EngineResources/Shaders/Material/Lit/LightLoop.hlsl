@@ -16,26 +16,27 @@
 /// <summary>
 /// Executes the fine-pruned tiled light loop over directional and punctual lights for one surface pixel.
 /// </summary>
-static inline LightLoopOutput ExecuteLightLoop(in BSDFData bsdf, float3 worldPos, float3 V, uint2 tileCoord, ByteAddressBuffer tileLightList, uint tilesPerRow)
+LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, float3 V, ByteAddressBuffer tileLightList, uint tilesPerRow)
 {
     AggregateLighting totalLighting = (AggregateLighting)0;
-
-    // 1. Primary Directional Sun Light
+    PreLightData preLightData = GetPreLightData(ctx, V, bsdf);
+    
+    // Primary Directional Sun Light
     if (g_FrameData.directionalLightBuffer != 0xFFFFFFFFu)
     {
         DirectionalLightData sun = LoadData<DirectionalLightData>(g_FrameData.directionalLightBuffer, 0);
         float3 L = -sun.directionWS;
         if (any(sun.color > 0.0001f) && any(L != 0.0f))
         {
-            DirectLighting sunDirect = EvaluateDirectLighting(bsdf, V, normalize(L), sun.color);
+            DirectLighting sunDirect = EvaluateDirectLighting(bsdf, preLightData, V, normalize(L), sun.color);
             AccumulateDirectLighting(totalLighting, sunDirect);
         }
     }
 
-    // 2. Punctual Lights (Point / Spot) via FPTL Tile List
+    // Punctual Lights (Point / Spot) via FPTL Tile List
     if (g_FrameData.punctualLightsBuffer != 0xFFFFFFFFu)
     {
-        uint tileIndex = tileCoord.y * tilesPerRow + tileCoord.x;
+        uint tileIndex = ctx.tileCoord.y * tilesPerRow + ctx.tileCoord.x;
         uint lightCount = min(GetTileLightCount<DWORDS_PER_TILE>(tileLightList, tileIndex), MAX_LIGHTS_PER_TILE);
 
         for (uint lightOffset = 0u; lightOffset < lightCount; lightOffset++)
@@ -48,7 +49,7 @@ static inline LightLoopOutput ExecuteLightLoop(in BSDFData bsdf, float3 worldPos
 
             PunctualLightData light = LoadData<PunctualLightData>(g_FrameData.punctualLightsBuffer, fetch.lightIndex);
 
-            float3 toLight = light.positionWS - worldPos;
+            float3 toLight = light.positionWS - ctx.positionWS;
             float distSq = dot(toLight, toLight);
             float dist = sqrt(distSq);
             float3 L = (dist > 0.0001f) ? (toLight / dist) : float3(0.0f, 1.0f, 0.0f);
@@ -70,13 +71,13 @@ static inline LightLoopOutput ExecuteLightLoop(in BSDFData bsdf, float3 worldPos
             float3 radiance = light.color * attenuation;
             if (any(radiance > 0.0001f))
             {
-                DirectLighting punctualDirect = EvaluateDirectLighting(bsdf, V, L, radiance);
+                DirectLighting punctualDirect = EvaluateDirectLighting(bsdf, preLightData, V, L, radiance);
                 AccumulateDirectLighting(totalLighting, punctualDirect);
             }
         }
     }
     
-    LightLoopOutput output = PostEvaluateBSDF(totalLighting, bsdf, V);
+    LightLoopOutput output = PostEvaluateBSDF(totalLighting, bsdf, preLightData, V);
 
     return output;
 }

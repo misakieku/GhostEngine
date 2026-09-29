@@ -9,7 +9,7 @@
 
 struct InterpolatedAttributes
 {
-    float3 worldPos;
+    float3 positionWS;
     float3 normalWS;
     float4 tangentWS;
     float4 color;
@@ -22,7 +22,7 @@ struct InterpolatedAttributes
     bool isFrontFacing;
 };
 
-static inline float2 PixelToClipSpace(float2 pixelPos, float2 invViewportSize)
+float2 PixelToClipSpace(float2 pixelPos, float2 invViewportSize)
 {
     return pixelPos * invViewportSize * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f);
 }
@@ -31,7 +31,7 @@ static inline float2 PixelToClipSpace(float2 pixelPos, float2 invViewportSize)
 /// Reconstructs perspective-correct barycentrics, vertex attributes, and analytical screen derivatives
 /// entirely in Homogeneous Clip Space (Nanite / Projective 2D Line Formulation).
 /// </summary>
-static inline InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pixelCoord, float depth, uint instanceIndex, uint meshletIndex, uint primitiveID, in MeshData meshData)
+InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pixelCoord, float depth, uint instanceIndex, uint meshletIndex, uint primitiveID, in MeshData meshData)
 {
     Meshlet meshlet = LoadData<Meshlet>(meshData.meshletBuffer, meshletIndex);
 
@@ -99,7 +99,7 @@ static inline InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pi
     float3 pw0 = mul(instanceData.localToWorld, float4(v0.position, 1.0f)).xyz;
     float3 pw1 = mul(instanceData.localToWorld, float4(v1.position, 1.0f)).xyz;
     float3 pw2 = mul(instanceData.localToWorld, float4(v2.position, 1.0f)).xyz;
-    float3 worldPos = bary.x * pw0 + bary.y * pw1 + bary.z * pw2;
+    float3 positionWS = bary.x * pw0 + bary.y * pw1 + bary.z * pw2;
 
     float3 n0 = mul((float3x3)instanceData.localToWorld, v0.normal);
     float3 n1 = mul((float3x3)instanceData.localToWorld, v1.normal);
@@ -115,7 +115,7 @@ static inline InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pi
 
     // Motion Vectors
     float2 currentScreenUV = pixelPos * g_ViewData.screenSize.zw;
-    float4 prevClip = mul(g_ViewData.preVPMatrix, float4(worldPos, 1.0f));
+    float4 prevClip = mul(g_ViewData.preVPMatrix, float4(positionWS, 1.0f));
     float prevInvW = (abs(prevClip.w) > 1e-7f) ? rcp(prevClip.w) : 0.0f;
     float2 prevScreenUV = float2(prevClip.x * prevInvW * 0.5f + 0.5f, 1.0f - (prevClip.y * prevInvW * 0.5f + 0.5f));
     float2 motionVectors = currentScreenUV - prevScreenUV;
@@ -129,7 +129,7 @@ static inline InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pi
     );
 
     InterpolatedAttributes attrs;
-    attrs.worldPos = worldPos;
+    attrs.positionWS = positionWS;
     attrs.normalWS = normalWS;
     attrs.tangentWS = float4(tangentWS, v0.tangent.w);
     attrs.color = color;

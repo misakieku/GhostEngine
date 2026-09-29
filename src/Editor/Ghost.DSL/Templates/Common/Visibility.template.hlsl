@@ -35,7 +35,7 @@ struct VisibilityPrimitiveOutput
 };
 
 // Speculative early-Z test via non-atomic 64-bit load
-static inline bool VisibilitySpeculativeEarlyZ(uint2 pixelCoord, float depth, uint visBufferIndex, out uint byteAddress, out uint64_t currentPacked)
+bool VisibilitySpeculativeEarlyZ(uint2 pixelCoord, float depth, uint visBufferIndex, out uint byteAddress, out uint64_t currentPacked)
 {
     uint renderWidth = (uint)g_ViewData.screenSize.x;
     byteAddress = ComputePixelByteAddress(pixelCoord, renderWidth);
@@ -51,14 +51,14 @@ static inline bool VisibilitySpeculativeEarlyZ(uint2 pixelCoord, float depth, ui
 }
 
 // Writes visibility buffer entry via 64-bit atomic max
-static inline void VisibilityWritePixelAtomic(uint visBufferIndex, uint byteAddress, float depth, uint visibleMeshletIndex, uint primitiveID)
+void VisibilityWritePixelAtomic(uint visBufferIndex, uint byteAddress, float depth, uint visibleMeshletIndex, uint primitiveID)
 {
     RWByteAddressBuffer visBuffer = ResourceDescriptorHeap[visBufferIndex];
     uint64_t newPacked = PackVisibility64(depth, visibleMeshletIndex, primitiveID);
     visBuffer.InterlockedMax64(byteAddress, newPacked);
 }
 
-static inline bool IsFrontFacingAndVisible(float4 h0, float4 h1, float4 h2, float subpixelThreshold = 0.0f)
+bool IsFrontFacingAndVisible(float4 h0, float4 h1, float4 h2, float subpixelThreshold = 0.0f)
 {
     if (min(h0.w, min(h1.w, h2.w)) <= 0.0f)
     {
@@ -73,7 +73,7 @@ static inline bool IsFrontFacingAndVisible(float4 h0, float4 h1, float4 h2, floa
     return crossProduct > subpixelThreshold;
 }
 
-static inline float4 GetVertexClipPosition(uint vertexIndex, uint meshletVertexOffset, ByteAddressBuffer meshletVerticesBuffer, ByteAddressBuffer vertexBuffer, float4x4 worldViewProj, out float2 uv)
+float4 GetVertexClipPosition(uint vertexIndex, uint meshletVertexOffset, ByteAddressBuffer meshletVerticesBuffer, ByteAddressBuffer vertexBuffer, float4x4 worldViewProj, out float2 uv)
 {
     uint vIdx = meshletVerticesBuffer.Load((meshletVertexOffset + vertexIndex) * 4u);
     Vertex v = vertexBuffer.Load<Vertex>(vIdx * sizeof(Vertex));

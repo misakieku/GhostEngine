@@ -5,17 +5,17 @@
 #define MATERIAL_VARIANT_SHIFT 24u
 #define MATERIAL_VARIANT_MASK 0xFFu
 
-static inline uint PackMaterial(uint materialBufferIndex, uint variantIndex)
+uint PackMaterial(uint materialBufferIndex, uint variantIndex)
 {
     return (materialBufferIndex & MATERIAL_CBUFFER_MASK) | ((variantIndex & MATERIAL_VARIANT_MASK) << MATERIAL_VARIANT_SHIFT);
 }
 
-static inline uint UnpackMaterialMaterialBufferIndex(uint packedMaterial)
+uint UnpackMaterialMaterialBufferIndex(uint packedMaterial)
 {
     return packedMaterial & MATERIAL_CBUFFER_MASK;
 }
 
-static inline uint UnpackMaterialVariantIndex(uint packedMaterial)
+uint UnpackMaterialVariantIndex(uint packedMaterial)
 {
     return (packedMaterial >> MATERIAL_VARIANT_SHIFT) & MATERIAL_VARIANT_MASK;
 }

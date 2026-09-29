@@ -87,7 +87,7 @@ void CSMain(
     MaterialContext ctx;
     ctx.instanceIndex = instanceIndex;
     ctx.materialIndex = attrs.cbufferIndex;
-    ctx.worldPos = attrs.worldPos;
+    ctx.positionWS = attrs.positionWS;
     ctx.normalWS = attrs.normalWS;
     ctx.tangentWS = attrs.tangentWS;
     ctx.uv = attrs.uv;

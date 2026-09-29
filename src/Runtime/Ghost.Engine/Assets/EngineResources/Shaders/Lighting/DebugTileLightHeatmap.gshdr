@@ -62,12 +62,12 @@ shader "Hidden/DebugTileLightHeatmap"
                 }
 
                 // Heatmap progression:
-                // 1 -> Deep blue / cyan
-                // 8 -> Green
-                // 16 -> Yellow
-                // 24 -> Orange
-                // 31+ -> Red
-                float t = saturate((float)count / 31.0f);
+                // 25%- -> Deep blue / cyan
+                // 25% -> Green
+                // 50% -> Yellow
+                // 75% -> Orange
+                // 100%+ -> Red
+                float t = saturate((float)count / MAX_LIGHTS_PER_TILE);
                 float3 col;
                 if (t < 0.25f)
                 {

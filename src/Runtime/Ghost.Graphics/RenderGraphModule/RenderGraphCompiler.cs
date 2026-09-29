@@ -551,11 +551,8 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 
         return nodes;
     }
-    private static int SelectBestCandidatePass(
-        ReadOnlySpan<int> readyPassIndices,
-        RenderGraphPass? lastScheduledPass,
-        List<RenderGraphPass> passes,
-        ReadOnlySpan<int> compiledPasses)
+
+    private static int SelectBestCandidatePass(ReadOnlySpan<int> readyPassIndices, RenderGraphPass? lastScheduledPass, List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses)
     {
         var bestIndex = 0;
         var maxScore = float.MinValue;
@@ -599,6 +596,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 
         return bestIndex;
     }
+
     private static bool AttachmentsMatch(RenderGraphPass passA, RenderGraphPass passB)
     {
         if (passA.maxColorIndex != passB.maxColorIndex)
@@ -687,11 +685,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         pCompiledPasses->AddRange(reorderedIndices);
     }
 
-    private static void BuildPassReachability(
-        ReadOnlySpan<int> compiledPasses,
-        ReadOnlySpan<PassDependencyNode> dependencyNodes,
-        Span<int> scheduleIndexByPassIndex,
-        Span<byte> reachability)
+    private static void BuildPassReachability(ReadOnlySpan<int> compiledPasses, ReadOnlySpan<PassDependencyNode> dependencyNodes, Span<int> scheduleIndexByPassIndex, Span<byte> reachability)
     {
         scheduleIndexByPassIndex.Fill(-1);
         reachability.Clear();
@@ -741,12 +735,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         }
     }
 
-    private static void BuildDependencyWindowSchedule(
-        List<RenderGraphPass> passes,
-        ReadOnlySpan<int> compiledPasses,
-        Span<CommandQueueType> effectiveQueues,
-        Span<SyncBoundary> syncBoundaries,
-        ReadOnlySpan<byte> reachability)
+    private static void BuildDependencyWindowSchedule(List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, Span<CommandQueueType> effectiveQueues, Span<SyncBoundary> syncBoundaries, ReadOnlySpan<byte> reachability)
     {
         effectiveQueues.Clear();
         syncBoundaries.Clear();
@@ -874,11 +863,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         }
     }
 
-    private static void FinalizeScheduleReachability(
-        ReadOnlySpan<CommandQueueType> effectiveQueues,
-        ReadOnlySpan<SyncBoundary> syncBoundaries,
-        Span<int> commandBufferIds,
-        Span<byte> reachability)
+    private static void FinalizeScheduleReachability(ReadOnlySpan<CommandQueueType> effectiveQueues, ReadOnlySpan<SyncBoundary> syncBoundaries, Span<int> commandBufferIds, Span<byte> reachability)
     {
         var passCount = effectiveQueues.Length;
         if (passCount == 0)
@@ -976,10 +961,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         return -1;
     }
 
-    private static AliasingPlan RestoreFromCache(
-        CachedCompilation cached,
-        List<RenderGraphPass> passes,
-        AllocationHandle allocationHandle)
+    private static AliasingPlan RestoreFromCache(CachedCompilation cached, List<RenderGraphPass> passes, AllocationHandle allocationHandle)
     {
         for (var i = 0; i < passes.Count && i < cached.passCulledFlags.Count; i++)
         {

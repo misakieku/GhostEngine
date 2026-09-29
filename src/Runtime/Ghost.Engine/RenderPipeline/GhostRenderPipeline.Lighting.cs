@@ -159,12 +159,7 @@ internal partial class GhostRenderPipeline
         public uint2 renderSize;
     }
 
-    private Identifier<RGTexture> AddDeferredLightingPass(
-        RenderGraph rg,
-        in GBufferResources gbuffer,
-        Identifier<RGTexture> depthTexture,
-        Identifier<RGBuffer> tileLightList,
-        uint2 renderSize)
+    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph rg, in GBufferResources gbuffer, Identifier<RGTexture> depthTexture, Identifier<RGBuffer> tileLightList, uint2 renderSize)
     {
         var tilesX = (renderSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
         var tilesY = (renderSize.y + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
@@ -203,13 +198,13 @@ internal partial class GhostRenderPipeline
 
         builder.SetRenderFunc<DeferredLightingPassData>(static (ref readonly passData, computeCtx) =>
         {
-            var gb0Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.gbuffer0).AsResource(), BindlessAccess.ShaderResource);
-            var gb1Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.gbuffer1).AsResource(), BindlessAccess.ShaderResource);
-            var gb2Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.gbuffer2).AsResource(), BindlessAccess.ShaderResource);
-            var gb3Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.gbuffer3).AsResource(), BindlessAccess.ShaderResource);
-            var depthSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.depthTexture).AsResource(), BindlessAccess.ShaderResource);
-            var tileLightListSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.tileLightList).AsResource(), BindlessAccess.ShaderResource);
-            var litColorUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.litColorTarget).AsResource(), BindlessAccess.UnorderedAccess);
+            var gb0Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer0, BindlessAccess.ShaderResource);
+            var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
+            var gb2Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer2, BindlessAccess.ShaderResource);
+            var gb3Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer3, BindlessAccess.ShaderResource);
+            var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
+            var tileLightListSrv = computeCtx.GetActualBindlessIndex(passData.tileLightList, BindlessAccess.ShaderResource);
+            var litColorUav = computeCtx.GetActualBindlessIndex(passData.litColorTarget, BindlessAccess.UnorderedAccess);
 
             var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.DeferredLighting);
             for (var i = 0; i < dispatchVariants.Length; i++)

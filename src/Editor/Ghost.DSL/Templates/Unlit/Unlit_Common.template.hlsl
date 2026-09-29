@@ -29,7 +29,7 @@ struct MaterialContext
 {
     uint instanceIndex;
     uint materialIndex;
-    float3 worldPos;
+    float3 positionWS;
     float3 normalWS;
     float4 tangentWS;
     float2 uv;
@@ -46,14 +46,14 @@ $GHOST_USER_HLSL$
 // ============================================================
 
 #ifndef GHOST_OVERRIDE_GET_ALPHA_COVERAGE
-static inline float GetAlphaCoverage(in MaterialProperties props, float2 uv, inout Payload payload)
+float GetAlphaCoverage(in MaterialProperties props, float2 uv, inout Payload payload)
 {
     return 1.0f;
 }
 #endif
 
 #ifndef GHOST_OVERRIDE_GET_SURFACE_DATA
-static inline SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props, inout Payload payload)
+SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props, inout Payload payload)
 {
     SurfaceData surface = (SurfaceData)0;
     return surface;

@@ -26,7 +26,7 @@ struct UnbinnedTileEntry
     uint variantIndex;
 };
 
-static inline bool IsDeferredVariant(uint variantIndex, uint4 mask0, uint4 mask1)
+bool IsDeferredVariant(uint variantIndex, uint4 mask0, uint4 mask1)
 {
     if (variantIndex < 128u)
     {
@@ -46,17 +46,17 @@ static inline bool IsDeferredVariant(uint variantIndex, uint4 mask0, uint4 mask1
     return false;
 }
 
-static inline uint EncodeTileIndex(uint2 tileCoord, uint tilesPerRow)
+uint EncodeTileIndex(uint2 tileCoord, uint tilesPerRow)
 {
     return tileCoord.y * tilesPerRow + tileCoord.x;
 }
 
-static inline uint2 DecodeTileCoord(uint tileIndex, uint tilesPerRow)
+uint2 DecodeTileCoord(uint tileIndex, uint tilesPerRow)
 {
     return uint2(tileIndex % tilesPerRow, tileIndex / tilesPerRow);
 }
 
-static inline uint2 DecodeTilePixelCoord(uint tileIndex, uint2 inTileCoord, uint tilesPerRow)
+uint2 DecodeTilePixelCoord(uint tileIndex, uint2 inTileCoord, uint tilesPerRow)
 {
     uint2 tileCoord = DecodeTileCoord(tileIndex, tilesPerRow);
     return tileCoord * CLASSIFICATION_TILE_SIZE + inTileCoord;
