@@ -17,7 +17,7 @@ compute "Internal/OccludedMeshletCull"
     includes
     {
         "EngineResources/Shaders/Properties.hlsl";
-        "EngineResources/Shaders/MeshPipeline/CullCommon.hlsl";
+        "EngineResources/Shaders/Utilities/CullCommon.hlsl";
         "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl";
     }
 

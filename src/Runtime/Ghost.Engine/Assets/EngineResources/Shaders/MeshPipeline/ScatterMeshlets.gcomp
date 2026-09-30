@@ -13,7 +13,7 @@ compute "Internal/ScatterMeshlets"
     includes
     {
         "EngineResources/Shaders/Properties.hlsl";
-        "EngineResources/Shaders/MeshPipeline/CullCommon.hlsl";
+        "EngineResources/Shaders/Utilities/CullCommon.hlsl";
     }
 
     hlsl

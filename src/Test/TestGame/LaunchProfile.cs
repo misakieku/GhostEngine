@@ -92,7 +92,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
 
     public void OnEngineInitialized(EngineCore engine)
     {
-        const int entityCapacity = 1000;
+        const int entityCapacity = 10000;
         const float size = 20.0f;
         const float lightSize = size * 2.0f;
         const float baseScale = 1.0f;

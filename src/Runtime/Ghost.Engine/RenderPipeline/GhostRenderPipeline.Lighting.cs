@@ -2,9 +2,13 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
+using Ghost.Engine.Utilities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.Jobs;
+using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.InteropServices;
 
@@ -20,6 +24,22 @@ internal partial class GhostRenderPipeline
         public uint2 renderSize;
         public uint tilesX;
         public uint tilesY;
+    }
+
+    private struct LightCullingJob : IJobParallelFor
+    {
+        public Frustum frustum;
+        public ReadOnlyView<GPUPunctualLight> punctualLights;
+        public UnsafeList<GPUPunctualLight>.ParallelWriter visibleLights;
+
+        public readonly void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
+        {
+            ref readonly var light = ref punctualLights[loopIndex];
+            if (MathUtility.SphereIntersectFrustum(light.positionWS, light.range, frustum.planes))
+            {
+                visibleLights.AddNoResize(light);
+            }
+        }
     }
 
     private Identifier<RGBuffer> AddTileLightCullingPass(RenderGraph rg, Identifier<RGTexture> depthTexture, uint2 renderSize)
@@ -273,10 +293,7 @@ internal partial class GhostRenderPipeline
 
             var lightBuffer = ctx.ResourceManager.CreateTransientBuffer(in desc, "PunctualLightsBuffer");
             var pData = (GPUPunctualLight*)ctx.ResourceDatabase.MapResource(lightBuffer.AsResource(), 0, null);
-            fixed (GPUPunctualLight* pSrc = lights)
-            {
-                Buffer.MemoryCopy(pSrc, pData, bufferSize, bufferSize);
-            }
+            MemoryUtility.MemCpy(pData, lights.GetUnsafePtr(), bufferSize);
             ctx.ResourceDatabase.UnmapResource(lightBuffer.AsResource(), 0, null);
 
             punctualLightsSrv = ctx.ResourceDatabase.GetBindlessIndex(lightBuffer.AsResource());

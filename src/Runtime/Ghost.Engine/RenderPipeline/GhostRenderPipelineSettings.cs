@@ -2,6 +2,7 @@ using Ghost.Engine.Components;
 using Ghost.Engine.Streaming;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
@@ -43,7 +44,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     private uint _instanceCount;
 
     public ReadOnlySpan<RenderRequest> RenderRequests => _renderRequests;
-    public ReadOnlySpan<GPUPunctualLight> PunctualLights => _punctualLights;
+    public ReadOnlyView<GPUPunctualLight> PunctualLights => _punctualLights;
     public uint PunctualLightCount => (uint)_punctualLights.Count;
     public ref readonly GPUDirectionalLight CurrentSunLight => ref _currentSunLight;
     public bool HasDirectionalLight => _hasDirectionalLight;
@@ -255,8 +256,8 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     /// </summary>
     public float DirectionalShadowSplitLambda { get; set; } = 0.85f;
 
-    public IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager)
+    public IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager, JobScheduler jobScheduler)
     {
-        return new GhostRenderPipeline(renderEngine, assetManager, this);
+        return new GhostRenderPipeline(renderEngine, assetManager, jobScheduler, this);
     }
 }

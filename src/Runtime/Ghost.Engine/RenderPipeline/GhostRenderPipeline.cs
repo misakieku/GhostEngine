@@ -6,6 +6,7 @@ using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Engine.RenderPipeline;
@@ -21,6 +22,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
     private readonly RenderEngine _renderEngine;
     private readonly AssetManager _assetManager;
+    private readonly JobScheduler _jobScheduler;
     private readonly GhostRenderPipelineSettings _settings;
 
     private readonly GPUScene _gpuScene;
@@ -39,12 +41,13 @@ internal partial class GhostRenderPipeline : IRenderPipeline
     public GPUViewManager GPUViewManager => _gpuViewManager;
     public GhostRenderPipelineSettings Settings => _settings;
 
-    public GhostRenderPipeline(RenderEngine renderEngine, AssetManager assetManager, GhostRenderPipelineSettings settings)
+    public GhostRenderPipeline(RenderEngine renderEngine, AssetManager assetManager, JobScheduler jobScheduler, GhostRenderPipelineSettings settings)
     {
         ValidateRequiredGPUFeatures(renderEngine);
 
         _renderEngine = renderEngine;
         _assetManager = assetManager;
+        _jobScheduler = jobScheduler;
         _settings = settings;
 
         _gpuSceneResource = new GPUSceneResource(assetManager);
@@ -124,7 +127,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             return Result.Success();
         }
 
-        // Upload light data to transient buffers
+        // FIX: This should be per view since we need to cull the light and manage the shadow atlas.
         UploadLights(ctx, ghostPayload, out var punctualLightsSrv, out var punctualLightCount, out var directionalLightSrv);
 
         // Upload FrameData once per frame
@@ -181,7 +184,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 viewContext.RenderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
             }
 
-            var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewState, RGFlags.NoAliasing);
+            var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewState, RGFlags.Default);
             if (result.IsFailure)
             {
                 return Result.Failure($"Render graph execution failed: {result.Error}");

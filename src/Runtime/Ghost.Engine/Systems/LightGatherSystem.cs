@@ -27,6 +27,9 @@ internal class LightGatherSystem : SystemBase
         _punctualLightQueryID = QueryBuilder.New()
             .WithAll<PunctualLight, LocalToWorld>()
             .Build(world, true);
+
+        RequireQueryForUpdate(_directionalLightQueryID);
+        RequireQueryForUpdate(_punctualLightQueryID);
     }
 
     protected override void OnInitialize(scoped in SystemAPI systemAPI)
@@ -50,10 +53,8 @@ internal class LightGatherSystem : SystemBase
     private void GatherDirectionalLight(scoped in SystemAPI systemAPI, GhostRenderPayload payload)
     {
         ref var dirQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_directionalLightQueryID);
-        if (dirQuery.CalculateEntityCount() == 0)
-        {
-            return;
-        }
+
+        // TODO: Support multple directional lights. Shadow caster limited to one, but multiple non-shadow-casting directional lights can contribute to the scene.
 
         DirectionalLight bestLight = default;
         LocalToWorld bestTransform = default;
@@ -117,10 +118,6 @@ internal class LightGatherSystem : SystemBase
     private void GatherPunctualLights(scoped in SystemAPI systemAPI, GhostRenderPayload payload)
     {
         ref var punctualQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_punctualLightQueryID);
-        if (punctualQuery.CalculateEntityCount() == 0)
-        {
-            return;
-        }
 
         foreach (var chunk in punctualQuery.GetChunkIterator())
         {

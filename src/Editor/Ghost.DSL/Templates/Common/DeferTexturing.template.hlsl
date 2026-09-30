@@ -10,7 +10,7 @@
 #endif
 
 #include "EngineResources/Shaders/Properties.hlsl"
-#include "EngineResources/Shaders/MeshPipeline/CullCommon.hlsl"
+#include "EngineResources/Shaders/Utilities/CullCommon.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/VisibilityBufferEncoding.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/ClassificationCommon.hlsl"

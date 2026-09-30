@@ -1,11 +1,12 @@
 using Ghost.Engine.Streaming;
 using Ghost.Graphics;
+using Misaki.HighPerformance.Jobs;
 
 namespace Ghost.Engine.RenderPipeline;
 
 public interface IRenderPipelineSettings
 {
-    IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager);
+    IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager, JobScheduler jobScheduler);
 }
 
 /// <summary>

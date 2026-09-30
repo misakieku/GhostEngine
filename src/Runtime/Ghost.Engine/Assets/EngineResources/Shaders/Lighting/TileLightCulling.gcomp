@@ -263,6 +263,7 @@ compute "Internal/TileLightCulling"
                 }
                 s_TileLightCount = count;
             }
+
             GroupMemoryBarrierWithGroupSync();
 
             // Write packed tile light list to RWByteAddressBuffer

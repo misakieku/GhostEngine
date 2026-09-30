@@ -1,4 +1,6 @@
+using Ghost.Core;
 using Misaki.HighPerformance.Mathematics;
+using Misaki.HighPerformance.Utilities;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Utilities;
@@ -54,5 +56,22 @@ public static class MathUtility
 
             rotation = new quaternion(rotationMatrix);
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool SphereIntersectFrustum(float3 center, float radius, ReadOnlySpan<float4> planes)
+    {
+        Logger.DebugAssert(planes.Length == 6, "Frustum planes must contain exactly 6 planes.");
+
+        for (var i = 0; i < 6; ++i)
+        {
+            var distance = math.dot(planes.GetElementUnsafe(i).xyz, center) + planes.GetElementUnsafe(i).w;
+            if (distance < -radius)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

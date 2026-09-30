@@ -14,7 +14,7 @@
 #endif
 
 #include "EngineResources/Shaders/Properties.hlsl"
-#include "EngineResources/Shaders/MeshPipeline/CullCommon.hlsl"
+#include "EngineResources/Shaders/Utilities/CullCommon.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/VisibilityBufferEncoding.hlsl"
 
@@ -163,6 +163,10 @@ void MSMain(
         if (props.doubleSidedConstants.w == 0.0f)
         {
             isCulled = !IsFrontFacingAndVisible(v2, v1, v0);
+            if (!isCulled)
+            {
+                isCulled = IsTriangleOutsideFrustum(v0, v1, v2);
+            }
         }
         
         outPrims[primId].cullPrim = isCulled;
