@@ -383,6 +383,36 @@ public class AntlrShaderCompiler
             semantics.shaderModel = shaderModel;
         }
 
+        foreach (var funcCall in syntax.FunctionCalls)
+        {
+            if (string.Equals(funcCall.Name, "shading_model", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!string.Equals(syntax.TemplateName, "Lit", StringComparison.OrdinalIgnoreCase))
+                {
+                    errors.Add(new DSLShaderError
+                    {
+                        message = "The 'shading_model' directive is only supported for shaders inheriting from the 'Lit' template.",
+                        line = 0,
+                        column = 0
+                    });
+                    continue;
+                }
+
+                if (funcCall.Arguments.Count != 1 || string.IsNullOrWhiteSpace(funcCall.Arguments[0]))
+                {
+                    errors.Add(new DSLShaderError
+                    {
+                        message = "'shading_model' directive requires exactly one argument specifying the shading model HLSL path (e.g. shading_model(\"path/to/model.hlsl\")).",
+                        line = 0,
+                        column = 0
+                    });
+                    continue;
+                }
+
+                semantics.shadingModelFile = funcCall.Arguments[0];
+            }
+        }
+
         foreach (var pass in syntax.Passes)
         {
             var passSemantic = ConvertPass(pass, errors);

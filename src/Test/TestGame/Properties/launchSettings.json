@@ -3,7 +3,8 @@
     "TestGame": {
       "commandName": "Project",
       "workingDirectory": "$(TargetDir)",
-      "debugEngines": "managed"
+      "debugEngines": "managed",
+      "hotReloadEnabled": true
     }
   }
 }

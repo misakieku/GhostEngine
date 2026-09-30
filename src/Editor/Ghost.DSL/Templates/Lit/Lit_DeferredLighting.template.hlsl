@@ -3,7 +3,6 @@
 
 #include "Lit/Lit_Common.template.hlsl"
 #include "EngineResources/Shaders/Properties.hlsl"
-#include "EngineResources/Shaders/Common.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/ClassificationCommon.hlsl"
 #include "EngineResources/Shaders/Material/Lit/LightLoop.hlsl"
 
@@ -30,7 +29,7 @@ void CSMain(
         
         GroupMemoryBarrierWithGroupSync();
 
-        if ((s_TileShadingModelMask & (1u << props.shadingModelId)) == 0u)
+        if ((s_TileShadingModelMask & (1u << SHADING_MODEL_ID)) == 0u)
         {
             return;
         }
@@ -63,8 +62,8 @@ void CSMain(
     gbuffer.gbuffer3 = gb3Tex[pixelCoord];
 
     // Verify pixel belongs to this shading model
-    uint pixelShadingModel = asuint(gbuffer.gbuffer0.a) & 0x1Fu;
-    if (pixelShadingModel != 0u && pixelShadingModel != props.shadingModelId)
+    uint pixelShadingModel = (uint)round(gbuffer.gbuffer0.a * 255.0f) & 0x1Fu;
+    if (pixelShadingModel != 0u && pixelShadingModel != SHADING_MODEL_ID)
     {
         return;
     }

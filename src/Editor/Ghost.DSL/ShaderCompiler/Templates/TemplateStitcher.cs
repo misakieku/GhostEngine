@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.DSL.Models;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Ghost.DSL.ShaderCompiler.Templates;
 
@@ -88,7 +89,71 @@ public static class TemplateStitcher
     /// <summary>
     /// Stitches one template file into a complete translation unit for a stage.
     /// </summary>
-    private static Result<string> StitchStage(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders, string templateFile)
+    private static readonly Regex s_shadingModelIdRegex = new(
+        @"\bShadingModelID\s*=\s*(\d+)u?\b",
+        RegexOptions.Compiled);
+
+    private static uint ExtractShadingModelId(string shadingModelFile, IReadOnlyDictionary<string, string> virtualShaders)
+    {
+        var relativePath = shadingModelFile.TrimStart('/', '\\');
+        string? content = null;
+
+        if (virtualShaders.TryGetValue("/" + relativePath, out var code) ||
+            virtualShaders.TryGetValue(relativePath, out code) ||
+            virtualShaders.TryGetValue(shadingModelFile, out code))
+        {
+            content = code;
+        }
+        else if (File.Exists(shadingModelFile))
+        {
+            content = File.ReadAllText(shadingModelFile);
+        }
+        else
+        {
+            var candidates = new[]
+            {
+                Path.Combine(Directory.GetCurrentDirectory(), relativePath),
+                Path.Combine(Directory.GetCurrentDirectory(), "src", "Runtime", "Ghost.Engine", "Assets", relativePath),
+                Path.Combine(AppContext.BaseDirectory, relativePath),
+                Path.Combine(AppContext.BaseDirectory, "Assets", relativePath),
+            };
+
+            foreach (var candidate in candidates)
+            {
+                if (File.Exists(candidate))
+                {
+                    content = File.ReadAllText(candidate);
+                    break;
+                }
+            }
+
+            if (content == null)
+            {
+                var fileName = Path.GetFileName(shadingModelFile);
+                var matches = Directory.GetFiles(Directory.GetCurrentDirectory(), fileName, SearchOption.AllDirectories);
+                if (matches.Length > 0)
+                {
+                    content = File.ReadAllText(matches[0]);
+                }
+            }
+        }
+
+        if (!string.IsNullOrEmpty(content))
+        {
+            var match = s_shadingModelIdRegex.Match(content);
+            if (match.Success && uint.TryParse(match.Groups[1].Value, out var parsed))
+            {
+                return parsed;
+            }
+        }
+
+        return 1u;
+    }
+
+    /// <summary>
+    /// Stitches one template file into a complete translation unit for a stage.
+    /// </summary>
+    private static Result<string> StitchStage(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders, string templateFile, PassSemantic passSemantic)
     {
         var templateResult = LoadTemplateSource(templateFile);
         if (templateResult.IsFailure)
@@ -103,8 +168,12 @@ public static class TemplateStitcher
         }
 
         var commonFileName = Path.GetFileName(template.CommonTemplateFile);
+        var propertiesStruct = (passSemantic == PassSemantic.DeferredLighting)
+            ? string.Empty
+            : BuildPropertiesStruct(template, semantics);
+
         var stitchedCommon = commonResult.Value
-            .Replace("$GHOST_PROPERTIES_STRUCT$", BuildPropertiesStruct(template, semantics))
+            .Replace("$GHOST_PROPERTIES_STRUCT$", propertiesStruct)
             .Replace("$GHOST_USER_HLSL$", semantics.hlsl ?? string.Empty);
 
         var final = templateResult.Value
@@ -117,6 +186,24 @@ public static class TemplateStitcher
         foreach (var define in template.Defines)
         {
             sb.AppendLine($"#define {define} 1");
+        }
+
+        sb.AppendLine($"#define SHADING_MODEL_ID {semantics.shadingModelId}u");
+
+        // Automatically include the shading model file if declared via shading_model(...) only for DeferredLighting
+        if (passSemantic == PassSemantic.DeferredLighting && !string.IsNullOrEmpty(semantics.shadingModelFile))
+        {
+            var modelRel = semantics.shadingModelFile.TrimStart('/', '\\');
+            if (virtualShaders.TryGetValue("/" + modelRel, out var modelCode) ||
+                virtualShaders.TryGetValue(modelRel, out modelCode) ||
+                virtualShaders.TryGetValue(semantics.shadingModelFile, out modelCode))
+            {
+                sb.AppendLine(modelCode);
+            }
+            else
+            {
+                sb.AppendLine($"#include \"{modelRel}\"");
+            }
         }
 
         foreach (var includePath in semantics.includes ?? new List<string>())
@@ -134,7 +221,7 @@ public static class TemplateStitcher
             }
         }
 
-        if (!string.IsNullOrEmpty(reflectionData.Code))
+        if (passSemantic != PassSemantic.DeferredLighting && !string.IsNullOrEmpty(reflectionData.Code))
         {
             sb.AppendLine("#line 0 \"properties\"");
             sb.AppendLine(reflectionData.Code);
@@ -150,6 +237,22 @@ public static class TemplateStitcher
     /// </summary>
     public static Result<GraphicsShaderDescriptor> ResolveShader(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders)
     {
+        uint shadingModelId = 0u;
+        if (!string.IsNullOrEmpty(semantics.shadingModelFile))
+        {
+            shadingModelId = ExtractShadingModelId(semantics.shadingModelFile, virtualShaders);
+        }
+        else if (!string.IsNullOrEmpty(semantics.hlsl))
+        {
+            var match = s_shadingModelIdRegex.Match(semantics.hlsl);
+            if (match.Success && uint.TryParse(match.Groups[1].Value, out var parsed))
+            {
+                shadingModelId = parsed;
+            }
+        }
+
+        semantics.shadingModelId = shadingModelId;
+
         var passes = new PassDescriptor[template.Passes.Count];
 
         for (var i = 0; i < passes.Length; i++)
@@ -159,6 +262,7 @@ public static class TemplateStitcher
 
             defines.Add($"GHOST_TEMPLATE_{template.Name.ToUpperInvariant()}");
             defines.Add($"GHOST_PASS_{passDef.name.ToUpperInvariant()}");
+            defines.Add($"SHADING_MODEL_ID={shadingModelId}u");
 
             var pass = new PassDescriptor
             {
@@ -166,11 +270,12 @@ public static class TemplateStitcher
                 semantic = passDef.semantic,
                 localPipeline = DSLShaderCompiler.MergePipeline(semantics.pipeline, passDef.pipeline.ToPipelineState()),
                 defines = defines.ToArray(),
+                shadingModelId = shadingModelId,
             };
 
             foreach (var stageDef in passDef.stages)
             {
-                var result = StitchStage(template, semantics, reflectionData, virtualShaders, stageDef.templateFile);
+                var result = StitchStage(template, semantics, reflectionData, virtualShaders, stageDef.templateFile, passDef.semantic);
                 if (result.IsFailure)
                 {
                     return Result.Failure($"Failed to stitch stage '{stageDef.entryPoint}' of pass '{passDef.name}': {result.Message}");

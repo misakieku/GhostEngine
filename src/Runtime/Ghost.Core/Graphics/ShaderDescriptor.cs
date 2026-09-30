@@ -100,6 +100,7 @@ public struct PassDescriptor
     public ShaderCode computeShaderCode;
     public string[] defines;
     public PipelineState localPipeline;
+    public uint shadingModelId;
 }
 
 public class GraphicsShaderDescriptor

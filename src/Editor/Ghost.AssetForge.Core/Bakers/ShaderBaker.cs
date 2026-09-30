@@ -199,6 +199,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                     stageMask = pass.stageMask,
                     passId = ShaderIdentity.GetPassId(header.shaderId, passIdx),
                     localPipeline = pass.localPipeline,
+                    shadingModelId = pass.shadingModelId,
                 };
                 dst.Write(passHeader); // Placeholder
                 WriteName(dst, assetStartOffset, pass.name, ref passHeader.nameOffset, ref passHeader.nameSize);

@@ -207,14 +207,27 @@ internal partial class GhostRenderPipeline
             var litColorUav = computeCtx.GetActualBindlessIndex(passData.litColorTarget, BindlessAccess.UnorderedAccess);
 
             var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.DeferredLighting);
+            var dispatchedShadingModels = 0u;
+
             for (var i = 0; i < dispatchVariants.Length; i++)
             {
                 ref readonly var variant = ref dispatchVariants[i];
+                ref readonly var variantRecord = ref passData.variantRegistry.GetVariant(new ShaderVariantIndex(variant.DenseIndex));
+                var shadingModelId = variantRecord.ShadingModelId;
+
+                var maskBit = 1u << (int)(shadingModelId & 31u);
+                if ((dispatchedShadingModels & maskBit) != 0)
+                {
+                    continue;
+                }
+
                 if (!passData.variantRegistry.IsBytecodeReady(variant.DenseIndex) ||
                     !computeCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.DeferredLighting))
                 {
                     continue;
                 }
+
+                dispatchedShadingModels |= maskBit;
 
                 var props = new InternalDeferredLightingShaderProperties
                 {
@@ -229,7 +242,7 @@ internal partial class GhostRenderPipeline
                     renderWidth = passData.renderSize.x,
                     renderHeight = passData.renderSize.y,
                     tilesPerRow = passData.tilesPerRow,
-                    shadingModelId = 1u // SHADING_MODEL_SIMPLE_LIT
+                    shadingModelId = shadingModelId
                 };
 
                 computeCtx.SetUserDataWithProperties(in props, target: DataTarget.Compute);

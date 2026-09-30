@@ -77,6 +77,7 @@ public class PackService
                 EntryPointCount = pass.entryPointCount,
                 PassId = pass.passId,
                 LocalPipeline = pass.localPipeline,
+                ShadingModelId = pass.shadingModelId,
             };
             nextPassOffset = pass.dataOffset + pass.dataSize;
         }

@@ -1,30 +1,25 @@
-shader "MyShader/SimpleLit" : "Lit"
+shader "MyShader/MobileLit" : "Lit"
 {
-    properties
-    {
-        float roughness = 0.4;
-    }
-
     shading_model("EngineResources/Shaders/Material/Lit/SimpleLit.hlsl");
 
     hlsl
     {
         #if defined(GHOST_PASS_DEFERREDTEXTURING)
-        #define DEFERREDTEXTURING_STRATEGY SimpleLitDeferredTexturing
+        #define DEFERREDTEXTURING_STRATEGY MobileLitDeferredTexturing
         
-        struct SimpleLitDeferredTexturing
+        struct MobileLitDeferredTexturing
         {
-            static SimpleLitDeferredTexturing Create()
+            static MobileLitDeferredTexturing Create()
             {
-                return (SimpleLitDeferredTexturing)0;
+                return (MobileLitDeferredTexturing)0;
             }
 
             SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
             {
                 SurfaceData surface = (SurfaceData)0;
-                surface.albedo = float3(1.0, 1.0, 1.0);
+                surface.albedo = float3(0.25, 0.25, 0.25);
                 surface.normalWS = ctx.normalWS;
-                surface.roughness = props.roughness;
+                surface.roughness = 1.0;
                 surface.metallic = 0.0;
                 surface.occlusion = 1.0;
                 surface.materialFeatures = SHADING_MODEL_ID;

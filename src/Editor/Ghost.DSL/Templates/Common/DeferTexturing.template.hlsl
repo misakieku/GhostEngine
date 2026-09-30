@@ -100,7 +100,7 @@ void CSMain(
     GBufferOutputs outputs;
 #if defined(GHOST_TEMPLATE_LIT)
     // GBuffer0: BaseColor (rgb) + ShadingModel/Flags (a)
-    outputs.gbuffer0 = float4(surface.albedo, asfloat(surface.materialFeatures));
+    outputs.gbuffer0 = float4(surface.albedo, float(surface.materialFeatures & 0xFFu) / 255.0f);
     // GBuffer1: Octahedral Normal (rg) + Roughness (b) + Metallic (a)
     outputs.gbuffer1 = float4(OctahedralEncode(surface.normalWS), surface.roughness, surface.metallic);
     // GBuffer2: Motion Vectors (xy) + Occlusion (z) + FeatureBitmask (w)

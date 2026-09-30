@@ -24,6 +24,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
     private World _world = null!;
     private IAssetEntry _meshAsset = null!;
     private IAssetEntry _shaderAsset = null!;
+    private IAssetEntry _shaderAsset2 = null!;
 
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
@@ -121,14 +122,19 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
 
         _meshAsset = engine.AssetManager.ResolveAsset("Meshes/dragon");
         _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/SimpleLit");
+        _shaderAsset2 = engine.AssetManager.ResolveAsset("Shaders/MobileLit");
 
         var meshHandle = default(Handle<Mesh>);
         _meshAsset.ReadAssetData(ref meshHandle);
 
         var shaderHandle = default(Handle<Shader>);
         _shaderAsset.ReadAssetData(ref shaderHandle);
+        var shaderHandle2 = default(Handle<Shader>);
+        _shaderAsset2.ReadAssetData(ref shaderHandle2);
 
         var mat = engine.RenderEngine.ResourceManager.CreateMaterial(shaderHandle);
+        var mat2 = engine.RenderEngine.ResourceManager.CreateMaterial(shaderHandle2);
+
         ref var matRef = ref engine.RenderEngine.ResourceManager.GetMaterialReference(mat).GetValueOrThrow();
         matRef.SetPropertyCache(new MyShaderSimpleLitShaderProperties
         {
@@ -136,6 +142,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
         });
 
         var materialPallette = engine.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);
+        var materialPallette2 = engine.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat2]);
 
         using var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
         var entities = new Entity[entityCapacity];
@@ -147,7 +154,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
             _world.EntityManager.SetComponent(entity, new MeshInstance
             {
                 mesh = meshHandle,
-                materialPalette = materialPallette,
+                materialPalette = i % 2 == 0 ? materialPallette : materialPallette2,
                 renderingLayerMask = RenderingLayerMask.All,
                 shadowCastingMode = ShadowCastingMode.On,
                 staticShadowCaster = true,
@@ -176,7 +183,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
                 matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(new float3(45.0f, 30.0f, 0.0f)), new float3(1.0f, 1.0f, 1.0f))
             });
 
-        for (var i = 0; i < 0; i++)
+        for (var i = 0; i < 64; i++)
         {
             var pos = new float3(RandomFloat(-lightSize, lightSize), RandomFloat(-lightSize, lightSize), RandomFloat(-lightSize, lightSize));
             var color = new float3(RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f));
@@ -228,5 +235,6 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
 
         _meshAsset.Release();
         _shaderAsset.Release();
+        _shaderAsset2.Release();
     }
 }

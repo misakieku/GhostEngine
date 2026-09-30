@@ -6,7 +6,7 @@ namespace Ghost.AssetForge.Test;
 public class DSLParserTest
 {
     [TestMethod]
-    public void TestParseTemplateShader_ExtractsPropertiesPayloadAndHLSL()
+    public void TestParseTemplateShader_ExtractsPropertiesAndHLSL()
     {
         var shaderSource = @"
 shader ""Custom/CarPaint"" : ""Lit""
@@ -18,14 +18,9 @@ shader ""Custom/CarPaint"" : ""Lit""
         float flakeScale = 100.0;
     }
 
-    payload
-    {
-        float flakeIntensity;
-    }
-
     hlsl
     {
-        SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props, inout Payload payload)
+        SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
         {
             return DefaultSurfaceData();
         }
@@ -47,9 +42,6 @@ shader ""Custom/CarPaint"" : ""Lit""
         Assert.AreEqual("flakeStrength", syntax.Properties.Properties[1].Name);
         Assert.AreEqual("0.5", syntax.Properties.Properties[1].DefaultValue);
 
-        Assert.IsNotNull(syntax.Payload);
-        StringAssert.Contains(syntax.Payload.Code, "flakeIntensity");
-
         Assert.IsNotNull(syntax.Hlsl);
         StringAssert.Contains(syntax.Hlsl.Code, "GetSurfaceData");
 
@@ -60,8 +52,29 @@ shader ""Custom/CarPaint"" : ""Lit""
         Assert.AreEqual("Custom/CarPaint", semantics.name);
         Assert.AreEqual("Lit", semantics.templateName);
         Assert.HasCount(3, semantics.properties);
-        Assert.IsNotNull(semantics.payload);
         Assert.IsNotNull(semantics.hlsl);
+    }
+
+    [TestMethod]
+    public void TestResolveSimpleLit_StitchesShadingModel()
+    {
+        var shaderSource = File.ReadAllText(@"F:\csharp\GhostEngine\src\Test\TestGame\Assets\Shaders\SimpleLit.gshdr");
+        var syntaxResult = DSLShaderCompiler.ParseGraphicsShaderSyntax(shaderSource);
+        Assert.IsTrue(syntaxResult.IsSuccess, syntaxResult.Message);
+        var semanticsResult = DSLShaderCompiler.GetShaderSemantics(syntaxResult.Value);
+        Assert.IsTrue(semanticsResult.IsSuccess, semanticsResult.Message);
+        var semantics = semanticsResult.Value;
+        Assert.AreEqual("EngineResources/Shaders/Material/Lit/SimpleLit.hlsl", semantics.shadingModelFile);
+
+        var descriptorResult = DSLShaderCompiler.ResolveShader(semantics, new DSL.Models.ShaderReflectionData(), new Dictionary<string, string>());
+        Assert.IsTrue(descriptorResult.IsSuccess, descriptorResult.Message);
+        var dtPass = descriptorResult.Value.Passes.First(p => p.semantic == Ghost.Core.Graphics.PassSemantic.DeferredTexturing);
+        StringAssert.Contains(dtPass.computeShaderCode.code, "#define SHADING_MODEL_ID 1u");
+        Assert.DoesNotContain("SimpleLit.hlsl", dtPass.computeShaderCode.code);
+
+        var dlPass = descriptorResult.Value.Passes.First(p => p.semantic == Ghost.Core.Graphics.PassSemantic.DeferredLighting);
+        StringAssert.Contains(dlPass.computeShaderCode.code, "#define SHADING_MODEL_ID 1u");
+        StringAssert.Contains(dlPass.computeShaderCode.code, "SimpleLit.hlsl");
     }
 
 #if false

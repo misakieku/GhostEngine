@@ -30,7 +30,7 @@ compute "Internal/ScatterMeshlets"
                 totalVisible = props.maxVisibleMeshlets;
             }
 
-            uint slotIndex = dispatchThreadId.x;
+            uint slotIndex = dispatchThreadId.y * 4194240u + dispatchThreadId.x;
             if (slotIndex >= totalVisible)
             {
                 return;

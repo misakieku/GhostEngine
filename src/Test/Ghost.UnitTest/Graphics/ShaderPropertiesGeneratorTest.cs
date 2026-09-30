@@ -13,11 +13,12 @@ public class ShaderPropertiesGeneratorTest
         Assert.AreEqual("Hidden/Blit", HiddenBlitShaderProperties.SHADER_NAME);
 #pragma warning restore MSTEST0032 // Assertion condition is always true
         var size = sizeof(HiddenBlitShaderProperties);
-        Assert.AreEqual(8, size); // 2 uint fields = 8 bytes
+        Assert.AreEqual(12, size); // 3 fields = 12 bytes
 
         var instance = new HiddenBlitShaderProperties();
         Assert.AreEqual(0u, instance.mainTex);
         Assert.AreEqual(0u, instance.sampler_mainTex);
+        Assert.AreEqual(0u, instance.linearToSRGB);
     }
 
     [TestMethod]

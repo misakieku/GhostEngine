@@ -95,7 +95,48 @@ public sealed class ShaderVariantRegistryTest
         Assert.AreEqual(ShaderVariantState.BytecodeReady, registry.GetState(index));
     }
 
+    [TestMethod]
+    public void DeferredLightingDeduplicatesAcrossMatchingShadingModelIds()
+    {
+        var firstAsset = Guid.NewGuid();
+        var secondAsset = Guid.NewGuid();
+        var thirdAsset = Guid.NewGuid();
+        var familyId = ShaderIdentity.GetShaderId("Lit");
+
+        var catalog = new ShaderCatalogEntry[]
+        {
+            CreateEntryWithShadingModel(firstAsset, "SimpleLit", familyId, 1u, PassSemantic.DeferredLighting),
+            CreateEntryWithShadingModel(secondAsset, "MobileLit", familyId, 1u, PassSemantic.DeferredLighting),
+            CreateEntryWithShadingModel(thirdAsset, "CustomLit", familyId, 2u, PassSemantic.DeferredLighting),
+        };
+
+        using var renderDevice = new MockingRenderDevice();
+        using var resourceDatabase = new MockingResourceDatabase();
+        using var resourceAllocator = new MockingResourceAllocator(resourceDatabase);
+        using var resourceManager = new ResourceManager(renderDevice, resourceAllocator, resourceDatabase);
+        using var registry = new ShaderVariantRegistry(resourceManager, catalog);
+
+        var dispatchVariants = registry.GetDispatchVariants(PassSemantic.DeferredLighting);
+        Assert.AreEqual(3, dispatchVariants.Length);
+        Assert.AreEqual(0, dispatchVariants[0].DenseIndex);
+        Assert.AreEqual(1, dispatchVariants[1].DenseIndex);
+        Assert.AreEqual(2, dispatchVariants[2].DenseIndex);
+
+        ref readonly var firstVariant = ref registry.GetVariant(new ShaderVariantIndex(0));
+        ref readonly var secondVariant = ref registry.GetVariant(new ShaderVariantIndex(1));
+        ref readonly var thirdVariant = ref registry.GetVariant(new ShaderVariantIndex(2));
+
+        Assert.AreEqual(1u, firstVariant.ShadingModelId);
+        Assert.AreEqual(1u, secondVariant.ShadingModelId);
+        Assert.AreEqual(2u, thirdVariant.ShadingModelId);
+    }
+
     private static ShaderCatalogEntry CreateEntry(Guid assetId, string name, ulong familyId, params PassSemantic[] semantics)
+    {
+        return CreateEntryWithShadingModel(assetId, name, familyId, 0u, semantics);
+    }
+
+    private static ShaderCatalogEntry CreateEntryWithShadingModel(Guid assetId, string name, ulong familyId, uint shadingModelId, params PassSemantic[] semantics)
     {
         var shaderId = ShaderIdentity.GetShaderId(name);
         var passes = new ShaderCatalogPass[semantics.Length];
@@ -105,9 +146,10 @@ public sealed class ShaderVariantRegistryTest
             {
                 Name = semantics[i].ToString(),
                 Semantic = semantics[i],
-                StageMask = semantics[i] == PassSemantic.DeferredTexturing ? ShaderStageMask.Compute : ShaderStageMask.Mesh | ShaderStageMask.Pixel,
+                StageMask = semantics[i] == PassSemantic.DeferredTexturing || semantics[i] == PassSemantic.DeferredLighting ? ShaderStageMask.Compute : ShaderStageMask.Mesh | ShaderStageMask.Pixel,
                 PassId = ShaderIdentity.GetPassId(shaderId, i),
                 LocalPipeline = PipelineState.Default,
+                ShadingModelId = shadingModelId,
             };
         }
 

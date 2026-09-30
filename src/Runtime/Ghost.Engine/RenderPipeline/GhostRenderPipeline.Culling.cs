@@ -408,7 +408,9 @@ internal unsafe partial class GhostRenderPipeline
             computeCtx.SetUserDataWithProperties(in props);
 
             var threadGroups = Math.Max(1u, (passData.maxVisibleMeshlets + 63u) / 64u);
-            computeCtx.DispatchCompute(threadGroups, 1, 1);
+            var threadGroupsX = Math.Min(threadGroups, 65535u);
+            var threadGroupsY = (threadGroups + 65534u) / 65535u;
+            computeCtx.DispatchCompute(threadGroupsX, threadGroupsY, 1);
         });
 
         return binnedBuffer;

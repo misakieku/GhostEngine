@@ -130,7 +130,7 @@ public struct ShaderContentHeader()
         public PipelineState localPipeline;
         public long nameOffset; // Offset relative to the start of the asset
         public uint nameSize;
-        public uint reserved2;
+        public uint shadingModelId;
         public long dataOffset; // Offset relative to the start of the asset
         public long dataSize;
     }
@@ -316,6 +316,7 @@ public sealed class ShaderCatalogPass
     public uint EntryPointCount { get; init; }
     public ulong PassId { get; init; }
     public PipelineState LocalPipeline { get; init; }
+    public uint ShadingModelId { get; init; }
 }
 
 /// <summary>

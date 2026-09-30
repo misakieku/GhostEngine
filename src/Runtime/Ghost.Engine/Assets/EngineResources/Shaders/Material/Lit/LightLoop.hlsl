@@ -14,7 +14,7 @@
 #endif
 
 template<typename T>
-LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, in T strategy, float3 V, ByteAddressBuffer tileLightList, uint tilesPerRow)
+LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout T strategy, float3 V, ByteAddressBuffer tileLightList, uint tilesPerRow)
 {
     AggregateLighting totalLighting = (AggregateLighting)0;
     PreLightData preLightData = strategy.GetPreLightData(ctx, V, bsdf);
@@ -74,6 +74,8 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, in T s
             }
         }
     }
+    
+    // TODO: Add support for area lights, image-based lighting, and other light types.
     
     LightLoopOutput output = strategy.PostEvaluateBSDF(totalLighting, bsdf, preLightData, V);
 

@@ -48,6 +48,8 @@ public class GraphicsShaderSemantics
 {
     public string name = string.Empty;
     public string? templateName;
+    public string? shadingModelFile;
+    public uint shadingModelId;
     public string? hlsl;
     public List<PropertySemantic> properties = new List<PropertySemantic>();
     public List<string> includes = new List<string>();

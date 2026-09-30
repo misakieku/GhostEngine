@@ -53,6 +53,7 @@ public struct ShaderVariantRecord
     public uint PropertyBufferSize { get; internal set; }
     public int PassCount { get; internal set; }
     public uint SupportedPasses { get; internal set; }
+    public uint ShadingModelId { get; internal set; }
     internal ShaderModel ShaderModel { get; set; }
     internal ShaderCatalogPass[] Passes { get; set; }
 }
@@ -139,9 +140,16 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
                     throw new InvalidOperationException($"Failed to register shader metadata for '{entry.Name}'.");
                 }
 
+                var shadingModelId = 0u;
                 for (var passIndex = 0; passIndex < entry.Passes.Length; passIndex++)
                 {
-                    semanticLists[(int)entry.Passes[passIndex].Semantic].Add(index);
+                    var pass = entry.Passes[passIndex];
+                    if (pass.Semantic == PassSemantic.DeferredLighting)
+                    {
+                        shadingModelId = pass.ShadingModelId;
+                    }
+
+                    semanticLists[(int)pass.Semantic].Add(index);
                 }
 
                 _variants[variantIndex] = new ShaderVariantRecord
@@ -157,6 +165,7 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
                     SupportedPasses = supportedPasses,
                     ShaderModel = entry.ShaderModel,
                     Passes = entry.Passes,
+                    ShadingModelId = shadingModelId,
                 };
                 _states[variantIndex] = (int)ShaderVariantState.MetadataReady;
 

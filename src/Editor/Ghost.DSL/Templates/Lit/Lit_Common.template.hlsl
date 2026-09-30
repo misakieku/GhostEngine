@@ -9,7 +9,9 @@
 #include "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl"
 #include "EngineResources/Shaders/Material/Lit/Lit.hlsl"
 
+#if !defined(GHOST_PASS_DEFERREDLIGHTING)
 $GHOST_PROPERTIES_STRUCT$
+#endif
 
 $GHOST_USER_HLSL$
 
@@ -17,6 +19,7 @@ $GHOST_USER_HLSL$
 // Injection point fallbacks (suppressed when user overrides)
 // ============================================================
 
+#if !defined(GHOST_PASS_DEFERREDLIGHTING)
 #ifndef VBUFFER_STRATEGY
 #define VBUFFER_STRATEGY DefaultVbufferStrategy
 struct DefaultVbufferStrategy
@@ -45,7 +48,7 @@ struct DefaultDeferredTexturingStrategy
     SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
     {
         SurfaceData surface = (SurfaceData) 0;
-        surface.materialFeatures = props.materialFeatureMask;
+        surface.materialFeatures = SHADING_MODEL_ID;
         surface.albedo = float3(0.73f, 0.73f, 0.73f);
         surface.normalWS = ctx.normalWS;
         surface.metallic = 0.0f;
@@ -56,6 +59,7 @@ struct DefaultDeferredTexturingStrategy
         return surface;
     }
 };
+#endif
 #endif
 
 #ifndef DEFERREDLIGHTING_STRATEGY
@@ -70,6 +74,8 @@ struct PreLightData
 
 struct DefaultDeferredLightingStrategy
 {
+    static const uint ShadingModelID = 0u;
+
     static DefaultDeferredLightingStrategy Create()
     {
         return (DefaultDeferredLightingStrategy)0;

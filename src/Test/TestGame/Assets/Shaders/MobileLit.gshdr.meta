@@ -1,0 +1,10 @@
+{
+  "Id": "ce5dd06f-c841-46e9-af7b-f89c9518b11c",
+  "Type": "Shader",
+  "SettingsType": "Ghost.AssetForge.Core.Bakers.ShaderBakeSettings",
+  "Settings": {
+    "OptimizeLevel": "O3",
+    "Options": "None",
+    "Defines": []
+  }
+}

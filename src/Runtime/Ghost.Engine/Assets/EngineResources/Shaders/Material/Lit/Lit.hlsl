@@ -1,6 +1,8 @@
 #ifndef GHOST_LIT_HLSL
 #define GHOST_LIT_HLSL
 
+#include "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl"
+
 struct SurfaceData
 {
     uint materialFeatures;
@@ -72,7 +74,7 @@ SurfaceData ExtractSurfaceData(in GBufferOutputs gbuffer)
 {
     SurfaceData surface = (SurfaceData)0;
     surface.albedo = gbuffer.gbuffer0.rgb;
-    surface.materialFeatures = asuint(gbuffer.gbuffer0.a);
+    surface.materialFeatures = (uint)(gbuffer.gbuffer0.a * 255.0f);
     surface.normalWS = OctahedralDecode(gbuffer.gbuffer1.rg);
     surface.roughness = gbuffer.gbuffer1.b;
     surface.metallic = gbuffer.gbuffer1.a;
