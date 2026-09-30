@@ -1,5 +1,6 @@
 using Antlr4.Runtime;
 using Ghost.Core.Graphics;
+using Ghost.DSL.Grammar;
 using Ghost.DSL.ShaderCompiler;
 using Ghost.DSL.ShaderParser.Syntax;
 
@@ -350,7 +351,6 @@ public class AntlrShaderCompiler
         {
             name = syntax.Name,
             templateName = syntax.TemplateName,
-            payload = syntax.Payload?.Code,
             hlsl = syntax.Hlsl?.Code,
             includes = syntax.Includes?.Includes ?? new List<string>(),
             pipeline = ConvertPipeline(syntax.Pipeline, errors)

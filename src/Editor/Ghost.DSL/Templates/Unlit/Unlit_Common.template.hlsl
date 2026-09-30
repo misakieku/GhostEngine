@@ -4,19 +4,6 @@
 // ============================================================
 // GhostEngine UnlitTemplate - Common Definitions
 // ============================================================
-// Stitched into every pass of an Unlit template shader. Defines
-// the flat properties struct, the Payload struct, and default
-// injection-point fallbacks.
-//
-// Material properties are resolved on the GPU: the amplification
-// shader resolves the bindless cbuffer index via the palette
-// indirection (FrameData -> InstanceData -> Meshlet) and forwards
-// it through the mesh pipeline to the pixel stage.
-//
-// Injection points (user overrides in their hlsl block):
-//   float GetAlphaCoverage(uint materialIndex, float2 uv, inout Payload payload)
-//   SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props, inout Payload payload)
-// ============================================================
 
 #include "EngineResources/Shaders/Properties.hlsl"
 
@@ -37,27 +24,43 @@ struct MaterialContext
 
 $GHOST_PROPERTIES_STRUCT$
 
-$GHOST_PAYLOAD_STRUCT$
-
 $GHOST_USER_HLSL$
 
 // ============================================================
 // Injection point fallbacks (suppressed when user overrides)
 // ============================================================
 
-#ifndef GHOST_OVERRIDE_GET_ALPHA_COVERAGE
-float GetAlphaCoverage(in MaterialProperties props, float2 uv, inout Payload payload)
+#ifndef VBUFFER_STRATEGY
+#define VBUFFER_STRATEGY DefaultVbufferStrategy
+struct DefaultVbufferStrategy
 {
-    return 1.0f;
-}
+    static DefaultVbufferStrategy Create()
+    {
+        return (DefaultVbufferStrategy) 0;
+    }
+    
+    float GetAlphaCoverage(in MaterialProperties props, float2 uv)
+    {
+        return 1.0f;
+    }
+};
 #endif
 
-#ifndef GHOST_OVERRIDE_GET_SURFACE_DATA
-SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props, inout Payload payload)
+#ifndef DEFERREDTEXTURING_STRATEGY
+#define DEFERREDTEXTURING_STRATEGY DefaultDeferredTexturingStrategy
+struct DefaultDeferredTexturingStrategy
 {
-    SurfaceData surface = (SurfaceData)0;
-    return surface;
-}
+    static DefaultDeferredTexturingStrategy Create()
+    {
+        return (DefaultDeferredTexturingStrategy)0;
+    }
+    
+    SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
+    {
+        SurfaceData surface = (SurfaceData)0;
+        return surface;
+    }
+};
 #endif
 
 #endif // GHOST_UNLIT_TEMPLATE_COMMON_HLSL

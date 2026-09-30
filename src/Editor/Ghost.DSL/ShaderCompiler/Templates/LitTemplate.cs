@@ -74,18 +74,4 @@ internal sealed class LitTemplate : IShaderTemplate
 
     private static readonly string[] s_defines = Array.Empty<string>();
     public IReadOnlyList<string> Defines => s_defines;
-
-    private static readonly TemplateOverridePoint[] s_overridePoints = new[]
-    {
-        // Visibility pass overrides
-        new TemplateOverridePoint("GetAlphaCoverage", "GHOST_OVERRIDE_GET_ALPHA_COVERAGE"),
-        // DeferredTexturing pass overrides
-        new TemplateOverridePoint("GetSurfaceData", "GHOST_OVERRIDE_GET_SURFACE_DATA"),
-        // DeferredLighting pass overrides
-        new TemplateOverridePoint("GetPreLightData", "GHOST_OVERRIDE_EVALUATE_BSDF"),
-        new TemplateOverridePoint("EvaluateDirectLighting", "GHOST_OVERRIDE_EVALUATE_BSDF"),
-        new TemplateOverridePoint("PostEvaluateBSDF", "GHOST_OVERRIDE_EVALUATE_BSDF"),
-    };
-
-    public IReadOnlyList<TemplateOverridePoint> OverridePoints => s_overridePoints;
 }

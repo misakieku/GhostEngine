@@ -1,4 +1,5 @@
 using Antlr4.Runtime.Misc;
+using Ghost.DSL.Grammar;
 using Ghost.DSL.ShaderParser.Syntax;
 
 namespace Ghost.DSL.ShaderParser;

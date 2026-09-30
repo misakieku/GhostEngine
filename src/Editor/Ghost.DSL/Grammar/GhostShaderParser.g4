@@ -13,7 +13,7 @@ shader:
     RBRACE;
 
 shaderBody:
-    shaderModel | (propertiesBlock | payloadBlock | includesBlock | pipelineBlock | hlslBlock | passBlock | functionCall)*;
+    shaderModel | (propertiesBlock | includesBlock | pipelineBlock | hlslBlock | passBlock | functionCall)*;
 
 shaderModel:
     SM IDENTIFIER SEMICOLON;
@@ -38,19 +38,6 @@ propertyDefaultArguments:
 
 propertyDefaultArgument:
     NUMBER | IDENTIFIER | STRING_LITERAL;
-
-// Payload block
-payloadBlock:
-    PAYLOAD LBRACE
-        payloadBody
-    RBRACE;
-
-payloadBody:
-    (
-        ~(LBRACE | RBRACE)
-        |
-        LBRACE payloadBody RBRACE
-    )*;
 
 // Pipeline block
 pipelineBlock:

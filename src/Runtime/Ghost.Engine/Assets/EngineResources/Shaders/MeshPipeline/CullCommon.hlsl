@@ -128,20 +128,19 @@ bool IsTriangleOutsideFrustum(float4 h0, float4 h1, float4 h2)
 template<bool usePreVP>
 BBoxFrustumResult BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 worldMatrix)
 {
-#if false
-    ZERO_CREATE(BBoxFrustumResult, result);
-
-    // 1. Object space center and half-extents
+    BBoxFrustumResult result = (BBoxFrustumResult)0;
+    
+    // Object space center and half-extents
     float3 boxCenter = 0.5f * (bboxMin + bboxMax);
     float3 boxExtent = 0.5f * (bboxMax - bboxMin);
 
-    // 2. Transform to world space using column vectors (GhostEngine is column-major: mul(M, v))
+    // Transform to world space using column vectors (GhostEngine is column-major: mul(M, v))
     float3 centerWorld = mul(worldMatrix, float4(boxCenter, 1.0f)).xyz;
     float3 dXWorld = worldMatrix._m00_m10_m20 * boxExtent.x;
     float3 dYWorld = worldMatrix._m01_m11_m21 * boxExtent.y;
     float3 dZWorld = worldMatrix._m02_m12_m22 * boxExtent.z;
 
-    // 3. Transform to clip space using constant buffer view-projection
+    // Transform to clip space using constant buffer view-projection
     float4 cClip, dX, dY, dZ;
     if (usePreVP)
     {
@@ -158,7 +157,7 @@ BBoxFrustumResult BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 
         dZ = mul(g_ViewData.viewProjectionMatrix, float4(dZWorld, 0.0f));
     }
 
-    // 4. Frustum culling (6 homogeneous clip-space plane tests in reversed-Z)
+    // Frustum culling (6 homogeneous clip-space plane tests in reversed-Z)
     // Left: x + w >= 0
     float rLeft = abs(dX.x + dX.w) + abs(dY.x + dY.w) + abs(dZ.x + dZ.w);
     if ((cClip.x + cClip.w) + rLeft < 0.0f)
@@ -189,7 +188,7 @@ BBoxFrustumResult BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 
     if ((cClip.w - cClip.z) + rNear < 0.0f)
         return result;
 
-    // 5. Near plane crossing test (cannot project 2D NDC if any corner is behind eye or penetrates near plane)
+    // Near plane crossing test (cannot project 2D NDC if any corner is behind eye or penetrates near plane)
     result.isVisible = true;
     float minW = cClip.w - (abs(dX.w) + abs(dY.w) + abs(dZ.w));
     float minNear = (cClip.w - cClip.z) - rNear;
@@ -199,7 +198,7 @@ BBoxFrustumResult BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 
         return result;
     }
 
-    // 6. Project 8 corners to 2D NDC clip bounds and depth
+    // Project 8 corners to 2D NDC clip bounds and depth
     result.clipValid = true;
     float2 minXY = float2(1e9f, 1e9f);
     float2 maxXY = float2(-1e9f, -1e9f);
@@ -231,85 +230,6 @@ BBoxFrustumResult BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 
     result.clipMax = float4(clamp(maxXY, float2(-1.0f, -1.0f), float2(1.0f, 1.0f)), maxZVal, 0.0f);
 
     return result;
-#else
-    ZERO_CREATE(BBoxFrustumResult, result);
-
-    float4x4 vp = usePreVP ? g_ViewData.preVPMatrix : g_ViewData.viewProjectionMatrix;
-    float4x4 wvp = mul(vp, worldMatrix);
-
-    float3 corners[8] = {
-        float3(bboxMin.x, bboxMin.y, bboxMin.z),
-        float3(bboxMax.x, bboxMin.y, bboxMin.z),
-        float3(bboxMin.x, bboxMax.y, bboxMin.z),
-        float3(bboxMax.x, bboxMax.y, bboxMin.z),
-        float3(bboxMin.x, bboxMin.y, bboxMax.z),
-        float3(bboxMax.x, bboxMin.y, bboxMax.z),
-        float3(bboxMin.x, bboxMax.y, bboxMax.z),
-        float3(bboxMax.x, bboxMax.y, bboxMax.z)
-    };
-
-    float4 clipCorners[8];
-    uint outOfBoundsMask = 0x3Fu; // 6 planes: bits 0..5
-
-    [unroll]
-    for (int i = 0; i < 8; ++i)
-    {
-        clipCorners[i] = mul(wvp, float4(corners[i], 1.0f));
-        outOfBoundsMask &= ComputeHomogeneousClipMask(clipCorners[i]);
-    }
-
-    // If all 8 corners are outside any frustum plane, the AABB is outside the frustum
-    if ((outOfBoundsMask & 0x3Fu) != 0u)
-    {
-        return result; // isVisible = false
-    }
-
-    result.isVisible = true;
-
-    // Check if any corner penetrates the near plane (reversed-Z: z > w or w <= 0)
-    bool intersectsNear = false;
-    [unroll]
-    for (int j = 0; j < 8; ++j)
-    {
-        if (clipCorners[j].w <= CULL_EPSILON || clipCorners[j].z > clipCorners[j].w)
-        {
-            intersectsNear = true;
-            break;
-        }
-    }
-
-    if (intersectsNear)
-    {
-        // When crossing the near plane, 2D screen bounding box cannot be accurately derived from 8 corners
-        result.clipValid = false;
-        return result;
-    }
-
-    result.clipValid = true;
-    float2 minXY = float2(1e9f, 1e9f);
-    float2 maxXY = float2(-1e9f, -1e9f);
-    float minZVal = 1e9f;
-    float maxZVal = -1e9f;
-
-    [unroll]
-    for (int k = 0; k < 8; ++k)
-    {
-        float rcpW = rcp(clipCorners[k].w);
-        float2 ndcXY = clipCorners[k].xy * rcpW;
-        float ndcZ = clipCorners[k].z * rcpW;
-
-        minXY = min(minXY, ndcXY);
-        maxXY = max(maxXY, ndcXY);
-        minZVal = min(minZVal, ndcZ);
-        maxZVal = max(maxZVal, ndcZ);
-    }
-
-    // In reversed-Z, minZVal is furthest depth (clipMin.z) and maxZVal is nearest depth (clipMax.z)
-    result.clipMin = float4(clamp(minXY, float2(-1.0f, -1.0f), float2(1.0f, 1.0f)), minZVal, 0.0f);
-    result.clipMax = float4(clamp(maxXY, float2(-1.0f, -1.0f), float2(1.0f, 1.0f)), maxZVal, 0.0f);
-
-    return result;
-#endif
 }
 
 #undef ACCUMULATE_CLIP_CORNER

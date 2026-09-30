@@ -57,14 +57,6 @@ internal sealed class UnlitTemplate : IShaderTemplate
 
     private static readonly string[] s_defines = Array.Empty<string>();
     public IReadOnlyList<string> Defines => s_defines;
-
-    private static readonly TemplateOverridePoint[] s_overridePoints = new[]
-    {
-        new TemplateOverridePoint("GetAlphaCoverage", "GHOST_OVERRIDE_GET_ALPHA_COVERAGE"),
-        new TemplateOverridePoint("GetSurfaceData", "GHOST_OVERRIDE_GET_SURFACE_DATA"),
-    };
-
-    public IReadOnlyList<TemplateOverridePoint> OverridePoints => s_overridePoints;
 }
 
 /// <summary>

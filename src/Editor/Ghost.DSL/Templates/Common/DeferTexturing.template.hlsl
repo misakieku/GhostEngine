@@ -93,8 +93,8 @@ void CSMain(
     ctx.uv = attrs.uv;
 
     MaterialProperties matProps = LoadData<MaterialProperties>(attrs.cbufferIndex, 0);
-    Payload payload = (Payload)0;
-    SurfaceData surface = GetSurfaceData(ctx, matProps, payload);
+    DEFERREDTEXTURING_STRATEGY strategy = DEFERREDTEXTURING_STRATEGY::Create();
+    SurfaceData surface = strategy.GetSurfaceData(ctx, matProps);
 
     // Pack GBuffer outputs
     GBufferOutputs outputs;

@@ -1,4 +1,5 @@
 using Antlr4.Runtime.Misc;
+using Ghost.DSL.Grammar;
 using Ghost.DSL.ShaderParser.Syntax;
 
 namespace Ghost.DSL.ShaderParser;
@@ -31,12 +32,6 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
             if (propertiesBlock != null)
             {
                 shader.Properties = (PropertiesBlockSyntax)VisitPropertiesBlock(propertiesBlock);
-            }
-
-            var payloadBlock = shaderBody.payloadBlock().FirstOrDefault();
-            if (payloadBlock != null)
-            {
-                shader.Payload = (PayloadBlockSyntax)VisitPayloadBlock(payloadBlock);
             }
 
             var includesBlock = shaderBody.includesBlock().FirstOrDefault();
@@ -86,22 +81,6 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         }
 
         return properties;
-    }
-
-    public override object VisitPayloadBlock([NotNull] GhostShaderParser.PayloadBlockContext context)
-    {
-        var payload = new PayloadBlockSyntax();
-
-        var start = context.LBRACE().Symbol.StopIndex + 1;
-        var stop = context.RBRACE().Symbol.StartIndex - 1;
-
-        if (stop >= start)
-        {
-            var input = context.Start.InputStream;
-            payload.Code = input.GetText(new Interval(start, stop));
-        }
-
-        return payload;
     }
 
     public override object VisitPipelineBlock([NotNull] GhostShaderParser.PipelineBlockContext context)

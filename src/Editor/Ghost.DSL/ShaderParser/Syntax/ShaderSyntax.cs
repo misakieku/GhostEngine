@@ -5,7 +5,6 @@ public class GraphicsShaderSyntax
     public string Name { get; set; } = string.Empty;
     public string? TemplateName { get; set; }
     public PropertiesBlockSyntax? Properties { get; set; }
-    public PayloadBlockSyntax? Payload { get; set; }
     public IncludesBlockSyntax? Includes { get; set; }
     public HlslBlockSyntax? Hlsl { get; set; }
     public string ShaderModel { get; set; } = string.Empty;
@@ -36,11 +35,6 @@ public class PropertyStatementSyntax
     public string Type { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? DefaultValue { get; set; }
-}
-
-public class PayloadBlockSyntax
-{
-    public string Code { get; set; } = string.Empty;
 }
 
 public class PipelineBlockSyntax

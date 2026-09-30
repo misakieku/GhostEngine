@@ -184,13 +184,12 @@ void PSMain(VisibilityPixelInput input, uint primitiveID : SV_PrimitiveID)
         return;
     }
 
-    // Dynamic alpha-clip hook
-    Payload payload = (Payload)0;
     MaterialProperties props = LoadData<MaterialProperties>(input.materialBufferIndex, 0);
     
     if (props.alphaClip)
     {
-        float coverage = GetAlphaCoverage(props, input.uv, payload);
+        VBUFFER_STRATEGY strategy = VBUFFER_STRATEGY::Create();
+        float coverage = strategy.GetAlphaCoverage(props, input.uv);
         if (coverage < props.alphaClipThreshold)
         {
             discard;

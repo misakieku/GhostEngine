@@ -13,13 +13,11 @@
 #define MAX_LIGHTS_PER_TILE 63u
 #endif
 
-/// <summary>
-/// Executes the fine-pruned tiled light loop over directional and punctual lights for one surface pixel.
-/// </summary>
-LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, float3 V, ByteAddressBuffer tileLightList, uint tilesPerRow)
+template<typename T>
+LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, in T strategy, float3 V, ByteAddressBuffer tileLightList, uint tilesPerRow)
 {
     AggregateLighting totalLighting = (AggregateLighting)0;
-    PreLightData preLightData = GetPreLightData(ctx, V, bsdf);
+    PreLightData preLightData = strategy.GetPreLightData(ctx, V, bsdf);
     
     // Primary Directional Sun Light
     if (g_FrameData.directionalLightBuffer != 0xFFFFFFFFu)
@@ -28,7 +26,7 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, float3
         float3 L = -sun.directionWS;
         if (any(sun.color > 0.0001f) && any(L != 0.0f))
         {
-            DirectLighting sunDirect = EvaluateDirectLighting(bsdf, preLightData, V, normalize(L), sun.color);
+            DirectLighting sunDirect = strategy.EvaluateDirectLighting(bsdf, preLightData, V, normalize(L), sun.color);
             AccumulateDirectLighting(totalLighting, sunDirect);
         }
     }
@@ -71,13 +69,13 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, float3
             float3 radiance = light.color * attenuation;
             if (any(radiance > 0.0001f))
             {
-                DirectLighting punctualDirect = EvaluateDirectLighting(bsdf, preLightData, V, L, radiance);
+                DirectLighting punctualDirect = strategy.EvaluateDirectLighting(bsdf, preLightData, V, L, radiance);
                 AccumulateDirectLighting(totalLighting, punctualDirect);
             }
         }
     }
     
-    LightLoopOutput output = PostEvaluateBSDF(totalLighting, bsdf, preLightData, V);
+    LightLoopOutput output = strategy.PostEvaluateBSDF(totalLighting, bsdf, preLightData, V);
 
     return output;
 }

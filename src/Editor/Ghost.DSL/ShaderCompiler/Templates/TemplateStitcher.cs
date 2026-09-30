@@ -86,54 +86,6 @@ public static class TemplateStitcher
     }
 
     /// <summary>
-    /// Builds the payload struct block. Empty payload when the user did not declare one.
-    /// </summary>
-    internal static string BuildPayloadStruct(GraphicsShaderSemantics semantics)
-    {
-        var sb = new StringBuilder();
-
-        sb.AppendLine("struct Payload");
-        sb.AppendLine("{");
-
-        if (!string.IsNullOrWhiteSpace(semantics.payload))
-        {
-            sb.AppendLine(semantics.payload!.Trim());
-        }
-        else
-        {
-            sb.AppendLine("    uint _unused;");
-        }
-
-        sb.AppendLine("};");
-        return sb.ToString();
-    }
-
-    /// <summary>
-    /// Detects whether the user HLSL block overrides an injection point function defined by the template,
-    /// emitting the suppression define for its fallback.
-    /// </summary>
-    internal static IEnumerable<string> CollectOverrideDefines(IShaderTemplate template, string? userHlsl)
-    {
-        var defines = new HashSet<string>();
-
-        if (string.IsNullOrEmpty(userHlsl))
-        {
-            return defines;
-        }
-
-        foreach (var point in template.OverridePoints)
-        {
-            if (userHlsl.Contains(point.FunctionName, StringComparison.Ordinal)
-                && !defines.Contains(point.Define))
-            {
-                defines.Add(point.Define);
-            }
-        }
-
-        return defines;
-    }
-
-    /// <summary>
     /// Stitches one template file into a complete translation unit for a stage.
     /// </summary>
     private static Result<string> StitchStage(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders, string templateFile)
@@ -153,7 +105,6 @@ public static class TemplateStitcher
         var commonFileName = Path.GetFileName(template.CommonTemplateFile);
         var stitchedCommon = commonResult.Value
             .Replace("$GHOST_PROPERTIES_STRUCT$", BuildPropertiesStruct(template, semantics))
-            .Replace("$GHOST_PAYLOAD_STRUCT$", BuildPayloadStruct(semantics))
             .Replace("$GHOST_USER_HLSL$", semantics.hlsl ?? string.Empty);
 
         var final = templateResult.Value
@@ -164,12 +115,6 @@ public static class TemplateStitcher
 
         // Template-level defines (e.g. GHOST_TEMPLATE_LIT / GHOST_TEMPLATE_UNLIT).
         foreach (var define in template.Defines)
-        {
-            sb.AppendLine($"#define {define} 1");
-        }
-
-        // Injection-point override suppressors must precede all code.
-        foreach (var define in CollectOverrideDefines(template, semantics.hlsl))
         {
             sb.AppendLine($"#define {define} 1");
         }
@@ -205,8 +150,6 @@ public static class TemplateStitcher
     /// </summary>
     public static Result<GraphicsShaderDescriptor> ResolveShader(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders)
     {
-        var overrideDefines = CollectOverrideDefines(template, semantics.hlsl);
-
         var passes = new PassDescriptor[template.Passes.Count];
 
         for (var i = 0; i < passes.Length; i++)
@@ -214,7 +157,6 @@ public static class TemplateStitcher
             var passDef = template.Passes[i];
             var defines = new List<string>(template.Defines);
 
-            defines.AddRange(overrideDefines);
             defines.Add($"GHOST_TEMPLATE_{template.Name.ToUpperInvariant()}");
             defines.Add($"GHOST_PASS_{passDef.name.ToUpperInvariant()}");
 

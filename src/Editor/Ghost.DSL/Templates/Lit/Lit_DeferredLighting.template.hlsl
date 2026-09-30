@@ -91,7 +91,8 @@ void CSMain(
     matCtx.normalWS = surface.normalWS;
     matCtx.tangentWS = float4(1.0f, 0.0f, 0.0f, 1.0f);
 
-    BSDFData bsdf = GetBSDFData(matCtx, surface);
+    DEFERREDLIGHTING_STRATEGY strategy = DEFERREDLIGHTING_STRATEGY::Create();
+    BSDFData bsdf = strategy.GetBSDFData(matCtx, surface);
     
     ShadingContext shadingCtx;
     shadingCtx.positionWS = positionWS;
@@ -103,7 +104,7 @@ void CSMain(
 
     // 6. Execute Light Loop
     ByteAddressBuffer tileLightList = ResourceDescriptorHeap[props.tileLightListBufferIndex];
-    LightLoopOutput light = ExecuteLightLoop(shadingCtx, bsdf, V, tileLightList, props.tilesPerRow);
+    LightLoopOutput light = ExecuteLightLoop<DEFERREDLIGHTING_STRATEGY>(shadingCtx, bsdf, strategy, V, tileLightList, props.tilesPerRow);
     
     float3 finalColor = light.diffuse + light.specular;
 
