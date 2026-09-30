@@ -54,18 +54,11 @@ compute "Internal/BuildHZB"
             float p00, p10, p01, p11;
             if (properties.isFirstBatch != 0)
             {
-                ByteAddressBuffer visBuffer = ResourceDescriptorHeap[properties.srcBuffer];
-                uint renderWidth = properties.srcLimit.x + 1;
-
-                uint addr00 = ComputePixelDepthByteAddress((uint2)srcCoord00, renderWidth);
-                uint addr10 = ComputePixelDepthByteAddress((uint2)srcCoord10, renderWidth);
-                uint addr01 = ComputePixelDepthByteAddress((uint2)srcCoord01, renderWidth);
-                uint addr11 = ComputePixelDepthByteAddress((uint2)srcCoord11, renderWidth);
-
-                p00 = asfloat(visBuffer.Load(addr00));
-                p10 = asfloat(visBuffer.Load(addr10));
-                p01 = asfloat(visBuffer.Load(addr01));
-                p11 = asfloat(visBuffer.Load(addr11));
+                Texture2D<uint2> visBuffer = ResourceDescriptorHeap[properties.srcBuffer];
+                p00 = asfloat(visBuffer[srcCoord00].y);
+                p10 = asfloat(visBuffer[srcCoord10].y);
+                p01 = asfloat(visBuffer[srcCoord01].y);
+                p11 = asfloat(visBuffer[srcCoord11].y);
             }
             else
             {
@@ -190,18 +183,11 @@ compute "Internal/BuildHZB"
             float p00, p10, p01, p11;
             if (properties.isFirstBatch != 0)
             {
-                ByteAddressBuffer visBuffer = ResourceDescriptorHeap[properties.srcBuffer];
-                uint renderWidth = properties.srcLimit.x + 1;
-
-                uint addr00 = ComputePixelDepthByteAddress((uint2)srcCoord00, renderWidth);
-                uint addr10 = ComputePixelDepthByteAddress((uint2)srcCoord10, renderWidth);
-                uint addr01 = ComputePixelDepthByteAddress((uint2)srcCoord01, renderWidth);
-                uint addr11 = ComputePixelDepthByteAddress((uint2)srcCoord11, renderWidth);
-
-                p00 = asfloat(visBuffer.Load(addr00));
-                p10 = asfloat(visBuffer.Load(addr10));
-                p01 = asfloat(visBuffer.Load(addr01));
-                p11 = asfloat(visBuffer.Load(addr11));
+                Texture2D<uint2> visBuffer = ResourceDescriptorHeap[properties.srcBuffer];
+                p00 = asfloat(visBuffer[srcCoord00].y);
+                p10 = asfloat(visBuffer[srcCoord10].y);
+                p01 = asfloat(visBuffer[srcCoord01].y);
+                p11 = asfloat(visBuffer[srcCoord11].y);
             }
             else
             {

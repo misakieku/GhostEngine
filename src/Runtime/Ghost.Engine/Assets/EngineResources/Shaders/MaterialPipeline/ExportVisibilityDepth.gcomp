@@ -26,11 +26,8 @@ compute "Internal/ExportVisibilityDepth"
                 return;
             }
 
-            uint byteAddress = ComputePixelByteAddress(dispatchThreadId.xy, props.renderWidth);
-            ByteAddressBuffer visBuffer = ResourceDescriptorHeap[props.visBufferIndex];
-            uint64_t val = visBuffer.Load<uint64_t>(byteAddress);
-
-            float depth = asfloat((uint)(val >> VBUFFER_DEPTH_SHIFT));
+            Texture2D<uint2> visBuffer = ResourceDescriptorHeap[props.visBufferIndex];
+            float depth = asfloat(visBuffer[dispatchThreadId.xy].y);
 
             RWTexture2D<float> depthTexture = ResourceDescriptorHeap[props.depthTextureUav];
             depthTexture[dispatchThreadId.xy] = depth;

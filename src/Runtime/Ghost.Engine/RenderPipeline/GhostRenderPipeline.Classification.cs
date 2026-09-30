@@ -25,7 +25,7 @@ internal partial class GhostRenderPipeline
 
     public struct TileMaterialClassificationPassData
     {
-        public Identifier<RGBuffer> visBuffer;
+        public Identifier<RGTexture> visBuffer;
         public Identifier<RGBuffer> visibleMeshletsPass1;
         public Identifier<RGBuffer> visibleMeshletsPass2;
         public Identifier<RGBuffer> counterBuffer;
@@ -110,7 +110,7 @@ internal partial class GhostRenderPipeline
         return countersBuffer;
     }
 
-    private Identifier<RGBuffer> AddTileMaterialClassificationPass(RenderGraph rg, Identifier<RGBuffer> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, Identifier<RGBuffer> countersBuffer,
+    private Identifier<RGBuffer> AddTileMaterialClassificationPass(RenderGraph rg, Identifier<RGTexture> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, Identifier<RGBuffer> countersBuffer,
         uint2 screenSize, uint maxUnbinnedEntries, uint4 deferredMask0, uint4 deferredMask1)
     {
         var tilesX = (screenSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
@@ -126,7 +126,7 @@ internal partial class GhostRenderPipeline
         };
         var unbinnedTilesBuffer = builder.CreateBuffer(in unbinnedTilesDesc, "UnbinnedTileEntries");
 
-        builder.UseBuffer(visBuffer, AccessFlags.Read);
+        builder.UseTexture(visBuffer, AccessFlags.Read);
         builder.UseBuffer(visibleMeshlets0, AccessFlags.Read);
         builder.UseBuffer(visibleMeshlets1, AccessFlags.Read);
         builder.UseBuffer(countersBuffer, AccessFlags.ReadWrite);
@@ -150,7 +150,7 @@ internal partial class GhostRenderPipeline
 
         builder.SetRenderFunc<TileMaterialClassificationPassData>(static (ref readonly passData, computeCtx) =>
         {
-            var visSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visBuffer).AsResource(), BindlessAccess.ShaderResource);
+            var visSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.visBuffer).AsResource(), BindlessAccess.ShaderResource);
             var visibleMeshletsPass1Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visibleMeshletsPass1).AsResource(), BindlessAccess.ShaderResource);
             var visibleMeshletsPass2Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visibleMeshletsPass2).AsResource(), BindlessAccess.ShaderResource);
             var counterUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
@@ -352,7 +352,7 @@ internal partial class GhostRenderPipeline
         });
     }
 
-    private void AddTileClassificationPass(RenderGraph rg, Identifier<RGBuffer> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, uint2 screenSize,
+    private void AddTileClassificationPass(RenderGraph rg, Identifier<RGTexture> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, uint2 screenSize,
         out Identifier<RGBuffer> binnedTileListBuffer, out Identifier<RGBuffer> tileOffsetsBuffer, out Identifier<RGBuffer> indirectArgsBuffer)
     {
         var tilesX = (screenSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;

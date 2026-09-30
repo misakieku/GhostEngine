@@ -183,10 +183,19 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
             }
         }
 
-        D3D12_FEATURE_DATA_D3D12_OPTIONS21 options9 = default;
-        if (pNativeObject->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS21, &options9, (uint)sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS8)).SUCCEEDED)
+        D3D12_FEATURE_DATA_D3D12_OPTIONS9 options9 = default;
+        if (pNativeObject->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS9, &options9, (uint)sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS9)).SUCCEEDED)
         {
-            if (options9.WorkGraphsTier != D3D12_WORK_GRAPHS_TIER_NOT_SUPPORTED)
+            if (options9.AtomicInt64OnTypedResourceSupported != 0)
+            {
+                support |= FeatureSupport.Int64AtomicsOnTypedResources;
+            }
+        }
+
+        D3D12_FEATURE_DATA_D3D12_OPTIONS21 options21 = default;
+        if (pNativeObject->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS21, &options21, (uint)sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS21)).SUCCEEDED)
+        {
+            if (options21.WorkGraphsTier != D3D12_WORK_GRAPHS_TIER_NOT_SUPPORTED)
             {
                 support |= FeatureSupport.WorkGraphs;
             }

@@ -53,7 +53,7 @@ internal partial class GhostRenderPipeline
 
     public struct DeferredTexturingPassData
     {
-        public Identifier<RGBuffer> visBuffer;
+        public Identifier<RGTexture> visBuffer;
         public Identifier<RGBuffer> visibleMeshletsPass1;
         public Identifier<RGBuffer> visibleMeshletsPass2;
         public Identifier<RGBuffer> variantTileList;
@@ -81,7 +81,7 @@ internal partial class GhostRenderPipeline
         }, default);
     }
 
-    private GBufferResources AddDeferredTexturingPass(RenderGraph rg, Identifier<RGBuffer> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, Identifier<RGBuffer> tileListBuffer, Identifier<RGBuffer> tileOffsetsBuffer, Identifier<RGBuffer> indirectArgsBuffer, uint2 screenSize)
+    private GBufferResources AddDeferredTexturingPass(RenderGraph rg, Identifier<RGTexture> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, Identifier<RGBuffer> tileListBuffer, Identifier<RGBuffer> tileOffsetsBuffer, Identifier<RGBuffer> indirectArgsBuffer, uint2 screenSize)
     {
         var tilesX = (screenSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
 
@@ -111,7 +111,7 @@ internal partial class GhostRenderPipeline
             usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
         var gbuffer3 = builder.CreateTexture(in gbuffer3Desc, "GBuffer3_Emissive");
 
-        builder.UseBuffer(visBuffer, AccessFlags.Read);
+        builder.UseTexture(visBuffer, AccessFlags.Read);
         builder.UseBuffer(visibleMeshlets0, AccessFlags.Read);
         builder.UseBuffer(visibleMeshlets1, AccessFlags.Read);
         builder.UseBuffer(tileListBuffer, AccessFlags.Read);
@@ -143,7 +143,7 @@ internal partial class GhostRenderPipeline
 
         builder.SetRenderFunc<DeferredTexturingPassData>(static (ref readonly passData, computeCtx) =>
         {
-            var visSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visBuffer).AsResource(), BindlessAccess.ShaderResource);
+            var visSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.visBuffer).AsResource(), BindlessAccess.ShaderResource);
             var meshlets0Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visibleMeshletsPass1).AsResource(), BindlessAccess.ShaderResource);
             var meshlets1Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visibleMeshletsPass2).AsResource(), BindlessAccess.ShaderResource);
             var tileListSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.variantTileList).AsResource(), BindlessAccess.ShaderResource);

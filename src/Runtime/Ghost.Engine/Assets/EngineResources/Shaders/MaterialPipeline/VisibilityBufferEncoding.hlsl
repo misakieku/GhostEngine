@@ -26,40 +26,12 @@ void UnpackVisibility64(uint64_t val, out float depth, out uint visibleMeshletIn
     primitiveID = (payload >> VBUFFER_PRIMITIVE_ID_SHIFT) & VBUFFER_PRIMITIVE_ID_MASK;
 }
 
-#define VBUFFER_TILE_SIZE 8u
-#define VBUFFER_TILE_SIZE_LOG2 3u
-
-// TODO: Use RWTexture2D<uint64_t> instead of RWByteAddressBuffer for visibility buffer. Buffer can't scale in render graph so window resize will break the cache.
-
-uint Morton2D_3Bits(uint2 coord)
+void UnpackVisibility2(uint2 raw, out float depth, out uint visibleMeshletIndex, out uint primitiveID)
 {
-    uint x = coord.x & 7u;
-    uint y = coord.y & 7u;
-
-    x = (x | (x << 2u)) & 0x13u;
-    x = (x | (x << 1u)) & 0x15u;
-
-    y = (y | (y << 2u)) & 0x13u;
-    y = (y | (y << 1u)) & 0x15u;
-
-    return x | (y << 1u);
-}
-
-uint ComputePixelByteAddress(uint2 pixelCoord, uint renderWidth)
-{
-    uint tilesPerRow = (renderWidth + (VBUFFER_TILE_SIZE - 1u)) >> VBUFFER_TILE_SIZE_LOG2;
-    uint2 tileCoord = pixelCoord >> VBUFFER_TILE_SIZE_LOG2;
-    uint2 localCoord = pixelCoord & (VBUFFER_TILE_SIZE - 1u);
-
-    uint tileIndex = tileCoord.y * tilesPerRow + tileCoord.x;
-    uint localMorton = Morton2D_3Bits(localCoord);
-
-    return (tileIndex << 9u) | (localMorton << 3u);
-}
-
-uint ComputePixelDepthByteAddress(uint2 pixelCoord, uint renderWidth)
-{
-    return ComputePixelByteAddress(pixelCoord, renderWidth) + 4u;
+    depth = asfloat(raw.y);
+    uint payload = raw.x;
+    visibleMeshletIndex = payload & VBUFFER_INSTANCE_INDEX_MASK;
+    primitiveID = (payload >> VBUFFER_PRIMITIVE_ID_SHIFT) & VBUFFER_PRIMITIVE_ID_MASK;
 }
 
 #endif // GHOST_VISIBILITY_BUFFER_ENCODING_HLSL

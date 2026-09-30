@@ -41,6 +41,8 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
     public GhostRenderPipeline(RenderEngine renderEngine, AssetManager assetManager, GhostRenderPipelineSettings settings)
     {
+        ValidateRequiredGPUFeatures(renderEngine);
+
         _renderEngine = renderEngine;
         _assetManager = assetManager;
         _settings = settings;
@@ -61,6 +63,35 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         InitializeCulling(renderEngine, assetManager);
         InitializeVisibility(renderEngine, assetManager);
         InitializeDeferredTexturing(renderEngine);
+    }
+
+    private static void ValidateRequiredGPUFeatures(RenderEngine renderEngine)
+    {
+        var supported = renderEngine.GraphicsEngine.Device.DeviceFeture.SupportedFeatures;
+        if (!supported.HasFlag(FeatureSupport.MeshShaders))
+        {
+            throw new PlatformNotSupportedException("Mesh shaders are not supported on this device. GhostRenderPipeline requires mesh shader support.");
+        }
+
+        if (!supported.HasFlag(FeatureSupport.BindlessResources))
+        {
+            throw new PlatformNotSupportedException("Bindless resources are not supported on this device. GhostRenderPipeline requires bindless resource support.");
+        }
+
+        if (!supported.HasFlag(FeatureSupport.Int64Atomics))
+        {
+            throw new PlatformNotSupportedException("Int64 atomics are not supported on this device. GhostRenderPipeline requires Int64 atomics support.");
+        }
+
+        if (!supported.HasFlag(FeatureSupport.Int64AtomicsOnTypedResources))
+        {
+            throw new PlatformNotSupportedException("Int64 atomics on typed resources are not supported on this device. GhostRenderPipeline requires Int64 atomics on typed resources support.");
+        }
+
+        if (!supported.HasFlag(FeatureSupport.WorkGraphs))
+        {
+            throw new PlatformNotSupportedException("Work graphs are not supported on this device. GhostRenderPipeline requires work graphs support.");
+        }
     }
 
     public IRenderPayload CreatePayload()
@@ -166,9 +197,9 @@ internal partial class GhostRenderPipeline : IRenderPipeline
     }
 
     private void AddCullingAndVbufferPasses(GPUViewContext viewContext, uint instanceCount, Identifier<RGTexture> hzb, uint sceneBuffer,
-        out Identifier<RGTexture> currentDepth, out Identifier<RGBuffer> currentVisBuffer, out Identifier<RGBuffer> visibleMeshlets0, out Identifier<RGBuffer> visibleMeshlets1)
+        out Identifier<RGTexture> currentDepth, out Identifier<RGTexture> currentVisBuffer, out Identifier<RGBuffer> visibleMeshlets0, out Identifier<RGBuffer> visibleMeshlets1)
     {
-        currentVisBuffer = Identifier<RGBuffer>.Invalid;
+        currentVisBuffer = Identifier<RGTexture>.Invalid;
         currentDepth = Identifier<RGTexture>.Invalid;
 
         // Pass 1: Early-Z Hierarchical Meshlet Culling

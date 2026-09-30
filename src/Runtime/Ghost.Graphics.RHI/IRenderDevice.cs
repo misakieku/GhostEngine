@@ -12,6 +12,7 @@ public enum FeatureSupport
     WorkGraphs = 1 << 5,
     AliasBuffersAndTextures = 1 << 6,
     Int64Atomics = 1 << 7,
+    Int64AtomicsOnTypedResources = 1 << 8,
 }
 
 public readonly struct DeviceFetureSupport

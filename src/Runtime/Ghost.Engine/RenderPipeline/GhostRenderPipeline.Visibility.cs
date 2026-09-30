@@ -14,16 +14,16 @@ internal partial class GhostRenderPipeline
 {
     private struct ClearVisibilityBufferPassData
     {
-        public Identifier<RGBuffer> visBuffer;
+        public Identifier<RGTexture> visBuffer;
         public Handle<ComputeShader> shader;
-        public uint totalPixels;
+        public uint2 renderSize;
     }
 
     private struct VisibilityPassData
     {
         public Identifier<RGBuffer> visibleMeshlets;
         public Identifier<RGBuffer> binOffsetsBuffer;
-        public Identifier<RGBuffer> visBuffer;
+        public Identifier<RGTexture> visBuffer;
         public Identifier<RGBuffer> indirectArgsBuffer;
         public ulong indirectArgsOffset;
         public uint passIndex;
@@ -35,7 +35,7 @@ internal partial class GhostRenderPipeline
 
     private struct ExportVisibilityDepthPassData
     {
-        public Identifier<RGBuffer> visBuffer;
+        public Identifier<RGTexture> visBuffer;
         public Identifier<RGTexture> depthTexture;
         public Handle<ComputeShader> shader;
         public uint2 renderSize;
@@ -56,60 +56,57 @@ internal partial class GhostRenderPipeline
         _dispatchMeshCommandSignature = renderEngine.GraphicsEngine.CreateCommandSignature(in indirectDesc, default);
     }
 
-    private void AddClearVisibilityBufferPass(RenderGraph rg, Identifier<RGBuffer> visBuffer, uint totalPixels)
+    private void AddClearVisibilityBufferPass(RenderGraph rg, Identifier<RGTexture> visBuffer, uint2 renderSize)
     {
         using var builder = rg.AddComputeRenderPass<ClearVisibilityBufferPassData>("ClearVisibilityBuffer");
-        builder.UseBuffer(visBuffer, AccessFlags.Write);
+        builder.UseTexture(visBuffer, AccessFlags.Write);
 
         builder.SetPassData(new ClearVisibilityBufferPassData
         {
             visBuffer = visBuffer,
             shader = _materialPipelineResource.clearVisibilityBufferShader,
-            totalPixels = totalPixels
+            renderSize = renderSize
         });
 
         builder.SetRenderFunc<ClearVisibilityBufferPassData>(static (ref readonly passData, computeCtx) =>
         {
-            var visBufferUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+            var visBufferUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.visBuffer).AsResource(), BindlessAccess.UnorderedAccess);
             var props = new InternalClearVisibilityBufferShaderProperties
             {
                 visBufferIndex = visBufferUav,
-                totalPixels = passData.totalPixels
+                renderWidth = passData.renderSize.x,
+                renderHeight = passData.renderSize.y
             };
 
             computeCtx.SetActiveCompute(passData.shader, 0);
             computeCtx.SetUserDataWithProperties(in props);
-            var threadGroups = Math.Max(1u, (passData.totalPixels + 63) / 64);
-            computeCtx.DispatchCompute(threadGroups, 1, 1);
+            var threadGroupsX = Math.Max(1u, (passData.renderSize.x + 15) / 16);
+            var threadGroupsY = Math.Max(1u, (passData.renderSize.y + 15) / 16);
+            computeCtx.DispatchCompute(threadGroupsX, threadGroupsY, 1);
         });
     }
 
-    private void AddVisibilityBufferPass(RenderGraph rg, Identifier<RGBuffer> visibleMeshlets, Identifier<RGBuffer> binOffsetsBuffer, Identifier<RGBuffer> indirectArgsBuffer, uint cullPassIndex, uint sceneBuffer, uint2 screenSize, ref Identifier<RGBuffer> existingVisBuffer)
+    private void AddVisibilityBufferPass(RenderGraph rg, Identifier<RGBuffer> visibleMeshlets, Identifier<RGBuffer> binOffsetsBuffer, Identifier<RGBuffer> indirectArgsBuffer, uint cullPassIndex, uint sceneBuffer, uint2 screenSize, ref Identifier<RGTexture> existingVisBuffer)
     {
         var isPass1 = cullPassIndex == 0;
         var passName = isPass1 ? "Visibility_Pass1_EarlyZ" : "Visibility_Pass2_LateZ";
 
         if (existingVisBuffer.IsInvalid)
         {
-            var tilesX = (screenSize.x + 7u) / 8u;
-            var tilesY = (screenSize.y + 7u) / 8u;
-            var totalAllocatedPixels = tilesX * tilesY * 64u;
-            var vbufferSize = totalAllocatedPixels * 8UL;
-            var vbufferDesc = new BufferDesc
-            {
-                Size = (uint)vbufferSize,
-                Stride = 4,
-                Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-            };
-            existingVisBuffer = rg.CreateBuffer(in vbufferDesc, "VisibilityBuffer");
-            AddClearVisibilityBufferPass(rg, existingVisBuffer, totalAllocatedPixels);
+            var vbufferDesc = RGTextureDesc.Relative(
+                1.0f,
+                TextureFormat.R32G32_UInt,
+                usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource,
+                clearAtFirstUse: false);
+            existingVisBuffer = rg.CreateTexture(in vbufferDesc, "VisibilityBuffer");
+            AddClearVisibilityBufferPass(rg, existingVisBuffer, screenSize);
         }
 
         using var builder = rg.AddUnsafeRenderPass<VisibilityPassData>(passName);
 
         builder.UseBuffer(visibleMeshlets, AccessFlags.Read);
         builder.UseBuffer(binOffsetsBuffer, AccessFlags.Read);
-        builder.UseRandomAccessBuffer(existingVisBuffer);
+        builder.UseRandomAccessTexture(existingVisBuffer);
         builder.UseBuffer(indirectArgsBuffer, AccessFlags.Read);
 
         builder.SetPassData(new VisibilityPassData
@@ -148,7 +145,7 @@ internal partial class GhostRenderPipeline
             var actualIndirectBuf = unsafeCtx.GetActualBuffer(passData.indirectArgsBuffer);
             var visibleBufferIndex = unsafeCtx.ResourceDatabase.GetBindlessIndex(unsafeCtx.GetActualBuffer(passData.visibleMeshlets).AsResource(), BindlessAccess.ShaderResource);
             var binOffsetsIndex = unsafeCtx.ResourceDatabase.GetBindlessIndex(unsafeCtx.GetActualBuffer(passData.binOffsetsBuffer).AsResource(), BindlessAccess.ShaderResource);
-            var visBufferUav = unsafeCtx.ResourceDatabase.GetBindlessIndex(unsafeCtx.GetActualBuffer(passData.visBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+            var visBufferUav = unsafeCtx.ResourceDatabase.GetBindlessIndex(unsafeCtx.GetActualTexture(passData.visBuffer).AsResource(), BindlessAccess.UnorderedAccess);
 
             var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.Visibility);
             for (var i = 0; i < dispatchVariants.Length; i++)
@@ -172,7 +169,7 @@ internal partial class GhostRenderPipeline
         });
     }
 
-    private void AddExportVisibilityDepthPass(RenderGraph rg, Identifier<RGBuffer> visBuffer, uint2 screenSize, ref Identifier<RGTexture> existingDepth)
+    private void AddExportVisibilityDepthPass(RenderGraph rg, Identifier<RGTexture> visBuffer, uint2 screenSize, ref Identifier<RGTexture> existingDepth)
     {
         if (existingDepth.IsInvalid)
         {
@@ -185,7 +182,7 @@ internal partial class GhostRenderPipeline
         }
 
         using var builder = rg.AddComputeRenderPass<ExportVisibilityDepthPassData>("ExportVisibilityDepth");
-        builder.UseBuffer(visBuffer, AccessFlags.Read);
+        builder.UseTexture(visBuffer, AccessFlags.Read);
         builder.UseTexture(existingDepth, AccessFlags.Write);
 
         builder.SetPassData(new ExportVisibilityDepthPassData
@@ -198,7 +195,7 @@ internal partial class GhostRenderPipeline
 
         builder.SetRenderFunc<ExportVisibilityDepthPassData>(static (ref readonly passData, computeCtx) =>
         {
-            var visBufferIndex = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visBuffer).AsResource(), BindlessAccess.ShaderResource);
+            var visBufferIndex = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.visBuffer).AsResource(), BindlessAccess.ShaderResource);
             var depthUavIndex = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.depthTexture).AsResource(), BindlessAccess.UnorderedAccess);
 
             var props = new InternalExportVisibilityDepthShaderProperties

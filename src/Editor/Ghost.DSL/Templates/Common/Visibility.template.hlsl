@@ -35,13 +35,10 @@ struct VisibilityPrimitiveOutput
 };
 
 // Speculative early-Z test via non-atomic 64-bit load
-bool VisibilitySpeculativeEarlyZ(uint2 pixelCoord, float depth, uint visBufferIndex, out uint byteAddress, out uint64_t currentPacked)
+bool VisibilitySpeculativeEarlyZ(uint2 pixelCoord, float depth, uint visBufferIndex, out uint64_t currentPacked)
 {
-    uint renderWidth = (uint)g_ViewData.screenSize.x;
-    byteAddress = ComputePixelByteAddress(pixelCoord, renderWidth);
-
-    RWByteAddressBuffer visBuffer = ResourceDescriptorHeap[visBufferIndex];
-    currentPacked = visBuffer.Load<uint64_t>(byteAddress);
+    RWTexture2D<uint64_t> visBuffer = ResourceDescriptorHeap[visBufferIndex];
+    currentPacked = visBuffer[pixelCoord];
 
     uint currentDepthInt = (uint)(currentPacked >> VBUFFER_DEPTH_SHIFT);
     uint depthInt = asuint(depth);
@@ -51,11 +48,11 @@ bool VisibilitySpeculativeEarlyZ(uint2 pixelCoord, float depth, uint visBufferIn
 }
 
 // Writes visibility buffer entry via 64-bit atomic max
-void VisibilityWritePixelAtomic(uint visBufferIndex, uint byteAddress, float depth, uint visibleMeshletIndex, uint primitiveID)
+void VisibilityWritePixelAtomic(uint visBufferIndex, uint2 pixelCoord, float depth, uint visibleMeshletIndex, uint primitiveID)
 {
-    RWByteAddressBuffer visBuffer = ResourceDescriptorHeap[visBufferIndex];
+    RWTexture2D<uint64_t> visBuffer = ResourceDescriptorHeap[visBufferIndex];
     uint64_t newPacked = PackVisibility64(depth, visibleMeshletIndex, primitiveID);
-    visBuffer.InterlockedMax64(byteAddress, newPacked);
+    InterlockedMax(visBuffer[pixelCoord], newPacked);
 }
 
 bool IsFrontFacingAndVisible(float4 h0, float4 h1, float4 h2, float subpixelThreshold = 0.0f)
@@ -175,11 +172,11 @@ void MSMain(
 void PSMain(VisibilityPixelInput input, uint primitiveID : SV_PrimitiveID)
 {
     uint visBufferIndex = g_PushConstantData.userData1;
-    uint byteAddress;
+    uint2 pixelCoord = (uint2)input.position.xy;
     uint64_t currentVal;
 
     // Speculative early-Z test (non-atomic read)
-    if (!VisibilitySpeculativeEarlyZ((uint2)input.position.xy, input.position.z, visBufferIndex, byteAddress, currentVal))
+    if (!VisibilitySpeculativeEarlyZ(pixelCoord, input.position.z, visBufferIndex, currentVal))
     {
         return;
     }
@@ -197,7 +194,7 @@ void PSMain(VisibilityPixelInput input, uint primitiveID : SV_PrimitiveID)
     }
 
     // 64-bit atomic max write
-    VisibilityWritePixelAtomic(visBufferIndex, byteAddress, input.position.z, input.visibleMeshletIndex, primitiveID);
+    VisibilityWritePixelAtomic(visBufferIndex, pixelCoord, input.position.z, input.visibleMeshletIndex, primitiveID);
 }
 
 #endif // GHOST_TEMPLATE_VISIBILITY

@@ -3,7 +3,8 @@ compute "Internal/ClearVisibilityBuffer"
     properties
     {
         uint visBufferIndex;
-        uint totalPixels;
+        uint renderWidth;
+        uint renderHeight;
     }
 
     includes
@@ -13,18 +14,18 @@ compute "Internal/ClearVisibilityBuffer"
 
     hlsl
     {
-        [numthreads(64, 1, 1)]
+        [numthreads(16, 16, 1)]
         void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         {
             InternalClearVisibilityBufferShaderProperties props = LoadData<InternalClearVisibilityBufferShaderProperties>(g_PushConstantData.userData0, 0);
 
-            if (dispatchThreadId.x >= props.totalPixels)
+            if (dispatchThreadId.x >= props.renderWidth || dispatchThreadId.y >= props.renderHeight)
             {
                 return;
             }
 
-            RWByteAddressBuffer visBuffer = ResourceDescriptorHeap[props.visBufferIndex];
-            visBuffer.Store2(dispatchThreadId.x * 8u, uint2(0, 0));
+            RWTexture2D<uint2> visBuffer = ResourceDescriptorHeap[props.visBufferIndex];
+            visBuffer[dispatchThreadId.xy] = uint2(0, 0);
         }
     }
 

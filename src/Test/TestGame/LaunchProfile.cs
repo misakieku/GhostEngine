@@ -28,7 +28,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
 
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
-        MaxVisibleMeshletsOnScreen = 2_097_152 * 2,
+        MaxVisibleMeshletsOnScreen = 2_097_152 * 1,
         MeshletLodErrorThreshold = 2.0f,
         InstanceCullingThreshold = 2.0f,
         DebugMode = RenderPipelineDebugMode.None,
@@ -92,7 +92,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
 
     public void OnEngineInitialized(EngineCore engine)
     {
-        const int entityCapacity = 10000;
+        const int entityCapacity = 1000;
         const float size = 20.0f;
         const float lightSize = size * 2.0f;
         const float baseScale = 1.0f;
@@ -154,7 +154,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
             _world.EntityManager.SetComponent(entity, new MeshInstance
             {
                 mesh = meshHandle,
-                materialPalette = i % 2 == 0 ? materialPallette : materialPallette2,
+                materialPalette = i % 2 == 0 ? materialPallette : materialPallette,
                 renderingLayerMask = RenderingLayerMask.All,
                 shadowCastingMode = ShadowCastingMode.On,
                 staticShadowCaster = true,

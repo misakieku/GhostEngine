@@ -94,7 +94,7 @@ internal unsafe partial class GhostRenderPipeline
 
     private struct BuildHZBMipPassData
     {
-        public Identifier<RGBuffer> srcBuffer;
+        public Identifier<RGTexture> srcBuffer;
         public Identifier<RGTexture> dstTex;
         public Handle<ComputeShader> shader;
         public uint startMip;
@@ -416,7 +416,7 @@ internal unsafe partial class GhostRenderPipeline
         return binnedBuffer;
     }
 
-    private void AddBuildHZBPasses(RenderGraph rg, Identifier<RGBuffer> visBuffer, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 baseSize, uint2 renderSize)
+    private void AddBuildHZBPasses(RenderGraph rg, Identifier<RGTexture> visBuffer, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 baseSize, uint2 renderSize)
     {
         if (hzbMipCount == 0)
         {
@@ -454,7 +454,7 @@ internal unsafe partial class GhostRenderPipeline
             {
                 if (isFirstBatch)
                 {
-                    builder.UseBuffer(visBuffer, AccessFlags.Read);
+                    builder.UseTexture(visBuffer, AccessFlags.Read);
                     builder.UseTexture(hzbTexture, AccessFlags.Write);
                 }
                 else
@@ -497,7 +497,7 @@ internal unsafe partial class GhostRenderPipeline
 
         if (passData.isFirstBatch != 0)
         {
-            var srcActual = computeCtx.GetActualBuffer(passData.srcBuffer);
+            var srcActual = computeCtx.GetActualTexture(passData.srcBuffer);
             srcBuffer = computeCtx.ResourceDatabase.GetBindlessIndex(srcActual.AsResource(), BindlessAccess.ShaderResource);
         }
         else

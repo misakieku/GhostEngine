@@ -405,24 +405,6 @@ compute "Internal/MeshletCullGraph"
                     occludedBuf[slot] = rec;
                 }
             }
-
-            // Telemetry counters
-            bool frustumCulled = isValid && !inFrustum;
-            bool hzbCulled = isValid && inFrustum && isOccluded;
-
-            uint waveTotal = WaveActiveCountBits(isValid);
-            uint waveFrustumCulled = WaveActiveCountBits(frustumCulled);
-            uint waveHzbCulled = WaveActiveCountBits(hzbCulled);
-
-            if (WaveIsFirstLane())
-            {
-                if (waveTotal > 0)
-                    counterBuf.InterlockedAdd(20, waveTotal);
-                if (waveFrustumCulled > 0)
-                    counterBuf.InterlockedAdd(24, waveFrustumCulled);
-                if (waveHzbCulled > 0)
-                    counterBuf.InterlockedAdd(32, waveHzbCulled);
-            }
         }
     }
 

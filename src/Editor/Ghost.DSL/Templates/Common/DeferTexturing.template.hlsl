@@ -40,14 +40,13 @@ void CSMain(
         return;
     }
 
-    uint byteAddress = ComputePixelByteAddress(pixelCoord, props.renderWidth);
-    ByteAddressBuffer visBuffer = ResourceDescriptorHeap[props.visBufferIndex];
-    uint64_t raw = visBuffer.Load<uint64_t>(byteAddress);
+    Texture2D<uint2> visBuffer = ResourceDescriptorHeap[props.visBufferIndex];
+    uint2 raw = visBuffer[pixelCoord];
 
     float depth;
     uint visibleMeshletIndex;
     uint primitiveID;
-    UnpackVisibility64(raw, depth, visibleMeshletIndex, primitiveID);
+    UnpackVisibility2(raw, depth, visibleMeshletIndex, primitiveID);
 
     // Reversed-Z: depth <= 0.0f means background/sky
     if (depth <= 0.0f)
