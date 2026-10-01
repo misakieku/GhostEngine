@@ -299,7 +299,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                     }
 
                     var beforeSync = desc.SyncBefore;
-                    var beforeAccess = desc.IsAliasing ? BarrierAccess.NoAccess : desc.AccessBefore;
+                    var beforeAccess = desc.AccessBefore;
 
                     if (!IsHandoffValid(in desc))
                     {
@@ -352,8 +352,8 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                         return;
                     }
 
-                    var beforeLayout = desc.IsAliasing ? BarrierLayout.Undefined : desc.LayoutBefore;
-                    var beforeAccess = desc.IsAliasing ? BarrierAccess.NoAccess : desc.AccessBefore;
+                    var beforeLayout = desc.LayoutBefore;
+                    var beforeAccess = desc.AccessBefore;
                     var beforeSync = desc.SyncBefore;
 
                     if (!IsHandoffValid(in desc)
@@ -388,7 +388,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                         flags |= D3D12_TEXTURE_BARRIER_FLAGS.D3D12_TEXTURE_BARRIER_FLAG_DISCARD;
                     }
 
-                    var subres = desc.Subresources;
+                    var subres = desc.SubresourceRange;
                     var subresourceRange = new D3D12_BARRIER_SUBRESOURCE_RANGE
                     {
                         IndexOrFirstMipLevel = (subres.IndexOrFirstMipLevel == 0 && subres.NumMipLevels == 0 && subres.NumArraySlices == 0)

@@ -449,6 +449,8 @@ internal static unsafe partial class MeshProcessor
         var count = Encoding.UTF8.GetBytes(filePath, str.AsSpan());
         str[count] = 0;
 
+        // TODO: What if this is an extremely large file?
+
         using var scene = new DisposablePtr<ufbx_scene>(ufbx_scene.LoadFile((sbyte*)str.GetUnsafePtr(), &loadOpts, &error));
         if (scene.Get() == null)
         {

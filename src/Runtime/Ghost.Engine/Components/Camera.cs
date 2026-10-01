@@ -26,7 +26,6 @@ public unsafe struct Camera : IComponentData
 
     public Handle<GPUTexture> colorTarget;
     public Handle<GPUTexture> depthTarget;
-    // TODO: Add more render targets like motion vector, etc.
 
     // Custim render function. If it's not null, the render system will call this function instead of the default render pipeline.
     public delegate*<ref readonly RenderContext, ref readonly RenderRequest, void> renderFunc;

@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Streaming;
 
+// TODO: Maybe we don't need this.
 internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry, IShaderCommitableAssetEntry
 {
     private const int MAX_ENTRY_POINT_COUNT = 8;

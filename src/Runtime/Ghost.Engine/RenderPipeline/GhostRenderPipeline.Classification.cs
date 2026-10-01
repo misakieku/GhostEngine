@@ -355,6 +355,9 @@ internal partial class GhostRenderPipeline
     private void AddTileClassificationPass(RenderGraph rg, Identifier<RGTexture> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, uint2 screenSize,
         out Identifier<RGBuffer> binnedTileListBuffer, out Identifier<RGBuffer> tileOffsetsBuffer, out Identifier<RGBuffer> indirectArgsBuffer)
     {
+        // TODO: For Dynamic Resolution Scaling (DRS), size UnbinnedTileEntries and BinnedVariantTileList using the maximum
+        // resolution (window/backbuffer size) rather than dynamic screenSize so that BufferDesc.Size remains constant and does
+        // not invalidate the render graph hash each frame. Passes will still dispatch using dynamic viewport tile counts.
         var tilesX = (screenSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
         var tilesY = (screenSize.y + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
         var totalTiles = Math.Max(1u, tilesX * tilesY);

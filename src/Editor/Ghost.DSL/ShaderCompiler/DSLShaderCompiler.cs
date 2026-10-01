@@ -196,8 +196,6 @@ public static class DSLShaderCompiler
         return syntax;
     }
 
-    // TODO: Implement shader inheritance resolution, including property and pass merging.
-    // Currently, we ignore inheritance.
     public static Result<GraphicsShaderSemantics> GetShaderSemantics(GraphicsShaderSyntax syntax)
     {
         var semantics = AntlrShaderCompiler.ConvertToSemantics(syntax, out var errors);

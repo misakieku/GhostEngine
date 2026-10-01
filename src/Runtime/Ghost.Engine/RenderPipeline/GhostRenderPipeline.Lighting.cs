@@ -44,6 +44,9 @@ internal partial class GhostRenderPipeline
 
     private Identifier<RGBuffer> AddTileLightCullingPass(RenderGraph rg, Identifier<RGTexture> depthTexture, uint2 renderSize)
     {
+        // TODO: For Dynamic Resolution Scaling (DRS), size this buffer using the maximum resolution (window/backbuffer size)
+        // instead of dynamic renderSize so that BufferDesc.Size remains constant and the render graph hash does not change every frame.
+        // Dispatches will continue to use the dynamic viewport tilesX/tilesY.
         var tilesX = (renderSize.x + 15u) / 16u;
         var tilesY = (renderSize.y + 15u) / 16u;
         var bufferSize = (nuint)(tilesX * tilesY * PipelineConstants.DWORDS_PER_TILE * 4u);

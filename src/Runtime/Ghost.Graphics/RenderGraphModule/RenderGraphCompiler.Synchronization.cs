@@ -63,11 +63,7 @@ internal unsafe partial class RenderGraphCompiler
         public int acquireScheduleIndex;
     }
 
-    private UnsafeList<ResolvedPassResourceUsage> BuildPassResourceUsagePlan(
-        List<RenderGraphPass> passes,
-        ReadOnlySpan<int> compiledPasses,
-        Span<PassResourceUsageRange> usageRanges,
-        AllocationHandle allocationHandle)
+    private UnsafeList<ResolvedPassResourceUsage> BuildPassResourceUsagePlan(List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, Span<PassResourceUsageRange> usageRanges, AllocationHandle allocationHandle)
     {
         var usageRecords = new UnsafeList<ResolvedPassResourceUsage>(
             Math.Max(1, compiledPasses.Length * 4),
@@ -288,10 +284,7 @@ internal unsafe partial class RenderGraphCompiler
         });
     }
 
-    private static int FindCommandBufferEndBoundary(
-        int sourceScheduleIndex,
-        int sourceCommandBufferId,
-        ReadOnlySpan<int> commandBufferIds)
+    private static int FindCommandBufferEndBoundary(int sourceScheduleIndex, int sourceCommandBufferId, ReadOnlySpan<int> commandBufferIds)
     {
         for (var scheduleIndex = sourceScheduleIndex + 1; scheduleIndex < commandBufferIds.Length; scheduleIndex++)
         {
@@ -304,10 +297,7 @@ internal unsafe partial class RenderGraphCompiler
         return -1;
     }
 
-    private static bool HasQueueAcquire(
-        ReadOnlySpan<QueueHandoff> handoffs,
-        int scheduleIndex,
-        Identifier<RGResource> resource)
+    private static bool HasQueueAcquire(ReadOnlySpan<QueueHandoff> handoffs, int scheduleIndex, Identifier<RGResource> resource)
     {
         for (var handoffIndex = 0; handoffIndex < handoffs.Length; handoffIndex++)
         {
@@ -321,11 +311,7 @@ internal unsafe partial class RenderGraphCompiler
         return false;
     }
 
-    private static int WriteQueueHandoffBarriers(
-        ref BufferWriter writer,
-        ReadOnlySpan<QueueHandoff> handoffs,
-        int scheduleIndex,
-        bool release)
+    private static int WriteQueueHandoffBarriers(ref BufferWriter writer, ReadOnlySpan<QueueHandoff> handoffs, int scheduleIndex, bool release)
     {
         var count = 0;
         for (var handoffIndex = 0; handoffIndex < handoffs.Length; handoffIndex++)
@@ -365,10 +351,7 @@ internal unsafe partial class RenderGraphCompiler
         return count;
     }
 
-    private static int EmitQueueReleaseBarriers(
-        ref BufferWriter writer,
-        ReadOnlySpan<QueueHandoff> handoffs,
-        int scheduleIndex)
+    private static int EmitQueueReleaseBarriers(ref BufferWriter writer, ReadOnlySpan<QueueHandoff> handoffs, int scheduleIndex)
     {
         var startPosition = writer.Position;
         writer.Write(RGExecutionOpType.IssueBarriers);

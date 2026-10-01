@@ -29,7 +29,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
         MaxVisibleMeshletsOnScreen = 2_097_152 * 1,
-        MeshletLodErrorThreshold = 2.0f,
+        MeshletLodErrorThreshold = 1.0f,
         InstanceCullingThreshold = 2.0f,
         DebugMode = RenderPipelineDebugMode.None,
     };

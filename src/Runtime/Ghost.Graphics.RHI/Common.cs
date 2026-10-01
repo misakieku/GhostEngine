@@ -505,8 +505,6 @@ public struct BarrierDesc
 
     public Handle<GPUResource> Resource { get; set; }
 
-    public BarrierSubresourceRange Subresources { get; set; }
-
     /// <summary>Gets or sets whether an otherwise identical before/after barrier must still be emitted.</summary>
     public bool Force { get; set; }
 
@@ -514,7 +512,7 @@ public struct BarrierDesc
     public BarrierHandoffType Handoff { get; set; }
 
     // TODO: We actually don't need this, we should insert NoAccess by ourself.
-    public bool IsAliasing { get; set; }
+    // public bool IsAliasing { get; set; }
 
     [UnscopedRef]
     public ref ulong Offset => ref _additionalData.bufferData.offset;
@@ -549,8 +547,7 @@ public struct BarrierDesc
         BarrierHandoffType handoff = BarrierHandoffType.None,
         bool force = false,
         ulong offset = 0UL,
-        ulong size = ulong.MaxValue,
-        bool isAliasing = false)
+        ulong size = ulong.MaxValue)
     {
         return new BarrierDesc
         {
@@ -564,7 +561,6 @@ public struct BarrierDesc
             LayoutAfter = after.layout,
             Handoff = handoff,
             Force = force,
-            IsAliasing = isAliasing,
             Offset = offset,
             Size = size
         };
@@ -579,8 +575,7 @@ public struct BarrierDesc
         BarrierHandoffType handoff = BarrierHandoffType.None,
         bool force = false,
         ulong offset = 0UL,
-        ulong size = ulong.MaxValue,
-        bool isAliasing = false)
+        ulong size = ulong.MaxValue)
     {
         return new BarrierDesc
         {
@@ -594,7 +589,6 @@ public struct BarrierDesc
             LayoutAfter = BarrierLayout.Undefined,
             Handoff = handoff,
             Force = force,
-            IsAliasing = isAliasing,
             Offset = offset,
             Size = size
         };
@@ -607,8 +601,7 @@ public struct BarrierDesc
         BarrierSubresourceRange subresources = default,
         BarrierHandoffType handoff = BarrierHandoffType.None,
         bool discard = false,
-        bool force = false,
-        bool isAliasing = false)
+        bool force = false)
     {
         return new BarrierDesc
         {
@@ -622,8 +615,7 @@ public struct BarrierDesc
             LayoutAfter = after.layout,
             Handoff = handoff,
             Force = force,
-            IsAliasing = isAliasing,
-            Subresources = subresources,
+            SubresourceRange = subresources,
             Discard = discard
         };
     }
@@ -639,8 +631,7 @@ public struct BarrierDesc
         BarrierSubresourceRange subresources = default,
         BarrierHandoffType handoff = BarrierHandoffType.None,
         bool discard = false,
-        bool force = false,
-        bool isAliasing = false)
+        bool force = false)
     {
         return new BarrierDesc
         {
@@ -654,8 +645,7 @@ public struct BarrierDesc
             LayoutAfter = layoutAfter,
             Handoff = handoff,
             Force = force,
-            IsAliasing = isAliasing,
-            Subresources = subresources,
+            SubresourceRange = subresources,
             Discard = discard
         };
     }

@@ -539,7 +539,7 @@ public partial class RenderGraphTest
         Assert.Contains("Discard", aliasingLines[0]);
 
         var textureAliasingBarriers = GetRecordedBarriers()
-            .Where(barrier => barrier.IsAliasing && _resourceDatabase.GetResourceName(barrier.Resource) == "TextureB")
+            .Where(barrier => barrier.AccessBefore == BarrierAccess.NoAccess && _resourceDatabase.GetResourceName(barrier.Resource) == "TextureB")
             .ToList();
         Assert.HasCount(1, textureAliasingBarriers, "The texture alias must execute as one aliasing barrier.");
         var textureAliasingBarrier = textureAliasingBarriers[0];
@@ -615,7 +615,7 @@ public partial class RenderGraphTest
             Assert.Contains("Discard", aliasingLines[0]);
 
             var aliasingBarriers = GetRecordedBarriers()
-                .Where(barrier => barrier.IsAliasing && _resourceDatabase.GetResourceName(barrier.Resource) == "BufferAliasB")
+                .Where(barrier => barrier.AccessBefore == BarrierAccess.NoAccess && _resourceDatabase.GetResourceName(barrier.Resource) == "BufferAliasB")
                 .ToList();
             Assert.HasCount(1, aliasingBarriers, "The buffer alias must execute as one aliasing barrier.");
             Assert.AreEqual(BarrierAccess.UnorderedAccess, aliasingBarriers[0].AccessAfter);
@@ -625,7 +625,7 @@ public partial class RenderGraphTest
                 .Where(barrier => _resourceDatabase.GetResourceName(barrier.Resource) == "BufferAliasB" && barrier.AccessAfter == BarrierAccess.UnorderedAccess)
                 .ToList();
             Assert.HasCount(1, firstUseTransitions, "The aliased buffer first use must not emit a second ordinary UAV transition.");
-            Assert.IsTrue(firstUseTransitions[0].IsAliasing);
+            Assert.AreEqual(BarrierAccess.NoAccess, firstUseTransitions[0].AccessBefore);
         }
 
         var (before, after) = AddAliasingBufferPasses();

@@ -140,19 +140,6 @@ internal static unsafe class RenderGraphHasher
 
         if (resource.type == RGResourceType.Texture)
         {
-            // This will break the scaling optimization.
-            // if (resource.isImported)
-            // {
-            //     writer->Write(resource.rgTextureDesc.format);
-            //     writer->Write(resource.rgTextureDesc.dimension);
-            //     writer->Write(resource.rgTextureDesc.usage);
-            //     writer->Write(resource.rgTextureDesc.width);
-            //     writer->Write(resource.rgTextureDesc.height);
-            //     writer->Write(resource.rgTextureDesc.mipLevels);
-            //     writer->Write(resource.rgTextureDesc.slice);
-            //     return;
-            // }
-
             var desc = resource.rgTextureDesc;
             writer->Write(desc.format);
 

@@ -562,7 +562,6 @@ internal sealed class RenderGraphExecutor
                 var resourceHandle = _resources.GetResource(compiledBarrier.resource).backingResource;
                 var handoff = compiledBarrier.handoffState;
                 var target = compiledBarrier.targetState;
-                var isAliasing = compiledBarrier.aliasingPredecessor.IsValid;
                 var force = compiledBarrier.flags.HasFlag(BarrierFlags.Force);
 
                 BarrierDesc acquireDesc;
@@ -574,8 +573,7 @@ internal sealed class RenderGraphExecutor
                         target,
                         handoff: BarrierHandoffType.Acquire,
                         discard: compiledBarrier.flags.HasFlag(BarrierFlags.Discard),
-                        force: force,
-                        isAliasing: isAliasing);
+                        force: force);
                 }
                 else
                 {
@@ -584,8 +582,7 @@ internal sealed class RenderGraphExecutor
                         new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierSync.None),
                         target,
                         handoff: BarrierHandoffType.Acquire,
-                        force: force,
-                        isAliasing: isAliasing);
+                        force: force);
                 }
 
                 if (barriers.Count >= MaxBatch)
@@ -599,7 +596,6 @@ internal sealed class RenderGraphExecutor
 
             var resHandle = _resources.GetResource(compiledBarrier.resource).backingResource;
             var trgt = compiledBarrier.targetState;
-            var isAlias = compiledBarrier.aliasingPredecessor.IsValid;
             var frc = compiledBarrier.flags.HasFlag(BarrierFlags.Force);
 
             BarrierDesc desc;
@@ -610,8 +606,7 @@ internal sealed class RenderGraphExecutor
                     compiledBarrier.sourceState,
                     trgt,
                     discard: compiledBarrier.flags.HasFlag(BarrierFlags.Discard),
-                    force: frc,
-                    isAliasing: isAlias);
+                    force: frc);
             }
             else
             {
@@ -619,8 +614,7 @@ internal sealed class RenderGraphExecutor
                     resHandle.AsBuffer(),
                     compiledBarrier.sourceState,
                     trgt,
-                    force: frc,
-                    isAliasing: isAlias);
+                    force: frc);
             }
             if (barriers.Count >= MaxBatch)
             {
