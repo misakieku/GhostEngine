@@ -70,6 +70,8 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
     private readonly ShaderVariantRecord[] _variants;
     private readonly ShaderVariantIndex[][] _semanticVariants;
     private readonly ShaderVariantDispatchInfo[][] _dispatchVariants;
+    private readonly int[][] _dispatchRepresentatives;
+    private readonly int[][] _variantToDispatchSlot;
     private readonly int[] _states;
     private readonly uint[] _generations;
     private bool _disposed;
@@ -189,17 +191,59 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
         }
 
         _dispatchVariants = new ShaderVariantDispatchInfo[_semanticVariants.Length][];
+        _dispatchRepresentatives = new int[_semanticVariants.Length][];
+        _variantToDispatchSlot = new int[_semanticVariants.Length][];
+
         for (var semanticIndex = 0; semanticIndex < _semanticVariants.Length; semanticIndex++)
         {
+            var semantic = (PassSemantic)semanticIndex;
             var semanticVariants = _semanticVariants[semanticIndex];
-            var dispatchVariants = new ShaderVariantDispatchInfo[semanticVariants.Length];
+
+            _variantToDispatchSlot[semanticIndex] = new int[graphicsCount];
+            Array.Fill(_variantToDispatchSlot[semanticIndex], -1);
+
+            var uniqueSignatures = new List<PassCodeSignature>();
+            var uniqueDispatch = new List<ShaderVariantDispatchInfo>();
+            var representatives = new List<int>();
+
             for (var i = 0; i < semanticVariants.Length; i++)
             {
                 var index = semanticVariants[i];
-                dispatchVariants[i] = new ShaderVariantDispatchInfo(index.Value, _variants[index.Value].Shader);
+                var pass = FindPass(in _variants[index.Value], semantic);
+                if (pass == null)
+                {
+                    continue;
+                }
+
+                var sig = new PassCodeSignature(pass);
+                var existingSlot = -1;
+                for (var slot = 0; slot < uniqueSignatures.Count; slot++)
+                {
+                    if (uniqueSignatures[slot].Equals(sig))
+                    {
+                        existingSlot = slot;
+                        break;
+                    }
+                }
+
+                if (existingSlot >= 0)
+                {
+                    _variantToDispatchSlot[semanticIndex][index.Value] = existingSlot;
+                }
+                else
+                {
+                    var slot = uniqueSignatures.Count;
+                    uniqueSignatures.Add(sig);
+                    representatives.Add(index.Value);
+                    _variantToDispatchSlot[semanticIndex][index.Value] = slot;
+
+                    var denseIndex = (semantic == PassSemantic.Visibility) ? slot : index.Value;
+                    uniqueDispatch.Add(new ShaderVariantDispatchInfo(denseIndex, _variants[index.Value].Shader));
+                }
             }
 
-            _dispatchVariants[semanticIndex] = dispatchVariants;
+            _dispatchVariants[semanticIndex] = uniqueDispatch.ToArray();
+            _dispatchRepresentatives[semanticIndex] = representatives.ToArray();
         }
     }
 
@@ -333,6 +377,131 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
         var generation = Volatile.Read(ref _generations[index]) + 1;
         Volatile.Write(ref _generations[index], generation);
         Volatile.Write(ref _states[index], (int)ShaderVariantState.BytecodeReady);
+
+        UpdateDispatchRepresentatives(index);
+    }
+
+    private void UpdateDispatchRepresentatives(int readyVariantIndex)
+    {
+        ref readonly var record = ref _variants[readyVariantIndex];
+        var passes = record.Passes;
+        if (passes == null)
+        {
+            return;
+        }
+
+        for (var passIndex = 0; passIndex < passes.Length; passIndex++)
+        {
+            var semanticIndex = (int)passes[passIndex].Semantic;
+            if ((uint)semanticIndex >= (uint)_dispatchVariants.Length)
+            {
+                continue;
+            }
+
+            var slot = _variantToDispatchSlot[semanticIndex][readyVariantIndex];
+            if (slot < 0)
+            {
+                continue;
+            }
+
+            var currentRep = _dispatchRepresentatives[semanticIndex][slot];
+            if (!IsBytecodeReady(currentRep))
+            {
+                _dispatchRepresentatives[semanticIndex][slot] = readyVariantIndex;
+                var semantic = (PassSemantic)semanticIndex;
+                var denseIndex = (semantic == PassSemantic.Visibility) ? slot : readyVariantIndex;
+                _dispatchVariants[semanticIndex][slot] = new ShaderVariantDispatchInfo(denseIndex, record.Shader);
+            }
+        }
+    }
+
+    private static ShaderCatalogPass? FindPass(in ShaderVariantRecord record, PassSemantic semantic)
+    {
+        var passes = record.Passes;
+        if (passes == null)
+        {
+            return null;
+        }
+
+        for (var i = 0; i < passes.Length; i++)
+        {
+            if (passes[i].Semantic == semantic)
+            {
+                return passes[i];
+            }
+        }
+
+        return null;
+    }
+
+    private readonly struct PassCodeSignature : IEquatable<PassCodeSignature>
+    {
+        private readonly ulong _pipelineKey;
+        private readonly ShaderStageMask _stageMask;
+        private readonly uint _shadingModelId;
+        private readonly ulong[] _bytecodeHashes;
+        private readonly uint _fallbackKey;
+
+        public PassCodeSignature(ShaderCatalogPass pass)
+        {
+            _pipelineKey = pass.LocalPipeline.GetHashCode64();
+            _stageMask = pass.StageMask;
+            _shadingModelId = pass.Semantic == PassSemantic.DeferredLighting ? pass.ShadingModelId : 0u;
+            _bytecodeHashes = pass.BytecodeHashes ?? Array.Empty<ulong>();
+
+            if (_bytecodeHashes.Length == 0 || pass.Semantic == PassSemantic.DeferredTexturing)
+            {
+                _fallbackKey = (pass.Semantic == PassSemantic.DeferredLighting && pass.ShadingModelId != 0)
+                    ? pass.ShadingModelId
+                    : (uint)pass.PassId;
+            }
+            else
+            {
+                _fallbackKey = 0;
+            }
+        }
+
+        public bool Equals(PassCodeSignature other)
+        {
+            if (_pipelineKey != other._pipelineKey ||
+                _stageMask != other._stageMask ||
+                _shadingModelId != other._shadingModelId)
+            {
+                return false;
+            }
+
+            if (_fallbackKey != 0 || other._fallbackKey != 0)
+            {
+                return _fallbackKey == other._fallbackKey;
+            }
+
+            if (_bytecodeHashes.Length != other._bytecodeHashes.Length)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < _bytecodeHashes.Length; i++)
+            {
+                if (_bytecodeHashes[i] != other._bytecodeHashes[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public override bool Equals(object? obj) => obj is PassCodeSignature other && Equals(other);
+
+        public override int GetHashCode()
+        {
+            var h = HashCode.Combine(_pipelineKey, (int)_stageMask, _shadingModelId, _fallbackKey);
+            for (var i = 0; i < _bytecodeHashes.Length; i++)
+            {
+                h = HashCode.Combine(h, _bytecodeHashes[i]);
+            }
+            return h;
+        }
     }
 
     internal bool TryGetShaderHandle(Guid assetId, out Handle<Shader> handle)

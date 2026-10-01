@@ -30,6 +30,7 @@ $GHOST_USER_HLSL$
 // Injection point fallbacks (suppressed when user overrides)
 // ============================================================
 
+#if defined(GHOST_PASS_VISIBILITY)
 #ifndef VBUFFER_STRATEGY
 #define VBUFFER_STRATEGY DefaultVbufferStrategy
 struct DefaultVbufferStrategy
@@ -39,13 +40,15 @@ struct DefaultVbufferStrategy
         return (DefaultVbufferStrategy) 0;
     }
     
-    float GetAlphaCoverage(in MaterialProperties props, float2 uv)
+    float GetAlphaCoverage(uint materialBufferIndex, float2 uv)
     {
         return 1.0f;
     }
 };
 #endif
+#endif
 
+#if defined(GHOST_PASS_DEFERREDTEXTURING)
 #ifndef DEFERREDTEXTURING_STRATEGY
 #define DEFERREDTEXTURING_STRATEGY DefaultDeferredTexturingStrategy
 struct DefaultDeferredTexturingStrategy
@@ -61,6 +64,7 @@ struct DefaultDeferredTexturingStrategy
         return surface;
     }
 };
+#endif
 #endif
 
 #endif // GHOST_UNLIT_TEMPLATE_COMMON_HLSL

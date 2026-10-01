@@ -189,12 +189,14 @@ void PSMain(VisibilityPixelInput input, uint primitiveID : SV_PrimitiveID)
 
     if (targetVariantIndex > 0u)
     {
-        MaterialProperties props = LoadMaterialData<MaterialProperties>(input.materialBufferIndex);
-        if (props.alphaClip)
+        ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
+        uint alphaClip = matBuf.Load(input.materialBufferIndex + 16u);
+        if (alphaClip != 0u)
         {
+            float alphaClipThreshold = asfloat(matBuf.Load(input.materialBufferIndex + 20u));
             VBUFFER_STRATEGY strategy = VBUFFER_STRATEGY::Create();
-            float coverage = strategy.GetAlphaCoverage(props, input.uv);
-            if (coverage < props.alphaClipThreshold)
+            float coverage = strategy.GetAlphaCoverage(input.materialBufferIndex, input.uv);
+            if (coverage < alphaClipThreshold)
             {
                 discard;
             }

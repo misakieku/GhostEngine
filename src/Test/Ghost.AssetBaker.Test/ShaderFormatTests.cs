@@ -137,4 +137,25 @@ public class ShaderFormatTests
             File.Delete(path);
         }
     }
+
+    [TestMethod]
+    public void ShaderEntryPointHeader_RoundTripsBytecodeHashAndOffsets()
+    {
+        var entry = new ShaderContentHeader.EntryPointHeader
+        {
+            stage = ShaderStage.MeshShader,
+            reserved = 0,
+            bytecodeHash = 0xA1B2C3D4E5F67890ul,
+            byteCodeOffset = 1024,
+            byteCodeSize = 4096,
+        };
+
+        var bytes = MemoryMarshal.AsBytes(new ReadOnlySpan<ShaderContentHeader.EntryPointHeader>(in entry)).ToArray();
+        var decoded = MemoryMarshal.Read<ShaderContentHeader.EntryPointHeader>(bytes);
+
+        Assert.AreEqual(entry.stage, decoded.stage);
+        Assert.AreEqual(entry.bytecodeHash, decoded.bytecodeHash);
+        Assert.AreEqual(entry.byteCodeOffset, decoded.byteCodeOffset);
+        Assert.AreEqual(entry.byteCodeSize, decoded.byteCodeSize);
+    }
 }

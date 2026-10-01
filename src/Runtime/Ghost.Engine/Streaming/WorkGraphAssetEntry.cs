@@ -116,8 +116,16 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
             var pass = ReadAt<ShaderContentHeader.PassHeader>(payload, passOffset, payloadSize);
             var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(payload, pass.dataOffset, payloadSize);
 
-            _bytecodePtr = payload + pass.dataOffset + entry.byteCodeOffset;
-            _bytecodeSize = (int)entry.byteCodeSize;
+            if (entry.bytecodeHash != 0 && Manager.TryGetPooledBytecode(entry.bytecodeHash, out var pooledCode))
+            {
+                _bytecodePtr = (byte*)pooledCode.pCode;
+                _bytecodeSize = (int)pooledCode.size;
+            }
+            else
+            {
+                _bytecodePtr = payload + pass.dataOffset + entry.byteCodeOffset;
+                _bytecodeSize = (int)entry.byteCodeSize;
+            }
 
             return Result.Success();
         }
@@ -163,10 +171,15 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
         }
 
         var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(payload, pass.dataOffset, payloadSize);
-        if (entry.stage != ShaderStage.Library ||
-            !IsRangeValid(entry.byteCodeOffset, entry.byteCodeSize, pass.dataSize))
+        var isPooled = entry.bytecodeHash != 0;
+        if (!isPooled && !IsRangeValid(entry.byteCodeOffset, entry.byteCodeSize, pass.dataSize))
         {
             return Result.Failure($"Work graph asset {assetId} contains invalid library bytecode.");
+        }
+
+        if (entry.stage != ShaderStage.Library)
+        {
+            return Result.Failure($"Work graph asset {assetId} contains incompatible stage for library bytecode.");
         }
 
         return Result.Success();

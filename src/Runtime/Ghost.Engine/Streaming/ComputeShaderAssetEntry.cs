@@ -157,9 +157,10 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
                 payload,
                 pass.dataOffset + (entryIndex * sizeof(ShaderContentHeader.EntryPointHeader)),
                 payloadSize);
+            var isPooled = entry.bytecodeHash != 0;
             if (entry.stage != ShaderStage.ComputeShader ||
-                entry.byteCodeOffset < entryHeadersSize ||
-                !IsRangeValid(entry.byteCodeOffset, entry.byteCodeSize, pass.dataSize))
+                (!isPooled && (entry.byteCodeOffset < entryHeadersSize ||
+                 !IsRangeValid(entry.byteCodeOffset, entry.byteCodeSize, pass.dataSize))))
             {
                 return Result.Failure($"Compute shader asset {assetId} contains incompatible entry point {entryIndex}.");
             }
@@ -191,11 +192,25 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
                     payload,
                     pass.dataOffset + (entryIndex * sizeof(ShaderContentHeader.EntryPointHeader)),
                     payloadSize);
-                byteCodes[entryIndex] = new ShaderByteCode
+
+                if (entry.bytecodeHash != 0 && Manager.TryGetPooledBytecode(entry.bytecodeHash, out var pooledCode))
                 {
-                    pCode = payload + pass.dataOffset + entry.byteCodeOffset,
-                    size = (ulong)entry.byteCodeSize,
-                };
+                    byteCodes[entryIndex] = pooledCode;
+                }
+                else if (entry.byteCodeSize > 0 && IsRangeValid(pass.dataOffset + entry.byteCodeOffset, entry.byteCodeSize, payloadSize))
+                {
+                    byteCodes[entryIndex] = new ShaderByteCode
+                    {
+                        pCode = payload + pass.dataOffset + entry.byteCodeOffset,
+                        size = (ulong)entry.byteCodeSize,
+                    };
+                }
+                else
+                {
+                    DiscardStagedPayload();
+                    return Result.Failure($"Compute shader asset {AssetId} could not resolve bytecode 0x{entry.bytecodeHash:X16} for entry {entryIndex}.");
+                }
+
                 entryOffsets[entryIndex + 1] = entryIndex + 1;
             }
 

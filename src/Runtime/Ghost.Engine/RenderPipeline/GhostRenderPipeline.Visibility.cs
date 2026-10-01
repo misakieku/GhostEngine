@@ -153,32 +153,12 @@ internal partial class GhostRenderPipeline
                 return;
             }
 
-            // Dispatch Bin 0 (All Opaque meshlets across all materials in ONE draw call)
-            var opaqueShaderBound = false;
-            for (var i = 0; i < dispatchVariants.Length; i++)
-            {
-                ref readonly var v = ref dispatchVariants[i];
-                if (v.Shader.IsValid && unsafeCtx.TrySetActiveShaderPass(v.Shader, PassSemantic.Visibility))
-                {
-                    opaqueShaderBound = true;
-                    break;
-                }
-            }
-
-            if (opaqueShaderBound)
-            {
-                unsafeCtx.SetUserData(visibleBufferIndex, visBufferUav, binOffsetsIndex, (0u << 1) | (passData.passIndex & 1u));
-                var bin0IndirectOffset = passData.indirectArgsOffset + 0UL * 16UL;
-                unsafeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, bin0IndirectOffset);
-            }
-
-            // Dispatch Bins 1..N (Alpha-Clipped variants)
             for (var i = 0; i < dispatchVariants.Length; i++)
             {
                 ref readonly var variant = ref dispatchVariants[i];
                 if (variant.Shader.IsValid && unsafeCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.Visibility))
                 {
-                    var bin = (uint)variant.DenseIndex + 1u;
+                    var bin = (uint)variant.DenseIndex;
                     unsafeCtx.SetUserData(visibleBufferIndex, visBufferUav, binOffsetsIndex, (bin << 1) | (passData.passIndex & 1u));
                     var variantIndirectOffset = passData.indirectArgsOffset + (ulong)bin * 16UL;
                     unsafeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, variantIndirectOffset);

@@ -117,10 +117,9 @@ public sealed class ShaderVariantRegistryTest
         using var registry = new ShaderVariantRegistry(resourceManager, catalog);
 
         var dispatchVariants = registry.GetDispatchVariants(PassSemantic.DeferredLighting);
-        Assert.AreEqual(3, dispatchVariants.Length);
+        Assert.AreEqual(2, dispatchVariants.Length);
         Assert.AreEqual(0, dispatchVariants[0].DenseIndex);
-        Assert.AreEqual(1, dispatchVariants[1].DenseIndex);
-        Assert.AreEqual(2, dispatchVariants[2].DenseIndex);
+        Assert.AreEqual(2, dispatchVariants[1].DenseIndex);
 
         ref readonly var firstVariant = ref registry.GetVariant(new ShaderVariantIndex(0));
         ref readonly var secondVariant = ref registry.GetVariant(new ShaderVariantIndex(1));
@@ -129,6 +128,82 @@ public sealed class ShaderVariantRegistryTest
         Assert.AreEqual(1u, firstVariant.ShadingModelId);
         Assert.AreEqual(1u, secondVariant.ShadingModelId);
         Assert.AreEqual(2u, thirdVariant.ShadingModelId);
+
+        // When second asset (MobileLit, model 1u) becomes ready while first asset is not, representative switches to it
+        registry.PublishBytecodeReady(secondAsset);
+        dispatchVariants = registry.GetDispatchVariants(PassSemantic.DeferredLighting);
+        Assert.AreEqual(2, dispatchVariants.Length);
+        Assert.AreEqual(1, dispatchVariants[0].DenseIndex);
+        Assert.AreEqual(2, dispatchVariants[1].DenseIndex);
+    }
+
+    [TestMethod]
+    public void VisibilityDeduplicatesMatchingBytecodeAndAssignsBin0()
+    {
+        var firstAsset = Guid.NewGuid();
+        var secondAsset = Guid.NewGuid();
+        var thirdAsset = Guid.NewGuid();
+        var familyId = ShaderIdentity.GetShaderId("Lit");
+        var sharedBytecode = new ulong[] { 0x1111222233334444UL, 0x5555666677778888UL };
+        var customBytecode = new ulong[] { 0x9999AAAABBBBCCCCUL };
+
+        var catalog = new ShaderCatalogEntry[]
+        {
+            CreateEntryWithBytecode(firstAsset, "SimpleLit", familyId, sharedBytecode, PassSemantic.Visibility),
+            CreateEntryWithBytecode(secondAsset, "MobileLit", familyId, sharedBytecode, PassSemantic.Visibility),
+            CreateEntryWithBytecode(thirdAsset, "CustomLit", familyId, customBytecode, PassSemantic.Visibility),
+        };
+
+        using var renderDevice = new MockingRenderDevice();
+        using var resourceDatabase = new MockingResourceDatabase();
+        using var resourceAllocator = new MockingResourceAllocator(resourceDatabase);
+        using var resourceManager = new ResourceManager(renderDevice, resourceAllocator, resourceDatabase);
+        using var registry = new ShaderVariantRegistry(resourceManager, catalog);
+
+        var dispatchVariants = registry.GetDispatchVariants(PassSemantic.Visibility);
+        Assert.AreEqual(2, dispatchVariants.Length);
+        Assert.AreEqual(0, dispatchVariants[0].DenseIndex);
+        Assert.AreEqual(1, dispatchVariants[1].DenseIndex);
+        Assert.AreEqual(registry.GetVariant(new ShaderVariantIndex(0)).Shader, dispatchVariants[0].Shader);
+
+        // When second asset becomes bytecode ready while first is not, representative switches to it
+        registry.PublishBytecodeReady(secondAsset);
+        dispatchVariants = registry.GetDispatchVariants(PassSemantic.Visibility);
+        Assert.AreEqual(2, dispatchVariants.Length);
+        Assert.AreEqual(0, dispatchVariants[0].DenseIndex);
+        Assert.AreEqual(registry.GetVariant(new ShaderVariantIndex(1)).Shader, dispatchVariants[0].Shader);
+    }
+
+    private static ShaderCatalogEntry CreateEntryWithBytecode(Guid assetId, string name, ulong familyId, ulong[] bytecodeHashes, params PassSemantic[] semantics)
+    {
+        var shaderId = ShaderIdentity.GetShaderId(name);
+        var passes = new ShaderCatalogPass[semantics.Length];
+        for (var i = 0; i < semantics.Length; i++)
+        {
+            passes[i] = new ShaderCatalogPass
+            {
+                Name = semantics[i].ToString(),
+                Semantic = semantics[i],
+                StageMask = semantics[i] == PassSemantic.DeferredTexturing || semantics[i] == PassSemantic.DeferredLighting ? ShaderStageMask.Compute : ShaderStageMask.Mesh | ShaderStageMask.Pixel,
+                PassId = ShaderIdentity.GetPassId(shaderId, i),
+                LocalPipeline = PipelineState.Default,
+                ShadingModelId = 0u,
+                BytecodeHashes = bytecodeHashes,
+            };
+        }
+
+        return new ShaderCatalogEntry
+        {
+            AssetId = assetId,
+            ShaderType = ShaderType.Graphics,
+            Name = name,
+            ShaderId = shaderId,
+            FamilyId = familyId,
+            LayoutHash = 42,
+            PropertyBufferSize = 64,
+            ShaderModel = ShaderModel.SM_6_8,
+            Passes = passes,
+        };
     }
 
     private static ShaderCatalogEntry CreateEntry(Guid assetId, string name, ulong familyId, params PassSemantic[] semantics)

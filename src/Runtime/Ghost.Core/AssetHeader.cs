@@ -138,12 +138,14 @@ public struct ShaderContentHeader()
     public struct EntryPointHeader
     {
         public ShaderStage stage;
+        public uint reserved;
+        public ulong bytecodeHash;
         public long byteCodeOffset; // Offset to the shader bytecode for this entry point, relative to the start of the pass data
         public long byteCodeSize;
     }
 
     public const uint MAGIC = 0x52484453; // SHDR
-    public const uint VERSION = 4;
+    public const uint VERSION = 5;
 
     public uint magic = MAGIC;
     public uint version = VERSION;
@@ -306,6 +308,16 @@ public struct PackFileHeader()
 }
 
 /// <summary>
+/// Constants for the shared shader bytecode pool asset.
+/// </summary>
+public static class ShaderBytecodePoolConstants
+{
+    public const uint MAGIC = 0x31504253; // "SBP1"
+    public static readonly Guid POOL_ASSET_ID = new("A1B2C3D4-E5F6-7890-1234-56789ABCDEF0");
+    public const string POOL_ASSET_KEY = "__shader_bytecode_pool__";
+}
+
+/// <summary>
 /// Runtime metadata for one pass in a baked shader.
 /// </summary>
 public sealed class ShaderCatalogPass
@@ -317,6 +329,7 @@ public sealed class ShaderCatalogPass
     public ulong PassId { get; init; }
     public PipelineState LocalPipeline { get; init; }
     public uint ShadingModelId { get; init; }
+    public ulong[] BytecodeHashes { get; init; } = Array.Empty<ulong>();
 }
 
 /// <summary>

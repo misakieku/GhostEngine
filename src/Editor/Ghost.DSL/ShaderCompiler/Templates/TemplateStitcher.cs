@@ -168,13 +168,26 @@ public static class TemplateStitcher
         }
 
         var commonFileName = Path.GetFileName(template.CommonTemplateFile);
-        var propertiesStruct = (passSemantic == PassSemantic.DeferredLighting)
-            ? string.Empty
-            : BuildPropertiesStruct(template, semantics);
+        var hasCustomVBuffer = semantics.hlsl != null && (semantics.hlsl.Contains("VBUFFER_STRATEGY") || semantics.hlsl.Contains("GHOST_PASS_VISIBILITY"));
+        var needsProperties = passSemantic != PassSemantic.DeferredLighting &&
+            (passSemantic != PassSemantic.Visibility || hasCustomVBuffer);
+        var propertiesStruct = needsProperties
+            ? BuildPropertiesStruct(template, semantics)
+            : string.Empty;
+
+        var userHlsl = semantics.hlsl ?? string.Empty;
+        if (passSemantic == PassSemantic.Visibility && !hasCustomVBuffer)
+        {
+            userHlsl = string.Empty;
+        }
+        else if (passSemantic == PassSemantic.DeferredLighting && (semantics.hlsl == null || (!semantics.hlsl.Contains("DEFERREDLIGHTING_STRATEGY") && !semantics.hlsl.Contains("GHOST_PASS_DEFERREDLIGHTING"))))
+        {
+            userHlsl = string.Empty;
+        }
 
         var stitchedCommon = commonResult.Value
             .Replace("$GHOST_PROPERTIES_STRUCT$", propertiesStruct)
-            .Replace("$GHOST_USER_HLSL$", semantics.hlsl ?? string.Empty);
+            .Replace("$GHOST_USER_HLSL$", userHlsl);
 
         var final = templateResult.Value
             .Replace($"#include \"{template.CommonTemplateFile}\"", stitchedCommon)
@@ -221,7 +234,7 @@ public static class TemplateStitcher
             }
         }
 
-        if (passSemantic != PassSemantic.DeferredLighting && !string.IsNullOrEmpty(reflectionData.Code))
+        if (needsProperties && !string.IsNullOrEmpty(reflectionData.Code))
         {
             sb.AppendLine("#line 0 \"properties\"");
             sb.AppendLine(reflectionData.Code);

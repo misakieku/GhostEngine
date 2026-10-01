@@ -19,7 +19,7 @@ $GHOST_USER_HLSL$
 // Injection point fallbacks (suppressed when user overrides)
 // ============================================================
 
-#if !defined(GHOST_PASS_DEFERREDLIGHTING)
+#if defined(GHOST_PASS_VISIBILITY)
 #ifndef VBUFFER_STRATEGY
 #define VBUFFER_STRATEGY DefaultVbufferStrategy
 struct DefaultVbufferStrategy
@@ -29,13 +29,15 @@ struct DefaultVbufferStrategy
         return (DefaultVbufferStrategy) 0;
     }
     
-    float GetAlphaCoverage(in MaterialProperties props, float2 uv)
+    float GetAlphaCoverage(uint materialBufferIndex, float2 uv)
     {
         return 1.0f;
     }
 };
 #endif
+#endif
 
+#if defined(GHOST_PASS_DEFERREDTEXTURING)
 #ifndef DEFERREDTEXTURING_STRATEGY
 #define DEFERREDTEXTURING_STRATEGY DefaultDeferredTexturingStrategy
 struct DefaultDeferredTexturingStrategy
@@ -62,6 +64,7 @@ struct DefaultDeferredTexturingStrategy
 #endif
 #endif
 
+#if defined(GHOST_PASS_DEFERREDLIGHTING)
 #ifndef DEFERREDLIGHTING_STRATEGY
 #define DEFERREDLIGHTING_STRATEGY DefaultDeferredLightingStrategy
 struct BSDFData
@@ -101,6 +104,7 @@ struct DefaultDeferredLightingStrategy
         return (LightLoopOutput)0;
     }
 };
+#endif
 #endif
 
 #endif // GHOST_LIT_TEMPLATE_COMMON_HLSL

@@ -184,7 +184,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 viewContext.RenderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
             }
 
-            var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewState, RGFlags.Default);
+            var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewState, RGFlags.GenerateDump);
             if (result.IsFailure)
             {
                 return Result.Failure($"Render graph execution failed: {result.Error}");

@@ -186,9 +186,14 @@ internal unsafe class ShaderAssetEntry : AssetEntry, ILoadableAssetEntry, IShade
                     payload,
                     pass.dataOffset + (entryIndex * sizeof(ShaderContentHeader.EntryPointHeader)),
                     payloadSize);
-                if (entry.byteCodeOffset < entryHeadersSize ||
-                    !IsRangeValid(entry.byteCodeOffset, entry.byteCodeSize, pass.dataSize) ||
-                    !IsExpectedStage(pass.stageMask, pass.entryPointCount, entryIndex, entry.stage))
+                var isPooled = entry.bytecodeHash != 0;
+                if (!isPooled && (entry.byteCodeOffset < entryHeadersSize ||
+                    !IsRangeValid(entry.byteCodeOffset, entry.byteCodeSize, pass.dataSize)))
+                {
+                    return Result.Failure($"Shader asset {assetId} contains invalid inline bytecode offset for pass {passIndex}.");
+                }
+
+                if (!IsExpectedStage(pass.stageMask, pass.entryPointCount, entryIndex, entry.stage))
                 {
                     return Result.Failure($"Shader asset {assetId} contains incompatible bytecode topology for pass {passIndex}.");
                 }
@@ -264,11 +269,24 @@ internal unsafe class ShaderAssetEntry : AssetEntry, ILoadableAssetEntry, IShade
                 {
                     var entryHeaderOffset = pass.dataOffset + (entryIndex * sizeof(ShaderContentHeader.EntryPointHeader));
                     var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(payload, entryHeaderOffset, payloadSize);
-                    byteCodes[byteCodeCount++] = new ShaderByteCode
+
+                    if (entry.bytecodeHash != 0 && Manager.TryGetPooledBytecode(entry.bytecodeHash, out var pooledCode))
                     {
-                        pCode = payload + pass.dataOffset + entry.byteCodeOffset,
-                        size = (ulong)entry.byteCodeSize,
-                    };
+                        byteCodes[byteCodeCount++] = pooledCode;
+                    }
+                    else if (entry.byteCodeSize > 0 && IsRangeValid(pass.dataOffset + entry.byteCodeOffset, entry.byteCodeSize, payloadSize))
+                    {
+                        byteCodes[byteCodeCount++] = new ShaderByteCode
+                        {
+                            pCode = payload + pass.dataOffset + entry.byteCodeOffset,
+                            size = (ulong)entry.byteCodeSize,
+                        };
+                    }
+                    else
+                    {
+                        DiscardStagedPayload();
+                        return Result.Failure($"Shader asset {AssetId} could not resolve bytecode 0x{entry.bytecodeHash:X16} for pass {passIndex}.");
+                    }
                 }
 
                 passEntryOffsets[passIndex + 1] = byteCodeCount;

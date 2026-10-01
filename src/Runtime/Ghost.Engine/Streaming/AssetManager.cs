@@ -121,6 +121,7 @@ public partial class AssetManager : IDisposable
     private readonly ShaderVariantRegistry _shaderVariants;
     private readonly ComputeShaderRegistry _computeShaders;
     private readonly WorkGraphRegistry _workGraphs;
+    private readonly ShaderBytecodePool? _bytecodePool;
 
     private readonly ConcurrentDictionary<Guid, AssetEntry> _entries;
 
@@ -150,7 +151,35 @@ public partial class AssetManager : IDisposable
         _computeShaders = new ComputeShaderRegistry(resourceManager, contentProvider.ShaderCatalog);
         _workGraphs = new WorkGraphRegistry(contentProvider.ShaderCatalog);
 
+        if (contentProvider.HasAsset(ShaderBytecodePool.POOL_ASSET_ID))
+        {
+            var readResult = contentProvider.OpenReadAsync(ShaderBytecodePool.POOL_ASSET_ID);
+            if (readResult.IsSuccess && readResult.Value.stream != null)
+            {
+                using var stream = readResult.Value.stream;
+                try
+                {
+                    _bytecodePool = new ShaderBytecodePool(stream);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning($"Failed to initialize shader bytecode pool: {ex.Message}");
+                }
+            }
+        }
+
         _entries = new ConcurrentDictionary<Guid, AssetEntry>();
+    }
+
+    internal bool TryGetPooledBytecode(ulong hash, out ShaderByteCode byteCode)
+    {
+        if (_bytecodePool != null)
+        {
+            return _bytecodePool.TryGetBytecode(hash, out byteCode);
+        }
+
+        byteCode = default;
+        return false;
     }
 
     internal bool TryGetEntry(Guid guid, [NotNullWhen(true)] out AssetEntry? entry)
@@ -391,6 +420,7 @@ public partial class AssetManager : IDisposable
         _computeShaders.Dispose();
         _workGraphs.Dispose();
         _shaderVariants.Dispose();
+        _bytecodePool?.Dispose();
         _contentProvider.Dispose();
 
         GC.SuppressFinalize(this);

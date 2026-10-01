@@ -2,6 +2,7 @@ using Ghost.AssetForge.Core.Models;
 using Ghost.Core;
 using Ghost.Core.Utilities;
 using K4os.Compression.LZ4.Streams;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using ZstdSharp;
@@ -69,6 +70,20 @@ public class PackService
 
             stream.Position = assetStart + nextPassOffset;
             var pass = stream.Read<ShaderContentHeader.PassHeader>();
+
+            var bytecodeHashes = new ulong[pass.entryPointCount];
+            var entryHeadersSize = pass.entryPointCount * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>();
+            if (pass.dataSize >= entryHeadersSize && assetStart + pass.dataOffset + entryHeadersSize <= stream.Length)
+            {
+                var entryHeadersOffset = assetStart + pass.dataOffset;
+                stream.Position = entryHeadersOffset;
+                for (var ep = 0; ep < pass.entryPointCount; ep++)
+                {
+                    var entryHeader = stream.Read<ShaderContentHeader.EntryPointHeader>();
+                    bytecodeHashes[ep] = entryHeader.bytecodeHash;
+                }
+            }
+
             passes[i] = new ShaderCatalogPass
             {
                 Name = ReadUtf8String(stream, assetStart, pass.nameOffset, pass.nameSize),
@@ -78,6 +93,7 @@ public class PackService
                 PassId = pass.passId,
                 LocalPipeline = pass.localPipeline,
                 ShadingModelId = pass.shadingModelId,
+                BytecodeHashes = bytecodeHashes,
             };
             nextPassOffset = pass.dataOffset + pass.dataSize;
         }
@@ -94,6 +110,155 @@ public class PackService
             ShaderModel = header.shaderModel,
             Passes = passes,
         };
+    }
+
+    private static bool TryCreateStrippedShaderStream(string cacheFile, Dictionary<ulong, byte[]> uniqueBytecodes, [NotNullWhen(true)] out MemoryStream? strippedStream)
+    {
+        strippedStream = null;
+        try
+        {
+            using var stream = new FileStream(cacheFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var assetStart = CacheFileHeader.SIZE;
+            if (stream.Length < assetStart + Unsafe.SizeOf<ShaderContentHeader>())
+            {
+                return false;
+            }
+
+            stream.Position = assetStart;
+            var header = stream.Read<ShaderContentHeader>();
+            if (header.magic != ShaderContentHeader.MAGIC || header.version != ShaderContentHeader.VERSION)
+            {
+                return false;
+            }
+
+            if (header.passCount == 0 || header.passCount > 16 ||
+                header.nameOffset < 0 || header.nameSize == 0 ||
+                assetStart + header.nameOffset + header.nameSize > stream.Length)
+            {
+                return false;
+            }
+
+            var nameBytes = new byte[header.nameSize];
+            stream.Position = assetStart + header.nameOffset;
+            stream.ReadExactly(nameBytes);
+
+            var passHeaders = new ShaderContentHeader.PassHeader[header.passCount];
+            var passNames = new byte[header.passCount][];
+            var passEntryPoints = new ShaderContentHeader.EntryPointHeader[header.passCount][];
+
+            var nextPassOffset = header.nameOffset + header.nameSize;
+            var hasAnyPooled = false;
+
+            for (var i = 0; i < header.passCount; i++)
+            {
+                if (nextPassOffset < 0 || assetStart + nextPassOffset + Unsafe.SizeOf<ShaderContentHeader.PassHeader>() > stream.Length)
+                {
+                    return false;
+                }
+
+                stream.Position = assetStart + nextPassOffset;
+                passHeaders[i] = stream.Read<ShaderContentHeader.PassHeader>();
+
+                if (passHeaders[i].nameOffset < 0 || assetStart + passHeaders[i].nameOffset + passHeaders[i].nameSize > stream.Length)
+                {
+                    return false;
+                }
+
+                var pName = new byte[passHeaders[i].nameSize];
+                stream.Position = assetStart + passHeaders[i].nameOffset;
+                stream.ReadExactly(pName);
+                passNames[i] = pName;
+
+                var entryHeadersSize = passHeaders[i].entryPointCount * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>();
+                if (passHeaders[i].dataSize < entryHeadersSize ||
+                    passHeaders[i].dataOffset < 0 ||
+                    assetStart + passHeaders[i].dataOffset + entryHeadersSize > stream.Length)
+                {
+                    return false;
+                }
+
+                var entryPoints = new ShaderContentHeader.EntryPointHeader[passHeaders[i].entryPointCount];
+                stream.Position = assetStart + passHeaders[i].dataOffset;
+                for (var ep = 0; ep < entryPoints.Length; ep++)
+                {
+                    entryPoints[ep] = stream.Read<ShaderContentHeader.EntryPointHeader>();
+                    if (entryPoints[ep].bytecodeHash != 0)
+                    {
+                        hasAnyPooled = true;
+                        if (entryPoints[ep].byteCodeSize > 0 && !uniqueBytecodes.ContainsKey(entryPoints[ep].bytecodeHash))
+                        {
+                            var codeOffset = assetStart + passHeaders[i].dataOffset + entryPoints[ep].byteCodeOffset;
+                            if (codeOffset + entryPoints[ep].byteCodeSize <= stream.Length)
+                            {
+                                var codeBytes = new byte[entryPoints[ep].byteCodeSize];
+                                var prevPos = stream.Position;
+                                stream.Position = codeOffset;
+                                stream.ReadExactly(codeBytes);
+                                stream.Position = prevPos;
+                                uniqueBytecodes[entryPoints[ep].bytecodeHash] = codeBytes;
+                            }
+                        }
+                    }
+                }
+
+                passEntryPoints[i] = entryPoints;
+                nextPassOffset = passHeaders[i].dataOffset + passHeaders[i].dataSize;
+            }
+
+            if (!hasAnyPooled)
+            {
+                return false;
+            }
+
+            var ms = new MemoryStream();
+            ms.Write(header); // placeholder
+
+            var newNameOffset = ms.Position;
+            ms.Write(nameBytes);
+            header.nameOffset = newNameOffset;
+            header.nameSize = (uint)nameBytes.Length;
+
+            var passHeaderPositions = new long[header.passCount];
+            for (var i = 0; i < header.passCount; i++)
+            {
+                passHeaderPositions[i] = ms.Position;
+                ms.Write(passHeaders[i]); // placeholder
+
+                var newPassNameOffset = ms.Position;
+                ms.Write(passNames[i]);
+                passHeaders[i].nameOffset = newPassNameOffset;
+                passHeaders[i].nameSize = (uint)passNames[i].Length;
+
+                var newPassDataOffset = ms.Position;
+                for (var ep = 0; ep < passEntryPoints[i].Length; ep++)
+                {
+                    var epHeader = passEntryPoints[i][ep];
+                    epHeader.byteCodeOffset = 0;
+                    ms.Write(epHeader);
+                }
+
+                passHeaders[i].dataOffset = newPassDataOffset;
+                passHeaders[i].dataSize = ms.Position - newPassDataOffset;
+
+                var curPos = ms.Position;
+                ms.Position = passHeaderPositions[i];
+                ms.Write(passHeaders[i]);
+                ms.Position = curPos;
+            }
+
+            ms.Position = 0;
+            ms.Write(header);
+            ms.Position = 0;
+
+            strippedStream = ms;
+            return true;
+        }
+        catch
+        {
+            strippedStream?.Dispose();
+            strippedStream = null;
+            return false;
+        }
     }
 
     public async Task PackProjectAsync(CancellationToken cancellationToken = default)
@@ -131,6 +296,8 @@ public class PackService
             var completed = 0;
             var total = allAssetFiles.Length;
             OnProgress?.Invoke(completed, total);
+
+            var uniqueBytecodes = new Dictionary<ulong, byte[]>();
 
             foreach (var kvp in virtualPathToFile)
             {
@@ -178,58 +345,69 @@ public class PackService
                     continue;
                 }
 
-                // Cache files start with a 16-byte CacheFileHeader; it is not part of the
-                // compressed payload, so exclude it from the size estimate.
-                var uncompressedSize = cacheFileInfo.Length - CacheFileHeader.SIZE;
-
-                // Should we start a new pack file?
-                // uncompressedSize is the size of the *uncompressed* cache payload (the
-                // CacheFileHeader was stripped from the file length above), so it is a
-                // conservative upper-bound estimate of the bytes actually written to the
-                // pack: LZ4/Zstd typically shrink data, and per-asset frame overhead is
-                // negligible next to the GB-scale ChunkSizeThreshold. Using this estimate
-                // guarantees pack files never meaningfully overshoot the configured threshold.
-                if (currentPackStream != null && currentPackSize + uncompressedSize > project.BakeSettings.ChunkSizeThreshold)
-                {
-                    await currentPackStream.DisposeAsync();
-                    currentPackStream = null;
-                    packIndex++;
-                    currentPackName = GetPackFileName(packIndex);
-                    currentPackPath = Path.Combine(buildDir, currentPackName);
-                    currentPackSize = 0;
-                }
-
-                if (currentPackStream == null)
-                {
-                    Logger.Info($"Creating new pack file: {currentPackName}");
-                    currentPackStream = new FileStream(currentPackPath, FileMode.Create, FileAccess.Write);
-                    new PackFileHeader().WriteTo(currentPackStream);
-                }
-
-                var offset = currentPackStream.Position;
-
-                // Compress and write payload (seek past the 16-byte CacheFileHeader)
-                using var fsIn = new FileStream(cacheFile, FileMode.Open, FileAccess.Read);
-                fsIn.Seek(CacheFileHeader.SIZE, SeekOrigin.Begin);
-                var size = await CompressAndWriteAsync(fsIn, currentPackStream, project.BakeSettings.Compression, cancellationToken);
-                currentPackSize = currentPackStream.Position;
-
-                manifest.AddAsset(key, new AssetInfo
-                {
-                    AssetId = metadata.Id,
-                    AssetType = metadata.Type,
-                    PackFileName = currentPackName,
-                    Offset = offset,
-                    Size = size,
-                    UncompressedSize = uncompressedSize,
-                });
-
-                if (metadata.Type == AssetType.Shader || metadata.Type == AssetType.ComputeShader || metadata.Type == AssetType.WorkGraph)
+                var isShader = metadata.Type == AssetType.Shader || metadata.Type == AssetType.ComputeShader || metadata.Type == AssetType.WorkGraph;
+                if (isShader)
                 {
                     manifest.Shaders.Add(ReadShaderCatalogEntry(cacheFile, metadata.Id));
                 }
 
-                Logger.Info($"Packed {key} into {currentPackName} (Offset: {offset}, Size: {size})");
+                Stream assetPayloadStream;
+                long uncompressedSize;
+                if (isShader && TryCreateStrippedShaderStream(cacheFile, uniqueBytecodes, out var strippedStream))
+                {
+                    assetPayloadStream = strippedStream;
+                    uncompressedSize = strippedStream.Length;
+                }
+                else
+                {
+                    var fs = new FileStream(cacheFile, FileMode.Open, FileAccess.Read);
+                    fs.Seek(CacheFileHeader.SIZE, SeekOrigin.Begin);
+                    assetPayloadStream = fs;
+                    uncompressedSize = cacheFileInfo.Length - CacheFileHeader.SIZE;
+                }
+
+                try
+                {
+                    // Should we start a new pack file?
+                    if (currentPackStream != null && currentPackSize + uncompressedSize > project.BakeSettings.ChunkSizeThreshold)
+                    {
+                        await currentPackStream.DisposeAsync();
+                        currentPackStream = null;
+                        packIndex++;
+                        currentPackName = GetPackFileName(packIndex);
+                        currentPackPath = Path.Combine(buildDir, currentPackName);
+                        currentPackSize = 0;
+                    }
+
+                    if (currentPackStream == null)
+                    {
+                        Logger.Info($"Creating new pack file: {currentPackName}");
+                        currentPackStream = new FileStream(currentPackPath, FileMode.Create, FileAccess.Write);
+                        new PackFileHeader().WriteTo(currentPackStream);
+                    }
+
+                    var offset = currentPackStream.Position;
+
+                    // Compress and write payload
+                    var size = await CompressAndWriteAsync(assetPayloadStream, currentPackStream, project.BakeSettings.Compression, cancellationToken);
+                    currentPackSize = currentPackStream.Position;
+
+                    manifest.AddAsset(key, new AssetInfo
+                    {
+                        AssetId = metadata.Id,
+                        AssetType = metadata.Type,
+                        PackFileName = currentPackName,
+                        Offset = offset,
+                        Size = size,
+                        UncompressedSize = uncompressedSize,
+                    });
+
+                    Logger.Info($"Packed {key} into {currentPackName} (Offset: {offset}, Size: {size})");
+                }
+                finally
+                {
+                    await assetPayloadStream.DisposeAsync();
+                }
 
                 // Pack sub-assets
                 var subManifestPath = cacheFile + ".sub.json";
@@ -245,10 +423,7 @@ public class PackService
                         var subFileInfo = new FileInfo(subCachePath);
                         var subUncompressedSize = subFileInfo.Length;
 
-                        // Should we start a new pack file? Same conservative upper-bound
-                        // reasoning as the main asset loop: subUncompressedSize over-estimates
-                        // the compressed bytes actually written (LZ4/Zstd typically shrink data;
-                        // frame overhead is negligible vs the GB-scale threshold).
+                        // Should we start a new pack file?
                         if (currentPackStream != null && currentPackSize + subUncompressedSize > project.BakeSettings.ChunkSizeThreshold)
                         {
                             await currentPackStream.DisposeAsync();
@@ -283,6 +458,58 @@ public class PackService
 
                 completed++;
                 OnProgress?.Invoke(completed, total);
+            }
+
+            if (uniqueBytecodes.Count > 0)
+            {
+                using var poolStream = new MemoryStream();
+                var magic = ShaderBytecodePoolConstants.MAGIC;
+                poolStream.Write(magic);
+                var count = (uint)uniqueBytecodes.Count;
+                poolStream.Write(count);
+                foreach (var (hash, bytes) in uniqueBytecodes)
+                {
+                    var h = hash;
+                    poolStream.Write(h);
+                    var s = (uint)bytes.Length;
+                    poolStream.Write(s);
+                    poolStream.Write(bytes);
+                }
+                poolStream.Position = 0;
+
+                var uncompressedPoolSize = poolStream.Length;
+                if (currentPackStream != null && currentPackSize + uncompressedPoolSize > project.BakeSettings.ChunkSizeThreshold)
+                {
+                    await currentPackStream.DisposeAsync();
+                    currentPackStream = null;
+                    packIndex++;
+                    currentPackName = GetPackFileName(packIndex);
+                    currentPackPath = Path.Combine(buildDir, currentPackName);
+                    currentPackSize = 0;
+                }
+
+                if (currentPackStream == null)
+                {
+                    Logger.Info($"Creating new pack file: {currentPackName}");
+                    currentPackStream = new FileStream(currentPackPath, FileMode.Create, FileAccess.Write);
+                    new PackFileHeader().WriteTo(currentPackStream);
+                }
+
+                var poolOffset = currentPackStream.Position;
+                var poolSize = await CompressAndWriteAsync(poolStream, currentPackStream, project.BakeSettings.Compression, cancellationToken);
+                currentPackSize = currentPackStream.Position;
+
+                manifest.AddAsset(ShaderBytecodePoolConstants.POOL_ASSET_KEY, new AssetInfo
+                {
+                    AssetId = ShaderBytecodePoolConstants.POOL_ASSET_ID,
+                    AssetType = AssetType.Shader,
+                    PackFileName = currentPackName,
+                    Offset = poolOffset,
+                    Size = poolSize,
+                    UncompressedSize = uncompressedPoolSize,
+                });
+
+                Logger.Info($"Packed {ShaderBytecodePoolConstants.POOL_ASSET_KEY} into {currentPackName} ({uniqueBytecodes.Count} unique bytecodes, Offset: {poolOffset}, Size: {poolSize})");
             }
 
             // Write Manifest

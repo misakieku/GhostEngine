@@ -1,6 +1,8 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
+using System.IO.Hashing;
+using System.Runtime.InteropServices;
 
 namespace Ghost.AssetForge.Core.Models;
 
@@ -30,6 +32,33 @@ public struct ShaderCompilationConfig
     public IReadOnlyList<string>? includeDirectories;
     public CompilerOptimizeLevel optimizeLevel;
     public CompilerOption options;
+
+    public readonly ulong ComputeHash()
+    {
+        var hash = (ulong)stage ^ ((ulong)model << 8) ^ ((ulong)optimizeLevel << 16) ^ ((ulong)options << 24);
+        if (!string.IsNullOrEmpty(entryPoint))
+        {
+            hash = Hash.Combine64(hash, System.IO.Hashing.XxHash64.HashToUInt64(System.Runtime.InteropServices.MemoryMarshal.AsBytes(entryPoint.AsSpan())));
+        }
+
+        if (!string.IsNullOrEmpty(shaderCode))
+        {
+            hash = Hash.Combine64(hash, System.IO.Hashing.XxHash64.HashToUInt64(System.Runtime.InteropServices.MemoryMarshal.AsBytes(shaderCode.AsSpan())));
+        }
+
+        if (defines != null)
+        {
+            for (var i = 0; i < defines.Length; i++)
+            {
+                if (!string.IsNullOrEmpty(defines[i]))
+                {
+                    hash = Hash.Combine64(hash, System.IO.Hashing.XxHash64.HashToUInt64(System.Runtime.InteropServices.MemoryMarshal.AsBytes(defines[i].AsSpan())));
+                }
+            }
+        }
+
+        return hash;
+    }
 }
 
 public enum CompilerOptimizeLevel

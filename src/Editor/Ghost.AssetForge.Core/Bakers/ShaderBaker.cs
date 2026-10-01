@@ -7,6 +7,7 @@ using Ghost.Core.Utilities;
 using Ghost.DSL.ShaderCompiler;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Collections.Concurrent;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -39,6 +40,23 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
 {
     internal static readonly DXCShaderCompiler s_compiler = new DXCShaderCompiler();
     internal static readonly SemaphoreSlim s_compileLock = new SemaphoreSlim(1, 1);
+    internal static readonly ConcurrentDictionary<ulong, byte[]> s_compileCache = new();
+
+    internal static UnsafeArray<byte> CompileStage(in ShaderCompilationConfig config)
+    {
+        var key = config.ComputeHash();
+        if (s_compileCache.TryGetValue(key, out var cached))
+        {
+            var arr = new UnsafeArray<byte>(cached.Length, AllocationHandle.TLSF);
+            cached.AsSpan().CopyTo(arr.AsSpan());
+            return arr;
+        }
+
+        var result = s_compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+        var bytes = result.AsSpan().ToArray();
+        s_compileCache.TryAdd(key, bytes);
+        return result;
+    }
 
     public static IEnumerable<string> FindDependencies(string sourceFile, IBakeSettings settings, AssetBakerContext ctx)
     {
@@ -89,9 +107,14 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 byteCodeOffset += entries[j].bytecode.Length;
             }
 
+            var bytecodeHash = bytecode.IsCreated && bytecode.Length > 0
+                ? XxHash64.HashToUInt64(bytecode.AsSpan())
+                : 0UL;
+
             var entryPointHeader = new ShaderContentHeader.EntryPointHeader
             {
                 stage = stage,
+                bytecodeHash = bytecodeHash,
                 byteCodeSize = bytecode.Length,
                 byteCodeOffset = byteCodeOffset
             };
@@ -216,7 +239,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                         shaderCode = pass.computeShaderCode.code,
                     };
 
-                    using var csByteCode = s_compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                    using var csByteCode = CompileStage(in config);
                     await WriteShaderEntries(dst, passDataStart, cancellationToken,
                         (ShaderStage.ComputeShader, csByteCode));
                 }
@@ -236,19 +259,19 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                         entryPoint = pass.meshShaderCode.entryPoint,
                         shaderCode = pass.meshShaderCode.code,
                     };
-                    using var msByteCode = s_compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                    using var msByteCode = CompileStage(in config);
 
                     config.stage = ShaderStage.PixelShader;
                     config.entryPoint = pass.pixelShaderCode.entryPoint;
                     config.shaderCode = pass.pixelShaderCode.code;
-                    using var psByteCode = s_compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                    using var psByteCode = CompileStage(in config);
 
                     if (pass.amplificationShaderCode.IsCreated)
                     {
                         config.stage = ShaderStage.AmplificationShader;
                         config.entryPoint = pass.amplificationShaderCode.entryPoint;
                         config.shaderCode = pass.amplificationShaderCode.code;
-                        using var asByteCode = s_compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                        using var asByteCode = CompileStage(in config);
                         await WriteShaderEntries(dst, passDataStart, cancellationToken,
                             (ShaderStage.AmplificationShader, asByteCode),
                             (ShaderStage.MeshShader, msByteCode),
@@ -326,7 +349,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                         shaderCode = shaderCode.code,
                     };
 
-                    byteCodes[j] = s_compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+                    byteCodes[j] = CompileStage(in config);
                 }
 
                 var entries = byteCodes.Select((bc, index) => (ShaderStage.ComputeShader, bc)).ToArray();
@@ -397,7 +420,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 shaderCode = shaderCode.code,
             };
 
-            using var libraryByteCode = s_compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
+            using var libraryByteCode = CompileStage(in config);
             await WriteShaderEntries(dst, passDataStart, cancellationToken, (ShaderStage.Library, libraryByteCode));
 
             passHeader.dataOffset = passDataStart - assetStartOffset;
