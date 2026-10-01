@@ -17,6 +17,7 @@ compute "Internal/OccludedMeshletCull"
     includes
     {
         "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Mesh.hlsl";
         "EngineResources/Shaders/Utilities/CullCommon.hlsl";
         "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl";
     }
@@ -50,7 +51,8 @@ compute "Internal/OccludedMeshletCull"
                 rec = occludedBuffer[slotIndex];
 
                 InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
-                Meshlet meshlet = LoadData<Meshlet>(rec.meshletBufferIndex, rec.meshletIndex);
+                MeshData meshData = LoadData<MeshData>(instance.meshBuffer, 0);
+                Meshlet meshlet = LoadMeshlet(rec.meshletIndex, meshData);
 
                 uint localMaterialIndex = (meshlet.packedCounts >> 16u) & 0xFFu;
                 uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instance.materialPaletteIndex, localMaterialIndex);

@@ -89,24 +89,6 @@ struct InstanceData
     uint pad1;
 };
 
-struct MeshData
-{
-    float3 worldBoundsMin;
-    BYTE_ADDRESS_BUFFER vertexBuffer;
-    float3 worldBoundsMax;
-    BYTE_ADDRESS_BUFFER indexBuffer;
-
-    BYTE_ADDRESS_BUFFER meshletBuffer;
-    BYTE_ADDRESS_BUFFER meshletVerticesBuffer;
-    BYTE_ADDRESS_BUFFER meshletTrianglesBuffer;
-    BYTE_ADDRESS_BUFFER meshletGroupBuffer;
-    BYTE_ADDRESS_BUFFER meshletHierarchyBuffer;
-    uint meshletCount;
-    uint meshletGroupCount;
-    uint lodLevelCount;
-    uint materialSlotCount;
-};
-
 cbuffer PushConstants : register(b0)
 {
     PushConstantData g_PushConstantData;

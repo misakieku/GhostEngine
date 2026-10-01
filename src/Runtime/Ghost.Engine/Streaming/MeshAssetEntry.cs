@@ -10,6 +10,7 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Xml.Linq;
 
 namespace Ghost.Engine.Streaming;
 
@@ -22,27 +23,14 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
     private MemoryBlock _rawData;
 
     private MeshContentHeader _header;
-    private byte* _pVertices;
-    private byte* _pIndices;
-    private byte* _pMeshlets;
-    private byte* _pMeshletGroups;
-    private byte* _pMeshletHierarchyNodes;
-    private byte* _pMeshletVertices;
-    private byte* _pMeshletTriangles;
 
     public MeshAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies)
         : base(manager, resourceDatabase, resourceManager, assetId, AssetType.Mesh, dependencies)
     {
         var mesh = default(Mesh);
 
-        mesh.VertexBuffer = resourceDatabase.CreateEmpty().AsBuffer();
-        mesh.IndexBuffer = resourceDatabase.CreateEmpty().AsBuffer();
         mesh.MeshDataBuffer = resourceDatabase.CreateEmpty().AsBuffer();
-        mesh.MeshletBuffer = resourceDatabase.CreateEmpty().AsBuffer();
-        mesh.MeshletGroupBuffer = resourceDatabase.CreateEmpty().AsBuffer();
-        mesh.MeshletHierarchyBuffer = resourceDatabase.CreateEmpty().AsBuffer();
-        mesh.MeshletVerticesBuffer = resourceDatabase.CreateEmpty().AsBuffer();
-        mesh.MeshletTrianglesBuffer = resourceDatabase.CreateEmpty().AsBuffer();
+        mesh.MeshBuffer = resourceDatabase.CreateEmpty().AsBuffer();
 
         _actualHandle = resourceManager.RegisterMesh(ref mesh);
     }
@@ -120,73 +108,47 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         }
 
         _header = header;
-        _pVertices = pData + header.vertexOffset;
-        _pIndices = pData + header.indexOffset;
-        _pMeshlets = pData + header.meshletOffset;
-        _pMeshletGroups = pData + header.meshletGroupOffset;
-        _pMeshletHierarchyNodes = pData + header.meshletHierarchyNodeOffset;
-        _pMeshletVertices = pData + header.meshletVertexOffset;
-        _pMeshletTriangles = pData + header.meshletTriangleOffset;
 
         return Result.Success();
     }
 
-    private static Handle<GPUBuffer> CreateBuffer(ResourceStreamingContext context, void* pData, int count, uint stride, BufferUsage usage, string name)
+    public Result OnRecordUploadCommands(in ResourceStreamingContext context)
     {
         var desc = new BufferDesc
         {
-            Size = (ulong)count * stride,
-            Stride = stride,
-            Usage = usage,
+            Size = (ulong)_rawData.Size,
+            Stride = 1,
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
             HeapType = HeapType.Default,
         };
 
-        return ResourceUtility.CreateBuffer(
+        var meshBuffer = ResourceUtility.CreateBuffer(
             context.ResourceManager,
             context.ResourceDatabase,
             context.ResourceAllocator,
             context.CopyCommandBuffer,
-            pData,
+            _rawData.GetUnsafePtr(),
             (nuint)desc.Size,
             in desc,
-            name);
-    }
+            "Mesh_Buffer");
 
-    public Result OnRecordUploadCommands(in ResourceStreamingContext context)
-    {
-        var vertexBuffer = CreateBuffer(context, _pVertices, _header.vertexCount, (uint)sizeof(Vertex),
-            BufferUsage.Vertex | BufferUsage.ShaderResource | BufferUsage.Raw, "Mesh_VertexBuffer");
-        var indexBuffer = CreateBuffer(context, _pIndices, _header.indexCount, sizeof(uint),
-            BufferUsage.Index | BufferUsage.ShaderResource | BufferUsage.Raw, "Mesh_IndexBuffer");
-        var meshletBuffer = CreateBuffer(context, _pMeshlets, _header.meshletCount, (uint)sizeof(Meshlet),
-            BufferUsage.Raw | BufferUsage.ShaderResource, "Mesh_Meshlets");
-        var meshletVerticesBuffer = CreateBuffer(context, _pMeshletVertices, _header.meshletVertexCount, sizeof(uint),
-            BufferUsage.Raw | BufferUsage.ShaderResource, "Mesh_MeshletVertices");
-        var meshletTrianglesBuffer = CreateBuffer(context, _pMeshletTriangles, _header.meshletTriangleCount, sizeof(uint),
-            BufferUsage.Raw | BufferUsage.ShaderResource, "Mesh_MeshletTriangles");
-        var meshletGroupBuffer = CreateBuffer(context, _pMeshletGroups, _header.meshletGroupCount, (uint)sizeof(MeshletGroup),
-            BufferUsage.Raw | BufferUsage.ShaderResource, "Mesh_MeshletGroups");
-        var meshletHierarchyBuffer = CreateBuffer(context, _pMeshletHierarchyNodes, _header.meshletHierarchyNodeCount, (uint)sizeof(MeshletHierarchyNode),
-            BufferUsage.Raw | BufferUsage.ShaderResource, "Mesh_MeshletHierarchy");
-
-        if (vertexBuffer.IsInvalid || indexBuffer.IsInvalid || meshletBuffer.IsInvalid ||
-            meshletVerticesBuffer.IsInvalid || meshletTrianglesBuffer.IsInvalid ||
-            meshletGroupBuffer.IsInvalid || meshletHierarchyBuffer.IsInvalid)
+        if (meshBuffer.IsInvalid)
         {
-            return Result.Failure("Failed to create one or more mesh GPU buffers.");
+            return Result.Failure("Failed to create mesh GPU buffer.");
         }
 
         var meshData = new MeshData
         {
             worldBoundsMin = _header.boundsMin,
             worldBoundsMax = _header.boundsMax,
-            vertexBuffer = context.ResourceDatabase.GetBindlessIndex(vertexBuffer.AsResource()),
-            indexBuffer = context.ResourceDatabase.GetBindlessIndex(indexBuffer.AsResource()),
-            meshletBuffer = context.ResourceDatabase.GetBindlessIndex(meshletBuffer.AsResource()),
-            meshletVerticesBuffer = context.ResourceDatabase.GetBindlessIndex(meshletVerticesBuffer.AsResource()),
-            meshletTrianglesBuffer = context.ResourceDatabase.GetBindlessIndex(meshletTrianglesBuffer.AsResource()),
-            meshletGroupBuffer = context.ResourceDatabase.GetBindlessIndex(meshletGroupBuffer.AsResource()),
-            meshletHierarchyBuffer = context.ResourceDatabase.GetBindlessIndex(meshletHierarchyBuffer.AsResource()),
+            vertexBufferOffset = (uint)_header.vertexOffset,
+            indexBufferOffset = (uint)_header.indexOffset,
+            rawBuffer = context.ResourceDatabase.GetBindlessIndex(meshBuffer.AsResource()),
+            meshletBufferOffset = (uint)_header.meshletOffset,
+            meshletVerticesBufferOffset = (uint)_header.meshletVertexOffset,
+            meshletTrianglesBufferOffset = (uint)_header.meshletTriangleOffset,
+            meshletGroupBufferOffset = (uint)_header.meshletGroupOffset,
+            meshletHierarchyBufferOffset = (uint)_header.meshletHierarchyNodeOffset,
             meshletCount = (uint)_header.meshletCount,
             meshletGroupCount = (uint)_header.meshletGroupCount,
             lodLevelCount = (uint)_header.lodLevelCount,
@@ -221,13 +183,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
             IsMeshDataDirty = true,
             VertexCount = _header.vertexCount,
             IndexCount = _header.indexCount,
-            VertexBuffer = vertexBuffer,
-            IndexBuffer = indexBuffer,
-            MeshletBuffer = meshletBuffer,
-            MeshletVerticesBuffer = meshletVerticesBuffer,
-            MeshletTrianglesBuffer = meshletTrianglesBuffer,
-            MeshletGroupBuffer = meshletGroupBuffer,
-            MeshletHierarchyBuffer = meshletHierarchyBuffer,
+            MeshBuffer = meshBuffer,
             MeshDataBuffer = meshDataBuffer,
             BoundingBox = new AABB(_header.boundsMin, _header.boundsMax),
             MeshletData = new MeshletMeshData
@@ -236,7 +192,14 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
                 meshletGroupCount = _header.meshletGroupCount,
                 lodLevelCount = _header.lodLevelCount,
                 materialSlotCount = _header.materialSlotCount,
-            }
+            },
+            VertexBufferOffset = (ulong)_header.vertexOffset,
+            IndexBufferOffset = (ulong)_header.indexOffset,
+            MeshletBufferOffset = (ulong)_header.meshletOffset,
+            MeshletVerticesBufferOffset = (ulong)_header.meshletVertexOffset,
+            MeshletTrianglesBufferOffset = (ulong)_header.meshletTriangleOffset,
+            MeshletGroupBufferOffset = (ulong)_header.meshletGroupOffset,
+            MeshletHierarchyBufferOffset = (ulong)_header.meshletHierarchyNodeOffset,
         };
 
         var newHandle = context.ResourceManager.RegisterMesh(ref mesh);
@@ -271,36 +234,16 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
 
         dstMesh.IsMeshDataDirty = false;
 
-        dstMesh.VertexBuffer = context.ResourceDatabase.Replace(temp.VertexBuffer.AsResource(), srcMesh.VertexBuffer.AsResource()).AsBuffer();
-        dstMesh.IndexBuffer = context.ResourceDatabase.Replace(temp.IndexBuffer.AsResource(), srcMesh.IndexBuffer.AsResource()).AsBuffer();
+        dstMesh.MeshBuffer = context.ResourceDatabase.Replace(temp.MeshBuffer.AsResource(), srcMesh.MeshBuffer.AsResource()).AsBuffer();
         dstMesh.MeshDataBuffer = context.ResourceDatabase.Replace(temp.MeshDataBuffer.AsResource(), srcMesh.MeshDataBuffer.AsResource()).AsBuffer();
-
-        dstMesh.MeshletBuffer = context.ResourceDatabase.Replace(temp.MeshletBuffer.AsResource(), srcMesh.MeshletBuffer.AsResource()).AsBuffer();
-        dstMesh.MeshletGroupBuffer = context.ResourceDatabase.Replace(temp.MeshletGroupBuffer.AsResource(), srcMesh.MeshletGroupBuffer.AsResource()).AsBuffer();
-        dstMesh.MeshletHierarchyBuffer = context.ResourceDatabase.Replace(temp.MeshletHierarchyBuffer.AsResource(), srcMesh.MeshletHierarchyBuffer.AsResource()).AsBuffer();
-        dstMesh.MeshletVerticesBuffer = context.ResourceDatabase.Replace(temp.MeshletVerticesBuffer.AsResource(), srcMesh.MeshletVerticesBuffer.AsResource()).AsBuffer();
-        dstMesh.MeshletTrianglesBuffer = context.ResourceDatabase.Replace(temp.MeshletTrianglesBuffer.AsResource(), srcMesh.MeshletTrianglesBuffer.AsResource()).AsBuffer();
 
         context.ResourceManager.ReleaseMesh(_tempHandle);
         _tempHandle = Handle<Mesh>.Invalid;
 
         context.CommandBuffer.Barrier(
-            BarrierDesc.Buffer(dstMesh.VertexBuffer, BarrierSync.Copy, BarrierSync.VertexShading, BarrierAccess.CopyDest, BarrierAccess.VertexBuffer | BarrierAccess.ShaderResource),
-            BarrierDesc.Buffer(dstMesh.IndexBuffer, BarrierSync.Copy, BarrierSync.IndexInput, BarrierAccess.CopyDest, BarrierAccess.IndexBuffer | BarrierAccess.ShaderResource),
-            BarrierDesc.Buffer(dstMesh.MeshletBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource),
-            BarrierDesc.Buffer(dstMesh.MeshletVerticesBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource),
-            BarrierDesc.Buffer(dstMesh.MeshletTrianglesBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource),
-            BarrierDesc.Buffer(dstMesh.MeshletGroupBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource),
-            BarrierDesc.Buffer(dstMesh.MeshletHierarchyBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource),
+            BarrierDesc.Buffer(dstMesh.MeshBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource),
             BarrierDesc.Buffer(dstMesh.MeshDataBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource));
 
         _rawData.Dispose();
-        _pVertices = null;
-        _pIndices = null;
-        _pMeshlets = null;
-        _pMeshletGroups = null;
-        _pMeshletHierarchyNodes = null;
-        _pMeshletVertices = null;
-        _pMeshletTriangles = null;
     }
 }

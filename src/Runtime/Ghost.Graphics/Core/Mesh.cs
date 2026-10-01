@@ -75,7 +75,7 @@ public struct Mesh : IResourceReleasable
     /// <summary>
     /// Gets the number of meshlets in the mesh.
     /// </summary>
-    public int MeshletCount => _meshletData.meshletCount;
+    public readonly int MeshletCount => _meshletData.meshletCount;
 
     /// <summary>
     /// Gets or sets the axis-aligned bounding box (AABB) of the mesh.
@@ -86,57 +86,65 @@ public struct Mesh : IResourceReleasable
     }
 
     /// <summary>
-    /// Gets the handle to the vertex buffer on the GPU.
+    /// Gets the handle to the mesh buffer on the GPU, which contains all mesh-related data (vertices, indices, meshlets, etc.).
     /// </summary>
-    public Handle<GPUBuffer> VertexBuffer
+    public Handle<GPUBuffer> MeshBuffer
     {
         get; internal set;
     }
 
     /// <summary>
-    /// Gets the handle to the index buffer on the GPU.
+    /// Gets the offset of the vertex buffer in the GPU buffer.
     /// </summary>
-    public Handle<GPUBuffer> IndexBuffer
+    public ulong VertexBufferOffset
     {
         get; internal set;
     }
 
     /// <summary>
-    /// Gets the handle to the meshlet buffer on the GPU.
+    /// Gets the offset of the index buffer in the GPU buffer.
     /// </summary>
-    public Handle<GPUBuffer> MeshletBuffer
+    public ulong IndexBufferOffset
     {
         get; internal set;
     }
 
     /// <summary>
-    /// Gets the handle to the meshlet vertices buffer on the GPU.
+    /// Gets the offset of the meshlet buffer in the GPU buffer.
     /// </summary>
-    public Handle<GPUBuffer> MeshletVerticesBuffer
+    public ulong MeshletBufferOffset
     {
         get; internal set;
     }
 
     /// <summary>
-    /// Gets the handle to the meshlet triangles buffer on the GPU.
+    /// Gets the offset of the meshlet vertices buffer in the GPU buffer.
     /// </summary>
-    public Handle<GPUBuffer> MeshletTrianglesBuffer
+    public ulong MeshletVerticesBufferOffset
     {
         get; internal set;
     }
 
     /// <summary>
-    /// Gets the handle to the meshlet group buffer on the GPU.
+    /// Gets the offset of the meshlet triangles buffer in the GPU buffer.
     /// </summary>
-    public Handle<GPUBuffer> MeshletGroupBuffer
+    public ulong MeshletTrianglesBufferOffset
     {
         get; internal set;
     }
 
     /// <summary>
-    /// Gets the handle to the meshlet hierarchy buffer on the GPU.
+    /// Gets the offset of the meshlet group buffer in the GPU buffer.
     /// </summary>
-    public Handle<GPUBuffer> MeshletHierarchyBuffer
+    public ulong MeshletGroupBufferOffset
+    {
+        get; internal set;
+    }
+
+    /// <summary>
+    /// Gets the offset of the meshlet hierarchy buffer in the GPU buffer.
+    /// </summary>
+    public ulong MeshletHierarchyBufferOffset
     {
         get; internal set;
     }
@@ -171,13 +179,7 @@ public struct Mesh : IResourceReleasable
     {
         ReleaseCpuResources();
 
-        database.ReleaseResource(VertexBuffer.AsResource());
-        database.ReleaseResource(IndexBuffer.AsResource());
-        database.ReleaseResource(MeshletBuffer.AsResource());
-        database.ReleaseResource(MeshletVerticesBuffer.AsResource());
-        database.ReleaseResource(MeshletTrianglesBuffer.AsResource());
-        database.ReleaseResource(MeshletGroupBuffer.AsResource());
-        database.ReleaseResource(MeshletHierarchyBuffer.AsResource());
+        database.ReleaseResource(MeshBuffer.AsResource());
         database.ReleaseResource(MeshDataBuffer.AsResource());
     }
 }

@@ -18,6 +18,7 @@ compute "Internal/TileMaterialClassification"
     includes
     {
         "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Mesh.hlsl";
         "EngineResources/Shaders/Utilities/CullCommon.hlsl";
         "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl";
         "EngineResources/Shaders/MaterialPipeline/VisibilityBufferEncoding.hlsl";
@@ -79,8 +80,7 @@ compute "Internal/TileMaterialClassification"
                     InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
                     MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
 
-                    ByteAddressBuffer meshletBuffer = GET_BUFFER(meshData.meshletBuffer);
-                    Meshlet meshlet = meshletBuffer.Load<Meshlet>(visible.meshletIndex * sizeof(Meshlet));
+                    Meshlet meshlet = LoadMeshlet(visible.meshletIndex, meshData);
                     uint localMaterialIndex = (meshlet.packedCounts >> 16u) & 0xFFu;
 
                     uint packedMaterial = LoadMaterialBindlessIndex(

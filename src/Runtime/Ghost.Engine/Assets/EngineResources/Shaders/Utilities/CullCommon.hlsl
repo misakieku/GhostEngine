@@ -21,7 +21,7 @@ struct MeshletCandidateRecord
 {
     uint instanceIndex;
     uint meshletIndex;
-    uint meshletBufferIndex;
+    uint pad;
 };
 
 struct UnbinnedMeshletEntry

@@ -364,7 +364,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         }
     }
 
-    public uint AllocateRawBufferSRV(Handle<GPUBuffer> buffer, uint offsetInBytes, uint sizeInBytes)
+    public uint AllocateRawBufferSRV(Handle<GPUBuffer> buffer, ulong offsetInBytes, uint sizeInBytes)
     {
         var r = GetResourceRecord(buffer.AsResource());
         if (r.IsFailure || !r.Value.Allocated)

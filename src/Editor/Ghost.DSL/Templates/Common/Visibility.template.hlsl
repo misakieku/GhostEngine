@@ -13,6 +13,7 @@
 #error "Unsupported template type for visibility."
 #endif
 
+#include "EngineResources/Shaders/Mesh.hlsl"
 #include "EngineResources/Shaders/Properties.hlsl"
 #include "EngineResources/Shaders/Utilities/CullCommon.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl"
@@ -70,10 +71,9 @@ bool IsFrontFacingAndVisible(float4 h0, float4 h1, float4 h2, float subpixelThre
     return crossProduct > subpixelThreshold;
 }
 
-float4 GetVertexClipPosition(uint vertexIndex, uint meshletVertexOffset, ByteAddressBuffer meshletVerticesBuffer, ByteAddressBuffer vertexBuffer, float4x4 worldViewProj, out float2 uv)
+float4 GetVertexClipPosition(uint vertexIndex, in MeshData meshData, in Meshlet meshlet, float4x4 worldViewProj, out float2 uv)
 {
-    uint vIdx = meshletVerticesBuffer.Load((meshletVertexOffset + vertexIndex) * 4u);
-    Vertex v = vertexBuffer.Load<Vertex>(vIdx * sizeof(Vertex));
+    Vertex v = LoadMeshletVertex(vertexIndex, meshData, meshlet);
     uv = v.uv;
     return mul(worldViewProj, float4(v.position, 1.0f));
 }
@@ -105,11 +105,7 @@ void MSMain(
 
     InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
     MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
-    Meshlet meshlet = LoadData<Meshlet>(meshData.meshletBuffer, visible.meshletIndex);
-    
-    ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(meshData.meshletVerticesBuffer);
-    ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(meshData.meshletTrianglesBuffer);
-    ByteAddressBuffer vertices = GET_BUFFER(meshData.vertexBuffer);
+    Meshlet meshlet = LoadMeshlet(visible.meshletIndex, meshData);
 
     uint vertexCount = meshlet.packedCounts & 0xFFu;
     uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
@@ -129,8 +125,7 @@ void MSMain(
 
     if (groupThreadID < vertexCount)
     {
-        uint vIdx = meshletVerticesBuffer.Load((meshlet.vertexOffset + groupThreadID) * 4u);
-        Vertex v = vertices.Load<Vertex>(vIdx * sizeof(Vertex));
+        Vertex v = LoadMeshletVertex(groupThreadID, meshData, meshlet);
         
         float2 uv = v.uv;
         float4 clipPos = mul(worldViewProj, float4(v.position, 1.0f));
@@ -150,7 +145,7 @@ void MSMain(
     [unroll(2)]
     for (uint primId = groupThreadID; primId < triangleCount; primId += VISIBILITY_MS_THREADS)
     {
-        uint packedIndices = meshletTrianglesBuffer.Load((meshlet.triangleOffset + primId) * 4);
+        uint packedIndices = LoadPackedIndices(primId, meshData, meshlet);
         uint3 indices = uint3(packedIndices & 0xFF, (packedIndices >> 8) & 0xFF, (packedIndices >> 16) & 0xFF);
 
         float4 v0 = g_VertexPositions[indices.x];

@@ -92,7 +92,7 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         }
     }
 
-    public uint AllocateRawBufferSRV(Handle<GPUBuffer> buffer, uint offsetInBytes, uint sizeInBytes)
+    public uint AllocateRawBufferSRV(Handle<GPUBuffer> buffer, ulong offsetInBytes, uint sizeInBytes)
     {
         return (uint)Interlocked.Increment(ref _nextToken);
     }

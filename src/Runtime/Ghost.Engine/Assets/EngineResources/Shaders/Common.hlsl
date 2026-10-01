@@ -1,49 +1,6 @@
 #ifndef GHOST_COMMON_HLSL
 #define GHOST_COMMON_HLSL
 
-struct Vertex
-{
-    float4 color;
-    float4 tangent;
-    float3 position;
-    float3 normal;
-    float2 uv;
-};
-
-struct Meshlet
-{
-    float4 boundingSphere;
-    float4 parentBoundingSphere;
-    float3 boundingBoxMin;
-    float3 boundingBoxMax;
-    uint vertexOffset;
-    uint triangleOffset;
-    uint groupIndex;
-    float clusterError;
-    float parentError;
-    uint packedCounts; // byte vertexCount, byte triangleCount, byte localMaterialIndex, byte lodLevel
-};
-
-struct MeshletGroup
-{
-    float4 boundingSphere;
-    float3 boundingBoxMin;
-    float3 boundingBoxMax;
-    float parentError;
-    uint meshletStartIndex;
-    uint meshletCount;
-    uint lodLevel;
-};
-
-struct MeshletHierarchyNode
-{
-    float4 bounds;
-    float  error;
-    int    groupIndex;
-    uint   childOffset;
-    uint   childCount;
-};
-
 // Resource descriptor heap definitions
 
 #define GLOBAL_TEXTURE2D_HEAP ResourceDescriptorHeap
@@ -111,18 +68,6 @@ float4 SampleTextureArray(uint texId, uint sampId, float3 uvw)
     Texture2DArray tex = GET_TEXTURE2D_ARRAY(texId);
     SamplerState samp = GET_SAMPLER(sampId);
     return tex.Sample(samp, uvw);
-}
-
-Vertex LoadVertexData(uint vertexID, uint groupID, BYTE_ADDRESS_BUFFER vertexBuffer, BYTE_ADDRESS_BUFFER indexBuffer)
-{
-    ByteAddressBuffer vertices = GET_BUFFER(vertexBuffer);
-    ByteAddressBuffer indices = GET_BUFFER(indexBuffer);
-
-    // Compute the triangle’s vertex indices
-    uint indexOffset = (groupID * 3 + vertexID) * 4; // uint32 index
-    uint vertexIndex = indices.Load(indexOffset);
-
-    return vertices.Load<Vertex>(vertexIndex * sizeof(Vertex));
 }
 
 template<typename T>

@@ -256,15 +256,16 @@ public struct ViewData
 public struct MeshData
 {
     public float3 worldBoundsMin;
-    public uint vertexBuffer;
+    public uint vertexBufferOffset;
     public float3 worldBoundsMax;
-    public uint indexBuffer;
+    public uint indexBufferOffset;
 
-    public uint meshletBuffer;
-    public uint meshletVerticesBuffer;
-    public uint meshletTrianglesBuffer;
-    public uint meshletGroupBuffer;
-    public uint meshletHierarchyBuffer;
+    public uint rawBuffer;
+    public uint meshletBufferOffset;
+    public uint meshletVerticesBufferOffset;
+    public uint meshletTrianglesBufferOffset;
+    public uint meshletGroupBufferOffset;
+    public uint meshletHierarchyBufferOffset;
     public uint meshletCount;
     public uint meshletGroupCount;
     public uint lodLevelCount;

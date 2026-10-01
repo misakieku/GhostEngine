@@ -2,6 +2,7 @@
 #define GHOST_BARYCENTRICS_HLSL
 
 #include "EngineResources/Shaders/Common.hlsl"
+#include "EngineResources/Shaders/Mesh.hlsl"
 #include "EngineResources/Shaders/Properties.hlsl"
 #include "EngineResources/Shaders/Utilities/CullCommon.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl"
@@ -33,22 +34,20 @@ float2 PixelToClipSpace(float2 pixelPos, float2 invViewportSize)
 /// </summary>
 InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pixelCoord, float depth, uint instanceIndex, uint meshletIndex, uint primitiveID, in MeshData meshData)
 {
-    Meshlet meshlet = LoadData<Meshlet>(meshData.meshletBuffer, meshletIndex);
+    Meshlet meshlet = LoadMeshlet(meshletIndex, meshData);
 
-    ByteAddressBuffer meshletVerticesBuffer = GET_BUFFER(meshData.meshletVerticesBuffer);
-    ByteAddressBuffer meshletTrianglesBuffer = GET_BUFFER(meshData.meshletTrianglesBuffer);
-    ByteAddressBuffer vertexBuffer = GET_BUFFER(meshData.vertexBuffer);
+    ByteAddressBuffer rawBuffer = GET_BUFFER(meshData.rawBuffer);
 
-    uint packedIndices = meshletTrianglesBuffer.Load((meshlet.triangleOffset + primitiveID) * 4u);
+    uint packedIndices = rawBuffer.Load(meshData.meshletTrianglesBufferOffset + (meshlet.triangleOffset + primitiveID) * 4u);
     uint3 localIndices = uint3(packedIndices & 0xFFu, (packedIndices >> 8u) & 0xFFu, (packedIndices >> 16u) & 0xFFu);
 
-    uint v0Idx = meshletVerticesBuffer.Load((meshlet.vertexOffset + localIndices.x) * 4u);
-    uint v1Idx = meshletVerticesBuffer.Load((meshlet.vertexOffset + localIndices.y) * 4u);
-    uint v2Idx = meshletVerticesBuffer.Load((meshlet.vertexOffset + localIndices.z) * 4u);
+    uint v0Idx = rawBuffer.Load(meshData.meshletVerticesBufferOffset + (meshlet.vertexOffset + localIndices.x) * 4u);
+    uint v1Idx = rawBuffer.Load(meshData.meshletVerticesBufferOffset + (meshlet.vertexOffset + localIndices.y) * 4u);
+    uint v2Idx = rawBuffer.Load(meshData.meshletVerticesBufferOffset + (meshlet.vertexOffset + localIndices.z) * 4u);
 
-    Vertex v0 = vertexBuffer.Load<Vertex>(v0Idx * sizeof(Vertex));
-    Vertex v1 = vertexBuffer.Load<Vertex>(v1Idx * sizeof(Vertex));
-    Vertex v2 = vertexBuffer.Load<Vertex>(v2Idx * sizeof(Vertex));
+    Vertex v0 = rawBuffer.Load<Vertex>(meshData.vertexBufferOffset + v0Idx * sizeof(Vertex));
+    Vertex v1 = rawBuffer.Load<Vertex>(meshData.vertexBufferOffset + v1Idx * sizeof(Vertex));
+    Vertex v2 = rawBuffer.Load<Vertex>(meshData.vertexBufferOffset + v2Idx * sizeof(Vertex));
 
     InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, instanceIndex);
     float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, instanceData.localToWorld);

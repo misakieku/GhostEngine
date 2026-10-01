@@ -10,6 +10,7 @@
 #endif
 
 #include "EngineResources/Shaders/Properties.hlsl"
+#include "EngineResources/Shaders/Mesh.hlsl"
 #include "EngineResources/Shaders/Utilities/CullCommon.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/VisibilityBufferEncoding.hlsl"
@@ -67,7 +68,7 @@ void CSMain(
 
     InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, instanceIndex);
     MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
-    Meshlet meshlet = LoadData<Meshlet>(meshData.meshletBuffer, visible.meshletIndex);
+    Meshlet meshlet = LoadMeshlet(visible.meshletIndex, meshData);
     uint localMaterialIndex = (meshlet.packedCounts >> 16u) & 0xFFu;
 
     uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);

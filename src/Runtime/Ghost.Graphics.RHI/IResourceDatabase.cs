@@ -65,16 +65,28 @@ public unsafe interface IResourceDatabase : IDisposable
     /// <returns>The bindless index corresponding to the specified GPU resource handle. ~0 if the resource does not support bindless access or is not found.</returns>
     uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = AllSubresources);
 
+    /// <summary>
+    /// Retrieves the bindless indices for multiple sub-resources of a GPU resource associated with the specified handle.
+    /// </summary>
+    /// <param name="handle">A handle to the GPU resource for which to obtain the bindless indices. Must reference a valid, currently registered resource.</param>
+    /// <param name="subResources">A span of sub-resource indices for which to obtain bindless indices.</param>
+    /// <param name="outIndices">A span to receive the resulting bindless indices.</param>
+    /// <param name="access">The type of bindless access for which to obtain the indices.</param>
     void GetBindlessIndices(Handle<GPUResource> handle, ReadOnlySpan<uint> subResources, Span<uint> outIndices, BindlessAccess access = BindlessAccess.ShaderResource);
 
     /// <summary>
     /// Creates a raw byte-address SRV descriptor for a sub-range of a buffer and returns its bindless index.
     /// </summary>
-    uint AllocateRawBufferSRV(Handle<GPUBuffer> buffer, uint offsetInBytes, uint sizeInBytes);
+    /// <param name="buffer">A handle to the GPU buffer for which to create the raw buffer SRV descriptor. Must reference a valid buffer resource.</param>
+    /// <param name="offsetInBytes">The offset in bytes from the start of the buffer to the beginning of the sub-range for which to create the SRV descriptor.</param>
+    /// <param name="sizeInBytes">The size in bytes of the sub-range for which to create the SRV descriptor.</param>
+    /// <returns>The bindless index of the newly created raw buffer SRV descriptor. Returns ~0 if the allocation fails.</returns>
+    uint AllocateRawBufferSRV(Handle<GPUBuffer> buffer, ulong offsetInBytes, uint sizeInBytes);
 
     /// <summary>
     /// Releases a raw buffer SRV descriptor previously allocated with AllocateRawBufferSRV.
     /// </summary>
+    /// <param name="descriptorIndex">The bindless index of the raw buffer SRV descriptor to release.</param>
     void ReleaseRawBufferSRV(uint descriptorIndex);
 
     /// <summary>

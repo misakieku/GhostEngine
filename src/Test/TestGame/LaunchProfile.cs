@@ -94,8 +94,9 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
     {
         const int entityCapacity = 10000;
         const float size = 20.0f;
-        const float lightSize = size * 2.0f;
         const float baseScale = 1.0f;
+        const float lightSize = size * 2.0f;
+        const int lightCount = 64;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -182,7 +183,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
                 matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(new float3(45.0f, 30.0f, 0.0f)), new float3(1.0f, 1.0f, 1.0f))
             });
 
-        for (var i = 0; i < 64; i++)
+        for (var i = 0; i < lightCount; i++)
         {
             var pos = new float3(RandomFloat(-lightSize, lightSize), RandomFloat(-lightSize, lightSize), RandomFloat(-lightSize, lightSize));
             var color = new float3(RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f));
