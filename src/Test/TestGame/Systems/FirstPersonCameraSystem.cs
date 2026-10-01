@@ -23,7 +23,7 @@ public class FirstPersonCameraSystem : SystemBase
 
         _queryID = QueryBuilder.New()
             .WithAll<FirstPersonCamera, ActionState, LocalToWorld>()
-            .Build(systemAPI.World, true);
+            .Build(systemAPI.World);
 
         RequireQueryForUpdate(_queryID);
     }

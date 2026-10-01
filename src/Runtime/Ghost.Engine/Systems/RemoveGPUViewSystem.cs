@@ -19,7 +19,7 @@ internal class RemoveGPUViewSystem : SystemBase
         _viewQueryID = QueryBuilder.New()
             .WithAll<GPUViewRef>()
             .WithAbsent<Camera>()
-            .Build(systemAPI.World, true);
+            .Build(systemAPI.World);
 
         RequireQueryForUpdate(_viewQueryID);
     }

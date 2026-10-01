@@ -21,7 +21,7 @@ internal class UpdateGPUInstanceSystem : SystemBase
 
         _gpuInstanceQueryID = QueryBuilder.New()
             .WithAll<LocalToWorld, MeshInstance, GPUInstanceRef>()
-            .Build(systemAPI.World, true);
+            .Build(systemAPI.World);
 
         RequireQueryForUpdate(_gpuInstanceQueryID);
     }

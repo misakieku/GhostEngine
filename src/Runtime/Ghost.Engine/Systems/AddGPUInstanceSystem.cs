@@ -77,7 +77,7 @@ internal class AddGPUInstanceSystem : SystemBase
         _meshInstanceQueryID = QueryBuilder.New()
             .WithAll<MeshInstance, LocalToWorld>()
             .WithAbsent<GPUInstanceRef>()
-            .Build(systemAPI.World, true);
+            .Build(systemAPI.World);
 
         RequireQueryForUpdate(_meshInstanceQueryID);
     }

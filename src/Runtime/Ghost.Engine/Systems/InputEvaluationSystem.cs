@@ -19,7 +19,7 @@ public class InputEvaluationSystem : SystemBase
 
         _queryID = QueryBuilder.New()
             .WithAll<InputReceiver, ActionState>()
-            .Build(systemAPI.World, true);
+            .Build(systemAPI.World);
 
         RequireQueryForUpdate(_queryID);
     }

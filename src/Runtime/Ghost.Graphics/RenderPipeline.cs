@@ -206,6 +206,7 @@ public static unsafe class RenderPipelineUtility
             sceneBuffer = sceneBuffer,
             paletteOffsetBuffer = ctx.ResourceManager.PaletteOffsetBufferBindlessIndex,
             materialIndexBuffer = ctx.ResourceManager.MaterialIndexBufferBindlessIndex,
+            materialBuffer = ctx.ResourceManager.MaterialBufferBindlessIndex,
             punctualLightsBuffer = punctualLightsBuffer,
             punctualLightCount = punctualLightCount,
             directionalLightBuffer = directionalLightBuffer

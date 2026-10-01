@@ -5,6 +5,7 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Services;
 
@@ -42,6 +43,23 @@ public sealed partial class ResourceManager : IDisposable
     private uint _paletteOffsetCapacity;
     private uint _materialIndexCapacity;
 
+    // Global Material Buffer Pool
+    private const uint MATERIAL_POOL_INITIAL_CAPACITY = 4 * 1024 * 1024; // 4 MB
+    private const uint MATERIAL_BLOCK_ALIGNMENT = 16u;
+
+    private struct MaterialPoolFreeBlock
+    {
+        public uint offset;
+        public uint size;
+    }
+
+    private Handle<GPUBuffer> _materialPoolBuffer;
+    private uint _materialPoolCapacity;
+    private uint _materialPoolAllocatedBytes;
+    private UnsafeList<MaterialPoolFreeBlock> _materialPoolFreeList;
+    private UnsafeList<Handle<Material>> _dirtyMaterials;
+    private UnsafeHashSet<int> _dirtyMaterialSet;
+
     // TODO: Any better way? System.Threading.Lock is very fast though, it use spin lock before entering kernel.
     // rw lock slim is an option but it has more overhead on read. Because more than 90% of the time we are reading, it may not be a good option.
     // Plus UnsafeSlotMap use jagged array internally, which means we can have concurrent read and write, but not add and remove, on different slots without any issue, so we only need to lock when writing to those slots.
@@ -65,6 +83,16 @@ public sealed partial class ResourceManager : IDisposable
     /// Valid after the first <see cref="UploadMaterialPaletteData"/> call.
     /// </summary>
     public uint MaterialIndexBufferBindlessIndex => _resourceDatabase.GetBindlessIndex(_materialIndexBuffer.AsResource());
+
+    /// <summary>
+    /// Returns the bindless descriptor heap index for the global material GPU buffer.
+    /// </summary>
+    public uint MaterialBufferBindlessIndex => _resourceDatabase.GetBindlessIndex(_materialPoolBuffer.AsResource());
+
+    /// <summary>
+    /// Returns the global material GPU buffer handle.
+    /// </summary>
+    public Handle<GPUBuffer> MaterialPoolBuffer => _materialPoolBuffer;
 
     public IResourceAllocator ResourceAllocator => _resourceAllocator;
     public StaticSampler StaticSampler => _staticSampler;
@@ -94,6 +122,14 @@ public sealed partial class ResourceManager : IDisposable
         _materialIndexCapacity = PALETTE_BUFFER_INITIAL_CAPACITY * 4;
         _paletteOffsetBuffer = CreatePaletteBuffer(_paletteOffsetCapacity, "PaletteOffsetBuffer");
         _materialIndexBuffer = CreatePaletteBuffer(_materialIndexCapacity, "MaterialIndexBuffer");
+
+        // Initialize Global Material Buffer Pool
+        _materialPoolCapacity = MATERIAL_POOL_INITIAL_CAPACITY;
+        _materialPoolAllocatedBytes = 0;
+        _materialPoolBuffer = CreateMaterialBuffer(_materialPoolCapacity, "GlobalMaterialBuffer");
+        _materialPoolFreeList = new UnsafeList<MaterialPoolFreeBlock>(16, AllocationHandle.Persistent);
+        _dirtyMaterials = new UnsafeList<Handle<Material>>(32, AllocationHandle.Persistent);
+        _dirtyMaterialSet = new UnsafeHashSet<int>(32, AllocationHandle.Persistent);
 
         InitializeTransientPool();
     }
@@ -180,6 +216,50 @@ public sealed partial class ResourceManager : IDisposable
         }
     }
 
+    private uint AllocateMaterialBlock(uint size)
+    {
+        if (size == 0)
+        {
+            return 0;
+        }
+
+        var alignedSize = (size + (MATERIAL_BLOCK_ALIGNMENT - 1u)) & ~(MATERIAL_BLOCK_ALIGNMENT - 1u);
+
+        for (var i = 0; i < _materialPoolFreeList.Count; i++)
+        {
+            ref var block = ref _materialPoolFreeList[i];
+            if (block.size >= alignedSize)
+            {
+                var offset = block.offset;
+                if (block.size == alignedSize)
+                {
+                    _materialPoolFreeList.RemoveAtSwapBack(i);
+                }
+                else
+                {
+                    block.offset += alignedSize;
+                    block.size -= alignedSize;
+                }
+                return offset;
+            }
+        }
+
+        var newOffset = _materialPoolAllocatedBytes;
+        _materialPoolAllocatedBytes += alignedSize;
+        return newOffset;
+    }
+
+    private void FreeMaterialBlock(uint offset, uint size)
+    {
+        if (size == 0)
+        {
+            return;
+        }
+
+        var alignedSize = (size + (MATERIAL_BLOCK_ALIGNMENT - 1u)) & ~(MATERIAL_BLOCK_ALIGNMENT - 1u);
+        _materialPoolFreeList.Add(new MaterialPoolFreeBlock { offset = offset, size = alignedSize });
+    }
+
     /// <summary>
     /// Creates a new material instance using the specified shader.
     /// </summary>
@@ -190,16 +270,84 @@ public sealed partial class ResourceManager : IDisposable
     {
         Logger.DebugAssert(!_disposed);
 
-        var material = new Material();
-        if (material.SetShader(shader, this, _resourceDatabase, _resourceAllocator) != Error.None)
+        var shaderRef = GetShaderReference(shader);
+        if (shaderRef.IsFailure)
         {
+            return Handle<Material>.Invalid;
+        }
+
+        uint poolOffset;
+        lock (_materialWriteLock)
+        {
+            poolOffset = AllocateMaterialBlock(shaderRef.Value.PropertyBufferSize);
+        }
+
+        var material = new Material();
+        if (material.SetShader(shader, poolOffset, this, _resourceDatabase, _resourceAllocator) != Error.None)
+        {
+            lock (_materialWriteLock)
+            {
+                FreeMaterialBlock(poolOffset, shaderRef.Value.PropertyBufferSize);
+            }
             return Handle<Material>.Invalid;
         }
 
         lock (_materialWriteLock)
         {
             var id = _materials.Add(material, out var generation);
-            return new Handle<Material>(id, generation);
+            var handle = new Handle<Material>(id, generation);
+            if (_dirtyMaterialSet.Add(handle.ID))
+            {
+                _dirtyMaterials.Add(handle);
+            }
+            return handle;
+        }
+    }
+
+    /// <summary>
+    /// Sets property data for a material.
+    /// </summary>
+    public unsafe Error SetMaterialProperty<T>(Handle<Material> handle, scoped in T data)
+        where T : unmanaged
+    {
+        var span = MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in data));
+        return SetRawMaterialProperty(handle, span);
+    }
+
+    /// <summary>
+    /// Sets raw property bytes for a material.
+    /// </summary>
+    public Error SetRawMaterialProperty(Handle<Material> handle, ReadOnlySpan<byte> data)
+    {
+        Logger.DebugAssert(!_disposed);
+
+        lock (_materialWriteLock)
+        {
+            var r = GetMaterialReference(handle);
+            if (r.IsFailure)
+            {
+                return r.Error;
+            }
+
+            ref var material = ref r.Value;
+            var oldHasAlpha = material.HasAlphaClip;
+            var err = material.SetRawPropertyCache(data);
+            if (err != Error.None)
+            {
+                return err;
+            }
+
+            if (material.HasAlphaClip != oldHasAlpha)
+            {
+                _materialPalettes.MarkGpuDirty();
+            }
+
+            if (_dirtyMaterialSet.Add(handle.ID))
+            {
+                _dirtyMaterials.Add(handle);
+            }
+
+            return Error.None;
         }
     }
 
@@ -322,7 +470,9 @@ public sealed partial class ResourceManager : IDisposable
         {
             if (_materials.Remove(handle.ID, handle.Generation, out var material))
             {
+                FreeMaterialBlock(material.PoolOffset, material.PropertySize);
                 material.ReleaseResource(_resourceDatabase);
+                _dirtyMaterialSet.Remove(handle.ID);
             }
         }
     }
@@ -386,12 +536,51 @@ public sealed partial class ResourceManager : IDisposable
     {
         Logger.DebugAssert(!_disposed);
 
-        foreach (ref var material in _materials)
+        lock (_materialWriteLock)
         {
-            if (material.IsDirty)
+            if (_materialPoolAllocatedBytes > _materialPoolCapacity)
             {
-                material.UploadData(ctx);
+                var newCapacity = Math.Max(_materialPoolCapacity * 2u, _materialPoolAllocatedBytes);
+                var newBuffer = CreateMaterialBuffer(newCapacity, "GlobalMaterialBuffer_Resized");
+
+                ctx.CommandBuffer.CopyBuffer(newBuffer, _materialPoolBuffer, 0, 0, _materialPoolCapacity);
+
+                _resourceDatabase.ReleaseResource(_materialPoolBuffer.AsResource());
+                _materialPoolBuffer = newBuffer;
+                _materialPoolCapacity = newCapacity;
             }
+
+            if (_dirtyMaterials.Count == 0)
+            {
+                return;
+            }
+
+            for (var i = 0; i < _dirtyMaterials.Count; i++)
+            {
+                var handle = _dirtyMaterials[i];
+                var r = GetMaterialReference(handle);
+                if (r.IsFailure)
+                {
+                    continue;
+                }
+
+                ref var material = ref r.Value;
+                if (!material.IsDirty)
+                {
+                    continue;
+                }
+
+                var rawData = material.GetRawPropertyCache();
+                if (rawData.Length > 0)
+                {
+                    ctx.UploadBufferRange(_materialPoolBuffer, rawData, material.PoolOffset);
+                }
+
+                material.ClearDirty();
+            }
+
+            _dirtyMaterials.Clear();
+            _dirtyMaterialSet.Clear();
         }
     }
 
@@ -409,18 +598,17 @@ public sealed partial class ResourceManager : IDisposable
             return;
         }
 
-        // Resolve material handles → bindless CBuffer indices.
+        // Resolve material handles → packed material indices.
         _materialPalettes.ResolveMaterialIndices(static (materialHandle, state) =>
         {
             var self = (ResourceManager)state!;
             var r = self.GetMaterialReference(materialHandle);
-            if (r.IsFailure || !r.Value._cBufferCache.IsCreated)
+            if (r.IsFailure || !r.Value.IsCreated)
             {
                 return 0u;
             }
 
-            var materialBufferIndex = self._resourceDatabase.GetBindlessIndex(r.Value._cBufferCache.GpuResource.AsResource());
-            return MaterialEncoding.Encode(materialBufferIndex, r.Value.VariantIndex);
+            return MaterialEncoding.Encode(r.Value.PoolOffset, r.Value.VariantIndex, r.Value.HasAlphaClip);
         }, this);
 
         var offsets = _materialPalettes.PaletteOffsets;
@@ -485,6 +673,18 @@ public sealed partial class ResourceManager : IDisposable
         {
             Size = capacity * sizeof(uint),
             Stride = sizeof(uint),
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            HeapType = HeapType.Default,
+        };
+        return _resourceAllocator.CreateBuffer(in desc, name);
+    }
+
+    private Handle<GPUBuffer> CreateMaterialBuffer(uint sizeInBytes, string name)
+    {
+        var desc = new BufferDesc
+        {
+            Size = sizeInBytes,
+            Stride = 4,
             Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
             HeapType = HeapType.Default,
         };
@@ -620,6 +820,10 @@ public sealed partial class ResourceManager : IDisposable
 
         _resourceDatabase.ReleaseResource(_paletteOffsetBuffer.AsResource());
         _resourceDatabase.ReleaseResource(_materialIndexBuffer.AsResource());
+        _resourceDatabase.ReleaseResource(_materialPoolBuffer.AsResource());
+        _materialPoolFreeList.Dispose();
+        _dirtyMaterials.Dispose();
+        _dirtyMaterialSet.Dispose();
 
         DisposeTransientPool();
         DisposePersistentPool();

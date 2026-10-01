@@ -148,21 +148,39 @@ internal partial class GhostRenderPipeline
             var visBufferUav = unsafeCtx.ResourceDatabase.GetBindlessIndex(unsafeCtx.GetActualTexture(passData.visBuffer).AsResource(), BindlessAccess.UnorderedAccess);
 
             var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.Visibility);
+            if (dispatchVariants.Length == 0)
+            {
+                return;
+            }
+
+            // Dispatch Bin 0 (All Opaque meshlets across all materials in ONE draw call)
+            var opaqueShaderBound = false;
+            for (var i = 0; i < dispatchVariants.Length; i++)
+            {
+                ref readonly var v = ref dispatchVariants[i];
+                if (v.Shader.IsValid && unsafeCtx.TrySetActiveShaderPass(v.Shader, PassSemantic.Visibility))
+                {
+                    opaqueShaderBound = true;
+                    break;
+                }
+            }
+
+            if (opaqueShaderBound)
+            {
+                unsafeCtx.SetUserData(visibleBufferIndex, visBufferUav, binOffsetsIndex, (0u << 1) | (passData.passIndex & 1u));
+                var bin0IndirectOffset = passData.indirectArgsOffset + 0UL * 16UL;
+                unsafeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, bin0IndirectOffset);
+            }
+
+            // Dispatch Bins 1..N (Alpha-Clipped variants)
             for (var i = 0; i < dispatchVariants.Length; i++)
             {
                 ref readonly var variant = ref dispatchVariants[i];
-                if (variant.Shader.IsValid &&
-                    unsafeCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.Visibility))
+                if (variant.Shader.IsValid && unsafeCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.Visibility))
                 {
-                    var v = (uint)variant.DenseIndex;
-                    unsafeCtx.SetUserData(
-                        userData0: visibleBufferIndex,
-                        userData1: visBufferUav,
-                        userData2: binOffsetsIndex,
-                        userData3: (v << 1) | (passData.passIndex & 1u),
-                        target: DataTarget.Graphics);
-
-                    var variantIndirectOffset = passData.indirectArgsOffset + v * 16UL;
+                    var bin = (uint)variant.DenseIndex + 1u;
+                    unsafeCtx.SetUserData(visibleBufferIndex, visBufferUav, binOffsetsIndex, (bin << 1) | (passData.passIndex & 1u));
+                    var variantIndirectOffset = passData.indirectArgsOffset + (ulong)bin * 16UL;
                     unsafeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, variantIndirectOffset);
                 }
             }

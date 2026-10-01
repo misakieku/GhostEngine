@@ -375,6 +375,18 @@ internal sealed class MaterialPaletteStore : IDisposable
     }
 
     /// <summary>
+    /// Marks all palette indices dirty so that ResolveMaterialIndices re-encodes entries.
+    /// </summary>
+    public void MarkGpuDirty()
+    {
+        _dirtyOffsetStart = 0;
+        _dirtyOffsetEnd = _paletteOffsets.Count;
+        _dirtyIndicesStart = 0;
+        _dirtyIndicesEnd = _materialIndices.Count;
+        _gpuDirty = true;
+    }
+
+    /// <summary>
     /// Clears the dirty flag after GPU upload is complete.
     /// </summary>
     public void ClearDirty()

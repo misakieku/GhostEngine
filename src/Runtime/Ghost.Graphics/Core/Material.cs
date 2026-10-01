@@ -9,40 +9,6 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Core;
 
-internal struct CBufferCache : IResourceReleasable
-{
-    private UnsafeArray<byte> _cpuData;
-    private Handle<GPUBuffer> _gpuResource;
-    private uint _size;
-
-    public readonly UnsafeArray<byte> CpuData => _cpuData;
-    public readonly Handle<GPUBuffer> GpuResource => _gpuResource;
-    public readonly uint Size => _size;
-
-    public readonly bool IsCreated => _size != 0 && _gpuResource.IsValid && _cpuData.IsCreated;
-
-    public CBufferCache(Handle<GPUBuffer> buffer, uint bufferSize)
-    {
-        _size = bufferSize;
-        _cpuData = new UnsafeArray<byte>((int)bufferSize, AllocationHandle.Persistent);
-        _gpuResource = buffer;
-    }
-
-    public void ReleaseResource(IResourceDatabase database)
-    {
-        if (!IsCreated)
-        {
-            return;
-        }
-
-        _cpuData.Dispose();
-        database.ReleaseResource(_gpuResource.AsResource());
-
-        _gpuResource = Handle<GPUBuffer>.Invalid;
-        _size = 0;
-    }
-}
-
 public struct Material : IResourceReleasable
 {
     private struct PipelineOverride
@@ -53,47 +19,49 @@ public struct Material : IResourceReleasable
 
     private Handle<Shader> _shader;
     private UnsafeArray<PipelineOverride> _passPipelineOverride;
+    private UnsafeArray<byte> _cpuData;
+    private uint _poolOffset;
+    private uint _propertySize;
+    private bool _hasAlphaClip;
     private bool _isDirty;
-
-    // TODO: We should have a global material buffer cache to avoid creating a new buffer for each material. This is a temporary solution.
-    internal CBufferCache _cBufferCache;
 
     public readonly Handle<Shader> Shader => _shader;
     public readonly bool IsDirty => _isDirty;
+    public readonly uint PoolOffset => _poolOffset;
+    public readonly uint PropertySize => _propertySize;
+    public readonly bool HasAlphaClip => _hasAlphaClip;
+    public readonly bool IsCreated => _propertySize != 0 && _cpuData.IsCreated;
 
     /// <summary>
     /// Active pass index for the material. This is used to determine which pass to use when rendering the material.
     /// </summary>
-    public int ActivePassIndex
-    {
-        get; set;
-    }
+    public int ActivePassIndex { get; set; }
 
     /// <summary>
     /// Dense runtime variant index in the shader variant registry.
     /// </summary>
-    public uint VariantIndex
-    {
-        get; set;
-    }
+    public uint VariantIndex { get; set; }
+
+    internal void ClearDirty() => _isDirty = false;
+    internal void SetHasAlphaClip(bool hasAlpha) => _hasAlphaClip = hasAlpha;
 
     /// <summary>
-    /// Sets the shader for the material and initializes the property buffer and pipeline overrides based on the shader's passes.
+    /// Sets the shader for the material, records its pool offset, and initializes the CPU property buffer and pipeline overrides.
     /// </summary>
-    /// <param name="shade">The handle of the shader to set.</param>
-    /// <param name="resourceManager">The resource manager to use.</param>
-    /// <param name="resourceDatabase">The resource database to use.</param>
-    /// <param name="resourceAllocator">The resource allocator to use.</param>
-    /// <returns>The error code indicating the result of the operation.</returns>
-    public Error SetShader(Handle<Shader> shade, ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
+    public Error SetShader(Handle<Shader> shade, uint poolOffset, ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator)
     {
         if (!shade.IsValid)
         {
             return Error.InvalidArgument;
         }
 
-        _cBufferCache.ReleaseResource(resourceDatabase);
+        if (_cpuData.IsCreated)
+        {
+            _cpuData.Dispose();
+        }
+
         _shader = shade;
+        _poolOffset = poolOffset;
 
         var r = resourceManager.GetShaderReference(shade);
         if (r.IsFailure)
@@ -103,6 +71,10 @@ public struct Material : IResourceReleasable
 
         ref var shader = ref r.Value;
         VariantIndex = shader.VariantIndex;
+        _propertySize = shader.PropertyBufferSize;
+        _hasAlphaClip = false;
+        _isDirty = true;
+
         if (_passPipelineOverride.Count < shader.PassCount)
         {
             if (!_passPipelineOverride.IsCreated)
@@ -125,17 +97,9 @@ public struct Material : IResourceReleasable
             };
         }
 
-        if (shader.PropertyBufferSize != 0)
+        if (_propertySize != 0)
         {
-            var desc = new BufferDesc
-            {
-                Size = shader.PropertyBufferSize,
-                Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-                HeapType = HeapType.Default,
-            };
-
-            var buffer = resourceAllocator.CreateBuffer(desc, "MaterialCBuffer");
-            _cBufferCache = new CBufferCache(buffer, shader.PropertyBufferSize);
+            _cpuData = new UnsafeArray<byte>((int)_propertySize, AllocationHandle.Persistent);
         }
 
         return Error.None;
@@ -144,45 +108,37 @@ public struct Material : IResourceReleasable
     /// <summary>
     /// Gets the property cache of the material as a struct of type T.
     /// </summary>
-    /// <typeparam name="T">The type of the property cache.</typeparam>
-    /// <returns>The property cache as a struct of type T. <see cref="Error.InvalidArgument"/> if the size of T does not match the size of the property cache.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly unsafe Result<T, Error> GetPropertyCache<T>()
-        where T : unmanaged
+    public readonly unsafe Result<T, Error> GetPropertyCache<T>() where T : unmanaged
     {
-        if (sizeof(T) != _cBufferCache.Size)
+        if (sizeof(T) != _propertySize || !_cpuData.IsCreated)
         {
             return Error.InvalidArgument;
         }
 
-        return *(T*)_cBufferCache.CpuData.GetUnsafePtr();
+        return *(T*)_cpuData.GetUnsafePtr();
     }
 
     /// <summary>
     /// Gets the raw property cache of the material as a ReadOnlySpan of bytes.
     /// </summary>
-    /// <returns>The raw property cache as a ReadOnlySpan of bytes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ReadOnlySpan<byte> GetRawPropertyCache()
     {
-        if (_cBufferCache.Size == 0)
+        if (_propertySize == 0 || !_cpuData.IsCreated)
         {
             return Span<byte>.Empty;
         }
 
-        return _cBufferCache.CpuData.AsSpan(0, (int)_cBufferCache.Size);
+        return _cpuData.AsSpan(0, (int)_propertySize);
     }
 
     /// <summary>
-    /// Sets the property cache of the material with a struct of type T. The size of T must match the size of the property cache.
+    /// Sets the property cache of the material with a struct of type T.
     /// </summary>
-    /// <typeparam name="T">The type of the property cache.</typeparam>
-    /// <param name="data">The data to set.</param>
-    /// <returns>The error code indicating the result of the operation.</returns>
-    public unsafe Error SetPropertyCache<T>(scoped in T data)
-        where T : unmanaged
+    public unsafe Error SetPropertyCache<T>(scoped in T data) where T : unmanaged
     {
-        if (sizeof(T) != _cBufferCache.Size)
+        if (sizeof(T) != _propertySize)
         {
             return Error.InvalidArgument;
         }
@@ -192,18 +148,16 @@ public struct Material : IResourceReleasable
     }
 
     /// <summary>
-    /// Sets the raw property cache of the material with a ReadOnlySpan of bytes. The length of the span must match the size of the property cache.
+    /// Sets the raw property cache of the material with a ReadOnlySpan of bytes.
     /// </summary>
-    /// <param name="data">The data to set.</param>
-    /// <returns>The error code indicating the result of the operation.</returns>
     public Error SetRawPropertyCache(ReadOnlySpan<byte> data)
     {
-        if (data.Length != _cBufferCache.Size)
+        if (data.Length != _propertySize || !_cpuData.IsCreated)
         {
             return Error.InvalidArgument;
         }
 
-        var cacheSpan = _cBufferCache.CpuData.AsSpan();
+        var cacheSpan = _cpuData.AsSpan();
         if (cacheSpan.SequenceEqual(data))
         {
             return Error.None;
@@ -212,14 +166,15 @@ public struct Material : IResourceReleasable
         data.CopyTo(cacheSpan);
         _isDirty = true;
 
+        var hasAlpha = data.Length > 16 && data[16] != 0;
+        _hasAlphaClip = hasAlpha;
+
         return Error.None;
     }
 
     /// <summary>
-    /// Gets the pipeline state override for a specific pass index. If no override is set, it returns the default pipeline state for that pass.
+    /// Gets the pipeline state override for a specific pass index.
     /// </summary>
-    /// <param name="passIndex">The index of the pass for which to get the pipeline state override.</param>
-    /// <returns>The pipeline state override for the specified pass, or the default pipeline state if no override is set.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly PipelineState GetPassPipelineOverride(int passIndex)
     {
@@ -227,10 +182,8 @@ public struct Material : IResourceReleasable
     }
 
     /// <summary>
-    /// Sets the pipeline state override for a specific pass index. This allows customization of the rendering behavior for that pass.
+    /// Sets the pipeline state override for a specific pass index.
     /// </summary>
-    /// <param name="passIndex">The index of the pass for which to set the pipeline state override.</param>
-    /// <param name="options">The pipeline state options to set.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetPassPipelineOverride(int passIndex, scoped in PipelineState options)
     {
@@ -239,30 +192,17 @@ public struct Material : IResourceReleasable
         _isDirty = true;
     }
 
-    internal readonly void UploadData(RenderContext ctx)
-    {
-        var cbufferResource = _cBufferCache.GpuResource;
-        var desc = BarrierDesc.Buffer(
-            cbufferResource,
-            BarrierSync.AllShading,
-            BarrierSync.Copy,
-            BarrierAccess.ShaderResource,
-            BarrierAccess.CopyDest);
-        ctx.CommandBuffer.Barrier(desc);
-        ctx.UploadBuffer(_cBufferCache.GpuResource, _cBufferCache.CpuData.AsSpan());
-
-        desc = BarrierDesc.Buffer(
-            cbufferResource,
-            BarrierSync.Copy,
-            BarrierSync.AllShading,
-            BarrierAccess.CopyDest,
-            BarrierAccess.ShaderResource);
-        ctx.CommandBuffer.Barrier(desc);
-    }
-
     public void ReleaseResource(IResourceDatabase database)
     {
-        _cBufferCache.ReleaseResource(database);
-        _passPipelineOverride.Dispose();
+        if (_cpuData.IsCreated)
+        {
+            _cpuData.Dispose();
+        }
+
+        if (_passPipelineOverride.IsCreated)
+        {
+            _passPipelineOverride.Dispose();
+        }
     }
 }
+

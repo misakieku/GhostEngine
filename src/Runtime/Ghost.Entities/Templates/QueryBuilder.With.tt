@@ -11,7 +11,7 @@ namespace Ghost.Entities;
 
 public ref partial struct QueryBuilder
 {
-<# for (var i = 1; i <= 3; i++)
+<# for (var i = 1; i <= 5; i++)
 {
     var generics = AppendGenerics(i);
     var restrictions = AppendGenericRestrictionsMultiline(i, "unmanaged, IComponent", 2);
@@ -26,11 +26,7 @@ public ref partial struct QueryBuilder
     public ref QueryBuilder WithAll<<#= generics #>>()
 <#= restrictions #>
     {
-<# for (var j = 0; j < i; j++) { #>
-        _all.Add(ComponentTypeID<T<#= j #>>.Value);
-<# } #>
-
-        return ref this;
+        return ref WithAll(<#= InlineFor(0, i, "ComponentTypeID<T{0}>.Value") #>);
     }
 
     /// <summary>
@@ -42,12 +38,7 @@ public ref partial struct QueryBuilder
     public ref QueryBuilder WithAllRW<<#= generics #>>()
 <#= restrictions #>
     {
-<# for (var j = 0; j < i; j++) { #>
-        _all.Add(ComponentTypeID<T<#= j #>>.Value);
-        _rw.Add(ComponentTypeID<T<#= j #>>.Value);
-<# } #>
-
-        return ref this;
+        return ref WithAllRW(<#= InlineFor(0, i, "ComponentTypeID<T{0}>.Value") #>);
     }
 
     /// <summary>
@@ -59,11 +50,7 @@ public ref partial struct QueryBuilder
     public ref QueryBuilder WithAny<<#= generics #>>()
 <#= restrictions #>
     {
-<# for (var j = 0; j < i; j++) { #>
-        _any.Add(ComponentTypeID<T<#= j #>>.Value);
-<# } #>
-
-        return ref this;
+        return ref WithAny(<#= InlineFor(0, i, "ComponentTypeID<T{0}>.Value") #>);
     }
 
     /// <summary>
@@ -75,11 +62,7 @@ public ref partial struct QueryBuilder
     public ref QueryBuilder WithAbsent<<#= generics #>>()
 <#= restrictions #>
     {
-<# for (var j = 0; j < i; j++) { #>
-        _absent.Add(ComponentTypeID<T<#= j #>>.Value);
-<# } #>
-
-        return ref this;
+        return ref WithAbsent(<#= InlineFor(0, i, "ComponentTypeID<T{0}>.Value") #>);
     }
 
     /// <summary>
@@ -91,11 +74,7 @@ public ref partial struct QueryBuilder
     public ref QueryBuilder WithNone<<#= generics #>>()
 <#= restrictions #>
     {
-<# for (var j = 0; j < i; j++) { #>
-        _none.Add(ComponentTypeID<T<#= j #>>.Value);
-<# } #>
-
-        return ref this;
+        return ref WithNone(<#= InlineFor(0, i, "ComponentTypeID<T{0}>.Value") #>);
     }
 
     /// <summary>
@@ -107,11 +86,7 @@ public ref partial struct QueryBuilder
     public ref QueryBuilder WithDisabled<<#= generics #>>()
 <#= enableRestrictions #>
     {
-<# for (var j = 0; j < i; j++) { #>
-        _disabled.Add(ComponentTypeID<T<#= j #>>.Value);
-<# } #>
-
-        return ref this;
+        return ref WithDisabled(<#= InlineFor(0, i, "ComponentTypeID<T{0}>.Value") #>);
     }
 
     /// <summary>
@@ -123,11 +98,7 @@ public ref partial struct QueryBuilder
     public ref QueryBuilder WithPresent<<#= generics #>>()
 <#= restrictions #>
     {
-<# for (var j = 0; j < i; j++) { #>
-        _present.Add(ComponentTypeID<T<#= j #>>.Value);
-<# } #>
-
-        return ref this;
+        return ref WithPresent(<#= InlineFor(0, i, "ComponentTypeID<T{0}>.Value") #>);
     }
 
     /// <summary>
@@ -139,12 +110,7 @@ public ref partial struct QueryBuilder
     public ref QueryBuilder WithPresentRW<<#= generics #>>()
 <#= restrictions #>
     {
-<# for (var j = 0; j < i; j++) { #>
-        _present.Add(ComponentTypeID<T<#= j #>>.Value);
-        _rw.Add(ComponentTypeID<T<#= j #>>.Value);
-<# } #>
-
-        return ref this;
+        return ref WithPresentRW(<#= InlineFor(0, i, "ComponentTypeID<T{0}>.Value") #>);
     }
 
 <# } #>

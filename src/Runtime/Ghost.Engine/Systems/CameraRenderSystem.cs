@@ -20,7 +20,7 @@ internal class CameraRenderSystem : SystemBase
 
         _cameraQueryID = QueryBuilder.New()
             .WithAll<Camera, LocalToWorld, GPUViewRef>()
-            .Build(systemAPI.World, true);
+            .Build(systemAPI.World);
 
         RequireQueryForUpdate(_cameraQueryID);
     }

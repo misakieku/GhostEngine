@@ -20,7 +20,7 @@ internal class AddGPUViewSystem : SystemBase
         _cameraQueryID = QueryBuilder.New()
             .WithAll<Camera, LocalToWorld>()
             .WithAbsent<GPUViewRef>()
-            .Build(systemAPI.World, true);
+            .Build(systemAPI.World);
 
         RequireQueryForUpdate(_cameraQueryID);
     }

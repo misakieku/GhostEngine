@@ -135,8 +135,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
         var mat = engine.RenderEngine.ResourceManager.CreateMaterial(shaderHandle);
         var mat2 = engine.RenderEngine.ResourceManager.CreateMaterial(shaderHandle2);
 
-        ref var matRef = ref engine.RenderEngine.ResourceManager.GetMaterialReference(mat).GetValueOrThrow();
-        matRef.SetPropertyCache(new MyShaderSimpleLitShaderProperties
+        engine.RenderEngine.ResourceManager.SetMaterialProperty(mat, new MyShaderSimpleLitShaderProperties
         {
             roughness = 0.15f,
         });
@@ -154,7 +153,7 @@ internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
             _world.EntityManager.SetComponent(entity, new MeshInstance
             {
                 mesh = meshHandle,
-                materialPalette = i % 2 == 0 ? materialPallette : materialPallette,
+                materialPalette = i % 2 == 0 ? materialPallette : materialPallette2,
                 renderingLayerMask = RenderingLayerMask.All,
                 shadowCastingMode = ShadowCastingMode.On,
                 staticShadowCaster = true,

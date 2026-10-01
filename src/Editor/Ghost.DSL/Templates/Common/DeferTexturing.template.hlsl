@@ -91,7 +91,7 @@ void CSMain(
     ctx.tangentWS = attrs.tangentWS;
     ctx.uv = attrs.uv;
 
-    MaterialProperties matProps = LoadData<MaterialProperties>(attrs.cbufferIndex, 0);
+    MaterialProperties matProps = LoadMaterialData<MaterialProperties>(attrs.cbufferIndex);
     DEFERREDTEXTURING_STRATEGY strategy = DEFERREDTEXTURING_STRATEGY::Create();
     SurfaceData surface = strategy.GetSurfaceData(ctx, matProps);
 

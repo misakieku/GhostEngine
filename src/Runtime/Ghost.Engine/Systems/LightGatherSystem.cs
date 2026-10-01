@@ -18,36 +18,31 @@ internal class LightGatherSystem : SystemBase
     private Identifier<EntityQuery> _directionalLightQueryID;
     private Identifier<EntityQuery> _punctualLightQueryID;
 
-    internal void InitializeQueries(World world)
+    protected override void OnInitialize(scoped in SystemAPI systemAPI)
     {
-        _directionalLightQueryID = QueryBuilder.New()
-            .WithAll<DirectionalLight, LocalToWorld>()
-            .Build(world, true);
+        _renderEngine = systemAPI.World.GetService<RenderEngine>();
+        
+        var builder = QueryBuilder.New();
 
-        _punctualLightQueryID = QueryBuilder.New()
+        _directionalLightQueryID = builder
+            .WithAll<DirectionalLight, LocalToWorld>()
+            .Build(systemAPI.World, false);
+
+        builder.Reset();
+
+        _punctualLightQueryID = builder
             .WithAll<PunctualLight, LocalToWorld>()
-            .Build(world, true);
+            .Build(systemAPI.World);
 
         RequireQueryForUpdate(_directionalLightQueryID);
         RequireQueryForUpdate(_punctualLightQueryID);
     }
 
-    protected override void OnInitialize(scoped in SystemAPI systemAPI)
-    {
-        _renderEngine = systemAPI.World.GetService<RenderEngine>();
-        InitializeQueries(systemAPI.World);
-    }
-
-    internal void Gather(scoped in SystemAPI systemAPI, GhostRenderPayload payload)
-    {
-        GatherDirectionalLight(systemAPI, payload);
-        GatherPunctualLights(systemAPI, payload);
-    }
-
     protected override void OnUpdate(scoped in SystemAPI systemAPI)
     {
         var payload = (GhostRenderPayload)_renderEngine.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
-        Gather(systemAPI, payload);
+        GatherDirectionalLight(systemAPI, payload);
+        GatherPunctualLights(systemAPI, payload);
     }
 
     private void GatherDirectionalLight(scoped in SystemAPI systemAPI, GhostRenderPayload payload)

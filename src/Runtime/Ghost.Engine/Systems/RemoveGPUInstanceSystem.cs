@@ -21,7 +21,7 @@ internal class RemoveGPUInstanceSystem : SystemBase
         _gpuInstanceQueryID = QueryBuilder.New()
             .WithAll<GPUInstanceRef>()
             .WithAbsent<MeshInstance>()
-            .Build(systemAPI.World, true);
+            .Build(systemAPI.World);
 
         RequireQueryForUpdate(_gpuInstanceQueryID);
     }

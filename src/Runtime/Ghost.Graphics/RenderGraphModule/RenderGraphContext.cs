@@ -452,7 +452,7 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
             return;
         }
 
-        _activePerMaterialData = material._cBufferCache.GpuResource;
+        _activePerMaterialData = _resourceManager.MaterialPoolBuffer;
         _commandBuffer.SetPipelineState(pipelineKey);
     }
 
@@ -490,7 +490,7 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
             return;
         }
 
-        _activePerMaterialData = material._cBufferCache.GpuResource;
+        _activePerMaterialData = _resourceManager.MaterialPoolBuffer;
         _commandBuffer.SetPipelineState(pipelineKey);
     }
 
@@ -538,7 +538,7 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
             return false;
         }
 
-        _activePerMaterialData = material._cBufferCache.GpuResource;
+        _activePerMaterialData = _resourceManager.MaterialPoolBuffer;
         _commandBuffer.SetPipelineState(pipelineKey);
         return true;
     }

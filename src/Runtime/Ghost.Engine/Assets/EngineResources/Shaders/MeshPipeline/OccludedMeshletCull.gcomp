@@ -41,6 +41,7 @@ compute "Internal/OccludedMeshletCull"
 
             bool isVisible = false;
             uint variantIndex = 0;
+            uint cullBin = 0;
             MeshletCandidateRecord rec = (MeshletCandidateRecord)0;
 
             if (isValid)
@@ -54,6 +55,8 @@ compute "Internal/OccludedMeshletCull"
                 uint localMaterialIndex = (meshlet.packedCounts >> 16u) & 0xFFu;
                 uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instance.materialPaletteIndex, localMaterialIndex);
                 variantIndex = UnpackMaterialVariantIndex(packedMaterial);
+                uint hasAlpha = UnpackMaterialHasAlpha(packedMaterial);
+                cullBin = (hasAlpha != 0u) ? (variantIndex + 1u) : 0u;
 
                 BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld);
                 if (cullResult.isVisible)
@@ -89,18 +92,18 @@ compute "Internal/OccludedMeshletCull"
                     UnbinnedMeshletEntry entry;
                     entry.instanceIndex = rec.instanceIndex;
                     entry.meshletIndex = rec.meshletIndex;
-                    entry.variantIndex = variantIndex;
+                    entry.variantIndex = cullBin;
                     visibleBuffer[slot] = entry;
                 }
             }
 
-            // Count visible meshlets per variant for prefix-sum binning in Pass 2
+            // Count visible meshlets per cull bin for prefix-sum binning in Pass 2 (Bin 0 is opaque, Bins 1..N are alpha-clip variants)
             uint activeMask = WaveActiveBallot(isVisible).x;
             while (activeMask != 0)
             {
                 uint firstLane = firstbitlow(activeMask);
-                uint v = WaveReadLaneAt(variantIndex, firstLane);
-                bool match = isVisible && (variantIndex == v);
+                uint v = WaveReadLaneAt(cullBin, firstLane);
+                bool match = isVisible && (cullBin == v);
                 uint count = WaveActiveCountBits(match);
 
                 if (WaveGetLaneIndex() == firstLane && v < MAX_CULL_VARIANTS)

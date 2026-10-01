@@ -117,10 +117,11 @@ void MSMain(
 
     uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer,g_FrameData.materialIndexBuffer,instanceData.materialPaletteIndex, localMaterialIndex);
 
-    uint materialBufferIndex = UnpackMaterialMaterialBufferIndex(packedMaterial);
+    uint materialBufferIndex = UnpackMaterialByteOffset(packedMaterial);
     uint variantIndex = UnpackMaterialVariantIndex(packedMaterial);
     
-    MaterialProperties props = LoadData<MaterialProperties>(materialBufferIndex, 0);
+    ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
+    float doubleSided = asfloat(matBuf.Load(materialBufferIndex + 12u));
 
     SetMeshOutputCounts(vertexCount, triangleCount);
     
@@ -160,7 +161,7 @@ void MSMain(
         outPrims[primId].primitiveID = primId;
 
         bool isCulled = false;
-        if (props.doubleSidedConstants.w == 0.0f)
+        if (doubleSided == 0.0f)
         {
             isCulled = !IsFrontFacingAndVisible(v2, v1, v0);
             if (!isCulled)
@@ -176,6 +177,7 @@ void MSMain(
 void PSMain(VisibilityPixelInput input, uint primitiveID : SV_PrimitiveID)
 {
     uint visBufferIndex = g_PushConstantData.userData1;
+    uint targetVariantIndex = g_PushConstantData.userData3 >> 1u;
     uint2 pixelCoord = (uint2)input.position.xy;
     uint64_t currentVal;
 
@@ -185,15 +187,17 @@ void PSMain(VisibilityPixelInput input, uint primitiveID : SV_PrimitiveID)
         return;
     }
 
-    MaterialProperties props = LoadData<MaterialProperties>(input.materialBufferIndex, 0);
-    
-    if (props.alphaClip)
+    if (targetVariantIndex > 0u)
     {
-        VBUFFER_STRATEGY strategy = VBUFFER_STRATEGY::Create();
-        float coverage = strategy.GetAlphaCoverage(props, input.uv);
-        if (coverage < props.alphaClipThreshold)
+        MaterialProperties props = LoadMaterialData<MaterialProperties>(input.materialBufferIndex);
+        if (props.alphaClip)
         {
-            discard;
+            VBUFFER_STRATEGY strategy = VBUFFER_STRATEGY::Create();
+            float coverage = strategy.GetAlphaCoverage(props, input.uv);
+            if (coverage < props.alphaClipThreshold)
+            {
+                discard;
+            }
         }
     }
 

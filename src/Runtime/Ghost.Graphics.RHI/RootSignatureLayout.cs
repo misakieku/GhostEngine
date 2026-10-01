@@ -44,9 +44,10 @@ public struct FrameData
     public uint sceneBuffer;
     public uint paletteOffsetBuffer;   // bindless index into PaletteOffsetBuffer
     public uint materialIndexBuffer;   // bindless index into MaterialIndexBuffer
-    public uint punctualLightsBuffer;   // bindless index into GPUPunctualLight buffer
+    public uint materialBuffer;        // bindless index into Global MaterialPoolBuffer
+    public uint punctualLightsBuffer;  // bindless index into GPUPunctualLight buffer
     public uint punctualLightCount;    // number of punctual lights gathered this frame
-    public uint directionalLightBuffer; // bindless index into GPUDirectionalLight buffer
+    public uint directionalLightBuffer;// bindless index into GPUDirectionalLight buffer
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]

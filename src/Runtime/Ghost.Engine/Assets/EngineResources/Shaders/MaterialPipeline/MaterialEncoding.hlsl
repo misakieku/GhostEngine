@@ -1,18 +1,33 @@
 #ifndef GHOST_MATERIAL_ENCODING_HLSL
 #define GHOST_MATERIAL_ENCODING_HLSL
 
-#define MATERIAL_CBUFFER_MASK 0x00FFFFFFu
+#define MATERIAL_OFFSET_MASK 0x007FFFFFu
+#define MATERIAL_CBUFFER_MASK MATERIAL_OFFSET_MASK
+#define MATERIAL_ALPHA_CLIP_SHIFT 23u
+#define MATERIAL_ALPHA_CLIP_MASK 0x1u
 #define MATERIAL_VARIANT_SHIFT 24u
 #define MATERIAL_VARIANT_MASK 0xFFu
 
-uint PackMaterial(uint materialBufferIndex, uint variantIndex)
+uint PackMaterial(uint materialByteOffset, uint variantIndex, uint hasAlphaClip)
 {
-    return (materialBufferIndex & MATERIAL_CBUFFER_MASK) | ((variantIndex & MATERIAL_VARIANT_MASK) << MATERIAL_VARIANT_SHIFT);
+    return (materialByteOffset & MATERIAL_OFFSET_MASK)
+         | ((hasAlphaClip & MATERIAL_ALPHA_CLIP_MASK) << MATERIAL_ALPHA_CLIP_SHIFT)
+         | ((variantIndex & MATERIAL_VARIANT_MASK) << MATERIAL_VARIANT_SHIFT);
+}
+
+uint UnpackMaterialByteOffset(uint packedMaterial)
+{
+    return packedMaterial & MATERIAL_OFFSET_MASK;
 }
 
 uint UnpackMaterialMaterialBufferIndex(uint packedMaterial)
 {
-    return packedMaterial & MATERIAL_CBUFFER_MASK;
+    return packedMaterial & MATERIAL_OFFSET_MASK;
+}
+
+uint UnpackMaterialHasAlpha(uint packedMaterial)
+{
+    return (packedMaterial >> MATERIAL_ALPHA_CLIP_SHIFT) & MATERIAL_ALPHA_CLIP_MASK;
 }
 
 uint UnpackMaterialVariantIndex(uint packedMaterial)

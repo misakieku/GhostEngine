@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
@@ -570,7 +571,7 @@ public unsafe partial struct EntityQuery : IDisposable
     /// <summary>
     /// Calculate total entity count in this query
     /// </summary>
-    /// <returns> Total entity count</returns>
+    /// <returns>Total entity count</returns>
     public readonly int CalculateEntityCount()
     {
         var total = 0;
@@ -617,25 +618,24 @@ public unsafe partial struct EntityQuery : IDisposable
         return total;
     }
 
+    /// <summary>
+    /// Checks if there is at least one entity that matches the query's criteria.
+    /// </summary>
+    /// <returns>True if at least one entity matches the query's criteria, false otherwise.</returns>
     public readonly bool HasMatchingEntity()
     {
-        var world = World.GetWorld(_worldID);
-        if (world is null)
-        {
-            return false;
-        }
+        var world = World.GetWorldUncheck(_worldID);
 
         for (var i = 0; i < _matchingArchetypes.Count; i++)
         {
-            var archetypeID = _matchingArchetypes[i];
-            ref var archetype = ref world.ComponentManager.GetArchetypeReference(archetypeID);
+            ref readonly var archetype = ref world.ComponentManager.GetArchetypeReference(_matchingArchetypes[i]);
 
             // Check ONCE per archetype if we actually need to loop entities
             var requiresFiltering = RequiresEnableableFiltering(in archetype, in _mask);
 
             for (var j = 0; j < archetype.ChunkCount; j++)
             {
-                ref var chunk = ref archetype.GetChunkReference(j);
+                ref readonly var chunk = ref archetype.GetChunkReference(j);
                 if (chunk._count == 0)
                 {
                     continue;
@@ -764,47 +764,109 @@ public ref partial struct QueryBuilder : IDisposable
         }
     }
 
+    /// <summary>
+    /// Adds a set of component identifiers to the "WithAll" filter of the query, indicating that only entities with all of the specified components and those components that are enabled should be included in the query results.
+    /// </summary>
+    /// <param name="componentIDs"></param>
+    /// <returns>A reference to the current <see cref="QueryBuilder"/> instance, allowing for method chaining.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WithAll(params Span<Identifier<IComponent>> componentIDs)
+    [UnscopedRef]
+    public ref QueryBuilder WithAll(params Span<Identifier<IComponent>> componentIDs)
     {
         _all.AddRange(componentIDs);
+        return ref this;
     }
 
+    /// <summary>
+    /// Adds a set of component identifiers to the "WithAll" and "WithReadWrite" filters of the query, indicating that only entities with all of the specified components and those components that are enabled should be included in the query results.
+    /// </summary>
+    /// <param name="componentIDs"></param>
+    /// <returns>A reference to the current <see cref="QueryBuilder"/> instance, allowing for method chaining.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WithAny(params Span<Identifier<IComponent>> componentIDs)
+    [UnscopedRef]
+    public ref QueryBuilder WithAllRW(params Span<Identifier<IComponent>> componentIDs)
+    {
+        _all.AddRange(componentIDs);
+        _rw.AddRange(componentIDs);
+        return ref this;
+    }
+
+    /// <summary>
+    /// Adds a set of component identifiers to the "WithAny" filter of the query, indicating that entities with at least one of the specified components should be included in the query results.
+    /// </summary>
+    /// <param name="componentIDs"></param>
+    /// <returns>A reference to the current <see cref="QueryBuilder"/> instance, allowing for method chaining.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [UnscopedRef]
+    public ref QueryBuilder WithAny(params Span<Identifier<IComponent>> componentIDs)
     {
         _any.AddRange(componentIDs);
+        return ref this;
     }
 
+    /// <summary>
+    /// Adds a set of component identifiers to the "WithAbsent" filter of the query, indicating that entities without all of the specified components should be included in the query results.
+    /// </summary>
+    /// <param name="componentIDs"></param>
+    /// <returns>A reference to the current <see cref="QueryBuilder"/> instance, allowing for method chaining.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WithAbsent(params Span<Identifier<IComponent>> componentIDs)
+    [UnscopedRef]
+    public ref QueryBuilder WithAbsent(params Span<Identifier<IComponent>> componentIDs)
     {
         _absent.AddRange(componentIDs);
+        return ref this;
     }
 
+    /// <summary>
+    /// Adds a set of component identifiers to the "WithNone" filter of the query, indicating that entities without all of the specified components or those components that are disabled should be included in the query results.
+    /// </summary>
+    /// <param name="componentIDs"></param>
+    /// <returns>A reference to the current <see cref="QueryBuilder"/> instance, allowing for method chaining.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WithNone(params Span<Identifier<IComponent>> componentIDs)
+    [UnscopedRef]
+    public ref QueryBuilder WithNone(params Span<Identifier<IComponent>> componentIDs)
     {
         _none.AddRange(componentIDs);
+        return ref this;
     }
-
+    /// <summary>
+    /// Adds a set of component identifiers to the "WithDisabled" filter of the query, indicating that entities with all of the specified components and those components that are disabled should be included in the query results.
+    /// </summary>
+    /// <param name="componentIDs"></param>
+    /// <returns>A reference to the current <see cref="QueryBuilder"/> instance, allowing for method chaining.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WithDisabled(params Span<Identifier<IComponent>> componentIDs)
+    [UnscopedRef]
+    public ref QueryBuilder WithDisabled(params Span<Identifier<IComponent>> componentIDs)
     {
         _disabled.AddRange(componentIDs);
+        return ref this;
     }
 
+    /// <summary>
+    /// Adds a set of component identifiers to the "WithPresent" filter of the query, indicating that entities with all of the specified components should be included in the query results.
+    /// </summary>
+    /// <param name="componentIDs"></param>
+    /// <returns>A reference to the current <see cref="QueryBuilder"/> instance, allowing for method chaining.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WithPresent(params Span<Identifier<IComponent>> componentIDs)
+    [UnscopedRef]
+    public ref QueryBuilder WithPresent(params Span<Identifier<IComponent>> componentIDs)
     {
         _present.AddRange(componentIDs);
+        return ref this;
     }
 
+    /// <summary>
+    /// Adds a set of component identifiers to the "WithPresent" and "WithReadWrite" filters of the query, indicating that entities with all of the specified components should be included in the query results.
+    /// </summary>
+    /// <param name="componentIDs"></param>
+    /// <returns>A reference to the current <see cref="QueryBuilder"/> instance, allowing for method chaining.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WithPresentRW(params Span<Identifier<IComponent>> componentIDs)
+    [UnscopedRef]
+    public ref QueryBuilder WithPresentRW(params Span<Identifier<IComponent>> componentIDs)
     {
         _present.AddRange(componentIDs);
         _rw.AddRange(componentIDs);
+        return ref this;
     }
 
     private void BuildQueryMask(AllocationHandle allocationHandle, out EntityQueryMask mask)
@@ -924,7 +986,7 @@ public ref partial struct QueryBuilder : IDisposable
         return queryID;
     }
 
-    public void Clear()
+    public void Reset()
     {
         _all.Clear();
         _any.Clear();

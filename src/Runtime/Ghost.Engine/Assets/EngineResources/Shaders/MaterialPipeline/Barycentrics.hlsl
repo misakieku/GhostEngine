@@ -137,7 +137,7 @@ InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pixelCoord, floa
     attrs.ddx_uv = ddx_uv;
     attrs.ddy_uv = ddy_uv;
     attrs.motionVectors = motionVectors;
-    attrs.cbufferIndex = UnpackMaterialMaterialBufferIndex(packedMaterial);
+    attrs.cbufferIndex = UnpackMaterialByteOffset(packedMaterial);
     attrs.variantIndex = UnpackMaterialVariantIndex(packedMaterial);
     // Winding check in clip space (CCW is front-facing)
     attrs.isFrontFacing = (det > 0.0f);

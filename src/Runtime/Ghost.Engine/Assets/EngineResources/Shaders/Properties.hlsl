@@ -32,6 +32,7 @@ struct FrameData
     BYTE_ADDRESS_BUFFER sceneBuffer;
     BYTE_ADDRESS_BUFFER paletteOffsetBuffer;   // global PaletteOffsetBuffer
     BYTE_ADDRESS_BUFFER materialIndexBuffer;   // global MaterialIndexBuffer
+    BYTE_ADDRESS_BUFFER materialBuffer;        // global MaterialPoolBuffer
     BYTE_ADDRESS_BUFFER punctualLightsBuffer;  // global GPUPunctualLight buffer
     uint punctualLightCount;                   // number of punctual lights
     BYTE_ADDRESS_BUFFER directionalLightBuffer; // global GPUDirectionalLight buffer
@@ -121,5 +122,11 @@ cbuffer cbFrameData : register(b2)
     FrameData g_FrameData;
 };
 
+template<typename T>
+T LoadMaterialData(uint byteOffset)
+{
+    ByteAddressBuffer buf = GET_BUFFER(g_FrameData.materialBuffer);
+    return buf.Load<T>(byteOffset);
+}
 
 #endif // GHOST_PROPERTIES_HLSL
