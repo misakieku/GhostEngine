@@ -511,9 +511,6 @@ public struct BarrierDesc
     /// <summary>Gets or sets the cross-queue handoff role of this barrier.</summary>
     public BarrierHandoffType Handoff { get; set; }
 
-    // TODO: We actually don't need this, we should insert NoAccess by ourself.
-    // public bool IsAliasing { get; set; }
-
     [UnscopedRef]
     public ref ulong Offset => ref _additionalData.bufferData.offset;
     [UnscopedRef]

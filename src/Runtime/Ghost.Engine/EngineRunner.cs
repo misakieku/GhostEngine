@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Engine.Input;
 using Ghost.Engine.Streaming;
 using Misaki.HighPerformance.LowLevel.Buffer;
@@ -64,7 +65,14 @@ public static class EngineRunner
                 profile.OnEngineShutdown(engineCore);
             }
         }
-        // TODO: Log the exception
+        catch (Exception ex)
+        {
+            // Exception should be either handled or not expected. If an unhandled exception goes all the way up to this point, it indicates a critical failure in the engine execution.
+            // Log the error and terminate the application.
+
+            Logger.Error($"An unhandled exception occurred during engine execution: {ex}");
+            Environment.FailFast("An unhandled exception occurred during engine execution.", ex);
+        }
         finally
         {
             SDL3.SDL_Quit();

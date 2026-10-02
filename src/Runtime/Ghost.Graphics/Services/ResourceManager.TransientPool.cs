@@ -37,7 +37,7 @@ public partial class ResourceManager
     private readonly Lock _transientWriteLock = new Lock();
 
     private Handle<GPUBuffer> _uploadBuffer;
-    private ulong _uploadBufferOffset;
+    private uint _uploadBufferOffset; // We use uint here because the offset is always less than 16MB, which is well within the range of uint.
     private uint _uploadBufferSrvIndex;
     private readonly Lock _uploadBufferLock = new Lock();
 
@@ -52,7 +52,7 @@ public partial class ResourceManager
         _uploadBuffer = _resourceAllocator.CreateBuffer(new BufferDesc
         {
             Size = DEFAULT_TRANSIENT_PAGE_SIZE,
-            Usage = BufferUsage.Upload,
+            Usage = BufferUsage.Upload | BufferUsage.ShaderResource | BufferUsage.Raw,
             HeapType = HeapType.Upload,
         }, "Transient Upload Buffer");
 
@@ -117,7 +117,6 @@ public partial class ResourceManager
         var isRTOrDS = desc.Usage.HasFlag(TextureUsage.DepthStencil) || desc.Usage.HasFlag(TextureUsage.RenderTarget);
         var size = _resourceAllocator.GetSizeInfo(ResourceDesc.Texture(desc));
 
-        // TODO: Any better way?
         lock (_transientWriteLock)
         {
             if (size.Size > DEFAULT_TRANSIENT_PAGE_SIZE)
@@ -280,8 +279,10 @@ public partial class ResourceManager
         }
     }
 
-    public Handle<GPUBuffer> CreateTransientUploadBuffer(BufferDesc desc, out ulong offset, out uint srvIndex)
+    public Handle<GPUBuffer> CreateTransientUploadBuffer(scoped in BufferDesc desc, out uint offset, out uint srvIndex)
     {
+        Logger.DebugAssert(desc.HeapType == HeapType.Upload, "Transient upload buffer must be of HeapType.Upload");
+
         lock (_uploadBufferLock)
         {
             if (_uploadBufferOffset + desc.Size > DEFAULT_TRANSIENT_PAGE_SIZE)
@@ -295,14 +296,14 @@ public partial class ResourceManager
             offset = _uploadBufferOffset;
             srvIndex = _uploadBufferSrvIndex;
 
-            _uploadBufferOffset += desc.Size;
+            _uploadBufferOffset += (uint)desc.Size;
 
             return _uploadBuffer;
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Handle<GPUBuffer> CreateTransientUploadBuffer(BufferDesc desc, out ulong offset)
+    public Handle<GPUBuffer> CreateTransientUploadBuffer(BufferDesc desc, out uint offset)
     {
         return CreateTransientUploadBuffer(desc, out offset, out _);
     }

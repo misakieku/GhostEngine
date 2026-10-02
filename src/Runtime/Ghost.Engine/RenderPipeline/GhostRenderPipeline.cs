@@ -43,7 +43,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
     public GhostRenderPipeline(RenderEngine renderEngine, AssetManager assetManager, JobScheduler jobScheduler, GhostRenderPipelineSettings settings)
     {
-        ValidateRequiredGPUFeatures(renderEngine);
+        ValidateRequiredGPUFeatures(renderEngine.GraphicsEngine.Device);
 
         _renderEngine = renderEngine;
         _assetManager = assetManager;
@@ -68,9 +68,9 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         InitializeDeferredTexturing(renderEngine);
     }
 
-    private static void ValidateRequiredGPUFeatures(RenderEngine renderEngine)
+    private static void ValidateRequiredGPUFeatures(IRenderDevice renderDevice)
     {
-        var supported = renderEngine.GraphicsEngine.Device.DeviceFeture.SupportedFeatures;
+        var supported = renderDevice.DeviceFeture.SupportedFeatures;
         if (!supported.HasFlag(FeatureSupport.MeshShaders))
         {
             throw new PlatformNotSupportedException("Mesh shaders are not supported on this device. GhostRenderPipeline requires mesh shader support.");
@@ -127,7 +127,6 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             return Result.Success();
         }
 
-        // FIX: This should be per view since we need to cull the light and manage the shadow atlas.
         UploadLights(ctx, ghostPayload, out var punctualLightsSrv, out var punctualLightCount, out var directionalLightSrv);
 
         // Upload FrameData once per frame
@@ -184,7 +183,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 viewContext.RenderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
             }
 
-            var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewState, RGFlags.GenerateDump);
+            var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewState, RGFlags.Default);
             if (result.IsFailure)
             {
                 return Result.Failure($"Render graph execution failed: {result.Error}");
@@ -223,10 +222,10 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 1, out var indirectArg1, out var binOffsets1, out var binScatterCounters1);
         visibleMeshlets1 = AddScatterMeshletsPass(viewContext.RenderGraph, unbinnedMeshlets1, binScatterCounters1, counterBuffer, 1);
         AddVisibilityBufferPass(viewContext.RenderGraph, visibleMeshlets1, binOffsets1, indirectArg1, 1, sceneBuffer, viewContext.RenderSize, ref currentVisBuffer);
-        AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzb, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize);
 
         // Export stable depth ONCE at the end of geometry passes
         AddExportVisibilityDepthPass(viewContext.RenderGraph, currentVisBuffer, viewContext.RenderSize, ref currentDepth);
+        AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzb, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize);
     }
 
     public void Dispose()

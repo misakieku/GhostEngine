@@ -405,7 +405,6 @@ internal static class RenderGraphAliasingBuilder
         }
 
         // Sort by size descending
-        // TODO: Avoid closure.
         logicalResources.AsSpan().Sort(default(ResourceSizeDescendingComparer));
 
         // Simulate allocation to find peak memory usage

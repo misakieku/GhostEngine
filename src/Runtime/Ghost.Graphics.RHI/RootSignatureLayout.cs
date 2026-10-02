@@ -21,10 +21,6 @@ public struct PushConstantsData
 
     [FieldOffset(0)]
     public uint userData0;
-    [FieldOffset(0)]
-    public uint instanceIndex;
-    [FieldOffset(0)]
-    public uint propertyBuffer;
     [FieldOffset(4)]
     public uint userData1;
     [FieldOffset(8)]

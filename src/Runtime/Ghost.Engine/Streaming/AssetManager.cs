@@ -119,8 +119,6 @@ public partial class AssetManager : IDisposable
     private readonly ResourceStreamingProcessor _streamingProcessor;
     private readonly JobScheduler _jobScheduler;
     private readonly ShaderVariantRegistry _shaderVariants;
-    private readonly ComputeShaderRegistry _computeShaders;
-    private readonly WorkGraphRegistry _workGraphs;
     private readonly ShaderBytecodePool? _bytecodePool;
 
     private readonly ConcurrentDictionary<Guid, AssetEntry> _entries;
@@ -131,14 +129,6 @@ public partial class AssetManager : IDisposable
     /// Dense metadata registry for graphics shader variants.
     /// </summary>
     public ShaderVariantRegistry ShaderVariants => _shaderVariants;
-    /// <summary>
-    /// Metadata registry for standalone compute shaders.
-    /// </summary>
-    public ComputeShaderRegistry ComputeShaders => _computeShaders;
-    /// <summary>
-    /// Metadata registry for work graphs.
-    /// </summary>
-    public WorkGraphRegistry WorkGraphs => _workGraphs;
 
     internal AssetManager(IResourceDatabase resourceDatabase, ResourceManager resourceManager, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler)
     {
@@ -148,8 +138,6 @@ public partial class AssetManager : IDisposable
         _streamingProcessor = streamingProcessor;
         _jobScheduler = jobScheduler;
         _shaderVariants = new ShaderVariantRegistry(resourceManager, contentProvider.ShaderCatalog);
-        _computeShaders = new ComputeShaderRegistry(resourceManager, contentProvider.ShaderCatalog);
-        _workGraphs = new WorkGraphRegistry(contentProvider.ShaderCatalog);
 
         if (contentProvider.HasAsset(ShaderBytecodePool.POOL_ASSET_ID))
         {
@@ -417,8 +405,6 @@ public partial class AssetManager : IDisposable
         Logger.DebugAssert(_entries.IsEmpty, $"There are still {_entries.Count} assets in the manager. Make sure to release all assets before disposing the manager.");
 
         _entries.Clear();
-        _computeShaders.Dispose();
-        _workGraphs.Dispose();
         _shaderVariants.Dispose();
         _bytecodePool?.Dispose();
         _contentProvider.Dispose();

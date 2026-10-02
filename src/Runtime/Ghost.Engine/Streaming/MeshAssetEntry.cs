@@ -237,6 +237,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         dstMesh.MeshBuffer = context.ResourceDatabase.Replace(temp.MeshBuffer.AsResource(), srcMesh.MeshBuffer.AsResource()).AsBuffer();
         dstMesh.MeshDataBuffer = context.ResourceDatabase.Replace(temp.MeshDataBuffer.AsResource(), srcMesh.MeshDataBuffer.AsResource()).AsBuffer();
 
+        dstMesh.ReleaseCpuResources();
         context.ResourceManager.ReleaseMesh(_tempHandle);
         _tempHandle = Handle<Mesh>.Invalid;
 

@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
@@ -9,40 +10,67 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Streaming;
 
-// TODO: Maybe we don't need this.
 internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry, IShaderCommitableAssetEntry
 {
     private const int MAX_ENTRY_POINT_COUNT = 8;
 
+    private readonly ShaderCatalogEntry _catalogEntry;
     private Handle<ComputeShader> _actualHandle;
     private MemoryBlock _payload;
+    private bool _bytecodeReady;
 
-    internal override AssetState FailureState
-    {
-        get
-        {
-            if (Manager.ComputeShaders.TryGetShaderIndex(AssetId, out var index) &&
-                Manager.ComputeShaders.GetState(index) == ComputeShaderState.BytecodeReady)
-            {
-                return AssetState.Ready;
-            }
-
-            return AssetState.Failed;
-        }
-    }
+    internal override AssetState FailureState => _bytecodeReady ? AssetState.Ready : AssetState.Failed;
 
     public ComputeShaderAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies)
         : base(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies)
     {
-        if (!manager.ComputeShaders.TryGetShaderHandle(assetId, out _actualHandle))
+        var catalog = manager.ContentProvider.ShaderCatalog;
+        ShaderCatalogEntry? entry = null;
+        for (var i = 0; i < catalog.Count; i++)
+        {
+            if (catalog[i].AssetId == assetId)
+            {
+                entry = catalog[i];
+                break;
+            }
+        }
+
+        if (entry == null)
         {
             throw new InvalidDataException($"Compute shader asset {assetId} is missing from the runtime shader catalog.");
+        }
+
+        if (entry.Passes.Length != 1 || entry.Passes[0].EntryPointCount == 0 || entry.Passes[0].EntryPointCount > MAX_ENTRY_POINT_COUNT)
+        {
+            throw new InvalidDataException($"Compute shader '{entry.Name}' must have one to eight entry points.");
+        }
+
+        _catalogEntry = entry;
+
+        var descriptor = new ComputeShaderDescriptor
+        {
+            Name = entry.Name,
+            PropertyBufferSize = entry.PropertyBufferSize,
+            ShaderModel = entry.ShaderModel,
+            ShaderCodes = new ShaderCode[entry.Passes[0].EntryPointCount],
+            Defines = Array.Empty<string>(),
+        };
+
+        _actualHandle = resourceManager.CreateComputeShader(descriptor);
+        if (_actualHandle.IsInvalid)
+        {
+            throw new InvalidOperationException($"Failed to register compute shader metadata for '{entry.Name}'.");
         }
     }
 
     protected override void OnReleaseResource()
     {
         DiscardStagedPayload();
+        if (_actualHandle.IsValid)
+        {
+            ResourceManager.ReleaseComputeShader(_actualHandle);
+            _actualHandle = default;
+        }
     }
 
     private void DiscardStagedPayload()
@@ -73,14 +101,7 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
         {
             stagedPayload = contentStream.ReadMemory(AllocationHandle.Persistent);
 
-            if (!Manager.ComputeShaders.TryGetShaderIndex(AssetId, out var index))
-            {
-                stagedPayload.Dispose();
-                return Result.Failure($"Compute shader asset {AssetId} is missing from the runtime shader catalog.");
-            }
-
-            ref readonly var record = ref Manager.ComputeShaders.GetShader(index);
-            var validation = ValidatePayload(stagedPayload, AssetId, in record);
+            var validation = ValidatePayload(stagedPayload, AssetId, _catalogEntry);
             if (validation.IsFailure)
             {
                 stagedPayload.Dispose();
@@ -103,7 +124,7 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
         }
     }
 
-    internal static Result ValidatePayload(MemoryBlock payloadBlock, Guid assetId, scoped in ComputeShaderRecord record)
+    internal static Result ValidatePayload(MemoryBlock payloadBlock, Guid assetId, ShaderCatalogEntry catalogEntry)
     {
         var payload = (byte*)payloadBlock.GetUnsafePtr();
         var payloadSize = (long)payloadBlock.Size;
@@ -115,19 +136,19 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
             return Result.Failure($"Compute shader asset {assetId} uses an unsupported content format.");
         }
 
-        if (record.Passes.Length != 1 ||
-            header.shaderId != record.ShaderId ||
-            header.familyId != record.FamilyId ||
-            header.layoutHash != record.LayoutHash ||
-            header.propertyBufferSize != record.PropertyBufferSize ||
-            header.shaderModel != record.ShaderModel)
+        if (catalogEntry.Passes.Length != 1 ||
+            header.shaderId != catalogEntry.ShaderId ||
+            header.familyId != catalogEntry.FamilyId ||
+            header.layoutHash != catalogEntry.LayoutHash ||
+            header.propertyBufferSize != catalogEntry.PropertyBufferSize ||
+            header.shaderModel != catalogEntry.ShaderModel)
         {
             return Result.Failure($"Compute shader asset {assetId} does not match its catalog metadata.");
         }
 
         var passOffset = header.nameOffset + header.nameSize;
         var pass = ReadAt<ShaderContentHeader.PassHeader>(payload, passOffset, payloadSize);
-        ref readonly var catalogPass = ref record.Passes[0];
+        ref readonly var catalogPass = ref catalogEntry.Passes[0];
         if (pass.entryPointCount == 0 || pass.entryPointCount > MAX_ENTRY_POINT_COUNT ||
             !IsRangeValid(pass.nameOffset, pass.nameSize, payloadSize) ||
             !IsRangeValid(pass.dataOffset, pass.dataSize, payloadSize))
@@ -135,8 +156,7 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
             return Result.Failure($"Compute shader asset {assetId} contains invalid entry-point metadata.");
         }
 
-        if (pass.entryPointCount != record.EntryPointCount ||
-            pass.entryPointCount != catalogPass.EntryPointCount ||
+        if (pass.entryPointCount != catalogPass.EntryPointCount ||
             pass.semantic != catalogPass.Semantic ||
             pass.stageMask != ShaderStageMask.Compute ||
             pass.stageMask != catalogPass.StageMask ||
@@ -225,7 +245,7 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
                 return publishResult;
             }
 
-            Manager.ComputeShaders.PublishBytecodeReady(AssetId);
+            _bytecodeReady = true;
             DiscardStagedPayload();
             return Result.Success();
         }
@@ -251,3 +271,4 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
         return Unsafe.ReadUnaligned<T>(payload + offset);
     }
 }
+

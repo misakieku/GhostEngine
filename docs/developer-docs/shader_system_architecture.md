@@ -48,7 +48,7 @@ A graphics asset is represented at runtime by `Handle<Shader>` and is registered
 
 A `.gcomp` asset is a standalone compute shader. It is not a graphics material variant and is not inserted into the graphics semantic rosters.
 
-It is represented at runtime by `Handle<ComputeShader>` and registered in the standalone compute-shader registry. Its entry points are selected by entry index:
+It is represented at runtime by `Handle<ComputeShader>` and managed directly by `ComputeShaderAssetEntry`. Its entry points are selected by entry index:
 
 ```csharp
 computeContext.SetActiveCompute(computeShader, entryIndex);
@@ -171,7 +171,7 @@ The startup sequence is:
 RuntimeContentProvider loads manifest.json
     -> exposes Manifest.Shaders
 AssetManager is created
-    -> constructs ShaderVariantRegistry and standalone compute registry
+    -> constructs ShaderVariantRegistry
 ShaderVariantRegistry registers metadata-complete Handle<Shader> values
     -> builds immutable semantic rosters
 Runtime initialization runs
@@ -489,8 +489,8 @@ When a compatible generation is published:
 - [`ShaderBaker`](../../src/Editor/Ghost.AssetForge.Core/Bakers/ShaderBaker.cs)
 - [`ShaderAssetEntry`](../../src/Runtime/Ghost.Engine/Streaming/ShaderAssetEntry.cs)
 - [`ComputeShaderAssetEntry`](../../src/Runtime/Ghost.Engine/Streaming/ComputeShaderAssetEntry.cs)
+- [`WorkGraphAssetEntry`](../../src/Runtime/Ghost.Engine/Streaming/WorkGraphAssetEntry.cs)
 - [`ShaderVariantRegistry`](../../src/Runtime/Ghost.Engine/Streaming/ShaderVariantRegistry.cs)
-- [`ComputeShaderRegistry`](../../src/Runtime/Ghost.Engine/Streaming/ComputeShaderRegistry.cs)
 - [`ShaderVariantRendering`](../../src/Runtime/Ghost.Graphics/ShaderVariantRendering.cs)
 - [`RenderGraphContext`](../../src/Runtime/Ghost.Graphics/RenderGraphModule/RenderGraphContext.cs)
 - [`MaterialPaletteStore`](../../src/Runtime/Ghost.Graphics/Services/MaterialPaletteStore.cs)

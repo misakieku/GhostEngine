@@ -38,14 +38,6 @@ public struct WindowDesc
 
 public unsafe class EngineWindow : IDisposable
 {
-    // TODO: Linux can run on either X11 or Wayland, so we need to detect which one is being used and use the appropriate property name.
-
-#if PLATFORM_WINDOWNS
-    internal static ReadOnlySpan<byte> HANDLE_PROPERTY_NAME => SDL_PROP_WINDOW_WIN32_HWND_POINTER;
-#elif PLATFORM_MACOS
-    internal static ReadOnlySpan<byte> HANDLE_PROPERTY_NAME => SDL_PROP_WINDOW_COCOA_WINDOW_POINTER;
-#endif
-
     private readonly RenderEngine _renderEngine;
     private readonly SwapChainManager _swapChainManager;
 
@@ -57,16 +49,38 @@ public unsafe class EngineWindow : IDisposable
 
     private bool _isRunning;
 
-    public IntPtr Handle => SDL_GetPointerProperty(_propID, HANDLE_PROPERTY_NAME, 0);
+    public IntPtr Handle => SDL_GetPointerProperty(_propID, GetPlatfromHandleName(), 0);
     public int SwapChainIndex => _swapChainIndex;
-
     public bool IsRunning => _isRunning;
 
     internal SDL_Window* WindowHandle => _window;
 
-    internal void AttachToInputManager(Ghost.Engine.Input.RawInputManager inputManager)
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ReadOnlySpan<byte> GetPlatfromHandleName()
     {
-        inputManager.AttachWindow(_window);
+        if (OperatingSystem.IsWindows())
+        {
+            return SDL_PROP_WINDOW_WIN32_HWND_POINTER;
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            return SDL_PROP_WINDOW_COCOA_WINDOW_POINTER;
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            // Linux can run on either X11 or Wayland, so we need to detect which one is being used and use the appropriate property name.
+            if (SDL_GetCurrentVideoDriver() == "wayland")
+            {
+                return SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER;
+            }
+            else if (SDL_GetCurrentVideoDriver() == "x11")
+            {
+                return SDL_PROP_WINDOW_X11_DISPLAY_POINTER;
+            }
+        }
+
+        throw new PlatformNotSupportedException("Unsupported platform for window handle retrieval.");
     }
 
     public EngineWindow(RenderEngine renderEngine, WindowDesc desc)
@@ -102,6 +116,12 @@ public unsafe class EngineWindow : IDisposable
         _swapChainManager.CreateSwapChain(swapChainDesc, false, out _swapChain, out _swapChainIndex);
 
         _isRunning = true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void AttachToInputManager(RawInputManager inputManager)
+    {
+        inputManager.AttachWindow(_window);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -150,7 +170,7 @@ public unsafe class PopupWindow : IDisposable
     private readonly SDL_Renderer* _renderer;
     private readonly SDL_PropertiesID _propID;
 
-    public IntPtr Handle => SDL_GetPointerProperty(_propID, EngineWindow.HANDLE_PROPERTY_NAME, 0);
+    public IntPtr Handle => SDL_GetPointerProperty(_propID, EngineWindow.GetPlatfromHandleName(), 0);
 
     public PopupWindow(string title, int width, int height, Action<SharedPtr<SDL_Renderer>> onRender)
     {

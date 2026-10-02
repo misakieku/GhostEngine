@@ -157,6 +157,13 @@ public struct Mesh : IResourceReleasable
         get; internal set;
     }
 
+    /// <summary>
+    /// Creates a deep copy of the current mesh, including its vertices, indices, and meshlet data. The cloned mesh will have its own separate memory allocation for these resources.
+    /// </summary>
+    /// <remarks>
+    /// This does not clone the GPU resources (MeshBuffer and MeshDataBuffer). The cloned mesh will need to be uploaded to the GPU separately if required.
+    /// </remarks>
+    /// <returns>The cloned mesh.</returns>
     public readonly Mesh Clone()
     {
         var newData = this;
@@ -168,6 +175,9 @@ public struct Mesh : IResourceReleasable
         return newData;
     }
 
+    /// <summary>
+    /// Releases the CPU-side resources (vertices, indices, and meshlet data) associated with the mesh.
+    /// </summary>
     public void ReleaseCpuResources()
     {
         _vertices.Dispose();

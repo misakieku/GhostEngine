@@ -180,11 +180,9 @@ public sealed unsafe class RenderContext
     {
         ref var shader = ref ResourceManager.GetComputeShaderReference(compute).GetValueOrThrow();
 
-        // TODO: Refactor this into a helper method.
         var (compiledHash, error) = ShaderLibrary.GetCompiledHash(shader.UniqueID, entryIndex);
         if (error.IsFailure)
         {
-            // TODO: Fallback to an error material.
             Logger.Debug($"No compiled shader found for compute shader {shader.UniqueID} with entry point {entryIndex}.");
             return;
         }
@@ -221,7 +219,6 @@ public sealed unsafe class RenderContext
         CommandBuffer.SetPipelineState(pipelineKey);
 
         var propertySpan = MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in property));
-        // TODO: Placed resource has 64k alignment requirement, which can waste lots of memory. We can allocate a large buffer and slice it for each dispatch to avoid this issue.
         var propertyBufferDesc = new BufferDesc
         {
             Size = (uint)propertySpan.Length,
@@ -229,14 +226,15 @@ public sealed unsafe class RenderContext
             Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
             HeapType = HeapType.Upload,
         };
-        var properyBuffer = ResourceManager.CreateTransientBuffer(in propertyBufferDesc);
+
+        var properyBuffer = ResourceManager.CreateTransientUploadBuffer(in propertyBufferDesc, out var offset, out var srv);
 
         var mappedData = ResourceDatabase.MapResource(properyBuffer.AsResource(), 0, null);
         Logger.DebugAssert(mappedData != null, "Failed to map property buffer.");
 
         fixed (byte* pData = propertySpan)
         {
-            MemoryUtility.MemCpy(mappedData, pData, (nuint)propertySpan.Length);
+            MemoryUtility.MemCpy((byte*)mappedData + offset, pData, (nuint)propertySpan.Length);
         }
 
         error = ResourceDatabase.UnmapResource(properyBuffer.AsResource(), 0, null);
@@ -244,7 +242,8 @@ public sealed unsafe class RenderContext
 
         var pushConstant = new PushConstantsData
         {
-            propertyBuffer = ResourceDatabase.GetBindlessIndex(properyBuffer.AsResource()),
+            userData0 = srv,
+            userData1 = offset,
         };
 
         CommandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstant.AsUInts());

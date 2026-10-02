@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
@@ -9,11 +10,13 @@ namespace Ghost.Engine.Streaming;
 
 internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, IShaderCommitableAssetEntry
 {
+    private readonly ShaderCatalogEntry _catalogEntry;
     private MemoryBlock _payload;
     private byte* _bytecodePtr;
     private int _bytecodeSize;
     private ulong _shaderId;
     private string _name = string.Empty;
+    private bool _bytecodeReady;
 
     public ReadOnlySpan<byte> Bytecode => _bytecodePtr != null && _bytecodeSize > 0
         ? new ReadOnlySpan<byte>(_bytecodePtr, _bytecodeSize)
@@ -22,31 +25,30 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
     public string Name => _name;
     public ulong ShaderId => _shaderId;
 
-    internal override AssetState FailureState
-    {
-        get
-        {
-            if (Manager.WorkGraphs.TryGetGraphIndex(AssetId, out var index) &&
-                Manager.WorkGraphs.GetState(index) == WorkGraphState.BytecodeReady)
-            {
-                return AssetState.Ready;
-            }
-
-            return AssetState.Failed;
-        }
-    }
+    internal override AssetState FailureState => _bytecodeReady ? AssetState.Ready : AssetState.Failed;
 
     public WorkGraphAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies)
         : base(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies)
     {
-        if (!manager.WorkGraphs.TryGetGraphIndex(assetId, out var index))
+        var catalog = manager.ContentProvider.ShaderCatalog;
+        ShaderCatalogEntry? entry = null;
+        for (var i = 0; i < catalog.Count; i++)
+        {
+            if (catalog[i].AssetId == assetId)
+            {
+                entry = catalog[i];
+                break;
+            }
+        }
+
+        if (entry == null)
         {
             throw new InvalidDataException($"Work graph asset {assetId} is missing from the runtime shader catalog.");
         }
 
-        ref readonly var record = ref manager.WorkGraphs.GetGraph(index);
-        _name = record.Name;
-        _shaderId = record.ShaderId;
+        _catalogEntry = entry;
+        _name = entry.Name;
+        _shaderId = entry.ShaderId;
     }
 
     protected override void OnReleaseResource()
@@ -92,14 +94,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
         {
             stagedPayload = contentStream.ReadMemory(AllocationHandle.Persistent);
 
-            if (!Manager.WorkGraphs.TryGetGraphIndex(AssetId, out var index))
-            {
-                stagedPayload.Dispose();
-                return Result.Failure($"Work graph asset {AssetId} is missing from the runtime shader catalog.");
-            }
-
-            ref readonly var record = ref Manager.WorkGraphs.GetGraph(index);
-            var validation = ValidatePayload(stagedPayload, AssetId, in record);
+            var validation = ValidatePayload(stagedPayload, AssetId, _catalogEntry);
             if (validation.IsFailure)
             {
                 stagedPayload.Dispose();
@@ -140,7 +135,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
         }
     }
 
-    internal static Result ValidatePayload(MemoryBlock payloadBlock, Guid assetId, scoped in WorkGraphRecord record)
+    internal static Result ValidatePayload(MemoryBlock payloadBlock, Guid assetId, ShaderCatalogEntry catalogEntry)
     {
         var payload = (byte*)payloadBlock.GetUnsafePtr();
         var payloadSize = (long)payloadBlock.Size;
@@ -152,11 +147,11 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
             return Result.Failure($"Work graph asset {assetId} uses an unsupported content format.");
         }
 
-        if (header.shaderId != record.ShaderId ||
-            header.familyId != record.FamilyId ||
-            header.layoutHash != record.LayoutHash ||
-            header.propertyBufferSize != record.PropertyBufferSize ||
-            header.shaderModel != record.ShaderModel)
+        if (header.shaderId != catalogEntry.ShaderId ||
+            header.familyId != catalogEntry.FamilyId ||
+            header.layoutHash != catalogEntry.LayoutHash ||
+            header.propertyBufferSize != catalogEntry.PropertyBufferSize ||
+            header.shaderModel != catalogEntry.ShaderModel)
         {
             return Result.Failure($"Work graph asset {assetId} does not match its catalog metadata.");
         }
@@ -214,7 +209,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
                 return publishResult;
             }
 
-            Manager.WorkGraphs.PublishBytecodeReady(AssetId);
+            _bytecodeReady = true;
             return Result.Success();
         }
         catch (Exception ex)
@@ -238,3 +233,4 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
         return Unsafe.ReadUnaligned<T>(payload + offset);
     }
 }
+

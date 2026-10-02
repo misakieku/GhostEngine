@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.AssetForge.Core.Attributes;
 using Ghost.Core;
 using Ghost.StbI;
+using Misaki.HighPerformance.Mathematics;
 using System.IO.MemoryMappedFiles;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -183,6 +184,12 @@ public partial class TextureBakeSettings : ObservableObject, IBakeSettings
         {
             get; set;
         } = 127;
+
+        [ObservableProperty]
+        public partial int4 CustomChannelMapping
+        {
+            get; set;
+        } = new int4(0, 1, 2, 3); // Default mapping: R=0, G=1, B=2, A=3
     }
 
     [ObservableProperty]
@@ -238,6 +245,26 @@ internal partial class TextureBaker : IAssetBaker
         return TextureDimension.Texture2D;
     }
 
+    private static unsafe void SwizzleChannels<T>(T* pixelData, int width, int height, int4 channelMapping)
+        where T : unmanaged
+    {
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var pixelIndex = (y * width + x) * 4;
+                var r = pixelData[pixelIndex + channelMapping.x];
+                var g = pixelData[pixelIndex + channelMapping.y];
+                var b = pixelData[pixelIndex + channelMapping.z];
+                var a = pixelData[pixelIndex + channelMapping.w];
+                pixelData[pixelIndex] = r;
+                pixelData[pixelIndex + 1] = g;
+                pixelData[pixelIndex + 2] = b;
+                pixelData[pixelIndex + 3] = a;
+            }
+        }
+    }
+
     private static unsafe TextureInfo GetImageInfo(string sourcePath, TextureBakeSettings settings)
     {
         try
@@ -256,9 +283,10 @@ internal partial class TextureBaker : IAssetBaker
                 int imageWidth, imageHeight, colorComponents;
                 var bufferSpan = new ReadOnlySpan<byte>(ptr, (int)new FileInfo(sourcePath).Length);
                 var bitsPerChannel = StbIApi.Is16BitFromMemory(bufferSpan) > 0 ? 16 : 8;
+                var isFloat = isHDR || bitsPerChannel > 8;
 
                 void* pPixels;
-                if (isHDR || bitsPerChannel > 8)
+                if (isFloat)
                 {
                     pPixels = StbIApi.LoadfFromMemory(bufferSpan, &imageWidth, &imageHeight, &colorComponents, 4);
                 }
@@ -270,6 +298,23 @@ internal partial class TextureBaker : IAssetBaker
                 if (pPixels == null)
                 {
                     throw new Exception($"Failed to decode image using StbIApi: {sourcePath}");
+                }
+
+                if (!settings.Advanced.CustomChannelMapping.Equals(new uint4(0, 1, 2, 3)))
+                {
+                    if (math.any(settings.Advanced.CustomChannelMapping > 3) || math.any(settings.Advanced.CustomChannelMapping < 0))
+                    {
+                        throw new ArgumentException("Invalid custom channel mapping. All values must be between 0 and 3.");
+                    }
+
+                    if (isFloat)
+                    {
+                        SwizzleChannels((float*)pPixels, imageWidth, imageHeight, settings.Advanced.CustomChannelMapping);
+                    }
+                    else
+                    {
+                        SwizzleChannels((byte*)pPixels, imageWidth, imageHeight, settings.Advanced.CustomChannelMapping);
+                    }
                 }
 
                 return new TextureInfo
