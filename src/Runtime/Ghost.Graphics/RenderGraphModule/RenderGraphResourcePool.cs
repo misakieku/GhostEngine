@@ -131,7 +131,7 @@ internal record struct RenderGraphResource : IDisposable
     }
 }
 
-internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphValidationResourceProvider
+internal sealed class RenderGraphResourceRegistry : IDisposable
 {
     private readonly IResourceDatabase _database;
     private readonly IResourceAllocator _allocator;
