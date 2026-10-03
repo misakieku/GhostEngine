@@ -5,6 +5,7 @@
   "Settings": {
     "OptimizeLevel": "O3",
     "Options": "None",
-    "Defines": []
+    "Defines": [],
+    "DefineGroups": { }
   }
 }

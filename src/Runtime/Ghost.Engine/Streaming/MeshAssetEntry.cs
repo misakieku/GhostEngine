@@ -10,7 +10,6 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Xml.Linq;
 
 namespace Ghost.Engine.Streaming;
 
@@ -116,7 +115,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
     {
         var desc = new BufferDesc
         {
-            Size = (ulong)_rawData.Size,
+            Size = _rawData.Size,
             Stride = 1,
             Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
             HeapType = HeapType.Default,

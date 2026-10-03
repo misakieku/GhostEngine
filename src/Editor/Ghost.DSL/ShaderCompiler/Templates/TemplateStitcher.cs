@@ -250,7 +250,7 @@ public static class TemplateStitcher
     /// </summary>
     public static Result<GraphicsShaderDescriptor> ResolveShader(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders)
     {
-        uint shadingModelId = 0u;
+        var shadingModelId = 0u;
         if (!string.IsNullOrEmpty(semantics.shadingModelFile))
         {
             shadingModelId = ExtractShadingModelId(semantics.shadingModelFile, virtualShaders);
@@ -362,7 +362,6 @@ public static class TemplateStitcher
         {
             Name = semantics.name,
             PropertyBufferSize = propertyBufferSize,
-            ShaderModel = semantics.shaderModel,
             Passes = passes
         };
 

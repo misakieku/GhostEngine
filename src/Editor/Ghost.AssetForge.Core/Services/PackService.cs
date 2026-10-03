@@ -107,7 +107,6 @@ public class PackService
             FamilyId = header.familyId,
             LayoutHash = header.layoutHash,
             PropertyBufferSize = header.propertyBufferSize,
-            ShaderModel = header.shaderModel,
             Passes = passes,
         };
     }

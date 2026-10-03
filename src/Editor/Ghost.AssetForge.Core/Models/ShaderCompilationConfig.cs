@@ -24,35 +24,35 @@ public unsafe struct ComputeCompileResult
 
 public struct ShaderCompilationConfig
 {
-    public string[] defines;
+    public IEnumerable<string> defines;
     public string shaderCode;
     public string entryPoint;
     public ShaderStage stage;
-    public ShaderModel model;
+    public ShaderModel shaderModel;
     public IReadOnlyList<string>? includeDirectories;
     public CompilerOptimizeLevel optimizeLevel;
     public CompilerOption options;
 
     public readonly ulong ComputeHash()
     {
-        var hash = (ulong)stage ^ ((ulong)model << 8) ^ ((ulong)optimizeLevel << 16) ^ ((ulong)options << 24);
+        var hash = (ulong)stage ^ ((ulong)shaderModel << 8) ^ ((ulong)optimizeLevel << 16) ^ ((ulong)options << 24);
         if (!string.IsNullOrEmpty(entryPoint))
         {
-            hash = Hash.Combine64(hash, System.IO.Hashing.XxHash64.HashToUInt64(System.Runtime.InteropServices.MemoryMarshal.AsBytes(entryPoint.AsSpan())));
+            hash = Hash.Combine64(hash, XxHash64.HashToUInt64(MemoryMarshal.AsBytes(entryPoint.AsSpan())));
         }
 
         if (!string.IsNullOrEmpty(shaderCode))
         {
-            hash = Hash.Combine64(hash, System.IO.Hashing.XxHash64.HashToUInt64(System.Runtime.InteropServices.MemoryMarshal.AsBytes(shaderCode.AsSpan())));
+            hash = Hash.Combine64(hash, XxHash64.HashToUInt64(MemoryMarshal.AsBytes(shaderCode.AsSpan())));
         }
 
         if (defines != null)
         {
-            for (var i = 0; i < defines.Length; i++)
+            foreach (var define in defines)
             {
-                if (!string.IsNullOrEmpty(defines[i]))
+                if (!string.IsNullOrEmpty(define))
                 {
-                    hash = Hash.Combine64(hash, System.IO.Hashing.XxHash64.HashToUInt64(System.Runtime.InteropServices.MemoryMarshal.AsBytes(defines[i].AsSpan())));
+                    hash = Hash.Combine64(hash, XxHash64.HashToUInt64(MemoryMarshal.AsBytes(define.AsSpan())));
                 }
             }
         }

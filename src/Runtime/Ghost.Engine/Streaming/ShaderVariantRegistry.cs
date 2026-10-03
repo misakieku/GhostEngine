@@ -54,7 +54,6 @@ public struct ShaderVariantRecord
     public int PassCount { get; internal set; }
     public uint SupportedPasses { get; internal set; }
     public uint ShadingModelId { get; internal set; }
-    internal ShaderModel ShaderModel { get; set; }
     internal ShaderCatalogPass[] Passes { get; set; }
 }
 
@@ -165,7 +164,6 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
                     PropertyBufferSize = entry.PropertyBufferSize,
                     PassCount = entry.Passes.Length,
                     SupportedPasses = supportedPasses,
-                    ShaderModel = entry.ShaderModel,
                     Passes = entry.Passes,
                     ShadingModelId = shadingModelId,
                 };
@@ -536,7 +534,6 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
         {
             Name = entry.Name,
             PropertyBufferSize = entry.PropertyBufferSize,
-            ShaderModel = entry.ShaderModel,
             Passes = passes,
             VariantIndex = variantIndex,
         };

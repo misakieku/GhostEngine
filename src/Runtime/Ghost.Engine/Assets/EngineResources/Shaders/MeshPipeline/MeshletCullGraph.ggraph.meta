@@ -4,6 +4,7 @@
   "SettingsType": "Ghost.AssetForge.Core.Bakers.ShaderBakeSettings",
   "Settings": {
     "OptimizeLevel": "O3",
-    "Options": "KeepDebugInfo"
+    "Options": "KeepDebugInfo",
+    "ShaderModel": "SM_6_8"
   }
 }

@@ -79,7 +79,6 @@ public sealed class ShaderCatalogPackingTests
             shaderType = ShaderType.Graphics,
             passCount = 1,
             propertyBufferSize = 64,
-            shaderModel = ShaderModel.SM_6_8,
             shaderId = shaderId,
             familyId = ShaderIdentity.GetShaderId("Lit"),
             layoutHash = 0x1122334455667788ul,

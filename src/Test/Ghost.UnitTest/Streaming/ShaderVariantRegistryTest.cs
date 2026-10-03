@@ -201,7 +201,6 @@ public sealed class ShaderVariantRegistryTest
             FamilyId = familyId,
             LayoutHash = 42,
             PropertyBufferSize = 64,
-            ShaderModel = ShaderModel.SM_6_8,
             Passes = passes,
         };
     }
@@ -237,7 +236,6 @@ public sealed class ShaderVariantRegistryTest
             FamilyId = familyId,
             LayoutHash = 42,
             PropertyBufferSize = 64,
-            ShaderModel = ShaderModel.SM_6_8,
             Passes = passes,
         };
     }

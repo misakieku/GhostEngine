@@ -160,7 +160,7 @@ internal partial class GhostRenderPipeline
                 {
                     var bin = (uint)variant.DenseIndex;
                     unsafeCtx.SetUserData(visibleBufferIndex, visBufferUav, binOffsetsIndex, (bin << 1) | (passData.passIndex & 1u));
-                    var variantIndirectOffset = passData.indirectArgsOffset + (ulong)bin * 16UL;
+                    var variantIndirectOffset = passData.indirectArgsOffset + bin * 16UL;
                     unsafeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, variantIndirectOffset);
                 }
             }

@@ -1,3 +1,4 @@
+#define ENABLE_GRAPHICS_BREADCRUMBS
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.D3D12.Utilities;
@@ -14,6 +15,7 @@ using static TerraFX.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
+// TODO: Implement breadcrumbs?
 internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList7>, ICommandBuffer
 {
     private readonly D3D12RenderDevice _device;
@@ -35,28 +37,26 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
     private static ID3D12GraphicsCommandList7* CreateCommandList(D3D12RenderDevice renderDevice, D3D12_COMMAND_LIST_TYPE type)
     {
         var device = renderDevice.NativeObject.Get();
+
         ID3D12GraphicsCommandList7* pCommandList = default;
         var hr = device->CreateCommandList1(0u, type, D3D12_COMMAND_LIST_FLAG_NONE, __uuidof(pCommandList), (void**)&pCommandList);
+
         if (hr.FAILED)
         {
             var removedReason = device->GetDeviceRemovedReason();
             Logger.Error($"CreateCommandList1 failed with hr={hr}, GetDeviceRemovedReason={removedReason}");
+
             renderDevice.DumpInfoQueueMessages();
             ID3D12GraphicsCommandList* pBaseList = default;
             ThrowIfFailed(device->CreateCommandList1(0u, type, D3D12_COMMAND_LIST_FLAG_NONE, __uuidof(pBaseList), (void**)&pBaseList));
             ThrowIfFailed(pBaseList->QueryInterface(__uuidof(pCommandList), (void**)&pCommandList));
             pBaseList->Release();
         }
+
         return pCommandList;
     }
 
-    public D3D12CommandBuffer(
-        D3D12RenderDevice device,
-        D3D12PipelineLibrary pipelineLibrary,
-        D3D12ResourceDatabase resourceDatabase,
-        D3D12ResourceAllocator resourceAllocator,
-        D3D12DescriptorAllocator descriptorAllocator,
-        CommandBufferType type)
+    public D3D12CommandBuffer(D3D12RenderDevice device, D3D12PipelineLibrary pipelineLibrary, D3D12ResourceDatabase resourceDatabase, D3D12ResourceAllocator resourceAllocator, D3D12DescriptorAllocator descriptorAllocator, CommandBufferType type)
         : base(CreateCommandList(device, D3D12Utility.ToCommandListType(type)))
     {
         _device = device;
@@ -179,10 +179,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->RSSetScissorRects(1, &d3d12Rect);
     }
 
-    internal static bool IsTextureBarrierLayoutCompatible(
-        CommandBufferType commandBufferType,
-        BarrierLayout layoutBefore,
-        BarrierLayout layoutAfter)
+    private static bool IsTextureBarrierLayoutCompatible(CommandBufferType commandBufferType, BarrierLayout layoutBefore, BarrierLayout layoutAfter)
     {
         static bool IsDirectOnly(BarrierLayout layout)
         {
@@ -221,6 +218,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                 return (D3D12_BARRIER_SYNC)(filtered == BarrierSync.None ? BarrierSync.AllShading : filtered);
             }
         }
+
         return (D3D12_BARRIER_SYNC)sync;
     }
 
@@ -356,12 +354,13 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                     var beforeAccess = desc.AccessBefore;
                     var beforeSync = desc.SyncBefore;
 
-                    if (!IsHandoffValid(in desc)
-                        || !IsTextureBarrierLayoutCompatible(_type, beforeLayout, desc.LayoutAfter))
+#if GHOST_SAFETY_CHECKS
+                    if (!IsHandoffValid(in desc) || !IsTextureBarrierLayoutCompatible(_type, beforeLayout, desc.LayoutAfter))
                     {
                         RecordError(nameof(Barrier), Error.InvalidArgument);
                         continue;
                     }
+#endif
 
                     if (!desc.Force
                         && beforeSync == desc.SyncAfter

@@ -21,7 +21,7 @@ internal static class RenderGraphNativePassBuilder
         ReadOnlySpan<int> compiledPasses,
         ReadOnlySpan<RenderGraphCompiler.SyncBoundary> syncBoundaries,
         ReadOnlySpan<int> scheduleIndexByPassIndex,
-        AliasingPlan aliasingPlan,
+        ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering,
         AllocationHandle allocationHandle)
     {
@@ -57,7 +57,7 @@ internal static class RenderGraphNativePassBuilder
 
             // Check if we can merge with current native pass
             if (currentNativePass.mergedPassIndices.IsCreated
-                && CanMergePasses(resourceRegistry, currentNativePass, pass, i, aliasingPlan, resourceOrdering))
+                && CanMergePasses(resourceRegistry, currentNativePass, pass, i, ref aliasingPlan, resourceOrdering))
             {
                 // Merge into existing native pass
                 currentNativePass.mergedPassIndices.Add(pass.index);
@@ -136,7 +136,7 @@ internal static class RenderGraphNativePassBuilder
         scoped in NativeRenderPass nativePass,
         RenderGraphPass pass,
         int scheduleIndex,
-        AliasingPlan aliasingPlan,
+        ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering)
     {
         // Don't merge if UAVs are involved (conservative)
@@ -152,7 +152,7 @@ internal static class RenderGraphNativePassBuilder
         }
 
         // Check if barriers are needed between last merged pass and this pass
-        if (RequiresBarrierBetweenPasses(pass, scheduleIndex, resources, aliasingPlan, resourceOrdering))
+        if (RequiresBarrierBetweenPasses(pass, scheduleIndex, resources, ref aliasingPlan, resourceOrdering))
         {
             return false;
         }
@@ -232,14 +232,14 @@ internal static class RenderGraphNativePassBuilder
         RenderGraphPass pass,
         int scheduleIndex,
         RenderGraphResourceRegistry resources,
-        AliasingPlan aliasingPlan,
+        ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering)
     {
         return RenderGraphCompiler.RequiresBarrierBetweenPasses(
             pass,
             scheduleIndex,
             resources,
-            aliasingPlan,
+            ref aliasingPlan,
             resourceOrdering);
     }
 

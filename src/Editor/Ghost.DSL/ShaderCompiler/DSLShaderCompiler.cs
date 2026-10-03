@@ -293,8 +293,6 @@ public static class DSLShaderCompiler
         {
             Name = semantics.name,
             PropertyBufferSize = propertyBufferSize,
-
-            ShaderModel = semantics.shaderModel,
             Passes = passes
         };
 
@@ -372,7 +370,6 @@ public static class DSLShaderCompiler
         {
             Name = semantics.name,
             PropertyBufferSize = propertyBufferSize,
-            ShaderModel = semantics.shaderModel,
             ShaderCodes = shaderCodes,
             Defines = semantics.defines?.ToArray() ?? Array.Empty<string>(),
         };

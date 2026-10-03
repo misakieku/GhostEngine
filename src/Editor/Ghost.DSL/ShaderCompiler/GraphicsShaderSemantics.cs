@@ -53,7 +53,6 @@ public class GraphicsShaderSemantics
     public string? hlsl;
     public List<PropertySemantic> properties = new List<PropertySemantic>();
     public List<string> includes = new List<string>();
-    public ShaderModel shaderModel;
     public PipelineSemantic? pipeline;
     public List<ShaderPassSemantic> passes = new List<ShaderPassSemantic>();
 }
@@ -63,7 +62,6 @@ public class ComputeShaderSemantics
     public string name = string.Empty;
     public string? hlsl;
     public List<PropertySemantic> properties = new List<PropertySemantic>();
-    public ShaderModel shaderModel;
     public List<string> defines = new List<string>();
     public List<string> includes = new List<string>();
     public List<ShaderEntryPoint> entryPoints = new List<ShaderEntryPoint>();

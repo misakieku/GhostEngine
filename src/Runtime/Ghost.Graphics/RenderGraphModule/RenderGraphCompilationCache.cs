@@ -96,7 +96,7 @@ internal sealed class RenderGraphCompilationCache : IDisposable
         ReadOnlySpan<int> compiledPasses,
         ReadOnlySpan<NativeRenderPass> nativePasses,
         ReadOnlySpan<byte> commandBytes,
-        AliasingPlan aliasingPlan,
+        ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering,
         AllocationHandle allocationHandle)
     {

@@ -7,7 +7,6 @@ public class GraphicsShaderSyntax
     public PropertiesBlockSyntax? Properties { get; set; }
     public IncludesBlockSyntax? Includes { get; set; }
     public HlslBlockSyntax? Hlsl { get; set; }
-    public string ShaderModel { get; set; } = string.Empty;
     public PipelineBlockSyntax? Pipeline { get; set; }
     public List<PassBlockSyntax> Passes { get; set; } = new();
     public List<FunctionCallSyntax> FunctionCalls { get; set; } = new();
@@ -16,7 +15,6 @@ public class GraphicsShaderSyntax
 public class ComputeShaderSyntax
 {
     public string Name { get; set; } = string.Empty;
-    public string ShaderModel { get; set; } = string.Empty;
     public PropertiesBlockSyntax? Properties { get; set; }
     public DefinesBlockSyntax? Defines { get; set; }
     public IncludesBlockSyntax? Includes { get; set; }

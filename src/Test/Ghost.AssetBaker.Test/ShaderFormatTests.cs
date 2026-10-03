@@ -16,7 +16,6 @@ public class ShaderFormatTests
             shaderType = ShaderType.Graphics,
             passCount = 4,
             propertyBufferSize = 128,
-            shaderModel = ShaderModel.SM_6_7,
             shaderId = 0x123456789ABCDEF0ul,
             familyId = 0x1122334455667788ul,
             layoutHash = 0x0FEDCBA987654321ul,
@@ -32,7 +31,6 @@ public class ShaderFormatTests
         Assert.AreEqual(header.shaderType, decoded.shaderType);
         Assert.AreEqual(header.passCount, decoded.passCount);
         Assert.AreEqual(header.propertyBufferSize, decoded.propertyBufferSize);
-        Assert.AreEqual(header.shaderModel, decoded.shaderModel);
         Assert.AreEqual(header.shaderId, decoded.shaderId);
         Assert.AreEqual(header.familyId, decoded.familyId);
         Assert.AreEqual(header.layoutHash, decoded.layoutHash);
@@ -102,7 +100,6 @@ public class ShaderFormatTests
             FamilyId = ShaderIdentity.GetShaderId("Lit"),
             LayoutHash = 0x1020304050607080ul,
             PropertyBufferSize = 96,
-            ShaderModel = ShaderModel.SM_6_8,
             Passes = new ShaderCatalogPass[]
             {
                 new ShaderCatalogPass

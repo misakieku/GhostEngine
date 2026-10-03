@@ -472,8 +472,8 @@ public class MeshBakerTests
                 if (node.childCount > 0)
                 {
                     Assert.IsGreaterThan(0u, node.childOffset, $"Node {i} with children must have positive childOffset");
-                    Assert.IsTrue((int)(node.childOffset + node.childCount) <= pMeshletData->hierarchyNodes.Count,
-                        $"Node {i} children slice out of bounds");
+                    Assert.IsLessThanOrEqualTo(pMeshletData->hierarchyNodes.Count,
+(int)(node.childOffset + node.childCount), $"Node {i} children slice out of bounds");
 
                     for (uint c = 0; c < node.childCount; c++)
                     {
@@ -485,20 +485,20 @@ public class MeshBakerTests
                             $"Node {i} error was poisoned to float.MaxValue/infinity: {node.error}");
 
                         // Monotonicity: parent error must be >= child error
-                        Assert.IsTrue(node.error >= childNode.error - 1e-5f,
-                            $"Monotonic error violated: parent {i} (error={node.error}) < child {childIdx} (error={childNode.error})");
+                        Assert.IsGreaterThanOrEqualTo(childNode.error - 1e-5f,
+node.error, $"Monotonic error violated: parent {i} (error={node.error}) < child {childIdx} (error={childNode.error})");
 
                         // Conservative bounding: child sphere must be inside parent sphere (with small tolerance)
                         var dist = Misaki.HighPerformance.Mathematics.math.length(childNode.bounds.Center - node.bounds.Center);
-                        Assert.IsTrue(dist + childNode.bounds.Radius <= node.bounds.Radius + 1e-3f,
-                            $"Parent bounding sphere does not enclose child {childIdx}: dist={dist}, childR={childNode.bounds.Radius}, parentR={node.bounds.Radius}");
+                        Assert.IsLessThanOrEqualTo(node.bounds.Radius + 1e-3f,
+dist + childNode.bounds.Radius, $"Parent bounding sphere does not enclose child {childIdx}: dist={dist}, childR={childNode.bounds.Radius}, parentR={node.bounds.Radius}");
                     }
                 }
                 else
                 {
                     // Leaf node must reference a valid MeshletGroup
                     Assert.IsGreaterThanOrEqualTo(0, node.groupIndex, $"Leaf node {i} must reference a valid group");
-                    Assert.IsTrue(node.groupIndex < pMeshletData->groups.Count, $"Leaf node {i} groupIndex out of range");
+                    Assert.IsLessThan(pMeshletData->groups.Count, node.groupIndex, $"Leaf node {i} groupIndex out of range");
                 }
             }
         }

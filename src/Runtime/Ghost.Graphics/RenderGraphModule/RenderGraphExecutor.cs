@@ -3,21 +3,22 @@ using Ghost.Core.Utilities;
 using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
-internal sealed class RenderGraphExecutor
+internal sealed class RenderGraphExecutor : IDisposable
 {
     private const int INITIAL_COMMAND_BUFFER_CAPACITY = 8;
 
     private readonly RenderGraphResourceRegistry _resources;
     private ICommandBuffer?[] _commandBuffers;
-    private SubmissionHandle[] _submissionHandles;
-    private CommandQueueType[] _commandBufferQueueTypes;
-    private int[] _dependencyOffsets;
-    private int[] _dependencyCounts;
-    private int[] _producerCommandBufferIds;
+    private UnsafeArray<SubmissionHandle> _submissionHandles;
+    private UnsafeArray<CommandQueueType> _commandBufferQueueTypes;
+    private UnsafeArray<int> _dependencyOffsets;
+    private UnsafeArray<int> _dependencyCounts;
+    private UnsafeArray<int> _producerCommandBufferIds;
     private int _commandBufferCount;
     private int _producerCommandBufferIdCount;
 
@@ -25,11 +26,11 @@ internal sealed class RenderGraphExecutor
     {
         _resources = resources;
         _commandBuffers = new ICommandBuffer?[INITIAL_COMMAND_BUFFER_CAPACITY];
-        _submissionHandles = new SubmissionHandle[INITIAL_COMMAND_BUFFER_CAPACITY];
-        _commandBufferQueueTypes = new CommandQueueType[INITIAL_COMMAND_BUFFER_CAPACITY];
-        _dependencyOffsets = new int[INITIAL_COMMAND_BUFFER_CAPACITY];
-        _dependencyCounts = new int[INITIAL_COMMAND_BUFFER_CAPACITY];
-        _producerCommandBufferIds = new int[INITIAL_COMMAND_BUFFER_CAPACITY];
+        _submissionHandles = new UnsafeArray<SubmissionHandle>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent);
+        _commandBufferQueueTypes = new UnsafeArray<CommandQueueType>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent);
+        _dependencyOffsets = new UnsafeArray<int>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent);
+        _dependencyCounts = new UnsafeArray<int>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent);
+        _producerCommandBufferIds = new UnsafeArray<int>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent);
     }
 
     private void SetViewport(RenderGraphContext context, ReadOnlySpan<RenderTargetInfo> color, DepthStencilInfo depthStencil)
@@ -114,12 +115,7 @@ internal sealed class RenderGraphExecutor
                     case RGExecutionOpType.IssueBarriers:
                     {
                         var barrierCount = reader.Read<int>();
-                        var error = ExecuteBarrierBatch(activeCommandBuffer, barrierCount, ref reader, flags);
-                        if (error != Error.None)
-                        {
-                            RollbackRecording(executionContext.FrameScheduler, insideNativePass);
-                            return error;
-                        }
+                        ExecuteBarrierBatch(activeCommandBuffer, barrierCount, ref reader, flags);
                         break;
                     }
 
@@ -269,12 +265,15 @@ internal sealed class RenderGraphExecutor
         var commandAllocator = queueType == CommandQueueType.Graphics
             ? executionContext.GraphicsCommandAllocator
             : executionContext.ComputeCommandAllocator;
+        
         var commandBuffer = executionContext.FrameScheduler.GetPooledCommandBuffer(commandBufferType);
         var commandBufferIndex = _commandBufferCount++;
+        
         _commandBuffers[commandBufferIndex] = commandBuffer;
         _commandBufferQueueTypes[commandBufferIndex] = queueType;
         _dependencyOffsets[commandBufferIndex] = _producerCommandBufferIdCount;
         _dependencyCounts[commandBufferIndex] = producerCommandBufferIds.Length;
+
         producerCommandBufferIds.CopyTo(_producerCommandBufferIds.AsSpan(_producerCommandBufferIdCount));
         _producerCommandBufferIdCount += producerCommandBufferIds.Length;
 
@@ -462,11 +461,13 @@ internal sealed class RenderGraphExecutor
         }
 
         var newCapacity = Math.Max(requiredCapacity, _commandBuffers.Length * 2);
+        
         Array.Resize(ref _commandBuffers, newCapacity);
-        Array.Resize(ref _submissionHandles, newCapacity);
-        Array.Resize(ref _commandBufferQueueTypes, newCapacity);
-        Array.Resize(ref _dependencyOffsets, newCapacity);
-        Array.Resize(ref _dependencyCounts, newCapacity);
+        
+        _submissionHandles.Resize(newCapacity);
+        _commandBufferQueueTypes.Resize(newCapacity);
+        _dependencyOffsets.Resize(newCapacity);
+        _dependencyCounts.Resize(newCapacity);
     }
 
     private void EnsureProducerIdCapacity(int requiredCapacity)
@@ -477,41 +478,33 @@ internal sealed class RenderGraphExecutor
         }
 
         var newCapacity = Math.Max(requiredCapacity, _producerCommandBufferIds.Length * 2);
-        Array.Resize(ref _producerCommandBufferIds, newCapacity);
+        _producerCommandBufferIds.Resize(newCapacity);
     }
 
     private void ClearExecutionScratch()
     {
         Array.Clear(_commandBuffers, 0, _commandBufferCount);
-        Array.Clear(_submissionHandles, 0, _commandBufferCount);
-        Array.Clear(_commandBufferQueueTypes, 0, _commandBufferCount);
-        Array.Clear(_dependencyOffsets, 0, _commandBufferCount);
-        Array.Clear(_dependencyCounts, 0, _commandBufferCount);
-        Array.Clear(_producerCommandBufferIds, 0, _producerCommandBufferIdCount);
+        
+        _submissionHandles.Clear();
+        _commandBufferQueueTypes.Clear();
+        _dependencyOffsets.Clear();
+        _dependencyCounts.Clear();
+        _producerCommandBufferIds.Clear();
+
         _commandBufferCount = 0;
         _producerCommandBufferIdCount = 0;
     }
 
-    private Error ExecuteBarrierBatch(ICommandBuffer cmd, int barrierCount, ref SpanReader reader, RGFlags flags)
+    private void ExecuteBarrierBatch(ICommandBuffer cmd, int barrierCount, ref SpanReader reader, RGFlags flags)
     {
         if (barrierCount <= 0)
         {
-            return Error.None;
+            return;
         }
 
         var forceGraphics = flags.HasFlag(RGFlags.ForceGraphics);
-        const int MaxBatch = 16;
         using var scope = Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.CreateStackScope();
-        using var barriers = new UnsafeList<BarrierDesc>(MaxBatch, scope.AllocationHandle);
-
-        void Flush()
-        {
-            if (barriers.Count > 0)
-            {
-                cmd.Barrier(barriers);
-                barriers.Clear();
-            }
-        }
+        using var barriers = new UnsafeList<BarrierDesc>(16, scope.AllocationHandle);
 
         for (var i = 0; i < barrierCount; i++)
         {
@@ -548,12 +541,7 @@ internal sealed class RenderGraphExecutor
                         force: force);
                 }
 
-                if (barriers.Count >= MaxBatch)
-                {
-                    Flush();
-                }
-
-                barriers.AddNoResize(releaseDesc);
+                barriers.Add(releaseDesc);
                 continue;
             }
 
@@ -585,12 +573,7 @@ internal sealed class RenderGraphExecutor
                         force: force);
                 }
 
-                if (barriers.Count >= MaxBatch)
-                {
-                    Flush();
-                }
-
-                barriers.AddNoResize(acquireDesc);
+                barriers.Add(acquireDesc);
                 continue;
             }
 
@@ -616,16 +599,22 @@ internal sealed class RenderGraphExecutor
                     trgt,
                     force: frc);
             }
-            if (barriers.Count >= MaxBatch)
-            {
-                Flush();
-            }
 
-            barriers.AddNoResize(desc);
+            barriers.Add(desc);
         }
 
-        Flush();
+        if (barriers.Count > 0)
+        {
+            cmd.Barrier(barriers);
+        }
+    }
 
-        return Error.None;
+    public void Dispose()
+    {
+        _submissionHandles.Dispose();
+        _commandBufferQueueTypes.Dispose();
+        _dependencyOffsets.Dispose();
+        _dependencyCounts.Dispose();
+        _producerCommandBufferIds.Dispose();
     }
 }

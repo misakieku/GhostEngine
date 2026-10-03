@@ -56,7 +56,7 @@ internal sealed partial class DXCShaderCompiler
     {
         var argsArray = new List<string>
         {
-            "-T", GetProfileString(config.stage, config.model),           // Target profile (ms_6_6, ps_6_6, lib_6_8)
+            "-T", GetProfileString(config.stage, config.shaderModel),           // Target profile (ms_6_6, ps_6_6, lib_6_8)
         };
 
         if (config.stage != ShaderStage.Library && !string.IsNullOrEmpty(config.entryPoint))

@@ -64,7 +64,7 @@ internal unsafe partial class RenderGraphCompiler
         int scheduleIndex,
         CommandQueueType effectiveQueue,
         ref BufferWriter writer,
-        AliasingPlan aliasingPlan,
+        ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering,
         Span<CompiledResourceState> resourceStates,
         ReadOnlySpan<QueueHandoff> handoffs)
@@ -81,7 +81,7 @@ internal unsafe partial class RenderGraphCompiler
             scheduleIndex,
             effectiveQueue,
             ref writer,
-            aliasingPlan,
+            ref aliasingPlan,
             resourceOrdering,
             resourceStates,
             handoffs);
@@ -108,7 +108,7 @@ internal unsafe partial class RenderGraphCompiler
         int passCount,
         ReadOnlySpan<CommandQueueType> effectiveQueues,
         ref BufferWriter writer,
-        AliasingPlan aliasingPlan,
+        ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering,
         Span<CompiledResourceState> resourceStates,
         ReadOnlySpan<QueueHandoff> handoffs)
@@ -130,7 +130,7 @@ internal unsafe partial class RenderGraphCompiler
                 mergedScheduleIndex,
                 effectiveQueues[mergedScheduleIndex],
             ref writer,
-            aliasingPlan,
+            ref aliasingPlan,
             resourceOrdering,
             resourceStates,
             handoffs);
@@ -154,7 +154,7 @@ internal unsafe partial class RenderGraphCompiler
     private bool TryGetAliasingPredecessor(
         int scheduleIndex,
         Identifier<RGResource> resourceId,
-        AliasingPlan aliasingPlan,
+        ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering,
         out Identifier<RGResource> predecessor)
     {
@@ -379,7 +379,7 @@ internal unsafe partial class RenderGraphCompiler
         int scheduleIndex,
         CommandQueueType effectiveQueue,
         ref BufferWriter writer,
-        AliasingPlan aliasingPlan,
+        ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering,
         Span<CompiledResourceState> resourceStates,
         ReadOnlySpan<QueueHandoff> handoffs)
@@ -400,7 +400,7 @@ internal unsafe partial class RenderGraphCompiler
             if (TryGetAliasingPredecessor(
                 scheduleIndex,
                 usage.resource,
-                aliasingPlan,
+                ref aliasingPlan,
                 resourceOrdering,
                 out aliasingPredecessor))
             {
@@ -583,7 +583,7 @@ internal unsafe partial class RenderGraphCompiler
         RenderGraphPass laterPass,
         int scheduleIndex,
         RenderGraphResourceRegistry resources,
-        AliasingPlan aliasingPlan,
+        ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering)
     {
 

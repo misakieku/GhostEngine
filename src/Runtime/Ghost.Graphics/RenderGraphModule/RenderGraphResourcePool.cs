@@ -348,7 +348,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable, IRenderGraphVal
         }
     }
 
-    public Error AllocateBackingResources(AliasingPlan plan, RenderGraphCompilationCache cache)
+    public Error AllocateBackingResources(ref AliasingPlan plan, RenderGraphCompilationCache cache)
     {
         if (_allocatedBackingResources.Count > 0 || _resourceHeap.IsValid)
         {

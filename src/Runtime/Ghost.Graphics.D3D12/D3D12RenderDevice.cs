@@ -13,30 +13,6 @@ namespace Ghost.Graphics.D3D12;
 
 internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDevice
 {
-    public void DumpInfoQueueMessages()
-    {
-        ID3D12InfoQueue* pInfoQueue = default;
-        if (pNativeObject->QueryInterface(__uuidof(pInfoQueue), (void**)&pInfoQueue).SUCCEEDED)
-        {
-            var msgCount = pInfoQueue->GetNumStoredMessages();
-            for (ulong i = 0; i < msgCount; i++)
-            {
-                nuint msgLength = 0;
-                pInfoQueue->GetMessage(i, null, &msgLength);
-                if (msgLength > 0)
-                {
-                    var pMsg = (D3D12_MESSAGE*)NativeMemory.Alloc(msgLength);
-                    pInfoQueue->GetMessage(i, pMsg, &msgLength);
-                    var msgStr = Marshal.PtrToStringAnsi((nint)pMsg->pDescription);
-                    Console.WriteLine($"[D3D12 InfoQueue {pMsg->Severity} {pMsg->Category}] {msgStr}");
-                    NativeMemory.Free(pMsg);
-                }
-            }
-            pInfoQueue->ClearStoredMessages();
-            pInfoQueue->Release();
-        }
-    }
-
     private UniquePtr<IDXGIFactory7> _dxgiFactory;
     private UniquePtr<IDXGIAdapter1> _adapter;
 
@@ -206,6 +182,32 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
             SupportedFeatures = support,
             MaxGPUVirtualAddressBitsPerResource = maxGPUVirtualAddressBitsPerResource
         };
+    }
+
+    public void DumpInfoQueueMessages()
+    {
+        ID3D12InfoQueue* pInfoQueue = default;
+
+        if (pNativeObject->QueryInterface(__uuidof(pInfoQueue), (void**)&pInfoQueue).SUCCEEDED)
+        {
+            var msgCount = pInfoQueue->GetNumStoredMessages();
+            for (ulong i = 0; i < msgCount; i++)
+            {
+                nuint msgLength = 0;
+                pInfoQueue->GetMessage(i, null, &msgLength);
+                if (msgLength > 0)
+                {
+                    var pMsg = (D3D12_MESSAGE*)NativeMemory.Alloc(msgLength);
+                    pInfoQueue->GetMessage(i, pMsg, &msgLength);
+                    var msgStr = Marshal.PtrToStringAnsi((nint)pMsg->pDescription);
+                    Console.WriteLine($"[D3D12 InfoQueue {pMsg->Severity} {pMsg->Category}] {msgStr}");
+                    NativeMemory.Free(pMsg);
+                }
+            }
+
+            pInfoQueue->ClearStoredMessages();
+            pInfoQueue->Release();
+        }
     }
 
     protected override void Dispose(bool disposing)

@@ -51,7 +51,7 @@ void LeafNode(
         var config = new ShaderCompilationConfig
         {
             stage = ShaderStage.Library,
-            model = ShaderModel.SM_6_8,
+            shaderModel = ShaderModel.SM_6_8,
             entryPoint = "",
             shaderCode = hlsl,
             defines = Array.Empty<string>(),
@@ -60,7 +60,7 @@ void LeafNode(
 
         var result = compiler.Compile(in config, AllocationHandle.Persistent);
         Assert.IsTrue(result.IsSuccess, $"Compilation failed: {result.Message}");
-        Assert.IsTrue(result.Value.Length > 0, "Bytecode should not be empty");
+        Assert.IsGreaterThan(0, result.Value.Length, "Bytecode should not be empty");
         result.Value.Dispose();
     }
 
@@ -119,7 +119,7 @@ void TraverseNode(
         var config = new ShaderCompilationConfig
         {
             stage = ShaderStage.Library,
-            model = ShaderModel.SM_6_8,
+            shaderModel = ShaderModel.SM_6_8,
             entryPoint = "",
             shaderCode = hlsl,
             defines = Array.Empty<string>(),
@@ -128,7 +128,7 @@ void TraverseNode(
 
         var result = compiler.Compile(in config, AllocationHandle.Persistent);
         Assert.IsTrue(result.IsSuccess, $"Compilation failed: {result.Message}");
-        Assert.IsTrue(result.Value.Length > 0, "Bytecode should not be empty");
+        Assert.IsGreaterThan(0, result.Value.Length, "Bytecode should not be empty");
         result.Value.Dispose();
     }
 }

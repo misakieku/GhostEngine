@@ -29,10 +29,22 @@ public partial class ShaderBakeSettings : ObservableObject, IBakeSettings
     } = CompilerOption.None;
 
     [ObservableProperty]
+    public partial ShaderModel ShaderModel
+    {
+        get; set;
+    } = ShaderModel.SM_6_6;
+
+    [ObservableProperty]
     public partial string[] Defines
     {
         get; set;
     } = Array.Empty<string>();
+
+    [ObservableProperty]
+    public partial Dictionary<string, string[]> DefineGroups
+    {
+        get; set;
+    } = new Dictionary<string, string[]>();
 }
 
 [AssetBaker(Extensions = [".gshdr"], Type = AssetType.Shader, SettingsType = typeof(ShaderBakeSettings))]
@@ -53,12 +65,12 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
         }
 
         var result = s_compiler.Compile(in config, AllocationHandle.TLSF).GetValueOrThrow();
-        var bytes = result.AsSpan().ToArray();
+        var bytes = result.ToArray();
         s_compileCache.TryAdd(key, bytes);
         return result;
     }
 
-    public static IEnumerable<string> FindDependencies(string sourceFile, IBakeSettings settings, AssetBakerContext ctx)
+    public static IEnumerable<string> FindDependencies(string sourceFile, AssetBakerContext ctx)
     {
         if (!File.Exists(sourceFile))
         {
@@ -71,7 +83,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
 
     public IEnumerable<string> ScanDependencies(string sourceFile, IBakeSettings settings, AssetBakerContext ctx)
     {
-        return FindDependencies(sourceFile, settings, ctx);
+        return FindDependencies(sourceFile, ctx);
     }
 
     private static ulong GetLayoutHash(DSL.Models.ShaderReflectionData reflectionData, uint propertyBufferSize, string shaderName)
@@ -142,7 +154,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
         await s_compileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await BakeAssetCoreAsync(src, dst, settings, ctx, cancellationToken).ConfigureAwait(false);
+            await BakeAssetCoreAsync(src, AssetType.Shader, dst, settings, ctx, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -150,7 +162,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
         }
     }
 
-    internal static async Task BakeAssetCoreAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
+    internal static async Task BakeAssetCoreAsync(string src, AssetType assetType, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
     {
         if (settings is not ShaderBakeSettings shaderSettings)
         {
@@ -183,105 +195,201 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
 
         var configTemplate = new ShaderCompilationConfig
         {
+            defines = shaderSettings.Defines,
             optimizeLevel = shaderSettings.OptimizeLevel,
             options = shaderSettings.Options,
-            includeDirectories = includeDirs.ToArray(),
+            includeDirectories = includeDirs,
+            shaderModel = shaderSettings.ShaderModel,
         };
 
-        if (string.Equals(ext, ".gshdr", StringComparison.Ordinal))
+        await BakeShaderAssetAsync(src, assetType, dst, ctx, codeStr, ext, configTemplate, cancellationToken);
+
+        foreach (var group in shaderSettings.DefineGroups)
         {
-            var syntax = DSLShaderCompiler.ParseGraphicsShaderSyntax(codeStr).GetValueOrThrow();
-            var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
-
-            var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
-            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader, src).GetValueOrThrow();
-
-            var assetStartOffset = dst.Position;
-            var header = new ShaderContentHeader
+            using var subAssetStream = ctx.AddSubAsset(group.Key, assetType);
+            var configWithGroup = configTemplate with
             {
-                shaderType = ShaderType.Graphics,
-                passCount = (uint)descriptor.Passes.Length,
-                propertyBufferSize = descriptor.PropertyBufferSize,
-                shaderModel = descriptor.ShaderModel,
-                shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
-                familyId = ShaderIdentity.GetShaderId(semantics.templateName ?? descriptor.Name),
-                layoutHash = GetLayoutHash(reflectionData, descriptor.PropertyBufferSize, descriptor.Name),
+                defines = shaderSettings.Defines.Concat(group.Value),
             };
 
-            dst.Write(header);
-            WriteName(dst, assetStartOffset, descriptor.Name, ref header.nameOffset, ref header.nameSize);
+            await BakeShaderAssetAsync(src, assetType, subAssetStream, ctx, codeStr, ext, configWithGroup, cancellationToken);
+        }
+    }
 
-            for (var passIdx = 0; passIdx < descriptor.Passes.Length; passIdx++)
+    private static async Task BakeShaderAssetAsync(string src, AssetType assetType, Stream dst, AssetBakerContext ctx, string codeStr, string ext, ShaderCompilationConfig configTemplate, CancellationToken cancellationToken)
+    {
+        switch (assetType)
+        {
+            case AssetType.Shader:
             {
-                var pass = descriptor.Passes[passIdx];
-                var passHeaderOffset = dst.Position;
-                var passHeader = new ShaderContentHeader.PassHeader
+                var syntax = DSLShaderCompiler.ParseGraphicsShaderSyntax(codeStr).GetValueOrThrow();
+                var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
+
+                var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
+                var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader, src).GetValueOrThrow();
+
+                var assetStartOffset = dst.Position;
+                var header = new ShaderContentHeader
                 {
-                    entryPointCount = pass.computeShaderCode.IsCreated ? 1u : (pass.amplificationShaderCode.IsCreated ? 3u : 2u),
-                    semantic = pass.semantic,
-                    stageMask = pass.stageMask,
-                    passId = ShaderIdentity.GetPassId(header.shaderId, passIdx),
-                    localPipeline = pass.localPipeline,
-                    shadingModelId = pass.shadingModelId,
+                    shaderType = ShaderType.Graphics,
+                    passCount = (uint)descriptor.Passes.Length,
+                    propertyBufferSize = descriptor.PropertyBufferSize,
+                    shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
+                    familyId = ShaderIdentity.GetShaderId(semantics.templateName ?? descriptor.Name),
+                    layoutHash = GetLayoutHash(reflectionData, descriptor.PropertyBufferSize, descriptor.Name),
                 };
-                dst.Write(passHeader); // Placeholder
-                WriteName(dst, assetStartOffset, pass.name, ref passHeader.nameOffset, ref passHeader.nameSize);
-                var passDataStart = dst.Position;
 
-                if (pass.computeShaderCode.IsCreated)
+                dst.Write(header);
+                WriteName(dst, assetStartOffset, descriptor.Name, ref header.nameOffset, ref header.nameSize);
+
+                for (var passIdx = 0; passIdx < descriptor.Passes.Length; passIdx++)
                 {
-                    var config = configTemplate with
+                    var pass = descriptor.Passes[passIdx];
+                    var passHeaderOffset = dst.Position;
+                    var passHeader = new ShaderContentHeader.PassHeader
                     {
-                        stage = ShaderStage.ComputeShader,
-                        model = descriptor.ShaderModel,
-                        defines = pass.defines,
-                        entryPoint = pass.computeShaderCode.entryPoint,
-                        shaderCode = pass.computeShaderCode.code,
+                        entryPointCount = pass.computeShaderCode.IsCreated ? 1u : pass.amplificationShaderCode.IsCreated ? 3u : 2u,
+                        semantic = pass.semantic,
+                        stageMask = pass.stageMask,
+                        passId = ShaderIdentity.GetPassId(header.shaderId, passIdx),
+                        localPipeline = pass.localPipeline,
+                        shadingModelId = pass.shadingModelId,
                     };
+                    dst.Write(passHeader); // Placeholder
+                    WriteName(dst, assetStartOffset, pass.name, ref passHeader.nameOffset, ref passHeader.nameSize);
+                    var passDataStart = dst.Position;
 
-                    using var csByteCode = CompileStage(in config);
-                    await WriteShaderEntries(dst, passDataStart, cancellationToken,
-                        (ShaderStage.ComputeShader, csByteCode));
-                }
-                else
-                {
-                    if (!pass.meshShaderCode.IsCreated || !pass.pixelShaderCode.IsCreated ||
-                        (pass.stageMask & (ShaderStageMask.Mesh | ShaderStageMask.Pixel)) != (ShaderStageMask.Mesh | ShaderStageMask.Pixel))
+                    if (pass.computeShaderCode.IsCreated)
                     {
-                        throw new InvalidOperationException($"Shader pass '{pass.name}' is missing required graphics shader stages.");
-                    }
+                        var config = configTemplate with
+                        {
+                            stage = ShaderStage.ComputeShader,
+                            defines = pass.defines.Concat(configTemplate.defines),
+                            entryPoint = pass.computeShaderCode.entryPoint,
+                            shaderCode = pass.computeShaderCode.code,
+                        };
 
-                    var config = configTemplate with
-                    {
-                        stage = ShaderStage.MeshShader,
-                        model = descriptor.ShaderModel,
-                        defines = pass.defines,
-                        entryPoint = pass.meshShaderCode.entryPoint,
-                        shaderCode = pass.meshShaderCode.code,
-                    };
-                    using var msByteCode = CompileStage(in config);
-
-                    config.stage = ShaderStage.PixelShader;
-                    config.entryPoint = pass.pixelShaderCode.entryPoint;
-                    config.shaderCode = pass.pixelShaderCode.code;
-                    using var psByteCode = CompileStage(in config);
-
-                    if (pass.amplificationShaderCode.IsCreated)
-                    {
-                        config.stage = ShaderStage.AmplificationShader;
-                        config.entryPoint = pass.amplificationShaderCode.entryPoint;
-                        config.shaderCode = pass.amplificationShaderCode.code;
-                        using var asByteCode = CompileStage(in config);
+                        using var csByteCode = CompileStage(in config);
                         await WriteShaderEntries(dst, passDataStart, cancellationToken,
-                            (ShaderStage.AmplificationShader, asByteCode),
-                            (ShaderStage.MeshShader, msByteCode),
-                            (ShaderStage.PixelShader, psByteCode));
+                            (ShaderStage.ComputeShader, csByteCode));
                     }
                     else
                     {
-                        await WriteShaderEntries(dst, passDataStart, cancellationToken,
-                            (ShaderStage.MeshShader, msByteCode),
-                            (ShaderStage.PixelShader, psByteCode));
+                        if (!pass.meshShaderCode.IsCreated || !pass.pixelShaderCode.IsCreated ||
+                            (pass.stageMask & (ShaderStageMask.Mesh | ShaderStageMask.Pixel)) != (ShaderStageMask.Mesh | ShaderStageMask.Pixel))
+                        {
+                            throw new InvalidOperationException($"Shader pass '{pass.name}' is missing required graphics shader stages.");
+                        }
+
+                        var config = configTemplate with
+                        {
+                            stage = ShaderStage.MeshShader,
+                            defines = pass.defines.Concat(configTemplate.defines),
+                            entryPoint = pass.meshShaderCode.entryPoint,
+                            shaderCode = pass.meshShaderCode.code,
+                        };
+                        using var msByteCode = CompileStage(in config);
+
+                        config.stage = ShaderStage.PixelShader;
+                        config.entryPoint = pass.pixelShaderCode.entryPoint;
+                        config.shaderCode = pass.pixelShaderCode.code;
+                        using var psByteCode = CompileStage(in config);
+
+                        if (pass.amplificationShaderCode.IsCreated)
+                        {
+                            config.stage = ShaderStage.AmplificationShader;
+                            config.entryPoint = pass.amplificationShaderCode.entryPoint;
+                            config.shaderCode = pass.amplificationShaderCode.code;
+                            using var asByteCode = CompileStage(in config);
+                            await WriteShaderEntries(dst, passDataStart, cancellationToken,
+                                (ShaderStage.AmplificationShader, asByteCode),
+                                (ShaderStage.MeshShader, msByteCode),
+                                (ShaderStage.PixelShader, psByteCode));
+                        }
+                        else
+                        {
+                            await WriteShaderEntries(dst, passDataStart, cancellationToken,
+                                (ShaderStage.MeshShader, msByteCode),
+                                (ShaderStage.PixelShader, psByteCode));
+                        }
+                    }
+
+                    passHeader.dataOffset = passDataStart - assetStartOffset;
+                    passHeader.dataSize = dst.Position - passDataStart;
+                    var endOfPass = dst.Position;
+                    dst.Position = passHeaderOffset;
+                    dst.Write(passHeader);
+                    dst.Position = endOfPass;
+                }
+
+                var endOfAsset = dst.Position;
+                dst.Position = assetStartOffset;
+                dst.Write(header);
+                dst.Position = endOfAsset;
+                break;
+            }
+
+            case AssetType.ComputeShader:
+            {
+                var syntax = DSLShaderCompiler.ParseComputeShaderSyntax(codeStr).GetValueOrThrow();
+                var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
+
+                var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
+                var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader, src).GetValueOrThrow();
+
+                var assetStartOffset = dst.Position;
+                var header = new ShaderContentHeader
+                {
+                    shaderType = ShaderType.Compute,
+                    passCount = 1,
+                    propertyBufferSize = descriptor.PropertyBufferSize,
+                    shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
+                    familyId = ShaderIdentity.GetShaderId(descriptor.Name),
+                    layoutHash = GetLayoutHash(reflectionData, descriptor.PropertyBufferSize, descriptor.Name),
+                };
+
+                dst.Write(header);
+                WriteName(dst, assetStartOffset, descriptor.Name, ref header.nameOffset, ref header.nameSize);
+
+                var passHeaderOffset = dst.Position;
+                var passHeader = new ShaderContentHeader.PassHeader
+                {
+                    entryPointCount = (uint)descriptor.ShaderCodes.Length,
+                    semantic = PassSemantic.Custom,
+                    stageMask = ShaderStageMask.Compute,
+                    passId = ShaderIdentity.GetPassId(header.shaderId, 0),
+                    localPipeline = PipelineState.Default,
+                };
+
+                dst.Write(passHeader); // Placeholder
+                WriteName(dst, assetStartOffset, descriptor.Name, ref passHeader.nameOffset, ref passHeader.nameSize);
+                var passDataStart = dst.Position;
+                var byteCodes = new UnsafeArray<byte>[descriptor.ShaderCodes.Length];
+
+                try
+                {
+                    for (var j = 0; j < descriptor.ShaderCodes.Length; j++)
+                    {
+                        var shaderCode = descriptor.ShaderCodes[j];
+                        var config = configTemplate with
+                        {
+                            stage = ShaderStage.ComputeShader,
+                            defines = descriptor.Defines.Concat(configTemplate.defines),
+                            entryPoint = shaderCode.entryPoint,
+                            shaderCode = shaderCode.code,
+                        };
+
+                        byteCodes[j] = CompileStage(in config);
+                    }
+
+                    var entries = byteCodes.Select((bc, index) => (ShaderStage.ComputeShader, bc)).ToArray();
+                    await WriteShaderEntries(dst, passDataStart, cancellationToken, entries);
+                }
+                finally
+                {
+                    foreach (var code in byteCodes)
+                    {
+                        code.Dispose();
                     }
                 }
 
@@ -291,152 +399,82 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 dst.Position = passHeaderOffset;
                 dst.Write(passHeader);
                 dst.Position = endOfPass;
+                var endOfAsset = dst.Position;
+                dst.Position = assetStartOffset;
+                dst.Write(header);
+                dst.Position = endOfAsset;
+                break;
             }
 
-            var endOfAsset = dst.Position;
-            dst.Position = assetStartOffset;
-            dst.Write(header);
-            dst.Position = endOfAsset;
-        }
-        else if (string.Equals(ext, ".gcomp", StringComparison.Ordinal))
-        {
-            var syntax = DSLShaderCompiler.ParseComputeShaderSyntax(codeStr).GetValueOrThrow();
-            var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
-
-            var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
-            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader, src).GetValueOrThrow();
-
-            var assetStartOffset = dst.Position;
-            var header = new ShaderContentHeader
+            case AssetType.WorkGraph:
             {
-                shaderType = ShaderType.Compute,
-                passCount = 1,
-                propertyBufferSize = descriptor.PropertyBufferSize,
-                shaderModel = descriptor.ShaderModel,
-                shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
-                familyId = ShaderIdentity.GetShaderId(descriptor.Name),
-                layoutHash = GetLayoutHash(reflectionData, descriptor.PropertyBufferSize, descriptor.Name),
-            };
+                var syntax = DSLShaderCompiler.ParseComputeShaderSyntax(codeStr).GetValueOrThrow();
+                var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
 
-            dst.Write(header);
-            WriteName(dst, assetStartOffset, descriptor.Name, ref header.nameOffset, ref header.nameSize);
+                var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
+                var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader, src).GetValueOrThrow();
 
-            var passHeaderOffset = dst.Position;
-            var passHeader = new ShaderContentHeader.PassHeader
-            {
-                entryPointCount = (uint)descriptor.ShaderCodes.Length,
-                semantic = PassSemantic.Custom,
-                stageMask = ShaderStageMask.Compute,
-                passId = ShaderIdentity.GetPassId(header.shaderId, 0),
-                localPipeline = PipelineState.Default,
-            };
-            dst.Write(passHeader); // Placeholder
-            WriteName(dst, assetStartOffset, descriptor.Name, ref passHeader.nameOffset, ref passHeader.nameSize);
-            var passDataStart = dst.Position;
-            var byteCodes = new UnsafeArray<byte>[descriptor.ShaderCodes.Length];
-
-            try
-            {
-                for (var j = 0; j < descriptor.ShaderCodes.Length; j++)
+                if (configTemplate.shaderModel < ShaderModel.SM_6_8)
                 {
-                    var shaderCode = descriptor.ShaderCodes[j];
-                    var config = configTemplate with
-                    {
-                        stage = ShaderStage.ComputeShader,
-                        model = descriptor.ShaderModel,
-                        defines = descriptor.Defines,
-                        entryPoint = shaderCode.entryPoint,
-                        shaderCode = shaderCode.code,
-                    };
-
-                    byteCodes[j] = CompileStage(in config);
+                    Logger.Warning($"Shader '{descriptor.Name}' is a work graph shader and requires at least Shader Model 6.8. Overriding shader model to SM_6_8.");
+                    configTemplate.shaderModel = ShaderModel.SM_6_8;
                 }
 
-                var entries = byteCodes.Select((bc, index) => (ShaderStage.ComputeShader, bc)).ToArray();
-                await WriteShaderEntries(dst, passDataStart, cancellationToken, entries);
-            }
-            finally
-            {
-                foreach (var code in byteCodes)
+                var assetStartOffset = dst.Position;
+                var header = new ShaderContentHeader
                 {
-                    code.Dispose();
-                }
+                    shaderType = ShaderType.WorkGraph,
+                    passCount = 1,
+                    propertyBufferSize = descriptor.PropertyBufferSize,
+                    shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
+                    familyId = ShaderIdentity.GetShaderId(descriptor.Name),
+                    layoutHash = GetLayoutHash(reflectionData, descriptor.PropertyBufferSize, descriptor.Name),
+                };
+
+                dst.Write(header);
+                WriteName(dst, assetStartOffset, descriptor.Name, ref header.nameOffset, ref header.nameSize);
+
+                var passHeaderOffset = dst.Position;
+                var passHeader = new ShaderContentHeader.PassHeader
+                {
+                    entryPointCount = 1,
+                    semantic = PassSemantic.Custom,
+                    stageMask = ShaderStageMask.None,
+                    passId = ShaderIdentity.GetPassId(header.shaderId, 0),
+                    localPipeline = PipelineState.Default,
+                };
+
+                dst.Write(passHeader); // Placeholder
+                WriteName(dst, assetStartOffset, descriptor.Name, ref passHeader.nameOffset, ref passHeader.nameSize);
+                var passDataStart = dst.Position;
+
+                var shaderCode = descriptor.ShaderCodes.Length > 0 ? descriptor.ShaderCodes[0] : default;
+                var config = configTemplate with
+                {
+                    stage = ShaderStage.Library,
+                    defines = descriptor.Defines.Concat(configTemplate.defines),
+                    entryPoint = string.Empty,
+                    shaderCode = shaderCode.code,
+                };
+
+                using var libraryByteCode = CompileStage(in config);
+                await WriteShaderEntries(dst, passDataStart, cancellationToken, (ShaderStage.Library, libraryByteCode));
+
+                passHeader.dataOffset = passDataStart - assetStartOffset;
+                passHeader.dataSize = dst.Position - passDataStart;
+                var endOfPass = dst.Position;
+                dst.Position = passHeaderOffset;
+                dst.Write(passHeader);
+                dst.Position = endOfPass;
+                var endOfAsset = dst.Position;
+                dst.Position = assetStartOffset;
+                dst.Write(header);
+                dst.Position = endOfAsset;
+                break;
             }
 
-            passHeader.dataOffset = passDataStart - assetStartOffset;
-            passHeader.dataSize = dst.Position - passDataStart;
-            var endOfPass = dst.Position;
-            dst.Position = passHeaderOffset;
-            dst.Write(passHeader);
-            dst.Position = endOfPass;
-            var endOfAsset = dst.Position;
-            dst.Position = assetStartOffset;
-            dst.Write(header);
-            dst.Position = endOfAsset;
-        }
-        else if (string.Equals(ext, ".ggraph", StringComparison.Ordinal))
-        {
-            var syntax = DSLShaderCompiler.ParseComputeShaderSyntax(codeStr).GetValueOrThrow();
-            var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
-
-            var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
-            var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader, src).GetValueOrThrow();
-
-            var assetStartOffset = dst.Position;
-            var header = new ShaderContentHeader
-            {
-                shaderType = ShaderType.WorkGraph,
-                passCount = 1,
-                propertyBufferSize = descriptor.PropertyBufferSize,
-                shaderModel = ShaderModel.SM_6_8,
-                shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
-                familyId = ShaderIdentity.GetShaderId(descriptor.Name),
-                layoutHash = GetLayoutHash(reflectionData, descriptor.PropertyBufferSize, descriptor.Name),
-            };
-
-            dst.Write(header);
-            WriteName(dst, assetStartOffset, descriptor.Name, ref header.nameOffset, ref header.nameSize);
-
-            var passHeaderOffset = dst.Position;
-            var passHeader = new ShaderContentHeader.PassHeader
-            {
-                entryPointCount = 1,
-                semantic = PassSemantic.Custom,
-                stageMask = ShaderStageMask.None,
-                passId = ShaderIdentity.GetPassId(header.shaderId, 0),
-                localPipeline = PipelineState.Default,
-            };
-            dst.Write(passHeader); // Placeholder
-            WriteName(dst, assetStartOffset, descriptor.Name, ref passHeader.nameOffset, ref passHeader.nameSize);
-            var passDataStart = dst.Position;
-
-            var shaderCode = descriptor.ShaderCodes.Length > 0 ? descriptor.ShaderCodes[0] : default;
-            var config = configTemplate with
-            {
-                stage = ShaderStage.Library,
-                model = ShaderModel.SM_6_8,
-                defines = descriptor.Defines,
-                entryPoint = string.Empty,
-                shaderCode = shaderCode.code,
-            };
-
-            using var libraryByteCode = CompileStage(in config);
-            await WriteShaderEntries(dst, passDataStart, cancellationToken, (ShaderStage.Library, libraryByteCode));
-
-            passHeader.dataOffset = passDataStart - assetStartOffset;
-            passHeader.dataSize = dst.Position - passDataStart;
-            var endOfPass = dst.Position;
-            dst.Position = passHeaderOffset;
-            dst.Write(passHeader);
-            dst.Position = endOfPass;
-            var endOfAsset = dst.Position;
-            dst.Position = assetStartOffset;
-            dst.Write(header);
-            dst.Position = endOfAsset;
-        }
-        else
-        {
-            throw new NotSupportedException($"Unsupported shader file extension: {ext}");
+            default:
+                throw new NotSupportedException($"Unsupported shader file extension: {ext}");
         }
     }
 }
@@ -449,7 +487,7 @@ internal class ComputeShaderBaker : IAssetBaker, IAssetDependencyScanner
         await ShaderBaker.s_compileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await ShaderBaker.BakeAssetCoreAsync(src, dst, settings, ctx, cancellationToken).ConfigureAwait(false);
+            await ShaderBaker.BakeAssetCoreAsync(src, AssetType.ComputeShader, dst, settings, ctx, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -459,7 +497,7 @@ internal class ComputeShaderBaker : IAssetBaker, IAssetDependencyScanner
 
     public IEnumerable<string> ScanDependencies(string sourceFile, IBakeSettings settings, AssetBakerContext ctx)
     {
-        return ShaderBaker.FindDependencies(sourceFile, settings, ctx);
+        return ShaderBaker.FindDependencies(sourceFile, ctx);
     }
 }
 
@@ -471,7 +509,7 @@ internal class WorkGraphBaker : IAssetBaker, IAssetDependencyScanner
         await ShaderBaker.s_compileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await ShaderBaker.BakeAssetCoreAsync(src, dst, settings, ctx, cancellationToken).ConfigureAwait(false);
+            await ShaderBaker.BakeAssetCoreAsync(src, AssetType.WorkGraph, dst, settings, ctx, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -481,6 +519,6 @@ internal class WorkGraphBaker : IAssetBaker, IAssetDependencyScanner
 
     public IEnumerable<string> ScanDependencies(string sourceFile, IBakeSettings settings, AssetBakerContext ctx)
     {
-        return ShaderBaker.FindDependencies(sourceFile, settings, ctx);
+        return ShaderBaker.FindDependencies(sourceFile, ctx);
     }
 }

@@ -9,7 +9,7 @@ namespace Ghost.Engine.Streaming;
 /// <summary>
 /// Contiguous in-memory storage for deduplicated DXIL shader bytecodes across all game assets.
 /// </summary>
-public unsafe sealed class ShaderBytecodePool : IDisposable
+public sealed unsafe class ShaderBytecodePool : IDisposable
 {
     public const uint MAGIC = ShaderBytecodePoolConstants.MAGIC;
     public static readonly Guid POOL_ASSET_ID = ShaderBytecodePoolConstants.POOL_ASSET_ID;

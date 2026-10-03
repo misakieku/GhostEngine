@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Misaki.HighPerformance.Mathematics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.RHI;
@@ -418,7 +419,7 @@ public struct TextureRegion
 
 public struct BarrierSubresourceRange
 {
-    public const uint AllSubresources = 0xFFFFFFFF;
+    public const uint ALL_SUBRESOURCES = 0xFFFFFFFF;
 
     public uint IndexOrFirstMipLevel { get; set; }
     public uint NumMipLevels { get; set; }
@@ -429,7 +430,7 @@ public struct BarrierSubresourceRange
 
     public static BarrierSubresourceRange All => new BarrierSubresourceRange
     {
-        IndexOrFirstMipLevel = AllSubresources,
+        IndexOrFirstMipLevel = ALL_SUBRESOURCES,
         NumMipLevels = 0,
         FirstArraySlice = 0,
         NumArraySlices = 0,
@@ -1017,7 +1018,7 @@ public ref struct CommandSignatureDesc
 
 public unsafe struct ProgramIdentifier
 {
-    public fixed ulong OpaqueData[4];
+    public fixed ulong opaqueData[4];
 }
 
 public unsafe struct NodeCPUInput
@@ -1066,44 +1067,51 @@ public struct DispatchGraphDesc
     [UnscopedRef]
     public ref ulong MultiNodeGPUInput => ref _input.multiNodeGPUInput;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe DispatchGraphDesc ForCPUInput(uint entryPointIndex, uint numRecords, void* pRecords = null, ulong recordStrideInBytes = 0)
     {
-        var desc = new DispatchGraphDesc { DispatchMode = GraphDispatchMode.CPUInput };
-        desc.NodeCPUInput = new NodeCPUInput
+        return new DispatchGraphDesc
         {
-            entryPointIndex = entryPointIndex,
-            numRecords = numRecords,
-            pRecords = pRecords,
-            recordStrideInBytes = recordStrideInBytes,
+            DispatchMode = GraphDispatchMode.CPUInput,
+            NodeCPUInput = new NodeCPUInput
+            {
+                entryPointIndex = entryPointIndex,
+                numRecords = numRecords,
+                pRecords = pRecords,
+                recordStrideInBytes = recordStrideInBytes,
+            }
         };
-        return desc;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe DispatchGraphDesc ForEmptyCPUInput(uint entryPointIndex, uint numRecords)
     {
         return ForCPUInput(entryPointIndex, numRecords, null, 0);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DispatchGraphDesc ForGPUInput(ulong gpuAddress)
     {
-        var desc = new DispatchGraphDesc { DispatchMode = GraphDispatchMode.GPUInput };
-        desc.NodeGPUInput = gpuAddress;
-        return desc;
+        return new DispatchGraphDesc
+        {
+            DispatchMode = GraphDispatchMode.GPUInput,
+            NodeGPUInput = gpuAddress
+        };
     }
 }
 
 [StructLayout(LayoutKind.Sequential)]
 public struct WorkGraphDispatchGridRecord
 {
-    public uint GridX;
-    public uint GridY;
-    public uint GridZ;
+    public uint gridX;
+    public uint gridY;
+    public uint gridZ;
 
     public WorkGraphDispatchGridRecord(uint x, uint y = 1, uint z = 1)
     {
-        GridX = x;
-        GridY = y;
-        GridZ = z;
+        gridX = x;
+        gridY = y;
+        gridZ = z;
     }
 }
 

@@ -21,7 +21,7 @@ internal class LightGatherSystem : SystemBase
     protected override void OnInitialize(scoped in SystemAPI systemAPI)
     {
         _renderEngine = systemAPI.World.GetService<RenderEngine>();
-        
+
         var builder = QueryBuilder.New();
 
         _directionalLightQueryID = builder

@@ -153,7 +153,6 @@ public struct ShaderContentHeader()
     public ShaderType shaderType;
     public uint passCount;
     public uint propertyBufferSize;
-    public ShaderModel shaderModel;
     public ulong shaderId;
     public ulong familyId;
     public ulong layoutHash;
@@ -344,7 +343,6 @@ public sealed class ShaderCatalogEntry
     public ulong FamilyId { get; init; }
     public ulong LayoutHash { get; init; }
     public uint PropertyBufferSize { get; init; }
-    public ShaderModel ShaderModel { get; init; }
     public ShaderCatalogPass[] Passes { get; init; } = Array.Empty<ShaderCatalogPass>();
 }
 

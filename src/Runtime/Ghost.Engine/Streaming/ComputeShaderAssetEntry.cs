@@ -51,7 +51,6 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
         {
             Name = entry.Name,
             PropertyBufferSize = entry.PropertyBufferSize,
-            ShaderModel = entry.ShaderModel,
             ShaderCodes = new ShaderCode[entry.Passes[0].EntryPointCount],
             Defines = Array.Empty<string>(),
         };
@@ -140,8 +139,7 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
             header.shaderId != catalogEntry.ShaderId ||
             header.familyId != catalogEntry.FamilyId ||
             header.layoutHash != catalogEntry.LayoutHash ||
-            header.propertyBufferSize != catalogEntry.PropertyBufferSize ||
-            header.shaderModel != catalogEntry.ShaderModel)
+            header.propertyBufferSize != catalogEntry.PropertyBufferSize)
         {
             return Result.Failure($"Compute shader asset {assetId} does not match its catalog metadata.");
         }

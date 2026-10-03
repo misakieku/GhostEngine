@@ -95,40 +95,6 @@ public class AntlrShaderCompiler
         }
     }
 
-    private static bool TryGetShaderModel(string model, List<DSLShaderError> errors, out ShaderModel shaderModel)
-    {
-        if (string.IsNullOrEmpty(model))
-        {
-            shaderModel = ShaderModel.SM_6_6; // Default to lowest supported shader model for compute shaders
-        }
-        else
-        {
-            switch (model)
-            {
-                case "6_6":
-                    shaderModel = ShaderModel.SM_6_6;
-                    break;
-                case "6_7":
-                    shaderModel = ShaderModel.SM_6_7;
-                    break;
-                case "6_8":
-                    shaderModel = ShaderModel.SM_6_8;
-                    break;
-                default:
-                    shaderModel = default;
-                    errors.Add(new DSLShaderError
-                    {
-                        message = $"Unknown shader model '{model}'.",
-                        line = 0,
-                        column = 0
-                    });
-                    return false;
-            }
-        }
-
-        return true;
-    }
-
     public static ComputeShaderSemantics? ConvertToComputeSemantics(ComputeShaderSyntax syntax, out List<DSLShaderError> errors)
     {
         errors = new List<DSLShaderError>();
@@ -151,11 +117,6 @@ public class AntlrShaderCompiler
             includes = syntax.Includes?.Includes ?? new List<string>(),
             hlsl = syntax.Hlsl?.Code
         };
-
-        if (TryGetShaderModel(syntax.ShaderModel, errors, out var shaderModel))
-        {
-            semantics.shaderModel = shaderModel;
-        }
 
         if (syntax.Properties != null)
         {
@@ -377,10 +338,6 @@ public class AntlrShaderCompiler
                 line = 0,
                 column = 0
             });
-        }
-        else if (TryGetShaderModel(syntax.ShaderModel, errors, out var shaderModel))
-        {
-            semantics.shaderModel = shaderModel;
         }
 
         foreach (var funcCall in syntax.FunctionCalls)

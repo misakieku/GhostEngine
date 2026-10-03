@@ -127,6 +127,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             return Result.Success();
         }
 
+        // FIX: This should be per view (at least a per view visible indices array) since we need to cull the light and manage the shadow atlas.
         UploadLights(ctx, ghostPayload, out var punctualLightsSrv, out var punctualLightCount, out var directionalLightSrv);
 
         // Upload FrameData once per frame

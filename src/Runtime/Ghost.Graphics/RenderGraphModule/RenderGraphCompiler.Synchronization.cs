@@ -107,7 +107,7 @@ internal unsafe partial class RenderGraphCompiler
         ReadOnlySpan<CommandQueueType> effectiveQueues,
         ReadOnlySpan<int> commandBufferIds,
         ReadOnlySpan<byte> reachability,
-        AliasingPlan aliasingPlan,
+        ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering,
         AllocationHandle allocationHandle)
     {
@@ -191,7 +191,7 @@ internal unsafe partial class RenderGraphCompiler
                 if (!TryGetAliasingPredecessor(
                     scheduleIndex,
                     usage.resource,
-                    aliasingPlan,
+                    ref aliasingPlan,
                     resourceOrdering,
                     out var predecessor))
                 {

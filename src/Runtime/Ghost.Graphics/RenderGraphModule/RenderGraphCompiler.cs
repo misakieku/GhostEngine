@@ -114,7 +114,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     cached.placedResources,
                     cached.aliasedLogicalResources,
                     allocationHandle);
-                error = _resourceRegistry.AllocateBackingResources(aliasingPlan, _compilationCache);
+                error = _resourceRegistry.AllocateBackingResources(ref aliasingPlan, _compilationCache);
                 if (error != Error.None)
                 {
                     return error;
@@ -199,7 +199,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             using var resourceOrdering = RenderGraphResourceOrdering.Build(_resourceRegistry, scheduleIndexByPassIndex, reachability, compiledPassCount, schedulingScope.AllocationHandle);
 
             aliasingPlan = RenderGraphAliasingBuilder.Build(_resourceRegistry, _resourceAllocator, resourceOrdering, flags.HasFlag(RGFlags.NoAliasing), allocationHandle);
-            error = _resourceRegistry.AllocateBackingResources(aliasingPlan, _compilationCache);
+            error = _resourceRegistry.AllocateBackingResources(ref aliasingPlan, _compilationCache);
 
             if (error != Error.None)
             {
@@ -212,7 +212,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 compiledPasses,
                 syncBoundaries,
                 scheduleIndexByPassIndex,
-                aliasingPlan,
+                ref aliasingPlan,
                 resourceOrdering,
                 allocationHandle);
             var commandWriter = new BufferWriter(1024 * 1024, allocationHandle);
@@ -224,7 +224,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     passes,
                     compiledPasses,
                     nativePasses,
-                    aliasingPlan,
+                    ref aliasingPlan,
                     resourceOrdering,
                     effectiveQueues,
                     syncBoundaries,
@@ -239,7 +239,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     compiledPasses,
                     nativePasses,
                     commandWriter.AsSpan(),
-                    aliasingPlan,
+                    ref aliasingPlan,
                     resourceOrdering,
                     allocationHandle);
 
@@ -981,7 +981,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         List<RenderGraphPass> passes,
         ReadOnlySpan<int> compiledPasses,
         ReadOnlySpan<NativeRenderPass> nativePasses,
-        AliasingPlan aliasingPlan,
+        ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering,
         ReadOnlySpan<CommandQueueType> effectiveQueues,
         ReadOnlySpan<SyncBoundary> syncBoundaries,
@@ -1017,7 +1017,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             effectiveQueues,
             commandBufferIds,
             reachability,
-            aliasingPlan,
+            ref aliasingPlan,
             resourceOrdering,
             scope.AllocationHandle);
 
@@ -1069,7 +1069,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     nativePass.mergedPassIndices.Count,
                     effectiveQueues,
                     ref writer,
-                    aliasingPlan,
+                    ref aliasingPlan,
                     resourceOrdering,
                     resourceStates.AsSpan(),
                     handoffs.AsSpan());
@@ -1100,7 +1100,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     idx,
                     effectiveQueues[idx],
                     ref writer,
-                    aliasingPlan,
+                    ref aliasingPlan,
                     resourceOrdering,
                     resourceStates.AsSpan(),
                     handoffs.AsSpan());

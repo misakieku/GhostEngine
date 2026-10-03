@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
@@ -113,7 +112,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
 
             if (entry.bytecodeHash != 0 && Manager.TryGetPooledBytecode(entry.bytecodeHash, out var pooledCode))
             {
-                _bytecodePtr = (byte*)pooledCode.pCode;
+                _bytecodePtr = pooledCode.pCode;
                 _bytecodeSize = (int)pooledCode.size;
             }
             else
@@ -150,8 +149,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
         if (header.shaderId != catalogEntry.ShaderId ||
             header.familyId != catalogEntry.FamilyId ||
             header.layoutHash != catalogEntry.LayoutHash ||
-            header.propertyBufferSize != catalogEntry.PropertyBufferSize ||
-            header.shaderModel != catalogEntry.ShaderModel)
+            header.propertyBufferSize != catalogEntry.PropertyBufferSize)
         {
             return Result.Failure($"Work graph asset {assetId} does not match its catalog metadata.");
         }

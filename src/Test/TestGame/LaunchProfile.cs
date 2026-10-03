@@ -19,7 +19,7 @@ using TestGame.Systems;
 
 namespace TestGame;
 
-internal class LaunchProfile : IEngineLanunchProfile, IInputHandler
+internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 {
     private World _world = null!;
     private IAssetEntry _meshAsset = null!;

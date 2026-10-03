@@ -146,7 +146,6 @@ internal unsafe class ShaderAssetEntry : AssetEntry, ILoadableAssetEntry, IShade
             header.familyId != variant.FamilyId ||
             header.layoutHash != variant.LayoutHash ||
             header.propertyBufferSize != variant.PropertyBufferSize ||
-            header.shaderModel != variant.ShaderModel ||
             header.passCount != variant.PassCount ||
             variant.Passes.Length != variant.PassCount)
         {

@@ -83,10 +83,7 @@ internal struct AliasingPlan : IDisposable
             : Result.Failure();
     }
 
-    public void StoreToCache(
-        ref UnsafeHashMap<int, int> outLogicalToPlaced,
-        ref UnsafeArray<PlacedResourceData> outPlacedData,
-        ref UnsafeArray<int> outAliasedLogicalResources)
+    public void StoreToCache(ref UnsafeHashMap<int, int> outLogicalToPlaced, ref UnsafeArray<PlacedResourceData> outPlacedData, ref UnsafeArray<int> outAliasedLogicalResources)
     {
         if (logicalToPlaced.Count != 0)
         {
@@ -138,7 +135,7 @@ internal struct AliasingPlan : IDisposable
 
 internal static class RenderGraphAliasingBuilder
 {
-    private struct LogicalResourceEntry
+    private readonly struct LogicalResourceEntry
     {
         public readonly int index;
         public readonly RenderGraphResource resource;

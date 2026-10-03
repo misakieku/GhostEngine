@@ -26,7 +26,9 @@ public enum ShaderModel
 {
     SM_6_6,
     SM_6_7,
-    SM_6_8
+    SM_6_8,
+    SM_6_9,
+    SM_6_10, // Experimental shader model
 }
 
 public enum PassSemantic : byte
@@ -115,11 +117,6 @@ public class GraphicsShaderDescriptor
         get; init;
     }
 
-    public required ShaderModel ShaderModel
-    {
-        get; init;
-    }
-
     public required PassDescriptor[] Passes
     {
         get; init;
@@ -139,11 +136,6 @@ public class ComputeShaderDescriptor
     }
 
     public required uint PropertyBufferSize
-    {
-        get; init;
-    }
-
-    public required ShaderModel ShaderModel
     {
         get; init;
     }

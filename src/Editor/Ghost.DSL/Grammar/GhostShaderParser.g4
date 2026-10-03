@@ -13,10 +13,7 @@ shader:
     RBRACE;
 
 shaderBody:
-    shaderModel | (propertiesBlock | includesBlock | pipelineBlock | hlslBlock | passBlock | functionCall)*;
-
-shaderModel:
-    SM IDENTIFIER SEMICOLON;
+    (propertiesBlock | includesBlock | pipelineBlock | hlslBlock | passBlock | functionCall)*;
 
 // Properties block
 propertiesBlock:

@@ -13,10 +13,7 @@ compute:
     RBRACE;
 
 computeBody:
-    shaderModel | (propertiesBlock | definesBlock | includesBlock | hlslBlock | computeEntry | functionCall)*;
-
-shaderModel:
-    SM IDENTIFIER SEMICOLON;
+    (propertiesBlock | definesBlock | includesBlock | hlslBlock | computeEntry | functionCall)*;
 
 // Properties block
 propertiesBlock:

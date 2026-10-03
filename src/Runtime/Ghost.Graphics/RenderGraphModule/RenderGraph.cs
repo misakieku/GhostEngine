@@ -601,9 +601,10 @@ public sealed class RenderGraph : IDisposable
 
     public void Dispose()
     {
-        _resourceRegistry.Dispose();
+        _executor.Dispose();
         _compiler.Dispose();
         _context.Dispose();
+        _resourceRegistry.Dispose();
 
         for (var i = 0; i < _passes.Count; i++)
         {

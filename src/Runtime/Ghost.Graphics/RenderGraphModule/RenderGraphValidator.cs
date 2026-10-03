@@ -6,25 +6,21 @@ namespace Ghost.Graphics.RenderGraphModule;
 
 internal static class RenderGraphValidator
 {
-    public static string? ValidateDeclaration(
-        RenderGraphPass pass,
-        Identifier<RGResource> resource,
-        PassResourceUsageClass requestedUsage,
-        IRenderGraphValidationResourceProvider resourceProvider)
+    public static string? ValidateDeclaration(RenderGraphPass pass, Identifier<RGResource> resource, PassResourceUsageClass requestedUsage, RenderGraphResourceRegistry resourceRegistry)
     {
-        var resourceType = resourceProvider.GetResourceType(resource);
+        var resourceType = resourceRegistry.GetResourceType(resource);
         if (RequiresTexture(requestedUsage) && resourceType != RGResourceType.Texture)
         {
-            return FormatInvalidType(pass, resource, resourceType, requestedUsage, resourceProvider);
+            return FormatInvalidType(pass, resource, resourceType, requestedUsage, resourceRegistry);
         }
 
         var conflictingUsage = FindConflictingUsage(pass, resource, requestedUsage);
         return conflictingUsage == PassResourceUsageClass.None
             ? null
-            : FormatConflict(pass, resource, resourceType, conflictingUsage, requestedUsage, resourceProvider);
+            : FormatConflict(pass, resource, resourceType, conflictingUsage, requestedUsage, resourceRegistry);
     }
 
-    public static string? ValidatePass(RenderGraphPass pass, IRenderGraphValidationResourceProvider resourceProvider)
+    public static string? ValidatePass(RenderGraphPass pass, RenderGraphResourceRegistry resourceRegistry)
     {
         if (!pass.HasRenderFunc())
         {
@@ -54,7 +50,7 @@ internal static class RenderGraphValidator
                 continue;
             }
 
-            var error = ValidateDeclaration(pass, color.id.AsResource(), PassResourceUsageClass.ColorAttachment, resourceProvider);
+            var error = ValidateDeclaration(pass, color.id.AsResource(), PassResourceUsageClass.ColorAttachment, resourceRegistry);
             if (error is not null)
             {
                 return error;
@@ -66,7 +62,7 @@ internal static class RenderGraphValidator
             var depthUsage = pass.depthAccess.usage.layout == BarrierLayout.DepthStencilWrite
                 ? PassResourceUsageClass.DepthWrite
                 : PassResourceUsageClass.DepthRead;
-            var error = ValidateDeclaration(pass, pass.depthAccess.id.AsResource(), depthUsage, resourceProvider);
+            var error = ValidateDeclaration(pass, pass.depthAccess.id.AsResource(), depthUsage, resourceRegistry);
             if (error is not null)
             {
                 return error;
@@ -75,7 +71,7 @@ internal static class RenderGraphValidator
 
         foreach (var resource in pass.randomAccess)
         {
-            var error = ValidateDeclaration(pass, resource, PassResourceUsageClass.UnorderedAccess, resourceProvider);
+            var error = ValidateDeclaration(pass, resource, PassResourceUsageClass.UnorderedAccess, resourceRegistry);
             if (error is not null)
             {
                 return error;
@@ -84,7 +80,7 @@ internal static class RenderGraphValidator
 
         foreach (var resource in pass.renderTargetWrites)
         {
-            var error = ValidateDeclaration(pass, resource, PassResourceUsageClass.ColorAttachment, resourceProvider);
+            var error = ValidateDeclaration(pass, resource, PassResourceUsageClass.ColorAttachment, resourceRegistry);
             if (error is not null)
             {
                 return error;
@@ -94,19 +90,19 @@ internal static class RenderGraphValidator
         for (var resourceType = 0; resourceType < (int)RGResourceType.Count; resourceType++)
         {
             var expectedType = (RGResourceType)resourceType;
-            var error = ValidateResourceSetTypes(pass, pass.resourceReads[resourceType], expectedType, "read", resourceProvider);
+            var error = ValidateResourceSetTypes(pass, pass.resourceReads[resourceType], expectedType, "read", resourceRegistry);
             if (error is not null)
             {
                 return error;
             }
 
-            error = ValidateResourceSetTypes(pass, pass.resourceWrites[resourceType], expectedType, "write", resourceProvider);
+            error = ValidateResourceSetTypes(pass, pass.resourceWrites[resourceType], expectedType, "write", resourceRegistry);
             if (error is not null)
             {
                 return error;
             }
 
-            error = ValidateResourceSetTypes(pass, pass.resourceCreates[resourceType], expectedType, "create", resourceProvider);
+            error = ValidateResourceSetTypes(pass, pass.resourceCreates[resourceType], expectedType, "create", resourceRegistry);
             if (error is not null)
             {
                 return error;
@@ -121,8 +117,8 @@ internal static class RenderGraphValidator
             {
                 if (!HasExplicitWriteUsage(pass, resource))
                 {
-                    var actualType = resourceProvider.GetResourceType(resource);
-                    var name = resourceProvider.GetResourceName(resource);
+                    var actualType = resourceRegistry.GetResourceType(resource);
+                    var name = resourceRegistry.GetResourceName(resource);
                     return $"Render graph pass '{pass.name}' (#{pass.index}), resource '{name}' [{actualType} #{resource.Value}]: " +
                            $"generic writes are ambiguous for {pass.type} passes; declare an attachment, random-access usage, or explicit unsafe usage.";
                 }
@@ -132,11 +128,11 @@ internal static class RenderGraphValidator
         return null;
     }
 
-    public static string? ValidateGraph(IReadOnlyList<RenderGraphPass> passes, IRenderGraphValidationResourceProvider resourceProvider)
+    public static string? ValidateGraph(IReadOnlyList<RenderGraphPass> passes, RenderGraphResourceRegistry resourceRegistry)
     {
         for (var passIndex = 0; passIndex < passes.Count; passIndex++)
         {
-            var error = ValidatePass(passes[passIndex], resourceProvider);
+            var error = ValidatePass(passes[passIndex], resourceRegistry);
             if (error is not null)
             {
                 return error;
@@ -146,19 +142,14 @@ internal static class RenderGraphValidator
         return null;
     }
 
-    private static string? ValidateResourceSetTypes(
-        RenderGraphPass pass,
-        RenderGraphResourceSet resources,
-        RGResourceType expectedType,
-        string declaration,
-        IRenderGraphValidationResourceProvider resourceProvider)
+    private static string? ValidateResourceSetTypes(RenderGraphPass pass, RenderGraphResourceSet resources, RGResourceType expectedType, string declaration, RenderGraphResourceRegistry resourceRegistry)
     {
         foreach (var resource in resources)
         {
-            var actualType = resourceProvider.GetResourceType(resource);
+            var actualType = resourceRegistry.GetResourceType(resource);
             if (actualType != expectedType)
             {
-                var name = resourceProvider.GetResourceName(resource);
+                var name = resourceRegistry.GetResourceName(resource);
                 return $"Render graph pass '{pass.name}' (#{pass.index}), resource '{name}' [{actualType} #{resource.Value}]: " +
                        $"the {declaration} declaration records it as {expectedType}.";
             }
@@ -167,10 +158,7 @@ internal static class RenderGraphValidator
         return null;
     }
 
-    private static PassResourceUsageClass FindConflictingUsage(
-        RenderGraphPass pass,
-        Identifier<RGResource> resource,
-        PassResourceUsageClass requestedUsage)
+    private static PassResourceUsageClass FindConflictingUsage(RenderGraphPass pass, Identifier<RGResource> resource, PassResourceUsageClass requestedUsage)
     {
         for (var colorIndex = 0; colorIndex <= pass.maxColorIndex; colorIndex++)
         {
@@ -246,27 +234,16 @@ internal static class RenderGraphValidator
         return usage is PassResourceUsageClass.ColorAttachment or PassResourceUsageClass.DepthRead or PassResourceUsageClass.DepthWrite;
     }
 
-    private static string FormatConflict(
-        RenderGraphPass pass,
-        Identifier<RGResource> resource,
-        RGResourceType resourceType,
-        PassResourceUsageClass existingUsage,
-        PassResourceUsageClass requestedUsage,
-        IRenderGraphValidationResourceProvider resourceProvider)
+    private static string FormatConflict(RenderGraphPass pass, Identifier<RGResource> resource, RGResourceType resourceType, PassResourceUsageClass existingUsage, PassResourceUsageClass requestedUsage, RenderGraphResourceRegistry resourceRegistry)
     {
-        var name = resourceProvider.GetResourceName(resource);
+        var name = resourceRegistry.GetResourceName(resource);
         return $"Render graph pass '{pass.name}' (#{pass.index}), resource '{name}' [{resourceType} #{resource.Value}]: " +
                $"{requestedUsage} conflicts with {existingUsage} for the whole-resource range.";
     }
 
-    private static string FormatInvalidType(
-        RenderGraphPass pass,
-        Identifier<RGResource> resource,
-        RGResourceType resourceType,
-        PassResourceUsageClass requestedUsage,
-        IRenderGraphValidationResourceProvider resourceProvider)
+    private static string FormatInvalidType(RenderGraphPass pass, Identifier<RGResource> resource, RGResourceType resourceType, PassResourceUsageClass requestedUsage, RenderGraphResourceRegistry resourceRegistry)
     {
-        var name = resourceProvider.GetResourceName(resource);
+        var name = resourceRegistry.GetResourceName(resource);
         return $"Render graph pass '{pass.name}' (#{pass.index}), resource '{name}' [{resourceType} #{resource.Value}]: " +
                $"{requestedUsage} requires a texture resource.";
     }
