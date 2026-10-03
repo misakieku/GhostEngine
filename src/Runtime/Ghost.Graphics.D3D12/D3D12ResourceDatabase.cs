@@ -266,7 +266,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
     public uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.AllSubresources)
     {
         var r = GetResourceRecord(handle);
-        if (r.IsFailure || !r.Value.Allocated)
+        if (r.IsFailure)
         {
             return uint.MaxValue;
         }
@@ -592,11 +592,37 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         }
     }
 
-    public Handle<GPUResource> CreateEmpty()
+    public Handle<GPUResource> CreateEmpty(bool needEmptySrv = false)
     {
         lock (_writeLock)
         {
-            var id = _resources.Add(default, out var generation);
+            Identifier<CbvSrvUavDescriptor> emptySrv = default;
+            if (needEmptySrv)
+            {
+                var srvDesc = new D3D12_SHADER_RESOURCE_VIEW_DESC
+                {
+                    Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+                    ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D,
+                    Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+                };
+
+                srvDesc.Texture2D.MipLevels = 1;
+                emptySrv = _descriptorAllocator.AllocateCbvSrvUav();
+                var cpuHandle = _descriptorAllocator.GetCpuHandle(emptySrv);
+                _device.NativeObject.Get()->CreateShaderResourceView(null, &srvDesc, cpuHandle);
+            }
+
+            var record = new ResourceRecord
+            {
+                viewGroup = new ResourceViewGroup
+                {
+                    srv = emptySrv,
+                    srvCount = (ushort)(needEmptySrv ? 1 : 0),
+                },
+                isExternal = true,
+            };
+
+            var id = _resources.Add(record, out var generation);
             return new Handle<GPUResource>(id, generation);
         }
     }

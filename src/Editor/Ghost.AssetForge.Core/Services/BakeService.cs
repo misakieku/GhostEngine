@@ -5,6 +5,24 @@ using Ghost.DSL.Models;
 
 namespace Ghost.AssetForge.Core.Services;
 
+public struct BakeConfig()
+{
+    public bool ForceRebake
+    {
+        get; set;
+    }
+
+    public bool ForceShaderDebugInfo
+    {
+        get; set;
+    }
+
+    public string TargetGraphicsAPI
+    {
+        get; set;
+    } = "DirectX";
+}
+
 public class BakeService
 {
     private readonly ProjectContext _context;
@@ -53,7 +71,7 @@ public class BakeService
     /// serialized internally by <see cref="ShaderBaker"/> because DXC is not
     /// thread-safe. Returns a <see cref="BakeResult"/> summarizing the run.
     /// </summary>
-    public async Task<BakeResult> BakeProjectAsync(CancellationToken cancellationToken = default)
+    public async Task<BakeResult> BakeProjectAsync(BakeConfig config, CancellationToken cancellationToken = default)
     {
         // Map VirtualPath -> AbsolutePath. Later directories overwrite earlier ones.
         var virtualPathToFile = _context.EnumerateAssetFiles();
@@ -100,7 +118,7 @@ public class BakeService
             },
             async (kvp, ct) =>
             {
-                var outcome = await BakeSingleAssetAsync(kvp.Key, kvp.Value, ct).ConfigureAwait(false);
+                var outcome = await BakeSingleAssetAsync(kvp.Key, kvp.Value, config, ct).ConfigureAwait(false);
 
                 switch (outcome)
                 {
@@ -127,7 +145,12 @@ public class BakeService
         return new BakeResult(total, succeeded, skipped, failed, failedAssets);
     }
 
-    private async Task<BakeOutcome> BakeSingleAssetAsync(string relativePath, string sourceFile, CancellationToken cancellationToken)
+    public Task<BakeResult> BakeProjectAsync(CancellationToken cancellationToken = default)
+    {
+        return BakeProjectAsync(new BakeConfig(), cancellationToken);
+    }
+
+    private async Task<BakeOutcome> BakeSingleAssetAsync(string relativePath, string sourceFile, BakeConfig config, CancellationToken cancellationToken)
     {
         var cacheDir = _context.CacheDirectory;
         var destPath = Path.Combine(cacheDir, relativePath);
@@ -146,8 +169,19 @@ public class BakeService
         var baker = _bakerRegistry.GetBaker(ext);
         var settingsType = _bakerRegistry.GetSettingsType(ext);
 
+        if (baker == null)
+        {
+            if (!string.Equals(ext, ".hlsl", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(ext, ".h", StringComparison.OrdinalIgnoreCase))
+            {
+                Logger.Warning($"No baker for {ext}. Skip.");
+            }
+
+            return BakeOutcome.Skipped;
+        }
+
         var needsBake = true;
-        if (baker != null && settingsType != null && File.Exists(cacheFile) && File.Exists(metaFile))
+        if (!config.ForceRebake && settingsType != null && File.Exists(cacheFile) && File.Exists(metaFile))
         {
             var fileinfo = new FileInfo(cacheFile);
             if (fileinfo.Length > CacheFileHeader.SIZE)
@@ -212,19 +246,6 @@ public class BakeService
 
         var metadata = _context.LoadMetadata(metaFile);
 
-        if (baker == null)
-        {
-            if (string.Equals(ext, ".hlsl", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(ext, ".h", StringComparison.OrdinalIgnoreCase))
-            {
-                // Header/include files are dependencies, not standalone runtime assets
-                return BakeOutcome.Skipped;
-            }
-
-            Logger.Warning($"No baker for {ext}. Skip.");
-            return BakeOutcome.Skipped;
-        }
-
         Logger.Info($"Baking {relativePath}...");
 
         var detectedAssetType = _bakerRegistry.DetectAssetType(ext);
@@ -262,6 +283,7 @@ public class BakeService
         {
             ShaderMetadata = _shaderMetadata,
             AssetDirectories = _context.AssetDirectories,
+            BakeConfig = config
         };
 
         var tempCacheFile = cacheFile + ".tmp";

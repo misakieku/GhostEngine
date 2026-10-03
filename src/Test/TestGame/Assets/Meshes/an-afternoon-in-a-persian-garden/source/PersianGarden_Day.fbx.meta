@@ -1,0 +1,22 @@
+{
+  "Id": "b3c4ca37-5e1c-4c2e-a703-04e6ed4e0c4a",
+  "Type": "Mesh",
+  "SettingsType": "Ghost.AssetForge.Core.Bakers.MeshBakeSettings",
+  "Settings": {
+    "ObjectUpAxis": "PositiveY",
+    "ObjectForwardAxis": "NegativeZ",
+    "ObjectRightAxis": "PositiveX",
+    "UnitMeterScale": 0.01,
+    "NormalDataSource": "ComputedIfMissing",
+    "TangentDataSource": "ComputedIfMissing",
+    "SimplifyRatio": 0.5,
+    "SimplifyThreshold": 0.85,
+    "PartitionSize": 32,
+    "SimplifyErrorMergePrevious": 1,
+    "SimplifyErrorFactorSloppy": 2,
+    "SimplifyPermissive": true,
+    "SimplifyFallbackPermissive": false,
+    "SimplifyFallbackSloppy": true,
+    "OptimizeClusters": true
+  }
+}

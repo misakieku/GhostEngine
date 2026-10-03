@@ -186,8 +186,9 @@ public unsafe interface IResourceDatabase : IDisposable
     /// <summary>
     /// Creates a slot in the resource database that contains no GPU resource, and returns a handle to that slot. This can be used as a placeholder for a resource that will be created or assigned later, allowing for deferred resource creation and management.
     /// </summary>
+    /// <param name="needEmptySrv">Indicates whether the empty resource slot needs a valid SRV (Shader Resource View).</param>
     /// <returns>The handle to the newly created empty resource slot.</returns>
-    Handle<GPUResource> CreateEmpty();
+    Handle<GPUResource> CreateEmpty(bool needEmptySrv = false);
 
     /// <summary>
     /// Maps a subresource of a GPU resource for CPU access, specifying read and write ranges.

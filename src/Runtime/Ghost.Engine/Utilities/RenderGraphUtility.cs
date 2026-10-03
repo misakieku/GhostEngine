@@ -209,7 +209,7 @@ public static class RenderGraphUtility
             var property = new HiddenBlitShaderProperties
             {
                 mainTex = renderCtx.GetActualBindlessIndex(passData.srcBuffer),
-                sampler_mainTex = (uint)renderCtx.ResourceManager.StaticSampler.LinearClamp.Value,
+                sampler_mainTex = renderCtx.ResourceManager.StaticSampler.LinearClamp,
                 linearToSRGB = passData.gammaCorrection ? 1u : 0u
             };
 

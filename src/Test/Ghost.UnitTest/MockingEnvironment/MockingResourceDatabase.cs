@@ -66,7 +66,7 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         return Handle<GPUResource>.Invalid;
     }
 
-    public Handle<GPUResource> CreateEmpty()
+    public Handle<GPUResource> CreateEmpty(bool needEmptySrv = false)
     {
         var id = Interlocked.Increment(ref _nextToken);
         var generation = 1;

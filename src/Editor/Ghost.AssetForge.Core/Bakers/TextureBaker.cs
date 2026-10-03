@@ -146,10 +146,10 @@ public partial class TextureBakeSettings : ObservableObject, IBakeSettings
 
         [ObservableProperty]
         [ShowWhen(nameof(UseBorderColor), true)]
-        public partial Vector4 BorderColor
+        public partial float4 BorderColor
         {
             get; set;
-        } = new Vector4(0, 0, 0, 0);
+        } = new float4(0, 0, 0, 0);
 
         [ObservableProperty]
         public partial bool ZeroAlphaBorder
@@ -196,13 +196,13 @@ public partial class TextureBakeSettings : ObservableObject, IBakeSettings
     public partial BasicSettings Basic
     {
         get; set;
-    }
+    } = new BasicSettings();
 
     [ObservableProperty]
     public partial AdvancedSettings Advanced
     {
         get; set;
-    }
+    } = new AdvancedSettings();
 }
 
 internal struct TextureInfo
@@ -213,7 +213,7 @@ internal struct TextureInfo
     public int depth;
     public int bitsPerChannel;
     public int colorComponents;
-    public bool isHDR;
+    public bool isCube;
 }
 
 [AssetBaker(Extensions = [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr"], Type = AssetType.Texture, SettingsType = typeof(TextureBakeSettings))]
@@ -276,14 +276,14 @@ internal partial class TextureBaker : IAssetBaker
             try
             {
                 var ext = Path.GetExtension(sourcePath);
-                var isHDR = ext.Equals(".hdr", StringComparison.OrdinalIgnoreCase);
+                var isCube = settings.Basic.TextureShape == TextureShape.TextureCube;
 
                 accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
 
                 int imageWidth, imageHeight, colorComponents;
                 var bufferSpan = new ReadOnlySpan<byte>(ptr, (int)new FileInfo(sourcePath).Length);
                 var bitsPerChannel = StbIApi.Is16BitFromMemory(bufferSpan) > 0 ? 16 : 8;
-                var isFloat = isHDR || bitsPerChannel > 8;
+                var isFloat = isCube || bitsPerChannel > 8;
 
                 void* pPixels;
                 if (isFloat)
@@ -323,9 +323,9 @@ internal partial class TextureBaker : IAssetBaker
                     width = imageWidth,
                     height = imageHeight,
                     depth = 1,
-                    bitsPerChannel = bitsPerChannel,
+                    bitsPerChannel = isFloat ? 32 : 8,
                     colorComponents = 4, // Forced 4 channels in stbi call
-                    isHDR = isHDR,
+                    isCube = isCube,
                 };
             }
             finally
@@ -353,14 +353,14 @@ internal partial class TextureBaker : IAssetBaker
 
         try
         {
-            var (tempFilePath, mipCount) = await GenerateMipAndCompressAsync(info, textureSettings, cancellationToken).ConfigureAwait(false);
+            var (tempFilePath, mipCount, finalWidth, finalHeight) = await GenerateMipAndCompressAsync(info, textureSettings, cancellationToken).ConfigureAwait(false);
 
             try
             {
                 var header = new TextureContentHeader
                 {
-                    width = (uint)info.width,
-                    height = (uint)info.height,
+                    width = (uint)finalWidth,
+                    height = (uint)finalHeight,
                     bpc = (uint)info.bitsPerChannel,
                     colorComponents = (uint)info.colorComponents,
                     mipLevels = (uint)mipCount,

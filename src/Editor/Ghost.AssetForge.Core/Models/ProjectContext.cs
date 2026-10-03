@@ -9,16 +9,12 @@ namespace Ghost.AssetForge.Core.Models;
 /// <c>BakeService</c> and <c>PackService</c>. All members are set from a single
 /// initialization path, so consumers never observe a partially-configured project.
 /// </summary>
-public sealed record ProjectContext(
-    Project Project,
-    IReadOnlyList<string> AssetDirectories,
-    string CacheDirectory,
-    string BuildDirectory,
-    IReadOnlyList<string> ShaderMetadataPaths)
+public sealed record ProjectContext(Project Project, IReadOnlyList<string> AssetDirectories, string CacheDirectory, string BuildDirectory, IReadOnlyList<string> ShaderMetadataPaths)
 {
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         WriteIndented = true,
+        IncludeFields = true,
         Converters = { new JsonStringEnumConverter() }
     };
 

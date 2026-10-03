@@ -1,3 +1,4 @@
+using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
 using Ghost.DSL.Models;
 
@@ -29,6 +30,11 @@ public struct AssetBakerContext()
     }
 
     public required IReadOnlyList<string> AssetDirectories
+    {
+        get; init;
+    }
+
+    public required BakeConfig BakeConfig
     {
         get; init;
     }

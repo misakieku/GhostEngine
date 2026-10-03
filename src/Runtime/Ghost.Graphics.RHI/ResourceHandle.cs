@@ -34,4 +34,10 @@ public static class ResourceHandleExtensions
     {
         return Unsafe.BitCast<Handle<GPUResource>, Handle<GPUBuffer>>(resource);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint GetBindlessIndex(this Identifier<Sampler> samplerId)
+    {
+        return (uint)samplerId.Value;
+    }
 }

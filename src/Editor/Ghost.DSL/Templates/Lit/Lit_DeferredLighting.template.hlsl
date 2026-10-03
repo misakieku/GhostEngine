@@ -17,7 +17,7 @@ void CSMain(
 {
     DeferredLightingShaderProperties props = LoadData<DeferredLightingShaderProperties>(g_PushConstantData.userData0, 0);
 
-    // 1. Shading Model Tile Early-Out Check
+    // Shading Model Tile Early-Out Check
     uint tileIndex = groupID.y * props.tilesPerRow + groupID.x;
     if (props.tileShadingModelMaskBufferIndex != 0xFFFFFFFFu)
     {
@@ -41,7 +41,7 @@ void CSMain(
         return;
     }
 
-    // 2. Sample Depth Buffer & Check Background
+    // Sample Depth Buffer & Check Background
     Texture2D<float> depthTexture = ResourceDescriptorHeap[props.depthTextureIndex];
     float depth = depthTexture[pixelCoord];
     if (depth <= 0.0f)
@@ -49,7 +49,7 @@ void CSMain(
         return;
     }
 
-    // 3. Read G-Buffer
+    // Read G-Buffer
     Texture2D<float4> gb0Tex = ResourceDescriptorHeap[props.gbuffer0Srv];
     Texture2D<float4> gb1Tex = ResourceDescriptorHeap[props.gbuffer1Srv];
     Texture2D<float4> gb2Tex = ResourceDescriptorHeap[props.gbuffer2Srv];
@@ -68,7 +68,7 @@ void CSMain(
         return;
     }
 
-    // 4. Reconstruct World Position & View Vector
+    // Reconstruct World Position & View Vector
     float n = g_ViewData.nearClip;
     float f = g_ViewData.farClip;
     float zView = (n * f) / ((f - n) * depth + n);
@@ -83,7 +83,7 @@ void CSMain(
     float3 positionWS = g_ViewData.cameraPosition + mul(transpose((float3x3)g_ViewData.viewMatrix), posVS);
     float3 V = normalize(g_ViewData.cameraPosition - positionWS);
 
-    // 5. Unpack Surface & BSDF Data
+    // Unpack Surface & BSDF Data
     SurfaceData surface = ExtractSurfaceData(gbuffer);
     MaterialContext matCtx = (MaterialContext)0;
     matCtx.positionWS = positionWS;
@@ -101,13 +101,13 @@ void CSMain(
     shadingCtx.depth = depth;
     shadingCtx.linearDepth = zView;
 
-    // 6. Execute Light Loop
+    // Execute Light Loop
     ByteAddressBuffer tileLightList = ResourceDescriptorHeap[props.tileLightListBufferIndex];
     LightLoopOutput light = ExecuteLightLoop<DEFERREDLIGHTING_STRATEGY>(shadingCtx, bsdf, strategy, V, tileLightList, props.tilesPerRow);
     
     float3 finalColor = light.diffuse + light.specular;
 
-    // 8. Output to HDR Color Buffer
+    // Output to HDR Color Buffer
     RWTexture2D<float4> litColorTarget = ResourceDescriptorHeap[props.litColorUav];
     litColorTarget[pixelCoord] = float4(finalColor, 1.0f);
 }

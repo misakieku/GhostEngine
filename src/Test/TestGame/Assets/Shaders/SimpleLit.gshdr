@@ -2,6 +2,8 @@ shader "MyShader/SimpleLit" : "Lit"
 {
     properties
     {
+        uint baseColor;
+        uint sampler;
         float roughness = 0.4;
     }
 
@@ -22,12 +24,12 @@ shader "MyShader/SimpleLit" : "Lit"
             SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
             {
                 SurfaceData surface = (SurfaceData)0;
-                surface.albedo = float3(1.0, 1.0, 1.0);
+                surface.materialFeatures = SHADING_MODEL_ID;
+                surface.emissive = SAMPLE_TEXTURE2D_GRAD(props.baseColor, props.sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv);
                 surface.normalWS = ctx.normalWS;
                 surface.roughness = props.roughness;
                 surface.metallic = 0.0;
                 surface.occlusion = 1.0;
-                surface.materialFeatures = SHADING_MODEL_ID;
                 return surface;
             }
         };

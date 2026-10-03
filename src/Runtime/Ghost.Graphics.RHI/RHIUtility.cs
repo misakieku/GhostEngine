@@ -64,6 +64,12 @@ public static class RHIUtility
         return format == TextureFormat.D24_UNorm_S8_UInt;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsCompressedFormat(this TextureFormat format)
+    {
+        return format is >= TextureFormat.BC1_UNorm and <= TextureFormat.BC7_UNorm_SRGB;
+    }
+
     public static void GetSurfaceInfo(this TextureFormat format, uint width, uint height, out uint rowPitch, out uint slicePitch, out uint rowCount)
     {
         var bc = false;
@@ -71,66 +77,33 @@ public static class RHIUtility
         var planar = false;
         var bpe = 0u;
 
-        //switch (Format)
-        //{
-        //    case Format.BC1Typeless:
-        //    case Format.BC1Unorm:
-        //    case Format.BC1UnormSrgb:
-        //    case Format.BC4Typeless:
-        //    case Format.BC4Unorm:
-        //    case Format.BC4Snorm:
-        //        bc = true;
-        //        bpe = 8;
-        //        break;
+        switch (format)
+        {
+            case TextureFormat.BC1_UNorm:
+            case TextureFormat.BC1_UNorm_SRGB:
+            case TextureFormat.BC4_UNorm:
+            case TextureFormat.BC4_SNorm:
+                bc = true;
+                bpe = 8;
+                break;
 
-        //    case Format.BC2Typeless:
-        //    case Format.BC2Unorm:
-        //    case Format.BC2UnormSrgb:
-        //    case Format.BC3Typeless:
-        //    case Format.BC3Unorm:
-        //    case Format.BC3UnormSrgb:
-        //    case Format.BC5Typeless:
-        //    case Format.BC5Unorm:
-        //    case Format.BC5Snorm:
-        //    case Format.BC6HTypeless:
-        //    case Format.BC6HUF16:
-        //    case Format.BC6HSF16:
-        //    case Format.BC7Typeless:
-        //    case Format.BC7Unorm:
-        //    case Format.BC7UnormSrgb:
-        //        bc = true;
-        //        bpe = 16;
-        //        break;
+            case TextureFormat.BC2_UNorm:
+            case TextureFormat.BC2_UNorm_SRGB:
+            case TextureFormat.BC3_UNorm:
+            case TextureFormat.BC3_UNorm_SRGB:
+            case TextureFormat.BC5_UNorm:
+            case TextureFormat.BC5_SNorm:
+            case TextureFormat.BC6H_UF16:
+            case TextureFormat.BC6H_SF16:
+            case TextureFormat.BC7_UNorm:
+            case TextureFormat.BC7_UNorm_SRGB:
+                bc = true;
+                bpe = 16;
+                break;
 
-        //    case Format.R8G8_B8G8Unorm:
-        //    case Format.G8R8_G8B8Unorm:
-        //    case Format.YUY2:
-        //        packed = true;
-        //        bpe = 4;
-        //        break;
-
-        //    case Format.Y210:
-        //    case Format.Y216:
-        //        packed = true;
-        //        bpe = 8;
-        //        break;
-
-        //    case Format.NV12:
-        //    case Format.Opaque420:
-        //    case Format.P208:
-        //        planar = true;
-        //        bpe = 2;
-        //        break;
-
-        //    case Format.P010:
-        //    case Format.P016:
-        //        planar = true;
-        //        bpe = 4;
-        //        break;
-
-        //    default:
-        //        break;
-        //}
+            default:
+                break;
+        }
 
         if (bc)
         {
@@ -234,5 +207,60 @@ public static class RHIUtility
     public static bool TryGetStringFromHash(UInt128 key, Span<char> destination)
     {
         return key.TryFormat(destination, out var _, "X16");
+    }
+
+    public static TextureFormat FromDxgiFormat(uint format)
+    {
+        return format switch
+        {
+            0 => TextureFormat.Unknown, // DXGI_FORMAT_UNKNOWN
+
+            61 => TextureFormat.R8_UNorm, // DXGI_FORMAT_R8_UNORM
+            63 => TextureFormat.R8_SNorm, // DXGI_FORMAT_R8_SNORM
+            56 => TextureFormat.R16_UNorm, // DXGI_FORMAT_R16_UNORM
+            58 => TextureFormat.R16_SNorm, // DXGI_FORMAT_R16_SNORM
+            54 => TextureFormat.R16_Float, // DXGI_FORMAT_R16_FLOAT
+            41 => TextureFormat.R32_Float, // DXGI_FORMAT_R32_FLOAT
+            42 => TextureFormat.R32_UInt, // DXGI_FORMAT_R32_UINT
+            43 => TextureFormat.R32_SInt, // DXGI_FORMAT_R32_SINT
+
+            49 => TextureFormat.R8G8_UNorm, // DXGI_FORMAT_R8G8_UNORM
+            51 => TextureFormat.R8G8_SNorm, // DXGI_FORMAT_R8G8_SNORM
+            35 => TextureFormat.R16G16_UNorm, // DXGI_FORMAT_R16G16_UNORM
+            37 => TextureFormat.R16G16_SNorm, // DXGI_FORMAT_R16G16_SNORM
+            34 => TextureFormat.R16G16_Float, // DXGI_FORMAT_R16G16_FLOAT
+            16 => TextureFormat.R32G32_Float, // DXGI_FORMAT_R32G32_FLOAT
+            17 => TextureFormat.R32G32_UInt, // DXGI_FORMAT_R32G32_UINT
+
+            28 => TextureFormat.R8G8B8A8_UNorm, // DXGI_FORMAT_R8G8B8A8_UNORM
+            31 => TextureFormat.R8G8B8A8_SNorm, // DXGI_FORMAT_R8G8B8A8_SNORM
+            87 => TextureFormat.B8G8R8A8_UNorm, // DXGI_FORMAT_B8G8R8A8_UNORM
+
+            24 => TextureFormat.R10G10B10A2_UNorm, // DXGI_FORMAT_R10G10B10A2_UNORM
+
+            10 => TextureFormat.R16G16B16A16_Float, // DXGI_FORMAT_R16G16B16A16_FLOAT
+            2 => TextureFormat.R32G32B32A32_Float, // DXGI_FORMAT_R32G32B32A32_FLOAT
+
+            45 => TextureFormat.D24_UNorm_S8_UInt, // DXGI_FORMAT_D24_UNORM_S8_UINT
+            40 => TextureFormat.D32_Float, // DXGI_FORMAT_D32_FLOAT
+            39 => TextureFormat.R32_Typeless, // DXGI_FORMAT_R32_TYPELESS
+            44 => TextureFormat.R24G8_Typeless, // DXGI_FORMAT_R24G8_TYPELESS
+
+            71 => TextureFormat.BC1_UNorm, // DXGI_FORMAT_BC1_UNORM
+            72 => TextureFormat.BC1_UNorm_SRGB, // DXGI_FORMAT_BC1_UNORM_SRGB
+            74 => TextureFormat.BC2_UNorm, // DXGI_FORMAT_BC2_UNORM
+            75 => TextureFormat.BC2_UNorm_SRGB, // DXGI_FORMAT_BC2_UNORM_SRGB
+            77 => TextureFormat.BC3_UNorm, // DXGI_FORMAT_BC3_UNORM
+            78 => TextureFormat.BC3_UNorm_SRGB, // DXGI_FORMAT_BC3_UNORM_SRGB
+            80 => TextureFormat.BC4_UNorm, // DXGI_FORMAT_BC4_UNORM
+            81 => TextureFormat.BC4_SNorm, // DXGI_FORMAT_BC4_SNORM
+            83 => TextureFormat.BC5_UNorm, // DXGI_FORMAT_BC5_UNORM
+            84 => TextureFormat.BC5_SNorm, // DXGI_FORMAT_BC5_SNORM
+            95 => TextureFormat.BC6H_UF16, // DXGI_FORMAT_BC6H_UF16
+            96 => TextureFormat.BC6H_SF16, // DXGI_FORMAT_BC6H_SF16
+            98 => TextureFormat.BC7_UNorm, // DXGI_FORMAT_BC7_UNORM
+            99 => TextureFormat.BC7_UNorm_SRGB, // DXGI_FORMAT_BC7_UNORM_SRGB
+            _ => throw new NotSupportedException($"DXGI format value {format} is not supported.")
+        };
     }
 }

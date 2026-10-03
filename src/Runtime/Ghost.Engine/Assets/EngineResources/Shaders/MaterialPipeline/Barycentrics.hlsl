@@ -88,6 +88,7 @@ InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pixelCoord, floa
 
     // UV and analytical screen derivatives via quotient rule
     float2 uv = bary.x * v0.uv + bary.y * v1.uv + bary.z * v2.uv;
+    
     float2 dN_dx = dq_dx.x * v0.uv + dq_dx.y * v1.uv + dq_dx.z * v2.uv;
     float2 dN_dy = dq_dy.x * v0.uv + dq_dy.y * v1.uv + dq_dy.z * v2.uv;
 

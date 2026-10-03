@@ -203,6 +203,8 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                 && layoutAfter is not BarrierLayout.RenderTarget
                 and not BarrierLayout.DepthStencilRead
                 and not BarrierLayout.DepthStencilWrite,
+            CommandBufferType.Copy => (layoutBefore is BarrierLayout.Undefined or BarrierLayout.Common)
+                && layoutAfter is BarrierLayout.Common,
             _ => true
         };
     }

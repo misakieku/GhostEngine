@@ -50,9 +50,10 @@ public partial class ShaderBakeSettings : ObservableObject, IBakeSettings
 [AssetBaker(Extensions = [".gshdr"], Type = AssetType.Shader, SettingsType = typeof(ShaderBakeSettings))]
 internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
 {
-    internal static readonly DXCShaderCompiler s_compiler = new DXCShaderCompiler();
+    private static readonly DXCShaderCompiler s_compiler = new DXCShaderCompiler();
+    private static readonly ConcurrentDictionary<ulong, byte[]> s_compileCache = new();
+
     internal static readonly SemaphoreSlim s_compileLock = new SemaphoreSlim(1, 1);
-    internal static readonly ConcurrentDictionary<ulong, byte[]> s_compileCache = new();
 
     internal static UnsafeArray<byte> CompileStage(in ShaderCompilationConfig config)
     {
@@ -193,11 +194,17 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
             }
         }
 
+        var options = shaderSettings.Options;
+        if (ctx.BakeConfig.ForceShaderDebugInfo)
+        {
+            options |= CompilerOption.KeepDebugInfo;
+        }
+
         var configTemplate = new ShaderCompilationConfig
         {
             defines = shaderSettings.Defines,
             optimizeLevel = shaderSettings.OptimizeLevel,
-            options = shaderSettings.Options,
+            options = options,
             includeDirectories = includeDirs,
             shaderModel = shaderSettings.ShaderModel,
         };

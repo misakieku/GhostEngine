@@ -1,0 +1,42 @@
+{
+  "Id": "a0fe0083-af7a-40d5-91fa-f6e258196d86",
+  "Type": "Texture",
+  "SettingsType": "Ghost.AssetForge.Core.Bakers.TextureBakeSettings",
+  "Settings": {
+    "Basic": {
+      "TextureType": "Default",
+      "TextureShape": "Texture2D",
+      "Columns": 1,
+      "Rows": 1,
+      "Depth": 1,
+      "IsSRGB": true
+    },
+    "Advanced": {
+      "MaxSize": "Size2048",
+      "StretchToPowerOfTwo": true,
+      "GenerateMipmaps": true,
+      "MipmapLevelCount": 0,
+      "PremultiplyAlpha": false,
+      "MipmapFilter": "Kaiser",
+      "CompressionLevel": "Normal",
+      "UseBorderColor": false,
+      "BorderColor": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 0
+      },
+      "ZeroAlphaBorder": false,
+      "CutoutAlpha": false,
+      "CutoutAlphaThreshold": 127,
+      "ScaleAlphaForMipCoverage": false,
+      "ScaleAlphaForMipCoverageThreshold": 127,
+      "CustomChannelMapping": {
+        "x": 0,
+        "y": 1,
+        "z": 2,
+        "w": 3
+      }
+    }
+  }
+}

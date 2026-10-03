@@ -78,6 +78,7 @@ public class MeshBakerTests
         {
             ShaderMetadata = new ShaderMetadata(),
             AssetDirectories = [_tempDir],
+            BakeConfig = new BakeConfig(),
         };
 
         using var outputStream = new MemoryStream();
@@ -127,6 +128,7 @@ public class MeshBakerTests
         {
             ShaderMetadata = new ShaderMetadata(),
             AssetDirectories = [_tempDir],
+            BakeConfig = new BakeConfig(),
         };
 
         using var outputStream = new MemoryStream();

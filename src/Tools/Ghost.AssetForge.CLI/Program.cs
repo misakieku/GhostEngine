@@ -18,6 +18,12 @@ internal class BakeOptions
 
     [Option("shader-metadata", Description = "The path to the shader metadata file(s). Use semicolon to separate multiple files.", IsRequired = true)]
     public string ShaderMetadataPaths { get; set; } = string.Empty;
+
+    [Option("force-shader-debug", Description = "Whether to force shader to keep debug information in the baked assets. Default is false.", IsRequired = false)]
+    public bool ForceShaderDebugInfo { get; set; } = false;
+
+    [Option("target-graphics-api", Description = "The target graphics API for the baked assets. Default is 'DirectX'.", IsRequired = false)]
+    public string TargetGraphicsAPI { get; set; } = "DirectX";
 }
 
 internal enum MetdataCommandMode
@@ -91,7 +97,13 @@ public class Program
         Console.WriteLine($"Build: {opts.BuildDir}");
         Console.WriteLine($"Shader Metadata: {string.Join(", ", shaderMetadataPaths)}");
 
-        var bakeResult = await bakeService.BakeProjectAsync(cancellationToken);
+        var config = new BakeConfig
+        {
+            ForceShaderDebugInfo = opts.ForceShaderDebugInfo,
+            TargetGraphicsAPI = opts.TargetGraphicsAPI
+        };
+
+        var bakeResult = await bakeService.BakeProjectAsync(config, cancellationToken);
         if (bakeResult.Failed > 0)
         {
             Console.WriteLine($"Bake failed: {bakeResult.Failed} of {bakeResult.Total} assets failed.");
@@ -99,7 +111,14 @@ public class Program
             {
                 Console.WriteLine($"  Failed: {failedAsset}");
             }
+
             Environment.Exit(1);
+        }
+
+        if (bakeResult.Total == bakeResult.Skipped)
+        {
+            Console.WriteLine("All assets were skipped.");
+            return;
         }
 
         await packService.PackProjectAsync(cancellationToken);

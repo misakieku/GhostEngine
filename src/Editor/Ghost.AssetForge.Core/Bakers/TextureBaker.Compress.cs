@@ -8,13 +8,13 @@ namespace Ghost.AssetForge.Core.Bakers;
 
 internal partial class TextureBaker
 {
-    private static async Task<(string tempFilePath, int mipmapCount)> GenerateMipAndCompressAsync(
+    private static async Task<(string tempFilePath, int mipmapCount, int width, int height)> GenerateMipAndCompressAsync(
         TextureInfo textureInfo, TextureBakeSettings settings, CancellationToken cancellationToken)
     {
         var tempFilePath = Path.GetTempFileName();
 
         UnsafeArray<MipLevel> mipLevels = default;
-        var isHdrCube = textureInfo.isHDR && settings.Basic.TextureShape == TextureShape.TextureCube;
+        var isHdrCube = textureInfo.isCube && settings.Basic.TextureShape == TextureShape.TextureCube;
         try
         {
             if (isHdrCube)
@@ -64,23 +64,15 @@ internal partial class TextureBaker
                     }
                 }
 
-                mipLevels = await Task.Run(() => GenerateMipHDRIAsync(textureInfo, baseCubeData, edge, maxCubeMips), cancellationToken).ConfigureAwait(false);
+                mipLevels = GenerateMipHDRI(textureInfo, baseCubeData, edge, maxCubeMips);
                 baseCubeData.Dispose();
             }
 
-            var mipmapCount = await Task.Run(() =>
-            {
-                if (isHdrCube)
-                {
-                    return RunCubeMapCompressionPipeline(tempFilePath, textureInfo, settings, mipLevels);
-                }
-                else
-                {
-                    return RunMipGenCompressionPipeline(tempFilePath, textureInfo, settings);
-                }
-            }, cancellationToken).ConfigureAwait(false);
+            var (mipmapCount, width, height) = isHdrCube
+                ? RunCubeMapCompressionPipeline(tempFilePath, textureInfo, settings, mipLevels)
+                : RunMipGenCompressionPipeline(tempFilePath, textureInfo, settings);
 
-            return (tempFilePath, mipmapCount);
+            return (tempFilePath, mipmapCount, width, height);
         }
         finally
         {
@@ -96,7 +88,7 @@ internal partial class TextureBaker
         }
     }
 
-    private static unsafe int RunMipGenCompressionPipeline(string outputPath, TextureInfo textureInfo, TextureBakeSettings settings)
+    private static unsafe (int mipmapCount, int width, int height) RunMipGenCompressionPipeline(string outputPath, TextureInfo textureInfo, TextureBakeSettings settings)
     {
         using var pSurface = new DisposablePtr<NvttSurface>(NvttSurface.Create());
         using var pCompOpts = new DisposablePtr<NvttCompressionOptions>(NvttCompressionOptions.Create());
@@ -145,7 +137,7 @@ internal partial class TextureBaker
         if (settings.Advanced.UseBorderColor)
         {
             var c = settings.Advanced.BorderColor;
-            pSurface.Get()->SetBorder(c.X, c.Y, c.Z, c.W, null);
+            pSurface.Get()->SetBorder(c.x, c.y, c.z, c.w, null);
         }
         else if (settings.Advanced.ZeroAlphaBorder)
         {
@@ -162,7 +154,7 @@ internal partial class TextureBaker
             pSurface.Get()->PremultiplyAlpha(null);
         }
 
-        pCompOpts.Get()->SetFormat(SelectFormat(settings, textureInfo.isHDR));
+        pCompOpts.Get()->SetFormat(SelectFormat(settings, textureInfo.bitsPerChannel > 8));
         pCompOpts.Get()->SetQuality(SelectQuality(settings.Advanced.CompressionLevel));
 
         if (settings.Advanced.CutoutAlpha)
@@ -233,16 +225,16 @@ internal partial class TextureBaker
             }
         }
 
-        return mipmapCount;
+        return (mipmapCount, pSurface.Get()->Width(), pSurface.Get()->Height());
     }
 
-    private static unsafe int RunCubeMapCompressionPipeline(string outputPath, TextureInfo textureInfo, TextureBakeSettings settings, UnsafeArray<MipLevel> mipLevels)
+    private static unsafe (int mipmapCount, int width, int height) RunCubeMapCompressionPipeline(string outputPath, TextureInfo textureInfo, TextureBakeSettings settings, UnsafeArray<MipLevel> mipLevels)
     {
         using var pCompOpts = new DisposablePtr<NvttCompressionOptions>(NvttCompressionOptions.Create());
         using var pOutOpts = new DisposablePtr<NvttOutputOptions>(NvttOutputOptions.Create());
         using var pCtx = new DisposablePtr<NvttContext>(NvttContext.Create());
 
-        pCompOpts.Get()->SetFormat(SelectFormat(settings, textureInfo.isHDR));
+        pCompOpts.Get()->SetFormat(SelectFormat(settings, textureInfo.bitsPerChannel > 8));
         pCompOpts.Get()->SetQuality(SelectQuality(settings.Advanced.CompressionLevel));
 
         pOutOpts.Get()->SetOutputHeader(true);
@@ -286,7 +278,7 @@ internal partial class TextureBaker
             }
         }
 
-        return maxCubeMips;
+        return (maxCubeMips, w0, w0);
     }
 
     private static NvttFormat SelectFormat(TextureBakeSettings settings, bool isHDR)

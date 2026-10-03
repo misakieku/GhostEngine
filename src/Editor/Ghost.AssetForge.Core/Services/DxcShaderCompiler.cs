@@ -19,25 +19,27 @@ internal sealed partial class DXCShaderCompiler
 {
     private static string GetProfileString(ShaderStage stage, ShaderModel version)
     {
-        return (stage, version) switch
+        var profile = stage switch
         {
-            (ShaderStage.AmplificationShader, ShaderModel.SM_6_6) => "as_6_6",
-            (ShaderStage.PixelShader, ShaderModel.SM_6_6) => "ps_6_6",
-            (ShaderStage.MeshShader, ShaderModel.SM_6_6) => "ms_6_6",
-            (ShaderStage.ComputeShader, ShaderModel.SM_6_6) => "cs_6_6",
-            (ShaderStage.Library, ShaderModel.SM_6_6) => "lib_6_6",
-            (ShaderStage.AmplificationShader, ShaderModel.SM_6_7) => "as_6_7",
-            (ShaderStage.PixelShader, ShaderModel.SM_6_7) => "ps_6_7",
-            (ShaderStage.MeshShader, ShaderModel.SM_6_7) => "ms_6_7",
-            (ShaderStage.ComputeShader, ShaderModel.SM_6_7) => "cs_6_7",
-            (ShaderStage.Library, ShaderModel.SM_6_7) => "lib_6_7",
-            (ShaderStage.AmplificationShader, ShaderModel.SM_6_8) => "as_6_8",
-            (ShaderStage.PixelShader, ShaderModel.SM_6_8) => "ps_6_8",
-            (ShaderStage.MeshShader, ShaderModel.SM_6_8) => "ms_6_8",
-            (ShaderStage.ComputeShader, ShaderModel.SM_6_8) => "cs_6_8",
-            (ShaderStage.Library, ShaderModel.SM_6_8) => "lib_6_8",
-            _ => throw new ArgumentOutOfRangeException(nameof(stage), "Unsupported shader stage or compiler version")
+            ShaderStage.AmplificationShader => "as",
+            ShaderStage.PixelShader => "ps",
+            ShaderStage.MeshShader => "ms",
+            ShaderStage.ComputeShader => "cs",
+            ShaderStage.Library => "lib",
+            _ => throw new ArgumentOutOfRangeException(nameof(stage), "Unsupported shader stage")
         };
+
+        var versionString = version switch
+        {
+            ShaderModel.SM_6_6 => "6_6",
+            ShaderModel.SM_6_7 => "6_7",
+            ShaderModel.SM_6_8 => "6_8",
+            ShaderModel.SM_6_9 => "6_9",
+            ShaderModel.SM_6_10 => "6_10",
+            _ => throw new ArgumentOutOfRangeException(nameof(version), "Unsupported shader model version")
+        };
+
+        return $"{profile}_{versionString}";
     }
 
     private static string GetOptimizeLevelString(CompilerOptimizeLevel level)

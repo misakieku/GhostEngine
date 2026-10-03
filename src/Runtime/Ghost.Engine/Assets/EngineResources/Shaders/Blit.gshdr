@@ -40,8 +40,8 @@ shader "Hidden/Blit"
 
                 float2 uv = float2(gtid & 1, (gtid >> 1) & 1);
 
-                verts[gtid].position = float4(uv * 2.0 - 1.0, 0.0, 1.0);
-                verts[gtid].uv = float4(uv.x, 1.0 - uv.y, 0.0, 0.0);
+                verts[gtid].position = float4(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, 0.0, 1.0);
+                verts[gtid].uv = float4(uv, 0.0, 0.0);
 
                 if (gtid == 0)
                 {

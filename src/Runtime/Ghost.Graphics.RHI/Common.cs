@@ -1573,6 +1573,21 @@ public enum TextureFormat
 
     R32_Typeless,
     R24G8_Typeless,
+
+    BC1_UNorm,
+    BC1_UNorm_SRGB,
+    BC2_UNorm,
+    BC2_UNorm_SRGB,
+    BC3_UNorm,
+    BC3_UNorm_SRGB,
+    BC4_UNorm,
+    BC4_SNorm,
+    BC5_UNorm,
+    BC5_SNorm,
+    BC6H_UF16,
+    BC6H_SF16,
+    BC7_UNorm,
+    BC7_UNorm_SRGB,
 }
 
 [Flags]

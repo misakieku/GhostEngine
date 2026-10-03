@@ -18,11 +18,12 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
 
     private TextureDesc _desc;
     private MemoryBlock _textureData;
+    private uint _dataOffset;
 
     public TextureAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies)
         : base(manager, resourceDatabase, resourceManager, assetId, AssetType.Texture, dependencies)
     {
-        _actualHandle = resourceDatabase.CreateEmpty().AsTexture();
+        _actualHandle = resourceDatabase.CreateEmpty(true).AsTexture();
     }
 
     private static TextureFormat GetTextureFormat(uint bpc, uint colorComponents)
@@ -94,19 +95,27 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
             return Result.Failure($"Unsupported header version {header.version}.");
         }
 
-        var textureDesc = new TextureDesc
-        {
-            Width = header.width,
-            Height = header.height,
-            MipLevels = header.mipLevels,
-            Slice = 1,
-            Format = GetTextureFormat(header.bpc, header.colorComponents),
-            Dimension = header.dimension,
-            Usage = TextureUsage.ShaderResource,
-        };
-
-        _desc = textureDesc;
         _textureData = contentStream.ReadMemory(AllocationHandle.Persistent);
+
+        if (DdsUtility.TryParseDdsHeader(_textureData.GetUnsafePtr(), _textureData.Size, out var ddsDesc, out _dataOffset))
+        {
+            ddsDesc.Usage = TextureUsage.ShaderResource;
+            _desc = ddsDesc;
+        }
+        else
+        {
+            _dataOffset = 0;
+            _desc = new TextureDesc
+            {
+                Width = header.width,
+                Height = header.height,
+                MipLevels = header.mipLevels,
+                Slice = header.dimension == TextureDimension.TextureCube ? 6u : 1u,
+                Format = GetTextureFormat(header.bpc, header.colorComponents),
+                Dimension = header.dimension,
+                Usage = TextureUsage.ShaderResource,
+            };
+        }
 
         return Result.Success();
     }
@@ -115,13 +124,16 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
     {
         Logger.DebugAssert(_textureData.IsCreated);
 
+        var pData = (byte*)_textureData.GetUnsafePtr() + _dataOffset;
+        var dataSize = _textureData.Size - _dataOffset;
+
         var newHandle = ResourceUtility.CreateTexture(
             context.ResourceManager,
             context.ResourceDatabase,
             context.ResourceAllocator,
             context.CopyCommandBuffer,
-            _textureData.GetUnsafePtr(),
-            _textureData.Size,
+            pData,
+            dataSize,
             in _desc);
 
         if (newHandle.IsInvalid)

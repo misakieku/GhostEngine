@@ -66,7 +66,7 @@ bool IsFrontFacingAndVisible(float4 h0, float4 h1, float4 h2, float subpixelThre
     float2 e0 = h1.xy * h0.w - h0.xy * h1.w;
     float2 e1 = h2.xy * h0.w - h0.xy * h2.w;
 
-    float crossProduct = e0.x * e1.y - e0.y * e1.x;
+    float crossProduct = e1.x * e0.y - e1.y * e0.x;
 
     return crossProduct > subpixelThreshold;
 }
@@ -158,7 +158,7 @@ void MSMain(
         bool isCulled = false;
         if (doubleSided == 0.0f)
         {
-            isCulled = !IsFrontFacingAndVisible(v2, v1, v0);
+            isCulled = !IsFrontFacingAndVisible(v0, v1, v2);
             if (!isCulled)
             {
                 isCulled = IsTriangleOutsideFrustum(v0, v1, v2);

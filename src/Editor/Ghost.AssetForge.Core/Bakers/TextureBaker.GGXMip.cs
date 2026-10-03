@@ -253,9 +253,9 @@ internal partial class TextureBaker
         return bits * 2.3283064365386963e-10f; // bits / 0x100000000
     }
 
-    private static UnsafeArray<MipLevel> GenerateMipHDRIAsync(TextureInfo textureInfo, UnsafeArray<float> baseCubeData, int edge, int totalMipLevels)
+    private static UnsafeArray<MipLevel> GenerateMipHDRI(TextureInfo textureInfo, UnsafeArray<float> baseCubeData, int edge, int totalMipLevels)
     {
-        System.Diagnostics.Debug.Assert(textureInfo.isHDR, "GenerateMipHDRI should only be called for HDR textures.");
+        System.Diagnostics.Debug.Assert(textureInfo.isCube, "GenerateMipHDRI should only be called for cube maps.");
         System.Diagnostics.Debug.Assert(textureInfo.colorComponents >= 3, "Texture must have at least 3 color components for RGB.");
 
         var mipLevels = new UnsafeArray<MipLevel>(totalMipLevels, AllocationHandle.TLSF);

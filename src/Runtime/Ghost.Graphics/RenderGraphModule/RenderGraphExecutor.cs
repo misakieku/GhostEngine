@@ -26,11 +26,11 @@ internal sealed class RenderGraphExecutor : IDisposable
     {
         _resources = resources;
         _commandBuffers = new ICommandBuffer?[INITIAL_COMMAND_BUFFER_CAPACITY];
-        _submissionHandles = new UnsafeArray<SubmissionHandle>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent);
-        _commandBufferQueueTypes = new UnsafeArray<CommandQueueType>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent);
-        _dependencyOffsets = new UnsafeArray<int>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent);
-        _dependencyCounts = new UnsafeArray<int>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent);
-        _producerCommandBufferIds = new UnsafeArray<int>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent);
+        _submissionHandles = new UnsafeArray<SubmissionHandle>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent, AllocationOption.Clear);
+        _commandBufferQueueTypes = new UnsafeArray<CommandQueueType>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent, AllocationOption.Clear);
+        _dependencyOffsets = new UnsafeArray<int>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent, AllocationOption.Clear);
+        _dependencyCounts = new UnsafeArray<int>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent, AllocationOption.Clear);
+        _producerCommandBufferIds = new UnsafeArray<int>(INITIAL_COMMAND_BUFFER_CAPACITY, AllocationHandle.Persistent, AllocationOption.Clear);
     }
 
     private void SetViewport(RenderGraphContext context, ReadOnlySpan<RenderTargetInfo> color, DepthStencilInfo depthStencil)

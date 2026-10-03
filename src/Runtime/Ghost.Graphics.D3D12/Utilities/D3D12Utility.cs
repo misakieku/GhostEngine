@@ -170,48 +170,28 @@ internal static unsafe class D3D12Utility
             TextureFormat.D32_Float => DXGI_FORMAT_D32_FLOAT,
             TextureFormat.R32_Typeless => DXGI_FORMAT_R32_TYPELESS,
             TextureFormat.R24G8_Typeless => DXGI_FORMAT_R24G8_TYPELESS,
+
+            TextureFormat.BC1_UNorm => DXGI_FORMAT_BC1_UNORM,
+            TextureFormat.BC1_UNorm_SRGB => DXGI_FORMAT_BC1_UNORM_SRGB,
+            TextureFormat.BC2_UNorm => DXGI_FORMAT_BC2_UNORM,
+            TextureFormat.BC2_UNorm_SRGB => DXGI_FORMAT_BC2_UNORM_SRGB,
+            TextureFormat.BC3_UNorm => DXGI_FORMAT_BC3_UNORM,
+            TextureFormat.BC3_UNorm_SRGB => DXGI_FORMAT_BC3_UNORM_SRGB,
+            TextureFormat.BC4_UNorm => DXGI_FORMAT_BC4_UNORM,
+            TextureFormat.BC4_SNorm => DXGI_FORMAT_BC4_SNORM,
+            TextureFormat.BC5_UNorm => DXGI_FORMAT_BC5_UNORM,
+            TextureFormat.BC5_SNorm => DXGI_FORMAT_BC5_SNORM,
+            TextureFormat.BC6H_UF16 => DXGI_FORMAT_BC6H_UF16,
+            TextureFormat.BC6H_SF16 => DXGI_FORMAT_BC6H_SF16,
+            TextureFormat.BC7_UNorm => DXGI_FORMAT_BC7_UNORM,
+            TextureFormat.BC7_UNorm_SRGB => DXGI_FORMAT_BC7_UNORM_SRGB,
             _ => throw new NotSupportedException($"Texture format {format} is not supported."),
         };
     }
 
     public static TextureFormat ToTextureFormat(this DXGI_FORMAT format)
     {
-        return format switch
-        {
-            DXGI_FORMAT_UNKNOWN => TextureFormat.Unknown,
-
-            DXGI_FORMAT_R8_UNORM => TextureFormat.R8_UNorm,
-            DXGI_FORMAT_R8_SNORM => TextureFormat.R8_SNorm,
-            DXGI_FORMAT_R16_UNORM => TextureFormat.R16_UNorm,
-            DXGI_FORMAT_R16_SNORM => TextureFormat.R16_SNorm,
-            DXGI_FORMAT_R16_FLOAT => TextureFormat.R16_Float,
-            DXGI_FORMAT_R32_FLOAT => TextureFormat.R32_Float,
-            DXGI_FORMAT_R32_UINT => TextureFormat.R32_UInt,
-            DXGI_FORMAT_R32_SINT => TextureFormat.R32_SInt,
-
-            DXGI_FORMAT_R8G8_UNORM => TextureFormat.R8G8_UNorm,
-            DXGI_FORMAT_R8G8_SNORM => TextureFormat.R8G8_SNorm,
-            DXGI_FORMAT_R16G16_UNORM => TextureFormat.R16G16_UNorm,
-            DXGI_FORMAT_R16G16_SNORM => TextureFormat.R16G16_SNorm,
-            DXGI_FORMAT_R16G16_FLOAT => TextureFormat.R16G16_Float,
-            DXGI_FORMAT_R32G32_FLOAT => TextureFormat.R32G32_Float,
-            DXGI_FORMAT_R32G32_UINT => TextureFormat.R32G32_UInt,
-
-            DXGI_FORMAT_R8G8B8A8_UNORM => TextureFormat.R8G8B8A8_UNorm,
-            DXGI_FORMAT_R8G8B8A8_SNORM => TextureFormat.R8G8B8A8_SNorm,
-            DXGI_FORMAT_B8G8R8A8_UNORM => TextureFormat.B8G8R8A8_UNorm,
-
-            DXGI_FORMAT_R10G10B10A2_UNORM => TextureFormat.R10G10B10A2_UNorm,
-
-            DXGI_FORMAT_R16G16B16A16_FLOAT => TextureFormat.R16G16B16A16_Float,
-            DXGI_FORMAT_R32G32B32A32_FLOAT => TextureFormat.R32G32B32A32_Float,
-
-            DXGI_FORMAT_D24_UNORM_S8_UINT => TextureFormat.D24_UNorm_S8_UInt,
-            DXGI_FORMAT_D32_FLOAT => TextureFormat.D32_Float,
-            DXGI_FORMAT_R32_TYPELESS => TextureFormat.R32_Typeless,
-            DXGI_FORMAT_R24G8_TYPELESS => TextureFormat.R24G8_Typeless,
-            _ => throw new NotSupportedException($"DXGI format {format} is not supported.")
-        };
+        return RHIUtility.FromDxgiFormat((uint)format);
     }
 
     public static D3D12_RESOURCE_STATES ToD3D12States(this ResourceState state)
@@ -861,14 +841,26 @@ internal static unsafe class D3D12Utility
                 {
                     if (isCubeMap)
                     {
-                        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
-                        srvDesc.TextureCubeArray = new D3D12_TEXCUBE_ARRAY_SRV
+                        if (arraySize == 6)
                         {
-                            MostDetailedMip = mostDetailedMip,
-                            MipLevels = mipLevels,
-                            First2DArrayFace = firstArraySlice,
-                            NumCubes = arraySize / 6,
-                        };
+                            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+                            srvDesc.TextureCube = new D3D12_TEXCUBE_SRV
+                            {
+                                MostDetailedMip = mostDetailedMip,
+                                MipLevels = mipLevels,
+                            };
+                        }
+                        else
+                        {
+                            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+                            srvDesc.TextureCubeArray = new D3D12_TEXCUBE_ARRAY_SRV
+                            {
+                                MostDetailedMip = mostDetailedMip,
+                                MipLevels = mipLevels,
+                                First2DArrayFace = firstArraySlice,
+                                NumCubes = arraySize / 6,
+                            };
+                        }
                     }
                     else
                     {

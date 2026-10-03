@@ -91,19 +91,18 @@ public static unsafe class ResourceUtility
 
     public static Error UploadTexture(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUTexture> texture, void* pData, nuint sizeInBytes)
     {
-        var (desc, error) = resourceDatabase.GetResourceDescription(texture.AsResource());
+        var (resourceDesc, error) = resourceDatabase.GetResourceDescription(texture.AsResource());
         if (error.IsFailure)
         {
             return error;
         }
 
-        desc.TextureDescriptor.Format.GetSurfaceInfo(desc.TextureDescriptor.Width, desc.TextureDescriptor.Height, out var rowPitch, out var slicePitch, out _);
+        ref readonly var desc = ref resourceDesc.TextureDescriptor;
+        var sliceCount = desc.Dimension == TextureDimension.TextureCube ? 6u : Math.Max(1u, desc.Slice);
+        var mipCount = Math.Max(1u, desc.MipLevels);
+        var totalSubresources = sliceCount * mipCount;
 
-        var requiredSize = resourceDatabase.GetIntermediateResourceSize(texture.AsResource(), 0, 1);
-        if (sizeInBytes < requiredSize)
-        {
-            return Error.InvalidArgument;
-        }
+        var requiredSize = resourceDatabase.GetIntermediateResourceSize(texture.AsResource(), 0, totalSubresources);
 
         var uploadDesc = new BufferDesc
         {
@@ -118,17 +117,42 @@ public static unsafe class ResourceUtility
             return Error.OutOfMemory;
         }
 
-        cmd.Barrier(BarrierDesc.Texture(texture, BarrierSync.None, BarrierSync.Copy, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierLayout.Undefined, BarrierLayout.CopyDest));
+        Span<SubResourceData> subresources = stackalloc SubResourceData[(int)totalSubresources];
+        var pCurrent = (byte*)pData;
+        nuint totalCpuBytes = 0;
 
-        var subresourceData = new SubResourceData
+        var subIndex = 0;
+        for (var slice = 0u; slice < sliceCount; slice++)
         {
-            pData = pData,
-            rowPitch = rowPitch,
-            slicePitch = slicePitch
-        };
+            for (var mip = 0u; mip < mipCount; mip++)
+            {
+                var mipWidth = Math.Max(1u, desc.Width >> (int)mip);
+                var mipHeight = Math.Max(1u, desc.Height >> (int)mip);
 
-        cmd.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresourceData);
-        cmd.Barrier(BarrierDesc.Texture(texture, BarrierSync.Copy, BarrierSync.None, BarrierAccess.CopyDest, BarrierAccess.Common, BarrierLayout.CopyDest, BarrierLayout.Common));
+                desc.Format.GetSurfaceInfo(mipWidth, mipHeight, out var rowPitch, out var slicePitch, out _);
+
+                subresources[subIndex++] = new SubResourceData
+                {
+                    pData = pCurrent,
+                    rowPitch = rowPitch,
+                    slicePitch = slicePitch
+                };
+
+                pCurrent += slicePitch;
+                totalCpuBytes += slicePitch;
+            }
+        }
+
+        if (sizeInBytes < totalCpuBytes)
+        {
+            return Error.InvalidArgument;
+        }
+
+        var layoutDest = cmd.Type == CommandBufferType.Copy ? BarrierLayout.Common : BarrierLayout.CopyDest;
+
+        cmd.Barrier(BarrierDesc.Texture(texture, BarrierSync.None, BarrierSync.Copy, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierLayout.Undefined, layoutDest));
+        cmd.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresources);
+        cmd.Barrier(BarrierDesc.Texture(texture, BarrierSync.Copy, BarrierSync.None, BarrierAccess.CopyDest, BarrierAccess.Common, layoutDest, BarrierLayout.Common));
 
         return Error.None;
     }

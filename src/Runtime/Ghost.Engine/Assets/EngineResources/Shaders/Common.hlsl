@@ -38,6 +38,7 @@
 #define SAMPLE_TEXTURE2D(texId, sampId, uv) SampleTexture2D(texId, sampId, uv)
 #define SAMPLE_TEXTURE2D_LEVEL(texId, sampId, uv, level) SampleTexture2DLevel(texId, sampId, uv, level)
 #define SAMPLE_TEXTURE2D_ARRAY(texId, sampId, uvw) SampleTextureArray(texId, sampId, uvw)
+#define SAMPLE_TEXTURE2D_GRAD(texId, sampId, uv, ddx, ddy) SampleTexture2DGrad(texId, sampId, uv, ddx, ddy)
 
 
 #define ZERO(T) (T)0
@@ -68,6 +69,13 @@ float4 SampleTextureArray(uint texId, uint sampId, float3 uvw)
     Texture2DArray tex = GET_TEXTURE2D_ARRAY(texId);
     SamplerState samp = GET_SAMPLER(sampId);
     return tex.Sample(samp, uvw);
+}
+
+float4 SampleTexture2DGrad(uint texId, uint sampId, float2 uv, float2 ddx, float2 ddy)
+{
+    Texture2D tex = GET_TEXTURE2D(texId);
+    SamplerState samp = GET_SAMPLER(sampId);
+    return tex.SampleGrad(samp, uv, ddx, ddy);
 }
 
 template<typename T>
