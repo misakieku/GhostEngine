@@ -21,16 +21,13 @@ public sealed class ResolveAssetAttribute : Attribute
     }
 }
 
-public struct AssetReadData : IDisposable
+public struct AssetReadData
 {
     public Guid assetId;
     public AssetType assetType;
     public Stream stream;
-
-    public readonly void Dispose()
-    {
-        stream?.Dispose();
-    }
+    public long streamSize;
+    public long contentSize;
 }
 
 public interface IContentProvider : IDisposable
@@ -85,8 +82,8 @@ internal struct LoadAssetJob : IJob
                 return;
             }
 
-            using var readData = openResult.Value;
-            var result = loadable.OnLoadContent(readData.stream);
+            var readData = openResult.Value;
+            var result = loadable.OnLoadContent(readData.stream, readData.contentSize);
             if (result.IsFailure)
             {
                 entry.State = entry.FailureState;

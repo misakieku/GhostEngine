@@ -1,3 +1,4 @@
+using Ghost.AssetForge.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
@@ -18,42 +19,6 @@ internal partial class TextureBaker
         public int height;
         public int offset;
         public float roughness;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static unsafe Vector2<TFloat, float> Hammersley<TFloat>(TFloat i, int N, float* lut)
-        where TFloat : unmanaged, ISPMDLane<TFloat, float>
-    {
-        var x = i / N;
-        var y = TFloat.Load(lut + (int)i[0]); // Ensure index is properly mapped per lane if TFloat.Load supports it. Actually the original code did: TFloat.Load(lut + (int)i[0]);
-        return MathV.Create<TFloat, float>(x, y);
-    }
-
-    // GGX Importance Sampling
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static Vector3<TFloat, float> ImportanceSampleGGX<TFloat>(Vector2<TFloat, float> Xi, Vector3<TFloat, float> N, float roughness)
-        where TFloat : unmanaged, ISPMDLane<TFloat, float>
-    {
-        var a = roughness * roughness; // Disney remap roughness for better visual linearity
-
-        var phi = 2.0f * PI * Xi.x;
-
-        var cosTheta = TFloat.Sqrt((1.0f - Xi.y) / (1.0f + (a * a - 1.0f) * Xi.y));
-        var sinTheta = TFloat.Sqrt(1.0f - cosTheta * cosTheta);
-
-        // Spherical to Cartesian coordinates (Halfway vector)
-        TFloat.SinCos(phi, out var sinPhi, out var cosPhi);
-        var H = MathV.Create<TFloat, float>(cosPhi * sinTheta, sinPhi * sinTheta, cosTheta);
-
-        // Tangent space to World space
-        var mask = TFloat.Abs(N.z) < 0.999f;
-        var up = MathV.Select(mask, MathV.Create<TFloat, float>(0.0f, 0.0f, 1.0f), MathV.Create<TFloat, float>(1.0f, 0.0f, 0.0f));
-
-        var tangent = MathV.Normalize(MathV.Cross(up, N));
-        var bitangent = MathV.Cross(N, tangent);
-
-        var sampleVec = (tangent * H.x) + (bitangent * H.y) + (N * H.z);
-        return MathV.Normalize(sampleVec);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -126,15 +91,7 @@ internal partial class TextureBaker
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static unsafe void ProcessGGXMipPixel<TFloat, TInt>(
-        int loopIndex,
-        float* pImage,
-        MipLevel* pMipLevels,
-        float* pRadicalInverse_VdCLut,
-        int imageWidth,
-        int imageHeight,
-        int numMipLevels,
-        int channelCount)
+    private static unsafe void ProcessGGXMipPixel<TFloat, TInt>(int loopIndex, float* pImage, MipLevel* pMipLevels, float* pRadicalInverse_VdCLut, int imageWidth, int imageHeight, int numMipLevels, int channelCount)
         where TFloat : unmanaged, ISPMDLane<TFloat, float>
         where TInt : unmanaged, ISPMDLane<TInt, int>
     {
@@ -191,10 +148,10 @@ internal partial class TextureBaker
             var validLaneMask = laneIndices < dsc;
 
             // Generate a Hammersley random sequence point
-            var Xi = Hammersley(laneIndices, dynamicSampleCount, pRadicalInverse_VdCLut);
+            var Xi = GGX.Hammersley(laneIndices, dynamicSampleCount, pRadicalInverse_VdCLut);
 
             // Get the halfway vector based on GGX NDF
-            var H = ImportanceSampleGGX(Xi, vN, pLevel->roughness);
+            var H = GGX.ImportanceSampleGGX(Xi, vN, pLevel->roughness);
 
             // Calculate Light direction
             var L = MathV.Reflect(-vV, H);
@@ -242,17 +199,6 @@ internal partial class TextureBaker
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float RadicalInverse_VdC(uint bits)
-    {
-        bits = (bits << 16) | (bits >> 16);
-        bits = ((bits & 0x55555555u) << 1) | ((bits & 0xAAAAAAAAu) >> 1);
-        bits = ((bits & 0x33333333u) << 2) | ((bits & 0xCCCCCCCCu) >> 2);
-        bits = ((bits & 0x0F0F0F0Fu) << 4) | ((bits & 0xF0F0F0F0u) >> 4);
-        bits = ((bits & 0x00FF00FFu) << 8) | ((bits & 0xFF00FF00u) >> 8);
-        return bits * 2.3283064365386963e-10f; // bits / 0x100000000
-    }
-
     private static UnsafeArray<MipLevel> GenerateMipHDRI(TextureInfo textureInfo, UnsafeArray<float> baseCubeData, int edge, int totalMipLevels)
     {
         System.Diagnostics.Debug.Assert(textureInfo.isCube, "GenerateMipHDRI should only be called for cube maps.");
@@ -263,7 +209,7 @@ internal partial class TextureBaker
 
         for (var i = 0u; i < SAMPLE_COUNT; i++)
         {
-            radicalInverse_VdCLut[i] = RadicalInverse_VdC(i);
+            radicalInverse_VdCLut[i] = GGX.RadicalInverse_VdC(i);
         }
 
         int w;

@@ -4,6 +4,7 @@ using Ghost.Core.Utilities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
+using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -93,12 +94,12 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
         dst = Unsafe.BitCast<Handle<ComputeShader>, T>(_actualHandle);
     }
 
-    public Result OnLoadContent(Stream contentStream)
+    public Result OnLoadContent([Owner] Stream contentStream, long contentSize)
     {
         MemoryBlock stagedPayload = default;
         try
         {
-            stagedPayload = contentStream.ReadMemory(AllocationHandle.Persistent);
+            stagedPayload = contentStream.ReadMemory(contentSize, AllocationHandle.Persistent);
 
             var validation = ValidatePayload(stagedPayload, AssetId, _catalogEntry);
             if (validation.IsFailure)
@@ -120,6 +121,10 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
             }
 
             return Result.Failure($"Failed to stage compute shader asset {AssetId}: {ex.Message}");
+        }
+        finally
+        {
+            contentStream.Dispose();
         }
     }
 

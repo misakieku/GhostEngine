@@ -12,12 +12,10 @@ namespace Ghost.AssetForge.Core.Services;
 public class PackService
 {
     private readonly ProjectContext _context;
-    private readonly BakerRegistry _bakerRegistry;
 
-    public PackService(ProjectContext context, BakerRegistry bakerRegistry)
+    public PackService(ProjectContext context)
     {
         _context = context;
-        _bakerRegistry = bakerRegistry;
     }
 
     public event Action<int, int>? OnProgress;

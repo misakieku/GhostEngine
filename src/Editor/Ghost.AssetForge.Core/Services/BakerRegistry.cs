@@ -8,7 +8,7 @@ public class BakerRegistry : IDisposable
 {
     private readonly List<IAssetBaker> _bakers = new();
     private readonly Dictionary<string, AssetType> _extToType = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, Type> _extToSettings = new();
+    private readonly Dictionary<string, (Type type, int version)> _extToSettings = new();
     private readonly Dictionary<string, int> _extToBaker = new();
 
     /// <summary>
@@ -44,7 +44,7 @@ public class BakerRegistry : IDisposable
             if (attr != null)
             {
                 var bakerInstance = (IAssetBaker)Activator.CreateInstance(type, true)!;
-                Register(bakerInstance, attr.Type, attr.SettingsType, attr.Extensions);
+                Register(bakerInstance, attr.Type, attr.SettingsType, attr.SettingsVersion, attr.Extensions);
             }
         }
     }
@@ -55,16 +55,17 @@ public class BakerRegistry : IDisposable
     /// </summary>
     /// <param name="type">The asset type produced by the baker.</param>
     /// <param name="settingsType">The <see cref="IBakeSettings"/> type consumed by the baker.</param>
+    /// <param name="settingsVersion">The version of the settings type.</param>
     /// <param name="extensions">The source file extensions claimed by the baker (e.g. <c>".png"</c>).</param>
     /// <exception cref="InvalidOperationException">An extension is already claimed by another baker.</exception>
-    public void Register<TBaker>(AssetType type, Type settingsType, params string[] extensions)
+    public void Register<TBaker>(AssetType type, Type settingsType, int settingsVersion, params string[] extensions)
         where TBaker : IAssetBaker
     {
         var bakerInstance = (TBaker)Activator.CreateInstance(typeof(TBaker), true)!;
-        Register(bakerInstance, type, settingsType, extensions);
+        Register(bakerInstance, type, settingsType, settingsVersion, extensions);
     }
 
-    private void Register(IAssetBaker baker, AssetType type, Type settingsType, IReadOnlyList<string> extensions)
+    private void Register(IAssetBaker baker, AssetType type, Type settingsType, int settingsVersion, IReadOnlyList<string> extensions)
     {
         foreach (var ext in extensions)
         {
@@ -82,7 +83,7 @@ public class BakerRegistry : IDisposable
         foreach (var ext in extensions)
         {
             _extToBaker[ext] = index;
-            _extToSettings[ext] = settingsType;
+            _extToSettings[ext] = (settingsType, settingsVersion);
             _extToType[ext] = type;
         }
     }
@@ -99,9 +100,9 @@ public class BakerRegistry : IDisposable
 
     public IBakeSettings? CreateDefaultSettings(string ext)
     {
-        if (_extToSettings.TryGetValue(ext, out var settingsType))
+        if (_extToSettings.TryGetValue(ext, out var settings))
         {
-            return (IBakeSettings?)Activator.CreateInstance(settingsType, true);
+            return (IBakeSettings?)Activator.CreateInstance(settings.type, true);
         }
 
         return null;
@@ -119,7 +120,17 @@ public class BakerRegistry : IDisposable
 
     public Type? GetSettingsType(string ext)
     {
-        return _extToSettings.GetValueOrDefault(ext);
+        return _extToSettings.GetValueOrDefault(ext).type;
+    }
+
+    public int GetSettingsVersion(string ext)
+    {
+        if (!_extToSettings.TryGetValue(ext, out var value))
+        {
+            return -1;
+        }
+
+        return value.version;
     }
 
     public void Dispose()

@@ -44,7 +44,7 @@ struct SimpleLitDeferredLighting
         bsdf.ambientOcclusion = surface.occlusion;
         bsdf.specularOcclusion = 1.0f;
         bsdf.normalWS = surface.normalWS;
-        bsdf.perceptualRoughness = sqrt(max(0.001f, surface.roughness));
+        bsdf.perceptualRoughness = surface.roughness;
         bsdf.tangentWS = ctx.tangentWS.xyz;
         bsdf.bitangentWS = cross(surface.normalWS, ctx.tangentWS.xyz) * sign(ctx.tangentWS.w);
         bsdf.emissive = surface.emissive;

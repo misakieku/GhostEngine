@@ -109,7 +109,7 @@ public sealed partial class ResourceManager : IDisposable
         _computeShaders = new UnsafeSlotMap<ComputeShader>(16, AllocationHandle.Persistent);
 
         _materialPalettes = new MaterialPaletteStore();
-        _staticSampler = new StaticSampler(resourceAllocator, resourceDatabase);
+        _staticSampler = new StaticSampler(resourceAllocator, resourceDatabase, 8); // TODO: Expose max anisotropy in settings
 
         _meshWriteLock = new Lock();
         _materialWriteLock = new Lock();

@@ -91,20 +91,20 @@ public partial class AssetManager
 
         if (data.stream.CanSeek && data.stream.Length < sizeof(SceneContentHeader))
         {
-            data.Dispose();
+            data.stream.Dispose();
             return Result.Failure("Invalid scene file size.");
         }
 
         var header = data.stream.Read<SceneContentHeader>();
         if (header.magic != SceneContentHeader.MAGIC)
         {
-            data.Dispose();
+            data.stream.Dispose();
             return Result.Failure("Unexpected header format.");
         }
 
         if (header.version != SceneContentHeader.VERSION)
         {
-            data.Dispose();
+            data.stream.Dispose();
             return Result.Failure($"Not supported scene header version {header.version}.");
         }
 
@@ -126,7 +126,7 @@ public partial class AssetManager
         }
         catch (Exception ex)
         {
-            data.Dispose();
+            data.stream.Dispose();
             return Result.Failure(ex.Message);
         }
     }

@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Utilities;
+using System.Buffers;
 
 namespace Ghost.Graphics.Utilities;
 
@@ -52,6 +53,82 @@ public static unsafe class ResourceUtility
         return Error.None;
     }
 
+    private static void CopyStreamToPointer(Stream stream, void* pData, long sizeInBytes)
+    {
+        const int bufferSize = 81920; // 80 KB
+        var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+        var totalBytesRead = 0L;
+
+        try
+        {
+            while (totalBytesRead < sizeInBytes)
+            {
+                var bytesToRead = (int)Math.Min(bufferSize, sizeInBytes - totalBytesRead);
+                var bytesRead = stream.Read(buffer, 0, bytesToRead);
+                if (bytesRead == 0)
+                {
+                    throw new EndOfStreamException("Unexpected end of stream while reading data.");
+                }
+
+                fixed (byte* pBuffer = buffer)
+                {
+                    MemoryUtility.MemCpy((byte*)pData + totalBytesRead, pBuffer, (nuint)bytesRead);
+                }
+
+                totalBytesRead += bytesRead;
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    public static Error UploadBuffer(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUBuffer> buffer, Stream stream, long sizeInBytes)
+    {
+        var (desc, error) = resourceDatabase.GetResourceDescription(buffer.AsResource());
+        if (error.IsFailure)
+        {
+            return error;
+        }
+
+        Logger.DebugAssert(desc.Type == ResourceType.Buffer);
+
+        var memoryType = desc.BufferDescriptor.HeapType;
+
+        if (memoryType == HeapType.Upload)
+        {
+            var mappedData = resourceDatabase.MapResource(buffer.AsResource(), 0, null);
+            CopyStreamToPointer(stream, mappedData, sizeInBytes);
+            resourceDatabase.UnmapResource(buffer.AsResource(), 0, null);
+        }
+        else
+        {
+            var uploadDesc = new BufferDesc
+            {
+                Size = (ulong)sizeInBytes,
+                Usage = BufferUsage.Upload,
+                HeapType = HeapType.Upload,
+            };
+
+            var uploadHandle = resourceManager.CreateTransientBuffer(in uploadDesc);
+            if (uploadHandle.IsInvalid)
+            {
+                return Error.OutOfMemory;
+            }
+
+            var mappedData = resourceDatabase.MapResource(uploadHandle.AsResource(), 0, null);
+            CopyStreamToPointer(stream, mappedData, sizeInBytes);
+            resourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
+
+            cmd.Barrier(BarrierDesc.Buffer(buffer, BarrierSync.None, BarrierSync.Copy, BarrierAccess.NoAccess, BarrierAccess.CopyDest));
+            cmd.CopyBuffer(buffer, uploadHandle, 0, 0, (ulong)sizeInBytes);
+            cmd.Barrier(BarrierDesc.Buffer(buffer, BarrierSync.Copy, BarrierSync.None, BarrierAccess.CopyDest, BarrierAccess.Common));
+        }
+
+        return Error.None;
+    }
+
     public static Error UploadBuffer<T>(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUBuffer> buffer, params ReadOnlySpan<T> data)
         where T : unmanaged
     {
@@ -69,6 +146,25 @@ public static unsafe class ResourceUtility
         if (!bufferHandle.IsInvalid)
         {
             error = UploadBuffer(resourceManager, resourceDatabase, cmd, bufferHandle, pData, sizeInBytes);
+        }
+
+        if (error.IsSuccess)
+        {
+            return bufferHandle;
+        }
+
+        Logger.DebugAssert(error.IsSuccess);
+        return Handle<GPUBuffer>.Invalid;
+    }
+
+    public static Handle<GPUBuffer> CreateBuffer(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, Stream stream, long sizeInBytes, scoped in BufferDesc desc, string? name = null)
+    {
+        var error = Error.UnknownError;
+        var bufferHandle = resourceAllocator.CreateBuffer(in desc, name);
+
+        if (!bufferHandle.IsInvalid)
+        {
+            error = UploadBuffer(resourceManager, resourceDatabase, cmd, bufferHandle, stream, sizeInBytes);
         }
 
         if (error.IsSuccess)

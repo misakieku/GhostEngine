@@ -6,8 +6,8 @@ namespace Ghost.AssetForge.Core.Models;
 public partial class BakeSettings : ObservableObject
 {
     [ObservableProperty]
-    private CompressionMethod _compression = CompressionMethod.LZ4;
+    public partial CompressionMethod Compression { get; set; } = CompressionMethod.Zstd;
 
     [ObservableProperty]
-    private long _chunkSizeThreshold = 1024L * 1024L * 1024L; // Default 1GB
+    public partial long ChunkSizeThreshold { get; set; } = 1024L * 1024L * 1024L;
 }

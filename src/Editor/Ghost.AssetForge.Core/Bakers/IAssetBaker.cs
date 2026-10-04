@@ -9,9 +9,13 @@ public sealed class AssetBakerAttribute : Attribute
     public required string[] Extensions { get; set; }
     public required AssetType Type { get; set; }
     public required Type SettingsType { get; set; }
+    public required int SettingsVersion { get; set; }
 }
 
-public interface IBakeSettings;
+public interface IBakeSettings
+{
+    int Version { get; set; }
+}
 
 public readonly struct SubAssetEntry
 {

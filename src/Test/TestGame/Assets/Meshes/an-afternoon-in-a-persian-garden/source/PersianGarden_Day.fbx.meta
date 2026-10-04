@@ -3,6 +3,7 @@
   "Type": "Mesh",
   "SettingsType": "Ghost.AssetForge.Core.Bakers.MeshBakeSettings",
   "Settings": {
+    "Version": 1,
     "ObjectUpAxis": "PositiveY",
     "ObjectForwardAxis": "NegativeZ",
     "ObjectRightAxis": "PositiveX",
@@ -17,6 +18,7 @@
     "SimplifyPermissive": true,
     "SimplifyFallbackPermissive": false,
     "SimplifyFallbackSloppy": true,
-    "OptimizeClusters": true
+    "OptimizeClusters": true,
+    "FlipUVs": true
   }
 }

@@ -16,6 +16,10 @@ namespace Ghost.AssetForge.Core.Bakers;
 
 public partial class ShaderBakeSettings : ObservableObject, IBakeSettings
 {
+    public const int VERSION = 1;
+
+    public int Version { get; set; } = VERSION; 
+
     [ObservableProperty]
     public partial CompilerOptimizeLevel OptimizeLevel
     {
@@ -47,7 +51,7 @@ public partial class ShaderBakeSettings : ObservableObject, IBakeSettings
     } = new Dictionary<string, string[]>();
 }
 
-[AssetBaker(Extensions = [".gshdr"], Type = AssetType.Shader, SettingsType = typeof(ShaderBakeSettings))]
+[AssetBaker(Extensions = [".gshdr"], Type = AssetType.Shader, SettingsType = typeof(ShaderBakeSettings), SettingsVersion = ShaderBakeSettings.VERSION)]
 internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
 {
     private static readonly DXCShaderCompiler s_compiler = new DXCShaderCompiler();
@@ -486,7 +490,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
     }
 }
 
-[AssetBaker(Extensions = [".gcomp"], Type = AssetType.ComputeShader, SettingsType = typeof(ShaderBakeSettings))]
+[AssetBaker(Extensions = [".gcomp"], Type = AssetType.ComputeShader, SettingsType = typeof(ShaderBakeSettings), SettingsVersion = ShaderBakeSettings.VERSION)]
 internal class ComputeShaderBaker : IAssetBaker, IAssetDependencyScanner
 {
     public async Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
@@ -508,7 +512,7 @@ internal class ComputeShaderBaker : IAssetBaker, IAssetDependencyScanner
     }
 }
 
-[AssetBaker(Extensions = [".ggraph"], Type = AssetType.WorkGraph, SettingsType = typeof(ShaderBakeSettings))]
+[AssetBaker(Extensions = [".ggraph"], Type = AssetType.WorkGraph, SettingsType = typeof(ShaderBakeSettings), SettingsVersion = ShaderBakeSettings.VERSION)]
 internal class WorkGraphBaker : IAssetBaker, IAssetDependencyScanner
 {
     public async Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)

@@ -11,7 +11,7 @@ namespace Ghost.AssetForge.Core.Models;
 /// </summary>
 public sealed record ProjectContext(Project Project, IReadOnlyList<string> AssetDirectories, string CacheDirectory, string BuildDirectory, IReadOnlyList<string> ShaderMetadataPaths)
 {
-    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    public static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
         IncludeFields = true,
@@ -61,7 +61,7 @@ public sealed record ProjectContext(Project Project, IReadOnlyList<string> Asset
         }
 
         var json = File.ReadAllText(metaFilePath);
-        return JsonSerializer.Deserialize<AssetMetadata>(json, s_jsonOptions);
+        return JsonSerializer.Deserialize<AssetMetadata>(json, JsonOptions);
     }
 
     /// <summary>
@@ -69,6 +69,6 @@ public sealed record ProjectContext(Project Project, IReadOnlyList<string> Asset
     /// </summary>
     public void SaveMetadata(string metaFilePath, AssetMetadata metadata)
     {
-        File.WriteAllText(metaFilePath, JsonSerializer.Serialize(metadata, s_jsonOptions));
+        File.WriteAllText(metaFilePath, JsonSerializer.Serialize(metadata, JsonOptions));
     }
 }

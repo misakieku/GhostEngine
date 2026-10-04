@@ -109,17 +109,12 @@ public class BakeService
 
         OnProgress?.Invoke(0, total);
 
-        await Parallel.ForEachAsync(
-            virtualPathToFile,
-            new ParallelOptions
+        var tasks = new List<Task>();
+        foreach (var kvp in virtualPathToFile)
+        {
+            tasks.Add(Task.Run(async () =>
             {
-                MaxDegreeOfParallelism = Environment.ProcessorCount / 2,
-                CancellationToken = cancellationToken
-            },
-            async (kvp, ct) =>
-            {
-                var outcome = await BakeSingleAssetAsync(kvp.Key, kvp.Value, config, ct).ConfigureAwait(false);
-
+                var outcome = await BakeSingleAssetAsync(kvp.Key, kvp.Value, config, cancellationToken).ConfigureAwait(false);
                 switch (outcome)
                 {
                     case BakeOutcome.Succeeded:
@@ -136,10 +131,12 @@ public class BakeService
                         }
                         break;
                 }
-
                 var current = Interlocked.Increment(ref completed);
                 OnProgress?.Invoke(current, total);
-            }).ConfigureAwait(false);
+            }, cancellationToken));
+        }
+
+        await Task.WhenAll(tasks).ConfigureAwait(false);
 
         Logger.Info("Baking complete.");
         return new BakeResult(total, succeeded, skipped, failed, failedAssets);

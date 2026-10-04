@@ -3,6 +3,7 @@
   "Type": "Texture",
   "SettingsType": "Ghost.AssetForge.Core.Bakers.TextureBakeSettings",
   "Settings": {
+    "Version": 1,
     "Basic": {
       "TextureType": "Default",
       "TextureShape": "Texture2D",

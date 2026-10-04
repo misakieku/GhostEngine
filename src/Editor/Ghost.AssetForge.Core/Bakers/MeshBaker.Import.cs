@@ -213,6 +213,7 @@ internal static unsafe partial class MeshProcessor
             materialBuckets[i] = new UnsafeList<Vertex>(10240, allocationHandle);
         }
 
+        var flipUVs = settings.FlipUVs;
         var maxScratchIndices = (int)(pMesh->max_face_triangles * 3u);
         using var triIndicesArray = new UnsafeArray<uint>(maxScratchIndices, allocationHandle);
 
@@ -248,7 +249,7 @@ internal static unsafe partial class MeshProcessor
                 {
                     position = new float3(position.x, position.y, position.z),
                     normal = new float3(normal.x, normal.y, normal.z),
-                    uv = new float2(uv.x, 1.0f - uv.y),
+                    uv = new float2(uv.x, flipUVs ? 1.0f - uv.y : uv.y),
                     color = new Color128(color.x, color.y, color.z, color.w)
                 };
 

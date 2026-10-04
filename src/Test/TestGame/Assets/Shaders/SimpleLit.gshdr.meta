@@ -3,8 +3,11 @@
   "Type": "Shader",
   "SettingsType": "Ghost.AssetForge.Core.Bakers.ShaderBakeSettings",
   "Settings": {
+    "Version": 1,
     "OptimizeLevel": "O3",
     "Options": "None",
-    "Defines": []
+    "ShaderModel": "SM_6_6",
+    "Defines": [],
+    "DefineGroups": {}
   }
 }

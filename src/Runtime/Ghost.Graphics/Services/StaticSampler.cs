@@ -13,18 +13,20 @@ public sealed class StaticSampler : IDisposable
     public uint LinearClamp => (uint)_linearClamp.Value;
     public uint LinearRepeat => (uint)_linearRepeat.Value;
 
-    public StaticSampler(IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase)
+    public StaticSampler(IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, uint maxAnisotropy)
     {
         _resourceDatabase = resourceDatabase;
 
+        maxAnisotropy = Math.Clamp(maxAnisotropy, 1, 16);
+
         _linearClamp = resourceAllocator.CreateSampler(new SamplerDesc
         {
-            FilterMode = TextureFilterMode.Bilinear,
+            FilterMode = TextureFilterMode.Anisotropic,
             AddressU = TextureAddressMode.Clamp,
             AddressV = TextureAddressMode.Clamp,
             AddressW = TextureAddressMode.Clamp,
             MipLODBias = 0.0f,
-            MaxAnisotropy = 1,
+            MaxAnisotropy = maxAnisotropy,
             ComparisonFunc = ComparisonFunction.Never,
             MinLOD = 0.0f,
             MaxLOD = float.MaxValue
@@ -32,12 +34,12 @@ public sealed class StaticSampler : IDisposable
 
         _linearRepeat = resourceAllocator.CreateSampler(new SamplerDesc
         {
-            FilterMode = TextureFilterMode.Bilinear,
+            FilterMode = TextureFilterMode.Anisotropic,
             AddressU = TextureAddressMode.Repeat,
             AddressV = TextureAddressMode.Repeat,
             AddressW = TextureAddressMode.Repeat,
             MipLODBias = 0.0f,
-            MaxAnisotropy = 1,
+            MaxAnisotropy = maxAnisotropy,
             ComparisonFunc = ComparisonFunction.Never,
             MinLOD = 0.0f,
             MaxLOD = float.MaxValue

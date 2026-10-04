@@ -20,6 +20,7 @@ compute "Internal/ExportVisibilityDepth"
         void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         {
             InternalExportVisibilityDepthShaderProperties props = LoadData<InternalExportVisibilityDepthShaderProperties>(g_PushConstantData.userData0, 0);
+            RWTexture2D<float> depthTexture = ResourceDescriptorHeap[props.depthTextureUav];
 
             if (dispatchThreadId.x >= props.renderWidth || dispatchThreadId.y >= props.renderHeight)
             {
@@ -29,7 +30,6 @@ compute "Internal/ExportVisibilityDepth"
             Texture2D<uint2> visBuffer = ResourceDescriptorHeap[props.visBufferIndex];
             float depth = asfloat(visBuffer[dispatchThreadId.xy].y);
 
-            RWTexture2D<float> depthTexture = ResourceDescriptorHeap[props.depthTextureUav];
             depthTexture[dispatchThreadId.xy] = depth;
         }
     }

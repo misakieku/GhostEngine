@@ -4,6 +4,7 @@ using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Ghost.Graphics.Utilities;
+using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -17,7 +18,8 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
     private Handle<GPUTexture> _tempHandle;
 
     private TextureDesc _desc;
-    private MemoryBlock _textureData;
+    private Stream _contentStream = null!;
+    private long _contentSize;
     private uint _dataOffset;
 
     public TextureAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies)
@@ -81,59 +83,69 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
         }
     }
 
-    public Result OnLoadContent(Stream contentStream)
+    public Result OnLoadContent([Owner] Stream contentStream, long contentSize)
     {
-        var header = contentStream.Read<TextureContentHeader>();
-
-        if (header.magic != TextureContentHeader.MAGIC)
+        try
         {
-            return Result.Failure($"Unexpected texture header {header.magic}.");
-        }
+            var header = contentStream.Read<TextureContentHeader>();
 
-        if (header.version != TextureContentHeader.VERSION)
-        {
-            return Result.Failure($"Unsupported header version {header.version}.");
-        }
-
-        _textureData = contentStream.ReadMemory(AllocationHandle.Persistent);
-
-        if (DdsUtility.TryParseDdsHeader(_textureData.GetUnsafePtr(), _textureData.Size, out var ddsDesc, out _dataOffset))
-        {
-            ddsDesc.Usage = TextureUsage.ShaderResource;
-            _desc = ddsDesc;
-        }
-        else
-        {
-            _dataOffset = 0;
-            _desc = new TextureDesc
+            if (header.magic != TextureContentHeader.MAGIC)
             {
-                Width = header.width,
-                Height = header.height,
-                MipLevels = header.mipLevels,
-                Slice = header.dimension == TextureDimension.TextureCube ? 6u : 1u,
-                Format = GetTextureFormat(header.bpc, header.colorComponents),
-                Dimension = header.dimension,
-                Usage = TextureUsage.ShaderResource,
-            };
-        }
+                contentStream.Dispose();
+                return Result.Failure($"Unexpected texture header {header.magic}.");
+            }
 
-        return Result.Success();
+            if (header.version != TextureContentHeader.VERSION)
+            {
+                contentStream.Dispose();
+                return Result.Failure($"Unsupported header version {header.version}.");
+            }
+
+            if (DDSUtility.TryParseDdsHeader(contentStream, contentSize, out var ddsDesc, out var dataOffset))
+            {
+                ddsDesc.Usage = TextureUsage.ShaderResource;
+                _desc = ddsDesc;
+                _dataOffset = dataOffset;
+            }
+            else
+            {
+                _dataOffset = 0;
+                _desc = new TextureDesc
+                {
+                    Width = header.width,
+                    Height = header.height,
+                    MipLevels = header.mipLevels,
+                    Slice = header.dimension == TextureDimension.TextureCube ? 6u : 1u,
+                    Format = GetTextureFormat(header.bpc, header.colorComponents),
+                    Dimension = header.dimension,
+                    Usage = TextureUsage.ShaderResource,
+                };
+            }
+
+            _contentStream = contentStream;
+            _contentSize = contentSize;
+
+            return Result.Success();
+        }
+        catch (Exception)
+        {
+            contentStream.Dispose();
+            throw;
+        }
     }
 
     public Result OnRecordUploadCommands(in ResourceStreamingContext context)
     {
-        Logger.DebugAssert(_textureData.IsCreated);
+        var dataSize = _contentSize - _dataOffset - sizeof(TextureContentHeader);
 
-        var pData = (byte*)_textureData.GetUnsafePtr() + _dataOffset;
-        var dataSize = _textureData.Size - _dataOffset;
-
+        using var memory = _contentStream.ReadMemory(dataSize, AllocationHandle.TempJob);
         var newHandle = ResourceUtility.CreateTexture(
             context.ResourceManager,
             context.ResourceDatabase,
             context.ResourceAllocator,
             context.CopyCommandBuffer,
-            pData,
-            dataSize,
+            memory.GetUnsafePtr(),
+            (nuint)dataSize,
             in _desc);
 
         if (newHandle.IsInvalid)
@@ -142,18 +154,25 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
         }
 
         _tempHandle = newHandle;
+
         return Result.Success();
     }
 
     public void OnUploadComplete(in ResourceStreamingContext context)
     {
-        var actualHandle = context.ResourceDatabase.Replace(_actualHandle.AsResource(), _tempHandle.AsResource());
-        Logger.DebugAssert(actualHandle.IsValid);
+        try
+        {
+            var actualHandle = context.ResourceDatabase.Replace(_actualHandle.AsResource(), _tempHandle.AsResource());
+            Logger.DebugAssert(actualHandle.IsValid);
 
-        context.CommandBuffer.Barrier(BarrierDesc.Texture(actualHandle.AsTexture(), BarrierSync.None, BarrierSync.AllShading, BarrierAccess.Common, BarrierAccess.ShaderResource, BarrierLayout.Common, BarrierLayout.ShaderResource));
+            context.CommandBuffer.Barrier(BarrierDesc.Texture(actualHandle.AsTexture(), BarrierSync.None, BarrierSync.AllShading, BarrierAccess.Common, BarrierAccess.ShaderResource, BarrierLayout.Common, BarrierLayout.ShaderResource));
 
-        _actualHandle = actualHandle.AsTexture();
-        _tempHandle = Handle<GPUTexture>.Invalid;
-        _textureData.Dispose();
+            _actualHandle = actualHandle.AsTexture();
+            _tempHandle = Handle<GPUTexture>.Invalid;
+        }
+        finally
+        {
+            _contentStream.Dispose();
+        }
     }
 }

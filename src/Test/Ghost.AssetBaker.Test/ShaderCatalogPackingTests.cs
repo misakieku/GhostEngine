@@ -48,7 +48,7 @@ public sealed class ShaderCatalogPackingTests
             Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
             WriteShaderCache(cachePath);
 
-            var packService = new PackService(projectService.GetContext(), registry);
+            var packService = new PackService(projectService.GetContext());
             await packService.PackProjectAsync();
 
             var manifest = await Manifest.LoadFromDiskAsync(Path.Combine(projectService.BuildDirectory, "manifest.json"));

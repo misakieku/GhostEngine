@@ -21,6 +21,10 @@ public enum VertexDataSource
 
 public partial class MeshBakeSettings : ObservableObject, IBakeSettings
 {
+    public const int VERSION = 1;
+
+    public int Version { get; set; } = VERSION; 
+
     [ObservableProperty]
     public partial CoordinateAxis ObjectUpAxis { get; set; } = CoordinateAxis.PositiveY;
 
@@ -65,4 +69,7 @@ public partial class MeshBakeSettings : ObservableObject, IBakeSettings
 
     [ObservableProperty]
     public partial bool OptimizeClusters { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool FlipUVs { get; set; } = true;
 }

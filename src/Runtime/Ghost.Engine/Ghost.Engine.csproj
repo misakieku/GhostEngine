@@ -41,6 +41,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="Assets\EngineResources\Textures\" />
+  </ItemGroup>
 
   <Import Project="..\..\GhostEngine.targets" />
 </Project>

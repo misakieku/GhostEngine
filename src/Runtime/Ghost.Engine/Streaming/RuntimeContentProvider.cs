@@ -94,6 +94,8 @@ public class RuntimeContentProvider : IContentProvider
             assetId = info.AssetId,
             assetType = info.AssetType,
             stream = decompressedStream,
+            streamSize = info.Size,
+            contentSize = info.UncompressedSize
         };
     }
 

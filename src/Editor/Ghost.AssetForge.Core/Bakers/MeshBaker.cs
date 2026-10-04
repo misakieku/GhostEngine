@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.AssetForge.Core.Bakers;
 
-[AssetBaker(Extensions = [".fbx", ".obj"], Type = AssetType.Mesh, SettingsType = typeof(MeshBakeSettings))]
+[AssetBaker(Extensions = [".fbx", ".obj"], Type = AssetType.Mesh, SettingsType = typeof(MeshBakeSettings), SettingsVersion = MeshBakeSettings.VERSION)]
 public unsafe partial class MeshBaker : IAssetBaker
 {
     public Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)

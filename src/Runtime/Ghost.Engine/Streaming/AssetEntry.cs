@@ -3,6 +3,7 @@ using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Jobs;
+using Misaki.HighPerformance.LowLevel;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Streaming;
@@ -182,7 +183,7 @@ public interface IAssetEntry
 
 internal interface ILoadableAssetEntry : IAssetEntry
 {
-    Result OnLoadContent(Stream contentStream);
+    Result OnLoadContent([Owner] Stream contentStream, long contentSize);
 }
 
 internal interface IProcessableAssetEntry : IAssetEntry

@@ -4,7 +4,6 @@ using Ghost.Core;
 using Ghost.StbI;
 using Misaki.HighPerformance.Mathematics;
 using System.IO.MemoryMappedFiles;
-using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace Ghost.AssetForge.Core.Bakers;
@@ -53,156 +52,91 @@ public partial class TextureBakeSettings : ObservableObject, IBakeSettings
     public partial class BasicSettings : ObservableObject
     {
         [ObservableProperty]
-        public partial TextureType TextureType
-        {
-            get; set;
-        } = TextureType.Default;
+        public partial TextureType TextureType { get; set; } = TextureType.Default;
 
         [ObservableProperty]
-        public partial TextureShape TextureShape
-        {
-            get; set;
-        } = TextureShape.Texture2D;
+        public partial TextureShape TextureShape { get; set; } = TextureShape.Texture2D;
 
         [ObservableProperty]
         [ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
-        public partial int Columns
-        {
-            get; set;
-        } = 1;
+        public partial int Columns { get; set; } = 1;
 
         [ObservableProperty]
         [ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
-        public partial int Rows
-        {
-            get; set;
-        } = 1;
+        public partial int Rows { get; set; } = 1;
 
         [ObservableProperty]
         [ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
-        public partial int Depth
-        {
-            get; set;
-        } = 1;
+        public partial int Depth { get; set; } = 1;
 
         [ObservableProperty]
         [ShowWhen(nameof(TextureType), TextureType.Default)]
-        public partial bool IsSRGB
-        {
-            get; set;
-        } = true;
+        public partial bool IsSRGB { get; set; } = true;
     }
 
     public partial class AdvancedSettings : ObservableObject
     {
         [ObservableProperty]
-        public partial TextureSize MaxSize
-        {
-            get; set;
-        } = TextureSize.Size2048;
+        public partial TextureSize MaxSize { get; set; } = TextureSize.Size2048;
 
         [ObservableProperty]
-        public partial bool StretchToPowerOfTwo
-        {
-            get; set;
-        } = true;
+        public partial bool StretchToPowerOfTwo { get; set; } = true;
 
         [ObservableProperty]
-        public partial bool GenerateMipmaps
-        {
-            get; set;
-        } = true;
+        public partial bool GenerateMipmaps { get; set; } = true;
 
         [ObservableProperty]
         [ShowWhen(nameof(GenerateMipmaps), true)]
-        public partial uint MipmapLevelCount
-        {
-            get; set;
-        } = 0; // 0 means generate full mipmap levels.
+        public partial uint MipmapLevelCount { get; set; } = 0; // 0 means generate full mipmap levels.
 
         [ObservableProperty]
-        public partial bool PremultiplyAlpha
-        {
-            get; set;
-        } = false;
+        public partial bool PremultiplyAlpha { get; set; } = false;
 
         [ObservableProperty]
-        public partial MipmapFilter MipmapFilter
-        {
-            get; set;
-        } = MipmapFilter.Kaiser;
+        public partial MipmapFilter MipmapFilter { get; set; } = MipmapFilter.Kaiser;
 
         [ObservableProperty]
-        public partial TextureCompressionLevel CompressionLevel
-        {
-            get; set;
-        } = TextureCompressionLevel.Normal;
+        public partial TextureCompressionLevel CompressionLevel { get; set; } = TextureCompressionLevel.Normal;
 
         [ObservableProperty]
-        public partial bool UseBorderColor
-        {
-            get; set;
-        } = false;
+        public partial bool UseBorderColor { get; set; } = false;
 
         [ObservableProperty]
         [ShowWhen(nameof(UseBorderColor), true)]
-        public partial float4 BorderColor
-        {
-            get; set;
-        } = new float4(0, 0, 0, 0);
+        public partial float4 BorderColor { get; set; } = new float4(0, 0, 0, 0);
 
         [ObservableProperty]
-        public partial bool ZeroAlphaBorder
-        {
-            get; set;
-        } = false;
+        public partial bool ZeroAlphaBorder { get; set; } = false;
 
         [ObservableProperty]
-        public partial bool CutoutAlpha
-        {
-            get; set;
-        } = false;
+        public partial bool CutoutAlpha { get; set; } = false;
 
         [ObservableProperty]
         [ShowWhen(nameof(CutoutAlpha), true)]
         [Slider(0, 255)]
-        public partial byte CutoutAlphaThreshold
-        {
-            get; set;
-        } = 127;
+        public partial byte CutoutAlphaThreshold { get; set; } = 127;
 
         [ObservableProperty]
-        public partial bool ScaleAlphaForMipCoverage
-        {
-            get; set;
-        } = false;
+        public partial bool ScaleAlphaForMipCoverage { get; set; } = false;
 
         [ObservableProperty]
         [ShowWhen(nameof(ScaleAlphaForMipCoverage), true)]
         [Slider(0, 255)]
-        public partial byte ScaleAlphaForMipCoverageThreshold
-        {
-            get; set;
-        } = 127;
+        public partial byte ScaleAlphaForMipCoverageThreshold { get; set; } = 127;
 
         [ObservableProperty]
-        public partial int4 CustomChannelMapping
-        {
-            get; set;
-        } = new int4(0, 1, 2, 3); // Default mapping: R=0, G=1, B=2, A=3
+        public partial int4 CustomChannelMapping { get; set; } = new int4(0, 1, 2, 3); // Default mapping: R=0, G=1, B=2, A=3
     }
 
-    [ObservableProperty]
-    public partial BasicSettings Basic
-    {
-        get; set;
-    } = new BasicSettings();
+    public const int VERSION = 1;
+
+    public int Version { get; set; } = VERSION; 
 
     [ObservableProperty]
-    public partial AdvancedSettings Advanced
-    {
-        get; set;
-    } = new AdvancedSettings();
+    public partial BasicSettings Basic { get; set; } = new BasicSettings();
+
+    [ObservableProperty]
+    public partial AdvancedSettings Advanced { get; set; } = new AdvancedSettings();
 }
 
 internal struct TextureInfo
@@ -216,7 +150,7 @@ internal struct TextureInfo
     public bool isCube;
 }
 
-[AssetBaker(Extensions = [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr"], Type = AssetType.Texture, SettingsType = typeof(TextureBakeSettings))]
+[AssetBaker(Extensions = [".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr"], Type = AssetType.Texture, SettingsType = typeof(TextureBakeSettings), SettingsVersion = TextureBakeSettings.VERSION)]
 internal partial class TextureBaker : IAssetBaker
 {
     private static TextureDimension GetTextureDimension(TextureBakeSettings settings)

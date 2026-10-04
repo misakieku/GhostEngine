@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
+using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.CompilerServices;
 
@@ -86,7 +87,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
         }
     }
 
-    public Result OnLoadContent(Stream contentStream)
+    public Result OnLoadContent([Owner] Stream contentStream, long contentSize)
     {
         MemoryBlock stagedPayload = default;
         try
@@ -131,6 +132,10 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
             }
 
             return Result.Failure($"Failed to stage work graph asset {AssetId}: {ex.Message}");
+        }
+        finally
+        {
+            contentStream.Dispose();
         }
     }
 
