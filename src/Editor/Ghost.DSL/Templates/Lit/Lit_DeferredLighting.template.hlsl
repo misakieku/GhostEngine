@@ -5,6 +5,7 @@
 #include "EngineResources/Shaders/Properties.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/ClassificationCommon.hlsl"
 #include "EngineResources/Shaders/Material/Lit/LightLoop.hlsl"
+#include "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl"
 
 groupshared uint s_TileShadingModelMask;
 

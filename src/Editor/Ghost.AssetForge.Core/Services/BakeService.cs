@@ -1,7 +1,6 @@
 using Ghost.AssetForge.Core.Bakers;
 using Ghost.AssetForge.Core.Models;
 using Ghost.Core;
-using Ghost.DSL.Models;
 
 namespace Ghost.AssetForge.Core.Services;
 
@@ -27,7 +26,6 @@ public class BakeService
 {
     private readonly ProjectContext _context;
     private readonly BakerRegistry _bakerRegistry;
-    private readonly ShaderMetadata _shaderMetadata;
 
     private enum BakeOutcome
     {
@@ -40,27 +38,6 @@ public class BakeService
     {
         _context = context;
         _bakerRegistry = bakerRegistry;
-        _shaderMetadata = new ShaderMetadata();
-
-        foreach (var path in _context.ShaderMetadataPaths)
-        {
-            if (File.Exists(path))
-            {
-                try
-                {
-                    var json = File.ReadAllText(path);
-                    var deserialized = System.Text.Json.JsonSerializer.Deserialize<ShaderMetadata>(json);
-                    if (deserialized != null)
-                    {
-                        _shaderMetadata.Merge(deserialized);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"Failed to load shader metadata from {path}: {ex.Message}");
-                }
-            }
-        }
     }
 
     public event Action<int, int>? OnProgress;
@@ -278,7 +255,6 @@ public class BakeService
 
         var ctx = new AssetBakerContext
         {
-            ShaderMetadata = _shaderMetadata,
             AssetDirectories = _context.AssetDirectories,
             BakeConfig = config
         };

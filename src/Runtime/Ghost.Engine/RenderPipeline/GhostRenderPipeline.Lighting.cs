@@ -398,8 +398,9 @@ internal unsafe partial class GhostRenderPipeline
         });
     }
 
+    [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl")]
     [StructLayout(LayoutKind.Sequential)]
-    public struct InternalDeferredLightingShaderProperties
+    private struct DeferredLightingShaderProperties
     {
         public uint gbuffer0Srv;
         public uint gbuffer1Srv;
@@ -518,7 +519,7 @@ internal unsafe partial class GhostRenderPipeline
                 ref readonly var variantRecord = ref passData.variantRegistry.GetVariant(new ShaderVariantIndex(variant.DenseIndex));
                 var shadingModelId = variantRecord.ShadingModelId;
 
-                var props = new InternalDeferredLightingShaderProperties
+                var props = new DeferredLightingShaderProperties
                 {
                     gbuffer0Srv = gb0Srv,
                     gbuffer1Srv = gb1Srv,

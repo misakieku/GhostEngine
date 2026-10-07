@@ -17,6 +17,7 @@
 #include "EngineResources/Shaders/MaterialPipeline/ClassificationCommon.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/Barycentrics.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl"
+#include "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl"
 
 [numthreads(CLASSIFICATION_TILE_SIZE, CLASSIFICATION_TILE_SIZE, 1)]
 void CSMain(

@@ -13,8 +13,9 @@ internal partial class GhostRenderPipeline
 {
     private ICommandSignature _deferredTexturingCommandSignature = null!;
 
+    [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl")]
     [StructLayout(LayoutKind.Sequential)]
-    public struct InternalDeferredTexturingShaderProperties
+    private struct DeferredTexturingShaderProperties
     {
         public uint visBufferIndex;
         public uint visibleMeshletsPass1;
@@ -31,27 +32,30 @@ internal partial class GhostRenderPipeline
         public uint variantIndex;
     }
 
-    public readonly struct GBufferResources
+    private readonly struct GBufferResources
     {
         public Identifier<RGTexture> GBuffer0
         {
             get; init;
         }
+
         public Identifier<RGTexture> GBuffer1
         {
             get; init;
         }
+
         public Identifier<RGTexture> GBuffer2
         {
             get; init;
         }
+
         public Identifier<RGTexture> GBuffer3
         {
             get; init;
         }
     }
 
-    public struct DeferredTexturingPassData
+    private struct DeferredTexturingPassData
     {
         public Identifier<RGTexture> visBuffer;
         public Identifier<RGBuffer> visibleMeshletsPass1;
@@ -166,7 +170,7 @@ internal partial class GhostRenderPipeline
                 }
 
                 var v = (uint)variant.DenseIndex;
-                var props = new InternalDeferredTexturingShaderProperties
+                var props = new DeferredTexturingShaderProperties
                 {
                     visBufferIndex = visSrv,
                     visibleMeshletsPass1 = meshlets0Srv,

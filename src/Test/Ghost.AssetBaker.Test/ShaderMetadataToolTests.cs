@@ -24,7 +24,7 @@ public class ShaderMetadataToolTests
     }
 
     [TestMethod]
-    public void ExtractMetadata_GeneratesValidJson()
+    public void ExtractMetadata_GeneratesHLSLOnDisk()
     {
         var csFile = Path.Combine(_tempDir, "TestShader.cs");
         File.WriteAllText(csFile, @"
@@ -48,18 +48,26 @@ namespace TestNamespace
         var inputFileList = Path.Combine(_tempDir, "input_files.txt");
         File.WriteAllLines(inputFileList, new[] { csFile });
 
-        var outputFile = Path.Combine(_tempDir, "output.json");
+        var assetDir = Path.Combine(_tempDir, "Assets");
+        Directory.CreateDirectory(assetDir);
 
-        // Run the tool's main logic
-        Program.Main(new[] { inputFileList, outputFile });
+        // Run the tool
+        Program.Main(new[] { inputFileList, assetDir });
 
-        Assert.IsTrue(File.Exists(outputFile), "Output JSON should be generated.");
+        var generatedHlslFile = Path.Combine(assetDir, "Test", "MyShader.hlsl");
+        Assert.IsTrue(File.Exists(generatedHlslFile), "Generated HLSL file should exist on disk.");
 
-        var json = File.ReadAllText(outputFile);
+        var content = File.ReadAllText(generatedHlslFile);
+        StringAssert.Contains(content, "#ifndef TEST_MYSHADER_HLSL", "HLSL should contain header guard.");
+        StringAssert.Contains(content, "struct TestShaderStruct", "HLSL should contain struct declaration.");
+        StringAssert.Contains(content, "float value1;", "HLSL should contain field value1.");
+        StringAssert.Contains(content, "float4x4 matrix;", "HLSL should contain mapped float4x4.");
 
-        StringAssert.Contains(json, "Test/MyShader.hlsl", "JSON should contain the virtual path.");
-        StringAssert.Contains(json, "TestShaderStruct", "JSON should contain the struct name.");
-        StringAssert.Contains(json, "value1", "JSON should contain the field value1.");
-        StringAssert.Contains(json, "float4x4", "JSON should contain the mapped HLSL type.");
+        // Verify timestamp preservation when content is unchanged
+        var writeTime = File.GetLastWriteTimeUtc(generatedHlslFile);
+        Thread.Sleep(20);
+        Program.Main(new[] { inputFileList, assetDir });
+        var writeTimeAfter = File.GetLastWriteTimeUtc(generatedHlslFile);
+        Assert.AreEqual(writeTime, writeTimeAfter, "File timestamp should be preserved if content did not change.");
     }
 }

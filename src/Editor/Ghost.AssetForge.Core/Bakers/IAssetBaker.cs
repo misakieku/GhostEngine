@@ -1,6 +1,5 @@
 using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
-using Ghost.DSL.Models;
 
 namespace Ghost.AssetForge.Core.Bakers;
 
@@ -27,11 +26,6 @@ public struct AssetBakerContext()
 {
     private readonly List<SubAssetEntry> _subAssets = new();
     private readonly HashSet<string> _dependencies = new(StringComparer.OrdinalIgnoreCase);
-
-    public required ShaderMetadata ShaderMetadata
-    {
-        get; init;
-    }
 
     public required IReadOnlyList<string> AssetDirectories
     {

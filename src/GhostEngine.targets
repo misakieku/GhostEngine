@@ -3,7 +3,7 @@
   <PropertyGroup>
     <GhostEngineAssetDir>$(MSBuildThisFileDirectory)Runtime/Ghost.Engine/Assets</GhostEngineAssetDir>
     <GhostAssetDir Condition="'$(GhostAssetDir)' == '' and Exists('$(MSBuildProjectDirectory)\Assets')">$(MSBuildProjectDirectory)\Assets</GhostAssetDir>
-    <GhostAssetDir Condition="'$(GhostAssetDir)' == ''">$(MSBuildProjectDirectory)\Asset</GhostAssetDir>
+    <GhostAssetDir Condition="'$(GhostAssetDir)' == ''">$(MSBuildProjectDirectory)\Assets</GhostAssetDir>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsGameProject)' == 'true'">
@@ -17,7 +17,6 @@
       <GhostIntermediateOutputPath Condition="'$(GhostIntermediateOutputPath)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)</GhostIntermediateOutputPath>
       <GhostAssetCacheDir Condition="'$(GhostAssetCacheDir)' == ''">$(GhostIntermediateOutputPath)AssetCache</GhostAssetCacheDir>
       <GhostAssetBuildDir Condition="'$(GhostAssetBuildDir)' == ''">$(TargetDir)Assets</GhostAssetBuildDir>
-      <GhostShaderMetadataPath Condition="'$(GhostShaderMetadataPath)' == ''">$(GhostIntermediateOutputPath)shader_metadata.json</GhostShaderMetadataPath>
     </PropertyGroup>
   </Target>
 
@@ -26,34 +25,28 @@
           DependsOnTargets="ComputeGhostPaths"
           BeforeTargets="CoreCompile"
           Inputs="@(Compile)" 
-          Outputs="$(GhostShaderMetadataPath)">
+          Outputs="$(GhostIntermediateOutputPath)hlsl_generated.stamp">
     
-    <Message Importance="High" Text="Extracting Shader Metadata..." />
+    <Message Importance="High" Text="Extracting Shader HLSL Types..." />
     
     <WriteLinesToFile File="$(GhostIntermediateOutputPath)compile_files.txt" Lines="@(Compile)" Overwrite="true" />
     
-    <Exec Command="Ghost.ShaderMetadataTool &quot;$(GhostIntermediateOutputPath)compile_files.txt&quot; &quot;$(GhostShaderMetadataPath)&quot;" />
+    <Exec Command="Ghost.ShaderMetadataTool &quot;$(GhostIntermediateOutputPath)compile_files.txt&quot; &quot;$(GhostAssetDir)&quot;" />
+    
+    <Touch Files="$(GhostIntermediateOutputPath)hlsl_generated.stamp" AlwaysCreate="true" />
   </Target>
-
-  <!-- Allow other projects to query this project's shader metadata path -->
-  <Target Name="GetGhostShaderMetadataPath" Returns="$(GhostShaderMetadataPath)" DependsOnTargets="ComputeGhostPaths" />
 
   <!-- Hook Asset Forge CLI -->
   <Target Name="BakeAndPackAssets" 
           DependsOnTargets="ComputeGhostPaths"
           AfterTargets="Build"
           Condition="'$(IsGameProject)' == 'true'"
-          Inputs="$(GhostAssetDir)\**\*.*;$(GhostEngineAssetDir)\**\*.*;$(GhostShaderMetadataPath);@(AllMetadata)"
+          Inputs="$(GhostAssetDir)\**\*.*;$(GhostEngineAssetDir)\**\*.*"
           Outputs="$(GhostAssetBuildDir)\manifest.json">
           
     <Message Importance="High" Text="Baking and Packing Assets..." />
     
-    <!-- Ask all referenced projects for their metadata files -->
-    <MSBuild Projects="@(ProjectReference)" Targets="GetGhostShaderMetadataPath" SkipNonexistentTargets="true">
-      <Output TaskParameter="TargetOutputs" ItemName="AllMetadata" />
-    </MSBuild>
-    
-    <Exec Command="Ghost.AssetForge.CLI bake --asset-dir &quot;$(GhostEngineAssetDir);$(GhostAssetDir)&quot; --cache-dir &quot;$(GhostAssetCacheDir)&quot; --build-dir &quot;$(GhostAssetBuildDir)&quot; --shader-metadata &quot;$(GhostShaderMetadataPath);@(AllMetadata)&quot;" />
+    <Exec Command="Ghost.AssetForge.CLI bake --asset-dir &quot;$(GhostEngineAssetDir);$(GhostAssetDir)&quot; --cache-dir &quot;$(GhostAssetCacheDir)&quot; --build-dir &quot;$(GhostAssetBuildDir)&quot;" />
   </Target>
 
   <!-- Clean asset cache on Clean -->

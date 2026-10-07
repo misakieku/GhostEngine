@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Editor\Ghost.DSL\Ghost.DSL.csproj" />
+    <ProjectReference Include="..\..\Runtime\Ghost.Core\Ghost.Core.csproj" />
   </ItemGroup>
 
 </Project>

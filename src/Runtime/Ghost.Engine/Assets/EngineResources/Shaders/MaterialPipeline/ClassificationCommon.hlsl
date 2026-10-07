@@ -62,23 +62,6 @@ uint2 DecodeTilePixelCoord(uint tileIndex, uint2 inTileCoord, uint tilesPerRow)
     return tileCoord * CLASSIFICATION_TILE_SIZE + inTileCoord;
 }
 
-struct DeferredTexturingShaderProperties
-{
-    uint visBufferIndex;
-    uint visibleMeshletsPass1;
-    uint visibleMeshletsPass2;
-    uint variantTileListIndex;
-    uint tileOffsetsBufferIndex;
-    uint tilesPerRow;
-    uint renderWidth;
-    uint renderHeight;
-    uint gbuffer0Uav;
-    uint gbuffer1Uav;
-    uint gbuffer2Uav;
-    uint gbuffer3Uav;
-    uint variantIndex;
-};
-
 #define SHADING_MODEL_UNLIT       0u
 #define SHADING_MODEL_SIMPLE_LIT  1u
 #define SHADING_MODEL_STANDARD    2u
@@ -86,24 +69,5 @@ struct DeferredTexturingShaderProperties
 #define SHADING_MODEL_HAIR        4u
 #define SHADING_MODEL_CLOTH       5u
 #define SHADING_MODEL_CLEAR_COAT  6u
-
-struct DeferredLightingShaderProperties
-{
-    uint gbuffer0Srv;
-    uint gbuffer1Srv;
-    uint gbuffer2Srv;
-    uint gbuffer3Srv;
-    uint depthTextureIndex;
-    uint tileLightListBufferIndex;
-    uint tileShadingModelMaskBufferIndex;
-    uint litColorUav;
-    uint renderWidth;
-    uint renderHeight;
-    uint tilesPerRow;
-    uint shadingModelId;
-    uint shadowAtlasSrv;
-    uint shadowViewsBufferSrv;
-    uint shadowIndicesBufferSrv;
-};
 
 #endif // GHOST_CLASSIFICATION_COMMON_HLSL

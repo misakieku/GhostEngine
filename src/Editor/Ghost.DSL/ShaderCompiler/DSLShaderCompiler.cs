@@ -40,7 +40,7 @@ public static class DSLShaderCompiler
         };
     }
 
-    private static Result<string> BuildFinalShaderCode(string? shaderPath, ReadOnlySpan<string> includes, string? injectedCode, string? properties, IReadOnlyDictionary<string, string> virtualShaders, string? mainShaderPath)
+    private static Result<string> BuildFinalShaderCode(string? shaderPath, ReadOnlySpan<string> includes, string? injectedCode, string? properties, IReadOnlyDictionary<string, string>? virtualShaders, string? mainShaderPath)
     {
         if (string.IsNullOrEmpty(shaderPath))
         {
@@ -73,9 +73,10 @@ public static class DSLShaderCompiler
             var relativePath = includePath.TrimStart('/', '\\');
             var absolutePath = "/" + relativePath;
 
-            if (virtualShaders.TryGetValue(absolutePath, out var code) ||
-                virtualShaders.TryGetValue(relativePath, out code) ||
-                virtualShaders.TryGetValue(includePath, out code))
+            if (virtualShaders != null &&
+                (virtualShaders.TryGetValue(absolutePath, out var code) ||
+                 virtualShaders.TryGetValue(relativePath, out code) ||
+                 virtualShaders.TryGetValue(includePath, out code)))
             {
                 sb.AppendLine(code);
             }
@@ -213,7 +214,12 @@ public static class DSLShaderCompiler
         return semantics;
     }
 
-    public static Result<GraphicsShaderDescriptor> ResolveShader(GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders, string? shaderPath = null)
+    public static Result<GraphicsShaderDescriptor> ResolveShader(GraphicsShaderSemantics semantics, string? shaderPath = null)
+    {
+        return ResolveShader(semantics, null, null, shaderPath);
+    }
+
+    public static Result<GraphicsShaderDescriptor> ResolveShader(GraphicsShaderSemantics semantics, ShaderReflectionData? reflectionData, IReadOnlyDictionary<string, string>? virtualShaders = null, string? shaderPath = null)
     {
         // Template-based shaders are resolved through the template stitcher.
         if (!string.IsNullOrEmpty(semantics.templateName))
@@ -340,7 +346,12 @@ public static class DSLShaderCompiler
         return semantics;
     }
 
-    public static Result<ComputeShaderDescriptor> ResolveShader(ComputeShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders, string? shaderPath = null)
+    public static Result<ComputeShaderDescriptor> ResolveShader(ComputeShaderSemantics semantics, string? shaderPath = null)
+    {
+        return ResolveShader(semantics, null, null, shaderPath);
+    }
+
+    public static Result<ComputeShaderDescriptor> ResolveShader(ComputeShaderSemantics semantics, ShaderReflectionData? reflectionData, IReadOnlyDictionary<string, string>? virtualShaders = null, string? shaderPath = null)
     {
         var propertiesCode = BuildPropertiesStruct(semantics.name, semantics.properties);
         if (string.IsNullOrEmpty(propertiesCode) && !string.IsNullOrEmpty(reflectionData?.Code))

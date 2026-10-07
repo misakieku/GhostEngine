@@ -19,9 +19,6 @@ internal class BakeOptions
     [Option("build-dir", Description = "The directory to use for building the project.", IsRequired = true)]
     public string BuildDir { get; set; } = string.Empty;
 
-    [Option("shader-metadata", Description = "The path to the shader metadata file(s). Use semicolon to separate multiple files.", IsRequired = true)]
-    public string ShaderMetadataPaths { get; set; } = string.Empty;
-
     [Option("force-shader-debug", Description = "Whether to force shader to keep debug information in the baked assets. Default is false.", IsRequired = false)]
     public bool ForceShaderDebugInfo { get; set; } = false;
 
@@ -111,12 +108,11 @@ public class Program
     {
         var opts = context.Bind<BakeOptions>();
         var assetDirs = opts.AssetDirs.Split(';');
-        var shaderMetadataPaths = opts.ShaderMetadataPaths.Split(';');
 
         using var registry = new BakerRegistry();
 
         var projectService = new ProjectService(registry);
-        projectService.InitializeFromArgs(assetDirs, opts.CacheDir, opts.BuildDir, shaderMetadataPaths);
+        projectService.InitializeFromArgs(assetDirs, opts.CacheDir, opts.BuildDir);
         var projContext = projectService.GetContext();
 
         var bakeService = new BakeService(projContext, registry);
@@ -126,7 +122,6 @@ public class Program
         Logger.Info($"Assets: {string.Join(", ", assetDirs)}");
         Logger.Info($"Cache: {opts.CacheDir}");
         Logger.Info($"Build: {opts.BuildDir}");
-        Logger.Info($"Shader Metadata: {string.Join(", ", shaderMetadataPaths)}");
         Console.WriteLine("=================================================");
 
         var config = new BakeConfig

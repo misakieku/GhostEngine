@@ -59,7 +59,7 @@ internal partial class GhostRenderPipeline
         public uint maxVariants;
     }
 
-    public struct TileMaterialClassificationPassData
+    private struct TileMaterialClassificationPassData
     {
         public Identifier<RGTexture> visBuffer;
         public Identifier<RGBuffer> visibleMeshletsPass1;
@@ -77,7 +77,7 @@ internal partial class GhostRenderPipeline
         public uint2 dispatchGroups;
     }
 
-    public struct PrepareDeferredTexturingIndirectArgsPassData
+    private struct PrepareDeferredTexturingIndirectArgsPassData
     {
         public Identifier<RGBuffer> counterBuffer;
         public Identifier<RGBuffer> indirectArgsBuffer;
@@ -87,7 +87,7 @@ internal partial class GhostRenderPipeline
         public uint maxVariants;
     }
 
-    public struct ScatterVariantTilesPassData
+    private struct ScatterVariantTilesPassData
     {
         public Identifier<RGBuffer> unbinnedTilesBuffer;
         public Identifier<RGBuffer> binnedTileListBuffer;

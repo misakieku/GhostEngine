@@ -18,23 +18,4 @@ public class ShaderReflectionData
     public uint Size { get; set; }
 
     public ShaderPropertyFieldInfo[] Fields { get; set; } = Array.Empty<ShaderPropertyFieldInfo>();
-}
-
-public class ShaderMetadata
-{
-    public Dictionary<string, ShaderReflectionData> ReflectionDatas { get; set; } = new Dictionary<string, ShaderReflectionData>(StringComparer.Ordinal);
-    public Dictionary<string, string> VirtualShader { get; set; } = new Dictionary<string, string>(StringComparer.Ordinal);
-
-    public void Merge(ShaderMetadata other)
-    {
-        foreach (var kvp in other.ReflectionDatas)
-        {
-            ReflectionDatas[kvp.Key] = kvp.Value;
-        }
-
-        foreach (var kvp in other.VirtualShader)
-        {
-            VirtualShader[kvp.Key] = kvp.Value;
-        }
-    }
-}
+}

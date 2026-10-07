@@ -10,6 +10,8 @@
     <IsTrimmable>True</IsTrimmable>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <ContentTargetFolders>contentFiles</ContentTargetFolders>
+
+    <GhostAssetDir>$(MSBuildProjectDirectory)\Assets</GhostAssetDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -40,10 +42,6 @@
   
   <ItemGroup>
     <ProjectReference Include="..\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="Assets\EngineResources\Textures\" />
   </ItemGroup>
 
   <Import Project="..\..\GhostEngine.targets" />

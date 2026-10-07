@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
-using Ghost.DSL.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -284,7 +283,7 @@ struct {structName}
         }
     }
 
-    public static void GenerateHLSLTypes(ShaderMetadata manifest, string text)
+    public static void GenerateHLSLTypes(Dictionary<string, string> manifest, string text)
     {
         if (!text.Contains("GenerateHLSL"))
         {
@@ -331,13 +330,13 @@ struct {structName}
                 }
             }
 
-            if (manifest.VirtualShader.TryGetValue(virtualPath, out var existingCode))
+            if (manifest.TryGetValue(virtualPath, out var existingCode))
             {
-                manifest.VirtualShader[virtualPath] = existingCode + "\n" + sb.ToString();
+                manifest[virtualPath] = existingCode + "\n" + sb.ToString();
             }
             else
             {
-                manifest.VirtualShader[virtualPath] = sb.ToString();
+                manifest[virtualPath] = sb.ToString();
             }
         }
     }

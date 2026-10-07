@@ -76,7 +76,6 @@ public class MeshBakerTests
         var settings = new MeshBakeSettings();
         var ctx = new AssetBakerContext
         {
-            ShaderMetadata = new ShaderMetadata(),
             AssetDirectories = [_tempDir],
             BakeConfig = new BakeConfig(),
         };
@@ -126,7 +125,6 @@ public class MeshBakerTests
         var settings = new MeshBakeSettings();
         var ctx = new AssetBakerContext
         {
-            ShaderMetadata = new ShaderMetadata(),
             AssetDirectories = [_tempDir],
             BakeConfig = new BakeConfig(),
         };

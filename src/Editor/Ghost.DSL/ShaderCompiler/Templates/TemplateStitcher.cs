@@ -93,14 +93,15 @@ public static class TemplateStitcher
         @"\bShadingModelID\s*=\s*(\d+)u?\b",
         RegexOptions.Compiled);
 
-    private static uint ExtractShadingModelId(string strategyFilePath, IReadOnlyDictionary<string, string> virtualShaders)
+    private static uint ExtractShadingModelId(string strategyFilePath, IReadOnlyDictionary<string, string>? virtualShaders)
     {
         var relativePath = strategyFilePath.TrimStart('/', '\\');
         string? content = null;
 
-        if (virtualShaders.TryGetValue("/" + relativePath, out var code) ||
-            virtualShaders.TryGetValue(relativePath, out code) ||
-            virtualShaders.TryGetValue(strategyFilePath, out code))
+        if (virtualShaders != null &&
+            (virtualShaders.TryGetValue("/" + relativePath, out var code) ||
+             virtualShaders.TryGetValue(relativePath, out code) ||
+             virtualShaders.TryGetValue(strategyFilePath, out code)))
         {
             content = code;
         }
@@ -153,7 +154,7 @@ public static class TemplateStitcher
     /// <summary>
     /// Stitches one template file into a complete translation unit for a stage.
     /// </summary>
-    private static Result<string> StitchStage(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders, string templateFile, TemplatePassDef passDef)
+    private static Result<string> StitchStage(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData? reflectionData, IReadOnlyDictionary<string, string>? virtualShaders, string templateFile, TemplatePassDef passDef)
     {
         var templateResult = LoadTemplateSource(templateFile);
         if (templateResult.IsFailure)
@@ -184,9 +185,10 @@ public static class TemplateStitcher
             if (!string.IsNullOrEmpty(strategyDef.filePath))
             {
                 var relPath = strategyDef.filePath.TrimStart('/', '\\');
-                if (virtualShaders.TryGetValue("/" + relPath, out var code) ||
-                    virtualShaders.TryGetValue(relPath, out code) ||
-                    virtualShaders.TryGetValue(strategyDef.filePath, out code))
+                if (virtualShaders != null &&
+                    (virtualShaders.TryGetValue("/" + relPath, out var code) ||
+                     virtualShaders.TryGetValue(relPath, out code) ||
+                     virtualShaders.TryGetValue(strategyDef.filePath, out code)))
                 {
                     sbUser.AppendLine(code);
                 }
@@ -235,9 +237,10 @@ public static class TemplateStitcher
         foreach (var includePath in semantics.includes ?? new List<string>())
         {
             var relativePath = includePath.TrimStart('/', '\\');
-            if (virtualShaders.TryGetValue("/" + relativePath, out var code) ||
-                virtualShaders.TryGetValue(relativePath, out code) ||
-                virtualShaders.TryGetValue(includePath, out code))
+            if (virtualShaders != null &&
+                (virtualShaders.TryGetValue("/" + relativePath, out var code) ||
+                 virtualShaders.TryGetValue(relativePath, out code) ||
+                 virtualShaders.TryGetValue(includePath, out code)))
             {
                 sb.AppendLine(code);
             }
@@ -247,7 +250,7 @@ public static class TemplateStitcher
             }
         }
 
-        if (needsProperties && !string.IsNullOrEmpty(reflectionData.Code))
+        if (needsProperties && !string.IsNullOrEmpty(reflectionData?.Code))
         {
             sb.AppendLine("#line 0 \"properties\"");
             sb.AppendLine(reflectionData.Code);
@@ -261,7 +264,7 @@ public static class TemplateStitcher
     /// <summary>
     /// Resolves a template-based shader into a complete multi-pass descriptor.
     /// </summary>
-    public static Result<GraphicsShaderDescriptor> ResolveShader(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders)
+    public static Result<GraphicsShaderDescriptor> ResolveShader(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData? reflectionData = null, IReadOnlyDictionary<string, string>? virtualShaders = null)
     {
         // Strategy Validation: Check that any strategy declared by the shader is accepted by the template
         var validStrategies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

@@ -83,7 +83,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
         }
 
         var codeStr = File.ReadAllText(sourceFile);
-        return ShaderIncludeResolver.ResolveDependencies(sourceFile, codeStr, ctx.AssetDirectories, ctx.ShaderMetadata.VirtualShader);
+        return ShaderIncludeResolver.ResolveDependencies(sourceFile, codeStr, ctx.AssetDirectories);
     }
 
     public IEnumerable<string> ScanDependencies(string sourceFile, IBakeSettings settings, AssetBakerContext ctx)
@@ -91,14 +91,8 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
         return FindDependencies(sourceFile, ctx);
     }
 
-    private static ulong GetLayoutHash(DSL.Models.ShaderReflectionData reflectionData, uint propertyBufferSize, string shaderName)
+    private static ulong GetLayoutHash(uint propertyBufferSize, string shaderName)
     {
-        if (!string.IsNullOrEmpty(reflectionData.Code))
-        {
-            var codeHash = XxHash64.HashToUInt64(MemoryMarshal.AsBytes(reflectionData.Code.AsSpan()));
-            return Hash.Combine64(codeHash, reflectionData.Size);
-        }
-
         var nameHash = XxHash64.HashToUInt64(MemoryMarshal.AsBytes(shaderName.AsSpan()));
         return Hash.Combine64(nameHash, propertyBufferSize);
     }
@@ -177,7 +171,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
         var codeStr = await File.ReadAllTextAsync(src, cancellationToken).ConfigureAwait(false);
         var ext = Path.GetExtension(src);
 
-        var dependencies = ShaderIncludeResolver.ResolveDependencies(src, codeStr, ctx.AssetDirectories, ctx.ShaderMetadata.VirtualShader);
+        var dependencies = ShaderIncludeResolver.ResolveDependencies(src, codeStr, ctx.AssetDirectories);
         foreach (var dep in dependencies)
         {
             ctx.AddDependency(dep);
@@ -236,8 +230,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 var syntax = DSLShaderCompiler.ParseGraphicsShaderSyntax(codeStr).GetValueOrThrow();
                 var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
 
-                var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
-                var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader, src).GetValueOrThrow();
+                var descriptor = DSLShaderCompiler.ResolveShader(semantics, src).GetValueOrThrow();
 
                 var assetStartOffset = dst.Position;
                 var header = new ShaderContentHeader
@@ -247,7 +240,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                     propertyBufferSize = descriptor.PropertyBufferSize,
                     shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
                     familyId = ShaderIdentity.GetShaderId(semantics.templateName ?? descriptor.Name),
-                    layoutHash = GetLayoutHash(reflectionData, descriptor.PropertyBufferSize, descriptor.Name),
+                    layoutHash = GetLayoutHash(descriptor.PropertyBufferSize, descriptor.Name),
                 };
 
                 dst.Write(header);
@@ -345,8 +338,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 var syntax = DSLShaderCompiler.ParseComputeShaderSyntax(codeStr).GetValueOrThrow();
                 var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
 
-                var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
-                var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader, src).GetValueOrThrow();
+                var descriptor = DSLShaderCompiler.ResolveShader(semantics, src).GetValueOrThrow();
 
                 var assetStartOffset = dst.Position;
                 var header = new ShaderContentHeader
@@ -356,7 +348,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                     propertyBufferSize = descriptor.PropertyBufferSize,
                     shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
                     familyId = ShaderIdentity.GetShaderId(descriptor.Name),
-                    layoutHash = GetLayoutHash(reflectionData, descriptor.PropertyBufferSize, descriptor.Name),
+                    layoutHash = GetLayoutHash(descriptor.PropertyBufferSize, descriptor.Name),
                 };
 
                 dst.Write(header);
@@ -422,8 +414,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 var syntax = DSLShaderCompiler.ParseComputeShaderSyntax(codeStr).GetValueOrThrow();
                 var semantics = DSLShaderCompiler.GetShaderSemantics(syntax).GetValueOrThrow();
 
-                var reflectionData = ctx.ShaderMetadata.ReflectionDatas.GetValueOrDefault(semantics.name, new DSL.Models.ShaderReflectionData());
-                var descriptor = DSLShaderCompiler.ResolveShader(semantics, reflectionData, ctx.ShaderMetadata.VirtualShader, src).GetValueOrThrow();
+                var descriptor = DSLShaderCompiler.ResolveShader(semantics, src).GetValueOrThrow();
 
                 if (configTemplate.shaderModel < ShaderModel.SM_6_8)
                 {
@@ -439,7 +430,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                     propertyBufferSize = descriptor.PropertyBufferSize,
                     shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
                     familyId = ShaderIdentity.GetShaderId(descriptor.Name),
-                    layoutHash = GetLayoutHash(reflectionData, descriptor.PropertyBufferSize, descriptor.Name),
+                    layoutHash = GetLayoutHash(descriptor.PropertyBufferSize, descriptor.Name),
                 };
 
                 dst.Write(header);

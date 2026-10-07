@@ -20,7 +20,6 @@ public class ProjectService
     public IReadOnlyList<string> AssetDirectories { get; private set; } = Array.Empty<string>();
     public string CacheDirectory { get; private set; } = string.Empty;
     public string BuildDirectory { get; private set; } = string.Empty;
-    public IReadOnlyList<string> ShaderMetadataPaths { get; private set; } = Array.Empty<string>();
 
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
@@ -30,12 +29,11 @@ public class ProjectService
 
     public event Action? OnProjectLoaded;
 
-    public void InitializeFromArgs(IEnumerable<string> assetDirs, string cacheDir, string buildDir, IEnumerable<string> shaderMetadataPaths)
+    public void InitializeFromArgs(IEnumerable<string> assetDirs, string cacheDir, string buildDir)
     {
         AssetDirectories = assetDirs.ToArray();
         CacheDirectory = cacheDir;
         BuildDirectory = buildDir;
-        ShaderMetadataPaths = shaderMetadataPaths.ToArray();
 
         foreach (var dir in AssetDirectories)
         {
@@ -45,17 +43,6 @@ public class ProjectService
 
         Directory.CreateDirectory(CacheDirectory);
         Directory.CreateDirectory(BuildDirectory);
-
-        foreach (var path in ShaderMetadataPaths)
-        {
-            var shaderDir = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(shaderDir) && !Directory.Exists(shaderDir))
-            {
-                Directory.CreateDirectory(shaderDir);
-            }
-
-            Logger.Info($"Including shader metadata path: {path}");
-        }
 
         CurrentProject = new Project
         {
@@ -80,8 +67,6 @@ public class ProjectService
         AssetDirectories = new[] { defaultAssetDir };
         CacheDirectory = Path.Combine(folderPath, "obj", "AssetCache");
         BuildDirectory = Path.Combine(folderPath, "bin", "Assets");
-        var singleShaderPath = Path.Combine(folderPath, "obj", "shader_properties.json");
-        ShaderMetadataPaths = new[] { singleShaderPath };
 
         Directory.CreateDirectory(folderPath);
         Directory.CreateDirectory(defaultAssetDir);
@@ -131,8 +116,6 @@ public class ProjectService
         var defaultAssetDir = Path.Combine(folderPath, "Asset");
         CacheDirectory = Path.Combine(folderPath, "obj", "AssetCache");
         BuildDirectory = Path.Combine(folderPath, "bin", "Assets");
-        var singleShaderPathOpen = Path.Combine(folderPath, "obj", "shader_properties.json");
-        ShaderMetadataPaths = new[] { singleShaderPathOpen };
 
         if (File.Exists(csprojPath))
         {
@@ -162,13 +145,6 @@ public class ProjectService
 
                 var buildDirNode = doc.Descendants(ns + "GhostAssetBuildDir").FirstOrDefault();
                 if (buildDirNode != null) BuildDirectory = Path.GetFullPath(Path.Combine(folderPath, ReplaceMacros(buildDirNode.Value)));
-
-                var shaderMetaNode = doc.Descendants(ns + "GhostShaderMetadataPath").FirstOrDefault();
-                if (shaderMetaNode != null)
-                {
-                    singleShaderPathOpen = Path.GetFullPath(Path.Combine(folderPath, ReplaceMacros(shaderMetaNode.Value)));
-                    ShaderMetadataPaths = new[] { singleShaderPathOpen };
-                }
             }
             catch (Exception ex)
             {
@@ -181,12 +157,6 @@ public class ProjectService
         Directory.CreateDirectory(defaultAssetDir);
         Directory.CreateDirectory(CacheDirectory);
         Directory.CreateDirectory(BuildDirectory);
-
-        var shaderDir = Path.GetDirectoryName(singleShaderPathOpen);
-        if (!string.IsNullOrEmpty(shaderDir) && !Directory.Exists(shaderDir))
-        {
-            Directory.CreateDirectory(shaderDir);
-        }
 
         OnProjectLoaded?.Invoke();
     }
@@ -204,7 +174,7 @@ public class ProjectService
     public ProjectContext GetContext()
     {
         var project = CurrentProject ?? throw new InvalidOperationException("No project loaded.");
-        return new ProjectContext(project, AssetDirectories, CacheDirectory, BuildDirectory, ShaderMetadataPaths);
+        return new ProjectContext(project, AssetDirectories, CacheDirectory, BuildDirectory);
     }
 
     public void ImportAsset(string sourceFilePath, string targetVirtualPath)

@@ -32,17 +32,14 @@ public class ProjectServiceTests
         var assetDir = Path.Combine(_tempDir, "Asset");
         var cacheDir = Path.Combine(_tempDir, "Cache");
         var buildDir = Path.Combine(_tempDir, "Build");
-        var shaderMetadataPath = Path.Combine(_tempDir, "shader_properties.json");
 
-        service.InitializeFromArgs(new[] { assetDir }, cacheDir, buildDir, new[] { shaderMetadataPath });
+        service.InitializeFromArgs(new[] { assetDir }, cacheDir, buildDir);
 
         Assert.AreEqual(assetDir, service.AssetDirectories[0]);
         Assert.HasCount(1, service.AssetDirectories);
         Assert.AreEqual(assetDir, service.AssetDirectories[0]);
         Assert.AreEqual(cacheDir, service.CacheDirectory);
         Assert.AreEqual(buildDir, service.BuildDirectory);
-        Assert.HasCount(1, service.ShaderMetadataPaths);
-        Assert.AreEqual(shaderMetadataPath, service.ShaderMetadataPaths[0]);
 
         Assert.IsTrue(Directory.Exists(assetDir));
         Assert.IsTrue(Directory.Exists(cacheDir));
@@ -68,8 +65,6 @@ public class ProjectServiceTests
         Assert.AreEqual(Path.Combine(_tempDir, "Asset"), service.AssetDirectories[0]);
         Assert.AreEqual(Path.Combine(_tempDir, "obj", "AssetCache"), service.CacheDirectory);
         Assert.AreEqual(Path.Combine(_tempDir, "bin", "Assets"), service.BuildDirectory);
-        Assert.HasCount(1, service.ShaderMetadataPaths);
-        Assert.AreEqual(Path.Combine(_tempDir, "obj", "shader_properties.json"), service.ShaderMetadataPaths[0]);
     }
 
     [TestMethod]
@@ -85,7 +80,6 @@ public class ProjectServiceTests
                 <GhostAssetDir>CustomAssetDir</GhostAssetDir>
                 <GhostAssetCacheDir>$(IntermediateOutputPath)MyCache</GhostAssetCacheDir>
                 <GhostAssetBuildDir>$(TargetDir)MyAssets</GhostAssetBuildDir>
-                <GhostShaderMetadataPath>$(MSBuildProjectDirectory)\CustomShader.json</GhostShaderMetadataPath>
             </PropertyGroup>
         </Project>";
         File.WriteAllText(csprojPath, xml);
@@ -96,7 +90,5 @@ public class ProjectServiceTests
         Assert.AreEqual(Path.GetFullPath(Path.Combine(_tempDir, "CustomAssetDir")), service.AssetDirectories[0]);
         Assert.AreEqual(Path.GetFullPath(Path.Combine(_tempDir, @"obj\Debug\net9.0\MyCache")), service.CacheDirectory);
         Assert.AreEqual(Path.GetFullPath(Path.Combine(_tempDir, @"bin\Debug\net9.0\MyAssets")), service.BuildDirectory);
-        Assert.HasCount(1, service.ShaderMetadataPaths);
-        Assert.AreEqual(Path.GetFullPath(Path.Combine(_tempDir, "CustomShader.json")), service.ShaderMetadataPaths[0]);
     }
 }
