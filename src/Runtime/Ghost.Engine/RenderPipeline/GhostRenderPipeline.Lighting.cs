@@ -428,6 +428,7 @@ internal unsafe partial class GhostRenderPipeline
         public Identifier<RGBuffer> tileLightList;
         public Identifier<RGTexture> litColorTarget;
         public Identifier<RGTexture> shadowAtlas;
+        public Identifier<RGBuffer> tileShadingModelMaskBuffer;
         public uint shadowViewsBufferSrv;
         public uint shadowIndicesBufferSrv;
         public ShaderVariantRegistry variantRegistry;
@@ -438,7 +439,7 @@ internal unsafe partial class GhostRenderPipeline
 
     private Identifier<RGTexture> AddDeferredLightingPass(
         RenderGraph rg, in GBufferResources gbuffer, Identifier<RGTexture> depthTexture, Identifier<RGBuffer> tileLightList,
-        Identifier<RGTexture> shadowAtlas, uint shadowViewsBufferSrv, uint shadowIndicesBufferSrv, uint2 renderSize)
+        Identifier<RGTexture> shadowAtlas, uint shadowViewsBufferSrv, uint shadowIndicesBufferSrv, Identifier<RGBuffer> tileShadingModelMaskBuffer, uint2 renderSize)
     {
         var tilesX = (renderSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
         var tilesY = (renderSize.y + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
@@ -458,10 +459,13 @@ internal unsafe partial class GhostRenderPipeline
         builder.UseTexture(gbuffer.GBuffer3, AccessFlags.Read);
         builder.UseTexture(depthTexture, AccessFlags.Read);
         builder.UseBuffer(tileLightList, AccessFlags.Read);
+        builder.UseBuffer(tileShadingModelMaskBuffer, AccessFlags.Read);
+        
         if (shadowAtlas.IsValid)
         {
             builder.UseTexture(shadowAtlas, AccessFlags.Read);
         }
+
         builder.UseTexture(litColorTarget, AccessFlags.Write);
 
         builder.SetPassData(new DeferredLightingPassData
@@ -474,6 +478,7 @@ internal unsafe partial class GhostRenderPipeline
             tileLightList = tileLightList,
             litColorTarget = litColorTarget,
             shadowAtlas = shadowAtlas,
+            tileShadingModelMaskBuffer = tileShadingModelMaskBuffer,
             shadowViewsBufferSrv = shadowViewsBufferSrv,
             shadowIndicesBufferSrv = shadowIndicesBufferSrv,
             variantRegistry = _assetManager.ShaderVariants,
@@ -494,6 +499,9 @@ internal unsafe partial class GhostRenderPipeline
             var shadowAtlasSrv = passData.shadowAtlas.IsValid
                 ? computeCtx.GetActualBindlessIndex(passData.shadowAtlas, BindlessAccess.ShaderResource)
                 : uint.MaxValue;
+            var tileShadingModelMaskSrv = passData.tileShadingModelMaskBuffer.IsValid
+                ? computeCtx.GetActualBindlessIndex(passData.tileShadingModelMaskBuffer, BindlessAccess.ShaderResource)
+                : 0u;
 
             var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.DeferredLighting);
 
@@ -518,7 +526,7 @@ internal unsafe partial class GhostRenderPipeline
                     gbuffer3Srv = gb3Srv,
                     depthTextureIndex = depthSrv,
                     tileLightListBufferIndex = tileLightListSrv,
-                    tileShadingModelMaskBufferIndex = uint.MaxValue,
+                    tileShadingModelMaskBufferIndex = tileShadingModelMaskSrv,
                     litColorUav = litColorUav,
                     renderWidth = passData.renderSize.x,
                     renderHeight = passData.renderSize.y,
@@ -571,7 +579,7 @@ internal unsafe partial class GhostRenderPipeline
         public ShaderVariantRegistry variantRegistry;
     }
 
-    private Identifier<RGTexture> AddPunctualShadowAtlasPass(RenderGraph rg, uint instanceCount, uint shadowViewsBufferSrv, uint shadowViewCount, uint atlasWidth = 2048, uint atlasHeight = 2048)
+    private Identifier<RGTexture> AddPunctualShadowAtlasPass(RenderGraph rg, uint instanceCount, uint shadowViewsBufferSrv, uint shadowViewCount)
     {
         if (shadowViewCount == 0 || instanceCount == 0)
         {

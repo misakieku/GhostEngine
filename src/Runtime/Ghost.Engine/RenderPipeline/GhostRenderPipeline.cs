@@ -65,6 +65,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
         InitializeCulling(renderEngine, assetManager);
         InitializeVisibility(renderEngine, assetManager);
+        InitializeClassification(renderEngine, assetManager);
         InitializeDeferredTexturing(renderEngine);
     }
 
@@ -137,16 +138,12 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         {
             ref readonly var request = ref ghostPayload.RenderRequests[requestIndex];
             using var renderView = new RenderViewData(_renderEngine.SwapChainManager, ctx.ResourceDatabase, in request);
-            var viewState = new ViewState(renderView.ScreenSize.x, renderView.ScreenSize.y, renderView.ScreenSize.x, renderView.ScreenSize.y);
 
             // Upload ViewData (Reversed-Z: near=1.0, far=0.0)
             RenderPipelineUtility.GetVPMatricesReversedZ(in request, renderView.ScreenSize, out var viewMatrix, out var projMatrix);
 
             var viewProjMatrix = math.mul(projMatrix, viewMatrix);
             var frustum = Frustum.Create(viewProjMatrix, request.view.localToWorld.c3.xyz, request.view.localToWorld.c2.xyz, request.view.nearClipPlane, request.view.farClipPlane);
-
-            ExecutePerViewShadowSetup(ctx, ghostPayload, in frustum,
-                out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
 
             var viewContext = _gpuViewManager.GetView(request.viewId);
             viewContext.EnsureResources(renderView.ScreenSize, _settings.ShadowAtlasResolution);
@@ -173,7 +170,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 out var visibleMeshlets0, out var visibleMeshlets1);
 
             AddTileClassificationPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, viewContext.RenderSize,
-                out var tileListBuffer, out var tileOffsetsBuffer, out var indirectArgsBuffer);
+                out var tileListBuffer, out var tileOffsetsBuffer, out var indirectArgsBuffer, out var tileShadingModelMaskBuffer);
 
             var gbuffer = AddDeferredTexturingPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, tileOffsetsBuffer, indirectArgsBuffer, viewContext.RenderSize);
             var tileLightList = AddTileLightCullingPass(viewContext.RenderGraph, currentDepth, viewContext.RenderSize);
@@ -186,7 +183,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             }
             else
             {
-                var litColor = AddDeferredLightingPass(viewContext.RenderGraph, gbuffer, currentDepth, tileLightList, shadowAtlas, shadowViewsBufferSrv, shadowIndicesBufferSrv, viewContext.RenderSize);
+                var litColor = AddDeferredLightingPass(viewContext.RenderGraph, gbuffer, currentDepth, tileLightList, shadowAtlas, shadowViewsBufferSrv, shadowIndicesBufferSrv, tileShadingModelMaskBuffer, viewContext.RenderSize);
                 viewContext.RenderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
             }
 
@@ -252,6 +249,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
         DisposeCulling();
         DisposeVisibility();
+        DisposeClassification();
         DisposeDeferredTexturing();
 
         _gpuSceneResource.Dispose();

@@ -78,7 +78,7 @@ compute "Internal/PrepareMeshletIndirectArgs"
             // Thread 0 also prepares the Pass 2 cull dispatch arguments if requested
             if (v == 0)
             {
-                if (IS_VALID_BUFFER(properties.cullArgsOffset) && IS_VALID_BUFFER(properties.occludedCountOffset))
+                if (properties.cullArgsOffset != 0xFFFFFFFF && properties.occludedCountOffset != 0xFFFFFFFF)
                 {
                     uint occludedCount = counterBuffer.Load(properties.occludedCountOffset);
                     if (occludedCount > properties.maxCount)

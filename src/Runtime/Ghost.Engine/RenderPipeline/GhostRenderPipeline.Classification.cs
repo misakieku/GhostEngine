@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
+using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
@@ -15,6 +16,41 @@ internal partial class GhostRenderPipeline
     private const uint MAX_CLASSIFICATION_VARIANTS = 256u;
     private const uint CLASSIFICATION_COUNTER_BUFFER_SIZE = 1028u; // 4 bytes total count + 256 * 4 bytes variant counts
     private const uint INDIRECT_ARGS_STRIDE = 16u;
+
+    private Handle<GPUBuffer> _variantShadingModelsBuffer;
+    private uint _variantShadingModelsBufferIndex;
+
+    private unsafe void InitializeClassification(RenderEngine renderEngine, AssetManager assetManager)
+    {
+        var desc = new BufferDesc
+        {
+            Size = MAX_CLASSIFICATION_VARIANTS * sizeof(uint),
+            Stride = sizeof(uint),
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            HeapType = HeapType.Upload
+        };
+
+        _variantShadingModelsBuffer = renderEngine.GraphicsEngine.ResourceAllocator.CreateBuffer(in desc, "VariantShadingModelsBuffer");
+        var pMapped = (uint*)renderEngine.GraphicsEngine.ResourceDatabase.MapResource(_variantShadingModelsBuffer.AsResource(), 0, null);
+        for (var i = 0; i < MAX_CLASSIFICATION_VARIANTS; i++)
+        {
+            pMapped[i] = (i < assetManager.ShaderVariants.Count)
+                ? assetManager.ShaderVariants.GetVariant(new ShaderVariantIndex(i)).ShadingModelId
+                : 0u;
+        }
+        renderEngine.GraphicsEngine.ResourceDatabase.UnmapResource(_variantShadingModelsBuffer.AsResource(), 0, null);
+        _variantShadingModelsBufferIndex = renderEngine.GraphicsEngine.ResourceDatabase.GetBindlessIndex(_variantShadingModelsBuffer.AsResource(), BindlessAccess.ShaderResource);
+    }
+
+    private void DisposeClassification()
+    {
+        if (_variantShadingModelsBuffer.IsValid)
+        {
+            _renderEngine.GraphicsEngine.ResourceDatabase.ReleaseResource(_variantShadingModelsBuffer.AsResource());
+            _variantShadingModelsBuffer = Handle<GPUBuffer>.Invalid;
+            _variantShadingModelsBufferIndex = 0;
+        }
+    }
 
     private struct ClearClassificationCountersPassData
     {
@@ -30,12 +66,14 @@ internal partial class GhostRenderPipeline
         public Identifier<RGBuffer> visibleMeshletsPass2;
         public Identifier<RGBuffer> counterBuffer;
         public Identifier<RGBuffer> unbinnedTiles;
+        public Identifier<RGBuffer> tileShadingModelMaskBuffer;
         public Handle<ComputeShader> shader;
         public uint2 renderSize;
         public uint tilesPerRow;
         public uint maxUnbinnedEntries;
         public uint4 deferredMask0;
         public uint4 deferredMask1;
+        public uint variantShadingModelsTableBufferIndex;
         public uint2 dispatchGroups;
     }
 
@@ -111,10 +149,11 @@ internal partial class GhostRenderPipeline
     }
 
     private Identifier<RGBuffer> AddTileMaterialClassificationPass(RenderGraph rg, Identifier<RGTexture> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, Identifier<RGBuffer> countersBuffer,
-        uint2 screenSize, uint maxUnbinnedEntries, uint4 deferredMask0, uint4 deferredMask1)
+        uint2 screenSize, uint maxUnbinnedEntries, uint4 deferredMask0, uint4 deferredMask1, out Identifier<RGBuffer> tileShadingModelMaskBuffer)
     {
         var tilesX = (screenSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
         var tilesY = (screenSize.y + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
+        var totalTiles = Math.Max(1u, tilesX * tilesY);
 
         using var builder = rg.AddComputeRenderPass<TileMaterialClassificationPassData>("TileMaterialClassification");
 
@@ -126,11 +165,20 @@ internal partial class GhostRenderPipeline
         };
         var unbinnedTilesBuffer = builder.CreateBuffer(in unbinnedTilesDesc, "UnbinnedTileEntries");
 
+        var maskBufferDesc = new BufferDesc
+        {
+            Size = totalTiles * 4u,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        };
+        tileShadingModelMaskBuffer = builder.CreateBuffer(in maskBufferDesc, "TileShadingModelMaskBuffer");
+
         builder.UseTexture(visBuffer, AccessFlags.Read);
         builder.UseBuffer(visibleMeshlets0, AccessFlags.Read);
         builder.UseBuffer(visibleMeshlets1, AccessFlags.Read);
         builder.UseBuffer(countersBuffer, AccessFlags.ReadWrite);
         builder.UseBuffer(unbinnedTilesBuffer, AccessFlags.Write);
+        builder.UseBuffer(tileShadingModelMaskBuffer, AccessFlags.Write);
 
         builder.SetPassData(new TileMaterialClassificationPassData
         {
@@ -139,12 +187,14 @@ internal partial class GhostRenderPipeline
             visibleMeshletsPass2 = visibleMeshlets1,
             counterBuffer = countersBuffer,
             unbinnedTiles = unbinnedTilesBuffer,
+            tileShadingModelMaskBuffer = tileShadingModelMaskBuffer,
             shader = _materialPipelineResource.tileMaterialClassificationShader,
             renderSize = screenSize,
             tilesPerRow = tilesX,
             maxUnbinnedEntries = maxUnbinnedEntries,
             deferredMask0 = deferredMask0,
             deferredMask1 = deferredMask1,
+            variantShadingModelsTableBufferIndex = _variantShadingModelsBufferIndex,
             dispatchGroups = new uint2(tilesX, tilesY)
         });
 
@@ -155,6 +205,7 @@ internal partial class GhostRenderPipeline
             var visibleMeshletsPass2Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visibleMeshletsPass2).AsResource(), BindlessAccess.ShaderResource);
             var counterUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
             var unbinnedUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.unbinnedTiles).AsResource(), BindlessAccess.UnorderedAccess);
+            var maskUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.tileShadingModelMaskBuffer).AsResource(), BindlessAccess.UnorderedAccess);
 
             var props = new InternalTileMaterialClassificationShaderProperties
             {
@@ -165,6 +216,8 @@ internal partial class GhostRenderPipeline
                 visibleMeshletsPass2 = visibleMeshletsPass2Srv,
                 counterBufferUav = counterUav,
                 unbinnedTilesUav = unbinnedUav,
+                tileShadingModelMaskBufferUav = maskUav,
+                variantShadingModelsTableBufferIndex = passData.variantShadingModelsTableBufferIndex,
                 renderWidth = passData.renderSize.x,
                 renderHeight = passData.renderSize.y,
                 tilesPerRow = passData.tilesPerRow,
@@ -353,7 +406,7 @@ internal partial class GhostRenderPipeline
     }
 
     private void AddTileClassificationPass(RenderGraph rg, Identifier<RGTexture> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, uint2 screenSize,
-        out Identifier<RGBuffer> binnedTileListBuffer, out Identifier<RGBuffer> tileOffsetsBuffer, out Identifier<RGBuffer> indirectArgsBuffer)
+        out Identifier<RGBuffer> binnedTileListBuffer, out Identifier<RGBuffer> tileOffsetsBuffer, out Identifier<RGBuffer> indirectArgsBuffer, out Identifier<RGBuffer> tileShadingModelMaskBuffer)
     {
         // TODO: For Dynamic Resolution Scaling (DRS), size UnbinnedTileEntries and BinnedVariantTileList using the maximum
         // resolution (window/backbuffer size) rather than dynamic screenSize so that BufferDesc.Size remains constant and does
@@ -398,7 +451,7 @@ internal partial class GhostRenderPipeline
         }
 
         var countersBuffer = AddClearClassificationCountersPass(rg, MAX_CLASSIFICATION_VARIANTS);
-        var unbinnedTilesBuffer = AddTileMaterialClassificationPass(rg, visBuffer, visibleMeshlets0, visibleMeshlets1, countersBuffer, screenSize, maxTileEntries, deferredMask0, deferredMask1);
+        var unbinnedTilesBuffer = AddTileMaterialClassificationPass(rg, visBuffer, visibleMeshlets0, visibleMeshlets1, countersBuffer, screenSize, maxTileEntries, deferredMask0, deferredMask1, out tileShadingModelMaskBuffer);
         AddPrepareDeferredTexturingIndirectArgsPass(rg, countersBuffer, MAX_CLASSIFICATION_VARIANTS, out indirectArgsBuffer, out tileOffsetsBuffer, out var binScatterCounters);
         binnedTileListBuffer = AddScatterVariantTilesPass(rg, unbinnedTilesBuffer, binScatterCounters, countersBuffer, maxTileEntries);
     }

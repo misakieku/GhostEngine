@@ -331,7 +331,7 @@ bool HZBVisible(float4 clipMin, float4 clipMax, uint hzbMipCount, uint renderWid
         return false;
     }
 
-    if (hzbTexture == 0xFFFFFFFF || hzbMipCount == 0 || hzbBaseWidth == 0 || hzbBaseHeight == 0)
+    if (!IS_VALID_BUFFER(hzbTexture) || hzbMipCount == 0 || hzbBaseWidth == 0 || hzbBaseHeight == 0)
     {
         return true;
     }

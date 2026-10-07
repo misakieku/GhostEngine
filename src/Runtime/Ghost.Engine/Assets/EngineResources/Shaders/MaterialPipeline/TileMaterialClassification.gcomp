@@ -9,6 +9,8 @@ compute "Internal/TileMaterialClassification"
         uint visibleMeshletsPass2;
         uint counterBufferUav;
         uint unbinnedTilesUav;
+        uint tileShadingModelMaskBufferUav;
+        uint variantShadingModelsTableBufferIndex;
         uint renderWidth;
         uint renderHeight;
         uint tilesPerRow;
@@ -30,6 +32,7 @@ compute "Internal/TileMaterialClassification"
         groupshared uint s_tileVariantMask[8];
         groupshared uint s_tileEntryCount;
         groupshared uint s_tileEntryBase;
+        groupshared uint s_tileShadingModelMask;
 
         [numthreads(CLASSIFICATION_TILE_SIZE, CLASSIFICATION_TILE_SIZE, 1)]
         void CSMain(
@@ -48,6 +51,7 @@ compute "Internal/TileMaterialClassification"
             {
                 s_tileEntryCount = 0u;
                 s_tileEntryBase = 0u;
+                s_tileShadingModelMask = 0u;
             }
             GroupMemoryBarrierWithGroupSync();
 
@@ -118,6 +122,16 @@ compute "Internal/TileMaterialClassification"
             if (isPresent)
             {
                 InterlockedAdd(s_tileEntryCount, 1u, localSlot);
+
+                if (IS_VALID_BUFFER(props.variantShadingModelsTableBufferIndex))
+                {
+                    ByteAddressBuffer variantShadingModels = ResourceDescriptorHeap[props.variantShadingModelsTableBufferIndex];
+                    uint shadingModel = variantShadingModels.Load(v * 4u);
+                    if (shadingModel < 32u)
+                    {
+                        InterlockedOr(s_tileShadingModelMask, 1u << shadingModel);
+                    }
+                }
             }
             GroupMemoryBarrierWithGroupSync();
 
@@ -141,6 +155,12 @@ compute "Internal/TileMaterialClassification"
                     RWByteAddressBuffer unbinned = ResourceDescriptorHeap[props.unbinnedTilesUav];
                     unbinned.Store2(unbinnedSlot * 8u, uint2(tileIndex, v));
                 }
+            }
+
+            if (groupIndex == 0u && IS_VALID_BUFFER(props.tileShadingModelMaskBufferUav))
+            {
+                RWByteAddressBuffer maskBuffer = ResourceDescriptorHeap[props.tileShadingModelMaskBufferUav];
+                maskBuffer.Store(tileIndex * 4u, s_tileShadingModelMask);
             }
         }
     }
