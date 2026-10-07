@@ -45,3 +45,26 @@ public struct GPUDirectionalLight
     public float4x4 shadowMatrix2; // CSM Cascade 2 View-Projection
     public float4x4 shadowMatrix3; // CSM Cascade 3 View-Projection
 }
+
+/// <summary>
+/// GPU-ready memory layout for an individual shadow view (spot light or cubemap face).
+/// Exactly 208 bytes (13 float4 vectors).
+/// </summary>
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
+public struct GPUShadowViewData
+{
+    public float4x4 shadowViewProj;      // 64 bytes - World to light clip space
+    public float4 plane0;                // 16 bytes - Frustum planes for GPU culling
+    public float4 plane1;                // 16 bytes
+    public float4 plane2;                // 16 bytes
+    public float4 plane3;                // 16 bytes
+    public float4 plane4;                // 16 bytes
+    public float4 plane5;                // 16 bytes
+    public float4 tileOffsetScale;        // 16 bytes - xy: normalized atlas offset [0..1], zw: normalized atlas size [0..1]
+    public float3 lightPositionWS;        // 12 bytes - for distance/LOD calculation
+    public float lodErrorThreshold;       // 4 bytes - coarse LOD error threshold for this shadow view
+    public float shadowBias;              // 4 bytes
+    public float normalBias;              // 4 bytes
+    public float proj11;                 // 4 bytes - projection[1][1] for LOD
+    public float tileSize;               // 4 bytes - shadow tile size in pixels
+}

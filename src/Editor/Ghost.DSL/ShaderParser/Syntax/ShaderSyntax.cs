@@ -9,7 +9,16 @@ public class GraphicsShaderSyntax
     public HlslBlockSyntax? Hlsl { get; set; }
     public PipelineBlockSyntax? Pipeline { get; set; }
     public List<PassBlockSyntax> Passes { get; set; } = new();
+    public List<StrategyBlockSyntax> Strategies { get; set; } = new();
     public List<FunctionCallSyntax> FunctionCalls { get; set; } = new();
+}
+
+public class StrategyBlockSyntax
+{
+    public string SlotName { get; set; } = string.Empty;
+    public string? TypeName { get; set; }
+    public string? FilePath { get; set; }
+    public string? Code { get; set; }
 }
 
 public class ComputeShaderSyntax

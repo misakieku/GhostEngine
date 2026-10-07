@@ -10,19 +10,16 @@ namespace Ghost.Engine.Streaming;
 
 internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, IShaderCommitableAssetEntry
 {
-    private readonly ShaderCatalogEntry _catalogEntry;
     private MemoryBlock _payload;
     private byte* _bytecodePtr;
     private int _bytecodeSize;
     private ulong _shaderId;
-    private string _name = string.Empty;
     private bool _bytecodeReady;
 
     public ReadOnlySpan<byte> Bytecode => _bytecodePtr != null && _bytecodeSize > 0
         ? new ReadOnlySpan<byte>(_bytecodePtr, _bytecodeSize)
         : ReadOnlySpan<byte>.Empty;
 
-    public string Name => _name;
     public ulong ShaderId => _shaderId;
 
     internal override AssetState FailureState => _bytecodeReady ? AssetState.Ready : AssetState.Failed;
@@ -30,25 +27,6 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
     public WorkGraphAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies)
         : base(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies)
     {
-        var catalog = manager.ContentProvider.ShaderCatalog;
-        ShaderCatalogEntry? entry = null;
-        for (var i = 0; i < catalog.Count; i++)
-        {
-            if (catalog[i].AssetId == assetId)
-            {
-                entry = catalog[i];
-                break;
-            }
-        }
-
-        if (entry == null)
-        {
-            throw new InvalidDataException($"Work graph asset {assetId} is missing from the runtime shader catalog.");
-        }
-
-        _catalogEntry = entry;
-        _name = entry.Name;
-        _shaderId = entry.ShaderId;
     }
 
     protected override void OnReleaseResource()
@@ -94,7 +72,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
         {
             stagedPayload = contentStream.ReadMemory(AllocationHandle.Persistent);
 
-            var validation = ValidatePayload(stagedPayload, AssetId, _catalogEntry);
+            var validation = ValidatePayload(stagedPayload, AssetId);
             if (validation.IsFailure)
             {
                 stagedPayload.Dispose();
@@ -107,6 +85,8 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
             var payload = (byte*)_payload.GetUnsafePtr();
             var payloadSize = (long)_payload.Size;
             var header = ReadAt<ShaderContentHeader>(payload, 0, payloadSize);
+            _shaderId = header.shaderId;
+
             var passOffset = header.nameOffset + header.nameSize;
             var pass = ReadAt<ShaderContentHeader.PassHeader>(payload, passOffset, payloadSize);
             var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(payload, pass.dataOffset, payloadSize);
@@ -139,7 +119,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
         }
     }
 
-    internal static Result ValidatePayload(MemoryBlock payloadBlock, Guid assetId, ShaderCatalogEntry catalogEntry)
+    internal static Result ValidatePayload(MemoryBlock payloadBlock, Guid assetId)
     {
         var payload = (byte*)payloadBlock.GetUnsafePtr();
         var payloadSize = (long)payloadBlock.Size;
@@ -149,14 +129,6 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
             !IsRangeValid(header.nameOffset, header.nameSize, payloadSize))
         {
             return Result.Failure($"Work graph asset {assetId} uses an unsupported content format.");
-        }
-
-        if (header.shaderId != catalogEntry.ShaderId ||
-            header.familyId != catalogEntry.FamilyId ||
-            header.layoutHash != catalogEntry.LayoutHash ||
-            header.propertyBufferSize != catalogEntry.PropertyBufferSize)
-        {
-            return Result.Failure($"Work graph asset {assetId} does not match its catalog metadata.");
         }
 
         var passOffset = header.nameOffset + header.nameSize;
@@ -203,10 +175,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
                 size = (ulong)_bytecodeSize,
             };
 
-            var publishResult = shaderLibrary.PublishCompiledGeneration(
-                _shaderId,
-                entryOffsets,
-                byteCodes);
+            var publishResult = shaderLibrary.PublishCompiledGeneration(_shaderId, entryOffsets, byteCodes);
             if (publishResult.IsFailure)
             {
                 return publishResult;

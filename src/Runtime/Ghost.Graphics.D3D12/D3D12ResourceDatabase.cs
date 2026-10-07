@@ -4,7 +4,6 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerraFX.Interop.DirectX;
@@ -163,7 +162,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         if (pResource == null)
         {
 #if DEBUG
-            Debugger.Break();
+            System.Diagnostics.Debugger.Break();
 #endif
             return Handle<GPUResource>.Invalid;
         }
@@ -195,7 +194,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         if (allocation == null)
         {
 #if DEBUG
-            Debugger.Break();
+            System.Diagnostics.Debugger.Break();
 #endif
             return Handle<GPUResource>.Invalid;
         }
@@ -717,7 +716,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         foreach (ref var record in _resources)
         {
 #if DEBUG
-            Debug.WriteLine($"[Resource Leak] Resource 0x{(nint)record.ResourcePtr.Get():X} is being released without proper disposal. This may indicate a resource leak.");
+            Logger.Debug($"[Resource Leak] Resource 0x{(nint)record.ResourcePtr.Get():X} is being released without proper disposal. This may indicate a resource leak.");
 #endif
             record.Release(_descriptorAllocator);
         }

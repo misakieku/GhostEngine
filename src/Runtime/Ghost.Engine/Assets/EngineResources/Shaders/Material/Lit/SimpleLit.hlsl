@@ -3,8 +3,6 @@
 
 #include "EngineResources/Shaders/Material/Lit/Lit.hlsl"
 
-#ifndef DEFERREDLIGHTING_STRATEGY
-#define DEFERREDLIGHTING_STRATEGY SimpleLitDeferredLighting
 struct BSDFData
 {
     uint materialFeatures;
@@ -82,7 +80,6 @@ struct SimpleLitDeferredLighting
         return output;
     }
 };
-#endif // DEFERREDLIGHTING_STRATEGY
 
 #endif // GHOST_SIMPLELIT_HLSL
 

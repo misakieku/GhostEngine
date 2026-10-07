@@ -95,11 +95,15 @@ void CSMain(
     
     ShadingContext shadingCtx;
     shadingCtx.positionWS = positionWS;
+    shadingCtx.normalWS = surface.normalWS;
     shadingCtx.positionNDC = ndc;
     shadingCtx.positionSS = pixelCoord;
     shadingCtx.tileCoord = groupID.xy;
     shadingCtx.depth = depth;
     shadingCtx.linearDepth = zView;
+    shadingCtx.shadowAtlasIndex = props.shadowAtlasSrv;
+    shadingCtx.shadowViewsBufferIndex = props.shadowViewsBufferSrv;
+    shadingCtx.shadowIndicesBufferIndex = props.shadowIndicesBufferSrv;
 
     // Execute Light Loop
     ByteAddressBuffer tileLightList = ResourceDescriptorHeap[props.tileLightListBufferIndex];

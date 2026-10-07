@@ -38,12 +38,17 @@ public struct PushConstantsData
 public struct FrameData
 {
     public uint sceneBuffer;
-    public uint paletteOffsetBuffer;   // bindless index into PaletteOffsetBuffer
-    public uint materialIndexBuffer;   // bindless index into MaterialIndexBuffer
-    public uint materialBuffer;        // bindless index into Global MaterialPoolBuffer
-    public uint punctualLightsBuffer;  // bindless index into GPUPunctualLight buffer
-    public uint punctualLightCount;    // number of punctual lights gathered this frame
-    public uint directionalLightBuffer;// bindless index into GPUDirectionalLight buffer
+    public uint paletteOffsetBuffer;          // bindless index into PaletteOffsetBuffer
+    public uint materialIndexBuffer;          // bindless index into MaterialIndexBuffer
+    public uint materialBuffer;               // bindless index into Global MaterialPoolBuffer
+    public uint punctualLightsBuffer;         // bindless index into GPUPunctualLight buffer
+    public uint punctualLightCount;           // number of punctual lights gathered this frame
+    public uint directionalLightBuffer;       // bindless index into GPUDirectionalLight buffer
+    public uint directionalLightCount;        // number of directional lights gathered this frame
+    public int primaryDirectionalLightIndex;  // index of primary shadow-casting directional light (-1 if none)
+    public uint pad0;
+    public uint pad1;
+    public uint pad2;
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]

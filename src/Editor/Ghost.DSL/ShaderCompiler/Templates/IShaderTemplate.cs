@@ -33,6 +33,7 @@ public class TemplatePassDef
     public PassSemantic semantic = PassSemantic.Custom;
     public PipelineSemantic pipeline = new();
     public List<TemplateStage> stages = new List<TemplateStage>();
+    public string? strategy;
 }
 
 

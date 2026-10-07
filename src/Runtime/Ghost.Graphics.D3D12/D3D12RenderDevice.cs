@@ -52,9 +52,9 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
 
         IDXGIFactory7* pFactory = default;
 #if DEBUG
-        ThrowIfFailed(CreateDXGIFactory2(TRUE, __uuidof(pFactory), (void**)&pFactory));
+        ThrowIfFailed(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, __uuidof(pFactory), (void**)&pFactory));
 #else
-        ThrowIfFailed(CreateDXGIFactory2(FALSE, __uuidof(pFactory), (void**)&pFactory));
+        ThrowIfFailed(CreateDXGIFactory2(0, __uuidof(pFactory), (void**)&pFactory));
 #endif
 
         dxgiFactory = pFactory;

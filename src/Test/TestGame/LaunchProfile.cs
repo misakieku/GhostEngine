@@ -24,7 +24,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
     private World _world = null!;
     private IAssetEntry _meshAsset = null!;
     private IAssetEntry _shaderAsset = null!;
-    private IAssetEntry _textureAsset = null!;
+    //private IAssetEntry _textureAsset = null!;
 
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
@@ -92,11 +92,11 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 
     public void OnEngineInitialized(EngineCore engine)
     {
-        const int entityCapacity = 1;
-        const float size = 20.0f;
+        const int entityCapacity = 100;
+        const float size = 10.0f;
         const float baseScale = 1.0f;
-        const float lightSize = size * 2.0f;
-        const int lightCount = 0;
+        const float lightSize = size * 1.0f;
+        const int lightCount = 8;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -121,9 +121,9 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             new InputReceiver(InputProfileDatabase.FIRST_PERSON_CAMERA_PROFILE_ID, true),
             default(ActionState));
 
-        _meshAsset = engine.AssetManager.ResolveAsset("Meshes/an-afternoon-in-a-persian-garden/source/PersianGarden_Day#object0.002");
+        _meshAsset = engine.AssetManager.ResolveAsset("Meshes/bunny");
         _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/SimpleLit");
-        _textureAsset = engine.AssetManager.ResolveAsset("Meshes/an-afternoon-in-a-persian-garden/textures/TerraceAndWalls8kDay");
+        //_textureAsset = engine.AssetManager.ResolveAsset("Meshes/an-afternoon-in-a-persian-garden/textures/TerraceAndWalls8kDay");
 
         var meshHandle = default(Handle<Mesh>);
         var shaderHandle = default(Handle<Shader>);
@@ -131,15 +131,15 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 
         _meshAsset.ReadAssetData(ref meshHandle);
         _shaderAsset.ReadAssetData(ref shaderHandle);
-        _textureAsset.ReadAssetData(ref textureHandle);
+        //_textureAsset.ReadAssetData(ref textureHandle);
 
         var mat = engine.RenderEngine.ResourceManager.CreateMaterial(shaderHandle);
         var srv = engine.RenderEngine.GraphicsEngine.ResourceDatabase.GetBindlessIndex(textureHandle.AsResource());
 
         engine.RenderEngine.ResourceManager.SetMaterialProperty(mat, new MyShaderSimpleLitShaderProperties
         {
-            baseColor = engine.RenderEngine.GraphicsEngine.ResourceDatabase.GetBindlessIndex(textureHandle.AsResource()),
-            sampler = engine.RenderEngine.ResourceManager.StaticSampler.LinearRepeat,
+            // baseColor = engine.RenderEngine.GraphicsEngine.ResourceDatabase.GetBindlessIndex(textureHandle.AsResource()),
+            // sampler = engine.RenderEngine.ResourceManager.StaticSampler.LinearRepeat,
             roughness = 0.75f,
         });
 
@@ -161,27 +161,29 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 staticShadowCaster = true,
             });
 
-            // var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
-            // var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f)));
-            // var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
+            var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
+            var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f)));
+            var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
 
-            _world.EntityManager.SetComponent(entity, new LocalToWorld
+            var localToWorld = new LocalToWorld
             {
-                matrix = float4x4.identity
-            });
+                matrix = float4x4.TRS(position, rotation, scale)
+            };
+
+            _world.EntityManager.SetComponent(entity, localToWorld);
         }
 
-        _world.EntityManager.CreateEntity(
-            new DirectionalLight
-            {
-                color = new float3(1.0f, 0.95f, 0.85f),
-                intensity = 1.0f,
-                castShadows = true
-            },
-            new LocalToWorld
-            {
-                matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(new float3(45.0f, 30.0f, 0.0f)), new float3(1.0f, 1.0f, 1.0f))
-            });
+        //_world.EntityManager.CreateEntity(
+        //    new DirectionalLight
+        //    {
+        //        color = new float3(1.0f, 0.95f, 0.85f),
+        //        intensity = 1.0f,
+        //        castShadows = true
+        //    },
+        //    new LocalToWorld
+        //    {
+        //        matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(new float3(45.0f, 45.0f, 0.0f)), new float3(1.0f, 1.0f, 1.0f))
+        //    });
 
         for (var i = 0; i < lightCount; i++)
         {
@@ -193,8 +195,9 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 {
                     type = isSpot ? PunctualLightType.Spot : PunctualLightType.Point,
                     color = color,
-                    intensity = RandomFloat(1.5f, 5.0f),
-                    range = RandomFloat(5.0f, 15.0f),
+                    shadowSize = 128,
+                    intensity = RandomFloat(2.5f, 5.0f),
+                    range = RandomFloat(10.0f, 15.0f),
                     innerSpotAngle = math.radians(15.0f),
                     outerSpotAngle = math.radians(40.0f)
                 },
@@ -235,6 +238,6 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 
         _meshAsset.Release();
         _shaderAsset.Release();
-        _textureAsset.Release();
+        //_textureAsset.Release();
     }
 }

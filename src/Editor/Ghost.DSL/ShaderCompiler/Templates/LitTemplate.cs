@@ -20,6 +20,7 @@ internal sealed class LitTemplate : IShaderTemplate
         {
             name = "Visibility",
             semantic = PassSemantic.Visibility,
+            strategy = "ALPHA_STRATEGY",
             pipeline = new PipelineSemantic
             {
                 zTest = ZTest.Disabled,
@@ -36,8 +37,28 @@ internal sealed class LitTemplate : IShaderTemplate
         },
         new TemplatePassDef
         {
+            name = "Shadow",
+            semantic = PassSemantic.Shadow,
+            strategy = "ALPHA_STRATEGY",
+            pipeline = new PipelineSemantic
+            {
+                zTest = ZTest.GreaterEqual,
+                zWrite = ZWrite.On,
+                cull = Cull.Back,
+                blend = Blend.Opaque,
+                colorMask = ColorWriteMask.None
+            },
+            stages = new List<TemplateStage>
+            {
+                new() { templateFile = "Common/Shadow.template.hlsl", entryPoint = "MSMain", stage = ShaderStage.MeshShader },
+                new() { templateFile = "Common/Shadow.template.hlsl", entryPoint = "PSMain", stage = ShaderStage.PixelShader },
+            }
+        },
+        new TemplatePassDef
+        {
             name = "DeferredTexturing",
             semantic = PassSemantic.DeferredTexturing,
+            strategy = "DEFERREDTEXTURING_STRATEGY",
             pipeline = new PipelineSemantic
             {
                 zTest = ZTest.Disabled,
@@ -55,6 +76,7 @@ internal sealed class LitTemplate : IShaderTemplate
         {
             name = "DeferredLighting",
             semantic = PassSemantic.DeferredLighting,
+            strategy = "DEFERREDLIGHTING_STRATEGY",
             pipeline = new PipelineSemantic
             {
                 zTest = ZTest.Disabled,

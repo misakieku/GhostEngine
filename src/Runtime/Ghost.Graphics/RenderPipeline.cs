@@ -199,7 +199,7 @@ public static unsafe class RenderPipelineUtility
         GetVPMatrices(in request, screenSize, out view, out projection, reversedZ: true);
     }
 
-    public static Handle<GPUBuffer> CreateFrameBuffer(ResourceContext ctx, uint sceneBuffer, uint punctualLightsBuffer, uint punctualLightCount, uint directionalLightBuffer)
+    public static Handle<GPUBuffer> CreateFrameBuffer(ResourceContext ctx, uint sceneBuffer, uint punctualLightsBuffer, uint punctualLightCount, uint directionalLightBuffer, uint directionalLightCount = 0, int primaryDirectionalLightIndex = -1)
     {
         var frameData = new FrameData
         {
@@ -209,7 +209,12 @@ public static unsafe class RenderPipelineUtility
             materialBuffer = ctx.ResourceManager.MaterialBufferBindlessIndex,
             punctualLightsBuffer = punctualLightsBuffer,
             punctualLightCount = punctualLightCount,
-            directionalLightBuffer = directionalLightBuffer
+            directionalLightBuffer = directionalLightBuffer,
+            directionalLightCount = directionalLightCount,
+            primaryDirectionalLightIndex = primaryDirectionalLightIndex,
+            pad0 = 0,
+            pad1 = 0,
+            pad2 = 0
         };
 
         var alignedSize = ((uint)sizeof(FrameData) + 255u) & ~255u;

@@ -53,9 +53,9 @@ public struct PunctualLight : IComponentData
     public float sourceRadius;
 
     /// <summary>
-    /// True if this light casts shadows.
+    /// Resolution of the shadow map tile in the shadow atlas (e.g. 256, 512). 0 means no shadow.
     /// </summary>
-    public bool castShadows;
+    public uint shadowSize;
 
     /// <summary>
     /// Depth bias for shadow mapping.
@@ -67,7 +67,7 @@ public struct PunctualLight : IComponentData
     /// </summary>
     public float volumetricScattering;
 
-    public static PunctualLight CreatePoint(float3 color, float intensity, float range) => new()
+    public static PunctualLight CreatePoint(float3 color, float intensity, float range, uint shadowSize = 0) => new()
     {
         type = PunctualLightType.Point,
         color = color,
@@ -76,12 +76,12 @@ public struct PunctualLight : IComponentData
         innerSpotAngle = 0.0f,
         outerSpotAngle = 0.0f,
         sourceRadius = 0.05f,
-        castShadows = false,
+        shadowSize = shadowSize,
         shadowBias = 0.001f,
         volumetricScattering = 1.0f
     };
 
-    public static PunctualLight CreateSpot(float3 color, float intensity, float range, float innerAngleRad, float outerAngleRad) => new()
+    public static PunctualLight CreateSpot(float3 color, float intensity, float range, float innerAngleRad, float outerAngleRad, uint shadowSize = 0) => new()
     {
         type = PunctualLightType.Spot,
         color = color,
@@ -90,7 +90,7 @@ public struct PunctualLight : IComponentData
         innerSpotAngle = innerAngleRad,
         outerSpotAngle = outerAngleRad,
         sourceRadius = 0.05f,
-        castShadows = false,
+        shadowSize = shadowSize,
         shadowBias = 0.001f,
         volumetricScattering = 1.0f
     };

@@ -2,7 +2,7 @@
   "profiles": {
     "Ghost.AssetForge.CLI": {
       "commandName": "Project",
-      "commandLineArgs": "metadata --mode update --paths \"F:\\csharp\\GhostEngine\\src\\Test\\TestGame\\Assets\"",
+      "commandLineArgs": "bake --asset-dir \"F:\\csharp\\GhostEngine\\src\\Test\\TestGame\\Assets;F:\\csharp\\GhostEngine\\src\\Runtime\\Ghost.Engine\\Assets\" --cache-dir \"F:\\csharp\\GhostEngine\\src\\Test\\TestGame\\obj\\Debug\\net10.0\\AssetCache\" --build-dir \"F:\\csharp\\GhostEngine\\src\\Test\\TestGame\\bin\\Debug\\net10.0\\Assets\" --shader-metadata \"F:\\csharp\\GhostEngine\\src\\Test\\TestGame\\obj\\Debug\\net10.0\\shader_metadata.json;F:\\csharp\\GhostEngine\\src\\Runtime\\Ghost.Engine\\obj\\Debug\\net10.0\\shader_metadata.json\"",
       "debugEngines": "managed,native"
     }
   }

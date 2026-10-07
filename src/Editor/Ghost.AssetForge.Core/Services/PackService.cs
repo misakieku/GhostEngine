@@ -343,7 +343,7 @@ public class PackService
                 }
 
                 var isShader = metadata.Type == AssetType.Shader || metadata.Type == AssetType.ComputeShader || metadata.Type == AssetType.WorkGraph;
-                if (isShader)
+                if (metadata.Type == AssetType.Shader)
                 {
                     manifest.Shaders.Add(ReadShaderCatalogEntry(cacheFile, metadata.Id));
                 }
@@ -439,9 +439,15 @@ public class PackService
                         currentPackSize = currentPackStream.Position;
 
                         var subKey = $"{key}#{sub.SubPath}";
+                        var subGuid = GuidUtility.DeriveSubAssetGuid(metadata.Id, sub.SubPath);
+                        if (sub.Type == AssetType.Shader)
+                        {
+                            manifest.Shaders.Add(ReadShaderCatalogEntry(subCachePath, subGuid));
+                        }
+
                         manifest.AddAsset(subKey, new AssetInfo
                         {
-                            AssetId = GuidUtility.DeriveSubAssetGuid(metadata.Id, sub.SubPath),
+                            AssetId = subGuid,
                             AssetType = sub.Type,
                             PackFileName = currentPackName,
                             Offset = subOffset,

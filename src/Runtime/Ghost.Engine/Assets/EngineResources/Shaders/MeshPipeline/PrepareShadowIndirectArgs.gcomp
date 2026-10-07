@@ -1,0 +1,46 @@
+compute "Internal/PrepareShadowIndirectArgs"
+{
+    properties
+    {
+        uint counterBuffer;
+        uint indirectArgsBuffer;
+        uint maxCount;
+        uint maxVariants;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(64, 1, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            InternalPrepareShadowIndirectArgsShaderProperties props = LoadData<InternalPrepareShadowIndirectArgsShaderProperties>(g_PushConstantData.userData0, 0);
+
+            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBuffer];
+            RWByteAddressBuffer indirectArgsBuf = ResourceDescriptorHeap[props.indirectArgsBuffer];
+
+            uint v = dispatchThreadId.x;
+            if (v == 0u)
+            {
+                uint count = counterBuf.Load(0);
+                if (count > props.maxCount)
+                {
+                    count = props.maxCount;
+                }
+
+                // D3D12_DISPATCH_MESH_ARGUMENTS: ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ
+                indirectArgsBuf.Store3(0, uint3(count, 1, 1));
+            }
+            else if (v < props.maxVariants)
+            {
+                indirectArgsBuf.Store3(v * 16u, uint3(0, 0, 0));
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

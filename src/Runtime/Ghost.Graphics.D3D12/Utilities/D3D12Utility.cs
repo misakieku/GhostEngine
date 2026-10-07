@@ -802,11 +802,11 @@ internal static unsafe class D3D12Utility
             Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
         };
 
-        if (originalFormat == TextureFormat.D32_Float)
+        if (originalFormat == TextureFormat.R32_Typeless)
         {
             srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
         }
-        else if (originalFormat == TextureFormat.D24_UNorm_S8_UInt)
+        else if (originalFormat == TextureFormat.R24G8_Typeless)
         {
             srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
         }
@@ -1061,7 +1061,25 @@ internal static unsafe class D3D12Utility
                 break;
         }
 
-        dsvDesc.Format = originalFormat == TextureFormat.Unknown ? resourceDesc.Format : originalFormat.ToDXGIFormat();
+        if (originalFormat == TextureFormat.Unknown)
+        {
+            dsvDesc.Format = resourceDesc.Format;
+        }
+        else
+        {
+            if (originalFormat == TextureFormat.R32_Typeless)
+            {
+                dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+            }
+            else if (originalFormat == TextureFormat.R24G8_Typeless)
+            {
+                dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            }
+            else
+            {
+                dsvDesc.Format = originalFormat.ToDXGIFormat();
+            }
+        }
 
         var isArray =
             dsvDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2DARRAY ||

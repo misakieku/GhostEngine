@@ -408,6 +408,7 @@ public sealed class RenderGraph : IDisposable
     /// <summary>
     /// Creates a transient buffer in the render graph.
     /// </summary>
+    [Obsolete("Use Builder instead")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Identifier<RGBuffer> CreateBuffer(scoped in BufferDesc desc, string? name = null)
     {
@@ -417,6 +418,7 @@ public sealed class RenderGraph : IDisposable
     /// <summary>
     /// Creates a transient texture in the render graph.
     /// </summary>
+    [Obsolete("Use Builder instead")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Identifier<RGTexture> CreateTexture(scoped in RGTextureDesc desc, string? name = null)
     {

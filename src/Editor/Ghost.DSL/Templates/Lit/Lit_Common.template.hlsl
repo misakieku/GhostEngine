@@ -19,14 +19,14 @@ $GHOST_USER_HLSL$
 // Injection point fallbacks (suppressed when user overrides)
 // ============================================================
 
-#if defined(GHOST_PASS_VISIBILITY)
-#ifndef VBUFFER_STRATEGY
-#define VBUFFER_STRATEGY DefaultVbufferStrategy
-struct DefaultVbufferStrategy
+#if defined(GHOST_PASS_VISIBILITY) || defined(GHOST_PASS_SHADOW)
+#ifndef ALPHA_STRATEGY
+#define ALPHA_STRATEGY DefaultAlphaStrategy
+struct DefaultAlphaStrategy
 {
-    static DefaultVbufferStrategy Create()
+    static DefaultAlphaStrategy Create()
     {
-        return (DefaultVbufferStrategy) 0;
+        return (DefaultAlphaStrategy) 0;
     }
     
     float GetAlphaCoverage(uint materialBufferIndex, float2 uv)

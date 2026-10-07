@@ -267,16 +267,25 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
-
-        var disposeJob = new DisposeJobEntity<#= i #>
+        if (batches.Count > batchSize)
         {
-            batches = batches,
-        };
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+            var disposeJob = new DisposeJobEntity<#= i #>
+            {
+                batches = batches,
+            };
 
-        return jobHandle;
+            world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+
+            return jobHandle;
+        }
+        else
+        {
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            batches.Dispose();
+            return JobHandle.Invalid;
+        }
     }
 
 <# } #>

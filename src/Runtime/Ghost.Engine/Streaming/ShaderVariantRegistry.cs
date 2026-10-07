@@ -235,7 +235,7 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
                     representatives.Add(index.Value);
                     _variantToDispatchSlot[semanticIndex][index.Value] = slot;
 
-                    var denseIndex = (semantic == PassSemantic.Visibility) ? slot : index.Value;
+                    var denseIndex = (semantic == PassSemantic.Visibility || semantic == PassSemantic.Shadow) ? slot : index.Value;
                     uniqueDispatch.Add(new ShaderVariantDispatchInfo(denseIndex, _variants[index.Value].Shader));
                 }
             }
@@ -407,7 +407,7 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
             {
                 _dispatchRepresentatives[semanticIndex][slot] = readyVariantIndex;
                 var semantic = (PassSemantic)semanticIndex;
-                var denseIndex = (semantic == PassSemantic.Visibility) ? slot : readyVariantIndex;
+                var denseIndex = (semantic == PassSemantic.Visibility || semantic == PassSemantic.Shadow) ? slot : readyVariantIndex;
                 _dispatchVariants[semanticIndex][slot] = new ShaderVariantDispatchInfo(denseIndex, record.Shader);
             }
         }

@@ -64,7 +64,8 @@ shader ""Custom/CarPaint"" : ""Lit""
         var semanticsResult = DSLShaderCompiler.GetShaderSemantics(syntaxResult.Value);
         Assert.IsTrue(semanticsResult.IsSuccess, semanticsResult.Message);
         var semantics = semanticsResult.Value;
-        Assert.AreEqual("EngineResources/Shaders/Material/Lit/SimpleLit.hlsl", semantics.shadingModelFile);
+        Assert.IsTrue(semantics.strategies.ContainsKey("DEFERREDLIGHTING_STRATEGY"));
+        Assert.AreEqual("EngineResources/Shaders/Material/Lit/SimpleLit.hlsl", semantics.strategies["DEFERREDLIGHTING_STRATEGY"].filePath);
 
         var descriptorResult = DSLShaderCompiler.ResolveShader(semantics, new DSL.Models.ShaderReflectionData(), new Dictionary<string, string>());
         Assert.IsTrue(descriptorResult.IsSuccess, descriptorResult.Message);
@@ -75,6 +76,28 @@ shader ""Custom/CarPaint"" : ""Lit""
         var dlPass = descriptorResult.Value.Passes.First(p => p.semantic == Ghost.Core.Graphics.PassSemantic.DeferredLighting);
         StringAssert.Contains(dlPass.computeShaderCode.code, "#define SHADING_MODEL_ID 1u");
         StringAssert.Contains(dlPass.computeShaderCode.code, "SimpleLit.hlsl");
+    }
+
+    [TestMethod]
+    public void TestUnknownStrategy_FailsValidation()
+    {
+        var shaderSource = @"
+shader ""MyShader/InvalidStrategy"" : ""Lit""
+{
+    strategy ""UNKNOWN_INVALID_STRATEGY"" ""SomeType""
+    {
+        struct SomeType { };
+    }
+}
+";
+        var syntaxResult = DSLShaderCompiler.ParseGraphicsShaderSyntax(shaderSource);
+        Assert.IsTrue(syntaxResult.IsSuccess, syntaxResult.Message);
+        var semanticsResult = DSLShaderCompiler.GetShaderSemantics(syntaxResult.Value);
+        Assert.IsTrue(semanticsResult.IsSuccess, semanticsResult.Message);
+
+        var descriptorResult = DSLShaderCompiler.ResolveShader(semanticsResult.Value, new DSL.Models.ShaderReflectionData(), new Dictionary<string, string>());
+        Assert.IsTrue(descriptorResult.IsFailure, "Should fail when shader specifies unknown strategy");
+        StringAssert.Contains(descriptorResult.Message, "UNKNOWN_INVALID_STRATEGY");
     }
 
 #if false

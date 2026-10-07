@@ -31,8 +31,9 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     private UnsafeList<uint> _viewsToRelease;
 
     private UnsafeList<GPUPunctualLight> _punctualLights;
-    private GPUDirectionalLight _currentSunLight;
-    private bool _hasDirectionalLight;
+    private UnsafeList<GPUDirectionalLight> _directionalLights;
+    private int _primaryDirectionalLightIndex = -1;
+    private static readonly GPUDirectionalLight s_defaultSunLight = default;
 
     private readonly UnsafeParallelQueue<UpdateInstanceRequest>* _pUpdateRequest;
     private readonly UnsafeParallelQueue<RemoveInstanceRequest>* _pRemoveRequest;
@@ -46,8 +47,24 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     public ReadOnlySpan<RenderRequest> RenderRequests => _renderRequests;
     public ReadOnlyView<GPUPunctualLight> PunctualLights => _punctualLights;
     public uint PunctualLightCount => (uint)_punctualLights.Count;
-    public ref readonly GPUDirectionalLight CurrentSunLight => ref _currentSunLight;
-    public bool HasDirectionalLight => _hasDirectionalLight;
+    public ReadOnlyView<GPUDirectionalLight> DirectionalLights => _directionalLights;
+    public uint DirectionalLightCount => (uint)_directionalLights.Count;
+    public int PrimaryDirectionalLightIndex => _primaryDirectionalLightIndex;
+    public ref readonly GPUDirectionalLight CurrentSunLight
+    {
+        get
+        {
+            if (_directionalLights.Count > 0)
+            {
+                var idx = _primaryDirectionalLightIndex >= 0 && _primaryDirectionalLightIndex < _directionalLights.Count
+                    ? _primaryDirectionalLightIndex
+                    : 0;
+                return ref _directionalLights[idx];
+            }
+            return ref s_defaultSunLight;
+        }
+    }
+    public bool HasDirectionalLight => _directionalLights.Count > 0;
 
     public UnsafeParallelQueue<UpdateInstanceRequest>.ParallelConsumer UpdateRequest => _pUpdateRequest->AsParallelConsumer();
     public UnsafeParallelQueue<RemoveInstanceRequest>.ParallelConsumer RemoveRequest => _pRemoveRequest->AsParallelConsumer();
@@ -61,6 +78,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _renderRequests = new UnsafeList<RenderRequest>(4, AllocationHandle.Persistent);
         _viewsToRelease = new UnsafeList<uint>(4, AllocationHandle.Persistent);
         _punctualLights = new UnsafeList<GPUPunctualLight>(64, AllocationHandle.Persistent);
+        _directionalLights = new UnsafeList<GPUDirectionalLight>(4, AllocationHandle.Persistent);
 
         _pUpdateRequest = (UnsafeParallelQueue<UpdateInstanceRequest>*)MemoryUtility.Malloc(MemoryUtility.SizeOf<UnsafeParallelQueue<UpdateInstanceRequest>>());
         _pRemoveRequest = (UnsafeParallelQueue<RemoveInstanceRequest>*)MemoryUtility.Malloc(MemoryUtility.SizeOf<UnsafeParallelQueue<RemoveInstanceRequest>>());
@@ -81,10 +99,23 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _punctualLights.Add(light);
     }
 
+    public uint AddDirectionalLight(scoped in GPUDirectionalLight light)
+    {
+        var index = (uint)_directionalLights.Count;
+        _directionalLights.Add(light);
+        return index;
+    }
+
+    public void SetPrimaryDirectionalLightIndex(int index)
+    {
+        _primaryDirectionalLightIndex = index;
+    }
+
     public void SetDirectionalLight(scoped in GPUDirectionalLight light)
     {
-        _currentSunLight = light;
-        _hasDirectionalLight = true;
+        _directionalLights.Clear();
+        _directionalLights.Add(light);
+        _primaryDirectionalLightIndex = 0;
     }
 
     public uint AllocateView()
@@ -159,8 +190,8 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     {
         _renderRequests.Clear();
         _punctualLights.Clear();
-        _currentSunLight = default;
-        _hasDirectionalLight = false;
+        _directionalLights.Clear();
+        _primaryDirectionalLightIndex = -1;
         _pUpdateRequest->Clear();
         _pRemoveRequest->Clear();
 
@@ -185,6 +216,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _renderRequests.Dispose();
         _viewsToRelease.Dispose();
         _punctualLights.Dispose();
+        _directionalLights.Dispose();
         _pUpdateRequest->Dispose();
         _pRemoveRequest->Dispose();
 

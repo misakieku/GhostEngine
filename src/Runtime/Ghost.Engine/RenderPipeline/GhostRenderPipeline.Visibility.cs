@@ -56,11 +56,18 @@ internal partial class GhostRenderPipeline
         _dispatchMeshCommandSignature = renderEngine.GraphicsEngine.CreateCommandSignature(in indirectDesc, default);
     }
 
-    private void AddClearVisibilityBufferPass(RenderGraph rg, Identifier<RGTexture> visBuffer, uint2 renderSize)
+    private Identifier<RGTexture> AddClearVisibilityBufferPass(RenderGraph rg, uint2 renderSize)
     {
         using var builder = rg.AddComputeRenderPass<ClearVisibilityBufferPassData>("ClearVisibilityBuffer");
-        builder.UseTexture(visBuffer, AccessFlags.Write);
 
+        var vbufferDesc = RGTextureDesc.Relative(
+            1.0f,
+            TextureFormat.R32G32_UInt,
+            usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource,
+            clearAtFirstUse: false);
+        var visBuffer = builder.CreateTexture(in vbufferDesc, "VisibilityBuffer");
+
+        builder.UseTexture(visBuffer, AccessFlags.Write);
         builder.SetPassData(new ClearVisibilityBufferPassData
         {
             visBuffer = visBuffer,
@@ -84,6 +91,8 @@ internal partial class GhostRenderPipeline
             var threadGroupsY = Math.Max(1u, (passData.renderSize.y + 15) / 16);
             computeCtx.DispatchCompute(threadGroupsX, threadGroupsY, 1);
         });
+
+        return visBuffer;
     }
 
     private void AddVisibilityBufferPass(RenderGraph rg, Identifier<RGBuffer> visibleMeshlets, Identifier<RGBuffer> binOffsetsBuffer, Identifier<RGBuffer> indirectArgsBuffer, uint cullPassIndex, uint sceneBuffer, uint2 screenSize, ref Identifier<RGTexture> existingVisBuffer)
@@ -93,13 +102,7 @@ internal partial class GhostRenderPipeline
 
         if (existingVisBuffer.IsInvalid)
         {
-            var vbufferDesc = RGTextureDesc.Relative(
-                1.0f,
-                TextureFormat.R32G32_UInt,
-                usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource,
-                clearAtFirstUse: false);
-            existingVisBuffer = rg.CreateTexture(in vbufferDesc, "VisibilityBuffer");
-            AddClearVisibilityBufferPass(rg, existingVisBuffer, screenSize);
+            existingVisBuffer = AddClearVisibilityBufferPass(rg, screenSize);
         }
 
         using var builder = rg.AddUnsafeRenderPass<VisibilityPassData>(passName);
@@ -169,6 +172,9 @@ internal partial class GhostRenderPipeline
 
     private void AddExportVisibilityDepthPass(RenderGraph rg, Identifier<RGTexture> visBuffer, uint2 screenSize, ref Identifier<RGTexture> existingDepth)
     {
+
+        using var builder = rg.AddComputeRenderPass<ExportVisibilityDepthPassData>("ExportVisibilityDepth");
+
         if (existingDepth.IsInvalid)
         {
             var depthDesc = RGTextureDesc.Relative(
@@ -176,10 +182,9 @@ internal partial class GhostRenderPipeline
                 TextureFormat.R32_Float,
                 usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource,
                 clearAtFirstUse: false);
-            existingDepth = rg.CreateTexture(in depthDesc, "SceneDepthBuffer");
+            existingDepth = builder.CreateTexture(in depthDesc, "SceneDepthBuffer");
         }
 
-        using var builder = rg.AddComputeRenderPass<ExportVisibilityDepthPassData>("ExportVisibilityDepth");
         builder.UseTexture(visBuffer, AccessFlags.Read);
         builder.UseTexture(existingDepth, AccessFlags.Write);
 

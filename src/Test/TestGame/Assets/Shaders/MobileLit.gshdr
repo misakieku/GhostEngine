@@ -1,12 +1,9 @@
 shader "MyShader/MobileLit" : "Lit"
 {
-    shading_model("EngineResources/Shaders/Material/Lit/SimpleLit.hlsl");
+    strategy "DEFERREDLIGHTING_STRATEGY" "SimpleLitDeferredLighting" ("EngineResources/Shaders/Material/Lit/SimpleLit.hlsl");
 
-    hlsl
+    strategy "DEFERREDTEXTURING_STRATEGY" "MobileLitDeferredTexturing"
     {
-        #if defined(GHOST_PASS_DEFERREDTEXTURING)
-        #define DEFERREDTEXTURING_STRATEGY MobileLitDeferredTexturing
-        
         struct MobileLitDeferredTexturing
         {
             static MobileLitDeferredTexturing Create()
@@ -26,7 +23,5 @@ shader "MyShader/MobileLit" : "Lit"
                 return surface;
             }
         };
-
-        #endif // GHOST_PASS_DEFERREDTEXTURING
     }
 }

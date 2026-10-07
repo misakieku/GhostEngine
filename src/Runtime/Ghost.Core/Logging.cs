@@ -231,10 +231,12 @@ public static class Logger
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Error(string? message)
     {
-#if DEBUG
+        s_logger.Log(message, LogLevel.Error);
+#if RELEASE
+        Environment.FailFast(message);
+#elif DEBUG
         Debugger.Break();
 #endif
-        s_logger.Log(message, LogLevel.Error);
     }
 
     [StackTraceHidden]

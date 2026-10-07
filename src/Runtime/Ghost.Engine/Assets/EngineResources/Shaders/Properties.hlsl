@@ -30,12 +30,17 @@ struct PushConstantData
 struct FrameData
 {
     BYTE_ADDRESS_BUFFER sceneBuffer;
-    BYTE_ADDRESS_BUFFER paletteOffsetBuffer;   // global PaletteOffsetBuffer
-    BYTE_ADDRESS_BUFFER materialIndexBuffer;   // global MaterialIndexBuffer
-    BYTE_ADDRESS_BUFFER materialBuffer;        // global MaterialPoolBuffer
-    BYTE_ADDRESS_BUFFER punctualLightsBuffer;  // global GPUPunctualLight buffer
-    uint punctualLightCount;                   // number of punctual lights
-    BYTE_ADDRESS_BUFFER directionalLightBuffer; // global GPUDirectionalLight buffer
+    BYTE_ADDRESS_BUFFER paletteOffsetBuffer;          // global PaletteOffsetBuffer
+    BYTE_ADDRESS_BUFFER materialIndexBuffer;          // global MaterialIndexBuffer
+    BYTE_ADDRESS_BUFFER materialBuffer;               // global MaterialPoolBuffer
+    BYTE_ADDRESS_BUFFER punctualLightsBuffer;         // global GPUPunctualLight buffer
+    uint punctualLightCount;                          // number of punctual lights
+    BYTE_ADDRESS_BUFFER directionalLightBuffer;       // global GPUDirectionalLight buffer
+    uint directionalLightCount;                       // number of directional lights
+    int primaryDirectionalLightIndex;                 // index of primary shadow-casting directional light (-1 if none)
+    uint pad0;
+    uint pad1;
+    uint pad2;
 };
 
 // Exactly 64 bytes (four float4 vectors), matching 1 GPU L1 cache line
@@ -64,6 +69,19 @@ struct DirectionalLightData
     float  shadowBiasMultiplier;
     float4 cascadeSplits;       // View-space Z split planes for 4 CSM cascades
     float4x4 shadowMatrices[4]; // 4 CSM view-projection matrices
+};
+
+struct ShadowViewData
+{
+    float4x4 shadowViewProj;
+    float4   planes[6];
+    float4   tileOffsetScale;   // xy: offset [0..1], zw: scale [0..1]
+    float3   lightPositionWS;
+    float    lodErrorThreshold;
+    float    shadowBias;
+    float    normalBias;
+    float    proj11;
+    float    tileSize;
 };
 
 struct ViewData

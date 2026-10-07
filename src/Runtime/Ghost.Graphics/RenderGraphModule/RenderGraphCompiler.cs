@@ -367,11 +367,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         }
     }
 
-    private static UnsafeArray<PassDependencyNode> BuildDAG(
-        List<RenderGraphPass> passes,
-        ReadOnlySpan<int> compiledPasses,
-        RenderGraphResourceRegistry resources,
-        AllocationHandle allocationHandle)
+    private static UnsafeArray<PassDependencyNode> BuildDAG(List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, RenderGraphResourceRegistry resources, AllocationHandle allocationHandle)
     {
         void AddEdge(int passA, int passB, Span<PassDependencyNode> nodes)
         {

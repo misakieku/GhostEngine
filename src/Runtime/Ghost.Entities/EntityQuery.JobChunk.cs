@@ -2,6 +2,7 @@ using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.Mathematics.SPMD;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;
@@ -83,15 +84,24 @@ public unsafe partial struct EntityQuery
             chunkInfos = chunkInfos.AsReadOnly()
         };
 
-        var handle = world.JobScheduler.ScheduleParallelFor(ref batchJob, chunkInfos.Count, batchSize, dependency);
-
-        var disposeJob = new DisposeJobChunk
+        if (chunkInfos.Count > batchSize)
         {
-            list = chunkInfos
-        };
+            var handle = world.JobScheduler.ScheduleParallelFor(ref batchJob, chunkInfos.Count, batchSize, dependency);
 
-        world.JobScheduler.Schedule(ref disposeJob, handle);
+            var disposeJob = new DisposeJobChunk
+            {
+                list = chunkInfos
+            };
 
-        return handle;
+            world.JobScheduler.Schedule(ref disposeJob, handle);
+
+            return handle;
+        }
+        else
+        {
+            world.JobScheduler.RunParallelFor(ref batchJob, chunkInfos.Count, dependency);
+            chunkInfos.Dispose();
+            return JobHandle.Invalid;
+        }
     }
 }

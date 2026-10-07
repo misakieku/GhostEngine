@@ -1,7 +1,7 @@
 using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.LowLevel.Buffer;
 
 namespace Ghost.Entities;
 
@@ -89,7 +89,7 @@ internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent])
 , in ctx);
 
@@ -203,7 +203,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
                     ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent])
 , in ctx);
@@ -338,7 +338,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
                     ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
                     ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent])
@@ -494,7 +494,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
                     ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
                     ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
@@ -671,7 +671,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFo
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
                     ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
                     ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
@@ -869,7 +869,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParall
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
                     ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
                     ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
@@ -1088,7 +1088,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobPa
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
                     ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
                     ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
@@ -1328,7 +1328,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJ
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
                     ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
                     ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
@@ -1421,7 +1421,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -1477,16 +1477,25 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
-
-        var disposeJob = new DisposeJobEntity1
+        if (batches.Count > batchSize)
         {
-            batches = batches,
-        };
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+            var disposeJob = new DisposeJobEntity1
+            {
+                batches = batches,
+            };
 
-        return jobHandle;
+            world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+
+            return jobHandle;
+        }
+        else
+        {
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            batches.Dispose();
+            return JobHandle.Invalid;
+        }
     }
 
     private struct DisposeJobEntity2 : IJob
@@ -1582,7 +1591,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -1642,16 +1651,25 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
-
-        var disposeJob = new DisposeJobEntity2
+        if (batches.Count > batchSize)
         {
-            batches = batches,
-        };
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+            var disposeJob = new DisposeJobEntity2
+            {
+                batches = batches,
+            };
 
-        return jobHandle;
+            world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+
+            return jobHandle;
+        }
+        else
+        {
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            batches.Dispose();
+            return JobHandle.Invalid;
+        }
     }
 
     private struct DisposeJobEntity3 : IJob
@@ -1766,7 +1784,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -1830,16 +1848,25 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
-
-        var disposeJob = new DisposeJobEntity3
+        if (batches.Count > batchSize)
         {
-            batches = batches,
-        };
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+            var disposeJob = new DisposeJobEntity3
+            {
+                batches = batches,
+            };
 
-        return jobHandle;
+            world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+
+            return jobHandle;
+        }
+        else
+        {
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            batches.Dispose();
+            return JobHandle.Invalid;
+        }
     }
 
     private struct DisposeJobEntity4 : IJob
@@ -1973,7 +2000,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -2041,16 +2068,25 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
-
-        var disposeJob = new DisposeJobEntity4
+        if (batches.Count > batchSize)
         {
-            batches = batches,
-        };
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+            var disposeJob = new DisposeJobEntity4
+            {
+                batches = batches,
+            };
 
-        return jobHandle;
+            world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+
+            return jobHandle;
+        }
+        else
+        {
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            batches.Dispose();
+            return JobHandle.Invalid;
+        }
     }
 
     private struct DisposeJobEntity5 : IJob
@@ -2203,7 +2239,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -2275,16 +2311,25 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
-
-        var disposeJob = new DisposeJobEntity5
+        if (batches.Count > batchSize)
         {
-            batches = batches,
-        };
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+            var disposeJob = new DisposeJobEntity5
+            {
+                batches = batches,
+            };
 
-        return jobHandle;
+            world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+
+            return jobHandle;
+        }
+        else
+        {
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            batches.Dispose();
+            return JobHandle.Invalid;
+        }
     }
 
     private struct DisposeJobEntity6 : IJob
@@ -2456,7 +2501,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -2532,16 +2577,25 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
-
-        var disposeJob = new DisposeJobEntity6
+        if (batches.Count > batchSize)
         {
-            batches = batches,
-        };
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+            var disposeJob = new DisposeJobEntity6
+            {
+                batches = batches,
+            };
 
-        return jobHandle;
+            world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+
+            return jobHandle;
+        }
+        else
+        {
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            batches.Dispose();
+            return JobHandle.Invalid;
+        }
     }
 
     private struct DisposeJobEntity7 : IJob
@@ -2732,7 +2786,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -2812,16 +2866,25 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
-
-        var disposeJob = new DisposeJobEntity7
+        if (batches.Count > batchSize)
         {
-            batches = batches,
-        };
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+            var disposeJob = new DisposeJobEntity7
+            {
+                batches = batches,
+            };
 
-        return jobHandle;
+            world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+
+            return jobHandle;
+        }
+        else
+        {
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            batches.Dispose();
+            return JobHandle.Invalid;
+        }
     }
 
     private struct DisposeJobEntity8 : IJob
@@ -3031,7 +3094,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -3115,16 +3178,25 @@ public unsafe partial struct EntityQuery
             }
         }
 
-        var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
-
-        var disposeJob = new DisposeJobEntity8
+        if (batches.Count > batchSize)
         {
-            batches = batches,
-        };
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
-        world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+            var disposeJob = new DisposeJobEntity8
+            {
+                batches = batches,
+            };
 
-        return jobHandle;
+            world.JobScheduler.Schedule(ref disposeJob, jobHandle);
+
+            return jobHandle;
+        }
+        else
+        {
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            batches.Dispose();
+            return JobHandle.Invalid;
+        }
     }
 
 }

@@ -1,0 +1,290 @@
+compute "Internal/ShadowCullGraph"
+{
+    properties
+    {
+        uint visibleMeshletsUav;
+        uint counterBufferUav;
+        uint maxVisibleMeshlets;
+        uint instanceCount;
+        uint shadowViewsBuffer;
+        uint shadowViewCount;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Mesh.hlsl";
+        "EngineResources/Shaders/Utilities/CullCommon.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl";
+    }
+
+    hlsl
+    {
+        struct HierarchyNodeRecord
+        {
+            uint instanceIndex;
+            uint nodeIndex;
+            uint shadowViewIndex;
+        };
+
+        struct MeshletGroupRecord
+        {
+            uint instanceIndex;
+            uint meshletStartIndex;
+            uint meshletCount;
+            uint rawBuffer;
+            uint meshletBufferOffset;
+            uint shadowViewIndex;
+        };
+
+        struct WorkGraphDispatchGridRecord
+        {
+            uint3 dispatchGrid : SV_DispatchGrid;
+        };
+
+        // Node 1: Entry point for instance-level culling across all shadow views
+        [Shader("node")]
+        [NodeLaunch("broadcasting")]
+        [NodeIsProgramEntry]
+        [NodeMaxDispatchGrid(65535, 64, 1)]
+        [NumThreads(64, 1, 1)]
+        void InstanceCullNode(
+            DispatchNodeInputRecord<WorkGraphDispatchGridRecord> inputRecord,
+            uint3 dispatchThreadId : SV_DispatchThreadID,
+            [NodeId("HierarchyTraverseNode")] [MaxRecords(64)] NodeOutput<HierarchyNodeRecord> hierarchyQueue)
+        {
+            InternalShadowCullGraphShaderProperties props = LoadData<InternalShadowCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
+
+            uint instanceIndex = dispatchThreadId.x;
+            uint shadowViewIndex = dispatchThreadId.y;
+
+            bool isVisible = false;
+            if (instanceIndex < props.instanceCount && shadowViewIndex < props.shadowViewCount)
+            {
+                InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, instanceIndex);
+                if (instance.meshBuffer != INVALID_BUFFER_INDEX)
+                {
+                    MeshData mesh = LoadData<MeshData>(instance.meshBuffer, 0);
+                    float3 worldMin, worldMax;
+                    TransformAABB(mesh.worldBoundsMin, mesh.worldBoundsMax, instance.localToWorld, worldMin, worldMax);
+
+                    ShadowViewData shadowView = LoadData<ShadowViewData>(props.shadowViewsBuffer, shadowViewIndex);
+                    isVisible = AABBIntersectFrustum(worldMin, worldMax, shadowView.planes);
+                }
+            }
+
+            ThreadNodeOutputRecords<HierarchyNodeRecord> outRec = hierarchyQueue.GetThreadNodeOutputRecords(isVisible ? 1u : 0u);
+            if (isVisible)
+            {
+                outRec.Get().instanceIndex = instanceIndex;
+                outRec.Get().nodeIndex = 0;
+                outRec.Get().shadowViewIndex = shadowViewIndex;
+            }
+            outRec.OutputComplete();
+        }
+
+        // Node 2: Hierarchical LOD DAG traversal
+        [Shader("node")]
+        [NodeLaunch("thread")]
+        [NodeMaxRecursionDepth(16)]
+        void HierarchyTraverseNode(
+            ThreadNodeInputRecord<HierarchyNodeRecord> inputRecord,
+            [NodeId("HierarchyTraverseNode")] [MaxRecords(7)] NodeOutput<HierarchyNodeRecord> selfQueue,
+            [NodeId("MeshletCullNode")]       [MaxRecords(1)] NodeOutput<MeshletGroupRecord> groupQueue)
+        {
+            InternalShadowCullGraphShaderProperties props = LoadData<InternalShadowCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
+            HierarchyNodeRecord rec = inputRecord.Get();
+
+            InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
+            MeshData mesh = LoadData<MeshData>(instance.meshBuffer, 0);
+            MeshletHierarchyNode node = LoadMeshletHierarchyNode(rec.nodeIndex, mesh);
+
+            float3 scale3 = float3(
+                length(instance.localToWorld._m00_m10_m20),
+                length(instance.localToWorld._m01_m11_m21),
+                length(instance.localToWorld._m02_m12_m22));
+            float maxScale = max(scale3.x, max(scale3.y, scale3.z));
+
+            float3 worldCenter = mul(instance.localToWorld, float4(node.bounds.xyz, 1.0f)).xyz;
+            float worldRadius = node.bounds.w * maxScale;
+
+            ShadowViewData shadowView = LoadData<ShadowViewData>(props.shadowViewsBuffer, rec.shadowViewIndex);
+            if (!SphereIntersectFrustum(worldCenter, worldRadius, shadowView.planes))
+            {
+                return;
+            }
+
+            // Dual-Error Parent Error Pruning:
+            // Evaluate screen error against camera perspective to match view pass LOD cut
+            // and eliminate self-shadowing acne from caster/receiver geometric mismatch.
+            bool isParentDetailSufficient = (node.error < 3.4e38f) && EvaluateLODDetailSufficient(
+                node.error * maxScale,
+                worldCenter,
+                worldRadius,
+                g_ViewData.cameraPosition,
+                g_ViewData.projectionMatrix[1][1],
+                g_ViewData.screenSize.y,
+                shadowView.lodErrorThreshold);
+
+            if (isParentDetailSufficient)
+            {
+                return;
+            }
+
+            if (node.groupIndex < 0)
+            {
+                // Internal node: traverse into children
+                uint childCount = min(node.childCount, 7u);
+                if (childCount > 0)
+                {
+                    ThreadNodeOutputRecords<HierarchyNodeRecord> outChildren = selfQueue.GetThreadNodeOutputRecords(childCount);
+                    for (uint c = 0; c < childCount; ++c)
+                    {
+                        outChildren[c].instanceIndex = rec.instanceIndex;
+                        outChildren[c].nodeIndex = node.childOffset + c;
+                        outChildren[c].shadowViewIndex = rec.shadowViewIndex;
+                    }
+                    outChildren.OutputComplete();
+                }
+            }
+            else
+            {
+                if (node.groupIndex >= 0)
+                {
+                    MeshletGroup group = LoadMeshletGroup((uint)node.groupIndex, mesh);
+
+                    ThreadNodeOutputRecords<MeshletGroupRecord> outGroup = groupQueue.GetThreadNodeOutputRecords(1u);
+                    outGroup.Get().instanceIndex = rec.instanceIndex;
+                    outGroup.Get().meshletStartIndex = group.meshletStartIndex;
+                    outGroup.Get().meshletCount = group.meshletCount;
+                    outGroup.Get().rawBuffer = mesh.rawBuffer;
+                    outGroup.Get().meshletBufferOffset = mesh.meshletBufferOffset;
+                    outGroup.Get().shadowViewIndex = rec.shadowViewIndex;
+                    outGroup.OutputComplete();
+                }
+            }
+        }
+
+        // Node 3: Fine cluster/meshlet culling with wave compaction
+        [Shader("node")]
+        [NodeLaunch("coalescing")]
+        [NumThreads(128, 1, 1)]
+        [WaveSize(32)]
+        void MeshletCullNode(
+            [MaxRecords(4)] GroupNodeInputRecords<MeshletGroupRecord> inputRecords,
+            uint groupThreadId : SV_GroupThreadID)
+        {
+            uint recordIndex = groupThreadId / 32;
+            uint laneIndex = groupThreadId % 32;
+
+            if (recordIndex >= inputRecords.Count())
+            {
+                return;
+            }
+
+            MeshletGroupRecord groupRec = inputRecords.Get(recordIndex);
+            uint meshletIndex = groupRec.meshletStartIndex + laneIndex;
+            bool isValid = (laneIndex < groupRec.meshletCount);
+
+            uint safeMeshletIndex = isValid ? meshletIndex : groupRec.meshletStartIndex;
+            InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, groupRec.instanceIndex);
+            Meshlet meshlet = LoadMeshlet(safeMeshletIndex, groupRec.rawBuffer, groupRec.meshletBufferOffset);
+
+            InternalShadowCullGraphShaderProperties props = LoadData<InternalShadowCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
+            ShadowViewData shadowView = LoadData<ShadowViewData>(props.shadowViewsBuffer, groupRec.shadowViewIndex);
+
+            float maxScale = 1.0f;
+            if (WaveIsFirstLane())
+            {
+                float3 scale3 = float3(
+                    length(instanceData.localToWorld._m00_m10_m20),
+                    length(instanceData.localToWorld._m01_m11_m21),
+                    length(instanceData.localToWorld._m02_m12_m22));
+                maxScale = max(scale3.x, max(scale3.y, scale3.z));
+            }
+            maxScale = WaveReadLaneFirst(maxScale);
+
+            bool isVisible = false;
+            uint cullBin = 0;
+
+            if (isValid)
+            {
+                float3 meshletWorldCenter = mul(instanceData.localToWorld, float4(meshlet.boundingSphere.xyz, 1.0f)).xyz;
+                float meshletWorldRadius = meshlet.boundingSphere.w * maxScale;
+
+                float3 meshletParentWorldCenter = mul(instanceData.localToWorld, float4(meshlet.parentBoundingSphere.xyz, 1.0f)).xyz;
+                float meshletParentWorldRadius = meshlet.parentBoundingSphere.w * maxScale;
+
+                // Dual-Error Cut Condition 1: Parent Error check (Lower bound)
+                // Evaluate against camera perspective to match view pass LOD cut
+                bool isParentDetailSufficient = (meshlet.parentError < 3.4e38f) && EvaluateLODDetailSufficient(
+                    meshlet.parentError * maxScale,
+                    meshletParentWorldCenter,
+                    meshletParentWorldRadius,
+                    g_ViewData.cameraPosition,
+                    g_ViewData.projectionMatrix[1][1],
+                    g_ViewData.screenSize.y,
+                    shadowView.lodErrorThreshold);
+
+                // Dual-Error Cut Condition 2: Cluster Error test (Upper bound)
+                // Evaluate against camera perspective to match view pass LOD cut
+                bool isClusterDetailSufficient = (meshlet.clusterError <= 0.0f) || EvaluateLODDetailSufficient(
+                    meshlet.clusterError * maxScale,
+                    meshletWorldCenter,
+                    meshletWorldRadius,
+                    g_ViewData.cameraPosition,
+                    g_ViewData.projectionMatrix[1][1],
+                    g_ViewData.screenSize.y,
+                    shadowView.lodErrorThreshold);
+
+                if (isParentDetailSufficient || !isClusterDetailSufficient)
+                {
+                    isValid = false;
+                }
+                else
+                {
+                    float3 worldBoxMin, worldBoxMax;
+                    TransformAABB(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld, worldBoxMin, worldBoxMax);
+                    isVisible = AABBIntersectFrustum(worldBoxMin, worldBoxMax, shadowView.planes);
+
+                    if (isVisible)
+                    {
+                        uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
+                        uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
+                        uint variantIndex = UnpackMaterialVariantIndex(packedMaterial);
+                        uint hasAlpha = UnpackMaterialHasAlpha(packedMaterial);
+                        cullBin = (hasAlpha != 0u) ? (variantIndex + 1u) : 0u;
+                    }
+                }
+            }
+
+            // Wave compaction for visible meshlets
+            uint waveVisibleCount = WaveActiveCountBits(isVisible);
+            uint localVisibleOffset = WavePrefixCountBits(isVisible);
+
+            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBufferUav];
+            uint waveVisibleBase = 0;
+            if (WaveIsFirstLane() && waveVisibleCount > 0)
+            {
+                counterBuf.InterlockedAdd(0, waveVisibleCount, waveVisibleBase);
+            }
+            waveVisibleBase = WaveReadLaneFirst(waveVisibleBase);
+
+            if (isVisible)
+            {
+                uint slot = waveVisibleBase + localVisibleOffset;
+                if (slot < props.maxVisibleMeshlets)
+                {
+                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = ResourceDescriptorHeap[props.visibleMeshletsUav];
+                    UnbinnedMeshletEntry entry;
+                    entry.instanceIndex = groupRec.instanceIndex;
+                    entry.meshletIndex = meshletIndex;
+                    entry.variantIndex = (cullBin << 16u) | (groupRec.shadowViewIndex & 0xFFFFu);
+                    visibleBuffer[slot] = entry;
+                }
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

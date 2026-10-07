@@ -50,12 +50,8 @@ internal class LightGatherSystem : SystemBase
             return;
         }
 
-        // TODO: Support multple directional lights. Shadow caster limited to one, but multiple non-shadow-casting directional lights can contribute to the scene.
-
-        DirectionalLight bestLight = default;
-        LocalToWorld bestTransform = default;
-        var foundSun = false;
         var bestScore = -1.0f;
+        var primaryIndex = -1;
 
         foreach (var chunk in dirQuery.GetChunkIterator())
         {
@@ -67,48 +63,50 @@ internal class LightGatherSystem : SystemBase
                 ref readonly var light = ref lights[i];
                 ref readonly var transform = ref transforms[i];
 
+                if (light.intensity <= 0.0f)
+                {
+                    continue;
+                }
+
+                var forward = transform.matrix.c2.xyz;
+                if (math.lengthsq(forward) > 1e-6f)
+                {
+                    forward = math.normalize(forward);
+                }
+                else
+                {
+                    forward = new float3(0.0f, -1.0f, 0.0f); // Default downward
+                }
+
+                var gpuLight = new GPUDirectionalLight
+                {
+                    directionWS = forward,
+                    castShadows = light.castShadows ? 1u : 0u,
+                    color = light.color * light.intensity,
+                    shadowBiasMultiplier = light.shadowBiasMultiplier > 0.0f ? light.shadowBiasMultiplier : 1.0f,
+                    cascadeSplits = default,
+                    shadowMatrix0 = float4x4.identity,
+                    shadowMatrix1 = float4x4.identity,
+                    shadowMatrix2 = float4x4.identity,
+                    shadowMatrix3 = float4x4.identity
+                };
+
+                var addedIndex = (int)payload.AddDirectionalLight(in gpuLight);
+
                 // Luminance calculation: standard Rec. 709 coefficients
                 var luminance = (light.color.x * 0.2126f + light.color.y * 0.7152f + light.color.z * 0.0722f) * light.intensity;
                 // Shadow casters get priority; among casters, pick highest luminance
                 var score = luminance + (light.castShadows ? 10000.0f : 0.0f);
 
-                if (!foundSun || score > bestScore)
+                if (light.castShadows && score > bestScore)
                 {
-                    foundSun = true;
                     bestScore = score;
-                    bestLight = light;
-                    bestTransform = transform;
+                    primaryIndex = addedIndex;
                 }
             }
         }
 
-        if (foundSun)
-        {
-            var forward = bestTransform.matrix.c2.xyz;
-            if (math.lengthsq(forward) > 1e-6f)
-            {
-                forward = math.normalize(forward);
-            }
-            else
-            {
-                forward = new float3(0.0f, -1.0f, 0.0f); // Default downward
-            }
-
-            var gpuSun = new GPUDirectionalLight
-            {
-                directionWS = forward,
-                castShadows = bestLight.castShadows ? 1u : 0u,
-                color = bestLight.color * bestLight.intensity,
-                shadowBiasMultiplier = bestLight.shadowBiasMultiplier > 0.0f ? bestLight.shadowBiasMultiplier : 1.0f,
-                cascadeSplits = default,
-                shadowMatrix0 = float4x4.identity,
-                shadowMatrix1 = float4x4.identity,
-                shadowMatrix2 = float4x4.identity,
-                shadowMatrix3 = float4x4.identity
-            };
-
-            payload.SetDirectionalLight(in gpuSun);
-        }
+        payload.SetPrimaryDirectionalLightIndex(primaryIndex);
     }
 
     private void GatherPunctualLights(scoped in SystemAPI systemAPI, GhostRenderPayload payload)
@@ -151,12 +149,14 @@ internal class LightGatherSystem : SystemBase
                     spotAngleOffset = -cosOuter * spotAngleScale;
                 }
 
+                var flags = ((uint)light.type & 0xFu) | ((light.shadowSize & 0xFFFFu) << 4);
+
                 var gpuLight = new GPUPunctualLight
                 {
                     positionWS = posWS,
                     range = light.range,
                     color = light.color * light.intensity,
-                    lightTypeAndFlags = (uint)light.type & 0xFu,
+                    lightTypeAndFlags = flags,
                     directionWS = dirWS,
                     spotAngleScale = spotAngleScale,
                     spotAngleOffset = spotAngleOffset,

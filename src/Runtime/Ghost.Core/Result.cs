@@ -23,15 +23,24 @@ public readonly struct Result
 {
     private readonly string? _message;
     private readonly bool _isSuccess;
+#if ENABLE_RESULT_STACKTRACE
+    private readonly System.Diagnostics.StackTrace _stackTrace;
+#endif
 
     public readonly string? Message => _message;
     public readonly bool IsSuccess => _isSuccess;
     public readonly bool IsFailure => !IsSuccess;
+#if ENABLE_RESULT_STACKTRACE
+    public readonly System.Diagnostics.StackTrace StackTrace => _stackTrace;
+#endif
 
     public Result(bool success, string? message = null)
     {
         _isSuccess = success;
         _message = message;
+#if ENABLE_RESULT_STACKTRACE
+        _stackTrace = new System.Diagnostics.StackTrace(1, true);
+#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

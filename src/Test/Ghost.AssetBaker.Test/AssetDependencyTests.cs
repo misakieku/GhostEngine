@@ -328,9 +328,12 @@ shader ""Test/Cycle""
     }
 }
 
-public class MockCustomSettings : IBakeSettings;
+public class MockCustomSettings : IBakeSettings
+{
+    public int Version { get; set; } = 1;
+}
 
-[AssetBaker(Extensions = new[] { ".custom" }, Type = AssetType.Unknown, SettingsType = typeof(MockCustomSettings))]
+[AssetBaker(Extensions = new[] { ".custom" }, Type = AssetType.Unknown, SettingsType = typeof(MockCustomSettings), SettingsVersion = 1)]
 public class MockCustomBaker : IAssetBaker, IAssetDependencyScanner
 {
     public IEnumerable<string> ScanDependencies(string sourceFile, IBakeSettings settings, AssetBakerContext ctx)

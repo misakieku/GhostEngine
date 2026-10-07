@@ -22,6 +22,7 @@ public class PipelineResourceTests
         // Initial field states
         Assert.AreEqual(Handle<ComputeShader>.Invalid, meshPipelineResource.buildHZBShader);
         Assert.AreEqual(Handle<ComputeShader>.Invalid, meshPipelineResource.prepareIndirectArgsShader);
+        Assert.AreEqual(Handle<ComputeShader>.Invalid, meshPipelineResource.prepareShadowIndirectArgsShader);
         Assert.IsNull(meshPipelineResource.cullWorkGraphEntry);
         Assert.AreEqual(Handle<ComputeShader>.Invalid, gpuSceneResource.updateGPUSceneShader);
 
@@ -38,6 +39,7 @@ public class PipelineResourceTests
         // Fields must remain safely defaulted after dispose
         Assert.AreEqual(Handle<ComputeShader>.Invalid, meshPipelineResource.buildHZBShader);
         Assert.AreEqual(Handle<ComputeShader>.Invalid, meshPipelineResource.prepareIndirectArgsShader);
+        Assert.AreEqual(Handle<ComputeShader>.Invalid, meshPipelineResource.prepareShadowIndirectArgsShader);
         Assert.IsNull(meshPipelineResource.cullWorkGraphEntry);
         Assert.AreEqual(Handle<ComputeShader>.Invalid, gpuSceneResource.updateGPUSceneShader);
     }

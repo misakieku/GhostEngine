@@ -54,6 +54,11 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
                 shader.Passes.Add((PassBlockSyntax)VisitPassBlock(passBlock));
             }
 
+            foreach (var stratBlock in shaderBody.strategyBlock())
+            {
+                shader.Strategies.Add((StrategyBlockSyntax)VisitStrategyBlock(stratBlock));
+            }
+
             foreach (var funcCall in shaderBody.functionCall())
             {
                 shader.FunctionCalls.Add((FunctionCallSyntax)VisitFunctionCall(funcCall));
@@ -173,6 +178,41 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
         }
 
         return hlsl;
+    }
+
+    public override object VisitStrategyBlock([NotNull] GhostShaderParser.StrategyBlockContext context)
+    {
+        var syntax = new StrategyBlockSyntax
+        {
+            SlotName = StripQuotes(context.slot.Text)
+        };
+
+        if (context.typeName != null)
+        {
+            syntax.TypeName = StripQuotes(context.typeName.Text);
+        }
+
+        if (context.filePath != null)
+        {
+            syntax.FilePath = StripQuotes(context.filePath.Text);
+        }
+        else if (context.LBRACE() != null && context.RBRACE() != null)
+        {
+            var start = context.LBRACE().Symbol.StopIndex + 1;
+            var stop = context.RBRACE().Symbol.StartIndex - 1;
+
+            if (stop >= start)
+            {
+                var input = context.Start.InputStream;
+                syntax.Code = input.GetText(new Interval(start, stop));
+            }
+            else
+            {
+                syntax.Code = string.Empty;
+            }
+        }
+
+        return syntax;
     }
 
     public override object VisitShaderEntry([NotNull] GhostShaderParser.ShaderEntryContext context)

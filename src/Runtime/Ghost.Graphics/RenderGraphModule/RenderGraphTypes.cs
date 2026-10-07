@@ -156,6 +156,34 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
         };
     }
 
+    public static RGTextureDesc AbsoluteDepth(
+        uint width,
+        uint height,
+        TextureFormat format,
+        float clearDepth = 0.0f,
+        byte clearStencil = 0,
+        bool clearAtFirstUse = true,
+        bool discardAtLastUse = true,
+        TextureUsage usage = TextureUsage.DepthStencil)
+    {
+        return new RGTextureDesc
+        {
+            sizeMode = RGTextureSizeMode.Absolute,
+            width = width,
+            height = height,
+            format = format,
+            clearColor = default,
+            clearDepth = clearDepth,
+            clearStencil = clearStencil,
+            clearAtFirstUse = clearAtFirstUse,
+            discardAtLastUse = discardAtLastUse,
+            dimension = TextureDimension.Texture2D,
+            mipLevels = 1,
+            slice = 1,
+            usage = usage
+        };
+    }
+
     /// <summary>
     /// Creates a texture descriptor with relative dimensions (uniform scale).
     /// </summary>

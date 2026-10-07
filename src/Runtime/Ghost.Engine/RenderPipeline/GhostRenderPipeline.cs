@@ -127,11 +127,11 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             return Result.Success();
         }
 
-        // FIX: This should be per view (at least a per view visible indices array) since we need to cull the light and manage the shadow atlas.
-        UploadLights(ctx, ghostPayload, out var punctualLightsSrv, out var punctualLightCount, out var directionalLightSrv);
+        UploadLights(ctx, ghostPayload,
+            out var punctualLightsSrv, out var punctualLightCount,
+            out var directionalLightSrv, out var directionalLightCount, out var primaryDirectionalLightIndex);
 
-        // Upload FrameData once per frame
-        var frameBuffer = RenderPipelineUtility.CreateFrameBuffer(ctx, _gpuScene.SceneBufferSrvIndex, punctualLightsSrv, punctualLightCount, directionalLightSrv);
+        var frameBuffer = RenderPipelineUtility.CreateFrameBuffer(ctx, _gpuScene.SceneBufferSrvIndex, punctualLightsSrv, punctualLightCount, directionalLightSrv, directionalLightCount, primaryDirectionalLightIndex);
 
         for (var requestIndex = 0; requestIndex < ghostPayload.RenderRequests.Length; requestIndex++)
         {
@@ -144,6 +144,9 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
             var viewProjMatrix = math.mul(projMatrix, viewMatrix);
             var frustum = Frustum.Create(viewProjMatrix, request.view.localToWorld.c3.xyz, request.view.localToWorld.c2.xyz, request.view.nearClipPlane, request.view.farClipPlane);
+
+            ExecutePerViewShadowSetup(ctx, ghostPayload, in frustum,
+                out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
 
             var viewContext = _gpuViewManager.GetView(request.viewId);
             viewContext.EnsureResources(renderView.ScreenSize);
@@ -174,13 +177,15 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             var gbuffer = AddDeferredTexturingPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, tileOffsetsBuffer, indirectArgsBuffer, viewContext.RenderSize);
             var tileLightList = AddTileLightCullingPass(viewContext.RenderGraph, currentDepth, viewContext.RenderSize);
 
+            var shadowAtlas = AddPunctualShadowAtlasPass(viewContext.RenderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
+
             if (_settings.DebugMode == RenderPipelineDebugMode.TileLightHeatmap)
             {
                 AddDebugTileLightHeatmapPass(viewContext.RenderGraph, tileLightList, currentDepth, colorTarget, viewContext.RenderSize);
             }
             else
             {
-                var litColor = AddDeferredLightingPass(viewContext.RenderGraph, gbuffer, currentDepth, tileLightList, viewContext.RenderSize);
+                var litColor = AddDeferredLightingPass(viewContext.RenderGraph, gbuffer, currentDepth, tileLightList, shadowAtlas, shadowViewsBufferSrv, shadowIndicesBufferSrv, viewContext.RenderSize);
                 viewContext.RenderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
             }
 
@@ -194,6 +199,10 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             // re-specify D3D12_SET_WORK_GRAPH_FLAG_INITIALIZE. Latching here (rather than at pass-build
             // time) keeps the flag honest if this frame's graph was compiled but failed to execute.
             _meshPipelineResource.cullWorkGraphProgram?.MarkInitialized();
+            if (shadowAtlas.IsValid)
+            {
+                _meshPipelineResource.shadowCullWorkGraphProgram?.MarkInitialized();
+            }
         }
 
         return Result.Success();

@@ -48,13 +48,21 @@ public class GraphicsShaderSemantics
 {
     public string name = string.Empty;
     public string? templateName;
-    public string? shadingModelFile;
     public uint shadingModelId;
     public string? hlsl;
     public List<PropertySemantic> properties = new List<PropertySemantic>();
     public List<string> includes = new List<string>();
     public PipelineSemantic? pipeline;
     public List<ShaderPassSemantic> passes = new List<ShaderPassSemantic>();
+    public Dictionary<string, StrategySemantic> strategies = new(StringComparer.OrdinalIgnoreCase);
+}
+
+public class StrategySemantic
+{
+    public string slotName = string.Empty;
+    public string typeName = string.Empty;
+    public string? filePath;
+    public string? hlsl;
 }
 
 public class ComputeShaderSemantics

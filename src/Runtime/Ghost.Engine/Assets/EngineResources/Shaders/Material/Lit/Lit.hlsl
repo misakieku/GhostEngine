@@ -29,11 +29,15 @@ struct MaterialContext
 struct ShadingContext
 {
     float3 positionWS;
+    float3 normalWS;
     float2 positionNDC;
     uint2 positionSS;
     uint2 tileCoord;
     float depth;
     float linearDepth;
+    uint shadowAtlasIndex;
+    uint shadowViewsBufferIndex;
+    uint shadowIndicesBufferIndex;
 };
 
 struct DirectLighting

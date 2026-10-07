@@ -101,6 +101,9 @@ struct DeferredLightingShaderProperties
     uint renderHeight;
     uint tilesPerRow;
     uint shadingModelId;
+    uint shadowAtlasSrv;
+    uint shadowViewsBufferSrv;
+    uint shadowIndicesBufferSrv;
 };
 
 #endif // GHOST_CLASSIFICATION_COMMON_HLSL

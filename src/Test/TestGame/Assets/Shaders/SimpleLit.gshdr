@@ -7,13 +7,10 @@ shader "MyShader/SimpleLit" : "Lit"
         float roughness = 0.4;
     }
 
-    shading_model("EngineResources/Shaders/Material/Lit/SimpleLit.hlsl");
+    strategy "DEFERREDLIGHTING_STRATEGY" "SimpleLitDeferredLighting" ("EngineResources/Shaders/Material/Lit/SimpleLit.hlsl");
 
-    hlsl
+    strategy "DEFERREDTEXTURING_STRATEGY" "SimpleLitDeferredTexturing"
     {
-        #if defined(GHOST_PASS_DEFERREDTEXTURING)
-        #define DEFERREDTEXTURING_STRATEGY SimpleLitDeferredTexturing
-        
         struct SimpleLitDeferredTexturing
         {
             static SimpleLitDeferredTexturing Create()
@@ -23,9 +20,15 @@ shader "MyShader/SimpleLit" : "Lit"
 
             SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
             {
+                float3 baseColor = float3(1.0, 1.0, 1.0);
+                if (IS_BUFFER_INDEX_VALID(props.baseColor))
+                {
+                    baseColor = SAMPLE_TEXTURE2D_GRAD(props.baseColor, props.sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv).rgb;
+                }
+
                 SurfaceData surface = (SurfaceData)0;
                 surface.materialFeatures = SHADING_MODEL_ID;
-                surface.emissive = SAMPLE_TEXTURE2D_GRAD(props.baseColor, props.sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv);
+                surface.albedo = baseColor;
                 surface.normalWS = ctx.normalWS;
                 surface.roughness = props.roughness;
                 surface.metallic = 0.0;
@@ -33,7 +36,5 @@ shader "MyShader/SimpleLit" : "Lit"
                 return surface;
             }
         };
-
-        #endif // GHOST_PASS_DEFERREDTEXTURING
     }
 }

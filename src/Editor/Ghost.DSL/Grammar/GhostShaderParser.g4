@@ -13,7 +13,7 @@ shader:
     RBRACE;
 
 shaderBody:
-    (propertiesBlock | includesBlock | pipelineBlock | hlslBlock | passBlock | functionCall)*;
+    (propertiesBlock | includesBlock | pipelineBlock | hlslBlock | strategyBlock | passBlock | functionCall)*;
 
 // Properties block
 propertiesBlock:
@@ -82,6 +82,9 @@ hlslBody:
         | 
         LBRACE hlslBody RBRACE  // Or match a nested block recursively
     )*;
+
+strategyBlock:
+    STRATEGY slot=(STRING_LITERAL | IDENTIFIER) (typeName=(STRING_LITERAL | IDENTIFIER))? (LPAREN filePath=STRING_LITERAL RPAREN SEMICOLON | LBRACE hlslBody RBRACE);
 
 shaderEntry:
     IDENTIFIER STRING_LITERAL COLON STRING_LITERAL SEMICOLON;

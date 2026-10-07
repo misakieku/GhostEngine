@@ -11,6 +11,9 @@ internal partial class MeshPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/MeshPipeline/MeshletCullGraph")]
     public IAssetEntry cullWorkGraphEntry = null!;
 
+    [ResolveAsset("EngineResources/Shaders/MeshPipeline/ShadowCullGraph")]
+    public IAssetEntry shadowCullWorkGraphEntry = null!;
+
     [ResolveAsset("EngineResources/Shaders/MeshPipeline/OccludedMeshletCull")]
     public Handle<ComputeShader> occludedMeshletCullShader;
 
@@ -20,6 +23,9 @@ internal partial class MeshPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/MeshPipeline/PrepareMeshletIndirectArgs")]
     public Handle<ComputeShader> prepareIndirectArgsShader;
 
+    [ResolveAsset("EngineResources/Shaders/MeshPipeline/PrepareShadowIndirectArgs")]
+    public Handle<ComputeShader> prepareShadowIndirectArgsShader;
+
     [ResolveAsset("EngineResources/Shaders/MeshPipeline/ScatterMeshlets")]
     public Handle<ComputeShader> scatterMeshletsShader;
 
@@ -27,17 +33,18 @@ internal partial class MeshPipelineResource : IPipelineResource
     public Handle<Shader> blitShader;
 
     public IWorkGraphProgram? cullWorkGraphProgram;
+    public IWorkGraphProgram? shadowCullWorkGraphProgram;
 
     public void EnsureWorkGraphProgram(RenderEngine renderEngine)
     {
-        if (cullWorkGraphProgram != null)
-        {
-            return;
-        }
-
-        if (cullWorkGraphEntry is WorkGraphAssetEntry wgEntry && !wgEntry.Bytecode.IsEmpty)
+        if (cullWorkGraphProgram == null && cullWorkGraphEntry is WorkGraphAssetEntry wgEntry && !wgEntry.Bytecode.IsEmpty)
         {
             cullWorkGraphProgram = renderEngine.GraphicsEngine.CreateWorkGraphProgram(wgEntry.Bytecode, "MeshletCullGraph");
+        }
+
+        if (shadowCullWorkGraphProgram == null && shadowCullWorkGraphEntry is WorkGraphAssetEntry shadowWgEntry && !shadowWgEntry.Bytecode.IsEmpty)
+        {
+            shadowCullWorkGraphProgram = renderEngine.GraphicsEngine.CreateWorkGraphProgram(shadowWgEntry.Bytecode, "ShadowCullGraph");
         }
     }
 
@@ -45,6 +52,8 @@ internal partial class MeshPipelineResource : IPipelineResource
     {
         cullWorkGraphProgram?.Dispose();
         cullWorkGraphProgram = null;
+        shadowCullWorkGraphProgram?.Dispose();
+        shadowCullWorkGraphProgram = null;
     }
 }
 

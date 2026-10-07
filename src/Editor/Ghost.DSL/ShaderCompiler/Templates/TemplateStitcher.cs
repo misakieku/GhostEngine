@@ -93,20 +93,20 @@ public static class TemplateStitcher
         @"\bShadingModelID\s*=\s*(\d+)u?\b",
         RegexOptions.Compiled);
 
-    private static uint ExtractShadingModelId(string shadingModelFile, IReadOnlyDictionary<string, string> virtualShaders)
+    private static uint ExtractShadingModelId(string strategyFilePath, IReadOnlyDictionary<string, string> virtualShaders)
     {
-        var relativePath = shadingModelFile.TrimStart('/', '\\');
+        var relativePath = strategyFilePath.TrimStart('/', '\\');
         string? content = null;
 
         if (virtualShaders.TryGetValue("/" + relativePath, out var code) ||
             virtualShaders.TryGetValue(relativePath, out code) ||
-            virtualShaders.TryGetValue(shadingModelFile, out code))
+            virtualShaders.TryGetValue(strategyFilePath, out code))
         {
             content = code;
         }
-        else if (File.Exists(shadingModelFile))
+        else if (File.Exists(strategyFilePath))
         {
-            content = File.ReadAllText(shadingModelFile);
+            content = File.ReadAllText(strategyFilePath);
         }
         else
         {
@@ -129,7 +129,7 @@ public static class TemplateStitcher
 
             if (content == null)
             {
-                var fileName = Path.GetFileName(shadingModelFile);
+                var fileName = Path.GetFileName(strategyFilePath);
                 var matches = Directory.GetFiles(Directory.GetCurrentDirectory(), fileName, SearchOption.AllDirectories);
                 if (matches.Length > 0)
                 {
@@ -153,7 +153,7 @@ public static class TemplateStitcher
     /// <summary>
     /// Stitches one template file into a complete translation unit for a stage.
     /// </summary>
-    private static Result<string> StitchStage(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders, string templateFile, PassSemantic passSemantic)
+    private static Result<string> StitchStage(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders, string templateFile, TemplatePassDef passDef)
     {
         var templateResult = LoadTemplateSource(templateFile);
         if (templateResult.IsFailure)
@@ -168,22 +168,51 @@ public static class TemplateStitcher
         }
 
         var commonFileName = Path.GetFileName(template.CommonTemplateFile);
-        var hasCustomVBuffer = semantics.hlsl != null && (semantics.hlsl.Contains("VBUFFER_STRATEGY") || semantics.hlsl.Contains("GHOST_PASS_VISIBILITY"));
-        var needsProperties = passSemantic != PassSemantic.DeferredLighting &&
-            (passSemantic != PassSemantic.Visibility || hasCustomVBuffer);
+
+        string userHlsl = string.Empty;
+        bool hasStrategy = false;
+
+        if (!string.IsNullOrEmpty(passDef.strategy) && semantics.strategies.TryGetValue(passDef.strategy, out var strategyDef))
+        {
+            hasStrategy = true;
+            var sbUser = new StringBuilder();
+            if (!string.IsNullOrEmpty(strategyDef.typeName) && !string.Equals(strategyDef.typeName, passDef.strategy, StringComparison.OrdinalIgnoreCase))
+            {
+                sbUser.AppendLine($"#define {passDef.strategy} {strategyDef.typeName}");
+            }
+
+            if (!string.IsNullOrEmpty(strategyDef.filePath))
+            {
+                var relPath = strategyDef.filePath.TrimStart('/', '\\');
+                if (virtualShaders.TryGetValue("/" + relPath, out var code) ||
+                    virtualShaders.TryGetValue(relPath, out code) ||
+                    virtualShaders.TryGetValue(strategyDef.filePath, out code))
+                {
+                    sbUser.AppendLine(code);
+                }
+                else if (File.Exists(strategyDef.filePath))
+                {
+                    sbUser.AppendLine(File.ReadAllText(strategyDef.filePath));
+                }
+                else
+                {
+                    sbUser.AppendLine($"#include \"{relPath}\"");
+                }
+            }
+
+            if (!string.IsNullOrEmpty(strategyDef.hlsl))
+            {
+                sbUser.AppendLine(strategyDef.hlsl);
+            }
+
+            userHlsl = sbUser.ToString();
+        }
+
+        var needsProperties = passDef.semantic != PassSemantic.DeferredLighting &&
+            (passDef.semantic == PassSemantic.DeferredTexturing || hasStrategy);
         var propertiesStruct = needsProperties
             ? BuildPropertiesStruct(template, semantics)
             : string.Empty;
-
-        var userHlsl = semantics.hlsl ?? string.Empty;
-        if (passSemantic == PassSemantic.Visibility && !hasCustomVBuffer)
-        {
-            userHlsl = string.Empty;
-        }
-        else if (passSemantic == PassSemantic.DeferredLighting && (semantics.hlsl == null || (!semantics.hlsl.Contains("DEFERREDLIGHTING_STRATEGY") && !semantics.hlsl.Contains("GHOST_PASS_DEFERREDLIGHTING"))))
-        {
-            userHlsl = string.Empty;
-        }
 
         var stitchedCommon = commonResult.Value
             .Replace("$GHOST_PROPERTIES_STRUCT$", propertiesStruct)
@@ -202,22 +231,6 @@ public static class TemplateStitcher
         }
 
         sb.AppendLine($"#define SHADING_MODEL_ID {semantics.shadingModelId}u");
-
-        // Automatically include the shading model file if declared via shading_model(...) only for DeferredLighting
-        if (passSemantic == PassSemantic.DeferredLighting && !string.IsNullOrEmpty(semantics.shadingModelFile))
-        {
-            var modelRel = semantics.shadingModelFile.TrimStart('/', '\\');
-            if (virtualShaders.TryGetValue("/" + modelRel, out var modelCode) ||
-                virtualShaders.TryGetValue(modelRel, out modelCode) ||
-                virtualShaders.TryGetValue(semantics.shadingModelFile, out modelCode))
-            {
-                sb.AppendLine(modelCode);
-            }
-            else
-            {
-                sb.AppendLine($"#include \"{modelRel}\"");
-            }
-        }
 
         foreach (var includePath in semantics.includes ?? new List<string>())
         {
@@ -250,10 +263,42 @@ public static class TemplateStitcher
     /// </summary>
     public static Result<GraphicsShaderDescriptor> ResolveShader(IShaderTemplate template, GraphicsShaderSemantics semantics, ShaderReflectionData reflectionData, IReadOnlyDictionary<string, string> virtualShaders)
     {
-        var shadingModelId = 0u;
-        if (!string.IsNullOrEmpty(semantics.shadingModelFile))
+        // Strategy Validation: Check that any strategy declared by the shader is accepted by the template
+        var validStrategies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < template.Passes.Count; i++)
         {
-            shadingModelId = ExtractShadingModelId(semantics.shadingModelFile, virtualShaders);
+            var pDef = template.Passes[i];
+            if (!string.IsNullOrEmpty(pDef.strategy))
+            {
+                validStrategies.Add(pDef.strategy);
+            }
+        }
+
+        foreach (var (slotName, _) in semantics.strategies)
+        {
+            if (!validStrategies.Contains(slotName))
+            {
+                var allowed = validStrategies.Count > 0 ? string.Join(", ", validStrategies) : "none";
+                return Result.Failure<GraphicsShaderDescriptor>(
+                    $"Shader '{semantics.name}' declares strategy '{slotName}', which is not recognized by template '{template.Name}'. Valid strategies for '{template.Name}' are: {allowed}.");
+            }
+        }
+
+        var shadingModelId = 0u;
+        if (semantics.strategies.TryGetValue("DEFERREDLIGHTING_STRATEGY", out var dlStrategy))
+        {
+            if (!string.IsNullOrEmpty(dlStrategy.filePath))
+            {
+                shadingModelId = ExtractShadingModelId(dlStrategy.filePath, virtualShaders);
+            }
+            else if (!string.IsNullOrEmpty(dlStrategy.hlsl))
+            {
+                var match = s_shadingModelIdRegex.Match(dlStrategy.hlsl);
+                if (match.Success && uint.TryParse(match.Groups[1].Value, out var parsed))
+                {
+                    shadingModelId = parsed;
+                }
+            }
         }
         else if (!string.IsNullOrEmpty(semantics.hlsl))
         {
@@ -288,7 +333,7 @@ public static class TemplateStitcher
 
             foreach (var stageDef in passDef.stages)
             {
-                var result = StitchStage(template, semantics, reflectionData, virtualShaders, stageDef.templateFile, passDef.semantic);
+                var result = StitchStage(template, semantics, reflectionData, virtualShaders, stageDef.templateFile, passDef);
                 if (result.IsFailure)
                 {
                     return Result.Failure($"Failed to stitch stage '{stageDef.entryPoint}' of pass '{passDef.name}': {result.Message}");
