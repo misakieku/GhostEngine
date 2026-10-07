@@ -3,6 +3,7 @@ using Ghost.Core.Utilities;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 
@@ -17,6 +18,7 @@ public sealed class GPUViewContext : IDisposable
     private readonly ShaderLibrary _shaderLibrary;
 
     private RenderGraph? _renderGraph;
+    private ShadowAtlasRegionAllocator? _shadowAllocator;
 
     public float4x4 prevViewProjMatrix;
 
@@ -60,6 +62,16 @@ public sealed class GPUViewContext : IDisposable
         }
     }
 
+    public ShadowAtlasRegionAllocator ShadowAllocator
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            Logger.DebugAssert(_shadowAllocator != null, "ShadowAllocator is not initialized. Call EnsureResources() first.");
+            return _shadowAllocator;
+        }
+    }
+
     public GPUViewContext(IResourceAllocator allocator, IResourceDatabase database, IPipelineLibrary pipelineLibrary, ResourceManager resourceManager, ShaderLibrary shaderLibrary, uint viewId)
     {
         _allocator = allocator;
@@ -86,7 +98,7 @@ public sealed class GPUViewContext : IDisposable
         hzbMipCount = Math.Clamp(calculatedMipCount, 1u, 16u);
     }
 
-    public void EnsureResources(uint2 renderSize)
+    public void EnsureResources(uint2 renderSize, uint shadowAtlasResolution)
     {
         if (renderSize.x == 0 || renderSize.y == 0)
         {
@@ -94,6 +106,14 @@ public sealed class GPUViewContext : IDisposable
         }
 
         _renderGraph ??= new RenderGraph(_database, _allocator, _pipelineLibrary, _resourceManager, _shaderLibrary);
+        if (_shadowAllocator == null)
+        {
+            _shadowAllocator = new ShadowAtlasRegionAllocator(shadowAtlasResolution, shadowAtlasResolution, AllocationHandle.Persistent);
+        }
+        else
+        {
+            _shadowAllocator.Reset(shadowAtlasResolution, shadowAtlasResolution);
+        }
 
         if (!HzbTexture.IsValid || RenderSize.x != renderSize.x || RenderSize.y != renderSize.y)
         {
@@ -133,7 +153,10 @@ public sealed class GPUViewContext : IDisposable
         }
 
         _renderGraph?.Dispose();
+        _shadowAllocator?.Dispose();
+
         _renderGraph = null;
+        _shadowAllocator = null;
 
         IsActive = false;
         RenderSize = default;

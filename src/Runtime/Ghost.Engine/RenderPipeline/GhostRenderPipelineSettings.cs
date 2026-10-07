@@ -263,12 +263,6 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     public RenderPipelineDebugMode DebugMode { get; set; } = RenderPipelineDebugMode.None;
 
     /// <summary>
-    /// When true, allocates 32 DWORDs per 16x16 tile (supporting up to 63 lights per tile).
-    /// When false, allocates 16 DWORDs per 16x16 tile (supporting up to 31 lights per tile).
-    /// </summary>
-    public bool HighDensityLightTiles { get; set; } = false;
-
-    /// <summary>
     /// Resolution of the primary directional shadow map Texture2DArray (per cascade slice). Default is 2048.
     /// </summary>
     public uint DirectionalShadowResolution { get; set; } = 2048;
@@ -287,6 +281,11 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     /// Blend factor between logarithmic and linear cascade splits. Default is 0.85f.
     /// </summary>
     public float DirectionalShadowSplitLambda { get; set; } = 0.85f;
+
+    /// <summary>
+    /// Resolution of the shadow atlas for punctual lights (point and spot lights). Default is 4096.
+    /// </summary>
+    public uint ShadowAtlasResolution { get; set; } = 4096;
 
     public IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager, JobScheduler jobScheduler)
     {

@@ -8,7 +8,7 @@ namespace Ghost.UnitTest.Graphics;
 #if GHOST_UNITTEST
 public partial class RenderGraphTest
 {
-    private static readonly ViewState s_phase4ViewState = new(1920, 1080, 1920, 1080);
+    private static readonly ViewportState s_phase4ViewState = new(1920, 1080, 1920, 1080);
 
     [TestMethod]
     public void TestPhase4_SyncMarkersRecordAndSubmitEndedGraphicsCommandBuffersInOrder()

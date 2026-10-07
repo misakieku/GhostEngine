@@ -61,7 +61,7 @@ public class RenderGraphBenchmark
 
     private RenderGraph _renderGraph = null!;
     private RenderGraphExecutionContext _executionContext;
-    private ViewState _viewState;
+    private ViewportState _viewState;
 
     private Handle<GPUTexture> _importedBackBufferHandle;
     private Handle<GPUBuffer> _importedSceneBufferHandle;
@@ -90,7 +90,7 @@ public class RenderGraphBenchmark
             _graphicsCommandAllocator,
             _computeCommandAllocator);
 
-        _viewState = new ViewState
+        _viewState = new ViewportState
         {
             actualWidth = 3840,
             actualHeight = 2160,

@@ -81,7 +81,7 @@ public sealed class RenderGraph : IDisposable
         _builder = new RenderGraphBuilder(_resourceRegistry, _blackboard);
     }
 
-    private RenderGraphDump GenerateDump(scoped in CompiledGraph graph, ViewState viewState)
+    private RenderGraphDump GenerateDump(scoped in CompiledGraph graph, ViewportState viewState)
     {
         var sizeWithoutAliasing = 0UL;
         for (var i = 0; i < graph.plan.placedResources.Count; i++)
@@ -529,7 +529,9 @@ public sealed class RenderGraph : IDisposable
     /// <summary>
     /// Compiles the render graph and executes all compiled passes.
     /// </summary>
-    public Result<RGExecution, Error> CompileAndExecute(in RenderGraphExecutionContext executionContext, ViewState viewState, RGFlags flags = RGFlags.Default)
+    // TODO: Maybe we can introduce a new method called BeginRecord and take the ViewPortState as a parameter,
+    // When there is a relative texture, we can resolve the actual size directly?
+    public Result<RGExecution, Error> CompileAndExecute(in RenderGraphExecutionContext executionContext, ViewportState viewState, RGFlags flags = RGFlags.Default)
     {
         _resourceRegistry.ResolveTextureSizes(in viewState);
 

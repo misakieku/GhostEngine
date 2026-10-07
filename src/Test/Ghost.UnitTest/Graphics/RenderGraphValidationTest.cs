@@ -67,7 +67,7 @@ public class RenderGraphValidationTest
         _renderDevice.Dispose();
     }
 
-    private Result<RGExecution, Error> CompileAndExecute(ViewState viewState)
+    private Result<RGExecution, Error> CompileAndExecute(ViewportState viewState)
     {
         return _renderGraph.CompileAndExecute(_executionContext, viewState);
     }
@@ -180,7 +180,7 @@ public class RenderGraphValidationTest
         builder.SetRenderFunc<PassData>(static (ref readonly data, ctx) => { });
         builder.Dispose();
 
-        var viewState = new ViewState(1920, 1080, 1920, 1080);
+        var viewState = new ViewportState(1920, 1080, 1920, 1080);
         CompileAndExecute(viewState).GetValueOrThrow();
 
         var passes = GetPasses();
@@ -208,7 +208,7 @@ public class RenderGraphValidationTest
             AccessFlags.Write,
             new ResourceBarrierData(BarrierLayout.DepthStencilWrite, BarrierAccess.DepthStencilWrite, BarrierSync.DepthStencil));
 
-        var error = Assert.ThrowsExactly<InvalidOperationException>(() => CompileAndExecute(new ViewState(1920, 1080, 1920, 1080)));
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080)));
         AssertDetailedConflict(error, "DepthCompilerBackstopPass", resourceName, buffer.Value, "DepthWrite", "requires a texture resource");
     }
 

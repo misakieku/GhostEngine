@@ -1,6 +1,7 @@
 using Ghost.Engine.RenderPipeline;
 using Ghost.Engine.Utilities;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.InteropServices;
 
@@ -20,7 +21,7 @@ public class ShadowAtlasTests
     [TestMethod]
     public void ShadowAtlasRegionAllocator_SingleTileAllocation_ComputesGutterCorrectly()
     {
-        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, gutterTexels: 1);
+        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, AllocationHandle.Persistent);
 
         var success = allocator.Allocate(512, 512, out var region);
         Assert.IsTrue(success);
@@ -44,7 +45,7 @@ public class ShadowAtlasTests
     [TestMethod]
     public void ShadowAtlasRegionAllocator_MultipleTiles_PacksAcrossShelves()
     {
-        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, gutterTexels: 1);
+        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048);
 
         // First shelf (y=0, height=512): fits 4 tiles of 512x512
         for (var i = 0; i < 4; i++)
@@ -65,7 +66,7 @@ public class ShadowAtlasTests
     [TestMethod]
     public void ShadowAtlasRegionAllocator_PointLightBlock_Allocates6ContiguousFaces()
     {
-        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, gutterTexels: 1);
+        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, AllocationHandle.Persistent);
 
         Span<ShadowAtlasRegion> faces = stackalloc ShadowAtlasRegion[6];
         var success = allocator.AllocatePointLightBlock(256, faces);
@@ -91,7 +92,7 @@ public class ShadowAtlasTests
     public void ShadowAtlasRegionAllocator_PointLightBlock_RollsBackOnFailure()
     {
         // Small atlas of 512x256: can fit 2 faces of 256x256, not 6
-        using var allocator = new ShadowAtlasRegionAllocator(512, 256, gutterTexels: 1);
+        using var allocator = new ShadowAtlasRegionAllocator(512, 256, AllocationHandle.Persistent);
 
         Span<ShadowAtlasRegion> faces = stackalloc ShadowAtlasRegion[6];
         var success = allocator.AllocatePointLightBlock(256, faces);
@@ -109,7 +110,7 @@ public class ShadowAtlasTests
     [TestMethod]
     public void ShadowAtlasRegionAllocator_Reset_AllowsReallocation()
     {
-        using var allocator = new ShadowAtlasRegionAllocator(1024, 1024, gutterTexels: 1);
+        using var allocator = new ShadowAtlasRegionAllocator(1024, 1024, AllocationHandle.Persistent);
 
         // Fill the atlas with 4 tiles of 512x512
         for (var i = 0; i < 4; i++)
@@ -121,7 +122,7 @@ public class ShadowAtlasTests
         Assert.IsFalse(allocator.Allocate(512, 512, out _));
 
         // Reset
-        allocator.Reset();
+        allocator.Reset(1024, 1024);
 
         // Should be able to allocate again starting from (0, 0)
         var ok = allocator.Allocate(512, 512, out var reg);
@@ -202,8 +203,7 @@ public class ShadowAtlasTests
     [TestMethod]
     public void ShadowAtlasRegionAllocator_WithCustomAllocationHandle_AllocatesAndDisposesCleanly()
     {
-        using var stackScope = Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.CreateStackScope();
-        using var allocator = new ShadowAtlasRegionAllocator(1024, 1024, gutterTexels: 1, stackScope.AllocationHandle);
+        using var allocator = new ShadowAtlasRegionAllocator(1024, 1024);
 
         var success = allocator.Allocate(256, 256, out var region);
         Assert.IsTrue(success);

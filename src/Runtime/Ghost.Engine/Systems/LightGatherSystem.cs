@@ -78,6 +78,7 @@ internal class LightGatherSystem : SystemBase
                     forward = new float3(0.0f, -1.0f, 0.0f); // Default downward
                 }
 
+                // TODO: Handle cascaded shadow maps and shadow matrices for directional lights.
                 var gpuLight = new GPUDirectionalLight
                 {
                     directionWS = forward,
@@ -161,8 +162,9 @@ internal class LightGatherSystem : SystemBase
                     spotAngleScale = spotAngleScale,
                     spotAngleOffset = spotAngleOffset,
                     invRangeSq = invRangeSq,
-                    shadowIndex = -1,
-                    sourceRadius = light.sourceRadius
+                    sourceRadius = light.sourceRadius,
+                    normalBias = light.normalBias,
+                    depthBias = light.depthBias
                 };
 
                 payload.AddPunctualLight(in gpuLight);

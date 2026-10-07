@@ -21,7 +21,7 @@ shader "MyShader/SimpleLit" : "Lit"
             SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
             {
                 float3 baseColor = float3(1.0, 1.0, 1.0);
-                if (IS_BUFFER_INDEX_VALID(props.baseColor))
+                if (IS_VALID_BUFFER(props.baseColor))
                 {
                     baseColor = SAMPLE_TEXTURE2D_GRAD(props.baseColor, props.sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv).rgb;
                 }

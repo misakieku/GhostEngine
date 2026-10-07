@@ -54,7 +54,7 @@ public class ShaderPropertiesGeneratorTest
         Assert.AreEqual("Internal/TileMaterialClassification", InternalTileMaterialClassificationShaderProperties.SHADER_NAME);
 #pragma warning restore MSTEST0032 // Assertion condition is always true
         var size = sizeof(InternalTileMaterialClassificationShaderProperties);
-        Assert.AreEqual(68, size); // 2 uint4 fields + 9 uint fields = 68 bytes
+        Assert.AreEqual(76, size); // 2 uint4 fields + 11 uint fields = 76 bytes
 
         var offset0 = (int)Marshal.OffsetOf<InternalTileMaterialClassificationShaderProperties>(nameof(InternalTileMaterialClassificationShaderProperties.deferredVariantMask0));
         Assert.AreEqual(0, offset0);

@@ -67,8 +67,8 @@ public sealed class ShaderVariantRenderingTest
         public uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.AllSubresources) => uint.MaxValue;
         public void GetActualBindlessIndices(Identifier<RGTexture> texture, ReadOnlySpan<uint> subResources, Span<uint> outIndices, BindlessAccess access = BindlessAccess.ShaderResource) => outIndices.Fill(uint.MaxValue);
         public uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource) => uint.MaxValue;
-        public void SetUserData(uint userData0, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue) { }
-        public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue) where TProperty : unmanaged { }
+        public void SetUserData(uint userData0, uint userData1 = 0, uint userData2 = 0, uint userData3 = 0) { }
+        public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = 0, uint userData2 = 0, uint userData3 = 0) where TProperty : unmanaged { }
 
         public void SetActiveCompute(Handle<ComputeShader> computeShader, int entryIndex)
         {
@@ -105,12 +105,12 @@ public sealed class ShaderVariantRenderingTest
         {
         }
 
-        public void SetUserData(uint userData0, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue, DataTarget target = DataTarget.Graphics)
+        public void SetUserData(uint userData0, uint userData1 = 0, uint userData2 = 0, uint userData3 = 0, DataTarget target = DataTarget.Graphics)
         {
             throw new NotImplementedException();
         }
 
-        public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue, DataTarget target = DataTarget.Compute) where TProperty : unmanaged
+        public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = 0, uint userData2 = 0, uint userData3 = 0, DataTarget target = DataTarget.Compute) where TProperty : unmanaged
         {
             throw new NotImplementedException();
         }

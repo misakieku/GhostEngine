@@ -10,7 +10,7 @@ public class ShadowAtlasRegionAllocatorTests
     [TestMethod]
     public void Allocate_SingleTile_ZeroGutter_ComputesFlushUV()
     {
-        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, 0, AllocationHandle.Persistent);
+        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, AllocationHandle.Persistent);
 
         var success = allocator.Allocate(512, 512, out var region);
 
@@ -29,7 +29,7 @@ public class ShadowAtlasRegionAllocatorTests
     [TestMethod]
     public void Allocate_SingleTile_SucceedsAndComputesGutterUV()
     {
-        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, 1, AllocationHandle.Persistent);
+        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, AllocationHandle.Persistent);
 
         var success = allocator.Allocate(512, 512, out var region);
 
@@ -50,7 +50,7 @@ public class ShadowAtlasRegionAllocatorTests
     [TestMethod]
     public void AllocatePointLightBlock_AllocatesSixFacesContiguously()
     {
-        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, 1, AllocationHandle.Persistent);
+        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, AllocationHandle.Persistent);
         Span<ShadowAtlasRegion> faces = stackalloc ShadowAtlasRegion[6];
 
         var success = allocator.AllocatePointLightBlock(256, faces);
@@ -67,7 +67,7 @@ public class ShadowAtlasRegionAllocatorTests
     public void AllocatePointLightBlock_RollbackWhenInsufficientSpace()
     {
         // 512x256 atlas can hold two 256x256 tiles, not 6
-        using var allocator = new ShadowAtlasRegionAllocator(512, 256, 1, AllocationHandle.Persistent);
+        using var allocator = new ShadowAtlasRegionAllocator(512, 256, AllocationHandle.Persistent);
         Span<ShadowAtlasRegion> faces = stackalloc ShadowAtlasRegion[6];
 
         var success = allocator.AllocatePointLightBlock(256, faces);
@@ -85,7 +85,7 @@ public class ShadowAtlasRegionAllocatorTests
     public void Allocate_ConcurrentMultithreadedAllocations_NoOverlappingTiles()
     {
         // 2048x2048 atlas can hold 16 tiles of 512x512
-        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, 1, AllocationHandle.Persistent);
+        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, AllocationHandle.Persistent);
         var allocatedRegions = new ConcurrentBag<ShadowAtlasRegion>();
 
         Parallel.For(0, 32, _ =>

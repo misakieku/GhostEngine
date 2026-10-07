@@ -34,37 +34,35 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
     }
 
     private readonly Lock _lock;
-    private readonly uint _atlasWidth;
-    private readonly uint _atlasHeight;
-    private readonly uint _gutterTexels;
+    private uint _atlasWidth;
+    private uint _atlasHeight;
     private UnsafeList<Shelf> _shelves;
     private uint _nextShelfY;
 
     public uint AtlasWidth => _atlasWidth;
     public uint AtlasHeight => _atlasHeight;
 
-    public ShadowAtlasRegionAllocator(uint atlasWidth, uint atlasHeight, uint gutterTexels = 0)
-        : this(atlasWidth, atlasHeight, gutterTexels, AllocationHandle.Persistent)
+    public ShadowAtlasRegionAllocator(uint atlasWidth, uint atlasHeight)
+        : this(atlasWidth, atlasHeight, AllocationHandle.Persistent)
     {
     }
 
-    public ShadowAtlasRegionAllocator(uint atlasWidth, uint atlasHeight, uint gutterTexels, AllocationHandle allocationHandle)
+    public ShadowAtlasRegionAllocator(uint atlasWidth, uint atlasHeight, AllocationHandle allocationHandle)
     {
         _lock = new Lock();
         _atlasWidth = atlasWidth;
         _atlasHeight = atlasHeight;
-        _gutterTexels = gutterTexels;
         _shelves = new UnsafeList<Shelf>(16, allocationHandle);
         _nextShelfY = 0;
     }
 
-    public void Reset()
+    public void Reset(uint atlasWidth, uint atlasHeight)
     {
-        lock (_lock)
-        {
-            _shelves.Clear();
-            _nextShelfY = 0;
-        }
+        _atlasWidth = atlasWidth;
+        _atlasHeight = atlasHeight;
+
+        _shelves.Clear();
+        _nextShelfY = 0;
     }
 
     /// <summary>
@@ -184,7 +182,7 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
 
     private ShadowAtlasRegion CreateRegion(uint x, uint y, uint w, uint h)
     {
-        var gutter = _gutterTexels;
+        const uint gutter = 0;
         var innerW = (w > gutter * 2u) ? (w - gutter * 2u) : w;
         var innerH = (h > gutter * 2u) ? (h - gutter * 2u) : h;
 
@@ -205,9 +203,6 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
 
     public void Dispose()
     {
-        lock (_lock)
-        {
-            _shelves.Dispose();
-        }
+        _shelves.Dispose();
     }
 }

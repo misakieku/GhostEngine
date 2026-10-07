@@ -131,7 +131,7 @@ public partial class RenderGraphTest
     [TestMethod]
     public void TestAsyncPlanner_MultipleRegionsCacheHitPreservesStructure()
     {
-        var viewState = new ViewState(1920, 1080, 1920, 1080);
+        var viewState = new ViewportState(1920, 1080, 1920, 1080);
 
         void SetupTwoRegions()
         {
@@ -164,7 +164,7 @@ public partial class RenderGraphTest
     [TestMethod]
     public void TestNonAttachmentResource_BufferDescSizeChangeInvalidatesCache()
     {
-        var viewState = new ViewState(1920, 1080, 1920, 1080);
+        var viewState = new ViewportState(1920, 1080, 1920, 1080);
 
         void SetupBufferPass(ulong size)
         {
@@ -206,7 +206,7 @@ public partial class RenderGraphTest
     [TestMethod]
     public void TestNonAttachmentResource_UavTextureFormatChangeInvalidatesCache()
     {
-        var viewState = new ViewState(1920, 1080, 1920, 1080);
+        var viewState = new ViewportState(1920, 1080, 1920, 1080);
 
         void SetupUavTexturePass(TextureFormat format)
         {
@@ -248,7 +248,7 @@ public partial class RenderGraphTest
     [TestMethod]
     public void TestNonAttachmentResource_IdenticalDescriptorsProduceCacheHit()
     {
-        var viewState = new ViewState(1920, 1080, 1920, 1080);
+        var viewState = new ViewportState(1920, 1080, 1920, 1080);
 
         void SetupPass()
         {
@@ -309,7 +309,7 @@ public partial class RenderGraphTest
 
         // Frame 1: 4K (3840x2160)
         SetupPipeline();
-        var exec4K = CompileAndExecute(new ViewState(3840, 2160, 3840, 2160), RGFlags.GenerateDump).GetValueOrThrow();
+        var exec4K = CompileAndExecute(new ViewportState(3840, 2160, 3840, 2160), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(exec4K.Dump);
         Assert.IsFalse(exec4K.Dump.IsCacheHit);
         var res4K = exec4K.Dump.Resources.Single(r => r.Name == "RelativeTarget");
@@ -319,7 +319,7 @@ public partial class RenderGraphTest
 
         // Frame 2: Resize down to 2K (1920x1080)
         SetupPipeline();
-        var exec2K = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        var exec2K = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(exec2K.Dump);
         Assert.AreEqual(exec4K.Dump.GraphHash, exec2K.Dump.GraphHash, "Relative texture graph hash must remain identical across viewport resize.");
         Assert.IsTrue(exec2K.Dump.IsCacheHit, "Downsizing viewport must be a cache hit.");

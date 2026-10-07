@@ -43,7 +43,6 @@ struct FrameData
     uint pad2;
 };
 
-// Exactly 64 bytes (four float4 vectors), matching 1 GPU L1 cache line
 struct PunctualLightData
 {
     float3 positionWS;
@@ -57,8 +56,9 @@ struct PunctualLightData
 
     float  spotAngleOffset;     // -cosOuter * spotAngleScale
     float  invRangeSq;          // 1.0 / (range * range) for fast attenuation
-    int    shadowIndex;         // Index into shadow array (-1 if unshadowed)
     float  sourceRadius;        // GGX normalization / contact shadow radius
+    float normalBias;
+    float depthBias;
 };
 
 struct DirectionalLightData
@@ -78,8 +78,6 @@ struct ShadowViewData
     float4   tileOffsetScale;   // xy: offset [0..1], zw: scale [0..1]
     float3   lightPositionWS;
     float    lodErrorThreshold;
-    float    shadowBias;
-    float    normalBias;
     float    proj11;
     float    tileSize;
 };

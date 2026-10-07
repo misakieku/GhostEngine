@@ -78,7 +78,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
     /// <summary>
     /// Compiles the render graph by culling passes, allocating resources, and preparing barriers.
     /// </summary>
-    public Result<CompiledGraph, Error> Compile(in ViewState viewState, ulong graphHash, List<RenderGraphPass> passes, RGFlags flags, AllocationHandle allocationHandle)
+    public Result<CompiledGraph, Error> Compile(in ViewportState viewState, ulong graphHash, List<RenderGraphPass> passes, RGFlags flags, AllocationHandle allocationHandle)
     {
 #if GHOST_SAFETY_CHECKS
         if (!_hasValidatedGraphHash || _validatedGraphHash != graphHash)

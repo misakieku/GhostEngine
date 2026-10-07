@@ -62,7 +62,7 @@ public unsafe interface IResourceDatabase : IDisposable
     /// <param name="handle">A handle to the GPU resource for which to obtain the bindless index. Must reference a valid, currently registered resource.</param>
     /// <param name="access">The type of bindless access for which to obtain the index.</param>
     /// <param name="subResource">The sub-resource index of the resource to get. Defaults to <see cref="AllSubresources"/> for the primary/full-resource view.</param>
-    /// <returns>The bindless index corresponding to the specified GPU resource handle. ~0 if the resource does not support bindless access or is not found.</returns>
+    /// <returns>The bindless index corresponding to the specified GPU resource handle. 0 if the resource does not support bindless access or is not found.</returns>
     uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = AllSubresources);
 
     /// <summary>
@@ -80,7 +80,7 @@ public unsafe interface IResourceDatabase : IDisposable
     /// <param name="buffer">A handle to the GPU buffer for which to create the raw buffer SRV descriptor. Must reference a valid buffer resource.</param>
     /// <param name="offsetInBytes">The offset in bytes from the start of the buffer to the beginning of the sub-range for which to create the SRV descriptor.</param>
     /// <param name="sizeInBytes">The size in bytes of the sub-range for which to create the SRV descriptor.</param>
-    /// <returns>The bindless index of the newly created raw buffer SRV descriptor. Returns ~0 if the allocation fails.</returns>
+    /// <returns>The bindless index of the newly created raw buffer SRV descriptor. Returns 0 if the allocation fails.</returns>
     uint AllocateRawBufferSRV(Handle<GPUBuffer> buffer, ulong offsetInBytes, uint sizeInBytes);
 
     /// <summary>

@@ -19,7 +19,7 @@ void CSMain(
 
     // Shading Model Tile Early-Out Check
     uint tileIndex = groupID.y * props.tilesPerRow + groupID.x;
-    if (props.tileShadingModelMaskBufferIndex != 0xFFFFFFFFu)
+    if (IS_VALID_BUFFER(props.tileShadingModelMaskBufferIndex))
     {
         ByteAddressBuffer maskBuffer = ResourceDescriptorHeap[props.tileShadingModelMaskBufferIndex];
         if (groupIndex == 0u)

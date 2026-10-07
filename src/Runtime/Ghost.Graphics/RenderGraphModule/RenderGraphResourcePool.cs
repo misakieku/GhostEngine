@@ -324,7 +324,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
     /// Resolves texture sizes based on current view state.
     /// Must be called after all resources are created and before compilation.
     /// </summary>
-    internal void ResolveTextureSizes(in ViewState viewState)
+    internal void ResolveTextureSizes(in ViewportState viewState)
     {
         for (var i = 0; i < _resources.Count; i++)
         {

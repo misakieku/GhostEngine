@@ -12,7 +12,7 @@ namespace Ghost.Graphics.D3D12;
 
 internal unsafe class D3D12DescriptorHeap : IDisposable
 {
-    private const int _INVALID_DESCRIPTOR_INDEX = -1;
+    private const int INVALID_DESCRIPTOR_INDEX = 0;
 
     private readonly D3D12RenderDevice _device;
 
@@ -70,6 +70,8 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
         Logger.DebugAssert(success);
 
         _heap.Get()->SetName(ShaderVisible ? $"{name} Shader Visible" : name);
+
+        _searchStart = 1;
     }
 
     public int AllocateDescriptor() => AllocateDescriptors(1);
@@ -109,7 +111,7 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
                 if (!Grow(NumDescriptors + count))
                 {
                     Debug.WriteLine("Error: Failed to grow descriptor heap.");
-                    return _INVALID_DESCRIPTOR_INDEX;
+                    return INVALID_DESCRIPTOR_INDEX;
                 }
             }
 
@@ -128,7 +130,7 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
 
     public void ReleaseDescriptors(int baseIndex, int count = 1)
     {
-        if (baseIndex == _INVALID_DESCRIPTOR_INDEX)
+        if (baseIndex == INVALID_DESCRIPTOR_INDEX)
         {
             return;
         }
@@ -242,6 +244,8 @@ internal unsafe class D3D12DescriptorHeap : IDisposable
         {
             _allocatedDescriptors.Resize(numDescriptors, Misaki.HighPerformance.LowLevel.Buffer.AllocationOption.Clear);
         }
+
+        _allocatedDescriptors.SetBit(0); // Reserve index 0 as invalid descriptor index
 
         return true;
     }

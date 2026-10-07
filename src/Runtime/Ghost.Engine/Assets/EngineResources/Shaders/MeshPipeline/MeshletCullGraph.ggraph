@@ -79,7 +79,7 @@ compute "Internal/MeshletCullGraph"
             {
                 InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, instanceIndex);
 
-                if (instance.meshBuffer != INVALID_BUFFER_INDEX)
+                if (IS_VALID_BUFFER(instance.meshBuffer))
                 {
                     MeshData mesh = LoadData<MeshData>(instance.meshBuffer, 0);
 

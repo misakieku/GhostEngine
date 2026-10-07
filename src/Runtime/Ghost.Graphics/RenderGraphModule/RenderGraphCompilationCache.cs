@@ -36,7 +36,7 @@ internal struct CachedCompilation : IDisposable
     public UnsafeArray<byte> commandBytes;
 
     // View state used for this compilation
-    public ViewState viewState;
+    public ViewportState viewState;
 
     public void Dispose()
     {
@@ -91,7 +91,7 @@ internal sealed class RenderGraphCompilationCache : IDisposable
     public ref readonly CachedCompilation SetCached(
         RenderGraphResourceRegistry registry,
         ulong hash,
-        ViewState viewState,
+        ViewportState viewState,
         List<RenderGraphPass> passes,
         ReadOnlySpan<int> compiledPasses,
         ReadOnlySpan<NativeRenderPass> nativePasses,

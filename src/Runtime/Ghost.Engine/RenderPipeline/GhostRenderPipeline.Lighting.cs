@@ -43,6 +43,21 @@ internal unsafe partial class GhostRenderPipeline
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static float4x4 CreatePerspectiveReversedZ(float fovRadians, float aspect, float nearClip, float farClip)
+        {
+            var m11 = 1.0f / math.tan(fovRadians * 0.5f);
+            var m00 = m11 / aspect;
+            var m22 = nearClip / (nearClip - farClip);
+            var m23 = (farClip * nearClip) / (farClip - nearClip);
+
+            return new float4x4(
+                m00, 0.0f, 0.0f, 0.0f,
+                0.0f, m11, 0.0f, 0.0f,
+                0.0f, 0.0f, m22, m23,
+                0.0f, 0.0f, 1.0f, 0.0f);
+        }
+
         public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
         {
             ref readonly var light = ref lights[loopIndex];
@@ -93,10 +108,8 @@ internal unsafe partial class GhostRenderPipeline
                     tileOffsetScale = region.tileOffsetScale,
                     lightPositionWS = light.positionWS,
                     lodErrorThreshold = meshletLodErrorThreshold,
-                    shadowBias = 0.0005f,
-                    normalBias = 0.001f,
                     proj11 = 1.0f / math.tan(fov * 0.5f),
-                    tileSize = shadowSize
+                    tileSize = shadowSize,
                 };
 
                 var slot = shadowViewsWriter.AddNoResize(svData);
@@ -139,8 +152,6 @@ internal unsafe partial class GhostRenderPipeline
                         tileOffsetScale = faceRegions[f].tileOffsetScale,
                         lightPositionWS = light.positionWS,
                         lodErrorThreshold = meshletLodErrorThreshold,
-                        shadowBias = 0.0005f,
-                        normalBias = 0.001f,
                         proj11 = pointProj11,
                         tileSize = shadowSize
                     };
@@ -149,6 +160,108 @@ internal unsafe partial class GhostRenderPipeline
                 var baseSlot = shadowViewsWriter.AddRangeNoResize(faceViews, 6);
                 shadowIndices[loopIndex] = baseSlot;
             }
+        }
+    }
+
+    private void ExecutePerViewShadowSetup(ResourceContext ctx, GhostRenderPayload payload, ShadowAtlasRegionAllocator atlasAllocator, in Frustum viewFrustum, out uint shadowViewsBufferSrv, out uint shadowViewCount, out uint shadowIndicesBufferSrv)
+    {
+        shadowViewsBufferSrv = uint.MaxValue;
+        shadowViewCount = 0;
+        shadowIndicesBufferSrv = uint.MaxValue;
+
+        var lightCount = payload.PunctualLights.Length;
+        if (lightCount == 0)
+        {
+            return;
+        }
+
+        using var stackScope = AllocationManager.CreateStackScope();
+        using var shadowIndices = new UnsafeArray<int>(lightCount, stackScope.AllocationHandle);
+        shadowIndices.AsSpan().Fill(-1);
+
+        using var shadowViews = new UnsafeList<GPUShadowViewData>(Math.Max(16, lightCount * 6), AllocationHandle.TempRender);
+
+        var job = new PerViewShadowSetupJob
+        {
+            lights = payload.PunctualLights.ToArray(),
+            frustum = viewFrustum,
+            allocator = atlasAllocator,
+            shadowViewsWriter = shadowViews.AsParallelWriter(),
+            shadowIndices = shadowIndices,
+            meshletLodErrorThreshold = _settings.MeshletLodErrorThreshold
+        };
+
+        if (lightCount <= 64)
+        {
+            _jobScheduler.RunParallelFor(ref job, lightCount);
+        }
+        else
+        {
+            var handle = _jobScheduler.ScheduleParallelFor(in job, lightCount, 64, JobPriority.Normal);
+            _jobScheduler.Wait(handle);
+        }
+
+        shadowViewCount = (uint)shadowViews.Count;
+        if (shadowViewCount > 0)
+        {
+            var bufSize = shadowViewCount * (nuint)sizeof(GPUShadowViewData);
+            var desc = new BufferDesc
+            {
+                Size = bufSize,
+                Stride = (uint)sizeof(GPUShadowViewData),
+                Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+                HeapType = HeapType.Upload
+            };
+
+            var svBuffer = ctx.ResourceManager.CreateTransientBuffer(in desc, "ShadowViewsBuffer");
+            var pData = (GPUShadowViewData*)ctx.ResourceDatabase.MapResource(svBuffer.AsResource(), 0, null);
+            MemoryUtility.MemCpy(pData, shadowViews.GetUnsafePtr(), bufSize);
+            ctx.ResourceDatabase.UnmapResource(svBuffer.AsResource(), 0, null);
+            shadowViewsBufferSrv = ctx.ResourceDatabase.GetBindlessIndex(svBuffer.AsResource());
+
+            var indicesBufSize = (nuint)(lightCount * sizeof(int));
+            var indicesDesc = new BufferDesc
+            {
+                Size = indicesBufSize,
+                Stride = 4,
+                Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+                HeapType = HeapType.Upload
+            };
+
+            var indicesBuffer = ctx.ResourceManager.CreateTransientBuffer(in indicesDesc, "ShadowIndicesBuffer");
+            var pIndicesData = (int*)ctx.ResourceDatabase.MapResource(indicesBuffer.AsResource(), 0, null);
+            MemoryUtility.MemCpy(pIndicesData, shadowIndices.GetUnsafePtr(), indicesBufSize);
+            ctx.ResourceDatabase.UnmapResource(indicesBuffer.AsResource(), 0, null);
+            shadowIndicesBufferSrv = ctx.ResourceDatabase.GetBindlessIndex(indicesBuffer.AsResource());
+        }
+    }
+
+    private void UploadLights(ResourceContext ctx, GhostRenderPayload payload,
+        out uint punctualLightsSrv, out uint punctualLightCount,
+        out uint directionalLightSrv, out uint directionalLightCount, out int primaryDirectionalLightIndex)
+    {
+        UploadDirectionalLights(ctx, payload, out directionalLightSrv, out directionalLightCount, out primaryDirectionalLightIndex);
+        
+        punctualLightsSrv = uint.MaxValue;
+        punctualLightCount = (uint)payload.PunctualLights.Length;
+
+        if (punctualLightCount > 0)
+        {
+            var lights = payload.PunctualLights;
+            var bufferSize = punctualLightCount * (nuint)sizeof(GPUPunctualLight);
+            var desc = new BufferDesc
+            {
+                Size = bufferSize,
+                Stride = 4,
+                Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+                HeapType = HeapType.Upload
+            };
+
+            var lightBuffer = ctx.ResourceManager.CreateTransientBuffer(in desc, "PunctualLightsBuffer");
+            var pData = (GPUPunctualLight*)ctx.ResourceDatabase.MapResource(lightBuffer.AsResource(), 0, null);
+            MemoryUtility.MemCpy(pData, lights.GetUnsafePtr(), bufferSize);
+            ctx.ResourceDatabase.UnmapResource(lightBuffer.AsResource(), 0, null);
+            punctualLightsSrv = ctx.ResourceDatabase.GetBindlessIndex(lightBuffer.AsResource());
         }
     }
 
@@ -174,21 +287,6 @@ internal unsafe partial class GhostRenderPipeline
             yAxis.x, yAxis.y, yAxis.z, -math.dot(yAxis, eye),
             zAxis.x, zAxis.y, zAxis.z, -math.dot(zAxis, eye),
             0.0f, 0.0f, 0.0f, 1.0f);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float4x4 CreatePerspectiveReversedZ(float fovRadians, float aspect, float nearClip, float farClip)
-    {
-        var m11 = 1.0f / math.tan(fovRadians * 0.5f);
-        var m00 = m11 / aspect;
-        var m22 = nearClip / (nearClip - farClip);
-        var m23 = (farClip * nearClip) / (farClip - nearClip);
-
-        return new float4x4(
-            m00, 0.0f, 0.0f, 0.0f,
-            0.0f, m11, 0.0f, 0.0f,
-            0.0f, 0.0f, m22, m23,
-            0.0f, 0.0f, 1.0f, 0.0f);
     }
 
     private Identifier<RGBuffer> AddTileLightCullingPass(RenderGraph rg, Identifier<RGTexture> depthTexture, uint2 renderSize)
@@ -471,8 +569,6 @@ internal unsafe partial class GhostRenderPipeline
         public ICommandSignature commandSignature;
         public uint shadowViewsBufferSrv;
         public ShaderVariantRegistry variantRegistry;
-        public uint atlasWidth;
-        public uint atlasHeight;
     }
 
     private Identifier<RGTexture> AddPunctualShadowAtlasPass(RenderGraph rg, uint instanceCount, uint shadowViewsBufferSrv, uint shadowViewCount, uint atlasWidth = 2048, uint atlasHeight = 2048)
@@ -621,8 +717,8 @@ internal unsafe partial class GhostRenderPipeline
         using (var rasterBuilder = rg.AddRasterRenderPass<PunctualShadowRasterPassData>("PunctualShadowRaster"))
         {
             var shadowAtlasDesc = RGTextureDesc.AbsoluteDepth(
-                atlasWidth,
-                atlasHeight,
+                _settings.ShadowAtlasResolution,
+                _settings.ShadowAtlasResolution,
                 TextureFormat.R32_Typeless,
                 usage: TextureUsage.DepthStencil | TextureUsage.ShaderResource);
 
@@ -640,8 +736,6 @@ internal unsafe partial class GhostRenderPipeline
                 commandSignature = _dispatchMeshCommandSignature,
                 shadowViewsBufferSrv = shadowViewsBufferSrv,
                 variantRegistry = _assetManager.ShaderVariants,
-                atlasWidth = atlasWidth,
-                atlasHeight = atlasHeight
             });
 
             rasterBuilder.SetRenderFunc<PunctualShadowRasterPassData>(static (ref readonly passData, rasterCtx) =>
@@ -689,107 +783,6 @@ internal unsafe partial class GhostRenderPipeline
             ctx.ResourceDatabase.UnmapResource(dirBuffer.AsResource(), 0, null);
 
             directionalLightSrv = ctx.ResourceDatabase.GetBindlessIndex(dirBuffer.AsResource());
-        }
-    }
-
-    private void ExecutePerViewShadowSetup(ResourceContext ctx, GhostRenderPayload payload, in Frustum viewFrustum, out uint shadowViewsBufferSrv, out uint shadowViewCount, out uint shadowIndicesBufferSrv)
-    {
-        shadowViewsBufferSrv = uint.MaxValue;
-        shadowViewCount = 0;
-        shadowIndicesBufferSrv = uint.MaxValue;
-
-        var lightCount = payload.PunctualLights.Length;
-        if (lightCount == 0)
-        {
-            return;
-        }
-
-        using var stackScope = AllocationManager.CreateStackScope();
-        using var shadowIndices = new UnsafeArray<int>(lightCount, stackScope.AllocationHandle);
-        shadowIndices.AsSpan().Fill(-1);
-
-        using var shadowViews = new UnsafeList<GPUShadowViewData>(Math.Max(16, lightCount * 6), AllocationHandle.TempRender);
-        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, 0, AllocationHandle.TempRender);
-
-        var job = new PerViewShadowSetupJob
-        {
-            lights = payload.PunctualLights.ToArray(),
-            frustum = viewFrustum,
-            allocator = allocator,
-            shadowViewsWriter = shadowViews.AsParallelWriter(),
-            shadowIndices = shadowIndices,
-            meshletLodErrorThreshold = _settings.MeshletLodErrorThreshold
-        };
-
-        if (lightCount <= 64)
-        {
-            _jobScheduler.RunParallelFor(ref job, lightCount);
-        }
-        else
-        {
-            var handle = _jobScheduler.ScheduleParallelFor(in job, lightCount, 64, JobPriority.Normal);
-            _jobScheduler.Wait(handle);
-        }
-
-        shadowViewCount = (uint)shadowViews.Count;
-        if (shadowViewCount > 0)
-        {
-            var bufSize = shadowViewCount * (nuint)sizeof(GPUShadowViewData);
-            var desc = new BufferDesc
-            {
-                Size = bufSize,
-                Stride = (uint)sizeof(GPUShadowViewData),
-                Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-                HeapType = HeapType.Upload
-            };
-
-            var svBuffer = ctx.ResourceManager.CreateTransientBuffer(in desc, "ShadowViewsBuffer");
-            var pData = (GPUShadowViewData*)ctx.ResourceDatabase.MapResource(svBuffer.AsResource(), 0, null);
-            MemoryUtility.MemCpy(pData, shadowViews.GetUnsafePtr(), bufSize);
-            ctx.ResourceDatabase.UnmapResource(svBuffer.AsResource(), 0, null);
-            shadowViewsBufferSrv = ctx.ResourceDatabase.GetBindlessIndex(svBuffer.AsResource());
-
-            var indicesBufSize = (nuint)(lightCount * sizeof(int));
-            var indicesDesc = new BufferDesc
-            {
-                Size = indicesBufSize,
-                Stride = 4,
-                Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-                HeapType = HeapType.Upload
-            };
-
-            var indicesBuffer = ctx.ResourceManager.CreateTransientBuffer(in indicesDesc, "ShadowIndicesBuffer");
-            var pIndicesData = (int*)ctx.ResourceDatabase.MapResource(indicesBuffer.AsResource(), 0, null);
-            MemoryUtility.MemCpy(pIndicesData, shadowIndices.GetUnsafePtr(), indicesBufSize);
-            ctx.ResourceDatabase.UnmapResource(indicesBuffer.AsResource(), 0, null);
-            shadowIndicesBufferSrv = ctx.ResourceDatabase.GetBindlessIndex(indicesBuffer.AsResource());
-        }
-    }
-
-    private void UploadLights(ResourceContext ctx, GhostRenderPayload payload,
-        out uint punctualLightsSrv, out uint punctualLightCount,
-        out uint directionalLightSrv, out uint directionalLightCount, out int primaryDirectionalLightIndex)
-    {
-        UploadDirectionalLights(ctx, payload, out directionalLightSrv, out directionalLightCount, out primaryDirectionalLightIndex);
-        punctualLightsSrv = uint.MaxValue;
-        punctualLightCount = (uint)payload.PunctualLights.Length;
-        if (punctualLightCount > 0)
-        {
-            var lights = payload.PunctualLights;
-            var bufferSize = punctualLightCount * (nuint)sizeof(GPUPunctualLight);
-            var desc = new BufferDesc
-            {
-                Size = bufferSize,
-                Stride = 4,
-                Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-                HeapType = HeapType.Upload
-            };
-
-            var lightBuffer = ctx.ResourceManager.CreateTransientBuffer(in desc, "PunctualLightsBuffer");
-            var pData = (GPUPunctualLight*)ctx.ResourceDatabase.MapResource(lightBuffer.AsResource(), 0, null);
-            MemoryUtility.MemCpy(pData, lights.GetUnsafePtr(), bufferSize);
-            ctx.ResourceDatabase.UnmapResource(lightBuffer.AsResource(), 0, null);
-            punctualLightsSrv = ctx.ResourceDatabase.GetBindlessIndex(lightBuffer.AsResource());
         }
     }
 }

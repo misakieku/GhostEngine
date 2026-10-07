@@ -99,7 +99,7 @@ public partial class RenderGraphTest
     }
 
     private Result<RGExecution, Error> CompileAndExecute(
-        ViewState viewState,
+        ViewportState viewState,
         RGFlags flags = RGFlags.Default)
     {
         _graphicsEngine.ResetCommandBufferTracking();
@@ -306,7 +306,7 @@ public partial class RenderGraphTest
 
     private RenderGraphDump CompilePlannerDump()
     {
-        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execution.Dump);
         return execution.Dump;
     }
@@ -316,7 +316,7 @@ public partial class RenderGraphTest
     {
         SetupTestRenderPipeline();
 
-        var execution = CompileAndExecute(new ViewState
+        var execution = CompileAndExecute(new ViewportState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -332,7 +332,7 @@ public partial class RenderGraphTest
     {
         SetupTestRenderPipeline();
 
-        var execution = CompileAndExecute(new ViewState
+        var execution = CompileAndExecute(new ViewportState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -367,7 +367,7 @@ public partial class RenderGraphTest
     [TestMethod]
     public void TestRenderGraphCacheHit()
     {
-        var viewState = new ViewState
+        var viewState = new ViewportState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -426,7 +426,7 @@ public partial class RenderGraphTest
             Usage = TextureUsage.RenderTarget
         };
         var target = _resourceAllocator.CreateTexture(in targetDesc);
-        var viewState = new ViewState(1920, 1080, 1920, 1080);
+        var viewState = new ViewportState(1920, 1080, 1920, 1080);
 
         void SetupMergedPasses()
         {
@@ -508,7 +508,7 @@ public partial class RenderGraphTest
             builder.SetRenderFunc<FinalBlitPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var exec = CompileAndExecute(new ViewState
+        var exec = CompileAndExecute(new ViewportState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -629,13 +629,13 @@ public partial class RenderGraphTest
         }
 
         var (before, after) = AddAliasingBufferPasses();
-        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         AssertAliasingTransition(execution, before, after);
 
         _renderGraph.Reset();
 
         var (cachedBefore, cachedAfter) = AddAliasingBufferPasses();
-        var cachedExecution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        var cachedExecution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(cachedExecution.Dump);
         Assert.IsTrue(cachedExecution.Dump.IsCacheHit, "The second equivalent graph must replay the cached barrier stream.");
         AssertAliasingTransition(cachedExecution, cachedBefore, cachedAfter);
@@ -673,7 +673,7 @@ public partial class RenderGraphTest
             builder.SetRenderFunc<FinalBlitPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var exec = CompileAndExecute(new ViewState
+        var exec = CompileAndExecute(new ViewportState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -721,7 +721,7 @@ public partial class RenderGraphTest
             builder.SetRenderFunc<FinalBlitPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var exec = CompileAndExecute(new ViewState
+        var exec = CompileAndExecute(new ViewportState
         {
             actualWidth = 1920,
             actualHeight = 1080,
@@ -752,7 +752,7 @@ public partial class RenderGraphTest
             builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execution.Dump);
 
         var resourceLabel = $"[Buffer #{readWriteBuffer.Value}]";
@@ -783,7 +783,7 @@ public partial class RenderGraphTest
         }
 
         var repeatedBuffer = SetupReadPass(repeatDeclaration: true);
-        var repeatedExecution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        var repeatedExecution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(repeatedExecution.Dump);
 
         var repeatedPass = repeatedExecution.Dump.Passes.Single(pass => pass.Name == "RepeatedRead");
@@ -795,7 +795,7 @@ public partial class RenderGraphTest
         _renderGraph.Reset();
 
         SetupReadPass(repeatDeclaration: false);
-        var singleExecution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        var singleExecution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(singleExecution.Dump);
         Assert.AreEqual(repeatedExecution.Dump.GraphHash, singleExecution.Dump.GraphHash, "Duplicate declarations must not alter the structural graph hash.");
         Assert.IsTrue(singleExecution.Dump.IsCacheHit, "Canonical declarations must reuse the compilation cached for the equivalent graph.");
@@ -825,7 +825,7 @@ public partial class RenderGraphTest
             builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execution.Dump);
 
         var pass = execution.Dump.Passes.Single(item => item.Name == "RepeatedRandomAccess");
@@ -861,7 +861,7 @@ public partial class RenderGraphTest
         AddPass("WriteC", AccessFlags.Write);
         AddPass("WriteD", AccessFlags.Write);
 
-        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execution.Dump);
 
         var executionOrder = execution.Dump.CommandStream.Where(line => line.Contains("ExecutePass")).ToList();
@@ -888,7 +888,7 @@ public partial class RenderGraphTest
     {
         var firstBufferHandle = _resourceAllocator.CreateBuffer(new BufferDesc { Size = 1024 });
         var secondBufferHandle = _resourceAllocator.CreateBuffer(new BufferDesc { Size = 2048 });
-        var viewState = new ViewState(1920, 1080, 1920, 1080);
+        var viewState = new ViewportState(1920, 1080, 1920, 1080);
 
         void SetupPipeline(bool reverseDeclarationOrder)
         {
@@ -956,7 +956,7 @@ public partial class RenderGraphTest
             builder.SetRenderFunc<VBufferPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var execResult = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump);
+        var execResult = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump);
 
         Assert.IsTrue(execResult.IsSuccess, "Async-eligible compute should execute successfully on the graphics queue.");
         var exec = execResult.Value;
@@ -979,7 +979,7 @@ public partial class RenderGraphTest
     {
         PassRenderFunc<CullingPassData, IComputeRenderContext> computeRenderFunc = static (ref readonly data, ctx) => { };
         PassRenderFunc<VBufferPassData, IRasterRenderContext> rasterRenderFunc = static (ref readonly data, ctx) => { };
-        var viewState = new ViewState(1920, 1080, 1920, 1080);
+        var viewState = new ViewportState(1920, 1080, 1920, 1080);
 
         void SetupComputePass(bool asyncRequested)
         {
@@ -1205,7 +1205,7 @@ public partial class RenderGraphTest
             builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => { });
         }
 
-        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080)).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080)).GetValueOrThrow();
 
         var recordedBarriers = GetRecordedBarriers().ToList();
         var presentBarriers = recordedBarriers

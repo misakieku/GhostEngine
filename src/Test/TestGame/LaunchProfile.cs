@@ -96,7 +96,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         const float size = 10.0f;
         const float baseScale = 1.0f;
         const float lightSize = size * 1.0f;
-        const int lightCount = 8;
+        const int lightCount = 16;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -199,7 +199,9 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                     intensity = RandomFloat(2.5f, 5.0f),
                     range = RandomFloat(10.0f, 15.0f),
                     innerSpotAngle = math.radians(15.0f),
-                    outerSpotAngle = math.radians(40.0f)
+                    outerSpotAngle = math.radians(40.0f),
+                    normalBias = 0.001f,
+                    depthBias = 0.0005f,
                 },
                 new LocalToWorld
                 {

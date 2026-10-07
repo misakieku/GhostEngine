@@ -58,9 +58,14 @@ public struct PunctualLight : IComponentData
     public uint shadowSize;
 
     /// <summary>
+    /// Normal bias for shadow mapping.
+    /// </summary>
+    public float normalBias;
+
+    /// <summary>
     /// Depth bias for shadow mapping.
     /// </summary>
-    public float shadowBias;
+    public float depthBias;
 
     /// <summary>
     /// Multiplier for volumetric fog scattering.
@@ -77,7 +82,8 @@ public struct PunctualLight : IComponentData
         outerSpotAngle = 0.0f,
         sourceRadius = 0.05f,
         shadowSize = shadowSize,
-        shadowBias = 0.001f,
+        normalBias = 0.75f,
+        depthBias = 0.5f,
         volumetricScattering = 1.0f
     };
 
@@ -91,7 +97,8 @@ public struct PunctualLight : IComponentData
         outerSpotAngle = outerAngleRad,
         sourceRadius = 0.05f,
         shadowSize = shadowSize,
-        shadowBias = 0.001f,
+        normalBias = 0.75f,
+        depthBias = 0.5f,
         volumetricScattering = 1.0f
     };
 }

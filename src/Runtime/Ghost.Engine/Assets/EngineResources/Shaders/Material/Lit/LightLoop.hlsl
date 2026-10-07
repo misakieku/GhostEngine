@@ -20,7 +20,7 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
     PreLightData preLightData = strategy.GetPreLightData(ctx, V, bsdf);
     
     // Directional Lights (Multiple, with single primary shadow caster)
-    if (g_FrameData.directionalLightBuffer != 0xFFFFFFFFu && g_FrameData.directionalLightCount > 0u)
+    if (IS_VALID_BUFFER(g_FrameData.directionalLightBuffer) && g_FrameData.directionalLightCount > 0u)
     {
         for (uint dirIdx = 0u; dirIdx < g_FrameData.directionalLightCount; ++dirIdx)
         {
@@ -41,7 +41,7 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
     }
 
     // Punctual Lights (Point / Spot) via FPTL Tile List
-    if (g_FrameData.punctualLightsBuffer != 0xFFFFFFFFu)
+    if (IS_VALID_BUFFER(g_FrameData.punctualLightsBuffer))
     {
         uint tileIndex = ctx.tileCoord.y * tilesPerRow + ctx.tileCoord.x;
         uint lightCount = min(GetTileLightCount<DWORDS_PER_TILE>(tileLightList, tileIndex), MAX_LIGHTS_PER_TILE);
@@ -77,16 +77,17 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
 
             float shadow = 1.0f;
             int shadowIndex = -1;
-            if (ctx.shadowIndicesBufferIndex != 0xFFFFFFFFu)
+            if (IS_VALID_BUFFER(ctx.shadowIndicesBufferIndex))
             {
                 shadowIndex = LoadData<int>(ctx.shadowIndicesBufferIndex, fetch.lightIndex);
             }
             
-            if (shadowIndex >= 0 && ctx.shadowAtlasIndex != 0xFFFFFFFFu && ctx.shadowViewsBufferIndex != 0xFFFFFFFFu)
+            // TODO: Better shadow sampling.
+            if (shadowIndex >= 0 && IS_VALID_BUFFER(ctx.shadowAtlasIndex) && IS_VALID_BUFFER(ctx.shadowViewsBufferIndex))
             {
                 uint viewIdx = (uint)shadowIndex;
                 ShadowViewData sViewBase = LoadData<ShadowViewData>(ctx.shadowViewsBufferIndex, viewIdx);
-                float3 biasedPosWS = ctx.positionWS + ctx.normalWS * sViewBase.normalBias;
+                float3 biasedPosWS = ctx.positionWS + ctx.normalWS * light.normalBias;
 
                 if (lightType == 0u) // Point Light cubemap face selection
                 {
@@ -123,7 +124,8 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
                     {
                         float2 atlasUV = sView.tileOffsetScale.xy + uv * sView.tileOffsetScale.zw;
                         Texture2D<float> shadowAtlas = ResourceDescriptorHeap[ctx.shadowAtlasIndex];
-                        float receiverDepth = ndc.z + sView.shadowBias;
+                        
+                        float receiverDepth = ndc.z + light.depthBias;
 
                         uint2 atlasDim;
                         shadowAtlas.GetDimensions(atlasDim.x, atlasDim.y);

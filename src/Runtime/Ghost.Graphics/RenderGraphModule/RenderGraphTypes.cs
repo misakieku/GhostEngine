@@ -34,7 +34,7 @@ public enum RGTextureSizeMode : byte
 /// <summary>
 /// View state information for resolving relative texture sizes.
 /// </summary>
-public struct ViewState : IEquatable<ViewState>
+public struct ViewportState : IEquatable<ViewportState>
 {
     public uint viewportWidth;
     public uint viewportHeight;
@@ -43,7 +43,7 @@ public struct ViewState : IEquatable<ViewState>
     public uint actualWidth;
     public uint actualHeight;
 
-    public ViewState(uint width, uint height, uint actualWidth, uint actualHeight)
+    public ViewportState(uint width, uint height, uint actualWidth, uint actualHeight)
     {
         viewportWidth = width;
         viewportHeight = height;
@@ -51,7 +51,7 @@ public struct ViewState : IEquatable<ViewState>
         this.actualHeight = actualHeight;
     }
 
-    public readonly float2 CalculateScale(ViewState other)
+    public readonly float2 CalculateScale(ViewportState other)
     {
         return new float2(
             (float)viewportWidth / other.viewportWidth,
@@ -59,7 +59,7 @@ public struct ViewState : IEquatable<ViewState>
         );
     }
 
-    public readonly bool Equals(ViewState other)
+    public readonly bool Equals(ViewportState other)
     {
         return viewportWidth == other.viewportWidth && viewportHeight == other.viewportHeight
             && actualWidth == other.actualWidth && actualHeight == other.actualHeight;
@@ -67,7 +67,7 @@ public struct ViewState : IEquatable<ViewState>
 
     public override readonly bool Equals(object? obj)
     {
-        return obj is ViewState other && Equals(other);
+        return obj is ViewportState other && Equals(other);
     }
 
     public override readonly int GetHashCode()
@@ -75,12 +75,12 @@ public struct ViewState : IEquatable<ViewState>
         return HashCode.Combine(viewportWidth, viewportHeight, actualWidth, actualHeight);
     }
 
-    public static bool operator ==(ViewState left, ViewState right)
+    public static bool operator ==(ViewportState left, ViewportState right)
     {
         return left.Equals(right);
     }
 
-    public static bool operator !=(ViewState left, ViewState right)
+    public static bool operator !=(ViewportState left, ViewportState right)
     {
         return !left.Equals(right);
     }
@@ -476,7 +476,7 @@ public sealed class RenderGraphDump
         get; init;
     }
 
-    public ViewState ViewState
+    public ViewportState ViewState
     {
         get; init;
     }

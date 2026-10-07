@@ -48,8 +48,8 @@
 #define MAX_VERTICES_PER_MESHLET 64
 #define MAX_TRIANGLES_PER_MESHLET 126
 
-#define INVALID_BUFFER_INDEX 0xFFFFFFFF
-#define IS_BUFFER_INDEX_VALID(index) ((index) != INVALID_BUFFER_INDEX && (index) != 0)
+#define INVALID_BUFFER_INDEX 0
+#define IS_VALID_BUFFER(index) ((index) != 0)
 
 float4 SampleTexture2D(uint texId, uint sampId, float2 uv)
 {

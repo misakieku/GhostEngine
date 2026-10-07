@@ -267,7 +267,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         var r = GetResourceRecord(handle);
         if (r.IsFailure)
         {
-            return uint.MaxValue;
+            return 0;
         }
 
         ref readonly var vg = ref r.Value.viewGroup;
@@ -277,7 +277,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             case BindlessAccess.ShaderResource:
                 if (!vg.srv.IsValid)
                 {
-                    return uint.MaxValue;
+                    return 0;
                 }
 
                 if (subResource == IResourceDatabase.AllSubresources)
@@ -289,16 +289,16 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
                 {
                     return subResource < (uint)(vg.srvCount - 1)
                         ? (uint)(vg.srv.Value + 1 + (int)subResource)
-                        : uint.MaxValue;
+                        : 0;
                 }
 
                 // Fast path when subresource SRV is not created: requesting subResource = 0 returns main srv
-                return subResource == 0 ? (uint)vg.srv.Value : uint.MaxValue;
+                return subResource == 0 ? (uint)vg.srv.Value : 0;
 
             case BindlessAccess.UnorderedAccess:
                 if (!vg.uav.IsValid)
                 {
-                    return uint.MaxValue;
+                    return 0;
                 }
 
                 if (subResource == IResourceDatabase.AllSubresources)
@@ -308,13 +308,13 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
                 return subResource < vg.uavCount
                     ? (uint)(vg.uav.Value + (int)subResource)
-                    : uint.MaxValue;
+                    : 0;
 
             case BindlessAccess.ConstantBuffer:
-                return vg.cbv.IsValid ? (uint)vg.cbv.Value : uint.MaxValue;
+                return vg.cbv.IsValid ? (uint)vg.cbv.Value : 0;
 
             default:
-                return uint.MaxValue;
+                return 0;
         }
     }
 
@@ -324,7 +324,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         var r = GetResourceRecord(handle);
         if (r.IsFailure || !r.Value.Allocated)
         {
-            outIndices.Fill(uint.MaxValue);
+            outIndices.Clear();
             return;
         }
 
@@ -338,10 +338,10 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             {
                 outIndices[i] = access switch
                 {
-                    BindlessAccess.ShaderResource => vg.srv.IsValid ? (uint)vg.srv.Value : uint.MaxValue,
-                    BindlessAccess.ConstantBuffer => vg.cbv.IsValid ? (uint)vg.cbv.Value : uint.MaxValue,
-                    BindlessAccess.UnorderedAccess => vg.uav.IsValid ? (uint)vg.uav.Value : uint.MaxValue,
-                    _ => uint.MaxValue,
+                    BindlessAccess.ShaderResource => vg.srv.IsValid ? (uint)vg.srv.Value : 0,
+                    BindlessAccess.ConstantBuffer => vg.cbv.IsValid ? (uint)vg.cbv.Value : 0,
+                    BindlessAccess.UnorderedAccess => vg.uav.IsValid ? (uint)vg.uav.Value : 0,
+                    _ => 0,
                 };
             }
             else
@@ -350,14 +350,14 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
                 {
                     BindlessAccess.ShaderResource => vg.srv.IsValid
                         ? (vg.srvCount > 1
-                            ? (sub < (uint)(vg.srvCount - 1) ? (uint)(vg.srv.Value + 1 + (int)sub) : uint.MaxValue)
-                            : (sub == 0 ? (uint)vg.srv.Value : uint.MaxValue))
-                        : uint.MaxValue,
+                            ? (sub < (uint)(vg.srvCount - 1) ? (uint)(vg.srv.Value + 1 + (int)sub) : 0)
+                            : (sub == 0 ? (uint)vg.srv.Value : 0))
+                        : 0,
                     BindlessAccess.UnorderedAccess => vg.uav.IsValid
-                        ? (sub < vg.uavCount ? (uint)(vg.uav.Value + (int)sub) : uint.MaxValue)
-                        : uint.MaxValue,
-                    BindlessAccess.ConstantBuffer => vg.cbv.IsValid ? (uint)vg.cbv.Value : uint.MaxValue,
-                    _ => uint.MaxValue,
+                        ? (sub < vg.uavCount ? (uint)(vg.uav.Value + (int)sub) : 0)
+                        : 0,
+                    BindlessAccess.ConstantBuffer => vg.cbv.IsValid ? (uint)vg.cbv.Value : 0,
+                    _ => 0,
                 };
             }
         }
@@ -368,7 +368,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         var r = GetResourceRecord(buffer.AsResource());
         if (r.IsFailure || !r.Value.Allocated)
         {
-            return uint.MaxValue;
+            return 0;
         }
 
         var pResource = r.Value.ResourcePtr.Get();

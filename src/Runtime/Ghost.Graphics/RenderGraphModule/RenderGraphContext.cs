@@ -29,8 +29,8 @@ public interface IRenderGraphContext
     void GetActualBindlessIndices(Identifier<RGTexture> texture, ReadOnlySpan<uint> subResources, Span<uint> outIndices, BindlessAccess access = BindlessAccess.ShaderResource);
     uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource);
 
-    void SetUserData(uint userData0, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue, DataTarget target = DataTarget.Graphics);
-    void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue, DataTarget target = DataTarget.Compute)
+    void SetUserData(uint userData0, uint userData1 = 0, uint userData2 = 0, uint userData3 = 0, DataTarget target = DataTarget.Graphics);
+    void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = 0, uint userData2 = 0, uint userData3 = 0, DataTarget target = DataTarget.Compute)
         where TProperty : unmanaged;
 
     bool TrySetActiveShaderPass(Handle<Shader> shader, int passIndex, PipelineState? pipelineOverride = null);
@@ -228,7 +228,7 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
         }
     }
 
-    public void SetUserData(uint userData0, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue, DataTarget target = DataTarget.Graphics)
+    public void SetUserData(uint userData0, uint userData1 = 0, uint userData2 = 0, uint userData3 = 0, DataTarget target = DataTarget.Graphics)
     {
         var data = new PushConstantsData
         {
@@ -249,7 +249,7 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
         }
     }
 
-    public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = uint.MaxValue, uint userData2 = uint.MaxValue, uint userData3 = uint.MaxValue, DataTarget target = DataTarget.Compute)
+    public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = 0, uint userData2 = 0, uint userData3 = 0, DataTarget target = DataTarget.Compute)
         where TProperty : unmanaged
     {
         var descriptor = _propertyAllocator.Allocate(in property);

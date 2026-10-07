@@ -131,8 +131,6 @@ public class RenderEngine : IDisposable
         _graphicsEngine = desc.GraphicsEngine;
         _streamingProcessor = desc.ResourceStreamingProcessor;
 
-        _graphicsEngine.ResourceDatabase.CreateEmpty(true);
-
         _resourceManager = new ResourceManager(_graphicsEngine.Device, _graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
         _swapChainManager = new SwapChainManager(_graphicsEngine, desc.FrameBufferCount);
         _frameScheduler = new FrameScheduler(_graphicsEngine);
@@ -482,6 +480,7 @@ public class RenderEngine : IDisposable
         {
             frameResource.GpuReadyEvent.Reset();
         }
+
         return success;
     }
 

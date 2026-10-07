@@ -67,7 +67,7 @@ void MSMain(
     uint targetVariantIndex = g_PushConstantData.userData3 >> 1u;
 
     uint binnedSlot = groupID;
-    if (binOffsetsIndex != 0xFFFFFFFF && binOffsetsIndex != 0)
+    if (IS_VALID_BUFFER(binOffsetsIndex))
     {
         ByteAddressBuffer binOffsetsBuffer = ResourceDescriptorHeap[binOffsetsIndex];
         uint binStartOffset = binOffsetsBuffer.Load(targetVariantIndex * 4u);

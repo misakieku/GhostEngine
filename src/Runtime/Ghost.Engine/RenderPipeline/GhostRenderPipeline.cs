@@ -25,13 +25,13 @@ internal partial class GhostRenderPipeline : IRenderPipeline
     private readonly JobScheduler _jobScheduler;
     private readonly GhostRenderPipelineSettings _settings;
 
-    private readonly GPUScene _gpuScene;
-    private readonly GPUViewManager _gpuViewManager;
-
     private readonly GPUSceneResource _gpuSceneResource;
     private readonly MeshPipelineResource _meshPipelineResource;
     private readonly MaterialPipelineResource _materialPipelineResource;
     private readonly LightingPipelineResource _lightingPipelineResource;
+
+    private readonly GPUScene _gpuScene;
+    private readonly GPUViewManager _gpuViewManager;
 
     private bool _disposed;
     private int _lastRenderRequestCount = -1;
@@ -149,9 +149,10 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
 
             var viewContext = _gpuViewManager.GetView(request.viewId);
-            viewContext.EnsureResources(renderView.ScreenSize);
+            viewContext.EnsureResources(renderView.ScreenSize, _settings.ShadowAtlasResolution);
 
-            Logger.DebugAssert(viewContext.RenderGraph != null);
+            ExecutePerViewShadowSetup(ctx, ghostPayload, viewContext.ShadowAllocator, in frustum,
+                out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
 
             if (viewContext.prevViewProjMatrix.Equals(float4x4.zero))
             {
@@ -189,7 +190,9 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 viewContext.RenderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
             }
 
-            var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewState, RGFlags.Default);
+            // TODO: Dynamic resolution.
+            var viewPort = new ViewportState(renderView.ScreenSize.x, renderView.ScreenSize.y, renderView.ScreenSize.x, renderView.ScreenSize.y);
+            var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.Default);
             if (result.IsFailure)
             {
                 return Result.Failure($"Render graph execution failed: {result.Error}");

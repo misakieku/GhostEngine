@@ -6,7 +6,7 @@
     "Version": 1,
     "OptimizeLevel": "O3",
     "Options": "None",
-    "ShaderModel": "SM_6_6",
+    "ShaderModel": "SM_6_8",
     "Defines": [],
     "DefineGroups": {}
   }

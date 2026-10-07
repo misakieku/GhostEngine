@@ -137,7 +137,7 @@ public partial class RenderGraphTest
             builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => ctx.DispatchCompute(1, 1, 1));
         }
 
-        var execution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        var execution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(execution.Dump);
         Assert.IsTrue(GetRecordedBarriers().Any(barrier => barrier.Force));
         Assert.IsTrue(execution.Dump.CommandStream.Any(
@@ -270,12 +270,12 @@ public partial class RenderGraphTest
     public void TestPhase3_ViewportGrowthPreservesAliasGroupsAndCommandBytes()
     {
         SetupTestRenderPipeline();
-        var firstExecution = CompileAndExecute(new ViewState(960, 540, 960, 540), RGFlags.GenerateDump).GetValueOrThrow();
+        var firstExecution = CompileAndExecute(new ViewportState(960, 540, 960, 540), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(firstExecution.Dump);
 
         _renderGraph.Reset();
         SetupTestRenderPipeline();
-        var grownExecution = CompileAndExecute(new ViewState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        var grownExecution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(grownExecution.Dump);
         Assert.IsTrue(grownExecution.Dump.IsCacheHit);
         Assert.IsTrue(firstExecution.Dump.CommandStream.SequenceEqual(grownExecution.Dump.CommandStream));
