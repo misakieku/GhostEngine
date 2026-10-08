@@ -112,13 +112,15 @@ internal partial class GhostRenderPipeline
         builder.UseRandomAccessTexture(existingVisBuffer);
         builder.UseBuffer(indirectArgsBuffer, AccessFlags.Read);
 
+        var maxVariants = GetMaxCullVariants();
+
         builder.SetPassData(new VisibilityPassData
         {
             visibleMeshlets = visibleMeshlets,
             binOffsetsBuffer = binOffsetsBuffer,
             visBuffer = existingVisBuffer,
             indirectArgsBuffer = indirectArgsBuffer,
-            indirectArgsOffset = isPass1 ? CullConstants.INDIRECT_OFFSET_PASS1_VARIANTS : CullConstants.INDIRECT_OFFSET_PASS2_VARIANTS,
+            indirectArgsOffset = isPass1 ? CullCommon.INDIRECT_OFFSET_PASS1_VARIANTS : CullCommon.GetPass2VariantsIndirectOffset(maxVariants),
             passIndex = cullPassIndex,
             sceneBuffer = sceneBuffer,
             screenSize = screenSize,

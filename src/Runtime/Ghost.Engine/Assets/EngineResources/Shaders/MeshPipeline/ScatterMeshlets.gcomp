@@ -8,6 +8,7 @@ compute "Internal/ScatterMeshlets"
         uint counterBuffer;
         uint totalVisibleOffset;
         uint maxVisibleMeshlets;
+        uint isShadowPass;
     }
 
     includes
@@ -39,17 +40,27 @@ compute "Internal/ScatterMeshlets"
             StructuredBuffer<UnbinnedMeshletEntry> unbinned = ResourceDescriptorHeap[props.unbinnedBuffer];
             UnbinnedMeshletEntry entry = unbinned[slotIndex];
 
+            uint binIndex = (props.isShadowPass != 0u) ? (entry.variantIndex >> 16u) : entry.variantIndex;
+
             RWByteAddressBuffer scatterCounters = ResourceDescriptorHeap[props.binScatterCounters];
             uint dstSlot;
-            scatterCounters.InterlockedAdd(entry.variantIndex * 4u, 1u, dstSlot);
+            scatterCounters.InterlockedAdd(binIndex * 4u, 1u, dstSlot);
 
             if (dstSlot < props.maxVisibleMeshlets)
             {
-                RWStructuredBuffer<VisibleMeshletEntry> binned = ResourceDescriptorHeap[props.binnedBuffer];
-                VisibleMeshletEntry visible;
-                visible.instanceIndex = entry.instanceIndex;
-                visible.meshletIndex = entry.meshletIndex;
-                binned[dstSlot] = visible;
+                if (props.isShadowPass != 0u)
+                {
+                    RWStructuredBuffer<UnbinnedMeshletEntry> binnedShadow = ResourceDescriptorHeap[props.binnedBuffer];
+                    binnedShadow[dstSlot] = entry;
+                }
+                else
+                {
+                    RWStructuredBuffer<VisibleMeshletEntry> binnedScene = ResourceDescriptorHeap[props.binnedBuffer];
+                    VisibleMeshletEntry visible;
+                    visible.instanceIndex = entry.instanceIndex;
+                    visible.meshletIndex = entry.meshletIndex;
+                    binnedScene[dstSlot] = visible;
+                }
             }
         }
     }

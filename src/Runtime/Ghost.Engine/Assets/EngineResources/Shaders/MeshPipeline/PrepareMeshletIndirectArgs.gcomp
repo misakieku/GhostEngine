@@ -21,10 +21,10 @@ compute "Internal/PrepareMeshletIndirectArgs"
 
     hlsl
     {
-        #define SCAN_THREADS 256
-
+        #define SCAN_THREADS 1024
+ 
         groupshared uint s_scan[SCAN_THREADS];
-
+ 
         [numthreads(SCAN_THREADS, 1, 1)]
         void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         {

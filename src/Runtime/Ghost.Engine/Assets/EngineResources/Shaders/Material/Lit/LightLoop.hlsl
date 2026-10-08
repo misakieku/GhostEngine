@@ -60,99 +60,103 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
             float distSq = dot(toLight, toLight);
             float dist = sqrt(distSq);
             float3 L = (dist > 0.0001f) ? (toLight / dist) : float3(0.0f, 1.0f, 0.0f);
+            
+            float NdotL = dot(bsdf.normalWS, L);
 
-            // Smooth windowed distance attenuation (Karis / Frostbite)
-            float factor = distSq * light.invRangeSq;
-            float smoothFactor = saturate(1.0f - factor * factor);
-            float attenuation = (smoothFactor * smoothFactor) / max(distSq, 0.0001f);
-
-            // Spot cone attenuation
+            float attenuation = 0.0f;
             uint lightType = light.lightTypeAndFlags & 0xFu;
-            if (lightType == 1u) // Spot = 1
+            if (lightType == 0u) // Point = 0
             {
+                // Smooth windowed distance attenuation (Karis / Frostbite)
+                float factor = distSq * light.invRangeSq;
+                float smoothFactor = saturate(1.0f - factor * factor);
+                attenuation = (smoothFactor * smoothFactor) / max(distSq, 0.0001f);
+            }
+            else if (lightType == 1u) // Spot = 1
+            {
+                // Spot cone attenuation
                 float cosAngle = dot(-L, light.directionWS);
                 float spotAtten = saturate(cosAngle * light.spotAngleScale + light.spotAngleOffset);
                 attenuation *= spotAtten * spotAtten;
             }
 
             float shadow = 1.0f;
-            int shadowIndex = -1;
-            if (IS_VALID_BUFFER(ctx.shadowIndicesBufferIndex))
-            {
-                shadowIndex = LoadData<int>(ctx.shadowIndicesBufferIndex, fetch.lightIndex);
-            }
             
-            // TODO: Better shadow sampling.
-            if (shadowIndex >= 0 && IS_VALID_BUFFER(ctx.shadowAtlasIndex) && IS_VALID_BUFFER(ctx.shadowViewsBufferIndex))
+            if (attenuation > 0.0f && NdotL > 0.0f)
             {
-                uint viewIdx = (uint)shadowIndex;
-                ShadowViewData sViewBase = LoadData<ShadowViewData>(ctx.shadowViewsBufferIndex, viewIdx);
-                float3 biasedPosWS = ctx.positionWS + ctx.normalWS * light.normalBias;
-
-                if (lightType == 0u) // Point Light cubemap face selection
+                int shadowIndex = -1;
+                if (IS_VALID_BUFFER(ctx.shadowIndicesBufferIndex))
                 {
-                    float3 L_cube = biasedPosWS - light.positionWS;
-                    float3 absL = abs(L_cube);
-                    uint faceIdx = 0u;
-                    if (absL.x >= absL.y && absL.x >= absL.z)
-                    {
-                        faceIdx = (L_cube.x > 0.0f) ? 0u : 1u;
-                    }
-                    else if (absL.y >= absL.x && absL.y >= absL.z)
-                    {
-                        faceIdx = (L_cube.y > 0.0f) ? 2u : 3u;
-                    }
-                    else
-                    {
-                        faceIdx = (L_cube.z > 0.0f) ? 4u : 5u;
-                    }
-                    viewIdx += faceIdx;
+                    shadowIndex = LoadData<int>(ctx.shadowIndicesBufferIndex, fetch.lightIndex);
                 }
-
-                ShadowViewData sView = sViewBase;
-                if (lightType == 0u)
+            
+                // TODO: Better shadow sampling.
+                if (shadowIndex >= 0 && IS_VALID_BUFFER(ctx.shadowAtlasIndex) && IS_VALID_BUFFER(ctx.shadowViewsBufferIndex))
                 {
-                    sView = LoadData<ShadowViewData>(ctx.shadowViewsBufferIndex, viewIdx);
-                }
+                    uint viewIdx = (uint)shadowIndex;
+                    float3 biasedPosWS = ctx.positionWS + ctx.normalWS * light.normalBias;
+
+                    if (lightType == 0u) // Point Light cubemap face selection
+                    {
+                        float3 L_cube = biasedPosWS - light.positionWS;
+                        float3 absL = abs(L_cube);
+                        uint faceIdx = 0u;
+                        if (absL.x >= absL.y && absL.x >= absL.z)
+                        {
+                            faceIdx = (L_cube.x > 0.0f) ? 0u : 1u;
+                        }
+                        else if (absL.y >= absL.x && absL.y >= absL.z)
+                        {
+                            faceIdx = (L_cube.y > 0.0f) ? 2u : 3u;
+                        }
+                        else
+                        {
+                            faceIdx = (L_cube.z > 0.0f) ? 4u : 5u;
+                        }
+                        viewIdx += faceIdx;
+                    }
+
+                    ShadowViewData sView = LoadData<ShadowViewData>(ctx.shadowViewsBufferIndex, viewIdx);
                 
-                float4 clipPos = mul(sView.shadowViewProj, float4(biasedPosWS, 1.0f));
-                if (clipPos.w > 0.0001f)
-                {
-                    float3 ndc = clipPos.xyz / clipPos.w;
-                    float2 uv = ndc.xy * float2(0.5f, -0.5f) + 0.5f;
-                    if (all(uv >= 0.0f) && all(uv <= 1.0f))
+                    float4 clipPos = mul(sView.shadowViewProj, float4(biasedPosWS, 1.0f));
+                    if (clipPos.w > 0.0001f)
                     {
-                        float2 atlasUV = sView.tileOffsetScale.xy + uv * sView.tileOffsetScale.zw;
-                        Texture2D<float> shadowAtlas = ResourceDescriptorHeap[ctx.shadowAtlasIndex];
+                        float3 ndc = clipPos.xyz / clipPos.w;
+                        float2 uv = ndc.xy * float2(0.5f, -0.5f) + 0.5f;
+                        if (all(uv >= 0.0f) && all(uv <= 1.0f))
+                        {
+                            float2 atlasUV = sView.tileOffsetScale.xy + uv * sView.tileOffsetScale.zw;
+                            Texture2D<float> shadowAtlas = ResourceDescriptorHeap[ctx.shadowAtlasIndex];
                         
-                        float receiverDepth = ndc.z + light.depthBias;
+                            float receiverDepth = ndc.z + light.depthBias;
 
-                        uint2 atlasDim;
-                        shadowAtlas.GetDimensions(atlasDim.x, atlasDim.y);
-                        float2 pixelPos = atlasUV * float2(atlasDim);
-                        int2 baseCoord = int2(floor(pixelPos - 0.5f));
-                        float2 f = frac(pixelPos - 0.5f);
+                            uint2 atlasDim;
+                            shadowAtlas.GetDimensions(atlasDim.x, atlasDim.y);
+                            float2 pixelPos = atlasUV * float2(atlasDim);
+                            int2 baseCoord = int2(floor(pixelPos - 0.5f));
+                            float2 f = frac(pixelPos - 0.5f);
 
-                        int2 tileMinPixels = int2(sView.tileOffsetScale.xy * float2(atlasDim));
-                        int2 tileMaxPixels = tileMinPixels + int2(sView.tileOffsetScale.zw * float2(atlasDim)) - 1;
+                            int2 tileMinPixels = int2(sView.tileOffsetScale.xy * float2(atlasDim));
+                            int2 tileMaxPixels = tileMinPixels + int2(sView.tileOffsetScale.zw * float2(atlasDim)) - 1;
 
-                        int2 c00 = clamp(baseCoord + int2(0, 0), tileMinPixels, tileMaxPixels);
-                        int2 c10 = clamp(baseCoord + int2(1, 0), tileMinPixels, tileMaxPixels);
-                        int2 c01 = clamp(baseCoord + int2(0, 1), tileMinPixels, tileMaxPixels);
-                        int2 c11 = clamp(baseCoord + int2(1, 1), tileMinPixels, tileMaxPixels);
+                            int2 c00 = clamp(baseCoord + int2(0, 0), tileMinPixels, tileMaxPixels);
+                            int2 c10 = clamp(baseCoord + int2(1, 0), tileMinPixels, tileMaxPixels);
+                            int2 c01 = clamp(baseCoord + int2(0, 1), tileMinPixels, tileMaxPixels);
+                            int2 c11 = clamp(baseCoord + int2(1, 1), tileMinPixels, tileMaxPixels);
 
-                        float d00 = shadowAtlas.Load(int3(c00, 0));
-                        float d10 = shadowAtlas.Load(int3(c10, 0));
-                        float d01 = shadowAtlas.Load(int3(c01, 0));
-                        float d11 = shadowAtlas.Load(int3(c11, 0));
+                            float d00 = shadowAtlas.Load(int3(c00, 0));
+                            float d10 = shadowAtlas.Load(int3(c10, 0));
+                            float d01 = shadowAtlas.Load(int3(c01, 0));
+                            float d11 = shadowAtlas.Load(int3(c11, 0));
 
-                        // Reversed-Z: closer depth is greater. If receiverDepth >= storedDepth, fragment is lit.
-                        float s00 = (receiverDepth >= d00) ? 1.0f : 0.0f;
-                        float s10 = (receiverDepth >= d10) ? 1.0f : 0.0f;
-                        float s01 = (receiverDepth >= d01) ? 1.0f : 0.0f;
-                        float s11 = (receiverDepth >= d11) ? 1.0f : 0.0f;
+                            // Reversed-Z: closer depth is greater. If receiverDepth >= storedDepth, fragment is lit.
+                            float s00 = (receiverDepth >= d00) ? 1.0f : 0.0f;
+                            float s10 = (receiverDepth >= d10) ? 1.0f : 0.0f;
+                            float s01 = (receiverDepth >= d01) ? 1.0f : 0.0f;
+                            float s11 = (receiverDepth >= d11) ? 1.0f : 0.0f;
 
-                        shadow = lerp(lerp(s00, s10, f.x), lerp(s01, s11, f.x), f.y);
+                            shadow = lerp(lerp(s00, s10, f.x), lerp(s01, s11, f.x), f.y);
+                        }
                     }
                 }
             }

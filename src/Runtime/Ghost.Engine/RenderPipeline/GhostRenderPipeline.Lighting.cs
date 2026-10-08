@@ -75,6 +75,7 @@ internal unsafe partial class GhostRenderPipeline
             }
 
             var lightType = light.lightTypeAndFlags & 0xFu;
+            var lodErrorThreshold = meshletLodErrorThreshold * (viewHeight / shadowSize);
 
             if (lightType == 1u) // Spot
             {
@@ -96,7 +97,6 @@ internal unsafe partial class GhostRenderPipeline
                 var projMat = CreatePerspectiveReversedZ(fov, 1.0f, nearPlane, farPlane);
                 var shadowViewProj = math.mul(projMat, viewMat);
                 var shadowFrustum = Frustum.Create(shadowViewProj, light.positionWS, light.directionWS, nearPlane, farPlane);
-                var lodErrorThreshold = meshletLodErrorThreshold * (viewHeight / shadowSize);
 
                 var svData = new GPUShadowViewData
                 {
@@ -133,7 +133,6 @@ internal unsafe partial class GhostRenderPipeline
                     : math.radians(90.0f);
                 var projMat = CreatePerspectiveReversedZ(fov, 1.0f, nearPlane, farPlane);
                 var pointProj11 = 1.0f / math.tan(fov * 0.5f);
-                var lodErrorThreshold = meshletLodErrorThreshold * (viewHeight / shadowSize);
 
                 Span<GPUShadowViewData> faceViews = stackalloc GPUShadowViewData[6];
                 for (var f = 0; f < 6; f++)
@@ -521,21 +520,14 @@ internal unsafe partial class GhostRenderPipeline
         public ulong backingMemorySize;
         public SetWorkGraphFlags flags;
         public uint maxVisibleMeshlets;
-    }
-
-    private struct PrepareShadowIndirectArgsPassData
-    {
-        public Identifier<RGBuffer> counterBuffer;
-        public Identifier<RGBuffer> indirectArgsBuffer;
-        public Handle<ComputeShader> shader;
-        public uint maxCount;
-        public uint maxVariants;
+        public uint counterBufferSize;
     }
 
     private struct PunctualShadowRasterPassData
     {
         public Identifier<RGTexture> shadowAtlas;
-        public Identifier<RGBuffer> visibleMeshlets;
+        public Identifier<RGBuffer> binnedMeshlets;
+        public Identifier<RGBuffer> binOffsetsBuffer;
         public Identifier<RGBuffer> indirectArgs;
         public Handle<Shader> opaqueShadowShader;
         public ICommandSignature commandSignature;
@@ -572,32 +564,35 @@ internal unsafe partial class GhostRenderPipeline
         var entrySize = (uint)sizeof(UnbinnedMeshletEntry);
         var visibleBufferSize = _settings.MaxVisibleMeshletsOnScreen * entrySize;
 
-        Identifier<RGBuffer> visibleMeshlets;
+        var maxVariants = GetMaxCullVariants();
+        var counterBufferSize = CullCommon.GetCounterBufferSize(maxVariants);
+
+        Identifier<RGBuffer> unbinnedMeshlets;
         Identifier<RGBuffer> counterBuffer;
         using (var cullBuilder = rg.AddComputeRenderPass<ShadowCullPassData>("MeshletCull_Shadow"))
         {
             // Work Graph Shadow Culling
-            visibleMeshlets = cullBuilder.CreateBuffer(new BufferDesc
+            unbinnedMeshlets = cullBuilder.CreateBuffer(new BufferDesc
             {
                 Size = visibleBufferSize,
                 Stride = entrySize,
                 Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-            }, "ShadowVisibleMeshlets");
+            }, "ShadowUnbinnedMeshlets");
 
             counterBuffer = cullBuilder.CreateBuffer(new BufferDesc
             {
-                Size = CullConstants.COUNTER_BUFFER_SIZE,
+                Size = counterBufferSize,
                 Stride = 4,
                 Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
             }, "ShadowCounterBuffer");
 
             cullBuilder.AllowPassCulling(false);
-            cullBuilder.UseBuffer(visibleMeshlets, AccessFlags.Write);
+            cullBuilder.UseBuffer(unbinnedMeshlets, AccessFlags.Write);
             cullBuilder.UseBuffer(counterBuffer, AccessFlags.ReadWrite);
 
             cullBuilder.SetPassData(new ShadowCullPassData
             {
-                visibleMeshlets = visibleMeshlets,
+                visibleMeshlets = unbinnedMeshlets,
                 counterBuffer = counterBuffer,
                 instanceCount = instanceCount,
                 shadowViewCount = shadowViewCount,
@@ -608,11 +603,12 @@ internal unsafe partial class GhostRenderPipeline
                 backingMemorySize = shadowProgram.BackingMemorySize,
                 flags = flags,
                 maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
+                counterBufferSize = counterBufferSize,
             });
 
             cullBuilder.SetRenderFunc<ShadowCullPassData>(static (ref readonly passData, computeCtx) =>
             {
-                computeCtx.ClearBuffer(passData.counterBuffer, CullConstants.COUNTER_BUFFER_SIZE);
+                computeCtx.ClearBuffer(passData.counterBuffer, passData.counterBufferSize);
 
                 var visibleUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visibleMeshlets).AsResource(), BindlessAccess.UnorderedAccess);
                 var counterUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
@@ -642,45 +638,130 @@ internal unsafe partial class GhostRenderPipeline
             });
         }
 
-        // Prepare Indirect Arguments
+        // Prepare Indirect Arguments & Bin Offsets for Shadow
         Identifier<RGBuffer> indirectArgs;
-        using (var prepBuilder = rg.AddComputeRenderPass<PrepareShadowIndirectArgsPassData>("PrepareShadowIndirectArgs"))
+        Identifier<RGBuffer> binOffsets;
+        Identifier<RGBuffer> binScatterCounters;
+        using (var prepBuilder = rg.AddComputeRenderPass<PrepareIndirectArgsPassData>("PrepareShadowIndirectArgs"))
         {
             indirectArgs = prepBuilder.CreateBuffer(new BufferDesc
             {
-                Size = CullConstants.INDIRECT_ARGS_BUFFER_SIZE,
+                Size = CullCommon.GetIndirectArgsBufferSize(maxVariants),
                 Stride = 4,
                 Usage = BufferUsage.IndirectArgument | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
             }, "ShadowIndirectArgsBuffer");
 
+            binOffsets = prepBuilder.CreateBuffer(new BufferDesc
+            {
+                Size = CullCommon.GetBinOffsetsBufferSize(maxVariants),
+                Stride = 4,
+                Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+            }, "ShadowBinOffsetsBuffer");
+
+            binScatterCounters = prepBuilder.CreateBuffer(new BufferDesc
+            {
+                Size = CullCommon.GetBinOffsetsBufferSize(maxVariants),
+                Stride = 4,
+                Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+            }, "ShadowBinScatterCounters");
+
             prepBuilder.UseBuffer(counterBuffer, AccessFlags.Read);
             prepBuilder.UseBuffer(indirectArgs, AccessFlags.Write);
+            prepBuilder.UseBuffer(binOffsets, AccessFlags.Write);
+            prepBuilder.UseBuffer(binScatterCounters, AccessFlags.Write);
 
-            prepBuilder.SetPassData(new PrepareShadowIndirectArgsPassData
+            prepBuilder.SetPassData(new PrepareIndirectArgsPassData
             {
                 counterBuffer = counterBuffer,
                 indirectArgsBuffer = indirectArgs,
-                shader = _meshPipelineResource.prepareShadowIndirectArgsShader,
+                binOffsetsBuffer = binOffsets,
+                binScatterCounters = binScatterCounters,
+                shader = _meshPipelineResource.prepareIndirectArgsShader,
+                cullPassIndex = 0,
                 maxCount = _settings.MaxVisibleMeshletsOnScreen,
-                maxVariants = CullConstants.MAX_VARIANTS
+                maxVariants = maxVariants
             });
 
-            prepBuilder.SetRenderFunc<PrepareShadowIndirectArgsPassData>(static (ref readonly passData, computeCtx) =>
+            prepBuilder.SetRenderFunc<PrepareIndirectArgsPassData>(static (ref readonly passData, computeCtx) =>
             {
                 var counterUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
                 var indirectUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.indirectArgsBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+                var binOffsetsUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binOffsetsBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+                var binCountersUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binScatterCounters).AsResource(), BindlessAccess.UnorderedAccess);
 
-                var props = new InternalPrepareShadowIndirectArgsShaderProperties
+                var props = new InternalPrepareMeshletIndirectArgsShaderProperties
                 {
                     counterBuffer = counterUav,
                     indirectArgsBuffer = indirectUav,
+                    binOffsetsBuffer = binOffsetsUav,
+                    binScatterCounters = binCountersUav,
+                    variantCountsOffset = CullCommon.OFFSET_PASS1_VARIANT_COUNTS,
+                    visibleArgsOffset = CullCommon.INDIRECT_OFFSET_PASS1_VARIANTS,
                     maxCount = passData.maxCount,
-                    maxVariants = passData.maxVariants
+                    maxVariants = passData.maxVariants,
+                    occludedCountOffset = uint.MaxValue,
+                    cullArgsOffset = uint.MaxValue,
                 };
 
                 computeCtx.SetActiveCompute(passData.shader, 0);
                 computeCtx.SetUserDataWithProperties(in props);
                 computeCtx.DispatchCompute(1, 1, 1);
+            });
+        }
+
+        // Scatter Shadow Meshlets into contiguous variant bins
+        Identifier<RGBuffer> binnedMeshlets;
+        using (var scatterBuilder = rg.AddComputeRenderPass<ScatterMeshletsPassData>("ScatterShadowMeshlets"))
+        {
+            binnedMeshlets = scatterBuilder.CreateBuffer(new BufferDesc
+            {
+                Size = visibleBufferSize,
+                Stride = entrySize,
+                Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+            }, "ShadowBinnedMeshlets");
+
+            scatterBuilder.UseBuffer(unbinnedMeshlets, AccessFlags.Read);
+            scatterBuilder.UseBuffer(binnedMeshlets, AccessFlags.Write);
+            scatterBuilder.UseBuffer(binScatterCounters, AccessFlags.ReadWrite);
+            scatterBuilder.UseBuffer(counterBuffer, AccessFlags.Read);
+
+            scatterBuilder.SetPassData(new ScatterMeshletsPassData
+            {
+                unbinnedBuffer = unbinnedMeshlets,
+                binnedBuffer = binnedMeshlets,
+                binScatterCounters = binScatterCounters,
+                counterBuffer = counterBuffer,
+                shader = _meshPipelineResource.scatterMeshletsShader,
+                totalVisibleOffset = CullCommon.OFFSET_PASS1_VISIBLE_COUNT,
+                maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
+                isShadowPass = 1
+            });
+
+            scatterBuilder.SetRenderFunc<ScatterMeshletsPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var unbinnedSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.unbinnedBuffer).AsResource(), BindlessAccess.ShaderResource);
+                var binnedUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binnedBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+                var countersUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binScatterCounters).AsResource(), BindlessAccess.UnorderedAccess);
+                var counterBufUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+
+                var props = new InternalScatterMeshletsShaderProperties
+                {
+                    unbinnedBuffer = unbinnedSrv,
+                    binnedBuffer = binnedUav,
+                    binScatterCounters = countersUav,
+                    counterBuffer = counterBufUav,
+                    totalVisibleOffset = passData.totalVisibleOffset,
+                    maxVisibleMeshlets = passData.maxVisibleMeshlets,
+                    isShadowPass = passData.isShadowPass
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+
+                var threadGroups = Math.Max(1u, (passData.maxVisibleMeshlets + 63u) / 64u);
+                var threadGroupsX = Math.Min(threadGroups, 65535u);
+                var threadGroupsY = (threadGroups + 65534u) / 65535u;
+                computeCtx.DispatchCompute(threadGroupsX, threadGroupsY, 1);
             });
         }
 
@@ -697,13 +778,15 @@ internal unsafe partial class GhostRenderPipeline
             shadowAtlas = rasterBuilder.CreateTexture(in shadowAtlasDesc, "PunctualShadowAtlas");
 
             rasterBuilder.SetDepthAttachment(shadowAtlas, AccessFlags.WriteAll);
-            rasterBuilder.UseBuffer(visibleMeshlets, AccessFlags.Read);
+            rasterBuilder.UseBuffer(binnedMeshlets, AccessFlags.Read);
+            rasterBuilder.UseBuffer(binOffsets, AccessFlags.Read);
             rasterBuilder.UseBuffer(indirectArgs, AccessFlags.Read);
 
             rasterBuilder.SetPassData(new PunctualShadowRasterPassData
             {
                 shadowAtlas = shadowAtlas,
-                visibleMeshlets = visibleMeshlets,
+                binnedMeshlets = binnedMeshlets,
+                binOffsetsBuffer = binOffsets,
                 indirectArgs = indirectArgs,
                 opaqueShadowShader = _lightingPipelineResource.opaqueShadowRasterizer,
                 commandSignature = _dispatchMeshCommandSignature,
@@ -713,28 +796,42 @@ internal unsafe partial class GhostRenderPipeline
 
             rasterBuilder.SetRenderFunc<PunctualShadowRasterPassData>(static (ref readonly passData, rasterCtx) =>
             {
-                var visibleMeshletsSrv = rasterCtx.ResourceDatabase.GetBindlessIndex(rasterCtx.GetActualBuffer(passData.visibleMeshlets).AsResource(), BindlessAccess.ShaderResource);
+                var binnedMeshletsSrv = rasterCtx.ResourceDatabase.GetBindlessIndex(rasterCtx.GetActualBuffer(passData.binnedMeshlets).AsResource(), BindlessAccess.ShaderResource);
+                var binOffsetsSrv = rasterCtx.ResourceDatabase.GetBindlessIndex(rasterCtx.GetActualBuffer(passData.binOffsetsBuffer).AsResource(), BindlessAccess.ShaderResource);
                 var actualIndirectBuf = rasterCtx.GetActualBuffer(passData.indirectArgs);
 
                 var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.Shadow);
-                if (dispatchVariants.Length > 0)
+                if (dispatchVariants.Length == 0)
                 {
-                    ref readonly var variant = ref dispatchVariants[0];
-                    if (variant.Shader.IsValid && rasterCtx.TrySetActiveShaderPass(passData.opaqueShadowShader, 0))
+                    return;
+                }
+
+                // Slot 0: Opaque shadow caster (MS only, null PS, hardware double-rate Fast-Z)
+                if (passData.opaqueShadowShader.IsValid && rasterCtx.TrySetActiveShaderPass(passData.opaqueShadowShader, 0))
+                {
+                    rasterCtx.SetUserData(binnedMeshletsSrv, passData.shadowViewsBufferSrv, binOffsetsSrv, 0);
+                    rasterCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, 0);
+                }
+                else
+                {
+                    ref readonly var opaqueVariant = ref dispatchVariants[0];
+                    if (opaqueVariant.Shader.IsValid && rasterCtx.TrySetActiveShaderPass(opaqueVariant.Shader, PassSemantic.Shadow))
                     {
-                        rasterCtx.SetUserData(visibleMeshletsSrv, passData.shadowViewsBufferSrv, 0, 0);
+                        rasterCtx.SetUserData(binnedMeshletsSrv, passData.shadowViewsBufferSrv, binOffsetsSrv, 0);
                         rasterCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, 0);
                     }
+                }
 
-                    //for (var i = 1; i < dispatchVariants.Length; i++)
-                    //{
-                    //    variant = ref dispatchVariants[i];
-                    //    if (variant.Shader.IsValid && rasterCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.Shadow))
-                    //    {
-                    //        rasterCtx.SetUserData(visibleMeshletsSrv, passData.shadowViewsBufferSrv, 0, 0);
-                    //        rasterCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, (ulong)(i * sizeof(DispatchMeshCommand)));
-                    //    }
-                    //}
+                // Slots 1..N-1: Alpha-tested / masked shadow variants (MS + PS with material ALPHA_STRATEGY)
+                for (var i = 1; i < dispatchVariants.Length; i++)
+                {
+                    ref readonly var variant = ref dispatchVariants[i];
+                    if (variant.Shader.IsValid && rasterCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.Shadow))
+                    {
+                        var targetVariant = (uint)i;
+                        rasterCtx.SetUserData(binnedMeshletsSrv, passData.shadowViewsBufferSrv, binOffsetsSrv, targetVariant << 1);
+                        rasterCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, (ulong)i * INDIRECT_ARGS_STRIDE);
+                    }
                 }
             });
         }

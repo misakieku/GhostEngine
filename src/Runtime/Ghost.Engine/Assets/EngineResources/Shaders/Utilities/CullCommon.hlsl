@@ -37,7 +37,7 @@ struct VisibleMeshletEntry
     uint meshletIndex;
 };
 
-#define MAX_CULL_VARIANTS 256u
+#define MAX_CULL_VARIANTS 1024u
 #define OFFSET_PASS1_VISIBLE_COUNT 0u
 #define OFFSET_PASS1_OCCLUDED_COUNT 4u
 #define OFFSET_PASS2_VISIBLE_COUNT 8u

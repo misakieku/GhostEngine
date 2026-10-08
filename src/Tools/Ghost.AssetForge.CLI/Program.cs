@@ -49,6 +49,7 @@ public class Program
         Logger.Impl.OnLogAdded += static log => Console.WriteLine($"[{log.Level}] {log.Message}");
 
         var root = CommandBuilder.Create("root")
+            .UseHelp(HelpScope.WholeApp)
             .AddSubCommand(
                 CommandBuilder.Create("bake")
                 .AddOption<BakeOptions>()

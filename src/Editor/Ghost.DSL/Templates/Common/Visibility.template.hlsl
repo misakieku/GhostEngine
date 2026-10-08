@@ -56,13 +56,6 @@ void VisibilityWritePixelAtomic(uint visBufferIndex, uint2 pixelCoord, float dep
     InterlockedMax(visBuffer[pixelCoord], newPacked);
 }
 
-float4 GetVertexClipPosition(uint vertexIndex, in MeshData meshData, in Meshlet meshlet, float4x4 worldViewProj, out float2 uv)
-{
-    Vertex v = LoadMeshletVertex(vertexIndex, meshData, meshlet);
-    uv = v.uv;
-    return mul(worldViewProj, float4(v.position, 1.0f));
-}
-
 #define VISIBILITY_MS_THREADS 64
 
 groupshared float4 g_VertexPositions[MAX_VERTICES_PER_MESHLET];
@@ -76,12 +69,15 @@ void MSMain(
     out indices uint3 outTris[MAX_TRIANGLES_PER_MESHLET],
     out primitives VisibilityPrimitiveOutput outPrims[MAX_TRIANGLES_PER_MESHLET])
 {
+    ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
+    
     uint visibleBufferIndex = g_PushConstantData.userData0;
     uint binOffsetsIndex = g_PushConstantData.userData2;
     uint targetVariantIndex = g_PushConstantData.userData3 >> 1u;
     uint passBit = (g_PushConstantData.userData3 & 1u) << 23u;
 
     ByteAddressBuffer binOffsetsBuffer = ResourceDescriptorHeap[binOffsetsIndex];
+    
     uint binStartOffset = binOffsetsBuffer.Load(targetVariantIndex * 4u);
     uint binnedSlot = binStartOffset + groupID;
 
@@ -92,6 +88,8 @@ void MSMain(
     MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
     Meshlet meshlet = LoadMeshlet(visible.meshletIndex, meshData);
 
+    ByteAddressBuffer rawMeshBuffer = GET_BUFFER(meshData.rawBuffer);
+    
     uint vertexCount = meshlet.packedCounts & 0xFFu;
     uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
     uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
@@ -101,7 +99,6 @@ void MSMain(
     uint materialBufferIndex = UnpackMaterialByteOffset(packedMaterial);
     uint variantIndex = UnpackMaterialVariantIndex(packedMaterial);
     
-    ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
     float doubleSided = asfloat(matBuf.Load(materialBufferIndex + 12u));
 
     SetMeshOutputCounts(vertexCount, triangleCount);
@@ -110,10 +107,11 @@ void MSMain(
 
     if (groupThreadID < vertexCount)
     {
-        Vertex v = LoadMeshletVertex(groupThreadID, meshData, meshlet);
+        uint vIndex = LoadMeshletVertexIndex(groupThreadID, meshData, meshlet);
         
-        float2 uv = v.uv;
-        float4 clipPos = mul(worldViewProj, float4(v.position, 1.0f));
+        float2 uv = LoadVertexUVOnly(rawMeshBuffer, meshData.vertexBufferOffset, vIndex); // v.uv;
+        float3 pos = LoadVertexPositionOnly(rawMeshBuffer, meshData.vertexBufferOffset, vIndex); // v.position;
+        float4 clipPos = mul(worldViewProj, float4(pos, 1.0f));
         
         g_VertexPositions[groupThreadID] = clipPos;
 

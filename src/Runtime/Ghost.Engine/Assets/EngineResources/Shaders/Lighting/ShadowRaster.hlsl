@@ -59,40 +59,46 @@ void MSMain(
 
     uint vertexCount = meshlet.packedCounts & 0xFFu;
     uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
-    uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
+    
+    SetMeshOutputCounts(vertexCount, triangleCount);
 
+#if SHADOW_PIXEL_STAGE
+    uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
     uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
     uint materialBufferIndex = UnpackMaterialByteOffset(packedMaterial);
+#else
+    uint materialBufferIndex = 0u;
+#endif
 
     ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
     float doubleSided = asfloat(matBuf.Load(materialBufferIndex + 12u));
-
-    SetMeshOutputCounts(vertexCount, triangleCount);
 
     float4x4 worldViewProj = mul(shadowView.shadowViewProj, instanceData.localToWorld);
 
     if (groupThreadID < vertexCount)
     {
-        Vertex v = LoadMeshletVertex(groupThreadID, meshData, meshlet);
+        ByteAddressBuffer rawMeshBuffer = GET_BUFFER(meshData.rawBuffer);
+        uint vIndex = LoadMeshletVertexIndex(groupThreadID, meshData, meshlet);
+        float3 pos = LoadVertexPositionOnly(rawMeshBuffer, meshData.vertexBufferOffset, vIndex);
 
-        float4 clipPos = mul(worldViewProj, float4(v.position, 1.0f));
+        float4 origClipPos = mul(worldViewProj, float4(pos, 1.0f));
 
         outVerts[groupThreadID].clipDistances = float4(
-            clipPos.w + clipPos.x, // Left plane
-            clipPos.w - clipPos.x, // Right plane
-            clipPos.w + clipPos.y, // Bottom plane
-            clipPos.w - clipPos.y  // Top plane
+            origClipPos.w + origClipPos.x, // Left
+            origClipPos.w - origClipPos.x, // Right
+            origClipPos.w + origClipPos.y, // Bottom
+            origClipPos.w - origClipPos.y  // Top
         );
-        
-        // Linear Clip-Space Viewport Remapping to shadow atlas tile
+
+        float4 clipPos = origClipPos;
         clipPos.x = clipPos.x * shadowView.tileOffsetScale.z + (2.0f * shadowView.tileOffsetScale.x + shadowView.tileOffsetScale.z - 1.0f) * clipPos.w;
         clipPos.y = clipPos.y * shadowView.tileOffsetScale.w + (1.0f - (2.0f * shadowView.tileOffsetScale.y + shadowView.tileOffsetScale.w)) * clipPos.w;
 
         g_VertexPositions[groupThreadID] = clipPos;
-
         outVerts[groupThreadID].position = clipPos;
+
 #if SHADOW_PIXEL_STAGE
-        outVerts[groupThreadID].uv = v.uv;
+        outVerts[groupThreadID].uv = LoadVertexUVOnly(rawMeshBuffer, meshData.vertexBufferOffset, vIndex);
         outVerts[groupThreadID].materialBufferIndex = materialBufferIndex;
 #endif
     }

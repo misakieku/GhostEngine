@@ -123,7 +123,7 @@ compute "Internal/ShadowCullGraph"
                 worldRadius,
                 g_ViewData.cameraPosition,
                 g_ViewData.projectionMatrix[1][1],
-                g_ViewData.screenSize.y,
+                shadowView.tileSize,
                 shadowView.lodErrorThreshold);
 
             if (isParentDetailSufficient)
@@ -223,7 +223,7 @@ compute "Internal/ShadowCullGraph"
                     meshletParentWorldRadius,
                     g_ViewData.cameraPosition,
                     g_ViewData.projectionMatrix[1][1],
-                    g_ViewData.screenSize.y,
+                    shadowView.tileSize,
                     shadowView.lodErrorThreshold);
 
                 // Dual-Error Cut Condition 2: Cluster Error test (Upper bound)
@@ -234,7 +234,7 @@ compute "Internal/ShadowCullGraph"
                     meshletWorldRadius,
                     g_ViewData.cameraPosition,
                     g_ViewData.projectionMatrix[1][1],
-                    g_ViewData.screenSize.y,
+                    shadowView.tileSize,
                     shadowView.lodErrorThreshold);
 
                 if (isParentDetailSufficient || !isClusterDetailSufficient)
@@ -282,6 +282,23 @@ compute "Internal/ShadowCullGraph"
                     entry.variantIndex = (cullBin << 16u) | (groupRec.shadowViewIndex & 0xFFFFu);
                     visibleBuffer[slot] = entry;
                 }
+            }
+
+            // Count visible meshlets per variant for prefix-sum binning (Bin 0 is opaque, Bins 1..N are alpha-clip variants)
+            uint activeMask = WaveActiveBallot(isVisible).x;
+            while (activeMask != 0)
+            {
+                uint firstLane = firstbitlow(activeMask);
+                uint v = WaveReadLaneAt(cullBin, firstLane);
+                bool match = isVisible && (cullBin == v);
+                uint count = WaveActiveCountBits(match);
+
+                if (WaveGetLaneIndex() == firstLane && v < MAX_CULL_VARIANTS)
+                {
+                    uint variantCounterOffset = OFFSET_PASS1_VARIANT_COUNTS + v * 4u;
+                    counterBuf.InterlockedAdd(variantCounterOffset, count);
+                }
+                activeMask &= ~WaveActiveBallot(match).x;
             }
         }
     }

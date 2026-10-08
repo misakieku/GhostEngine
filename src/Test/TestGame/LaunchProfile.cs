@@ -28,7 +28,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
-        MaxVisibleMeshletsOnScreen = 2_097_152 * 1,
+        MaxVisibleMeshletsOnScreen = 2_097_152,
         MeshletLodErrorThreshold = 1.0f,
         InstanceCullingThreshold = 2.0f,
         DebugMode = RenderPipelineDebugMode.None,
@@ -195,7 +195,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 {
                     type = isSpot ? PunctualLightType.Spot : PunctualLightType.Point,
                     color = color,
-                    shadowSize = 128,
+                    shadowSize = 512,
                     intensity = RandomFloat(2.5f, 5.0f),
                     range = RandomFloat(10.0f, 15.0f),
                     innerSpotAngle = math.radians(15.0f),

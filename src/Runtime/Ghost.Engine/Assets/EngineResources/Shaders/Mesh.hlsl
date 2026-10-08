@@ -1,6 +1,8 @@
 #ifndef GHOST_MESH_HLSL
 #define GHOST_MESH_HLSL
 
+#include "EngineResources/Shaders/Common.hlsl"
+
 struct MeshData
 {
     float3 worldBoundsMin;
@@ -124,6 +126,18 @@ Vertex LoadMeshletVertex(uint localVertexIndex, in MeshData meshData, in Meshlet
 {
     uint vertexIndex = LoadMeshletVertexIndex(localVertexIndex, meshData, meshlet);
     return LoadVertex(vertexIndex, meshData);
+}
+
+float3 LoadVertexPositionOnly(ByteAddressBuffer rawBuffer, uint vertexBufferOffset, uint vertexIndex)
+{
+    uint baseOffset = vertexBufferOffset + vertexIndex * sizeof(Vertex);
+    return asfloat(rawBuffer.Load3(baseOffset + 32u));
+}
+
+float2 LoadVertexUVOnly(ByteAddressBuffer rawBuffer, uint vertexBufferOffset, uint vertexIndex)
+{
+    uint baseOffset = vertexBufferOffset + vertexIndex * sizeof(Vertex);
+    return asfloat(rawBuffer.Load2(baseOffset + 56u));        // uv (+56)
 }
 
 #endif // GHOST_MESH_HLSL

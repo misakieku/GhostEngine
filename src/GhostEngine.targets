@@ -26,13 +26,13 @@
           BeforeTargets="CoreCompile"
           Inputs="@(Compile)" 
           Outputs="$(GhostIntermediateOutputPath)hlsl_generated.stamp">
-    
+
     <Message Importance="High" Text="Extracting Shader HLSL Types..." />
-    
+
     <WriteLinesToFile File="$(GhostIntermediateOutputPath)compile_files.txt" Lines="@(Compile)" Overwrite="true" />
-    
+
     <Exec Command="Ghost.ShaderMetadataTool &quot;$(GhostIntermediateOutputPath)compile_files.txt&quot; &quot;$(GhostAssetDir)&quot;" />
-    
+
     <Touch Files="$(GhostIntermediateOutputPath)hlsl_generated.stamp" AlwaysCreate="true" />
   </Target>
 
@@ -43,10 +43,10 @@
           Condition="'$(IsGameProject)' == 'true'"
           Inputs="$(GhostAssetDir)\**\*.*;$(GhostEngineAssetDir)\**\*.*"
           Outputs="$(GhostAssetBuildDir)\manifest.json">
-          
+
     <Message Importance="High" Text="Baking and Packing Assets..." />
-    
-    <Exec Command="Ghost.AssetForge.CLI bake --asset-dir &quot;$(GhostEngineAssetDir);$(GhostAssetDir)&quot; --cache-dir &quot;$(GhostAssetCacheDir)&quot; --build-dir &quot;$(GhostAssetBuildDir)&quot;" />
+
+    <Exec Command="Ghost.AssetForge.CLI bake --force-shader-debug true --asset-dir &quot;$(GhostEngineAssetDir);$(GhostAssetDir)&quot; --cache-dir &quot;$(GhostAssetCacheDir)&quot; --build-dir &quot;$(GhostAssetBuildDir)&quot;" />
   </Target>
 
   <!-- Clean asset cache on Clean -->
