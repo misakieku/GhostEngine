@@ -40,7 +40,7 @@ public static class DSLShaderCompiler
         };
     }
 
-    private static Result<string> BuildFinalShaderCode(string? shaderPath, ReadOnlySpan<string> includes, string? injectedCode, string? properties, IReadOnlyDictionary<string, string>? virtualShaders, string? mainShaderPath)
+    private static Result<string> BuildFinalShaderCode(string? shaderPath, ReadOnlySpan<string> includes, string? injectedCode, string? properties, string? mainShaderPath)
     {
         if (string.IsNullOrEmpty(shaderPath))
         {
@@ -59,6 +59,11 @@ public static class DSLShaderCompiler
         }
         else
         {
+            if (!Path.IsPathRooted(shaderPath) || !Path.IsPathFullyQualified(shaderPath))
+            {
+                shaderPath = Path.Combine(Path.GetDirectoryName(mainShaderPath) ?? string.Empty, shaderPath);
+            }
+
             if (!File.Exists(shaderPath))
             {
                 return Result.Failure("Shader file not found: " + shaderPath);
@@ -71,19 +76,7 @@ public static class DSLShaderCompiler
         foreach (var includePath in includes)
         {
             var relativePath = includePath.TrimStart('/', '\\');
-            var absolutePath = "/" + relativePath;
-
-            if (virtualShaders != null &&
-                (virtualShaders.TryGetValue(absolutePath, out var code) ||
-                 virtualShaders.TryGetValue(relativePath, out code) ||
-                 virtualShaders.TryGetValue(includePath, out code)))
-            {
-                sb.AppendLine(code);
-            }
-            else
-            {
-                sb.AppendLine($"#include \"{relativePath}\"");
-            }
+            sb.AppendLine($"#include \"{relativePath}\"");
         }
 
         mainShaderPath = mainShaderPath?.Replace('\\', '/').TrimStart('/') ?? "main_shader";
@@ -216,11 +209,6 @@ public static class DSLShaderCompiler
 
     public static Result<GraphicsShaderDescriptor> ResolveShader(GraphicsShaderSemantics semantics, string? shaderPath = null)
     {
-        return ResolveShader(semantics, null, null, shaderPath);
-    }
-
-    public static Result<GraphicsShaderDescriptor> ResolveShader(GraphicsShaderSemantics semantics, ShaderReflectionData? reflectionData, IReadOnlyDictionary<string, string>? virtualShaders = null, string? shaderPath = null)
-    {
         // Template-based shaders are resolved through the template stitcher.
         if (!string.IsNullOrEmpty(semantics.templateName))
         {
@@ -230,20 +218,11 @@ public static class DSLShaderCompiler
                 return Result.Failure(templateResult.Message);
             }
 
-            return TemplateStitcher.ResolveShader(templateResult.Value, semantics, reflectionData, virtualShaders);
+            return TemplateStitcher.ResolveShader(templateResult.Value, semantics);
         }
 
         var propertiesCode = BuildPropertiesStruct(semantics.name, semantics.properties);
-        if (string.IsNullOrEmpty(propertiesCode) && !string.IsNullOrEmpty(reflectionData?.Code))
-        {
-            propertiesCode = reflectionData.Code;
-        }
-
         var propertyBufferSize = CalculatePropertyBufferSize(semantics.properties);
-        if (propertyBufferSize == 0 && reflectionData != null && reflectionData.Size > 0)
-        {
-            propertyBufferSize = reflectionData.Size;
-        }
 
         var passes = semantics.passes == null ? Array.Empty<PassDescriptor>() : new PassDescriptor[semantics.passes.Count];
         for (var i = 0; i < passes.Length; i++)
@@ -252,7 +231,7 @@ public static class DSLShaderCompiler
 
             var localPipeline = MergePipeline(pass.localPipeline, PipelineState.Default);
 
-            var result = BuildFinalShaderCode(pass.amplificationShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertiesCode, virtualShaders, shaderPath);
+            var result = BuildFinalShaderCode(pass.amplificationShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertiesCode, shaderPath);
             if (result.IsFailure)
             {
                 return Result.Failure($"Failed to build shader code for pass '{pass.name}': {result.Message}");
@@ -260,7 +239,7 @@ public static class DSLShaderCompiler
 
             var amplificationShaderCode = new ShaderCode { code = result.Value, entryPoint = pass.amplificationShader.entry ?? string.Empty };
 
-            result = BuildFinalShaderCode(pass.meshShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertiesCode, virtualShaders, shaderPath);
+            result = BuildFinalShaderCode(pass.meshShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertiesCode, shaderPath);
             if (result.IsFailure)
             {
                 return Result.Failure($"Failed to build shader code for pass '{pass.name}': {result.Message}");
@@ -268,7 +247,7 @@ public static class DSLShaderCompiler
 
             var meshShaderCode = new ShaderCode { code = result.Value, entryPoint = pass.meshShader.entry ?? string.Empty };
 
-            result = BuildFinalShaderCode(pass.pixelShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertiesCode, virtualShaders, shaderPath);
+            result = BuildFinalShaderCode(pass.pixelShader.shaderPath, pass.includes.AsSpan(), pass.hlsl, propertiesCode, shaderPath);
             if (result.IsFailure)
             {
                 return Result.Failure($"Failed to build shader code for pass '{pass.name}': {result.Message}");
@@ -276,10 +255,15 @@ public static class DSLShaderCompiler
 
             var pixelShaderCode = new ShaderCode { code = result.Value, entryPoint = pass.pixelShader.entry ?? string.Empty };
 
-            var stageMask = ShaderStageMask.Mesh | ShaderStageMask.Pixel;
+            var stageMask = ShaderStageMask.Mesh; // Mesh shader is must have.
             if (amplificationShaderCode.IsCreated)
             {
                 stageMask |= ShaderStageMask.Amplification;
+            }
+
+            if (pixelShaderCode.IsCreated)
+            {
+                stageMask |= ShaderStageMask.Pixel;
             }
 
             passes[i] = new PassDescriptor
@@ -348,27 +332,13 @@ public static class DSLShaderCompiler
 
     public static Result<ComputeShaderDescriptor> ResolveShader(ComputeShaderSemantics semantics, string? shaderPath = null)
     {
-        return ResolveShader(semantics, null, null, shaderPath);
-    }
-
-    public static Result<ComputeShaderDescriptor> ResolveShader(ComputeShaderSemantics semantics, ShaderReflectionData? reflectionData, IReadOnlyDictionary<string, string>? virtualShaders = null, string? shaderPath = null)
-    {
         var propertiesCode = BuildPropertiesStruct(semantics.name, semantics.properties);
-        if (string.IsNullOrEmpty(propertiesCode) && !string.IsNullOrEmpty(reflectionData?.Code))
-        {
-            propertiesCode = reflectionData.Code;
-        }
-
         var propertyBufferSize = CalculatePropertyBufferSize(semantics.properties);
-        if (propertyBufferSize == 0 && reflectionData != null && reflectionData.Size > 0)
-        {
-            propertyBufferSize = reflectionData.Size;
-        }
 
         var shaderCodes = new ShaderCode[semantics.entryPoints.Count];
         for (var i = 0; i < shaderCodes.Length; i++)
         {
-            var result = BuildFinalShaderCode(semantics.entryPoints[i].shaderPath, semantics.includes.AsSpan(), semantics.hlsl, propertiesCode, virtualShaders, shaderPath);
+            var result = BuildFinalShaderCode(semantics.entryPoints[i].shaderPath, semantics.includes.AsSpan(), semantics.hlsl, propertiesCode, shaderPath);
             if (result.IsFailure)
             {
                 return Result.Failure($"Failed to build shader code for entry point '{semantics.entryPoints[i].entry}': {result.Message}");

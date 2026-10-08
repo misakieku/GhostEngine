@@ -39,7 +39,7 @@ public enum PassSemantic : byte
     DeferredTexturing = 3,
     DeferredLighting = 4,
     Custom = 5,
-    Count = 8
+    Count = 6
 }
 
 public static class PassSemanticExtensions

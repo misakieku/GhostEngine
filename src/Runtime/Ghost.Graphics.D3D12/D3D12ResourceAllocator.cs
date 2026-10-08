@@ -197,13 +197,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             }
         }
 
-        if (hr.FAILED)
-        {
-#if DEBUG
-            ThrowIfFailed(hr);
-#endif
-            return Handle<GPUTexture>.Invalid;
-        }
+        ThrowIfFailed(hr);
 
         var resourceDescriptor = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, ResourceDesc.Texture(desc), pResource, viewCreationFlags: additionalDesc.ViewCreationFlags);
 
@@ -257,13 +251,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             }
         }
 
-        if (hr.FAILED)
-        {
-#if DEBUG
-            ThrowIfFailed(hr);
-#endif
-            return Handle<GPUBuffer>.Invalid;
-        }
+        ThrowIfFailed(hr);
 
         var resourceDescriptor = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, ResourceDesc.Buffer(desc), pResource);
         Handle<GPUResource> resource;

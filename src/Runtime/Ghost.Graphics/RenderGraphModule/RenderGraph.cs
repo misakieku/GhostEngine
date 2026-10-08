@@ -81,7 +81,7 @@ public sealed class RenderGraph : IDisposable
         _builder = new RenderGraphBuilder(_resourceRegistry, _blackboard);
     }
 
-    private RenderGraphDump GenerateDump(scoped in CompiledGraph graph, ViewportState viewState)
+    private RenderGraphDump GenerateDump(scoped in CompiledGraph graph, ViewportState viewport)
     {
         var sizeWithoutAliasing = 0UL;
         for (var i = 0; i < graph.plan.placedResources.Count; i++)
@@ -95,7 +95,7 @@ public sealed class RenderGraph : IDisposable
             TotalHeapSize = graph.plan.totalHeapSize,
             SizeWithoutAliasing = sizeWithoutAliasing,
             IsCacheHit = graph.cacheHit,
-            ViewState = viewState
+            ViewState = viewport
         };
 
         var effectiveQueues = new Dictionary<int, CommandQueueType>();
@@ -531,12 +531,12 @@ public sealed class RenderGraph : IDisposable
     /// </summary>
     // TODO: Maybe we can introduce a new method called BeginRecord and take the ViewPortState as a parameter,
     // When there is a relative texture, we can resolve the actual size directly?
-    public Result<RGExecution, Error> CompileAndExecute(in RenderGraphExecutionContext executionContext, ViewportState viewState, RGFlags flags = RGFlags.Default)
+    public Result<RGExecution, Error> CompileAndExecute(in RenderGraphExecutionContext executionContext, ViewportState viewport, RGFlags flags = RGFlags.Default)
     {
-        _resourceRegistry.ResolveTextureSizes(in viewState);
+        _resourceRegistry.ResolveTextureSizes(in viewport);
 
         var graphHash = RenderGraphHasher.ComputeGraphHash(_passes, _resourceRegistry);
-        var result = _compiler.Compile(in viewState, graphHash, _passes, flags, _memoryPool.AllocationHandle);
+        var result = _compiler.Compile(in viewport, graphHash, _passes, flags, _memoryPool.AllocationHandle);
         if (result.IsFailure)
         {
             return result.Error;
@@ -582,7 +582,7 @@ public sealed class RenderGraph : IDisposable
         }
 
         var dump = flags.HasFlag(RGFlags.GenerateDump)
-            ? GenerateDump(graph, viewState)
+            ? GenerateDump(graph, viewport)
             : null;
 
         return new RGExecution

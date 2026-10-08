@@ -56,21 +56,6 @@ void VisibilityWritePixelAtomic(uint visBufferIndex, uint2 pixelCoord, float dep
     InterlockedMax(visBuffer[pixelCoord], newPacked);
 }
 
-bool IsFrontFacingAndVisible(float4 h0, float4 h1, float4 h2, float subpixelThreshold = 0.0f)
-{
-    if (min(h0.w, min(h1.w, h2.w)) <= 0.0f)
-    {
-        return true;
-    }
-
-    float2 e0 = h1.xy * h0.w - h0.xy * h1.w;
-    float2 e1 = h2.xy * h0.w - h0.xy * h2.w;
-
-    float crossProduct = e1.x * e0.y - e1.y * e0.x;
-
-    return crossProduct > subpixelThreshold;
-}
-
 float4 GetVertexClipPosition(uint vertexIndex, in MeshData meshData, in Meshlet meshlet, float4x4 worldViewProj, out float2 uv)
 {
     Vertex v = LoadMeshletVertex(vertexIndex, meshData, meshlet);
@@ -158,7 +143,7 @@ void MSMain(
         bool isCulled = false;
         if (doubleSided == 0.0f)
         {
-            isCulled = !IsFrontFacingAndVisible(v0, v1, v2);
+            isCulled = !IsTriangleFrontFacingAndVisible(v0, v1, v2);
             if (!isCulled)
             {
                 isCulled = IsTriangleOutsideFrustum(v0, v1, v2);

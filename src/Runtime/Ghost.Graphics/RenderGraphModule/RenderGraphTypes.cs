@@ -2,7 +2,6 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
-using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
@@ -29,61 +28,6 @@ public enum RGTextureSizeMode : byte
     /// Scale relative to view state (scaleX * viewportWidth, scaleY * viewportHeight).
     /// </summary>
     Relative
-}
-
-/// <summary>
-/// View state information for resolving relative texture sizes.
-/// </summary>
-public struct ViewportState : IEquatable<ViewportState>
-{
-    public uint viewportWidth;
-    public uint viewportHeight;
-
-    // For upscalers that need to know the original render target size before upscaling
-    public uint actualWidth;
-    public uint actualHeight;
-
-    public ViewportState(uint width, uint height, uint actualWidth, uint actualHeight)
-    {
-        viewportWidth = width;
-        viewportHeight = height;
-        this.actualWidth = actualWidth;
-        this.actualHeight = actualHeight;
-    }
-
-    public readonly float2 CalculateScale(ViewportState other)
-    {
-        return new float2(
-            (float)viewportWidth / other.viewportWidth,
-            (float)viewportHeight / other.viewportHeight
-        );
-    }
-
-    public readonly bool Equals(ViewportState other)
-    {
-        return viewportWidth == other.viewportWidth && viewportHeight == other.viewportHeight
-            && actualWidth == other.actualWidth && actualHeight == other.actualHeight;
-    }
-
-    public override readonly bool Equals(object? obj)
-    {
-        return obj is ViewportState other && Equals(other);
-    }
-
-    public override readonly int GetHashCode()
-    {
-        return HashCode.Combine(viewportWidth, viewportHeight, actualWidth, actualHeight);
-    }
-
-    public static bool operator ==(ViewportState left, ViewportState right)
-    {
-        return left.Equals(right);
-    }
-
-    public static bool operator !=(ViewportState left, ViewportState right)
-    {
-        return !left.Equals(right);
-    }
 }
 
 /// <summary>

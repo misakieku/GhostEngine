@@ -41,7 +41,7 @@ internal partial class GhostRenderPipeline
         public uint2 renderSize;
     }
 
-    internal ICommandSignature _dispatchMeshCommandSignature = null!;
+    private ICommandSignature _dispatchMeshCommandSignature = null!;
 
     private void InitializeVisibility(RenderEngine renderEngine, AssetManager assetManager)
     {

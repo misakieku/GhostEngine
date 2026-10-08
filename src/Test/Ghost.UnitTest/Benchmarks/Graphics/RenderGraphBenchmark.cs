@@ -5,6 +5,7 @@ using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Ghost.UnitTest.MockingEnvironment;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.UnitTest.Benchmarks.Graphics;
 
@@ -61,7 +62,7 @@ public class RenderGraphBenchmark
 
     private RenderGraph _renderGraph = null!;
     private RenderGraphExecutionContext _executionContext;
-    private ViewportState _viewState;
+    private ViewportState _viewport;
 
     private Handle<GPUTexture> _importedBackBufferHandle;
     private Handle<GPUBuffer> _importedSceneBufferHandle;
@@ -90,12 +91,10 @@ public class RenderGraphBenchmark
             _graphicsCommandAllocator,
             _computeCommandAllocator);
 
-        _viewState = new ViewportState
+        _viewport = new ViewportState
         {
-            actualWidth = 3840,
-            actualHeight = 2160,
-            viewportWidth = 3840,
-            viewportHeight = 2160
+            Size = new uint2(3840, 2160),
+            ActualSize = new uint2(3840, 2160)
         };
 
         var backBufferDesc = new TextureDesc
@@ -113,7 +112,7 @@ public class RenderGraphBenchmark
 
         // Pre-warm once so cache and execution scratch are initialized.
         BuildAAAPipeline(_renderGraph, _importedBackBufferHandle, _importedSceneBufferHandle);
-        _ = _renderGraph.CompileAndExecute(_executionContext, _viewState).GetValueOrThrow();
+        _ = _renderGraph.CompileAndExecute(_executionContext, _viewport).GetValueOrThrow();
         _frameScheduler.Flush();
     }
 
@@ -401,7 +400,7 @@ public class RenderGraphBenchmark
         BuildAAAPipeline(_renderGraph, _importedBackBufferHandle, _importedSceneBufferHandle);
         var result = _renderGraph.CompileAndExecute(
             _executionContext,
-            _viewState);
+            _viewport);
 
         if (result.IsFailure)
         {
@@ -424,7 +423,7 @@ public class RenderGraphBenchmark
         BuildAAAPipeline(_renderGraph, _importedBackBufferHandle, _importedSceneBufferHandle);
         var result = _renderGraph.CompileAndExecute(
             _executionContext,
-            _viewState);
+            _viewport);
 
         if (result.IsFailure)
         {

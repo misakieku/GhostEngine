@@ -105,13 +105,18 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
         stream.Write(nameBytes);
     }
 
-    private static async Task WriteShaderEntries(Stream stream, long passDataOffset, CancellationToken cancellationToken, params (ShaderStage stage, UnsafeArray<byte> bytecode)[] entries)
+    private static async Task WriteShaderEntries(Stream stream, long passDataOffset, CancellationToken cancellationToken, params IReadOnlyList<(ShaderStage stage, UnsafeArray<byte> bytecode)> entries)
     {
-        var baseByteCodeOffset = (stream.Position - passDataOffset) + (entries.Length * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>());
+        var baseByteCodeOffset = (stream.Position - passDataOffset) + (entries.Count * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>());
 
-        for (var i = 0; i < entries.Length; i++)
+        for (var i = 0; i < entries.Count; i++)
         {
             var (stage, bytecode) = entries[i];
+            if (!bytecode.IsCreated)
+            {
+                continue;
+            }
+
             var byteCodeOffset = baseByteCodeOffset;
             for (var j = 0; j < i; j++)
             {
@@ -133,7 +138,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
             stream.Write(entryPointHeader);
         }
 
-        for (var i = 0; i < entries.Length; i++)
+        for (var i = 0; i < entries.Count; i++)
         {
             var bytecode = entries[i].bytecode;
             if (!bytecode.IsCreated)
@@ -252,7 +257,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                     var passHeaderOffset = dst.Position;
                     var passHeader = new ShaderContentHeader.PassHeader
                     {
-                        entryPointCount = pass.computeShaderCode.IsCreated ? 1u : pass.amplificationShaderCode.IsCreated ? 3u : 2u,
+                        entryPointCount = pass.computeShaderCode.IsCreated ? 1u : (1 + (pass.amplificationShaderCode.IsCreated ? 1u : 0u) + (pass.pixelShaderCode.IsCreated ? 1u : 0u)),
                         semantic = pass.semantic,
                         stageMask = pass.stageMask,
                         passId = ShaderIdentity.GetPassId(header.shaderId, passIdx),
@@ -279,12 +284,13 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                     }
                     else
                     {
-                        if (!pass.meshShaderCode.IsCreated || !pass.pixelShaderCode.IsCreated ||
-                            (pass.stageMask & (ShaderStageMask.Mesh | ShaderStageMask.Pixel)) != (ShaderStageMask.Mesh | ShaderStageMask.Pixel))
+                        // Mesh shader stage is required for graphics shaders
+                        if (!pass.meshShaderCode.IsCreated || !pass.stageMask.HasFlag(ShaderStageMask.Mesh))
                         {
                             throw new InvalidOperationException($"Shader pass '{pass.name}' is missing required graphics shader stages.");
                         }
 
+                        var entries = new List<(ShaderStage stage, UnsafeArray<byte> bytecode)>();
                         var config = configTemplate with
                         {
                             stage = ShaderStage.MeshShader,
@@ -292,30 +298,34 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                             entryPoint = pass.meshShaderCode.entryPoint,
                             shaderCode = pass.meshShaderCode.code,
                         };
+
                         using var msByteCode = CompileStage(in config);
+                        entries.Add((ShaderStage.MeshShader, msByteCode));
 
-                        config.stage = ShaderStage.PixelShader;
-                        config.entryPoint = pass.pixelShaderCode.entryPoint;
-                        config.shaderCode = pass.pixelShaderCode.code;
-                        using var psByteCode = CompileStage(in config);
+                        var psByteCode = default(UnsafeArray<byte>);
+                        if (pass.pixelShaderCode.IsCreated)
+                        {
+                            config.stage = ShaderStage.PixelShader;
+                            config.entryPoint = pass.pixelShaderCode.entryPoint;
+                            config.shaderCode = pass.pixelShaderCode.code;
+                            psByteCode = CompileStage(in config);
+                            entries.Add((ShaderStage.PixelShader, psByteCode));
+                        }
 
+                        var asByteCode = default(UnsafeArray<byte>);
                         if (pass.amplificationShaderCode.IsCreated)
                         {
                             config.stage = ShaderStage.AmplificationShader;
                             config.entryPoint = pass.amplificationShaderCode.entryPoint;
                             config.shaderCode = pass.amplificationShaderCode.code;
-                            using var asByteCode = CompileStage(in config);
-                            await WriteShaderEntries(dst, passDataStart, cancellationToken,
-                                (ShaderStage.AmplificationShader, asByteCode),
-                                (ShaderStage.MeshShader, msByteCode),
-                                (ShaderStage.PixelShader, psByteCode));
+                            asByteCode = CompileStage(in config);
+                            entries.Add((ShaderStage.AmplificationShader, asByteCode));
                         }
-                        else
-                        {
-                            await WriteShaderEntries(dst, passDataStart, cancellationToken,
-                                (ShaderStage.MeshShader, msByteCode),
-                                (ShaderStage.PixelShader, psByteCode));
-                        }
+
+                        await WriteShaderEntries(dst, passDataStart, cancellationToken, entries);
+
+                        psByteCode.Dispose();
+                        asByteCode.Dispose();
                     }
 
                     passHeader.dataOffset = passDataStart - assetStartOffset;

@@ -18,4 +18,4 @@ public class ShaderReflectionData
     public uint Size { get; set; }
 
     public ShaderPropertyFieldInfo[] Fields { get; set; } = Array.Empty<ShaderPropertyFieldInfo>();
-}
+}

@@ -205,12 +205,7 @@ public abstract class SystemGroup : ISystem
         get; init;
     } = null!;
 
-    // public SystemGroup()
-    // {
-    //     _systems = SystemGroupRegistry.GetSystemsForGroup(GetType());
-    // }
-
-    // TODO: Use Source Generators to generate group registrations at compile time, and remove the need for this public constructor.
+    // TODO: Use Source Generators to generate group registrations and system sorting at compile time.
     private static List<ISystem> Sort(List<ISystem> systems)
     {
         // 1. Build the Graph

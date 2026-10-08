@@ -108,6 +108,7 @@ public class BakeService
                         }
                         break;
                 }
+
                 var current = Interlocked.Increment(ref completed);
                 OnProgress?.Invoke(current, total);
             }, cancellationToken));

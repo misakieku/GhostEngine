@@ -351,60 +351,6 @@ internal partial class GhostRenderPipeline
         return binnedTileListBuffer;
     }
 
-    private void AddDebugClassificationPass(RenderGraph rg, Identifier<RGTexture> targetTexture, Identifier<RGBuffer> tileListBuffer, Identifier<RGBuffer> tileOffsetsBuffer, Identifier<RGBuffer> indirectArgsBuffer, uint2 screenSize)
-    {
-        var tilesX = (screenSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
-
-        using var builder = rg.AddRasterRenderPass<DebugClassificationPassData>("DebugClassification");
-        builder.SetColorAttachment(targetTexture, 0, AccessFlags.Write);
-        builder.UseBuffer(tileListBuffer, AccessFlags.Read);
-        builder.UseBuffer(tileOffsetsBuffer, AccessFlags.Read);
-        builder.UseBuffer(indirectArgsBuffer, AccessFlags.Read);
-
-        builder.SetPassData(new DebugClassificationPassData
-        {
-            variantTileList = tileListBuffer,
-            tileOffsetsBuffer = tileOffsetsBuffer,
-            indirectArgsBuffer = indirectArgsBuffer,
-            targetTexture = targetTexture,
-            shader = _materialPipelineResource.debugClassificationShader,
-            commandSignature = _dispatchMeshCommandSignature,
-            variantRegistry = _assetManager.ShaderVariants,
-            tilesPerRow = tilesX,
-            renderSize = screenSize
-        });
-
-        builder.SetRenderFunc<DebugClassificationPassData>(static (ref readonly passData, renderCtx) =>
-        {
-            if (!renderCtx.TrySetActiveShaderPass(passData.shader, 0))
-            {
-                return;
-            }
-
-            var tileListSrv = renderCtx.ResourceDatabase.GetBindlessIndex(renderCtx.GetActualBuffer(passData.variantTileList).AsResource(), BindlessAccess.ShaderResource);
-            var tileOffsetsSrv = renderCtx.ResourceDatabase.GetBindlessIndex(renderCtx.GetActualBuffer(passData.tileOffsetsBuffer).AsResource(), BindlessAccess.ShaderResource);
-            var actualIndirectBuf = renderCtx.GetActualBuffer(passData.indirectArgsBuffer);
-
-            var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.DeferredTexturing);
-            for (var i = 0; i < dispatchVariants.Length; i++)
-            {
-                var v = (uint)dispatchVariants[i].DenseIndex;
-                var property = new HiddenDebugClassificationShaderProperties
-                {
-                    variantTileListIndex = tileListSrv,
-                    tileOffsetsBufferIndex = tileOffsetsSrv,
-                    variantIndex = v,
-                    tilesPerRow = passData.tilesPerRow,
-                    renderWidth = passData.renderSize.x,
-                    renderHeight = passData.renderSize.y
-                };
-
-                renderCtx.SetUserDataWithProperties(in property, target: DataTarget.Graphics);
-                renderCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, (ulong)v * INDIRECT_ARGS_STRIDE);
-            }
-        });
-    }
-
     private void AddTileClassificationPass(RenderGraph rg, Identifier<RGTexture> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, uint2 screenSize,
         out Identifier<RGBuffer> binnedTileListBuffer, out Identifier<RGBuffer> tileOffsetsBuffer, out Identifier<RGBuffer> indirectArgsBuffer, out Identifier<RGBuffer> tileShadingModelMaskBuffer)
     {

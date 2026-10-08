@@ -8,7 +8,8 @@ using System.Text.Json;
 
 namespace Ghost.AssetForge.CLI;
 
-internal class BakeOptions
+[CommandOptions]
+internal partial class BakeOptions
 {
     [Option("asset-dir", Description = "The directory containing the assets to bake. Use semicolon to separate multiple directories.", IsRequired = true)]
     public string AssetDirs { get; set; } = string.Empty;
@@ -32,7 +33,8 @@ internal enum MetdataCommandMode
     Validate
 }
 
-internal class MetadataOptions
+[CommandOptions]
+internal partial class MetadataOptions
 {
     [Option("mode", Description = "The mode to run the metadata command in. Can be 'update' or 'validate'.", IsRequired = true)]
     public MetdataCommandMode Mode { get; set; }

@@ -139,16 +139,19 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             ref readonly var request = ref ghostPayload.RenderRequests[requestIndex];
             using var renderView = new RenderViewData(_renderEngine.SwapChainManager, ctx.ResourceDatabase, in request);
 
+            // TODO: Dynamic resolution. For now, we just use the render view's screen size as the viewport size.
+            var viewPort = new ViewportState(renderView.ScreenSize.x, renderView.ScreenSize.y, renderView.ScreenSize.x, renderView.ScreenSize.y);
+
             // Upload ViewData (Reversed-Z: near=1.0, far=0.0)
-            RenderPipelineUtility.GetVPMatricesReversedZ(in request, renderView.ScreenSize, out var viewMatrix, out var projMatrix);
+            RenderPipelineUtility.GetVPMatricesReversedZ(in request, viewPort.Size, out var viewMatrix, out var projMatrix);
 
             var viewProjMatrix = math.mul(projMatrix, viewMatrix);
             var frustum = Frustum.Create(viewProjMatrix, request.view.localToWorld.c3.xyz, request.view.localToWorld.c2.xyz, request.view.nearClipPlane, request.view.farClipPlane);
 
             var viewContext = _gpuViewManager.GetView(request.viewId);
-            viewContext.EnsureResources(renderView.ScreenSize, _settings.ShadowAtlasResolution);
+            viewContext.EnsureResources(viewPort.Size, _settings.ShadowAtlasResolution);
 
-            ExecutePerViewShadowSetup(ctx, ghostPayload, viewContext.ShadowAllocator, in frustum,
+            ExecutePerViewShadowSetup(ctx, ghostPayload, viewContext.ShadowAllocator, in frustum, viewPort.Size.y,
                 out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
 
             if (viewContext.prevViewProjMatrix.Equals(float4x4.zero))
@@ -174,21 +177,11 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
             var gbuffer = AddDeferredTexturingPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, tileOffsetsBuffer, indirectArgsBuffer, viewContext.RenderSize);
             var tileLightList = AddTileLightCullingPass(viewContext.RenderGraph, currentDepth, viewContext.RenderSize);
-
             var shadowAtlas = AddPunctualShadowAtlasPass(viewContext.RenderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
+            var litColor = AddDeferredLightingPass(viewContext.RenderGraph, gbuffer, currentDepth, tileLightList, shadowAtlas, shadowViewsBufferSrv, shadowIndicesBufferSrv, tileShadingModelMaskBuffer, viewContext.RenderSize);
+            
+            viewContext.RenderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
 
-            if (_settings.DebugMode == RenderPipelineDebugMode.TileLightHeatmap)
-            {
-                AddDebugTileLightHeatmapPass(viewContext.RenderGraph, tileLightList, currentDepth, colorTarget, viewContext.RenderSize);
-            }
-            else
-            {
-                var litColor = AddDeferredLightingPass(viewContext.RenderGraph, gbuffer, currentDepth, tileLightList, shadowAtlas, shadowViewsBufferSrv, shadowIndicesBufferSrv, tileShadingModelMaskBuffer, viewContext.RenderSize);
-                viewContext.RenderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
-            }
-
-            // TODO: Dynamic resolution.
-            var viewPort = new ViewportState(renderView.ScreenSize.x, renderView.ScreenSize.y, renderView.ScreenSize.x, renderView.ScreenSize.y);
             var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.Default);
             if (result.IsFailure)
             {

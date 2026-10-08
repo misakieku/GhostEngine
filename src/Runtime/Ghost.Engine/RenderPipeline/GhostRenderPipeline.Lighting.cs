@@ -21,11 +21,12 @@ internal unsafe partial class GhostRenderPipeline
 {
     private struct PerViewShadowSetupJob : IJobParallelFor
     {
-        public GPUPunctualLight[] lights;
+        public ReadOnlyView<GPUPunctualLight> lights;
         public UnsafeArray<int> shadowIndices;
-        public float meshletLodErrorThreshold;
         public Frustum frustum;
         public ShadowAtlasRegionAllocator allocator;
+        public float meshletLodErrorThreshold;
+        public float viewHeight;
 
         public UnsafeList<GPUShadowViewData>.ParallelWriter shadowViewsWriter;
 
@@ -95,6 +96,7 @@ internal unsafe partial class GhostRenderPipeline
                 var projMat = CreatePerspectiveReversedZ(fov, 1.0f, nearPlane, farPlane);
                 var shadowViewProj = math.mul(projMat, viewMat);
                 var shadowFrustum = Frustum.Create(shadowViewProj, light.positionWS, light.directionWS, nearPlane, farPlane);
+                var lodErrorThreshold = meshletLodErrorThreshold * (viewHeight / shadowSize);
 
                 var svData = new GPUShadowViewData
                 {
@@ -107,7 +109,7 @@ internal unsafe partial class GhostRenderPipeline
                     plane5 = shadowFrustum.planes[5],
                     tileOffsetScale = region.tileOffsetScale,
                     lightPositionWS = light.positionWS,
-                    lodErrorThreshold = meshletLodErrorThreshold,
+                    lodErrorThreshold = lodErrorThreshold,
                     proj11 = 1.0f / math.tan(fov * 0.5f),
                     tileSize = shadowSize,
                 };
@@ -131,6 +133,7 @@ internal unsafe partial class GhostRenderPipeline
                     : math.radians(90.0f);
                 var projMat = CreatePerspectiveReversedZ(fov, 1.0f, nearPlane, farPlane);
                 var pointProj11 = 1.0f / math.tan(fov * 0.5f);
+                var lodErrorThreshold = meshletLodErrorThreshold * (viewHeight / shadowSize);
 
                 Span<GPUShadowViewData> faceViews = stackalloc GPUShadowViewData[6];
                 for (var f = 0; f < 6; f++)
@@ -151,7 +154,7 @@ internal unsafe partial class GhostRenderPipeline
                         plane5 = shadowFrustum.planes[5],
                         tileOffsetScale = faceRegions[f].tileOffsetScale,
                         lightPositionWS = light.positionWS,
-                        lodErrorThreshold = meshletLodErrorThreshold,
+                        lodErrorThreshold = lodErrorThreshold,
                         proj11 = pointProj11,
                         tileSize = shadowSize
                     };
@@ -163,7 +166,7 @@ internal unsafe partial class GhostRenderPipeline
         }
     }
 
-    private void ExecutePerViewShadowSetup(ResourceContext ctx, GhostRenderPayload payload, ShadowAtlasRegionAllocator atlasAllocator, in Frustum viewFrustum, out uint shadowViewsBufferSrv, out uint shadowViewCount, out uint shadowIndicesBufferSrv)
+    private void ExecutePerViewShadowSetup(ResourceContext ctx, GhostRenderPayload payload, ShadowAtlasRegionAllocator atlasAllocator, in Frustum viewFrustum, float viewHeight, out uint shadowViewsBufferSrv, out uint shadowViewCount, out uint shadowIndicesBufferSrv)
     {
         shadowViewsBufferSrv = uint.MaxValue;
         shadowViewCount = 0;
@@ -183,12 +186,13 @@ internal unsafe partial class GhostRenderPipeline
 
         var job = new PerViewShadowSetupJob
         {
-            lights = payload.PunctualLights.ToArray(),
+            lights = payload.PunctualLights,
             frustum = viewFrustum,
             allocator = atlasAllocator,
             shadowViewsWriter = shadowViews.AsParallelWriter(),
             shadowIndices = shadowIndices,
-            meshletLodErrorThreshold = _settings.MeshletLodErrorThreshold
+            meshletLodErrorThreshold = _settings.MeshletLodErrorThreshold,
+            viewHeight = viewHeight
         };
 
         if (lightCount <= 64)
@@ -241,7 +245,7 @@ internal unsafe partial class GhostRenderPipeline
         out uint directionalLightSrv, out uint directionalLightCount, out int primaryDirectionalLightIndex)
     {
         UploadDirectionalLights(ctx, payload, out directionalLightSrv, out directionalLightCount, out primaryDirectionalLightIndex);
-        
+
         punctualLightsSrv = uint.MaxValue;
         punctualLightCount = (uint)payload.PunctualLights.Length;
 
@@ -356,48 +360,6 @@ internal unsafe partial class GhostRenderPipeline
         public uint tilesX;
     }
 
-    private void AddDebugTileLightHeatmapPass(RenderGraph rg, Identifier<RGBuffer> tileLightList, Identifier<RGTexture> depthTexture, Identifier<RGTexture> colorTarget, uint2 renderSize)
-    {
-        var tilesX = (renderSize.x + 15u) / 16u;
-
-        using var builder = rg.AddRasterRenderPass<DebugTileLightHeatmapPassData>("DebugTileLightHeatmap");
-        builder.SetColorAttachment(colorTarget, 0, AccessFlags.WriteAll);
-        builder.UseBuffer(tileLightList, AccessFlags.Read);
-        builder.UseTexture(depthTexture, AccessFlags.Read);
-
-        builder.SetPassData(new DebugTileLightHeatmapPassData
-        {
-            tileLightList = tileLightList,
-            depthTexture = depthTexture,
-            shader = _lightingPipelineResource.debugTileLightHeatmapShader,
-            renderSize = renderSize,
-            tilesX = tilesX
-        });
-
-        builder.SetRenderFunc<DebugTileLightHeatmapPassData>(static (ref readonly passData, renderCtx) =>
-        {
-            if (!renderCtx.TrySetActiveShaderPass(passData.shader, PassSemantic.Forward))
-            {
-                return;
-            }
-
-            var tileLightListSrv = renderCtx.GetActualBindlessIndex(passData.tileLightList);
-            var depthSrv = renderCtx.GetActualBindlessIndex(passData.depthTexture);
-
-            var props = new HiddenDebugTileLightHeatmapShaderProperties
-            {
-                tileLightListBufferIndex = tileLightListSrv,
-                depthTextureIndex = depthSrv,
-                renderWidth = passData.renderSize.x,
-                renderHeight = passData.renderSize.y,
-                tilesX = passData.tilesX
-            };
-
-            renderCtx.SetUserDataWithProperties(props, target: DataTarget.Graphics);
-            renderCtx.DispatchMesh(1, 1, 1);
-        });
-    }
-
     [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl")]
     [StructLayout(LayoutKind.Sequential)]
     private struct DeferredLightingShaderProperties
@@ -461,7 +423,7 @@ internal unsafe partial class GhostRenderPipeline
         builder.UseTexture(depthTexture, AccessFlags.Read);
         builder.UseBuffer(tileLightList, AccessFlags.Read);
         builder.UseBuffer(tileShadingModelMaskBuffer, AccessFlags.Read);
-        
+
         if (shadowAtlas.IsValid)
         {
             builder.UseTexture(shadowAtlas, AccessFlags.Read);
@@ -575,6 +537,7 @@ internal unsafe partial class GhostRenderPipeline
         public Identifier<RGTexture> shadowAtlas;
         public Identifier<RGBuffer> visibleMeshlets;
         public Identifier<RGBuffer> indirectArgs;
+        public Handle<Shader> opaqueShadowShader;
         public ICommandSignature commandSignature;
         public uint shadowViewsBufferSrv;
         public ShaderVariantRegistry variantRegistry;
@@ -742,6 +705,7 @@ internal unsafe partial class GhostRenderPipeline
                 shadowAtlas = shadowAtlas,
                 visibleMeshlets = visibleMeshlets,
                 indirectArgs = indirectArgs,
+                opaqueShadowShader = _lightingPipelineResource.opaqueShadowRasterizer,
                 commandSignature = _dispatchMeshCommandSignature,
                 shadowViewsBufferSrv = shadowViewsBufferSrv,
                 variantRegistry = _assetManager.ShaderVariants,
@@ -756,11 +720,21 @@ internal unsafe partial class GhostRenderPipeline
                 if (dispatchVariants.Length > 0)
                 {
                     ref readonly var variant = ref dispatchVariants[0];
-                    if (variant.Shader.IsValid && rasterCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.Shadow))
+                    if (variant.Shader.IsValid && rasterCtx.TrySetActiveShaderPass(passData.opaqueShadowShader, 0))
                     {
                         rasterCtx.SetUserData(visibleMeshletsSrv, passData.shadowViewsBufferSrv, 0, 0);
                         rasterCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, 0);
                     }
+
+                    //for (var i = 1; i < dispatchVariants.Length; i++)
+                    //{
+                    //    variant = ref dispatchVariants[i];
+                    //    if (variant.Shader.IsValid && rasterCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.Shadow))
+                    //    {
+                    //        rasterCtx.SetUserData(visibleMeshletsSrv, passData.shadowViewsBufferSrv, 0, 0);
+                    //        rasterCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, (ulong)(i * sizeof(DispatchMeshCommand)));
+                    //    }
+                    //}
                 }
             });
         }

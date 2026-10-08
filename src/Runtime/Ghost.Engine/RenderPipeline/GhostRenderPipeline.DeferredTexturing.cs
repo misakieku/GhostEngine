@@ -11,7 +11,6 @@ namespace Ghost.Engine.RenderPipeline;
 
 internal partial class GhostRenderPipeline
 {
-    private ICommandSignature _deferredTexturingCommandSignature = null!;
 
     [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl")]
     [StructLayout(LayoutKind.Sequential)]
@@ -72,6 +71,8 @@ internal partial class GhostRenderPipeline
         public uint tilesPerRow;
         public uint2 renderSize;
     }
+
+    private ICommandSignature _deferredTexturingCommandSignature = null!;
 
     private void InitializeDeferredTexturing(RenderEngine renderEngine)
     {

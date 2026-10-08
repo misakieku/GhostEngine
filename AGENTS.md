@@ -282,4 +282,5 @@ TestGame ──> Ghost.Engine ──> Ghost.Generator (analyzer)
 
 ## Documents
 
-To find how to use a specific system, you can find documents in `F:\csharp\GhostEngine\docs\documents` Not every system have a document currently.
+To find how to use a specific system, you can find documents in `docs\documents`.
+Currently only `ECS` and `RenderGraph` have a completed document.

@@ -186,10 +186,7 @@ internal unsafe class ShaderAssetEntry : AssetEntry, ILoadableAssetEntry, IShade
 
             for (var entryIndex = 0; entryIndex < pass.entryPointCount; entryIndex++)
             {
-                var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(
-                    payload,
-                    pass.dataOffset + (entryIndex * sizeof(ShaderContentHeader.EntryPointHeader)),
-                    payloadSize);
+                var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(payload, pass.dataOffset + (entryIndex * sizeof(ShaderContentHeader.EntryPointHeader)), payloadSize);
                 var isPooled = entry.bytecodeHash != 0;
                 if (!isPooled && (entry.byteCodeOffset < entryHeadersSize ||
                     !IsRangeValid(entry.byteCodeOffset, entry.byteCodeSize, pass.dataSize)))
@@ -217,33 +214,26 @@ internal unsafe class ShaderAssetEntry : AssetEntry, ILoadableAssetEntry, IShade
         }
 
         const ShaderStageMask graphicsStages = ShaderStageMask.Amplification | ShaderStageMask.Mesh | ShaderStageMask.Pixel;
-        if ((stageMask & (ShaderStageMask.Mesh | ShaderStageMask.Pixel)) != (ShaderStageMask.Mesh | ShaderStageMask.Pixel) ||
-            (stageMask & ~graphicsStages) != 0)
+        if (!stageMask.HasFlag(ShaderStageMask.Mesh) || (stageMask & ~graphicsStages) != 0)
         {
             return false;
         }
 
-        var hasAmplification = (stageMask & ShaderStageMask.Amplification) != 0;
-        if (entryPointCount != (hasAmplification ? 3u : 2u))
+        var hasAmplification = stageMask.HasFlag(ShaderStageMask.Amplification);
+        var hasPixel = stageMask.HasFlag(ShaderStageMask.Pixel);
+
+        var exptedEntryCount = (hasAmplification ? 1 : 0) + 1 + (hasPixel ? 1 : 0);
+        if (entryPointCount != exptedEntryCount || entryIndex < 0 || entryIndex >= entryPointCount)
         {
             return false;
         }
 
-        if (hasAmplification)
-        {
-            return entryIndex switch
-            {
-                0 => actualStage == ShaderStage.AmplificationShader,
-                1 => actualStage == ShaderStage.MeshShader,
-                2 => actualStage == ShaderStage.PixelShader,
-                _ => false,
-            };
-        }
-
+        entryIndex = hasAmplification ? entryIndex : entryIndex + 1;
         return entryIndex switch
         {
-            0 => actualStage == ShaderStage.MeshShader,
-            1 => actualStage == ShaderStage.PixelShader,
+            0 => actualStage == ShaderStage.AmplificationShader,
+            1 => actualStage == ShaderStage.MeshShader,
+            2 => actualStage == ShaderStage.PixelShader,
             _ => false,
         };
     }

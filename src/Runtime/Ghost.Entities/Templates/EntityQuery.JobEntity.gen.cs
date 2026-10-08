@@ -90,8 +90,8 @@ internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
                 var i_ent = (block * 64) + bit;
 
                 userJob.Execute(pEntity[i_ent], 
-                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent])
-, in ctx);
+                    ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
+                    in ctx);
 
                 validMask ^= (1UL << bit);
             }
@@ -204,9 +204,9 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
                 var i_ent = (block * 64) + bit;
 
                 userJob.Execute(pEntity[i_ent], 
-                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
-                    ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent])
-, in ctx);
+                    ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
+                    ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
+                    in ctx);
 
                 validMask ^= (1UL << bit);
             }
@@ -339,10 +339,10 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
                 var i_ent = (block * 64) + bit;
 
                 userJob.Execute(pEntity[i_ent], 
-                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
-                    ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
-                    ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent])
-, in ctx);
+                    ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
+                    ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
+                    ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
+                    in ctx);
 
                 validMask ^= (1UL << bit);
             }
@@ -495,11 +495,11 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
                 var i_ent = (block * 64) + bit;
 
                 userJob.Execute(pEntity[i_ent], 
-                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
-                    ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
-                    ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
-                    ref (ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent])
-, in ctx);
+                    ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
+                    ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
+                    ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
+                    ref ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent],
+                    in ctx);
 
                 validMask ^= (1UL << bit);
             }
@@ -672,12 +672,12 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFo
                 var i_ent = (block * 64) + bit;
 
                 userJob.Execute(pEntity[i_ent], 
-                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
-                    ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
-                    ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
-                    ref (ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent]),
-                    ref (ComponentTypeID<T4>.IsShared ? ref ptr4[0] : ref ptr4[i_ent])
-, in ctx);
+                    ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
+                    ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
+                    ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
+                    ref ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent],
+                    ref ComponentTypeID<T4>.IsShared ? ref ptr4[0] : ref ptr4[i_ent],
+                    in ctx);
 
                 validMask ^= (1UL << bit);
             }
@@ -870,13 +870,13 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParall
                 var i_ent = (block * 64) + bit;
 
                 userJob.Execute(pEntity[i_ent], 
-                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
-                    ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
-                    ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
-                    ref (ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent]),
-                    ref (ComponentTypeID<T4>.IsShared ? ref ptr4[0] : ref ptr4[i_ent]),
-                    ref (ComponentTypeID<T5>.IsShared ? ref ptr5[0] : ref ptr5[i_ent])
-, in ctx);
+                    ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
+                    ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
+                    ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
+                    ref ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent],
+                    ref ComponentTypeID<T4>.IsShared ? ref ptr4[0] : ref ptr4[i_ent],
+                    ref ComponentTypeID<T5>.IsShared ? ref ptr5[0] : ref ptr5[i_ent],
+                    in ctx);
 
                 validMask ^= (1UL << bit);
             }
@@ -1089,14 +1089,14 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobPa
                 var i_ent = (block * 64) + bit;
 
                 userJob.Execute(pEntity[i_ent], 
-                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
-                    ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
-                    ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
-                    ref (ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent]),
-                    ref (ComponentTypeID<T4>.IsShared ? ref ptr4[0] : ref ptr4[i_ent]),
-                    ref (ComponentTypeID<T5>.IsShared ? ref ptr5[0] : ref ptr5[i_ent]),
-                    ref (ComponentTypeID<T6>.IsShared ? ref ptr6[0] : ref ptr6[i_ent])
-, in ctx);
+                    ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
+                    ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
+                    ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
+                    ref ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent],
+                    ref ComponentTypeID<T4>.IsShared ? ref ptr4[0] : ref ptr4[i_ent],
+                    ref ComponentTypeID<T5>.IsShared ? ref ptr5[0] : ref ptr5[i_ent],
+                    ref ComponentTypeID<T6>.IsShared ? ref ptr6[0] : ref ptr6[i_ent],
+                    in ctx);
 
                 validMask ^= (1UL << bit);
             }
@@ -1329,15 +1329,15 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJ
                 var i_ent = (block * 64) + bit;
 
                 userJob.Execute(pEntity[i_ent], 
-                    ref (ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent]),
-                    ref (ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent]),
-                    ref (ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent]),
-                    ref (ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent]),
-                    ref (ComponentTypeID<T4>.IsShared ? ref ptr4[0] : ref ptr4[i_ent]),
-                    ref (ComponentTypeID<T5>.IsShared ? ref ptr5[0] : ref ptr5[i_ent]),
-                    ref (ComponentTypeID<T6>.IsShared ? ref ptr6[0] : ref ptr6[i_ent]),
-                    ref (ComponentTypeID<T7>.IsShared ? ref ptr7[0] : ref ptr7[i_ent])
-, in ctx);
+                    ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
+                    ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
+                    ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
+                    ref ComponentTypeID<T3>.IsShared ? ref ptr3[0] : ref ptr3[i_ent],
+                    ref ComponentTypeID<T4>.IsShared ? ref ptr4[0] : ref ptr4[i_ent],
+                    ref ComponentTypeID<T5>.IsShared ? ref ptr5[0] : ref ptr5[i_ent],
+                    ref ComponentTypeID<T6>.IsShared ? ref ptr6[0] : ref ptr6[i_ent],
+                    ref ComponentTypeID<T7>.IsShared ? ref ptr7[0] : ref ptr7[i_ent],
+                    in ctx);
 
                 validMask ^= (1UL << bit);
             }

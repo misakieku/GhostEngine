@@ -199,12 +199,6 @@ internal unsafe struct Archetype : IDisposable
         }
     }
 
-    //private struct Edge
-    //{
-    //    public int componentID;
-    //    public int targetArchetype; // can't use Identifier<Archetype> because cycle causer
-    //}
-
     internal UnsafeBitSet _signature;
     internal UnsafeList<Chunk> _chunks;
     internal UnsafeArray<ComponentMemoryLayout> _layouts;

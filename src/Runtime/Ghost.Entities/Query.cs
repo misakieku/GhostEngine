@@ -894,20 +894,23 @@ public ref partial struct QueryBuilder : IDisposable
         };
 
         // Fill BitSets
-        foreach (var id in _all)
+        for (var i = 0; i < _all.Count; i++)
         {
+            var id = _all[i];
             mask.structuralAll.SetBit(id);  // Structure: Must Exist
             mask.requireEnabled.SetBit(id); // Filter: Must be Enabled
         }
 
-        foreach (var id in _disabled)
+        for (var i = 0; i < _disabled.Count; i++)
         {
+            var id = _disabled[i];
             mask.structuralAll.SetBit(id);   // Structure: Must Exist
             mask.requireDisabled.SetBit(id); // Filter: Must be Disabled
         }
 
-        foreach (var id in _none)
+        for (var i = 0; i < _none.Count; i++)
         {
+            var id = _none[i];
             if (ComponentRegistry.GetComponentInfo(id).isEnableable)
             {
                 mask.rejectIfEnabled.SetBit(id); // Filter: Must Not be Enabled (Can be Absent or Disabled)
@@ -918,24 +921,24 @@ public ref partial struct QueryBuilder : IDisposable
             }
         }
 
-        foreach (var id in _present)
+        for (var i = 0; i < _present.Count; i++)
         {
-            mask.structuralAll.SetBit(id);
+            mask.structuralAll.SetBit(_present[i]);
         }
 
-        foreach (var id in _absent)
+        for (var i = 0; i < _absent.Count; i++)
         {
-            mask.structuralAbsent.SetBit(id);
+            mask.structuralAbsent.SetBit(_absent[i]);
         }
 
-        foreach (var id in _any)
+        for (var i = 0; i < _any.Count; i++)
         {
-            mask.structuralAny.SetBit(id);
+            mask.structuralAny.SetBit(_any[i]);
         }
 
-        foreach (var id in _rw)
+        for (var i = 0; i < _rw.Count; i++)
         {
-            mask.writeAccess.SetBit(id);
+            mask.writeAccess.SetBit(_rw[i]);
         }
     }
 

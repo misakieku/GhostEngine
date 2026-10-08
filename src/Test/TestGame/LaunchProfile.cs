@@ -94,7 +94,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
     {
         const int entityCapacity = 100;
         const float size = 10.0f;
-        const float baseScale = 1.0f;
+        const float baseScale = 3.0f;
         const float lightSize = size * 1.0f;
         const int lightCount = 16;
 
@@ -121,7 +121,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             new InputReceiver(InputProfileDatabase.FIRST_PERSON_CAMERA_PROFILE_ID, true),
             default(ActionState));
 
-        _meshAsset = engine.AssetManager.ResolveAsset("Meshes/bunny");
+        _meshAsset = engine.AssetManager.ResolveAsset("Meshes/dragon");
         _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/SimpleLit");
         //_textureAsset = engine.AssetManager.ResolveAsset("Meshes/an-afternoon-in-a-persian-garden/textures/TerraceAndWalls8kDay");
 

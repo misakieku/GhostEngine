@@ -7,7 +7,6 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.RHI;
 
-
 public struct ResourceRange
 {
     public nuint Start
@@ -270,6 +269,57 @@ public struct ScissorRectDesc
     public uint Bottom
     {
         get; set;
+    }
+}
+
+public readonly struct ViewportState : IEquatable<ViewportState>
+{
+    public uint2 Size
+    {
+        get; init;
+    }
+    public uint2 ActualSize
+    {
+        get; init;
+    }
+
+    public ViewportState(uint width, uint height, uint actualWidth, uint actualHeight)
+    {
+        Size = new uint2(width, height);
+        ActualSize = new uint2(actualWidth, actualHeight);
+    }
+
+    public readonly float2 CalculateScale(ViewportState other)
+    {
+        return new float2(
+            (float)Size.x / other.Size.x,
+            (float)Size.y / other.Size.y
+        );
+    }
+
+    public readonly bool Equals(ViewportState other)
+    {
+        return Size.Equals(other.Size) && ActualSize.Equals(other.ActualSize);
+    }
+
+    public override readonly bool Equals(object? obj)
+    {
+        return obj is ViewportState other && Equals(other);
+    }
+
+    public override readonly int GetHashCode()
+    {
+        return HashCode.Combine(Size, ActualSize);
+    }
+
+    public static bool operator ==(ViewportState left, ViewportState right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(ViewportState left, ViewportState right)
+    {
+        return !left.Equals(right);
     }
 }
 

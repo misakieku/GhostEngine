@@ -112,8 +112,8 @@ internal unsafe struct JobEntityBatch<TJob, <#= generics #>> : IJobParallelFor
 
                 userJob.Execute(pEntity[i_ent], 
 <# for (var j = 0; j < i; j++){ #>
-                    ref (ComponentTypeID<T<#= j #>>.IsShared ? ref ptr<#= j #>[0] : ref ptr<#= j #>[i_ent])<#= j < i - 1 ? "," : "" #>
-<# } #>, in ctx);
+                    ref ComponentTypeID<T<#= j #>>.IsShared ? ref ptr<#= j #>[0] : ref ptr<#= j #>[i_ent],
+<# } #>                    in ctx);
 
                 validMask ^= (1UL << bit);
             }

@@ -39,6 +39,10 @@
       <BuildAction>Compile</BuildAction>
     </Content>
   </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Remove="Assets\EngineResources\Shaders\Lighting\Shadow.gshdr" />
+  </ItemGroup>
   
   <ItemGroup>
     <ProjectReference Include="..\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

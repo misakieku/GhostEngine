@@ -1,0 +1,16 @@
+shader "Hidden/Shadow"
+{
+    pass "Shadow"
+    {
+        pipeline
+        {
+            ztest = greater_equal;
+            zwrite = on;
+            cull = off;
+            blend = opaque;
+            color_mask = none;
+        }
+
+        ms "ShadowRaster.hlsl" : "MSMain";
+    }
+}

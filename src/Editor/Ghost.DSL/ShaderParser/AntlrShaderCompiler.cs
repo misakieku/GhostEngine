@@ -229,7 +229,46 @@ public class AntlrShaderCompiler
                     };
                     break;
                 case "color_mask":
-                    semantic.colorMask = value.ToLower() == "all" ? ColorWriteMask.All : ColorWriteMask.None;
+                    if (value.Equals("all", StringComparison.CurrentCultureIgnoreCase))
+                    {
+                        semantic.colorMask = ColorWriteMask.All;
+                    }
+                    else if (value.Equals("none", StringComparison.CurrentCultureIgnoreCase))
+                    {
+                        semantic.colorMask = ColorWriteMask.None;
+                    }
+                    else
+                    {
+                        ColorWriteMask mask = 0;
+                        foreach (var c in value.ToLower())
+                        {
+                            switch (c)
+                            {
+                                case 'r':
+                                    mask |= ColorWriteMask.Red;
+                                    break;
+                                case 'g':
+                                    mask |= ColorWriteMask.Green;
+                                    break;
+                                case 'b':
+                                    mask |= ColorWriteMask.Blue;
+                                    break;
+                                case 'a':
+                                    mask |= ColorWriteMask.Alpha;
+                                    break;
+                                default:
+                                    errors.Add(new DSLShaderError
+                                    {
+                                        message = $"Unknown color mask character '{c}' in '{value}'.",
+                                        line = 0,
+                                        column = 0
+                                    });
+                                    break;
+                            }
+                        }
+                        semantic.colorMask = mask;
+                    }
+
                     break;
             }
         }
@@ -280,11 +319,11 @@ public class AntlrShaderCompiler
             }
         }
 
-        if (semantic.meshShader.shaderPath == null || semantic.pixelShader.shaderPath == null)
+        if (semantic.meshShader.shaderPath == null)
         {
             errors.Add(new DSLShaderError
             {
-                message = $"Pass '{pass.Name}' must contain a mesh/ms shader and a pixel/ps shader declaration.",
+                message = $"Pass '{pass.Name}' must contain a mesh/ms shader declaration.",
                 line = 0,
                 column = 0
             });

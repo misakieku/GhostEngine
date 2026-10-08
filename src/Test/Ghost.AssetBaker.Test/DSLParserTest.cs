@@ -67,7 +67,7 @@ shader ""Custom/CarPaint"" : ""Lit""
         Assert.IsTrue(semantics.strategies.ContainsKey("DEFERREDLIGHTING_STRATEGY"));
         Assert.AreEqual("EngineResources/Shaders/Material/Lit/SimpleLit.hlsl", semantics.strategies["DEFERREDLIGHTING_STRATEGY"].filePath);
 
-        var descriptorResult = DSLShaderCompiler.ResolveShader(semantics, new DSL.Models.ShaderReflectionData(), new Dictionary<string, string>());
+        var descriptorResult = DSLShaderCompiler.ResolveShader(semantics);
         Assert.IsTrue(descriptorResult.IsSuccess, descriptorResult.Message);
         var dtPass = descriptorResult.Value.Passes.First(p => p.semantic == Ghost.Core.Graphics.PassSemantic.DeferredTexturing);
         StringAssert.Contains(dtPass.computeShaderCode.code, "#define SHADING_MODEL_ID 1u");
@@ -95,7 +95,7 @@ shader ""MyShader/InvalidStrategy"" : ""Lit""
         var semanticsResult = DSLShaderCompiler.GetShaderSemantics(syntaxResult.Value);
         Assert.IsTrue(semanticsResult.IsSuccess, semanticsResult.Message);
 
-        var descriptorResult = DSLShaderCompiler.ResolveShader(semanticsResult.Value, new DSL.Models.ShaderReflectionData(), new Dictionary<string, string>());
+        var descriptorResult = DSLShaderCompiler.ResolveShader(semanticsResult.Value);
         Assert.IsTrue(descriptorResult.IsFailure, "Should fail when shader specifies unknown strategy");
         StringAssert.Contains(descriptorResult.Message, "UNKNOWN_INVALID_STRATEGY");
     }

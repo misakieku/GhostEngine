@@ -2,7 +2,6 @@ using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.Mathematics.SPMD;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Entities;

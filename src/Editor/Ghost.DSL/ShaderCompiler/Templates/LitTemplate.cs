@@ -44,7 +44,7 @@ internal sealed class LitTemplate : IShaderTemplate
             {
                 zTest = ZTest.GreaterEqual,
                 zWrite = ZWrite.On,
-                cull = Cull.Back,
+                cull = Cull.Off,
                 blend = Blend.Opaque,
                 colorMask = ColorWriteMask.None
             },

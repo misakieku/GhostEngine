@@ -297,7 +297,7 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
     private bool TryResolveGraphicsPipeline(scoped in ShaderPass pass, ulong shaderId, int passIndex, PipelineState pipelineOption, out Key128<PipelineState> pipelineKey)
     {
         pipelineKey = default;
-        const ShaderStageMask requiredStages = ShaderStageMask.Mesh | ShaderStageMask.Pixel;
+        const ShaderStageMask requiredStages = ShaderStageMask.Mesh;
         if ((pass.StageMask & ShaderStageMask.Compute) != 0 ||
             (pass.StageMask & requiredStages) != requiredStages)
         {
@@ -331,7 +331,8 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
         ShaderLibrary.ParseCacheData(cache.byteCode, out _, out var byteCodeOffsets, out var byteCodes);
 
         var hasAmplification = (pass.StageMask & ShaderStageMask.Amplification) != 0;
-        var expectedByteCodeCount = hasAmplification ? 3 : 2;
+        var hasPixel = (pass.StageMask & ShaderStageMask.Pixel) != 0;
+        var expectedByteCodeCount = (hasAmplification ? 1 : 0) + 1 + (hasPixel ? 1 : 0);
         if (byteCodeOffsets.Length != expectedByteCodeCount)
         {
             Logger.Warning($"Shader pass 0x{pass.Key.Value:X16} has {byteCodeOffsets.Length} bytecode entries, expected {expectedByteCodeCount}. Skipping draw call.");
@@ -347,8 +348,16 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
             byteCodeIndex++;
         }
 
-        var msByteCode = byteCodes.Slice((int)byteCodeOffsets[byteCodeIndex], (int)(byteCodeOffsets[byteCodeIndex + 1] - byteCodeOffsets[byteCodeIndex]));
-        var psByteCode = byteCodes.Slice((int)byteCodeOffsets[byteCodeIndex + 1]);
+        var msStart = (int)byteCodeOffsets[byteCodeIndex];
+        var msByteCode = byteCodes.Slice(msStart, hasPixel ? (int)(byteCodeOffsets[byteCodeIndex + 1] - byteCodeOffsets[byteCodeIndex]) : byteCodes.Length - msStart);
+        byteCodeIndex++;
+
+        var psByteCode = ReadOnlySpan<byte>.Empty;
+        if (hasPixel)
+        {
+            psByteCode = byteCodes.Slice((int)byteCodeOffsets[byteCodeIndex]);
+        }
+
         var psoDesc = new GraphicsPSODesc
         {
             CompiledHash = compiledHash,

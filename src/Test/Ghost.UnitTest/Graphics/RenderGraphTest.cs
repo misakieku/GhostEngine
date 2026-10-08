@@ -3,6 +3,7 @@ using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Ghost.UnitTest.MockingEnvironment;
+using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.UnitTest.Graphics;
 
@@ -98,9 +99,7 @@ public partial class RenderGraphTest
 #endif
     }
 
-    private Result<RGExecution, Error> CompileAndExecute(
-        ViewportState viewState,
-        RGFlags flags = RGFlags.Default)
+    private Result<RGExecution, Error> CompileAndExecute(ViewportState viewState, RGFlags flags = RGFlags.Default)
     {
         _graphicsEngine.ResetCommandBufferTracking();
         return _renderGraph.CompileAndExecute(_executionContext, viewState, flags | RGFlags.ForceGraphics);
@@ -318,10 +317,8 @@ public partial class RenderGraphTest
 
         var execution = CompileAndExecute(new ViewportState
         {
-            actualWidth = 1920,
-            actualHeight = 1080,
-            viewportWidth = 1920,
-            viewportHeight = 1080
+            Size = new uint2(1920, 1080),
+            ActualSize = new uint2(1920, 1080)
         }).GetValueOrThrow();
 
         Assert.IsNull(execution.Dump);
@@ -334,10 +331,8 @@ public partial class RenderGraphTest
 
         var execution = CompileAndExecute(new ViewportState
         {
-            actualWidth = 1920,
-            actualHeight = 1080,
-            viewportWidth = 1920,
-            viewportHeight = 1080
+            ActualSize = new uint2(1920, 1080),
+            Size = new uint2(1920, 1080)
         }, RGFlags.GenerateDump).GetValueOrThrow();
 
         Assert.IsNotNull(execution.Dump);
@@ -369,10 +364,8 @@ public partial class RenderGraphTest
     {
         var viewState = new ViewportState
         {
-            actualWidth = 1920,
-            actualHeight = 1080,
-            viewportWidth = 1920,
-            viewportHeight = 1080
+            ActualSize = new uint2(1920, 1080),
+            Size = new uint2(1920, 1080)
         };
 
         // Frame 1: Initial compilation (Cache Miss)
@@ -510,10 +503,8 @@ public partial class RenderGraphTest
 
         var exec = CompileAndExecute(new ViewportState
         {
-            actualWidth = 1920,
-            actualHeight = 1080,
-            viewportWidth = 1920,
-            viewportHeight = 1080
+            ActualSize = new uint2(1920, 1080),
+            Size = new uint2(1920, 1080)
         }, RGFlags.GenerateDump).GetValueOrThrow();
 
         Assert.IsNotNull(exec.Dump);
@@ -675,10 +666,8 @@ public partial class RenderGraphTest
 
         var exec = CompileAndExecute(new ViewportState
         {
-            actualWidth = 1920,
-            actualHeight = 1080,
-            viewportWidth = 1920,
-            viewportHeight = 1080
+            ActualSize = new uint2(1920, 1080),
+            Size = new uint2(1920, 1080)
         }, RGFlags.GenerateDump).GetValueOrThrow();
 
         Assert.IsNotNull(exec.Dump);

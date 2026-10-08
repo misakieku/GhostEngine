@@ -16,6 +16,7 @@
     <Reference Include="Misaki.CommandLine.Args">
       <HintPath>..\..\..\..\Class\Misaki.CommandLine\Misaki.CommandLine.ArgsParser\bin\Release\net9.0\Misaki.CommandLine.Args.dll</HintPath>
     </Reference>
+    <Analyzer Include="..\..\..\..\Class\Misaki.CommandLine\Misaki.CommandLine.Generators\bin\Release\netstandard2.0\Misaki.CommandLine.Generators.dll" />
   </ItemGroup>
 
 </Project>

@@ -324,7 +324,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
     /// Resolves texture sizes based on current view state.
     /// Must be called after all resources are created and before compilation.
     /// </summary>
-    internal void ResolveTextureSizes(in ViewportState viewState)
+    internal void ResolveTextureSizes(in ViewportState viewport)
     {
         for (var i = 0; i < _resources.Count; i++)
         {
@@ -342,8 +342,8 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
             }
             else // Relative
             {
-                res.resolvedWidth = (uint)(desc.scaleX * viewState.viewportWidth);
-                res.resolvedHeight = (uint)(desc.scaleY * viewState.viewportHeight);
+                res.resolvedWidth = (uint)(desc.scaleX * viewport.Size.x);
+                res.resolvedHeight = (uint)(desc.scaleY * viewport.Size.y);
             }
         }
     }

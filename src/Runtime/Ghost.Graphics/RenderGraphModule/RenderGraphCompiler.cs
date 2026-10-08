@@ -78,7 +78,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
     /// <summary>
     /// Compiles the render graph by culling passes, allocating resources, and preparing barriers.
     /// </summary>
-    public Result<CompiledGraph, Error> Compile(in ViewportState viewState, ulong graphHash, List<RenderGraphPass> passes, RGFlags flags, AllocationHandle allocationHandle)
+    public Result<CompiledGraph, Error> Compile(in ViewportState viewport, ulong graphHash, List<RenderGraphPass> passes, RGFlags flags, AllocationHandle allocationHandle)
     {
 #if GHOST_SAFETY_CHECKS
         if (!_hasValidatedGraphHash || _validatedGraphHash != graphHash)
@@ -101,11 +101,11 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         if (_compilationCache.TryGetCached(graphHash, out var cached))
         {
             // Check if view state changed
-            var scale = viewState.CalculateScale(cached.viewState);
+            var scale = viewport.CalculateScale(cached.viewport);
             if (math.any(scale > float2.one))
             {
                 // View state changed - re-resolve sizes and recreate GPU resources
-                _resourceRegistry.ResolveTextureSizes(in viewState);
+                _resourceRegistry.ResolveTextureSizes(in viewport);
 
                 aliasingPlan = RenderGraphAliasingBuilder.ResizeCachedSlots(
                     _resourceRegistry,
@@ -120,7 +120,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     return error;
                 }
 
-                cached.viewState = viewState;
+                cached.viewport = viewport;
 
                 return new CompiledGraph
                 {
@@ -234,7 +234,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 ref readonly var cacheData = ref _compilationCache.SetCached(
                     _resourceRegistry,
                     graphHash,
-                    viewState,
+                    viewport,
                     passes,
                     compiledPasses,
                     nativePasses,
