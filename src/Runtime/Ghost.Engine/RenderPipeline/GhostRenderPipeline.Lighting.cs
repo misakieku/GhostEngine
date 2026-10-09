@@ -63,6 +63,7 @@ internal unsafe partial class GhostRenderPipeline
         {
             ref readonly var light = ref lights[loopIndex];
 
+            // TODO: Distance culling.
             if (!MathUtility.SphereIntersectFrustum(light.positionWS, light.range, frustum.planes))
             {
                 return;

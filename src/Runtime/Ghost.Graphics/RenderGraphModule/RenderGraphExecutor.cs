@@ -265,10 +265,10 @@ internal sealed class RenderGraphExecutor : IDisposable
         var commandAllocator = queueType == CommandQueueType.Graphics
             ? executionContext.GraphicsCommandAllocator
             : executionContext.ComputeCommandAllocator;
-        
+
         var commandBuffer = executionContext.FrameScheduler.GetPooledCommandBuffer(commandBufferType);
         var commandBufferIndex = _commandBufferCount++;
-        
+
         _commandBuffers[commandBufferIndex] = commandBuffer;
         _commandBufferQueueTypes[commandBufferIndex] = queueType;
         _dependencyOffsets[commandBufferIndex] = _producerCommandBufferIdCount;
@@ -461,9 +461,9 @@ internal sealed class RenderGraphExecutor : IDisposable
         }
 
         var newCapacity = Math.Max(requiredCapacity, _commandBuffers.Length * 2);
-        
+
         Array.Resize(ref _commandBuffers, newCapacity);
-        
+
         _submissionHandles.Resize(newCapacity);
         _commandBufferQueueTypes.Resize(newCapacity);
         _dependencyOffsets.Resize(newCapacity);
@@ -484,7 +484,7 @@ internal sealed class RenderGraphExecutor : IDisposable
     private void ClearExecutionScratch()
     {
         Array.Clear(_commandBuffers, 0, _commandBufferCount);
-        
+
         _submissionHandles.Clear();
         _commandBufferQueueTypes.Clear();
         _dependencyOffsets.Clear();

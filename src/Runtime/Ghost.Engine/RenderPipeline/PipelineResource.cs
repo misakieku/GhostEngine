@@ -71,9 +71,6 @@ internal partial class MaterialPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/MaterialPipeline/ScatterVariantTiles")]
     public Handle<ComputeShader> scatterVariantTilesShader;
 
-    [ResolveAsset("EngineResources/Shaders/DebugClassification")]
-    public Handle<Shader> debugClassificationShader;
-
     [ResolveAsset("EngineResources/Shaders/MaterialPipeline/ExportVisibilityDepth")]
     public Handle<ComputeShader> exportVisibilityDepthShader;
 
@@ -89,5 +86,3 @@ internal partial class LightingPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/Lighting/Shadow")]
     public Handle<Shader> opaqueShadowRasterizer;
 }
-
-

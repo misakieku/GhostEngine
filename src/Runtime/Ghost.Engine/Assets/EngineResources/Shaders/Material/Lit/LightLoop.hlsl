@@ -89,7 +89,7 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
                 {
                     shadowIndex = LoadData<int>(ctx.shadowIndicesBufferIndex, fetch.lightIndex);
                 }
-            
+                
                 // TODO: Better shadow sampling.
                 if (shadowIndex >= 0 && IS_VALID_BUFFER(ctx.shadowAtlasIndex) && IS_VALID_BUFFER(ctx.shadowViewsBufferIndex))
                 {
@@ -117,8 +117,8 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
                     }
 
                     ShadowViewData sView = LoadData<ShadowViewData>(ctx.shadowViewsBufferIndex, viewIdx);
-                
                     float4 clipPos = mul(sView.shadowViewProj, float4(biasedPosWS, 1.0f));
+                    
                     if (clipPos.w > 0.0001f)
                     {
                         float3 ndc = clipPos.xyz / clipPos.w;

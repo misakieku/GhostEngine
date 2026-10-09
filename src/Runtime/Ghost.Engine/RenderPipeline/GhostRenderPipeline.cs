@@ -179,7 +179,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             var tileLightList = AddTileLightCullingPass(viewContext.RenderGraph, currentDepth, viewContext.RenderSize);
             var shadowAtlas = AddPunctualShadowAtlasPass(viewContext.RenderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
             var litColor = AddDeferredLightingPass(viewContext.RenderGraph, gbuffer, currentDepth, tileLightList, shadowAtlas, shadowViewsBufferSrv, shadowIndicesBufferSrv, tileShadingModelMaskBuffer, viewContext.RenderSize);
-            
+
             viewContext.RenderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
 
             var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.Default);

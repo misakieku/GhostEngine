@@ -145,9 +145,9 @@ public class ShadowAtlasTests
         var m23 = (farClip * nearClip) / (farClip - nearClip);
 
         var proj = new float4x4(
-            m00,  0.0f, 0.0f, 0.0f,
-            0.0f, m11,  0.0f, 0.0f,
-            0.0f, 0.0f, m22,  m23,
+            m00, 0.0f, 0.0f, 0.0f,
+            0.0f, m11, 0.0f, 0.0f,
+            0.0f, 0.0f, m22, m23,
             0.0f, 0.0f, 1.0f, 0.0f);
 
         // Near plane point: (0, 0, nearClip, 1) in view space
@@ -176,9 +176,9 @@ public class ShadowAtlasTests
         var m22 = nearClip / (nearClip - farClip);
         var m23 = (farClip * nearClip) / (farClip - nearClip);
         var proj = new float4x4(
-            m11,  0.0f, 0.0f, 0.0f,
-            0.0f, m11,  0.0f, 0.0f,
-            0.0f, 0.0f, m22,  m23,
+            m11, 0.0f, 0.0f, 0.0f,
+            0.0f, m11, 0.0f, 0.0f,
+            0.0f, 0.0f, m22, m23,
             0.0f, 0.0f, 1.0f, 0.0f);
 
         var frustum = Frustum.Create(proj, eye, forward, nearClip, farClip);

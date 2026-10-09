@@ -130,7 +130,7 @@ public partial class TextureBakeSettings : ObservableObject, IBakeSettings
 
     public const int VERSION = 1;
 
-    public int Version { get; set; } = VERSION; 
+    public int Version { get; set; } = VERSION;
 
     [ObservableProperty]
     public partial BasicSettings Basic { get; set; } = new BasicSettings();

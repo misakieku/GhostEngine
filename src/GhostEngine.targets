@@ -31,7 +31,7 @@
 
     <WriteLinesToFile File="$(GhostIntermediateOutputPath)compile_files.txt" Lines="@(Compile)" Overwrite="true" />
 
-    <Exec Command="Ghost.ShaderMetadataTool &quot;$(GhostIntermediateOutputPath)compile_files.txt&quot; &quot;$(GhostAssetDir)&quot;" />
+    <Exec Command="Ghost.ShaderTool &quot;$(GhostIntermediateOutputPath)compile_files.txt&quot; &quot;$(GhostAssetDir)&quot;" />
 
     <Touch Files="$(GhostIntermediateOutputPath)hlsl_generated.stamp" AlwaysCreate="true" />
   </Target>

@@ -170,8 +170,8 @@ public static class TemplateStitcher
 
         var commonFileName = Path.GetFileName(template.CommonTemplateFile);
 
-        string userHlsl = string.Empty;
-        bool hasStrategy = false;
+        var userHlsl = string.Empty;
+        var hasStrategy = false;
 
         if (!string.IsNullOrEmpty(passDef.strategy) && semantics.strategies.TryGetValue(passDef.strategy, out var strategyDef))
         {

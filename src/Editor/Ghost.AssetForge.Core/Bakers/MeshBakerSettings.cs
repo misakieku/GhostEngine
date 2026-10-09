@@ -23,7 +23,7 @@ public partial class MeshBakeSettings : ObservableObject, IBakeSettings
 {
     public const int VERSION = 1;
 
-    public int Version { get; set; } = VERSION; 
+    public int Version { get; set; } = VERSION;
 
     [ObservableProperty]
     public partial CoordinateAxis ObjectUpAxis { get; set; } = CoordinateAxis.PositiveY;

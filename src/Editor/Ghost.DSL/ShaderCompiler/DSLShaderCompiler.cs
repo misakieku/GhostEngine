@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
-using Ghost.DSL.Models;
 using Ghost.DSL.ShaderCompiler.Templates;
 using Ghost.DSL.ShaderParser;
 using Ghost.DSL.ShaderParser.Syntax;
