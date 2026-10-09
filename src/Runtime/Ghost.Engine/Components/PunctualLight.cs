@@ -53,6 +53,11 @@ public struct PunctualLight : IComponentData
     public float sourceRadius;
 
     /// <summary>
+    /// Distance at which the light starts fading out.
+    /// </summary>
+    public float fadeDistance;
+
+    /// <summary>
     /// Resolution of the shadow map tile in the shadow atlas (e.g. 256, 512). 0 means no shadow.
     /// </summary>
     public uint shadowSize;
@@ -68,6 +73,16 @@ public struct PunctualLight : IComponentData
     public float depthBias;
 
     /// <summary>
+    /// Near plane distance for shadow mapping.
+    /// </summary>
+    public float nearPlane;
+
+    /// <summary>
+    /// Distance at which the shadow starts fading out.
+    /// </summary>
+    public float shadowFadeDistance;
+
+    /// <summary>
     /// Multiplier for volumetric fog scattering.
     /// </summary>
     public float volumetricScattering;
@@ -81,6 +96,8 @@ public struct PunctualLight : IComponentData
         innerSpotAngle = 0.0f,
         outerSpotAngle = 0.0f,
         sourceRadius = 0.05f,
+        nearPlane = 0.05f,
+        fadeDistance = 1000.0f,
         shadowSize = shadowSize,
         normalBias = 0.75f,
         depthBias = 0.5f,
@@ -96,6 +113,8 @@ public struct PunctualLight : IComponentData
         innerSpotAngle = innerAngleRad,
         outerSpotAngle = outerAngleRad,
         sourceRadius = 0.05f,
+        nearPlane = 0.05f,
+        fadeDistance = 1000.0f,
         shadowSize = shadowSize,
         normalBias = 0.75f,
         depthBias = 0.5f,

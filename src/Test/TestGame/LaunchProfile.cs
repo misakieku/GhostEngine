@@ -195,11 +195,12 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 {
                     type = isSpot ? PunctualLightType.Spot : PunctualLightType.Point,
                     color = color,
-                    shadowSize = 512,
+                    shadowSize = 256,
                     intensity = RandomFloat(2.5f, 5.0f),
                     range = RandomFloat(10.0f, 15.0f),
                     innerSpotAngle = math.radians(15.0f),
                     outerSpotAngle = math.radians(40.0f),
+                    nearPlane = 0.1f,
                     normalBias = 0.001f,
                     depthBias = 0.0005f,
                 },

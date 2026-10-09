@@ -189,6 +189,7 @@ internal static partial class Utility
                     .SelectMany(al => al.Attributes)
                     .FirstOrDefault(a => a.Name.ToString() == "GenerateAsHLSLType" || a.Name.ToString() == "GenerateAsHLSLTypeAttribute");
 
+                var arrayLength = 1;
                 if (overrideAttr != null && overrideAttr.ArgumentList?.Arguments.Count > 0)
                 {
                     var argExpr = overrideAttr.ArgumentList.Arguments[0].Expression;
@@ -196,9 +197,24 @@ internal static partial class Utility
                     {
                         hlslType = lit.Token.ValueText;
                     }
+
+                    if (overrideAttr.ArgumentList.Arguments.Count > 1)
+                    {
+                        var arrayLengthExpr = overrideAttr.ArgumentList.Arguments[1].Expression;
+                        if (arrayLengthExpr is LiteralExpressionSyntax arrayLengthLit && arrayLengthLit.IsKind(SyntaxKind.NumericLiteralExpression))
+                        {
+                            arrayLength = int.Parse(arrayLengthLit.Token.ValueText);
+                        }
+                    }
                 }
 
-                fieldsList.Add(new ShaderFieldInfo(variable.Identifier.Text, csharpType, hlslType, byteSize));
+                var name = variable.Identifier.Text;
+                if (arrayLength > 1)
+                {
+                    name += $"[{arrayLength}]";
+                }
+
+                fieldsList.Add(new ShaderFieldInfo(name, csharpType, hlslType, byteSize));
             }
         }
 

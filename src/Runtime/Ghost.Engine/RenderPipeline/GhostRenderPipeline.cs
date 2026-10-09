@@ -128,7 +128,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             return Result.Success();
         }
 
-        UploadLights(ctx, ghostPayload,
+        using var lights = UploadLights(ctx, ghostPayload,
             out var punctualLightsSrv, out var punctualLightCount,
             out var directionalLightSrv, out var directionalLightCount, out var primaryDirectionalLightIndex);
 
@@ -151,7 +151,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             var viewContext = _gpuViewManager.GetView(request.viewId);
             viewContext.EnsureResources(viewPort.Size, _settings.ShadowAtlasResolution);
 
-            ExecutePerViewShadowSetup(ctx, ghostPayload, viewContext.ShadowAllocator, in frustum, viewPort.Size.y,
+            ExecutePerViewShadowSetup(ctx, viewContext.ShadowAllocator, in frustum, viewPort.Size.y, lights,
                 out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
 
             if (viewContext.prevViewProjMatrix.Equals(float4x4.zero))

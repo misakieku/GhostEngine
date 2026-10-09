@@ -97,19 +97,6 @@ internal partial class GhostRenderPipeline
         public uint maxTileEntries;
     }
 
-    private struct DebugClassificationPassData
-    {
-        public Identifier<RGBuffer> variantTileList;
-        public Identifier<RGBuffer> tileOffsetsBuffer;
-        public Identifier<RGBuffer> indirectArgsBuffer;
-        public Identifier<RGTexture> targetTexture;
-        public Handle<Shader> shader;
-        public ICommandSignature commandSignature;
-        public ShaderVariantRegistry variantRegistry;
-        public uint tilesPerRow;
-        public uint2 renderSize;
-    }
-
     private Identifier<RGBuffer> AddClearClassificationCountersPass(RenderGraph rg, uint maxVariants)
     {
         using var builder = rg.AddComputeRenderPass<ClearClassificationCountersPassData>("ClearClassificationCounters");

@@ -5,6 +5,7 @@
 #include "EngineResources/Shaders/Mesh.hlsl"
 #include "EngineResources/Shaders/Utilities/CullCommon.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl"
+#include "EngineResources/Shaders/Generated/GPULightData.hlsl"
 
 struct ShadowPixelInput
 {
@@ -51,7 +52,7 @@ void MSMain(
     UnbinnedMeshletEntry visible = visibleMeshlets[binnedSlot];
 
     uint shadowViewIndex = visible.variantIndex & 0xFFFFu;
-    ShadowViewData shadowView = LoadData<ShadowViewData>(shadowViewsBufferSrv, shadowViewIndex);
+    GPUShadowViewData shadowView = LoadData<GPUShadowViewData>(shadowViewsBufferSrv, shadowViewIndex);
 
     InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
     MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);

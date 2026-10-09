@@ -21,7 +21,7 @@ internal unsafe partial class GhostRenderPipeline
 {
     private struct PerViewShadowSetupJob : IJobParallelFor
     {
-        public ReadOnlyView<GPUPunctualLight> lights;
+        public ReadOnlyView<PunctualLightRequest> lights;
         public UnsafeArray<int> shadowIndices;
         public Frustum frustum;
         public ShadowAtlasRegionAllocator allocator;
@@ -61,7 +61,9 @@ internal unsafe partial class GhostRenderPipeline
 
         public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
         {
-            ref readonly var light = ref lights[loopIndex];
+            ref readonly var request = ref lights[loopIndex];
+            ref readonly var light = ref request.light;
+            ref readonly var shadowData = ref request.shadowData;
 
             // TODO: Distance culling.
             if (!MathUtility.SphereIntersectFrustum(light.positionWS, light.range, frustum.planes))
@@ -75,6 +77,8 @@ internal unsafe partial class GhostRenderPipeline
                 return;
             }
 
+            var nearPlane = shadowData.nearPlane > 0.0f ? shadowData.nearPlane : 0.05f;
+            var farPlane = light.range;
             var lightType = light.lightTypeAndFlags & 0xFu;
             var lodErrorThreshold = meshletLodErrorThreshold * (viewHeight / shadowSize);
 
@@ -93,8 +97,6 @@ internal unsafe partial class GhostRenderPipeline
 
                 var up = math.abs(light.directionWS.y) > 0.99f ? new float3(0.0f, 0.0f, 1.0f) : new float3(0.0f, 1.0f, 0.0f);
                 var viewMat = CreateLookAtMatrix(light.positionWS, light.directionWS, up);
-                var nearPlane = 0.05f;
-                var farPlane = light.range;
                 var projMat = CreatePerspectiveReversedZ(fov, 1.0f, nearPlane, farPlane);
                 var shadowViewProj = math.mul(projMat, viewMat);
                 var shadowFrustum = Frustum.Create(shadowViewProj, light.positionWS, light.directionWS, nearPlane, farPlane);
@@ -102,12 +104,7 @@ internal unsafe partial class GhostRenderPipeline
                 var svData = new GPUShadowViewData
                 {
                     shadowViewProj = shadowViewProj,
-                    plane0 = shadowFrustum.planes[0],
-                    plane1 = shadowFrustum.planes[1],
-                    plane2 = shadowFrustum.planes[2],
-                    plane3 = shadowFrustum.planes[3],
-                    plane4 = shadowFrustum.planes[4],
-                    plane5 = shadowFrustum.planes[5],
+                    planes = shadowFrustum.planes,
                     tileOffsetScale = region.tileOffsetScale,
                     lightPositionWS = light.positionWS,
                     lodErrorThreshold = lodErrorThreshold,
@@ -126,12 +123,7 @@ internal unsafe partial class GhostRenderPipeline
                     return;
                 }
 
-                var nearPlane = 0.05f;
-                var farPlane = light.range;
-                var guardPixels = 2.0f;
-                var fov = (shadowSize > 4)
-                    ? 2.0f * math.atan(shadowSize / (shadowSize - 2.0f * guardPixels))
-                    : math.radians(90.0f);
+                var fov = 1.570796f; // 90 degrees in radians
                 var projMat = CreatePerspectiveReversedZ(fov, 1.0f, nearPlane, farPlane);
                 var pointProj11 = 1.0f / math.tan(fov * 0.5f);
 
@@ -146,12 +138,7 @@ internal unsafe partial class GhostRenderPipeline
                     faceViews[f] = new GPUShadowViewData
                     {
                         shadowViewProj = shadowViewProj,
-                        plane0 = shadowFrustum.planes[0],
-                        plane1 = shadowFrustum.planes[1],
-                        plane2 = shadowFrustum.planes[2],
-                        plane3 = shadowFrustum.planes[3],
-                        plane4 = shadowFrustum.planes[4],
-                        plane5 = shadowFrustum.planes[5],
+                        planes = shadowFrustum.planes,
                         tileOffsetScale = faceRegions[f].tileOffsetScale,
                         lightPositionWS = light.positionWS,
                         lodErrorThreshold = lodErrorThreshold,
@@ -166,27 +153,31 @@ internal unsafe partial class GhostRenderPipeline
         }
     }
 
-    private void ExecutePerViewShadowSetup(ResourceContext ctx, GhostRenderPayload payload, ShadowAtlasRegionAllocator atlasAllocator, in Frustum viewFrustum, float viewHeight, out uint shadowViewsBufferSrv, out uint shadowViewCount, out uint shadowIndicesBufferSrv)
+    private void ExecutePerViewShadowSetup(ResourceContext ctx, ShadowAtlasRegionAllocator atlasAllocator, in Frustum viewFrustum, float viewHeight, ReadOnlyView<PunctualLightRequest> lights,
+        out uint shadowViewsBufferSrv, out uint shadowViewCount, out uint shadowIndicesBufferSrv)
     {
         shadowViewsBufferSrv = uint.MaxValue;
         shadowViewCount = 0;
         shadowIndicesBufferSrv = uint.MaxValue;
 
-        var lightCount = payload.PunctualLights.Length;
+
+        var lightCount = lights.Length;
         if (lightCount == 0)
         {
             return;
         }
 
         using var stackScope = AllocationManager.CreateStackScope();
+
+        // Create a temporary array to hold the lights and their shadow data for processing.
+        // TODO: Anyway to avoid this copy?
         using var shadowIndices = new UnsafeArray<int>(lightCount, stackScope.AllocationHandle);
         shadowIndices.AsSpan().Fill(-1);
 
         using var shadowViews = new UnsafeList<GPUShadowViewData>(Math.Max(16, lightCount * 6), AllocationHandle.TempRender);
-
         var job = new PerViewShadowSetupJob
         {
-            lights = payload.PunctualLights,
+            lights = lights,
             frustum = viewFrustum,
             allocator = atlasAllocator,
             shadowViewsWriter = shadowViews.AsParallelWriter(),
@@ -240,18 +231,23 @@ internal unsafe partial class GhostRenderPipeline
         }
     }
 
-    private void UploadLights(ResourceContext ctx, GhostRenderPayload payload,
+    private UnsafeList<PunctualLightRequest> UploadLights(ResourceContext ctx, GhostRenderPayload payload,
         out uint punctualLightsSrv, out uint punctualLightCount,
         out uint directionalLightSrv, out uint directionalLightCount, out int primaryDirectionalLightIndex)
     {
         UploadDirectionalLights(ctx, payload, out directionalLightSrv, out directionalLightCount, out primaryDirectionalLightIndex);
 
         punctualLightsSrv = uint.MaxValue;
-        punctualLightCount = (uint)payload.PunctualLights.Length;
+        punctualLightCount = (uint)payload.PunctualLights.Count;
 
         if (punctualLightCount > 0)
         {
-            var lights = payload.PunctualLights;
+            var lights = new UnsafeList<PunctualLightRequest>(payload.PunctualLights.Count, AllocationHandle.TempRender);
+            while (payload.PunctualLights.TryDequeue(out var item))
+            {
+                lights.Add(item);
+            }
+
             var bufferSize = punctualLightCount * (nuint)sizeof(GPUPunctualLight);
             var desc = new BufferDesc
             {
@@ -263,10 +259,19 @@ internal unsafe partial class GhostRenderPipeline
 
             var lightBuffer = ctx.ResourceManager.CreateTransientBuffer(in desc, "PunctualLightsBuffer");
             var pData = (GPUPunctualLight*)ctx.ResourceDatabase.MapResource(lightBuffer.AsResource(), 0, null);
-            MemoryUtility.MemCpy(pData, lights.GetUnsafePtr(), bufferSize);
+            
+            for (var i = 0; i < lights.Count; i++)
+            {
+                pData[i] = lights[i].light;
+            }
+            
             ctx.ResourceDatabase.UnmapResource(lightBuffer.AsResource(), 0, null);
             punctualLightsSrv = ctx.ResourceDatabase.GetBindlessIndex(lightBuffer.AsResource());
+
+            return lights;
         }
+
+        return default;
     }
 
     private struct TileLightCullingPassData
@@ -349,15 +354,6 @@ internal unsafe partial class GhostRenderPipeline
         });
 
         return tileLightList;
-    }
-
-    private struct DebugTileLightHeatmapPassData
-    {
-        public Identifier<RGBuffer> tileLightList;
-        public Identifier<RGTexture> depthTexture;
-        public Handle<Shader> shader;
-        public uint2 renderSize;
-        public uint tilesX;
     }
 
     [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl")]

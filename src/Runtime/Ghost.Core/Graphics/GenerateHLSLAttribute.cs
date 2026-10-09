@@ -3,7 +3,7 @@ namespace Ghost.Core.Graphics;
 [AttributeUsage(AttributeTargets.Field)]
 public class GenerateAsHLSLTypeAttribute : Attribute
 {
-    public GenerateAsHLSLTypeAttribute(string hlslTypeName)
+    public GenerateAsHLSLTypeAttribute(string hlslTypeName, int arrayLength = 1)
     {
     }
 }

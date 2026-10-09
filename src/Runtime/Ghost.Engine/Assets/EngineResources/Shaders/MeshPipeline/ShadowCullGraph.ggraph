@@ -16,6 +16,7 @@ compute "Internal/ShadowCullGraph"
         "EngineResources/Shaders/Mesh.hlsl";
         "EngineResources/Shaders/Utilities/CullCommon.hlsl";
         "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl";
+        "EngineResources/Shaders/Generated/GPULightData.hlsl";
     }
 
     hlsl
@@ -68,7 +69,7 @@ compute "Internal/ShadowCullGraph"
                     float3 worldMin, worldMax;
                     TransformAABB(mesh.worldBoundsMin, mesh.worldBoundsMax, instance.localToWorld, worldMin, worldMax);
 
-                    ShadowViewData shadowView = LoadData<ShadowViewData>(props.shadowViewsBuffer, shadowViewIndex);
+                    GPUShadowViewData shadowView = LoadData<GPUShadowViewData>(props.shadowViewsBuffer, shadowViewIndex);
                     isVisible = AABBIntersectFrustum(worldMin, worldMax, shadowView.planes);
                 }
             }
@@ -108,7 +109,7 @@ compute "Internal/ShadowCullGraph"
             float3 worldCenter = mul(instance.localToWorld, float4(node.bounds.xyz, 1.0f)).xyz;
             float worldRadius = node.bounds.w * maxScale;
 
-            ShadowViewData shadowView = LoadData<ShadowViewData>(props.shadowViewsBuffer, rec.shadowViewIndex);
+            GPUShadowViewData shadowView = LoadData<GPUShadowViewData>(props.shadowViewsBuffer, rec.shadowViewIndex);
             if (!SphereIntersectFrustum(worldCenter, worldRadius, shadowView.planes))
             {
                 return;
@@ -191,7 +192,7 @@ compute "Internal/ShadowCullGraph"
             Meshlet meshlet = LoadMeshlet(safeMeshletIndex, groupRec.rawBuffer, groupRec.meshletBufferOffset);
 
             InternalShadowCullGraphShaderProperties props = LoadData<InternalShadowCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
-            ShadowViewData shadowView = LoadData<ShadowViewData>(props.shadowViewsBuffer, groupRec.shadowViewIndex);
+            GPUShadowViewData shadowView = LoadData<GPUShadowViewData>(props.shadowViewsBuffer, groupRec.shadowViewIndex);
 
             float maxScale = 1.0f;
             if (WaveIsFirstLane())

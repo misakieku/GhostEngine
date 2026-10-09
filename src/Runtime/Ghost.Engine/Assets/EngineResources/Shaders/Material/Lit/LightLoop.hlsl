@@ -4,6 +4,7 @@
 #include "EngineResources/Shaders/Properties.hlsl"
 #include "EngineResources/Shaders/Lighting/LightGridCommon.hlsl"
 #include "EngineResources/Shaders/Material/Lit/Lit.hlsl"
+#include "EngineResources/Shaders/Generated/GPULightData.hlsl"
 
 #ifndef DWORDS_PER_TILE
 #define DWORDS_PER_TILE 32u
@@ -24,7 +25,7 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
     {
         for (uint dirIdx = 0u; dirIdx < g_FrameData.directionalLightCount; ++dirIdx)
         {
-            DirectionalLightData dirLight = LoadData<DirectionalLightData>(g_FrameData.directionalLightBuffer, dirIdx);
+            GPUDirectionalLight dirLight = LoadData<GPUDirectionalLight>(g_FrameData.directionalLightBuffer, dirIdx);
             float3 L = -dirLight.directionWS;
             if (any(dirLight.color > 0.0001f) && any(L != 0.0f))
             {
@@ -54,7 +55,7 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
                 continue;
             }
 
-            PunctualLightData light = LoadData<PunctualLightData>(g_FrameData.punctualLightsBuffer, fetch.lightIndex);
+            GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, fetch.lightIndex);
 
             float3 toLight = light.positionWS - ctx.positionWS;
             float distSq = dot(toLight, toLight);
@@ -63,16 +64,13 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
             
             float NdotL = dot(bsdf.normalWS, L);
 
-            float attenuation = 0.0f;
+            // Smooth windowed distance attenuation (Karis / Frostbite)
+            float factor = distSq * light.invRangeSq;
+            float smoothFactor = saturate(1.0f - factor * factor);
+            float attenuation = (smoothFactor * smoothFactor) / max(distSq, 0.0001f);
+
             uint lightType = light.lightTypeAndFlags & 0xFu;
-            if (lightType == 0u) // Point = 0
-            {
-                // Smooth windowed distance attenuation (Karis / Frostbite)
-                float factor = distSq * light.invRangeSq;
-                float smoothFactor = saturate(1.0f - factor * factor);
-                attenuation = (smoothFactor * smoothFactor) / max(distSq, 0.0001f);
-            }
-            else if (lightType == 1u) // Spot = 1
+            if (lightType == 1u) // Spot = 1
             {
                 // Spot cone attenuation
                 float cosAngle = dot(-L, light.directionWS);
@@ -81,7 +79,6 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
             }
 
             float shadow = 1.0f;
-            
             if (attenuation > 0.0f && NdotL > 0.0f)
             {
                 int shadowIndex = -1;
@@ -95,7 +92,7 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
                 {
                     uint viewIdx = (uint)shadowIndex;
                     float3 biasedPosWS = ctx.positionWS + ctx.normalWS * light.normalBias;
-
+                    
                     if (lightType == 0u) // Point Light cubemap face selection
                     {
                         float3 L_cube = biasedPosWS - light.positionWS;
@@ -113,11 +110,12 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
                         {
                             faceIdx = (L_cube.z > 0.0f) ? 4u : 5u;
                         }
+                        
                         viewIdx += faceIdx;
                     }
 
-                    ShadowViewData sView = LoadData<ShadowViewData>(ctx.shadowViewsBufferIndex, viewIdx);
-                    float4 clipPos = mul(sView.shadowViewProj, float4(biasedPosWS, 1.0f));
+                    GPUShadowViewData shadowView = LoadData<GPUShadowViewData>(ctx.shadowViewsBufferIndex, viewIdx);
+                    float4 clipPos = mul(shadowView.shadowViewProj, float4(biasedPosWS, 1.0f));
                     
                     if (clipPos.w > 0.0001f)
                     {
@@ -125,7 +123,7 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
                         float2 uv = ndc.xy * float2(0.5f, -0.5f) + 0.5f;
                         if (all(uv >= 0.0f) && all(uv <= 1.0f))
                         {
-                            float2 atlasUV = sView.tileOffsetScale.xy + uv * sView.tileOffsetScale.zw;
+                            float2 atlasUV = shadowView.tileOffsetScale.xy + uv * shadowView.tileOffsetScale.zw;
                             Texture2D<float> shadowAtlas = ResourceDescriptorHeap[ctx.shadowAtlasIndex];
                         
                             float receiverDepth = ndc.z + light.depthBias;
@@ -136,8 +134,8 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
                             int2 baseCoord = int2(floor(pixelPos - 0.5f));
                             float2 f = frac(pixelPos - 0.5f);
 
-                            int2 tileMinPixels = int2(sView.tileOffsetScale.xy * float2(atlasDim));
-                            int2 tileMaxPixels = tileMinPixels + int2(sView.tileOffsetScale.zw * float2(atlasDim)) - 1;
+                            int2 tileMinPixels = int2(shadowView.tileOffsetScale.xy * float2(atlasDim));
+                            int2 tileMaxPixels = tileMinPixels + int2(shadowView.tileOffsetScale.zw * float2(atlasDim)) - 1;
 
                             int2 c00 = clamp(baseCoord + int2(0, 0), tileMinPixels, tileMaxPixels);
                             int2 c10 = clamp(baseCoord + int2(1, 0), tileMinPixels, tileMaxPixels);

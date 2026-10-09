@@ -30,10 +30,11 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     private UnsafeList<RenderRequest> _renderRequests;
     private UnsafeList<uint> _viewsToRelease;
 
-    private UnsafeList<GPUPunctualLight> _punctualLights;
     private UnsafeList<GPUDirectionalLight> _directionalLights;
     private int _primaryDirectionalLightIndex = -1;
-    private static readonly GPUDirectionalLight s_defaultSunLight = default;
+
+    private readonly UnsafeParallelQueue<PunctualLightRequest>* _pPunctualLights;
+    private readonly UnsafeParallelQueue<PunctualLightRequest>.ParallelProducer _punctualLightsProducer;
 
     private readonly UnsafeParallelQueue<UpdateInstanceRequest>* _pUpdateRequest;
     private readonly UnsafeParallelQueue<RemoveInstanceRequest>* _pRemoveRequest;
@@ -45,25 +46,12 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     private uint _instanceCount;
 
     public ReadOnlySpan<RenderRequest> RenderRequests => _renderRequests;
-    public ReadOnlyView<GPUPunctualLight> PunctualLights => _punctualLights;
-    public uint PunctualLightCount => (uint)_punctualLights.Count;
+    public UnsafeParallelQueue<PunctualLightRequest>.ParallelConsumer PunctualLights => _pPunctualLights->AsParallelConsumer();
+
     public ReadOnlyView<GPUDirectionalLight> DirectionalLights => _directionalLights;
     public uint DirectionalLightCount => (uint)_directionalLights.Count;
     public int PrimaryDirectionalLightIndex => _primaryDirectionalLightIndex;
-    public ref readonly GPUDirectionalLight CurrentSunLight
-    {
-        get
-        {
-            if (_directionalLights.Count > 0)
-            {
-                var idx = _primaryDirectionalLightIndex >= 0 && _primaryDirectionalLightIndex < _directionalLights.Count
-                    ? _primaryDirectionalLightIndex
-                    : 0;
-                return ref _directionalLights[idx];
-            }
-            return ref s_defaultSunLight;
-        }
-    }
+
     public bool HasDirectionalLight => _directionalLights.Count > 0;
 
     public UnsafeParallelQueue<UpdateInstanceRequest>.ParallelConsumer UpdateRequest => _pUpdateRequest->AsParallelConsumer();
@@ -77,14 +65,17 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
 
         _renderRequests = new UnsafeList<RenderRequest>(4, AllocationHandle.Persistent);
         _viewsToRelease = new UnsafeList<uint>(4, AllocationHandle.Persistent);
-        _punctualLights = new UnsafeList<GPUPunctualLight>(64, AllocationHandle.Persistent);
         _directionalLights = new UnsafeList<GPUDirectionalLight>(4, AllocationHandle.Persistent);
+
+        _pPunctualLights = (UnsafeParallelQueue<PunctualLightRequest>*)MemoryUtility.Malloc(MemoryUtility.SizeOf<UnsafeParallelQueue<PunctualLightRequest>>());
+        *_pPunctualLights = new UnsafeParallelQueue<PunctualLightRequest>(1024, AllocationHandle.Persistent);
 
         _pUpdateRequest = (UnsafeParallelQueue<UpdateInstanceRequest>*)MemoryUtility.Malloc(MemoryUtility.SizeOf<UnsafeParallelQueue<UpdateInstanceRequest>>());
         _pRemoveRequest = (UnsafeParallelQueue<RemoveInstanceRequest>*)MemoryUtility.Malloc(MemoryUtility.SizeOf<UnsafeParallelQueue<RemoveInstanceRequest>>());
-        *_pUpdateRequest = new UnsafeParallelQueue<UpdateInstanceRequest>(16, AllocationHandle.Persistent);
-        *_pRemoveRequest = new UnsafeParallelQueue<RemoveInstanceRequest>(16, AllocationHandle.Persistent);
+        *_pUpdateRequest = new UnsafeParallelQueue<UpdateInstanceRequest>(1024, AllocationHandle.Persistent);
+        *_pRemoveRequest = new UnsafeParallelQueue<RemoveInstanceRequest>(1024, AllocationHandle.Persistent);
 
+        _punctualLightsProducer = _pPunctualLights->AsParallelProducer();
         _updateRequestProducer = _pUpdateRequest->AsParallelProducer();
         _removeRequestProducer = _pRemoveRequest->AsParallelProducer();
     }
@@ -94,9 +85,9 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _renderRequests.Add(renderRequest);
     }
 
-    public void AddPunctualLight(scoped in GPUPunctualLight light)
+    public void AddPunctualLight(scoped in PunctualLightRequest request)
     {
-        _punctualLights.Add(light);
+        _punctualLightsProducer.Enqueue(request);
     }
 
     public uint AddDirectionalLight(scoped in GPUDirectionalLight light)
@@ -189,9 +180,9 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     public void Reset()
     {
         _renderRequests.Clear();
-        _punctualLights.Clear();
         _directionalLights.Clear();
         _primaryDirectionalLightIndex = -1;
+        _pPunctualLights->Clear();
         _pUpdateRequest->Clear();
         _pRemoveRequest->Clear();
 
@@ -215,11 +206,12 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
 
         _renderRequests.Dispose();
         _viewsToRelease.Dispose();
-        _punctualLights.Dispose();
         _directionalLights.Dispose();
+        _pPunctualLights->Dispose();
         _pUpdateRequest->Dispose();
         _pRemoveRequest->Dispose();
 
+        MemoryUtility.Free(_pPunctualLights);
         MemoryUtility.Free(_pUpdateRequest);
         MemoryUtility.Free(_pRemoveRequest);
     }

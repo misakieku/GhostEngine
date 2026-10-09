@@ -11,6 +11,7 @@
 
     <!-- Custom Asset Paths -->
     <GhostAssetDir>$(MSBuildProjectDirectory)\Assets</GhostAssetDir>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

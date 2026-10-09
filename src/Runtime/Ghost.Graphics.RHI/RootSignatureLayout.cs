@@ -65,23 +65,21 @@ public struct InstanceData
 public struct Frustum
 {
     [InlineArray(6)]
-    public struct __plane_array
+    public struct PlaneArray
     {
-        private float4 plane;
+        private float4 _plane;
     }
 
     [InlineArray(8)]
-    public struct __corner_array
+    public struct CornerArray
     {
-        private float4 corner;
+        private float4 _corner;
     }
 
-    [GenerateAsHLSLType("float4[6]")]
-    public __plane_array planes;
-    [GenerateAsHLSLType("float4[8]")]
-    public __corner_array corners;
+    public PlaneArray planes;
+    public CornerArray corners;
 
-    private static void CalculateFrustumPlanes(float4x4 finalMatrix, ref __plane_array outPlanes)
+    private static void CalculateFrustumPlanes(float4x4 finalMatrix, ref PlaneArray outPlanes)
     {
         const int planeFrustumLeft = 0;
         const int planeFrustumRight = 1;

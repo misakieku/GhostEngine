@@ -16,6 +16,7 @@ compute "Internal/TileLightCulling"
         "EngineResources/Shaders/Common.hlsl";
         "EngineResources/Shaders/Lighting/LightGridCommon.hlsl";
         "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl";
+        "EngineResources/Shaders/Generated/GPULightData.hlsl";
     }
 
     hlsl
@@ -196,7 +197,7 @@ compute "Internal/TileLightCulling"
             // Coarse culling (spherical ray-cone test + depth slice test)
             for (uint lightIndex = groupIndex; lightIndex < g_FrameData.punctualLightCount; lightIndex += 256u)
             {
-                PunctualLightData light = LoadData<PunctualLightData>(g_FrameData.punctualLightsBuffer, lightIndex);
+                GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, lightIndex);
                 float3 centerVS = mul(g_ViewData.viewMatrix, float4(light.positionWS, 1.0f)).xyz;
                 float radius = light.range;
 
@@ -225,7 +226,7 @@ compute "Internal/TileLightCulling"
                 for (uint l = 0u; l < coarseCount; ++l)
                 {
                     uint lightIndex = s_CoarseLightIndices[l];
-                    PunctualLightData light = LoadData<PunctualLightData>(g_FrameData.punctualLightsBuffer, lightIndex);
+                    GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, lightIndex);
                     float3 centerVS = mul(g_ViewData.viewMatrix, float4(light.positionWS, 1.0f)).xyz;
                     float radiusSq = light.range * light.range;
 

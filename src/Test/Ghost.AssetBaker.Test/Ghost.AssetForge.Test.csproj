@@ -10,7 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Editor\Ghost.AssetForge.Core\Ghost.AssetForge.Core.csproj" />
-    <ProjectReference Include="..\..\Tools\Ghost.ShaderMetadataTool\Ghost.ShaderMetadataTool.csproj" />
+    <ProjectReference Include="..\..\Tools\Ghost.ShaderTool\Ghost.ShaderTool.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Update="Microsoft.Testing.Extensions.CodeCoverage" Version="18.11.2" />

@@ -43,45 +43,6 @@ struct FrameData
     uint pad2;
 };
 
-struct PunctualLightData
-{
-    float3 positionWS;
-    float  range;               // Attenuation cutoff radius (meters) — directly used for culling bounding sphere
-
-    float3 color;               // Linear RGB * intensity
-    uint   lightTypeAndFlags;   // bits 0..3: type (0=Point, 1=Spot), bits 4..31: flags
-
-    float3 directionWS;         // Spot forward direction (normalized)
-    float  spotAngleScale;      // 1.0 / max(0.001, cosInner - cosOuter)
-
-    float  spotAngleOffset;     // -cosOuter * spotAngleScale
-    float  invRangeSq;          // 1.0 / (range * range) for fast attenuation
-    float  sourceRadius;        // GGX normalization / contact shadow radius
-    float normalBias;
-    float depthBias;
-};
-
-struct DirectionalLightData
-{
-    float3 directionWS;
-    uint   castShadows;
-    float3 color;
-    float  shadowBiasMultiplier;
-    float4 cascadeSplits;       // View-space Z split planes for 4 CSM cascades
-    float4x4 shadowMatrices[4]; // 4 CSM view-projection matrices
-};
-
-struct ShadowViewData
-{
-    float4x4 shadowViewProj;
-    float4   planes[6];
-    float4   tileOffsetScale;   // xy: offset [0..1], zw: scale [0..1]
-    float3   lightPositionWS;
-    float    lodErrorThreshold;
-    float    proj11;
-    float    tileSize;
-};
-
 struct ViewData
 {
     float4x4 viewMatrix;

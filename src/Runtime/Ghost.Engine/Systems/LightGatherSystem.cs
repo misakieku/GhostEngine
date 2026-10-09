@@ -85,11 +85,6 @@ internal class LightGatherSystem : SystemBase
                     castShadows = light.castShadows ? 1u : 0u,
                     color = light.color * light.intensity,
                     shadowBiasMultiplier = light.shadowBiasMultiplier > 0.0f ? light.shadowBiasMultiplier : 1.0f,
-                    cascadeSplits = default,
-                    shadowMatrix0 = float4x4.identity,
-                    shadowMatrix1 = float4x4.identity,
-                    shadowMatrix2 = float4x4.identity,
-                    shadowMatrix3 = float4x4.identity
                 };
 
                 var addedIndex = (int)payload.AddDirectionalLight(in gpuLight);
@@ -164,10 +159,17 @@ internal class LightGatherSystem : SystemBase
                     invRangeSq = invRangeSq,
                     sourceRadius = light.sourceRadius,
                     normalBias = light.normalBias,
-                    depthBias = light.depthBias
+                    depthBias = light.depthBias,
+                    fadeDistance = light.fadeDistance
                 };
 
-                payload.AddPunctualLight(in gpuLight);
+                var shadowData = new ShadowData
+                {
+                    nearPlane = light.nearPlane,
+                    fadeDistance = light.shadowFadeDistance,
+                };
+
+                payload.AddPunctualLight(new PunctualLightRequest { light = gpuLight, shadowData = shadowData });
             }
         }
     }
