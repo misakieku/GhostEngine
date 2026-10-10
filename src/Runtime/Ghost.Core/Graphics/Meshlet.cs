@@ -48,15 +48,10 @@ public struct MeshletGroup
 [StructLayout(LayoutKind.Sequential, Size = 32)]
 public struct MeshletHierarchyNode
 {
-    /// <summary> Bounding sphere (center.xyz, radius) in object space. </summary>
     public SphereBounds bounds;
-    /// <summary> Conservative simplification error of the subtree in object space. </summary>
     public float error;
-    /// <summary> Leaf node: index of the MeshletGroup this node represents; Internal node: -1. </summary>
     public int groupIndex;
-    /// <summary> Offset to the first child node in the hierarchy array. </summary>
     public uint childOffset;
-    /// <summary> Number of contiguous child nodes (0 for leaves). </summary>
     public uint childCount;
 }
 

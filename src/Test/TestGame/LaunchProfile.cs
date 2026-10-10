@@ -96,7 +96,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         const float size = 10.0f;
         const float baseScale = 3.0f;
         const float lightSize = size * 1.0f;
-        const int lightCount = 16;
+        const int lightCount = 8;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -189,7 +189,8 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         {
             var pos = new float3(RandomFloat(-lightSize, lightSize), RandomFloat(-lightSize, lightSize), RandomFloat(-lightSize, lightSize));
             var color = new float3(RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f));
-            var isSpot = (i % 3 == 0);
+            var isSpot = i % 3 == 0;
+
             _world.EntityManager.CreateEntity(
                 new PunctualLight
                 {
@@ -203,6 +204,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                     nearPlane = 0.1f,
                     normalBias = 0.001f,
                     depthBias = 0.0005f,
+                    shadowLodErrorScale = 1.0f
                 },
                 new LocalToWorld
                 {

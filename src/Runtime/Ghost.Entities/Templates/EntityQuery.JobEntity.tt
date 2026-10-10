@@ -6,8 +6,8 @@
 <#@ include file="Helpers.ttinclude" #>
 using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
-using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 
 namespace Ghost.Entities;
 
@@ -139,8 +139,8 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, <#= generics #>>(TJob jobData, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntity<<#= generics #>>
+    public JobHandle ScheduleEntityParallel<TJob, <#= generics #>>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+        where TJob : IJobEntity<<#= generics #>>
 <#= restrictions #>
     {
         var world = World.GetWorld(_worldID);
@@ -184,8 +184,8 @@ public unsafe partial struct EntityQuery
                 enableOff<#= j #> = layout.enableBitsOffset;
                 versionIdx<#= j #> = layout.versionIndex;
             }
-<# } #>
 
+<# } #>
             var hiddenCount = 0;
             var itE = _mask.requireEnabled.GetIterator();
             while (itE.Next(out var id) && hiddenCount < 16)
@@ -230,6 +230,7 @@ public unsafe partial struct EntityQuery
                     offset<#= j #> = off<#= j #>,
                     enableOff<#= j #> = enableOff<#= j #>,
                     versionIndex<#= j #> = versionIdx<#= j #>,
+
 <# } #>
                     hiddenEnableCount = hiddenCount,
                 };
@@ -254,20 +255,23 @@ public unsafe partial struct EntityQuery
         runner.componentIDs[<#= j #>] = ComponentTypeID<T<#= j #>>.Value;
 <# } #>
 
-        var it = _mask.writeAccess.GetIterator();
-        while (it.Next(out var id))
+        if (_mask.writeAccess.HighestBit > 0)
         {
-            for (var idx = 0; idx < <#= i #>; idx++)
+            var it = _mask.writeAccess.GetIterator();
+            while (it.Next(out var id))
             {
-                if (id == runner.componentIDs[idx])
+                for (var idx = 0; idx < <#= i #>; idx++)
                 {
-                    runner.componentRW[idx] = true;
-                    break;
+                    if (id == runner.componentIDs[idx])
+                    {
+                        runner.componentRW[idx] = true;
+                        break;
+                    }
                 }
             }
         }
 
-        if (batches.Count > batchSize)
+        if (forceSchedule || batches.Count > batchSize)
         {
             var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 

@@ -95,7 +95,7 @@ internal class AddGPUInstanceSystem : SystemBase
             payload = payload
         };
 
-        var handle = meshInstanceQuery.ScheduleChunkParallel(job, 1, default);
+        var handle = meshInstanceQuery.ScheduleChunkParallel(job, 1);
         systemAPI.World.JobScheduler.Wait(handle);
     }
 }

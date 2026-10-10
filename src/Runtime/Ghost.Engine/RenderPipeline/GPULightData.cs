@@ -64,6 +64,7 @@ public struct ShadowData
 {
     public float nearPlane;
     public float fadeDistance;
+    public float lodErrorScale;
 }
 
 public struct PunctualLightRequest

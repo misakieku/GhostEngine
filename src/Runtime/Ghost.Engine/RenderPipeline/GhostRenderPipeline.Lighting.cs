@@ -50,7 +50,7 @@ internal unsafe partial class GhostRenderPipeline
             var m11 = 1.0f / math.tan(fovRadians * 0.5f);
             var m00 = m11 / aspect;
             var m22 = nearClip / (nearClip - farClip);
-            var m23 = (farClip * nearClip) / (farClip - nearClip);
+            var m23 = farClip * nearClip / (farClip - nearClip);
 
             return new float4x4(
                 m00, 0.0f, 0.0f, 0.0f,
@@ -80,7 +80,7 @@ internal unsafe partial class GhostRenderPipeline
             var nearPlane = shadowData.nearPlane > 0.0f ? shadowData.nearPlane : 0.05f;
             var farPlane = light.range;
             var lightType = light.lightTypeAndFlags & 0xFu;
-            var lodErrorThreshold = meshletLodErrorThreshold * (viewHeight / shadowSize);
+            var lodErrorThreshold = meshletLodErrorThreshold * (viewHeight / shadowSize) * shadowData.lodErrorScale > 0 ? shadowData.lodErrorScale : 1.0f;
 
             if (lightType == 1u) // Spot
             {

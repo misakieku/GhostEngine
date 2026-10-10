@@ -3,6 +3,7 @@ using Ghost.Engine.Components;
 using Ghost.Engine.RenderPipeline;
 using Ghost.Entities;
 using Ghost.Graphics;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Engine.Systems;
@@ -12,13 +13,78 @@ namespace Ghost.Engine.Systems;
 /// </summary>
 [RenderPipelineSystem<GhostRenderPipelineSettings>]
 [UpdateAfter<CameraRenderSystem>]
-internal class LightGatherSystem : SystemBase
+internal class LightGatherSystem : ISystem
 {
+    private struct GatherPunctualLightJob : IJobChunk
+    {
+        public GhostRenderPayload payload;
+
+        public void Execute(ChunkView chunk, ref readonly JobExecutionContext ctx)
+        {
+            var lights = chunk.GetComponentData<PunctualLight>();
+            var transforms = chunk.GetComponentData<LocalToWorld>();
+
+            for (var i = 0; i < chunk.EntityCount; i++)
+            {
+                ref readonly var light = ref lights[i];
+                ref readonly var transform = ref transforms[i];
+
+                if (light.range <= 0.0001f || light.intensity <= 0.0f)
+                {
+                    continue;
+                }
+
+                var posWS = transform.matrix.c3.xyz;
+                var forward = transform.matrix.c2.xyz;
+                var dirWS = math.lengthsq(forward) > 1e-6f ? math.normalize(forward) : new float3(0.0f, 0.0f, 1.0f);
+                var invRangeSq = 1.0f / (light.range * light.range);
+
+                var spotAngleScale = 0.0f;
+                var spotAngleOffset = 0.0f;
+                if (light.type == PunctualLightType.Spot)
+                {
+                    var inner = math.min(light.innerSpotAngle, light.outerSpotAngle);
+                    var outer = math.max(light.innerSpotAngle, light.outerSpotAngle);
+                    var cosInner = math.cos(inner);
+                    var cosOuter = math.cos(outer);
+                    spotAngleScale = 1.0f / math.max(0.001f, cosInner - cosOuter);
+                    spotAngleOffset = -cosOuter * spotAngleScale;
+                }
+
+                var flags = ((uint)light.type & 0xFu) | ((light.shadowSize & 0xFFFFu) << 4);
+
+                var gpuLight = new GPUPunctualLight
+                {
+                    positionWS = posWS,
+                    range = light.range,
+                    color = light.color * light.intensity,
+                    lightTypeAndFlags = flags,
+                    directionWS = dirWS,
+                    spotAngleScale = spotAngleScale,
+                    spotAngleOffset = spotAngleOffset,
+                    invRangeSq = invRangeSq,
+                    sourceRadius = light.sourceRadius,
+                    normalBias = light.normalBias,
+                    depthBias = light.depthBias,
+                    fadeDistance = light.fadeDistance
+                };
+
+                var shadowData = new ShadowData
+                {
+                    nearPlane = light.nearPlane,
+                    fadeDistance = light.shadowFadeDistance,
+                };
+
+                payload.AddPunctualLight(new PunctualLightRequest { light = gpuLight, shadowData = shadowData });
+            }
+        }
+    }
+
     private RenderEngine _renderEngine = null!;
     private Identifier<EntityQuery> _directionalLightQueryID;
     private Identifier<EntityQuery> _punctualLightQueryID;
 
-    protected override void OnInitialize(scoped in SystemAPI systemAPI)
+    public void Initialize(scoped in SystemAPI systemAPI)
     {
         _renderEngine = systemAPI.World.GetService<RenderEngine>();
 
@@ -35,7 +101,7 @@ internal class LightGatherSystem : SystemBase
             .Build(systemAPI.World);
     }
 
-    protected override void OnUpdate(scoped in SystemAPI systemAPI)
+    public void Update(scoped in SystemAPI systemAPI)
     {
         var payload = (GhostRenderPayload)_renderEngine.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
         GatherDirectionalLight(systemAPI, payload);
@@ -113,64 +179,16 @@ internal class LightGatherSystem : SystemBase
             return;
         }
 
-        foreach (var chunk in punctualQuery.GetChunkIterator())
+        var job = new GatherPunctualLightJob
         {
-            var lights = chunk.GetComponentData<PunctualLight>();
-            var transforms = chunk.GetComponentData<LocalToWorld>();
+            payload = payload
+        };
 
-            for (var i = 0; i < chunk.EntityCount; i++)
-            {
-                ref readonly var light = ref lights[i];
-                ref readonly var transform = ref transforms[i];
+        var handle = punctualQuery.ScheduleChunkParallel(job, 1);
+        systemAPI.World.JobScheduler.Wait(handle);
+    }
 
-                if (light.range <= 0.0001f || light.intensity <= 0.0f)
-                {
-                    continue;
-                }
-
-                var posWS = transform.matrix.c3.xyz;
-                var forward = transform.matrix.c2.xyz;
-                var dirWS = math.lengthsq(forward) > 1e-6f ? math.normalize(forward) : new float3(0.0f, 0.0f, 1.0f);
-                var invRangeSq = 1.0f / (light.range * light.range);
-
-                var spotAngleScale = 0.0f;
-                var spotAngleOffset = 0.0f;
-                if (light.type == PunctualLightType.Spot)
-                {
-                    var inner = math.min(light.innerSpotAngle, light.outerSpotAngle);
-                    var outer = math.max(light.innerSpotAngle, light.outerSpotAngle);
-                    var cosInner = math.cos(inner);
-                    var cosOuter = math.cos(outer);
-                    spotAngleScale = 1.0f / math.max(0.001f, cosInner - cosOuter);
-                    spotAngleOffset = -cosOuter * spotAngleScale;
-                }
-
-                var flags = ((uint)light.type & 0xFu) | ((light.shadowSize & 0xFFFFu) << 4);
-
-                var gpuLight = new GPUPunctualLight
-                {
-                    positionWS = posWS,
-                    range = light.range,
-                    color = light.color * light.intensity,
-                    lightTypeAndFlags = flags,
-                    directionWS = dirWS,
-                    spotAngleScale = spotAngleScale,
-                    spotAngleOffset = spotAngleOffset,
-                    invRangeSq = invRangeSq,
-                    sourceRadius = light.sourceRadius,
-                    normalBias = light.normalBias,
-                    depthBias = light.depthBias,
-                    fadeDistance = light.fadeDistance
-                };
-
-                var shadowData = new ShadowData
-                {
-                    nearPlane = light.nearPlane,
-                    fadeDistance = light.shadowFadeDistance,
-                };
-
-                payload.AddPunctualLight(new PunctualLightRequest { light = gpuLight, shadowData = shadowData });
-            }
-        }
+    public void Cleanup(scoped in SystemAPI systemAPI)
+    {
     }
 }

@@ -51,6 +51,9 @@ public static class EngineRunner
     public static void Run<T>(T profile)
         where T : IEngineLaunchProfile
     {
+        var executablePath = Environment.ProcessPath ?? throw new InvalidOperationException("Failed to get the executable path.");
+        Environment.CurrentDirectory = Path.GetDirectoryName(executablePath) ?? throw new InvalidOperationException("Failed to get the executable directory.");
+
         var engineDesc = profile.GetEngineDesc();
 
         AllocationManager.Initialize(engineDesc.AllocationManagerDesc);

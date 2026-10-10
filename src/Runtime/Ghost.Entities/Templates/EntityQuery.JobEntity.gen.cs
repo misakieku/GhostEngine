@@ -89,7 +89,7 @@ internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     in ctx);
 
@@ -203,7 +203,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
                     in ctx);
@@ -338,7 +338,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
                     ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
@@ -494,7 +494,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
                     ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
@@ -671,7 +671,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFo
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
                     ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
@@ -869,7 +869,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParall
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
                     ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
@@ -1088,7 +1088,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobPa
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
                     ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
@@ -1328,7 +1328,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJ
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent],
+                userJob.Execute(pEntity[i_ent], 
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
                     ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
@@ -1357,8 +1357,8 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0>(TJob jobData, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntity<T0>
+    public JobHandle ScheduleEntityParallel<TJob, T0>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+        where TJob : IJobEntity<T0>
         where T0 : unmanaged, IComponent
     {
         var world = World.GetWorld(_worldID);
@@ -1421,7 +1421,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -1443,6 +1443,7 @@ public unsafe partial struct EntityQuery
                     offset0 = off0,
                     enableOff0 = enableOff0,
                     versionIndex0 = versionIdx0,
+
                     hiddenEnableCount = hiddenCount,
                 };
 
@@ -1464,20 +1465,23 @@ public unsafe partial struct EntityQuery
 
         runner.componentIDs[0] = ComponentTypeID<T0>.Value;
 
-        var it = _mask.writeAccess.GetIterator();
-        while (it.Next(out var id))
+        if (_mask.writeAccess.HighestBit > 0)
         {
-            for (var idx = 0; idx < 1; idx++)
+            var it = _mask.writeAccess.GetIterator();
+            while (it.Next(out var id))
             {
-                if (id == runner.componentIDs[idx])
+                for (var idx = 0; idx < 1; idx++)
                 {
-                    runner.componentRW[idx] = true;
-                    break;
+                    if (id == runner.componentIDs[idx])
+                    {
+                        runner.componentRW[idx] = true;
+                        break;
+                    }
                 }
             }
         }
 
-        if (batches.Count > batchSize)
+        if (forceSchedule || batches.Count > batchSize)
         {
             var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
@@ -1508,8 +1512,8 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0, T1>(TJob jobData, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntity<T0, T1>
+    public JobHandle ScheduleEntityParallel<TJob, T0, T1>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+        where TJob : IJobEntity<T0, T1>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
     {
@@ -1553,6 +1557,7 @@ public unsafe partial struct EntityQuery
                 enableOff0 = layout.enableBitsOffset;
                 versionIdx0 = layout.versionIndex;
             }
+
             int off1;
             int enableOff1;
             int versionIdx1;
@@ -1591,7 +1596,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -1613,9 +1618,11 @@ public unsafe partial struct EntityQuery
                     offset0 = off0,
                     enableOff0 = enableOff0,
                     versionIndex0 = versionIdx0,
+
                     offset1 = off1,
                     enableOff1 = enableOff1,
                     versionIndex1 = versionIdx1,
+
                     hiddenEnableCount = hiddenCount,
                 };
 
@@ -1638,20 +1645,23 @@ public unsafe partial struct EntityQuery
         runner.componentIDs[0] = ComponentTypeID<T0>.Value;
         runner.componentIDs[1] = ComponentTypeID<T1>.Value;
 
-        var it = _mask.writeAccess.GetIterator();
-        while (it.Next(out var id))
+        if (_mask.writeAccess.HighestBit > 0)
         {
-            for (var idx = 0; idx < 2; idx++)
+            var it = _mask.writeAccess.GetIterator();
+            while (it.Next(out var id))
             {
-                if (id == runner.componentIDs[idx])
+                for (var idx = 0; idx < 2; idx++)
                 {
-                    runner.componentRW[idx] = true;
-                    break;
+                    if (id == runner.componentIDs[idx])
+                    {
+                        runner.componentRW[idx] = true;
+                        break;
+                    }
                 }
             }
         }
 
-        if (batches.Count > batchSize)
+        if (forceSchedule || batches.Count > batchSize)
         {
             var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
@@ -1682,8 +1692,8 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2>(TJob jobData, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntity<T0, T1, T2>
+    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+        where TJob : IJobEntity<T0, T1, T2>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
@@ -1728,6 +1738,7 @@ public unsafe partial struct EntityQuery
                 enableOff0 = layout.enableBitsOffset;
                 versionIdx0 = layout.versionIndex;
             }
+
             int off1;
             int enableOff1;
             int versionIdx1;
@@ -1745,6 +1756,7 @@ public unsafe partial struct EntityQuery
                 enableOff1 = layout.enableBitsOffset;
                 versionIdx1 = layout.versionIndex;
             }
+
             int off2;
             int enableOff2;
             int versionIdx2;
@@ -1784,7 +1796,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -1806,12 +1818,15 @@ public unsafe partial struct EntityQuery
                     offset0 = off0,
                     enableOff0 = enableOff0,
                     versionIndex0 = versionIdx0,
+
                     offset1 = off1,
                     enableOff1 = enableOff1,
                     versionIndex1 = versionIdx1,
+
                     offset2 = off2,
                     enableOff2 = enableOff2,
                     versionIndex2 = versionIdx2,
+
                     hiddenEnableCount = hiddenCount,
                 };
 
@@ -1835,20 +1850,23 @@ public unsafe partial struct EntityQuery
         runner.componentIDs[1] = ComponentTypeID<T1>.Value;
         runner.componentIDs[2] = ComponentTypeID<T2>.Value;
 
-        var it = _mask.writeAccess.GetIterator();
-        while (it.Next(out var id))
+        if (_mask.writeAccess.HighestBit > 0)
         {
-            for (var idx = 0; idx < 3; idx++)
+            var it = _mask.writeAccess.GetIterator();
+            while (it.Next(out var id))
             {
-                if (id == runner.componentIDs[idx])
+                for (var idx = 0; idx < 3; idx++)
                 {
-                    runner.componentRW[idx] = true;
-                    break;
+                    if (id == runner.componentIDs[idx])
+                    {
+                        runner.componentRW[idx] = true;
+                        break;
+                    }
                 }
             }
         }
 
-        if (batches.Count > batchSize)
+        if (forceSchedule || batches.Count > batchSize)
         {
             var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
@@ -1879,8 +1897,8 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3>(TJob jobData, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntity<T0, T1, T2, T3>
+    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+        where TJob : IJobEntity<T0, T1, T2, T3>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
@@ -1926,6 +1944,7 @@ public unsafe partial struct EntityQuery
                 enableOff0 = layout.enableBitsOffset;
                 versionIdx0 = layout.versionIndex;
             }
+
             int off1;
             int enableOff1;
             int versionIdx1;
@@ -1943,6 +1962,7 @@ public unsafe partial struct EntityQuery
                 enableOff1 = layout.enableBitsOffset;
                 versionIdx1 = layout.versionIndex;
             }
+
             int off2;
             int enableOff2;
             int versionIdx2;
@@ -1960,6 +1980,7 @@ public unsafe partial struct EntityQuery
                 enableOff2 = layout.enableBitsOffset;
                 versionIdx2 = layout.versionIndex;
             }
+
             int off3;
             int enableOff3;
             int versionIdx3;
@@ -2000,7 +2021,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -2022,15 +2043,19 @@ public unsafe partial struct EntityQuery
                     offset0 = off0,
                     enableOff0 = enableOff0,
                     versionIndex0 = versionIdx0,
+
                     offset1 = off1,
                     enableOff1 = enableOff1,
                     versionIndex1 = versionIdx1,
+
                     offset2 = off2,
                     enableOff2 = enableOff2,
                     versionIndex2 = versionIdx2,
+
                     offset3 = off3,
                     enableOff3 = enableOff3,
                     versionIndex3 = versionIdx3,
+
                     hiddenEnableCount = hiddenCount,
                 };
 
@@ -2055,20 +2080,23 @@ public unsafe partial struct EntityQuery
         runner.componentIDs[2] = ComponentTypeID<T2>.Value;
         runner.componentIDs[3] = ComponentTypeID<T3>.Value;
 
-        var it = _mask.writeAccess.GetIterator();
-        while (it.Next(out var id))
+        if (_mask.writeAccess.HighestBit > 0)
         {
-            for (var idx = 0; idx < 4; idx++)
+            var it = _mask.writeAccess.GetIterator();
+            while (it.Next(out var id))
             {
-                if (id == runner.componentIDs[idx])
+                for (var idx = 0; idx < 4; idx++)
                 {
-                    runner.componentRW[idx] = true;
-                    break;
+                    if (id == runner.componentIDs[idx])
+                    {
+                        runner.componentRW[idx] = true;
+                        break;
+                    }
                 }
             }
         }
 
-        if (batches.Count > batchSize)
+        if (forceSchedule || batches.Count > batchSize)
         {
             var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
@@ -2099,8 +2127,8 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4>(TJob jobData, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4>
+    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+        where TJob : IJobEntity<T0, T1, T2, T3, T4>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
@@ -2147,6 +2175,7 @@ public unsafe partial struct EntityQuery
                 enableOff0 = layout.enableBitsOffset;
                 versionIdx0 = layout.versionIndex;
             }
+
             int off1;
             int enableOff1;
             int versionIdx1;
@@ -2164,6 +2193,7 @@ public unsafe partial struct EntityQuery
                 enableOff1 = layout.enableBitsOffset;
                 versionIdx1 = layout.versionIndex;
             }
+
             int off2;
             int enableOff2;
             int versionIdx2;
@@ -2181,6 +2211,7 @@ public unsafe partial struct EntityQuery
                 enableOff2 = layout.enableBitsOffset;
                 versionIdx2 = layout.versionIndex;
             }
+
             int off3;
             int enableOff3;
             int versionIdx3;
@@ -2198,6 +2229,7 @@ public unsafe partial struct EntityQuery
                 enableOff3 = layout.enableBitsOffset;
                 versionIdx3 = layout.versionIndex;
             }
+
             int off4;
             int enableOff4;
             int versionIdx4;
@@ -2239,7 +2271,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -2261,18 +2293,23 @@ public unsafe partial struct EntityQuery
                     offset0 = off0,
                     enableOff0 = enableOff0,
                     versionIndex0 = versionIdx0,
+
                     offset1 = off1,
                     enableOff1 = enableOff1,
                     versionIndex1 = versionIdx1,
+
                     offset2 = off2,
                     enableOff2 = enableOff2,
                     versionIndex2 = versionIdx2,
+
                     offset3 = off3,
                     enableOff3 = enableOff3,
                     versionIndex3 = versionIdx3,
+
                     offset4 = off4,
                     enableOff4 = enableOff4,
                     versionIndex4 = versionIdx4,
+
                     hiddenEnableCount = hiddenCount,
                 };
 
@@ -2298,20 +2335,23 @@ public unsafe partial struct EntityQuery
         runner.componentIDs[3] = ComponentTypeID<T3>.Value;
         runner.componentIDs[4] = ComponentTypeID<T4>.Value;
 
-        var it = _mask.writeAccess.GetIterator();
-        while (it.Next(out var id))
+        if (_mask.writeAccess.HighestBit > 0)
         {
-            for (var idx = 0; idx < 5; idx++)
+            var it = _mask.writeAccess.GetIterator();
+            while (it.Next(out var id))
             {
-                if (id == runner.componentIDs[idx])
+                for (var idx = 0; idx < 5; idx++)
                 {
-                    runner.componentRW[idx] = true;
-                    break;
+                    if (id == runner.componentIDs[idx])
+                    {
+                        runner.componentRW[idx] = true;
+                        break;
+                    }
                 }
             }
         }
 
-        if (batches.Count > batchSize)
+        if (forceSchedule || batches.Count > batchSize)
         {
             var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
@@ -2342,8 +2382,8 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5>(TJob jobData, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4, T5>
+    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+        where TJob : IJobEntity<T0, T1, T2, T3, T4, T5>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
@@ -2391,6 +2431,7 @@ public unsafe partial struct EntityQuery
                 enableOff0 = layout.enableBitsOffset;
                 versionIdx0 = layout.versionIndex;
             }
+
             int off1;
             int enableOff1;
             int versionIdx1;
@@ -2408,6 +2449,7 @@ public unsafe partial struct EntityQuery
                 enableOff1 = layout.enableBitsOffset;
                 versionIdx1 = layout.versionIndex;
             }
+
             int off2;
             int enableOff2;
             int versionIdx2;
@@ -2425,6 +2467,7 @@ public unsafe partial struct EntityQuery
                 enableOff2 = layout.enableBitsOffset;
                 versionIdx2 = layout.versionIndex;
             }
+
             int off3;
             int enableOff3;
             int versionIdx3;
@@ -2442,6 +2485,7 @@ public unsafe partial struct EntityQuery
                 enableOff3 = layout.enableBitsOffset;
                 versionIdx3 = layout.versionIndex;
             }
+
             int off4;
             int enableOff4;
             int versionIdx4;
@@ -2459,6 +2503,7 @@ public unsafe partial struct EntityQuery
                 enableOff4 = layout.enableBitsOffset;
                 versionIdx4 = layout.versionIndex;
             }
+
             int off5;
             int enableOff5;
             int versionIdx5;
@@ -2501,7 +2546,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -2523,21 +2568,27 @@ public unsafe partial struct EntityQuery
                     offset0 = off0,
                     enableOff0 = enableOff0,
                     versionIndex0 = versionIdx0,
+
                     offset1 = off1,
                     enableOff1 = enableOff1,
                     versionIndex1 = versionIdx1,
+
                     offset2 = off2,
                     enableOff2 = enableOff2,
                     versionIndex2 = versionIdx2,
+
                     offset3 = off3,
                     enableOff3 = enableOff3,
                     versionIndex3 = versionIdx3,
+
                     offset4 = off4,
                     enableOff4 = enableOff4,
                     versionIndex4 = versionIdx4,
+
                     offset5 = off5,
                     enableOff5 = enableOff5,
                     versionIndex5 = versionIdx5,
+
                     hiddenEnableCount = hiddenCount,
                 };
 
@@ -2564,20 +2615,23 @@ public unsafe partial struct EntityQuery
         runner.componentIDs[4] = ComponentTypeID<T4>.Value;
         runner.componentIDs[5] = ComponentTypeID<T5>.Value;
 
-        var it = _mask.writeAccess.GetIterator();
-        while (it.Next(out var id))
+        if (_mask.writeAccess.HighestBit > 0)
         {
-            for (var idx = 0; idx < 6; idx++)
+            var it = _mask.writeAccess.GetIterator();
+            while (it.Next(out var id))
             {
-                if (id == runner.componentIDs[idx])
+                for (var idx = 0; idx < 6; idx++)
                 {
-                    runner.componentRW[idx] = true;
-                    break;
+                    if (id == runner.componentIDs[idx])
+                    {
+                        runner.componentRW[idx] = true;
+                        break;
+                    }
                 }
             }
         }
 
-        if (batches.Count > batchSize)
+        if (forceSchedule || batches.Count > batchSize)
         {
             var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
@@ -2608,8 +2662,8 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5, T6>(TJob jobData, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4, T5, T6>
+    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5, T6>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+        where TJob : IJobEntity<T0, T1, T2, T3, T4, T5, T6>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
@@ -2658,6 +2712,7 @@ public unsafe partial struct EntityQuery
                 enableOff0 = layout.enableBitsOffset;
                 versionIdx0 = layout.versionIndex;
             }
+
             int off1;
             int enableOff1;
             int versionIdx1;
@@ -2675,6 +2730,7 @@ public unsafe partial struct EntityQuery
                 enableOff1 = layout.enableBitsOffset;
                 versionIdx1 = layout.versionIndex;
             }
+
             int off2;
             int enableOff2;
             int versionIdx2;
@@ -2692,6 +2748,7 @@ public unsafe partial struct EntityQuery
                 enableOff2 = layout.enableBitsOffset;
                 versionIdx2 = layout.versionIndex;
             }
+
             int off3;
             int enableOff3;
             int versionIdx3;
@@ -2709,6 +2766,7 @@ public unsafe partial struct EntityQuery
                 enableOff3 = layout.enableBitsOffset;
                 versionIdx3 = layout.versionIndex;
             }
+
             int off4;
             int enableOff4;
             int versionIdx4;
@@ -2726,6 +2784,7 @@ public unsafe partial struct EntityQuery
                 enableOff4 = layout.enableBitsOffset;
                 versionIdx4 = layout.versionIndex;
             }
+
             int off5;
             int enableOff5;
             int versionIdx5;
@@ -2743,6 +2802,7 @@ public unsafe partial struct EntityQuery
                 enableOff5 = layout.enableBitsOffset;
                 versionIdx5 = layout.versionIndex;
             }
+
             int off6;
             int enableOff6;
             int versionIdx6;
@@ -2786,7 +2846,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -2808,24 +2868,31 @@ public unsafe partial struct EntityQuery
                     offset0 = off0,
                     enableOff0 = enableOff0,
                     versionIndex0 = versionIdx0,
+
                     offset1 = off1,
                     enableOff1 = enableOff1,
                     versionIndex1 = versionIdx1,
+
                     offset2 = off2,
                     enableOff2 = enableOff2,
                     versionIndex2 = versionIdx2,
+
                     offset3 = off3,
                     enableOff3 = enableOff3,
                     versionIndex3 = versionIdx3,
+
                     offset4 = off4,
                     enableOff4 = enableOff4,
                     versionIndex4 = versionIdx4,
+
                     offset5 = off5,
                     enableOff5 = enableOff5,
                     versionIndex5 = versionIdx5,
+
                     offset6 = off6,
                     enableOff6 = enableOff6,
                     versionIndex6 = versionIdx6,
+
                     hiddenEnableCount = hiddenCount,
                 };
 
@@ -2853,20 +2920,23 @@ public unsafe partial struct EntityQuery
         runner.componentIDs[5] = ComponentTypeID<T5>.Value;
         runner.componentIDs[6] = ComponentTypeID<T6>.Value;
 
-        var it = _mask.writeAccess.GetIterator();
-        while (it.Next(out var id))
+        if (_mask.writeAccess.HighestBit > 0)
         {
-            for (var idx = 0; idx < 7; idx++)
+            var it = _mask.writeAccess.GetIterator();
+            while (it.Next(out var id))
             {
-                if (id == runner.componentIDs[idx])
+                for (var idx = 0; idx < 7; idx++)
                 {
-                    runner.componentRW[idx] = true;
-                    break;
+                    if (id == runner.componentIDs[idx])
+                    {
+                        runner.componentRW[idx] = true;
+                        break;
+                    }
                 }
             }
         }
 
-        if (batches.Count > batchSize)
+        if (forceSchedule || batches.Count > batchSize)
         {
             var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 
@@ -2897,8 +2967,8 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5, T6, T7>(TJob jobData, int batchSize, JobHandle dependency)
-        where TJob : unmanaged, IJobEntity<T0, T1, T2, T3, T4, T5, T6, T7>
+    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5, T6, T7>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+        where TJob : IJobEntity<T0, T1, T2, T3, T4, T5, T6, T7>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
@@ -2948,6 +3018,7 @@ public unsafe partial struct EntityQuery
                 enableOff0 = layout.enableBitsOffset;
                 versionIdx0 = layout.versionIndex;
             }
+
             int off1;
             int enableOff1;
             int versionIdx1;
@@ -2965,6 +3036,7 @@ public unsafe partial struct EntityQuery
                 enableOff1 = layout.enableBitsOffset;
                 versionIdx1 = layout.versionIndex;
             }
+
             int off2;
             int enableOff2;
             int versionIdx2;
@@ -2982,6 +3054,7 @@ public unsafe partial struct EntityQuery
                 enableOff2 = layout.enableBitsOffset;
                 versionIdx2 = layout.versionIndex;
             }
+
             int off3;
             int enableOff3;
             int versionIdx3;
@@ -2999,6 +3072,7 @@ public unsafe partial struct EntityQuery
                 enableOff3 = layout.enableBitsOffset;
                 versionIdx3 = layout.versionIndex;
             }
+
             int off4;
             int enableOff4;
             int versionIdx4;
@@ -3016,6 +3090,7 @@ public unsafe partial struct EntityQuery
                 enableOff4 = layout.enableBitsOffset;
                 versionIdx4 = layout.versionIndex;
             }
+
             int off5;
             int enableOff5;
             int versionIdx5;
@@ -3033,6 +3108,7 @@ public unsafe partial struct EntityQuery
                 enableOff5 = layout.enableBitsOffset;
                 versionIdx5 = layout.versionIndex;
             }
+
             int off6;
             int enableOff6;
             int versionIdx6;
@@ -3050,6 +3126,7 @@ public unsafe partial struct EntityQuery
                 enableOff6 = layout.enableBitsOffset;
                 versionIdx6 = layout.versionIndex;
             }
+
             int off7;
             int enableOff7;
             int versionIdx7;
@@ -3094,7 +3171,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-
+                
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -3116,27 +3193,35 @@ public unsafe partial struct EntityQuery
                     offset0 = off0,
                     enableOff0 = enableOff0,
                     versionIndex0 = versionIdx0,
+
                     offset1 = off1,
                     enableOff1 = enableOff1,
                     versionIndex1 = versionIdx1,
+
                     offset2 = off2,
                     enableOff2 = enableOff2,
                     versionIndex2 = versionIdx2,
+
                     offset3 = off3,
                     enableOff3 = enableOff3,
                     versionIndex3 = versionIdx3,
+
                     offset4 = off4,
                     enableOff4 = enableOff4,
                     versionIndex4 = versionIdx4,
+
                     offset5 = off5,
                     enableOff5 = enableOff5,
                     versionIndex5 = versionIdx5,
+
                     offset6 = off6,
                     enableOff6 = enableOff6,
                     versionIndex6 = versionIdx6,
+
                     offset7 = off7,
                     enableOff7 = enableOff7,
                     versionIndex7 = versionIdx7,
+
                     hiddenEnableCount = hiddenCount,
                 };
 
@@ -3165,20 +3250,23 @@ public unsafe partial struct EntityQuery
         runner.componentIDs[6] = ComponentTypeID<T6>.Value;
         runner.componentIDs[7] = ComponentTypeID<T7>.Value;
 
-        var it = _mask.writeAccess.GetIterator();
-        while (it.Next(out var id))
+        if (_mask.writeAccess.HighestBit > 0)
         {
-            for (var idx = 0; idx < 8; idx++)
+            var it = _mask.writeAccess.GetIterator();
+            while (it.Next(out var id))
             {
-                if (id == runner.componentIDs[idx])
+                for (var idx = 0; idx < 8; idx++)
                 {
-                    runner.componentRW[idx] = true;
-                    break;
+                    if (id == runner.componentIDs[idx])
+                    {
+                        runner.componentRW[idx] = true;
+                        break;
+                    }
                 }
             }
         }
 
-        if (batches.Count > batchSize)
+        if (forceSchedule || batches.Count > batchSize)
         {
             var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
 

@@ -58,6 +58,11 @@ public struct PunctualLight : IComponentData
     public float fadeDistance;
 
     /// <summary>
+    /// Multiplier for volumetric fog scattering.
+    /// </summary>
+    public float volumetricScattering;
+
+    /// <summary>
     /// Resolution of the shadow map tile in the shadow atlas (e.g. 256, 512). 0 means no shadow.
     /// </summary>
     public uint shadowSize;
@@ -83,9 +88,9 @@ public struct PunctualLight : IComponentData
     public float shadowFadeDistance;
 
     /// <summary>
-    /// Multiplier for volumetric fog scattering.
+    /// The scale of the lod error when rendering the shadow.
     /// </summary>
-    public float volumetricScattering;
+    public float shadowLodErrorScale;
 
     public static PunctualLight CreatePoint(float3 color, float intensity, float range, uint shadowSize = 0) => new()
     {
@@ -98,10 +103,12 @@ public struct PunctualLight : IComponentData
         sourceRadius = 0.05f,
         nearPlane = 0.05f,
         fadeDistance = 1000.0f,
+        volumetricScattering = 1.0f,
         shadowSize = shadowSize,
         normalBias = 0.75f,
         depthBias = 0.5f,
-        volumetricScattering = 1.0f
+        shadowFadeDistance = 1000.0f,
+        shadowLodErrorScale = 1.0f,
     };
 
     public static PunctualLight CreateSpot(float3 color, float intensity, float range, float innerAngleRad, float outerAngleRad, uint shadowSize = 0) => new()
@@ -115,9 +122,11 @@ public struct PunctualLight : IComponentData
         sourceRadius = 0.05f,
         nearPlane = 0.05f,
         fadeDistance = 1000.0f,
+        volumetricScattering = 1.0f,
         shadowSize = shadowSize,
         normalBias = 0.75f,
         depthBias = 0.5f,
-        volumetricScattering = 1.0f
+        shadowFadeDistance = 1000.0f,
+        shadowLodErrorScale = 1.0f,
     };
 }
