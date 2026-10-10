@@ -51,28 +51,28 @@
 #define INVALID_BUFFER_INDEX 0
 #define IS_VALID_BUFFER(index) ((index) != 0)
 
-float4 SampleTexture2D(uint texId, uint sampId, float2 uv)
+float4 SampleTexture2D(TEXTURE2D texId, SAMPLER sampId, float2 uv)
 {
     Texture2D tex = GET_TEXTURE2D(texId);
     SamplerState samp = GET_SAMPLER(sampId);
     return tex.Sample(samp, uv);
 }
 
-float4 SampleTexture2DLevel(uint texId, uint sampId, float2 uv, float level)
+float4 SampleTexture2DLevel(TEXTURE2D texId, SAMPLER sampId, float2 uv, float level)
 {
     Texture2D tex = GET_TEXTURE2D(texId);
     SamplerState samp = GET_SAMPLER(sampId);
     return tex.SampleLevel(samp, uv, level);
 }
 
-float4 SampleTextureArray(uint texId, uint sampId, float3 uvw)
+float4 SampleTextureArray(TEXTURE2D_ARRAY texId, SAMPLER sampId, float3 uvw)
 {
     Texture2DArray tex = GET_TEXTURE2D_ARRAY(texId);
     SamplerState samp = GET_SAMPLER(sampId);
     return tex.Sample(samp, uvw);
 }
 
-float4 SampleTexture2DGrad(uint texId, uint sampId, float2 uv, float2 ddx, float2 ddy)
+float4 SampleTexture2DGrad(TEXTURE2D texId, SAMPLER sampId, float2 uv, float2 ddx, float2 ddy)
 {
     Texture2D tex = GET_TEXTURE2D(texId);
     SamplerState samp = GET_SAMPLER(sampId);

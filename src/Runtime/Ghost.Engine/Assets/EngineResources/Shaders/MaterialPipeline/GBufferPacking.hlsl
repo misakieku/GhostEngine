@@ -63,94 +63,94 @@ struct GBufferOutputs
     float4 gbuffer1; // Octahedral Normal (rg) + Roughness (b) + unused (a)
     float4 gbuffer2; // Occlusion (r) + ShadingModel (g) + FeatureBitmask (b, currently unused) + Tagent scaler (a)
     float3 gbuffer3; // Emissive (rgb)
-    
+
     float3 GetBaseColor()
     {
         return gbuffer0.rgb;
     }
-    
+
     void SetBaseColor(float3 baseColor)
     {
         gbuffer0.rgb = baseColor;
     }
-    
+
     float GetMetallic()
     {
         return gbuffer0.a;
     }
-    
+
     void SetMetallic(float metallic)
     {
         gbuffer0.a = metallic;
     }
-    
+
     float3 GetNormal()
     {
         return OctahedralDecode(gbuffer1.rg);
     }
-    
+
     void SetNormal(float3 normal)
     {
         gbuffer1.rg = OctahedralEncode(normal);
     }
-    
+
     float GetRoughness()
     {
         return gbuffer1.b;
     }
-    
+
     void SetRoughness(float roughness)
     {
         gbuffer1.b = roughness;
     }
-    
+
     float GetOcclusion()
     {
         return gbuffer2.r;
     }
-    
+
     void SetOcclusion(float occlusion)
     {
         gbuffer2.r = occlusion;
     }
-    
+
     uint GetShadingModel()
     {
         return (uint)round(gbuffer2.g * 255.0f) & 0xFFu;
     }
-    
+
     void SetShadingModel(uint shadingModel)
     {
         gbuffer2.g = (float) (shadingModel & 0xFFu) / 255.0f;
     }
-    
+
     float3 GetTangent(float3 N)
     {
         return UnpackTangentFromScalar(N, gbuffer2.a);
     }
-    
+
     void SetTangent(float3 N, float3 T)
     {
         gbuffer2.a = PackTangentToScalar(N, T);
     }
-    
+
     float3 GetEmissive()
     {
         return gbuffer3;
     }
-    
+
     void SetEmissive(float3 emissive)
     {
         gbuffer3 = emissive;
     }
 };
 
-void WriteGBuffer(uint2 pixelCoord, in GBufferOutputs outputs, uint gbuffer0Uav, uint gbuffer1Uav, uint gbuffer2Uav, uint gbuffer3Uav)
+void WriteGBuffer(uint2 pixelCoord, in GBufferOutputs outputs, TEXTURE2D gbuffer0Uav, TEXTURE2D gbuffer1Uav, TEXTURE2D gbuffer2Uav, TEXTURE2D gbuffer3Uav)
 {
-    RWTexture2D<float4> gb0 = ResourceDescriptorHeap[gbuffer0Uav];
-    RWTexture2D<float4> gb1 = ResourceDescriptorHeap[gbuffer1Uav];
-    RWTexture2D<float4> gb2 = ResourceDescriptorHeap[gbuffer2Uav];
-    RWTexture2D<float3> gb3 = ResourceDescriptorHeap[gbuffer3Uav];
+    RWTexture2D<float4> gb0 = GET_TEXTURE2D(gbuffer0Uav);
+    RWTexture2D<float4> gb1 = GET_TEXTURE2D(gbuffer1Uav);
+    RWTexture2D<float4> gb2 = GET_TEXTURE2D(gbuffer2Uav);
+    RWTexture2D<float3> gb3 = GET_TEXTURE2D(gbuffer3Uav);
 
     gb0[pixelCoord] = outputs.gbuffer0;
     gb1[pixelCoord] = outputs.gbuffer1;
@@ -158,19 +158,19 @@ void WriteGBuffer(uint2 pixelCoord, in GBufferOutputs outputs, uint gbuffer0Uav,
     gb3[pixelCoord] = outputs.gbuffer3;
 }
 
-GBufferOutputs ReadGBuffer(uint2 pixelCoord, uint gbuffer0Srv, uint gbuffer1Srv, uint gbuffer2Srv, uint gbuffer3Srv)
+GBufferOutputs ReadGBuffer(uint2 pixelCoord, TEXTURE2D gbuffer0Srv, TEXTURE2D gbuffer1Srv, TEXTURE2D gbuffer2Srv, TEXTURE2D gbuffer3Srv)
 {
-    Texture2D<float4> gb0 = ResourceDescriptorHeap[gbuffer0Srv];
-    Texture2D<float4> gb1 = ResourceDescriptorHeap[gbuffer1Srv];
-    Texture2D<float4> gb2 = ResourceDescriptorHeap[gbuffer2Srv];
-    Texture2D<float3> gb3 = ResourceDescriptorHeap[gbuffer3Srv];
-    
+    Texture2D<float4> gb0 = GET_TEXTURE2D(gbuffer0Srv);
+    Texture2D<float4> gb1 = GET_TEXTURE2D(gbuffer1Srv);
+    Texture2D<float4> gb2 = GET_TEXTURE2D(gbuffer2Srv);
+    Texture2D<float3> gb3 = GET_TEXTURE2D(gbuffer3Srv);
+
     GBufferOutputs outputs;
     outputs.gbuffer0 = gb0[pixelCoord];
     outputs.gbuffer1 = gb1[pixelCoord];
     outputs.gbuffer2 = gb2[pixelCoord];
     outputs.gbuffer3 = gb3[pixelCoord];
-    
+
     return outputs;
 }
 

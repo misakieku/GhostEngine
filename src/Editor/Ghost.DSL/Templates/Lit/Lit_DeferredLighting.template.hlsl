@@ -23,7 +23,7 @@ void CSMain(
     uint tileIndex = groupID.y * props.tilesPerRow + groupID.x;
     if (IS_VALID_BUFFER(props.tileShadingModelMaskBufferIndex))
     {
-        ByteAddressBuffer maskBuffer = ResourceDescriptorHeap[props.tileShadingModelMaskBufferIndex];
+        ByteAddressBuffer maskBuffer = GET_BUFFER(props.tileShadingModelMaskBufferIndex);
         if (groupIndex == 0u)
         {
             s_TileShadingModelMask = maskBuffer.Load(tileIndex * 4u);
@@ -44,7 +44,7 @@ void CSMain(
     }
 
     // Sample Depth Buffer & Check Background
-    Texture2D<float> depthTexture = ResourceDescriptorHeap[props.depthTextureIndex];
+    Texture2D<float> depthTexture = GET_TEXTURE2D(props.depthTextureIndex);
     float depth = depthTexture[pixelCoord];
     if (depth <= 0.0f)
     {
@@ -96,13 +96,13 @@ void CSMain(
     shadingCtx.shadowIndicesBufferIndex = props.shadowIndicesBufferSrv;
 
     // Execute Light Loop
-    ByteAddressBuffer tileLightList = ResourceDescriptorHeap[props.tileLightListBufferIndex];
+    ByteAddressBuffer tileLightList = GET_BUFFER(props.tileLightListBufferIndex);
     LightLoopOutput light = ExecuteLightLoop<DEFERREDLIGHTING_STRATEGY>(shadingCtx, bsdf, strategy, V, tileLightList, props.tilesPerRow);
     
     float3 finalColor = light.diffuse + light.specular;
 
     // Output to HDR Color Buffer
-    RWTexture2D<float4> litColorTarget = ResourceDescriptorHeap[props.litColorUav];
+    RWTexture2D<float4> litColorTarget = GET_TEXTURE2D(props.litColorUav);
     litColorTarget[pixelCoord] = float4(finalColor, 1.0f);
 }
 

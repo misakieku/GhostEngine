@@ -26,10 +26,10 @@ compute "Internal/PrepareDeferredTexturingIndirectArgs"
         {
             InternalPrepareDeferredTexturingIndirectArgsShaderProperties props = LoadData<InternalPrepareDeferredTexturingIndirectArgsShaderProperties>(g_PushConstantData.userData0, 0);
 
-            RWByteAddressBuffer counterBuffer = ResourceDescriptorHeap[props.counterBuffer];
-            RWByteAddressBuffer indirectArgsBuffer = ResourceDescriptorHeap[props.indirectArgsBuffer];
-            RWByteAddressBuffer binOffsets = ResourceDescriptorHeap[props.binOffsetsBuffer];
-            RWByteAddressBuffer binCounters = ResourceDescriptorHeap[props.binScatterCounters];
+            RWByteAddressBuffer counterBuffer = GET_BUFFER(props.counterBuffer);
+            RWByteAddressBuffer indirectArgsBuffer = GET_BUFFER(props.indirectArgsBuffer);
+            RWByteAddressBuffer binOffsets = GET_BUFFER(props.binOffsetsBuffer);
+            RWByteAddressBuffer binCounters = GET_BUFFER(props.binScatterCounters);
 
             uint v = dispatchThreadId.x;
             uint count = 0;

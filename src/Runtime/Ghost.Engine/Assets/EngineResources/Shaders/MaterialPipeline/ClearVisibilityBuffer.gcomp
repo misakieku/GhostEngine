@@ -24,7 +24,7 @@ compute "Internal/ClearVisibilityBuffer"
                 return;
             }
 
-            RWTexture2D<uint2> visBuffer = ResourceDescriptorHeap[props.visBufferIndex];
+            RWTexture2D<uint2> visBuffer = GET_TEXTURE2D(props.visBufferIndex);
             visBuffer[dispatchThreadId.xy] = uint2(0, 0);
         }
     }

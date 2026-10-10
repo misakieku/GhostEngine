@@ -34,7 +34,7 @@ compute "Internal/OccludedMeshletCull"
         {
             InternalOccludedMeshletCullShaderProperties props = LoadData<InternalOccludedMeshletCullShaderProperties>(g_PushConstantData.userData0, 0);
 
-            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBufferUav];
+            RWByteAddressBuffer counterBuf = GET_BUFFER(props.counterBufferUav);
             uint occludedCount = counterBuf.Load(4);
 
             uint slotIndex = dispatchThreadId.x;
@@ -47,7 +47,7 @@ compute "Internal/OccludedMeshletCull"
 
             if (isValid)
             {
-                StructuredBuffer<MeshletCandidateRecord> occludedBuffer = ResourceDescriptorHeap[props.occludedMeshletsUav];
+                StructuredBuffer<MeshletCandidateRecord> occludedBuffer = GET_BUFFER(props.occludedMeshletsUav);
                 rec = occludedBuffer[slotIndex];
 
                 InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
@@ -90,7 +90,7 @@ compute "Internal/OccludedMeshletCull"
                 uint slot = waveVisibleBase + localVisibleOffset;
                 if (slot < props.maxVisibleMeshlets)
                 {
-                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = ResourceDescriptorHeap[props.visibleMeshletsUav];
+                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = GET_BUFFER(props.visibleMeshletsUav);
                     UnbinnedMeshletEntry entry;
                     entry.instanceIndex = rec.instanceIndex;
                     entry.meshletIndex = rec.meshletIndex;

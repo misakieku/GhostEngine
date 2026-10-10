@@ -36,9 +36,9 @@ struct VisibilityPrimitiveOutput
 };
 
 // Speculative early-Z test via non-atomic 64-bit load
-bool VisibilitySpeculativeEarlyZ(uint2 pixelCoord, float depth, uint visBufferIndex, out uint64_t currentPacked)
+bool VisibilitySpeculativeEarlyZ(uint2 pixelCoord, float depth, TEXTURE2D visBufferIndex, out uint64_t currentPacked)
 {
-    RWTexture2D<uint64_t> visBuffer = ResourceDescriptorHeap[visBufferIndex];
+    RWTexture2D<uint64_t> visBuffer = GET_TEXTURE2D(visBufferIndex);
     currentPacked = visBuffer[pixelCoord];
 
     uint currentDepthInt = (uint)(currentPacked >> VBUFFER_DEPTH_SHIFT);
@@ -49,9 +49,9 @@ bool VisibilitySpeculativeEarlyZ(uint2 pixelCoord, float depth, uint visBufferIn
 }
 
 // Writes visibility buffer entry via 64-bit atomic max
-void VisibilityWritePixelAtomic(uint visBufferIndex, uint2 pixelCoord, float depth, uint visibleMeshletIndex, uint primitiveID)
+void VisibilityWritePixelAtomic(TEXTURE2D visBufferIndex, uint2 pixelCoord, float depth, uint visibleMeshletIndex, uint primitiveID)
 {
-    RWTexture2D<uint64_t> visBuffer = ResourceDescriptorHeap[visBufferIndex];
+    RWTexture2D<uint64_t> visBuffer = GET_TEXTURE2D(visBufferIndex);
     uint64_t newPacked = PackVisibility64(depth, visibleMeshletIndex, primitiveID);
     InterlockedMax(visBuffer[pixelCoord], newPacked);
 }
@@ -71,17 +71,17 @@ void MSMain(
 {
     ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
     
-    uint visibleBufferIndex = g_PushConstantData.userData0;
-    uint binOffsetsIndex = g_PushConstantData.userData2;
+    BYTE_ADDRESS_BUFFER visibleBufferIndex = g_PushConstantData.userData0;
+    BYTE_ADDRESS_BUFFER binOffsetsIndex = g_PushConstantData.userData2;
     uint targetVariantIndex = g_PushConstantData.userData3 >> 1u;
     uint passBit = (g_PushConstantData.userData3 & 1u) << 23u;
 
-    ByteAddressBuffer binOffsetsBuffer = ResourceDescriptorHeap[binOffsetsIndex];
+    ByteAddressBuffer binOffsetsBuffer = GET_BUFFER(binOffsetsIndex);
     
     uint binStartOffset = binOffsetsBuffer.Load(targetVariantIndex * 4u);
     uint binnedSlot = binStartOffset + groupID;
 
-    StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[visibleBufferIndex];
+    StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = GET_BUFFER(visibleBufferIndex);
     VisibleMeshletEntry visible = visibleMeshlets[binnedSlot];
 
     InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);

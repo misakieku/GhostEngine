@@ -35,9 +35,9 @@ struct ShadingContext
     uint2 tileCoord;
     float depth;
     float linearDepth;
-    uint shadowAtlasIndex;
-    uint shadowViewsBufferIndex;
-    uint shadowIndicesBufferIndex;
+    TEXTURE2D shadowAtlasIndex;
+    BYTE_ADDRESS_BUFFER shadowViewsBufferIndex;
+    BYTE_ADDRESS_BUFFER shadowIndicesBufferIndex;
 };
 
 struct DirectLighting

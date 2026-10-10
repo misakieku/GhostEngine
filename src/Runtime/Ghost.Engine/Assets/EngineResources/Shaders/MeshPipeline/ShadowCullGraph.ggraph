@@ -263,7 +263,7 @@ compute "Internal/ShadowCullGraph"
             uint waveVisibleCount = WaveActiveCountBits(isVisible);
             uint localVisibleOffset = WavePrefixCountBits(isVisible);
 
-            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBufferUav];
+            RWByteAddressBuffer counterBuf = GET_BUFFER(props.counterBufferUav);
             uint waveVisibleBase = 0;
             if (WaveIsFirstLane() && waveVisibleCount > 0)
             {
@@ -276,7 +276,7 @@ compute "Internal/ShadowCullGraph"
                 uint slot = waveVisibleBase + localVisibleOffset;
                 if (slot < props.maxVisibleMeshlets)
                 {
-                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = ResourceDescriptorHeap[props.visibleMeshletsUav];
+                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = GET_BUFFER(props.visibleMeshletsUav);
                     UnbinnedMeshletEntry entry;
                     entry.instanceIndex = groupRec.instanceIndex;
                     entry.meshletIndex = meshletIndex;

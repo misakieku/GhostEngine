@@ -354,7 +354,7 @@ compute "Internal/MeshletCullGraph"
             uint waveOccCount = WaveActiveCountBits(isOccludedCandidate);
             uint localOccOffset = WavePrefixCountBits(isOccludedCandidate);
 
-            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBufferUav];
+            RWByteAddressBuffer counterBuf = GET_BUFFER(props.counterBufferUav);
             uint visibleCounterOffset = (props.cullPassIndex == 0) ? 0 : 8;
 
             uint waveVisibleBase = 0;
@@ -376,7 +376,7 @@ compute "Internal/MeshletCullGraph"
                 uint slot = waveVisibleBase + localVisibleOffset;
                 if (slot < props.maxVisibleMeshlets)
                 {
-                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = ResourceDescriptorHeap[props.visibleMeshletsUav];
+                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = GET_BUFFER(props.visibleMeshletsUav);
                     UnbinnedMeshletEntry entry;
                     entry.instanceIndex = rec.instanceIndex;
                     entry.meshletIndex = rec.meshletIndex;
@@ -409,7 +409,7 @@ compute "Internal/MeshletCullGraph"
                 uint slot = waveOccBase + localOccOffset;
                 if (slot < props.maxVisibleMeshlets)
                 {
-                    RWStructuredBuffer<MeshletCandidateRecord> occludedBuf = ResourceDescriptorHeap[props.occludedMeshletsUav];
+                    RWStructuredBuffer<MeshletCandidateRecord> occludedBuf = GET_BUFFER(props.occludedMeshletsUav);
                     occludedBuf[slot] = rec;
                 }
             }

@@ -35,20 +35,20 @@ void MSMain(
     out indices uint3 outTris[MAX_TRIANGLES_PER_MESHLET],
     out primitives ShadowPrimitiveOutput outPrims[MAX_TRIANGLES_PER_MESHLET])
 {
-    uint visibleBufferIndex = g_PushConstantData.userData0;
+    STRUCT_BUFFER visibleBufferIndex = g_PushConstantData.userData0;
     uint shadowViewsBufferSrv = g_PushConstantData.userData1;
-    uint binOffsetsIndex = g_PushConstantData.userData2;
+    BYTE_ADDRESS_BUFFER binOffsetsIndex = g_PushConstantData.userData2;
     uint targetVariantIndex = g_PushConstantData.userData3 >> 1u;
 
     uint binnedSlot = groupID;
     if (IS_VALID_BUFFER(binOffsetsIndex))
     {
-        ByteAddressBuffer binOffsetsBuffer = ResourceDescriptorHeap[binOffsetsIndex];
+        ByteAddressBuffer binOffsetsBuffer = GET_BUFFER(binOffsetsIndex);
         uint binStartOffset = binOffsetsBuffer.Load(targetVariantIndex * 4u);
         binnedSlot = binStartOffset + groupID;
     }
 
-    StructuredBuffer<UnbinnedMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[visibleBufferIndex];
+    StructuredBuffer<UnbinnedMeshletEntry> visibleMeshlets = GET_BUFFER(visibleBufferIndex);
     UnbinnedMeshletEntry visible = visibleMeshlets[binnedSlot];
 
     uint shadowViewIndex = visible.variantIndex & 0xFFFFu;

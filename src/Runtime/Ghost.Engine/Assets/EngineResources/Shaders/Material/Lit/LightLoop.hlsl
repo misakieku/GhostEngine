@@ -124,7 +124,7 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
                         if (all(uv >= 0.0f) && all(uv <= 1.0f))
                         {
                             float2 atlasUV = shadowView.tileOffsetScale.xy + uv * shadowView.tileOffsetScale.zw;
-                            Texture2D<float> shadowAtlas = ResourceDescriptorHeap[ctx.shadowAtlasIndex];
+                            Texture2D<float> shadowAtlas = GET_TEXTURE2D(ctx.shadowAtlasIndex);
                         
                             float receiverDepth = ndc.z + light.depthBias;
 

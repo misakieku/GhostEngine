@@ -124,7 +124,7 @@ compute "Internal/TileLightCulling"
 
             if (pixelCoord.x < props.renderWidth && pixelCoord.y < props.renderHeight)
             {
-                Texture2D<float> depthTexture = ResourceDescriptorHeap[props.depthTextureIndex];
+                Texture2D<float> depthTexture = GET_TEXTURE2D(props.depthTextureIndex);
                 deviceDepth = depthTexture[pixelCoord];
 
                 // In Reversed-Z: geometry is in (0.0, 1.0], while 0.0 is background/clear/sky
@@ -140,7 +140,7 @@ compute "Internal/TileLightCulling"
             GroupMemoryBarrierWithGroupSync();
 
             uint tileIndex = groupID.y * props.tilesX + groupID.x;
-            RWByteAddressBuffer tileLightListUav = ResourceDescriptorHeap[props.tileLightListUav];
+            RWByteAddressBuffer tileLightListUav = GET_BUFFER(props.tileLightListUav);
             bool hasGeometry = (s_MinDeviceZ != 0xFFFFFFFFu);
 
             // If the tile has no geometry (all sky), clear light list and exit

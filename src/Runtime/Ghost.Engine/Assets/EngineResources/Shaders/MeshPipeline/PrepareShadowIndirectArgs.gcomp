@@ -20,8 +20,8 @@ compute "Internal/PrepareShadowIndirectArgs"
         {
             InternalPrepareShadowIndirectArgsShaderProperties props = LoadData<InternalPrepareShadowIndirectArgsShaderProperties>(g_PushConstantData.userData0, 0);
 
-            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBuffer];
-            RWByteAddressBuffer indirectArgsBuf = ResourceDescriptorHeap[props.indirectArgsBuffer];
+            RWByteAddressBuffer counterBuf = GET_BUFFER(props.counterBuffer);
+            RWByteAddressBuffer indirectArgsBuf = GET_BUFFER(props.indirectArgsBuffer);
 
             uint v = dispatchThreadId.x;
             if (v == 0u)

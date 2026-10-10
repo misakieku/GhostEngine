@@ -30,10 +30,10 @@ compute "Internal/PrepareMeshletIndirectArgs"
         {
             InternalPrepareMeshletIndirectArgsShaderProperties properties = LoadData<InternalPrepareMeshletIndirectArgsShaderProperties>(g_PushConstantData.userData0, 0);
 
-            RWByteAddressBuffer counterBuffer = ResourceDescriptorHeap[properties.counterBuffer];
-            RWByteAddressBuffer indirectArgsBuffer = ResourceDescriptorHeap[properties.indirectArgsBuffer];
-            RWByteAddressBuffer binOffsets = ResourceDescriptorHeap[properties.binOffsetsBuffer];
-            RWByteAddressBuffer binCounters = ResourceDescriptorHeap[properties.binScatterCounters];
+            RWByteAddressBuffer counterBuffer = GET_BUFFER(properties.counterBuffer);
+            RWByteAddressBuffer indirectArgsBuffer = GET_BUFFER(properties.indirectArgsBuffer);
+            RWByteAddressBuffer binOffsets = GET_BUFFER(properties.binOffsetsBuffer);
+            RWByteAddressBuffer binCounters = GET_BUFFER(properties.binScatterCounters);
 
             uint v = dispatchThreadID.x;
             uint count = 0;

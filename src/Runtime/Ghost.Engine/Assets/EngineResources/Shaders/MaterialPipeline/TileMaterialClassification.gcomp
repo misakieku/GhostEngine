@@ -63,7 +63,7 @@ compute "Internal/TileMaterialClassification"
 
             if (pixelCoord.x < props.renderWidth && pixelCoord.y < props.renderHeight)
             {
-                Texture2D<uint2> visBuffer = ResourceDescriptorHeap[props.visBufferIndex];
+                Texture2D<uint2> visBuffer = GET_TEXTURE2D(props.visBufferIndex);
                 uint2 raw = visBuffer[pixelCoord];
 
                 float depth;
@@ -78,7 +78,7 @@ compute "Internal/TileMaterialClassification"
                     uint rawMeshletIndex = visibleMeshletIndex & 0x7FFFFFu;
 
                     uint visibleBufferIndex = (passBit == 0u) ? props.visibleMeshletsPass1 : props.visibleMeshletsPass2;
-                    StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[visibleBufferIndex];
+                    StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = GET_BUFFER(visibleBufferIndex);
                     VisibleMeshletEntry visible = visibleMeshlets[rawMeshletIndex];
 
                     InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
@@ -125,7 +125,7 @@ compute "Internal/TileMaterialClassification"
 
                 if (IS_VALID_BUFFER(props.variantShadingModelsTableBufferIndex))
                 {
-                    ByteAddressBuffer variantShadingModels = ResourceDescriptorHeap[props.variantShadingModelsTableBufferIndex];
+                    ByteAddressBuffer variantShadingModels = GET_BUFFER(props.variantShadingModelsTableBufferIndex);
                     uint shadingModel = variantShadingModels.Load(v * 4u);
                     if (shadingModel < 32u)
                     {
@@ -138,7 +138,7 @@ compute "Internal/TileMaterialClassification"
             // Thread 0 allocates unbinned slots for this tile in the global counter buffer
             if (groupIndex == 0u && s_tileEntryCount > 0u)
             {
-                RWByteAddressBuffer counters = ResourceDescriptorHeap[props.counterBufferUav];
+                RWByteAddressBuffer counters = GET_BUFFER(props.counterBufferUav);
                 counters.InterlockedAdd(CLASSIFICATION_OFFSET_TOTAL_ENTRIES, s_tileEntryCount, s_tileEntryBase);
             }
             GroupMemoryBarrierWithGroupSync();
@@ -146,20 +146,20 @@ compute "Internal/TileMaterialClassification"
             // Each present variant writes its unbinned entry and tallies its variant count
             if (isPresent)
             {
-                RWByteAddressBuffer counters = ResourceDescriptorHeap[props.counterBufferUav];
+                RWByteAddressBuffer counters = GET_BUFFER(props.counterBufferUav);
                 counters.InterlockedAdd(CLASSIFICATION_OFFSET_VARIANT_COUNTS + v * 4u, 1u);
 
                 uint unbinnedSlot = s_tileEntryBase + localSlot;
                 if (unbinnedSlot < props.maxUnbinnedEntries)
                 {
-                    RWByteAddressBuffer unbinned = ResourceDescriptorHeap[props.unbinnedTilesUav];
+                    RWByteAddressBuffer unbinned = GET_BUFFER(props.unbinnedTilesUav);
                     unbinned.Store2(unbinnedSlot * 8u, uint2(tileIndex, v));
                 }
             }
 
             if (groupIndex == 0u && IS_VALID_BUFFER(props.tileShadingModelMaskBufferUav))
             {
-                RWByteAddressBuffer maskBuffer = ResourceDescriptorHeap[props.tileShadingModelMaskBufferUav];
+                RWByteAddressBuffer maskBuffer = GET_BUFFER(props.tileShadingModelMaskBufferUav);
                 maskBuffer.Store(tileIndex * 4u, s_tileShadingModelMask);
             }
         }

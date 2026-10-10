@@ -25,7 +25,7 @@ compute "Internal/ClearClassificationCounters"
                 return;
             }
 
-            RWByteAddressBuffer counters = ResourceDescriptorHeap[props.countersBufferUav];
+            RWByteAddressBuffer counters = GET_BUFFER(props.countersBufferUav);
             if (v == 0u)
             {
                 counters.Store(CLASSIFICATION_OFFSET_TOTAL_ENTRIES, 0u);

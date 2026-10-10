@@ -24,7 +24,7 @@ compute "Internal/ScatterMeshlets"
         {
             InternalScatterMeshletsShaderProperties props = LoadData<InternalScatterMeshletsShaderProperties>(g_PushConstantData.userData0, 0);
 
-            RWByteAddressBuffer counterBuf = ResourceDescriptorHeap[props.counterBuffer];
+            RWByteAddressBuffer counterBuf = GET_BUFFER(props.counterBuffer);
             uint totalVisible = counterBuf.Load(props.totalVisibleOffset);
             if (totalVisible > props.maxVisibleMeshlets)
             {
@@ -37,12 +37,12 @@ compute "Internal/ScatterMeshlets"
                 return;
             }
 
-            StructuredBuffer<UnbinnedMeshletEntry> unbinned = ResourceDescriptorHeap[props.unbinnedBuffer];
+            StructuredBuffer<UnbinnedMeshletEntry> unbinned = GET_BUFFER(props.unbinnedBuffer);
             UnbinnedMeshletEntry entry = unbinned[slotIndex];
 
             uint binIndex = (props.isShadowPass != 0u) ? (entry.variantIndex >> 16u) : entry.variantIndex;
 
-            RWByteAddressBuffer scatterCounters = ResourceDescriptorHeap[props.binScatterCounters];
+            RWByteAddressBuffer scatterCounters = GET_BUFFER(props.binScatterCounters);
             uint dstSlot;
             scatterCounters.InterlockedAdd(binIndex * 4u, 1u, dstSlot);
 
@@ -50,12 +50,12 @@ compute "Internal/ScatterMeshlets"
             {
                 if (props.isShadowPass != 0u)
                 {
-                    RWStructuredBuffer<UnbinnedMeshletEntry> binnedShadow = ResourceDescriptorHeap[props.binnedBuffer];
+                    RWStructuredBuffer<UnbinnedMeshletEntry> binnedShadow = GET_BUFFER(props.binnedBuffer);
                     binnedShadow[dstSlot] = entry;
                 }
                 else
                 {
-                    RWStructuredBuffer<VisibleMeshletEntry> binnedScene = ResourceDescriptorHeap[props.binnedBuffer];
+                    RWStructuredBuffer<VisibleMeshletEntry> binnedScene = GET_BUFFER(props.binnedBuffer);
                     VisibleMeshletEntry visible;
                     visible.instanceIndex = entry.instanceIndex;
                     visible.meshletIndex = entry.meshletIndex;

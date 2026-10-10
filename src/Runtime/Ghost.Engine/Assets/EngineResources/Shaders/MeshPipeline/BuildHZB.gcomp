@@ -54,7 +54,7 @@ compute "Internal/BuildHZB"
             float p00, p10, p01, p11;
             if (properties.isFirstBatch != 0)
             {
-                Texture2D<uint2> visBuffer = ResourceDescriptorHeap[properties.srcBuffer];
+                Texture2D<uint2> visBuffer = GET_TEXTURE2D(properties.srcBuffer);
                 p00 = asfloat(visBuffer[srcCoord00].y);
                 p10 = asfloat(visBuffer[srcCoord10].y);
                 p01 = asfloat(visBuffer[srcCoord01].y);
@@ -62,7 +62,7 @@ compute "Internal/BuildHZB"
             }
             else
             {
-                RWTexture2D<float> srcMip = ResourceDescriptorHeap[properties.srcUavMip];
+                RWTexture2D<float> srcMip = GET_TEXTURE2D(properties.srcUavMip);
                 p00 = srcMip[srcCoord00];
                 p10 = srcMip[srcCoord10];
                 p01 = srcMip[srcCoord01];
@@ -74,7 +74,7 @@ compute "Internal/BuildHZB"
             // Write Mip 0
             if (properties.minDstCount >= 1 && all(dstCoord0 < (int2)properties.dstSize01.xy))
             {
-                RWTexture2D<float> dstMip0 = ResourceDescriptorHeap[properties.dstUavMip0];
+                RWTexture2D<float> dstMip0 = GET_TEXTURE2D(properties.dstUavMip0);
                 dstMip0[dstCoord0] = minDepth;
             }
 
@@ -89,7 +89,7 @@ compute "Internal/BuildHZB"
                 int2 dstCoord1 = dstCoord0 >> 1;
                 if (all(dstCoord1 < (int2)properties.dstSize01.zw))
                 {
-                    RWTexture2D<float> dstMip1 = ResourceDescriptorHeap[properties.dstUavMip1];
+                    RWTexture2D<float> dstMip1 = GET_TEXTURE2D(properties.dstUavMip1);
                     dstMip1[dstCoord1] = minDepth;
                 }
             }
@@ -103,7 +103,7 @@ compute "Internal/BuildHZB"
                 int2 dstCoord2 = dstCoord0 >> 2;
                 if (all(dstCoord2 < (int2)properties.dstSize23.xy))
                 {
-                    RWTexture2D<float> dstMip2 = ResourceDescriptorHeap[properties.dstUavMip2];
+                    RWTexture2D<float> dstMip2 = GET_TEXTURE2D(properties.dstUavMip2);
                     dstMip2[dstCoord2] = minDepth;
                 }
             }
@@ -138,7 +138,7 @@ compute "Internal/BuildHZB"
                 int2 dstCoord3 = dstCoord0 >> 3;
                 if (all(dstCoord3 < (int2)properties.dstSize23.zw))
                 {
-                    RWTexture2D<float> dstMip3 = ResourceDescriptorHeap[properties.dstUavMip3];
+                    RWTexture2D<float> dstMip3 = GET_TEXTURE2D(properties.dstUavMip3);
                     dstMip3[dstCoord3] = minDepth;
                 }
             }
@@ -183,7 +183,7 @@ compute "Internal/BuildHZB"
             float p00, p10, p01, p11;
             if (properties.isFirstBatch != 0)
             {
-                Texture2D<uint2> visBuffer = ResourceDescriptorHeap[properties.srcBuffer];
+                Texture2D<uint2> visBuffer = GET_TEXTURE2D(properties.srcBuffer);
                 p00 = asfloat(visBuffer[srcCoord00].y);
                 p10 = asfloat(visBuffer[srcCoord10].y);
                 p01 = asfloat(visBuffer[srcCoord01].y);
@@ -191,7 +191,7 @@ compute "Internal/BuildHZB"
             }
             else
             {
-                RWTexture2D<float> srcMip = ResourceDescriptorHeap[properties.srcUavMip];
+                RWTexture2D<float> srcMip = GET_TEXTURE2D(properties.srcUavMip);
                 p00 = srcMip[srcCoord00];
                 p10 = srcMip[srcCoord10];
                 p01 = srcMip[srcCoord01];
@@ -203,7 +203,7 @@ compute "Internal/BuildHZB"
             // Write Mip 0
             if (properties.minDstCount >= 1 && all(dstCoord0 < (int2)properties.dstSize01.xy))
             {
-                RWTexture2D<float> dstMip0 = ResourceDescriptorHeap[properties.dstUavMip0];
+                RWTexture2D<float> dstMip0 = GET_TEXTURE2D(properties.dstUavMip0);
                 dstMip0[dstCoord0] = minDepth;
             }
 
@@ -218,7 +218,7 @@ compute "Internal/BuildHZB"
                 int2 dstCoord1 = dstCoord0 >> 1;
                 if (all(dstCoord1 < (int2)properties.dstSize01.zw))
                 {
-                    RWTexture2D<float> dstMip1 = ResourceDescriptorHeap[properties.dstUavMip1];
+                    RWTexture2D<float> dstMip1 = GET_TEXTURE2D(properties.dstUavMip1);
                     dstMip1[dstCoord1] = minDepth;
                 }
             }
@@ -231,7 +231,7 @@ compute "Internal/BuildHZB"
                 int2 dstCoord2 = dstCoord0 >> 2;
                 if (all(dstCoord2 < (int2)properties.dstSize23.xy))
                 {
-                    RWTexture2D<float> dstMip2 = ResourceDescriptorHeap[properties.dstUavMip2];
+                    RWTexture2D<float> dstMip2 = GET_TEXTURE2D(properties.dstUavMip2);
                     dstMip2[dstCoord2] = minDepth;
                 }
             }
@@ -244,7 +244,7 @@ compute "Internal/BuildHZB"
                 int2 dstCoord3 = dstCoord0 >> 3;
                 if (all(dstCoord3 < (int2)properties.dstSize23.zw))
                 {
-                    RWTexture2D<float> dstMip3 = ResourceDescriptorHeap[properties.dstUavMip3];
+                    RWTexture2D<float> dstMip3 = GET_TEXTURE2D(properties.dstUavMip3);
                     dstMip3[dstCoord3] = minDepth;
                 }
             }

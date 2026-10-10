@@ -101,10 +101,10 @@ shader "Hidden/DebugTileLightHeatmap"
                 uint2 tileCoord = pixelCoord / 16u;
                 uint tileIndex = tileCoord.y * props.tilesX + tileCoord.x;
 
-                ByteAddressBuffer tileLightList = ResourceDescriptorHeap[props.tileLightListBufferIndex];
+                ByteAddressBuffer tileLightList = GET_BUFFER(props.tileLightListBufferIndex);
                 uint count = GetTileLightCount<DWORDS_PER_TILE>(tileLightList, tileIndex);
 
-                Texture2D<float> depthTexture = ResourceDescriptorHeap[props.depthTextureIndex];
+                Texture2D<float> depthTexture = GET_TEXTURE2D(props.depthTextureIndex);
                 float depth = depthTexture[pixelCoord];
 
                 float4 color = GetHeatmapColor(count);

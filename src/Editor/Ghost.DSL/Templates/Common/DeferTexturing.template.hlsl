@@ -30,10 +30,10 @@ void CSMain(
     DeferredTexturingShaderProperties props = LoadData<DeferredTexturingShaderProperties>(g_PushConstantData.userData0, 0);
 
     // groupID.x is the tile slot in VariantTileList for props.variantIndex
-    ByteAddressBuffer tileOffsetsBuffer = ResourceDescriptorHeap[props.tileOffsetsBufferIndex];
+    ByteAddressBuffer tileOffsetsBuffer = GET_BUFFER(props.tileOffsetsBufferIndex);
     uint tileOffset = tileOffsetsBuffer.Load(props.variantIndex * 4u);
 
-    ByteAddressBuffer tileList = ResourceDescriptorHeap[props.variantTileListIndex];
+    ByteAddressBuffer tileList = GET_BUFFER(props.variantTileListIndex);
     uint tileSlot = groupID.x;
     uint tileIndex = tileList.Load((tileOffset + tileSlot) * 4u);
     uint2 pixelCoord = DecodeTilePixelCoord(tileIndex, groupThreadId.xy, props.tilesPerRow);
@@ -43,7 +43,7 @@ void CSMain(
         return;
     }
 
-    Texture2D<uint2> visBuffer = ResourceDescriptorHeap[props.visBufferIndex];
+    Texture2D<uint2> visBuffer = GET_TEXTURE2D(props.visBufferIndex);
     uint2 raw = visBuffer[pixelCoord];
 
     float depth;
@@ -60,8 +60,8 @@ void CSMain(
     uint passBit = (visibleMeshletIndex >> 23u) & 1u;
     uint rawMeshletIndex = visibleMeshletIndex & 0x7FFFFFu;
 
-    uint visibleBufferIndex = (passBit == 0u) ? props.visibleMeshletsPass1 : props.visibleMeshletsPass2;
-    StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = ResourceDescriptorHeap[visibleBufferIndex];
+    STRUCT_BUFFER visibleBufferIndex = (passBit == 0u) ? props.visibleMeshletsPass1 : props.visibleMeshletsPass2;
+    StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = GET_BUFFER(visibleBufferIndex);
     VisibleMeshletEntry visible = visibleMeshlets[rawMeshletIndex];
 
     // Wave scalarization check (idTech 8 Slide 28)
@@ -123,7 +123,7 @@ void CSMain(
 
     WriteGBuffer(pixelCoord, outputs, props.gbuffer0Uav, props.gbuffer1Uav, props.gbuffer2Uav, props.gbuffer3Uav);
     
-    RWTexture2D<float2> motionVectorBuffer = ResourceDescriptorHeap[props.motionVectorUav];
+    RWTexture2D<float2> motionVectorBuffer = GET_TEXTURE2D(props.motionVectorUav);
     motionVectorBuffer[pixelCoord] = attrs.motionVectors;
 }
 
