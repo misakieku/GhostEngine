@@ -33,7 +33,7 @@ public enum RGTextureSizeMode : byte
 /// <summary>
 /// Render graph texture descriptor with support for relative sizing and clear operations.
 /// </summary>
-public struct RGTextureDesc : IEquatable<RGTextureDesc>
+public record struct RGTextureDesc : IEquatable<RGTextureDesc>
 {
     public RGTextureSizeMode sizeMode;
 
@@ -49,21 +49,12 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
     public uint mipLevels;
     public uint slice;
     public TextureUsage usage;
+    public TypelessFormatDesc typelessViewFormat;
 
-    /// <summary>
-    /// When set to true, automatically clears the attachment on first use if bound to a raster/native render pass (using hardware fast-clear).
-    /// For non-raster passes (e.g. compute UAV textures), use <see cref="RenderGraphUtility"/> explicit clear passes instead.
-    /// </summary>
     public bool clearAtFirstUse;
-
-    /// <summary>
-    /// When set to true, discards the attachment contents on last use if bound to a raster/native render pass (dropping tile memory without writeback).
-    /// </summary>
     public bool discardAtLastUse;
 
-    // Clear operation support
     public Color128 clearColor;
-
     public float clearDepth;
     public byte clearStencil;
 
@@ -80,7 +71,8 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
         TextureDimension dimension = TextureDimension.Texture2D,
         uint mipLevels = 1,
         uint slice = 1,
-        TextureUsage usage = TextureUsage.RenderTarget | TextureUsage.ShaderResource)
+        TextureUsage usage = TextureUsage.RenderTarget | TextureUsage.ShaderResource,
+        TypelessFormatDesc typelessViewFormat = default)
     {
         return new RGTextureDesc
         {
@@ -96,7 +88,8 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
             dimension = dimension,
             mipLevels = mipLevels,
             slice = slice,
-            usage = usage
+            usage = usage,
+            typelessViewFormat = typelessViewFormat
         };
     }
 
@@ -108,7 +101,8 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
         byte clearStencil = 0,
         bool clearAtFirstUse = true,
         bool discardAtLastUse = true,
-        TextureUsage usage = TextureUsage.DepthStencil)
+        TextureUsage usage = TextureUsage.DepthStencil,
+        TypelessFormatDesc typelessViewFormat = default)
     {
         return new RGTextureDesc
         {
@@ -124,7 +118,8 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
             dimension = TextureDimension.Texture2D,
             mipLevels = 1,
             slice = 1,
-            usage = usage
+            usage = usage,
+            typelessViewFormat = typelessViewFormat
         };
     }
 
@@ -140,7 +135,8 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
         TextureDimension dimension = TextureDimension.Texture2D,
         uint mipLevels = 1,
         uint slice = 1,
-        TextureUsage usage = TextureUsage.RenderTarget | TextureUsage.ShaderResource)
+        TextureUsage usage = TextureUsage.RenderTarget | TextureUsage.ShaderResource,
+        TypelessFormatDesc typelessViewFormat = default)
     {
         return new RGTextureDesc
         {
@@ -156,7 +152,8 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
             dimension = dimension,
             mipLevels = mipLevels,
             slice = slice,
-            usage = usage
+            usage = usage,
+            typelessViewFormat = typelessViewFormat
         };
     }
 
@@ -173,7 +170,8 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
         TextureDimension dimension = TextureDimension.Texture2D,
         uint mipLevels = 1,
         uint slice = 1,
-        TextureUsage usage = TextureUsage.RenderTarget | TextureUsage.ShaderResource)
+        TextureUsage usage = TextureUsage.RenderTarget | TextureUsage.ShaderResource,
+        TypelessFormatDesc typelessViewFormat = default)
     {
         return new RGTextureDesc
         {
@@ -189,7 +187,8 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
             dimension = dimension,
             mipLevels = mipLevels,
             slice = slice,
-            usage = usage
+            usage = usage,
+            typelessViewFormat = typelessViewFormat
         };
     }
 
@@ -204,7 +203,8 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
         bool clearAtFirstUse = true,
         bool discardAtLastUse = true,
         TextureFormat format = TextureFormat.D32_Float,
-        TextureUsage usage = TextureUsage.DepthStencil)
+        TextureUsage usage = TextureUsage.DepthStencil,
+        TypelessFormatDesc typelessViewFormat = default)
     {
         return new RGTextureDesc
         {
@@ -220,7 +220,8 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
             dimension = TextureDimension.Texture2D,
             mipLevels = 1,
             slice = 1,
-            usage = usage
+            usage = usage,
+            typelessViewFormat = typelessViewFormat
         };
     }
 
@@ -238,51 +239,9 @@ public struct RGTextureDesc : IEquatable<RGTextureDesc>
             Dimension = dimension,
             MipLevels = mipLevels,
             Slice = slice,
-            Usage = usage
+            Usage = usage,
+            TypelessViewFormat = typelessViewFormat
         };
-    }
-
-    public readonly bool Equals(RGTextureDesc other)
-    {
-        return sizeMode == other.sizeMode &&
-               format == other.format &&
-               dimension == other.dimension &&
-               mipLevels == other.mipLevels &&
-               slice == other.slice &&
-               usage == other.usage &&
-               clearAtFirstUse == other.clearAtFirstUse &&
-               discardAtLastUse == other.discardAtLastUse &&
-               (sizeMode == RGTextureSizeMode.Absolute
-                   ? width == other.width && height == other.height
-                   : scaleX == other.scaleX && scaleY == other.scaleY);
-    }
-
-
-    public override readonly bool Equals(object? obj)
-    {
-        return obj is RGTextureDesc other && Equals(other);
-    }
-
-    public override readonly int GetHashCode()
-    {
-        if (sizeMode == RGTextureSizeMode.Absolute)
-        {
-            return HashCode.Combine(sizeMode, width, height, format, dimension, mipLevels, slice, usage);
-        }
-        else
-        {
-            return HashCode.Combine(sizeMode, scaleX, scaleY, format, dimension, mipLevels, slice, usage);
-        }
-    }
-
-    public static bool operator ==(RGTextureDesc left, RGTextureDesc right)
-    {
-        return left.Equals(right);
-    }
-
-    public static bool operator !=(RGTextureDesc left, RGTextureDesc right)
-    {
-        return !left.Equals(right);
     }
 }
 
@@ -420,7 +379,7 @@ public sealed class RenderGraphDump
         get; init;
     }
 
-    public ViewportState ViewState
+    public ViewportState Viewport
     {
         get; init;
     }

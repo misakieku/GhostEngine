@@ -9,8 +9,9 @@
 #error "Unsupported template type for deferred texturing"
 #endif
 
-#include "EngineResources/Shaders/Properties.hlsl"
 #include "EngineResources/Shaders/Mesh.hlsl"
+#include "EngineResources/Shaders/Properties.hlsl"
+#include "EngineResources/Shaders/Utilities/Color.hlsl"
 #include "EngineResources/Shaders/Utilities/CullCommon.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/VisibilityBufferEncoding.hlsl"
@@ -99,31 +100,31 @@ void CSMain(
     DEFERREDTEXTURING_STRATEGY strategy = DEFERREDTEXTURING_STRATEGY::Create();
     SurfaceData surface = strategy.GetSurfaceData(ctx, matProps);
 
-    // Pack GBuffer outputs
-    GBufferOutputs outputs;
+    float3 srgbAlbedo = LinearToSRGB(surface.albedo);
+    
+    GBufferOutputs outputs = (GBufferOutputs)0;
 #if defined(GHOST_TEMPLATE_LIT)
-    // GBuffer0: BaseColor (rgb) + ShadingModel/Flags (a)
-    outputs.gbuffer0 = float4(surface.albedo, float(surface.materialFeatures & 0xFFu) / 255.0f);
-    // GBuffer1: Octahedral Normal (rg) + Roughness (b) + Metallic (a)
-    outputs.gbuffer1 = float4(OctahedralEncode(surface.normalWS), surface.roughness, surface.metallic);
-    // GBuffer2: Motion Vectors (xy) + Occlusion (z) + FeatureBitmask (w)
-    outputs.gbuffer2 = float4(attrs.motionVectors, surface.occlusion, 0.0f);
-    // GBuffer3: Emissive (rgb) + Unlit flag (a)
-    outputs.gbuffer3 = float4(surface.emissive, 0.0f);
+    outputs.SetBaseColor(srgbAlbedo);
+    outputs.SetMetallic(surface.metallic);
+    outputs.SetNormal(surface.normalWS);
+    outputs.SetRoughness(surface.roughness);
+    outputs.SetOcclusion(surface.occlusion);
+    outputs.SetShadingModel(SHADING_MODEL_ID);
+    outputs.SetTangent(surface.normalWS, attrs.tangentWS.xyz);
+    outputs.SetEmissive(surface.emissive);
 #elif defined(GHOST_TEMPLATE_UNLIT)
-    // GBuffer0: BaseColor (rgb) + ShadingModel/Flags (a)
-    outputs.gbuffer0 = float4(0.0f, 0.0f, 0.0f, asfloat(0xFFFFFFFF)); // 0xFFFFFFFF = Unlit
-    // GBuffer1: Normal, roughness=1, metallic=0
-    outputs.gbuffer1 = float4(OctahedralEncode(attrs.normalWS), 1.0f, 0.0f);
-    // GBuffer2: Motion Vectors (xy) + Occlusion (z) + FeatureBitmask (w)
-    outputs.gbuffer2 = float4(attrs.motionVectors, 1.0f, 0.0f);
-    // GBuffer3: Emissive Color (rgb) + Unlit flag (1.0f)
-    outputs.gbuffer3 = float4(surface.albedo, 1.0f); // Treat albedo as emissive for unlit materials
+    outputs.SetBaseColor(srgbAlbedo);
+    outputs.SetNormal(attrs.normalWS);
+    outputs.SetTangent(attrs.normalWS, attrs.tangentWS.xyz);
+    outputs.SetEmissive(surface.emissive);
 #else
     #error "Unsupported template type for deferred texturing"
 #endif
 
     WriteGBuffer(pixelCoord, outputs, props.gbuffer0Uav, props.gbuffer1Uav, props.gbuffer2Uav, props.gbuffer3Uav);
+    
+    RWTexture2D<float2> motionVectorBuffer = ResourceDescriptorHeap[props.motionVectorUav];
+    motionVectorBuffer[pixelCoord] = attrs.motionVectors;
 }
 
 #endif // GHOST_TEMPLATE_DEFERTEXTURING

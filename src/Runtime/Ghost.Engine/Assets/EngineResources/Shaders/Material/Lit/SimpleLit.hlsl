@@ -5,7 +5,7 @@
 
 struct BSDFData
 {
-    uint materialFeatures;
+    uint shadingModel;
     float3 diffuseColor;
     float3 fresnel0;
     float ambientOcclusion;
@@ -13,7 +13,6 @@ struct BSDFData
     float3 normalWS;
     float perceptualRoughness;
     float3 tangentWS;
-    float3 bitangentWS;
     float roughnessT;
     float roughnessB;
     float3 emissive;
@@ -33,18 +32,17 @@ struct SimpleLitDeferredLighting
         return (SimpleLitDeferredLighting)0;
     }
 
-    BSDFData GetBSDFData(in MaterialContext ctx, in SurfaceData surface)
+    BSDFData GetBSDFData(float3 positionWS, float3 T, in SurfaceData surface)
     {
         BSDFData bsdf = (BSDFData)0;
-        bsdf.materialFeatures = surface.materialFeatures;
+        bsdf.shadingModel = surface.shadingModel;
         bsdf.diffuseColor = surface.albedo;
         bsdf.fresnel0 = lerp(float3(0.04f, 0.04f, 0.04f), surface.albedo, surface.metallic);
         bsdf.ambientOcclusion = surface.occlusion;
         bsdf.specularOcclusion = 1.0f;
         bsdf.normalWS = surface.normalWS;
         bsdf.perceptualRoughness = surface.roughness;
-        bsdf.tangentWS = ctx.tangentWS.xyz;
-        bsdf.bitangentWS = cross(surface.normalWS, ctx.tangentWS.xyz) * sign(ctx.tangentWS.w);
+        bsdf.tangentWS = T;
         bsdf.emissive = surface.emissive;
     
         return bsdf;

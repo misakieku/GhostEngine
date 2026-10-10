@@ -28,6 +28,7 @@ internal partial class GhostRenderPipeline
         public uint gbuffer1Uav;
         public uint gbuffer2Uav;
         public uint gbuffer3Uav;
+        public uint motionVectorUav;
         public uint variantIndex;
     }
 
@@ -52,6 +53,11 @@ internal partial class GhostRenderPipeline
         {
             get; init;
         }
+
+        public Identifier<RGTexture> MotionVectors
+        {
+            get; init;
+        }
     }
 
     private struct DeferredTexturingPassData
@@ -66,6 +72,7 @@ internal partial class GhostRenderPipeline
         public Identifier<RGTexture> gbuffer1;
         public Identifier<RGTexture> gbuffer2;
         public Identifier<RGTexture> gbuffer3;
+        public Identifier<RGTexture> motionVectors;
         public ICommandSignature commandSignature;
         public ShaderVariantRegistry variantRegistry;
         public uint tilesPerRow;
@@ -92,29 +99,38 @@ internal partial class GhostRenderPipeline
 
         using var builder = rg.AddComputeRenderPass<DeferredTexturingPassData>("DeferredTexturing");
 
-        var gbuffer0Desc = RGTextureDesc.Relative(
+        // GBuffer0; // R8G8B8A8_Typeless:  BaseColor (rgb) + Metallic (a)
+        // GBuffer1; // R10G10B10A2_UNorm:  Normal (rg) + Roughness (b) + unused (a)
+        // GBuffer2; // R8G8B8A8_UNorm:     Occlusion (r) + ShadingModel (g) + Flags (b) + Tagent scaler (a)
+        // GBuffer3; // R11G11B10F:         Emissive (rgb)
+        // 
+        // Velocity; // R16G16_Float:       Screen-space Motion Vectors
+
+        var gbuffer0 = builder.CreateTexture(RGTextureDesc.Relative(
+            1.0f,
+            TextureFormat.R8G8B8A8_Typeless,
+            usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource,
+            typelessViewFormat: new TypelessFormatDesc { Uav = TextureFormat.R8G8B8A8_UNorm, Srv = TextureFormat.R8G8B8A8_SRGB } ), "GBuffer0_AlbedoMetal");
+
+        var gbuffer1 = builder.CreateTexture(RGTextureDesc.Relative(
+            1.0f,
+            TextureFormat.R10G10B10A2_UNorm,
+            usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource), "GBuffer1_NormalRough");
+
+        var gbuffer2 = builder.CreateTexture(RGTextureDesc.Relative(
             1.0f,
             TextureFormat.R8G8B8A8_UNorm,
-            usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
-        var gbuffer0 = builder.CreateTexture(in gbuffer0Desc, "GBuffer0_AlbedoFlags");
+            usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource), "GBuffer2_AOFlags");
 
-        var gbuffer1Desc = RGTextureDesc.Relative(
+        var gbuffer3 = builder.CreateTexture(RGTextureDesc.Relative(
             1.0f,
-            TextureFormat.R16G16B16A16_Float,
-            usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
-        var gbuffer1 = builder.CreateTexture(in gbuffer1Desc, "GBuffer1_NormalRoughMetal");
+            TextureFormat.R11G11B10_Float,
+            usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource), "GBuffer3_Emissive");
 
-        var gbuffer2Desc = RGTextureDesc.Relative(
+        var motionVector = builder.CreateTexture(RGTextureDesc.Relative(
             1.0f,
-            TextureFormat.R16G16B16A16_Float,
-            usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
-        var gbuffer2 = builder.CreateTexture(in gbuffer2Desc, "GBuffer2_MotionAO");
-
-        var gbuffer3Desc = RGTextureDesc.Relative(
-            1.0f,
-            TextureFormat.R16G16B16A16_Float,
-            usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
-        var gbuffer3 = builder.CreateTexture(in gbuffer3Desc, "GBuffer3_Emissive");
+            TextureFormat.R16G16_Float,
+            usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource), "MotionVectors");
 
         builder.UseTexture(visBuffer, AccessFlags.Read);
         builder.UseBuffer(visibleMeshlets0, AccessFlags.Read);
@@ -127,6 +143,7 @@ internal partial class GhostRenderPipeline
         builder.UseTexture(gbuffer1, AccessFlags.Write);
         builder.UseTexture(gbuffer2, AccessFlags.Write);
         builder.UseTexture(gbuffer3, AccessFlags.Write);
+        builder.UseTexture(motionVector, AccessFlags.Write);
 
         builder.SetPassData(new DeferredTexturingPassData
         {
@@ -140,6 +157,7 @@ internal partial class GhostRenderPipeline
             gbuffer1 = gbuffer1,
             gbuffer2 = gbuffer2,
             gbuffer3 = gbuffer3,
+            motionVectors = motionVector,
             commandSignature = _deferredTexturingCommandSignature,
             variantRegistry = _assetManager.ShaderVariants,
             tilesPerRow = tilesX,
@@ -155,10 +173,11 @@ internal partial class GhostRenderPipeline
             var tileOffsetsSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.tileOffsetsBuffer).AsResource(), BindlessAccess.ShaderResource);
             var actualIndirectArgs = computeCtx.GetActualBuffer(passData.indirectArgsBuffer);
 
-            var gb0Uav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.gbuffer0).AsResource(), BindlessAccess.UnorderedAccess);
-            var gb1Uav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.gbuffer1).AsResource(), BindlessAccess.UnorderedAccess);
-            var gb2Uav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.gbuffer2).AsResource(), BindlessAccess.UnorderedAccess);
-            var gb3Uav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.gbuffer3).AsResource(), BindlessAccess.UnorderedAccess);
+            var gb0Uav = computeCtx.GetActualBindlessIndex(passData.gbuffer0, BindlessAccess.UnorderedAccess);
+            var gb1Uav = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.UnorderedAccess);
+            var gb2Uav = computeCtx.GetActualBindlessIndex(passData.gbuffer2, BindlessAccess.UnorderedAccess);
+            var gb3Uav = computeCtx.GetActualBindlessIndex(passData.gbuffer3, BindlessAccess.UnorderedAccess);
+            var motionVectorUav = computeCtx.GetActualBindlessIndex(passData.motionVectors, BindlessAccess.UnorderedAccess);
 
             var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.DeferredTexturing);
             for (var i = 0; i < dispatchVariants.Length; i++)
@@ -185,6 +204,7 @@ internal partial class GhostRenderPipeline
                     gbuffer1Uav = gb1Uav,
                     gbuffer2Uav = gb2Uav,
                     gbuffer3Uav = gb3Uav,
+                    motionVectorUav = motionVectorUav,
                     variantIndex = v
                 };
 
@@ -198,7 +218,8 @@ internal partial class GhostRenderPipeline
             GBuffer0 = gbuffer0,
             GBuffer1 = gbuffer1,
             GBuffer2 = gbuffer2,
-            GBuffer3 = gbuffer3
+            GBuffer3 = gbuffer3,
+            MotionVectors = motionVector
         };
     }
 

@@ -57,6 +57,7 @@ internal struct CompiledBarrier
     }
 }
 
+// TODO: Split barrier.
 internal unsafe partial class RenderGraphCompiler
 {
     private int EmitPassPrologueBarriers(
@@ -151,12 +152,7 @@ internal unsafe partial class RenderGraphCompiler
         return count;
     }
 
-    private bool TryGetAliasingPredecessor(
-        int scheduleIndex,
-        Identifier<RGResource> resourceId,
-        ref AliasingPlan aliasingPlan,
-        RenderGraphResourceOrdering resourceOrdering,
-        out Identifier<RGResource> predecessor)
+    private bool TryGetAliasingPredecessor(int scheduleIndex, Identifier<RGResource> resourceId, ref AliasingPlan aliasingPlan, RenderGraphResourceOrdering resourceOrdering, out Identifier<RGResource> predecessor)
     {
         predecessor = Identifier<RGResource>.Invalid;
         ref readonly var resource = ref _resourceRegistry.GetResource(resourceId);
@@ -237,9 +233,7 @@ internal unsafe partial class RenderGraphCompiler
         }
     }
 
-    private void ResolvePassResourceUsages(
-        RenderGraphPass pass,
-        Span<ResolvedPassResourceUsage> usages)
+    private void ResolvePassResourceUsages(RenderGraphPass pass, Span<ResolvedPassResourceUsage> usages)
     {
         usages.Clear();
 

@@ -5,7 +5,7 @@
 
 struct SurfaceData
 {
-    uint materialFeatures;
+    uint shadingModel;
     float3 albedo;
     float3 normalWS;
     float metallic;
@@ -79,13 +79,13 @@ void AccumulateIndirectLighting(inout AggregateLighting total, in IndirectLighti
 SurfaceData ExtractSurfaceData(in GBufferOutputs gbuffer)
 {
     SurfaceData surface = (SurfaceData)0;
-    surface.albedo = gbuffer.gbuffer0.rgb;
-    surface.materialFeatures = (uint)(gbuffer.gbuffer0.a * 255.0f);
-    surface.normalWS = OctahedralDecode(gbuffer.gbuffer1.rg);
-    surface.roughness = gbuffer.gbuffer1.b;
-    surface.metallic = gbuffer.gbuffer1.a;
-    surface.occlusion = gbuffer.gbuffer2.b;
-    surface.emissive = gbuffer.gbuffer3.rgb;
+    surface.albedo = gbuffer.GetBaseColor();
+    surface.shadingModel = gbuffer.GetMetallic();
+    surface.normalWS = gbuffer.GetNormal();
+    surface.roughness = gbuffer.GetRoughness();
+    surface.metallic = gbuffer.GetMetallic();
+    surface.occlusion = gbuffer.GetOcclusion();
+    surface.emissive = gbuffer.GetEmissive();
     return surface;
 }
 

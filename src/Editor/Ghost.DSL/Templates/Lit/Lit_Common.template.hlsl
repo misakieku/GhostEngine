@@ -50,7 +50,7 @@ struct DefaultDeferredTexturingStrategy
     SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
     {
         SurfaceData surface = (SurfaceData) 0;
-        surface.materialFeatures = SHADING_MODEL_ID;
+        surface.shadingModel = SHADING_MODEL_ID;
         surface.albedo = float3(0.73f, 0.73f, 0.73f);
         surface.normalWS = ctx.normalWS;
         surface.metallic = 0.0f;
@@ -84,7 +84,7 @@ struct DefaultDeferredLightingStrategy
         return (DefaultDeferredLightingStrategy)0;
     }
     
-    BSDFData GetBSDFData(in MaterialContext ctx, in SurfaceData surface)
+    BSDFData GetBSDFData(float3 positionWS, float3 T, in SurfaceData surface)
     {
         return (BSDFData)0;
     }

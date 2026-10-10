@@ -178,43 +178,6 @@ public readonly struct CBufferInfo
     }
 }
 
-public struct RenderDesc
-{
-    public float4x4 ViewMatrix
-    {
-        get; set;
-    }
-
-    public float4x4 ProjectionMatrix
-    {
-        get; set;
-    }
-
-    public float4 CameraPosition
-    {
-        get; set;
-    }
-
-    // The "Target" (Where to write pixels)
-    public Handle<GPUTexture> Target
-    {
-        get; set;
-    }
-
-    public Handle<GPUTexture> DepthTarget
-    {
-        get; set;
-    }
-
-    public ScissorRectDesc Viewport
-    {
-        get; set;
-    }
-
-    //public RenderPathID RenderPath;
-    //public LayerMask CullingMask;
-}
-
 public struct ViewportDesc
 {
     public float X
@@ -342,17 +305,11 @@ public struct PassRenderTargetDesc
         get; set;
     }
 
-    /// <summary>
-    /// Specifies how to load the render target at the start of the render pass.
-    /// </summary>
     public AttachmentLoadOp LoadOp
     {
         get; set;
     }
 
-    /// <summary>
-    /// Specifies how to store the render target at the end of the render pass.
-    /// </summary>
     public AttachmentStoreOp StoreOp
     {
         get; set;
@@ -377,33 +334,21 @@ public struct PassDepthStencilDesc
         get; set;
     }
 
-    /// <summary>
-    /// Specifies how to load the depth buffer at the start of the render pass.
-    /// </summary>
     public AttachmentLoadOp DepthLoadOp
     {
         get; set;
     }
 
-    /// <summary>
-    /// Specifies how to store the depth buffer at the end of the render pass.
-    /// </summary>
     public AttachmentStoreOp DepthStoreOp
     {
         get; set;
     }
 
-    /// <summary>
-    /// Specifies how to load the stencil buffer at the start of the render pass.
-    /// </summary>
     public AttachmentLoadOp StencilLoadOp
     {
         get; set;
     }
 
-    /// <summary>
-    /// Specifies how to store the stencil buffer at the end of the render pass.
-    /// </summary>
     public AttachmentStoreOp StencilStoreOp
     {
         get; set;
@@ -536,30 +481,22 @@ public struct BarrierDesc
 
     public BarrierType Type { get; set; }
 
-    /// <summary>Gets or sets the synchronization scope before the barrier.</summary>
     public BarrierSync SyncBefore { get; set; }
 
-    /// <summary>Gets or sets the synchronization scope after the barrier.</summary>
     public BarrierSync SyncAfter { get; set; }
 
-    /// <summary>Gets or sets the access state before the barrier.</summary>
     public BarrierAccess AccessBefore { get; set; }
 
-    /// <summary>Gets or sets the access state after the barrier.</summary>
     public BarrierAccess AccessAfter { get; set; }
 
-    /// <summary>Gets or sets the texture layout before the barrier.</summary>
     public BarrierLayout LayoutBefore { get; set; }
 
-    /// <summary>Gets or sets the texture layout after the barrier.</summary>
     public BarrierLayout LayoutAfter { get; set; }
 
     public Handle<GPUResource> Resource { get; set; }
 
-    /// <summary>Gets or sets whether an otherwise identical before/after barrier must still be emitted.</summary>
     public bool Force { get; set; }
 
-    /// <summary>Gets or sets the cross-queue handoff role of this barrier.</summary>
     public BarrierHandoffType Handoff { get; set; }
 
     [UnscopedRef]
@@ -791,64 +728,68 @@ public record struct ResourceDesc
     }
 }
 
-/// <summary>
-/// Texture description
-/// </summary>
+public record struct TypelessFormatDesc
+{
+    public TextureFormat Srv
+    {
+        get; set;
+    }
+
+    public TextureFormat Uav
+    {
+        get; set;
+    }
+
+    public TextureFormat Rtv
+    {
+        get; set;
+    }
+
+    public TextureFormat Dsv
+    {
+        get; set;
+    }
+}
+
 public record struct TextureDesc
 {
-    /// <summary>
-    /// Width of the texture
-    /// </summary>
     public uint Width
     {
         get; set;
     }
 
-    /// <summary>
-    /// Height of the texture
-    /// </summary>
     public uint Height
     {
         get; set;
     }
 
-    /// <summary>
-    /// Slice of the texture
-    /// </summary>
     public uint Slice
     {
         get; set;
     }
 
-    /// <summary>
-    /// Texture Format
-    /// </summary>
     public TextureFormat Format
     {
         get; set;
     }
 
-    /// <summary>
-    /// Texture dimension
-    /// </summary>
     public TextureDimension Dimension
     {
         get;
         set;
     }
 
-    /// <summary>
-    /// Number of mip levels. 0 to generate full mip chain
-    /// </summary>
     public uint MipLevels
     {
         get; set;
     }
 
-    /// <summary>
-    /// Texture usage flags
-    /// </summary>
     public TextureUsage Usage
+    {
+        get; set;
+    }
+
+    public TypelessFormatDesc TypelessViewFormat
     {
         get; set;
     }
@@ -1609,9 +1550,11 @@ public enum TextureFormat
     R32G32_Float,
     R32G32_UInt,
 
+    R8G8B8A8_SRGB,
     R8G8B8A8_UNorm,
     R8G8B8A8_SNorm,
     B8G8R8A8_UNorm,
+    R11G11B10_Float,
 
     R10G10B10A2_UNorm,
 
@@ -1621,6 +1564,9 @@ public enum TextureFormat
     D24_UNorm_S8_UInt,
     D32_Float,
 
+    R8G8B8A8_Typeless,
+    R16G16B16A16_Typeless,
+    R32G32B32A32_Typeless,
     R32_Typeless,
     R24G8_Typeless,
 

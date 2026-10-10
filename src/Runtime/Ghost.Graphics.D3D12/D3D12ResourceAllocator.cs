@@ -42,11 +42,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
     private bool _disposed;
 
-    public D3D12ResourceAllocator(
-        D3D12RenderDevice device,
-        D3D12DescriptorAllocator descriptorAllocator,
-        D3D12ResourceDatabase resourceDatabase,
-        D3D12PipelineLibrary pipelineLibrary)
+    public D3D12ResourceAllocator(D3D12RenderDevice device, D3D12DescriptorAllocator descriptorAllocator, D3D12ResourceDatabase resourceDatabase, D3D12PipelineLibrary pipelineLibrary)
     {
         var desc = new D3D12MA_ALLOCATOR_DESC
         {

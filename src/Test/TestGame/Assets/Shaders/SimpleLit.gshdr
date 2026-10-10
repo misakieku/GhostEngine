@@ -27,7 +27,7 @@ shader "MyShader/SimpleLit" : "Lit"
                 }
 
                 SurfaceData surface = (SurfaceData)0;
-                surface.materialFeatures = SHADING_MODEL_ID;
+                surface.shadingModel = SHADING_MODEL_ID;
                 surface.albedo = baseColor;
                 surface.normalWS = ctx.normalWS;
                 surface.roughness = props.roughness;

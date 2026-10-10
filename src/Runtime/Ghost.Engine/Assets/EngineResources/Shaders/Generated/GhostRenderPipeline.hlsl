@@ -18,6 +18,7 @@ struct DeferredTexturingShaderProperties
     uint gbuffer1Uav;
     uint gbuffer2Uav;
     uint gbuffer3Uav;
+    uint motionVectorUav;
     uint variantIndex;
 };
 

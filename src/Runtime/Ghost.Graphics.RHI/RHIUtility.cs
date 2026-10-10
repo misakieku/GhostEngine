@@ -35,9 +35,11 @@ public static class RHIUtility
             TextureFormat.R16G16_Float => 4,
             TextureFormat.R32G32_Float => 8,
 
+            TextureFormat.R8G8B8A8_SRGB => 4,
             TextureFormat.R8G8B8A8_UNorm => 4,
             TextureFormat.R8G8B8A8_SNorm => 4,
             TextureFormat.B8G8R8A8_UNorm => 4,
+            TextureFormat.R11G11B10_Float => 4,
 
             TextureFormat.R10G10B10A2_UNorm => 4,
             TextureFormat.R16G16B16A16_Float => 8,
@@ -46,6 +48,12 @@ public static class RHIUtility
             TextureFormat.D24_UNorm_S8_UInt => 4,
             TextureFormat.D32_Float => 4,
 
+            TextureFormat.R32_Float => 4,
+            TextureFormat.R32G32_UInt => 8,
+
+            TextureFormat.R8G8B8A8_Typeless => 4,
+            TextureFormat.R16G16B16A16_Typeless => 8,
+            TextureFormat.R32G32B32A32_Typeless => 16,
             TextureFormat.R32_Typeless => 4,
             TextureFormat.R24G8_Typeless => 4,
             _ => throw new NotSupportedException($"Texture format {format} is not supported."),
@@ -68,6 +76,12 @@ public static class RHIUtility
     public static bool IsCompressedFormat(this TextureFormat format)
     {
         return format is >= TextureFormat.BC1_UNorm and <= TextureFormat.BC7_UNorm_SRGB;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsTypelessFormat(this TextureFormat format)
+    {
+        return format is >= TextureFormat.R8G8B8A8_Typeless and <= TextureFormat.R24G8_Typeless;
     }
 
     public static void GetSurfaceInfo(this TextureFormat format, uint width, uint height, out uint rowPitch, out uint slicePitch, out uint rowCount)
@@ -233,8 +247,10 @@ public static class RHIUtility
             17 => TextureFormat.R32G32_UInt, // DXGI_FORMAT_R32G32_UINT
 
             28 => TextureFormat.R8G8B8A8_UNorm, // DXGI_FORMAT_R8G8B8A8_UNORM
+            29 => TextureFormat.R8G8B8A8_SRGB, // DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
             31 => TextureFormat.R8G8B8A8_SNorm, // DXGI_FORMAT_R8G8B8A8_SNORM
             87 => TextureFormat.B8G8R8A8_UNorm, // DXGI_FORMAT_B8G8R8A8_UNORM
+            26 => TextureFormat.R11G11B10_Float, // DXGI_FORMAT_R11G11B10_FLOAT
 
             24 => TextureFormat.R10G10B10A2_UNorm, // DXGI_FORMAT_R10G10B10A2_UNORM
 
@@ -243,6 +259,10 @@ public static class RHIUtility
 
             45 => TextureFormat.D24_UNorm_S8_UInt, // DXGI_FORMAT_D24_UNORM_S8_UINT
             40 => TextureFormat.D32_Float, // DXGI_FORMAT_D32_FLOAT
+
+            27 => TextureFormat.R8G8B8A8_Typeless, // DXGI_FORMAT_R8G8B8A8_TYPELESS
+            9 => TextureFormat.R16G16B16A16_Typeless, // DXGI_FORMAT_R16G16B16A16_TYPELESS
+            1 => TextureFormat.R32G32B32A32_Typeless, // DXGI_FORMAT_R32G32B32A32_TYPELESS
             39 => TextureFormat.R32_Typeless, // DXGI_FORMAT_R32_TYPELESS
             44 => TextureFormat.R24G8_Typeless, // DXGI_FORMAT_R24G8_TYPELESS
 

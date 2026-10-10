@@ -4,6 +4,7 @@
 #include "Lit/Lit_Common.template.hlsl"
 #include "EngineResources/Shaders/Properties.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/ClassificationCommon.hlsl"
+#include "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl"
 #include "EngineResources/Shaders/Material/Lit/LightLoop.hlsl"
 #include "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl"
 
@@ -51,19 +52,11 @@ void CSMain(
     }
 
     // Read G-Buffer
-    Texture2D<float4> gb0Tex = ResourceDescriptorHeap[props.gbuffer0Srv];
-    Texture2D<float4> gb1Tex = ResourceDescriptorHeap[props.gbuffer1Srv];
-    Texture2D<float4> gb2Tex = ResourceDescriptorHeap[props.gbuffer2Srv];
-    Texture2D<float4> gb3Tex = ResourceDescriptorHeap[props.gbuffer3Srv];
 
-    GBufferOutputs gbuffer;
-    gbuffer.gbuffer0 = gb0Tex[pixelCoord];
-    gbuffer.gbuffer1 = gb1Tex[pixelCoord];
-    gbuffer.gbuffer2 = gb2Tex[pixelCoord];
-    gbuffer.gbuffer3 = gb3Tex[pixelCoord];
+    GBufferOutputs gbuffer = ReadGBuffer(pixelCoord, props.gbuffer0Srv, props.gbuffer1Srv, props.gbuffer2Srv, props.gbuffer3Srv);
 
     // Verify pixel belongs to this shading model
-    uint pixelShadingModel = (uint)round(gbuffer.gbuffer0.a * 255.0f) & 0x1Fu;
+    uint pixelShadingModel = gbuffer.GetShadingModel();
     if (pixelShadingModel != 0u && pixelShadingModel != SHADING_MODEL_ID)
     {
         return;
@@ -86,13 +79,9 @@ void CSMain(
 
     // Unpack Surface & BSDF Data
     SurfaceData surface = ExtractSurfaceData(gbuffer);
-    MaterialContext matCtx = (MaterialContext)0;
-    matCtx.positionWS = positionWS;
-    matCtx.normalWS = surface.normalWS;
-    matCtx.tangentWS = float4(1.0f, 0.0f, 0.0f, 1.0f);
 
     DEFERREDLIGHTING_STRATEGY strategy = DEFERREDLIGHTING_STRATEGY::Create();
-    BSDFData bsdf = strategy.GetBSDFData(matCtx, surface);
+    BSDFData bsdf = strategy.GetBSDFData(positionWS, gbuffer.GetTangent(surface.normalWS), surface);
     
     ShadingContext shadingCtx;
     shadingCtx.positionWS = positionWS;

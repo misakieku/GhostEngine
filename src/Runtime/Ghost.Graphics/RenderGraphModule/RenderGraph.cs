@@ -95,7 +95,7 @@ public sealed class RenderGraph : IDisposable
             TotalHeapSize = graph.plan.totalHeapSize,
             SizeWithoutAliasing = sizeWithoutAliasing,
             IsCacheHit = graph.cacheHit,
-            ViewState = viewport
+            Viewport = viewport
         };
 
         var effectiveQueues = new Dictionary<int, CommandQueueType>();

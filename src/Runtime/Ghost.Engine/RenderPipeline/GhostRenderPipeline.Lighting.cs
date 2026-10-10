@@ -770,7 +770,8 @@ internal unsafe partial class GhostRenderPipeline
                 _settings.ShadowAtlasResolution,
                 _settings.ShadowAtlasResolution,
                 TextureFormat.R32_Typeless,
-                usage: TextureUsage.DepthStencil | TextureUsage.ShaderResource);
+                usage: TextureUsage.DepthStencil | TextureUsage.ShaderResource,
+                typelessViewFormat: new TypelessFormatDesc { Dsv = TextureFormat.D32_Float, Srv = TextureFormat.R32_Float } );
 
             shadowAtlas = rasterBuilder.CreateTexture(in shadowAtlasDesc, "PunctualShadowAtlas");
 

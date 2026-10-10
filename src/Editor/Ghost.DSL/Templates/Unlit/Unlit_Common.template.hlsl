@@ -10,6 +10,7 @@
 struct SurfaceData
 {
     float3 albedo;
+    float3 emissive;
 };
 
 struct MaterialContext
@@ -62,8 +63,7 @@ struct DefaultDeferredTexturingStrategy
     
     SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
     {
-        SurfaceData surface = (SurfaceData)0;
-        return surface;
+        return (SurfaceData)0;
     }
 };
 #endif
