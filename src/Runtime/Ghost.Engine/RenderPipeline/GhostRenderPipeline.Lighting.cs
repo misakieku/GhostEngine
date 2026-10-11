@@ -27,6 +27,7 @@ internal unsafe partial class GhostRenderPipeline
         public ShadowAtlasRegionAllocator allocator;
         public float meshletLodErrorThreshold;
         public float viewHeight;
+        public float3 cameraPosition;
 
         public UnsafeList<GPUShadowViewData>.ParallelWriter shadowViewsWriter;
 
@@ -65,8 +66,10 @@ internal unsafe partial class GhostRenderPipeline
             ref readonly var light = ref request.light;
             ref readonly var shadowData = ref request.shadowData;
 
+            var lightPosRWS = light.positionWS - cameraPosition;
+
             // TODO: Distance culling.
-            if (!MathUtility.SphereIntersectFrustum(light.positionWS, light.range, frustum.planes))
+            if (!MathUtility.SphereIntersectFrustum(lightPosRWS, light.range, frustum.planes))
             {
                 return;
             }
@@ -96,17 +99,17 @@ internal unsafe partial class GhostRenderPipeline
                 var fov = math.clamp(outerAngle * 2.0f, 0.01f, math.radians(175.0f));
 
                 var up = math.abs(light.directionWS.y) > 0.99f ? new float3(0.0f, 0.0f, 1.0f) : new float3(0.0f, 1.0f, 0.0f);
-                var viewMat = CreateLookAtMatrix(light.positionWS, light.directionWS, up);
+                var viewMat = CreateLookAtMatrix(lightPosRWS, light.directionWS, up);
                 var projMat = CreatePerspectiveReversedZ(fov, 1.0f, nearPlane, farPlane);
                 var shadowViewProj = math.mul(projMat, viewMat);
-                var shadowFrustum = Frustum.Create(shadowViewProj, light.positionWS, light.directionWS, nearPlane, farPlane);
+                var shadowFrustum = Frustum.Create(shadowViewProj, lightPosRWS, light.directionWS, nearPlane, farPlane);
 
                 var svData = new GPUShadowViewData
                 {
                     shadowViewProj = shadowViewProj,
                     planes = shadowFrustum.planes,
                     tileOffsetScale = region.tileOffsetScale,
-                    lightPositionWS = light.positionWS,
+                    lightPositionWS = lightPosRWS,
                     lodErrorThreshold = lodErrorThreshold,
                     proj11 = 1.0f / math.tan(fov * 0.5f),
                     tileSize = shadowSize,
@@ -131,16 +134,16 @@ internal unsafe partial class GhostRenderPipeline
                 for (var f = 0; f < 6; f++)
                 {
                     GetPointFaceOrientation(f, out var dir, out var up);
-                    var viewMat = CreateLookAtMatrix(light.positionWS, dir, up);
+                    var viewMat = CreateLookAtMatrix(lightPosRWS, dir, up);
                     var shadowViewProj = math.mul(projMat, viewMat);
-                    var shadowFrustum = Frustum.Create(shadowViewProj, light.positionWS, dir, nearPlane, farPlane);
+                    var shadowFrustum = Frustum.Create(shadowViewProj, lightPosRWS, dir, nearPlane, farPlane);
 
                     faceViews[f] = new GPUShadowViewData
                     {
                         shadowViewProj = shadowViewProj,
                         planes = shadowFrustum.planes,
                         tileOffsetScale = faceRegions[f].tileOffsetScale,
-                        lightPositionWS = light.positionWS,
+                        lightPositionWS = lightPosRWS,
                         lodErrorThreshold = lodErrorThreshold,
                         proj11 = pointProj11,
                         tileSize = shadowSize
@@ -153,7 +156,7 @@ internal unsafe partial class GhostRenderPipeline
         }
     }
 
-    private void ExecutePerViewShadowSetup(ResourceContext ctx, ShadowAtlasRegionAllocator atlasAllocator, in Frustum viewFrustum, float viewHeight, ReadOnlyView<PunctualLightRequest> lights,
+    private void ExecutePerViewShadowSetup(ResourceContext ctx, ShadowAtlasRegionAllocator atlasAllocator, in Frustum viewFrustum, float viewHeight, ReadOnlyView<PunctualLightRequest> lights, float3 cameraPosition,
         out uint shadowViewsBufferSrv, out uint shadowViewCount, out uint shadowIndicesBufferSrv)
     {
         shadowViewsBufferSrv = uint.MaxValue;
@@ -183,7 +186,8 @@ internal unsafe partial class GhostRenderPipeline
             shadowViewsWriter = shadowViews.AsParallelWriter(),
             shadowIndices = shadowIndices,
             meshletLodErrorThreshold = _settings.MeshletLodErrorThreshold,
-            viewHeight = viewHeight
+            viewHeight = viewHeight,
+            cameraPosition = cameraPosition
         };
 
         if (lightCount <= 64)

@@ -28,7 +28,7 @@ void CSMain(
         {
             s_TileShadingModelMask = maskBuffer.Load(tileIndex * 4u);
         }
-        
+
         GroupMemoryBarrierWithGroupSync();
 
         if ((s_TileShadingModelMask & (1u << SHADING_MODEL_ID)) == 0u)
@@ -74,18 +74,17 @@ void CSMain(
         1.0f - ((float(pixelCoord.y) + 0.5f) * g_ViewData.screenSize.w) * 2.0f
     );
     float3 posVS = float3((ndc.x / m00) * zView, (ndc.y / m11) * zView, zView);
-    float3 positionWS = g_ViewData.cameraPosition + mul(transpose((float3x3)g_ViewData.viewMatrix), posVS);
-    float3 V = normalize(g_ViewData.cameraPosition - positionWS);
+    float3 positionRWS = TransformViewToWorld(posVS);
+    float3 V = GetWorldSpaceNormalizeViewDir(positionRWS);
 
     // Unpack Surface & BSDF Data
     SurfaceData surface = ExtractSurfaceData(gbuffer);
 
     DEFERREDLIGHTING_STRATEGY strategy = DEFERREDLIGHTING_STRATEGY::Create();
-    BSDFData bsdf = strategy.GetBSDFData(positionWS, gbuffer.GetTangent(surface.normalWS), surface);
-    
+    BSDFData bsdf = strategy.GetBSDFData(positionRWS, gbuffer.GetTangent(surface.normalWS), surface);
+
     ShadingContext shadingCtx;
-    shadingCtx.positionWS = positionWS;
-    shadingCtx.normalWS = surface.normalWS;
+    shadingCtx.positionRWS = positionRWS;
     shadingCtx.positionNDC = ndc;
     shadingCtx.positionSS = pixelCoord;
     shadingCtx.tileCoord = groupID.xy;
@@ -98,7 +97,7 @@ void CSMain(
     // Execute Light Loop
     ByteAddressBuffer tileLightList = GET_BUFFER(props.tileLightListBufferIndex);
     LightLoopOutput light = ExecuteLightLoop<DEFERREDLIGHTING_STRATEGY>(shadingCtx, bsdf, strategy, V, tileLightList, props.tilesPerRow);
-    
+
     float3 finalColor = light.diffuse + light.specular;
 
     // Output to HDR Color Buffer

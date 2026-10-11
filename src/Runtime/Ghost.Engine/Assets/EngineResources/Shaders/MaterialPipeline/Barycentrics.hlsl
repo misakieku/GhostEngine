@@ -10,7 +10,7 @@
 
 struct InterpolatedAttributes
 {
-    float3 positionWS;
+    float3 positionRWS;
     float3 normalWS;
     float4 tangentWS;
     float4 color;
@@ -50,7 +50,8 @@ InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pixelCoord, floa
     Vertex v2 = rawBuffer.Load<Vertex>(meshData.vertexBufferOffset + v2Idx * sizeof(Vertex));
 
     InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, instanceIndex);
-    float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, instanceData.localToWorld);
+    float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
+    float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, localToRWS);
 
     // Transform vertices to homogeneous clip space (x, y, z, w)
     float4 p0 = mul(worldViewProj, float4(v0.position, 1.0f));
@@ -88,18 +89,18 @@ InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pixelCoord, floa
 
     // UV and analytical screen derivatives via quotient rule
     float2 uv = bary.x * v0.uv + bary.y * v1.uv + bary.z * v2.uv;
-    
+
     float2 dN_dx = dq_dx.x * v0.uv + dq_dx.y * v1.uv + dq_dx.z * v2.uv;
     float2 dN_dy = dq_dy.x * v0.uv + dq_dy.y * v1.uv + dq_dy.z * v2.uv;
 
     float2 ddx_uv = (dN_dx - uv * dD_dx) * invD;
     float2 ddy_uv = (dN_dy - uv * dD_dy) * invD;
 
-    // Interpolate vertex attributes
-    float3 pw0 = mul(instanceData.localToWorld, float4(v0.position, 1.0f)).xyz;
-    float3 pw1 = mul(instanceData.localToWorld, float4(v1.position, 1.0f)).xyz;
-    float3 pw2 = mul(instanceData.localToWorld, float4(v2.position, 1.0f)).xyz;
-    float3 positionWS = bary.x * pw0 + bary.y * pw1 + bary.z * pw2;
+    // Interpolate vertex attributes in Camera-Relative World Space
+    float3 pw0 = mul(localToRWS, float4(v0.position, 1.0f)).xyz;
+    float3 pw1 = mul(localToRWS, float4(v1.position, 1.0f)).xyz;
+    float3 pw2 = mul(localToRWS, float4(v2.position, 1.0f)).xyz;
+    float3 positionRWS = bary.x * pw0 + bary.y * pw1 + bary.z * pw2;
 
     float3 n0 = mul((float3x3)instanceData.localToWorld, v0.normal);
     float3 n1 = mul((float3x3)instanceData.localToWorld, v1.normal);
@@ -115,7 +116,7 @@ InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pixelCoord, floa
 
     // Motion Vectors
     float2 currentScreenUV = pixelPos * g_ViewData.screenSize.zw;
-    float4 prevClip = mul(g_ViewData.preVPMatrix, float4(positionWS, 1.0f));
+    float4 prevClip = mul(g_ViewData.preVPMatrix, float4(positionRWS, 1.0f));
     float prevInvW = (abs(prevClip.w) > 1e-7f) ? rcp(prevClip.w) : 0.0f;
     float2 prevScreenUV = float2(prevClip.x * prevInvW * 0.5f + 0.5f, 1.0f - (prevClip.y * prevInvW * 0.5f + 0.5f));
     float2 motionVectors = currentScreenUV - prevScreenUV;
@@ -129,7 +130,7 @@ InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pixelCoord, floa
     );
 
     InterpolatedAttributes attrs;
-    attrs.positionWS = positionWS;
+    attrs.positionRWS = positionRWS;
     attrs.normalWS = normalWS;
     attrs.tangentWS = float4(tangentWS, v0.tangent.w);
     attrs.color = color;

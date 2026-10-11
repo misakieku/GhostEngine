@@ -17,7 +17,7 @@ struct MaterialContext
 {
     uint instanceIndex;
     uint materialIndex;
-    float3 positionWS;
+    float3 positionRWS;
     float3 normalWS;
     float4 tangentWS;
     float2 uv;
@@ -42,7 +42,7 @@ struct DefaultAlphaStrategy
     {
         return (DefaultAlphaStrategy) 0;
     }
-    
+
     float GetAlphaCoverage(uint materialBufferIndex, float2 uv)
     {
         return 1.0f;
@@ -60,7 +60,7 @@ struct DefaultDeferredTexturingStrategy
     {
         return (DefaultDeferredTexturingStrategy)0;
     }
-    
+
     SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
     {
         return (SurfaceData)0;

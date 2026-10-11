@@ -103,7 +103,8 @@ void MSMain(
 
     SetMeshOutputCounts(vertexCount, triangleCount);
     
-    float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, instanceData.localToWorld);
+    float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
+    float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, localToRWS);
 
     if (groupThreadID < vertexCount)
     {

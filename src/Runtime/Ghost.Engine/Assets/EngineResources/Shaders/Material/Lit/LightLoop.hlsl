@@ -15,11 +15,11 @@
 #endif
 
 template<typename T>
-LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout T strategy, float3 V, ByteAddressBuffer tileLightList, uint tilesPerRow)
+LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, in T strategy, float3 V, ByteAddressBuffer tileLightList, uint tilesPerRow)
 {
     AggregateLighting totalLighting = (AggregateLighting)0;
     PreLightData preLightData = strategy.GetPreLightData(ctx, V, bsdf);
-    
+
     // Directional Lights (Multiple, with single primary shadow caster)
     if (IS_VALID_BUFFER(g_FrameData.directionalLightBuffer) && g_FrameData.directionalLightCount > 0u)
     {
@@ -56,12 +56,13 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
             }
 
             GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, fetch.lightIndex);
+            float3 lightPosRWS = TransformAbsoluteWorldToCameraRelative(light.positionWS);
 
-            float3 toLight = light.positionWS - ctx.positionWS;
+            float3 toLight = lightPosRWS - ctx.positionRWS;
             float distSq = dot(toLight, toLight);
             float dist = sqrt(distSq);
             float3 L = (dist > 0.0001f) ? (toLight / dist) : float3(0.0f, 1.0f, 0.0f);
-            
+
             float NdotL = dot(bsdf.normalWS, L);
 
             // Smooth windowed distance attenuation (Karis / Frostbite)
@@ -86,16 +87,16 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
                 {
                     shadowIndex = LoadData<int>(ctx.shadowIndicesBufferIndex, fetch.lightIndex);
                 }
-                
+
                 // TODO: Better shadow sampling.
                 if (shadowIndex >= 0 && IS_VALID_BUFFER(ctx.shadowAtlasIndex) && IS_VALID_BUFFER(ctx.shadowViewsBufferIndex))
                 {
                     uint viewIdx = (uint)shadowIndex;
-                    float3 biasedPosWS = ctx.positionWS + ctx.normalWS * light.normalBias;
-                    
+                    float3 biasedPosWS = ctx.positionRWS + bsdf.normalWS * light.normalBias;
+
                     if (lightType == 0u) // Point Light cubemap face selection
                     {
-                        float3 L_cube = biasedPosWS - light.positionWS;
+                        float3 L_cube = biasedPosWS - lightPosRWS;
                         float3 absL = abs(L_cube);
                         uint faceIdx = 0u;
                         if (absL.x >= absL.y && absL.x >= absL.z)
@@ -110,13 +111,13 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
                         {
                             faceIdx = (L_cube.z > 0.0f) ? 4u : 5u;
                         }
-                        
+
                         viewIdx += faceIdx;
                     }
 
                     GPUShadowViewData shadowView = LoadData<GPUShadowViewData>(ctx.shadowViewsBufferIndex, viewIdx);
                     float4 clipPos = mul(shadowView.shadowViewProj, float4(biasedPosWS, 1.0f));
-                    
+
                     if (clipPos.w > 0.0001f)
                     {
                         float3 ndc = clipPos.xyz / clipPos.w;
@@ -125,7 +126,7 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
                         {
                             float2 atlasUV = shadowView.tileOffsetScale.xy + uv * shadowView.tileOffsetScale.zw;
                             Texture2D<float> shadowAtlas = GET_TEXTURE2D(ctx.shadowAtlasIndex);
-                        
+
                             float receiverDepth = ndc.z + light.depthBias;
 
                             uint2 atlasDim;
@@ -167,9 +168,9 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, inout 
             }
         }
     }
-    
+
     // TODO: Add support for area lights, image-based lighting, and other light types.
-    
+
     LightLoopOutput output = strategy.PostEvaluateBSDF(totalLighting, bsdf, preLightData, V);
 
     return output;

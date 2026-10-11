@@ -49,7 +49,7 @@ struct ViewData
     float4x4 projectionMatrix;
     float4x4 viewProjectionMatrix;
     float4x4 preVPMatrix;
-    float3 cameraPosition;
+    float3 cameraPositionWS;
     float nearClip;
     float3 cameraDirection;
     float farClip;
@@ -75,6 +75,8 @@ cbuffer cbViewData : register(b1)
 {
     ViewData g_ViewData;
 };
+
+#include "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl"
 
 cbuffer cbFrameData : register(b2)
 {

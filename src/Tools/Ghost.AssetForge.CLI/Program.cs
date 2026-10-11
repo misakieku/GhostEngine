@@ -58,7 +58,7 @@ public class Program
             .AddSubCommand(
                 CommandBuilder.Create("metadata")
                 .AddOption<MetadataOptions>()
-                .SetAsyncCommandAction(BuildMetadataCommandActionAsync)
+                .SetAsyncCommandAction(MetadataCommandActionAsync)
                 .Build())
             .AddSubCommand(
                 CommandBuilder.Create("generate")
@@ -156,7 +156,7 @@ public class Program
         Logger.Info("Asset bake & pack complete.");
     }
 
-    private static async Task BuildMetadataCommandActionAsync(CommandContext context, CancellationToken cancellationToken)
+    private static async Task MetadataCommandActionAsync(CommandContext context, CancellationToken cancellationToken)
     {
         var opts = context.Bind<MetadataOptions>();
 

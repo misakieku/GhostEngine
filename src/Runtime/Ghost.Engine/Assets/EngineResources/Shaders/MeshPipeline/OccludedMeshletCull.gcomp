@@ -60,7 +60,8 @@ compute "Internal/OccludedMeshletCull"
                 uint hasAlpha = UnpackMaterialHasAlpha(packedMaterial);
                 cullBin = (hasAlpha != 0u) ? (variantIndex + 1u) : 0u;
 
-                BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instance.localToWorld);
+                float4x4 localToRWS = ApplyCameraTranslationToMatrix(instance.localToWorld);
+                BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, localToRWS);
                 if (cullResult.isVisible)
                 {
                     if (cullResult.clipValid && props.hzbMipCount > 0)

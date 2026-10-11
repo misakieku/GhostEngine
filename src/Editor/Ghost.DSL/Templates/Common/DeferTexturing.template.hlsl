@@ -89,7 +89,7 @@ void CSMain(
     MaterialContext ctx;
     ctx.instanceIndex = instanceIndex;
     ctx.materialIndex = attrs.cbufferIndex;
-    ctx.positionWS = attrs.positionWS;
+    ctx.positionRWS = attrs.positionRWS;
     ctx.normalWS = attrs.normalWS;
     ctx.tangentWS = attrs.tangentWS;
     ctx.uv = attrs.uv;
@@ -101,7 +101,7 @@ void CSMain(
     SurfaceData surface = strategy.GetSurfaceData(ctx, matProps);
 
     float3 srgbAlbedo = LinearToSRGB(surface.albedo);
-    
+
     GBufferOutputs outputs = (GBufferOutputs)0;
 #if defined(GHOST_TEMPLATE_LIT)
     outputs.SetBaseColor(srgbAlbedo);
@@ -122,7 +122,7 @@ void CSMain(
 #endif
 
     WriteGBuffer(pixelCoord, outputs, props.gbuffer0Uav, props.gbuffer1Uav, props.gbuffer2Uav, props.gbuffer3Uav);
-    
+
     RWTexture2D<float2> motionVectorBuffer = GET_TEXTURE2D(props.motionVectorUav);
     motionVectorBuffer[pixelCoord] = attrs.motionVectors;
 }

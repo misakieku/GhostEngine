@@ -198,7 +198,8 @@ compute "Internal/TileLightCulling"
             for (uint lightIndex = groupIndex; lightIndex < g_FrameData.punctualLightCount; lightIndex += 256u)
             {
                 GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, lightIndex);
-                float3 centerVS = mul(g_ViewData.viewMatrix, float4(light.positionWS, 1.0f)).xyz;
+                float3 lightPosRWS = TransformAbsoluteWorldToCameraRelative(light.positionWS);
+                float3 centerVS = TransformWorldToView(lightPosRWS);
                 float radius = light.range;
 
                 if (centerVS.z + radius >= s_MinViewZ && centerVS.z - radius <= s_MaxViewZ)
@@ -227,7 +228,8 @@ compute "Internal/TileLightCulling"
                 {
                     uint lightIndex = s_CoarseLightIndices[l];
                     GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, lightIndex);
-                    float3 centerVS = mul(g_ViewData.viewMatrix, float4(light.positionWS, 1.0f)).xyz;
+                    float3 lightPosRWS = TransformAbsoluteWorldToCameraRelative(light.positionWS);
+                    float3 centerVS = TransformWorldToView(lightPosRWS);
                     float radiusSq = light.range * light.range;
 
                     float3 toLight = centerVS - pixelPosVS;

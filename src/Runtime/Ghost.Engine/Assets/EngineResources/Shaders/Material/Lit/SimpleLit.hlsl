@@ -32,7 +32,7 @@ struct SimpleLitDeferredLighting
         return (SimpleLitDeferredLighting)0;
     }
 
-    BSDFData GetBSDFData(float3 positionWS, float3 T, in SurfaceData surface)
+    BSDFData GetBSDFData(float3 positionRWS, float3 T, in SurfaceData surface)
     {
         BSDFData bsdf = (BSDFData)0;
         bsdf.shadingModel = surface.shadingModel;
@@ -44,7 +44,7 @@ struct SimpleLitDeferredLighting
         bsdf.perceptualRoughness = surface.roughness;
         bsdf.tangentWS = T;
         bsdf.emissive = surface.emissive;
-    
+
         return bsdf;
     }
 

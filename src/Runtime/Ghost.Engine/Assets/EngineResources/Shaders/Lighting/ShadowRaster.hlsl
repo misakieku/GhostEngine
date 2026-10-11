@@ -74,7 +74,8 @@ void MSMain(
     ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
     float doubleSided = asfloat(matBuf.Load(materialBufferIndex + 12u));
 
-    float4x4 worldViewProj = mul(shadowView.shadowViewProj, instanceData.localToWorld);
+    float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
+    float4x4 worldViewProj = mul(shadowView.shadowViewProj, localToRWS);
 
     if (groupThreadID < vertexCount)
     {

@@ -123,7 +123,10 @@ public static unsafe class RenderPipelineUtility
     {
         var aspectScreen = (float)screenSize.x / screenSize.y;
 
-        view = math.inverse(request.view.localToWorld);
+        // Camera-relative view matrix: zero out translation so view matrix is pure rotation
+        var camRelLtw = request.view.localToWorld;
+        camRelLtw.c3 = new float4(0.0f, 0.0f, 0.0f, 1.0f);
+        view = math.inverse(camRelLtw);
 
         var vfov = 2.0f * math.atan(request.view.sensorSize.y / (2.0f * request.view.focalLength));
         var hfov = 2.0f * math.atan(request.view.sensorSize.x / (2.0f * request.view.focalLength));

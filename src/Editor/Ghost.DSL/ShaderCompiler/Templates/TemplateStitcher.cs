@@ -371,7 +371,7 @@ public static class TemplateStitcher
                 }
             }
 
-            if (!pass.computeShaderCode.IsCreated && (!pass.meshShaderCode.IsCreated || !pass.pixelShaderCode.IsCreated))
+            if (!pass.computeShaderCode.IsCreated && !pass.meshShaderCode.IsCreated)
             {
                 return Result.Failure($"Template pass '{passDef.name}' is missing required shader stage code.");
             }

@@ -28,7 +28,7 @@ struct DefaultAlphaStrategy
     {
         return (DefaultAlphaStrategy) 0;
     }
-    
+
     float GetAlphaCoverage(uint materialBufferIndex, float2 uv)
     {
         return 1.0f;
@@ -46,7 +46,7 @@ struct DefaultDeferredTexturingStrategy
     {
         return (DefaultDeferredTexturingStrategy)0;
     }
-    
+
     SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
     {
         SurfaceData surface = (SurfaceData) 0;
@@ -83,8 +83,8 @@ struct DefaultDeferredLightingStrategy
     {
         return (DefaultDeferredLightingStrategy)0;
     }
-    
-    BSDFData GetBSDFData(float3 positionWS, float3 T, in SurfaceData surface)
+
+    BSDFData GetBSDFData(float3 positionRWS, float3 T, in SurfaceData surface)
     {
         return (BSDFData)0;
     }

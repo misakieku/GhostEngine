@@ -18,7 +18,7 @@ struct MaterialContext
 {
     uint instanceIndex;
     uint materialIndex;
-    float3 positionWS;
+    float3 positionRWS;
     float3 normalWS;
     float4 tangentWS;
     float2 uv;
@@ -28,7 +28,7 @@ struct MaterialContext
 
 struct ShadingContext
 {
-    float3 positionWS;
+    float3 positionRWS;
     float3 normalWS;
     float2 positionNDC;
     uint2 positionSS;

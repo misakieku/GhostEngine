@@ -120,6 +120,12 @@ internal unsafe struct Chunk : IDisposable
     internal readonly int _archetypeID;
     internal readonly int _groupIndex;
 
+    public readonly bool IsCreated
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _data.IsCreated;
+    }
+
     public Chunk(int capacity, int componentCount, uint globalVersion, int worldID, int archetypeID, int groupIndex)
     {
         _data = new UnsafeArray<byte>(CHUNK_BUFFER_SIZE, AllocationHandle.Persistent, AllocationOption.Clear);
@@ -148,17 +154,6 @@ internal unsafe struct Chunk : IDisposable
     public readonly uint* GetVersionUnsafePtr()
     {
         return _versions.IsCreated ? (uint*)_versions.GetUnsafePtr() : null;
-    }
-
-    /// <summary>
-    /// True if this chunk slot holds live buffers. Chunks whose buffers were
-    /// trimmed by <see cref="Archetype.Collect"/> are replaced with a default
-    /// struct (IsCreated == false) and are reused by <see cref="Archetype.AllocateChunkIndex"/>.
-    /// </summary>
-    public readonly bool IsCreated
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _data.IsCreated;
     }
 
     public void Dispose()

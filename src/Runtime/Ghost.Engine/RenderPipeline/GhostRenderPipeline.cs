@@ -146,12 +146,12 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             RenderPipelineUtility.GetVPMatricesReversedZ(in request, viewPort.Size, out var viewMatrix, out var projMatrix);
 
             var viewProjMatrix = math.mul(projMatrix, viewMatrix);
-            var frustum = Frustum.Create(viewProjMatrix, request.view.localToWorld.c3.xyz, request.view.localToWorld.c2.xyz, request.view.nearClipPlane, request.view.farClipPlane);
+            var frustum = Frustum.Create(viewProjMatrix, float3.zero, request.view.localToWorld.c2.xyz, request.view.nearClipPlane, request.view.farClipPlane);
 
             var viewContext = _gpuViewManager.GetView(request.viewId);
             viewContext.EnsureResources(viewPort.Size, _settings.ShadowAtlasResolution);
 
-            ExecutePerViewShadowSetup(ctx, viewContext.ShadowAllocator, in frustum, viewPort.Size.y, lights,
+            ExecutePerViewShadowSetup(ctx, viewContext.ShadowAllocator, in frustum, viewPort.Size.y, lights, request.view.localToWorld.c3.xyz,
                 out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
 
             if (viewContext.prevViewProjMatrix.Equals(float4x4.zero))

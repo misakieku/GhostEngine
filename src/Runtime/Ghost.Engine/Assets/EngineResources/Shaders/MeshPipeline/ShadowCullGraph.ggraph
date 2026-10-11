@@ -66,8 +66,9 @@ compute "Internal/ShadowCullGraph"
                 if (IS_VALID_BUFFER(instance.meshBuffer))
                 {
                     MeshData mesh = LoadData<MeshData>(instance.meshBuffer, 0);
+                    float4x4 localToRWS = ApplyCameraTranslationToMatrix(instance.localToWorld);
                     float3 worldMin, worldMax;
-                    TransformAABB(mesh.worldBoundsMin, mesh.worldBoundsMax, instance.localToWorld, worldMin, worldMax);
+                    TransformAABB(mesh.worldBoundsMin, mesh.worldBoundsMax, localToRWS, worldMin, worldMax);
 
                     GPUShadowViewData shadowView = LoadData<GPUShadowViewData>(props.shadowViewsBuffer, shadowViewIndex);
                     isVisible = AABBIntersectFrustum(worldMin, worldMax, shadowView.planes);
@@ -100,13 +101,14 @@ compute "Internal/ShadowCullGraph"
             MeshData mesh = LoadData<MeshData>(instance.meshBuffer, 0);
             MeshletHierarchyNode node = LoadMeshletHierarchyNode(rec.nodeIndex, mesh);
 
+            float4x4 localToRWS = ApplyCameraTranslationToMatrix(instance.localToWorld);
             float3 scale3 = float3(
-                length(instance.localToWorld._m00_m10_m20),
-                length(instance.localToWorld._m01_m11_m21),
-                length(instance.localToWorld._m02_m12_m22));
+                length(localToRWS._m00_m10_m20),
+                length(localToRWS._m01_m11_m21),
+                length(localToRWS._m02_m12_m22));
             float maxScale = max(scale3.x, max(scale3.y, scale3.z));
 
-            float3 worldCenter = mul(instance.localToWorld, float4(node.bounds.xyz, 1.0f)).xyz;
+            float3 worldCenter = mul(localToRWS, float4(node.bounds.xyz, 1.0f)).xyz;
             float worldRadius = node.bounds.w * maxScale;
 
             GPUShadowViewData shadowView = LoadData<GPUShadowViewData>(props.shadowViewsBuffer, rec.shadowViewIndex);
@@ -122,7 +124,7 @@ compute "Internal/ShadowCullGraph"
                 node.error * maxScale,
                 worldCenter,
                 worldRadius,
-                g_ViewData.cameraPosition,
+                GetCameraPositionWS(),
                 g_ViewData.projectionMatrix[1][1],
                 shadowView.tileSize,
                 shadowView.lodErrorThreshold);
@@ -189,6 +191,7 @@ compute "Internal/ShadowCullGraph"
 
             uint safeMeshletIndex = isValid ? meshletIndex : groupRec.meshletStartIndex;
             InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, groupRec.instanceIndex);
+            float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
             Meshlet meshlet = LoadMeshlet(safeMeshletIndex, groupRec.rawBuffer, groupRec.meshletBufferOffset);
 
             InternalShadowCullGraphShaderProperties props = LoadData<InternalShadowCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
@@ -198,9 +201,9 @@ compute "Internal/ShadowCullGraph"
             if (WaveIsFirstLane())
             {
                 float3 scale3 = float3(
-                    length(instanceData.localToWorld._m00_m10_m20),
-                    length(instanceData.localToWorld._m01_m11_m21),
-                    length(instanceData.localToWorld._m02_m12_m22));
+                    length(localToRWS._m00_m10_m20),
+                    length(localToRWS._m01_m11_m21),
+                    length(localToRWS._m02_m12_m22));
                 maxScale = max(scale3.x, max(scale3.y, scale3.z));
             }
             maxScale = WaveReadLaneFirst(maxScale);
@@ -210,10 +213,10 @@ compute "Internal/ShadowCullGraph"
 
             if (isValid)
             {
-                float3 meshletWorldCenter = mul(instanceData.localToWorld, float4(meshlet.boundingSphere.xyz, 1.0f)).xyz;
+                float3 meshletWorldCenter = mul(localToRWS, float4(meshlet.boundingSphere.xyz, 1.0f)).xyz;
                 float meshletWorldRadius = meshlet.boundingSphere.w * maxScale;
 
-                float3 meshletParentWorldCenter = mul(instanceData.localToWorld, float4(meshlet.parentBoundingSphere.xyz, 1.0f)).xyz;
+                float3 meshletParentWorldCenter = mul(localToRWS, float4(meshlet.parentBoundingSphere.xyz, 1.0f)).xyz;
                 float meshletParentWorldRadius = meshlet.parentBoundingSphere.w * maxScale;
 
                 // Dual-Error Cut Condition 1: Parent Error check (Lower bound)
@@ -222,7 +225,7 @@ compute "Internal/ShadowCullGraph"
                     meshlet.parentError * maxScale,
                     meshletParentWorldCenter,
                     meshletParentWorldRadius,
-                    g_ViewData.cameraPosition,
+                    GetCameraPositionWS(),
                     g_ViewData.projectionMatrix[1][1],
                     shadowView.tileSize,
                     shadowView.lodErrorThreshold);
@@ -233,7 +236,7 @@ compute "Internal/ShadowCullGraph"
                     meshlet.clusterError * maxScale,
                     meshletWorldCenter,
                     meshletWorldRadius,
-                    g_ViewData.cameraPosition,
+                    GetCameraPositionWS(),
                     g_ViewData.projectionMatrix[1][1],
                     shadowView.tileSize,
                     shadowView.lodErrorThreshold);
@@ -245,7 +248,7 @@ compute "Internal/ShadowCullGraph"
                 else
                 {
                     float3 worldBoxMin, worldBoxMax;
-                    TransformAABB(meshlet.boundingBoxMin, meshlet.boundingBoxMax, instanceData.localToWorld, worldBoxMin, worldBoxMax);
+                    TransformAABB(meshlet.boundingBoxMin, meshlet.boundingBoxMax, localToRWS, worldBoxMin, worldBoxMax);
                     isVisible = AABBIntersectFrustum(worldBoxMin, worldBoxMax, shadowView.planes);
 
                     if (isVisible)

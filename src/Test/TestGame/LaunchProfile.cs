@@ -184,7 +184,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         //    {
         //        matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(new float3(45.0f, 45.0f, 0.0f)), new float3(1.0f, 1.0f, 1.0f))
         //    });
-
+        
         for (var i = 0; i < lightCount; i++)
         {
             var pos = new float3(RandomFloat(-lightSize, lightSize), RandomFloat(-lightSize, lightSize), RandomFloat(-lightSize, lightSize));

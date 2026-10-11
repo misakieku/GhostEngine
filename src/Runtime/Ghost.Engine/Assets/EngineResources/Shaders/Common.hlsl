@@ -12,6 +12,7 @@
 #define GLOBAL_SAMPLER_HEAP SamplerDescriptorHeap
 
 // Bindless resource type definitions
+// Act as a hint to the code maintainer to understand what type of resource is being used.
 
 #define TEXTURE2D uint
 #define TEXTURE3D uint
@@ -26,6 +27,7 @@
 
 
 // Texture and sampler access macros
+// Always prefer using those macros instead of directly accessing the global descriptor heaps, as they may be other grphics APIs in the future that may use different resource binding strategies.
 
 #define GET_TEXTURE2D(id) GLOBAL_TEXTURE2D_HEAP[id]
 #define GET_TEXTURE2D_ARRAY(id) GLOBAL_TEXTURE2D_ARRAY_HEAP[id]
@@ -35,46 +37,41 @@
 #define GET_BUFFER(id) GLOBAL_BUFFER_HEAP[id]
 #define GET_SAMPLER(id) GLOBAL_SAMPLER_HEAP[id]
 
-#define SAMPLE_TEXTURE2D(texId, sampId, uv) SampleTexture2D(texId, sampId, uv)
-#define SAMPLE_TEXTURE2D_LEVEL(texId, sampId, uv, level) SampleTexture2DLevel(texId, sampId, uv, level)
-#define SAMPLE_TEXTURE2D_ARRAY(texId, sampId, uvw) SampleTextureArray(texId, sampId, uvw)
-#define SAMPLE_TEXTURE2D_GRAD(texId, sampId, uv, ddx, ddy) SampleTexture2DGrad(texId, sampId, uv, ddx, ddy)
-
-
-#define ZERO(T) (T)0
-#define ZERO_INIT(T, V) (V) = ZERO(T)
-#define ZERO_CREATE(T, V) T V = ZERO(T)
 
 #define MAX_VERTICES_PER_MESHLET 64
 #define MAX_TRIANGLES_PER_MESHLET 126
 
 #define INVALID_BUFFER_INDEX 0
-#define IS_VALID_BUFFER(index) ((index) != 0)
+#define IS_VALID_BUFFER(index) ((index) != INVALID_BUFFER_INDEX)
 
-float4 SampleTexture2D(TEXTURE2D texId, SAMPLER sampId, float2 uv)
+template<typename T>
+T SampleTexture2D(TEXTURE2D texId, SAMPLER sampId, float2 uv)
 {
-    Texture2D tex = GET_TEXTURE2D(texId);
+    Texture2D<T> tex = GET_TEXTURE2D(texId);
     SamplerState samp = GET_SAMPLER(sampId);
     return tex.Sample(samp, uv);
 }
 
-float4 SampleTexture2DLevel(TEXTURE2D texId, SAMPLER sampId, float2 uv, float level)
+template<typename T>
+T SampleTexture2DLevel(TEXTURE2D texId, SAMPLER sampId, float2 uv, float level)
 {
-    Texture2D tex = GET_TEXTURE2D(texId);
+    Texture2D<T> tex = GET_TEXTURE2D(texId);
     SamplerState samp = GET_SAMPLER(sampId);
     return tex.SampleLevel(samp, uv, level);
 }
 
-float4 SampleTextureArray(TEXTURE2D_ARRAY texId, SAMPLER sampId, float3 uvw)
+template<typename T>
+T SampleTextureArray(TEXTURE2D_ARRAY texId, SAMPLER sampId, float3 uvw)
 {
-    Texture2DArray tex = GET_TEXTURE2D_ARRAY(texId);
+    Texture2DArray<T> tex = GET_TEXTURE2D_ARRAY(texId);
     SamplerState samp = GET_SAMPLER(sampId);
     return tex.Sample(samp, uvw);
 }
 
-float4 SampleTexture2DGrad(TEXTURE2D texId, SAMPLER sampId, float2 uv, float2 ddx, float2 ddy)
+template<typename T>
+T SampleTexture2DGrad(TEXTURE2D texId, SAMPLER sampId, float2 uv, float2 ddx, float2 ddy)
 {
-    Texture2D tex = GET_TEXTURE2D(texId);
+    Texture2D<T> tex = GET_TEXTURE2D(texId);
     SamplerState samp = GET_SAMPLER(sampId);
     return tex.SampleGrad(samp, uv, ddx, ddy);
 }
