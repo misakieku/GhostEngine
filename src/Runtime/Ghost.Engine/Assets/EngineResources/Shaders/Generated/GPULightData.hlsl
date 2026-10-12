@@ -2,6 +2,9 @@
 #ifndef ENGINERESOURCES_SHADERS_GENERATED_GPULIGHTDATA_HLSL
 #define ENGINERESOURCES_SHADERS_GENERATED_GPULIGHTDATA_HLSL
 
+#define GPULIGHT_TYPE_POINT 0
+#define GPULIGHT_TYPE_SPOT 1
+
 struct GPUPunctualLight
 {
     float3 positionWS;
@@ -10,11 +13,14 @@ struct GPUPunctualLight
     uint lightTypeAndFlags;
     float3 directionWS;
     float spotAngleScale;
+    float4 size;
+    float diffuseDimmer;
+    float specularDimmer;
     float spotAngleOffset;
     float invRangeSq;
-    float sourceRadius;
-    float normalBias;
-    float depthBias;
+    float lightDimmer;
+    float shadowDimmer;
+    float minRoughness;
     float fadeDistance;
 };
 
@@ -30,11 +36,14 @@ struct GPUShadowViewData
 {
     float4x4 shadowViewProj;
     float4 planes[6];
+    float4 shadowProjection;
     float4 tileOffsetScale;
     float3 lightPositionWS;
     float lodErrorThreshold;
-    float proj11;
-    float tileSize;
+    float4 size;
+    float worldTexelSize;
+    float normalBias;
+    float slopeBias;
 };
 
 #endif // ENGINERESOURCES_SHADERS_GENERATED_GPULIGHTDATA_HLSL

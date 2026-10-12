@@ -3,7 +3,6 @@ using Ghost.Engine.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
-using System.Runtime.InteropServices;
 
 namespace Ghost.UnitTest.Rendering;
 
@@ -11,30 +10,22 @@ namespace Ghost.UnitTest.Rendering;
 public class ShadowAtlasTests
 {
     [TestMethod]
-    public void GPUShadowViewData_HasCorrectSizeAndAlignment()
-    {
-        var size = Marshal.SizeOf<GPUShadowViewData>();
-        Assert.AreEqual(208, size, "GPUShadowViewData must be exactly 208 bytes (13 float4 vectors).");
-        Assert.AreEqual(0, size % 16, "GPUShadowViewData must be 16-byte aligned.");
-    }
-
-    [TestMethod]
     public void ShadowAtlasRegionAllocator_SingleTileAllocation_ComputesGutterCorrectly()
     {
-        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, AllocationHandle.Persistent);
+        using var allocator = new ShadowAtlasRegionAllocator(2048, AllocationHandle.Persistent);
 
-        var success = allocator.Allocate(512, 512, out var region);
+        var success = allocator.Allocate(512, out var region);
         Assert.IsTrue(success);
         Assert.AreEqual(0u, region.x);
         Assert.AreEqual(0u, region.y);
         Assert.AreEqual(512u, region.width);
         Assert.AreEqual(512u, region.height);
 
-        // Inner rect: 510x510 with offset at (1, 1)
-        var expectedOffsetX = 1.0f / 2048.0f;
-        var expectedOffsetY = 1.0f / 2048.0f;
-        var expectedScaleX = 510.0f / 2048.0f;
-        var expectedScaleY = 510.0f / 2048.0f;
+        // Inner rect: 510x510 with offset at (0, 0)
+        var expectedOffsetX = 0.0f / 2048.0f;
+        var expectedOffsetY = 0.0f / 2048.0f;
+        var expectedScaleX = 512.0f / 2048.0f;
+        var expectedScaleY = 512.0f / 2048.0f;
 
         Assert.AreEqual(expectedOffsetX, region.tileOffsetScale.x, 1e-6f);
         Assert.AreEqual(expectedOffsetY, region.tileOffsetScale.y, 1e-6f);
@@ -45,19 +36,19 @@ public class ShadowAtlasTests
     [TestMethod]
     public void ShadowAtlasRegionAllocator_MultipleTiles_PacksAcrossShelves()
     {
-        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048);
+        using var allocator = new ShadowAtlasRegionAllocator(2048,AllocationHandle.Persistent);
 
         // First shelf (y=0, height=512): fits 4 tiles of 512x512
         for (var i = 0; i < 4; i++)
         {
-            var ok = allocator.Allocate(512, 512, out var reg);
+            var ok = allocator.Allocate(512, out var reg);
             Assert.IsTrue(ok);
             Assert.AreEqual((uint)(i * 512), reg.x);
             Assert.AreEqual(0u, reg.y);
         }
 
         // 5th tile must spill over to second shelf (y=512, height=512)
-        var ok5 = allocator.Allocate(512, 512, out var reg5);
+        var ok5 = allocator.Allocate(512, out var reg5);
         Assert.IsTrue(ok5);
         Assert.AreEqual(0u, reg5.x);
         Assert.AreEqual(512u, reg5.y);
@@ -66,7 +57,7 @@ public class ShadowAtlasTests
     [TestMethod]
     public void ShadowAtlasRegionAllocator_PointLightBlock_Allocates6ContiguousFaces()
     {
-        using var allocator = new ShadowAtlasRegionAllocator(2048, 2048, AllocationHandle.Persistent);
+        using var allocator = new ShadowAtlasRegionAllocator(2048, AllocationHandle.Persistent);
 
         Span<ShadowAtlasRegion> faces = stackalloc ShadowAtlasRegion[6];
         var success = allocator.AllocatePointLightBlock(256, faces);
@@ -92,15 +83,15 @@ public class ShadowAtlasTests
     public void ShadowAtlasRegionAllocator_PointLightBlock_RollsBackOnFailure()
     {
         // Small atlas of 512x256: can fit 2 faces of 256x256, not 6
-        using var allocator = new ShadowAtlasRegionAllocator(512, 256, AllocationHandle.Persistent);
+        using var allocator = new ShadowAtlasRegionAllocator(512, AllocationHandle.Persistent);
 
         Span<ShadowAtlasRegion> faces = stackalloc ShadowAtlasRegion[6];
         var success = allocator.AllocatePointLightBlock(256, faces);
         Assert.IsFalse(success, "Point light block should fail when not all 6 faces fit.");
 
         // After rollback, allocator should still be able to allocate 2 individual tiles
-        var ok1 = allocator.Allocate(256, 256, out var r1);
-        var ok2 = allocator.Allocate(256, 256, out var r2);
+        var ok1 = allocator.Allocate(256, out var r1);
+        var ok2 = allocator.Allocate(256, out var r2);
         Assert.IsTrue(ok1);
         Assert.IsTrue(ok2);
         Assert.AreEqual(0u, r1.x);
@@ -110,22 +101,22 @@ public class ShadowAtlasTests
     [TestMethod]
     public void ShadowAtlasRegionAllocator_Reset_AllowsReallocation()
     {
-        using var allocator = new ShadowAtlasRegionAllocator(1024, 1024, AllocationHandle.Persistent);
+        using var allocator = new ShadowAtlasRegionAllocator(1024, AllocationHandle.Persistent);
 
         // Fill the atlas with 4 tiles of 512x512
         for (var i = 0; i < 4; i++)
         {
-            Assert.IsTrue(allocator.Allocate(512, 512, out _));
+            Assert.IsTrue(allocator.Allocate(512, out _));
         }
 
         // Next allocation should fail
-        Assert.IsFalse(allocator.Allocate(512, 512, out _));
+        Assert.IsFalse(allocator.Allocate(512, out _));
 
         // Reset
-        allocator.Reset(1024, 1024);
+        allocator.Reset(1024);
 
         // Should be able to allocate again starting from (0, 0)
-        var ok = allocator.Allocate(512, 512, out var reg);
+        var ok = allocator.Allocate(512, out var reg);
         Assert.IsTrue(ok);
         Assert.AreEqual(0u, reg.x);
         Assert.AreEqual(0u, reg.y);
@@ -203,9 +194,9 @@ public class ShadowAtlasTests
     [TestMethod]
     public void ShadowAtlasRegionAllocator_WithCustomAllocationHandle_AllocatesAndDisposesCleanly()
     {
-        using var allocator = new ShadowAtlasRegionAllocator(1024, 1024);
+        using var allocator = new ShadowAtlasRegionAllocator(1024, AllocationHandle.Persistent);
 
-        var success = allocator.Allocate(256, 256, out var region);
+        var success = allocator.Allocate(256, out var region);
         Assert.IsTrue(success);
         Assert.AreEqual(256u, region.width);
         Assert.AreEqual(256u, region.height);

@@ -18,7 +18,7 @@ shader "MyShader/SimpleLit" : "Lit"
                 return (SimpleLitDeferredTexturing)0;
             }
 
-            SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
+            SurfaceData GetSurfaceData(MaterialContext ctx, MaterialProperties props)
             {
                 float3 baseColor = float3(1.0, 1.0, 1.0);
                 if (IS_VALID_BUFFER(props.baseColor))

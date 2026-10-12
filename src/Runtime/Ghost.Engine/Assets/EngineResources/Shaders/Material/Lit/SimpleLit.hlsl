@@ -32,7 +32,7 @@ struct SimpleLitDeferredLighting
         return (SimpleLitDeferredLighting)0;
     }
 
-    BSDFData GetBSDFData(float3 positionRWS, float3 T, in SurfaceData surface)
+    BSDFData GetBSDFData(float3 positionRWS, float3 T, SurfaceData surface)
     {
         BSDFData bsdf = (BSDFData)0;
         bsdf.shadingModel = surface.shadingModel;
@@ -48,14 +48,26 @@ struct SimpleLitDeferredLighting
         return bsdf;
     }
 
-    PreLightData GetPreLightData(in ShadingContext ctx, float3 V, inout BSDFData bsdf)
+    PreLightData GetPreLightData(ShadingContext ctx, float3 V, inout BSDFData bsdf)
     {
         PreLightData data = (PreLightData)0;
         data.NdotV = max(0.0f, dot(bsdf.normalWS, V));
         return data;
     }
 
-    DirectLighting EvaluateDirectLighting(in BSDFData bsdf, in PreLightData preLightData, float3 V, float3 L, float3 lightRadiance)
+    bool IsNonZeroBSDF(float3 V, float3 L, BSDFData bsdf)
+    {
+        float NdotL = dot(bsdf.normalWS, L);
+        return NdotL > 0.0;
+    }
+
+    void ClampRoughness(inout BSDFData bsdf, float minRoughness)
+    {
+        bsdf.roughnessT = max(minRoughness, bsdf.roughnessT);
+        bsdf.roughnessB = max(minRoughness, bsdf.roughnessB);
+    }
+
+    DirectLighting EvaluateDirectLighting(BSDFData bsdf, PreLightData preLightData, float3 V, float3 L, float3 lightColor)
     {
         float NdotL = max(0.0f, dot(bsdf.normalWS, L));
         float3 H = normalize(L + V);
@@ -65,12 +77,12 @@ struct SimpleLitDeferredLighting
 
         DirectLighting direct;
 
-        direct.diffuse = bsdf.diffuseColor * NdotL * lightRadiance;
-        direct.specular = float3(0.04f, 0.04f, 0.04f) * spec * NdotL * lightRadiance;
+        direct.diffuse = bsdf.diffuseColor * NdotL * lightColor;
+        direct.specular = float3(0.04f, 0.04f, 0.04f) * spec * NdotL * lightColor;
         return direct;
     }
 
-    LightLoopOutput PostEvaluateBSDF(in AggregateLighting lighting, in BSDFData bsdf, in PreLightData preLightData, float3 V)
+    LightLoopOutput PostEvaluateBSDF(AggregateLighting lighting, BSDFData bsdf, PreLightData preLightData, float3 V)
     {
         LightLoopOutput output;
         output.diffuse = lighting.direct.diffuse + bsdf.emissive; // + ambient lighting

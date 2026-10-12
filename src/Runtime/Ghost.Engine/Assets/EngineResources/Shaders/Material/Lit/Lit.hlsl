@@ -64,19 +64,19 @@ struct LightLoopOutput
     float3 specular;
 };
 
-void AccumulateDirectLighting(inout AggregateLighting total, in DirectLighting direct)
+void AccumulateDirectLighting(inout AggregateLighting total, DirectLighting direct)
 {
     total.direct.diffuse += direct.diffuse;
     total.direct.specular += direct.specular;
 }
 
-void AccumulateIndirectLighting(inout AggregateLighting total, in IndirectLighting indirect)
+void AccumulateIndirectLighting(inout AggregateLighting total, IndirectLighting indirect)
 {
     total.indirect.specularReflected += indirect.specularReflected;
     total.indirect.specularTransmitted += indirect.specularTransmitted;
 }
 
-SurfaceData ExtractSurfaceData(in GBufferOutputs gbuffer)
+SurfaceData ExtractSurfaceData(GBufferOutputs gbuffer)
 {
     SurfaceData surface = (SurfaceData)0;
     surface.albedo = gbuffer.GetBaseColor();

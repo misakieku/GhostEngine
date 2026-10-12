@@ -34,32 +34,23 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
     }
 
     private readonly Lock _lock;
-    private uint _atlasWidth;
-    private uint _atlasHeight;
+    private uint _atlasSize;
     private UnsafeList<Shelf> _shelves;
     private uint _nextShelfY;
 
-    public uint AtlasWidth => _atlasWidth;
-    public uint AtlasHeight => _atlasHeight;
+    public uint AtlasSize => _atlasSize;
 
-    public ShadowAtlasRegionAllocator(uint atlasWidth, uint atlasHeight)
-        : this(atlasWidth, atlasHeight, AllocationHandle.Persistent)
-    {
-    }
-
-    public ShadowAtlasRegionAllocator(uint atlasWidth, uint atlasHeight, AllocationHandle allocationHandle)
+    public ShadowAtlasRegionAllocator(uint atlasSize, AllocationHandle allocationHandle)
     {
         _lock = new Lock();
-        _atlasWidth = atlasWidth;
-        _atlasHeight = atlasHeight;
+        _atlasSize = atlasSize;
         _shelves = new UnsafeList<Shelf>(16, allocationHandle);
         _nextShelfY = 0;
     }
 
-    public void Reset(uint atlasWidth, uint atlasHeight)
+    public void Reset(uint atlasSize)
     {
-        _atlasWidth = atlasWidth;
-        _atlasHeight = atlasHeight;
+        _atlasSize = atlasSize;
 
         _shelves.Clear();
         _nextShelfY = 0;
@@ -69,9 +60,9 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
     /// Allocates a single tile of the given dimensions in the shadow atlas.
     /// Thread-safe via internal Lock.
     /// </summary>
-    public bool Allocate(uint width, uint height, out ShadowAtlasRegion region)
+    public bool Allocate(uint size, out ShadowAtlasRegion region)
     {
-        if (width > _atlasWidth || height > _atlasHeight)
+        if (size > _atlasSize)
         {
             region = default;
             return false;
@@ -79,7 +70,7 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
 
         lock (_lock)
         {
-            return AllocateCore(width, height, out region);
+            return AllocateCore(size, out region);
         }
     }
 
@@ -94,7 +85,7 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
             return false;
         }
 
-        if (faceSize > _atlasWidth || faceSize > _atlasHeight)
+        if (faceSize > _atlasSize)
         {
             return false;
         }
@@ -112,7 +103,7 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
 
             for (var i = 0; i < 6; i++)
             {
-                if (!AllocateCore(faceSize, faceSize, out outFaces[i]))
+                if (!AllocateCore(faceSize, out outFaces[i]))
                 {
                     // Rollback to snapshot state
                     _nextShelfY = snapshotNextY;
@@ -138,7 +129,7 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
         }
     }
 
-    private bool AllocateCore(uint width, uint height, out ShadowAtlasRegion region)
+    private bool AllocateCore(uint size, out ShadowAtlasRegion region)
     {
         region = default;
 
@@ -146,33 +137,33 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
         for (var i = 0; i < _shelves.Count; i++)
         {
             ref var shelf = ref _shelves[i];
-            if (shelf.height >= height && shelf.currentX + width <= _atlasWidth)
+            if (shelf.height >= size && shelf.currentX + size <= _atlasSize)
             {
                 var allocX = shelf.currentX;
                 var allocY = shelf.y;
-                shelf.currentX += width;
+                shelf.currentX += size;
 
-                region = CreateRegion(allocX, allocY, width, height);
+                region = CreateRegion(allocX, allocY, size, size);
                 return true;
             }
         }
 
         // Create a new shelf if space remains vertically
-        if (_nextShelfY + height <= _atlasHeight)
+        if (_nextShelfY + size <= _atlasSize)
         {
             var newShelf = new Shelf
             {
                 y = _nextShelfY,
-                height = height,
-                currentX = width
+                height = size,
+                currentX = size
             };
 
             var allocX = 0u;
             var allocY = _nextShelfY;
-            _nextShelfY += height;
+            _nextShelfY += size;
             _shelves.Add(newShelf);
 
-            region = CreateRegion(allocX, allocY, width, height);
+            region = CreateRegion(allocX, allocY, size, size);
             return true;
         }
 
@@ -182,14 +173,10 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
 
     private ShadowAtlasRegion CreateRegion(uint x, uint y, uint w, uint h)
     {
-        const uint gutter = 0;
-        var innerW = (w > gutter * 2u) ? (w - gutter * 2u) : w;
-        var innerH = (h > gutter * 2u) ? (h - gutter * 2u) : h;
-
-        var offsetX = (float)(x + gutter) / _atlasWidth;
-        var offsetY = (float)(y + gutter) / _atlasHeight;
-        var scaleX = (float)innerW / _atlasWidth;
-        var scaleY = (float)innerH / _atlasHeight;
+        var offsetX = (float)x / _atlasSize;
+        var offsetY = (float)y / _atlasSize;
+        var scaleX = (float)w / _atlasSize;
+        var scaleY = (float)h / _atlasSize;
 
         return new ShadowAtlasRegion
         {

@@ -348,7 +348,7 @@ struct {structName}
 
             if (manifest.TryGetValue(virtualPath, out var existingCode))
             {
-                manifest[virtualPath] = existingCode + "\n" + sb.ToString();
+                manifest[virtualPath] = existingCode + Environment.NewLine + sb.ToString();
             }
             else
             {

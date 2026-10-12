@@ -72,7 +72,7 @@ Meshlet LoadMeshlet(uint meshletID, BYTE_ADDRESS_BUFFER rawBufferIndex, uint mes
     return rawBuffer.Load<Meshlet>(meshletBufferOffset + meshletID * sizeof(Meshlet));
 }
 
-Meshlet LoadMeshlet(uint meshletID, in MeshData meshData)
+Meshlet LoadMeshlet(uint meshletID, MeshData meshData)
 {
     return LoadMeshlet(meshletID, meshData.rawBuffer, meshData.meshletBufferOffset);
 }
@@ -84,7 +84,7 @@ MeshletGroup LoadMeshletGroup(uint groupID, BYTE_ADDRESS_BUFFER rawBufferIndex, 
     return rawBuffer.Load<MeshletGroup>(meshletGroupBufferOffset + groupID * sizeof(MeshletGroup));
 }
 
-MeshletGroup LoadMeshletGroup(uint groupID, in MeshData meshData)
+MeshletGroup LoadMeshletGroup(uint groupID, MeshData meshData)
 {
     return LoadMeshletGroup(groupID, meshData.rawBuffer, meshData.meshletGroupBufferOffset);
 }
@@ -96,13 +96,13 @@ MeshletHierarchyNode LoadMeshletHierarchyNode(uint nodeID, BYTE_ADDRESS_BUFFER r
     return rawBuffer.Load<MeshletHierarchyNode>(meshletHierarchyBufferOffset + nodeID * sizeof(MeshletHierarchyNode));
 }
 
-MeshletHierarchyNode LoadMeshletHierarchyNode(uint nodeID, in MeshData meshData)
+MeshletHierarchyNode LoadMeshletHierarchyNode(uint nodeID, MeshData meshData)
 {
     return LoadMeshletHierarchyNode(nodeID, meshData.rawBuffer, meshData.meshletHierarchyBufferOffset);
 }
 
 // Triangle Packed Indices
-uint LoadPackedIndices(uint triangleID, in MeshData meshData, in Meshlet meshlet)
+uint LoadPackedIndices(uint triangleID, MeshData meshData, Meshlet meshlet)
 {
     ByteAddressBuffer rawBuffer = GET_BUFFER(meshData.rawBuffer);
     uint triangleOffset = meshlet.triangleOffset + triangleID;
@@ -110,19 +110,19 @@ uint LoadPackedIndices(uint triangleID, in MeshData meshData, in Meshlet meshlet
 }
 
 // Vertex Loaders
-Vertex LoadVertex(uint vertexIndex, in MeshData meshData)
+Vertex LoadVertex(uint vertexIndex, MeshData meshData)
 {
     ByteAddressBuffer rawBuffer = GET_BUFFER(meshData.rawBuffer);
     return rawBuffer.Load<Vertex>(meshData.vertexBufferOffset + vertexIndex * sizeof(Vertex));
 }
 
-uint LoadMeshletVertexIndex(uint localVertexIndex, in MeshData meshData, in Meshlet meshlet)
+uint LoadMeshletVertexIndex(uint localVertexIndex, MeshData meshData, Meshlet meshlet)
 {
     ByteAddressBuffer rawBuffer = GET_BUFFER(meshData.rawBuffer);
     return rawBuffer.Load(meshData.meshletVerticesBufferOffset + (meshlet.vertexOffset + localVertexIndex) * 4u);
 }
 
-Vertex LoadMeshletVertex(uint localVertexIndex, in MeshData meshData, in Meshlet meshlet)
+Vertex LoadMeshletVertex(uint localVertexIndex, MeshData meshData, Meshlet meshlet)
 {
     uint vertexIndex = LoadMeshletVertexIndex(localVertexIndex, meshData, meshlet);
     return LoadVertex(vertexIndex, meshData);

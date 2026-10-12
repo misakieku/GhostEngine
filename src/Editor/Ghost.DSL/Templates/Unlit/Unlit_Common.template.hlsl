@@ -61,7 +61,7 @@ struct DefaultDeferredTexturingStrategy
         return (DefaultDeferredTexturingStrategy)0;
     }
 
-    SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
+    SurfaceData GetSurfaceData(MaterialContext ctx, MaterialProperties props)
     {
         return (SurfaceData)0;
     }

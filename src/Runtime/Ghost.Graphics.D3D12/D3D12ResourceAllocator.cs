@@ -274,7 +274,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
 
         var samplerDesc = new D3D12_SAMPLER_DESC
         {
-            Filter = desc.FilterMode.ToD3D12Filter(),
+            Filter = desc.FilterMode.ToD3D12Filter(desc.ComparisonFunc),
             AddressU = desc.AddressU.ToD3D12TextureAddressMode(),
             AddressV = desc.AddressV.ToD3D12TextureAddressMode(),
             AddressW = desc.AddressW.ToD3D12TextureAddressMode(),

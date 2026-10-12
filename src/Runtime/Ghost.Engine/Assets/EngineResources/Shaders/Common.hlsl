@@ -27,7 +27,7 @@
 
 
 // Texture and sampler access macros
-// Always prefer using those macros instead of directly accessing the global descriptor heaps, as they may be other grphics APIs in the future that may use different resource binding strategies.
+// Always prefer using those macros instead of directly accessing the global descriptor heaps, as we may add other grphics APIs in the future which may use different resource binding strategies.
 
 #define GET_TEXTURE2D(id) GLOBAL_TEXTURE2D_HEAP[id]
 #define GET_TEXTURE2D_ARRAY(id) GLOBAL_TEXTURE2D_ARRAY_HEAP[id]
@@ -36,6 +36,23 @@
 #define GET_TEXTURECUBE_ARRAY(id) GLOBAL_TEXTURECUBE_ARRAY_HEAP[id]
 #define GET_BUFFER(id) GLOBAL_BUFFER_HEAP[id]
 #define GET_SAMPLER(id) GLOBAL_SAMPLER_HEAP[id]
+
+
+// Static sampler
+
+#define PointClampSampler 1
+#define PointRepeatSampler 2
+
+#define LinearClampSampler 3
+#define LinearRepeatSampler 4
+
+#define TrilinearClampSampler 5
+#define TrilinearRepeatSampler 6
+
+#define AnisotropicClampSampler 7
+#define AnisotropicRepeatSampler 8
+
+#define LinearClampCompareGESampler 9
 
 
 #define MAX_VERTICES_PER_MESHLET 64

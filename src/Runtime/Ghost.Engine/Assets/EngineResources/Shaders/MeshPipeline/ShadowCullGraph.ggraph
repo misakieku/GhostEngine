@@ -126,7 +126,7 @@ compute "Internal/ShadowCullGraph"
                 worldRadius,
                 GetCameraPositionWS(),
                 g_ViewData.projectionMatrix[1][1],
-                shadowView.tileSize,
+                shadowView.size.z,
                 shadowView.lodErrorThreshold);
 
             if (isParentDetailSufficient)
@@ -227,7 +227,7 @@ compute "Internal/ShadowCullGraph"
                     meshletParentWorldRadius,
                     GetCameraPositionWS(),
                     g_ViewData.projectionMatrix[1][1],
-                    shadowView.tileSize,
+                    shadowView.size.z,
                     shadowView.lodErrorThreshold);
 
                 // Dual-Error Cut Condition 2: Cluster Error test (Upper bound)
@@ -238,7 +238,7 @@ compute "Internal/ShadowCullGraph"
                     meshletWorldRadius,
                     GetCameraPositionWS(),
                     g_ViewData.projectionMatrix[1][1],
-                    shadowView.tileSize,
+                    shadowView.size.z,
                     shadowView.lodErrorThreshold);
 
                 if (isParentDetailSufficient || !isClusterDetailSufficient)

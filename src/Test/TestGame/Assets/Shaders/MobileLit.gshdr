@@ -11,7 +11,7 @@ shader "MyShader/MobileLit" : "Lit"
                 return (MobileLitDeferredTexturing)0;
             }
 
-            SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
+            SurfaceData GetSurfaceData(MaterialContext ctx, MaterialProperties props)
             {
                 SurfaceData surface = (SurfaceData)0;
                 surface.albedo = float3(0.25, 0.25, 0.25);

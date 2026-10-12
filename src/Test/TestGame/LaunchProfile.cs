@@ -95,8 +95,8 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         const int entityCapacity = 100;
         const float size = 10.0f;
         const float baseScale = 3.0f;
-        const float lightSize = size * 1.0f;
-        const int lightCount = 8;
+        const float lightSize = size * 0.5f;
+        const int lightCount = 1;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -184,27 +184,34 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         //    {
         //        matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(new float3(45.0f, 45.0f, 0.0f)), new float3(1.0f, 1.0f, 1.0f))
         //    });
-        
+
         for (var i = 0; i < lightCount; i++)
         {
             var pos = new float3(RandomFloat(-lightSize, lightSize), RandomFloat(-lightSize, lightSize), RandomFloat(-lightSize, lightSize));
             var color = new float3(RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f), RandomFloat(0.3f, 1.0f));
-            var isSpot = i % 3 == 0;
+            var isSpot = false; // i % 3 == 0;
 
             _world.EntityManager.CreateEntity(
                 new PunctualLight
                 {
                     type = isSpot ? PunctualLightType.Spot : PunctualLightType.Point,
                     color = color,
-                    shadowSize = 256,
-                    intensity = RandomFloat(2.5f, 5.0f),
-                    range = RandomFloat(10.0f, 15.0f),
+                    shadowSize = 128,
+                    intensity = 3.0f, // RandomFloat(0.5f, 1.0f),
+                    range = 25.0f, // RandomFloat(10.0f, 15.0f),
                     innerSpotAngle = math.radians(15.0f),
                     outerSpotAngle = math.radians(40.0f),
                     nearPlane = 0.1f,
-                    normalBias = 0.001f,
-                    depthBias = 0.0005f,
-                    shadowLodErrorScale = 1.0f
+                    normalBias = 0.75f,
+                    depthBias = 0.5f,
+                    shadowLodErrorScale = 1.0f,
+                    fadeDistance = 1000.0f,
+                    shadowFadeDistance = 1000.0f,
+                    sourceRadius = 0.025f,
+                    lightingDimmer = 1.0f,
+                    diffuseDimmer = 1.0f,
+                    specularDimmer = 1.0f,
+                    shadowDimmer = 1.0f,
                 },
                 new LocalToWorld
                 {

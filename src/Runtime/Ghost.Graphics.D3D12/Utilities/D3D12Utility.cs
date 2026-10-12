@@ -334,8 +334,20 @@ internal static unsafe class D3D12Utility
         return resourceState;
     }
 
-    public static D3D12_FILTER ToD3D12Filter(this TextureFilterMode filterMode)
+    public static D3D12_FILTER ToD3D12Filter(this TextureFilterMode filterMode, ComparisonFunction comparisonFunc)
     {
+        if (comparisonFunc != ComparisonFunction.Never)
+        {
+            return filterMode switch
+            {
+                TextureFilterMode.Point => D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT,
+                TextureFilterMode.Bilinear => D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT,
+                TextureFilterMode.Trilinear => D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR,
+                TextureFilterMode.Anisotropic => D3D12_FILTER_COMPARISON_ANISOTROPIC,
+                _ => throw new ArgumentException($"Unknown texture filter mode: {filterMode}")
+            };
+        }
+
         return filterMode switch
         {
             TextureFilterMode.Point => D3D12_FILTER_MIN_MAG_MIP_POINT,

@@ -60,6 +60,29 @@ internal unsafe partial class GhostRenderPipeline
                 0.0f, 0.0f, 1.0f, 0.0f);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static float GetNonDirectionalSoftness(float softnessScale, float viewHeight, float shapeRadius)
+        {
+            // This derivation has been fitted with quartic regression checking against raytracing reference and with a resolution of 512
+            var x = shapeRadius * softnessScale;
+            var x2 = x * x;
+            var softness = 0.02403461f + 3.452916f * x - 1.362672f * x2 + 0.6700115f * x2 * x + 0.2159474f * x2 * x2;
+            softness /= 100.0f;
+
+            softness *= (viewHeight / 512);  // Make it resolution independent whereas the baseline is 512
+
+            return softness;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static float GetSlopeBasedBias(float softness)
+        {
+            // Shadow may select a different meshlet LOD than the main camera, so we need to increase the bias for softer shadows to avoid self-shadowing artifacts.
+            const float maxBaseBias = 18.0f;
+            var baseBias = 5.0f;
+            return math.lerp(baseBias, maxBaseBias, math.min(1.0f, (softness * 100) / 5));
+        }
+
         public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
         {
             ref readonly var request = ref lights[loopIndex];
@@ -67,6 +90,11 @@ internal unsafe partial class GhostRenderPipeline
             ref readonly var shadowData = ref request.shadowData;
 
             var lightPosRWS = light.positionWS - cameraPosition;
+
+            if (light.shadowDimmer <= 0.0f || shadowData.fadeDistance < math.length(lightPosRWS))
+            {
+                return;
+            }
 
             // TODO: Distance culling.
             if (!MathUtility.SphereIntersectFrustum(lightPosRWS, light.range, frustum.planes))
@@ -80,14 +108,21 @@ internal unsafe partial class GhostRenderPipeline
                 return;
             }
 
+            Logger.DebugAssert(shadowSize >= 32);
+
+            var size = new float4(allocator.AtlasSize, 1.0f / allocator.AtlasSize, shadowSize, 1.0f / shadowSize);
             var nearPlane = shadowData.nearPlane > 0.0f ? shadowData.nearPlane : 0.05f;
             var farPlane = light.range;
             var lightType = light.lightTypeAndFlags & 0xFu;
             var lodErrorThreshold = meshletLodErrorThreshold * (viewHeight / shadowSize) * shadowData.lodErrorScale > 0 ? shadowData.lodErrorScale : 1.0f;
 
-            if (lightType == 1u) // Spot
+            // TODO: Expose softnessScale?
+            var softness = GetNonDirectionalSoftness(1.0f, viewHeight, light.size.x);
+            var basis = GetSlopeBasedBias(softness);
+
+            if (lightType == (uint)GPULightType.Spot) // Spot
             {
-                if (!allocator.Allocate(shadowSize, shadowSize, out var region))
+                if (!allocator.Allocate(shadowSize, out var region))
                 {
                     return;
                 }
@@ -103,6 +138,7 @@ internal unsafe partial class GhostRenderPipeline
                 var projMat = CreatePerspectiveReversedZ(fov, 1.0f, nearPlane, farPlane);
                 var shadowViewProj = math.mul(projMat, viewMat);
                 var shadowFrustum = Frustum.Create(shadowViewProj, lightPosRWS, light.directionWS, nearPlane, farPlane);
+                var pro = new float4(projMat[0][0], projMat[1][1], projMat[2][2], projMat[3][2]);
 
                 var svData = new GPUShadowViewData
                 {
@@ -111,14 +147,17 @@ internal unsafe partial class GhostRenderPipeline
                     tileOffsetScale = region.tileOffsetScale,
                     lightPositionWS = lightPosRWS,
                     lodErrorThreshold = lodErrorThreshold,
-                    proj11 = 1.0f / math.tan(fov * 0.5f),
-                    tileSize = shadowSize,
+                    shadowProjection = pro,
+                    size = size,
+                    normalBias = shadowData.normalBias,
+                    slopeBias = basis * shadowData.depthBias,
+                    worldTexelSize = 2.0f / projMat[0][0] / shadowSize * 1.4142135623731f,
                 };
 
                 var slot = shadowViewsWriter.AddNoResize(svData);
                 shadowIndices[loopIndex] = slot;
             }
-            else if (lightType == 0u) // Point
+            else if (lightType == (uint)GPULightType.Point) // Point
             {
                 Span<ShadowAtlasRegion> faceRegions = stackalloc ShadowAtlasRegion[6];
                 if (!allocator.AllocatePointLightBlock(shadowSize, faceRegions))
@@ -126,9 +165,10 @@ internal unsafe partial class GhostRenderPipeline
                     return;
                 }
 
-                var fov = 1.570796f; // 90 degrees in radians
+                const float guardPixels = 4.0f;
+                var fov = 2.0f * math.atan(shadowSize / (shadowSize - 2.0f * guardPixels)); // 1.570796f; // 90 degrees in radians
                 var projMat = CreatePerspectiveReversedZ(fov, 1.0f, nearPlane, farPlane);
-                var pointProj11 = 1.0f / math.tan(fov * 0.5f);
+                var pro = new float4(projMat[0][0], projMat[1][1], projMat[2][2], projMat[3][2]);
 
                 Span<GPUShadowViewData> faceViews = stackalloc GPUShadowViewData[6];
                 for (var f = 0; f < 6; f++)
@@ -145,8 +185,11 @@ internal unsafe partial class GhostRenderPipeline
                         tileOffsetScale = faceRegions[f].tileOffsetScale,
                         lightPositionWS = lightPosRWS,
                         lodErrorThreshold = lodErrorThreshold,
-                        proj11 = pointProj11,
-                        tileSize = shadowSize
+                        shadowProjection = pro,
+                        size = size,
+                        normalBias = shadowData.normalBias,
+                        slopeBias = basis * shadowData.depthBias,
+                        worldTexelSize = 2.0f / projMat[0][0] / shadowSize * 1.4142135623731f,
                     };
                 }
 
@@ -263,12 +306,12 @@ internal unsafe partial class GhostRenderPipeline
 
             var lightBuffer = ctx.ResourceManager.CreateTransientBuffer(in desc, "PunctualLightsBuffer");
             var pData = (GPUPunctualLight*)ctx.ResourceDatabase.MapResource(lightBuffer.AsResource(), 0, null);
-            
+
             for (var i = 0; i < lights.Count; i++)
             {
                 pData[i] = lights[i].light;
             }
-            
+
             ctx.ResourceDatabase.UnmapResource(lightBuffer.AsResource(), 0, null);
             punctualLightsSrv = ctx.ResourceDatabase.GetBindlessIndex(lightBuffer.AsResource());
 
@@ -775,7 +818,7 @@ internal unsafe partial class GhostRenderPipeline
                 _settings.ShadowAtlasResolution,
                 TextureFormat.R32_Typeless,
                 usage: TextureUsage.DepthStencil | TextureUsage.ShaderResource,
-                typelessViewFormat: new TypelessFormatDesc { Dsv = TextureFormat.D32_Float, Srv = TextureFormat.R32_Float } );
+                typelessViewFormat: new TypelessFormatDesc { Dsv = TextureFormat.D32_Float, Srv = TextureFormat.R32_Float });
 
             shadowAtlas = rasterBuilder.CreateTexture(in shadowAtlasDesc, "PunctualShadowAtlas");
 

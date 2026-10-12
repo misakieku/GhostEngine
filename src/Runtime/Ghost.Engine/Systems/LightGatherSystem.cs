@@ -5,12 +5,10 @@ using Ghost.Entities;
 using Ghost.Graphics;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Systems;
 
-/// <summary>
-/// Gathers active directional and punctual lights from ECS and populates the per-frame render payload.
-/// </summary>
 [RenderPipelineSystem<GhostRenderPipelineSettings>]
 [UpdateAfter<CameraRenderSystem>]
 internal class LightGatherSystem : ISystem
@@ -52,6 +50,11 @@ internal class LightGatherSystem : ISystem
                 }
 
                 var flags = ((uint)light.type & 0xFu) | ((light.shadowSize & 0xFFFFu) << 4);
+                var t = light.sourceRadius * (light.sourceRadius + 0.2f);
+                var minRoughness = math.saturate((1.15f * t) / (t + 1.02f));
+                var diffuseDimmer = math.saturate(light.diffuseDimmer);
+                var specularDimmer = math.saturate(light.specularDimmer);
+                var lightDimmer = diffuseDimmer * specularDimmer == 0 ? 0 : math.saturate(light.lightingDimmer);
 
                 var gpuLight = new GPUPunctualLight
                 {
@@ -62,17 +65,23 @@ internal class LightGatherSystem : ISystem
                     directionWS = dirWS,
                     spotAngleScale = spotAngleScale,
                     spotAngleOffset = spotAngleOffset,
+                    size = new float4(light.sourceRadius, 0.0f, 0.0f, 0.0f),
                     invRangeSq = invRangeSq,
-                    sourceRadius = light.sourceRadius,
-                    normalBias = light.normalBias,
-                    depthBias = light.depthBias,
-                    fadeDistance = light.fadeDistance
+                    minRoughness = minRoughness * minRoughness,
+                    lightDimmer = lightDimmer,
+                    diffuseDimmer = diffuseDimmer,
+                    specularDimmer = specularDimmer,
+                    shadowDimmer = math.saturate(light.shadowDimmer),
+                    fadeDistance = light.fadeDistance,
                 };
 
                 var shadowData = new ShadowData
                 {
                     nearPlane = light.nearPlane,
                     fadeDistance = light.shadowFadeDistance,
+                    lodErrorScale = light.shadowLodErrorScale,
+                    normalBias = light.normalBias,
+                    depthBias = light.depthBias,
                 };
 
                 payload.AddPunctualLight(new PunctualLightRequest { light = gpuLight, shadowData = shadowData });

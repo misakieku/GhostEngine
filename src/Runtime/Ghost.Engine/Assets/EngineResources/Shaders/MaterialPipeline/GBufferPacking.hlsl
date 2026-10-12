@@ -145,7 +145,7 @@ struct GBufferOutputs
     }
 };
 
-void WriteGBuffer(uint2 pixelCoord, in GBufferOutputs outputs, TEXTURE2D gbuffer0Uav, TEXTURE2D gbuffer1Uav, TEXTURE2D gbuffer2Uav, TEXTURE2D gbuffer3Uav)
+void WriteGBuffer(uint2 pixelCoord, GBufferOutputs outputs, TEXTURE2D gbuffer0Uav, TEXTURE2D gbuffer1Uav, TEXTURE2D gbuffer2Uav, TEXTURE2D gbuffer3Uav)
 {
     RWTexture2D<float4> gb0 = GET_TEXTURE2D(gbuffer0Uav);
     RWTexture2D<float4> gb1 = GET_TEXTURE2D(gbuffer1Uav);

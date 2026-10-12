@@ -53,6 +53,21 @@ public struct PunctualLight : IComponentData
     public float sourceRadius;
 
     /// <summary>
+    /// Dimmer for the overall lighting contribution of this light.
+    /// </summary>
+    public float lightingDimmer;
+
+    /// <summary>
+    /// Dimmer for the diffuse lighting contribution of this light.
+    /// </summary>
+    public float diffuseDimmer;
+
+    /// <summary>
+    /// Dimmer for the specular lighting contribution of this light.
+    /// </summary>
+    public float specularDimmer;
+
+    /// <summary>
     /// Distance at which the light starts fading out.
     /// </summary>
     public float fadeDistance;
@@ -83,6 +98,11 @@ public struct PunctualLight : IComponentData
     public float nearPlane;
 
     /// <summary>
+    /// Dimmer for the shadow contribution of this light.
+    /// </summary>
+    public float shadowDimmer;
+
+    /// <summary>
     /// Distance at which the shadow starts fading out.
     /// </summary>
     public float shadowFadeDistance;
@@ -107,6 +127,10 @@ public struct PunctualLight : IComponentData
         shadowSize = shadowSize,
         normalBias = 0.75f,
         depthBias = 0.5f,
+        lightingDimmer = 1.0f,
+        diffuseDimmer = 1.0f,
+        specularDimmer = 1.0f,
+        shadowDimmer = 1.0f,
         shadowFadeDistance = 1000.0f,
         shadowLodErrorScale = 1.0f,
     };
@@ -126,6 +150,10 @@ public struct PunctualLight : IComponentData
         shadowSize = shadowSize,
         normalBias = 0.75f,
         depthBias = 0.5f,
+        lightingDimmer = 1.0f,
+        diffuseDimmer = 1.0f,
+        specularDimmer = 1.0f,
+        shadowDimmer = 1.0f,
         shadowFadeDistance = 1000.0f,
         shadowLodErrorScale = 1.0f,
     };

@@ -1,5 +1,9 @@
 using Ghost.Core;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Services;
 
@@ -7,19 +11,87 @@ public sealed class StaticSampler : IDisposable
 {
     private readonly IResourceDatabase _resourceDatabase;
 
-    private readonly Identifier<Sampler> _linearClamp;
-    private readonly Identifier<Sampler> _linearRepeat;
+    private UnsafeArray<Identifier<Sampler>> _samplers;
 
-    public uint LinearClamp => (uint)_linearClamp.Value;
-    public uint LinearRepeat => (uint)_linearRepeat.Value;
-
-    public StaticSampler(IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, uint maxAnisotropy)
+    private static UnsafeList<SamplerDesc> GetStaticSamplerDescs(uint maxAnisotropy, AllocationHandle allocationHandle)
     {
-        _resourceDatabase = resourceDatabase;
+        var descs = new UnsafeList<SamplerDesc>((int)StaticSamplerType.Count, allocationHandle);
 
-        maxAnisotropy = Math.Clamp(maxAnisotropy, 1, 16);
+        descs.Add(new SamplerDesc
+        {
+            FilterMode = TextureFilterMode.Point,
+            AddressU = TextureAddressMode.Clamp,
+            AddressV = TextureAddressMode.Clamp,
+            AddressW = TextureAddressMode.Clamp,
+            MipLODBias = 0.0f,
+            MaxAnisotropy = maxAnisotropy,
+            ComparisonFunc = ComparisonFunction.Never,
+            MinLOD = 0.0f,
+            MaxLOD = float.MaxValue
+        });
 
-        _linearClamp = resourceAllocator.CreateSampler(new SamplerDesc
+        descs.Add(new SamplerDesc
+        {
+            FilterMode = TextureFilterMode.Point,
+            AddressU = TextureAddressMode.Repeat,
+            AddressV = TextureAddressMode.Repeat,
+            AddressW = TextureAddressMode.Repeat,
+            MipLODBias = 0.0f,
+            MaxAnisotropy = maxAnisotropy,
+            ComparisonFunc = ComparisonFunction.Never,
+            MinLOD = 0.0f,
+            MaxLOD = float.MaxValue
+        });
+
+        descs.Add(new SamplerDesc
+        {
+            FilterMode = TextureFilterMode.Bilinear,
+            AddressU = TextureAddressMode.Clamp,
+            AddressV = TextureAddressMode.Clamp,
+            AddressW = TextureAddressMode.Clamp,
+            MipLODBias = 0.0f,
+            MaxAnisotropy = maxAnisotropy,
+            ComparisonFunc = ComparisonFunction.Never,
+            MinLOD = 0.0f,
+            MaxLOD = float.MaxValue
+        });
+
+        descs.Add(new SamplerDesc
+        {
+            FilterMode = TextureFilterMode.Bilinear,
+            AddressU = TextureAddressMode.Repeat,
+            AddressV = TextureAddressMode.Repeat,
+            AddressW = TextureAddressMode.Repeat,
+            MipLODBias = 0.0f,
+            MaxAnisotropy = maxAnisotropy,
+            ComparisonFunc = ComparisonFunction.Never,
+            MinLOD = 0.0f,
+            MaxLOD = float.MaxValue
+        });
+
+        descs.Add(new SamplerDesc
+        {
+            FilterMode = TextureFilterMode.Trilinear,
+            AddressU = TextureAddressMode.Clamp,
+            AddressV = TextureAddressMode.Clamp,
+            AddressW = TextureAddressMode.Clamp,
+            ComparisonFunc = ComparisonFunction.GreaterEqual
+        });
+
+        descs.Add(new SamplerDesc
+        {
+            FilterMode = TextureFilterMode.Trilinear,
+            AddressU = TextureAddressMode.Repeat,
+            AddressV = TextureAddressMode.Repeat,
+            AddressW = TextureAddressMode.Repeat,
+            MipLODBias = 0.0f,
+            MaxAnisotropy = maxAnisotropy,
+            ComparisonFunc = ComparisonFunction.Never,
+            MinLOD = 0.0f,
+            MaxLOD = float.MaxValue
+        });
+
+        descs.Add(new SamplerDesc
         {
             FilterMode = TextureFilterMode.Anisotropic,
             AddressU = TextureAddressMode.Clamp,
@@ -32,7 +104,7 @@ public sealed class StaticSampler : IDisposable
             MaxLOD = float.MaxValue
         });
 
-        _linearRepeat = resourceAllocator.CreateSampler(new SamplerDesc
+        descs.Add(new SamplerDesc
         {
             FilterMode = TextureFilterMode.Anisotropic,
             AddressU = TextureAddressMode.Repeat,
@@ -44,11 +116,53 @@ public sealed class StaticSampler : IDisposable
             MinLOD = 0.0f,
             MaxLOD = float.MaxValue
         });
+
+        descs.Add(new SamplerDesc
+        {
+            FilterMode = TextureFilterMode.Bilinear,
+            AddressU = TextureAddressMode.Clamp,
+            AddressV = TextureAddressMode.Clamp,
+            AddressW = TextureAddressMode.Clamp,
+            ComparisonFunc = ComparisonFunction.GreaterEqual
+        });
+
+        return descs;
+    }
+
+    public StaticSampler(IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, uint maxAnisotropy)
+    {
+        _resourceDatabase = resourceDatabase;
+        _samplers = new UnsafeArray<Identifier<Sampler>>((int)StaticSamplerType.Count + 1, AllocationHandle.Persistent);
+
+        maxAnisotropy = Math.Clamp(maxAnisotropy, 1, 16);
+        using var scope = AllocationManager.CreateStackScope();
+        using var descs = GetStaticSamplerDescs(maxAnisotropy, scope.AllocationHandle);
+
+        Logger.DebugAssert(descs.Count == (int)StaticSamplerType.Count);
+
+        for (var i = 0; i < descs.Count; i++)
+        {
+            _samplers[i] = resourceAllocator.CreateSampler(descs[i]);
+        }
+
+        Logger.DebugAssert(_samplers[0].Value == 1);
+
+        _samplers[(int)StaticSamplerType.Count] = 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public uint GetSampler(StaticSamplerType type)
+    {
+        return (uint)_samplers[(int)type].Value;
     }
 
     public void Dispose()
     {
-        _resourceDatabase.ReleaseSampler(_linearClamp);
-        _resourceDatabase.ReleaseSampler(_linearRepeat);
+        for (var i = 0; i < _samplers.Count; i++)
+        {
+            _resourceDatabase.ReleaseSampler(_samplers[i]);
+        }
+
+        _samplers.Dispose();
     }
 }

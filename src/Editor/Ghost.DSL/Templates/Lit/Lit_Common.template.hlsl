@@ -47,7 +47,7 @@ struct DefaultDeferredTexturingStrategy
         return (DefaultDeferredTexturingStrategy)0;
     }
 
-    SurfaceData GetSurfaceData(in MaterialContext ctx, in MaterialProperties props)
+    SurfaceData GetSurfaceData(MaterialContext ctx, MaterialProperties props)
     {
         SurfaceData surface = (SurfaceData) 0;
         surface.shadingModel = SHADING_MODEL_ID;
@@ -57,7 +57,7 @@ struct DefaultDeferredTexturingStrategy
         surface.roughness = 0.5f;
         surface.occlusion = 1.0f;
         surface.emissive = float3(0.0f, 0.0f, 0.0f);
-        
+
         return surface;
     }
 };
@@ -84,22 +84,31 @@ struct DefaultDeferredLightingStrategy
         return (DefaultDeferredLightingStrategy)0;
     }
 
-    BSDFData GetBSDFData(float3 positionRWS, float3 T, in SurfaceData surface)
+    BSDFData GetBSDFData(float3 positionRWS, float3 T, SurfaceData surface)
     {
         return (BSDFData)0;
     }
 
-    PreLightData GetPreLightData(in ShadingContext ctx, float3 V, inout BSDFData bsdf)
+    PreLightData GetPreLightData(ShadingContext ctx, float3 V, inout BSDFData bsdf)
     {
         return (PreLightData)0;
     }
 
-    DirectLighting EvaluateDirectLighting(in BSDFData bsdf, in PreLightData preLightData, float3 V, float3 L, float3 lightRadiance)
+    bool IsNonZeroBSDF(float3 V, float3 L, BSDFData bsdf)
+    {
+        return true;
+    }
+
+    void ClampRoughness(inout BSDFData bsdf, float minRoughness)
+    {
+    }
+
+    DirectLighting EvaluateDirectLighting(BSDFData bsdf, PreLightData preLightData, float3 V, float3 L, float3 lightColor)
     {
         return (DirectLighting)0;
     }
 
-    LightLoopOutput PostEvaluateBSDF(in AggregateLighting lighting, in BSDFData bsdf, in PreLightData preLightData, float3 V)
+    LightLoopOutput PostEvaluateBSDF(AggregateLighting lighting, BSDFData bsdf, PreLightData preLightData, float3 V)
     {
         return (LightLoopOutput)0;
     }

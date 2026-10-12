@@ -3,19 +3,45 @@
 
 #include "EngineResources/Shaders/Properties.hlsl"
 #include "EngineResources/Shaders/Lighting/LightGridCommon.hlsl"
+#include "EngineResources/Shaders/Lighting/LightEvaluation.hlsl"
+#include "EngineResources/Shaders/Lighting/ShadowSampling.hlsl"
 #include "EngineResources/Shaders/Material/Lit/Lit.hlsl"
-#include "EngineResources/Shaders/Generated/GPULightData.hlsl"
-
-#ifndef DWORDS_PER_TILE
-#define DWORDS_PER_TILE 32u
-#endif
-
-#ifndef MAX_LIGHTS_PER_TILE
-#define MAX_LIGHTS_PER_TILE 63u
-#endif
+#include "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl"
 
 template<typename T>
-LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, in T strategy, float3 V, ByteAddressBuffer tileLightList, uint tilesPerRow)
+DirectLighting ShadeSurface_Punctual(ShadingContext ctx, BSDFData bsdf, T strategy, GPUPunctualLight light, PreLightData preLightData, float3 V, uint lightIndex)
+{
+    DirectLighting lighting = (DirectLighting)0;
+
+    float3 lightPosRWS = TransformAbsoluteWorldToCameraRelative(light.positionWS);
+    PunctualLightVector vector = GetPunctualLightVector(ctx.positionRWS, light, lightPosRWS);
+
+    if (light.lightDimmer > 0.0f && strategy.IsNonZeroBSDF(V, vector.L, bsdf))
+    {
+        float4 lightColor = EvaluateLight_Punctual(light, vector.L, vector.distance);
+        lightColor.rgb *= lightColor.a;
+
+        if (lightColor.a > 0.0f && light.shadowDimmer > 0.0f)
+        {
+            float shadow = GetPunctualShadowAttenuation(ctx, light, bsdf.normalWS, vector.L, vector.distance, lightPosRWS, lightIndex);
+            lightColor.rgb *= shadow;
+        }
+
+        strategy.ClampRoughness(bsdf, light.minRoughness);
+
+        if (any(lightColor.rgb) > 0.0f)
+        {
+            lighting = strategy.EvaluateDirectLighting(bsdf, preLightData, V, vector.L, lightColor.rgb);
+            lighting.diffuse = lighting.diffuse * light.diffuseDimmer;
+            lighting.specular = lighting.specular * light.specularDimmer;
+        }
+    }
+
+    return lighting;
+}
+
+template<typename T>
+LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, float3 V, ByteAddressBuffer tileLightList, uint tilesPerRow)
 {
     AggregateLighting totalLighting = (AggregateLighting)0;
     PreLightData preLightData = strategy.GetPreLightData(ctx, V, bsdf);
@@ -56,116 +82,8 @@ LightLoopOutput ExecuteLightLoop(in ShadingContext ctx, in BSDFData bsdf, in T s
             }
 
             GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, fetch.lightIndex);
-            float3 lightPosRWS = TransformAbsoluteWorldToCameraRelative(light.positionWS);
-
-            float3 toLight = lightPosRWS - ctx.positionRWS;
-            float distSq = dot(toLight, toLight);
-            float dist = sqrt(distSq);
-            float3 L = (dist > 0.0001f) ? (toLight / dist) : float3(0.0f, 1.0f, 0.0f);
-
-            float NdotL = dot(bsdf.normalWS, L);
-
-            // Smooth windowed distance attenuation (Karis / Frostbite)
-            float factor = distSq * light.invRangeSq;
-            float smoothFactor = saturate(1.0f - factor * factor);
-            float attenuation = (smoothFactor * smoothFactor) / max(distSq, 0.0001f);
-
-            uint lightType = light.lightTypeAndFlags & 0xFu;
-            if (lightType == 1u) // Spot = 1
-            {
-                // Spot cone attenuation
-                float cosAngle = dot(-L, light.directionWS);
-                float spotAtten = saturate(cosAngle * light.spotAngleScale + light.spotAngleOffset);
-                attenuation *= spotAtten * spotAtten;
-            }
-
-            float shadow = 1.0f;
-            if (attenuation > 0.0f && NdotL > 0.0f)
-            {
-                int shadowIndex = -1;
-                if (IS_VALID_BUFFER(ctx.shadowIndicesBufferIndex))
-                {
-                    shadowIndex = LoadData<int>(ctx.shadowIndicesBufferIndex, fetch.lightIndex);
-                }
-
-                // TODO: Better shadow sampling.
-                if (shadowIndex >= 0 && IS_VALID_BUFFER(ctx.shadowAtlasIndex) && IS_VALID_BUFFER(ctx.shadowViewsBufferIndex))
-                {
-                    uint viewIdx = (uint)shadowIndex;
-                    float3 biasedPosWS = ctx.positionRWS + bsdf.normalWS * light.normalBias;
-
-                    if (lightType == 0u) // Point Light cubemap face selection
-                    {
-                        float3 L_cube = biasedPosWS - lightPosRWS;
-                        float3 absL = abs(L_cube);
-                        uint faceIdx = 0u;
-                        if (absL.x >= absL.y && absL.x >= absL.z)
-                        {
-                            faceIdx = (L_cube.x > 0.0f) ? 0u : 1u;
-                        }
-                        else if (absL.y >= absL.x && absL.y >= absL.z)
-                        {
-                            faceIdx = (L_cube.y > 0.0f) ? 2u : 3u;
-                        }
-                        else
-                        {
-                            faceIdx = (L_cube.z > 0.0f) ? 4u : 5u;
-                        }
-
-                        viewIdx += faceIdx;
-                    }
-
-                    GPUShadowViewData shadowView = LoadData<GPUShadowViewData>(ctx.shadowViewsBufferIndex, viewIdx);
-                    float4 clipPos = mul(shadowView.shadowViewProj, float4(biasedPosWS, 1.0f));
-
-                    if (clipPos.w > 0.0001f)
-                    {
-                        float3 ndc = clipPos.xyz / clipPos.w;
-                        float2 uv = ndc.xy * float2(0.5f, -0.5f) + 0.5f;
-                        if (all(uv >= 0.0f) && all(uv <= 1.0f))
-                        {
-                            float2 atlasUV = shadowView.tileOffsetScale.xy + uv * shadowView.tileOffsetScale.zw;
-                            Texture2D<float> shadowAtlas = GET_TEXTURE2D(ctx.shadowAtlasIndex);
-
-                            float receiverDepth = ndc.z + light.depthBias;
-
-                            uint2 atlasDim;
-                            shadowAtlas.GetDimensions(atlasDim.x, atlasDim.y);
-                            float2 pixelPos = atlasUV * float2(atlasDim);
-                            int2 baseCoord = int2(floor(pixelPos - 0.5f));
-                            float2 f = frac(pixelPos - 0.5f);
-
-                            int2 tileMinPixels = int2(shadowView.tileOffsetScale.xy * float2(atlasDim));
-                            int2 tileMaxPixels = tileMinPixels + int2(shadowView.tileOffsetScale.zw * float2(atlasDim)) - 1;
-
-                            int2 c00 = clamp(baseCoord + int2(0, 0), tileMinPixels, tileMaxPixels);
-                            int2 c10 = clamp(baseCoord + int2(1, 0), tileMinPixels, tileMaxPixels);
-                            int2 c01 = clamp(baseCoord + int2(0, 1), tileMinPixels, tileMaxPixels);
-                            int2 c11 = clamp(baseCoord + int2(1, 1), tileMinPixels, tileMaxPixels);
-
-                            float d00 = shadowAtlas.Load(int3(c00, 0));
-                            float d10 = shadowAtlas.Load(int3(c10, 0));
-                            float d01 = shadowAtlas.Load(int3(c01, 0));
-                            float d11 = shadowAtlas.Load(int3(c11, 0));
-
-                            // Reversed-Z: closer depth is greater. If receiverDepth >= storedDepth, fragment is lit.
-                            float s00 = (receiverDepth >= d00) ? 1.0f : 0.0f;
-                            float s10 = (receiverDepth >= d10) ? 1.0f : 0.0f;
-                            float s01 = (receiverDepth >= d01) ? 1.0f : 0.0f;
-                            float s11 = (receiverDepth >= d11) ? 1.0f : 0.0f;
-
-                            shadow = lerp(lerp(s00, s10, f.x), lerp(s01, s11, f.x), f.y);
-                        }
-                    }
-                }
-            }
-
-            float3 radiance = light.color * (attenuation * shadow);
-            if (any(radiance > 0.0001f))
-            {
-                DirectLighting punctualDirect = strategy.EvaluateDirectLighting(bsdf, preLightData, V, L, radiance);
-                AccumulateDirectLighting(totalLighting, punctualDirect);
-            }
+            DirectLighting lighting = ShadeSurface_Punctual<T>(ctx, bsdf, strategy, light, preLightData, V, fetch.lightIndex);
+            AccumulateDirectLighting(totalLighting, lighting);
         }
     }
 

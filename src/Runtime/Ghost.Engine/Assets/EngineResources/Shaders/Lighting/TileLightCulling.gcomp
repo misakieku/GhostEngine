@@ -199,18 +199,21 @@ compute "Internal/TileLightCulling"
             {
                 GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, lightIndex);
                 float3 lightPosRWS = TransformAbsoluteWorldToCameraRelative(light.positionWS);
-                float3 centerVS = TransformWorldToView(lightPosRWS);
-                float radius = light.range;
-
-                if (centerVS.z + radius >= s_MinViewZ && centerVS.z - radius <= s_MaxViewZ)
+                if (length(lightPosRWS) < light.fadeDistance)
                 {
-                    if (DoesSphereOverlapTile(s_TileCenterRay, s_HalfTileSizeAtZDistOne, centerVS, radius))
+                    float3 centerVS = TransformWorldToView(lightPosRWS);
+                    float radius = light.range;
+
+                    if (centerVS.z + radius >= s_MinViewZ && centerVS.z - radius <= s_MaxViewZ)
                     {
-                        uint slot;
-                        InterlockedAdd(s_CoarseLightCount, 1u, slot);
-                        if (slot < MAX_COARSE_LIGHTS)
+                        if (DoesSphereOverlapTile(s_TileCenterRay, s_HalfTileSizeAtZDistOne, centerVS, radius))
                         {
-                            s_CoarseLightIndices[slot] = lightIndex;
+                            uint slot;
+                            InterlockedAdd(s_CoarseLightCount, 1u, slot);
+                            if (slot < MAX_COARSE_LIGHTS)
+                            {
+                                s_CoarseLightIndices[slot] = lightIndex;
+                            }
                         }
                     }
                 }

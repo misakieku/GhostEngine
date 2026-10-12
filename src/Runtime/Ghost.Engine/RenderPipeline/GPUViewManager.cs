@@ -108,11 +108,11 @@ public sealed class GPUViewContext : IDisposable
         _renderGraph ??= new RenderGraph(_database, _allocator, _pipelineLibrary, _resourceManager, _shaderLibrary);
         if (_shadowAllocator == null)
         {
-            _shadowAllocator = new ShadowAtlasRegionAllocator(shadowAtlasResolution, shadowAtlasResolution, AllocationHandle.Persistent);
+            _shadowAllocator = new ShadowAtlasRegionAllocator(shadowAtlasResolution, AllocationHandle.Persistent);
         }
         else
         {
-            _shadowAllocator.Reset(shadowAtlasResolution, shadowAtlasResolution);
+            _shadowAllocator.Reset(shadowAtlasResolution);
         }
 
         if (!HzbTexture.IsValid || RenderSize.x != renderSize.x || RenderSize.y != renderSize.y)
