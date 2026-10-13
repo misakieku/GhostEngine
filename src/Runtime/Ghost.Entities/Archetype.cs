@@ -720,19 +720,19 @@ internal unsafe struct Archetype : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Error SetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void* pComponent)
+    public readonly void SetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void* pComponent)
     {
 #if GHOST_SAFETY_CHECKS
         if (ComponentRegistry.GetComponentInfo(componentID).isShared)
         {
             throw new InvalidOperationException("SetComponentData cannot be used for shared components. Use SetSharedComponentData instead.");
         }
-#endif
 
         if (!_signature.IsSet(componentID))
         {
-            return Error.InvalidArgument;
+            throw new InvalidOperationException($"Component ID {componentID} is not part of this archetype.");
         }
+#endif
 
         var offset = GetLayoutUnsafe(componentID).offset;
         ref var chunk = ref _chunks[chunkIndex];
@@ -745,8 +745,6 @@ internal unsafe struct Archetype : IDisposable
 
         var world = World.GetWorldUncheck(_worldID);
         MarkChanged(chunkIndex, componentID, world.Version);
-
-        return Error.None;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -998,6 +996,20 @@ internal unsafe struct Archetype : IDisposable
     public readonly bool HasComponent(Identifier<IComponent> componentID)
     {
         return _signature.IsSet(componentID);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool HasComponents(ReadOnlySpan<Identifier<IComponent>> componentIDs)
+    {
+        for (var i = 0; i < componentIDs.Length; i++)
+        {
+            if (!HasComponent(componentIDs[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

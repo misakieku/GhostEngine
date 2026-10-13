@@ -79,7 +79,7 @@ public partial class ResourceManager
     {
         foreach (var kvp in _resourcePool)
         {
-            var stack = kvp.Value;
+            ref var stack = ref kvp.Value;
             foreach (var handle in stack)
             {
                 _resourceDatabase.ReleaseResourceImmediately(handle);

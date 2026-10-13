@@ -8,6 +8,7 @@ public enum LogLevel
     Info,
     Warning,
     Error,
+    Fatal,
     Debug
 }
 
@@ -231,12 +232,10 @@ public static class Logger
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Error(string? message)
     {
-        s_logger.Log(message, LogLevel.Error);
-#if RELEASE
-        Environment.FailFast(message);
-#elif DEBUG
+#if DEBUG
         Debugger.Break();
 #endif
+        s_logger.Log(message, LogLevel.Error);
     }
 
     [StackTraceHidden]
@@ -258,6 +257,35 @@ public static class Logger
         Debugger.BreakForUserUnhandledException(ex);
 #endif
         s_logger.Log(ex);
+    }
+
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Fatal(string message, Exception? ex = null)
+    {
+#if DEBUG
+        if (ex != null)
+        {
+            Debugger.BreakForUserUnhandledException(ex);
+        }
+        else
+        {
+            Debugger.Break();
+        }
+#endif
+        s_logger.Log(message, LogLevel.Fatal);
+        Environment.FailFast(message, ex);
+    }
+
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Fatal(Exception ex)
+    {
+#if DEBUG
+        Debugger.BreakForUserUnhandledException(ex);
+#endif
+        s_logger.Log(ex.Message, LogLevel.Fatal);
+        Environment.FailFast(ex.Message, ex);
     }
 
     [StackTraceHidden]

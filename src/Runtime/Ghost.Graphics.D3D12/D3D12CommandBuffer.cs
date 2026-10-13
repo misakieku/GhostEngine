@@ -44,7 +44,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         if (hr.FAILED)
         {
             var removedReason = device->GetDeviceRemovedReason();
-            Logger.Error($"CreateCommandList1 failed with hr={hr}, GetDeviceRemovedReason={removedReason}");
+            Logger.Fatal($"CreateCommandList1 failed with hr={hr}, GetDeviceRemovedReason={removedReason}");
 
             renderDevice.DumpInfoQueueMessages();
             ID3D12GraphicsCommandList* pBaseList = default;

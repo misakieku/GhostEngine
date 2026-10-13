@@ -101,6 +101,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             this.fenceValue = fenceValue;
         }
     }
+
     private readonly struct PendingSwapEntry
     {
         public readonly Handle<GPUResource> a;
@@ -227,6 +228,18 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         return _resources.Contains(handle.ID, handle.Generation);
     }
 
+    public bool IsAllocated(Handle<GPUResource> handle)
+    {
+        Logger.DebugAssert(!_disposed);
+
+        if (!_resources.TryGetElementAt(handle.ID, handle.Generation, out var record))
+        {
+            return false;
+        }
+        
+        return record.Allocated;
+    }
+
     public RefResult<ResourceRecord, Error> GetResourceRecord(Handle<GPUResource> handle)
     {
         Logger.DebugAssert(!_disposed);
@@ -262,7 +275,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         return r.Value.desc;
     }
 
-    public uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.AllSubresources)
+    public uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.ALL_SUBRESOURCES)
     {
         var r = GetResourceRecord(handle);
         if (r.IsFailure)
@@ -280,7 +293,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
                     return 0;
                 }
 
-                if (subResource == IResourceDatabase.AllSubresources)
+                if (subResource == IResourceDatabase.ALL_SUBRESOURCES)
                 {
                     return (uint)vg.srv.Value;
                 }
@@ -301,7 +314,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
                     return 0;
                 }
 
-                if (subResource == IResourceDatabase.AllSubresources)
+                if (subResource == IResourceDatabase.ALL_SUBRESOURCES)
                 {
                     return (uint)vg.uav.Value;
                 }
@@ -334,7 +347,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         for (var i = 0; i < count; i++)
         {
             var sub = subResources[i];
-            if (sub == IResourceDatabase.AllSubresources)
+            if (sub == IResourceDatabase.ALL_SUBRESOURCES)
             {
                 outIndices[i] = access switch
                 {

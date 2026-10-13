@@ -163,12 +163,7 @@ public partial class ResourceManager
 
             if (foundPageIndex == -1)
             {
-                var error = CreateNewActivePage(HeapType.Default, requiredHeapFlags);
-                if (error != Error.None)
-                {
-                    Logger.Error($"Failed to create a new page for transient texture: {error}");
-                    return Handle<GPUTexture>.Invalid;
-                }
+                CreateNewActivePage(HeapType.Default, requiredHeapFlags).ThrowIfFailed();
 
                 foundPageIndex = _activePages.Count - 1;
                 alignedOffset = 0;
@@ -249,12 +244,7 @@ public partial class ResourceManager
 
             if (foundPageIndex == -1)
             {
-                var error = CreateNewActivePage(requiredHeapType, requiredHeapFlags);
-                if (error != Error.None)
-                {
-                    Logger.Error($"Failed to create a new page for transient buffer: {error}");
-                    return Handle<GPUBuffer>.Invalid;
-                }
+                CreateNewActivePage(requiredHeapType, requiredHeapFlags).ThrowIfFailed();
 
                 foundPageIndex = _activePages.Count - 1;
                 alignedOffset = 0;

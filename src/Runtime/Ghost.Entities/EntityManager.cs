@@ -1076,6 +1076,11 @@ public unsafe partial class EntityManager : IDisposable
         }
 
         ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+        if (!archetype.HasComponent(componentID))
+        {
+            return Error.NotFound;
+        }
+
         archetype.SetComponentData(location.chunkIndex, location.rowIndex, componentID, pComponent);
 
         return Error.None;
@@ -1110,13 +1115,14 @@ public unsafe partial class EntityManager : IDisposable
         }
 
         ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+        if (!archetype.HasComponents(componentIDs))
+        {
+            return Error.NotFound;
+        }
+
         for (var i = 0; i < componentIDs.Length; i++)
         {
-            var error = archetype.SetComponentData(location.chunkIndex, location.rowIndex, componentIDs[i], ppComponents[i]);
-            if (error != Error.None)
-            {
-                return error;
-            }
+            archetype.SetComponentData(location.chunkIndex, location.rowIndex, componentIDs[i], ppComponents[i]);
         }
 
         return Error.None;
@@ -1151,7 +1157,8 @@ public unsafe partial class EntityManager : IDisposable
         where T : unmanaged, IComponentData
     {
         var ptr = GetComponent(entity, ComponentTypeID<T>.Value);
-        return ref *(T*)ptr; // This will return null ref if ptr is null.
+        Logger.DebugAssert(ptr != null, "GetComponent<T> called for an entity that does not have the component.");
+        return ref *(T*)ptr;
     }
 
     /// <summary>

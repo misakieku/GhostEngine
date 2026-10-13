@@ -41,13 +41,20 @@ public enum BindlessAccess
 
 public unsafe interface IResourceDatabase : IDisposable
 {
-    public const uint AllSubresources = 0xFFFFFFFF;
+    public const uint ALL_SUBRESOURCES = 0xFFFFFFFF;
 
     /// <summary>
     /// Checks if a resource with the specified handle exists in the database.
     /// </summary>
     /// <param name="handle">The handle of the resource to check for existence.</param>
     bool HasResource(Handle<GPUResource> handle);
+
+    /// <summary>
+    /// Checks if a resource with the specified handle is existing and currently allocated in the database.
+    /// </summary>
+    /// <param name="handle">The handle of the resource to check for allocation.</param>
+    /// <returns></returns>
+    bool IsAllocated(Handle<GPUResource> handle);
 
     /// <summary>
     /// Retrieves the description of a GPU resource associated with the specified handle.
@@ -61,9 +68,9 @@ public unsafe interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="handle">A handle to the GPU resource for which to obtain the bindless index. Must reference a valid, currently registered resource.</param>
     /// <param name="access">The type of bindless access for which to obtain the index.</param>
-    /// <param name="subResource">The sub-resource index of the resource to get. Defaults to <see cref="AllSubresources"/> for the primary/full-resource view.</param>
+    /// <param name="subResource">The sub-resource index of the resource to get. Defaults to <see cref="ALL_SUBRESOURCES"/> for the primary/full-resource view.</param>
     /// <returns>The bindless index corresponding to the specified GPU resource handle. 0 if the resource does not support bindless access or is not found.</returns>
-    uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = AllSubresources);
+    uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = ALL_SUBRESOURCES);
 
     /// <summary>
     /// Retrieves the bindless indices for multiple sub-resources of a GPU resource associated with the specified handle.

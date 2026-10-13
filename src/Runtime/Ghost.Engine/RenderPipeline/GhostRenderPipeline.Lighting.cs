@@ -69,7 +69,7 @@ internal unsafe partial class GhostRenderPipeline
             var softness = 0.02403461f + 3.452916f * x - 1.362672f * x2 + 0.6700115f * x2 * x + 0.2159474f * x2 * x2;
             softness /= 100.0f;
 
-            softness *= (viewHeight / 512);  // Make it resolution independent whereas the baseline is 512
+            softness *= viewHeight / 512;  // Make it resolution independent whereas the baseline is 512
 
             return softness;
         }
@@ -142,16 +142,22 @@ internal unsafe partial class GhostRenderPipeline
 
                 var svData = new GPUShadowViewData
                 {
-                    shadowViewProj = shadowViewProj,
-                    planes = shadowFrustum.planes,
-                    tileOffsetScale = region.tileOffsetScale,
-                    lightPositionWS = lightPosRWS,
-                    lodErrorThreshold = lodErrorThreshold,
-                    shadowProjection = pro,
-                    size = size,
-                    normalBias = shadowData.normalBias,
-                    slopeBias = basis * shadowData.depthBias,
-                    worldTexelSize = 2.0f / projMat[0][0] / shadowSize * 1.4142135623731f,
+                    cullingData = new GPUShadowCullingData
+                    {
+                        planes = shadowFrustum.planes,
+                        size = size,
+                        lodErrorThreshold = lodErrorThreshold,
+                    },
+                    samplingData = new GPUShadowSamplingData
+                    {
+                        shadowViewProj = shadowViewProj,
+                        tileOffsetScale = region.tileOffsetScale,
+                        shadowProjection = pro,
+                        size = size,
+                        normalBias = shadowData.normalBias,
+                        slopeBias = basis * shadowData.depthBias,
+                        worldTexelSize = 2.0f / projMat[0][0] / shadowSize * 1.4142135623731f,
+                    }
                 };
 
                 var slot = shadowViewsWriter.AddNoResize(svData);
@@ -165,7 +171,8 @@ internal unsafe partial class GhostRenderPipeline
                     return;
                 }
 
-                const float guardPixels = 4.0f;
+                const float guardPixels = 2.0f;
+                // We bias the fov here because point light use cubemap for shadow, and we need to give it room for filtering.
                 var fov = 2.0f * math.atan(shadowSize / (shadowSize - 2.0f * guardPixels)); // 1.570796f; // 90 degrees in radians
                 var projMat = CreatePerspectiveReversedZ(fov, 1.0f, nearPlane, farPlane);
                 var pro = new float4(projMat[0][0], projMat[1][1], projMat[2][2], projMat[3][2]);
@@ -180,16 +187,22 @@ internal unsafe partial class GhostRenderPipeline
 
                     faceViews[f] = new GPUShadowViewData
                     {
-                        shadowViewProj = shadowViewProj,
-                        planes = shadowFrustum.planes,
-                        tileOffsetScale = faceRegions[f].tileOffsetScale,
-                        lightPositionWS = lightPosRWS,
-                        lodErrorThreshold = lodErrorThreshold,
-                        shadowProjection = pro,
-                        size = size,
-                        normalBias = shadowData.normalBias,
-                        slopeBias = basis * shadowData.depthBias,
-                        worldTexelSize = 2.0f / projMat[0][0] / shadowSize * 1.4142135623731f,
+                        cullingData = new GPUShadowCullingData
+                        {
+                            planes = shadowFrustum.planes,
+                            size = size,
+                            lodErrorThreshold = lodErrorThreshold,
+                        },
+                        samplingData = new GPUShadowSamplingData
+                        {
+                            shadowViewProj = shadowViewProj,
+                            tileOffsetScale = faceRegions[f].tileOffsetScale,
+                            shadowProjection = pro,
+                            size = size,
+                            normalBias = shadowData.normalBias,
+                            slopeBias = basis * shadowData.depthBias,
+                            worldTexelSize = 2.0f / projMat[0][0] / shadowSize * 1.4142135623731f,
+                        }
                     };
                 }
 

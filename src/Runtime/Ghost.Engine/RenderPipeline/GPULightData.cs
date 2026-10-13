@@ -12,9 +12,6 @@ public enum GPULightType
     Spot,
 }
 
-/// <summary>
-/// GPU-ready memory layout for punctual (point/spot) lights.
-/// </summary>
 [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GPULightData.hlsl")]
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct GPUPunctualLight
@@ -41,9 +38,6 @@ public struct GPUPunctualLight
     public float fadeDistance;      // Distance at which the light starts fading out
 }
 
-/// <summary>
-/// GPU-ready memory layout for the primary directional light (Sun/Moon).
-/// </summary>
 [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GPULightData.hlsl")]
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct GPUDirectionalLight
@@ -54,28 +48,37 @@ public struct GPUDirectionalLight
     public float shadowBiasMultiplier;
 }
 
-/// <summary>
-/// GPU-ready memory layout for an individual shadow view (spot light or cubemap face).
-/// </summary>
 [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GPULightData.hlsl")]
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
-public struct GPUShadowViewData
+public struct GPUShadowCullingData
 {
-    // TODO: Separate culling data and sampling data.
-    public float4x4 shadowViewProj;         // World to light clip space
     [GenerateAsHLSLType("float4", 6)]
     public Frustum.PlaneArray planes;       // Frustum planes for culling
-    public float4 shadowProjection;         // x: proj.m00, y: proj.m11, z: proj.m22, w: proj.m23 (used for depth reconstruction in shader)
-    public float4 tileOffsetScale;          // xy: normalized atlas offset [0..1], zw: normalized atlas size [0..1]
-
-    public float3 lightPositionWS;          // For distance/LOD calculation
+    public float4 size;                     // x: shadow atlas size, y: atlas texel size, z: tile size, w: tile texel size
     public float lodErrorThreshold;         // Coarse LOD error threshold for this shadow view
+}
 
+[GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GPULightData.hlsl")]
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
+public struct GPUShadowSamplingData
+{
+    public float4x4 shadowViewProj;         // World to light clip space
+
+    public float4 tileOffsetScale;          // xy: normalized atlas offset [0..1], zw: normalized atlas size [0..1]
+    public float4 shadowProjection;         // x: proj.m00, y: proj.m11, z: proj.m22, w: proj.m23 (used for depth reconstruction in shader)
     public float4 size;                     // x: shadow atlas size, y: atlas texel size, z: tile size, w: tile texel size
 
     public float worldTexelSize;            // World space size of a texel in the shadow map
     public float normalBias;                // Normal bias for this shadow view
     public float slopeBias;                 // Slope based depth bias for this shadow view
+}
+
+[GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GPULightData.hlsl")]
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
+public struct GPUShadowViewData
+{
+    public GPUShadowCullingData cullingData;
+    public GPUShadowSamplingData samplingData;
 }
 
 public struct ShadowData

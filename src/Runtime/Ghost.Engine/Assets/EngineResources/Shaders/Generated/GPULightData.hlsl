@@ -32,18 +32,28 @@ struct GPUDirectionalLight
     float shadowBiasMultiplier;
 };
 
-struct GPUShadowViewData
+struct GPUShadowCullingData
+{
+    float4 planes[6];
+    float4 size;
+    float lodErrorThreshold;
+};
+
+struct GPUShadowSamplingData
 {
     float4x4 shadowViewProj;
-    float4 planes[6];
-    float4 shadowProjection;
     float4 tileOffsetScale;
-    float3 lightPositionWS;
-    float lodErrorThreshold;
+    float4 shadowProjection;
     float4 size;
     float worldTexelSize;
     float normalBias;
     float slopeBias;
+};
+
+struct GPUShadowViewData
+{
+    GPUShadowCullingData cullingData;
+    GPUShadowSamplingData samplingData;
 };
 
 #endif // ENGINERESOURCES_SHADERS_GENERATED_GPULIGHTDATA_HLSL

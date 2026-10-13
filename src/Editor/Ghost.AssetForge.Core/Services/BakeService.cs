@@ -82,7 +82,7 @@ public class BakeService
         var skipped = 0;
         var failed = 0;
         var failedAssets = new List<string>();
-        var failedAssetsLock = new object();
+        var failedAssetsLock = new Lock();
 
         OnProgress?.Invoke(0, total);
 

@@ -171,7 +171,7 @@ public class RenderEngine : IDisposable
 
     private void StopRenderLoop(Result result)
     {
-        Logger.Error($"Render failed: {result.Message}");
+        Logger.Fatal($"Render failed: {result.Message}");
 
         _isRunning = false;
         _shutdownCts.Cancel();

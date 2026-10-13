@@ -161,32 +161,32 @@ float GetPunctualShadowAttenuation(ShadingContext ctx, GPUPunctualLight light, f
             shadowIndex += GetCubeFaceID(-L);
         }
 
-        GPUShadowViewData shadowView = LoadData<GPUShadowViewData>(ctx.shadowViewsBufferIndex, shadowIndex);
+        GPUShadowSamplingData shadowCull = LoadDataAtOffset<GPUShadowSamplingData>(ctx.shadowViewsBufferIndex, sizeof(GPUShadowViewData) * shadowIndex + sizeof(GPUShadowCullingData));
 
-        float3 biasedPosRWS = ctx.positionRWS + N * shadowView.normalBias * shadowView.worldTexelSize * distance.x;
-        float4 clipPos = mul(shadowView.shadowViewProj, float4(biasedPosRWS, 1.0f));
+        float3 biasedPosRWS = ctx.positionRWS + N * shadowCull.normalBias * shadowCull.worldTexelSize * distance.x;
+        float4 clipPos = mul(shadowCull.shadowViewProj, float4(biasedPosRWS, 1.0f));
 
         if (clipPos.w > 0.0001f)
         {
             float3 ndc = clipPos.xyz / clipPos.w;
             float2 uv = ndc.xy * float2(0.5f, -0.5f) + 0.5f;
-            
+
             float NdotL = saturate(dot(N, L));
             float slope = sqrt(saturate(1.0f - NdotL * NdotL)) / max(NdotL, 0.1f);
             float clampedSlope = min(slope, 2.0f);
-            
+
             // In Reversed-Z perspective, a depth delta in NDC scales as 1 / (distance^2):
-            float ndcDepthScale = abs(shadowView.shadowProjection.w) * distance.z * distance.z;
-            float receiverDepth = ndc.z + (1.0f / 65536.0f) + (shadowView.slopeBias * clampedSlope * shadowView.worldTexelSize * ndcDepthScale);
+            float ndcDepthScale = abs(shadowCull.shadowProjection.w) * distance.z * distance.z;
+            float receiverDepth = ndc.z + (1.0f / 65536.0f) + (shadowCull.slopeBias * clampedSlope * shadowCull.worldTexelSize * ndcDepthScale);
 
             // Spot lights check cone bounds; Point lights cover all 360 deg, so clamp instead of discarding
             if (all(uv >= 0.0f) && all(uv <= 1.0f))
             {
                 uv = saturate(uv);
-                float2 atlasUV = shadowView.tileOffsetScale.xy + uv * shadowView.tileOffsetScale.zw;
+                float2 atlasUV = shadowCull.tileOffsetScale.xy + uv * shadowCull.tileOffsetScale.zw;
                 Texture2D<float> shadowAtlas = GET_TEXTURE2D(ctx.shadowAtlasIndex);
 
-                shadow = SampleShadow_PCF5x5(shadowAtlas, GET_SAMPLER(LinearClampCompareGESampler), shadowView.tileOffsetScale, atlasUV, receiverDepth, shadowView.size.x, shadowView.size.y);
+                shadow = SampleShadow_PCF5x5(shadowAtlas, GET_SAMPLER(LinearClampCompareGESampler), shadowCull.tileOffsetScale, atlasUV, receiverDepth, shadowCull.size.x, shadowCull.size.y);
             }
         }
     }

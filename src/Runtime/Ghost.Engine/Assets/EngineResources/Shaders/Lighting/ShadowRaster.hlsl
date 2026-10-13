@@ -52,7 +52,7 @@ void MSMain(
     UnbinnedMeshletEntry visible = visibleMeshlets[binnedSlot];
 
     uint shadowViewIndex = visible.variantIndex & 0xFFFFu;
-    GPUShadowViewData shadowView = LoadData<GPUShadowViewData>(shadowViewsBufferSrv, shadowViewIndex);
+    GPUShadowSamplingData shadowCull = LoadDataAtOffset<GPUShadowSamplingData>(shadowViewsBufferSrv, sizeof(GPUShadowViewData) * shadowViewIndex + sizeof(GPUShadowCullingData));
 
     InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
     MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
@@ -60,7 +60,7 @@ void MSMain(
 
     uint vertexCount = meshlet.packedCounts & 0xFFu;
     uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
-    
+
     SetMeshOutputCounts(vertexCount, triangleCount);
 
 #if SHADOW_PIXEL_STAGE
@@ -75,7 +75,7 @@ void MSMain(
     float doubleSided = asfloat(matBuf.Load(materialBufferIndex + 12u));
 
     float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
-    float4x4 worldViewProj = mul(shadowView.shadowViewProj, localToRWS);
+    float4x4 worldViewProj = mul(shadowCull.shadowViewProj, localToRWS);
 
     if (groupThreadID < vertexCount)
     {
@@ -93,8 +93,8 @@ void MSMain(
         );
 
         float4 clipPos = origClipPos;
-        clipPos.x = clipPos.x * shadowView.tileOffsetScale.z + (2.0f * shadowView.tileOffsetScale.x + shadowView.tileOffsetScale.z - 1.0f) * clipPos.w;
-        clipPos.y = clipPos.y * shadowView.tileOffsetScale.w + (1.0f - (2.0f * shadowView.tileOffsetScale.y + shadowView.tileOffsetScale.w)) * clipPos.w;
+        clipPos.x = clipPos.x * shadowCull.tileOffsetScale.z + (2.0f * shadowCull.tileOffsetScale.x + shadowCull.tileOffsetScale.z - 1.0f) * clipPos.w;
+        clipPos.y = clipPos.y * shadowCull.tileOffsetScale.w + (1.0f - (2.0f * shadowCull.tileOffsetScale.y + shadowCull.tileOffsetScale.w)) * clipPos.w;
 
         g_VertexPositions[groupThreadID] = clipPos;
         outVerts[groupThreadID].position = clipPos;

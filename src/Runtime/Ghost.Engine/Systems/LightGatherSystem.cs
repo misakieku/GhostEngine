@@ -5,7 +5,6 @@ using Ghost.Entities;
 using Ghost.Graphics;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.Mathematics;
-using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Systems;
 
@@ -51,7 +50,7 @@ internal class LightGatherSystem : ISystem
 
                 var flags = ((uint)light.type & 0xFu) | ((light.shadowSize & 0xFFFFu) << 4);
                 var t = light.sourceRadius * (light.sourceRadius + 0.2f);
-                var minRoughness = math.saturate((1.15f * t) / (t + 1.02f));
+                var minRoughness = math.saturate(1.15f * t / (t + 1.02f));
                 var diffuseDimmer = math.saturate(light.diffuseDimmer);
                 var specularDimmer = math.saturate(light.specularDimmer);
                 var lightDimmer = diffuseDimmer * specularDimmer == 0 ? 0 : math.saturate(light.lightingDimmer);

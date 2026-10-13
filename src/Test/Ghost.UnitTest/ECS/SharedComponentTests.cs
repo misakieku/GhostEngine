@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Entities;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.UnitTest.ECS;
 
@@ -61,7 +62,7 @@ public class SharedComponentTests
         sharedSet.With(sharedValue);
 
         Identifier<IComponent>[] ids = [ComponentTypeID<Tag>.Value, ComponentTypeID<SharedGroup>.Value];
-        var set = new ComponentSetView(ids, sharedSet);
+        var set = new ComponentSetView(ids, ref Unsafe.AsRef(in sharedSet));
 
         return _world.EntityManager.CreateEntity(set);
     }
@@ -483,10 +484,10 @@ public class SharedComponentTests
         sharedSet2.With(new SharedGroup { groupID = 42 });
 
         Identifier<IComponent>[] ids1 = [ComponentTypeID<Tag>.Value, ComponentTypeID<SharedGroup>.Value, ComponentTypeID<SharedGroup2>.Value];
-        var set1 = new ComponentSetView(ids1, sharedSet1);
+        var set1 = new ComponentSetView(ids1, ref Unsafe.AsRef(in sharedSet1));
 
         Identifier<IComponent>[] ids2 = [ComponentTypeID<Tag>.Value, ComponentTypeID<SharedGroup2>.Value, ComponentTypeID<SharedGroup>.Value];
-        var set2 = new ComponentSetView(ids2, sharedSet2);
+        var set2 = new ComponentSetView(ids2, ref Unsafe.AsRef(in sharedSet2));
 
         _world.EntityManager.CreateEntity(set1);
         _world.EntityManager.CreateEntity(set2);

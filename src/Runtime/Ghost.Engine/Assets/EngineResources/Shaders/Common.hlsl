@@ -107,6 +107,13 @@ T LoadDataWithOffset(BYTE_ADDRESS_BUFFER buffer, uint index, uint offset)
     return buf.Load<T>(index * sizeof(T) + offset);
 }
 
+template<typename T>
+T LoadDataAtOffset(BYTE_ADDRESS_BUFFER buffer, uint offset)
+{
+    ByteAddressBuffer buf = GET_BUFFER(buffer);
+    return buf.Load<T>(offset);
+}
+
 /// Resolves a meshlet's local material index to a global bindless CBuffer descriptor index.
 /// Uses the two-buffer indirection: PaletteOffsetBuffer → MaterialIndexBuffer → CBuffer.
 ///   paletteOffsetBuffer  : from FrameData — one uint per palette, base offset into materialIndexBuffer

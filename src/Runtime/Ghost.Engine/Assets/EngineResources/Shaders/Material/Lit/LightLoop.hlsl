@@ -24,7 +24,7 @@ DirectLighting ShadeSurface_Punctual(ShadingContext ctx, BSDFData bsdf, T strate
         if (lightColor.a > 0.0f && light.shadowDimmer > 0.0f)
         {
             float shadow = GetPunctualShadowAttenuation(ctx, light, bsdf.normalWS, vector.L, vector.distance, lightPosRWS, lightIndex);
-            lightColor.rgb *= shadow;
+            lightColor.rgb *= lerp(1.0f, shadow, light.shadowDimmer);
         }
 
         strategy.ClampRoughness(bsdf, light.minRoughness);
@@ -32,8 +32,8 @@ DirectLighting ShadeSurface_Punctual(ShadingContext ctx, BSDFData bsdf, T strate
         if (any(lightColor.rgb) > 0.0f)
         {
             lighting = strategy.EvaluateDirectLighting(bsdf, preLightData, V, vector.L, lightColor.rgb);
-            lighting.diffuse = lighting.diffuse * light.diffuseDimmer;
-            lighting.specular = lighting.specular * light.specularDimmer;
+            lighting.diffuse *= light.diffuseDimmer;
+            lighting.specular *= light.specularDimmer;
         }
     }
 

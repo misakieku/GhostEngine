@@ -90,7 +90,7 @@ public sealed class GPUViewContext : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void ComputeHZBDimensions(uint2 renderSize, out uint2 hzbSize, out uint hzbMipCount)
+    private static void ComputeHZBDimensions(uint2 renderSize, out uint2 hzbSize, out uint hzbMipCount)
     {
         hzbSize = new uint2(Math.Max(1u, (renderSize.x + 1) / 2), Math.Max(1u, (renderSize.y + 1) / 2));
 

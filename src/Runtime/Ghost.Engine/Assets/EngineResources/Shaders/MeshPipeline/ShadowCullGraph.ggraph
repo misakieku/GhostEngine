@@ -70,8 +70,8 @@ compute "Internal/ShadowCullGraph"
                     float3 worldMin, worldMax;
                     TransformAABB(mesh.worldBoundsMin, mesh.worldBoundsMax, localToRWS, worldMin, worldMax);
 
-                    GPUShadowViewData shadowView = LoadData<GPUShadowViewData>(props.shadowViewsBuffer, shadowViewIndex);
-                    isVisible = AABBIntersectFrustum(worldMin, worldMax, shadowView.planes);
+                    GPUShadowCullingData shadowCull = LoadDataAtOffset<GPUShadowCullingData>(props.shadowViewsBuffer, sizeof(GPUShadowViewData) * shadowViewIndex); // Cull data at offset 0
+                    isVisible = AABBIntersectFrustum(worldMin, worldMax, shadowCull.planes);
                 }
             }
 
@@ -111,8 +111,8 @@ compute "Internal/ShadowCullGraph"
             float3 worldCenter = mul(localToRWS, float4(node.bounds.xyz, 1.0f)).xyz;
             float worldRadius = node.bounds.w * maxScale;
 
-            GPUShadowViewData shadowView = LoadData<GPUShadowViewData>(props.shadowViewsBuffer, rec.shadowViewIndex);
-            if (!SphereIntersectFrustum(worldCenter, worldRadius, shadowView.planes))
+            GPUShadowCullingData shadowCull = LoadDataAtOffset<GPUShadowCullingData>(props.shadowViewsBuffer, sizeof(GPUShadowViewData) * rec.shadowViewIndex); // Cull data at offset 0
+            if (!SphereIntersectFrustum(worldCenter, worldRadius, shadowCull.planes))
             {
                 return;
             }
@@ -126,8 +126,8 @@ compute "Internal/ShadowCullGraph"
                 worldRadius,
                 GetCameraPositionWS(),
                 g_ViewData.projectionMatrix[1][1],
-                shadowView.size.z,
-                shadowView.lodErrorThreshold);
+                shadowCull.size.z,
+                shadowCull.lodErrorThreshold);
 
             if (isParentDetailSufficient)
             {
@@ -195,7 +195,7 @@ compute "Internal/ShadowCullGraph"
             Meshlet meshlet = LoadMeshlet(safeMeshletIndex, groupRec.rawBuffer, groupRec.meshletBufferOffset);
 
             InternalShadowCullGraphShaderProperties props = LoadData<InternalShadowCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
-            GPUShadowViewData shadowView = LoadData<GPUShadowViewData>(props.shadowViewsBuffer, groupRec.shadowViewIndex);
+            GPUShadowCullingData shadowCull = LoadDataAtOffset<GPUShadowCullingData>(props.shadowViewsBuffer, sizeof(GPUShadowViewData) * groupRec.shadowViewIndex); // Cull data at offset 0
 
             float maxScale = 1.0f;
             if (WaveIsFirstLane())
@@ -227,8 +227,8 @@ compute "Internal/ShadowCullGraph"
                     meshletParentWorldRadius,
                     GetCameraPositionWS(),
                     g_ViewData.projectionMatrix[1][1],
-                    shadowView.size.z,
-                    shadowView.lodErrorThreshold);
+                    shadowCull.size.z,
+                    shadowCull.lodErrorThreshold);
 
                 // Dual-Error Cut Condition 2: Cluster Error test (Upper bound)
                 // Evaluate against camera perspective to match view pass LOD cut
@@ -238,8 +238,8 @@ compute "Internal/ShadowCullGraph"
                     meshletWorldRadius,
                     GetCameraPositionWS(),
                     g_ViewData.projectionMatrix[1][1],
-                    shadowView.size.z,
-                    shadowView.lodErrorThreshold);
+                    shadowCull.size.z,
+                    shadowCull.lodErrorThreshold);
 
                 if (isParentDetailSufficient || !isClusterDetailSufficient)
                 {
@@ -249,7 +249,7 @@ compute "Internal/ShadowCullGraph"
                 {
                     float3 worldBoxMin, worldBoxMax;
                     TransformAABB(meshlet.boundingBoxMin, meshlet.boundingBoxMax, localToRWS, worldBoxMin, worldBoxMax);
-                    isVisible = AABBIntersectFrustum(worldBoxMin, worldBoxMax, shadowView.planes);
+                    isVisible = AABBIntersectFrustum(worldBoxMin, worldBoxMax, shadowCull.planes);
 
                     if (isVisible)
                     {

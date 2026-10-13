@@ -30,17 +30,11 @@ public readonly struct Result
     public readonly string? Message => _message;
     public readonly bool IsSuccess => _isSuccess;
     public readonly bool IsFailure => !IsSuccess;
-#if ENABLE_RESULT_STACKTRACE
-    public readonly System.Diagnostics.StackTrace StackTrace => _stackTrace;
-#endif
 
     public Result(bool success, string? message = null)
     {
         _isSuccess = success;
         _message = message;
-#if ENABLE_RESULT_STACKTRACE
-        _stackTrace = new System.Diagnostics.StackTrace(1, true);
-#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

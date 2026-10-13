@@ -203,11 +203,7 @@ internal unsafe partial class GhostRenderPipeline
         builder.UseBuffer(visibleMeshlets, AccessFlags.Write);
         builder.UseBuffer(occludedMeshlets, AccessFlags.Write);
         builder.UseBuffer(counterBuffer, AccessFlags.ReadWrite);
-
-        if (hzbTexture.IsValid)
-        {
-            builder.UseTexture(hzbTexture, AccessFlags.Read);
-        }
+        builder.UseTexture(hzbTexture, AccessFlags.Read);
 
         var cullPassSemantic = (uint)PassSemantic.Visibility;
         var supportedVariants = _assetManager.ShaderVariants.GetVariants((PassSemantic)cullPassSemantic);

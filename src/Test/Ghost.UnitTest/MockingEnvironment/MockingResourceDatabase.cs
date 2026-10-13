@@ -77,7 +77,7 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         return handle;
     }
 
-    public uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.AllSubresources)
+    public uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.ALL_SUBRESOURCES)
     {
         // Mock bindless index
         return (uint)handle.ID;
@@ -253,5 +253,10 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
 
         _resources.Clear();
         _samplers.Clear();
+    }
+
+    public bool IsAllocated(Handle<GPUResource> handle)
+    {
+        return _resources.ContainsKey(GetKey(handle));
     }
 }

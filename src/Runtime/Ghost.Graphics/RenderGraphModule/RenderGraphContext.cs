@@ -25,7 +25,7 @@ public interface IRenderGraphContext
     Handle<GPUTexture> GetActualTexture(Identifier<RGTexture> texture);
     Handle<GPUBuffer> GetActualBuffer(Identifier<RGBuffer> buffer);
 
-    uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.AllSubresources);
+    uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.ALL_SUBRESOURCES);
     void GetActualBindlessIndices(Identifier<RGTexture> texture, ReadOnlySpan<uint> subResources, Span<uint> outIndices, BindlessAccess access = BindlessAccess.ShaderResource);
     uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource);
 
@@ -178,7 +178,7 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.AllSubresources)
+    public uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.ALL_SUBRESOURCES)
     {
         return _resourceDatabase.GetBindlessIndex(GetActualTexture(texture).AsResource(), access, subResource);
     }
