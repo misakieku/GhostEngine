@@ -440,7 +440,7 @@ internal unsafe struct Archetype : IDisposable
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ref Chunk GetChunkReference(int index)
+    public readonly ref Chunk GetChunkReference(int index)
     {
         return ref _chunks[index];
     }

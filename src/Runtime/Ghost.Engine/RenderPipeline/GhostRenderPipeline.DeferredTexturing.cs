@@ -167,10 +167,10 @@ internal partial class GhostRenderPipeline
         builder.SetRenderFunc<DeferredTexturingPassData>(static (ref readonly passData, computeCtx) =>
         {
             var visSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.visBuffer).AsResource(), BindlessAccess.ShaderResource);
-            var meshlets0Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visibleMeshletsPass1).AsResource(), BindlessAccess.ShaderResource);
-            var meshlets1Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visibleMeshletsPass2).AsResource(), BindlessAccess.ShaderResource);
-            var tileListSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.variantTileList).AsResource(), BindlessAccess.ShaderResource);
-            var tileOffsetsSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.tileOffsetsBuffer).AsResource(), BindlessAccess.ShaderResource);
+            var meshlets0Srv = computeCtx.GetActualBindlessIndex(passData.visibleMeshletsPass1, BindlessAccess.ShaderResource);
+            var meshlets1Srv = computeCtx.GetActualBindlessIndex(passData.visibleMeshletsPass2, BindlessAccess.ShaderResource);
+            var tileListSrv = computeCtx.GetActualBindlessIndex(passData.variantTileList, BindlessAccess.ShaderResource);
+            var tileOffsetsSrv = computeCtx.GetActualBindlessIndex(passData.tileOffsetsBuffer, BindlessAccess.ShaderResource);
             var actualIndirectArgs = computeCtx.GetActualBuffer(passData.indirectArgsBuffer);
 
             var gb0Uav = computeCtx.GetActualBindlessIndex(passData.gbuffer0, BindlessAccess.UnorderedAccess);

@@ -119,7 +119,7 @@ internal partial class GhostRenderPipeline
 
         builder.SetRenderFunc<ClearClassificationCountersPassData>(static (ref readonly passData, computeCtx) =>
         {
-            var countersUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.countersBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+            var countersUav = computeCtx.GetActualBindlessIndex(passData.countersBuffer, BindlessAccess.UnorderedAccess);
 
             var props = new InternalClearClassificationCountersShaderProperties
             {
@@ -188,11 +188,11 @@ internal partial class GhostRenderPipeline
         builder.SetRenderFunc<TileMaterialClassificationPassData>(static (ref readonly passData, computeCtx) =>
         {
             var visSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.visBuffer).AsResource(), BindlessAccess.ShaderResource);
-            var visibleMeshletsPass1Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visibleMeshletsPass1).AsResource(), BindlessAccess.ShaderResource);
-            var visibleMeshletsPass2Srv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visibleMeshletsPass2).AsResource(), BindlessAccess.ShaderResource);
-            var counterUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
-            var unbinnedUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.unbinnedTiles).AsResource(), BindlessAccess.UnorderedAccess);
-            var maskUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.tileShadingModelMaskBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+            var visibleMeshletsPass1Srv = computeCtx.GetActualBindlessIndex(passData.visibleMeshletsPass1, BindlessAccess.ShaderResource);
+            var visibleMeshletsPass2Srv = computeCtx.GetActualBindlessIndex(passData.visibleMeshletsPass2, BindlessAccess.ShaderResource);
+            var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
+            var unbinnedUav = computeCtx.GetActualBindlessIndex(passData.unbinnedTiles, BindlessAccess.UnorderedAccess);
+            var maskUav = computeCtx.GetActualBindlessIndex(passData.tileShadingModelMaskBuffer, BindlessAccess.UnorderedAccess);
 
             var props = new InternalTileMaterialClassificationShaderProperties
             {
@@ -265,10 +265,10 @@ internal partial class GhostRenderPipeline
 
         builder.SetRenderFunc<PrepareDeferredTexturingIndirectArgsPassData>(static (ref readonly passData, computeCtx) =>
         {
-            var counterUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
-            var indirectUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.indirectArgsBuffer).AsResource(), BindlessAccess.UnorderedAccess);
-            var binOffsetsUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binOffsetsBuffer).AsResource(), BindlessAccess.UnorderedAccess);
-            var binCountersUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binScatterCounters).AsResource(), BindlessAccess.UnorderedAccess);
+            var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
+            var indirectUav = computeCtx.GetActualBindlessIndex(passData.indirectArgsBuffer, BindlessAccess.UnorderedAccess);
+            var binOffsetsUav = computeCtx.GetActualBindlessIndex(passData.binOffsetsBuffer, BindlessAccess.UnorderedAccess);
+            var binCountersUav = computeCtx.GetActualBindlessIndex(passData.binScatterCounters, BindlessAccess.UnorderedAccess);
 
             var props = new InternalPrepareDeferredTexturingIndirectArgsShaderProperties
             {
@@ -314,10 +314,10 @@ internal partial class GhostRenderPipeline
 
         builder.SetRenderFunc<ScatterVariantTilesPassData>(static (ref readonly passData, computeCtx) =>
         {
-            var unbinnedSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.unbinnedTilesBuffer).AsResource(), BindlessAccess.ShaderResource);
-            var binnedUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binnedTileListBuffer).AsResource(), BindlessAccess.UnorderedAccess);
-            var countersUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binScatterCounters).AsResource(), BindlessAccess.UnorderedAccess);
-            var counterBufUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+            var unbinnedSrv = computeCtx.GetActualBindlessIndex(passData.unbinnedTilesBuffer, BindlessAccess.ShaderResource);
+            var binnedUav = computeCtx.GetActualBindlessIndex(passData.binnedTileListBuffer, BindlessAccess.UnorderedAccess);
+            var countersUav = computeCtx.GetActualBindlessIndex(passData.binScatterCounters, BindlessAccess.UnorderedAccess);
+            var counterBufUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
 
             var props = new InternalScatterVariantTilesShaderProperties
             {

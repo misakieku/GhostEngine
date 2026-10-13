@@ -382,8 +382,8 @@ internal unsafe partial class GhostRenderPipeline
 
         builder.SetRenderFunc<TileLightCullingPassData>(static (ref readonly passData, computeCtx) =>
         {
-            var depthSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.depthTexture).AsResource(), BindlessAccess.ShaderResource);
-            var tileLightListUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.tileLightList).AsResource(), BindlessAccess.UnorderedAccess);
+            var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
+            var tileLightListUav = computeCtx.GetActualBindlessIndex(passData.tileLightList, BindlessAccess.UnorderedAccess);
 
             var props = new InternalTileLightCullingShaderProperties
             {
@@ -654,8 +654,8 @@ internal unsafe partial class GhostRenderPipeline
             {
                 computeCtx.ClearBuffer(passData.counterBuffer, passData.counterBufferSize);
 
-                var visibleUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.visibleMeshlets).AsResource(), BindlessAccess.UnorderedAccess);
-                var counterUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+                var visibleUav = computeCtx.GetActualBindlessIndex(passData.visibleMeshlets, BindlessAccess.UnorderedAccess);
+                var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
 
                 var props = new InternalShadowCullGraphShaderProperties
                 {
@@ -728,10 +728,10 @@ internal unsafe partial class GhostRenderPipeline
 
             prepBuilder.SetRenderFunc<PrepareIndirectArgsPassData>(static (ref readonly passData, computeCtx) =>
             {
-                var counterUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
-                var indirectUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.indirectArgsBuffer).AsResource(), BindlessAccess.UnorderedAccess);
-                var binOffsetsUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binOffsetsBuffer).AsResource(), BindlessAccess.UnorderedAccess);
-                var binCountersUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binScatterCounters).AsResource(), BindlessAccess.UnorderedAccess);
+                var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
+                var indirectUav = computeCtx.GetActualBindlessIndex(passData.indirectArgsBuffer, BindlessAccess.UnorderedAccess);
+                var binOffsetsUav = computeCtx.GetActualBindlessIndex(passData.binOffsetsBuffer, BindlessAccess.UnorderedAccess);
+                var binCountersUav = computeCtx.GetActualBindlessIndex(passData.binScatterCounters, BindlessAccess.UnorderedAccess);
 
                 var props = new InternalPrepareMeshletIndirectArgsShaderProperties
                 {
@@ -783,10 +783,10 @@ internal unsafe partial class GhostRenderPipeline
 
             scatterBuilder.SetRenderFunc<ScatterMeshletsPassData>(static (ref readonly passData, computeCtx) =>
             {
-                var unbinnedSrv = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.unbinnedBuffer).AsResource(), BindlessAccess.ShaderResource);
-                var binnedUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binnedBuffer).AsResource(), BindlessAccess.UnorderedAccess);
-                var countersUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.binScatterCounters).AsResource(), BindlessAccess.UnorderedAccess);
-                var counterBufUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualBuffer(passData.counterBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+                var unbinnedSrv = computeCtx.GetActualBindlessIndex(passData.unbinnedBuffer, BindlessAccess.ShaderResource);
+                var binnedUav = computeCtx.GetActualBindlessIndex(passData.binnedBuffer, BindlessAccess.UnorderedAccess);
+                var countersUav = computeCtx.GetActualBindlessIndex(passData.binScatterCounters, BindlessAccess.UnorderedAccess);
+                var counterBufUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
 
                 var props = new InternalScatterMeshletsShaderProperties
                 {
@@ -841,8 +841,8 @@ internal unsafe partial class GhostRenderPipeline
 
             rasterBuilder.SetRenderFunc<PunctualShadowRasterPassData>(static (ref readonly passData, rasterCtx) =>
             {
-                var binnedMeshletsSrv = rasterCtx.ResourceDatabase.GetBindlessIndex(rasterCtx.GetActualBuffer(passData.binnedMeshlets).AsResource(), BindlessAccess.ShaderResource);
-                var binOffsetsSrv = rasterCtx.ResourceDatabase.GetBindlessIndex(rasterCtx.GetActualBuffer(passData.binOffsetsBuffer).AsResource(), BindlessAccess.ShaderResource);
+                var binnedMeshletsSrv = rasterCtx.GetActualBindlessIndex(passData.binnedMeshlets, BindlessAccess.ShaderResource);
+                var binOffsetsSrv = rasterCtx.GetActualBindlessIndex(passData.binOffsetsBuffer, BindlessAccess.ShaderResource);
                 var actualIndirectBuf = rasterCtx.GetActualBuffer(passData.indirectArgs);
 
                 var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.Shadow);

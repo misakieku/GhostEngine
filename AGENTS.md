@@ -259,7 +259,7 @@ src/
   Test/
     Ghost.UnitTest/             # MSTest integration tests (dotnet test)
     Ghost.AssetBaker.Test/      # MSTest (uses MSTest.Sdk 4.0.2) for asset baking tests
-    Ghost.MicroTest/            # Native binding smoke tests (console, internal ITest/TestRunner)
+    Ghost.MicroTest/            # Native binding smoke tests (console, internal ITest/TestRunner) and c# playground
     TestGame/                   # AOT game entry point (WinExe, PublishAot, IsGameProject)
   Tools/
     Ghost.NativeWrapperGen/     # Code-gen tool for native C bindings (Exe)

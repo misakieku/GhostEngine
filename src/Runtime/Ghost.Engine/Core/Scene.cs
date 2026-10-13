@@ -6,6 +6,7 @@ using Ghost.Entities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Ghost.Engine.Core;
@@ -383,7 +384,7 @@ internal sealed class PendingSceneLoad : IDisposable
 
             sharedCom.With(new SceneID { value = Scene.ID });
 
-            var set = new ComponentSetView(typeIds, sharedCom);
+            var set = new ComponentSetView(typeIds, ref Unsafe.AsRef(in sharedCom));
             var entity = World.EntityManager.CreateEntity(set);
             _fileLocalToRuntimeEntity[pending.fileLocalIndex] = entity;
 
@@ -852,7 +853,7 @@ public static class SceneManager
 
             sharedCom.With(new SceneID { value = scene.ID });
 
-            var set = new ComponentSetView(typeIds, sharedCom);
+            var set = new ComponentSetView(typeIds, ref Unsafe.AsRef(in sharedCom));
             var entity = world.EntityManager.CreateEntity(set);
             forwardMap.TryAdd(pending.fileLocalIndex, entity);
 

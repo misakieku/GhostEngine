@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
+using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
@@ -480,7 +481,7 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
         _sharedHashCode = -1;
     }
 
-    public ComponentSet(AllocationHandle allocationHandle, ReadOnlySpan<Identifier<IComponent>> components, SharedComponentSet sharedComponentSet)
+    public ComponentSet(AllocationHandle allocationHandle, ReadOnlySpan<Identifier<IComponent>> components, ref SharedComponentSet sharedComponentSet)
     {
         _components = new UnsafeArray<Identifier<IComponent>>(components.Length, allocationHandle);
         components.CopyTo(_components.AsSpan());
@@ -521,7 +522,7 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
         return obj is ComponentSet set && Equals(set);
     }
 
-    public static bool operator ==(ComponentSet left, ComponentSet right)
+    public static bool operator ==([AllowCopy]ComponentSet left, ComponentSet right)
     {
         return left.Equals(right);
     }
@@ -610,7 +611,7 @@ public ref struct ComponentSetView : IEquatable<ComponentSetView>
     /// </summary>
     /// <param name="components">The collection of component identifiers.</param>
     /// <param name="sharedComponentSet">The shared component set.</param>
-    public ComponentSetView(ReadOnlySpan<Identifier<IComponent>> components, SharedComponentSet sharedComponentSet)
+    public ComponentSetView(ReadOnlySpan<Identifier<IComponent>> components, ref SharedComponentSet sharedComponentSet)
         : this(components, sharedComponentSet.AsSpan())
     {
     }

@@ -148,9 +148,9 @@ internal partial class GhostRenderPipeline
             });
 
             var actualIndirectBuf = unsafeCtx.GetActualBuffer(passData.indirectArgsBuffer);
-            var visibleBufferIndex = unsafeCtx.ResourceDatabase.GetBindlessIndex(unsafeCtx.GetActualBuffer(passData.visibleMeshlets).AsResource(), BindlessAccess.ShaderResource);
-            var binOffsetsIndex = unsafeCtx.ResourceDatabase.GetBindlessIndex(unsafeCtx.GetActualBuffer(passData.binOffsetsBuffer).AsResource(), BindlessAccess.ShaderResource);
-            var visBufferUav = unsafeCtx.ResourceDatabase.GetBindlessIndex(unsafeCtx.GetActualTexture(passData.visBuffer).AsResource(), BindlessAccess.UnorderedAccess);
+            var visibleBufferIndex = unsafeCtx.GetActualBindlessIndex(passData.visibleMeshlets, BindlessAccess.ShaderResource);
+            var binOffsetsIndex = unsafeCtx.GetActualBindlessIndex(passData.binOffsetsBuffer, BindlessAccess.ShaderResource);
+            var visBufferUav = unsafeCtx.GetActualBindlessIndex(passData.visBuffer, BindlessAccess.UnorderedAccess);
 
             var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.Visibility);
             if (dispatchVariants.Length == 0)

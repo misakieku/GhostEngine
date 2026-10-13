@@ -35,6 +35,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Misaki.HighPerformance.Analyzer" Version="1.1.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Ghost.Core\Ghost.Core.csproj" />
   </ItemGroup>
 

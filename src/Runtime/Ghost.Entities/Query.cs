@@ -622,7 +622,7 @@ public unsafe partial struct EntityQuery : IDisposable
     /// Checks if there is at least one entity that matches the query's criteria.
     /// </summary>
     /// <returns>True if at least one entity matches the query's criteria, false otherwise.</returns>
-    public readonly bool HasMatchingEntity()
+    public bool HasMatchingEntity()
     {
         var world = World.GetWorldUncheck(_worldID);
 

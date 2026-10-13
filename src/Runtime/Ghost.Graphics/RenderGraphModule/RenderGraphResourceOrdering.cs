@@ -39,12 +39,7 @@ internal struct RenderGraphResourceOrdering : IDisposable
         }
     }
 
-    public static RenderGraphResourceOrdering Build(
-        RenderGraphResourceRegistry registry,
-        ReadOnlySpan<int> scheduleIndexByPassIndex,
-        ReadOnlySpan<byte> reachability,
-        int passCount,
-        AllocationHandle allocationHandle)
+    public static RenderGraphResourceOrdering Build(RenderGraphResourceRegistry registry, ReadOnlySpan<int> scheduleIndexByPassIndex, ReadOnlySpan<byte> reachability, int passCount, AllocationHandle allocationHandle)
     {
         var ordering = new RenderGraphResourceOrdering(registry.ResourceCount, passCount, allocationHandle);
         if (ordering.ResourceCount == 0 || passCount == 0)
