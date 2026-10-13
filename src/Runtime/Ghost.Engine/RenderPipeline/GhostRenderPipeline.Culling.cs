@@ -430,7 +430,7 @@ internal unsafe partial class GhostRenderPipeline
         return binnedBuffer;
     }
 
-    private void AddBuildHZBPasses(RenderGraph rg, Identifier<RGTexture> visBuffer, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 baseSize, uint2 renderSize)
+    private void AddBuildHZBPasses(RenderGraph rg, Identifier<RGTexture> visBuffer, ref Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 baseSize, uint2 renderSize, Handle<GPUTexture> extractionTarget = default)
     {
         if (hzbMipCount == 0)
         {
@@ -468,6 +468,27 @@ internal unsafe partial class GhostRenderPipeline
             {
                 if (isFirstBatch)
                 {
+                    // Skip for second pass, since the HZB texture is already created in the first pass.
+                    if (!hzbTexture.IsValid)
+                    {
+                        hzbTexture = builder.CreateTexture(new RGTextureDesc
+                        {
+                            sizeMode = RGTextureSizeMode.Absolute,
+                            width = baseSize.x,
+                            height = baseSize.y,
+                            format = TextureFormat.R32_Float,
+                            dimension = TextureDimension.Texture2D,
+                            mipLevels = hzbMipCount,
+                            slice = 1,
+                            usage = TextureUsage.UnorderedAccess | TextureUsage.ShaderResource
+                        }, "Hzb");
+                    }
+
+                    if (extractionTarget.IsValid)
+                    {
+                        builder.QueueTextureExtraction(hzbTexture, extractionTarget, ResourceExtractionFlags.ReleaseAfterExtract);
+                    }
+
                     builder.UseTexture(visBuffer, AccessFlags.Read);
                     builder.UseTexture(hzbTexture, AccessFlags.Write);
                 }

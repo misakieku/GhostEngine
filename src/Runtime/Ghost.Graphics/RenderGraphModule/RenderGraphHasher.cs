@@ -118,6 +118,7 @@ internal static unsafe class RenderGraphHasher
     {
         writer->Write(resource.type);
         writer->Write(resource.isImported);
+        writer->Write(resource.isAllocated);
         writer->Write(resource.isExtracted);
 
         if (resource.isExtracted)

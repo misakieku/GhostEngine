@@ -42,6 +42,17 @@ public partial class RenderGraphTest
         public Identifier<RGTexture> target;
     }
 
+    private struct UnallocatedImportPassData
+    {
+        public Identifier<RGTexture> texture;
+    }
+
+    private struct InPlaceReusePassData
+    {
+        public Identifier<RGTexture> readTexture;
+        public Identifier<RGTexture> writeTexture;
+    }
+
     private MockingRenderDevice _renderDevice = null!;
     private MockingResourceDatabase _resourceDatabase = null!;
     private MockingResourceAllocator _resourceAllocator = null!;
@@ -1202,5 +1213,120 @@ public partial class RenderGraphTest
         Assert.IsNotEmpty(presentBarriers);
         Assert.AreEqual(BarrierLayout.RenderTarget, presentBarriers[0].LayoutBefore);
         Assert.AreEqual(BarrierLayout.Present, presentBarriers[0].LayoutAfter);
+    }
+
+    [TestMethod]
+    public void TestUnallocatedExternalTextureImport()
+    {
+        var unallocatedHandle = _resourceDatabase.CreateEmpty(needEmptySrv: false).AsTexture();
+        Assert.IsFalse(_resourceDatabase.IsAllocated(unallocatedHandle.AsResource()));
+
+        var importedTex = _renderGraph.ImportTexture(unallocatedHandle, ResourceBarrierData.Common, ResourceBarrierData.Common);
+        var readBindlessIndex = uint.MaxValue;
+
+        using (var builder = _renderGraph.AddComputeRenderPass<UnallocatedImportPassData>("TestUnallocatedPass"))
+        {
+            builder.AllowPassCulling(false);
+            builder.UseTexture(importedTex, AccessFlags.Read);
+            builder.SetPassData(new UnallocatedImportPassData { texture = importedTex });
+            builder.SetRenderFunc<UnallocatedImportPassData>((ref readonly data, ctx) =>
+            {
+                var actual = ctx.GetActualTexture(data.texture);
+                readBindlessIndex = ctx.ResourceDatabase.GetBindlessIndex(actual.AsResource(), BindlessAccess.ShaderResource);
+            });
+        }
+
+        var execution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        Assert.AreEqual(0u, readBindlessIndex, "Unallocated external texture must yield bindless index 0.");
+
+        var recordedBarriers = GetRecordedBarriers().ToList();
+        var barriersOnUnallocated = recordedBarriers.Where(b => b.Resource == unallocatedHandle.AsResource()).ToList();
+        Assert.IsEmpty(barriersOnUnallocated, "No barrier should be emitted for an unallocated resource.");
+    }
+
+    [TestMethod]
+    public void TestInPlaceExtractionReuse_BetweenFrames()
+    {
+        var persistentSlot = _resourceDatabase.CreateEmpty(needEmptySrv: false).AsTexture();
+        var texDesc = RGTextureDesc.Absolute(960, 540, TextureFormat.R32_Float, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
+
+        void BuildFramePasses(Identifier<RGTexture> historyTex)
+        {
+            using (var builder = _renderGraph.AddComputeRenderPass<InPlaceReusePassData>("EarlyPass"))
+            {
+                builder.AllowPassCulling(false);
+                builder.UseTexture(historyTex, AccessFlags.Read);
+                builder.SetPassData(new InPlaceReusePassData { readTexture = historyTex });
+                builder.SetRenderFunc<InPlaceReusePassData>(static (ref readonly data, ctx) => { });
+            }
+
+            using (var builder = _renderGraph.AddComputeRenderPass<InPlaceReusePassData>("BuildPass"))
+            {
+                builder.AllowPassCulling(false);
+                var currentTex = builder.CreateTexture(in texDesc, "CurrentHzb");
+                builder.UseTexture(currentTex, AccessFlags.Write);
+                builder.QueueTextureExtraction(currentTex, persistentSlot, ResourceExtractionFlags.ReleaseAfterExtract);
+                builder.SetPassData(new InPlaceReusePassData { writeTexture = currentTex });
+                builder.SetRenderFunc<InPlaceReusePassData>(static (ref readonly data, ctx) => { });
+            }
+        }
+
+        // Frame 0: unallocated import, transient extracted to persistentSlot
+        {
+            var historyTex = _renderGraph.ImportTexture(persistentSlot, ResourceBarrierData.Common, ResourceBarrierData.Common);
+            BuildFramePasses(historyTex);
+
+            var execF0 = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+            Assert.IsNotNull(execF0.Dump);
+            Assert.IsFalse(execF0.Dump.IsCacheHit);
+        }
+
+        // Frame 0 retired: persistentSlot should now be allocated
+        Assert.IsTrue(_resourceDatabase.IsAllocated(persistentSlot.AsResource()), "persistentSlot must be allocated after Frame 0 extraction.");
+
+        // Frame 1: allocated import, transient extracted to persistentSlot -> IN-PLACE REUSE
+        {
+            _renderGraph.Reset();
+            var historyTex = _renderGraph.ImportTexture(persistentSlot, ResourceBarrierData.Common, ResourceBarrierData.Common);
+            BuildFramePasses(historyTex);
+
+            var execF1 = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+            Assert.IsNotNull(execF1.Dump);
+            Assert.IsFalse(execF1.Dump.IsCacheHit, "Frame 1 has allocated resource so graph hash differs from Frame 0.");
+
+            var historyRes = execF1.Dump.Resources.First(r => r.IsImported);
+            var currentRes = execF1.Dump.Resources.First(r => r.Name == "CurrentHzb");
+
+            var f1HistoryBacking = historyRes.BackingResource;
+            var f1CurrentBacking = currentRes.BackingResource;
+
+            // In-place reuse verification!
+            Assert.AreEqual(f1HistoryBacking, f1CurrentBacking, "In-place extraction must reuse the exact same backing resource as the imported predecessor.");
+            Assert.AreEqual(persistentSlot.AsResource(), f1CurrentBacking, "Backing resource must be the persistent slot handle.");
+
+            // Verify barrier chaining:
+            // 1. Transition on the shared resource from Common to ShaderResource (for EarlyPass)
+            // 2. Transition from ShaderResource to UnorderedAccess (for BuildPass) - NO discard
+            // 3. Closing transition to Common
+            var recordedBarriers = GetRecordedBarriers().Where(b => b.Resource == persistentSlot.AsResource()).ToList();
+            Assert.AreEqual(3, recordedBarriers.Count, "Expected exactly 3 chained transitions (Common->SRV, SRV->UAV, UAV->Common) for in-place reused resource.");
+
+            var inPlaceTransition = recordedBarriers.First(b => b.LayoutBefore == BarrierLayout.ShaderResource && b.LayoutAfter == BarrierLayout.UnorderedAccess);
+            Assert.IsFalse(inPlaceTransition.Discard, "In-place reuse transition must NOT specify Discard.");
+        }
+
+        // Frame 2: Cache hit test
+        {
+            _renderGraph.Reset();
+            var historyTex = _renderGraph.ImportTexture(persistentSlot, ResourceBarrierData.Common, ResourceBarrierData.Common);
+            BuildFramePasses(historyTex);
+
+            var execF2 = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+            Assert.IsNotNull(execF2.Dump);
+            Assert.IsTrue(execF2.Dump.IsCacheHit, "Frame 2 must be a cache hit.");
+
+            var currentResF2 = execF2.Dump.Resources.First(r => r.Name == "CurrentHzb");
+            Assert.AreEqual(persistentSlot.AsResource(), currentResF2.BackingResource, "Cache hit must preserve in-place backing resource.");
+        }
     }
 }

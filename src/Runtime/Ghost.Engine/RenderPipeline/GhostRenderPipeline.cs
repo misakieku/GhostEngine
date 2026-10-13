@@ -166,9 +166,9 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             viewContext.RenderGraph.SetViewData(viewBuffer);
 
             var colorTarget = viewContext.RenderGraph.ImportTexture(renderView.ColorTexture, ResourceBarrierData.Present, ResourceBarrierData.Present);
-            var hzb = viewContext.RenderGraph.ImportTexture(viewContext.HzbTexture, ResourceBarrierData.Common, ResourceBarrierData.Common);
+            var historyHzb = viewContext.RenderGraph.ImportTexture(viewContext.HzbTexture, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
-            AddCullingAndVbufferPasses(viewContext, ghostPayload.InstanceCount, hzb, _gpuScene.SceneBufferSrvIndex,
+            AddCullingAndVbufferPasses(viewContext, ghostPayload.InstanceCount, historyHzb, _gpuScene.SceneBufferSrvIndex,
                 out var currentDepth, out var currentVisBuffer,
                 out var visibleMeshlets0, out var visibleMeshlets1);
 
@@ -182,7 +182,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
             viewContext.RenderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
 
-            var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.Default);
+            var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.GenerateDump);
             if (result.IsFailure)
             {
                 return Result.Failure($"Render graph execution failed: {result.Error}");
@@ -201,25 +201,26 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         return Result.Success();
     }
 
-    private void AddCullingAndVbufferPasses(GPUViewContext viewContext, uint instanceCount, Identifier<RGTexture> hzb, uint sceneBuffer,
+    private void AddCullingAndVbufferPasses(GPUViewContext viewContext, uint instanceCount, Identifier<RGTexture> historyHzb, uint sceneBuffer,
         out Identifier<RGTexture> currentDepth, out Identifier<RGTexture> currentVisBuffer, out Identifier<RGBuffer> visibleMeshlets0, out Identifier<RGBuffer> visibleMeshlets1)
     {
         currentVisBuffer = Identifier<RGTexture>.Invalid;
         currentDepth = Identifier<RGTexture>.Invalid;
+        var currentHzb = Identifier<RGTexture>.Invalid;
 
         // Pass 1: Early-Z Hierarchical Meshlet Culling
 
-        AddMeshletCullPass1(viewContext.RenderGraph, hzb, viewContext.HzbMipCount, viewContext.RenderSize, viewContext.HzbSize, instanceCount,
+        AddMeshletCullPass1(viewContext.RenderGraph, historyHzb, viewContext.HzbMipCount, viewContext.RenderSize, viewContext.HzbSize, instanceCount,
             out var unbinnedMeshlets0, out var occludedMeshlets, out var counterBuffer);
 
         AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 0, out var indirectArg0, out var binOffsets0, out var binScatterCounters0);
         visibleMeshlets0 = AddScatterMeshletsPass(viewContext.RenderGraph, unbinnedMeshlets0, binScatterCounters0, counterBuffer, 0);
         AddVisibilityBufferPass(viewContext.RenderGraph, visibleMeshlets0, binOffsets0, indirectArg0, 0, sceneBuffer, viewContext.RenderSize, ref currentVisBuffer);
-        AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzb, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize);
+        AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, ref currentHzb, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize, viewContext.HzbTexture);
 
         // Pass 2: Late-Z Meshlet Culling
 
-        var unbinnedMeshlets1 = AddMeshletCullPass2(viewContext.RenderGraph, occludedMeshlets, counterBuffer, indirectArg0, hzb,
+        var unbinnedMeshlets1 = AddMeshletCullPass2(viewContext.RenderGraph, occludedMeshlets, counterBuffer, indirectArg0, currentHzb,
             viewContext.HzbMipCount, viewContext.RenderSize, viewContext.HzbSize);
 
         AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 1, out var indirectArg1, out var binOffsets1, out var binScatterCounters1);
@@ -228,7 +229,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
         // Export stable depth ONCE at the end of geometry passes
         AddExportVisibilityDepthPass(viewContext.RenderGraph, currentVisBuffer, viewContext.RenderSize, ref currentDepth);
-        AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzb, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize);
+        AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, ref currentHzb, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize);
     }
 
     public void Dispose()

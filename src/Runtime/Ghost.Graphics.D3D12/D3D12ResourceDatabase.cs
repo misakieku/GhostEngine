@@ -209,11 +209,6 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             if (!string.IsNullOrEmpty(name))
             {
                 allocation->SetName(name);
-                var pResource = allocation->GetResource();
-                if (pResource != null)
-                {
-                    pResource->SetName(name);
-                }
                 _resourceName[handle] = name;
             }
 #endif

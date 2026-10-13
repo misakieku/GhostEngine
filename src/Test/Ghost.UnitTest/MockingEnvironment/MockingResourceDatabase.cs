@@ -13,6 +13,7 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         public string? name;
         public int refCount = 1;
         public bool isShared;
+        public bool isAllocated;
         public void* mappedData;
     }
 
@@ -32,7 +33,8 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         _resources.TryAdd(GetKey(handle), new MockResourceRecord
         {
             desc = desc,
-            name = name
+            name = name,
+            isAllocated = true
         });
 
         return handle;
@@ -79,6 +81,11 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
 
     public uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.ALL_SUBRESOURCES)
     {
+        if (!IsAllocated(handle))
+        {
+            return 0;
+        }
+
         // Mock bindless index
         return (uint)handle.ID;
     }
@@ -257,6 +264,11 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
 
     public bool IsAllocated(Handle<GPUResource> handle)
     {
-        return _resources.ContainsKey(GetKey(handle));
+        if (_resources.TryGetValue(GetKey(handle), out var record))
+        {
+            return record.isAllocated;
+        }
+
+        return false;
     }
 }

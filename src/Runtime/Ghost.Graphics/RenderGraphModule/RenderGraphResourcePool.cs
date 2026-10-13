@@ -84,6 +84,7 @@ internal record struct RenderGraphResource : IDisposable
     public uint resolvedHeight;
 
     public bool isImported;
+    public bool isAllocated;
     public bool hasInitialBarrierState;
     public bool hasFinalBarrierState;
     public ResourceBarrierData initialBarrierState;
@@ -99,6 +100,9 @@ internal record struct RenderGraphResource : IDisposable
     public bool isExtracted;
     public Handle<GPUResource> extractionTarget;
     public ResourceExtractionFlags extractionFlags;
+
+    public Identifier<RGResource> inPlacePredecessor;
+    public Identifier<RGResource> inPlaceSuccessor;
 
     public readonly bool CanBeAliased
     {
@@ -122,6 +126,9 @@ internal record struct RenderGraphResource : IDisposable
         producerPasses = new UnsafeHashSet<int>(4, allocationHandle);
         consumerPasses = new UnsafeHashSet<int>(4, allocationHandle);
         backingResource = Handle<GPUResource>.Invalid;
+        inPlacePredecessor = Identifier<RGResource>.Invalid;
+        inPlaceSuccessor = Identifier<RGResource>.Invalid;
+        isAllocated = true;
     }
 
     public void Dispose()
@@ -196,6 +203,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
                 usage = desc.Usage
             },
             isImported = true,
+            isAllocated = _database.IsAllocated(texture.AsResource()),
             hasInitialBarrierState = initialBarrierState.HasValue,
             initialBarrierState = initialBarrierState ?? default,
             hasFinalBarrierState = finalBarrierState.HasValue,
@@ -233,6 +241,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
             index = _resources.Count,
             bufferDesc = desc,
             isImported = true,
+            isAllocated = _database.IsAllocated(buffer.AsResource()),
             hasInitialBarrierState = initialBarrierState.HasValue,
             initialBarrierState = initialBarrierState ?? default,
             hasFinalBarrierState = finalBarrierState.HasValue,
@@ -348,7 +357,72 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         }
     }
 
-    public Error AllocateBackingResources(ref AliasingPlan plan, RenderGraphCompilationCache cache)
+    private bool TryReuseImportedResourceInPlace(int extractedIndex, in RenderGraphResourceOrdering ordering)
+    {
+        ref var extractedRes = ref _resources[extractedIndex];
+        if (!extractedRes.isExtracted || extractedRes.extractionTarget.IsInvalid)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < _resources.Count; i++)
+        {
+            ref var importedRes = ref _resources[i];
+            if (!importedRes.isImported || importedRes.backingResource != extractedRes.extractionTarget)
+            {
+                continue;
+            }
+
+            if (!importedRes.isAllocated || !_database.IsAllocated(importedRes.backingResource))
+            {
+                return false;
+            }
+
+            if (importedRes.type != extractedRes.type)
+            {
+                return false;
+            }
+
+            if (extractedRes.type == RGResourceType.Texture)
+            {
+                if (importedRes.resolvedWidth != extractedRes.resolvedWidth
+                    || importedRes.resolvedHeight != extractedRes.resolvedHeight
+                    || importedRes.rgTextureDesc.format != extractedRes.rgTextureDesc.format
+                    || importedRes.rgTextureDesc.mipLevels != extractedRes.rgTextureDesc.mipLevels
+                    || importedRes.rgTextureDesc.dimension != extractedRes.rgTextureDesc.dimension
+                    || importedRes.rgTextureDesc.slice != extractedRes.rgTextureDesc.slice)
+                {
+                    return false;
+                }
+            }
+            else if (extractedRes.type == RGResourceType.Buffer)
+            {
+                if (importedRes.bufferDesc.Size < extractedRes.bufferDesc.Size
+                    || importedRes.bufferDesc.Stride != extractedRes.bufferDesc.Stride)
+                {
+                    return false;
+                }
+            }
+
+            if (ordering.ResourceCount > 0)
+            {
+                var hasUses = ordering.HasUses(i);
+                if (hasUses && !ordering.AllUsesHappenBefore(i, extractedIndex))
+                {
+                    return false;
+                }
+            }
+
+            extractedRes.backingResource = importedRes.backingResource;
+            extractedRes.inPlacePredecessor = new Identifier<RGResource>(i);
+            importedRes.inPlaceSuccessor = new Identifier<RGResource>(extractedIndex);
+            return true;
+        }
+
+        return false;
+    }
+
+    public Error AllocateBackingResources(ref AliasingPlan plan, RenderGraphCompilationCache cache, in RenderGraphResourceOrdering ordering = default)
     {
         if (_allocatedBackingResources.Count > 0 || _resourceHeap.IsValid)
         {
@@ -396,6 +470,12 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
             if (res.isExtracted)
             {
+                if (TryReuseImportedResourceInPlace(i, ordering))
+                {
+                    cache.UpdateBackingResource(i, res.backingResource);
+                    continue;
+                }
+
                 if (res.type == RGResourceType.Texture)
                 {
                     var textureDesc = res.rgTextureDesc.ToTextureDesc(res.resolvedWidth, res.resolvedHeight);
@@ -474,6 +554,11 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
             if (res.isExtracted)
             {
+                if (TryReuseImportedResourceInPlace(i, default))
+                {
+                    continue;
+                }
+
                 // Extracted resources need a fresh/pooled handle every frame
                 if (res.type == RGResourceType.Texture)
                 {

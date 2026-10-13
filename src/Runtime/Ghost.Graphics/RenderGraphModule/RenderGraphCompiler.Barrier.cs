@@ -156,7 +156,7 @@ internal unsafe partial class RenderGraphCompiler
     {
         predecessor = Identifier<RGResource>.Invalid;
         ref readonly var resource = ref _resourceRegistry.GetResource(resourceId);
-        if (resource.isImported || !resourceOrdering.IsFirstUse(resourceId.Value, scheduleIndex))
+        if (resource.isImported || resource.inPlacePredecessor.IsValid || !resourceOrdering.IsFirstUse(resourceId.Value, scheduleIndex))
         {
             return false;
         }
@@ -382,11 +382,34 @@ internal unsafe partial class RenderGraphCompiler
         for (var usageIndex = 0; usageIndex < usages.Length; usageIndex++)
         {
             ref readonly var usage = ref usages[usageIndex];
+            ref readonly var res = ref _resourceRegistry.GetResource(usage.resource);
+            if (res.isImported && !res.isAllocated)
+            {
+                continue;
+            }
+
             ref var resourceState = ref resourceStates[usage.resource.Value];
             if (HasQueueAcquire(handoffs, scheduleIndex, usage.resource))
             {
                 resourceState = new CompiledResourceState(usage.targetState, usage.writes);
                 continue;
+            }
+
+            if (!resourceState.isValid && res.inPlacePredecessor.IsValid)
+            {
+                var predState = resourceStates[res.inPlacePredecessor.Value];
+                if (predState.isValid)
+                {
+                    resourceState = predState;
+                }
+                else
+                {
+                    ref readonly var predRes = ref _resourceRegistry.GetResource(res.inPlacePredecessor);
+                    if (predRes.hasInitialBarrierState)
+                    {
+                        resourceState = new CompiledResourceState(predRes.initialBarrierState, writes: false);
+                    }
+                }
             }
 
             var aliasingPredecessor = Identifier<RGResource>.Invalid;
@@ -485,24 +508,52 @@ internal unsafe partial class RenderGraphCompiler
         for (var i = 0; i < _resourceRegistry.ResourceCount; i++)
         {
             ref readonly var resource = ref _resourceRegistry.GetResourceByIndex(i);
-            if (!resource.isImported || !resource.hasFinalBarrierState)
+            if (resource.isImported)
             {
-                continue;
-            }
+                if (!resource.isAllocated || !resource.hasFinalBarrierState)
+                {
+                    continue;
+                }
 
-            var finalState = resource.finalBarrierState;
+                if (resource.inPlaceSuccessor.IsValid)
+                {
+                    ref readonly var succState = ref resourceStates[resource.inPlaceSuccessor.Value];
+                    if (succState.isValid)
+                    {
+                        resourceStates[i] = succState;
+                    }
+                }
 
-            ref var currentState = ref resourceStates[i];
-            if (!currentState.isValid)
-            {
-                if (resource.hasInitialBarrierState
-                    && (resource.initialBarrierState.layout != finalState.layout
-                        || resource.initialBarrierState.access != finalState.access
-                        || resource.initialBarrierState.sync != finalState.sync))
+                var finalState = resource.finalBarrierState;
+
+                ref var currentState = ref resourceStates[i];
+                if (!currentState.isValid)
+                {
+                    if (resource.hasInitialBarrierState
+                        && (resource.initialBarrierState.layout != finalState.layout
+                            || resource.initialBarrierState.access != finalState.access
+                            || resource.initialBarrierState.sync != finalState.sync))
+                    {
+                        count += AddTransition(
+                            new Identifier<RGResource>(i),
+                            resource.initialBarrierState,
+                            finalState,
+                            Identifier<RGResource>.Invalid,
+                            BarrierFlags.None,
+                            activeQueue,
+                            ref writer);
+                        currentState = new CompiledResourceState(finalState, writes: false);
+                    }
+                    continue;
+                }
+
+                if (currentState.state.layout != finalState.layout
+                    || currentState.state.access != finalState.access
+                    || currentState.state.sync != finalState.sync)
                 {
                     count += AddTransition(
                         new Identifier<RGResource>(i),
-                        resource.initialBarrierState,
+                        currentState.state,
                         finalState,
                         Identifier<RGResource>.Invalid,
                         BarrierFlags.None,
@@ -510,22 +561,32 @@ internal unsafe partial class RenderGraphCompiler
                         ref writer);
                     currentState = new CompiledResourceState(finalState, writes: false);
                 }
-                continue;
             }
-
-            if (currentState.state.layout != finalState.layout
-                || currentState.state.access != finalState.access
-                || currentState.state.sync != finalState.sync)
+            else if (resource.isExtracted && !resource.inPlacePredecessor.IsValid && resource.extractionTarget.IsValid)
             {
-                count += AddTransition(
-                    new Identifier<RGResource>(i),
-                    currentState.state,
-                    finalState,
-                    Identifier<RGResource>.Invalid,
-                    BarrierFlags.None,
-                    activeQueue,
-                    ref writer);
-                currentState = new CompiledResourceState(finalState, writes: false);
+                for (var j = 0; j < _resourceRegistry.ResourceCount; j++)
+                {
+                    ref readonly var targetRes = ref _resourceRegistry.GetResourceByIndex(j);
+                    if (targetRes.isImported && targetRes.backingResource == resource.extractionTarget && targetRes.hasFinalBarrierState)
+                    {
+                        ref var bState = ref resourceStates[i];
+                        if (bState.isValid && (bState.state.layout != targetRes.finalBarrierState.layout
+                            || bState.state.access != targetRes.finalBarrierState.access
+                            || bState.state.sync != targetRes.finalBarrierState.sync))
+                        {
+                            count += AddTransition(
+                                new Identifier<RGResource>(i),
+                                bState.state,
+                                targetRes.finalBarrierState,
+                                Identifier<RGResource>.Invalid,
+                                BarrierFlags.None,
+                                activeQueue,
+                                ref writer);
+                            bState = new CompiledResourceState(targetRes.finalBarrierState, writes: false);
+                        }
+                        break;
+                    }
+                }
             }
         }
 

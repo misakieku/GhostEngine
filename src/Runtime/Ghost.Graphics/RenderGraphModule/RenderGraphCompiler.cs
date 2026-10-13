@@ -199,7 +199,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             using var resourceOrdering = RenderGraphResourceOrdering.Build(_resourceRegistry, scheduleIndexByPassIndex, reachability, compiledPassCount, schedulingScope.AllocationHandle);
 
             aliasingPlan = RenderGraphAliasingBuilder.Build(_resourceRegistry, _resourceAllocator, resourceOrdering, flags.HasFlag(RGFlags.NoAliasing), allocationHandle);
-            error = _resourceRegistry.AllocateBackingResources(ref aliasingPlan, _compilationCache);
+            error = _resourceRegistry.AllocateBackingResources(ref aliasingPlan, _compilationCache, in resourceOrdering);
 
             if (error != Error.None)
             {

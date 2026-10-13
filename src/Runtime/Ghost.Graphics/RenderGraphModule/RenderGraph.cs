@@ -471,6 +471,28 @@ public sealed class RenderGraph : IDisposable
     }
 
     /// <summary>
+    /// Queues extraction of a transient texture to an external persistent texture handle upon frame execution.
+    /// </summary>
+    public void QueueTextureExtraction(Identifier<RGTexture> src, Handle<GPUTexture> dst, ResourceExtractionFlags flags = ResourceExtractionFlags.None)
+    {
+        ref var resource = ref _resourceRegistry.GetResource(src);
+        resource.isExtracted = true;
+        resource.extractionTarget = dst.AsResource();
+        resource.extractionFlags = flags;
+    }
+
+    /// <summary>
+    /// Queues extraction of a transient buffer to an external persistent buffer handle upon frame execution.
+    /// </summary>
+    public void QueueBufferExtraction(Identifier<RGBuffer> src, Handle<GPUBuffer> dst, ResourceExtractionFlags flags = ResourceExtractionFlags.None)
+    {
+        ref var resource = ref _resourceRegistry.GetResource(src);
+        resource.isExtracted = true;
+        resource.extractionTarget = dst.AsResource();
+        resource.extractionFlags = flags;
+    }
+
+    /// <summary>
     /// Add a new raster render pass to the render graph.
     /// </summary>
     /// <remarks>
@@ -561,6 +583,10 @@ public sealed class RenderGraph : IDisposable
 
             var dst = res.extractionTarget;
             var src = res.backingResource;
+            if (src == dst)
+            {
+                continue;
+            }
             if (res.extractionFlags.HasFlag(ResourceExtractionFlags.ReleaseAfterExtract))
             {
                 // Deferred Replace: dst keeps its old resource/descriptors until this frame retires, so

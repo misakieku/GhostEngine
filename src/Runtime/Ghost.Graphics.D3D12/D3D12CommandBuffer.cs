@@ -295,7 +295,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                     ref var record = ref r.Value;
                     if (!record.Allocated)
                     {
-                        return;
+                        continue;
                     }
 
                     var beforeSync = desc.SyncBefore;
@@ -349,7 +349,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                     ref var record = ref r.Value;
                     if (!record.Allocated)
                     {
-                        return;
+                        continue;
                     }
 
                     var beforeLayout = desc.LayoutBefore;

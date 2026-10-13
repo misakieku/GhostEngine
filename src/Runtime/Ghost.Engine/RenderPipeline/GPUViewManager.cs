@@ -115,33 +115,22 @@ public sealed class GPUViewContext : IDisposable
             _shadowAllocator.Reset(shadowAtlasResolution);
         }
 
-        if (!HzbTexture.IsValid || RenderSize.x != renderSize.x || RenderSize.y != renderSize.y)
+        ComputeHZBDimensions(renderSize, out var baseSize, out var hzbMipCount);
+
+        HzbSize = baseSize;
+        HzbMipCount = hzbMipCount;
+
+        if (!HzbTexture.IsValid)
         {
-            if (HzbTexture.IsValid)
-            {
-                _database.ReleaseResource(HzbTexture.AsResource());
-            }
-
-            ComputeHZBDimensions(renderSize, out var baseSize, out var hzbMipCount);
-
-            HzbSize = baseSize;
-            HzbMipCount = hzbMipCount;
-
-            var desc = new TextureDesc
-            {
-                Width = HzbSize.x,
-                Height = HzbSize.y,
-                Format = TextureFormat.R32_Float,
-                Dimension = TextureDimension.Texture2D,
-                MipLevels = (ushort)HzbMipCount,
-                Slice = 1,
-                Usage = TextureUsage.UnorderedAccess | TextureUsage.ShaderResource
-            };
-
-            HzbTexture = _allocator.CreateTexture(in desc, StringUtility.DebugFormat("View_{0}_HZB", ViewId));
-            RenderSize = renderSize;
-            prevViewProjMatrix = default; // Zero out so first frame or resize is not static
+            HzbTexture = _database.CreateEmpty().AsTexture();
+            prevViewProjMatrix = default; // Zero out so first frame is not static
         }
+        else if (RenderSize.x != renderSize.x || RenderSize.y != renderSize.y)
+        {
+            prevViewProjMatrix = default; // Zero out so resize is not static
+        }
+
+        RenderSize = renderSize;
     }
 
     public void Dispose()
