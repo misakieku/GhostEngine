@@ -68,7 +68,7 @@ public Result<RGExecution, Error> CompileAndExecute(
 3. `_compiler.Compile(viewState, graphHash, _passes, _memoryPool.AllocationHandle)`.
 4. `_context.RelativeScale = graph.scale`.
 5. `_executor.Execute(executionContext, _context, graph, flags, out graphicsSubmission, out computeSubmission)`.
-6. For every extracted resource: `QueueReplace(dst, src)` when `ReleaseAfterExtract`, otherwise `QueueSwap(dst, src)` plus `ReleasePooledResourceDeferred(src)`. Both take effect at frame retire so in-flight readers of the persistent handle never observe a not-yet-written transient.
+6. For every extracted resource: when in-place reuse occurred (`src == dst`), no swap or replacement is needed and assignment is skipped. Otherwise `QueueReplace(dst, src)` when `ReleaseAfterExtract`, or `QueueSwap(dst, src)` plus `ReleasePooledResourceDeferred(src)`. Both take effect at frame retire so in-flight readers of the persistent handle never observe a not-yet-written transient.
 7. `GenerateDump(graph, viewState)` when `RGExecutionFlags.GenerateDump`.
 
 `CompiledGraph` is a `using` local; only the cache retains artifacts. `_memoryPool` is a `MemoryPool<TLSF, TLSF.CreationOptions>` (16 B alignment, 16 MB initial chunk) used solely for its `AllocationHandle`.
@@ -198,7 +198,7 @@ Interval overlap on `[firstUse, lastUse]` is insufficient because the schedule i
 
 `ResizeCachedSlots` handles cache-hit-with-growth: it walks cached placements, reuses the representative offset for members sharing an old offset, re-derives each slot's size as the max aligned size of its members, and lays slots out sequentially. Alias membership is preserved verbatim, so command bytes stay valid.
 
-`AllocateBackingResources` releases any previous heap, then allocates one heap of `totalHeapSize + 65536` at 64 KB alignment with `HeapFlags.AllowAllBufferAndTexture` / `HeapType.Default`, and creates each non-imported resource as `ResourceAllocationType.Suballocation` at its `heapOffset`. Extracted resources instead take `CreatePooledTexture` / `CreatePooledBuffer`; upload buffers take a dedicated committed buffer. Only suballocated and upload handles are appended to `_allocatedBackingResources`.
+`AllocateBackingResources` releases any previous heap, then allocates one heap of `totalHeapSize + 65536` at 64 KB alignment with `HeapFlags.AllowAllBufferAndTexture` / `HeapType.Default`, and creates each non-imported resource as `ResourceAllocationType.Suballocation` at its `heapOffset`. Extracted resources first attempt `TryReuseImportedResourceInPlace`: if the target handle matches an allocated imported resource whose lifetime strictly precedes the transient resource's first use (`AllUsesHappenBefore`), the imported resource's backing handle is reused directly and the resources are linked via `inPlacePredecessor` and `inPlaceSuccessor`. Non-reused extracted resources take `CreatePooledTexture` / `CreatePooledBuffer`; upload buffers take a dedicated committed buffer. Only suballocated and upload handles are appended to `_allocatedBackingResources`.
 
 ---
 
@@ -219,11 +219,11 @@ Read target states come from `GetBufferReadBarrierData`: textures → `ShaderRes
 `EmitImplicitTransitions` per usage:
 
 1. A queued acquire for this (scheduleIndex, resource) subsumes the transition: record state, emit nothing.
-2. `TryGetAliasingPredecessor` — first use of a non-imported resource sharing a slot with more than one member — selects the predecessor with the largest last-use schedule index that provably precedes it, and sets `FirstUsage | Discard`.
+2. `TryGetAliasingPredecessor` — first use of a non-imported resource sharing a slot with more than one member (and having no `inPlacePredecessor`) — selects the predecessor with the largest last-use schedule index that provably precedes it, and sets `FirstUsage | Discard`.
 3. Exact state match elides, **unless** `forceUavOrdering`: same state, `access == UnorderedAccess`, and either side writes. That case emits with `BarrierFlags.Force`, because a UAV WAW would otherwise be deleted by state equality.
-4. Invalid tracked state adds `FirstUsage | Discard`; valid state adds `ExplicitSource`.
+4. If `inPlacePredecessor` is valid, untracked initial state is inherited from the predecessor's tracked state (`CompiledResourceState`), setting `ExplicitSource` without `Discard`. Otherwise, invalid tracked state adds `FirstUsage | Discard`; valid state adds `ExplicitSource`.
 
-`EmitClosingBarriers` restores `finalBarrierState` for imported resources, including the never-used case (compare `initialBarrierState` to `finalBarrierState`).
+`EmitClosingBarriers` restores `finalBarrierState` for imported resources (including synchronizing state from `inPlaceSuccessor` before closing), and transitions non-in-place extracted resources targeting an imported handle to that handle's `finalBarrierState`. Unallocated imported resources are skipped.
 
 ### Queue handoffs
 
@@ -306,7 +306,7 @@ Rollback paths: barrier or submit errors and pass-lambda exceptions call `Rollba
 
 `ComputeGraphHash` writes into a `BufferWriter` and returns `XxHash64.HashToUInt64`.
 
-**Resource definitions first, in registry order**, preceded by `ResourceCount`: `type`, `isImported`, `isExtracted`, and when extracted the `extractionTarget` hash plus flags; `hasInitialBarrierState` and the state when present; `hasFinalBarrierState` and the state when present. Then per type — imported textures: format, dimension, usage, width, height, mipLevels, slice. Transient textures: format, sizeMode, then width/height (Absolute) or scaleX/scaleY (Relative), dimension, mipLevels, slice, usage, clearAtFirstUse, discardAtLastUse, clearColor, clearDepth, clearStencil. Buffers: `Size`, `Stride`, `Usage`, `HeapType`.
+**Resource definitions first, in registry order**, preceded by `ResourceCount`: `type`, `isImported`, `isAllocated`, `isExtracted`, and when extracted the `extractionTarget` hash plus flags; `hasInitialBarrierState` and the state when present; `hasFinalBarrierState` and the state when present. Then per type — imported textures: format, dimension, usage, width, height, mipLevels, slice. Transient textures: format, sizeMode, then width/height (Absolute) or scaleX/scaleY (Relative), dimension, mipLevels, slice, usage, clearAtFirstUse, discardAtLastUse, clearColor, clearDepth, clearStencil. Buffers: `Size`, `Stride`, `Usage`, `HeapType`.
 
 **Then passes**, preceded by count: `type`, `allowCulling`, `asyncCompute`, `allowAsyncComputeOverlap`, `WritesExternalResource`, depth attachment as (`id.Value`, `accessFlags`, `usage`), `maxColorIndex`, then per color slot (`id.Value`, `accessFlags`, `usage`), then every `resourceReads` / `resourceWrites` / `resourceCreates` set per type plus `randomAccess` and `renderTargetWrites`, then `GetRenderFuncHashCode()`.
 
@@ -324,7 +324,7 @@ Excluded by design: pass and resource names, `ViewState` and resolved dimensions
 
 `CachedCompilation` holds: `compiledPassIndices`, `passCulledFlags`, `nativePasses` (merged-index lists deep-copied), `logicalToPhysical`, `placedResources` + flattened `aliasedLogicalResources`, `totalHeapSize`, `resourceFirstUseScheduleIndices`, `resourceLastUseScheduleIndices`, `backingResources`, `commandBytes`, `viewState`.
 
-On a perfect hit, `RestoreFromCache` re-applies `passCulledFlags` and rebuilds an `AliasingPlan` from the cached placements; `RestoreBackingResources` re-points non-imported resources at cached handles, except extracted ones which always take a fresh pooled handle. On a hit with growth, `ResizeCachedSlots` plus `AllocateBackingResources` run instead and `cached.viewState` is updated.
+On a perfect hit, `RestoreFromCache` re-applies `passCulledFlags` and rebuilds an `AliasingPlan` from the cached placements; `RestoreBackingResources` re-points non-imported resources at cached handles, except extracted ones which attempt in-place reuse (or take a fresh pooled handle if not reusing). On a hit with growth, `ResizeCachedSlots` plus `AllocateBackingResources` run instead and `cached.viewState` is updated.
 
 `UpdateBackingResource(logicalIndex, handle)` is called from `AllocateBackingResources` per resource so a partially-failed allocation cannot leave a stale cached handle.
 

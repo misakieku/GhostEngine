@@ -12,9 +12,9 @@ Ask what owns the data:
 
 | Kind | Created by | Lives | Shares memory with other resources |
 |---|---|---|---|
-| Transient | `CreateTexture` / `CreateBuffer` | One frame | Yes |
-| Imported | `ImportTexture` / `ImportBuffer` | Beyond the graph | No |
-| Extracted | transient + `QueueTextureExtraction` / `QueueBufferExtraction` | Beyond the graph, after the frame | No |
+| Transient | `CreateTexture` / `CreateBuffer` | One frame | Yes (heap aliasing) |
+| Imported | `ImportTexture` / `ImportBuffer` | Beyond the graph | In-place reuse with matching extracted transient |
+| Extracted | transient + `QueueTextureExtraction` / `QueueBufferExtraction` | Beyond the graph, after the frame | In-place reuse with matching imported predecessor |
 
 The distinction that matters is whether the graph may reuse the memory. Transients are disposable; imported and extracted resources have a life outside the frame and are pinned. Getting this wrong is the difference between a correct frame and a resource whose contents were quietly recycled by an unrelated pass.
 
@@ -81,6 +81,15 @@ var colorTarget = renderGraph.ImportTexture(
 
 > **Note:** An import with no `initialState` starts the frame with unknown contents as far as the graph is concerned, so its first use **discards** rather than loads. If a pass reads what a previous frame wrote — history buffers, temporal accumulation, an HZB carried across frames — supply `initialState`. Without it the read is undefined.
 
+### Importing Unallocated External Resources
+
+Persistent handles can be created empty before any backing GPU memory exists (e.g. `_database.CreateEmpty(needEmptySrv: false).AsTexture()` on startup before the first history buffer is rendered).
+
+The graph safely imports unallocated handles:
+- **Bindless Index 0**: Passes querying the bindless index of an unallocated resource receive `0`. Shaders can check `if (historyBuffer != 0)` to cleanly skip history reprojection or occlusion culling on Frame 0.
+- **Zero Barriers**: The graph emits no barrier transitions for unallocated resources.
+- **Dynamic Recompilation**: The compilation cache tracks allocation state (`isAllocated`). Frame 0 compiles for the unallocated state, Frame 1 recompiles when the backing memory is allocated by extraction, and Frame 2+ achieves a 100% cache hit.
+
 ## Keeping a Resource for Next Frame
 
 Extract it from the pass that produces it:
@@ -90,16 +99,35 @@ using (var builder = renderGraph.AddComputeRenderPass<BuildHzbPassData>("BuildHZ
 {
     var hzb = builder.CreateTexture(RGTextureDesc.Absolute(...), "Hzb");
     builder.UseRandomAccessTexture(hzb);
-    builder.QueueTextureExtraction(hzb, persistentHzbHandle);
+    builder.QueueTextureExtraction(hzb, persistentHzbHandle, ResourceExtractionFlags.ReleaseAfterExtract);
     // ...
 }
 ```
 
-Extraction pins the resource out of memory sharing and gives it a fresh pooled backing each frame. It also counts as a read of the resource, so the pass that extracts it does not need a separate `UseTexture`.
+Extraction pins the resource out of general transient heap aliasing and associates it with a persistent external handle. It also counts as a read of the resource, so the pass that extracts it does not need a separate `UseTexture`.
 
 The handover happens when the frame **retires**, not immediately. That is deliberate: GPU work in flight may still be sampling `persistentHzbHandle`, and swapping it at record time would let that reader see this frame's not-yet-written texture. Deferring is what makes history-buffer patterns correct without an explicit stall — but it also means you must not read `persistentHzbHandle` expecting this frame's results.
 
 `ResourceExtractionFlags.ReleaseAfterExtract` replaces the destination's resource instead of swapping the two. Use the default unless you have a reason.
+
+### In-Place Extraction Reuse (History Buffers)
+
+A common rendering pattern is a multi-frame history buffer: a frame imports `historyHzb`, samples it during early occlusion culling, generates `currentHzb` later in the frame, and extracts `currentHzb` into `persistentHzbHandle` for the next frame.
+
+Without special handling, this pattern would require allocating two full-resolution textures every frame (or manually managing allocations outside the graph), even though `historyHzb` and `currentHzb` never overlap in time.
+
+The render graph solves this automatically via **In-Place Extraction Reuse**:
+
+If an extracted transient resource targets the same persistent handle as an imported resource in the same frame, the compiler checks:
+1. **Allocation**: The imported resource is allocated.
+2. **Descriptor Match**: Dimensions, format, mip levels, array slices, and usage flags match.
+3. **Disjoint Lifetimes**: All uses of the imported resource strictly precede the extracted transient's first use (`AllUsesHappenBefore(imported, extracted)`).
+
+When all three conditions hold:
+- **Single Backing Allocation**: The transient resource directly reuses the imported resource's physical backing allocation. Exactly one texture is allocated in video memory.
+- **Barrier State Chaining**: The transition from the imported resource's last access (e.g., `ShaderResource`) to the transient's first access (e.g., `UnorderedAccess`) is chained continuously with `ExplicitSource` and **no Discard** flag. Aliasing barriers are bypassed.
+- **Zero-Cost Retirement**: At frame retirement, because the transient already shares the persistent handle's backing resource, no reallocation, copy, or pointer swap is performed.
+- **Closing State Restoration**: The closing barrier synchronizes from the transient successor and cleanly transitions the shared resource to the imported handle's declared `finalState` (e.g. `Common`).
 
 ## Letting the Graph Share Memory
 
@@ -113,7 +141,7 @@ Three consequences reach into your code:
 
 **A capture tool shows one allocation with several names.** This confuses debugging more than anything else in the graph. See [Debugging and Validation](debugging.md).
 
-Two things are excluded because sharing them would be wrong: buffers created with `HeapType.Upload`, which the CPU maps, and anything imported or extracted, which outlives the frame.
+Two things are excluded from general transient heap aliasing: buffers created with `HeapType.Upload`, which the CPU maps, and anything imported or extracted, which outlives the frame (though an extracted transient can reuse an imported predecessor's memory in place).
 
 ## Avoid
 

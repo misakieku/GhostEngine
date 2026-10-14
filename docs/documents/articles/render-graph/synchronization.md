@@ -31,6 +31,16 @@ The practical consequence is that these two descriptor flags are per-resource de
 
 Imported and extracted resources are protected from the discard case: their last use always stores, because something outside the graph still needs those pixels.
 
+## In-Place Reuse and History Chaining
+
+When an extracted transient resource reuses an imported predecessor in place (such as an HZB or temporal history texture; see [Resources](resources.md#in-place-extraction-reuse-history-buffers)), the graph treats them as a single continuous physical resource on the GPU:
+
+- **State Inheritance**: The transient resource inherits its initial tracking state directly from the imported predecessor's last usage.
+- **No Discard**: The transition from the imported state (e.g. `ShaderResource`) to the transient's first state (e.g. `UnorderedAccess`) is emitted with `ExplicitSource` and preserves contents without `BarrierFlags.Discard`.
+- **No Aliasing Barriers**: Because physical memory is preserved across the boundary rather than aliased with unrelated transient allocations, aliasing barriers are suppressed.
+- **Closing Barriers**: At frame end, the closing barrier synchronizes from the transient successor and transitions the underlying resource back to the imported handle's declared `finalState` (e.g. `Common`).
+- **Unallocated Imports**: Imported handles that are not yet allocated (such as Frame 0 history textures) emit zero barriers and do not interrupt barrier batches.
+
 ## Render Pass Merging
 
 Consecutive raster passes sharing the same attachments are merged into one hardware render pass. Inside it, attachment contents stay in tile memory instead of round-tripping to video memory between passes, and clears become load actions. On a tiled GPU this is the difference between a frame that fits in budget and one that does not.

@@ -2,7 +2,7 @@
 
 ## Work in Progress
 
-**Graph debugging tooling is early.** There is one graph-specific diagnostic — a text **dump** listing passes, resources, memory placement, and a disassembled command stream. There is no visualizer, no lifetime chart, no per-pass GPU markers, and no switch to disable aliasing or clobber resources. Day-to-day debugging means reading that text alongside a capture from Pix or Nsight Graphics.
+**Graph debugging tooling is early.** There is one graph-specific diagnostic — a text **dump** listing passes, resources, memory placement, and a disassembled command stream. There is no visualizer, no lifetime chart, and no per-pass GPU markers. Day-to-day debugging means reading that text alongside a capture from Pix or Nsight Graphics.
 
 It answers the questions that block work — did my pass run, where did it run, what touched my resource — but manually. If you are coming from a toolchain with a graph inspector, expect to be slower here for now.
 
