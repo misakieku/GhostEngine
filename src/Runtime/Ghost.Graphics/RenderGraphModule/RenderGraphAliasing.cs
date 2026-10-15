@@ -471,13 +471,7 @@ internal static class RenderGraphAliasingBuilder
     /// <summary>
     /// Rebuilds size-dependent placement while preserving cached alias groups exactly.
     /// </summary>
-    public static AliasingPlan ResizeCachedSlots(
-        RenderGraphResourceRegistry registry,
-        IResourceAllocator allocator,
-        UnsafeHashMap<int, int> logicalToPlaced,
-        ReadOnlySpan<PlacedResourceData> placedData,
-        ReadOnlySpan<int> aliasedLogicalResources,
-        AllocationHandle allocationHandle)
+    public static AliasingPlan ResizeCachedSlots(RenderGraphResourceRegistry registry, IResourceAllocator allocator, UnsafeHashMap<int, int> logicalToPlaced, ReadOnlySpan<PlacedResourceData> placedData, ReadOnlySpan<int> aliasedLogicalResources, AllocationHandle allocationHandle)
     {
         var plan = new AliasingPlan(allocationHandle);
         if (placedData.IsEmpty)
@@ -570,12 +564,7 @@ internal static class RenderGraphAliasingBuilder
         return plan;
     }
 
-    public static AliasingPlan RestoreFromCache(
-        UnsafeHashMap<int, int> logicalToPlaced,
-        ReadOnlySpan<PlacedResourceData> placedData,
-        ReadOnlySpan<int> aliasedLogicalResources,
-        ulong totalHeapSize,
-        AllocationHandle allocationHandle)
+    public static AliasingPlan RestoreFromCache(UnsafeHashMap<int, int> logicalToPlaced, ReadOnlySpan<PlacedResourceData> placedData, ReadOnlySpan<int> aliasedLogicalResources, ulong totalHeapSize, AllocationHandle allocationHandle)
     {
         var plan = new AliasingPlan(allocationHandle)
         {

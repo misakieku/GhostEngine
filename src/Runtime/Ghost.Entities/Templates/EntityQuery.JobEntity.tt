@@ -96,8 +96,8 @@ internal unsafe struct JobEntityBatch<TJob, <#= generics #>> : IJobParallelFor
                 var pMask = (ulong*)(pChunk + enableOff<#= j #>);
                 validMask &= pMask[block];
             }
-<# } #>
 
+<# } #>
             // Enforce EntityQuery Mask hidden enableable constraints
             for (var h = 0; h < batch.hiddenEnableCount; h++)
             {
@@ -139,7 +139,7 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, <#= generics #>>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+    public JobHandle ScheduleEntityParallel<TJob, <#= generics #>>(scoped in TJob jobData, int batchSize, JobPriority priority = JobPriority.Normal, JobHandle parentJob = default, bool forceSchedule = false, params Span<JobHandle> dependencies)
         where TJob : IJobEntity<<#= generics #>>
 <#= restrictions #>
     {
@@ -273,7 +273,7 @@ public unsafe partial struct EntityQuery
 
         if (forceSchedule || batches.Count > batchSize)
         {
-            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, false, priority, parentJob, dependencies);
 
             var disposeJob = new DisposeJobEntity<#= i #>
             {
@@ -286,7 +286,7 @@ public unsafe partial struct EntityQuery
         }
         else
         {
-            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, parentJob, dependencies);
             batches.Dispose();
             return JobHandle.Invalid;
         }

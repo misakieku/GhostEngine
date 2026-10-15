@@ -7,6 +7,7 @@ using Ghost.Graphics;
 namespace Ghost.Engine.Systems;
 
 [RenderPipelineSystem<GhostRenderPipelineSettings>]
+[UpdateBefore<AddGPUViewSystem>]
 internal class RemoveGPUViewSystem : SystemBase
 {
     private RenderEngine _renderEngine = null!;
@@ -24,7 +25,7 @@ internal class RemoveGPUViewSystem : SystemBase
         RequireQueryForUpdate(_viewQueryID);
     }
 
-    protected override void OnUpdate(scoped in SystemAPI systemAPI)
+    protected override void OnUpdate(scoped in SystemUpdateAPI systemAPI)
     {
         var payload = (GhostRenderPayload)_renderEngine.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
         ref var viewQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_viewQueryID);

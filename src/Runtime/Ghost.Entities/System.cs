@@ -1,11 +1,26 @@
 using Ghost.Core;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Entities;
 
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false)]
+public sealed class MainThreadAttribute : Attribute;
+
 public readonly ref struct SystemAPI
+{
+    /// <summary>
+    /// Gets the world current system is running on.
+    /// </summary>
+    public required World World
+    {
+        get; init;
+    }
+}
+
+public readonly ref struct SystemUpdateAPI
 {
     /// <summary>
     /// Gets the tIme data of current frame.
@@ -25,12 +40,47 @@ public readonly ref struct SystemAPI
     {
         get; init;
     }
+
+    /// <summary>
+    /// Gets the execution context when the system is running inside a worker job.
+    /// </summary>
+    /// <remarks>
+    /// Only valid during <see cref="ISystem.Update(in SystemAPI)"/>. Will be <see langword="default"/> in <see cref="ISystem.Initialize(in SystemAPI)"/> and <see cref="ISystem.Cleanup(in SystemAPI)"/>.
+    /// </remarks>
+    public JobExecutionContext ExecutionContext
+    {
+        get; init;
+    }
+
+    /// <summary>
+    /// Gets the handle for the currently executing system job, or <see cref="JobHandle.Invalid"/> if executing on the main thread.
+    /// </summary>
+    public JobHandle SelfJobHandle => ExecutionContext.SelfHandle;
+}
+
+internal struct DynamicSystemJob : IJob
+{
+    public ISystem system;
+    public TimeData time;
+    public World world;
+
+    public void Execute(ref readonly JobExecutionContext ctx)
+    {
+        var api = new SystemUpdateAPI
+        {
+            Time = time,
+            World = world,
+            ExecutionContext = ctx,
+        };
+
+        system.Update(in api);
+    }
 }
 
 public interface ISystem
 {
     void Initialize(scoped in SystemAPI systemAPI);
-    void Update(scoped in SystemAPI systemAPI);
+    void Update(scoped in SystemUpdateAPI systemAPI);
     void Cleanup(scoped in SystemAPI systemAPI);
 }
 
@@ -46,7 +96,7 @@ public abstract class SystemBase : ISystem
         get; internal set;
     } = uint.MaxValue - 1;
 
-    private bool ShouldUpdate(scoped in SystemAPI systemAPI)
+    private bool ShouldUpdate(scoped in SystemUpdateAPI systemAPI)
     {
         if (!_requiredQueries.IsCreated || _requiredQueries.Count == 0)
         {
@@ -81,7 +131,7 @@ public abstract class SystemBase : ISystem
         OnInitialize(in systemAPI);
     }
 
-    void ISystem.Update(scoped in SystemAPI systemAPI)
+    void ISystem.Update(scoped in SystemUpdateAPI systemAPI)
     {
         if (ShouldUpdate(in systemAPI))
         {
@@ -112,7 +162,7 @@ public abstract class SystemBase : ISystem
     {
     }
 
-    protected virtual void OnUpdate(scoped in SystemAPI systemAPI)
+    protected virtual void OnUpdate(scoped in SystemUpdateAPI systemAPI)
     {
     }
 
@@ -192,10 +242,21 @@ internal static partial class SystemGroupRegistry
 }
 #endif
 
+[MainThread]
 public abstract class SystemGroup : ISystem
 {
-    private readonly List<ISystem> _systems = [];
+    private struct SystemNode
+    {
+        public ISystem system;
+        public bool isMainThread;
+        public int[] dependencyIndices;
+    }
+
+    private readonly List<ISystem> _systems = new List<ISystem>();
     private List<ISystem>? _sortedSystems;
+    private SystemNode[]? _compiledNodes;
+    private int[]? _leafNodeIndices;
+    private int _maxDependencyCount;
 
     private uint _version = 0;
     private uint _sortedVersion = 0;
@@ -206,7 +267,7 @@ public abstract class SystemGroup : ISystem
     } = null!;
 
     // TODO: Use Source Generators to generate group registrations and system sorting at compile time.
-    private static List<ISystem> Sort(List<ISystem> systems)
+    private static List<ISystem> Sort(List<ISystem> systems, out Dictionary<Type, HashSet<Type>> outDependencies)
     {
         // 1. Build the Graph
         // Key64: The System, Value: Systems that MUST run before the Key64
@@ -291,6 +352,7 @@ public abstract class SystemGroup : ISystem
             }
         }
 
+        outDependencies = dependencies;
         return sortedList;
     }
 
@@ -298,6 +360,13 @@ public abstract class SystemGroup : ISystem
         where T : ISystem, new()
     {
         _systems.Add(new T());
+        _version++;
+    }
+
+    public void AddSystem<T>(T system)
+        where T : ISystem
+    {
+        _systems.Add(system);
         _version++;
     }
 
@@ -311,11 +380,76 @@ public abstract class SystemGroup : ISystem
         if (_systems.Count == 0)
         {
             _sortedSystems = new List<ISystem>();
+            _compiledNodes = Array.Empty<SystemNode>();
+            _leafNodeIndices = Array.Empty<int>();
+            _maxDependencyCount = 0;
             _sortedVersion = _version;
             return;
         }
 
-        _sortedSystems = Sort(_systems);
+        _sortedSystems = Sort(_systems, out var dependencies);
+
+        var nodeCount = _sortedSystems.Count;
+        var indexMap = new Dictionary<Type, int>(nodeCount);
+        for (var i = 0; i < nodeCount; i++)
+        {
+            indexMap[_sortedSystems[i].GetType()] = i;
+        }
+
+        var compiledNodes = new SystemNode[nodeCount];
+        var hasDependents = new bool[nodeCount];
+        var maxDepCount = 0;
+
+        for (var i = 0; i < nodeCount; i++)
+        {
+            var sys = _sortedSystems[i];
+            var type = sys.GetType();
+            var isMainThread = type.IsDefined(typeof(MainThreadAttribute), true);
+
+            int[] depIndices;
+            if (dependencies.TryGetValue(type, out var deps) && deps.Count > 0)
+            {
+                var depList = new List<int>(deps.Count);
+                foreach (var depType in deps)
+                {
+                    if (indexMap.TryGetValue(depType, out var depIndex))
+                    {
+                        depList.Add(depIndex);
+                        hasDependents[depIndex] = true;
+                    }
+                }
+                depIndices = depList.ToArray();
+            }
+            else
+            {
+                depIndices = Array.Empty<int>();
+            }
+
+            if (depIndices.Length > maxDepCount)
+            {
+                maxDepCount = depIndices.Length;
+            }
+
+            compiledNodes[i] = new SystemNode
+            {
+                system = sys,
+                isMainThread = isMainThread,
+                dependencyIndices = depIndices
+            };
+        }
+
+        var leafList = new List<int>();
+        for (var i = 0; i < nodeCount; i++)
+        {
+            if (!hasDependents[i])
+            {
+                leafList.Add(i);
+            }
+        }
+
+        _compiledNodes = compiledNodes;
+        _leafNodeIndices = leafList.ToArray();
+        _maxDependencyCount = maxDepCount;
         _sortedVersion = _version;
     }
 
@@ -336,13 +470,14 @@ public abstract class SystemGroup : ISystem
 
         ThrowIfNotSorted();
 
-        foreach (var system in _sortedSystems!)
+        var nodes = _compiledNodes!;
+        for (var i = 0; i < nodes.Length; i++)
         {
-            system.Initialize(in systemAPI);
+            nodes[i].system.Initialize(in systemAPI);
         }
     }
 
-    public void Update(scoped in SystemAPI systemAPI)
+    public void Update(scoped in SystemUpdateAPI systemAPI)
     {
         if (_systems.Count == 0)
         {
@@ -351,9 +486,78 @@ public abstract class SystemGroup : ISystem
 
         ThrowIfNotSorted();
 
-        foreach (var system in _sortedSystems!)
+        var nodes = _compiledNodes!;
+        var scheduler = systemAPI.World.JobScheduler;
+
+        if (scheduler == null)
         {
-            system.Update(in systemAPI);
+            for (var i = 0; i < nodes.Length; i++)
+            {
+                nodes[i].system.Update(in systemAPI);
+            }
+            return;
+        }
+
+        var nodeCount = nodes.Length;
+        Span<JobHandle> handles = stackalloc JobHandle[nodeCount];
+        Span<JobHandle> depHandlesBuffer = _maxDependencyCount > 0 ? stackalloc JobHandle[_maxDependencyCount] : default;
+
+        for (var i = 0; i < nodeCount; i++)
+        {
+            ref readonly var node = ref nodes[i];
+            var deps = node.dependencyIndices;
+
+            var validDepCount = 0;
+            for (var d = 0; d < deps.Length; d++)
+            {
+                var h = handles[deps[d]];
+                if (h.IsValid)
+                {
+                    depHandlesBuffer[validDepCount++] = h;
+                }
+            }
+            var depHandles = depHandlesBuffer.Slice(0, validDepCount);
+
+            if (node.isMainThread)
+            {
+                if (depHandles.Length > 0)
+                {
+                    scheduler.WaitAll(depHandles);
+                }
+
+                node.system.Update(in systemAPI);
+                handles[i] = JobHandle.Invalid;
+            }
+            else
+            {
+                var job = new DynamicSystemJob
+                {
+                    system = node.system,
+                    time = systemAPI.Time,
+                    world = systemAPI.World,
+                };
+
+                handles[i] = scheduler.Schedule(in job, preferLocal: false, JobPriority.Normal, default, depHandles);
+            }
+        }
+
+        if (_leafNodeIndices != null && _leafNodeIndices.Length > 0)
+        {
+            Span<JobHandle> leafHandles = stackalloc JobHandle[_leafNodeIndices.Length];
+            var validLeafCount = 0;
+            for (var k = 0; k < _leafNodeIndices.Length; k++)
+            {
+                var h = handles[_leafNodeIndices[k]];
+                if (h.IsValid)
+                {
+                    leafHandles[validLeafCount++] = h;
+                }
+            }
+
+            if (validLeafCount > 0)
+            {
+                scheduler.WaitAll(true, leafHandles.Slice(0, validLeafCount));
+            }
         }
     }
 
@@ -366,9 +570,10 @@ public abstract class SystemGroup : ISystem
 
         ThrowIfNotSorted();
 
-        foreach (var system in _sortedSystems!)
+        var nodes = _compiledNodes!;
+        for (var i = 0; i < nodes.Length; i++)
         {
-            system.Cleanup(in systemAPI);
+            nodes[i].system.Cleanup(in systemAPI);
         }
     }
 }
@@ -444,7 +649,7 @@ public sealed class SystemManager : IDisposable
             return;
         }
 
-        var systemAPI = new SystemAPI
+        var systemAPI = new SystemUpdateAPI
         {
             Time = timeData,
             World = _world

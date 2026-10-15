@@ -82,7 +82,7 @@ internal class AddGPUInstanceSystem : SystemBase
         RequireQueryForUpdate(_meshInstanceQueryID);
     }
 
-    protected override void OnUpdate(scoped in SystemAPI systemAPI)
+    protected override void OnUpdate(scoped in SystemUpdateAPI systemAPI)
     {
         var payload = (GhostRenderPayload)_renderEngine.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
 
@@ -95,7 +95,6 @@ internal class AddGPUInstanceSystem : SystemBase
             payload = payload
         };
 
-        var handle = meshInstanceQuery.ScheduleChunkParallel(job, 1);
-        systemAPI.World.JobScheduler.Wait(handle);
+        meshInstanceQuery.ScheduleChunkParallel(job, 1, parentJob: systemAPI.SelfJobHandle);
     }
 }

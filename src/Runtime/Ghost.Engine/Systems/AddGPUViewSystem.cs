@@ -25,7 +25,7 @@ internal class AddGPUViewSystem : SystemBase
         RequireQueryForUpdate(_cameraQueryID);
     }
 
-    protected override void OnUpdate(scoped in SystemAPI systemAPI)
+    protected override void OnUpdate(scoped in SystemUpdateAPI systemAPI)
     {
         var payload = (GhostRenderPayload)_renderEngine.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
         ref var cameraQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_cameraQueryID);

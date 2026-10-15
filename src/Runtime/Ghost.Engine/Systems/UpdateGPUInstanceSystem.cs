@@ -26,7 +26,7 @@ internal class UpdateGPUInstanceSystem : SystemBase
         RequireQueryForUpdate(_gpuInstanceQueryID);
     }
 
-    protected override void OnUpdate(scoped in SystemAPI systemAPI)
+    protected override void OnUpdate(scoped in SystemUpdateAPI systemAPI)
     {
         var playload = (GhostRenderPayload)_renderEngine.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
 

@@ -44,7 +44,7 @@ internal struct DisposeJobChunk : IJob
 
 public unsafe partial struct EntityQuery
 {
-    public JobHandle ScheduleChunkParallel<TJob>(TJob job, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+    public JobHandle ScheduleChunkParallel<TJob>(TJob job, int batchSize, JobPriority priority = JobPriority.Normal, JobHandle parentJob = default, bool forceSchedule = false, params Span<JobHandle> dependencies)
         where TJob : IJobChunk
     {
         var world = World.GetWorld(_worldID);
@@ -85,20 +85,20 @@ public unsafe partial struct EntityQuery
 
         if (forceSchedule || chunkInfos.Count > batchSize)
         {
-            var handle = world.JobScheduler.ScheduleParallelFor(ref batchJob, chunkInfos.Count, batchSize, dependency);
+            var handle = world.JobScheduler.ScheduleParallelFor(ref batchJob, chunkInfos.Count, batchSize, false, priority, parentJob, dependencies);
 
             var disposeJob = new DisposeJobChunk
             {
                 list = chunkInfos
             };
 
-            world.JobScheduler.Schedule(ref disposeJob, handle);
+            world.JobScheduler.Schedule(ref disposeJob, false, priority, parentJob, handle);
 
             return handle;
         }
         else
         {
-            world.JobScheduler.RunParallelFor(ref batchJob, chunkInfos.Count, dependency);
+            world.JobScheduler.RunParallelFor(ref batchJob, chunkInfos.Count, default, dependencies);
             chunkInfos.Dispose();
             return JobHandle.Invalid;
         }

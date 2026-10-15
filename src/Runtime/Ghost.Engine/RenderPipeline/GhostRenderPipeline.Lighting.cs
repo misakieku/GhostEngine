@@ -171,7 +171,7 @@ internal unsafe partial class GhostRenderPipeline
                     return;
                 }
 
-                const float guardPixels = 2.0f;
+                const float guardPixels = 4.0f;
                 // We bias the fov here because point light use cubemap for shadow, and we need to give it room for filtering.
                 var fov = 2.0f * math.atan(shadowSize / (shadowSize - 2.0f * guardPixels)); // 1.570796f; // 90 degrees in radians
                 var projMat = CreatePerspectiveReversedZ(fov, 1.0f, nearPlane, farPlane);

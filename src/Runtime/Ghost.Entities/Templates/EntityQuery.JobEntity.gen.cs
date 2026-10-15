@@ -185,6 +185,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
                 var pMask = (ulong*)(pChunk + enableOff0);
                 validMask &= pMask[block];
             }
+
             if (enableOff1 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff1);
@@ -315,11 +316,13 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
                 var pMask = (ulong*)(pChunk + enableOff0);
                 validMask &= pMask[block];
             }
+
             if (enableOff1 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff1);
                 validMask &= pMask[block];
             }
+
             if (enableOff2 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff2);
@@ -466,16 +469,19 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
                 var pMask = (ulong*)(pChunk + enableOff0);
                 validMask &= pMask[block];
             }
+
             if (enableOff1 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff1);
                 validMask &= pMask[block];
             }
+
             if (enableOff2 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff2);
                 validMask &= pMask[block];
             }
+
             if (enableOff3 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff3);
@@ -638,21 +644,25 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFo
                 var pMask = (ulong*)(pChunk + enableOff0);
                 validMask &= pMask[block];
             }
+
             if (enableOff1 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff1);
                 validMask &= pMask[block];
             }
+
             if (enableOff2 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff2);
                 validMask &= pMask[block];
             }
+
             if (enableOff3 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff3);
                 validMask &= pMask[block];
             }
+
             if (enableOff4 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff4);
@@ -831,26 +841,31 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParall
                 var pMask = (ulong*)(pChunk + enableOff0);
                 validMask &= pMask[block];
             }
+
             if (enableOff1 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff1);
                 validMask &= pMask[block];
             }
+
             if (enableOff2 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff2);
                 validMask &= pMask[block];
             }
+
             if (enableOff3 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff3);
                 validMask &= pMask[block];
             }
+
             if (enableOff4 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff4);
                 validMask &= pMask[block];
             }
+
             if (enableOff5 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff5);
@@ -1045,31 +1060,37 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobPa
                 var pMask = (ulong*)(pChunk + enableOff0);
                 validMask &= pMask[block];
             }
+
             if (enableOff1 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff1);
                 validMask &= pMask[block];
             }
+
             if (enableOff2 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff2);
                 validMask &= pMask[block];
             }
+
             if (enableOff3 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff3);
                 validMask &= pMask[block];
             }
+
             if (enableOff4 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff4);
                 validMask &= pMask[block];
             }
+
             if (enableOff5 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff5);
                 validMask &= pMask[block];
             }
+
             if (enableOff6 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff6);
@@ -1280,36 +1301,43 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJ
                 var pMask = (ulong*)(pChunk + enableOff0);
                 validMask &= pMask[block];
             }
+
             if (enableOff1 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff1);
                 validMask &= pMask[block];
             }
+
             if (enableOff2 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff2);
                 validMask &= pMask[block];
             }
+
             if (enableOff3 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff3);
                 validMask &= pMask[block];
             }
+
             if (enableOff4 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff4);
                 validMask &= pMask[block];
             }
+
             if (enableOff5 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff5);
                 validMask &= pMask[block];
             }
+
             if (enableOff6 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff6);
                 validMask &= pMask[block];
             }
+
             if (enableOff7 != -1)
             {
                 var pMask = (ulong*)(pChunk + enableOff7);
@@ -1357,7 +1385,7 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+    public JobHandle ScheduleEntityParallel<TJob, T0>(scoped in TJob jobData, int batchSize, JobPriority priority = JobPriority.Normal, JobHandle parentJob = default, bool forceSchedule = false, params Span<JobHandle> dependencies)
         where TJob : IJobEntity<T0>
         where T0 : unmanaged, IComponent
     {
@@ -1483,7 +1511,7 @@ public unsafe partial struct EntityQuery
 
         if (forceSchedule || batches.Count > batchSize)
         {
-            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, false, priority, parentJob, dependencies);
 
             var disposeJob = new DisposeJobEntity1
             {
@@ -1496,7 +1524,7 @@ public unsafe partial struct EntityQuery
         }
         else
         {
-            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, parentJob, dependencies);
             batches.Dispose();
             return JobHandle.Invalid;
         }
@@ -1512,7 +1540,7 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0, T1>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+    public JobHandle ScheduleEntityParallel<TJob, T0, T1>(scoped in TJob jobData, int batchSize, JobPriority priority = JobPriority.Normal, JobHandle parentJob = default, bool forceSchedule = false, params Span<JobHandle> dependencies)
         where TJob : IJobEntity<T0, T1>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
@@ -1663,7 +1691,7 @@ public unsafe partial struct EntityQuery
 
         if (forceSchedule || batches.Count > batchSize)
         {
-            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, false, priority, parentJob, dependencies);
 
             var disposeJob = new DisposeJobEntity2
             {
@@ -1676,7 +1704,7 @@ public unsafe partial struct EntityQuery
         }
         else
         {
-            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, parentJob, dependencies);
             batches.Dispose();
             return JobHandle.Invalid;
         }
@@ -1692,7 +1720,7 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2>(scoped in TJob jobData, int batchSize, JobPriority priority = JobPriority.Normal, JobHandle parentJob = default, bool forceSchedule = false, params Span<JobHandle> dependencies)
         where TJob : IJobEntity<T0, T1, T2>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
@@ -1868,7 +1896,7 @@ public unsafe partial struct EntityQuery
 
         if (forceSchedule || batches.Count > batchSize)
         {
-            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, false, priority, parentJob, dependencies);
 
             var disposeJob = new DisposeJobEntity3
             {
@@ -1881,7 +1909,7 @@ public unsafe partial struct EntityQuery
         }
         else
         {
-            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, parentJob, dependencies);
             batches.Dispose();
             return JobHandle.Invalid;
         }
@@ -1897,7 +1925,7 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3>(scoped in TJob jobData, int batchSize, JobPriority priority = JobPriority.Normal, JobHandle parentJob = default, bool forceSchedule = false, params Span<JobHandle> dependencies)
         where TJob : IJobEntity<T0, T1, T2, T3>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
@@ -2098,7 +2126,7 @@ public unsafe partial struct EntityQuery
 
         if (forceSchedule || batches.Count > batchSize)
         {
-            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, false, priority, parentJob, dependencies);
 
             var disposeJob = new DisposeJobEntity4
             {
@@ -2111,7 +2139,7 @@ public unsafe partial struct EntityQuery
         }
         else
         {
-            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, parentJob, dependencies);
             batches.Dispose();
             return JobHandle.Invalid;
         }
@@ -2127,7 +2155,7 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4>(scoped in TJob jobData, int batchSize, JobPriority priority = JobPriority.Normal, JobHandle parentJob = default, bool forceSchedule = false, params Span<JobHandle> dependencies)
         where TJob : IJobEntity<T0, T1, T2, T3, T4>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
@@ -2353,7 +2381,7 @@ public unsafe partial struct EntityQuery
 
         if (forceSchedule || batches.Count > batchSize)
         {
-            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, false, priority, parentJob, dependencies);
 
             var disposeJob = new DisposeJobEntity5
             {
@@ -2366,7 +2394,7 @@ public unsafe partial struct EntityQuery
         }
         else
         {
-            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, parentJob, dependencies);
             batches.Dispose();
             return JobHandle.Invalid;
         }
@@ -2382,7 +2410,7 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5>(scoped in TJob jobData, int batchSize, JobPriority priority = JobPriority.Normal, JobHandle parentJob = default, bool forceSchedule = false, params Span<JobHandle> dependencies)
         where TJob : IJobEntity<T0, T1, T2, T3, T4, T5>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
@@ -2633,7 +2661,7 @@ public unsafe partial struct EntityQuery
 
         if (forceSchedule || batches.Count > batchSize)
         {
-            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, false, priority, parentJob, dependencies);
 
             var disposeJob = new DisposeJobEntity6
             {
@@ -2646,7 +2674,7 @@ public unsafe partial struct EntityQuery
         }
         else
         {
-            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, parentJob, dependencies);
             batches.Dispose();
             return JobHandle.Invalid;
         }
@@ -2662,7 +2690,7 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5, T6>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5, T6>(scoped in TJob jobData, int batchSize, JobPriority priority = JobPriority.Normal, JobHandle parentJob = default, bool forceSchedule = false, params Span<JobHandle> dependencies)
         where TJob : IJobEntity<T0, T1, T2, T3, T4, T5, T6>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
@@ -2938,7 +2966,7 @@ public unsafe partial struct EntityQuery
 
         if (forceSchedule || batches.Count > batchSize)
         {
-            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, false, priority, parentJob, dependencies);
 
             var disposeJob = new DisposeJobEntity7
             {
@@ -2951,7 +2979,7 @@ public unsafe partial struct EntityQuery
         }
         else
         {
-            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, parentJob, dependencies);
             batches.Dispose();
             return JobHandle.Invalid;
         }
@@ -2967,7 +2995,7 @@ public unsafe partial struct EntityQuery
         }
     }
 
-    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5, T6, T7>(scoped in TJob jobData, int batchSize, JobHandle dependency = default, bool forceSchedule = false)
+    public JobHandle ScheduleEntityParallel<TJob, T0, T1, T2, T3, T4, T5, T6, T7>(scoped in TJob jobData, int batchSize, JobPriority priority = JobPriority.Normal, JobHandle parentJob = default, bool forceSchedule = false, params Span<JobHandle> dependencies)
         where TJob : IJobEntity<T0, T1, T2, T3, T4, T5, T6, T7>
         where T0 : unmanaged, IComponent
         where T1 : unmanaged, IComponent
@@ -3268,7 +3296,7 @@ public unsafe partial struct EntityQuery
 
         if (forceSchedule || batches.Count > batchSize)
         {
-            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, dependency);
+            var jobHandle = world.JobScheduler.ScheduleParallelFor(ref runner, batches.Count, batchSize, false, priority, parentJob, dependencies);
 
             var disposeJob = new DisposeJobEntity8
             {
@@ -3281,7 +3309,7 @@ public unsafe partial struct EntityQuery
         }
         else
         {
-            world.JobScheduler.RunParallelFor(ref runner, batches.Count, dependency);
+            world.JobScheduler.RunParallelFor(ref runner, batches.Count, parentJob, dependencies);
             batches.Dispose();
             return JobHandle.Invalid;
         }

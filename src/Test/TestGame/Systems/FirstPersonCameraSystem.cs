@@ -28,7 +28,7 @@ public class FirstPersonCameraSystem : SystemBase
         RequireQueryForUpdate(_queryID);
     }
 
-    protected override void OnUpdate(scoped in SystemAPI systemAPI)
+    protected override void OnUpdate(scoped in SystemUpdateAPI systemAPI)
     {
         var dt = systemAPI.Time.DeltaTime;
         if (dt <= 0.0f)

@@ -24,7 +24,7 @@ public class InputEvaluationSystem : SystemBase
         RequireQueryForUpdate(_queryID);
     }
 
-    protected override void OnUpdate(scoped in SystemAPI systemAPI)
+    protected override void OnUpdate(scoped in SystemUpdateAPI systemAPI)
     {
         ref var query = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_queryID);
 

@@ -109,14 +109,14 @@ internal class LightGatherSystem : ISystem
             .Build(systemAPI.World);
     }
 
-    public void Update(scoped in SystemAPI systemAPI)
+    public void Update(scoped in SystemUpdateAPI systemAPI)
     {
         var payload = (GhostRenderPayload)_renderEngine.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
         GatherDirectionalLight(systemAPI, payload);
         GatherPunctualLights(systemAPI, payload);
     }
 
-    private void GatherDirectionalLight(scoped in SystemAPI systemAPI, GhostRenderPayload payload)
+    private void GatherDirectionalLight(scoped in SystemUpdateAPI systemAPI, GhostRenderPayload payload)
     {
         ref var dirQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_directionalLightQueryID);
         if (!dirQuery.HasMatchingEntity())
@@ -179,7 +179,7 @@ internal class LightGatherSystem : ISystem
         payload.SetPrimaryDirectionalLightIndex(primaryIndex);
     }
 
-    private void GatherPunctualLights(scoped in SystemAPI systemAPI, GhostRenderPayload payload)
+    private void GatherPunctualLights(scoped in SystemUpdateAPI systemAPI, GhostRenderPayload payload)
     {
         ref var punctualQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_punctualLightQueryID);
         if (!punctualQuery.HasMatchingEntity())
@@ -192,8 +192,7 @@ internal class LightGatherSystem : ISystem
             payload = payload
         };
 
-        var handle = punctualQuery.ScheduleChunkParallel(job, 1);
-        systemAPI.World.JobScheduler.Wait(handle);
+        punctualQuery.ScheduleChunkParallel(job, 1, parentJob: systemAPI.SelfJobHandle);
     }
 
     public void Cleanup(scoped in SystemAPI systemAPI)
