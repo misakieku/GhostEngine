@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Core;
@@ -32,12 +31,6 @@ public struct RenderView
     public float focusDistance;
 
     public RenderingLayerMask renderingLayerMask;
-}
-
-[InlineArray(16)]
-public struct HZBMipHandles
-{
-    private Handle<GPUTexture> _element0;
 }
 
 public struct RenderRequest

@@ -26,6 +26,8 @@ public unsafe struct EntityCommandBuffer : IDisposable
     private BufferWriter _writer;
     private int _nextTempId;
 
+    public readonly bool IsCreated => _writer.IsCreated;
+
     public EntityCommandBuffer(int capacity, AllocationHandle allocationHandle)
     {
         _writer = new BufferWriter(capacity, allocationHandle);

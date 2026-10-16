@@ -38,7 +38,7 @@ internal class AddGPUViewSystem : SystemBase
             {
                 var entity = entities[i];
                 var viewId = payload.AllocateView();
-                systemAPI.World.EntityCommandBuffer.AddComponent(entity, new GPUViewRef { viewId = viewId });
+                systemAPI.EntityCommandBuffer.AddComponent(entity, new GPUViewRef { viewId = viewId });
             }
         }
     }

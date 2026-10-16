@@ -49,7 +49,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             {
                 ThreadCount = Environment.ProcessorCount - 2,
                 ThreadPriority = ThreadPriority.Normal,
-                DependencyChainCapacity = 8192,
+                DependencyChainCapacity = 16384,
             }
         };
     }

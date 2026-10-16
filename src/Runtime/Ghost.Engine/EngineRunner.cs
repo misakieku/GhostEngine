@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Engine.Input;
 using Ghost.Engine.Streaming;
+using Ghost.Entities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using SDL;
 
@@ -97,7 +98,7 @@ public static class EngineRunner
             // Exception should be either handled or not expected. If an unhandled exception goes all the way up to this point, it indicates a critical failure in the engine execution.
             // Log the error and terminate the application.
 
-            Logger.Fatal($"An unhandled exception occurred during engine execution: {ex}");
+            Logger.Fatal(ex);
         }
         finally
         {

@@ -41,7 +41,7 @@ internal class RemoveGPUViewSystem : SystemBase
                 var entity = entities[i];
 
                 payload.ReleaseView(view.viewId);
-                systemAPI.World.EntityCommandBuffer.RemoveComponent<GPUViewRef>(entity);
+                systemAPI.EntityCommandBuffer.RemoveComponent<GPUViewRef>(entity);
             }
         }
     }

@@ -122,7 +122,6 @@ public partial class World : IDisposable, IEquatable<World>
     private readonly JobScheduler _jobScheduler;
 
     private readonly EntityManager _entityManager;
-    private EntityCommandBuffer _entityCommandBuffer;
     private UnsafeArray<EntityCommandBuffer> _threadLocalECBs;
 
     private readonly ComponentManager _componentManager;
@@ -163,42 +162,28 @@ public partial class World : IDisposable, IEquatable<World>
     /// </summary>
     public uint Version => Volatile.Read(ref _version);
 
-    /// <summary>
-    /// Gets the main entity command buffer for this world.
-    /// </summary>
-    /// <remarks>
-    /// Use <see cref="GetThreadLocalEntityCommandBufferRef(int)"/> to get thread-local command buffers for multi-threaded jobs.
-    /// </remarks>
-    public ref EntityCommandBuffer EntityCommandBuffer => ref _entityCommandBuffer;
-
     private World(Identifier<World> id, int entityCapacity, JobScheduler jobScheduler)
     {
         _id = id;
         _jobScheduler = jobScheduler;
 
         _entityManager = new EntityManager(this, entityCapacity);
-        _entityCommandBuffer = new EntityCommandBuffer(4096, AllocationHandle.Persistent);
 
         _componentManager = new ComponentManager(this);
         _systemManager = new SystemManager(this);
 
         _services = new Dictionary<Type, object>();
 
-        if (jobScheduler != null)
+        _threadLocalECBs = new UnsafeArray<EntityCommandBuffer>(jobScheduler.ThreadLocalCount, AllocationHandle.Persistent);
+        for (var i = 0; i < _threadLocalECBs.Length; i++)
         {
-            _threadLocalECBs = new UnsafeArray<EntityCommandBuffer>(jobScheduler.ThreadLocalCount, AllocationHandle.Persistent);
-            for (var i = 0; i < _threadLocalECBs.Length; i++)
-            {
-                _threadLocalECBs[i] = new EntityCommandBuffer(4096, AllocationHandle.Persistent);
-            }
+            _threadLocalECBs[i] = new EntityCommandBuffer(4096, AllocationHandle.Persistent);
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void PlaybackEntityCommandBuffers()
     {
-        _entityCommandBuffer.Playback(_entityManager);
-
         for (var i = 0; i < _threadLocalECBs.Length; i++)
         {
             _threadLocalECBs[i].Playback(_entityManager);
@@ -287,7 +272,6 @@ public partial class World : IDisposable, IEquatable<World>
     public void Reset()
     {
         _entityManager.Clear();
-        _entityCommandBuffer.Reset();
 
         for (var i = 0; i < _threadLocalECBs.Length; i++)
         {
@@ -333,7 +317,6 @@ public partial class World : IDisposable, IEquatable<World>
         }
 
         _entityManager.Dispose();
-        _entityCommandBuffer.Dispose();
 
         if (_threadLocalECBs.IsCreated)
         {

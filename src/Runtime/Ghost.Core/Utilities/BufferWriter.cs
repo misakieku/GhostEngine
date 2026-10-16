@@ -9,6 +9,8 @@ public unsafe struct BufferWriter : IDisposable
     private UnsafeArray<byte> _buffer;
     private int _position;
 
+    public readonly bool IsCreated => _buffer.IsCreated;
+
     public int Position
     {
         readonly get => _position;

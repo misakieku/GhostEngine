@@ -98,12 +98,16 @@ public class SystemDAGTests
         var group = new TestSequentialGroup();
         var api = new SystemAPI
         {
-            Time = default,
+            World = _world,
+        };
+
+        var updateApi = new SystemUpdateAPI
+        {
             World = _world,
         };
 
         group.Initialize(in api);
-        group.Update(in api);
+        group.Update(in updateApi);
         group.Cleanup(in api);
 
         Assert.AreEqual(3, s_stage);
@@ -143,12 +147,16 @@ public class SystemDAGTests
         var group = new TestParallelGroup();
         var api = new SystemAPI
         {
-            Time = default,
+            World = _world,
+        };
+
+        var updateApi = new SystemUpdateAPI
+        {
             World = _world,
         };
 
         group.Initialize(in api);
-        group.Update(in api);
+        group.Update(in updateApi);
         group.Cleanup(in api);
 
         Assert.IsTrue(s_parallelRanA);
@@ -225,12 +233,16 @@ public class SystemDAGTests
         var group = new SystemGroupWrapper();
         var api = new SystemAPI
         {
-            Time = default,
+            World = _world,
+        };
+
+        var updateApi = new SystemUpdateAPI
+        {
             World = _world,
         };
 
         group.Initialize(in api);
-        group.Update(in api);
+        group.Update(in updateApi);
         group.Cleanup(in api);
 
         // 10 entities * 5 = 50. Verifier must observe 50 because it ran after ParentChunkSystem completed its attached chunks!
@@ -253,12 +265,16 @@ public class SystemDAGTests
             var group = new TestParallelGroup();
             var api = new SystemAPI
             {
-                Time = default,
+                World = _world,
+            };
+
+            var updateApi = new SystemUpdateAPI
+            {
                 World = _world,
             };
 
             group.Initialize(in api);
-            group.Update(in api);
+            group.Update(in updateApi);
             group.Cleanup(in api);
         }
     }

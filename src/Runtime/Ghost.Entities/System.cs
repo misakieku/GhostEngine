@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Misaki.HighPerformance.Jobs;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -25,9 +26,6 @@ public readonly ref struct SystemUpdateAPI
     /// <summary>
     /// Gets the tIme data of current frame.
     /// </summary>
-    /// <remarks>
-    /// The data will always be <see langword="default"/> in <see cref="ISystem.Initialize(scoped in SystemAPI)"/> and <see cref="ISystem.Cleanup(scoped in SystemAPI)"/>
-    /// </remarks>
     public TimeData Time
     {
         get; init;
@@ -40,6 +38,11 @@ public readonly ref struct SystemUpdateAPI
     {
         get; init;
     }
+
+    /// <summary>
+    /// Gets the entity command buffer for the current world.
+    /// </summary>
+    public ref EntityCommandBuffer EntityCommandBuffer => ref World.GetThreadLocalEntityCommandBufferRef(ExecutionContext.ThreadIndex);
 
     /// <summary>
     /// Gets the execution context when the system is running inside a worker job.
@@ -96,7 +99,7 @@ public abstract class SystemBase : ISystem
         get; internal set;
     } = uint.MaxValue - 1;
 
-    private bool ShouldUpdate(scoped in SystemUpdateAPI systemAPI)
+    protected virtual bool ShouldUpdate(scoped in SystemUpdateAPI systemAPI)
     {
         if (!_requiredQueries.IsCreated || _requiredQueries.Count == 0)
         {
@@ -120,7 +123,7 @@ public abstract class SystemBase : ISystem
     {
         if (!_requiredQueries.IsCreated)
         {
-            _requiredQueries = new UnsafeList<int>(4, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
+            _requiredQueries = new UnsafeList<int>(4, AllocationHandle.Persistent);
         }
 
         _requiredQueries.Add(queryID.Value);
@@ -267,6 +270,7 @@ public abstract class SystemGroup : ISystem
     } = null!;
 
     // TODO: Use Source Generators to generate group registrations and system sorting at compile time.
+    // TODO: Also analyze resource read/write dependencies to determine if systems can run in parallel or need barriers.
     private static List<ISystem> Sort(List<ISystem> systems, out Dictionary<Type, HashSet<Type>> outDependencies)
     {
         // 1. Build the Graph
@@ -499,8 +503,12 @@ public abstract class SystemGroup : ISystem
         }
 
         var nodeCount = nodes.Length;
-        Span<JobHandle> handles = stackalloc JobHandle[nodeCount];
-        Span<JobHandle> depHandlesBuffer = _maxDependencyCount > 0 ? stackalloc JobHandle[_maxDependencyCount] : default;
+
+        using var scope = AllocationManager.CreateStackScope();
+        using var handles = new UnsafeArray<JobHandle>(nodeCount, scope.AllocationHandle);
+        using var depHandlesBuffer = _maxDependencyCount == 0
+            ? default
+            : new UnsafeArray<JobHandle>(_maxDependencyCount, scope.AllocationHandle);
 
         for (var i = 0; i < nodeCount; i++)
         {
@@ -516,7 +524,8 @@ public abstract class SystemGroup : ISystem
                     depHandlesBuffer[validDepCount++] = h;
                 }
             }
-            var depHandles = depHandlesBuffer.Slice(0, validDepCount);
+
+            var depHandles = depHandlesBuffer.AsSpan().Slice(0, validDepCount);
 
             if (node.isMainThread)
             {
@@ -524,7 +533,6 @@ public abstract class SystemGroup : ISystem
                 {
                     scheduler.WaitAll(depHandles);
                 }
-
                 node.system.Update(in systemAPI);
                 handles[i] = JobHandle.Invalid;
             }

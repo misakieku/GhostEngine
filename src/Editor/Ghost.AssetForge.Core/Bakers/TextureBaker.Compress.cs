@@ -14,7 +14,7 @@ internal partial class TextureBaker
         var tempFilePath = Path.GetTempFileName();
 
         UnsafeArray<MipLevel> mipLevels = default;
-        var isHdrCube = textureInfo.isCube && settings.Basic.TextureShape == TextureShape.TextureCube;
+        var isHdrCube = textureInfo.isCube;
         try
         {
             if (isHdrCube)
@@ -43,7 +43,7 @@ internal partial class TextureBaker
                     var channelPtrs = stackalloc float*[channels];
                     for (var face = 0; face < 6; face++)
                     {
-                        using var faceSurf = new DisposablePtr<NvttSurface>(cubeSurface0.Get()->Face(face));
+                        var faceSurf = cubeSurface0.Get()->Face(face);
 
                         // NVTT stores data in planar format: [RRRR...][GGGG...][BBBB...][AAAA...]
                         // We need to interleave into RGBARGBA... for our sampling code.
@@ -51,7 +51,7 @@ internal partial class TextureBaker
 
                         for (var ch = 0; ch < channels; ch++)
                         {
-                            channelPtrs[ch] = faceSurf.Get()->Channel(ch);
+                            channelPtrs[ch] = faceSurf->Channel(ch);
                         }
 
                         for (var p = 0; p < pixelsPerFace; p++)

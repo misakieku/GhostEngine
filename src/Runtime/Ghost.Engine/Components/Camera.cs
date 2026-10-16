@@ -6,7 +6,7 @@ using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Engine.Components;
 
-public unsafe struct Camera : IComponentData
+public struct Camera : IComponentData
 {
     public float nearClipPlane;
     public float farClipPlane;
@@ -26,7 +26,4 @@ public unsafe struct Camera : IComponentData
 
     public Handle<GPUTexture> colorTarget;
     public Handle<GPUTexture> depthTarget;
-
-    // Custim render function. If it's not null, the render system will call this function instead of the default render pipeline.
-    public delegate*<ref readonly RenderContext, ref readonly RenderRequest, void> renderFunc;
 }

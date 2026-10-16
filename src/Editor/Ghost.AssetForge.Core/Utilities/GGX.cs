@@ -64,15 +64,16 @@ internal static class GGX
         TFloat.SinCos(phi, out var sinPhi, out var cosPhi);
         var H = MathV.Create<TFloat, float>(cosPhi * sinTheta, sinPhi * sinTheta, cosTheta);
 
-        // // Tangent space to World space
-        // var mask = TFloat.Abs(N.z) < 0.999f;
-        // var up = MathV.Select(mask, MathV.Create<TFloat, float>(0.0f, 0.0f, 1.0f), MathV.Create<TFloat, float>(1.0f, 0.0f, 0.0f));
-        // 
-        // var tangent = MathV.Normalize(MathV.Cross(up, N));
-        // var bitangent = MathV.Cross(N, tangent);
-        // 
-        // var sampleVec = (tangent * H.x) + (bitangent * H.y) + (N * H.z);
-        return MathV.Normalize(H);
+        // Tangent space to World space
+        var mask = TFloat.Abs(N.z) < 0.999f;
+        var up = MathV.Select(mask, MathV.Create<TFloat, float>(0.0f, 0.0f, 1.0f), MathV.Create<TFloat, float>(1.0f, 0.0f, 0.0f));
+
+        var tangent = MathV.Normalize(MathV.Cross(up, N));
+        var bitangent = MathV.Cross(N, tangent);
+
+        var sampleVec = (tangent * H.x) + (bitangent * H.y) + (N * H.z);
+        return sampleVec;
+        // return MathV.Normalize(H);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]

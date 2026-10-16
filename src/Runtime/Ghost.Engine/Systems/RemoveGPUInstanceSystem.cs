@@ -45,7 +45,7 @@ internal class RemoveGPUInstanceSystem : SystemBase
                 payload.RemoveInstance(gpuInstance.gpuInstanceIndex);
                 _renderEngine.ResourceManager.ReleaseMaterialPalette(gpuInstance.materialPalette);
 
-                systemAPI.World.EntityCommandBuffer.RemoveComponent<GPUInstanceRef>(entity);
+                systemAPI.EntityCommandBuffer.RemoveComponent<GPUInstanceRef>(entity);
             }
         }
     }
