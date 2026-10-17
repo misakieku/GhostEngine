@@ -7,6 +7,7 @@ using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Systems;
 using Ghost.Engine.Utilities;
+using Ghost.Engine.Volumes.BuiltinComponents;
 using Ghost.Entities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12;
@@ -25,6 +26,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
     private IAssetEntry _meshAsset = null!;
     private IAssetEntry _shaderAsset = null!;
     //private IAssetEntry _textureAsset = null!;
+    private IAssetEntry _skyAsset = null!;
 
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
@@ -219,6 +221,22 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 });
         }
 
+        _skyAsset = engine.AssetManager.ResolveAsset("Textures/resting_place_4k");
+        var skyboxHandle = default(Handle<GPUTexture>);
+        _skyAsset.ReadAssetData(ref skyboxHandle);
+
+        var volumeData = new RenderVolumeDataContainer(64);
+        volumeData.Set(new SkyboxSettings
+        {
+            intensity = 1.0f,
+            tint = new float3(1.0f, 1.0f, 1.0f),
+            texture = skyboxHandle,
+        });
+
+        _world.EntityManager.CreateEntity(
+            new RenderVolume { renderingLayerMask = RenderingLayerMask.All, isGlobal = true },
+            volumeData);
+
         _world.AddService<InputProfileDatabase>();
 
         _world.SystemManager.AddSystem<InputEvaluationSystem>();
@@ -251,5 +269,6 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         _meshAsset.Release();
         _shaderAsset.Release();
         //_textureAsset.Release();
+        _skyAsset.Release();
     }
 }

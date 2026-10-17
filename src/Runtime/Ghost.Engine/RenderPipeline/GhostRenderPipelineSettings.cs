@@ -1,5 +1,6 @@
 using Ghost.Engine.Components;
 using Ghost.Engine.Streaming;
+using Ghost.Engine.Volumes;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Misaki.HighPerformance.Jobs;
@@ -7,6 +8,7 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.RenderPipeline;
 
@@ -42,6 +44,9 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     private readonly UnsafeParallelQueue<UpdateInstanceRequest>.ParallelProducer _updateRequestProducer;
     private readonly UnsafeParallelQueue<RemoveInstanceRequest>.ParallelProducer _removeRequestProducer;
 
+    private UnsafeList<byte> _volumeDataBuffer;
+    private UnsafeHashMap<ulong, int> _viewVolumeOffsets; // (viewId << 32 | typeId) -> byte offset
+
     private uint _instanceCountBefore;
     private uint _instanceCount;
 
@@ -66,6 +71,9 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _renderRequests = new UnsafeList<RenderRequest>(4, AllocationHandle.Persistent);
         _viewsToRelease = new UnsafeList<uint>(4, AllocationHandle.Persistent);
         _directionalLights = new UnsafeList<GPUDirectionalLight>(4, AllocationHandle.Persistent);
+
+        _volumeDataBuffer = new UnsafeList<byte>(256, AllocationHandle.Persistent);
+        _viewVolumeOffsets = new UnsafeHashMap<ulong, int>(16, AllocationHandle.Persistent);
 
         _pPunctualLights = (UnsafeParallelQueue<PunctualLightRequest>*)MemoryUtility.Malloc(MemoryUtility.SizeOf<UnsafeParallelQueue<PunctualLightRequest>>());
         *_pPunctualLights = new UnsafeParallelQueue<PunctualLightRequest>(1024, AllocationHandle.Persistent);
@@ -177,6 +185,45 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _instanceCount = _renderPipeline.GPUScene.InstanceCount;
     }
 
+    public void SetViewVolumeData(uint viewId, ushort typeId, void* pData, int size)
+    {
+        var key = ((ulong)viewId << 32) | (uint)typeId;
+        if (_viewVolumeOffsets.TryGetValue(key, out var offset))
+        {
+            MemoryUtility.MemCpy((byte*)_volumeDataBuffer.GetUnsafePtr() + offset, pData, (nuint)size);
+        }
+        else
+        {
+            var newOffset = (_volumeDataBuffer.Count + 15) & ~15;
+            _volumeDataBuffer.Resize(newOffset + size);
+            MemoryUtility.MemCpy((byte*)_volumeDataBuffer.GetUnsafePtr() + newOffset, pData, (nuint)size);
+            _viewVolumeOffsets.Add(key, newOffset);
+        }
+    }
+
+    public void SetViewVolumeData<T>(uint viewId, in T data)
+        where T : unmanaged, IVolumeComponent<T>
+    {
+        fixed (T* pData = &data)
+        {
+            SetViewVolumeData(viewId, VolumeBlenderTrampoline<T>.TypeId, pData, sizeof(T));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ref readonly T GetViewVolumeData<T>(uint viewId)
+        where T : unmanaged, IVolumeComponent<T>
+    {
+        var key = ((ulong)viewId << 32) | (uint)VolumeBlenderTrampoline<T>.TypeId;
+        if (_viewVolumeOffsets.TryGetValue(key, out var offset))
+        {
+            var ptr = (byte*)_volumeDataBuffer.GetUnsafePtr() + offset;
+            return ref *(T*)ptr;
+        }
+
+        return ref VolumeBlenderTrampoline<T>.CachedDefault;
+    }
+
     public void Reset()
     {
         _renderRequests.Clear();
@@ -185,6 +232,9 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _pPunctualLights->Clear();
         _pUpdateRequest->Clear();
         _pRemoveRequest->Clear();
+
+        _volumeDataBuffer.Clear();
+        _viewVolumeOffsets.Clear();
 
         for (var i = 0; i < _viewsToRelease.Count; i++)
         {
@@ -210,6 +260,9 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _pPunctualLights->Dispose();
         _pUpdateRequest->Dispose();
         _pRemoveRequest->Dispose();
+
+        _volumeDataBuffer.Dispose();
+        _viewVolumeOffsets.Dispose();
 
         MemoryUtility.Free(_pPunctualLights);
         MemoryUtility.Free(_pUpdateRequest);

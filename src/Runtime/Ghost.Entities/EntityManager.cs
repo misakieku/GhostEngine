@@ -663,6 +663,43 @@ public unsafe partial class EntityManager : IDisposable
     }
 
     /// <summary>
+    /// Get or create a singleton entity with the specified component.
+    /// </summary>
+    /// <param name="componentID">The component space ID of the singleton.</param>
+    /// <param name="pComponent">Pointer to the component data.</param>
+    /// <returns>Pointer to the component data, or null if not found.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void* GetOrCreateSingleton(Identifier<IComponent> componentID, void* pComponent)
+    {
+        var ptr = GetSingleton(componentID);
+        if (ptr != null)
+        {
+            return ptr;
+        }
+        var error = CreateSingleton(componentID, pComponent);
+        Logger.DebugAssert(error == Error.None, "Failed to create singleton component.");
+        return GetSingleton(componentID);
+    }
+
+    /// <summary>
+    /// Get or create a singleton component of type T and return it by reference.
+    /// </summary>
+    /// <typeparam name="T">The component data type. Must be unmanaged and implement IComponentData.</typeparam>
+    /// <param name="component">Optional initial value used when creating the singleton if one does not already exist.</param>
+    /// <returns>A reference to the singleton component of type T.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ref T GetOrCreateSingleton<T>(scoped in T component = default)
+        where T : unmanaged, IComponentData
+    {
+        fixed (void* pComponent = &component)
+        {
+            var ptr = GetOrCreateSingleton(ComponentTypeID<T>.Value, pComponent);
+            Logger.DebugAssert(ptr != null, "Failed to get or create singleton component.");
+            return ref *(T*)ptr;
+        }
+    }
+
+    /// <summary>
     /// Get a pointer to the singleton component data.
     /// </summary>
     /// <param name="componentID">The component space ID of the singleton.</param>
@@ -700,14 +737,12 @@ public unsafe partial class EntityManager : IDisposable
         where T : unmanaged, IComponentData
     {
         var ptr = GetSingleton(ComponentTypeID<T>.Value);
-        return ref *(T*)ptr; // This will return null ref if ptr is null.
+        Logger.DebugAssert(ptr != null, "Singleton component not found.");
+        return ref *(T*)ptr;
     }
 
-    private static void BuildSharedData(
-        ref Archetype oldArch, int oldGroupIndex,
-        ref Archetype newArch,
-        Identifier<IComponent> changedID, void* pNewData,   // non-null = adding shared, null = removing or non-shared change
-        Span<byte> outSharedData)
+    // non-null = adding shared, null = removing or non-shared change
+    private static void BuildSharedData(ref Archetype oldArch, int oldGroupIndex, ref Archetype newArch, Identifier<IComponent> changedID, void* pNewData, Span<byte> outSharedData)
     {
         if (newArch._sharedLayouts.Count == 0)
         {
@@ -982,6 +1017,7 @@ public unsafe partial class EntityManager : IDisposable
     {
         return RemoveComponent(entity, ComponentTypeID<T>.Value);
     }
+
     /// <summary>
     /// Migrate the specified entity to a new structural state defined by the component set.
     /// </summary>
@@ -1504,7 +1540,8 @@ public unsafe partial class EntityManager : IDisposable
         where T : unmanaged, ISharedComponent
     {
         var ptr = GetSharedComponent(entity, ComponentTypeID<T>.Value);
-        return ref *(T*)ptr; // This will return null ref if ptr is null.
+        Logger.DebugAssert(ptr != null, "GetSharedComponent<T> called for an entity that does not have the shared component.");
+        return ref *(T*)ptr;
     }
 
     /// <summary>

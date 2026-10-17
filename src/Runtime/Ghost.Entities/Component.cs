@@ -5,6 +5,7 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.IO.Hashing;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -16,11 +17,16 @@ public interface IEnableableComponent : IComponentData;
 public interface ICleanupComponent : IComponentData;
 public interface ISharedComponent : IComponent;
 
+public interface IBufferElement : IComponent;
+
 [AttributeUsage(AttributeTargets.Struct)]
-public class RequireComponentAttribute<T> : Attribute
-    where T : unmanaged, IComponent
+public class InlineBufferCapacityAttribute : Attribute
 {
-    public Type RequiredType => typeof(T);
+    public int Capacity { get; }
+    public InlineBufferCapacityAttribute(int capacity)
+    {
+        Capacity = capacity;
+    }
 }
 
 internal struct ComponentInfo
@@ -31,6 +37,8 @@ internal struct ComponentInfo
     public bool isEnableable;
     public bool isCleanup;
     public bool isShared;
+    public bool isBufferComponent;
+    public int inlineBufferCapacity;
 }
 
 /// <summary>
@@ -44,6 +52,8 @@ public static class ComponentTypeID<T>
     public static readonly bool IsShared = typeof(ISharedComponent).IsAssignableFrom(typeof(T));
     public static readonly bool IsEnableable = typeof(IEnableableComponent).IsAssignableFrom(typeof(T));
     public static readonly bool IsCleanup = typeof(ICleanupComponent).IsAssignableFrom(typeof(T));
+    public static readonly bool IsBufferComponent = typeof(IBufferElement).IsAssignableFrom(typeof(T));
+    public static readonly int InlineBufferCapacity = typeof(T).GetCustomAttribute<InlineBufferCapacityAttribute>()?.Capacity ?? 0;
 
     static ComponentTypeID()
     {
@@ -82,6 +92,8 @@ public static class ComponentRegistry
             isEnableable = typeof(IEnableableComponent).IsAssignableFrom(type),
             isCleanup = typeof(ICleanupComponent).IsAssignableFrom(type),
             isShared = typeof(ISharedComponent).IsAssignableFrom(type),
+            isBufferComponent = typeof(IBufferElement).IsAssignableFrom(type),
+            inlineBufferCapacity = type.GetCustomAttribute<InlineBufferCapacityAttribute>()?.Capacity ?? 0
         };
 
         s_registeredComponents.Add(info);
@@ -522,7 +534,7 @@ public struct ComponentSet : IDisposable, IEquatable<ComponentSet>
         return obj is ComponentSet set && Equals(set);
     }
 
-    public static bool operator ==([AllowCopy]ComponentSet left, ComponentSet right)
+    public static bool operator ==([AllowCopy] ComponentSet left, ComponentSet right)
     {
         return left.Equals(right);
     }
