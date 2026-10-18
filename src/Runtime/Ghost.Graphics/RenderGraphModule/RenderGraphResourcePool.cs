@@ -150,6 +150,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
     private readonly Dictionary<int, string> _resourceName;
 #endif
     private Handle<GPUResource> _resourceHeap = Handle<GPUResource>.Invalid;
+    private ulong _lastHeapSize = 0;
 
     internal ReadOnlySpan<RenderGraphResource> Resources => _resources;
 
@@ -424,6 +425,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
     public Error AllocateBackingResources(ref AliasingPlan plan, RenderGraphCompilationCache cache, in RenderGraphResourceOrdering ordering = default)
     {
+        var reallocateHeap = plan.totalHeapSize > _lastHeapSize;
         if (_allocatedBackingResources.Count > 0 || _resourceHeap.IsValid)
         {
             for (var i = 0; i < _allocatedBackingResources.Count; i++)
@@ -434,20 +436,21 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
                     _database.ReleaseResource(handle);
                 }
             }
+
             _allocatedBackingResources.Clear();
 
-            if (_resourceHeap.IsValid)
+            if (_resourceHeap.IsValid && reallocateHeap)
             {
                 _database.ReleaseResource(_resourceHeap);
                 _resourceHeap = Handle<GPUResource>.Invalid;
             }
         }
 
-        if (plan.totalHeapSize > 0)
+        if (reallocateHeap && plan.totalHeapSize > 0)
         {
             var allocationDesc = new AllocationDesc
             {
-                Size = plan.totalHeapSize + 65536, // Add 64KB padding to avoid potential overflows
+                Size = plan.totalHeapSize,
                 Alignment = 65536, // 64KB
                 HeapFlags = HeapFlags.AllowAllBufferAndTexture,
                 HeapType = HeapType.Default
@@ -456,8 +459,13 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
             _resourceHeap = _allocator.Allocate(in allocationDesc, "RenderGraphResourceHeap");
             if (_resourceHeap.IsInvalid)
             {
+                Logger.Debug($"Failed to allocate resource heap of size {plan.totalHeapSize} bytes.");
+
+                _lastHeapSize = 0;
                 return Error.InvalidState;
             }
+
+            _lastHeapSize = plan.totalHeapSize;
         }
 
         for (var i = 0; i < _resources.Count; i++)
@@ -492,8 +500,10 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
                 res.backingResource = _allocator.CreateBuffer(in res.bufferDesc, name).AsResource();
                 if (res.backingResource.IsInvalid)
                 {
+                    Logger.Debug($"Failed to allocate upload buffer for resource '{name}' of size {res.bufferDesc.Size} bytes.");
                     return Error.InvalidState;
                 }
+
                 _allocatedBackingResources.Add(res.backingResource);
             }
             else
@@ -530,6 +540,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
                 if (res.backingResource.IsInvalid)
                 {
+                    Logger.Debug($"Failed to allocate resource '{name}' of type {res.type}.");
                     return Error.InvalidState;
                 }
 

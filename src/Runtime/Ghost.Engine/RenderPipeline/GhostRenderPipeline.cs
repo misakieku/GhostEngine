@@ -161,28 +161,30 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
             var viewBuffer = RenderPipelineUtility.CreateViewDataBuffer(ctx, request, renderView, viewMatrix, projMatrix, viewProjMatrix, frustum, ref viewContext.prevViewProjMatrix);
 
-            viewContext.RenderGraph.Reset();
-            viewContext.RenderGraph.SetFrameData(frameBuffer);
-            viewContext.RenderGraph.SetViewData(viewBuffer);
+            var renderGraph = viewContext.RenderGraph;
 
-            var colorTarget = viewContext.RenderGraph.ImportTexture(renderView.ColorTexture, ResourceBarrierData.Present, ResourceBarrierData.Present);
-            var historyHzb = viewContext.RenderGraph.ImportTexture(viewContext.HzbTexture, ResourceBarrierData.Common, ResourceBarrierData.Common);
+            renderGraph.Reset();
+            renderGraph.SetFrameData(frameBuffer);
+            renderGraph.SetViewData(viewBuffer);
+
+            var colorTarget = renderGraph.ImportTexture(renderView.ColorTexture, ResourceBarrierData.Present, ResourceBarrierData.Present);
+            var historyHzb = renderGraph.ImportTexture(viewContext.HzbTexture, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
             AddCullingAndVbufferPasses(viewContext, ghostPayload.InstanceCount, historyHzb, _gpuScene.SceneBufferSrvIndex,
                 out var currentDepth, out var currentVisBuffer,
                 out var visibleMeshlets0, out var visibleMeshlets1);
 
-            AddTileClassificationPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, viewContext.RenderSize,
+            AddTileClassificationPass(renderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, viewContext.RenderSize,
                 out var tileListBuffer, out var tileOffsetsBuffer, out var indirectArgsBuffer, out var tileShadingModelMaskBuffer);
 
-            var gbuffer = AddDeferredTexturingPass(viewContext.RenderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, tileOffsetsBuffer, indirectArgsBuffer, viewContext.RenderSize);
-            var tileLightList = AddTileLightCullingPass(viewContext.RenderGraph, currentDepth, viewContext.RenderSize);
-            var shadowAtlas = AddPunctualShadowAtlasPass(viewContext.RenderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
-            var litColor = AddDeferredLightingPass(viewContext.RenderGraph, gbuffer, currentDepth, tileLightList, shadowAtlas, shadowViewsBufferSrv, shadowIndicesBufferSrv, tileShadingModelMaskBuffer, viewContext.RenderSize);
+            var gbuffer = AddDeferredTexturingPass(renderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, tileOffsetsBuffer, indirectArgsBuffer, viewContext.RenderSize);
+            var tileLightList = AddTileLightCullingPass(renderGraph, currentDepth, viewContext.RenderSize);
+            var shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
+            var litColor = AddDeferredLightingPass(renderGraph, gbuffer, currentDepth, tileLightList, shadowAtlas, shadowViewsBufferSrv, shadowIndicesBufferSrv, tileShadingModelMaskBuffer, viewContext.RenderSize);
 
-            viewContext.RenderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
+            renderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
 
-            var result = viewContext.RenderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.Default);
+            var result = renderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.Default);
             if (result.IsFailure)
             {
                 return Result.Failure($"Render graph execution failed: {result.Error}");

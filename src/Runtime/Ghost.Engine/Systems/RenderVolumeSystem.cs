@@ -65,6 +65,7 @@ public unsafe class RenderVolumeSystem : SystemBase
         {
             return;
         }
+
         ref var cameraQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_cameraQueryID);
 
         using var scope = AllocationManager.CreateStackScope();

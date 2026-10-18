@@ -234,7 +234,6 @@ public struct Frustum
     }
 }
 
-
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct ViewData
 {

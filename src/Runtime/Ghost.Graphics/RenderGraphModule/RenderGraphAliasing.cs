@@ -149,14 +149,6 @@ internal static class RenderGraphAliasingBuilder
         }
     }
 
-    private readonly struct ResourceSizeDescendingComparer : IComparer<LogicalResourceEntry>
-    {
-        public int Compare(LogicalResourceEntry x, LogicalResourceEntry y)
-        {
-            return y.size.CompareTo(x.size); // Descending order
-        }
-    }
-
     internal struct ResourceHeap : IDisposable
     {
         private UnsafeList<MemoryInfo> _blocks;
@@ -174,11 +166,7 @@ internal static class RenderGraphAliasingBuilder
 
         public const ulong DEFAULT_ALIGNMENT = 65536; // 64KB
 
-        public ResourceHeap(
-            int index,
-            ulong size,
-            RenderGraphResourceOrdering ordering,
-            AllocationHandle allocationHandle)
+        public ResourceHeap(int index, ulong size, RenderGraphResourceOrdering ordering, AllocationHandle allocationHandle)
         {
             Index = index;
             Size = size;
@@ -402,7 +390,7 @@ internal static class RenderGraphAliasingBuilder
         }
 
         // Sort by size descending
-        logicalResources.AsSpan().Sort(default(ResourceSizeDescendingComparer));
+        logicalResources.AsSpan().Sort(static (x, y) => y.size.CompareTo(x.size));
 
         // Simulate allocation to find peak memory usage
         using var simulationHeap = new ResourceHeap(0, ulong.MaxValue, ordering, scope.AllocationHandle);

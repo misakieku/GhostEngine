@@ -149,11 +149,6 @@ public unsafe partial struct EntityQuery
             return JobHandle.Invalid;
         }
 
-        if (world.JobScheduler == null)
-        {
-            throw new InvalidOperationException("The World has no JobScheduler assigned.");
-        }
-
         var batches = new UnsafeList<JobBatchContext<#= i #>>(128, AllocationHandle.TempJob);
         var hiddenOffsets = stackalloc int[16];
 

@@ -351,35 +351,101 @@ public partial class AssetManager : IDisposable
         }
     }
 
+    /// <summary>
+    /// Resolve the asset ID from the virtual path.
+    /// </summary>
+    /// <param name="virtualPath">The virtual path of the asset.</param>
+    /// <returns>The asset ID, or Guid.Empty if the asset is not found.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Guid ResolveAssetID(string virtualPath)
     {
         return _contentProvider.VirtualPathToGuid(virtualPath);
     }
 
+    /// <summary>
+    /// Try to resolve the asset entry from the virtual path.
+    /// </summary>
+    /// <param name="virtualPath">The virtual path of the asset.</param>
+    /// <param name="asset">The resolved asset entry, or null if the asset is not found.</param>
+    /// <returns>true if the asset is found, false otherwise.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IAssetEntry ResolveAsset(Guid assetID)
+    public bool TryResolveAsset(string virtualPath, [NotNullWhen(true)] out IAssetEntry? asset)
+    {
+        var guid = _contentProvider.VirtualPathToGuid(virtualPath);
+        if (guid == Guid.Empty)
+        {
+            asset = null;
+            return false;
+        }
+
+        asset = GetOrCreateEntry(guid);
+        return true;
+    }
+
+    /// <summary>
+    /// Try to resolve the asset entry from the asset ID.
+    /// </summary>
+    /// <param name="assetID">The ID of the asset to resolve.</param>
+    /// <param name="asset">The resolved asset entry, or null if the asset is not found.</param>
+    /// <returns>true if the asset is found, false otherwise.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryResolveAsset(Guid assetID, [NotNullWhen(true)] out IAssetEntry? asset)
     {
         if (assetID == Guid.Empty)
         {
-            throw new ArgumentNullException(nameof(assetID));
+            asset = null;
+            return false;
         }
 
-        return GetOrCreateEntry(assetID);
+        asset = GetOrCreateEntry(assetID);
+        return true;
     }
 
+    /// <summary>
+    /// Resolve the asset entry from the asset ID.
+    /// </summary>
+    /// <param name="assetID">The ID of the asset to resolve.</param>
+    /// <returns>The resolved asset entry.</returns>
+    /// <exception cref="ArgumentException">Thrown when the asset is not found.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public IAssetEntry ResolveAsset(Guid assetID)
+    {
+        if (!TryResolveAsset(assetID, out var asset))
+        {
+            throw new ArgumentException($"Asset not found for ID: {assetID}", nameof(assetID));
+        }
+
+        return asset;
+    }
+
+    /// <summary>
+    /// Resolve the asset entry from the virtual path.
+    /// </summary>
+    /// <param name="virtualPath">The virtual path of the asset to resolve.</param>
+    /// <returns>The resolved asset entry.</returns>
+    /// <exception cref="ArgumentException">Thrown when the asset is not found.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IAssetEntry ResolveAsset(string virtualPath)
     {
-        return ResolveAsset(_contentProvider.VirtualPathToGuid(virtualPath));
+        if (!TryResolveAsset(virtualPath, out var asset))
+        {
+            throw new ArgumentException($"Asset not found for virtual path: {virtualPath}", nameof(virtualPath));
+        }
+
+        return asset;
     }
 
+    /// <summary>
+    /// Release the asset entry from the asset ID. This will decrease the reference count of the asset entry, and if the reference count reaches zero, the asset entry will be removed from the manager.
+    /// </summary>
+    /// <param name="assetID">The ID of the asset to release.</param>
+    /// <returns>The new reference count of the asset entry.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int ReleaseAsset(Guid assetID)
     {
         if (assetID == Guid.Empty)
         {
-            throw new ArgumentNullException(nameof(assetID));
+            return 0;
         }
 
         if (!_entries.TryGetValue(assetID, out var entry))
@@ -391,10 +457,21 @@ public partial class AssetManager : IDisposable
         return entry.Release();
     }
 
+    /// <summary>
+    /// Release the asset entry from the virtual path. This will decrease the reference count of the asset entry, and if the reference count reaches zero, the asset entry will be removed from the manager.
+    /// </summary>
+    /// <param name="virtualPath">The virtual path of the asset to release.</param>
+    /// <returns>The new reference count of the asset entry.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int ReleaseAsset(string virtualPath)
     {
-        return ReleaseAsset(_contentProvider.VirtualPathToGuid(virtualPath));
+        var assetID = _contentProvider.VirtualPathToGuid(virtualPath);
+        if (assetID == Guid.Empty)
+        {
+            return 0;
+        }
+
+        return ReleaseAsset(assetID);
     }
 
     public void Dispose()

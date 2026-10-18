@@ -53,11 +53,6 @@ public unsafe partial struct EntityQuery
             return JobHandle.Invalid;
         }
 
-        if (world.JobScheduler == null)
-        {
-            throw new InvalidOperationException("The World has no JobScheduler assigned.");
-        }
-
         var chunkInfos = new UnsafeList<ChunkInfo>(_matchingArchetypes.Count * 2, AllocationHandle.TempJob);
 
         foreach (var archID in _matchingArchetypes)
