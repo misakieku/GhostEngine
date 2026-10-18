@@ -347,15 +347,3 @@ The builder's `Reject` sets `_faulted` and throws; `Dispose` then short-circuits
 `GetQueueDecision` derives `RGQueueDecision` from culled state, pass type, the async hint, and the effective queue. `PassDumpInfo.NativePassIndex` is found by scanning `nativePasses` for one containing the pass index, defaulting to `NativeRenderPass.Invalid` (`index = -1`), so it is `-1` for compute, unsafe, and culled passes.
 
 `ResourceDumpInfo` reports both lifetime pairs: `FirstUsePass` / `LastUsePass` from the registry (pass-index space) and `ScheduledFirstUseIndex` / `ScheduledLastUseIndex` from the compiled ordering (schedule-index space). Only the scheduled pair feeds aliasing and barriers.
-
----
-
-## Known source issues
-
-Surfaced while documenting; none are fixed as of this writing.
-
-1. **`RenderGraphUtility` copy/clear helpers fail validation.** `AddCopyBufferPass`, `AddCopyTexturePass`, `AddClearRenderTargetPass` and `AddClearDepthStencilPass` declare a generic write on an **unsafe** pass, which `ValidatePass` rejects with *"generic writes are ambiguous for Unsafe passes"* at builder disposal. They throw in safety-checks builds and have no engine call sites. `AddClearBufferPass` (uses `UseRandomAccessBuffer`) and `AddBlitPass` (raster + attachment) are unaffected. Fix: migrate to `UseRenderTargetTexture` or `UseRandomAccess*`.
-2. **`GPUResourceLeakException` is unwired.** `ThrowIfRefCountNonZero` has no call site anywhere in the solution.
-3. **`PassDumpInfo.AsyncCompute` and `AsyncRequested` are redundant.** Both are assigned `pass.asyncCompute` in `GenerateDump`; `EffectiveQueue` and `QueueDecision` are the informative fields.
-4. **HZB history reads may be discarded.** `GhostRenderPipeline.cs` imports the view's HZB texture without `initialState`, and meshlet cull pass 1 reads it before anything writes it this frame. An imported resource without `hasInitialBarrierState` seeds an invalid tracked state, so `EmitImplicitTransitions` attaches `FirstUsage | Discard`. Confirm whether the import needs an explicit initial state.
-5. **Stale test name.** `TestAsyncPlanner_PassZeroComputeWithFewerThanFourPassesSucceeds` predates the async threshold being lowered from four to three compiled passes.

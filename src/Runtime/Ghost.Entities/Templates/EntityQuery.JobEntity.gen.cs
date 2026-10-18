@@ -89,7 +89,7 @@ internal unsafe struct JobEntityBatch<TJob, T0> : IJobParallelFor
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent], 
+                userJob.Execute(pEntity[i_ent],
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     in ctx);
 
@@ -204,7 +204,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1> : IJobParallelFor
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent], 
+                userJob.Execute(pEntity[i_ent],
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
                     in ctx);
@@ -341,7 +341,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2> : IJobParallelFor
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent], 
+                userJob.Execute(pEntity[i_ent],
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
                     ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
@@ -500,7 +500,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3> : IJobParallelFor
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent], 
+                userJob.Execute(pEntity[i_ent],
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
                     ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
@@ -681,7 +681,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4> : IJobParallelFo
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent], 
+                userJob.Execute(pEntity[i_ent],
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
                     ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
@@ -884,7 +884,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5> : IJobParall
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent], 
+                userJob.Execute(pEntity[i_ent],
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
                     ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
@@ -1109,7 +1109,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6> : IJobPa
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent], 
+                userJob.Execute(pEntity[i_ent],
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
                     ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
@@ -1356,7 +1356,7 @@ internal unsafe struct JobEntityBatch<TJob, T0, T1, T2, T3, T4, T5, T6, T7> : IJ
                 var bit = System.Numerics.BitOperations.TrailingZeroCount(validMask);
                 var i_ent = (block * 64) + bit;
 
-                userJob.Execute(pEntity[i_ent], 
+                userJob.Execute(pEntity[i_ent],
                     ref ComponentTypeID<T0>.IsShared ? ref ptr0[0] : ref ptr0[i_ent],
                     ref ComponentTypeID<T1>.IsShared ? ref ptr1[0] : ref ptr1[i_ent],
                     ref ComponentTypeID<T2>.IsShared ? ref ptr2[0] : ref ptr2[i_ent],
@@ -1449,7 +1449,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-                
+
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -1624,7 +1624,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-                
+
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -1824,7 +1824,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-                
+
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -2049,7 +2049,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-                
+
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -2299,7 +2299,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-                
+
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -2574,7 +2574,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-                
+
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -2874,7 +2874,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-                
+
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {
@@ -3199,7 +3199,7 @@ public unsafe partial struct EntityQuery
             for (var chunkIdx = 0; chunkIdx < arch.ChunkCount; chunkIdx++)
             {
                 ref var chunkRef = ref arch.GetChunkReference(chunkIdx);
-                
+
                 byte* pSharedBlob = null;
                 if (arch._chunkGroups.Count > 0 && chunkRef._groupIndex >= 0 && chunkRef._groupIndex < arch._chunkGroups.Count)
                 {

@@ -412,14 +412,8 @@ internal unsafe partial class RenderGraphCompiler
                 }
             }
 
-            var aliasingPredecessor = Identifier<RGResource>.Invalid;
             var flags = BarrierFlags.None;
-            if (TryGetAliasingPredecessor(
-                scheduleIndex,
-                usage.resource,
-                ref aliasingPlan,
-                resourceOrdering,
-                out aliasingPredecessor))
+            if (TryGetAliasingPredecessor(scheduleIndex, usage.resource, ref aliasingPlan, resourceOrdering, out var aliasingPredecessor))
             {
                 flags = BarrierFlags.FirstUsage | BarrierFlags.Discard;
             }
@@ -469,14 +463,7 @@ internal unsafe partial class RenderGraphCompiler
         return count;
     }
 
-    private int AddTransition(
-        Identifier<RGResource> id,
-        ResourceBarrierData sourceState,
-        ResourceBarrierData targetState,
-        Identifier<RGResource> aliasingPredecessor,
-        BarrierFlags flags,
-        CommandQueueType queue,
-        ref BufferWriter writer)
+    private int AddTransition(Identifier<RGResource> id, ResourceBarrierData sourceState, ResourceBarrierData targetState, Identifier<RGResource> aliasingPredecessor, BarrierFlags flags, CommandQueueType queue, ref BufferWriter writer)
     {
         ref readonly var resource = ref _resourceRegistry.GetResource(id);
         var barrier = new CompiledBarrier
@@ -495,10 +482,7 @@ internal unsafe partial class RenderGraphCompiler
         return 1;
     }
 
-    private int EmitClosingBarriers(
-        ref BufferWriter writer,
-        CommandQueueType activeQueue,
-        Span<CompiledResourceState> resourceStates)
+    private int EmitClosingBarriers(ref BufferWriter writer, CommandQueueType activeQueue, Span<CompiledResourceState> resourceStates)
     {
         var startPos = writer.Position;
         writer.Write(RGExecutionOpType.IssueBarriers);
@@ -605,10 +589,7 @@ internal unsafe partial class RenderGraphCompiler
         return count;
     }
 
-    private ResourceBarrierData GetBufferReadBarrierData(
-        Identifier<RGResource> handle,
-        RGResourceType resourceType,
-        RenderPassType passType)
+    private ResourceBarrierData GetBufferReadBarrierData(Identifier<RGResource> handle, RGResourceType resourceType, RenderPassType passType)
     {
         var sync = passType switch
         {
@@ -634,12 +615,7 @@ internal unsafe partial class RenderGraphCompiler
         return new ResourceBarrierData(BarrierLayout.Undefined, access, sync);
     }
 
-    public static bool RequiresBarrierBetweenPasses(
-        RenderGraphPass laterPass,
-        int scheduleIndex,
-        RenderGraphResourceRegistry resources,
-        ref AliasingPlan aliasingPlan,
-        RenderGraphResourceOrdering resourceOrdering)
+    public static bool RequiresBarrierBetweenPasses(RenderGraphPass laterPass, int scheduleIndex, RenderGraphResourceRegistry resources, ref AliasingPlan aliasingPlan, RenderGraphResourceOrdering resourceOrdering)
     {
 
         using var scope = AllocationManager.CreateStackScope();

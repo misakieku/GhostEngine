@@ -231,7 +231,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         {
             return false;
         }
-        
+
         return record.Allocated;
     }
 

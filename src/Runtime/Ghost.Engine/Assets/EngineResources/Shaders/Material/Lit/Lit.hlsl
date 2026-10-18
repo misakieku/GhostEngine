@@ -80,7 +80,7 @@ SurfaceData ExtractSurfaceData(GBufferOutputs gbuffer)
 {
     SurfaceData surface = (SurfaceData)0;
     surface.albedo = gbuffer.GetBaseColor();
-    surface.shadingModel = gbuffer.GetMetallic();
+    surface.shadingModel = gbuffer.GetShadingModel();
     surface.normalWS = gbuffer.GetNormal();
     surface.roughness = gbuffer.GetRoughness();
     surface.metallic = gbuffer.GetMetallic();

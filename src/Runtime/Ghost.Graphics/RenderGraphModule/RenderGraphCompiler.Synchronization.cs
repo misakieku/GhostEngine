@@ -188,12 +188,7 @@ internal unsafe partial class RenderGraphCompiler
             for (var recordOffset = 0; recordOffset < range.count; recordOffset++)
             {
                 ref readonly var usage = ref usageRecords[range.start + recordOffset];
-                if (!TryGetAliasingPredecessor(
-                    scheduleIndex,
-                    usage.resource,
-                    ref aliasingPlan,
-                    resourceOrdering,
-                    out var predecessor))
+                if (!TryGetAliasingPredecessor(scheduleIndex, usage.resource, ref aliasingPlan, resourceOrdering, out var predecessor))
                 {
                     continue;
                 }

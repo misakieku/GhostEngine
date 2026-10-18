@@ -10,7 +10,7 @@
       "Columns": 1,
       "Rows": 1,
       "Depth": 1,
-      "IsSRGB": true
+      "IsSRGB": false
     },
     "Advanced": {
       "MaxSize": "Size2048",

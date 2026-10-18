@@ -110,7 +110,7 @@ internal partial class GhostRenderPipeline
             1.0f,
             TextureFormat.R8G8B8A8_Typeless,
             usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource,
-            typelessViewFormat: new TypelessFormatDesc { Uav = TextureFormat.R8G8B8A8_UNorm, Srv = TextureFormat.R8G8B8A8_SRGB } ), "GBuffer0_AlbedoMetal");
+            typelessViewFormat: new TypelessFormatDesc { Uav = TextureFormat.R8G8B8A8_UNorm, Srv = TextureFormat.R8G8B8A8_SRGB }), "GBuffer0_AlbedoMetal");
 
         var gbuffer1 = builder.CreateTexture(RGTextureDesc.Relative(
             1.0f,

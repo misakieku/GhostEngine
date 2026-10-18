@@ -234,7 +234,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         });
 
         _world.EntityManager.CreateEntity(
-            new RenderVolume { renderingLayerMask = RenderingLayerMask.All, isGlobal = true },
+            new RenderVolume { renderingLayerMask = RenderingLayerMask.All, isGlobal = true, weight = 1.0f, priority = 1 },
             volumeData);
 
         _world.AddService<InputProfileDatabase>();

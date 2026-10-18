@@ -35,8 +35,8 @@ internal static unsafe class VolumeBlenderTrampoline<T>
             return;
         }
 
-        ref T targetRef = ref *(T*)target;
-        ref readonly T sourceRef = ref *(T*)source;
+        ref var targetRef = ref *(T*)target;
+        ref readonly var sourceRef = ref *(T*)source;
         T.Blend(ref targetRef, in sourceRef, weight);
     }
 

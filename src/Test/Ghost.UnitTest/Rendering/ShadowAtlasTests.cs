@@ -36,7 +36,7 @@ public class ShadowAtlasTests
     [TestMethod]
     public void ShadowAtlasRegionAllocator_MultipleTiles_PacksAcrossShelves()
     {
-        using var allocator = new ShadowAtlasRegionAllocator(2048,AllocationHandle.Persistent);
+        using var allocator = new ShadowAtlasRegionAllocator(2048, AllocationHandle.Persistent);
 
         // First shelf (y=0, height=512): fits 4 tiles of 512x512
         for (var i = 0; i < 4; i++)

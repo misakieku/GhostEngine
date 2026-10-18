@@ -190,6 +190,13 @@ public partial class ResourceManager
 
     public Handle<GPUBuffer> CreateTransientBuffer(scoped in BufferDesc desc, string? name = null)
     {
+#if GHOST_SAFETY_CHECKS
+        if (desc.HeapType == HeapType.Upload)
+        {
+            Logger.Info("Creating transient upload buffer. Consider using CreateTransientUploadBuffer for better performance.");
+        }
+#endif
+
         var size = _resourceAllocator.GetSizeInfo(ResourceDesc.Buffer(desc));
 
         lock (_transientWriteLock)
@@ -273,16 +280,16 @@ public partial class ResourceManager
     {
         Logger.DebugAssert(desc.HeapType == HeapType.Upload, "Transient upload buffer must be of HeapType.Upload");
 
+        if (Volatile.Read(ref _uploadBufferOffset) + desc.Size > DEFAULT_TRANSIENT_PAGE_SIZE)
+        {
+            var handle = CreateTransientBuffer(desc);
+            offset = 0;
+            srvIndex = _resourceDatabase.GetBindlessIndex(handle.AsResource());
+            return handle;
+        }
+
         lock (_uploadBufferLock)
         {
-            if (_uploadBufferOffset + desc.Size > DEFAULT_TRANSIENT_PAGE_SIZE)
-            {
-                var handle = CreateTransientBuffer(desc);
-                offset = 0;
-                srvIndex = _resourceDatabase.GetBindlessIndex(handle.AsResource());
-                return handle;
-            }
-
             offset = _uploadBufferOffset;
             srvIndex = _uploadBufferSrvIndex;
 

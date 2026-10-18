@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Engine.Input;
 using Ghost.Engine.Streaming;
-using Ghost.Entities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using SDL;
 

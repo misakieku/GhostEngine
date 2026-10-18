@@ -187,7 +187,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
 
     public void SetViewVolumeData(uint viewId, ushort typeId, void* pData, int size)
     {
-        var key = ((ulong)viewId << 32) | (uint)typeId;
+        var key = ((ulong)viewId << 32) | typeId;
         if (_viewVolumeOffsets.TryGetValue(key, out var offset))
         {
             MemoryUtility.MemCpy((byte*)_volumeDataBuffer.GetUnsafePtr() + offset, pData, (nuint)size);
@@ -214,7 +214,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     public ref readonly T GetViewVolumeData<T>(uint viewId)
         where T : unmanaged, IVolumeComponent<T>
     {
-        var key = ((ulong)viewId << 32) | (uint)VolumeBlenderTrampoline<T>.TypeId;
+        var key = ((ulong)viewId << 32) | VolumeBlenderTrampoline<T>.TypeId;
         if (_viewVolumeOffsets.TryGetValue(key, out var offset))
         {
             var ptr = (byte*)_volumeDataBuffer.GetUnsafePtr() + offset;

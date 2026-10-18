@@ -94,7 +94,7 @@ public sealed class FrameScheduler : IDisposable
         _lastWaitedFenceValues = new UnsafeArray<ulong>(QUEUE_COUNT * QUEUE_COUNT, AllocationHandle.Persistent, AllocationOption.Clear);
 
         _submissions = new List<SubmissionRecord>(16);
-        
+
         _indegrees = new UnsafeArray<int>();
         _executionOrder = new UnsafeArray<int>();
         _scheduled = new UnsafeArray<bool>();
