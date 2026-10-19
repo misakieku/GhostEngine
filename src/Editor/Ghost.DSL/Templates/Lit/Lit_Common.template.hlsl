@@ -108,6 +108,11 @@ struct DefaultDeferredLightingStrategy
         return (DirectLighting)0;
     }
 
+    IndirectLighting EvaluateIndirectLighting(ShadingContext ctx, BSDFData bsdf, PreLightData preLightData, float3 V)
+    {
+        return (IndirectLighting)0;
+    }
+
     LightLoopOutput PostEvaluateBSDF(AggregateLighting lighting, BSDFData bsdf, PreLightData preLightData, float3 V)
     {
         return (LightLoopOutput)0;

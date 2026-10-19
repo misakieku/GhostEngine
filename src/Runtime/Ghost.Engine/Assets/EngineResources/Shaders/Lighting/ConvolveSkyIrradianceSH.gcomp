@@ -1,0 +1,137 @@
+compute "Internal/ConvolveSkyIrradianceSH"
+{
+    properties
+    {
+        TextureCube skyboxTexture;
+        SamplerState skyboxSampler;
+        uint persistentViewStateUav;
+        uint viewId;
+        uint skyboxMipCount;
+        uint skyboxWidth;
+        float4 skyboxTintAndIntensity; // xyz: tint, w: intensity
+        float2 skyboxRotationSinCos;   // x: sin, y: cos
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Lighting/SphericalHarmonics.hlsl";
+    }
+
+    hlsl
+    {
+        #define SAMPLE_COUNT 256
+        #define THREAD_COUNT 64
+        #define SAMPLES_PER_THREAD 4
+        #define SH_COEFF_COUNT 27
+        #define PI 3.14159265358979323846f
+
+        #define kSHBasis0  0.28209479177387814347f
+        #define kSHBasis1  0.48860251190291992159f
+        #define kSHBasis2  1.09254843059207907054f
+        #define kSHBasis3  0.31539156525252000603f
+        #define kSHBasis4  0.54627421529603953527f
+
+        static const float kSHBasisCoef[9] = { kSHBasis0, -kSHBasis1, kSHBasis1, -kSHBasis1, kSHBasis2, -kSHBasis2, kSHBasis3, -kSHBasis2, kSHBasis4 };
+
+        #define kClampedCosine0 (1.0f)
+        #define kClampedCosine1 (2.0f / 3.0f)
+        #define kClampedCosine2 (1.0f / 4.0f)
+
+        static const float kClampedCosineCoefs[9] = { kClampedCosine0, kClampedCosine1, kClampedCosine1, kClampedCosine1, kClampedCosine2, kClampedCosine2, kClampedCosine2, kClampedCosine2, kClampedCosine2 };
+
+        groupshared float s_sh[THREAD_COUNT][SH_COEFF_COUNT];
+
+        [numthreads(THREAD_COUNT, 1, 1)]
+        void CSMain(uint tid : SV_GroupThreadID)
+        {
+            InternalConvolveSkyIrradianceSHShaderProperties props = LoadData<InternalConvolveSkyIrradianceSHShaderProperties>(g_PushConstantData.userData0, 0);
+
+            float localSH[SH_COEFF_COUNT];
+            for (uint c = 0; c < SH_COEFF_COUNT; ++c)
+            {
+                localSH[c] = 0.0f;
+            }
+
+            float cubeWidth = max(1.0f, float(props.skyboxWidth));
+            float invOmegaP = (6.0f * cubeWidth * cubeWidth) / (4.0f * PI);
+            float omegaS = (4.0f * PI) / float(SAMPLE_COUNT);
+            float mipLevel = clamp(0.5f * log2(omegaS * invOmegaP), 0.0f, max(0.0f, float(props.skyboxMipCount) - 1.0f));
+
+            float3 tintAndIntensity = props.skyboxTintAndIntensity.rgb * props.skyboxTintAndIntensity.w;
+
+            for (uint s = 0; s < SAMPLES_PER_THREAD; ++s)
+            {
+                uint idx = tid * SAMPLES_PER_THREAD + s;
+
+                // Uniform Fibonacci sphere distribution
+                float phi = float(idx) * (PI * (3.0f - sqrt(5.0f)));
+                float y = 1.0f - (float(idx) + 0.5f) * (2.0f / float(SAMPLE_COUNT));
+                float r = sqrt(max(0.0f, 1.0f - y * y));
+                float x = r * cos(phi);
+                float z = r * sin(phi);
+
+                float3 dir = float3(x, y, z);
+                float3 rotatedDir = RotateDirectionY(dir, props.skyboxRotationSinCos);
+
+                float3 radiance = SampleTextureCubeLevel<float4>(props.skyboxTexture, props.skyboxSampler, rotatedDir, mipLevel).rgb * tintAndIntensity;
+
+                for (uint ch = 0; ch < 3; ++ch)
+                {
+                    uint base = ch * 9;
+                    float val = radiance[ch];
+                    localSH[base + 0] += val;
+                    localSH[base + 1] += dir.y * val;
+                    localSH[base + 2] += dir.z * val;
+                    localSH[base + 3] += dir.x * val;
+                    localSH[base + 4] += dir.x * dir.y * val;
+                    localSH[base + 5] += dir.y * dir.z * val;
+                    localSH[base + 6] += (3.0f * dir.z * dir.z - 1.0f) * val;
+                    localSH[base + 7] += dir.x * dir.z * val;
+                    localSH[base + 8] += (dir.x * dir.x - dir.y * dir.y) * val;
+                }
+            }
+
+            for (uint i = 0; i < SH_COEFF_COUNT; ++i)
+            {
+                s_sh[tid][i] = localSH[i];
+            }
+
+            for (uint stride = 32; stride > 0; stride >>= 1)
+            {
+                GroupMemoryBarrierWithGroupSync();
+                if (tid < stride)
+                {
+                    for (uint k = 0; k < SH_COEFF_COUNT; ++k)
+                    {
+                        s_sh[tid][k] += s_sh[tid + stride][k];
+                    }
+                }
+            }
+
+            if (tid == 0)
+            {
+                float totalWeight = (4.0f * PI) / float(SAMPLE_COUNT);
+                for (uint j = 0; j < SH_COEFF_COUNT; ++j)
+                {
+                    uint basisIdx = j % 9;
+                    s_sh[0][j] = s_sh[0][j] * totalWeight * kSHBasisCoef[basisIdx] * kClampedCosineCoefs[basisIdx] * kSHBasisCoef[basisIdx];
+                }
+
+                PackedSH9 sh;
+                sh.shAr = float4(s_sh[0][3], s_sh[0][1], s_sh[0][2], s_sh[0][0] - s_sh[0][6]);
+                sh.shAg = float4(s_sh[0][12], s_sh[0][10], s_sh[0][11], s_sh[0][9] - s_sh[0][15]);
+                sh.shAb = float4(s_sh[0][21], s_sh[0][19], s_sh[0][20], s_sh[0][18] - s_sh[0][24]);
+                sh.shBr = float4(s_sh[0][4], s_sh[0][5], 3.0f * s_sh[0][6], s_sh[0][7]);
+                sh.shBg = float4(s_sh[0][13], s_sh[0][14], 3.0f * s_sh[0][15], s_sh[0][16]);
+                sh.shBb = float4(s_sh[0][22], s_sh[0][23], 3.0f * s_sh[0][24], s_sh[0][25]);
+                sh.shC  = float4(s_sh[0][8], s_sh[0][17], s_sh[0][26], 1.0f);
+
+                RWByteAddressBuffer uavBuf = GET_BUFFER(props.persistentViewStateUav);
+                StoreViewSH9(uavBuf, props.viewId, sh);
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

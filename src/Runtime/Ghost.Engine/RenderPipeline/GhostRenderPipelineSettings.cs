@@ -45,7 +45,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     private readonly UnsafeParallelQueue<RemoveInstanceRequest>.ParallelProducer _removeRequestProducer;
 
     private UnsafeList<byte> _volumeDataBuffer;
-    private UnsafeHashMap<ulong, int> _viewVolumeOffsets; // (viewId << 32 | typeId) -> byte offset
+    private UnsafeList<ulong> _viewComponentMasks; // viewId -> 64-bit component mask
 
     private uint _instanceCountBefore;
     private uint _instanceCount;
@@ -73,7 +73,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _directionalLights = new UnsafeList<GPUDirectionalLight>(4, AllocationHandle.Persistent);
 
         _volumeDataBuffer = new UnsafeList<byte>(256, AllocationHandle.Persistent);
-        _viewVolumeOffsets = new UnsafeHashMap<ulong, int>(16, AllocationHandle.Persistent);
+        _viewComponentMasks = new UnsafeList<ulong>(4, AllocationHandle.Persistent);
 
         _pPunctualLights = (UnsafeParallelQueue<PunctualLightRequest>*)MemoryUtility.Malloc(MemoryUtility.SizeOf<UnsafeParallelQueue<PunctualLightRequest>>());
         *_pPunctualLights = new UnsafeParallelQueue<PunctualLightRequest>(1024, AllocationHandle.Persistent);
@@ -185,25 +185,72 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _instanceCount = _renderPipeline.GPUScene.InstanceCount;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void EnsureViewVolumeCapacity(uint viewId)
+    {
+        var stride = VolumeRegistry.BytesPerView;
+        if (stride == 0)
+        {
+            return;
+        }
+
+        var requiredBytes = (int)(viewId + 1) * stride;
+        if (_volumeDataBuffer.Capacity < requiredBytes)
+        {
+            _volumeDataBuffer.Resize(requiredBytes);
+        }
+
+        if (_volumeDataBuffer.Count < requiredBytes)
+        {
+            _volumeDataBuffer.UnsafeSetCount(requiredBytes);
+        }
+
+        var requiredMasks = (int)viewId + 1;
+        if (_viewComponentMasks.Capacity < requiredMasks)
+        {
+            _viewComponentMasks.Resize(requiredMasks);
+        }
+
+        while (_viewComponentMasks.Count < requiredMasks)
+        {
+            _viewComponentMasks.Add(0UL);
+        }
+    }
+
+    /// <summary>
+    /// Gets a direct unmanaged pointer to the destination volume component memory inside this payload for the specified view and component type.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void* GetViewVolumeDataPointer(uint viewId, ushort typeId)
+    {
+        EnsureViewVolumeCapacity(viewId);
+        var offset = (int)viewId * VolumeRegistry.BytesPerView + VolumeRegistry.GetOffset(typeId);
+        return (byte*)_volumeDataBuffer.GetUnsafePtr() + offset;
+    }
+
+    /// <summary>
+    /// Marks that the specified volume component has been written or blended for this view.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MarkViewVolumeWritten(uint viewId, ushort typeId)
+    {
+        if (typeId < 64)
+        {
+            _viewComponentMasks[(int)viewId] |= (1UL << typeId);
+        }
+    }
+
     public void SetViewVolumeData(uint viewId, ushort typeId, void* pData, int size)
     {
-        var key = ((ulong)viewId << 32) | typeId;
-        if (_viewVolumeOffsets.TryGetValue(key, out var offset))
-        {
-            MemoryUtility.MemCpy((byte*)_volumeDataBuffer.GetUnsafePtr() + offset, pData, (nuint)size);
-        }
-        else
-        {
-            var newOffset = (_volumeDataBuffer.Count + 15) & ~15;
-            _volumeDataBuffer.Resize(newOffset + size);
-            MemoryUtility.MemCpy((byte*)_volumeDataBuffer.GetUnsafePtr() + newOffset, pData, (nuint)size);
-            _viewVolumeOffsets.Add(key, newOffset);
-        }
+        var ptr = GetViewVolumeDataPointer(viewId, typeId);
+        MemoryUtility.MemCpy(ptr, pData, (nuint)size);
+        MarkViewVolumeWritten(viewId, typeId);
     }
 
     public void SetViewVolumeData<T>(uint viewId, in T data)
         where T : unmanaged, IVolumeComponent<T>
     {
+        VolumeBlenderTrampoline<T>.EnsureInitialized();
         fixed (T* pData = &data)
         {
             SetViewVolumeData(viewId, VolumeBlenderTrampoline<T>.TypeId, pData, sizeof(T));
@@ -214,9 +261,11 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     public ref readonly T GetViewVolumeData<T>(uint viewId)
         where T : unmanaged, IVolumeComponent<T>
     {
-        var key = ((ulong)viewId << 32) | VolumeBlenderTrampoline<T>.TypeId;
-        if (_viewVolumeOffsets.TryGetValue(key, out var offset))
+        VolumeBlenderTrampoline<T>.EnsureInitialized();
+        var typeId = VolumeBlenderTrampoline<T>.TypeId;
+        if (typeId < 64 && viewId < (uint)_viewComponentMasks.Count && (_viewComponentMasks[(int)viewId] & (1UL << typeId)) != 0)
         {
+            var offset = (int)viewId * VolumeRegistry.BytesPerView + VolumeRegistry.GetOffset(typeId);
             var ptr = (byte*)_volumeDataBuffer.GetUnsafePtr() + offset;
             return ref *(T*)ptr;
         }
@@ -234,7 +283,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _pRemoveRequest->Clear();
 
         _volumeDataBuffer.Clear();
-        _viewVolumeOffsets.Clear();
+        _viewComponentMasks.Clear();
 
         for (var i = 0; i < _viewsToRelease.Count; i++)
         {
@@ -262,7 +311,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _pRemoveRequest->Dispose();
 
         _volumeDataBuffer.Dispose();
-        _viewVolumeOffsets.Dispose();
+        _viewComponentMasks.Dispose();
 
         MemoryUtility.Free(_pPunctualLights);
         MemoryUtility.Free(_pUpdateRequest);

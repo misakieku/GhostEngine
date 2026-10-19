@@ -12,7 +12,7 @@ internal partial class TextureBaker
 {
     private const int SAMPLE_COUNT = 1024;
 
-    private struct MipLevel
+    internal struct MipLevel
     {
         public UnsafeArray<float> data;
         public int width;
@@ -39,6 +39,66 @@ internal partial class TextureBaker
         }
 
         return normalize(float3(x, y, z));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    internal static unsafe void ProjectEquirectangularToCubemap(float* pEquirect, int srcW, int srcH, float* pCubeData, int edge, int channels = 4)
+    {
+        var faceSize = edge * edge * channels;
+        Parallel.For(0, 6, face =>
+        {
+            var pDstFace = pCubeData + face * faceSize;
+            for (var y = 0; y < edge; y++)
+            {
+                var v = (y + 0.5f) / edge;
+                for (var x = 0; x < edge; x++)
+                {
+                    var u = (x + 0.5f) / edge;
+                    var dir = CubemapUVToDir(face, u, v);
+
+                    var phi = MathF.Atan2(dir.x, dir.z);
+                    var theta = MathF.Asin(Math.Clamp(dir.y, -1.0f, 1.0f));
+
+                    var uEq = phi / (2.0f * MathF.PI) + 0.5f;
+                    var vEq = 0.5f - theta / MathF.PI;
+
+                    var srcX = uEq * srcW - 0.5f;
+                    var srcY = vEq * srcH - 0.5f;
+
+                    var x0 = (int)MathF.Floor(srcX);
+                    var y0 = (int)MathF.Floor(srcY);
+                    var x1 = x0 + 1;
+                    var y1 = y0 + 1;
+
+                    var fx = srcX - x0;
+                    var fy = srcY - y0;
+
+                    x0 = (x0 % srcW + srcW) % srcW;
+                    x1 = (x1 % srcW + srcW) % srcW;
+
+                    y0 = Math.Clamp(y0, 0, srcH - 1);
+                    y1 = Math.Clamp(y1, 0, srcH - 1);
+
+                    var idx00 = (y0 * srcW + x0) * channels;
+                    var idx10 = (y0 * srcW + x1) * channels;
+                    var idx01 = (y1 * srcW + x0) * channels;
+                    var idx11 = (y1 * srcW + x1) * channels;
+
+                    var dstIdx = (y * edge + x) * channels;
+                    for (var c = 0; c < channels; c++)
+                    {
+                        var c00 = pEquirect[idx00 + c];
+                        var c10 = pEquirect[idx10 + c];
+                        var c01 = pEquirect[idx01 + c];
+                        var c11 = pEquirect[idx11 + c];
+
+                        var top = c00 + (c10 - c00) * fx;
+                        var btm = c01 + (c11 - c01) * fx;
+                        pDstFace[dstIdx + c] = top + (btm - top) * fy;
+                    }
+                }
+            }
+        });
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
@@ -87,7 +147,7 @@ internal partial class TextureBaker
 
         var faceOffset = faceIndex * (edge * edge);
         var idx = (faceOffset + py * edge + px) * c;
-        return MathV.GatherVector3<TFloat, float>(img, idx.GetUnsafePtr(), 1);
+        return MathV.GatherVector3<TFloat, float>(img, idx.GetUnsafePtr(), 4);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -199,7 +259,7 @@ internal partial class TextureBaker
         }
     }
 
-    private static UnsafeArray<MipLevel> GenerateMipHDRI(TextureInfo textureInfo, UnsafeArray<float> baseCubeData, int edge, int totalMipLevels)
+    internal static UnsafeArray<MipLevel> GenerateMipHDRI(TextureInfo textureInfo, UnsafeArray<float> baseCubeData, int edge, int totalMipLevels)
     {
         System.Diagnostics.Debug.Assert(textureInfo.isCube, "GenerateMipHDRI should only be called for cube maps.");
         System.Diagnostics.Debug.Assert(textureInfo.colorComponents >= 3, "Texture must have at least 3 color components for RGB.");

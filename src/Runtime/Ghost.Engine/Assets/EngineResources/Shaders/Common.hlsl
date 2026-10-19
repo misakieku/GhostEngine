@@ -94,6 +94,22 @@ T SampleTexture2DGrad(TEXTURE2D texId, SAMPLER sampId, float2 uv, float2 ddx, fl
 }
 
 template<typename T>
+T SampleTextureCube(TEXTURECUBE texId, SAMPLER sampId, float3 dir)
+{
+    TextureCube<T> tex = GET_TEXTURECUBE(texId);
+    SamplerState samp = GET_SAMPLER(sampId);
+    return tex.Sample(samp, dir);
+}
+
+template<typename T>
+T SampleTextureCubeLevel(TEXTURECUBE texId, SAMPLER sampId, float3 dir, float level)
+{
+    TextureCube<T> tex = GET_TEXTURECUBE(texId);
+    SamplerState samp = GET_SAMPLER(sampId);
+    return tex.SampleLevel(samp, dir, level);
+}
+
+template<typename T>
 T LoadData(BYTE_ADDRESS_BUFFER buffer, uint index)
 {
     ByteAddressBuffer buf = GET_BUFFER(buffer);

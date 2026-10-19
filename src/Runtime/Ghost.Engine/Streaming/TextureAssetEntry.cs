@@ -101,10 +101,10 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
                 return Result.Failure($"Unsupported header version {header.version}.");
             }
 
-            if (DDSUtility.TryParseDdsHeader(contentStream, contentSize, out var ddsDesc, out var dataOffset))
+            if (DDSUtility.TryParseDdsHeader(contentStream, contentSize, out var ddsHeader, out var dxt10, out var dataOffset))
             {
-                ddsDesc.Usage = TextureUsage.ShaderResource;
-                _desc = ddsDesc;
+                _desc = TextureDesc.FromDDSHeader(ddsHeader, dxt10);
+                _desc.Usage = TextureUsage.ShaderResource;
                 _dataOffset = dataOffset;
             }
             else
@@ -137,6 +137,10 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
     public Result OnRecordUploadCommands(in ResourceStreamingContext context)
     {
         var dataSize = _contentSize - _dataOffset - sizeof(TextureContentHeader);
+        if (_contentStream.CanSeek)
+        {
+            _contentStream.Position = sizeof(TextureContentHeader) + _dataOffset;
+        }
 
         using var memory = _contentStream.ReadMemory(dataSize, AllocationHandle.TempJob);
         var newHandle = ResourceUtility.CreateTexture(

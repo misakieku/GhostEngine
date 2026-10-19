@@ -40,6 +40,14 @@ struct DeferredLightingShaderProperties
     uint shadowAtlasSrv;
     uint shadowViewsBufferSrv;
     uint shadowIndicesBufferSrv;
+    uint skyboxTextureSrv;
+    uint iblLutTextureSrv;
+    uint persistentViewStateBufferSrv;
+    uint viewId;
+    uint skyboxMipCount;
+    float4 skyboxTintAndIntensity;
+    float2 skyboxRotationSinCos;
+    float2 _pad;
 };
 
 
@@ -60,6 +68,21 @@ struct RemoveInstanceData
 {
     uint instanceID;
     uint swapWithInstanceID;
+};
+
+
+struct GPUPersistentViewState
+{
+    float4 skyIrradianceSH[7];
+    float4 eyeAdaptationState;
+    float4 reserved0;
+    float4 reserved1;
+    float4 reserved2;
+    float4 reserved3;
+    float4 reserved4;
+    float4 reserved5;
+    float4 reserved6;
+    float4 reserved7;
 };
 
 #endif // ENGINERESOURCES_SHADERS_GENERATED_GHOSTRENDERPIPELINE_HLSL

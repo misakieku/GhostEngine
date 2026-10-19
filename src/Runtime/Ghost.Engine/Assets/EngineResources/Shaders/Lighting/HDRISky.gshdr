@@ -1,0 +1,166 @@
+shader "Hidden/HDRISky"
+{
+    properties
+    {
+        TextureCube skyboxTexture;
+        SamplerState skyboxSampler;
+        Texture2D depthTexture;
+        SamplerState depthSampler;
+        float4 skyboxTintAndIntensity; // xyz: tint, w: intensity
+        float2 skyboxRotationSinCos;   // x: sin, y: cos
+    }
+
+    pass "SkyBaking"
+    {
+        pipeline
+        {
+            ztest = disabled;
+            zwrite = off;
+            cull = off;
+            blend = opaque;
+            color_mask = all;
+        }
+
+        includes
+        {
+            "EngineResources/Shaders/Properties.hlsl";
+            "EngineResources/Shaders/Lighting/SphericalHarmonics.hlsl";
+        }
+
+        hlsl
+        {
+            struct PSInput
+            {
+                float4 position : SV_POSITION;
+                float4 uv : TEXCOORD0;
+            };
+
+            [numthreads(4, 1, 1)]
+            [outputtopology("triangle")]
+            void MSMain(uint gtid : SV_GroupThreadID, out vertices PSInput verts[4], out indices uint3 tris[2])
+            {
+                SetMeshOutputCounts(4, 2);
+
+                float2 uv = float2(gtid & 1, (gtid >> 1) & 1);
+
+                verts[gtid].position = float4(uv.x * 2.0f - 1.0f, 1.0f - uv.y * 2.0f, 0.0f, 1.0f);
+                verts[gtid].uv = float4(uv, 0.0f, 0.0f);
+
+                if (gtid == 0)
+                {
+                    tris[0] = uint3(0, 1, 2);
+                    tris[1] = uint3(1, 3, 2);
+                }
+            }
+
+            float4 RenderSky(float3 dirWS, HiddenHDRISkyShaderProperties props, float exposure)
+            {
+                if (!IS_VALID_BUFFER(props.skyboxTexture))
+                {
+                    return float4(0.0f, 0.0f, 0.0f, 1.0f);
+                }
+
+                float3 rotatedDir = RotateDirectionY(dirWS, props.skyboxRotationSinCos);
+                float3 skyColor = SampleTextureCubeLevel<float4>(props.skyboxTexture, props.skyboxSampler, rotatedDir, 0.0f).rgb;
+                skyColor *= props.skyboxTintAndIntensity.rgb * props.skyboxTintAndIntensity.w * exposure;
+                return float4(skyColor, 1.0f);
+            }
+
+            float4 PSMain_Baking(PSInput input) : SV_TARGET
+            {
+                HiddenHDRISkyShaderProperties props = LoadData<HiddenHDRISkyShaderProperties>(g_PushConstantData.userData0, 0);
+
+                float2 ndc = float2(input.uv.x * 2.0f - 1.0f, 1.0f - input.uv.y * 2.0f);
+                float3 dirVS = float3(ndc.x / g_ViewData.projectionMatrix[0][0], ndc.y / g_ViewData.projectionMatrix[1][1], 1.0f);
+                float3 dirWS = normalize(TransformViewToWorld(dirVS));
+
+                return RenderSky(dirWS, props, 1.0f);
+            }
+        }
+
+        ms "hlsl_block" : "MSMain";
+        ps "hlsl_block" : "PSMain_Baking";
+    }
+
+    pass "SkyRender"
+    {
+        pipeline
+        {
+            ztest = disabled;
+            zwrite = off;
+            cull = off;
+            blend = opaque;
+            color_mask = all;
+        }
+
+        includes
+        {
+            "EngineResources/Shaders/Properties.hlsl";
+            "EngineResources/Shaders/Lighting/SphericalHarmonics.hlsl";
+        }
+
+        hlsl
+        {
+            struct PSInput
+            {
+                float4 position : SV_POSITION;
+                float4 uv : TEXCOORD0;
+            };
+
+            [numthreads(4, 1, 1)]
+            [outputtopology("triangle")]
+            void MSMain(uint gtid : SV_GroupThreadID, out vertices PSInput verts[4], out indices uint3 tris[2])
+            {
+                SetMeshOutputCounts(4, 2);
+
+                float2 uv = float2(gtid & 1, (gtid >> 1) & 1);
+
+                verts[gtid].position = float4(uv.x * 2.0f - 1.0f, 1.0f - uv.y * 2.0f, 0.0f, 1.0f);
+                verts[gtid].uv = float4(uv, 0.0f, 0.0f);
+
+                if (gtid == 0)
+                {
+                    tris[0] = uint3(0, 1, 2);
+                    tris[1] = uint3(1, 3, 2);
+                }
+            }
+
+            float4 RenderSky(float3 dirWS, HiddenHDRISkyShaderProperties props, float exposure)
+            {
+                if (!IS_VALID_BUFFER(props.skyboxTexture))
+                {
+                    return float4(0.0f, 0.0f, 0.0f, 1.0f);
+                }
+
+                float3 rotatedDir = RotateDirectionY(dirWS, props.skyboxRotationSinCos);
+                float3 skyColor = SampleTextureCubeLevel<float4>(props.skyboxTexture, props.skyboxSampler, rotatedDir, 0.0f).rgb;
+                skyColor *= props.skyboxTintAndIntensity.rgb * props.skyboxTintAndIntensity.w * exposure;
+                return float4(skyColor, 1.0f);
+            }
+
+            float4 PSMain_Render(PSInput input) : SV_TARGET
+            {
+                HiddenHDRISkyShaderProperties props = LoadData<HiddenHDRISkyShaderProperties>(g_PushConstantData.userData0, 0);
+
+                // Early discard if foreground geometry is present (Reversed-Z: far is 0.0f)
+                Texture2D<float> depthTexture = GET_TEXTURE2D(props.depthTexture);
+                float depth = depthTexture[(uint2)input.position.xy];
+                if (depth > 0.0f)
+                {
+                    discard;
+                }
+
+                float2 ndc = float2(input.uv.x * 2.0f - 1.0f, 1.0f - input.uv.y * 2.0f);
+                float3 dirVS = float3(ndc.x / g_ViewData.projectionMatrix[0][0], ndc.y / g_ViewData.projectionMatrix[1][1], 1.0f);
+                float3 dirWS = normalize(TransformViewToWorld(dirVS));
+
+                float exposure = 1.0f; // TODO: Apply camera exposure multiplier once exposure system is implemented
+
+                return RenderSky(dirWS, props, exposure);
+            }
+        }
+
+        ms "hlsl_block" : "MSMain";
+        ps "hlsl_block" : "PSMain_Render";
+    }
+}

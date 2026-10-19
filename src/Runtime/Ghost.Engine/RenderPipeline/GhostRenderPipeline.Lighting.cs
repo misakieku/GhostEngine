@@ -435,6 +435,14 @@ internal unsafe partial class GhostRenderPipeline
         public uint shadowAtlasSrv;
         public uint shadowViewsBufferSrv;
         public uint shadowIndicesBufferSrv;
+        public uint skyboxTextureSrv;
+        public uint iblLutTextureSrv;
+        public uint persistentViewStateBufferSrv;
+        public uint viewId;
+        public uint skyboxMipCount;
+        public float4 skyboxTintAndIntensity;
+        public float2 skyboxRotationSinCos;
+        public float2 _pad;
     }
 
     private struct DeferredLightingPassData
@@ -448,6 +456,8 @@ internal unsafe partial class GhostRenderPipeline
         public Identifier<RGTexture> litColorTarget;
         public Identifier<RGTexture> shadowAtlas;
         public Identifier<RGBuffer> tileShadingModelMaskBuffer;
+        public SkyContext skyContext;
+        public uint viewId;
         public uint shadowViewsBufferSrv;
         public uint shadowIndicesBufferSrv;
         public ShaderVariantRegistry variantRegistry;
@@ -458,7 +468,8 @@ internal unsafe partial class GhostRenderPipeline
 
     private Identifier<RGTexture> AddDeferredLightingPass(
         RenderGraph rg, in GBufferResources gbuffer, Identifier<RGTexture> depthTexture, Identifier<RGBuffer> tileLightList,
-        Identifier<RGTexture> shadowAtlas, uint shadowViewsBufferSrv, uint shadowIndicesBufferSrv, Identifier<RGBuffer> tileShadingModelMaskBuffer, uint2 renderSize)
+        Identifier<RGTexture> shadowAtlas, uint shadowViewsBufferSrv, uint shadowIndicesBufferSrv, Identifier<RGBuffer> tileShadingModelMaskBuffer,
+        in SkyContext skyContext, uint viewId, uint2 renderSize)
     {
         var tilesX = (renderSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
         var tilesY = (renderSize.y + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
@@ -466,7 +477,7 @@ internal unsafe partial class GhostRenderPipeline
         var litColorDesc = RGTextureDesc.Relative(
             1.0f,
             TextureFormat.R16G16B16A16_Float,
-            usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
+            usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource | TextureUsage.RenderTarget);
 
         using var builder = rg.AddComputeRenderPass<DeferredLightingPassData>("DeferredLighting");
 
@@ -485,6 +496,21 @@ internal unsafe partial class GhostRenderPipeline
             builder.UseTexture(shadowAtlas, AccessFlags.Read);
         }
 
+        if (skyContext.skyboxTexture.IsValid)
+        {
+            builder.UseTexture(skyContext.skyboxTexture, AccessFlags.Read);
+        }
+
+        if (skyContext.iblLutTexture.IsValid)
+        {
+            builder.UseTexture(skyContext.iblLutTexture, AccessFlags.Read);
+        }
+
+        if (skyContext.persistentViewStateBuffer.IsValid)
+        {
+            builder.UseBuffer(skyContext.persistentViewStateBuffer, AccessFlags.Read);
+        }
+
         builder.UseTexture(litColorTarget, AccessFlags.Write);
 
         builder.SetPassData(new DeferredLightingPassData
@@ -498,6 +524,8 @@ internal unsafe partial class GhostRenderPipeline
             litColorTarget = litColorTarget,
             shadowAtlas = shadowAtlas,
             tileShadingModelMaskBuffer = tileShadingModelMaskBuffer,
+            skyContext = skyContext,
+            viewId = viewId,
             shadowViewsBufferSrv = shadowViewsBufferSrv,
             shadowIndicesBufferSrv = shadowIndicesBufferSrv,
             variantRegistry = _assetManager.ShaderVariants,
@@ -521,6 +549,15 @@ internal unsafe partial class GhostRenderPipeline
             var tileShadingModelMaskSrv = passData.tileShadingModelMaskBuffer.IsValid
                 ? computeCtx.GetActualBindlessIndex(passData.tileShadingModelMaskBuffer, BindlessAccess.ShaderResource)
                 : 0u;
+            var skyboxSrv = passData.skyContext.skyboxTexture.IsValid
+                ? computeCtx.GetActualBindlessIndex(passData.skyContext.skyboxTexture, BindlessAccess.ShaderResource)
+                : uint.MaxValue;
+            var iblLutSrv = passData.skyContext.iblLutTexture.IsValid
+                ? computeCtx.GetActualBindlessIndex(passData.skyContext.iblLutTexture, BindlessAccess.ShaderResource)
+                : uint.MaxValue;
+            var persistentViewStateSrv = passData.skyContext.persistentViewStateBuffer.IsValid
+                ? computeCtx.GetActualBindlessIndex(passData.skyContext.persistentViewStateBuffer, BindlessAccess.ShaderResource)
+                : uint.MaxValue;
 
             var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.DeferredLighting);
 
@@ -553,7 +590,15 @@ internal unsafe partial class GhostRenderPipeline
                     shadingModelId = shadingModelId,
                     shadowAtlasSrv = shadowAtlasSrv,
                     shadowViewsBufferSrv = passData.shadowViewsBufferSrv,
-                    shadowIndicesBufferSrv = passData.shadowIndicesBufferSrv
+                    shadowIndicesBufferSrv = passData.shadowIndicesBufferSrv,
+                    skyboxTextureSrv = skyboxSrv,
+                    iblLutTextureSrv = iblLutSrv,
+                    persistentViewStateBufferSrv = persistentViewStateSrv,
+                    viewId = passData.viewId,
+                    skyboxMipCount = passData.skyContext.skyboxMipCount,
+                    skyboxTintAndIntensity = passData.skyContext.skyTintAndIntensity,
+                    skyboxRotationSinCos = passData.skyContext.skyRotationSinCos,
+                    _pad = float2.zero
                 };
 
                 computeCtx.SetUserDataWithProperties(in props, target: DataTarget.Compute);

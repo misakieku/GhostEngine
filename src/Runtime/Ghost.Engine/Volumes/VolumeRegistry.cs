@@ -1,4 +1,5 @@
 using Ghost.Entities;
+using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Volumes;
@@ -10,6 +11,7 @@ public unsafe struct VolumeBlenderRegistration
 {
     public ushort typeId;
     public int size;
+    public int offset;
     public delegate*<void*, void*, float, void> pBlendFunc;
     public delegate*<void*, void> pResetFunc;
 }
@@ -20,7 +22,13 @@ public unsafe struct VolumeBlenderRegistration
 public static unsafe class VolumeRegistry
 {
     private static VolumeBlenderRegistration[] s_blenders = new VolumeBlenderRegistration[64];
+    private static int s_bytesPerView = 0;
     private static readonly object s_lock = new();
+
+    /// <summary>
+    /// Gets the stride in bytes required for one camera view slice to hold all registered volume components.
+    /// </summary>
+    public static int BytesPerView => s_bytesPerView;
 
     /// <summary>
     /// Registers a volume component type into the central registry.
@@ -37,14 +45,43 @@ public static unsafe class VolumeRegistry
                 Array.Resize(ref s_blenders, Math.Max(id + 1, s_blenders.Length * 2));
             }
 
+            if (s_blenders[id].pBlendFunc != null)
+            {
+                return;
+            }
+
+            var align = MemoryUtility.AlignOf<T>();
+            var offset = (int)MemoryUtility.AlignUp((nuint)s_bytesPerView, align);
+            s_bytesPerView = (int)MemoryUtility.AlignUp((nuint)(offset + sizeof(T)), 16);
+
             s_blenders[id] = new VolumeBlenderRegistration
             {
                 typeId = (ushort)id,
                 size = sizeof(T),
+                offset = offset,
                 pBlendFunc = VolumeBlenderTrampoline<T>.pBlendFunc,
                 pResetFunc = VolumeBlenderTrampoline<T>.pResetFunc
             };
         }
+    }
+
+    /// <summary>
+    /// Gets the byte offset of the specified volume component type within a per-view data slice.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetOffset(ushort typeId)
+    {
+        return s_blenders[typeId].offset;
+    }
+
+    /// <summary>
+    /// Gets the byte offset of the specified volume component type within a per-view data slice.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetOffset<T>()
+        where T : unmanaged, IVolumeComponent<T>
+    {
+        return s_blenders[VolumeBlenderTrampoline<T>.TypeId].offset;
     }
 
     /// <summary>

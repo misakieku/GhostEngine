@@ -2,13 +2,13 @@ using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
 
-namespace Ghost.Engine.Volumes.BuiltinComponents;
+namespace Ghost.Engine.Volumes;
 
 /// <summary>
 /// Volume settings for skybox rendering (cubemap texture, intensity, rotation, tint).
 /// </summary>
 [VolumeComponent]
-public partial struct SkyboxSettings
+public partial struct HDRISettings
 {
     /// <summary>
     /// Cubemap texture handle. Null if not overridden.
@@ -30,7 +30,7 @@ public partial struct SkyboxSettings
     /// </summary>
     public float3? tint;
 
-    public static SkyboxSettings Default => new()
+    public static HDRISettings Default => new()
     {
         texture = Handle<GPUTexture>.Invalid,
         intensity = 1.0f,

@@ -7,7 +7,7 @@ using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Systems;
 using Ghost.Engine.Utilities;
-using Ghost.Engine.Volumes.BuiltinComponents;
+using Ghost.Engine.Volumes;
 using Ghost.Entities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12;
@@ -98,7 +98,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         const float size = 10.0f;
         const float baseScale = 3.0f;
         const float lightSize = size * 0.5f;
-        const int lightCount = 1;
+        const int lightCount = 0;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -198,7 +198,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 {
                     type = isSpot ? PunctualLightType.Spot : PunctualLightType.Point,
                     color = color,
-                    shadowSize = 128,
+                    shadowSize = 0,
                     intensity = 3.0f, // RandomFloat(0.5f, 1.0f),
                     range = 25.0f, // RandomFloat(10.0f, 15.0f),
                     innerSpotAngle = math.radians(15.0f),
@@ -226,7 +226,11 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         _skyAsset.ReadAssetData(ref skyboxHandle);
 
         var volumeData = new RenderVolumeDataContainer(64);
-        volumeData.Set(new SkyboxSettings
+        volumeData.Set(new EnvironmentSettings
+        {
+            skyType = SkyType.HDRI
+        });
+        volumeData.Set(new HDRISettings
         {
             intensity = 1.0f,
             tint = new float3(1.0f, 1.0f, 1.0f),

@@ -155,6 +155,11 @@ internal partial class TextureBaker : IAssetBaker
 {
     private static TextureDimension GetTextureDimension(TextureBakeSettings settings)
     {
+        if (settings.Basic.TextureShape == TextureShape.TextureCube)
+        {
+            return TextureDimension.TextureCube;
+        }
+
         if (settings.Basic.Columns > 1 && settings.Basic.Rows > 1)
         {
             if (settings.Basic.Depth > 1)
@@ -234,7 +239,7 @@ internal partial class TextureBaker : IAssetBaker
                     throw new Exception($"Failed to decode image using StbIApi: {sourcePath}");
                 }
 
-                if (!settings.Advanced.CustomChannelMapping.Equals(new uint4(0, 1, 2, 3)))
+                if (!settings.Advanced.CustomChannelMapping.Equals(new int4(0, 1, 2, 3)))
                 {
                     if (math.any(settings.Advanced.CustomChannelMapping > 3) || math.any(settings.Advanced.CustomChannelMapping < 0))
                     {

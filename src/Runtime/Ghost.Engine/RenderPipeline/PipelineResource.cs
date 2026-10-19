@@ -85,4 +85,13 @@ internal partial class LightingPipelineResource : IPipelineResource
 
     [ResolveAsset("EngineResources/Shaders/Lighting/Shadow")]
     public Handle<Shader> opaqueShadowRasterizer;
+
+    [ResolveAsset("EngineResources/Shaders/Lighting/ConvolveSkyIrradianceSH")]
+    public Handle<ComputeShader> convolveSkyIrradianceShader;
+
+    [ResolveAsset("EngineResources/Shaders/Lighting/HDRISky")]
+    public Handle<Shader> hdriSkyShader;
+
+    [ResolveAsset("EngineResources/Textures/PBR")]
+    public Handle<GPUTexture> iblLutTexture;
 }

@@ -87,7 +87,12 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
         }
     }
 
-    // TODO: Add support for area lights, image-based lighting, and other light types.
+    // Image-Based Lighting (Diffuse SH9 + Specular Split-Sum Cubemap)
+    if (IS_VALID_BUFFER(ctx.skyboxTextureIndex))
+    {
+        IndirectLighting ibl = strategy.EvaluateIndirectLighting(ctx, bsdf, preLightData, V);
+        AccumulateIndirectLighting(totalLighting, ibl);
+    }
 
     LightLoopOutput output = strategy.PostEvaluateBSDF(totalLighting, bsdf, preLightData, V);
 

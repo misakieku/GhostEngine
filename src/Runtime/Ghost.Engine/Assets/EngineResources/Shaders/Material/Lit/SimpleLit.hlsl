@@ -2,6 +2,7 @@
 #define GHOST_SIMPLELIT_HLSL
 
 #include "EngineResources/Shaders/Material/Lit/Lit.hlsl"
+#include "EngineResources/Shaders/Lighting/SphericalHarmonics.hlsl"
 
 struct BSDFData
 {
@@ -36,7 +37,7 @@ struct SimpleLitDeferredLighting
     {
         BSDFData bsdf = (BSDFData)0;
         bsdf.shadingModel = surface.shadingModel;
-        bsdf.diffuseColor = surface.albedo;
+        bsdf.diffuseColor = surface.albedo * (1.0f - surface.metallic);
         bsdf.fresnel0 = lerp(float3(0.04f, 0.04f, 0.04f), surface.albedo, surface.metallic);
         bsdf.ambientOcclusion = surface.occlusion;
         bsdf.specularOcclusion = 1.0f;
@@ -82,10 +83,46 @@ struct SimpleLitDeferredLighting
         return direct;
     }
 
+    IndirectLighting EvaluateIndirectLighting(ShadingContext ctx, BSDFData bsdf, PreLightData preLightData, float3 V)
+    {
+        IndirectLighting indirect = (IndirectLighting)0;
+
+        // 1. Diffuse IBL via Spherical Harmonics L2
+        if (IS_VALID_BUFFER(ctx.persistentViewStateBufferIndex))
+        {
+            PackedSH9 sh = LoadViewSH9(ctx.persistentViewStateBufferIndex, ctx.viewId);
+            float3 diffuseIrradiance = EvaluateSH9Irradiance(sh, bsdf.normalWS);
+            indirect.diffuse = diffuseIrradiance * bsdf.diffuseColor * bsdf.ambientOcclusion;
+        }
+
+        // 2. Specular IBL via GGX prefiltered cubemap + Split-Sum BRDF LUT
+        if (IS_VALID_BUFFER(ctx.skyboxTextureIndex))
+        {
+            float3 R = reflect(-V, bsdf.normalWS);
+            float3 rotatedR = RotateDirectionY(R, ctx.skyboxRotationSinCos);
+
+            float mip = bsdf.perceptualRoughness * max(0.0f, float(ctx.skyboxMipCount) - 1.0f);
+            float3 prefilteredSpec = SampleTextureCubeLevel<float4>(ctx.skyboxTextureIndex, TrilinearClampSampler, rotatedR, mip).rgb;
+            prefilteredSpec *= ctx.skyboxTintAndIntensity.rgb * ctx.skyboxTintAndIntensity.w;
+
+            float2 envBRDF = float2(0.0f, 0.0f);
+            if (IS_VALID_BUFFER(ctx.iblLutTextureIndex))
+            {
+                // PBR.dds contains BRDF LUT in RG channels: x = scale, y = bias
+                envBRDF = SampleTexture2DLevel<float4>(ctx.iblLutTextureIndex, LinearClampSampler, float2(preLightData.NdotV, bsdf.perceptualRoughness), 0.0f).rg;
+            }
+
+            float3 specularColor = prefilteredSpec * (bsdf.fresnel0 * envBRDF.x + envBRDF.y) * bsdf.specularOcclusion;
+            indirect.specularReflected = specularColor;
+        }
+
+        return indirect;
+    }
+
     LightLoopOutput PostEvaluateBSDF(AggregateLighting lighting, BSDFData bsdf, PreLightData preLightData, float3 V)
     {
         LightLoopOutput output;
-        output.diffuse = lighting.direct.diffuse + bsdf.emissive; // + ambient lighting
+        output.diffuse = lighting.direct.diffuse + lighting.indirect.diffuse + bsdf.emissive;
         output.specular = lighting.direct.specular + lighting.indirect.specularReflected;
         return output;
     }

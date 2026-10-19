@@ -141,10 +141,21 @@ public sealed class RenderGraph : IDisposable
             CommandQueueType? effectiveQueue = effectiveQueues.TryGetValue(pass.index, out var queue)
                 ? queue
                 : null;
+
+            var nativePassIndex = NativeRenderPass.Invalid.index;
+            foreach (var np in graph.nativePasses)
+            {
+                if (np.mergedPassIndices.Contains(pass.index))
+                {
+                    nativePassIndex = np.index;
+                    break;
+                }
+            }
+
             var passInfo = new PassDumpInfo
             {
                 Index = pass.index,
-                NativePassIndex = graph.nativePasses.FirstOrDefault(np => np.mergedPassIndices.Contains(pass.index), NativeRenderPass.Invalid).index,
+                NativePassIndex = nativePassIndex,
                 Name = pass.name,
                 Type = pass.type,
                 IsCulled = pass.culled,

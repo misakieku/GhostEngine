@@ -180,7 +180,14 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             var gbuffer = AddDeferredTexturingPass(renderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, tileOffsetsBuffer, indirectArgsBuffer, viewContext.RenderSize);
             var tileLightList = AddTileLightCullingPass(renderGraph, currentDepth, viewContext.RenderSize);
             var shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
-            var litColor = AddDeferredLightingPass(renderGraph, gbuffer, currentDepth, tileLightList, shadowAtlas, shadowViewsBufferSrv, shadowIndicesBufferSrv, tileShadingModelMaskBuffer, viewContext.RenderSize);
+            var persistentViewStateBuffer = renderGraph.ImportBuffer(_gpuViewManager.PersistentViewStateBuffer, ResourceBarrierData.Common, ResourceBarrierData.Common);
+            var skyContext = PrepareSky(renderGraph, viewContext, in request, ghostPayload, persistentViewStateBuffer);
+
+            var litColor = AddDeferredLightingPass(
+                renderGraph, gbuffer, currentDepth, tileLightList, shadowAtlas, shadowViewsBufferSrv, shadowIndicesBufferSrv, tileShadingModelMaskBuffer,
+                in skyContext, request.viewId, viewContext.RenderSize);
+
+            AddSkyPass(renderGraph, in skyContext, litColor, currentDepth);
 
             renderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
 

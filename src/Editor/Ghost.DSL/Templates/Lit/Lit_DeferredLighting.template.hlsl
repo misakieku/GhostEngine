@@ -93,6 +93,13 @@ void CSMain(
     shadingCtx.shadowAtlasIndex = props.shadowAtlasSrv;
     shadingCtx.shadowViewsBufferIndex = props.shadowViewsBufferSrv;
     shadingCtx.shadowIndicesBufferIndex = props.shadowIndicesBufferSrv;
+    shadingCtx.skyboxTextureIndex = props.skyboxTextureSrv;
+    shadingCtx.iblLutTextureIndex = props.iblLutTextureSrv;
+    shadingCtx.persistentViewStateBufferIndex = props.persistentViewStateBufferSrv;
+    shadingCtx.viewId = props.viewId;
+    shadingCtx.skyboxMipCount = props.skyboxMipCount;
+    shadingCtx.skyboxTintAndIntensity = props.skyboxTintAndIntensity;
+    shadingCtx.skyboxRotationSinCos = props.skyboxRotationSinCos;
 
     // Execute Light Loop
     ByteAddressBuffer tileLightList = GET_BUFFER(props.tileLightListBufferIndex);

@@ -1,7 +1,7 @@
 using Ghost.Core;
 using Misaki.HighPerformance.Mathematics;
 
-namespace Ghost.Engine.Volumes.BuiltinComponents;
+namespace Ghost.Engine.Volumes;
 
 /// <summary>
 /// Volume settings for bloom post-processing (threshold, intensity, scatter, tint, clamp).

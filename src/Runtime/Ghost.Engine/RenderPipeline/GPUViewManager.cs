@@ -1,12 +1,37 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.RenderPipeline;
+
+[GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl")]
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
+public struct GPUPersistentViewState
+{
+    [InlineArray(7)]
+    public struct SH9Array
+    {
+        private float4 _element;
+    }
+
+    [GenerateAsHLSLType("float4", 7)]
+    public SH9Array skyIrradianceSH;   // 112 bytes: 7x float4 (shAr, shAg, shAb, shBr, shBg, shBb, shC)
+    public float4 eyeAdaptationState;  // 16 bytes: (exposureScale, prevExposureScale, adaptedLum, targetEV100)
+    public float4 reserved0;           // 128 bytes reserved for future persistent view feedback
+    public float4 reserved1;
+    public float4 reserved2;
+    public float4 reserved3;
+    public float4 reserved4;
+    public float4 reserved5;
+    public float4 reserved6;
+    public float4 reserved7;
+}
 
 public sealed class GPUViewContext : IDisposable
 {
@@ -20,6 +45,7 @@ public sealed class GPUViewContext : IDisposable
     private ShadowAtlasRegionAllocator? _shadowAllocator;
 
     public float4x4 prevViewProjMatrix;
+    public ulong prevSkyHash;
 
     public uint ViewId
     {
@@ -150,6 +176,7 @@ public sealed class GPUViewContext : IDisposable
         RenderSize = default;
         HzbSize = default;
         prevViewProjMatrix = default;
+        prevSkyHash = 0;
     }
 }
 
@@ -162,9 +189,23 @@ internal sealed class GPUViewManager : IDisposable
 
     private readonly Lock _lock = new();
 
+    public Handle<GPUBuffer> PersistentViewStateBuffer
+    {
+        get; private set;
+    }
+
     public GPUViewManager(IResourceAllocator allocator, IResourceDatabase database, IPipelineLibrary pipelineLibrary, ResourceManager resourceManager, ShaderLibrary shaderLibrary)
     {
         _database = database;
+
+        var desc = new BufferDesc
+        {
+            Size = (nuint)(MAX_VIEWS * Marshal.SizeOf<GPUPersistentViewState>()),
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource | BufferUsage.UnorderedAccess,
+            HeapType = HeapType.Default
+        };
+        PersistentViewStateBuffer = allocator.CreateBuffer(in desc, "Persistent View State Buffer");
 
         for (uint i = 0; i < MAX_VIEWS; i++)
         {
@@ -213,6 +254,12 @@ internal sealed class GPUViewManager : IDisposable
     {
         lock (_lock)
         {
+            if (PersistentViewStateBuffer.IsValid)
+            {
+                _database.ReleaseResource(PersistentViewStateBuffer.AsResource());
+                PersistentViewStateBuffer = Handle<GPUBuffer>.Invalid;
+            }
+
             for (var i = 0; i < MAX_VIEWS; i++)
             {
                 _views[i].Dispose();

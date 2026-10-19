@@ -1,4 +1,4 @@
 using Ghost.MicroTest;
 using Ghost.MicroTest.Core;
 
-TestRunner.Run<BarycentricTest>();
+TestRunner.Run<GGXMipTest>();

@@ -116,8 +116,9 @@ bool IsTriangleOutsideFrustum(float4 h0, float4 h1, float4 h2)
     return cullBits != 0;
 }
 
-bool IsTriangleFrontFacingAndVisible(float4 h0, float4 h1, float4 h2, float subpixelThreshold = 0.0f)
+bool IsTriangleFrontFacing(float4 h0, float4 h1, float4 h2, float subpixelThreshold = 0.0f)
 {
+#if false
     if (min(h0.w, min(h1.w, h2.w)) <= 0.0f)
     {
         return true;
@@ -129,6 +130,9 @@ bool IsTriangleFrontFacingAndVisible(float4 h0, float4 h1, float4 h2, float subp
     float crossProduct = e1.x * e0.y - e1.y * e0.x;
 
     return crossProduct > subpixelThreshold;
+#else
+    return determinant(float3x3(h0.xyw, h1.xyw, h2.xyw)) < 0.0f;
+#endif
 }
 
 #define ACCUMULATE_CLIP_CORNER(P, minXY, maxXY, minZ, maxZ) \

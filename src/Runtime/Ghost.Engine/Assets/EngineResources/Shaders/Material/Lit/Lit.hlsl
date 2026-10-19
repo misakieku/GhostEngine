@@ -38,6 +38,13 @@ struct ShadingContext
     TEXTURE2D shadowAtlasIndex;
     BYTE_ADDRESS_BUFFER shadowViewsBufferIndex;
     BYTE_ADDRESS_BUFFER shadowIndicesBufferIndex;
+    TEXTURECUBE skyboxTextureIndex;
+    TEXTURE2D iblLutTextureIndex;
+    BYTE_ADDRESS_BUFFER persistentViewStateBufferIndex;
+    uint viewId;
+    uint skyboxMipCount;
+    float4 skyboxTintAndIntensity;
+    float2 skyboxRotationSinCos;
 };
 
 struct DirectLighting
@@ -48,6 +55,7 @@ struct DirectLighting
 
 struct IndirectLighting
 {
+    float3 diffuse;
     float3 specularReflected;
     float3 specularTransmitted;
 };
@@ -72,6 +80,7 @@ void AccumulateDirectLighting(inout AggregateLighting total, DirectLighting dire
 
 void AccumulateIndirectLighting(inout AggregateLighting total, IndirectLighting indirect)
 {
+    total.indirect.diffuse += indirect.diffuse;
     total.indirect.specularReflected += indirect.specularReflected;
     total.indirect.specularTransmitted += indirect.specularTransmitted;
 }

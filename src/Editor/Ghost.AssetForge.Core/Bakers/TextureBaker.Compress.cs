@@ -24,44 +24,16 @@ internal partial class TextureBaker
                 UnsafeArray<float> baseCubeData;
                 unsafe
                 {
-                    using var cubeSurface0 = new DisposablePtr<NvttCubeSurface>(NvttCubeSurface.Create());
-                    using var mip0Surf = new DisposablePtr<NvttSurface>(NvttSurface.Create());
-                    if (!mip0Surf.Get()->SetImageData(NvttInputFormat.NVTT_InputFormat_RGBA_32F, textureInfo.width, textureInfo.height, 1, (void*)textureInfo.pixelData, false, null))
-                    {
-                        throw new Exception("Failed to set image data for cube map.");
-                    }
-
-                    cubeSurface0.Get()->Fold(mip0Surf.Get(), NvttCubeLayout.NVTT_CubeLayout_LatitudeLongitude);
-                    edge = cubeSurface0.Get()->EdgeLength();
+                    var maxExtent = (int)settings.Advanced.MaxSize;
+                    var targetEdge = 1 << (int)Math.Round(Math.Log2(textureInfo.width / 4.0));
+                    edge = Math.Clamp(targetEdge, 1, maxExtent);
                     maxCubeMips = (int)Math.Floor(Math.Log2(edge)) + 1;
 
                     var pixelsPerFace = edge * edge;
                     var faceSize = pixelsPerFace * textureInfo.colorComponents;
                     baseCubeData = new UnsafeArray<float>(faceSize * 6, AllocationHandle.TLSF);
 
-                    var channels = textureInfo.colorComponents;
-                    var channelPtrs = stackalloc float*[channels];
-                    for (var face = 0; face < 6; face++)
-                    {
-                        var faceSurf = cubeSurface0.Get()->Face(face);
-
-                        // NVTT stores data in planar format: [RRRR...][GGGG...][BBBB...][AAAA...]
-                        // We need to interleave into RGBARGBA... for our sampling code.
-                        var pDst = (float*)baseCubeData.GetUnsafePtr() + face * faceSize;
-
-                        for (var ch = 0; ch < channels; ch++)
-                        {
-                            channelPtrs[ch] = faceSurf->Channel(ch);
-                        }
-
-                        for (var p = 0; p < pixelsPerFace; p++)
-                        {
-                            for (var ch = 0; ch < channels; ch++)
-                            {
-                                pDst[p * channels + ch] = channelPtrs[ch][p];
-                            }
-                        }
-                    }
+                    ProjectEquirectangularToCubemap((float*)textureInfo.pixelData, textureInfo.width, textureInfo.height, (float*)baseCubeData.GetUnsafePtr(), edge, textureInfo.colorComponents);
                 }
 
                 mipLevels = GenerateMipHDRI(textureInfo, baseCubeData, edge, maxCubeMips);

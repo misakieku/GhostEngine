@@ -75,7 +75,11 @@ public sealed class StaticSampler : IDisposable
             AddressU = TextureAddressMode.Clamp,
             AddressV = TextureAddressMode.Clamp,
             AddressW = TextureAddressMode.Clamp,
-            ComparisonFunc = ComparisonFunction.GreaterEqual
+            MipLODBias = 0.0f,
+            MaxAnisotropy = maxAnisotropy,
+            ComparisonFunc = ComparisonFunction.Never,
+            MinLOD = 0.0f,
+            MaxLOD = float.MaxValue
         });
 
         descs.Add(new SamplerDesc
@@ -123,7 +127,11 @@ public sealed class StaticSampler : IDisposable
             AddressU = TextureAddressMode.Clamp,
             AddressV = TextureAddressMode.Clamp,
             AddressW = TextureAddressMode.Clamp,
-            ComparisonFunc = ComparisonFunction.GreaterEqual
+            MipLODBias = 0.0f,
+            MaxAnisotropy = maxAnisotropy,
+            ComparisonFunc = ComparisonFunction.GreaterEqual,
+            MinLOD = 0.0f,
+            MaxLOD = float.MaxValue
         });
 
         return descs;

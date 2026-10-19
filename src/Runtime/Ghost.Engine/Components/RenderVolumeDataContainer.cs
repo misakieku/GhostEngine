@@ -1,8 +1,6 @@
 using Ghost.Engine.Volumes;
 using Ghost.Entities;
 using Misaki.HighPerformance.LowLevel.Buffer;
-using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Components;
@@ -23,13 +21,11 @@ public struct VolumeDataEntry
 /// </summary>
 public unsafe struct RenderVolumeDataContainer : ICleanupComponent, IDisposable
 {
-    private UnsafeList<byte> _dataBuffer;
-    private UnsafeList<VolumeDataEntry> _entries;
-    private bool _isCreated;
+    private UnmanagedTypeMap _storage;
 
-    public readonly bool IsCreated => _isCreated;
-    public readonly int ComponentCount => _isCreated ? _entries.Count : 0;
-    public readonly ReadOnlySpan<VolumeDataEntry> Entries => _isCreated ? _entries.AsSpan() : ReadOnlySpan<VolumeDataEntry>.Empty;
+    public readonly bool IsCreated => _storage.IsCreated;
+    public readonly int ComponentCount => _storage.ComponentCount;
+    public readonly ReadOnlySpan<VolumeDataEntry> Entries => _storage.Entries;
 
     public RenderVolumeDataContainer(int initialByteCapacity = 64)
         : this(initialByteCapacity, AllocationHandle.Persistent)
@@ -38,9 +34,7 @@ public unsafe struct RenderVolumeDataContainer : ICleanupComponent, IDisposable
 
     public RenderVolumeDataContainer(int initialByteCapacity, AllocationHandle allocationHandle)
     {
-        _dataBuffer = new UnsafeList<byte>(initialByteCapacity, allocationHandle);
-        _entries = new UnsafeList<VolumeDataEntry>(4, allocationHandle);
-        _isCreated = true;
+        _storage = new UnmanagedTypeMap(initialByteCapacity, allocationHandle);
     }
 
     public static RenderVolumeDataContainer Create()
@@ -53,56 +47,17 @@ public unsafe struct RenderVolumeDataContainer : ICleanupComponent, IDisposable
         return new RenderVolumeDataContainer(64, allocationHandle);
     }
 
-    private void EnsureInitialized()
-    {
-        if (!_isCreated)
-        {
-            _dataBuffer = new UnsafeList<byte>(64, AllocationHandle.Persistent);
-            _entries = new UnsafeList<VolumeDataEntry>(4, AllocationHandle.Persistent);
-            _isCreated = true;
-        }
-    }
-
     /// <summary>
     /// Adds or updates a volume component setting inside this container.
     /// </summary>
     /// <typeparam name="T">The volume component type.</typeparam>
     /// <param name="value">The component value to store.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Set<T>(in T value)
         where T : unmanaged, IVolumeComponent<T>
     {
-        EnsureInitialized();
         VolumeBlenderTrampoline<T>.EnsureInitialized();
-
-        var typeId = VolumeBlenderTrampoline<T>.TypeId;
-        var size = VolumeBlenderTrampoline<T>.Size;
-        var offset = -1;
-
-        for (var i = 0; i < _entries.Count; i++)
-        {
-            if (_entries[i].typeId == typeId)
-            {
-                offset = _entries[i].offset;
-                break;
-            }
-        }
-
-        if (offset == -1)
-        {
-            offset = _dataBuffer.Count;
-            _dataBuffer.Resize(offset + size);
-            _entries.Add(new VolumeDataEntry
-            {
-                typeId = typeId,
-                offset = (ushort)offset,
-                size = (ushort)size
-            });
-        }
-
-        fixed (T* pValue = &value)
-        {
-            MemoryUtility.MemCpy((byte*)_dataBuffer.GetUnsafePtr() + offset, pValue, (nuint)size);
-        }
+        _storage.Set(VolumeBlenderTrampoline<T>.TypeId, in value);
     }
 
     /// <summary>
@@ -114,7 +69,7 @@ public unsafe struct RenderVolumeDataContainer : ICleanupComponent, IDisposable
     public readonly bool Has<T>()
         where T : unmanaged, IVolumeComponent<T>
     {
-        return TryGetPtr(VolumeBlenderTrampoline<T>.TypeId, out _);
+        return _storage.Has(VolumeBlenderTrampoline<T>.TypeId);
     }
 
     /// <summary>
@@ -123,29 +78,11 @@ public unsafe struct RenderVolumeDataContainer : ICleanupComponent, IDisposable
     /// <typeparam name="T">The volume component type.</typeparam>
     /// <param name="value">The retrieved component data if found.</param>
     /// <returns>True if found, false otherwise.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly bool TryGet<T>(out T value)
         where T : unmanaged, IVolumeComponent<T>
     {
-        if (!_isCreated)
-        {
-            value = default;
-            return false;
-        }
-
-        var typeId = VolumeBlenderTrampoline<T>.TypeId;
-        for (var i = 0; i < _entries.Count; i++)
-        {
-            if (_entries[i].typeId == typeId)
-            {
-                ref readonly var entry = ref _entries[i];
-                var ptr = (byte*)_dataBuffer.GetUnsafePtr() + entry.offset;
-                value = *(T*)ptr;
-                return true;
-            }
-        }
-
-        value = default;
-        return false;
+        return _storage.TryGet(VolumeBlenderTrampoline<T>.TypeId, out value);
     }
 
     /// <summary>
@@ -157,23 +94,7 @@ public unsafe struct RenderVolumeDataContainer : ICleanupComponent, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly bool TryGetPtr(ushort typeId, out void* ptr)
     {
-        if (!_isCreated)
-        {
-            ptr = null;
-            return false;
-        }
-
-        for (var i = 0; i < _entries.Count; i++)
-        {
-            if (_entries[i].typeId == typeId)
-            {
-                ptr = (byte*)_dataBuffer.GetUnsafePtr() + _entries[i].offset;
-                return true;
-            }
-        }
-
-        ptr = null;
-        return false;
+        return _storage.TryGetPtr(typeId, out ptr);
     }
 
     /// <summary>
@@ -181,25 +102,11 @@ public unsafe struct RenderVolumeDataContainer : ICleanupComponent, IDisposable
     /// </summary>
     /// <typeparam name="T">The volume component type.</typeparam>
     /// <returns>True if removed, false if not present.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Remove<T>()
         where T : unmanaged, IVolumeComponent<T>
     {
-        if (!_isCreated)
-        {
-            return false;
-        }
-
-        var typeId = VolumeBlenderTrampoline<T>.TypeId;
-        for (var i = 0; i < _entries.Count; i++)
-        {
-            if (_entries[i].typeId == typeId)
-            {
-                _entries.RemoveAt(i);
-                return true;
-            }
-        }
-
-        return false;
+        return _storage.Remove(VolumeBlenderTrampoline<T>.TypeId);
     }
 
     /// <summary>
@@ -207,11 +114,6 @@ public unsafe struct RenderVolumeDataContainer : ICleanupComponent, IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_isCreated)
-        {
-            _dataBuffer.Dispose();
-            _entries.Dispose();
-            _isCreated = false;
-        }
+        _storage.Dispose();
     }
 }

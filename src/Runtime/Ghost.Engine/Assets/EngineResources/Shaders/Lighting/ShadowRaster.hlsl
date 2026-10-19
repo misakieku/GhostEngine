@@ -122,7 +122,7 @@ void MSMain(
         bool isCulled = false;
         if (doubleSided == 0.0f)
         {
-            isCulled = !IsTriangleFrontFacingAndVisible(v0, v1, v2);
+            isCulled = !IsTriangleFrontFacing(v0, v1, v2);
             if (!isCulled)
             {
                 isCulled = IsTriangleOutsideFrustum(v0, v1, v2);

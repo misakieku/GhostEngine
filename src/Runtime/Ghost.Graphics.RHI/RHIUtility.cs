@@ -283,4 +283,65 @@ public static class RHIUtility
             _ => throw new NotSupportedException($"DXGI format value {format} is not supported.")
         };
     }
+
+    extension(TextureDesc)
+    {
+        public static TextureDesc FromDDSHeader(DDS_HEADER ddsHeader, DDS_HEADER_DXT10? dxt10)
+        {
+            var desc = new TextureDesc
+            {
+                Width = ddsHeader.dwWidth,
+                Height = ddsHeader.dwHeight,
+                MipLevels = Math.Max(1u, ddsHeader.dwMipMapCount),
+                Dimension = TextureDimension.Texture2D,
+                Slice = 1,
+            };
+
+            if (dxt10.HasValue)
+            {
+                desc.Format = FromDxgiFormat(dxt10.Value.dxgiFormat);
+
+                if ((dxt10.Value.miscFlag & DDSUtility.RESOURCE_MISC_TEXTURECUBE) != 0 || (ddsHeader.dwCaps2 & DDSUtility.DDSCAPS2_CUBEMAP) != 0)
+                {
+                    desc.Dimension = TextureDimension.TextureCube;
+                    desc.Slice = 6;
+                }
+                else if (dxt10.Value.arraySize > 1)
+                {
+                    desc.Dimension = TextureDimension.Texture2DArray;
+                    desc.Slice = dxt10.Value.arraySize;
+                }
+                else if (dxt10.Value.resourceDimension == 4) // D3D10_RESOURCE_DIMENSION_TEXTURE3D
+                {
+                    desc.Dimension = TextureDimension.Texture3D;
+                    desc.Slice = Math.Max(1u, ddsHeader.dwDepth);
+                }
+            }
+            else
+            {
+                desc.Format = ddsHeader.ddspf.dwFourCC switch
+                {
+                    DDSUtility.FOURCC_DXT1 => TextureFormat.BC1_UNorm,
+                    DDSUtility.FOURCC_DXT3 => TextureFormat.BC2_UNorm,
+                    DDSUtility.FOURCC_DXT5 => TextureFormat.BC3_UNorm,
+                    DDSUtility.FOURCC_ATI1 or DDSUtility.FOURCC_BC4U => TextureFormat.BC4_UNorm,
+                    DDSUtility.FOURCC_ATI2 or DDSUtility.FOURCC_BC5U => TextureFormat.BC5_UNorm,
+                    _ => TextureFormat.Unknown,
+                };
+
+                if ((ddsHeader.dwCaps2 & DDSUtility.DDSCAPS2_CUBEMAP) != 0)
+                {
+                    desc.Dimension = TextureDimension.TextureCube;
+                    desc.Slice = 6;
+                }
+                else if (ddsHeader.dwDepth > 1)
+                {
+                    desc.Dimension = TextureDimension.Texture3D;
+                    desc.Slice = ddsHeader.dwDepth;
+                }
+            }
+
+            return desc;
+        }
+    }
 }
