@@ -238,13 +238,30 @@ public static unsafe class RenderPipelineUtility
 
     public static Handle<GPUBuffer> CreateViewDataBuffer(ResourceContext ctx, RenderRequest request, RenderViewData renderView, float4x4 viewMatrix, float4x4 projMatrix, float4x4 viewProjMatrix, Frustum frustum, ref float4x4 prevVP)
     {
+        var dummyCam = request.view.localToWorld.c3.xyz;
+        return CreateViewDataBuffer(ctx, request, renderView, viewMatrix, projMatrix, viewProjMatrix, frustum, ref prevVP, ref dummyCam);
+    }
+
+    public static Handle<GPUBuffer> CreateViewDataBuffer(ResourceContext ctx, RenderRequest request, RenderViewData renderView, float4x4 viewMatrix, float4x4 projMatrix, float4x4 viewProjMatrix, Frustum frustum, ref float4x4 prevVP, ref float3 prevCameraPos)
+    {
+        var camPos = request.view.localToWorld.c3.xyz;
+        var camDelta = camPos - prevCameraPos;
+
+        // Translation in camera-relative coordinates: column 3 is translation in column-major matrices
+        var translation = float4x4.identity;
+        translation.c3 = new float4(camDelta, 1.0f);
+
+        // Projects positions relative to current camera into previous clip space:
+        // preVP * [posRWS, 1] = prevVP * translation * [posRWS, 1] = prevVP * [posRWS + (C_curr - C_prev), 1]
+        var preVP = math.mul(prevVP, translation);
+
         var viewData = new ViewData
         {
             viewMatrix = viewMatrix,
             projectionMatrix = projMatrix,
             viewProjectionMatrix = viewProjMatrix,
-            preVPMatrix = prevVP,
-            cameraPosition = request.view.localToWorld.c3.xyz,
+            preVPMatrix = preVP,
+            cameraPosition = camPos,
             nearClip = request.view.nearClipPlane,
             cameraDirection = request.view.localToWorld.c2.xyz,
             farClip = request.view.farClipPlane,
@@ -253,6 +270,7 @@ public static unsafe class RenderPipelineUtility
         };
 
         prevVP = viewProjMatrix;
+        prevCameraPos = camPos;
 
         var alignedSize = ((uint)sizeof(ViewData) + 255u) & ~255u;
         var viewDesc = new BufferDesc

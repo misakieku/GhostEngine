@@ -332,7 +332,6 @@ compute "Internal/MeshletCullGraph"
                                     if (prevCullResult.isVisible && prevCullResult.clipValid)
                                     {
                                         isOccluded = !TestHZB(prevCullResult.clipMin, prevCullResult.clipMax, props);
-                                        // isOccluded = false;
                                     }
                                 }
                                 else if (cullResult.clipValid)

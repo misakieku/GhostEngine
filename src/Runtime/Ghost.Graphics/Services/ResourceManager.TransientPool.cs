@@ -37,9 +37,8 @@ public partial class ResourceManager
     private readonly Lock _transientWriteLock = new Lock();
 
     private Handle<GPUBuffer> _uploadBuffer;
-    private uint _uploadBufferOffset; // We use uint here because the offset is always less than 16MB, which is well within the range of uint.
+    private ulong _uploadBufferOffset; // We use uint here because the offset is always less than 16MB, which is well within the range of uint.
     private uint _uploadBufferSrvIndex;
-    private readonly Lock _uploadBufferLock = new Lock();
 
     private static bool IsHeapFlagsCompatible(HeapFlags pageHeapFlags, HeapFlags requiredHeapFlags)
     {
@@ -276,31 +275,34 @@ public partial class ResourceManager
         }
     }
 
-    public Handle<GPUBuffer> CreateTransientUploadBuffer(scoped in BufferDesc desc, out uint offset, out uint srvIndex)
+    public Handle<GPUBuffer> CreateTransientUploadBuffer(scoped in BufferDesc desc, out ulong offset, out uint srvIndex)
     {
         Logger.DebugAssert(desc.HeapType == HeapType.Upload, "Transient upload buffer must be of HeapType.Upload");
 
-        if (Volatile.Read(ref _uploadBufferOffset) + desc.Size > DEFAULT_TRANSIENT_PAGE_SIZE)
+        while (true)
         {
-            var handle = CreateTransientBuffer(desc);
-            offset = 0;
-            srvIndex = _resourceDatabase.GetBindlessIndex(handle.AsResource());
-            return handle;
-        }
+            var currentOffset = Volatile.Read(ref _uploadBufferOffset);
+            var newOffset = currentOffset + desc.Size;
+            
+            if (newOffset > DEFAULT_TRANSIENT_PAGE_SIZE)
+            {
+                var handle = CreateTransientBuffer(desc);
+                offset = 0;
+                srvIndex = _resourceDatabase.GetBindlessIndex(handle.AsResource());
+                return handle;
+            }
 
-        lock (_uploadBufferLock)
-        {
-            offset = _uploadBufferOffset;
-            srvIndex = _uploadBufferSrvIndex;
-
-            _uploadBufferOffset += (uint)desc.Size;
-
-            return _uploadBuffer;
+            if (Interlocked.CompareExchange(ref _uploadBufferOffset, newOffset, currentOffset) == currentOffset)
+            {
+                offset = currentOffset;
+                srvIndex = _uploadBufferSrvIndex;
+                return _uploadBuffer;
+            }
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Handle<GPUBuffer> CreateTransientUploadBuffer(BufferDesc desc, out uint offset)
+    public Handle<GPUBuffer> CreateTransientUploadBuffer(BufferDesc desc, out ulong offset)
     {
         return CreateTransientUploadBuffer(desc, out offset, out _);
     }

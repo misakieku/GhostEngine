@@ -191,7 +191,12 @@ internal unsafe class DXGISwapChain : ISwapChain
         Logger.DebugAssert(!_disposed);
         if (_frameLatencyWaitableObject.Value != null)
         {
-            WaitForSingleObjectEx(_frameLatencyWaitableObject, timeoutMs, true);
+            var result = WaitForSingleObjectEx(_frameLatencyWaitableObject, timeoutMs, true);
+            if (result == 0xFFFFFFFFu)
+            {
+                var error = GetLastError();
+                Logger.Fatal($"Failed to wait for frame latency. Error code: {error}");
+            }
         }
     }
 

@@ -335,8 +335,9 @@ int MipLevelForRect(int4 rectPixels, int desiredFootprintPixels = 4)
     const int maxPixelOffset = desiredFootprintPixels - 1; // 3
     const int footprintMipBias = int(log2((float)desiredFootprintPixels)) - 1; // 1
 
-    int2 mipLevelXY = firstbithigh((uint2)max(rectPixels.zw - rectPixels.xy, int2(0, 0)));
-    int mipLevel = max(max(mipLevelXY.x, mipLevelXY.y) - footprintMipBias, 0);
+    int2 size = max(rectPixels.zw - rectPixels.xy, int2(0, 0));
+    int maxDim = max(size.x, size.y);
+    int mipLevel = maxDim > 0 ? max((int)firstbithigh((uint)maxDim) - footprintMipBias, 0) : 0;
 
     mipLevel += any(((rectPixels.zw >> mipLevel) - (rectPixels.xy >> mipLevel)) > maxPixelOffset) ? 1 : 0;
     return mipLevel;
@@ -358,17 +359,13 @@ bool HZBVisible(float4 clipMin, float4 clipMax, uint hzbMipCount, uint renderWid
     // Map NDC [-1, 1] to UV [0, 1] with inverted Y: (minX, minY, maxX, maxY)
     float4 uvRect = saturate(float4(clipMin.xy, clipMax.xy) * float2(0.5f, -0.5f).xyxy + 0.5f).xwzy;
 
-    // Convert projected bounds to an inclusive pixel rectangle. The minimum edge
-    // must round outward toward zero and the maximum edge must round outward away
-    // from zero; rounding both edges to nearest can omit a boundary pixel.
-    float4 pixelBounds = uvRect * float4((float)renderWidth, (float)renderHeight, (float)renderWidth, (float)renderHeight) - 0.5f;
-    int2 viewportMax = int2((int)renderWidth - 1, (int)renderHeight - 1);
-    int2 rectMin = clamp((int2)floor(pixelBounds.xy), int2(0, 0), viewportMax);
-    int2 rectMax = clamp((int2)ceil(pixelBounds.zw), int2(0, 0), viewportMax);
-    int4 pixelsRect = int4(rectMin, rectMax);
-
-    // Convert from full viewport pixels to HZB Mip 0 texels (half resolution)
-    int4 coarseRect = pixelsRect >> 1;
+    // Convert UV bounds directly to HZB Mip 0 inclusive texel coordinates.
+    // Minimum edge rounds outward toward zero (floor), maximum edge rounds outward (ceil - 1).
+    float2 hzbBaseSize = float2((float)hzbBaseWidth, (float)hzbBaseHeight);
+    int2 maxTexel = int2((int)hzbBaseWidth - 1, (int)hzbBaseHeight - 1);
+    int2 rectMin = clamp((int2)floor(uvRect.xy * hzbBaseSize), int2(0, 0), maxTexel);
+    int2 rectMax = clamp((int2)ceil(uvRect.zw * hzbBaseSize) - 1, rectMin, maxTexel);
+    int4 coarseRect = int4(rectMin, rectMax);
 
     // Determine target mip level for 4x4 footprint
     int hzbLevel = MipLevelForRect(coarseRect, 4);
@@ -379,6 +376,12 @@ bool HZBVisible(float4 clipMin, float4 clipMax, uint hzbMipCount, uint renderWid
     coarseRect.xy = clamp(coarseRect.xy, int2(0, 0), mipSize - 1);
     coarseRect.zw = clamp(coarseRect.zw, int2(0, 0), mipSize - 1);
 
+    // If the rect footprint at the coarsest mip exceeds 4x4, it covers a large screen area and cannot be conservatively proven occluded
+    if (any((coarseRect.zw - coarseRect.xy) > 3))
+    {
+        return true;
+    }
+    
     // 16 samples covering the complete 4x4 grid across the bounding box interior & borders
     int4 xCoords = min(coarseRect.x + int4(0, 1, 2, 3), coarseRect.z);
     int4 yCoords = min(coarseRect.y + int4(0, 1, 2, 3), coarseRect.w);

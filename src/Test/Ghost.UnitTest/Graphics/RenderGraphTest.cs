@@ -1309,7 +1309,7 @@ public partial class RenderGraphTest
             // 2. Transition from ShaderResource to UnorderedAccess (for BuildPass) - NO discard
             // 3. Closing transition to Common
             var recordedBarriers = GetRecordedBarriers().Where(b => b.Resource == persistentSlot.AsResource()).ToList();
-            Assert.AreEqual(3, recordedBarriers.Count, "Expected exactly 3 chained transitions (Common->SRV, SRV->UAV, UAV->Common) for in-place reused resource.");
+            Assert.HasCount(3, recordedBarriers, "Expected exactly 3 chained transitions (Common->SRV, SRV->UAV, UAV->Common) for in-place reused resource.");
 
             var inPlaceTransition = recordedBarriers.First(b => b.LayoutBefore == BarrierLayout.ShaderResource && b.LayoutAfter == BarrierLayout.UnorderedAccess);
             Assert.IsFalse(inPlaceTransition.Discard, "In-place reuse transition must NOT specify Discard.");

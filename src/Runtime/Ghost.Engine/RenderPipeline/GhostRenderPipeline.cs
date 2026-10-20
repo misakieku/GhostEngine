@@ -157,9 +157,10 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             if (viewContext.prevViewProjMatrix.Equals(float4x4.zero))
             {
                 viewContext.prevViewProjMatrix = viewProjMatrix;
+                viewContext.prevCameraPosition = request.view.localToWorld.c3.xyz;
             }
 
-            var viewBuffer = RenderPipelineUtility.CreateViewDataBuffer(ctx, request, renderView, viewMatrix, projMatrix, viewProjMatrix, frustum, ref viewContext.prevViewProjMatrix);
+            var viewBuffer = RenderPipelineUtility.CreateViewDataBuffer(ctx, request, renderView, viewMatrix, projMatrix, viewProjMatrix, frustum, ref viewContext.prevViewProjMatrix, ref viewContext.prevCameraPosition);
 
             var renderGraph = viewContext.RenderGraph;
 

@@ -11,3 +11,5 @@ dotnet_separate_import_directive_groups = false
 
 dotnet_style_prefer_collection_expression = false
 dotnet_style_collection_initializer = false
+
+dotnet_diagnostic.CA1806.severity = warning

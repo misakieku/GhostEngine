@@ -240,10 +240,11 @@ public sealed unsafe class RenderContext
         error = ResourceDatabase.UnmapResource(properyBuffer.AsResource(), 0, null);
         Logger.DebugAssert(error.IsSuccess, $"Failed to unmap property buffer: {error}.");
 
+        Logger.DebugAssert(offset <= uint.MaxValue, "Property buffer offset is out of range.");
         var pushConstant = new PushConstantsData
         {
             userData0 = srv,
-            userData1 = offset,
+            userData1 = (uint)offset, //unlikely to overflow.
         };
 
         CommandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstant.AsUInts());

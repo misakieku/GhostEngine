@@ -83,6 +83,7 @@ src/Test/TestGame/run-this-when-assets-forge-changed.ps1 -c Release -p:Platform=
 
 - **Ask early on weird issues**: GhostEngine is a 140,000+ line engine with custom memory managers, unmanaged collections, ECS, GPU pipelines, and bespoke asset baking. If you encounter puzzling, strange, or unexpected behavior (e.g., unexpected data corruption, mystery buffer values, obscure pipeline artifacts), **ask the user / creator directly and early**. Do not spend prolonged time guessing or spinning in circles—the creator understands the entire architecture and can clarify expected behavior immediately.
 - **Root causes over symptom patches**: Never flip normals (`-normal`, `!isFrontFacing`), hide bad values with clamps, or hack shader returns to mask invalid data upstream. The data must be correct at the point of origin.
+- **Check common pitfalls**: Consult `docs/developer-docs/common_mistakes.md` for known low-level collection and memory pitfalls (e.g. `UnsafeList<T>.Resize` capacity vs. count semantics, struct alignment).
 - **Language**: English only.
 
 ---
@@ -206,7 +207,7 @@ Use public fields only for data-container structs. Prefer private field + public
 - Annotate hot paths with `[MethodImpl(MethodImplOptions.AggressiveInlining)]`
 - Annotate log/assert helpers with `[StackTraceHidden]`
 - Prefer `stackalloc` + `Span<T>` over heap allocation for small temporary arrays
-- Use `Misaki.HighPerformance.*` allocation APIs (`AllocationManager`, `UnsafeList<T>`, `UnsafeHashMap<T,V>`, etc.) for long-lived unmanaged buffers
+- Use `Misaki.HighPerformance.*` allocation APIs (`AllocationManager`, `UnsafeList<T>`, `UnsafeHashMap<T,V>`, etc.) for long-lived unmanaged buffers. Note: `UnsafeList<T>.Resize` only adjusts capacity, not element count; use `list.UnsafeSetCount(newCount)` when populating memory directly via pointers/`MemCpy`, or `Add`/`AddRange`.
 - All runtime/ECS types must be AOT-compatible and trimmable (`<IsAotCompatible>True</IsAotCompatible>`, `<IsTrimmable>True</IsTrimmable>` in Release)
 - Avoid LINQ in hot paths; use `for` loops or `foreach` over `Span<T>`
 
@@ -284,3 +285,5 @@ TestGame ──> Ghost.Engine ──> Ghost.Generator (analyzer)
 
 To find how to use a specific system, you can find documents in `docs\documents`.
 Currently only `ECS` and `RenderGraph` have a completed document.
+
+Developer guidelines, architectural references, and known pitfalls can be found in `docs\developer-docs\` (e.g., `common_mistakes.md`).

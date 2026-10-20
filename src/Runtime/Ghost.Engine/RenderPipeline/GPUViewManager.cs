@@ -45,6 +45,7 @@ public sealed class GPUViewContext : IDisposable
     private ShadowAtlasRegionAllocator? _shadowAllocator;
 
     public float4x4 prevViewProjMatrix;
+    public float3 prevCameraPosition;
     public ulong prevSkyHash;
 
     public uint ViewId
@@ -149,10 +150,12 @@ public sealed class GPUViewContext : IDisposable
         {
             HzbTexture = _database.CreateEmpty().AsTexture();
             prevViewProjMatrix = default; // Zero out so first frame is not static
+            prevCameraPosition = default;
         }
         else if (RenderSize.x != renderSize.x || RenderSize.y != renderSize.y)
         {
             prevViewProjMatrix = default; // Zero out so resize is not static
+            prevCameraPosition = default;
         }
 
         RenderSize = renderSize;
@@ -176,6 +179,7 @@ public sealed class GPUViewContext : IDisposable
         RenderSize = default;
         HzbSize = default;
         prevViewProjMatrix = default;
+        prevCameraPosition = default;
         prevSkyHash = 0;
     }
 }
