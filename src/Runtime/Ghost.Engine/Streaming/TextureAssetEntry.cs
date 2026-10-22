@@ -25,7 +25,7 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
     public TextureAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies, string assetName)
         : base(manager, resourceDatabase, resourceManager, assetId, AssetType.Texture, dependencies, assetName)
     {
-        _actualHandle = resourceDatabase.CreateEmpty(true).AsTexture();
+        _actualHandle = resourceDatabase.CreateEmpty(true, assetName).AsTexture();
     }
 
     private static TextureFormat GetTextureFormat(uint bpc, uint colorComponents)
@@ -150,8 +150,7 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
             context.CopyCommandBuffer,
             memory.GetUnsafePtr(),
             (nuint)dataSize,
-            in _desc,
-            AssetName);
+            in _desc);
 
         if (newHandle.IsInvalid)
         {

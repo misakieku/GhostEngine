@@ -40,7 +40,10 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
     private readonly GPUPagePool _pagePool;
     private readonly GPUPageTable _pageTable;
     private readonly Handle<GPUBuffer> _streamingRequestsGpuBuffer;
+    private readonly Handle<GPUBuffer> _streamingRequestsBitmaskGpuBuffer;
     private readonly Handle<GPUBuffer>[] _streamingRequestsReadbackBuffers;
+    private readonly byte[] _zeroBitmaskBuffer;
+    private readonly ulong _bitmaskBufferSize;
     private readonly uint _maxRequestsPerFrame;
     private readonly int _maxPagesPerFrame;
 
@@ -54,6 +57,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
     private byte[] _pageStagingBuffer;
     private bool _pagePoolInShaderResource;
     private bool _streamingRequestsInUav;
+    private bool _streamingRequestsBitmaskInUav;
     private bool _disposed;
 
     public GPUPagePool PagePool => _pagePool;
@@ -61,6 +65,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
     public uint PagePoolSrvIndex => _pagePool.BindlessIndex;
     public uint PageTableSrvIndex => _pageTable.BindlessIndex;
     public Handle<GPUBuffer> StreamingRequestsGpuBuffer => _streamingRequestsGpuBuffer;
+    public Handle<GPUBuffer> StreamingRequestsBitmaskGpuBuffer => _streamingRequestsBitmaskGpuBuffer;
     public uint MaxStreamingRequestsPerFrame => _maxRequestsPerFrame;
     public int PendingRequestCount => _requestQueue.Count;
 
@@ -86,6 +91,18 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
             HeapType = HeapType.Default,
         };
         _streamingRequestsGpuBuffer = resourceAllocator.CreateBuffer(in requestDesc, "StreamingRequests_GPU");
+
+        // GPU deduplication bitmask buffer (1 bit per global page ID, initialized to 0)
+        _bitmaskBufferSize = (ulong)((pageTableCapacity + 31u) / 32u * 4u);
+        _zeroBitmaskBuffer = new byte[_bitmaskBufferSize];
+        var bitmaskDesc = new BufferDesc
+        {
+            Size = _bitmaskBufferSize,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource | BufferUsage.UnorderedAccess,
+            HeapType = HeapType.Default,
+        };
+        _streamingRequestsBitmaskGpuBuffer = resourceAllocator.CreateBuffer(in bitmaskDesc, "StreamingRequests_Bitmask_GPU");
 
         // CPU readback ring buffers on HeapType.Readback (never transitioned by barriers)
         var readbackRingLength = Math.Max(2, frameBufferCount);
@@ -304,7 +321,17 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
             }
         }
 
-        if (!_pagePoolInShaderResource && (pagesUploaded > 0 || hadRootUploads || willUpload))
+        if (pagesUploaded > 0 || hadRootUploads)
+        {
+            context.CommandBuffer.Barrier(BarrierDesc.Buffer(
+                _pagePool.Buffer,
+                syncBefore: BarrierSync.Copy,
+                syncAfter: BarrierSync.AllShading,
+                accessBefore: BarrierAccess.CopyDest,
+                accessAfter: BarrierAccess.ShaderResource));
+            _pagePoolInShaderResource = true;
+        }
+        else if (!_pagePoolInShaderResource)
         {
             context.CommandBuffer.Barrier(BarrierDesc.Buffer(
                 _pagePool.Buffer,
@@ -318,7 +345,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
         // 4. Flush dirty residency entries to GPU
         _pageTable.FlushUpdates(context.ResourceManager, context.ResourceDatabase, context.CommandBuffer);
 
-        // 5. Reset GPU streaming request counter to 0 for the upcoming frame
+        // 5. Reset GPU streaming request counter and bitmask for the upcoming frame
         if (_streamingRequestsInUav)
         {
             context.CommandBuffer.Barrier(BarrierDesc.Buffer(
@@ -337,6 +364,25 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
             accessBefore: BarrierAccess.CopyDest,
             accessAfter: BarrierAccess.UnorderedAccess));
         _streamingRequestsInUav = true;
+
+        if (_streamingRequestsBitmaskInUav)
+        {
+            context.CommandBuffer.Barrier(BarrierDesc.Buffer(
+                _streamingRequestsBitmaskGpuBuffer,
+                syncBefore: BarrierSync.AllShading,
+                syncAfter: BarrierSync.Copy,
+                accessBefore: BarrierAccess.UnorderedAccess,
+                accessAfter: BarrierAccess.CopyDest));
+        }
+
+        UploadBufferRange(context.ResourceManager, context.ResourceDatabase, context.CommandBuffer, _streamingRequestsBitmaskGpuBuffer, _zeroBitmaskBuffer.AsSpan(), 0);
+        context.CommandBuffer.Barrier(BarrierDesc.Buffer(
+            _streamingRequestsBitmaskGpuBuffer,
+            syncBefore: BarrierSync.Copy,
+            syncAfter: BarrierSync.AllShading,
+            accessBefore: BarrierAccess.CopyDest,
+            accessAfter: BarrierAccess.UnorderedAccess));
+        _streamingRequestsBitmaskInUav = true;
     }
 
     internal void RecordReadbackCopy(ICommandBuffer cmd, int frameIndex)
@@ -481,6 +527,11 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
         if (_streamingRequestsGpuBuffer.IsValid)
         {
             _resourceDatabase.ReleaseResource(_streamingRequestsGpuBuffer.AsResource());
+        }
+
+        if (_streamingRequestsBitmaskGpuBuffer.IsValid)
+        {
+            _resourceDatabase.ReleaseResource(_streamingRequestsBitmaskGpuBuffer.AsResource());
         }
 
         if (_streamingRequestsReadbackBuffers != null)

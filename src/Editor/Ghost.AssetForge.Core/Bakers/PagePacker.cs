@@ -155,39 +155,73 @@ public static unsafe class PagePacker
             }
         }
 
-        // Compute child page index for each group:
-        // Groups at LOD 0 have no finer LOD, so childPageIndex = 0xFFFFFFFF.
-        // For groups at LOD L > 0, find the spatially nearest group at LOD L - 1.
-        // Its pageIndex is our childPageIndex, used at runtime to gate refinement and keep the coarser
-        // resident representation on screen until the finer streaming page arrives.
+        // Compute child page span for each group:
+        // Groups at LOD 0 have no finer LOD, so childPageIndex = 0xFFFF, childPageCount = 0.
+        // For groups at LOD L > 0, find all groups at LOD L - 1 whose bounding sphere intersects or overlaps this group.
         for (var g = 0; g < groupCount; g++)
         {
             ref var grp = ref meshletData->groups[g];
             if (grp.lodLevel == 0)
             {
-                grp.childPageIndex = 0xFFFFFFFFu;
+                grp.childPageIndex = 0xFFFF;
+                grp.childPageCount = 0;
             }
             else
             {
                 var finerLod = grp.lodLevel - 1;
-                var minDistanceSq = float.MaxValue;
-                var bestChildPage = 0xFFFFFFFFu;
+                var minChildPage = uint.MaxValue;
+                var maxChildPage = 0u;
+                var found = false;
 
                 for (var p = 0; p < groupCount; p++)
                 {
                     ref readonly var cand = ref meshletData->groups[p];
                     if (cand.lodLevel == finerLod)
                     {
-                        var d = math.lengthsq(cand.boundingSphere.Center - grp.boundingSphere.Center);
-                        if (d < minDistanceSq)
+                        var distSq = math.lengthsq(cand.boundingSphere.Center - grp.boundingSphere.Center);
+                        var rSum = cand.boundingSphere.Radius + grp.boundingSphere.Radius;
+                        if (distSq <= rSum * rSum)
                         {
-                            minDistanceSq = d;
-                            bestChildPage = cand.pageIndex;
+                            if (cand.pageIndex < minChildPage) minChildPage = cand.pageIndex;
+                            if (cand.pageIndex > maxChildPage) maxChildPage = cand.pageIndex;
+                            found = true;
                         }
                     }
                 }
 
-                grp.childPageIndex = bestChildPage;
+                if (!found)
+                {
+                    var minDistanceSq = float.MaxValue;
+                    var bestChildPage = 0xFFFFu;
+
+                    for (var p = 0; p < groupCount; p++)
+                    {
+                        ref readonly var cand = ref meshletData->groups[p];
+                        if (cand.lodLevel == finerLod)
+                        {
+                            var d = math.lengthsq(cand.boundingSphere.Center - grp.boundingSphere.Center);
+                            if (d < minDistanceSq)
+                            {
+                                minDistanceSq = d;
+                                bestChildPage = cand.pageIndex;
+                            }
+                        }
+                    }
+
+                    minChildPage = bestChildPage;
+                    maxChildPage = bestChildPage;
+                }
+
+                if (minChildPage != 0xFFFFu && minChildPage != uint.MaxValue)
+                {
+                    grp.childPageIndex = (ushort)minChildPage;
+                    grp.childPageCount = (ushort)(maxChildPage - minChildPage + 1u);
+                }
+                else
+                {
+                    grp.childPageIndex = 0xFFFF;
+                    grp.childPageCount = 0;
+                }
             }
         }
 

@@ -29,8 +29,8 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
     {
         var mesh = default(Mesh);
 
-        mesh.MeshDataBuffer = resourceDatabase.CreateEmpty().AsBuffer();
-        mesh.MeshBuffer = resourceDatabase.CreateEmpty().AsBuffer();
+        mesh.MeshDataBuffer = resourceDatabase.CreateEmpty(name: $"{assetName}_MeshDataBuffer").AsBuffer();
+        mesh.MeshBuffer = resourceDatabase.CreateEmpty(name: $"{assetName}_MeshBuffer").AsBuffer();
 
         _actualHandle = resourceManager.RegisterMesh(ref mesh);
     }

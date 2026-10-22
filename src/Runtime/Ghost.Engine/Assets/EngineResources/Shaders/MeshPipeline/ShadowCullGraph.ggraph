@@ -37,6 +37,7 @@ compute "Internal/ShadowCullGraph"
             uint meshletBufferOffset;
             uint shadowViewIndex;
             uint childGlobalPageID;
+            uint childPageCount;
         };
 
         struct WorkGraphDispatchGridRecord
@@ -176,7 +177,11 @@ compute "Internal/ShadowCullGraph"
                 outGroup.Get().rawBuffer = mesh.rawBuffer;
                 outGroup.Get().meshletBufferOffset = mesh.meshletBufferOffset;
                 outGroup.Get().shadowViewIndex = rec.shadowViewIndex;
-                outGroup.Get().childGlobalPageID = (group.childPageIndex != 0xFFFFFFFFu) ? (mesh.globalPageTableOffset + group.childPageIndex) : 0xFFFFFFFFu;
+                uint childPage = group.childPageRange & 0xFFFFu;
+                uint childCount = (group.childPageRange >> 16u) & 0xFFFFu;
+                bool hasChild = (childPage != 0xFFFFu) && (childCount > 0u);
+                outGroup.Get().childGlobalPageID = hasChild ? (mesh.globalPageTableOffset + childPage) : 0xFFFFFFFFu;
+                outGroup.Get().childPageCount = hasChild ? childCount : 0u;
                 outGroup.OutputComplete();
             }
         }
@@ -235,7 +240,15 @@ compute "Internal/ShadowCullGraph"
                 if (groupRec.childGlobalPageID != 0xFFFFFFFFu && IS_VALID_BUFFER(g_FrameData.pageTableBuffer))
                 {
                     ByteAddressBuffer pageTable = GET_BUFFER(g_FrameData.pageTableBuffer);
-                    canRefine = (pageTable.Load(groupRec.childGlobalPageID * 4u) != 0xFFFFFFFFu);
+                    canRefine = true;
+                    for (uint cp = 0; cp < groupRec.childPageCount; ++cp)
+                    {
+                        if (pageTable.Load((groupRec.childGlobalPageID + cp) * 4u) == 0xFFFFFFFFu)
+                        {
+                            canRefine = false;
+                            break;
+                        }
+                    }
                 }
             }
 

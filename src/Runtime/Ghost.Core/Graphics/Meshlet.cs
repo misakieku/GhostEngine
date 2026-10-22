@@ -42,9 +42,12 @@ public struct MeshletGroup
     public float parentError;                   // 4 bytes
     public uint meshletStartIndex;              // 4 bytes (contiguous meshlet range)
     public uint meshletCount;                   // 4 bytes (number of meshlets in the group)
-    public uint lodLevel;                       // 4 bytes (group LOD level)
     public uint pageIndex;                      // 4 bytes (page owning this group)
-    public uint childPageIndex;                 // 4 bytes (page index of finer LOD child representation, 0xFFFFFFFF if finest/LOD 0)
+    public ushort childPageIndex;               // 2 bytes (finer LOD child starting page index, 0xFFFF if finest/LOD 0)
+    public ushort childPageCount;               // 2 bytes (number of finer LOD child pages, 0 if finest/LOD 0)
+    public uint lodLevel;                       // 4 bytes (group LOD level)
+
+    public readonly uint PackedChildPageRange => (uint)childPageIndex | ((uint)childPageCount << 16);
 }
 
 [StructLayout(LayoutKind.Sequential, Size = 32)]

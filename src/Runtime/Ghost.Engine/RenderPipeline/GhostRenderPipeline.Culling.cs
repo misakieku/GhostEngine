@@ -35,6 +35,7 @@ internal unsafe partial class GhostRenderPipeline
         public Identifier<RGBuffer> occludedMeshlets;
         public Identifier<RGBuffer> counterBuffer;
         public Identifier<RGBuffer> streamingRequestsBuffer;
+        public Identifier<RGBuffer> streamingRequestsBitmaskBuffer;
         public Identifier<RGTexture> hzbTexture;
         public uint hzbMipCount;
         public uint2 renderSize;
@@ -203,11 +204,13 @@ internal unsafe partial class GhostRenderPipeline
         }, "CounterBuffer");
 
         var streamingRequests = rg.ImportBuffer(_assetManager.MeshletStreamingManager.StreamingRequestsGpuBuffer, ResourceBarrierData.UnorderedAccess, ResourceBarrierData.UnorderedAccess);
+        var streamingRequestsBitmask = rg.ImportBuffer(_assetManager.MeshletStreamingManager.StreamingRequestsBitmaskGpuBuffer, ResourceBarrierData.UnorderedAccess, ResourceBarrierData.UnorderedAccess);
 
         builder.UseBuffer(visibleMeshlets, AccessFlags.Write);
         builder.UseBuffer(occludedMeshlets, AccessFlags.Write);
         builder.UseBuffer(counterBuffer, AccessFlags.ReadWrite);
         builder.UseBuffer(streamingRequests, AccessFlags.ReadWrite);
+        builder.UseBuffer(streamingRequestsBitmask, AccessFlags.ReadWrite);
         builder.UseTexture(hzbTexture, AccessFlags.Read);
 
         var cullPassSemantic = (uint)PassSemantic.Visibility;
@@ -228,6 +231,7 @@ internal unsafe partial class GhostRenderPipeline
             occludedMeshlets = occludedMeshlets,
             counterBuffer = counterBuffer,
             streamingRequestsBuffer = streamingRequests,
+            streamingRequestsBitmaskBuffer = streamingRequestsBitmask,
             hzbTexture = hzbTexture,
             hzbMipCount = hzbMipCount,
             renderSize = screenSize,
@@ -258,6 +262,7 @@ internal unsafe partial class GhostRenderPipeline
             var occludedUav = computeCtx.GetActualBindlessIndex(passData.occludedMeshlets, BindlessAccess.UnorderedAccess);
             var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
             var streamingRequestsUav = computeCtx.GetActualBindlessIndex(passData.streamingRequestsBuffer, BindlessAccess.UnorderedAccess);
+            var streamingRequestsBitmaskUav = computeCtx.GetActualBindlessIndex(passData.streamingRequestsBitmaskBuffer, BindlessAccess.UnorderedAccess);
 
             var hzbTextureIndex = (passData.hzbMipCount > 0 && passData.hzbTexture.IsValid)
                 ? computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.hzbTexture).AsResource(), BindlessAccess.ShaderResource)
@@ -282,7 +287,7 @@ internal unsafe partial class GhostRenderPipeline
                 cullPassSemantic = passData.cullPassSemantic,
                 streamingRequestsUav = streamingRequestsUav,
                 maxStreamingRequests = passData.maxStreamingRequests,
-                _padding = default,
+                streamingRequestsBitmaskUav = streamingRequestsBitmaskUav,
                 supportedVariantMask0 = passData.supportedVariantMask0,
                 supportedVariantMask1 = passData.supportedVariantMask1,
             };

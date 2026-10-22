@@ -19,7 +19,7 @@ compute "Internal/MeshletCullGraph"
         uint cullPassSemantic;
         uint streamingRequestsUav;
         uint maxStreamingRequests;
-        uint _padding;
+        uint streamingRequestsBitmaskUav;
         uint4 supportedVariantMask0;
         uint4 supportedVariantMask1;
     }
@@ -48,6 +48,7 @@ compute "Internal/MeshletCullGraph"
             uint rawBuffer;
             uint meshletBufferOffset;
             uint childGlobalPageID;
+            uint childPageCount;
         };
 
         struct WorkGraphDispatchGridRecord
@@ -212,12 +213,26 @@ compute "Internal/MeshletCullGraph"
                         isResident = false;
                         if (IS_VALID_BUFFER(props.streamingRequestsUav))
                         {
-                            RWByteAddressBuffer reqBuf = GET_BUFFER(props.streamingRequestsUav);
-                            uint reqSlot;
-                            reqBuf.InterlockedAdd(0u, 1u, reqSlot);
-                            if (reqSlot < props.maxStreamingRequests)
+                            bool shouldAppend = true;
+                            if (IS_VALID_BUFFER(props.streamingRequestsBitmaskUav))
                             {
-                                reqBuf.Store((1u + reqSlot) * 4u, globalPageID);
+                                RWByteAddressBuffer bitmaskBuf = GET_BUFFER(props.streamingRequestsBitmaskUav);
+                                uint wordIndex = globalPageID / 32u;
+                                uint bitMask = 1u << (globalPageID % 32u);
+                                uint prevMask;
+                                bitmaskBuf.InterlockedOr(wordIndex * 4u, bitMask, prevMask);
+                                shouldAppend = ((prevMask & bitMask) == 0u);
+                            }
+
+                            if (shouldAppend)
+                            {
+                                RWByteAddressBuffer reqBuf = GET_BUFFER(props.streamingRequestsUav);
+                                uint reqSlot;
+                                reqBuf.InterlockedAdd(0u, 1u, reqSlot);
+                                if (reqSlot < props.maxStreamingRequests)
+                                {
+                                    reqBuf.Store((1u + reqSlot) * 4u, globalPageID);
+                                }
                             }
                         }
                     }
@@ -234,7 +249,11 @@ compute "Internal/MeshletCullGraph"
                 outGroup.Get().meshletCount = group.meshletCount;
                 outGroup.Get().rawBuffer = mesh.rawBuffer;
                 outGroup.Get().meshletBufferOffset = mesh.meshletBufferOffset;
-                outGroup.Get().childGlobalPageID = (group.childPageIndex != 0xFFFFFFFFu) ? (mesh.globalPageTableOffset + group.childPageIndex) : 0xFFFFFFFFu;
+                uint childPage = group.childPageRange & 0xFFFFu;
+                uint childCount = (group.childPageRange >> 16u) & 0xFFFFu;
+                bool hasChild = (childPage != 0xFFFFu) && (childCount > 0u);
+                outGroup.Get().childGlobalPageID = hasChild ? (mesh.globalPageTableOffset + childPage) : 0xFFFFFFFFu;
+                outGroup.Get().childPageCount = hasChild ? childCount : 0u;
                 outGroup.OutputComplete();
             }
         }
@@ -304,7 +323,15 @@ compute "Internal/MeshletCullGraph"
                 if (groupRec.childGlobalPageID != 0xFFFFFFFFu && IS_VALID_BUFFER(g_FrameData.pageTableBuffer))
                 {
                     ByteAddressBuffer pageTable = GET_BUFFER(g_FrameData.pageTableBuffer);
-                    canRefine = (pageTable.Load(groupRec.childGlobalPageID * 4u) != 0xFFFFFFFFu);
+                    canRefine = true;
+                    for (uint cp = 0; cp < groupRec.childPageCount; ++cp)
+                    {
+                        if (pageTable.Load((groupRec.childGlobalPageID + cp) * 4u) == 0xFFFFFFFFu)
+                        {
+                            canRefine = false;
+                            break;
+                        }
+                    }
                 }
             }
 

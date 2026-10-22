@@ -104,6 +104,8 @@ internal unsafe partial class GhostRenderPipeline
         var skyTintAndIntensity = new float4(skyTint, skyIntensity);
         var skyRotationSinCos = new float2(math.sin(skyRotation), math.cos(skyRotation));
 
+        // TODO: Currently render graph will generate BarrierSync.ComputeShading and PixelShading for these two textures.
+        // But they already in all shading stages, so the render graph should skip the barrier.
         var iblLutTexture = _lightingPipelineResource.iblLutTexture.IsValid
             ? renderGraph.ImportTexture(_lightingPipelineResource.iblLutTexture, ResourceBarrierData.ShaderResource, ResourceBarrierData.ShaderResource)
             : Identifier<RGTexture>.Invalid;

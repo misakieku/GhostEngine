@@ -148,7 +148,7 @@ public sealed class GPUViewContext : IDisposable
 
         if (!HzbTexture.IsValid)
         {
-            HzbTexture = _database.CreateEmpty().AsTexture();
+            HzbTexture = _database.CreateEmpty(name: "Hzb").AsTexture();
             prevViewProjMatrix = default; // Zero out so first frame is not static
             prevCameraPosition = default;
         }

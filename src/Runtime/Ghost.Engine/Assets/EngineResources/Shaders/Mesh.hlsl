@@ -48,9 +48,9 @@ struct MeshletGroup
     float parentError;
     uint meshletStartIndex;
     uint meshletCount;
-    uint lodLevel;
     uint pageIndex;
-    uint childPageIndex;
+    uint childPageRange; // low 16 bits: childPageIndex, high 16 bits: childPageCount
+    uint lodLevel;
 };
 
 struct MeshletHierarchyNode

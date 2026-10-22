@@ -158,77 +158,67 @@ To eliminate popping and holes completely, GhostEngine enforces **Refinement Gat
 > **The Refinement Invariant**:
 > A coarse, resident cluster is **NEVER allowed to refine (be discarded in favor of finer geometry)** unless the finer child page is **already 100% resident in GPU memory**.
 
-### 5.1 Step 1: Pre-Baking the `childPageIndex`
-In [`PagePacker.cs`](file:///f:/csharp/GhostEngine/src/Editor/Ghost.AssetForge.Core/Bakers/PagePacker.cs), each coarse `MeshletGroup` stores the page index of its nearest finer child LOD:
-- For LOD 0 meshlet groups: `childPageIndex = 0xFFFFFFFFu` (already the finest detail possible).
-- For LOD $> 0$ meshlet groups: `childPageIndex` points to the 128 KB page containing the finer children in the DAG.
+### 5.1 Step 1: Pre-Baking the Contiguous Child Page Span (`childPageRange`)
+In standard METIS / edge-collapse LOD DAGs, multiple coarse groups merge from multiple finer child groups ($M:N$ relationship). If child clusters cross 128 KB page boundaries (e.g. child group A is in Page 10, child group B in Page 11), checking only a single page index would allow refinement when only half the child geometry is resident, producing instant mesh cracks along page borders.
+
+In [`PagePacker.cs`](file:///f:/csharp/GhostEngine/src/Editor/Ghost.AssetForge.Core/Bakers/PagePacker.cs), groups are packed level-by-level, ensuring all child groups of a coarse group reside in a narrow, contiguous page range:
+- For LOD 0 meshlet groups: `childPageIndex = 0xFFFF`, `childPageCount = 0` (finest detail possible).
+- For LOD $> 0$ meshlet groups: `childPageIndex` and `childPageCount` encode the full child span:
+  `childPageRange = (uint)childPageIndex | ((uint)childPageCount << 16)`.
 
 ```csharp
-// Pack 64-byte MeshletGroup struct
+// Pack 64-byte MeshletGroup struct (childPageRange fits into 4 bytes)
 writer.Write(group.MeshletStartIndex);
 writer.Write(group.MeshletCount);
 writer.Write(group.PageIndex);
-writer.Write(group.ChildPageIndex); // Nearest finer-LOD page index
+writer.Write(group.PackedChildPageRange); // low 16 bits: start page, high 16 bits: count
 ```
 
-### 5.2 Step 2: GPU Hierarchy Traversal & Request Generation
-In [`MeshletCullGraph.ggraph`](file:///f:/csharp/GhostEngine/src/Runtime/Ghost.Engine/Assets/EngineResources/Shaders/MeshPipeline/MeshletCullGraph.ggraph#L196-L235), `HierarchyTraverseNode` walks down the DAG until it hits a leaf group:
+### 5.2 Step 2: GPU Hierarchy Traversal & Bitmask Deduplicated Requests
+In [`MeshletCullGraph.ggraph`](file:///f:/csharp/GhostEngine/src/Runtime/Ghost.Engine/Assets/EngineResources/Shaders/MeshPipeline/MeshletCullGraph.ggraph#L196-L245), `HierarchyTraverseNode` walks down the DAG until it hits a leaf group:
 1. It checks if the leaf group's own page is resident in `pageTableBuffer`.
-2. If the page is **non-resident**, it emits an asynchronous streaming request to `props.streamingRequestsUav` via atomic increment and returns immediately.
-3. If the page is **resident**, it forwards the record to `MeshletCullNode`.
+2. **Bitmask Deduplication:** If 100 instances of the same rock or tree move into view simultaneously, thousands of threads would detect missing pages in the same frame. Instead of flooding `streamingRequestsUav` with duplicate page IDs and overflowing the request budget, the GPU tests an 8 KB bitmask buffer (`RequestBitfield`):
+   ```hlsl
+   uint wordIndex = globalPageID / 32u;
+   uint bitMask = 1u << (globalPageID % 32u);
+   uint prevMask;
+   bitmaskBuf.InterlockedOr(wordIndex * 4u, bitMask, prevMask);
+   if ((prevMask & bitMask) == 0u) // Only the FIRST thread to set this bit emits the request
+   {
+       reqBuf.InterlockedAdd(0u, 1u, reqSlot);
+       if (reqSlot < props.maxStreamingRequests)
+       {
+           reqBuf.Store((1u + reqSlot) * 4u, globalPageID);
+       }
+   }
+   ```
+3. If the page is **resident**, it forwards the record to `MeshletCullNode` with `childGlobalPageID` and `childPageCount`.
 
-```hlsl
-// Leaf node: evaluate residency and emit group
-MeshletGroup group = LoadMeshletGroup((uint)node.groupIndex, mesh);
-
-bool isResident = true;
-if (IS_VALID_BUFFER(g_FrameData.pageTableBuffer))
-{
-    ByteAddressBuffer pageTable = GET_BUFFER(g_FrameData.pageTableBuffer);
-    uint globalPageID = mesh.globalPageTableOffset + group.pageIndex;
-    uint physicalSlot = pageTable.Load(globalPageID * 4u);
-    if (physicalSlot == 0xFFFFFFFFu)
-    {
-        isResident = false;
-        if (IS_VALID_BUFFER(props.streamingRequestsUav))
-        {
-            RWByteAddressBuffer reqBuf = GET_BUFFER(props.streamingRequestsUav);
-            uint reqSlot;
-            reqBuf.InterlockedAdd(0u, 1u, reqSlot);
-            if (reqSlot < props.maxStreamingRequests)
-            {
-                reqBuf.Store((1u + reqSlot) * 4u, globalPageID);
-            }
-        }
-    }
-}
-
-if (!isResident)
-{
-    return; // Page is still streaming from disk; streaming request queued
-}
-```
-
-### 5.3 Step 3: Refinement Gating in `MeshletCullNode`
-In [`MeshletCullNode`](file:///f:/csharp/GhostEngine/src/Runtime/Ghost.Engine/Assets/EngineResources/Shaders/MeshPipeline/MeshletCullGraph.ggraph#L317-L343), the shader checks whether refinement is physically possible before discarding a coarse meshlet:
+### 5.3 Step 3: Multi-Page Refinement Gating in `MeshletCullNode`
+In [`MeshletCullNode`](file:///f:/csharp/GhostEngine/src/Runtime/Ghost.Engine/Assets/EngineResources/Shaders/MeshPipeline/MeshletCullGraph.ggraph#L317-L343), the shader verifies that **all** child pages spanning the refined cluster are resident before allowing refinement:
 
 ```hlsl
 // Dual-Error Cut Condition 1: Parent Error check (Lower bound)
-// If parent (coarser LOD) is already accurate enough, this fine meshlet must NOT render!
 bool isParentDetailSufficient = (meshlet.parentError < 3.4e38f) && EvaluateLODDetailSufficient(...);
 
 // Dual-Error Cut Condition 2: Cluster Error test (Upper bound)
-// Refinement gate: can only refine if:
-// 1) A finer child page exists (childGlobalPageID != 0xFFFFFFFF), AND
-// 2) That child page is ACTUALLY RESIDENT in the GPU Page Table!
+// Multi-page refinement gate: ALL child pages in the span must be resident!
 bool canRefine = false;
 if (groupRec.childGlobalPageID != 0xFFFFFFFFu && IS_VALID_BUFFER(g_FrameData.pageTableBuffer))
 {
     ByteAddressBuffer pageTable = GET_BUFFER(g_FrameData.pageTableBuffer);
-    canRefine = (pageTable.Load(groupRec.childGlobalPageID * 4u) != 0xFFFFFFFFu);
+    canRefine = true;
+    for (uint cp = 0; cp < groupRec.childPageCount; ++cp)
+    {
+        if (pageTable.Load((groupRec.childGlobalPageID + cp) * 4u) == 0xFFFFFFFFu)
+        {
+            canRefine = false;
+            break;
+        }
+    }
 }
 
-// IF refinement is impossible (finer page is still streaming from disk):
+// IF refinement is impossible (any child page is still streaming from disk):
 // The cluster CANNOT be discarded for being too coarse!
 // It remains visible, seamlessly preventing holes and low-LOD pop-in.
 bool isClusterDetailSufficient = !canRefine || (meshlet.clusterError <= 0.0f) || EvaluateLODDetailSufficient(...);
@@ -315,6 +305,17 @@ canRefine = WaveReadLaneFirst(canRefine);
 - On modern NVIDIA architectures (Turing/Ampere/Ada), values broadcasted via `WaveReadLaneFirst` are placed in **Uniform Registers (URs)** instead of consuming Vector Registers (VGPRs).
 - This cut memory requests to `sceneBuffer` and `pageTableBuffer` by **32x**, freeing up 30+ VGPRs per thread and directly eliminating `CS Warp Launch Stalled Register Allocation`.
 
+### 6.3 GPU Memory Hazard Protection & Page Pool Fencing
+In [`MeshletStreamingManager.cs`](file:///f:/csharp/GhostEngine/src/Runtime/Ghost.Engine/Streaming/MeshletStreamingManager.cs#L255-L345):
+- Streaming page uploads and initial root page uploads write directly to `_pagePool.Buffer` via DMA copy engines (`UploadBufferRange`).
+- If vertex/meshlet data is copied without state transitions or pipeline barriers, subsequent mesh shader invocations in the visibility buffer pass could read uncommitted PCIe memory or stale L2 cache lines.
+- The manager maintains state tracking `_pagePoolInShaderResource`:
+  1. Before any uploads occur in the frame, if the buffer was in `ShaderResource`, it is transitioned:
+     `ShaderResource -> CopyDest` with `BarrierSync.AllShading -> BarrierSync.Copy`.
+  2. After root and streaming page copies complete, an execution barrier transitions it:
+     `CopyDest -> ShaderResource` with `BarrierSync.Copy -> BarrierSync.AllShading`.
+  3. This completely eliminates data races between DMA transfer engines and GPU mesh/compute shaders.
+
 ---
 
 ## 7. Summary
@@ -322,7 +323,9 @@ canRefine = WaveReadLaneFirst(canRefine);
 By combining:
 1. **128 KB Grouped Meshlet Pages** (for saturating disk transfer rates),
 2. **GPU Page Table Indirection** (for dynamic physical slot allocation and LRU eviction),
-3. **Refinement-Gated Continuous LOD** (preventing coarse clusters from refining until children are resident), and
-4. **Group-Shared / Wave-Uniform Page Translation** (eliminating redundant address translation in shaders),
+3. **Refinement-Gated Continuous LOD with Multi-Page DAG Boundary Fencing** (preventing coarse clusters from refining until all child pages in the DAG span are resident),
+4. **GPU Bitmask Request Deduplication** (preventing duplicate streaming storms across thousands of visible instances),
+5. **Group-Shared & Wave-Uniform Page Translation** (eliminating redundant address translation in shaders), and
+6. **Explicit DMA Pipeline Barriers** (preventing read-before-write PCIe copy hazards),
 
 GhostEngine achieves a completely robust, pop-free virtual geometry pipeline capable of navigating tens of billions of triangles within a fixed, deterministic GPU memory footprint.

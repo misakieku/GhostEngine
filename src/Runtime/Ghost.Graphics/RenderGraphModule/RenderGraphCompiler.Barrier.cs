@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Ghost.Core;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
@@ -61,6 +62,38 @@ internal struct CompiledBarrier
 // TODO: Split barrier.
 internal unsafe partial class RenderGraphCompiler
 {
+    private const BarrierSync ALL_SHADING_STAGES = BarrierSync.AllShading
+        | BarrierSync.VertexShading
+        | BarrierSync.PixelShading
+        | BarrierSync.ComputeShading
+        | BarrierSync.Raytracing
+        | BarrierSync.NonPixelShading;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsSyncSatisfied(BarrierSync currentSync, BarrierSync requiredSync)
+    {
+        if (currentSync == requiredSync)
+        {
+            return true;
+        }
+
+        if ((currentSync & BarrierSync.All) != 0)
+        {
+            return true;
+        }
+
+        if ((currentSync & BarrierSync.AllShading) != 0 && (requiredSync & ~ALL_SHADING_STAGES) == 0)
+        {
+            return true;
+        }
+
+        if ((currentSync & BarrierSync.NonPixelShading) != 0 && (requiredSync & ~BarrierSync.VertexShading) == 0)
+        {
+            return true;
+        }
+
+        return (currentSync & requiredSync) == requiredSync;
+    }
     private int EmitPassPrologueBarriers(
         ReadOnlySpan<ResolvedPassResourceUsage> usages,
         int scheduleIndex,
@@ -437,7 +470,7 @@ internal unsafe partial class RenderGraphCompiler
             var hasSameState = resourceState.isValid
                 && resourceState.state.layout == usage.targetState.layout
                 && resourceState.state.access == usage.targetState.access
-                && resourceState.state.sync == usage.targetState.sync;
+                && IsSyncSatisfied(resourceState.state.sync, usage.targetState.sync);
             var forceUavOrdering = hasSameState
                 && usage.targetState.access == BarrierAccess.UnorderedAccess
                 && (resourceState.writes || usage.writes);
@@ -532,7 +565,7 @@ internal unsafe partial class RenderGraphCompiler
                     if (resource.hasInitialBarrierState
                         && (resource.initialBarrierState.layout != finalState.layout
                             || resource.initialBarrierState.access != finalState.access
-                            || resource.initialBarrierState.sync != finalState.sync))
+                            || !IsSyncSatisfied(resource.initialBarrierState.sync, finalState.sync)))
                     {
                         count += AddTransition(
                             new Identifier<RGResource>(i),
@@ -549,7 +582,7 @@ internal unsafe partial class RenderGraphCompiler
 
                 if (currentState.state.layout != finalState.layout
                     || currentState.state.access != finalState.access
-                    || currentState.state.sync != finalState.sync)
+                    || !IsSyncSatisfied(currentState.state.sync, finalState.sync))
                 {
                     count += AddTransition(
                         new Identifier<RGResource>(i),
@@ -572,7 +605,7 @@ internal unsafe partial class RenderGraphCompiler
                         ref var bState = ref resourceStates[i];
                         if (bState.isValid && (bState.state.layout != targetRes.finalBarrierState.layout
                             || bState.state.access != targetRes.finalBarrierState.access
-                            || bState.state.sync != targetRes.finalBarrierState.sync))
+                            || !IsSyncSatisfied(bState.state.sync, targetRes.finalBarrierState.sync)))
                         {
                             count += AddTransition(
                                 new Identifier<RGResource>(i),
