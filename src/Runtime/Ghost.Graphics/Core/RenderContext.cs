@@ -9,6 +9,11 @@ namespace Ghost.Graphics.Core;
 
 public readonly struct ResourceContext
 {
+    public int FrameBufferCount
+    {
+        get; init;
+    }
+
     public ResourceManager ResourceManager
     {
         get; init;
@@ -75,22 +80,28 @@ public sealed unsafe class RenderContext
         get;
     }
 
-    public ResourceContext ResourceContext => new ResourceContext
+    public ResourceContext ResourceContext
     {
-        ResourceManager = ResourceManager,
-        ResourceAllocator = ResourceAllocator,
-        ResourceDatabase = ResourceDatabase,
-        PipelineLibrary = PipelineLibrary,
-        ShaderLibrary = ShaderLibrary,
-    };
+        get;
+    }
 
-    internal RenderContext(ResourceManager resourceManager, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, ShaderLibrary shaderLibrary)
+    internal RenderContext(ResourceManager resourceManager, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, ShaderLibrary shaderLibrary, int frameBufferCount)
     {
         ResourceManager = resourceManager;
         ResourceAllocator = resourceAllocator;
         ResourceDatabase = resourceDatabase;
         PipelineLibrary = pipelineLibrary;
         ShaderLibrary = shaderLibrary;
+
+        ResourceContext = new ResourceContext
+        {
+            FrameBufferCount = frameBufferCount,
+            ResourceManager = resourceManager,
+            ResourceAllocator = resourceAllocator,
+            ResourceDatabase = resourceDatabase,
+            PipelineLibrary = pipelineLibrary,
+            ShaderLibrary = shaderLibrary,
+        };
     }
 
     internal void BeginFrame(ICommandBuffer commandBuffer)

@@ -723,8 +723,8 @@ public partial class RenderGraphTest
 
         var exec = CompileAndExecute(new ViewportState
         {
-            Size = new float2(1920, 1080),
-            ActualSize = new float2(1920, 1080),
+            Size = new uint2(1920, 1080),
+            ActualSize = new uint2(1920, 1080),
         }).GetValueOrThrow();
 
         Assert.IsNotEmpty(GetRecordedBarriers(), "Barriers should be issued during graph execution.");

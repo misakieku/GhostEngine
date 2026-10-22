@@ -201,7 +201,7 @@ internal class MockingCommandBuffer : ICommandBuffer
         _state.CommandCount++;
     }
 
-    public void SetScissorRect(ScissorRectDesc rect)
+    public void SetScissorRect(RectDesc rect)
     {
         _state.CommandCount++;
     }
@@ -220,5 +220,10 @@ internal class MockingCommandBuffer : ICommandBuffer
     {
         _state.CommandCount++;
         UpdateSubResourcesCount++;
+    }
+
+    public void DiscardResource(Handle<GPUResource> resource, DiscardDesc? desc)
+    {
+        _state.CommandCount++;
     }
 }

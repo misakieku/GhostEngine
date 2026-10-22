@@ -63,6 +63,7 @@ public sealed class ShaderVariantRenderingTest
         public Handle<GPUResource> GetActualResource(Identifier<RGResource> resource) => Handle<GPUResource>.Invalid;
         public Handle<GPUTexture> GetActualTexture(Identifier<RGTexture> texture) => Handle<GPUTexture>.Invalid;
         public Handle<GPUBuffer> GetActualBuffer(Identifier<RGBuffer> buffer) => Handle<GPUBuffer>.Invalid;
+        public void DiscardResource(Identifier<RGResource> resource, DiscardDesc? desc) { }
 
         public uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.ALL_SUBRESOURCES) => uint.MaxValue;
         public void GetActualBindlessIndices(Identifier<RGTexture> texture, ReadOnlySpan<uint> subResources, Span<uint> outIndices, BindlessAccess access = BindlessAccess.ShaderResource) => outIndices.Fill(uint.MaxValue);
@@ -116,6 +117,44 @@ public sealed class ShaderVariantRenderingTest
         }
     }
 
+    public static int ExecuteIndirectCompute(
+        IShaderVariantSource variantSource,
+        IComputeRenderContext context,
+        PassSemantic semantic,
+        ICommandSignature commandSignature,
+        uint maxCommandCount,
+        Handle<GPUBuffer> argumentBuffer,
+        ulong argumentBaseOffset,
+        ulong argumentRangeStride,
+        Handle<GPUBuffer> countBuffer,
+        ulong countBaseOffset,
+        ulong countStride)
+    {
+        var variants = variantSource.GetDispatchVariants(semantic);
+        var executeCount = 0;
+        for (var i = 0; i < variants.Length; i++)
+        {
+            ref readonly var variant = ref variants[i];
+            if (!variantSource.IsBytecodeReady(variant.DenseIndex) ||
+                !context.TrySetActiveShaderPass(variant.Shader, semantic))
+            {
+                continue;
+            }
+
+            var variantIndex = (ulong)variant.DenseIndex;
+            context.ExecuteIndirect(
+                commandSignature,
+                maxCommandCount,
+                argumentBuffer,
+                argumentBaseOffset + (variantIndex * argumentRangeStride),
+                countBuffer,
+                countBaseOffset + (variantIndex * countStride));
+            executeCount++;
+        }
+
+        return executeCount;
+    }
+
     [TestMethod]
     public void ExecuteIndirectComputeSkipsUnavailableVariantsAndUsesDenseSlots()
     {
@@ -133,7 +172,7 @@ public sealed class ShaderVariantRenderingTest
         var context = new ComputeContext(rejectedShader);
         using var commandSignature = new CommandSignature();
 
-        var executeCount = ShaderVariantRendering.ExecuteIndirectCompute(
+        var executeCount = ExecuteIndirectCompute(
             source,
             context,
             PassSemantic.DeferredTexturing,

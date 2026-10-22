@@ -157,7 +157,7 @@ internal unsafe class DXGISwapChain : ISwapChain
                 rtvCount = 1,
             };
 
-            var handle = _resourceDatabase.ImportExternalResource(pBackBuffer, view, D3D12Utility.GetResourceDesc(pBackBuffer, view));
+            var handle = _resourceDatabase.ImportExternalResource(pBackBuffer, view, D3D12Utility.GetResourceDesc(pBackBuffer, view), $"SwapChain_BackBuffer_{i}");
             _backBuffers[i] = handle.AsTexture();
         }
     }

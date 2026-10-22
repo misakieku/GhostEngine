@@ -49,10 +49,16 @@ internal struct ResourceStreamingContext
     {
         get; init;
     }
+
+    public int FrameIndex
+    {
+        get; init;
+    }
 }
 
 internal interface IResourceStreamingProcessor
 {
     void ProcessPendingShaderCommits(in ResourceStreamingContext context);
     void ProcessPendingUploads(in ResourceStreamingContext context);
+    void ProcessPostRender(in ResourceStreamingContext context);
 }

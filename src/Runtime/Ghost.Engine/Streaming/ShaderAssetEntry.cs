@@ -32,8 +32,8 @@ internal unsafe class ShaderAssetEntry : AssetEntry, ILoadableAssetEntry, IShade
         }
     }
 
-    public ShaderAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies)
-        : base(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies)
+    public ShaderAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies, string assetName)
+        : base(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName)
     {
         if (!manager.ShaderVariants.TryGetShaderHandle(assetId, out _actualHandle))
         {

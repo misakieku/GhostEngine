@@ -39,8 +39,8 @@ struct FrameData
     uint directionalLightCount;                       // number of directional lights
     int primaryDirectionalLightIndex;                 // index of primary shadow-casting directional light (-1 if none)
     uint pad0;
-    uint pad1;
-    uint pad2;
+    BYTE_ADDRESS_BUFFER pagePoolBuffer;               // global 128KB Page Pool buffer
+    BYTE_ADDRESS_BUFFER pageTableBuffer;              // global Page Table buffer (pageID -> physicalSlot)
 };
 
 struct ViewData

@@ -38,16 +38,12 @@ InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pixelCoord, floa
 
     ByteAddressBuffer rawBuffer = GET_BUFFER(meshData.rawBuffer);
 
-    uint packedIndices = rawBuffer.Load(meshData.meshletTrianglesBufferOffset + (meshlet.triangleOffset + primitiveID) * 4u);
+    uint packedIndices = LoadMeshletTriangle(meshData, meshlet, primitiveID);
     uint3 localIndices = uint3(packedIndices & 0xFFu, (packedIndices >> 8u) & 0xFFu, (packedIndices >> 16u) & 0xFFu);
 
-    uint v0Idx = rawBuffer.Load(meshData.meshletVerticesBufferOffset + (meshlet.vertexOffset + localIndices.x) * 4u);
-    uint v1Idx = rawBuffer.Load(meshData.meshletVerticesBufferOffset + (meshlet.vertexOffset + localIndices.y) * 4u);
-    uint v2Idx = rawBuffer.Load(meshData.meshletVerticesBufferOffset + (meshlet.vertexOffset + localIndices.z) * 4u);
-
-    Vertex v0 = rawBuffer.Load<Vertex>(meshData.vertexBufferOffset + v0Idx * sizeof(Vertex));
-    Vertex v1 = rawBuffer.Load<Vertex>(meshData.vertexBufferOffset + v1Idx * sizeof(Vertex));
-    Vertex v2 = rawBuffer.Load<Vertex>(meshData.vertexBufferOffset + v2Idx * sizeof(Vertex));
+    PackedVertex v0 = LoadMeshletPackedVertex(localIndices.x, meshData, meshlet);
+    PackedVertex v1 = LoadMeshletPackedVertex(localIndices.y, meshData, meshlet);
+    PackedVertex v2 = LoadMeshletPackedVertex(localIndices.z, meshData, meshlet);
 
     InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, instanceIndex);
     float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
@@ -107,10 +103,7 @@ InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pixelCoord, floa
     float3 n2 = mul((float3x3)instanceData.localToWorld, v2.normal);
     float3 normalWS = normalize(bary.x * n0 + bary.y * n1 + bary.z * n2);
 
-    float3 t0 = mul((float3x3)instanceData.localToWorld, v0.tangent.xyz);
-    float3 t1 = mul((float3x3)instanceData.localToWorld, v1.tangent.xyz);
-    float3 t2 = mul((float3x3)instanceData.localToWorld, v2.tangent.xyz);
-    float3 tangentWS = normalize(bary.x * t0 + bary.y * t1 + bary.z * t2);
+    float4 tangentWS = DeriveImplicitTangent(pw0, pw1, pw2, v0.uv, v1.uv, v2.uv, normalWS);
 
     float4 color = bary.x * v0.color + bary.y * v1.color + bary.z * v2.color;
 
@@ -132,7 +125,7 @@ InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pixelCoord, floa
     InterpolatedAttributes attrs;
     attrs.positionRWS = positionRWS;
     attrs.normalWS = normalWS;
-    attrs.tangentWS = float4(tangentWS, v0.tangent.w);
+    attrs.tangentWS = tangentWS;
     attrs.color = color;
     attrs.uv = uv;
     attrs.ddx_uv = ddx_uv;

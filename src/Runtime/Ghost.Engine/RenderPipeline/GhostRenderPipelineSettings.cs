@@ -381,6 +381,43 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     /// </summary>
     public uint ShadowAtlasResolution { get; set; } = 4096;
 
+    /// <summary>
+    /// Size of the GPU Page Pool in Megabytes. Default is 0 (auto-calculate based on MaxVisibleMeshletsOnScreen).
+    /// </summary>
+    public uint MeshletStreamingPoolSizeMB { get; set; } = 0;
+
+    /// <summary>
+    /// Maximum number of page streaming requests emitted by the GPU per frame. Default is 16,384.
+    /// </summary>
+    public uint MaxStreamingRequestsPerFrame { get; set; } = 16_384;
+
+    /// <summary>
+    /// Calculates the GPU Page Pool size in Megabytes based on MaxVisibleMeshletsOnScreen.
+    /// </summary>
+    public uint GetCalculatedPagePoolSizeMB()
+    {
+        if (MeshletStreamingPoolSizeMB > 0)
+        {
+            return MeshletStreamingPoolSizeMB;
+        }
+
+        // Formula: clamp(MaxVisibleMeshletsOnScreen / 36 * 128KB * 1.75, 256MB, 2048MB)
+        // Average meshlets per 128KB page is ~36. Sized with 1.75x working headroom.
+        var estimatedPages = (double)MaxVisibleMeshletsOnScreen / 36.0;
+        var bytes = estimatedPages * 131072.0 * 1.75;
+        var mb = (uint)Math.Clamp(Math.Ceiling(bytes / (1024.0 * 1024.0)), 256.0, 2048.0);
+        return mb;
+    }
+
+    /// <summary>
+    /// Total number of 128KB physical page slots available in the GPU Page Pool.
+    /// </summary>
+    public uint GetPagePoolSlotCount()
+    {
+        var mb = GetCalculatedPagePoolSizeMB();
+        return (mb * 1024u * 1024u) / 131072u;
+    }
+
     public IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager, JobScheduler jobScheduler)
     {
         return new GhostRenderPipeline(renderEngine, assetManager, jobScheduler, this);

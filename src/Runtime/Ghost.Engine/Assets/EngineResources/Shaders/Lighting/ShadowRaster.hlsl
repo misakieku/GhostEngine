@@ -24,6 +24,21 @@ struct ShadowPrimitiveOutput
 
 #define SHADOW_MS_THREADS 64
 
+struct SharedShadowMeshletState
+{
+    float4x4 worldViewProj;
+    float4 tileOffsetScale;
+    uint pageBufferIndex;
+    uint pageBase;
+    uint vertexOffset;
+    uint triangleOffset;
+    uint vertexCount;
+    uint triangleCount;
+    uint materialBufferIndex;
+    float doubleSided;
+};
+
+groupshared SharedShadowMeshletState s_ShadowMeshlet;
 groupshared float4 g_VertexPositions[MAX_VERTICES_PER_MESHLET];
 
 [numthreads(SHADOW_MS_THREADS, 1, 1)]
@@ -35,55 +50,75 @@ void MSMain(
     out indices uint3 outTris[MAX_TRIANGLES_PER_MESHLET],
     out primitives ShadowPrimitiveOutput outPrims[MAX_TRIANGLES_PER_MESHLET])
 {
-    STRUCT_BUFFER visibleBufferIndex = g_PushConstantData.userData0;
-    uint shadowViewsBufferSrv = g_PushConstantData.userData1;
-    BYTE_ADDRESS_BUFFER binOffsetsIndex = g_PushConstantData.userData2;
-    uint targetVariantIndex = g_PushConstantData.userData3 >> 1u;
-
-    uint binnedSlot = groupID;
-    if (IS_VALID_BUFFER(binOffsetsIndex))
+    if (groupThreadID == 0)
     {
-        ByteAddressBuffer binOffsetsBuffer = GET_BUFFER(binOffsetsIndex);
-        uint binStartOffset = binOffsetsBuffer.Load(targetVariantIndex * 4u);
-        binnedSlot = binStartOffset + groupID;
-    }
+        STRUCT_BUFFER visibleBufferIndex = g_PushConstantData.userData0;
+        uint shadowViewsBufferSrv = g_PushConstantData.userData1;
+        BYTE_ADDRESS_BUFFER binOffsetsIndex = g_PushConstantData.userData2;
+        uint targetVariantIndex = g_PushConstantData.userData3 >> 1u;
 
-    StructuredBuffer<UnbinnedMeshletEntry> visibleMeshlets = GET_BUFFER(visibleBufferIndex);
-    UnbinnedMeshletEntry visible = visibleMeshlets[binnedSlot];
+        uint binnedSlot = groupID;
+        if (IS_VALID_BUFFER(binOffsetsIndex))
+        {
+            ByteAddressBuffer binOffsetsBuffer = GET_BUFFER(binOffsetsIndex);
+            uint binStartOffset = binOffsetsBuffer.Load(targetVariantIndex * 4u);
+            binnedSlot = binStartOffset + groupID;
+        }
 
-    uint shadowViewIndex = visible.variantIndex & 0xFFFFu;
-    GPUShadowSamplingData shadowCull = LoadDataAtOffset<GPUShadowSamplingData>(shadowViewsBufferSrv, sizeof(GPUShadowViewData) * shadowViewIndex + sizeof(GPUShadowCullingData));
+        StructuredBuffer<UnbinnedMeshletEntry> visibleMeshlets = GET_BUFFER(visibleBufferIndex);
+        UnbinnedMeshletEntry visible = visibleMeshlets[binnedSlot];
 
-    InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
-    MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
-    Meshlet meshlet = LoadMeshlet(visible.meshletIndex, meshData);
+        uint shadowViewIndex = visible.variantIndex & 0xFFFFu;
+        GPUShadowSamplingData shadowCull = LoadDataAtOffset<GPUShadowSamplingData>(shadowViewsBufferSrv, sizeof(GPUShadowViewData) * shadowViewIndex + sizeof(GPUShadowCullingData));
 
-    uint vertexCount = meshlet.packedCounts & 0xFFu;
-    uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
+        InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
+        MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
+        Meshlet meshlet = LoadMeshlet(visible.meshletIndex, meshData);
 
-    SetMeshOutputCounts(vertexCount, triangleCount);
+        uint vertexCount = meshlet.packedCounts & 0xFFu;
+        uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
 
 #if SHADOW_PIXEL_STAGE
-    uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
-    uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
-    uint materialBufferIndex = UnpackMaterialByteOffset(packedMaterial);
+        uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
+        uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
+        uint materialBufferIndex = UnpackMaterialByteOffset(packedMaterial);
 #else
-    uint materialBufferIndex = 0u;
+        uint materialBufferIndex = 0u;
 #endif
 
-    ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
-    float doubleSided = asfloat(matBuf.Load(materialBufferIndex + 12u));
+        ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
+        float doubleSided = asfloat(matBuf.Load(materialBufferIndex + 12u));
 
-    float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
-    float4x4 worldViewProj = mul(shadowCull.shadowViewProj, localToRWS);
+        float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
+        float4x4 worldViewProj = mul(shadowCull.shadowViewProj, localToRWS);
 
-    if (groupThreadID < vertexCount)
+        BYTE_ADDRESS_BUFFER pageBufferIndex;
+        uint pageBase;
+        GetMeshletPageBufferAndBase(meshData, meshlet.pageIndex, pageBufferIndex, pageBase);
+
+        s_ShadowMeshlet.worldViewProj = worldViewProj;
+        s_ShadowMeshlet.tileOffsetScale = shadowCull.tileOffsetScale;
+        s_ShadowMeshlet.pageBufferIndex = pageBufferIndex;
+        s_ShadowMeshlet.pageBase = pageBase;
+        s_ShadowMeshlet.vertexOffset = meshlet.vertexOffset;
+        s_ShadowMeshlet.triangleOffset = meshlet.triangleOffset;
+        s_ShadowMeshlet.vertexCount = vertexCount;
+        s_ShadowMeshlet.triangleCount = triangleCount;
+        s_ShadowMeshlet.materialBufferIndex = materialBufferIndex;
+        s_ShadowMeshlet.doubleSided = doubleSided;
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    SetMeshOutputCounts(s_ShadowMeshlet.vertexCount, s_ShadowMeshlet.triangleCount);
+
+    if (groupThreadID < s_ShadowMeshlet.vertexCount)
     {
-        ByteAddressBuffer rawMeshBuffer = GET_BUFFER(meshData.rawBuffer);
-        uint vIndex = LoadMeshletVertexIndex(groupThreadID, meshData, meshlet);
-        float3 pos = LoadVertexPositionOnly(rawMeshBuffer, meshData.vertexBufferOffset, vIndex);
+        ByteAddressBuffer pageBuffer = GET_BUFFER(s_ShadowMeshlet.pageBufferIndex);
+        uint vOffset = s_ShadowMeshlet.pageBase + s_ShadowMeshlet.vertexOffset + groupThreadID * PACKED_VERTEX_STRIDE;
+        float3 pos = asfloat(pageBuffer.Load3(vOffset));
 
-        float4 origClipPos = mul(worldViewProj, float4(pos, 1.0f));
+        float4 origClipPos = mul(s_ShadowMeshlet.worldViewProj, float4(pos, 1.0f));
 
         outVerts[groupThreadID].clipDistances = float4(
             origClipPos.w + origClipPos.x, // Left
@@ -93,24 +128,25 @@ void MSMain(
         );
 
         float4 clipPos = origClipPos;
-        clipPos.x = clipPos.x * shadowCull.tileOffsetScale.z + (2.0f * shadowCull.tileOffsetScale.x + shadowCull.tileOffsetScale.z - 1.0f) * clipPos.w;
-        clipPos.y = clipPos.y * shadowCull.tileOffsetScale.w + (1.0f - (2.0f * shadowCull.tileOffsetScale.y + shadowCull.tileOffsetScale.w)) * clipPos.w;
+        clipPos.x = clipPos.x * s_ShadowMeshlet.tileOffsetScale.z + (2.0f * s_ShadowMeshlet.tileOffsetScale.x + s_ShadowMeshlet.tileOffsetScale.z - 1.0f) * clipPos.w;
+        clipPos.y = clipPos.y * s_ShadowMeshlet.tileOffsetScale.w + (1.0f - (2.0f * s_ShadowMeshlet.tileOffsetScale.y + s_ShadowMeshlet.tileOffsetScale.w)) * clipPos.w;
 
         g_VertexPositions[groupThreadID] = clipPos;
         outVerts[groupThreadID].position = clipPos;
 
 #if SHADOW_PIXEL_STAGE
-        outVerts[groupThreadID].uv = LoadVertexUVOnly(rawMeshBuffer, meshData.vertexBufferOffset, vIndex);
-        outVerts[groupThreadID].materialBufferIndex = materialBufferIndex;
+        outVerts[groupThreadID].uv = UnpackHalf2(pageBuffer.Load(vOffset + 16u));
+        outVerts[groupThreadID].materialBufferIndex = s_ShadowMeshlet.materialBufferIndex;
 #endif
     }
 
     GroupMemoryBarrierWithGroupSync();
 
     [unroll(2)]
-    for (uint primId = groupThreadID; primId < triangleCount; primId += SHADOW_MS_THREADS)
+    for (uint primId = groupThreadID; primId < s_ShadowMeshlet.triangleCount; primId += SHADOW_MS_THREADS)
     {
-        uint packedIndices = LoadPackedIndices(primId, meshData, meshlet);
+        ByteAddressBuffer pageBuffer = GET_BUFFER(s_ShadowMeshlet.pageBufferIndex);
+        uint packedIndices = pageBuffer.Load(s_ShadowMeshlet.pageBase + s_ShadowMeshlet.triangleOffset + primId * PACKED_TRIANGLE_STRIDE);
         uint3 indices = uint3(packedIndices & 0xFF, (packedIndices >> 8) & 0xFF, (packedIndices >> 16) & 0xFF);
 
         float4 v0 = g_VertexPositions[indices.x];
@@ -120,7 +156,7 @@ void MSMain(
         outTris[primId] = indices;
 
         bool isCulled = false;
-        if (doubleSided == 0.0f)
+        if (s_ShadowMeshlet.doubleSided == 0.0f)
         {
             isCulled = !IsTriangleFrontFacing(v0, v1, v2);
             if (!isCulled)

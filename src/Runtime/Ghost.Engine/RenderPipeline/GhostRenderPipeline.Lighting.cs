@@ -479,9 +479,10 @@ internal unsafe partial class GhostRenderPipeline
             TextureFormat.R16G16B16A16_Float,
             usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource | TextureUsage.RenderTarget);
 
-        using var builder = rg.AddComputeRenderPass<DeferredLightingPassData>("DeferredLighting");
+        var litColorTarget = rg.CreateTexture(in litColorDesc, "HDRColorBuffer");
+        rg.AddDiscardRenderTargetPass(litColorTarget, "ClearHDRColorBuffer");
 
-        var litColorTarget = builder.CreateTexture(in litColorDesc, "HDRColorBuffer");
+        using var builder = rg.AddComputeRenderPass<DeferredLightingPassData>("DeferredLighting");
 
         builder.UseTexture(gbuffer.GBuffer0, AccessFlags.Read);
         builder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
@@ -543,21 +544,11 @@ internal unsafe partial class GhostRenderPipeline
             var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
             var tileLightListSrv = computeCtx.GetActualBindlessIndex(passData.tileLightList, BindlessAccess.ShaderResource);
             var litColorUav = computeCtx.GetActualBindlessIndex(passData.litColorTarget, BindlessAccess.UnorderedAccess);
-            var shadowAtlasSrv = passData.shadowAtlas.IsValid
-                ? computeCtx.GetActualBindlessIndex(passData.shadowAtlas, BindlessAccess.ShaderResource)
-                : uint.MaxValue;
-            var tileShadingModelMaskSrv = passData.tileShadingModelMaskBuffer.IsValid
-                ? computeCtx.GetActualBindlessIndex(passData.tileShadingModelMaskBuffer, BindlessAccess.ShaderResource)
-                : 0u;
-            var skyboxSrv = passData.skyContext.skyboxTexture.IsValid
-                ? computeCtx.GetActualBindlessIndex(passData.skyContext.skyboxTexture, BindlessAccess.ShaderResource)
-                : uint.MaxValue;
-            var iblLutSrv = passData.skyContext.iblLutTexture.IsValid
-                ? computeCtx.GetActualBindlessIndex(passData.skyContext.iblLutTexture, BindlessAccess.ShaderResource)
-                : uint.MaxValue;
-            var persistentViewStateSrv = passData.skyContext.persistentViewStateBuffer.IsValid
-                ? computeCtx.GetActualBindlessIndex(passData.skyContext.persistentViewStateBuffer, BindlessAccess.ShaderResource)
-                : uint.MaxValue;
+            var shadowAtlasSrv = computeCtx.GetActualBindlessIndex(passData.shadowAtlas, BindlessAccess.ShaderResource);
+            var tileShadingModelMaskSrv = computeCtx.GetActualBindlessIndex(passData.tileShadingModelMaskBuffer, BindlessAccess.ShaderResource);
+            var skyboxSrv = computeCtx.GetActualBindlessIndex(passData.skyContext.skyboxTexture, BindlessAccess.ShaderResource);
+            var iblLutSrv = computeCtx.GetActualBindlessIndex(passData.skyContext.iblLutTexture, BindlessAccess.ShaderResource);
+            var persistentViewStateSrv = computeCtx.GetActualBindlessIndex(passData.skyContext.persistentViewStateBuffer, BindlessAccess.ShaderResource);
 
             var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.DeferredLighting);
 

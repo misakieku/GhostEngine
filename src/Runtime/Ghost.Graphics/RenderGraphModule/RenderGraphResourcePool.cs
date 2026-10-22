@@ -7,6 +7,7 @@ using Misaki.HighPerformance.Buffer;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
+using System.Xml.Linq;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -476,6 +477,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
                 continue;
             }
 
+            var name = GetResourceName(i);
             if (res.isExtracted)
             {
                 if (TryReuseImportedResourceInPlace(i, ordering))
@@ -487,16 +489,15 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
                 if (res.type == RGResourceType.Texture)
                 {
                     var textureDesc = res.rgTextureDesc.ToTextureDesc(res.resolvedWidth, res.resolvedHeight);
-                    res.backingResource = _resourceManager.CreatePooledTexture(in textureDesc).AsResource();
+                    res.backingResource = _resourceManager.CreatePooledTexture(in textureDesc, name).AsResource();
                 }
                 else if (res.type == RGResourceType.Buffer)
                 {
-                    res.backingResource = _resourceManager.CreatePooledBuffer(in res.bufferDesc).AsResource();
+                    res.backingResource = _resourceManager.CreatePooledBuffer(in res.bufferDesc, name).AsResource();
                 }
             }
             else if (res.type == RGResourceType.Buffer && res.bufferDesc.HeapType == HeapType.Upload)
             {
-                var name = GetResourceName(i);
                 res.backingResource = _allocator.CreateBuffer(in res.bufferDesc, name).AsResource();
                 if (res.backingResource.IsInvalid)
                 {
@@ -521,8 +522,6 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
                     Heap = _resourceHeap,
                     Offset = placedResult.Value.heapOffset,
                 };
-
-                var name = GetResourceName(i);
 
                 if (res.type == RGResourceType.Texture)
                 {
@@ -570,15 +569,17 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
                     continue;
                 }
 
+                var name = GetResourceName(i);
+
                 // Extracted resources need a fresh/pooled handle every frame
                 if (res.type == RGResourceType.Texture)
                 {
                     var textureDesc = res.rgTextureDesc.ToTextureDesc(res.resolvedWidth, res.resolvedHeight);
-                    res.backingResource = _resourceManager.CreatePooledTexture(textureDesc).AsResource();
+                    res.backingResource = _resourceManager.CreatePooledTexture(textureDesc, name).AsResource();
                 }
                 else if (res.type == RGResourceType.Buffer)
                 {
-                    res.backingResource = _resourceManager.CreatePooledBuffer(res.bufferDesc).AsResource();
+                    res.backingResource = _resourceManager.CreatePooledBuffer(res.bufferDesc, name).AsResource();
                 }
             }
             else

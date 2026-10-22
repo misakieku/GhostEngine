@@ -17,6 +17,8 @@ compute "Internal/MeshletCullGraph"
         uint hzbBaseWidth;
         uint hzbBaseHeight;
         uint cullPassSemantic;
+        uint streamingRequestsUav;
+        uint maxStreamingRequests;
         uint _padding;
         uint4 supportedVariantMask0;
         uint4 supportedVariantMask1;
@@ -45,6 +47,7 @@ compute "Internal/MeshletCullGraph"
             uint meshletCount;
             uint rawBuffer;
             uint meshletBufferOffset;
+            uint childGlobalPageID;
         };
 
         struct WorkGraphDispatchGridRecord
@@ -134,6 +137,11 @@ compute "Internal/MeshletCullGraph"
             HierarchyNodeRecord rec = inputRecord.Get();
 
             InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
+            if (!IS_VALID_BUFFER(instance.meshBuffer))
+            {
+                return;
+            }
+
             MeshData mesh = LoadData<MeshData>(instance.meshBuffer, 0);
             MeshletHierarchyNode node = LoadMeshletHierarchyNode(rec.nodeIndex, mesh);
 
@@ -153,20 +161,24 @@ compute "Internal/MeshletCullGraph"
             }
 
             // 2. Dual-Error Parent Error Pruning:
-            // If the parent (coarser LOD) error already satisfies the screen-space threshold,
-            // the coarser representation is sufficient and this subtree can be pruned.
-            bool isParentDetailSufficient = (node.error < 3.4e38f) && EvaluateLODDetailSufficient(
-                node.error * maxScale,
-                worldCenter,
-                worldRadius,
-                GetCameraPositionWS(),
-                g_ViewData.projectionMatrix[1][1],
-                g_ViewData.screenSize.y,
-                props.lodErrorThreshold);
-
-            if (isParentDetailSufficient)
+            // Only prune internal nodes whose parent error is already sufficient for all children;
+            // never prune leaf groups (node.groupIndex >= 0) or the root node (rec.nodeIndex == 0)
+            // which contains coarsest LOD representations!
+            if (node.groupIndex < 0 && rec.nodeIndex != 0)
             {
-                return; // Prune branch: coarser LOD is sufficient
+                bool isParentDetailSufficient = (node.error < 3.4e38f) && EvaluateLODDetailSufficient(
+                    node.error * maxScale,
+                    worldCenter,
+                    worldRadius,
+                    GetCameraPositionWS(),
+                    g_ViewData.projectionMatrix[1][1],
+                    g_ViewData.screenSize.y,
+                    props.lodErrorThreshold);
+
+                if (isParentDetailSufficient)
+                {
+                    return; // Prune branch: coarser LOD is sufficient
+                }
             }
 
             if (node.groupIndex < 0)
@@ -186,23 +198,44 @@ compute "Internal/MeshletCullGraph"
             }
             else
             {
-                if (node.groupIndex >= 0)
-                {
-                    // Emit the group straight to the cull node. One record launches ceil(count / 32)
-                    // thread groups (see the cull node's consumer logic). This replaces the former
-                    // broadcasting "ExpandGroupNode" amplifier, which existed only because a
-                    // thread-launch node cannot emit more than 8 records / 128 bytes, and whose
-                    // group-wide OutputComplete cost one device-scope publish per meshlet group.
-                    MeshletGroup group = LoadMeshletGroup((uint)node.groupIndex, mesh);
+                // Leaf node: evaluate residency and emit group
+                MeshletGroup group = LoadMeshletGroup((uint)node.groupIndex, mesh);
 
-                    ThreadNodeOutputRecords<MeshletGroupRecord> outGroup = groupQueue.GetThreadNodeOutputRecords(1);
-                    outGroup.Get().instanceIndex = rec.instanceIndex;
-                    outGroup.Get().meshletStartIndex = group.meshletStartIndex;
-                    outGroup.Get().meshletCount = group.meshletCount;
-                    outGroup.Get().rawBuffer = mesh.rawBuffer;
-                    outGroup.Get().meshletBufferOffset = mesh.meshletBufferOffset;
-                    outGroup.OutputComplete();
+                bool isResident = true;
+                if (IS_VALID_BUFFER(g_FrameData.pageTableBuffer))
+                {
+                    ByteAddressBuffer pageTable = GET_BUFFER(g_FrameData.pageTableBuffer);
+                    uint globalPageID = mesh.globalPageTableOffset + group.pageIndex;
+                    uint physicalSlot = pageTable.Load(globalPageID * 4u);
+                    if (physicalSlot == 0xFFFFFFFFu)
+                    {
+                        isResident = false;
+                        if (IS_VALID_BUFFER(props.streamingRequestsUav))
+                        {
+                            RWByteAddressBuffer reqBuf = GET_BUFFER(props.streamingRequestsUav);
+                            uint reqSlot;
+                            reqBuf.InterlockedAdd(0u, 1u, reqSlot);
+                            if (reqSlot < props.maxStreamingRequests)
+                            {
+                                reqBuf.Store((1u + reqSlot) * 4u, globalPageID);
+                            }
+                        }
+                    }
                 }
+
+                if (!isResident)
+                {
+                    return; // Page is not resident in GPU memory; streaming request has been queued
+                }
+
+                ThreadNodeOutputRecords<MeshletGroupRecord> outGroup = groupQueue.GetThreadNodeOutputRecords(1);
+                outGroup.Get().instanceIndex = rec.instanceIndex;
+                outGroup.Get().meshletStartIndex = group.meshletStartIndex;
+                outGroup.Get().meshletCount = group.meshletCount;
+                outGroup.Get().rawBuffer = mesh.rawBuffer;
+                outGroup.Get().meshletBufferOffset = mesh.meshletBufferOffset;
+                outGroup.Get().childGlobalPageID = (group.childPageIndex != 0xFFFFFFFFu) ? (mesh.globalPageTableOffset + group.childPageIndex) : 0xFFFFFFFFu;
+                outGroup.OutputComplete();
             }
         }
 
@@ -242,21 +275,47 @@ compute "Internal/MeshletCullGraph"
             // results are discarded by the isValid guards. meshletIndex is always an in-range meshlet
             // index for this mesh, so the redundant load is well defined.
             uint safeMeshletIndex = isValid ? meshletIndex : groupRec.meshletStartIndex;
-
-            InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
-            float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
             Meshlet meshlet = LoadMeshlet(safeMeshletIndex, groupRec.rawBuffer, groupRec.meshletBufferOffset);
 
+            float4 localToRWS_row0 = 0.0f;
+            float4 localToRWS_row1 = 0.0f;
+            float4 localToRWS_row2 = 0.0f;
+            float4 localToRWS_row3 = 0.0f;
             float maxScale = 1.0f;
+            uint materialPaletteIndex = 0;
+            bool canRefine = false;
+
             if (WaveIsFirstLane())
             {
+                InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, groupRec.instanceIndex);
+                float4x4 mat = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
+                localToRWS_row0 = mat[0];
+                localToRWS_row1 = mat[1];
+                localToRWS_row2 = mat[2];
+                localToRWS_row3 = mat[3];
+                materialPaletteIndex = instanceData.materialPaletteIndex;
+
                 float3 scale3 = float3(
-                    length(localToRWS._m00_m10_m20),
-                    length(localToRWS._m01_m11_m21),
-                    length(localToRWS._m02_m12_m22));
+                    length(mat._m00_m10_m20),
+                    length(mat._m01_m11_m21),
+                    length(mat._m02_m12_m22));
                 maxScale = max(scale3.x, max(scale3.y, scale3.z));
+
+                if (groupRec.childGlobalPageID != 0xFFFFFFFFu && IS_VALID_BUFFER(g_FrameData.pageTableBuffer))
+                {
+                    ByteAddressBuffer pageTable = GET_BUFFER(g_FrameData.pageTableBuffer);
+                    canRefine = (pageTable.Load(groupRec.childGlobalPageID * 4u) != 0xFFFFFFFFu);
+                }
             }
+
+            localToRWS_row0 = WaveReadLaneFirst(localToRWS_row0);
+            localToRWS_row1 = WaveReadLaneFirst(localToRWS_row1);
+            localToRWS_row2 = WaveReadLaneFirst(localToRWS_row2);
+            localToRWS_row3 = WaveReadLaneFirst(localToRWS_row3);
+            float4x4 localToRWS = float4x4(localToRWS_row0, localToRWS_row1, localToRWS_row2, localToRWS_row3);
             maxScale = WaveReadLaneFirst(maxScale);
+            materialPaletteIndex = WaveReadLaneFirst(materialPaletteIndex);
+            canRefine = WaveReadLaneFirst(canRefine);
 
             bool isVisible = false;
             uint renderType = 0;
@@ -287,9 +346,13 @@ compute "Internal/MeshletCullGraph"
                     props.lodErrorThreshold);
 
                 // Dual-Error Cut Condition 2: Cluster Error test (Upper bound)
-                // Discard meshlets that are too coarse; their error exceeds the threshold,
-                // so a finer LOD level must render instead.
-                bool isClusterDetailSufficient = (meshlet.clusterError <= 0.0f) || EvaluateLODDetailSufficient(
+                // Refinement gate: this cluster can only refine into a finer LOD level if:
+                // a) A finer child page exists (childGlobalPageID != 0xFFFFFFFF), AND
+                // b) That child page is ACTUALLY RESIDENT in GPUPageTable!
+                // If refinement is impossible (finer page is still streaming from disk, or at LOD 0):
+                // This meshlet CANNOT be discarded for being too coarse!
+                // It remains visible, seamlessly preventing holes and low-LOD pop-in.
+                bool isClusterDetailSufficient = !canRefine || (meshlet.clusterError <= 0.0f) || EvaluateLODDetailSufficient(
                     meshlet.clusterError * maxScale,
                     meshletWorldCenter,
                     meshletWorldRadius,
@@ -305,7 +368,7 @@ compute "Internal/MeshletCullGraph"
                 else
                 {
                     uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
-                    uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
+                    uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, materialPaletteIndex, localMaterialIndex);
                     variantIndex = UnpackMaterialVariantIndex(packedMaterial);
                     uint hasAlpha = UnpackMaterialHasAlpha(packedMaterial);
                     cullBin = (hasAlpha != 0u) ? (variantIndex + 1u) : 0u;

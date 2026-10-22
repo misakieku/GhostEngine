@@ -9,6 +9,8 @@ namespace Ghost.AssetForge.Core.Bakers;
 [AssetBaker(Extensions = [".fbx", ".obj"], Type = AssetType.Mesh, SettingsType = typeof(MeshBakeSettings), SettingsVersion = MeshBakeSettings.VERSION)]
 public unsafe partial class MeshBaker : IAssetBaker
 {
+    public bool CompressOutput => false;
+
     public Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
     {
         if (settings is not MeshBakeSettings meshSettings)
@@ -68,54 +70,93 @@ public unsafe partial class MeshBaker : IAssetBaker
     {
         var assetStartOffset = stream.Position;
 
+        // Bundle meshlets, local packed vertices, and micro-triangles into 128KB pages
+        using var packedPages = PagePacker.PackPages(meshletData, AllocationHandle.Persistent);
+
+        var pageDirectory = packedPages.pageDirectory;
+        var pageBuffers = packedPages.pageBuffers;
+        var reorderedMeshlets = packedPages.reorderedMeshlets;
+
         var header = new MeshContentHeader
         {
             magic = MeshContentHeader.MAGIC,
             version = MeshContentHeader.VERSION,
-            vertexCount = mesh.vertices.Count,
-            indexCount = mesh.indices.Count,
-            materialPartCount = mesh.materialParts.Length,
-            meshletCount = meshletData->meshlets.Count,
+            meshletCount = reorderedMeshlets.Count,
             meshletGroupCount = meshletData->groups.Count,
             meshletHierarchyNodeCount = meshletData->hierarchyNodes.Count,
-            meshletVertexCount = meshletData->meshletVertices.Count,
-            meshletTriangleCount = meshletData->meshletTriangles.Count,
             materialSlotCount = meshletData->materialSlotCount,
             lodLevelCount = meshletData->lodLevelCount,
+            pageCount = pageDirectory.Count,
+            rootPageCount = pageDirectory.Count > 0 && pageDirectory[0].isRootPage != 0 ? 1 : 0,
+            rootMeshletCount = pageDirectory.Count > 0 && pageDirectory[0].isRootPage != 0 ? pageDirectory[0].meshletCount : 0,
             boundsMin = mesh.boundingBox.Min,
             boundsMax = mesh.boundingBox.Max,
+            boundingSphereCenter = (mesh.boundingBox.Min + mesh.boundingBox.Max) * 0.5f,
+            boundingSphereRadius = Misaki.HighPerformance.Mathematics.math.length(mesh.boundingBox.Max - (mesh.boundingBox.Min + mesh.boundingBox.Max) * 0.5f),
         };
 
         // Write header placeholder
         stream.Write(header);
 
-        header.vertexOffset = stream.Position - assetStartOffset;
-        stream.Write(mesh.vertices.AsSpan());
+        // 1. Hierarchy DAG nodes
+        header.hierarchyOffset = stream.Position - assetStartOffset;
+        stream.Write(meshletData->hierarchyNodes.AsSpan());
+        header.hierarchySize = stream.Position - assetStartOffset - header.hierarchyOffset;
 
-        header.indexOffset = stream.Position - assetStartOffset;
-        stream.Write(mesh.indices.AsSpan());
+        // 2. Meshlet Groups
+        header.groupOffset = stream.Position - assetStartOffset;
+        stream.Write(meshletData->groups.AsSpan());
+        header.groupSize = stream.Position - assetStartOffset - header.groupOffset;
 
+        // 3. Reordered Meshlets table
+        header.meshletOffset = stream.Position - assetStartOffset;
+        stream.Write(reorderedMeshlets.AsSpan());
+        header.meshletSize = stream.Position - assetStartOffset - header.meshletOffset;
+
+        // 4. Page Directory Table placeholder
+        var pageDirStartPos = stream.Position;
+        header.pageDirectoryOffset = stream.Position - assetStartOffset;
+        stream.Write(pageDirectory.AsSpan());
+        header.pageDirectorySize = stream.Position - assetStartOffset - header.pageDirectoryOffset;
+
+        // 5. Root Page 0 (uncompressed payload)
+        if (pageBuffers.Length > 0 && pageDirectory[0].isRootPage != 0)
+        {
+            header.rootPageOffset = stream.Position - assetStartOffset;
+            stream.Write(pageBuffers[0]);
+            header.rootPageSize = stream.Position - assetStartOffset - header.rootPageOffset;
+
+            ref var p0 = ref pageDirectory[0];
+            p0.fileOffset = (ulong)header.rootPageOffset;
+        }
+
+        // 6. Bulk Pages 1..N
+        if (pageBuffers.Length > 1)
+        {
+            header.bulkPagesOffset = stream.Position - assetStartOffset;
+            for (var p = 1; p < pageBuffers.Length; p++)
+            {
+                ref var dirEntry = ref pageDirectory[p];
+                dirEntry.fileOffset = (ulong)(stream.Position - assetStartOffset);
+                stream.Write(pageBuffers[p]);
+                dirEntry.compressedSize = (uint)pageBuffers[p].Length;
+                dirEntry.uncompressedSize = (uint)pageBuffers[p].Length;
+            }
+            header.bulkPagesSize = stream.Position - assetStartOffset - header.bulkPagesOffset;
+        }
+
+        // 7. Material Parts
         header.materialPartOffset = stream.Position - assetStartOffset;
         WriteMaterialParts(stream, mesh.materialParts.AsSpan());
-
-        header.meshletOffset = stream.Position - assetStartOffset;
-        stream.Write(meshletData->meshlets.AsSpan());
-
-        header.meshletGroupOffset = stream.Position - assetStartOffset;
-        stream.Write(meshletData->groups.AsSpan());
-
-        header.meshletHierarchyNodeOffset = stream.Position - assetStartOffset;
-        stream.Write(meshletData->hierarchyNodes.AsSpan());
-
-        header.meshletVertexOffset = stream.Position - assetStartOffset;
-        stream.Write(meshletData->meshletVertices.AsSpan());
-
-        header.meshletTriangleOffset = stream.Position - assetStartOffset;
-        stream.Write(meshletData->meshletTriangles.AsSpan());
+        header.materialPartSize = stream.Position - assetStartOffset - header.materialPartOffset;
 
         var endOfAsset = stream.Position;
 
-        // Backpatch header with real offsets
+        // Backpatch Page Directory with real file offsets
+        stream.Position = pageDirStartPos;
+        stream.Write(pageDirectory.AsSpan());
+
+        // Backpatch Header with all real offsets and sizes
         stream.Position = assetStartOffset;
         stream.Write(header);
         stream.Position = endOfAsset;

@@ -12,10 +12,12 @@ namespace Ghost.AssetForge.Core.Services;
 public class PackService
 {
     private readonly ProjectContext _context;
+    private readonly BakerRegistry _bakerRegistry;
 
-    public PackService(ProjectContext context)
+    public PackService(ProjectContext context, BakerRegistry? bakerRegistry = null)
     {
         _context = context;
+        _bakerRegistry = bakerRegistry ?? new BakerRegistry();
     }
 
     public event Action<int, int>? OnProgress;
@@ -303,6 +305,7 @@ public class PackService
                 var relativePath = kvp.Key;
                 var assetFile = kvp.Value;
                 var ext = Path.GetExtension(assetFile);
+                var baker = _bakerRegistry.GetBaker(ext);
 
                 // Skip header/include files that are dependencies and not standalone runtime assets
                 if (string.Equals(ext, ".hlsl", StringComparison.OrdinalIgnoreCase) ||
@@ -385,14 +388,18 @@ public class PackService
 
                     var offset = currentPackStream.Position;
 
+                    var shouldCompress = baker == null || baker.CompressOutput;
+                    var compression = shouldCompress ? project.BakeSettings.Compression : CompressionMethod.None;
+
                     // Compress and write payload
-                    var size = await CompressAndWriteAsync(assetPayloadStream, currentPackStream, project.BakeSettings.Compression, cancellationToken);
+                    var size = await CompressAndWriteAsync(assetPayloadStream, currentPackStream, compression, cancellationToken);
                     currentPackSize = currentPackStream.Position;
 
                     manifest.AddAsset(key, new AssetInfo
                     {
                         AssetId = metadata.Id,
                         AssetType = metadata.Type,
+                        Compression = compression,
                         PackFileName = currentPackName,
                         Offset = offset,
                         Size = size,
@@ -434,8 +441,12 @@ public class PackService
                         }
 
                         var subOffset = currentPackStream!.Position;
+                        var subCompression = (baker != null && !baker.CompressOutput) || (sub.Type == AssetType.Mesh)
+                            ? CompressionMethod.None
+                            : project.BakeSettings.Compression;
+
                         using var subFsIn = new FileStream(subCachePath, FileMode.Open, FileAccess.Read);
-                        var subSize = await CompressAndWriteAsync(subFsIn, currentPackStream, project.BakeSettings.Compression, cancellationToken);
+                        var subSize = await CompressAndWriteAsync(subFsIn, currentPackStream, subCompression, cancellationToken);
                         currentPackSize = currentPackStream.Position;
 
                         var subKey = $"{key}#{sub.SubPath}";
@@ -449,6 +460,7 @@ public class PackService
                         {
                             AssetId = subGuid,
                             AssetType = sub.Type,
+                            Compression = subCompression,
                             PackFileName = currentPackName,
                             Offset = subOffset,
                             Size = subSize,
@@ -506,6 +518,7 @@ public class PackService
                 {
                     AssetId = ShaderBytecodePoolConstants.POOL_ASSET_ID,
                     AssetType = AssetType.Shader,
+                    Compression = project.BakeSettings.Compression,
                     PackFileName = currentPackName,
                     Offset = poolOffset,
                     Size = poolSize,

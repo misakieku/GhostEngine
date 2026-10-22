@@ -85,5 +85,19 @@ public interface IAssetDependencyScanner
 
 public interface IAssetBaker
 {
+    /// <summary>
+    /// Gets a value indicating whether the output of this asset baker should be compressed.
+    /// </summary>
+    bool CompressOutput => true;
+
+    /// <summary>
+    /// Bakes an asset from the specified source file to the destination stream.
+    /// </summary>
+    /// <param name="src">The source file to bake.</param>
+    /// <param name="dst">The destination stream to write the baked asset to.</param>
+    /// <param name="settings">The settings to use for baking.</param>
+    /// <param name="ctx">The context for the baking process.</param>
+    /// <param name="cancellationToken">A token to cancel the baking process.</param>
+    /// <returns>A task representing the asynchronous baking operation.</returns>
     Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken);
 }

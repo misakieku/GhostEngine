@@ -68,15 +68,24 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         return Handle<GPUResource>.Invalid;
     }
 
-    public Handle<GPUResource> CreateEmpty(bool needEmptySrv = false)
+    public Handle<GPUResource> CreateEmpty(bool needEmptySrv = false, string? name = null)
     {
         var id = Interlocked.Increment(ref _nextToken);
         var generation = 1;
         var handle = new Handle<GPUResource>(id, generation);
 
-        _resources.TryAdd(GetKey(handle), new MockResourceRecord());
+        _resources.TryAdd(GetKey(handle), new MockResourceRecord { name = name });
 
         return handle;
+    }
+
+    public void SetResourceName(Handle<GPUResource> handle, string name)
+    {
+        ref var record = ref CollectionsMarshal.GetValueRefOrNullRef(_resources, GetKey(handle));
+        if (!Unsafe.IsNullRef(ref record))
+        {
+            record.name = name;
+        }
     }
 
     public uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.ALL_SUBRESOURCES)

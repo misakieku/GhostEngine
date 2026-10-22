@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -212,7 +213,7 @@ public struct ViewportDesc
 
 }
 
-public struct ScissorRectDesc
+public struct RectDesc
 {
     public uint Left
     {
@@ -861,6 +862,24 @@ public record struct BufferDesc
     }
 
     public HeapType HeapType
+    {
+        get; set;
+    }
+}
+
+public struct DiscardDesc
+{
+    public ReadOnlyView<RectDesc> Rects
+    {
+        get; set;
+    }
+
+    public uint FirstSubresource
+    {
+        get; set;
+    }
+
+    public uint NumSubresources
     {
         get; set;
     }

@@ -313,6 +313,11 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
             _resourceRegistry.SetProducer(resource, _pass.index);
         }
 
+        if (accessFlags.HasFlag(AccessFlags.Discard))
+        {
+            _pass.resourceDiscards[(int)type].Add(resource);
+        }
+
         return resource;
     }
 

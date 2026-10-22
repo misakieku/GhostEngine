@@ -32,6 +32,7 @@ internal struct ResolvedPassResourceUsage
     public RGResourceType resourceType;
     public bool reads;
     public bool writes;
+    public bool discard;
     public PassResourceUsageClass usageClass;
     public PassResourceUsagePriority priority;
     public ResourceBarrierData targetState;
@@ -199,6 +200,7 @@ internal unsafe partial class RenderGraphCompiler
         RGResourceType resourceType,
         bool reads,
         bool writes,
+        bool discard,
         PassResourceUsageClass usageClass,
         PassResourceUsagePriority priority,
         ResourceBarrierData targetState)
@@ -207,6 +209,7 @@ internal unsafe partial class RenderGraphCompiler
         usage.resourceType = resourceType;
         usage.reads |= reads;
         usage.writes |= writes;
+        usage.discard |= discard;
 
         if (usageClass == PassResourceUsageClass.None)
         {
@@ -252,6 +255,7 @@ internal unsafe partial class RenderGraphCompiler
                     (RGResourceType)resourceType,
                     reads: true,
                     writes: false,
+                    discard: pass.resourceDiscards[resourceType].Contains(resource),
                     usageClass,
                     PassResourceUsagePriority.GenericRead,
                     targetState);
@@ -263,6 +267,7 @@ internal unsafe partial class RenderGraphCompiler
             foreach (var resource in pass.resourceWrites[resourceType])
             {
                 ref var usage = ref usages[resource.Value];
+                var discard = pass.resourceDiscards[resourceType].Contains(resource);
                 switch (pass.type)
                 {
                     case RenderPassType.Compute:
@@ -272,6 +277,7 @@ internal unsafe partial class RenderGraphCompiler
                             (RGResourceType)resourceType,
                             reads: false,
                             writes: true,
+                            discard: discard,
                             PassResourceUsageClass.UnorderedAccess,
                             PassResourceUsagePriority.GenericWrite,
                             new ResourceBarrierData(BarrierLayout.UnorderedAccess, BarrierAccess.UnorderedAccess, BarrierSync.ComputeShading));
@@ -284,6 +290,7 @@ internal unsafe partial class RenderGraphCompiler
                             (RGResourceType)resourceType,
                             reads: false,
                             writes: true,
+                            discard: discard,
                             PassResourceUsageClass.None,
                             PassResourceUsagePriority.None,
                             default);
@@ -307,6 +314,7 @@ internal unsafe partial class RenderGraphCompiler
                         RGResourceType.Texture,
                         (access.accessFlags & AccessFlags.Read) != 0,
                         (access.accessFlags & AccessFlags.Write) != 0,
+                        (access.accessFlags & AccessFlags.Discard) != 0 || pass.resourceDiscards[(int)RGResourceType.Texture].Contains(resource),
                         PassResourceUsageClass.ColorAttachment,
                         PassResourceUsagePriority.Explicit,
                         access.usage);
@@ -326,6 +334,7 @@ internal unsafe partial class RenderGraphCompiler
                     RGResourceType.Texture,
                     (pass.depthAccess.accessFlags & AccessFlags.Read) != 0,
                     (pass.depthAccess.accessFlags & AccessFlags.Write) != 0,
+                    (pass.depthAccess.accessFlags & AccessFlags.Discard) != 0 || pass.resourceDiscards[(int)RGResourceType.Texture].Contains(resource),
                     usageClass,
                     PassResourceUsagePriority.Explicit,
                     pass.depthAccess.usage);
@@ -342,6 +351,7 @@ internal unsafe partial class RenderGraphCompiler
                 RGResourceType.Texture,
                 pass.resourceReads[(int)RGResourceType.Texture].Contains(resource),
                 pass.resourceWrites[(int)RGResourceType.Texture].Contains(resource),
+                pass.resourceDiscards[(int)RGResourceType.Texture].Contains(resource),
                 PassResourceUsageClass.ColorAttachment,
                 PassResourceUsagePriority.Explicit,
                 renderTargetState);
@@ -361,6 +371,7 @@ internal unsafe partial class RenderGraphCompiler
                 resourceInfo.type,
                 reads: true,
                 writes: true,
+                discard: pass.resourceDiscards[(int)resourceInfo.type].Contains(resource),
                 PassResourceUsageClass.UnorderedAccess,
                 PassResourceUsagePriority.Explicit,
                 randomAccessState);
@@ -418,6 +429,11 @@ internal unsafe partial class RenderGraphCompiler
                 flags = BarrierFlags.FirstUsage | BarrierFlags.Discard;
             }
 
+            if (usage.discard)
+            {
+                flags |= BarrierFlags.Discard;
+            }
+
             var hasSameState = resourceState.isValid
                 && resourceState.state.layout == usage.targetState.layout
                 && resourceState.state.access == usage.targetState.access
@@ -425,13 +441,13 @@ internal unsafe partial class RenderGraphCompiler
             var forceUavOrdering = hasSameState
                 && usage.targetState.access == BarrierAccess.UnorderedAccess
                 && (resourceState.writes || usage.writes);
-            if (hasSameState && !forceUavOrdering && aliasingPredecessor.IsInvalid)
+            if (hasSameState && !forceUavOrdering && aliasingPredecessor.IsInvalid && !usage.discard)
             {
                 resourceState.writes = usage.writes;
                 continue;
             }
 
-            var sourceState = resourceState.isValid
+            var sourceState = resourceState.isValid && !usage.discard
                 ? resourceState.state
                 : new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierSync.None);
 

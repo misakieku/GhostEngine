@@ -36,6 +36,7 @@ compute "Internal/ShadowCullGraph"
             uint rawBuffer;
             uint meshletBufferOffset;
             uint shadowViewIndex;
+            uint childGlobalPageID;
         };
 
         struct WorkGraphDispatchGridRecord
@@ -118,20 +119,24 @@ compute "Internal/ShadowCullGraph"
             }
 
             // Dual-Error Parent Error Pruning:
-            // Evaluate screen error against camera perspective to match view pass LOD cut
-            // and eliminate self-shadowing acne from caster/receiver geometric mismatch.
-            bool isParentDetailSufficient = (node.error < 3.4e38f) && EvaluateLODDetailSufficient(
-                node.error * maxScale,
-                worldCenter,
-                worldRadius,
-                GetCameraPositionWS(),
-                g_ViewData.projectionMatrix[1][1],
-                shadowCull.size.z,
-                shadowCull.lodErrorThreshold);
-
-            if (isParentDetailSufficient)
+            // Only prune internal nodes whose parent error is already sufficient for all children;
+            // never prune leaf groups (node.groupIndex >= 0) or the root node (rec.nodeIndex == 0)
+            // which contains coarsest LOD representations!
+            if (node.groupIndex < 0 && rec.nodeIndex != 0)
             {
-                return;
+                bool isParentDetailSufficient = (node.error < 3.4e38f) && EvaluateLODDetailSufficient(
+                    node.error * maxScale,
+                    worldCenter,
+                    worldRadius,
+                    GetCameraPositionWS(),
+                    g_ViewData.projectionMatrix[1][1],
+                    shadowCull.size.z,
+                    shadowCull.lodErrorThreshold);
+
+                if (isParentDetailSufficient)
+                {
+                    return;
+                }
             }
 
             if (node.groupIndex < 0)
@@ -152,19 +157,27 @@ compute "Internal/ShadowCullGraph"
             }
             else
             {
-                if (node.groupIndex >= 0)
-                {
-                    MeshletGroup group = LoadMeshletGroup((uint)node.groupIndex, mesh);
+                MeshletGroup group = LoadMeshletGroup((uint)node.groupIndex, mesh);
 
-                    ThreadNodeOutputRecords<MeshletGroupRecord> outGroup = groupQueue.GetThreadNodeOutputRecords(1u);
-                    outGroup.Get().instanceIndex = rec.instanceIndex;
-                    outGroup.Get().meshletStartIndex = group.meshletStartIndex;
-                    outGroup.Get().meshletCount = group.meshletCount;
-                    outGroup.Get().rawBuffer = mesh.rawBuffer;
-                    outGroup.Get().meshletBufferOffset = mesh.meshletBufferOffset;
-                    outGroup.Get().shadowViewIndex = rec.shadowViewIndex;
-                    outGroup.OutputComplete();
+                if (IS_VALID_BUFFER(g_FrameData.pageTableBuffer))
+                {
+                    ByteAddressBuffer pageTable = GET_BUFFER(g_FrameData.pageTableBuffer);
+                    uint globalPageID = mesh.globalPageTableOffset + group.pageIndex;
+                    uint physicalSlot = pageTable.Load(globalPageID * 4u);
+                    if (physicalSlot == 0xFFFFFFFFu)
+                    {
+                        return; // Non-resident shadow group: skip rendering
+                    }
                 }
+                ThreadNodeOutputRecords<MeshletGroupRecord> outGroup = groupQueue.GetThreadNodeOutputRecords(1u);
+                outGroup.Get().instanceIndex = rec.instanceIndex;
+                outGroup.Get().meshletStartIndex = group.meshletStartIndex;
+                outGroup.Get().meshletCount = group.meshletCount;
+                outGroup.Get().rawBuffer = mesh.rawBuffer;
+                outGroup.Get().meshletBufferOffset = mesh.meshletBufferOffset;
+                outGroup.Get().shadowViewIndex = rec.shadowViewIndex;
+                outGroup.Get().childGlobalPageID = (group.childPageIndex != 0xFFFFFFFFu) ? (mesh.globalPageTableOffset + group.childPageIndex) : 0xFFFFFFFFu;
+                outGroup.OutputComplete();
             }
         }
 
@@ -190,23 +203,50 @@ compute "Internal/ShadowCullGraph"
             bool isValid = (laneIndex < groupRec.meshletCount);
 
             uint safeMeshletIndex = isValid ? meshletIndex : groupRec.meshletStartIndex;
-            InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, groupRec.instanceIndex);
-            float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
             Meshlet meshlet = LoadMeshlet(safeMeshletIndex, groupRec.rawBuffer, groupRec.meshletBufferOffset);
 
             InternalShadowCullGraphShaderProperties props = LoadData<InternalShadowCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
             GPUShadowCullingData shadowCull = LoadDataAtOffset<GPUShadowCullingData>(props.shadowViewsBuffer, sizeof(GPUShadowViewData) * groupRec.shadowViewIndex); // Cull data at offset 0
 
+            float4 localToRWS_row0 = 0.0f;
+            float4 localToRWS_row1 = 0.0f;
+            float4 localToRWS_row2 = 0.0f;
+            float4 localToRWS_row3 = 0.0f;
             float maxScale = 1.0f;
+            uint materialPaletteIndex = 0;
+            bool canRefine = false;
+
             if (WaveIsFirstLane())
             {
+                InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, groupRec.instanceIndex);
+                float4x4 mat = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
+                localToRWS_row0 = mat[0];
+                localToRWS_row1 = mat[1];
+                localToRWS_row2 = mat[2];
+                localToRWS_row3 = mat[3];
+                materialPaletteIndex = instanceData.materialPaletteIndex;
+
                 float3 scale3 = float3(
-                    length(localToRWS._m00_m10_m20),
-                    length(localToRWS._m01_m11_m21),
-                    length(localToRWS._m02_m12_m22));
+                    length(mat._m00_m10_m20),
+                    length(mat._m01_m11_m21),
+                    length(mat._m02_m12_m22));
                 maxScale = max(scale3.x, max(scale3.y, scale3.z));
+
+                if (groupRec.childGlobalPageID != 0xFFFFFFFFu && IS_VALID_BUFFER(g_FrameData.pageTableBuffer))
+                {
+                    ByteAddressBuffer pageTable = GET_BUFFER(g_FrameData.pageTableBuffer);
+                    canRefine = (pageTable.Load(groupRec.childGlobalPageID * 4u) != 0xFFFFFFFFu);
+                }
             }
+
+            localToRWS_row0 = WaveReadLaneFirst(localToRWS_row0);
+            localToRWS_row1 = WaveReadLaneFirst(localToRWS_row1);
+            localToRWS_row2 = WaveReadLaneFirst(localToRWS_row2);
+            localToRWS_row3 = WaveReadLaneFirst(localToRWS_row3);
+            float4x4 localToRWS = float4x4(localToRWS_row0, localToRWS_row1, localToRWS_row2, localToRWS_row3);
             maxScale = WaveReadLaneFirst(maxScale);
+            materialPaletteIndex = WaveReadLaneFirst(materialPaletteIndex);
+            canRefine = WaveReadLaneFirst(canRefine);
 
             bool isVisible = false;
             uint cullBin = 0;
@@ -231,8 +271,8 @@ compute "Internal/ShadowCullGraph"
                     shadowCull.lodErrorThreshold);
 
                 // Dual-Error Cut Condition 2: Cluster Error test (Upper bound)
-                // Evaluate against camera perspective to match view pass LOD cut
-                bool isClusterDetailSufficient = (meshlet.clusterError <= 0.0f) || EvaluateLODDetailSufficient(
+                // Refinement gate: can only refine if finer child page is resident in GPUPageTable
+                bool isClusterDetailSufficient = !canRefine || (meshlet.clusterError <= 0.0f) || EvaluateLODDetailSufficient(
                     meshlet.clusterError * maxScale,
                     meshletWorldCenter,
                     meshletWorldRadius,
@@ -254,7 +294,7 @@ compute "Internal/ShadowCullGraph"
                     if (isVisible)
                     {
                         uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
-                        uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
+                        uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, materialPaletteIndex, localMaterialIndex);
                         uint variantIndex = UnpackMaterialVariantIndex(packedMaterial);
                         uint hasAlpha = UnpackMaterialHasAlpha(packedMaterial);
                         cullBin = (hasAlpha != 0u) ? (variantIndex + 1u) : 0u;

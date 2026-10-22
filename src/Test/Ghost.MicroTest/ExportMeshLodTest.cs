@@ -188,8 +188,7 @@ internal unsafe class ExportMeshLodTest : ITest
         }
 
         // Remap unique vertices used by this LOD level to 1-based OBJ vertex indices
-        var remap = new int[mesh.vertices.Count];
-        Array.Fill(remap, -1);
+        var remap = new Dictionary<int, int>();
         var lodVertices = new List<int>();
 
         for (var i = 0; i < lodMeshletIndices.Count; i++)
@@ -204,21 +203,21 @@ internal unsafe class ExportMeshLodTest : ITest
                 var local1 = (packed >> 8) & 0xFFu;
                 var local2 = (packed >> 16) & 0xFFu;
 
-                var v0 = (int)meshletVertices[(int)meshlet.vertexOffset + (int)local0];
-                var v1 = (int)meshletVertices[(int)meshlet.vertexOffset + (int)local1];
-                var v2 = (int)meshletVertices[(int)meshlet.vertexOffset + (int)local2];
+                var v0 = (int)meshlet.vertexOffset + (int)local0;
+                var v1 = (int)meshlet.vertexOffset + (int)local1;
+                var v2 = (int)meshlet.vertexOffset + (int)local2;
 
-                if (remap[v0] == -1)
+                if (!remap.ContainsKey(v0))
                 {
                     remap[v0] = lodVertices.Count + 1;
                     lodVertices.Add(v0);
                 }
-                if (remap[v1] == -1)
+                if (!remap.ContainsKey(v1))
                 {
                     remap[v1] = lodVertices.Count + 1;
                     lodVertices.Add(v1);
                 }
-                if (remap[v2] == -1)
+                if (!remap.ContainsKey(v2))
                 {
                     remap[v2] = lodVertices.Count + 1;
                     lodVertices.Add(v2);
@@ -232,25 +231,24 @@ internal unsafe class ExportMeshLodTest : ITest
         writer.WriteLine($"o {mesh.Name}_lod_{targetLod}");
 
         // Write vertices
-        var vertSpan = mesh.vertices.AsSpan();
         for (var i = 0; i < lodVertices.Count; i++)
         {
-            var p = vertSpan[lodVertices[i]].position;
+            var p = meshletVertices[lodVertices[i]].position;
             writer.WriteLine(string.Create(CultureInfo.InvariantCulture, $"v {p.x:F6} {p.y:F6} {p.z:F6}"));
         }
 
         // Write normals
         for (var i = 0; i < lodVertices.Count; i++)
         {
-            var n = vertSpan[lodVertices[i]].normal;
+            var n = PackedVertex.UnpackNormalOctahedral(meshletVertices[lodVertices[i]].packedNormal);
             writer.WriteLine(string.Create(CultureInfo.InvariantCulture, $"vn {n.x:F6} {n.y:F6} {n.z:F6}"));
         }
 
         // Write UVs
         for (var i = 0; i < lodVertices.Count; i++)
         {
-            var uv = vertSpan[lodVertices[i]].uv;
-            writer.WriteLine(string.Create(CultureInfo.InvariantCulture, $"vt {uv.x:F6} {uv.y:F6}"));
+            var uv = meshletVertices[lodVertices[i]].uv;
+            writer.WriteLine(string.Create(CultureInfo.InvariantCulture, $"vt {(float)uv.x:F6} {(float)uv.y:F6}"));
         }
 
         writer.WriteLine("s 1");
@@ -260,7 +258,7 @@ internal unsafe class ExportMeshLodTest : ITest
         {
             var mIdx = lodMeshletIndices[i];
             var meshlet = meshlets[mIdx];
-            writer.WriteLine($"g Meshlet_{mIdx}_group_{meshlet.groupIndex}");
+            writer.WriteLine($"g Meshlet_{mIdx}_group_{meshlet.pageIndex}");
 
             for (var t = 0; t < meshlet.triangleCount; t++)
             {
@@ -269,9 +267,9 @@ internal unsafe class ExportMeshLodTest : ITest
                 var local1 = (packed >> 8) & 0xFFu;
                 var local2 = (packed >> 16) & 0xFFu;
 
-                var v0 = (int)meshletVertices[(int)meshlet.vertexOffset + (int)local0];
-                var v1 = (int)meshletVertices[(int)meshlet.vertexOffset + (int)local1];
-                var v2 = (int)meshletVertices[(int)meshlet.vertexOffset + (int)local2];
+                var v0 = (int)meshlet.vertexOffset + (int)local0;
+                var v1 = (int)meshlet.vertexOffset + (int)local1;
+                var v2 = (int)meshlet.vertexOffset + (int)local2;
 
                 var obj0 = remap[v0];
                 var obj1 = remap[v1];

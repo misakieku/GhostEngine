@@ -139,7 +139,7 @@ internal partial class GhostRenderPipeline
                 MinDepth = 0.0f,
                 MaxDepth = 1.0f
             });
-            unsafeCtx.SetScissorRect(new ScissorRectDesc
+            unsafeCtx.SetScissorRect(new RectDesc
             {
                 Left = 0,
                 Top = 0,

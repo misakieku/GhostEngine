@@ -105,11 +105,11 @@ internal unsafe partial class GhostRenderPipeline
         var skyRotationSinCos = new float2(math.sin(skyRotation), math.cos(skyRotation));
 
         var iblLutTexture = _lightingPipelineResource.iblLutTexture.IsValid
-            ? renderGraph.ImportTexture(_lightingPipelineResource.iblLutTexture, ResourceBarrierData.Common, ResourceBarrierData.Common)
+            ? renderGraph.ImportTexture(_lightingPipelineResource.iblLutTexture, ResourceBarrierData.ShaderResource, ResourceBarrierData.ShaderResource)
             : Identifier<RGTexture>.Invalid;
 
         var skyboxTexture = skyTextureHandle.IsValid
-            ? renderGraph.ImportTexture(skyTextureHandle, ResourceBarrierData.Common, ResourceBarrierData.Common)
+            ? renderGraph.ImportTexture(skyTextureHandle, ResourceBarrierData.ShaderResource, ResourceBarrierData.ShaderResource)
             : Identifier<RGTexture>.Invalid;
 
         if (!skyboxTexture.IsValid)

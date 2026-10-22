@@ -209,6 +209,7 @@ internal sealed class GPUViewManager : IDisposable
             Usage = BufferUsage.Raw | BufferUsage.ShaderResource | BufferUsage.UnorderedAccess,
             HeapType = HeapType.Default
         };
+
         PersistentViewStateBuffer = allocator.CreateBuffer(in desc, "Persistent View State Buffer");
 
         for (uint i = 0; i < MAX_VIEWS; i++)

@@ -10,6 +10,7 @@ public class RuntimeContentProvider : IContentProvider
 {
     private readonly Manifest _manifest;
     private readonly Dictionary<Guid, AssetInfo> _guidToInfo;
+    private readonly Dictionary<Guid, string> _guidToVirtualPath;
     private readonly ConcurrentDictionary<string, MemoryMappedFile> _packFiles;
     private readonly string _packDirectory;
     private readonly object _validatedPacksLock = new();
@@ -21,18 +22,25 @@ public class RuntimeContentProvider : IContentProvider
     {
         _manifest = Manifest.LoadFromDiskAsync(manifestPath).GetAwaiter().GetResult();
         _guidToInfo = new Dictionary<Guid, AssetInfo>(_manifest.Assets.Count);
+        _guidToVirtualPath = new Dictionary<Guid, string>(_manifest.Assets.Count);
         _packFiles = new ConcurrentDictionary<string, MemoryMappedFile>(StringComparer.Ordinal);
         _packDirectory = Path.GetDirectoryName(manifestPath) ?? string.Empty;
 
-        foreach (var (_, location) in _manifest.Assets)
+        foreach (var (path, location) in _manifest.Assets)
         {
             _guidToInfo[location.AssetId] = location;
+            _guidToVirtualPath[location.AssetId] = path;
         }
     }
 
     public Guid VirtualPathToGuid(string path)
     {
         return _manifest.Assets.GetValueOrDefault(path).AssetId;
+    }
+
+    public string VirtualPathFromGuid(Guid guid)
+    {
+        return _guidToVirtualPath[guid];
     }
 
     public AssetType GetAssetType(Guid guid)
@@ -81,12 +89,13 @@ public class RuntimeContentProvider : IContentProvider
         // may create views over the same mapped file safely.
         var viewStream = packFile.CreateViewStream(info.Offset, info.Size, MemoryMappedFileAccess.Read);
 
-        var decompressedStream = _manifest.CompressionMethod switch
+        var compression = info.Compression;
+        var decompressedStream = compression switch
         {
             CompressionMethod.None => viewStream,
             CompressionMethod.Zstd => new DecompressionStream(viewStream, leaveOpen: false),
             CompressionMethod.LZ4 => (Stream)LZ4Stream.Decode(viewStream, leaveOpen: false),
-            _ => throw new NotSupportedException($"Unsupported compression method: {_manifest.CompressionMethod}")
+            _ => throw new NotSupportedException($"Unsupported compression method: {compression}")
         };
 
         return new AssetReadData

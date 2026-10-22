@@ -89,7 +89,18 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
                 return E.E_NOTFOUND;
             }
 
-            hr = _d3d12MA.Get()->CreateAliasingResource2(result.Value.resource.allocation.Get(), options.Offset, pResourceDesc, initialLayout, null, numCapatableFormats, pCastableFormats, riid, ppv);
+            // TODO: Expose this as a parameter.
+            D3D12_CLEAR_VALUE* pClearValue = null;
+            D3D12_CLEAR_VALUE clearValue;
+
+            if (pResourceDesc->Flags.HasFlag(D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET))
+            {
+                var color = stackalloc float[4] { 0.0f, 0.0f, 0.0f, 1.0f };
+                clearValue = new D3D12_CLEAR_VALUE(pResourceDesc->Format, color);
+                pClearValue = &clearValue;
+            }
+
+            hr = _d3d12MA.Get()->CreateAliasingResource2(result.Value.resource.allocation.Get(), options.Offset, pResourceDesc, initialLayout, pClearValue, numCapatableFormats, pCastableFormats, riid, ppv);
         }
         else
         {

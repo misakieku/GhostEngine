@@ -44,7 +44,7 @@ public interface ICommandBuffer : IRHIObject
     /// Sets the scissor rectangle
     /// </summary>
     /// <param name="rect">Scissor rectangle to set</param>
-    void SetScissorRect(ScissorRectDesc rect);
+    void SetScissorRect(RectDesc rect);
 
     /// <summary>
     /// Sets the optional render targets and optional depth Target for subsequent rendering operations.
@@ -93,6 +93,13 @@ public interface ICommandBuffer : IRHIObject
     /// </summary>
     /// <param name="barrierDescs">Resource barrier descriptions</param>
     void Barrier(params ReadOnlySpan<BarrierDesc> barrierDescs);
+
+    /// <summary>
+    /// Discards a GPU resource.
+    /// </summary>
+    /// <param name="resource">The handle to the GPU resource to discard.</param>
+    /// <param name="desc">The description for the discard operation, specifying which aspects of the resource to discard.</param>
+    void DiscardResource(Handle<GPUResource> resource, DiscardDesc? desc);
 
     /// <summary>
     /// Sets the pipeline state object

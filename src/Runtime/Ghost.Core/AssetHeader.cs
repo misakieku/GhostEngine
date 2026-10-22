@@ -74,6 +74,7 @@ public readonly struct AssetInfo()
 {
     public Guid AssetId { get; init; }
     public AssetType AssetType { get; init; }
+    public CompressionMethod Compression { get; init; } = CompressionMethod.None;
     public string PackFileName { get; init; } = string.Empty;
     public long Offset { get; init; }
     public long Size { get; init; }

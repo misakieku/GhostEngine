@@ -179,7 +179,8 @@ public class RenderEngine : IDisposable
 
     private void RenderLoop()
     {
-        var renderContext = new RenderContext(_resourceManager, _graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase, _graphicsEngine.PipelineLibrary, _shaderLibrary);
+        var renderContext = new RenderContext(_resourceManager, _graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase,
+            _graphicsEngine.PipelineLibrary, _shaderLibrary, _frameResources.Length);
 
         while (_isRunning)
         {
@@ -258,6 +259,7 @@ public class RenderEngine : IDisposable
                         ResourceAllocator = _graphicsEngine.ResourceAllocator,
                         CommandBuffer = preludeCmd,
                         ShaderLibrary = _shaderLibrary,
+                        FrameIndex = frameIndex,
                     };
 
                     _streamingProcessor.ProcessPendingUploads(streamingContext);
@@ -300,6 +302,32 @@ public class RenderEngine : IDisposable
                         }
                     }
 
+                    var postRenderCmd = _frameScheduler.GetPooledCommandBuffer(CommandBufferType.Graphics);
+                    var postRenderSubmitted = false;
+                    try
+                    {
+                        postRenderCmd.Begin(frameResource.GraphicsCommandAllocator);
+                        _streamingProcessor.ProcessPostRender(streamingContext with { CommandBuffer = postRenderCmd });
+                        var postResult = postRenderCmd.End();
+                        if (postResult.IsFailure)
+                        {
+                            StopRenderLoop(postResult);
+                            break;
+                        }
+
+                        if (postRenderCmd.State.CommandCount > 0)
+                        {
+                            _frameScheduler.Submit(postRenderCmd);
+                            postRenderSubmitted = true;
+                        }
+                    }
+                    finally
+                    {
+                        if (!postRenderSubmitted)
+                        {
+                            _frameScheduler.ReturnPooledCommandBuffer(postRenderCmd);
+                        }
+                    }
                     frameResource.Completion = _frameScheduler.Flush();
                     _submittedFrame = frameResource.Completion.FrameNumber;
                     _swapChainManager.PresentAll();

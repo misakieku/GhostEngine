@@ -19,6 +19,12 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
     private readonly ConcurrentQueue<IUploadableAssetEntry> _pendingFinalize;
     private readonly List<IUploadableAssetEntry> _recordedUploads;
     private SubmissionHandle _pendingCopySubmission;
+    private MeshletStreamingManager? _meshletStreamingManager;
+
+    public void SetMeshletStreamingManager(MeshletStreamingManager manager)
+    {
+        _meshletStreamingManager = manager;
+    }
 
     public ResourceStreamingProcessor()
     {
@@ -102,6 +108,7 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
 
     public void ProcessPendingUploads(in ResourceStreamingContext context)
     {
+        _meshletStreamingManager?.Update(in context);
         // 1. If there is a pending copy batch from a previous frame, check its opaque completion handle.
         if (_pendingCopySubmission.IsValid && context.FrameScheduler.IsComplete(_pendingCopySubmission))
         {
@@ -191,5 +198,10 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
                 context.FrameScheduler.ReturnPooledCommandBuffer(copyCommandBuffer);
             }
         }
+    }
+
+    public void ProcessPostRender(in ResourceStreamingContext context)
+    {
+        _meshletStreamingManager?.RecordReadbackCopy(context.CommandBuffer, context.FrameIndex);
     }
 }

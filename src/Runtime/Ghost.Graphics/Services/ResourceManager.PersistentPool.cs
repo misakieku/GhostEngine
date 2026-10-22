@@ -10,7 +10,7 @@ public partial class ResourceManager
     private UnsafeHashMap<ResourceDesc, UnsafeStack<Handle<GPUResource>>> _resourcePool = new(128, AllocationHandle.Persistent);
     private UnsafeQueue<ResourceReturnEntry> _deferredPoolReturns;
 
-    public Handle<GPUResource> CreatePooledResource(scoped in ResourceDesc desc)
+    public Handle<GPUResource> CreatePooledResource(scoped in ResourceDesc desc, string? name = null)
     {
         ref var stack = ref _resourcePool.GetValueRefOrAddDefault(desc, out var exists);
         if (!exists)
@@ -23,28 +23,33 @@ public partial class ResourceManager
             Logger.DebugAssert(handle.IsValid, $"Resource handle for {desc} is invalid.");
             Logger.DebugAssert(_resourceDatabase.GetResourceDescription(handle).Value == desc);
 
+            if (!string.IsNullOrEmpty(name))
+            {
+                _resourceDatabase.SetResourceName(handle, name);
+            }
+
             return handle;
         }
 
         return desc.Type switch
         {
-            ResourceType.Texture => _resourceAllocator.CreateTexture(in desc.TextureDescriptor).AsResource(),
-            ResourceType.Buffer => _resourceAllocator.CreateBuffer(in desc.BufferDescriptor).AsResource(),
+            ResourceType.Texture => _resourceAllocator.CreateTexture(in desc.TextureDescriptor, name).AsResource(),
+            ResourceType.Buffer => _resourceAllocator.CreateBuffer(in desc.BufferDescriptor, name).AsResource(),
             _ => throw new NotSupportedException($"Resource type {desc.Type} is not supported."),
         };
     }
 
-    public Handle<GPUBuffer> CreatePooledBuffer(scoped in BufferDesc desc)
+    public Handle<GPUBuffer> CreatePooledBuffer(scoped in BufferDesc desc, string? name = null)
     {
         var resourceDesc = ResourceDesc.Buffer(desc);
-        var handle = CreatePooledResource(resourceDesc);
+        var handle = CreatePooledResource(resourceDesc, name);
         return handle.AsBuffer();
     }
 
-    public Handle<GPUTexture> CreatePooledTexture(scoped in TextureDesc desc)
+    public Handle<GPUTexture> CreatePooledTexture(scoped in TextureDesc desc, string? name = null)
     {
         var resourceDesc = ResourceDesc.Texture(desc);
-        var handle = CreatePooledResource(resourceDesc);
+        var handle = CreatePooledResource(resourceDesc, name);
         return handle.AsTexture();
     }
 

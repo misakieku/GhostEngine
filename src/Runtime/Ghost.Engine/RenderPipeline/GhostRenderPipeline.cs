@@ -132,7 +132,9 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             out var punctualLightsSrv, out var punctualLightCount,
             out var directionalLightSrv, out var directionalLightCount, out var primaryDirectionalLightIndex);
 
-        var frameBuffer = RenderPipelineUtility.CreateFrameBuffer(ctx, _gpuScene.SceneBufferSrvIndex, punctualLightsSrv, punctualLightCount, directionalLightSrv, directionalLightCount, primaryDirectionalLightIndex);
+        var frameBuffer = RenderPipelineUtility.CreateFrameBuffer(ctx, _gpuScene.SceneBufferSrvIndex,
+            punctualLightsSrv, punctualLightCount, directionalLightSrv, directionalLightCount, primaryDirectionalLightIndex,
+            _assetManager.MeshletStreamingManager.PagePoolSrvIndex, _assetManager.MeshletStreamingManager.PageTableSrvIndex);
 
         for (var requestIndex = 0; requestIndex < ghostPayload.RenderRequests.Length; requestIndex++)
         {
@@ -176,7 +178,8 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 out var visibleMeshlets0, out var visibleMeshlets1);
 
             AddTileClassificationPass(renderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, viewContext.RenderSize,
-                out var tileListBuffer, out var tileOffsetsBuffer, out var indirectArgsBuffer, out var tileShadingModelMaskBuffer);
+                out var tileListBuffer, out var tileOffsetsBuffer,
+                out var indirectArgsBuffer, out var tileShadingModelMaskBuffer);
 
             var gbuffer = AddDeferredTexturingPass(renderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, tileOffsetsBuffer, indirectArgsBuffer, viewContext.RenderSize);
             var tileLightList = AddTileLightCullingPass(renderGraph, currentDepth, viewContext.RenderSize);
@@ -192,7 +195,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
             renderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
 
-            var result = renderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.Default);
+            var result = renderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.GenerateDump);
             if (result.IsFailure)
             {
                 return Result.Failure($"Render graph execution failed: {result.Error}");

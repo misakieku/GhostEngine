@@ -91,8 +91,8 @@ public class MeshBakerTests
 
         Assert.AreEqual(MeshContentHeader.MAGIC, header.magic);
         Assert.AreEqual(MeshContentHeader.VERSION, header.version);
-        Assert.AreEqual(4, header.vertexCount);
-        Assert.AreEqual(6, header.indexCount);
+        Assert.IsGreaterThan(0, header.pageCount);
+        Assert.AreEqual(1, header.rootPageCount);
         Assert.IsGreaterThan(0, header.meshletCount);
         Assert.IsGreaterThan(0, header.meshletGroupCount);
         Assert.IsGreaterThan(0, header.meshletHierarchyNodeCount);
@@ -148,9 +148,9 @@ public class MeshBakerTests
 
         Assert.AreEqual(MeshContentHeader.MAGIC, header.magic);
         Assert.AreEqual(MeshContentHeader.VERSION, header.version);
-        Assert.AreEqual(Marshal.SizeOf<MeshContentHeader>(), (int)header.vertexOffset);
-        Assert.IsGreaterThan(0, (int)header.vertexOffset);
-        Assert.IsGreaterThan((int)header.vertexOffset, (int)header.indexOffset);
+        Assert.AreEqual(Marshal.SizeOf<MeshContentHeader>(), (int)header.hierarchyOffset);
+        Assert.IsGreaterThan(0, (int)header.hierarchyOffset);
+        Assert.IsGreaterThan((int)header.hierarchyOffset, (int)header.groupOffset);
     }
 
     [TestMethod]
@@ -235,19 +235,22 @@ public class MeshBakerTests
                     var v1 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i1];
                     var v2 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i2];
 
-                    var p0 = mesh.vertices[(int)v0].position;
-                    var p1 = mesh.vertices[(int)v1].position;
-                    var p2 = mesh.vertices[(int)v2].position;
-                    var nAvg = (mesh.vertices[(int)v0].normal + mesh.vertices[(int)v1].normal + mesh.vertices[(int)v2].normal) / 3.0f;
+                    var p0 = v0.position;
+                    var p1 = v1.position;
+                    var p2 = v2.position;
+                    var nAvg = (PackedVertex.UnpackNormalOctahedral(v0.packedNormal) + PackedVertex.UnpackNormalOctahedral(v1.packedNormal) + PackedVertex.UnpackNormalOctahedral(v2.packedNormal)) / 3.0f;
 
                     var geomNormal = Misaki.HighPerformance.Mathematics.math.cross(p1 - p0, p2 - p0);
                     totalTriangles++;
                     totalPerLod[lod]++;
 
-                    if (Misaki.HighPerformance.Mathematics.math.dot(geomNormal, nAvg) < -1e-6f)
+                    var dot = Misaki.HighPerformance.Mathematics.math.dot(geomNormal, nAvg);
+                    if (dot < -1e-6f)
                     {
                         totalFlipped++;
                         flippedPerLod[lod]++;
+
+
                     }
                 }
             }
@@ -386,19 +389,22 @@ public class MeshBakerTests
                     var v1 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i1];
                     var v2 = pMeshletData->meshletVertices[(int)ml.vertexOffset + (int)i2];
 
-                    var p0 = mesh.vertices[(int)v0].position;
-                    var p1 = mesh.vertices[(int)v1].position;
-                    var p2 = mesh.vertices[(int)v2].position;
-                    var nAvg = (mesh.vertices[(int)v0].normal + mesh.vertices[(int)v1].normal + mesh.vertices[(int)v2].normal) / 3.0f;
+                    var p0 = v0.position;
+                    var p1 = v1.position;
+                    var p2 = v2.position;
+                    var nAvg = (PackedVertex.UnpackNormalOctahedral(v0.packedNormal) + PackedVertex.UnpackNormalOctahedral(v1.packedNormal) + PackedVertex.UnpackNormalOctahedral(v2.packedNormal)) / 3.0f;
 
                     var geomNormal = Misaki.HighPerformance.Mathematics.math.cross(p1 - p0, p2 - p0);
                     totalTriangles++;
                     totalPerLod[lod]++;
 
-                    if (Misaki.HighPerformance.Mathematics.math.dot(geomNormal, nAvg) < -1e-6f)
+                    var dot = Misaki.HighPerformance.Mathematics.math.dot(geomNormal, nAvg);
+                    if (dot < -1e-6f)
                     {
                         totalFlipped++;
                         flippedPerLod[lod]++;
+
+
                     }
                 }
             }

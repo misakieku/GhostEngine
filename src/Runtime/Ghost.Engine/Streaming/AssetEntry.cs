@@ -21,17 +21,17 @@ public enum AssetState
 
 internal static class AssetEntryFactory
 {
-    public static AssetEntry CreateNewEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies)
+    public static AssetEntry CreateNewEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies, string assetName)
     {
         return assetType switch
         {
-            AssetType.Texture => new TextureAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
-            AssetType.Mesh => new MeshAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
+            AssetType.Texture => new TextureAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies, assetName),
+            AssetType.Mesh => new MeshAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies, assetName),
             AssetType.Material => throw new NotImplementedException(),
-            AssetType.Shader => new ShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies),
-            AssetType.ComputeShader => new ComputeShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies),
-            AssetType.WorkGraph => new WorkGraphAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies),
-            AssetType.Scene => new SceneAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies),
+            AssetType.Shader => new ShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName),
+            AssetType.ComputeShader => new ComputeShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName),
+            AssetType.WorkGraph => new WorkGraphAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName),
+            AssetType.Scene => new SceneAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies, assetName),
             AssetType.Audio => throw new NotImplementedException(),
             AssetType.Video => throw new NotImplementedException(),
             AssetType.Json => throw new NotImplementedException(),
@@ -51,6 +51,7 @@ internal abstract class AssetEntry : IAssetEntry
     private readonly Guid _assetId;
     private readonly AssetType _assetType;
     private readonly Guid[] _dependencies;
+    private readonly string _assetName;
 
     private JobHandle _loadJobHandle;
     private JobHandle _combinedDependencyJobHandle;
@@ -69,6 +70,8 @@ internal abstract class AssetEntry : IAssetEntry
     public AssetType AssetType => _assetType;
     public ReadOnlySpan<Guid> Dependencies => _dependencies;
     public int RefCount => Volatile.Read(ref _refCount);
+    public string AssetName => _assetName;
+
     internal virtual AssetState FailureState => AssetState.Failed;
 
     public ref int StateValue => ref _state;
@@ -88,7 +91,7 @@ internal abstract class AssetEntry : IAssetEntry
         }
     }
 
-    protected AssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies)
+    protected AssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies, string assetName)
     {
         _assetManager = manager;
         _resourceDatabase = resourceDatabase;
@@ -97,6 +100,7 @@ internal abstract class AssetEntry : IAssetEntry
         _assetId = assetId;
         _assetType = assetType;
         _dependencies = dependencies;
+        _assetName = assetName;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

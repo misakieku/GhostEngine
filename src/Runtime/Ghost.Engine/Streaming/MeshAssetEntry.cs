@@ -13,19 +13,19 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Streaming;
 
-// TODO: How can we handle meshlet streaming?
 internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploadableAssetEntry
 {
     private Handle<Mesh> _actualHandle;
     private Handle<Mesh> _tempHandle;
 
     private Stream _contentStream = null!;
-    private long _contentSize;
 
     private MeshContentHeader _header;
+    private PageDirectoryEntry[] _pageDirectory = null!;
+    private uint _globalPageTableOffset;
 
-    public MeshAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies)
-        : base(manager, resourceDatabase, resourceManager, assetId, AssetType.Mesh, dependencies)
+    public MeshAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies, string assetName)
+        : base(manager, resourceDatabase, resourceManager, assetId, AssetType.Mesh, dependencies, assetName)
     {
         var mesh = default(Mesh);
 
@@ -37,11 +37,15 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
 
     protected override void OnReleaseResource()
     {
+        Manager.MeshletStreamingManager.UnregisterMesh(_globalPageTableOffset);
+
         ResourceManager.ReleaseMesh(_actualHandle);
         if (_tempHandle.IsValid)
         {
             ResourceManager.ReleaseMesh(_tempHandle);
         }
+        _contentStream?.Dispose();
+        _contentStream = null!;
     }
 
     public override void ReadAssetData(Span<byte> dst)
@@ -63,10 +67,9 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
 
     public Result OnLoadContent([Owner] Stream contentStream, long contentSize)
     {
-        static bool ValidateRange(long offset, long contentSize, int count, uint stride)
+        static bool ValidateRange(long offset, long size, long contentSize)
         {
-            var size = count * stride;
-            return offset <= contentSize && size <= contentSize - offset;
+            return offset >= 0 && size >= 0 && offset <= contentSize && size <= contentSize - offset;
         }
 
         try
@@ -76,39 +79,45 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
             if (header.magic != MeshContentHeader.MAGIC || header.version != MeshContentHeader.VERSION)
             {
                 contentStream.Dispose();
-                return Result.Failure("Unsupported mesh content format.");
+                return Result.Failure($"Unsupported mesh content format. Expected magic 0x{MeshContentHeader.MAGIC:X8} v{MeshContentHeader.VERSION}, got 0x{header.magic:X8} v{header.version}.");
             }
 
-            if (header.vertexCount == 0 || header.indexCount == 0 ||
-                header.meshletCount == 0 || header.meshletGroupCount == 0 ||
-                header.meshletHierarchyNodeCount == 0 || header.meshletVertexCount == 0 ||
-                header.meshletTriangleCount == 0)
+            if (header.meshletCount == 0 || header.meshletGroupCount == 0 ||
+                header.meshletHierarchyNodeCount == 0 || header.pageCount == 0 ||
+                header.rootPageCount == 0)
             {
                 contentStream.Dispose();
-                return Result.Failure("Mesh content is missing required geometry or meshlet data.");
+                return Result.Failure("Mesh content is missing required meshlet or page data.");
             }
 
-            if (!ValidateRange(header.vertexOffset, contentSize, header.vertexCount, (uint)sizeof(Vertex)) ||
-                !ValidateRange(header.indexOffset, contentSize, header.indexCount, sizeof(uint)) ||
-                !ValidateRange(header.meshletOffset, contentSize, header.meshletCount, (uint)sizeof(Meshlet)) ||
-                !ValidateRange(header.meshletGroupOffset, contentSize, header.meshletGroupCount, (uint)sizeof(MeshletGroup)) ||
-                !ValidateRange(header.meshletHierarchyNodeOffset, contentSize, header.meshletHierarchyNodeCount, (uint)sizeof(MeshletHierarchyNode)) ||
-                !ValidateRange(header.meshletVertexOffset, contentSize, header.meshletVertexCount, sizeof(uint)) ||
-                !ValidateRange(header.meshletTriangleOffset, contentSize, header.meshletTriangleCount, sizeof(uint)))
+            if (!ValidateRange(header.hierarchyOffset, header.hierarchySize, contentSize) ||
+                !ValidateRange(header.groupOffset, header.groupSize, contentSize) ||
+                !ValidateRange(header.meshletOffset, header.meshletSize, contentSize) ||
+                !ValidateRange(header.pageDirectoryOffset, header.pageDirectorySize, contentSize) ||
+                !ValidateRange(header.rootPageOffset, header.rootPageSize, contentSize))
             {
                 contentStream.Dispose();
                 return Result.Failure("Mesh content contains an invalid data range.");
             }
 
-            if (header.materialPartCount > 0 && !ValidateRange(header.materialPartOffset, contentSize, header.materialPartCount, (uint)sizeof(MeshContentMaterialPart)))
+            if (header.bulkPagesSize > 0 && !ValidateRange(header.bulkPagesOffset, header.bulkPagesSize, contentSize))
+            {
+                contentStream.Dispose();
+                return Result.Failure("Mesh content contains an invalid bulk pages range.");
+            }
+
+            if (header.materialPartSize > 0 && !ValidateRange(header.materialPartOffset, header.materialPartSize, contentSize))
             {
                 contentStream.Dispose();
                 return Result.Failure("Mesh content contains an invalid material part range.");
             }
 
             _contentStream = contentStream;
-            _contentSize = contentSize;
             _header = header;
+
+            _pageDirectory = new PageDirectoryEntry[_header.pageCount];
+            _contentStream.Position = _header.pageDirectoryOffset;
+            _contentStream.ReadExactly(MemoryMarshal.AsBytes(_pageDirectory.AsSpan()));
 
             return Result.Success();
         }
@@ -119,146 +128,200 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         }
     }
 
+    public int ReadPage(uint pageIndex, Span<byte> dst)
+    {
+        if (_contentStream == null || _pageDirectory == null || pageIndex >= (uint)_pageDirectory.Length)
+        {
+            return 0;
+        }
+
+        ref readonly var dir = ref _pageDirectory[pageIndex];
+        var bytesToRead = (int)dir.uncompressedSize;
+        if (bytesToRead <= 0 || dst.Length < bytesToRead)
+        {
+            return 0;
+        }
+
+        lock (_contentStream)
+        {
+            _contentStream.Position = (long)dir.fileOffset;
+            _contentStream.ReadExactly(dst[..bytesToRead]);
+        }
+
+        return bytesToRead;
+    }
+
     public Result OnRecordUploadCommands(in ResourceStreamingContext context)
     {
-        var headerSize = (uint)sizeof(MeshContentHeader);
-        var size = _contentSize - headerSize;
+        var hierarchyBytes = (uint)_header.hierarchySize;
+        var groupBytes = (uint)_header.groupSize;
+        var meshletBytes = (uint)_header.meshletSize;
+        var metaBytes = hierarchyBytes + groupBytes + meshletBytes;
+        var alignedMetaBytes = (metaBytes + 15u) & ~15u;
+
+        var pageBufferBase = alignedMetaBytes;
+        var rootPageBytes = (uint)_header.rootPageSize;
+
+        var streamingManager = Manager.MeshletStreamingManager;
+        var totalGpuBufferSize = pageBufferBase + (ulong)rootPageBytes;
+
         var desc = new BufferDesc
         {
-            Size = (ulong)size,
+            Size = totalGpuBufferSize,
             Stride = 1,
             Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
             HeapType = HeapType.Default,
         };
 
-        var meshBuffer = ResourceUtility.CreateBuffer(
-            context.ResourceManager,
-            context.ResourceDatabase,
-            context.ResourceAllocator,
-            context.CopyCommandBuffer,
-            _contentStream,
-            size,
-            in desc,
-            "Mesh_Buffer");
-
-        if (meshBuffer.IsInvalid)
+        // Allocate staging memory to assemble GPU buffer
+        var pStaging = (byte*)NativeMemory.AllocZeroed((nuint)totalGpuBufferSize);
+        try
         {
-            return Result.Failure("Failed to create mesh GPU buffer.");
-        }
+            // 1. Hierarchy nodes
+            _contentStream.Position = _header.hierarchyOffset;
+            _contentStream.ReadExactly(new Span<byte>(pStaging, (int)hierarchyBytes));
 
-        var meshData = new MeshData
-        {
-            worldBoundsMin = _header.boundsMin,
-            worldBoundsMax = _header.boundsMax,
-            vertexBufferOffset = (uint)_header.vertexOffset - headerSize,
-            indexBufferOffset = (uint)_header.indexOffset - headerSize,
-            rawBuffer = context.ResourceDatabase.GetBindlessIndex(meshBuffer.AsResource()),
-            meshletBufferOffset = (uint)_header.meshletOffset - headerSize,
-            meshletVerticesBufferOffset = (uint)_header.meshletVertexOffset - headerSize,
-            meshletTrianglesBufferOffset = (uint)_header.meshletTriangleOffset - headerSize,
-            meshletGroupBufferOffset = (uint)_header.meshletGroupOffset - headerSize,
-            meshletHierarchyBufferOffset = (uint)_header.meshletHierarchyNodeOffset - headerSize,
-            meshletCount = (uint)_header.meshletCount,
-            meshletGroupCount = (uint)_header.meshletGroupCount,
-            lodLevelCount = (uint)_header.lodLevelCount,
-            materialSlotCount = (uint)_header.materialSlotCount,
-        };
+            // 2. Groups
+            _contentStream.Position = _header.groupOffset;
+            _contentStream.ReadExactly(new Span<byte>(pStaging + hierarchyBytes, (int)groupBytes));
 
-        var meshDataBufferDesc = new BufferDesc
-        {
-            Size = (ulong)sizeof(MeshData),
-            Stride = (uint)sizeof(MeshData),
-            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-            HeapType = HeapType.Default,
-        };
+            // 3. Meshlets
+            _contentStream.Position = _header.meshletOffset;
+            _contentStream.ReadExactly(new Span<byte>(pStaging + hierarchyBytes + groupBytes, (int)meshletBytes));
 
-        var meshDataBuffer = ResourceUtility.CreateBuffer(
-            context.ResourceManager,
-            context.ResourceDatabase,
-            context.ResourceAllocator,
-            context.CopyCommandBuffer,
-            &meshData,
-            (nuint)sizeof(MeshData),
-            in meshDataBufferDesc,
-            "Mesh_MeshDataBuffer");
+            // 4. Root Page 0
+            _contentStream.Position = _header.rootPageOffset;
+            _contentStream.ReadExactly(new Span<byte>(pStaging + pageBufferBase, (int)rootPageBytes));
 
-        if (meshDataBuffer.IsInvalid)
-        {
-            return Result.Failure("Failed to create mesh data buffer.");
-        }
+            var globalPageOffset = 0u;
+            var rootPageSpan = new ReadOnlySpan<byte>(pStaging + pageBufferBase, (int)rootPageBytes);
+            globalPageOffset = streamingManager.RegisterMesh(this, (uint)_header.pageCount, rootPageSpan);
+            _globalPageTableOffset = globalPageOffset;
 
-        var mesh = new Mesh
-        {
-            IsMeshDataDirty = true,
-            VertexCount = _header.vertexCount,
-            IndexCount = _header.indexCount,
-            MeshBuffer = meshBuffer,
-            MeshDataBuffer = meshDataBuffer,
-            BoundingBox = new AABB(_header.boundsMin, _header.boundsMax),
-            MeshletData = new MeshletMeshData
+            var meshBuffer = ResourceUtility.CreateBuffer(
+                context.ResourceManager,
+                context.ResourceDatabase,
+                context.ResourceAllocator,
+                context.CopyCommandBuffer,
+                pStaging,
+                (nuint)totalGpuBufferSize,
+                in desc,
+                "Mesh_Buffer");
+
+            if (meshBuffer.IsInvalid)
             {
-                meshletCount = _header.meshletCount,
-                meshletGroupCount = _header.meshletGroupCount,
-                lodLevelCount = _header.lodLevelCount,
-                materialSlotCount = _header.materialSlotCount,
-            },
-            VertexBufferOffset = (ulong)_header.vertexOffset,
-            IndexBufferOffset = (ulong)_header.indexOffset,
-            MeshletBufferOffset = (ulong)_header.meshletOffset,
-            MeshletVerticesBufferOffset = (ulong)_header.meshletVertexOffset,
-            MeshletTrianglesBufferOffset = (ulong)_header.meshletTriangleOffset,
-            MeshletGroupBufferOffset = (ulong)_header.meshletGroupOffset,
-            MeshletHierarchyBufferOffset = (ulong)_header.meshletHierarchyNodeOffset,
-        };
+                return Result.Failure("Failed to create mesh GPU buffer.");
+            }
 
-        var newHandle = context.ResourceManager.RegisterMesh(ref mesh);
-        if (newHandle.IsInvalid)
-        {
-            return Result.Failure("Failed to register uploaded mesh.");
+            var meshData = new MeshData
+            {
+                worldBoundsMin = _header.boundsMin,
+                worldBoundsMax = _header.boundsMax,
+                globalPageTableOffset = globalPageOffset,
+                pageCount = (uint)_header.pageCount,
+                rawBuffer = context.ResourceDatabase.GetBindlessIndex(meshBuffer.AsResource()),
+                meshletHierarchyBufferOffset = 0,
+                meshletGroupBufferOffset = hierarchyBytes,
+                meshletBufferOffset = hierarchyBytes + groupBytes,
+                meshletVerticesBufferOffset = pageBufferBase,
+                meshletTrianglesBufferOffset = pageBufferBase,
+                meshletCount = (uint)_header.meshletCount,
+                meshletGroupCount = (uint)_header.meshletGroupCount,
+                lodLevelCount = (uint)_header.lodLevelCount,
+                materialSlotCount = (uint)_header.materialSlotCount,
+            };
+
+            var meshDataBufferDesc = new BufferDesc
+            {
+                Size = (ulong)sizeof(MeshData),
+                Stride = (uint)sizeof(MeshData),
+                Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+                HeapType = HeapType.Default,
+            };
+
+            var meshDataBuffer = ResourceUtility.CreateBuffer(
+                context.ResourceManager,
+                context.ResourceDatabase,
+                context.ResourceAllocator,
+                context.CopyCommandBuffer,
+                &meshData,
+                (nuint)sizeof(MeshData),
+                in meshDataBufferDesc,
+                "Mesh_MeshDataBuffer");
+
+            if (meshDataBuffer.IsInvalid)
+            {
+                return Result.Failure("Failed to create mesh data buffer.");
+            }
+
+            var mesh = new Mesh
+            {
+                IsMeshDataDirty = true,
+                VertexCount = 0,
+                IndexCount = 0,
+                MeshBuffer = meshBuffer,
+                MeshDataBuffer = meshDataBuffer,
+                BoundingBox = new AABB(_header.boundsMin, _header.boundsMax),
+                MeshletData = new MeshletMeshData
+                {
+                    meshletCount = _header.meshletCount,
+                    meshletGroupCount = _header.meshletGroupCount,
+                    lodLevelCount = _header.lodLevelCount,
+                    materialSlotCount = _header.materialSlotCount,
+                },
+                MeshletBufferOffset = hierarchyBytes + groupBytes,
+                MeshletVerticesBufferOffset = pageBufferBase,
+                MeshletTrianglesBufferOffset = pageBufferBase,
+                MeshletGroupBufferOffset = hierarchyBytes,
+                MeshletHierarchyBufferOffset = 0,
+            };
+
+            var newHandle = context.ResourceManager.RegisterMesh(ref mesh);
+            if (newHandle.IsInvalid)
+            {
+                return Result.Failure("Failed to register uploaded mesh.");
+            }
+
+            _tempHandle = newHandle;
+
+            return Result.Success();
         }
-
-        _tempHandle = newHandle;
-
-        return Result.Success();
+        finally
+        {
+            NativeMemory.Free(pStaging);
+        }
     }
 
     public void OnUploadComplete(in ResourceStreamingContext context)
     {
-        try
+        var (dstMeshRef, dstError) = context.ResourceManager.GetMeshReference(_actualHandle);
+        var (srcMeshRef, srcError) = context.ResourceManager.GetMeshReference(_tempHandle);
+        if (dstError.IsFailure || srcError.IsFailure)
         {
-            var (dstMeshRef, dstError) = context.ResourceManager.GetMeshReference(_actualHandle);
-            var (srcMeshRef, srcError) = context.ResourceManager.GetMeshReference(_tempHandle);
-            if (dstError.IsFailure || srcError.IsFailure)
-            {
-                return;
-            }
-
-            ref var dstMesh = ref dstMeshRef.Get();
-            ref var srcMesh = ref srcMeshRef.Get();
-
-            var temp = dstMesh;
-
-            Logger.DebugAssert(!dstMesh.Vertices.IsCreated);
-            Logger.DebugAssert(!dstMesh.Indices.IsCreated);
-
-            dstMesh = srcMesh.Clone();
-
-            dstMesh.IsMeshDataDirty = false;
-
-            dstMesh.MeshBuffer = context.ResourceDatabase.Replace(temp.MeshBuffer.AsResource(), srcMesh.MeshBuffer.AsResource()).AsBuffer();
-            dstMesh.MeshDataBuffer = context.ResourceDatabase.Replace(temp.MeshDataBuffer.AsResource(), srcMesh.MeshDataBuffer.AsResource()).AsBuffer();
-
-            dstMesh.ReleaseCpuResources();
-            context.ResourceManager.ReleaseMesh(_tempHandle);
-            _tempHandle = Handle<Mesh>.Invalid;
-
-            context.CommandBuffer.Barrier(
-                BarrierDesc.Buffer(dstMesh.MeshBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource),
-                BarrierDesc.Buffer(dstMesh.MeshDataBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource));
+            return;
         }
-        finally
-        {
-            _contentStream.Dispose();
-        }
+
+        ref var dstMesh = ref dstMeshRef.Get();
+        ref var srcMesh = ref srcMeshRef.Get();
+
+        var temp = dstMesh;
+
+        Logger.DebugAssert(!dstMesh.Vertices.IsCreated);
+        Logger.DebugAssert(!dstMesh.Indices.IsCreated);
+
+        dstMesh = srcMesh.Clone();
+
+        dstMesh.IsMeshDataDirty = false;
+
+        dstMesh.MeshBuffer = context.ResourceDatabase.Replace(temp.MeshBuffer.AsResource(), srcMesh.MeshBuffer.AsResource()).AsBuffer();
+        dstMesh.MeshDataBuffer = context.ResourceDatabase.Replace(temp.MeshDataBuffer.AsResource(), srcMesh.MeshDataBuffer.AsResource()).AsBuffer();
+
+        dstMesh.ReleaseCpuResources();
+        context.ResourceManager.ReleaseMesh(_tempHandle);
+        _tempHandle = Handle<Mesh>.Invalid;
+
+        context.CommandBuffer.Barrier(
+            BarrierDesc.Buffer(dstMesh.MeshBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource),
+            BarrierDesc.Buffer(dstMesh.MeshDataBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource));
     }
 }

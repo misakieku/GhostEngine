@@ -134,8 +134,8 @@ public partial class AssetManager
 
 internal class SceneAssetEntry : AssetEntry
 {
-    public SceneAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies)
-        : base(manager, resourceDatabase, resourceManager, assetId, AssetType.Scene, dependencies)
+    public SceneAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies, string assetName)
+        : base(manager, resourceDatabase, resourceManager, assetId, AssetType.Scene, dependencies, assetName)
     {
     }
 

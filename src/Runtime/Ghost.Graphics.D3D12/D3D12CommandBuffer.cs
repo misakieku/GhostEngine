@@ -169,7 +169,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         return Result.Success();
     }
 
-    public void SetScissorRect(ScissorRectDesc rect)
+    public void SetScissorRect(RectDesc rect)
     {
         AssertNotDisposed();
         AssertRecording();
@@ -409,7 +409,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                         SyncAfter = syncAfter,
                         AccessBefore = accessBefore,
                         AccessAfter = accessAfter,
-                        LayoutBefore = (D3D12_BARRIER_LAYOUT)beforeLayout,
+                        LayoutBefore = discard ? D3D12_BARRIER_LAYOUT.D3D12_BARRIER_LAYOUT_UNDEFINED : (D3D12_BARRIER_LAYOUT)beforeLayout,
                         LayoutAfter = (D3D12_BARRIER_LAYOUT)desc.LayoutAfter,
                         pResource = resource,
                         Subresources = subresourceRange,
@@ -486,6 +486,41 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         };
 
         pNativeObject->Barrier(1, &barrierGroup);
+    }
+
+    public void DiscardResource(Handle<GPUResource> resource, DiscardDesc? desc)
+    {
+        AssertNotDisposed();
+        AssertRecording();
+        IncrementCommandCount();
+
+        var res = _resourceDatabase.GetResource(resource);
+        if (res.Get() != null)
+        {
+            D3D12_DISCARD_REGION* pDiscardRegion = null;
+            D3D12_DISCARD_REGION d3d12Desc;
+            if (desc.HasValue)
+            {
+                var value = desc.Value;
+                var pRects = stackalloc RECT[value.Rects.Length];
+                for (var i = 0; i < value.Rects.Length; i++)
+                {
+                    pRects[i] = new RECT((int)value.Rects[i].Left, (int)value.Rects[i].Top, (int)value.Rects[i].Right, (int)value.Rects[i].Bottom);
+                }
+
+                d3d12Desc = new D3D12_DISCARD_REGION
+                {
+                    NumRects = (uint)value.Rects.Length,
+                    pRects = pRects,
+                    FirstSubresource = value.FirstSubresource,
+                    NumSubresources = value.NumSubresources
+                };
+
+                pDiscardRegion = &d3d12Desc;
+            }
+
+            NativeObject.Get()->DiscardResource(res.Get(), pDiscardRegion);
+        }
     }
 
     public void SetRenderTargets(ReadOnlySpan<Handle<GPUTexture>> renderTargets, Handle<GPUTexture> depthTarget)

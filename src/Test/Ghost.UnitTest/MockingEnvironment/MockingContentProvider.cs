@@ -67,7 +67,7 @@ internal class MockingContentProvider : IContentProvider
         });
     }
 
-    public void AddMockMesh(Guid guid, int readDelayMs = 0)
+    public unsafe void AddMockMesh(Guid guid, int readDelayMs = 0)
     {
         var vertices = new[]
         {
@@ -87,9 +87,9 @@ internal class MockingContentProvider : IContentProvider
                 boundingSphere = new SphereBounds(new float3(0.5f, 0.5f, 0), 1.0f),
                 parentBoundingSphere = new SphereBounds(new float3(0.5f, 0.5f, 0), 1.0f),
                 boundingBox = new AABB(new float3(0, 0, 0), new float3(1, 1, 0)),
-                vertexOffset = 0,
-                triangleOffset = 0,
-                groupIndex = 0,
+                vertexOffset = (uint)(sizeof(PageHeader) + sizeof(Meshlet)),
+                triangleOffset = (uint)(sizeof(PageHeader) + sizeof(Meshlet) + 3 * sizeof(PackedVertex)),
+                pageIndex = 0,
                 clusterError = 0,
                 parentError = 0,
                 vertexCount = 3,
@@ -108,6 +108,7 @@ internal class MockingContentProvider : IContentProvider
                 meshletStartIndex = 0,
                 meshletCount = 1,
                 lodLevel = 0,
+                pageIndex = 0,
             }
         };
         var hierarchy = new[]
@@ -121,7 +122,12 @@ internal class MockingContentProvider : IContentProvider
                 childCount = 0,
             }
         };
-        var meshletVertices = new uint[] { 0, 1, 2 };
+        var meshletVertices = new PackedVertex[]
+        {
+            PackedVertex.Pack(in vertices[0]),
+            PackedVertex.Pack(in vertices[1]),
+            PackedVertex.Pack(in vertices[2])
+        };
         var meshletTriangles = new uint[] { 0 | (1u << 8) | (2u << 16) };
 
         using var stream = new MemoryStream();
@@ -129,32 +135,67 @@ internal class MockingContentProvider : IContentProvider
         {
             magic = MeshContentHeader.MAGIC,
             version = MeshContentHeader.VERSION,
-            vertexCount = vertices.Length,
-            indexCount = indices.Length,
-            materialPartCount = materialParts.Length,
+            pageCount = 1,
+            rootPageCount = 1,
+            rootMeshletCount = 1,
             meshletCount = meshlets.Length,
             meshletGroupCount = groups.Length,
             meshletHierarchyNodeCount = hierarchy.Length,
-            meshletVertexCount = meshletVertices.Length,
-            meshletTriangleCount = meshletTriangles.Length,
             materialSlotCount = 1,
             lodLevelCount = 1,
             boundsMin = new float3(0, 0, 0),
             boundsMax = new float3(1, 1, 0),
+            boundingSphereCenter = new float3(0.5f, 0.5f, 0),
+            boundingSphereRadius = 1.0f,
+        };
+
+        var pageHeader = new PageHeader
+        {
+            magic = PageHeader.MAGIC,
+            meshletCount = 1,
+            vertexCount = (ushort)meshletVertices.Length,
+            triangleCount = (uint)meshletTriangles.Length,
+            meshletOffset = (uint)sizeof(PageHeader),
+            vertexOffset = (uint)(sizeof(PageHeader) + sizeof(Meshlet)),
+            triangleOffset = (uint)(sizeof(PageHeader) + sizeof(Meshlet) + meshletVertices.Length * sizeof(PackedVertex)),
+            pageIndex = 0,
+            reserved = 0,
+        };
+        var pageDirectory = new[]
+        {
+            new PageDirectoryEntry
+            {
+                fileOffset = 0,
+                compressedSize = (uint)(sizeof(PageHeader) + sizeof(Meshlet) + meshletVertices.Length * sizeof(PackedVertex) + meshletTriangles.Length * sizeof(uint)),
+                uncompressedSize = (uint)(sizeof(PageHeader) + sizeof(Meshlet) + meshletVertices.Length * sizeof(PackedVertex) + meshletTriangles.Length * sizeof(uint)),
+                meshletStartIndex = 0,
+                meshletCount = 1,
+                lodLevel = 0,
+                isRootPage = 1,
+            }
         };
 
         stream.Write(header);
-        header.vertexOffset = stream.Position; stream.Write(vertices);
-        header.indexOffset = stream.Position; stream.Write(indices);
-        header.materialPartOffset = stream.Position; stream.Write(materialParts);
-        header.meshletOffset = stream.Position; stream.Write(meshlets);
-        header.meshletGroupOffset = stream.Position; stream.Write(groups);
-        header.meshletHierarchyNodeOffset = stream.Position; stream.Write(hierarchy);
-        header.meshletVertexOffset = stream.Position; stream.Write(meshletVertices);
-        header.meshletTriangleOffset = stream.Position; stream.Write(meshletTriangles);
+        header.hierarchyOffset = stream.Position; stream.Write(hierarchy); header.hierarchySize = sizeof(MeshletHierarchyNode);
+        header.groupOffset = stream.Position; stream.Write(groups); header.groupSize = sizeof(MeshletGroup);
+        header.meshletOffset = stream.Position; stream.Write(meshlets); header.meshletSize = sizeof(Meshlet);
+        var pageDirPos = stream.Position;
+        header.pageDirectoryOffset = stream.Position; stream.Write(pageDirectory); header.pageDirectorySize = sizeof(PageDirectoryEntry);
+        header.rootPageOffset = stream.Position;
+        stream.Write(pageHeader);
+        stream.Write(meshlets);
+        stream.Write(meshletVertices);
+        stream.Write(meshletTriangles);
+        header.rootPageSize = stream.Position - header.rootPageOffset;
+        header.materialPartOffset = stream.Position; stream.Write(materialParts); header.materialPartSize = sizeof(MeshContentMaterialPart);
 
+        pageDirectory[0].fileOffset = (ulong)header.rootPageOffset;
+        var endPos = stream.Position;
+        stream.Position = pageDirPos;
+        stream.Write(pageDirectory);
         stream.Position = 0;
         stream.Write(header);
+        stream.Position = endPos;
 
         AddMockAsset(guid, new MockAssetData
         {
@@ -167,6 +208,11 @@ internal class MockingContentProvider : IContentProvider
     public Guid VirtualPathToGuid(string path)
     {
         return Guid.Empty;
+    }
+
+    public string VirtualPathFromGuid(Guid guid)
+    {
+        return string.Empty;
     }
 
     public AssetType GetAssetType(Guid guid)

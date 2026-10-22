@@ -107,6 +107,13 @@ public unsafe interface IResourceDatabase : IDisposable
     string? GetResourceName(Handle<GPUResource> handle);
 
     /// <summary>
+    /// Sets the name of the GPU resource associated with the specified handle. This name can be used for debugging and profiling purposes.
+    /// </summary>
+    /// <param name="handle">A handle to the GPU resource for which to set the name. Must reference a valid resource.</param>
+    /// <param name="name">The name to set for the GPU resource.</param>
+    void SetResourceName(Handle<GPUResource> handle, string name);
+
+    /// <summary>
     /// Releases the GPU resource associated with the specified handle, freeing any resources allocated to it.
     /// </summary>
     /// <param name="handle">The handle of the resource to be removed.</param>
@@ -194,8 +201,9 @@ public unsafe interface IResourceDatabase : IDisposable
     /// Creates a slot in the resource database that contains no GPU resource, and returns a handle to that slot. This can be used as a placeholder for a resource that will be created or assigned later, allowing for deferred resource creation and management.
     /// </summary>
     /// <param name="needEmptySrv">Indicates whether the empty resource slot needs a valid SRV (Shader Resource View).</param>
+    /// <param name="name">The name to assign to the empty resource slot.</param>
     /// <returns>The handle to the newly created empty resource slot.</returns>
-    Handle<GPUResource> CreateEmpty(bool needEmptySrv = false);
+    Handle<GPUResource> CreateEmpty(bool needEmptySrv = false, string? name = null);
 
     /// <summary>
     /// Maps a subresource of a GPU resource for CPU access, specifying read and write ranges.

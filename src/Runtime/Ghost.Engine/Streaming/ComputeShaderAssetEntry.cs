@@ -21,8 +21,8 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
 
     internal override AssetState FailureState => _bytecodeReady ? AssetState.Ready : AssetState.Failed;
 
-    public ComputeShaderAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies)
-        : base(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies)
+    public ComputeShaderAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies, string assetName)
+        : base(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName)
     {
         _actualHandle = resourceManager.CreateComputeShader(null);
         if (_actualHandle.IsInvalid)

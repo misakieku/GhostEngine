@@ -34,6 +34,7 @@ internal abstract class RenderGraphPass
     public readonly RenderGraphResourceSet[] resourceReads = new RenderGraphResourceSet[(int)RGResourceType.Count];
     public readonly RenderGraphResourceSet[] resourceWrites = new RenderGraphResourceSet[(int)RGResourceType.Count];
     public readonly RenderGraphResourceSet[] resourceCreates = new RenderGraphResourceSet[(int)RGResourceType.Count];
+    public readonly RenderGraphResourceSet[] resourceDiscards = new RenderGraphResourceSet[(int)RGResourceType.Count];
 
     // Execution state
     public bool culled;
@@ -46,6 +47,7 @@ internal abstract class RenderGraphPass
             resourceReads[i] = new RenderGraphResourceSet(8);
             resourceWrites[i] = new RenderGraphResourceSet(4);
             resourceCreates[i] = new RenderGraphResourceSet(4);
+            resourceDiscards[i] = new RenderGraphResourceSet(4);
         }
     }
 
@@ -74,6 +76,7 @@ internal abstract class RenderGraphPass
             resourceReads[i].Clear();
             resourceWrites[i].Clear();
             resourceCreates[i].Clear();
+            resourceDiscards[i].Clear();
         }
 
         culled = false;

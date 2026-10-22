@@ -674,6 +674,7 @@ internal static unsafe partial class MeshProcessor
         public int materialIndex;
         public AllocationHandle allocationHandle;
         public ClodMesh mesh;
+        public ReadOnlyView<Vertex> vertices;
     }
 
     private static int MeshletOutputCallback(MeshletContext context, ClodGroup group, ReadOnlyView<ClodCluster> clusters)
@@ -694,7 +695,7 @@ internal static unsafe partial class MeshProcessor
 
         if (!meshletData->meshletVertices.IsCreated)
         {
-            meshletData->meshletVertices = new UnsafeList<uint>(128, handle);
+            meshletData->meshletVertices = new UnsafeList<PackedVertex>(128, handle);
         }
 
         if (!meshletData->meshletTriangles.IsCreated)
@@ -766,7 +767,6 @@ internal static unsafe partial class MeshProcessor
                     triangleCount = (byte)triangleCount,
                     vertexOffset = (uint)meshletData->meshletVertices.Count,
                     triangleOffset = (uint)meshletData->meshletTriangles.Count,
-                    groupIndex = groupIndex,
                     clusterError = (group.depth == 0) ? 0.0f : cluster.bounds.error,
                     parentError = group.simplified.error,
                     localMaterialIndex = (byte)materialIndex,
@@ -776,7 +776,9 @@ internal static unsafe partial class MeshProcessor
 
                 for (nuint j = 0; j < cluster.vertexCount; j++)
                 {
-                    meshletData->meshletVertices.Add(cluster.uniqueVertices[j]);
+                    var vIndex = cluster.uniqueVertices[j];
+                    ref readonly var v = ref context.vertices[(int)vIndex];
+                    meshletData->meshletVertices.Add(PackedVertex.Pack(in v));
                 }
 
                 for (nuint j = 0; j < triangleCount; j++)
@@ -872,7 +874,6 @@ internal static unsafe partial class MeshProcessor
                         triangleCount = (byte)triangleCount,
                         vertexOffset = (uint)meshletData->meshletVertices.Count,
                         triangleOffset = (uint)meshletData->meshletTriangles.Count,
-                        groupIndex = groupIndex,
                         clusterError = (group.depth == 0) ? 0.0f : cluster.bounds.error,
                         parentError = group.simplified.error,
                         localMaterialIndex = (byte)materialIndex,
@@ -882,7 +883,9 @@ internal static unsafe partial class MeshProcessor
 
                     for (nuint j = 0; j < cluster.vertexCount; j++)
                     {
-                        meshletData->meshletVertices.Add(cluster.uniqueVertices[j]);
+                        var vIndex = cluster.uniqueVertices[j];
+                    ref readonly var v = ref context.vertices[(int)vIndex];
+                    meshletData->meshletVertices.Add(PackedVertex.Pack(in v));
                     }
 
                     for (nuint j = 0; j < triangleCount; j++)
@@ -988,6 +991,7 @@ internal static unsafe partial class MeshProcessor
                     materialIndex = part.materialIndex,
                     allocationHandle = allocationHandle,
                     mesh = clodMesh,
+                    vertices = vertices,
                 };
 
                 Build(in config, in clodMesh, context, MeshletOutputCallback, allocationHandle);

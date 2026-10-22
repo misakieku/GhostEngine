@@ -46,8 +46,8 @@ public struct FrameData
     public uint directionalLightCount;        // number of directional lights gathered this frame
     public int primaryDirectionalLightIndex;  // index of primary shadow-casting directional light (-1 if none)
     public uint pad0;
-    public uint pad1;
-    public uint pad2;
+    public uint pagePoolBuffer;               // bindless index into Global Page Pool (128KB slabs)
+    public uint pageTableBuffer;              // bindless index into Global Page Table (pageID -> physicalSlot)
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
@@ -253,9 +253,9 @@ public struct ViewData
 public struct MeshData
 {
     public float3 worldBoundsMin;
-    public uint vertexBufferOffset;
+    public uint globalPageTableOffset;
     public float3 worldBoundsMax;
-    public uint indexBufferOffset;
+    public uint pageCount;
 
     public uint rawBuffer;
     public uint meshletBufferOffset;

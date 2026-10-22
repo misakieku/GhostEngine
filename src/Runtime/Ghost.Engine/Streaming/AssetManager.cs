@@ -34,6 +34,7 @@ public interface IContentProvider : IDisposable
 {
     IReadOnlyList<ShaderCatalogEntry> ShaderCatalog { get; }
     Guid VirtualPathToGuid(string path);
+    string VirtualPathFromGuid(Guid guid);
     bool HasAsset(Guid guid);
     Guid[] GetDependencies(Guid guid);
     AssetType GetAssetType(Guid guid);
@@ -114,6 +115,7 @@ public partial class AssetManager : IDisposable
     private readonly IContentProvider _contentProvider;
     private readonly ResourceManager _resourceManager;
     private readonly ResourceStreamingProcessor _streamingProcessor;
+    private readonly MeshletStreamingManager _meshletStreamingManager;
     private readonly JobScheduler _jobScheduler;
     private readonly ShaderVariantRegistry _shaderVariants;
     private readonly ShaderBytecodePool? _bytecodePool;
@@ -122,12 +124,19 @@ public partial class AssetManager : IDisposable
 
     internal IContentProvider ContentProvider => _contentProvider;
     internal ResourceStreamingProcessor StreamingProcessor => _streamingProcessor;
+
     /// <summary>
     /// Dense metadata registry for graphics shader variants.
     /// </summary>
     public ShaderVariantRegistry ShaderVariants => _shaderVariants;
 
-    internal AssetManager(IResourceDatabase resourceDatabase, ResourceManager resourceManager, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler)
+    /// <summary>
+    /// Coordinates meshlet/page-level streaming into the GPU page pool.
+    /// Owned and managed by AssetManager.
+    /// </summary>
+    public MeshletStreamingManager MeshletStreamingManager => _meshletStreamingManager;
+
+    internal AssetManager(IResourceDatabase resourceDatabase, ResourceManager resourceManager, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler, uint frameBufferCount)
     {
         _resourceDatabase = resourceDatabase;
         _resourceManager = resourceManager;
@@ -135,6 +144,8 @@ public partial class AssetManager : IDisposable
         _streamingProcessor = streamingProcessor;
         _jobScheduler = jobScheduler;
         _shaderVariants = new ShaderVariantRegistry(resourceManager, contentProvider.ShaderCatalog);
+        _meshletStreamingManager = new MeshletStreamingManager(resourceManager.ResourceAllocator, resourceDatabase, frameBufferCount);
+        _streamingProcessor.SetMeshletStreamingManager(_meshletStreamingManager);
 
         if (contentProvider.HasAsset(ShaderBytecodePool.POOL_ASSET_ID))
         {
@@ -186,7 +197,9 @@ public partial class AssetManager : IDisposable
         {
             var type = _contentProvider.GetAssetType(guid);
             var deps = _contentProvider.GetDependencies(guid);
-            var newEntry = AssetEntryFactory.CreateNewEntry(this, _resourceDatabase, _resourceManager, guid, type, deps);
+            var name = _contentProvider.VirtualPathFromGuid(guid);
+
+            var newEntry = AssetEntryFactory.CreateNewEntry(this, _resourceDatabase, _resourceManager, guid, type, deps, name);
 
             entry = _entries.GetOrAdd(guid, newEntry);
             if (ReferenceEquals(entry, newEntry))
@@ -482,6 +495,7 @@ public partial class AssetManager : IDisposable
         _shaderVariants.Dispose();
         _bytecodePool?.Dispose();
         _contentProvider.Dispose();
+        _meshletStreamingManager.Dispose();
 
         GC.SuppressFinalize(this);
     }

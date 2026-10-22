@@ -1,5 +1,8 @@
 # GhostEngine — Agent Guidelines
 
+> [!IMPORTANT]
+> This is a WIP engine with 0 user base, backward capability make no senses.
+
 ## Repository Overview
 
 GhostEngine is a C# game engine targeting .NET 10 / Windows, built around:
@@ -122,6 +125,8 @@ dotnet run --project Test/Ghost.MicroTest/Ghost.MicroTest.csproj
 
 To run a specific test class, edit `Program.cs` to call `TestRunner.Run<YourTest>()`. The project has `PublishAot=true` and references BenchmarkDotNet.
 
+This will be your c# playground.
+
 ### TestGame — AOT Entry Point
 
 `TestGame` is a `WinExe` with `PublishAot=true`, `<IsGameProject>true</IsGameProject>`, and `InvariantGlobalization=true`. It serves as a buildable entry point that exercises the full engine pipeline (ECS → graphics → asset baking).
@@ -132,7 +137,7 @@ To run a specific test class, edit `Program.cs` to call `TestRunner.Run<YourTest
 
 ### EditorConfig (enforced — `src/.editorconfig`)
 
-- Max line length: **200** (**NEVER WRITE PARAMETERS OF A METHOD IN MULTIPLE LINES IF THERE ARE SHORTER THAN 200*)
+- Max line length: **200** (**NEVER WRITE PARAMETERS OF A METHOD IN MULTIPLE LINES IF THERE ARE SHORTER THAN 200**)
 - Opening braces always on a **new line** for all C# constructs
 - Single-line statements/blocks **preserved**
 - **No** primary constructors (`csharp_style_prefer_primary_constructors = false`)
@@ -178,6 +183,8 @@ Use public fields only for data-container structs. Prefer private field + public
 - Unsafe and pointer as second nature.
 - Native memory over managed memory when it's necessary and possible.
 - Prefer stateless over stateful in classes like compiler, utility, processor, etc.
+- Never hardcoded.
+- Single source of truth.
 
 ### Types &amp; Structs
 

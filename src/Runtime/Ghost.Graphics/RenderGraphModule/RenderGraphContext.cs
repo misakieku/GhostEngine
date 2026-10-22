@@ -38,12 +38,13 @@ public interface IRenderGraphContext
     void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset = 0, Handle<GPUBuffer> countBuffer = default, ulong countBufferOffset = 0);
 
     void ClearBuffer(Identifier<RGBuffer> buffer, uint sizeInBytes, uint clearValue = 0, uint dstOffset = 0);
+    void DiscardResource(Identifier<RGResource> resource, DiscardDesc? desc);
 }
 
 public interface IRasterRenderContext : IRenderGraphContext
 {
     void SetViewport(ViewportDesc desc);
-    void SetScissorRect(ScissorRectDesc desc);
+    void SetScissorRect(RectDesc desc);
 
     void SetActiveMaterial(Handle<Material> material);
     void SetActiveMaterial(scoped in Material material);
@@ -289,7 +290,7 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
         _commandBuffer.SetViewport(desc);
     }
 
-    public void SetScissorRect(ScissorRectDesc desc)
+    public void SetScissorRect(RectDesc desc)
     {
         _commandBuffer.SetScissorRect(desc);
     }
@@ -697,6 +698,12 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
             _resourceDatabase.UnmapResource(tempBuffer.AsResource(), 0, null);
             _commandBuffer.CopyBuffer(GetActualBuffer(buffer), tempBuffer, dstOffset, 0, sizeInBytes);
         }
+    }
+
+    public void DiscardResource(Identifier<RGResource> resource, DiscardDesc? desc)
+    {
+        var actual = GetActualResource(resource);
+        _commandBuffer.DiscardResource(actual, desc);
     }
 
     public ICommandBuffer GetCommandBufferUnsafe()

@@ -34,12 +34,14 @@ internal unsafe partial class GhostRenderPipeline
         public Identifier<RGBuffer> visibleMeshletsPass1;
         public Identifier<RGBuffer> occludedMeshlets;
         public Identifier<RGBuffer> counterBuffer;
+        public Identifier<RGBuffer> streamingRequestsBuffer;
         public Identifier<RGTexture> hzbTexture;
         public uint hzbMipCount;
         public uint2 renderSize;
         public uint2 hzbBaseSize;
         public uint instanceCount;
         public uint maxVisibleMeshlets;
+        public uint maxStreamingRequests;
         public float lodErrorThreshold;
         public float cullingThreshold;
         public uint threadGroupCount;
@@ -200,9 +202,12 @@ internal unsafe partial class GhostRenderPipeline
             Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
         }, "CounterBuffer");
 
+        var streamingRequests = rg.ImportBuffer(_assetManager.MeshletStreamingManager.StreamingRequestsGpuBuffer, ResourceBarrierData.UnorderedAccess, ResourceBarrierData.UnorderedAccess);
+
         builder.UseBuffer(visibleMeshlets, AccessFlags.Write);
         builder.UseBuffer(occludedMeshlets, AccessFlags.Write);
         builder.UseBuffer(counterBuffer, AccessFlags.ReadWrite);
+        builder.UseBuffer(streamingRequests, AccessFlags.ReadWrite);
         builder.UseTexture(hzbTexture, AccessFlags.Read);
 
         var cullPassSemantic = (uint)PassSemantic.Visibility;
@@ -222,12 +227,14 @@ internal unsafe partial class GhostRenderPipeline
             visibleMeshletsPass1 = visibleMeshlets,
             occludedMeshlets = occludedMeshlets,
             counterBuffer = counterBuffer,
+            streamingRequestsBuffer = streamingRequests,
             hzbTexture = hzbTexture,
             hzbMipCount = hzbMipCount,
             renderSize = screenSize,
             hzbBaseSize = hzbBaseSize,
             instanceCount = instanceCount,
             maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
+            maxStreamingRequests = _assetManager.MeshletStreamingManager.MaxStreamingRequestsPerFrame,
             lodErrorThreshold = _settings.MeshletLodErrorThreshold,
             cullingThreshold = _settings.InstanceCullingThreshold,
             threadGroupCount = Math.Max(1u, (instanceCount + 63) / 64),
@@ -250,6 +257,7 @@ internal unsafe partial class GhostRenderPipeline
             var visibleUav = computeCtx.GetActualBindlessIndex(passData.visibleMeshletsPass1, BindlessAccess.UnorderedAccess);
             var occludedUav = computeCtx.GetActualBindlessIndex(passData.occludedMeshlets, BindlessAccess.UnorderedAccess);
             var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
+            var streamingRequestsUav = computeCtx.GetActualBindlessIndex(passData.streamingRequestsBuffer, BindlessAccess.UnorderedAccess);
 
             var hzbTextureIndex = (passData.hzbMipCount > 0 && passData.hzbTexture.IsValid)
                 ? computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.hzbTexture).AsResource(), BindlessAccess.ShaderResource)
@@ -272,6 +280,8 @@ internal unsafe partial class GhostRenderPipeline
                 hzbBaseWidth = passData.hzbBaseSize.x,
                 hzbBaseHeight = passData.hzbBaseSize.y,
                 cullPassSemantic = passData.cullPassSemantic,
+                streamingRequestsUav = streamingRequestsUav,
+                maxStreamingRequests = passData.maxStreamingRequests,
                 _padding = default,
                 supportedVariantMask0 = passData.supportedVariantMask0,
                 supportedVariantMask1 = passData.supportedVariantMask1,

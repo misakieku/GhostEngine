@@ -24,8 +24,9 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
 
     internal override AssetState FailureState => _bytecodeReady ? AssetState.Ready : AssetState.Failed;
 
-    public WorkGraphAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies)
-        : base(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies)
+
+    public WorkGraphAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies, string assetName)
+        : base(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName)
     {
     }
 

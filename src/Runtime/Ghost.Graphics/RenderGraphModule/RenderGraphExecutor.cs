@@ -40,7 +40,7 @@ internal sealed class RenderGraphExecutor : IDisposable
         Logger.DebugAssert(color.Length > 0 || depthStencil.texture.IsValid);
 
         ViewportDesc viewportDesc = default;
-        ScissorRectDesc scissorDesc = default;
+        RectDesc scissorDesc = default;
 
         if (depthStencil.texture.IsValid)
         {
@@ -54,7 +54,7 @@ internal sealed class RenderGraphExecutor : IDisposable
                 MaxDepth = 1
             };
 
-            scissorDesc = new ScissorRectDesc
+            scissorDesc = new RectDesc
             {
                 Left = 0,
                 Top = 0,
@@ -74,7 +74,7 @@ internal sealed class RenderGraphExecutor : IDisposable
                 MaxDepth = 1
             };
 
-            scissorDesc = new ScissorRectDesc
+            scissorDesc = new RectDesc
             {
                 Left = 0,
                 Top = 0,
@@ -503,7 +503,7 @@ internal sealed class RenderGraphExecutor : IDisposable
         }
 
         var forceGraphics = flags.HasFlag(RGFlags.ForceGraphics);
-        using var scope = Misaki.HighPerformance.LowLevel.Buffer.AllocationManager.CreateStackScope();
+        using var scope = AllocationManager.CreateStackScope();
         using var barriers = new UnsafeList<BarrierDesc>(16, scope.AllocationHandle);
 
         for (var i = 0; i < barrierCount; i++)

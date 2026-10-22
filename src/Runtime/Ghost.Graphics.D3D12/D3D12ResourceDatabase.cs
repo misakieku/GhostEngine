@@ -176,13 +176,13 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             var id = _resources.Add(new ResourceRecord(pResource, viewGroup, desc), out var generation);
             var handle = new Handle<GPUResource>(id, generation);
 
-#if GHOST_SAFETY_CHECKS
             if (!string.IsNullOrEmpty(name))
             {
                 pResource->SetName(name);
+#if GHOST_SAFETY_CHECKS
                 _resourceName[handle] = name;
-            }
 #endif
+            }
 
             return handle;
         }
@@ -205,13 +205,13 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             var id = _resources.Add(new ResourceRecord(allocation, resourceDescriptor, desc), out var generation);
             var handle = new Handle<GPUResource>(id, generation);
 
-#if GHOST_SAFETY_CHECKS
             if (!string.IsNullOrEmpty(name))
             {
                 allocation->SetName(name);
+#if GHOST_SAFETY_CHECKS
                 _resourceName[handle] = name;
-            }
 #endif
+            }
 
             return handle;
         }
@@ -401,6 +401,29 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
     public void ReleaseRawBufferSRV(uint descriptorIndex)
     {
         _descriptorAllocator.Release(new Identifier<CbvSrvUavDescriptor>((int)descriptorIndex));
+    }
+
+    public void SetResourceName(Handle<GPUResource> handle, string name)
+    {
+        Logger.DebugAssert(!_disposed);
+
+        if (handle.IsInvalid)
+        {
+            return;
+        }
+
+        if (!_resources.TryGetElementAt(handle.ID, handle.Generation, out var record))
+        {
+            return;
+        }
+
+        if (record.Allocated)
+        {
+            record.ResourcePtr.Get()->SetName(name);
+#if GHOST_SAFETY_CHECKS
+            _resourceName[handle] = name;
+#endif
+        }
     }
 
     public string? GetResourceName(Handle<GPUResource> handle)
@@ -599,7 +622,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         }
     }
 
-    public Handle<GPUResource> CreateEmpty(bool needEmptySrv = false)
+    public Handle<GPUResource> CreateEmpty(bool needEmptySrv = false, string? name = null)
     {
         lock (_writeLock)
         {
@@ -630,7 +653,15 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             };
 
             var id = _resources.Add(record, out var generation);
-            return new Handle<GPUResource>(id, generation);
+            var handle = new Handle<GPUResource>(id, generation);
+
+#if GHOST_SAFETY_CHECKS
+            if (!string.IsNullOrEmpty(name))
+            {
+                _resourceName[handle] = name;
+            }
+#endif
+            return handle;
         }
     }
 

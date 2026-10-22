@@ -58,6 +58,23 @@ void VisibilityWritePixelAtomic(TEXTURE2D visBufferIndex, uint2 pixelCoord, floa
 
 #define VISIBILITY_MS_THREADS 64
 
+struct SharedMeshletState
+{
+    float4x4 worldViewProj;
+    uint pageBufferIndex;
+    uint pageBase;
+    uint vertexOffset;
+    uint triangleOffset;
+    uint vertexCount;
+    uint triangleCount;
+    uint visibleMeshletIndex;
+    uint localMaterialIndex;
+    uint materialBufferIndex;
+    uint variantIndex;
+    float doubleSided;
+};
+
+groupshared SharedMeshletState s_Meshlet;
 groupshared float4 g_VertexPositions[MAX_VERTICES_PER_MESHLET];
 
 [numthreads(VISIBILITY_MS_THREADS, 1, 1)]
@@ -69,67 +86,90 @@ void MSMain(
     out indices uint3 outTris[MAX_TRIANGLES_PER_MESHLET],
     out primitives VisibilityPrimitiveOutput outPrims[MAX_TRIANGLES_PER_MESHLET])
 {
-    ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
-    
-    BYTE_ADDRESS_BUFFER visibleBufferIndex = g_PushConstantData.userData0;
-    BYTE_ADDRESS_BUFFER binOffsetsIndex = g_PushConstantData.userData2;
-    uint targetVariantIndex = g_PushConstantData.userData3 >> 1u;
-    uint passBit = (g_PushConstantData.userData3 & 1u) << 23u;
-
-    ByteAddressBuffer binOffsetsBuffer = GET_BUFFER(binOffsetsIndex);
-    
-    uint binStartOffset = binOffsetsBuffer.Load(targetVariantIndex * 4u);
-    uint binnedSlot = binStartOffset + groupID;
-
-    StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = GET_BUFFER(visibleBufferIndex);
-    VisibleMeshletEntry visible = visibleMeshlets[binnedSlot];
-
-    InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
-    MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
-    Meshlet meshlet = LoadMeshlet(visible.meshletIndex, meshData);
-
-    ByteAddressBuffer rawMeshBuffer = GET_BUFFER(meshData.rawBuffer);
-    
-    uint vertexCount = meshlet.packedCounts & 0xFFu;
-    uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
-    uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
-
-    uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer,g_FrameData.materialIndexBuffer,instanceData.materialPaletteIndex, localMaterialIndex);
-
-    uint materialBufferIndex = UnpackMaterialByteOffset(packedMaterial);
-    uint variantIndex = UnpackMaterialVariantIndex(packedMaterial);
-    
-    float doubleSided = asfloat(matBuf.Load(materialBufferIndex + 12u));
-
-    SetMeshOutputCounts(vertexCount, triangleCount);
-    
-    float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
-    float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, localToRWS);
-
-    if (groupThreadID < vertexCount)
+    if (groupThreadID == 0)
     {
-        uint vIndex = LoadMeshletVertexIndex(groupThreadID, meshData, meshlet);
-        
-        float2 uv = LoadVertexUVOnly(rawMeshBuffer, meshData.vertexBufferOffset, vIndex); // v.uv;
-        float3 pos = LoadVertexPositionOnly(rawMeshBuffer, meshData.vertexBufferOffset, vIndex); // v.position;
-        float4 clipPos = mul(worldViewProj, float4(pos, 1.0f));
-        
+        ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
+
+        BYTE_ADDRESS_BUFFER visibleBufferIndex = g_PushConstantData.userData0;
+        BYTE_ADDRESS_BUFFER binOffsetsIndex = g_PushConstantData.userData2;
+        uint targetVariantIndex = g_PushConstantData.userData3 >> 1u;
+        uint passBit = (g_PushConstantData.userData3 & 1u) << 23u;
+
+        ByteAddressBuffer binOffsetsBuffer = GET_BUFFER(binOffsetsIndex);
+
+        uint binStartOffset = binOffsetsBuffer.Load(targetVariantIndex * 4u);
+        uint binnedSlot = binStartOffset + groupID;
+
+        StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = GET_BUFFER(visibleBufferIndex);
+        VisibleMeshletEntry visible = visibleMeshlets[binnedSlot];
+
+        InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
+        MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
+        Meshlet meshlet = LoadMeshlet(visible.meshletIndex, meshData);
+
+        uint vertexCount = meshlet.packedCounts & 0xFFu;
+        uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
+        uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
+
+        uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
+
+        uint materialBufferIndex = UnpackMaterialByteOffset(packedMaterial);
+        uint variantIndex = UnpackMaterialVariantIndex(packedMaterial);
+
+        float doubleSided = asfloat(matBuf.Load(materialBufferIndex + 12u));
+
+        float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
+        float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, localToRWS);
+
+        BYTE_ADDRESS_BUFFER pageBufferIndex;
+        uint pageBase;
+        GetMeshletPageBufferAndBase(meshData, meshlet.pageIndex, pageBufferIndex, pageBase);
+
+        s_Meshlet.worldViewProj = worldViewProj;
+        s_Meshlet.pageBufferIndex = pageBufferIndex;
+        s_Meshlet.pageBase = pageBase;
+        s_Meshlet.vertexOffset = meshlet.vertexOffset;
+        s_Meshlet.triangleOffset = meshlet.triangleOffset;
+        s_Meshlet.vertexCount = vertexCount;
+        s_Meshlet.triangleCount = triangleCount;
+        s_Meshlet.visibleMeshletIndex = (binnedSlot & 0x7FFFFFu) | passBit;
+        s_Meshlet.localMaterialIndex = localMaterialIndex;
+        s_Meshlet.materialBufferIndex = materialBufferIndex;
+        s_Meshlet.variantIndex = variantIndex;
+        s_Meshlet.doubleSided = doubleSided;
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    SetMeshOutputCounts(s_Meshlet.vertexCount, s_Meshlet.triangleCount);
+
+    if (groupThreadID < s_Meshlet.vertexCount)
+    {
+        ByteAddressBuffer pageBuffer = GET_BUFFER(s_Meshlet.pageBufferIndex);
+        uint vOffset = s_Meshlet.pageBase + s_Meshlet.vertexOffset + groupThreadID * PACKED_VERTEX_STRIDE;
+
+        float3 pos = asfloat(pageBuffer.Load3(vOffset));
+        float2 uv = UnpackHalf2(pageBuffer.Load(vOffset + 16u));
+
+        float4 clipPos = mul(s_Meshlet.worldViewProj, float4(pos, 1.0f));
+
         g_VertexPositions[groupThreadID] = clipPos;
 
         outVerts[groupThreadID].position = clipPos;
         outVerts[groupThreadID].uv = uv;
-        outVerts[groupThreadID].visibleMeshletIndex = (binnedSlot & 0x7FFFFFu) | passBit;
-        outVerts[groupThreadID].localMaterialIndex = localMaterialIndex;
-        outVerts[groupThreadID].materialBufferIndex = materialBufferIndex;
-        outVerts[groupThreadID].variantIndex = variantIndex;
+        outVerts[groupThreadID].visibleMeshletIndex = s_Meshlet.visibleMeshletIndex;
+        outVerts[groupThreadID].localMaterialIndex = s_Meshlet.localMaterialIndex;
+        outVerts[groupThreadID].materialBufferIndex = s_Meshlet.materialBufferIndex;
+        outVerts[groupThreadID].variantIndex = s_Meshlet.variantIndex;
     }
 
     GroupMemoryBarrierWithGroupSync();
 
     [unroll(2)]
-    for (uint primId = groupThreadID; primId < triangleCount; primId += VISIBILITY_MS_THREADS)
+    for (uint primId = groupThreadID; primId < s_Meshlet.triangleCount; primId += VISIBILITY_MS_THREADS)
     {
-        uint packedIndices = LoadPackedIndices(primId, meshData, meshlet);
+        ByteAddressBuffer pageBuffer = GET_BUFFER(s_Meshlet.pageBufferIndex);
+        uint packedIndices = pageBuffer.Load(s_Meshlet.pageBase + s_Meshlet.triangleOffset + primId * PACKED_TRIANGLE_STRIDE);
         uint3 indices = uint3(packedIndices & 0xFF, (packedIndices >> 8) & 0xFF, (packedIndices >> 16) & 0xFF);
 
         float4 v0 = g_VertexPositions[indices.x];
@@ -140,7 +180,7 @@ void MSMain(
         outPrims[primId].primitiveID = primId;
 
         bool isCulled = false;
-        if (doubleSided == 0.0f)
+        if (s_Meshlet.doubleSided == 0.0f)
         {
             isCulled = !IsTriangleFrontFacing(v0, v1, v2);
             if (!isCulled)
@@ -148,7 +188,7 @@ void MSMain(
                 isCulled = IsTriangleOutsideFrustum(v0, v1, v2);
             }
         }
-        
+
         outPrims[primId].cullPrim = isCulled;
     }
 }

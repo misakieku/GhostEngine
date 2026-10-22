@@ -17,32 +17,34 @@ public struct MaterialPartInfo
     public int indexCount;
 }
 
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential, Size = 80)]
 public struct Meshlet
 {
     public SphereBounds boundingSphere;         // 16 bytes
     public SphereBounds parentBoundingSphere;   // 16 bytes
     public AABB boundingBox;                    // 24 bytes
-    public uint vertexOffset;                   // offset into meshlet vertex index array
-    public uint triangleOffset;                 // offset into packed triangle array
-    public uint groupIndex;                     // owning group
-    public float clusterError;                  // geometric error of this meshlet/cluster
-    public float parentError;                   // geometric refinement error carried into runtime LOD tests
-    public byte vertexCount;                    // max 64
-    public byte triangleCount;                  // max 124
-    public byte localMaterialIndex;             // mesh-local material slot
-    public byte lodLevel;                       // this meshlet's LOD level
+    public uint vertexOffset;                   // 4 bytes (byte offset from page start to PackedVertex[])
+    public uint triangleOffset;                 // 4 bytes (byte offset from page start to uint[] micro-triangles)
+    public uint pageIndex;                      // 4 bytes (owning page index)
+    public float clusterError;                  // 4 bytes (geometric error of this meshlet/cluster)
+    public float parentError;                   // 4 bytes (geometric refinement error carried into runtime LOD tests)
+    public byte vertexCount;                    // 1 byte (max 64)
+    public byte triangleCount;                  // 1 byte (max 124)
+    public byte localMaterialIndex;             // 1 byte (mesh-local material slot)
+    public byte lodLevel;                       // 1 byte (this meshlet's LOD level)
 }
 
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential, Size = 64)]
 public struct MeshletGroup
 {
     public SphereBounds boundingSphere;         // 16 bytes
     public AABB boundingBox;                    // 24 bytes
-    public float parentError;                   // error of refining to the previous level
-    public uint meshletStartIndex;              // contiguous meshlet range
-    public uint meshletCount;                   // number of meshlets in the group
-    public uint lodLevel;                       // group LOD level
+    public float parentError;                   // 4 bytes
+    public uint meshletStartIndex;              // 4 bytes (contiguous meshlet range)
+    public uint meshletCount;                   // 4 bytes (number of meshlets in the group)
+    public uint lodLevel;                       // 4 bytes (group LOD level)
+    public uint pageIndex;                      // 4 bytes (page owning this group)
+    public uint childPageIndex;                 // 4 bytes (page index of finer LOD child representation, 0xFFFFFFFF if finest/LOD 0)
 }
 
 [StructLayout(LayoutKind.Sequential, Size = 32)]
@@ -61,7 +63,7 @@ public struct MeshletMeshData : IDisposable
     public UnsafeList<Meshlet> meshlets;
     public UnsafeList<MeshletGroup> groups;
     public UnsafeList<MeshletHierarchyNode> hierarchyNodes;
-    public UnsafeList<uint> meshletVertices;
+    public UnsafeList<PackedVertex> meshletVertices;
     public UnsafeList<uint> meshletTriangles;
     public int meshletCount;
     public int meshletGroupCount;
@@ -95,33 +97,39 @@ public struct MeshletMeshData : IDisposable
 public struct MeshContentHeader
 {
     public const uint MAGIC = 0x48534D47; // GMSH
-    public const uint VERSION = 2;
+    public const uint VERSION = 3;
 
     public uint magic;
     public uint version;
 
-    public int vertexCount;
-    public int indexCount;
-    public int materialPartCount;
     public int meshletCount;
     public int meshletGroupCount;
     public int meshletHierarchyNodeCount;
-    public int meshletVertexCount;
-    public int meshletTriangleCount;
     public int materialSlotCount;
     public int lodLevelCount;
+    public int pageCount;
+    public int rootPageCount;
+    public int rootMeshletCount;
 
     public float3 boundsMin;
     public float3 boundsMax;
+    public float3 boundingSphereCenter;
+    public float boundingSphereRadius;
 
-    public long vertexOffset;
-    public long indexOffset;
-    public long materialPartOffset;
+    public long hierarchyOffset;
+    public long hierarchySize;
+    public long groupOffset;
+    public long groupSize;
     public long meshletOffset;
-    public long meshletGroupOffset;
-    public long meshletHierarchyNodeOffset;
-    public long meshletVertexOffset;
-    public long meshletTriangleOffset;
+    public long meshletSize;
+    public long pageDirectoryOffset;
+    public long pageDirectorySize;
+    public long rootPageOffset;
+    public long rootPageSize;
+    public long bulkPagesOffset;
+    public long bulkPagesSize;
+    public long materialPartOffset;
+    public long materialPartSize;
 }
 
 [StructLayout(LayoutKind.Sequential)]
