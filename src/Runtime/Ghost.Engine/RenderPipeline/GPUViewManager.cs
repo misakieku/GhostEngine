@@ -118,7 +118,9 @@ public sealed class GPUViewContext : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ComputeHZBDimensions(uint2 renderSize, out uint2 hzbSize, out uint hzbMipCount)
     {
-        hzbSize = new uint2(Math.Max(1u, (renderSize.x + 1) / 2), Math.Max(1u, (renderSize.y + 1) / 2));
+        var potWidth = System.Numerics.BitOperations.RoundUpToPowerOf2(renderSize.x);
+        var potHeight = System.Numerics.BitOperations.RoundUpToPowerOf2(renderSize.y);
+        hzbSize = new uint2(Math.Max(1u, potWidth >> 1), Math.Max(1u, potHeight >> 1));
 
         var calculatedMipCount = (uint)Math.Floor(Math.Log2(Math.Max(hzbSize.x, hzbSize.y))) + 1;
         hzbMipCount = Math.Clamp(calculatedMipCount, 1u, 16u);
@@ -146,14 +148,27 @@ public sealed class GPUViewContext : IDisposable
         HzbSize = baseSize;
         HzbMipCount = hzbMipCount;
 
-        if (!HzbTexture.IsValid)
+        if (RenderSize.x != renderSize.x || RenderSize.y != renderSize.y)
         {
-            HzbTexture = _database.CreateEmpty(name: "Hzb").AsTexture();
-            prevViewProjMatrix = default; // Zero out so first frame is not static
-            prevCameraPosition = default;
-        }
-        else if (RenderSize.x != renderSize.x || RenderSize.y != renderSize.y)
-        {
+            if (HzbTexture.IsValid)
+            {
+                _database.ReleaseResource(HzbTexture.AsResource());
+                HzbTexture = Handle<GPUTexture>.Invalid;
+            }
+
+            var hzbDesc = new TextureDesc
+            {
+                Dimension = TextureDimension.Texture2D,
+                Width = HzbSize.x,
+                Height = HzbSize.y,
+                MipLevels = HzbMipCount,
+                Format = TextureFormat.R32_Float,
+                Usage = TextureUsage.ShaderResource | TextureUsage.UnorderedAccess,
+                Slice = 1,
+            };
+
+            HzbTexture = _allocator.CreateTexture(in hzbDesc, "HZB Texture");
+
             prevViewProjMatrix = default; // Zero out so resize is not static
             prevCameraPosition = default;
         }

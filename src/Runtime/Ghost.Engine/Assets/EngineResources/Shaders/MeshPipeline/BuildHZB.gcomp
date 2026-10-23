@@ -32,118 +32,6 @@ compute "Internal/BuildHZB"
                 ((i >> 1) & 3) | ((i >> 3) & 4));
         }
 
-    #if 0 // Wave intrinsics is even slower than the shared memory version due to WaveReadLaneAt and laneID ^ x
-        // Only needed when merging Mip 3 across Waves in Wave32, only occupies 4 bytes
-        groupshared float s_wave1Min;
-
-        [numthreads(64, 1, 1)]
-        void CSMain(
-            uint threadID : SV_GroupThreadID,
-            uint3 groupID : SV_GroupID)
-        {
-            InternalBuildHZBShaderProperties properties = LoadData<InternalBuildHZBShaderProperties>(g_PushConstantData.userData0, 0);
-
-            int2 dstCoord0 = (int2)((groupID.xy << 3) | CoordInTileByIndex(threadID));
-            int2 readOffsetUL = dstCoord0 << 1;
-
-            int2 srcCoord00 = min(readOffsetUL + int2(0, 0), (int2)properties.srcLimit);
-            int2 srcCoord10 = min(readOffsetUL + int2(1, 0), (int2)properties.srcLimit);
-            int2 srcCoord01 = min(readOffsetUL + int2(0, 1), (int2)properties.srcLimit);
-            int2 srcCoord11 = min(readOffsetUL + int2(1, 1), (int2)properties.srcLimit);
-
-            float p00, p10, p01, p11;
-            if (properties.isFirstBatch != 0)
-            {
-                Texture2D<uint2> visBuffer = GET_TEXTURE2D(properties.srcBuffer);
-                p00 = asfloat(visBuffer[srcCoord00].y);
-                p10 = asfloat(visBuffer[srcCoord10].y);
-                p01 = asfloat(visBuffer[srcCoord01].y);
-                p11 = asfloat(visBuffer[srcCoord11].y);
-            }
-            else
-            {
-                RWTexture2D<float> srcMip = GET_TEXTURE2D(properties.srcUavMip);
-                p00 = srcMip[srcCoord00];
-                p10 = srcMip[srcCoord10];
-                p01 = srcMip[srcCoord01];
-                p11 = srcMip[srcCoord11];
-            }
-
-            float minDepth = min(min(p00, p10), min(p01, p11));
-
-            // Write Mip 0
-            if (properties.minDstCount >= 1 && all(dstCoord0 < (int2)properties.dstSize01.xy))
-            {
-                RWTexture2D<float> dstMip0 = GET_TEXTURE2D(properties.dstUavMip0);
-                dstMip0[dstCoord0] = minDepth;
-            }
-
-            uint laneID = WaveGetLaneIndex();
-            
-            // Mip 1
-            minDepth = min(minDepth, WaveReadLaneAt(minDepth, laneID ^ 1));
-            minDepth = min(minDepth, WaveReadLaneAt(minDepth, laneID ^ 2));
-
-            if (properties.minDstCount >= 2 && (threadID & 0x3) == 0)
-            {
-                int2 dstCoord1 = dstCoord0 >> 1;
-                if (all(dstCoord1 < (int2)properties.dstSize01.zw))
-                {
-                    RWTexture2D<float> dstMip1 = GET_TEXTURE2D(properties.dstUavMip1);
-                    dstMip1[dstCoord1] = minDepth;
-                }
-            }
-
-            // Mip 2
-            minDepth = min(minDepth, WaveReadLaneAt(minDepth, laneID ^ 4));
-            minDepth = min(minDepth, WaveReadLaneAt(minDepth, laneID ^ 8));
-
-            if (properties.minDstCount >= 3 && (threadID & 0xF) == 0)
-            {
-                int2 dstCoord2 = dstCoord0 >> 2;
-                if (all(dstCoord2 < (int2)properties.dstSize23.xy))
-                {
-                    RWTexture2D<float> dstMip2 = GET_TEXTURE2D(properties.dstUavMip2);
-                    dstMip2[dstCoord2] = minDepth;
-                }
-            }
-
-            // Mip 3
-            // Cut the 32 threads in half first (Lane 0 gets the extreme value of the current Wave)
-            minDepth = min(minDepth, WaveReadLaneAt(minDepth, laneID ^ 16));
-
-            if (WaveGetLaneCount() >= 64)
-            {
-                // For AMD Wave64: 2 waves cooperate, need 1 sync and 1 float exchange
-                minDepth = min(minDepth, WaveReadLaneAt(minDepth, laneID ^ 32));
-            }
-            else
-            {
-                // For NVIDIA Wave32: 2 waves cooperate, need 1 sync and 1 float exchange
-                if (threadID == 32)
-                {
-                    s_wave1Min = minDepth;
-                }
-
-                GroupMemoryBarrierWithGroupSync();
-
-                if (threadID == 0)
-                {
-                    minDepth = min(minDepth, s_wave1Min);
-                }
-            }
-
-            if (properties.minDstCount >= 4 && threadID == 0)
-            {
-                int2 dstCoord3 = dstCoord0 >> 3;
-                if (all(dstCoord3 < (int2)properties.dstSize23.zw))
-                {
-                    RWTexture2D<float> dstMip3 = GET_TEXTURE2D(properties.dstUavMip3);
-                    dstMip3[dstCoord3] = minDepth;
-                }
-            }
-        }
-    #else
         groupshared float s_minDepth[32];
         
         void SubgroupMergeDepths(uint threadID, uint bitIndex, inout float minDepth)
@@ -163,7 +51,6 @@ compute "Internal/BuildHZB"
             }
             GroupMemoryBarrierWithGroupSync();
         }
-
         
         [numthreads(64, 1, 1)]
         void CSMain(
@@ -175,19 +62,19 @@ compute "Internal/BuildHZB"
             int2 dstCoord0 = (int2)((groupID.xy << 3) | CoordInTileByIndex(threadID));
             int2 readOffsetUL = dstCoord0 << 1;
 
-            int2 srcCoord00 = min(readOffsetUL + int2(0, 0), (int2)properties.srcLimit);
-            int2 srcCoord10 = min(readOffsetUL + int2(1, 0), (int2)properties.srcLimit);
-            int2 srcCoord01 = min(readOffsetUL + int2(0, 1), (int2)properties.srcLimit);
-            int2 srcCoord11 = min(readOffsetUL + int2(1, 1), (int2)properties.srcLimit);
+            int2 srcCoord00 = readOffsetUL + int2(0, 0);
+            int2 srcCoord10 = readOffsetUL + int2(1, 0);
+            int2 srcCoord01 = readOffsetUL + int2(0, 1);
+            int2 srcCoord11 = readOffsetUL + int2(1, 1);
 
             float p00, p10, p01, p11;
             if (properties.isFirstBatch != 0)
             {
                 Texture2D<uint2> visBuffer = GET_TEXTURE2D(properties.srcBuffer);
-                p00 = asfloat(visBuffer[srcCoord00].y);
-                p10 = asfloat(visBuffer[srcCoord10].y);
-                p01 = asfloat(visBuffer[srcCoord01].y);
-                p11 = asfloat(visBuffer[srcCoord11].y);
+                p00 = srcCoord00.x < properties.srcLimit.x && srcCoord00.y < properties.srcLimit.y ? asfloat(visBuffer[srcCoord00].y) : 0.0;
+                p10 = srcCoord10.x < properties.srcLimit.x && srcCoord10.y < properties.srcLimit.y ? asfloat(visBuffer[srcCoord10].y) : 0.0;
+                p01 = srcCoord01.x < properties.srcLimit.x && srcCoord01.y < properties.srcLimit.y ? asfloat(visBuffer[srcCoord01].y) : 0.0;
+                p11 = srcCoord11.x < properties.srcLimit.x && srcCoord11.y < properties.srcLimit.y ? asfloat(visBuffer[srcCoord11].y) : 0.0;
             }
             else
             {
@@ -249,7 +136,6 @@ compute "Internal/BuildHZB"
                 }
             }
         }
-    #endif
     }
 
     cs "hlsl_block" : "CSMain";

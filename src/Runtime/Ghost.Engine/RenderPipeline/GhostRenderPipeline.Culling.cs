@@ -445,7 +445,7 @@ internal unsafe partial class GhostRenderPipeline
         return binnedBuffer;
     }
 
-    private void AddBuildHZBPasses(RenderGraph rg, Identifier<RGTexture> visBuffer, ref Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 baseSize, uint2 renderSize, Handle<GPUTexture> extractionTarget = default)
+    private void AddBuildHZBPasses(RenderGraph rg, Identifier<RGTexture> visBuffer, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, uint2 renderSize)
     {
         if (hzbMipCount == 0)
         {
@@ -453,7 +453,7 @@ internal unsafe partial class GhostRenderPipeline
         }
 
         Span<uint2> mipSizes = stackalloc uint2[(int)hzbMipCount];
-        mipSizes[0] = baseSize;
+        mipSizes[0] = hzbSize;
 
         for (var i = 1; i < (int)hzbMipCount; ++i)
         {
@@ -470,8 +470,8 @@ internal unsafe partial class GhostRenderPipeline
             var isFirstBatch = (startMip == 0);
 
             var srcLimit = isFirstBatch
-                ? new uint2(renderSize.x - 1, renderSize.y - 1)
-                : new uint2(mipSizes[(int)startMip - 1].x - 1, mipSizes[(int)startMip - 1].y - 1);
+                ? new uint2(renderSize.x, renderSize.y)
+                : new uint2(mipSizes[(int)startMip - 1].x, mipSizes[(int)startMip - 1].y);
 
             var s0 = (mipsInThisBatch >= 1) ? mipSizes[(int)startMip] : default;
             var s1 = (mipsInThisBatch >= 2) ? mipSizes[(int)startMip + 1] : default;
@@ -483,27 +483,6 @@ internal unsafe partial class GhostRenderPipeline
             {
                 if (isFirstBatch)
                 {
-                    // Skip for second pass, since the HZB texture is already created in the first pass.
-                    if (!hzbTexture.IsValid)
-                    {
-                        hzbTexture = builder.CreateTexture(new RGTextureDesc
-                        {
-                            sizeMode = RGTextureSizeMode.Absolute,
-                            width = baseSize.x,
-                            height = baseSize.y,
-                            format = TextureFormat.R32_Float,
-                            dimension = TextureDimension.Texture2D,
-                            mipLevels = hzbMipCount,
-                            slice = 1,
-                            usage = TextureUsage.UnorderedAccess | TextureUsage.ShaderResource
-                        }, "Hzb");
-                    }
-
-                    if (extractionTarget.IsValid)
-                    {
-                        builder.QueueTextureExtraction(hzbTexture, extractionTarget, ResourceExtractionFlags.ReleaseAfterExtract);
-                    }
-
                     builder.UseTexture(visBuffer, AccessFlags.Read);
                     builder.UseTexture(hzbTexture, AccessFlags.Write);
                 }

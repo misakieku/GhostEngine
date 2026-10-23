@@ -93,7 +93,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
         _streamingRequestsGpuBuffer = resourceAllocator.CreateBuffer(in requestDesc, "StreamingRequests_GPU");
 
         // GPU deduplication bitmask buffer (1 bit per global page ID, initialized to 0)
-        _bitmaskBufferSize = (ulong)((pageTableCapacity + 31u) / 32u * 4u);
+        _bitmaskBufferSize = (pageTableCapacity + 31u) / 32u * 4u;
         _zeroBitmaskBuffer = new byte[_bitmaskBufferSize];
         var bitmaskDesc = new BufferDesc
         {
@@ -240,7 +240,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
         // 1. Asynchronous, zero-stall readback of Frame N-Ring missing page requests
         if (_currentFrame > (ulong)_streamingRequestsReadbackBuffers.Length && _streamingRequestsReadbackBuffers.Length > 0)
         {
-            var readbackSlot = (int)(context.FrameIndex % _streamingRequestsReadbackBuffers.Length);
+            var readbackSlot = context.FrameIndex % _streamingRequestsReadbackBuffers.Length;
             var currentReadback = _streamingRequestsReadbackBuffers[readbackSlot];
             var pData = (uint*)context.ResourceDatabase.MapResource(currentReadback.AsResource(), 0, null);
             if (pData != null)

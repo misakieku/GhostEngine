@@ -359,19 +359,17 @@ bool HZBVisible(float4 clipMin, float4 clipMax, uint hzbMipCount, uint renderWid
     // Map NDC [-1, 1] to UV [0, 1] with inverted Y: (minX, minY, maxX, maxY)
     float4 uvRect = saturate(float4(clipMin.xy, clipMax.xy) * float2(0.5f, -0.5f).xyxy + 0.5f).xwzy;
 
-    // Convert UV bounds directly to HZB Mip 0 inclusive texel coordinates.
-    // Minimum edge rounds outward toward zero (floor), maximum edge rounds outward (ceil - 1).
-    float2 hzbBaseSize = float2((float)hzbBaseWidth, (float)hzbBaseHeight);
-    int2 maxTexel = int2((int)hzbBaseWidth - 1, (int)hzbBaseHeight - 1);
-    int2 rectMin = clamp((int2)floor(uvRect.xy * hzbBaseSize), int2(0, 0), maxTexel);
-    int2 rectMax = clamp((int2)ceil(uvRect.zw * hzbBaseSize) - 1, rectMin, maxTexel);
+    // Active viewport footprint in HZB Mip 0 (each Mip 0 texel covers 2x2 render pixels)
+    float2 viewHzbSize = float2((float)renderWidth * 0.5f, (float)renderHeight * 0.5f);
+    int2 maxActiveTexel = int2((int)viewHzbSize.x - 1, (int)viewHzbSize.y - 1);
+    int2 rectMin = clamp((int2)floor(uvRect.xy * viewHzbSize), int2(0, 0), maxActiveTexel);
+    int2 rectMax = clamp((int2)ceil(uvRect.zw * viewHzbSize) - 1, rectMin, maxActiveTexel);
     int4 coarseRect = int4(rectMin, rectMax);
-
     // Determine target mip level for 4x4 footprint
     int hzbLevel = MipLevelForRect(coarseRect, 4);
     uint hzbMip = min((uint)hzbLevel, hzbMipCount - 1);
     coarseRect >>= hzbMip;
-
+    // Clamp coordinates to the allocated texture dimensions at this mip level
     int2 mipSize = max(int2(1, 1), int2(hzbBaseWidth >> hzbMip, hzbBaseHeight >> hzbMip));
     coarseRect.xy = clamp(coarseRect.xy, int2(0, 0), mipSize - 1);
     coarseRect.zw = clamp(coarseRect.zw, int2(0, 0), mipSize - 1);

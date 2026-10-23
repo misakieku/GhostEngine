@@ -403,7 +403,7 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
 
         // Formula: clamp(MaxVisibleMeshletsOnScreen / 36 * 128KB * 1.75, 256MB, 2048MB)
         // Average meshlets per 128KB page is ~36. Sized with 1.75x working headroom.
-        var estimatedPages = (double)MaxVisibleMeshletsOnScreen / 36.0;
+        var estimatedPages = MaxVisibleMeshletsOnScreen / 36.0;
         var bytes = estimatedPages * 131072.0 * 1.75;
         var mb = (uint)Math.Clamp(Math.Ceiling(bytes / (1024.0 * 1024.0)), 256.0, 2048.0);
         return mb;

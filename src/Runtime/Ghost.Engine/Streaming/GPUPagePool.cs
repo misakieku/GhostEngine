@@ -32,7 +32,7 @@ public sealed unsafe class GPUPagePool : IDisposable
         _resourceAllocator = resourceAllocator;
         _resourceDatabase = resourceDatabase;
         _slotCount = Math.Max(slotCount, 1u);
-        _totalSizeBytes = (ulong)_slotCount * (ulong)MeshletPageConstants.PAGE_SIZE;
+        _totalSizeBytes = _slotCount * (ulong)MeshletPageConstants.PAGE_SIZE;
 
         var desc = new BufferDesc
         {
