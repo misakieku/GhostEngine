@@ -55,8 +55,8 @@ The generator deletes all existing `*.nativegen.cs` files in the output folder b
 ### Validated commands
 
 ```bash
-dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/nvtt.json --input src/ThridParty/Ghost.Nvtt/Generated --output src/ThridParty/Ghost.Nvtt/WrapperGen
-dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/ufbx.json --input src/ThridParty/Ghost.Ufbx/Generated --output src/ThridParty/Ghost.Ufbx/Wrapper
+dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/nvtt.json --input src/ThirdParty/Ghost.Nvtt/Generated --output src/ThirdParty/Ghost.Nvtt/WrapperGen
+dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/ufbx.json --input src/ThirdParty/Ghost.Ufbx/Generated --output src/ThirdParty/Ghost.Ufbx/Wrapper
 ```
 
 ## Important files
@@ -301,12 +301,12 @@ Examples with `nativeTypePrefix = "Nvtt"`, struct = `NvttSurface` (bare = `Surfa
 dotnet build src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj
 
 # 2. Regenerate wrappers
-dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/nvtt.json --input src/ThridParty/Ghost.Nvtt/Generated --output src/ThridParty/Ghost.Nvtt/WrapperGen
-dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/ufbx.json --input src/ThridParty/Ghost.Ufbx/Generated --output src/ThridParty/Ghost.Ufbx/Wrapper
+dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/nvtt.json --input src/ThirdParty/Ghost.Nvtt/Generated --output src/ThirdParty/Ghost.Nvtt/WrapperGen
+dotnet run --project src/Tools/Ghost.NativeWrapperGen/Ghost.NativeWrapperGen.csproj -- --config src/Tools/Ghost.NativeWrapperGen/configs/ufbx.json --input src/ThirdParty/Ghost.Ufbx/Generated --output src/ThirdParty/Ghost.Ufbx/Wrapper
 
 # 3. Build the libraries
-dotnet build src/ThridParty/Ghost.Nvtt/Ghost.Nvtt.csproj
-dotnet build src/ThridParty/Ghost.Ufbx/Ghost.Ufbx.csproj
+dotnet build src/ThirdParty/Ghost.Nvtt/Ghost.Nvtt.csproj
+dotnet build src/ThirdParty/Ghost.Ufbx/Ghost.Ufbx.csproj
 ```
 
 ## Adding a new library

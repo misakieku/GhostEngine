@@ -14,11 +14,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Runtime\Ghost.Core\Ghost.Core.csproj" />
-    <ProjectReference Include="..\..\ThridParty\Ghost.DXC\Ghost.DXC.csproj" />
-    <ProjectReference Include="..\..\ThridParty\Ghost.MeshOptimizer\Ghost.MeshOptimizer.csproj" />
-    <ProjectReference Include="..\..\ThridParty\Ghost.Nvtt\Ghost.Nvtt.csproj" />
-    <ProjectReference Include="..\..\ThridParty\Ghost.StbI\Ghost.StbI.csproj" />
-    <ProjectReference Include="..\..\ThridParty\Ghost.Ufbx\Ghost.Ufbx.csproj" />
+    <ProjectReference Include="..\..\ThirdParty\Ghost.DXC\Ghost.DXC.csproj" />
+    <ProjectReference Include="..\..\ThirdParty\Ghost.MeshOptimizer\Ghost.MeshOptimizer.csproj" />
+    <ProjectReference Include="..\..\ThirdParty\Ghost.Nvtt\Ghost.Nvtt.csproj" />
+    <ProjectReference Include="..\..\ThirdParty\Ghost.StbI\Ghost.StbI.csproj" />
+    <ProjectReference Include="..\..\ThirdParty\Ghost.Ufbx\Ghost.Ufbx.csproj" />
     <ProjectReference Include="..\Ghost.DSL\Ghost.DSL.csproj" />
   </ItemGroup>
 

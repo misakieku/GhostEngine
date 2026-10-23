@@ -412,6 +412,7 @@ compute "Internal/MeshletCullGraph"
                     {
                         BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, localToRWS);
                         inFrustum = cullResult.isVisible;
+                        // inFrustum = true;
                         if (WaveActiveAnyTrue(inFrustum))
                         {
                             if (inFrustum && props.hzbMipCount > 0)

@@ -22,7 +22,7 @@
   <ItemGroup>
         <ProjectReference Include="..\..\Runtime\Ghost.Core\Ghost.Core.csproj" />
         <ProjectReference Include="..\Ghost.Graphics.RHI\Ghost.Graphics.RHI.csproj" />
-        <ProjectReference Include="..\..\ThridParty\Ghost.MeshOptimizer\Ghost.MeshOptimizer.csproj" />
+        <ProjectReference Include="..\..\ThirdParty\Ghost.MeshOptimizer\Ghost.MeshOptimizer.csproj" />
   </ItemGroup>
 
 </Project>

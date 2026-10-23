@@ -87,7 +87,6 @@ src/Test/TestGame/run-this-when-assets-forge-changed.ps1 -c Release -p:Platform=
 - **Ask early on weird issues**: GhostEngine is a 140,000+ line engine with custom memory managers, unmanaged collections, ECS, GPU pipelines, and bespoke asset baking. If you encounter puzzling, strange, or unexpected behavior (e.g., unexpected data corruption, mystery buffer values, obscure pipeline artifacts), **ask the user / creator directly and early**. Do not spend prolonged time guessing or spinning in circles—the creator understands the entire architecture and can clarify expected behavior immediately.
 - **Root causes over symptom patches**: Never flip normals (`-normal`, `!isFrontFacing`), hide bad values with clamps, or hack shader returns to mask invalid data upstream. The data must be correct at the point of origin.
 - **Check common pitfalls**: Consult `docs/developer-docs/common_mistakes.md` for known low-level collection and memory pitfalls (e.g. `UnsafeList<T>.Resize` capacity vs. count semantics, struct alignment).
-- **Language**: English only.
 
 ---
 
@@ -257,7 +256,7 @@ src/
     Ghost.AssetForge/           # WinUI 3 shell (WinExe, net10.0-windows10.0.19041.0)
     Ghost.AssetForge.Core/      # Editor services, asset baking pipeline
     Ghost.DSL/                  # Shader DSL compiler (ANTLR4 grammar in Grammar/*.g4)
-  ThridParty/                   # Native binding wrappers (actual folder name, typo preserved)
+  ThirdParty/                   # Native binding wrappers
     Ghost.DXC/                  # DirectXCompiler binding (dxcompiler.dll, dxil.dll)
     Ghost.FMOD/                 # FMOD audio binding (fmod.dll, fmodstudio.dll)
     Ghost.MeshOptimizer/        # meshoptimizer binding

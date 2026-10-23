@@ -14,14 +14,6 @@
     </Project>
     <Project Path="src/Editor/Ghost.DSL/Ghost.DSL.csproj" />
   </Folder>
-  <Folder Name="/ThridParty/">
-    <Project Path="src/ThridParty/Ghost.DXC/Ghost.DXC.csproj" />
-    <Project Path="src/ThridParty/Ghost.FMOD/Ghost.FMOD.csproj" />
-    <Project Path="src/ThridParty/Ghost.MeshOptimizer/Ghost.MeshOptimizer.csproj" />
-    <Project Path="src/ThridParty/Ghost.Nvtt/Ghost.Nvtt.csproj" />
-    <Project Path="src/ThridParty/Ghost.StbI/Ghost.StbI.csproj" Id="969a1d70-31ee-49e9-9449-ab96a47cb925" />
-    <Project Path="src/ThridParty/Ghost.Ufbx/Ghost.Ufbx.csproj" Id="c4bd647c-6d77-49d8-ba81-6ed4946474d1" />
-  </Folder>
   <Folder Name="/Runtime/">
     <Project Path="src/Runtime/Ghost.Core/Ghost.Core.csproj" />
     <Project Path="src/Runtime/Ghost.Engine/Ghost.Engine.csproj" />
@@ -41,6 +33,14 @@
     <Project Path="src/Test/Ghost.MicroTest/Ghost.MicroTest.csproj" Id="8c8ffa4b-e1e4-46a1-9221-7b508a109edd" />
     <Project Path="src/Test/Ghost.UnitTest/Ghost.UnitTest.csproj" Id="4da45668-456b-4dcc-acd8-6bfe154e6837" />
     <Project Path="src/Test/TestGame/TestGame.csproj" Id="5d84a4f7-a5a2-4814-bdc1-abdec70c3b1b" />
+  </Folder>
+  <Folder Name="/ThirdParty/">
+    <Project Path="src/ThirdParty/Ghost.DXC/Ghost.DXC.csproj" />
+    <Project Path="src/ThirdParty/Ghost.FMOD/Ghost.FMOD.csproj" />
+    <Project Path="src/ThirdParty/Ghost.MeshOptimizer/Ghost.MeshOptimizer.csproj" />
+    <Project Path="src/ThirdParty/Ghost.Nvtt/Ghost.Nvtt.csproj" />
+    <Project Path="src/ThirdParty/Ghost.StbI/Ghost.StbI.csproj" Id="969a1d70-31ee-49e9-9449-ab96a47cb925" />
+    <Project Path="src/ThirdParty/Ghost.Ufbx/Ghost.Ufbx.csproj" Id="c4bd647c-6d77-49d8-ba81-6ed4946474d1" />
   </Folder>
   <Folder Name="/Tools/">
     <Project Path="src/Tools/Ghost.AssetForge.CLI/Ghost.AssetForge.CLI.csproj" />
