@@ -384,8 +384,8 @@ public static unsafe class PagePacker
         var dirEntry = new PageDirectoryEntry
         {
             fileOffset = 0, // patched when writing to file
-            compressedSize = (uint)totalPayloadBytes,
-            uncompressedSize = (uint)totalPayloadBytes,
+            compressedSize = totalPayloadBytes,
+            uncompressedSize = totalPayloadBytes,
             meshletStartIndex = pageMeshletGlobalStart,
             meshletCount = (ushort)pageMeshlets.Count,
             lodLevel = predominantLod,

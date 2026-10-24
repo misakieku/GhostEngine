@@ -1,5 +1,4 @@
 using Misaki.HighPerformance.Mathematics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Core.Graphics;
@@ -36,7 +35,7 @@ public struct PackedVertex : IEquatable<PackedVertex>
         }
         var sx = (short)Math.Clamp(MathF.Round(ox * 32767.0f), -32767.0f, 32767.0f);
         var sy = (short)Math.Clamp(MathF.Round(oy * 32767.0f), -32767.0f, 32767.0f);
-        return (uint)(ushort)sx | ((uint)(ushort)sy << 16);
+        return (ushort)sx | ((uint)(ushort)sy << 16);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -81,4 +80,14 @@ public struct PackedVertex : IEquatable<PackedVertex>
     public override readonly bool Equals(object? obj) => obj is PackedVertex other && Equals(other);
 
     public override readonly int GetHashCode() => HashCode.Combine(position, packedNormal, uv, color);
+
+    public static bool operator ==(PackedVertex left, PackedVertex right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(PackedVertex left, PackedVertex right)
+    {
+        return !(left == right);
+    }
 }

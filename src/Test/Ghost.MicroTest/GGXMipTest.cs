@@ -1,13 +1,8 @@
 using Ghost.AssetForge.Core.Bakers;
-using Ghost.Core;
 using Ghost.MicroTest.Core;
-using Ghost.Nvtt;
 using Ghost.StbI;
-using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.Mathematics;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Ghost.MicroTest;
@@ -75,13 +70,13 @@ internal class GGXMipTest : ITest
             static void SaveHdrAsPng(string path, int w, int h, float* hdrData)
             {
                 var ldr = new byte[w * h * 4];
-                for (int i = 0; i < w * h; i++)
+                for (var i = 0; i < w * h; i++)
                 {
-                    for (int c = 0; c < 3; c++)
+                    for (var c = 0; c < 3; c++)
                     {
-                        float v = hdrData[i * 4 + c];
-                        float mapped = v / (1.0f + v);
-                        float srgb = MathF.Pow(Math.Clamp(mapped, 0.0f, 1.0f), 1.0f / 2.2f);
+                        var v = hdrData[i * 4 + c];
+                        var mapped = v / (1.0f + v);
+                        var srgb = MathF.Pow(Math.Clamp(mapped, 0.0f, 1.0f), 1.0f / 2.2f);
                         ldr[i * 4 + c] = (byte)(srgb * 255.0f);
                     }
                     ldr[i * 4 + 3] = 255;

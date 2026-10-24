@@ -283,7 +283,7 @@ public partial class ResourceManager
         {
             var currentOffset = Volatile.Read(ref _uploadBufferOffset);
             var newOffset = currentOffset + desc.Size;
-            
+
             if (newOffset > DEFAULT_TRANSIENT_PAGE_SIZE)
             {
                 var handle = CreateTransientBuffer(desc);

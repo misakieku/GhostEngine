@@ -69,20 +69,24 @@ public interface ILogger
     event Action OnLogsCleared;
 
     void Log(string message, LogLevel level);
-    void Log(Exception exception);
     void Assert(bool condition, string message);
     void Clear(bool includeFile = false);
+    void Flush();
 }
 
 public static class Logger
 {
-    // TODO: Add file logging.
     private class LoggerImpl : ILogger
     {
         private readonly List<LogMessage> _logs = new List<LogMessage>(1024);
         private readonly Lock _lock = new Lock();
 
         public IReadOnlyCollection<LogMessage> Logs => _logs;
+
+        public string? LogFilePath
+        {
+            get; set;
+        }
 
         public bool CaptureStackTrace
         {
@@ -91,7 +95,6 @@ public static class Logger
 
         public event Action<LogMessage>? OnLogAdded;
         public event Action? OnLogsCleared;
-
 
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -107,23 +110,6 @@ public static class Logger
 
 #if DEBUG
                 System.Diagnostics.Debug.WriteLine($"[{level}] " + message);
-#endif
-            }
-        }
-
-        [StackTraceHidden]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Log(Exception exception)
-        {
-            lock (_lock)
-            {
-                var logMessage = new LogMessage(LogLevel.Error, exception.Message, exception.StackTrace);
-
-                _logs.Add(logMessage);
-                OnLogAdded?.Invoke(logMessage);
-
-#if DEBUG
-                System.Diagnostics.Debug.WriteLine($"[Error] " + exception.Message);
 #endif
             }
         }
@@ -147,12 +133,42 @@ public static class Logger
                 OnLogsCleared?.Invoke();
             }
         }
+
+        public void Flush()
+        {
+            if (!File.Exists(LogFilePath))
+            {
+                return;
+            }
+
+            lock (_lock)
+            {
+                try
+                {
+                    using var writer = new StreamWriter(LogFilePath, append: false);
+                    foreach (var log in _logs)
+                    {
+                        writer.WriteLine(log.ToString());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to flush logs to file: {ex.Message}");
+                }
+            }
+        }
     }
 
     private static readonly LoggerImpl s_logger = new LoggerImpl();
 
     public static ILogger Impl => s_logger;
     public static IReadOnlyCollection<LogMessage> Logs => s_logger.Logs;
+
+    public static string? LogFilePath
+    {
+        get => s_logger.LogFilePath;
+        set => s_logger.LogFilePath = value;
+    }
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -256,7 +272,7 @@ public static class Logger
 #if DEBUG
         Debugger.BreakForUserUnhandledException(ex);
 #endif
-        s_logger.Log(ex);
+        s_logger.Log(ex.Message, LogLevel.Error);
     }
 
     [StackTraceHidden]
@@ -274,6 +290,8 @@ public static class Logger
         }
 #endif
         s_logger.Log(message, LogLevel.Fatal);
+        s_logger.Flush();
+
         Environment.FailFast(message, ex);
     }
 
@@ -285,6 +303,8 @@ public static class Logger
         Debugger.BreakForUserUnhandledException(ex);
 #endif
         s_logger.Log(ex.Message, LogLevel.Fatal);
+        s_logger.Flush();
+
         Environment.FailFast(ex.Message, ex);
     }
 

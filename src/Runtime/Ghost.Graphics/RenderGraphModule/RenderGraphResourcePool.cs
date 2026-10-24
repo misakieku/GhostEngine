@@ -7,7 +7,6 @@ using Misaki.HighPerformance.Buffer;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
-using System.Xml.Linq;
 
 namespace Ghost.Graphics.RenderGraphModule;
 

@@ -47,7 +47,7 @@ public struct MeshletGroup
     public ushort childPageCount;               // 2 bytes (number of finer LOD child pages, 0 if finest/LOD 0)
     public uint lodLevel;                       // 4 bytes (group LOD level)
 
-    public readonly uint PackedChildPageRange => (uint)childPageIndex | ((uint)childPageCount << 16);
+    public readonly uint PackedChildPageRange => childPageIndex | ((uint)childPageCount << 16);
 }
 
 [StructLayout(LayoutKind.Sequential, Size = 32)]

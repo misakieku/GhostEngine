@@ -884,8 +884,8 @@ internal static unsafe partial class MeshProcessor
                     for (nuint j = 0; j < cluster.vertexCount; j++)
                     {
                         var vIndex = cluster.uniqueVertices[j];
-                    ref readonly var v = ref context.vertices[(int)vIndex];
-                    meshletData->meshletVertices.Add(PackedVertex.Pack(in v));
+                        ref readonly var v = ref context.vertices[(int)vIndex];
+                        meshletData->meshletVertices.Add(PackedVertex.Pack(in v));
                     }
 
                     for (nuint j = 0; j < triangleCount; j++)
