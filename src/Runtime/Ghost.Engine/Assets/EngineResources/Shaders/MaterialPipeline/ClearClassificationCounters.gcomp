@@ -17,15 +17,14 @@ compute "Internal/ClearClassificationCounters"
         [numthreads(256, 1, 1)]
         void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         {
-            InternalClearClassificationCountersShaderProperties props = LoadData<InternalClearClassificationCountersShaderProperties>(g_PushConstantData.userData0, 0);
 
             uint v = dispatchThreadId.x;
-            if (v >= props.maxVariants)
+            if (v >= g_Properties.maxVariants)
             {
                 return;
             }
 
-            RWByteAddressBuffer counters = GET_BUFFER(props.countersBufferUav);
+            RWByteAddressBuffer counters = GET_BUFFER(g_Properties.countersBufferUav);
             if (v == 0u)
             {
                 counters.Store(CLASSIFICATION_OFFSET_TOTAL_ENTRIES, 0u);

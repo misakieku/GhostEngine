@@ -1,14 +1,13 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
-using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
 /// <summary>
 /// Allocates shader property buffers inside a 1MB persistently mapped upload ring buffer
-/// and creates raw SRV descriptors for individual property slices.
+/// at 256-byte aligned offsets for root CBV binding.
 /// </summary>
 internal sealed unsafe class RenderGraphPropertyAllocator : IDisposable
 {
@@ -21,21 +20,20 @@ internal sealed unsafe class RenderGraphPropertyAllocator : IDisposable
     private Handle<GPUBuffer> _ringBuffer;
     private byte* _pMappedBase;
     private uint _ringOffset;
-
-    private UnsafeList<uint> _allocatedDescriptors;
     private bool _disposed;
+
+    public Handle<GPUBuffer> Buffer => _ringBuffer;
 
     public RenderGraphPropertyAllocator(IResourceAllocator allocator, IResourceDatabase database)
     {
         _allocator = allocator;
         _database = database;
-        _allocatedDescriptors = new UnsafeList<uint>(64, AllocationHandle.Persistent);
 
         var desc = new BufferDesc
         {
             Size = RING_BUFFER_SIZE,
-            Stride = 4,
-            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            Stride = 256,
+            Usage = BufferUsage.Upload,
             HeapType = HeapType.Upload,
         };
 
@@ -47,20 +45,15 @@ internal sealed unsafe class RenderGraphPropertyAllocator : IDisposable
     }
 
     /// <summary>
-    /// Resets the ring buffer offset and releases all transient SRV descriptors created for the previous frame.
+    /// Resets the ring buffer offset for the new frame.
     /// </summary>
     public void Reset()
     {
-        for (var i = 0; i < _allocatedDescriptors.Count; i++)
-        {
-            _database.ReleaseRawBufferSRV(_allocatedDescriptors[i]);
-        }
-        _allocatedDescriptors.Clear();
         _ringOffset = 0;
     }
 
     /// <summary>
-    /// Copies the property data into the ring buffer and returns its bindless raw buffer SRV index.
+    /// Copies the property data into the ring buffer and returns its 256-byte aligned byte offset.
     /// </summary>
     public uint Allocate<TProperty>(scoped in TProperty property) where TProperty : unmanaged
     {
@@ -70,7 +63,7 @@ internal sealed unsafe class RenderGraphPropertyAllocator : IDisposable
         }
 
         var size = (uint)sizeof(TProperty);
-        var alignedSize = (size + 3u) & ~3u;
+        var alignedSize = (size + (ALIGNMENT - 1u)) & ~(ALIGNMENT - 1u);
 
         if (_ringOffset + alignedSize > RING_BUFFER_SIZE)
         {
@@ -79,20 +72,14 @@ internal sealed unsafe class RenderGraphPropertyAllocator : IDisposable
         }
 
         var currentOffset = _ringOffset;
-        _ringOffset = (_ringOffset + alignedSize + (ALIGNMENT - 1u)) & ~(ALIGNMENT - 1u);
+        _ringOffset += alignedSize;
 
         fixed (TProperty* pProp = &property)
         {
             MemoryUtility.MemCpy(_pMappedBase + currentOffset, pProp, size);
         }
 
-        var descriptorIndex = _database.AllocateRawBufferSRV(_ringBuffer, currentOffset, alignedSize);
-        if (descriptorIndex != uint.MaxValue)
-        {
-            _allocatedDescriptors.Add(descriptorIndex);
-        }
-
-        return descriptorIndex;
+        return currentOffset;
     }
 
     public void Dispose()
@@ -116,7 +103,6 @@ internal sealed unsafe class RenderGraphPropertyAllocator : IDisposable
             _ringBuffer = Handle<GPUBuffer>.Invalid;
         }
 
-        _allocatedDescriptors.Dispose();
         _disposed = true;
     }
 }

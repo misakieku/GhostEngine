@@ -10,6 +10,11 @@
 
 groupshared uint s_TileShadingModelMask;
 
+cbuffer PassProperties : register(b3, space0)
+{
+    DeferredLightingShaderProperties g_Properties;
+};
+
 [numthreads(CLASSIFICATION_TILE_SIZE, CLASSIFICATION_TILE_SIZE, 1)]
 void CSMain(
     uint3 dispatchThreadId : SV_DispatchThreadID,
@@ -17,13 +22,13 @@ void CSMain(
     uint3 groupThreadId : SV_GroupThreadID,
     uint groupIndex : SV_GroupIndex)
 {
-    DeferredLightingShaderProperties props = LoadData<DeferredLightingShaderProperties>(g_PushConstantData.userData0, 0);
+
 
     // Shading Model Tile Early-Out Check
-    uint tileIndex = groupID.y * props.tilesPerRow + groupID.x;
-    if (IS_VALID_BUFFER(props.tileShadingModelMaskBufferIndex))
+    uint tileIndex = groupID.y * g_Properties.tilesPerRow + groupID.x;
+    if (IS_VALID_BUFFER(g_Properties.tileShadingModelMaskBufferIndex))
     {
-        ByteAddressBuffer maskBuffer = GET_BUFFER(props.tileShadingModelMaskBufferIndex);
+        ByteAddressBuffer maskBuffer = GET_BUFFER(g_Properties.tileShadingModelMaskBufferIndex);
         if (groupIndex == 0u)
         {
             s_TileShadingModelMask = maskBuffer.Load(tileIndex * 4u);
@@ -38,13 +43,13 @@ void CSMain(
     }
 
     uint2 pixelCoord = groupID.xy * CLASSIFICATION_TILE_SIZE + groupThreadId.xy;
-    if (pixelCoord.x >= props.renderWidth || pixelCoord.y >= props.renderHeight)
+    if (pixelCoord.x >= g_Properties.renderWidth || pixelCoord.y >= g_Properties.renderHeight)
     {
         return;
     }
 
     // Sample Depth Buffer & Check Background
-    Texture2D<float> depthTexture = GET_TEXTURE2D(props.depthTextureIndex);
+    Texture2D<float> depthTexture = GET_TEXTURE2D(g_Properties.depthTextureIndex);
     float depth = depthTexture[pixelCoord];
     if (depth <= 0.0f)
     {
@@ -53,7 +58,7 @@ void CSMain(
 
     // Read G-Buffer
 
-    GBufferOutputs gbuffer = ReadGBuffer(pixelCoord, props.gbuffer0Srv, props.gbuffer1Srv, props.gbuffer2Srv, props.gbuffer3Srv);
+    GBufferOutputs gbuffer = ReadGBuffer(pixelCoord, g_Properties.gbuffer0Srv, g_Properties.gbuffer1Srv, g_Properties.gbuffer2Srv, g_Properties.gbuffer3Srv);
 
     // Verify pixel belongs to this shading model
     uint pixelShadingModel = gbuffer.GetShadingModel();
@@ -90,25 +95,25 @@ void CSMain(
     shadingCtx.tileCoord = groupID.xy;
     shadingCtx.depth = depth;
     shadingCtx.linearDepth = zView;
-    shadingCtx.shadowAtlasIndex = props.shadowAtlasSrv;
-    shadingCtx.shadowViewsBufferIndex = props.shadowViewsBufferSrv;
-    shadingCtx.shadowIndicesBufferIndex = props.shadowIndicesBufferSrv;
-    shadingCtx.skyboxTextureIndex = props.skyboxTextureSrv;
-    shadingCtx.iblLutTextureIndex = props.iblLutTextureSrv;
-    shadingCtx.persistentViewStateBufferIndex = props.persistentViewStateBufferSrv;
-    shadingCtx.viewId = props.viewId;
-    shadingCtx.skyboxMipCount = props.skyboxMipCount;
-    shadingCtx.skyboxTintAndIntensity = props.skyboxTintAndIntensity;
-    shadingCtx.skyboxRotationSinCos = props.skyboxRotationSinCos;
+    shadingCtx.shadowAtlasIndex = g_Properties.shadowAtlasSrv;
+    shadingCtx.shadowViewsBufferIndex = g_Properties.shadowViewsBufferSrv;
+    shadingCtx.shadowIndicesBufferIndex = g_Properties.shadowIndicesBufferSrv;
+    shadingCtx.skyboxTextureIndex = g_Properties.skyboxTextureSrv;
+    shadingCtx.iblLutTextureIndex = g_Properties.iblLutTextureSrv;
+    shadingCtx.persistentViewStateBufferIndex = g_Properties.persistentViewStateBufferSrv;
+    shadingCtx.viewId = g_Properties.viewId;
+    shadingCtx.skyboxMipCount = g_Properties.skyboxMipCount;
+    shadingCtx.skyboxTintAndIntensity = g_Properties.skyboxTintAndIntensity;
+    shadingCtx.skyboxRotationSinCos = g_Properties.skyboxRotationSinCos;
 
     // Execute Light Loop
-    ByteAddressBuffer tileLightList = GET_BUFFER(props.tileLightListBufferIndex);
-    LightLoopOutput light = ExecuteLightLoop<DEFERREDLIGHTING_STRATEGY>(shadingCtx, bsdf, strategy, V, tileLightList, props.tilesPerRow);
+    ByteAddressBuffer tileLightList = GET_BUFFER(g_Properties.tileLightListBufferIndex);
+    LightLoopOutput light = ExecuteLightLoop<DEFERREDLIGHTING_STRATEGY>(shadingCtx, bsdf, strategy, V, tileLightList, g_Properties.tilesPerRow);
 
     float3 finalColor = light.diffuse + light.specular;
 
     // Output to HDR Color Buffer
-    RWTexture2D<float4> litColorTarget = GET_TEXTURE2D(props.litColorUav);
+    RWTexture2D<float4> litColorTarget = GET_TEXTURE2D(g_Properties.litColorUav);
     litColorTarget[pixelCoord] = float4(finalColor, 1.0f);
 }
 

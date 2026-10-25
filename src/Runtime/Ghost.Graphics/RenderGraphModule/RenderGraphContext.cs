@@ -30,6 +30,8 @@ public interface IRenderGraphContext
     uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource);
 
     void SetUserData(uint userData0, uint userData1 = 0, uint userData2 = 0, uint userData3 = 0, DataTarget target = DataTarget.Graphics);
+    void SetPassProperties<TProperty>(scoped in TProperty property)
+        where TProperty : unmanaged;
     void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = 0, uint userData2 = 0, uint userData3 = 0, DataTarget target = DataTarget.Compute)
         where TProperty : unmanaged;
 
@@ -250,11 +252,21 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
         }
     }
 
+    public void SetPassProperties<TProperty>(scoped in TProperty property)
+        where TProperty : unmanaged
+    {
+        var offset = _propertyAllocator.Allocate(in property);
+        if (offset != uint.MaxValue)
+        {
+            _commandBuffer.SetConstantBufferView(RootSignatureLayout.PASS_PROPERTIES_CBV_SLOT, _propertyAllocator.Buffer, offset);
+        }
+    }
+
     public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = 0, uint userData2 = 0, uint userData3 = 0, DataTarget target = DataTarget.Compute)
         where TProperty : unmanaged
     {
-        var descriptor = _propertyAllocator.Allocate(in property);
-        SetUserData(descriptor, userData1, userData2, userData3, target);
+        SetPassProperties(in property);
+        SetUserData(0, userData1, userData2, userData3, target);
     }
 
     public void* MapBuffer(Identifier<RGBuffer> buffer)
@@ -678,25 +690,26 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
             HeapType = HeapType.Upload,
         };
 
-        var tempBuffer = _resourceManager.CreateTransientBuffer(desc);
-        var ptr = (uint*)_resourceDatabase.MapResource(tempBuffer.AsResource(), 0, null);
+        var tempBuffer = _resourceManager.CreateTransientUploadBuffer(desc, out var srcOffset);
+        var ptr = (byte*)_resourceDatabase.MapResource(tempBuffer.AsResource(), 0, null);
         if (ptr != null)
         {
+            var pDst = (uint*)(ptr + srcOffset);
             if (clearValue == 0)
             {
-                Unsafe.InitBlockUnaligned(ptr, 0, sizeInBytes);
+                Unsafe.InitBlockUnaligned(pDst, 0, sizeInBytes);
             }
             else
             {
                 var count = (int)(sizeInBytes / 4);
                 for (var i = 0; i < count; i++)
                 {
-                    (ptr)[i] = clearValue;
+                    pDst[i] = clearValue;
                 }
             }
 
             _resourceDatabase.UnmapResource(tempBuffer.AsResource(), 0, null);
-            _commandBuffer.CopyBuffer(GetActualBuffer(buffer), tempBuffer, dstOffset, 0, sizeInBytes);
+            _commandBuffer.CopyBuffer(GetActualBuffer(buffer), tempBuffer, dstOffset, srcOffset, sizeInBytes);
         }
     }
 

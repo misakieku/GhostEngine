@@ -52,10 +52,9 @@ shader "Hidden/Blit"
 
             float4 PSMain(PSInput input) : SV_TARGET
             {
-                HiddenBlitShaderProperties properties = LoadData<HiddenBlitShaderProperties>(g_PushConstantData.userData0, 0);
-                float4 color = SampleTexture2D<float4>(properties.mainTex, properties.sampler_mainTex, input.uv.xy);
+                float4 color = SampleTexture2D<float4>(g_Properties.mainTex, g_Properties.sampler_mainTex, input.uv.xy);
                 
-                if (properties.linearToSRGB)
+                if (g_Properties.linearToSRGB)
                 {
                     color = LinearToSRGB(color);
                 }

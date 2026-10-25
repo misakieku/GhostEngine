@@ -9,7 +9,8 @@
     "SAMPLER_HEAP_DIRECTLY_INDEXED), " \
     "RootConstants(num32BitConstants=4, b0, space=0), " \
     "CBV(b1, space=0, flags=DATA_STATIC_WHILE_SET_AT_EXECUTE), " \
-    "CBV(b2, space=0, flags=DATA_STATIC_WHILE_SET_AT_EXECUTE)"
+    "CBV(b2, space=0, flags=DATA_STATIC_WHILE_SET_AT_EXECUTE), " \
+    "CBV(b3, space=0, flags=DATA_STATIC_WHILE_SET_AT_EXECUTE)"
 
 // TODO: This should be auto generated to match the c# side.
 

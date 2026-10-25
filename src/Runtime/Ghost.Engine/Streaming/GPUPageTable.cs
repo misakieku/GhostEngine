@@ -108,8 +108,8 @@ public sealed unsafe class GPUPageTable : IDisposable
             HeapType = HeapType.Upload,
         };
 
-        var staging = resourceManager.CreateTransientBuffer(in desc, "PageTable_Staging");
-        var pDst = (uint*)resourceDatabase.MapResource(staging.AsResource(), 0, null);
+        var staging = resourceManager.CreateTransientUploadBuffer(desc, out var srcOffset);
+        var pDst = (uint*)((byte*)resourceDatabase.MapResource(staging.AsResource(), 0, null) + srcOffset);
         fixed (uint* pSrc = _cpuTable.AsSpan())
         {
             System.Buffer.MemoryCopy(pSrc, pDst, _capacity * sizeof(uint), _capacity * sizeof(uint));
@@ -121,7 +121,7 @@ public sealed unsafe class GPUPageTable : IDisposable
             cmd.Barrier(BarrierDesc.Buffer(_tableBuffer, BarrierSync.AllShading, BarrierSync.Copy, BarrierAccess.ShaderResource, BarrierAccess.CopyDest));
         }
 
-        cmd.CopyBuffer(_tableBuffer, staging, 0, 0, (ulong)_capacity * sizeof(uint));
+        cmd.CopyBuffer(_tableBuffer, staging, 0, srcOffset, (ulong)_capacity * sizeof(uint));
         cmd.Barrier(BarrierDesc.Buffer(_tableBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource));
         _isInShaderResource = true;
         _dirtyPages.Clear();

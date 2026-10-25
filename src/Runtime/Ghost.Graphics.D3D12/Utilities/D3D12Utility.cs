@@ -1321,7 +1321,7 @@ internal static unsafe class D3D12Utility
             ref readonly var bufferDesc = ref desc.BufferDescriptor;
             var isRaw = bufferDesc.Usage.HasFlag(BufferUsage.Raw);
 
-            if (bufferDesc.Usage.HasFlag(BufferUsage.Constant))
+            if (bufferDesc.Usage.HasFlag(BufferUsage.Constant) && resourceDesc.Width <= 65536)
             {
                 resourceDescriptor.cbv = originalGroup.cbv.IsValid ? originalGroup.cbv : descriptorAllocator.AllocateCbvSrvUav();
                 var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.cbv);

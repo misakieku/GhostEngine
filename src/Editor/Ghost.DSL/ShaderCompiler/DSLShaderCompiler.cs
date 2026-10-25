@@ -108,9 +108,10 @@ public static class DSLShaderCompiler
             "float2" or "int2" or "uint2" or "bool2" => 8u,
             "float3" or "int3" or "uint3" or "bool3" => 12u,
             "float4" or "int4" or "uint4" or "bool4" or "quaternion" => 16u,
-            "float2x2" => 16u,
-            "float3x3" => 36u,
-            "float4x3" or "float3x4" => 48u,
+            "float2x2" => 32u,
+            "float3x3" => 48u,
+            "float4x3" => 64u,
+            "float3x4" => 48u,
             "float4x4" or "matrix4x4" => 64u,
             "int2x4" => 32u,
             "texture2d" or "texture3d" or "texturecube" or "texture2darray" or "texturecubearray"
@@ -120,6 +121,86 @@ public static class DSLShaderCompiler
         };
     }
 
+    private static int ComputeFieldOffset(string hlslType, ref int registerIndex, ref int byteOffsetInRegister)
+    {
+        var typeSize = (int)GetPropertyTypeSize(hlslType);
+
+        if (typeSize > 16)
+        {
+            if (byteOffsetInRegister > 0)
+            {
+                registerIndex++;
+                byteOffsetInRegister = 0;
+            }
+
+            var offset = registerIndex * 16;
+            registerIndex += typeSize / 16;
+            byteOffsetInRegister = 0;
+            return offset;
+        }
+
+        if (typeSize == 16)
+        {
+            if (byteOffsetInRegister > 0)
+            {
+                registerIndex++;
+                byteOffsetInRegister = 0;
+            }
+
+            var offset = registerIndex * 16;
+            registerIndex++;
+            byteOffsetInRegister = 0;
+            return offset;
+        }
+
+        if (typeSize == 12)
+        {
+            if (byteOffsetInRegister > 4)
+            {
+                registerIndex++;
+                byteOffsetInRegister = 0;
+            }
+
+            var offset = registerIndex * 16 + byteOffsetInRegister;
+            byteOffsetInRegister += 12;
+            if (byteOffsetInRegister == 16)
+            {
+                registerIndex++;
+                byteOffsetInRegister = 0;
+            }
+            return offset;
+        }
+
+        if (typeSize == 8)
+        {
+            if (byteOffsetInRegister > 8)
+            {
+                registerIndex++;
+                byteOffsetInRegister = 0;
+            }
+
+            var offset = registerIndex * 16 + byteOffsetInRegister;
+            byteOffsetInRegister += 8;
+            if (byteOffsetInRegister == 16)
+            {
+                registerIndex++;
+                byteOffsetInRegister = 0;
+            }
+            return offset;
+        }
+
+        {
+            var offset = registerIndex * 16 + byteOffsetInRegister;
+            byteOffsetInRegister += 4;
+            if (byteOffsetInRegister == 16)
+            {
+                registerIndex++;
+                byteOffsetInRegister = 0;
+            }
+            return offset;
+        }
+    }
+
     public static uint CalculatePropertyBufferSize(IEnumerable<PropertySemantic>? properties)
     {
         if (properties == null)
@@ -127,18 +208,22 @@ public static class DSLShaderCompiler
             return 0;
         }
 
-        uint currentOffset = 0;
+        var registerIndex = 0;
+        var byteOffsetInRegister = 0;
+        var maxEndOffset = 0;
+
         foreach (var prop in properties)
         {
-            var typeSize = GetPropertyTypeSize(prop.type);
-            currentOffset += typeSize;
-            if (currentOffset % 4 != 0)
+            var offset = ComputeFieldOffset(prop.type, ref registerIndex, ref byteOffsetInRegister);
+            var size = (int)GetPropertyTypeSize(prop.type);
+            var endOffset = offset + size;
+            if (endOffset > maxEndOffset)
             {
-                currentOffset += 4 - (currentOffset % 4);
+                maxEndOffset = endOffset;
             }
         }
 
-        return currentOffset;
+        return (uint)maxEndOffset;
     }
 
     internal static string BuildPropertiesStruct(string shaderName, IReadOnlyList<PropertySemantic> properties)
@@ -163,6 +248,11 @@ public static class DSLShaderCompiler
             };
             sb.AppendLine($"    {hlslType} {prop.name};");
         }
+        sb.AppendLine("};");
+        sb.AppendLine();
+        sb.AppendLine("cbuffer PassProperties : register(b3, space0)");
+        sb.AppendLine("{");
+        sb.AppendLine($"    {structName} g_Properties;");
         sb.AppendLine("};");
         sb.AppendLine();
         sb.AppendLine($"typedef {structName} MaterialProperties;");

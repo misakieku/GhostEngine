@@ -20,12 +20,11 @@ compute "Internal/UpdateGPUScene"
         [numthreads(64, 1, 1)]
         void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         {
-            InternalUpdateGPUSceneShaderProperties properties = LoadDataWithOffset<InternalUpdateGPUSceneShaderProperties>(g_PushConstantData.userData0, 0, g_PushConstantData.userData1);
-            RWByteAddressBuffer gpuSceneBuffer = GET_BUFFER(properties.gpuSceneBuffer);
+            RWByteAddressBuffer gpuSceneBuffer = GET_BUFFER(g_Properties.gpuSceneBuffer);
 
-            if (dispatchThreadID.x < properties.updateCount)
+            if (dispatchThreadID.x < g_Properties.updateCount)
             {
-                StructuredBuffer<UpdateInstanceData> updateBuffer = GET_BUFFER(properties.updateBuffer);
+                StructuredBuffer<UpdateInstanceData> updateBuffer = GET_BUFFER(g_Properties.updateBuffer);
                 UpdateInstanceData updateData = updateBuffer[dispatchThreadID.x];
 
                 InstanceData instance = (InstanceData)0;
@@ -36,9 +35,9 @@ compute "Internal/UpdateGPUScene"
                 gpuSceneBuffer.Store<InstanceData>(updateData.instanceID * sizeof(InstanceData), instance);
             }
 
-            if (dispatchThreadID.x < properties.removeCount)
+            if (dispatchThreadID.x < g_Properties.removeCount)
             {
-                StructuredBuffer<RemoveInstanceData> removeBuffer = GET_BUFFER(properties.removeBuffer);
+                StructuredBuffer<RemoveInstanceData> removeBuffer = GET_BUFFER(g_Properties.removeBuffer);
                 RemoveInstanceData removeData = removeBuffer[dispatchThreadID.x];
 
                 InstanceData swapInstance = gpuSceneBuffer.Load<InstanceData>(removeData.swapWithInstanceID * sizeof(InstanceData));

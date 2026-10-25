@@ -22,13 +22,12 @@ compute "Internal/ScatterMeshlets"
         [numthreads(64, 1, 1)]
         void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         {
-            InternalScatterMeshletsShaderProperties props = LoadData<InternalScatterMeshletsShaderProperties>(g_PushConstantData.userData0, 0);
 
-            RWByteAddressBuffer counterBuf = GET_BUFFER(props.counterBuffer);
-            uint totalVisible = counterBuf.Load(props.totalVisibleOffset);
-            if (totalVisible > props.maxVisibleMeshlets)
+            RWByteAddressBuffer counterBuf = GET_BUFFER(g_Properties.counterBuffer);
+            uint totalVisible = counterBuf.Load(g_Properties.totalVisibleOffset);
+            if (totalVisible > g_Properties.maxVisibleMeshlets)
             {
-                totalVisible = props.maxVisibleMeshlets;
+                totalVisible = g_Properties.maxVisibleMeshlets;
             }
 
             uint slotIndex = dispatchThreadId.y * 4194240u + dispatchThreadId.x;
@@ -37,25 +36,25 @@ compute "Internal/ScatterMeshlets"
                 return;
             }
 
-            StructuredBuffer<UnbinnedMeshletEntry> unbinned = GET_BUFFER(props.unbinnedBuffer);
+            StructuredBuffer<UnbinnedMeshletEntry> unbinned = GET_BUFFER(g_Properties.unbinnedBuffer);
             UnbinnedMeshletEntry entry = unbinned[slotIndex];
 
-            uint binIndex = (props.isShadowPass != 0u) ? (entry.variantIndex >> 16u) : entry.variantIndex;
+            uint binIndex = (g_Properties.isShadowPass != 0u) ? (entry.variantIndex >> 16u) : entry.variantIndex;
 
-            RWByteAddressBuffer scatterCounters = GET_BUFFER(props.binScatterCounters);
+            RWByteAddressBuffer scatterCounters = GET_BUFFER(g_Properties.binScatterCounters);
             uint dstSlot;
             scatterCounters.InterlockedAdd(binIndex * 4u, 1u, dstSlot);
 
-            if (dstSlot < props.maxVisibleMeshlets)
+            if (dstSlot < g_Properties.maxVisibleMeshlets)
             {
-                if (props.isShadowPass != 0u)
+                if (g_Properties.isShadowPass != 0u)
                 {
-                    RWStructuredBuffer<UnbinnedMeshletEntry> binnedShadow = GET_BUFFER(props.binnedBuffer);
+                    RWStructuredBuffer<UnbinnedMeshletEntry> binnedShadow = GET_BUFFER(g_Properties.binnedBuffer);
                     binnedShadow[dstSlot] = entry;
                 }
                 else
                 {
-                    RWStructuredBuffer<VisibleMeshletEntry> binnedScene = GET_BUFFER(props.binnedBuffer);
+                    RWStructuredBuffer<VisibleMeshletEntry> binnedScene = GET_BUFFER(g_Properties.binnedBuffer);
                     VisibleMeshletEntry visible;
                     visible.instanceIndex = entry.instanceIndex;
                     visible.meshletIndex = entry.meshletIndex;

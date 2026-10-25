@@ -35,14 +35,14 @@ public static unsafe class ResourceUtility
                 HeapType = HeapType.Upload,
             };
 
-            var uploadHandle = resourceManager.CreateTransientBuffer(in uploadDesc);
+            var uploadHandle = resourceManager.CreateTransientBuffer(uploadDesc);
             if (uploadHandle.IsInvalid)
             {
                 return Error.OutOfMemory;
             }
 
             var mappedData = resourceDatabase.MapResource(uploadHandle.AsResource(), 0, null);
-            MemoryUtility.MemCpy(mappedData, pData, sizeInBytes);
+            MemoryUtility.MemCpy((byte*)mappedData, pData, sizeInBytes);
             resourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
 
             cmd.Barrier(BarrierDesc.Buffer(buffer, BarrierSync.None, BarrierSync.Copy, BarrierAccess.NoAccess, BarrierAccess.CopyDest));
@@ -111,14 +111,14 @@ public static unsafe class ResourceUtility
                 HeapType = HeapType.Upload,
             };
 
-            var uploadHandle = resourceManager.CreateTransientBuffer(in uploadDesc);
+            var uploadHandle = resourceManager.CreateTransientBuffer(uploadDesc);
             if (uploadHandle.IsInvalid)
             {
                 return Error.OutOfMemory;
             }
 
             var mappedData = resourceDatabase.MapResource(uploadHandle.AsResource(), 0, null);
-            CopyStreamToPointer(stream, mappedData, sizeInBytes);
+            CopyStreamToPointer(stream, (byte*)mappedData, sizeInBytes);
             resourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
 
             cmd.Barrier(BarrierDesc.Buffer(buffer, BarrierSync.None, BarrierSync.Copy, BarrierAccess.NoAccess, BarrierAccess.CopyDest));

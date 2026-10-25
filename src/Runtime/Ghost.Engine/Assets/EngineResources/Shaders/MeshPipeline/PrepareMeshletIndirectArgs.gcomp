@@ -28,21 +28,20 @@ compute "Internal/PrepareMeshletIndirectArgs"
         [numthreads(SCAN_THREADS, 1, 1)]
         void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         {
-            InternalPrepareMeshletIndirectArgsShaderProperties properties = LoadData<InternalPrepareMeshletIndirectArgsShaderProperties>(g_PushConstantData.userData0, 0);
 
-            RWByteAddressBuffer counterBuffer = GET_BUFFER(properties.counterBuffer);
-            RWByteAddressBuffer indirectArgsBuffer = GET_BUFFER(properties.indirectArgsBuffer);
-            RWByteAddressBuffer binOffsets = GET_BUFFER(properties.binOffsetsBuffer);
-            RWByteAddressBuffer binCounters = GET_BUFFER(properties.binScatterCounters);
+            RWByteAddressBuffer counterBuffer = GET_BUFFER(g_Properties.counterBuffer);
+            RWByteAddressBuffer indirectArgsBuffer = GET_BUFFER(g_Properties.indirectArgsBuffer);
+            RWByteAddressBuffer binOffsets = GET_BUFFER(g_Properties.binOffsetsBuffer);
+            RWByteAddressBuffer binCounters = GET_BUFFER(g_Properties.binScatterCounters);
 
             uint v = dispatchThreadID.x;
             uint count = 0;
-            if (v < properties.maxVariants)
+            if (v < g_Properties.maxVariants)
             {
-                count = counterBuffer.Load(properties.variantCountsOffset + v * 4u);
-                if (count > properties.maxCount)
+                count = counterBuffer.Load(g_Properties.variantCountsOffset + v * 4u);
+                if (count > g_Properties.maxCount)
                 {
-                    count = properties.maxCount;
+                    count = g_Properties.maxCount;
                 }
             }
 
@@ -66,29 +65,29 @@ compute "Internal/PrepareMeshletIndirectArgs"
             // Convert inclusive scan to exclusive prefix sum
             uint exclusiveOffset = (v > 0) ? s_scan[v - 1] : 0;
 
-            if (v < properties.maxVariants)
+            if (v < g_Properties.maxVariants)
             {
                 binOffsets.Store(v * 4u, exclusiveOffset);
                 binCounters.Store(v * 4u, exclusiveOffset);
 
                 // D3D12_DISPATCH_MESH_ARGUMENTS: ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ
-                indirectArgsBuffer.Store3(properties.visibleArgsOffset + v * 16u, uint3(count, 1, 1));
+                indirectArgsBuffer.Store3(g_Properties.visibleArgsOffset + v * 16u, uint3(count, 1, 1));
             }
 
             // Thread 0 also prepares the Pass 2 cull dispatch arguments if requested
             if (v == 0)
             {
-                if (properties.cullArgsOffset != 0xFFFFFFFF && properties.occludedCountOffset != 0xFFFFFFFF)
+                if (g_Properties.cullArgsOffset != 0xFFFFFFFF && g_Properties.occludedCountOffset != 0xFFFFFFFF)
                 {
-                    uint occludedCount = counterBuffer.Load(properties.occludedCountOffset);
-                    if (occludedCount > properties.maxCount)
+                    uint occludedCount = counterBuffer.Load(g_Properties.occludedCountOffset);
+                    if (occludedCount > g_Properties.maxCount)
                     {
-                        occludedCount = properties.maxCount;
+                        occludedCount = g_Properties.maxCount;
                     }
 
                     uint threadGroupCountX = (occludedCount + 63) / 64;
                     // D3D12_DISPATCH_ARGUMENTS: ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ
-                    indirectArgsBuffer.Store3(properties.cullArgsOffset, uint3(threadGroupCountX, 1, 1));
+                    indirectArgsBuffer.Store3(g_Properties.cullArgsOffset, uint3(threadGroupCountX, 1, 1));
                 }
             }
         }

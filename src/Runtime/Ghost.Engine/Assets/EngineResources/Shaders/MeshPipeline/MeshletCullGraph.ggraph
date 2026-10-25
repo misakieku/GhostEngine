@@ -2,6 +2,8 @@ compute "Internal/MeshletCullGraph"
 {
     properties
     {
+        uint4 supportedVariantMask0;
+        uint4 supportedVariantMask1;
         uint hzbMipCount;
         uint renderWidth;
         uint renderHeight;
@@ -20,8 +22,6 @@ compute "Internal/MeshletCullGraph"
         uint streamingRequestsUav;
         uint maxStreamingRequests;
         uint streamingRequestsBitmaskUav;
-        uint4 supportedVariantMask0;
-        uint4 supportedVariantMask1;
     }
 
     includes
@@ -56,9 +56,9 @@ compute "Internal/MeshletCullGraph"
             uint3 dispatchGrid : SV_DispatchGrid;
         };
 
-        bool TestHZB(float4 clipMin, float4 clipMax, InternalMeshletCullGraphShaderProperties props)
+        bool TestHZB(float4 clipMin, float4 clipMax)
         {
-            return HZBVisible(clipMin, clipMax, props.hzbMipCount, props.renderWidth, props.renderHeight, props.hzbTexture, props.hzbBaseWidth, props.hzbBaseHeight);
+            return HZBVisible(clipMin, clipMax, g_Properties.hzbMipCount, g_Properties.renderWidth, g_Properties.renderHeight, g_Properties.hzbTexture, g_Properties.hzbBaseWidth, g_Properties.hzbBaseHeight);
         }
 
         // TODO: Possible to sort the instances or meshlets roughly by distance to camera so the manual early z in vbuffer can be more effective?
@@ -74,12 +74,11 @@ compute "Internal/MeshletCullGraph"
             uint3 dispatchThreadId : SV_DispatchThreadID,
             [NodeId("HierarchyTraverseNode")] [MaxRecords(64)] NodeOutput<HierarchyNodeRecord> hierarchyQueue)
         {
-            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
 
             uint instanceIndex = dispatchThreadId.x;
 
             bool isVisible = false;
-            if (instanceIndex < props.instanceCount)
+            if (instanceIndex < g_Properties.instanceCount)
             {
                 InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, instanceIndex);
 
@@ -98,7 +97,7 @@ compute "Internal/MeshletCullGraph"
                     if (z_view > worldRadius && length(worldCenter) > worldRadius)
                     {
                         float d_percentage = (worldRadius * g_ViewData.projectionMatrix[1][1] * 100.0f) / z_view;
-                        if (d_percentage > props.cullingThreshold)
+                        if (d_percentage > g_Properties.cullingThreshold)
                         {
                             isVisible = AABBIntersectFrustum(worldMin, worldMax, g_ViewData.frustum.planes);
                         }
@@ -134,7 +133,6 @@ compute "Internal/MeshletCullGraph"
             [NodeId("HierarchyTraverseNode")] [MaxRecords(7)] NodeOutput<HierarchyNodeRecord> selfQueue,
             [NodeId("MeshletCullNode")]       [MaxRecords(1)] NodeOutput<MeshletGroupRecord> groupQueue)
         {
-            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
             HierarchyNodeRecord rec = inputRecord.Get();
 
             InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
@@ -174,7 +172,7 @@ compute "Internal/MeshletCullGraph"
                     GetCameraPositionWS(),
                     g_ViewData.projectionMatrix[1][1],
                     g_ViewData.screenSize.y,
-                    props.lodErrorThreshold);
+                    g_Properties.lodErrorThreshold);
 
                 if (isParentDetailSufficient)
                 {
@@ -211,12 +209,12 @@ compute "Internal/MeshletCullGraph"
                     if (physicalSlot == 0xFFFFFFFFu)
                     {
                         isResident = false;
-                        if (IS_VALID_BUFFER(props.streamingRequestsUav))
+                        if (IS_VALID_BUFFER(g_Properties.streamingRequestsUav))
                         {
                             bool shouldAppend = true;
-                            if (IS_VALID_BUFFER(props.streamingRequestsBitmaskUav))
+                            if (IS_VALID_BUFFER(g_Properties.streamingRequestsBitmaskUav))
                             {
-                                RWByteAddressBuffer bitmaskBuf = GET_BUFFER(props.streamingRequestsBitmaskUav);
+                                RWByteAddressBuffer bitmaskBuf = GET_BUFFER(g_Properties.streamingRequestsBitmaskUav);
                                 uint wordIndex = globalPageID / 32u;
                                 uint bitMask = 1u << (globalPageID % 32u);
                                 uint prevMask;
@@ -226,10 +224,10 @@ compute "Internal/MeshletCullGraph"
 
                             if (shouldAppend)
                             {
-                                RWByteAddressBuffer reqBuf = GET_BUFFER(props.streamingRequestsUav);
+                                RWByteAddressBuffer reqBuf = GET_BUFFER(g_Properties.streamingRequestsUav);
                                 uint reqSlot;
                                 reqBuf.InterlockedAdd(0u, 1u, reqSlot);
-                                if (reqSlot < props.maxStreamingRequests)
+                                if (reqSlot < g_Properties.maxStreamingRequests)
                                 {
                                     reqBuf.Store((1u + reqSlot) * 4u, globalPageID);
                                 }
@@ -351,7 +349,6 @@ compute "Internal/MeshletCullGraph"
             uint variantIndex = 0;
             uint cullBin = 0;
 
-            InternalMeshletCullGraphShaderProperties props = LoadData<InternalMeshletCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
 
             if (isValid)
             {
@@ -370,7 +367,7 @@ compute "Internal/MeshletCullGraph"
                     GetCameraPositionWS(),
                     g_ViewData.projectionMatrix[1][1],
                     g_ViewData.screenSize.y,
-                    props.lodErrorThreshold);
+                    g_Properties.lodErrorThreshold);
 
                 // Dual-Error Cut Condition 2: Cluster Error test (Upper bound)
                 // Refinement gate: this cluster can only refine into a finer LOD level if:
@@ -386,7 +383,7 @@ compute "Internal/MeshletCullGraph"
                     GetCameraPositionWS(),
                     g_ViewData.projectionMatrix[1][1],
                     g_ViewData.screenSize.y,
-                    props.lodErrorThreshold);
+                    g_Properties.lodErrorThreshold);
 
                 if (isParentDetailSufficient || !isClusterDetailSufficient)
                 {
@@ -402,7 +399,7 @@ compute "Internal/MeshletCullGraph"
 
                     uint wordIdx = variantIndex >> 5u;
                     uint bitIdx = variantIndex & 31u;
-                    uint4 maskVec = (wordIdx < 4u) ? props.supportedVariantMask0 : props.supportedVariantMask1;
+                    uint4 maskVec = (wordIdx < 4u) ? g_Properties.supportedVariantMask0 : g_Properties.supportedVariantMask1;
                     if ((maskVec[wordIdx & 3u] & (1u << bitIdx)) == 0u)
                     {
                         isValid = false;
@@ -415,19 +412,19 @@ compute "Internal/MeshletCullGraph"
                         // inFrustum = true;
                         if (WaveActiveAnyTrue(inFrustum))
                         {
-                            if (inFrustum && props.hzbMipCount > 0)
+                            if (inFrustum && g_Properties.hzbMipCount > 0)
                             {
-                                if (props.cullPassIndex == 0)
+                                if (g_Properties.cullPassIndex == 0)
                                 {
                                     BBoxFrustumResult prevCullResult = BBoxIntersectFrustum<true>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, localToRWS);
                                     if (prevCullResult.isVisible && prevCullResult.clipValid)
                                     {
-                                        isOccluded = !TestHZB(prevCullResult.clipMin, prevCullResult.clipMax, props);
+                                        isOccluded = !TestHZB(prevCullResult.clipMin, prevCullResult.clipMax);
                                     }
                                 }
                                 else if (cullResult.clipValid)
                                 {
-                                    isOccluded = !TestHZB(cullResult.clipMin, cullResult.clipMax, props);
+                                    isOccluded = !TestHZB(cullResult.clipMin, cullResult.clipMax);
                                 }
                             }
 
@@ -442,12 +439,12 @@ compute "Internal/MeshletCullGraph"
             uint localVisibleOffset = WavePrefixCountBits(isVisible);
 
             // In Pass 1: queue occluded meshlets to be re-evaluated in Pass 2 against current HZB
-            bool isOccludedCandidate = (props.cullPassIndex == 0) && isValid && inFrustum && isOccluded;
+            bool isOccludedCandidate = (g_Properties.cullPassIndex == 0) && isValid && inFrustum && isOccluded;
             uint waveOccCount = WaveActiveCountBits(isOccludedCandidate);
             uint localOccOffset = WavePrefixCountBits(isOccludedCandidate);
 
-            RWByteAddressBuffer counterBuf = GET_BUFFER(props.counterBufferUav);
-            uint visibleCounterOffset = (props.cullPassIndex == 0) ? 0 : 8;
+            RWByteAddressBuffer counterBuf = GET_BUFFER(g_Properties.counterBufferUav);
+            uint visibleCounterOffset = (g_Properties.cullPassIndex == 0) ? 0 : 8;
 
             uint waveVisibleBase = 0;
             if (WaveIsFirstLane() && waveVisibleCount > 0)
@@ -466,9 +463,9 @@ compute "Internal/MeshletCullGraph"
             if (isVisible)
             {
                 uint slot = waveVisibleBase + localVisibleOffset;
-                if (slot < props.maxVisibleMeshlets)
+                if (slot < g_Properties.maxVisibleMeshlets)
                 {
-                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = GET_BUFFER(props.visibleMeshletsUav);
+                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = GET_BUFFER(g_Properties.visibleMeshletsUav);
                     UnbinnedMeshletEntry entry;
                     entry.instanceIndex = rec.instanceIndex;
                     entry.meshletIndex = rec.meshletIndex;
@@ -488,7 +485,7 @@ compute "Internal/MeshletCullGraph"
 
                 if (WaveGetLaneIndex() == firstLane && v < MAX_CULL_VARIANTS)
                 {
-                    uint variantCounterOffset = (props.cullPassIndex == 0)
+                    uint variantCounterOffset = (g_Properties.cullPassIndex == 0)
                         ? (OFFSET_PASS1_VARIANT_COUNTS + v * 4u)
                         : (OFFSET_PASS2_VARIANT_COUNTS + v * 4u);
                     counterBuf.InterlockedAdd(variantCounterOffset, count);
@@ -499,9 +496,9 @@ compute "Internal/MeshletCullGraph"
             if (isOccludedCandidate)
             {
                 uint slot = waveOccBase + localOccOffset;
-                if (slot < props.maxVisibleMeshlets)
+                if (slot < g_Properties.maxVisibleMeshlets)
                 {
-                    RWStructuredBuffer<MeshletCandidateRecord> occludedBuf = GET_BUFFER(props.occludedMeshletsUav);
+                    RWStructuredBuffer<MeshletCandidateRecord> occludedBuf = GET_BUFFER(g_Properties.occludedMeshletsUav);
                     occludedBuf[slot] = rec;
                 }
             }

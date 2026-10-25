@@ -18,24 +18,23 @@ compute "Internal/PrepareShadowIndirectArgs"
         [numthreads(64, 1, 1)]
         void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         {
-            InternalPrepareShadowIndirectArgsShaderProperties props = LoadData<InternalPrepareShadowIndirectArgsShaderProperties>(g_PushConstantData.userData0, 0);
 
-            RWByteAddressBuffer counterBuf = GET_BUFFER(props.counterBuffer);
-            RWByteAddressBuffer indirectArgsBuf = GET_BUFFER(props.indirectArgsBuffer);
+            RWByteAddressBuffer counterBuf = GET_BUFFER(g_Properties.counterBuffer);
+            RWByteAddressBuffer indirectArgsBuf = GET_BUFFER(g_Properties.indirectArgsBuffer);
 
             uint v = dispatchThreadId.x;
             if (v == 0u)
             {
                 uint count = counterBuf.Load(0);
-                if (count > props.maxCount)
+                if (count > g_Properties.maxCount)
                 {
-                    count = props.maxCount;
+                    count = g_Properties.maxCount;
                 }
 
                 // D3D12_DISPATCH_MESH_ARGUMENTS: ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ
                 indirectArgsBuf.Store3(0, uint3(count, 1, 1));
             }
-            else if (v < props.maxVariants)
+            else if (v < g_Properties.maxVariants)
             {
                 indirectArgsBuf.Store3(v * 16u, uint3(0, 0, 0));
             }

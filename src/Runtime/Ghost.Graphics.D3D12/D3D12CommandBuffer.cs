@@ -858,7 +858,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         pNativeObject->SetPipelineState(psor.Value);
     }
 
-    public void SetConstantBufferView(uint slot, Handle<GPUBuffer> buffer)
+    public void SetConstantBufferView(uint slot, Handle<GPUBuffer> buffer, ulong byteOffset = 0)
     {
         AssertNotDisposed();
         AssertRecording();
@@ -870,7 +870,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             return;
         }
 
-        var gpuVA = resource.Get()->GetGPUVirtualAddress();
+        var gpuVA = resource.Get()->GetGPUVirtualAddress() + byteOffset;
         if (_type == CommandBufferType.Compute)
         {
             pNativeObject->SetComputeRootConstantBufferView(slot, gpuVA);

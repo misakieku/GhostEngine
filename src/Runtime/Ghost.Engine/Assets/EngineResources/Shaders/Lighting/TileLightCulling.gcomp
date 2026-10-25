@@ -102,7 +102,7 @@ compute "Internal/TileLightCulling"
             uint3 groupThreadId : SV_GroupThreadID,
             uint groupIndex : SV_GroupIndex)
         {
-            InternalTileLightCullingShaderProperties props = LoadData<InternalTileLightCullingShaderProperties>(g_PushConstantData.userData0, 0);
+
 
             // Initialize shared memory
             if (groupIndex == 0u)
@@ -122,9 +122,9 @@ compute "Internal/TileLightCulling"
             float deviceDepth = 0.0f;
             bool hasValidDepth = false;
 
-            if (pixelCoord.x < props.renderWidth && pixelCoord.y < props.renderHeight)
+            if (pixelCoord.x < g_Properties.renderWidth && pixelCoord.y < g_Properties.renderHeight)
             {
-                Texture2D<float> depthTexture = GET_TEXTURE2D(props.depthTextureIndex);
+                Texture2D<float> depthTexture = GET_TEXTURE2D(g_Properties.depthTextureIndex);
                 deviceDepth = depthTexture[pixelCoord];
 
                 // In Reversed-Z: geometry is in (0.0, 1.0], while 0.0 is background/clear/sky
@@ -139,8 +139,8 @@ compute "Internal/TileLightCulling"
 
             GroupMemoryBarrierWithGroupSync();
 
-            uint tileIndex = groupID.y * props.tilesX + groupID.x;
-            RWByteAddressBuffer tileLightListUav = GET_BUFFER(props.tileLightListUav);
+            uint tileIndex = groupID.y * g_Properties.tilesX + groupID.x;
+            RWByteAddressBuffer tileLightListUav = GET_BUFFER(g_Properties.tileLightListUav);
             bool hasGeometry = (s_MinDeviceZ != 0xFFFFFFFFu);
 
             // If the tile has no geometry (all sky), clear light list and exit

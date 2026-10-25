@@ -20,6 +20,11 @@
 #include "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl"
 #include "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl"
 
+cbuffer PassProperties : register(b3, space0)
+{
+    DeferredTexturingShaderProperties g_Properties;
+};
+
 [numthreads(CLASSIFICATION_TILE_SIZE, CLASSIFICATION_TILE_SIZE, 1)]
 void CSMain(
     uint3 dispatchThreadId : SV_DispatchThreadID,
@@ -27,23 +32,23 @@ void CSMain(
     uint3 groupThreadId : SV_GroupThreadID,
     uint groupIndex : SV_GroupIndex)
 {
-    DeferredTexturingShaderProperties props = LoadData<DeferredTexturingShaderProperties>(g_PushConstantData.userData0, 0);
 
-    // groupID.x is the tile slot in VariantTileList for props.variantIndex
-    ByteAddressBuffer tileOffsetsBuffer = GET_BUFFER(props.tileOffsetsBufferIndex);
-    uint tileOffset = tileOffsetsBuffer.Load(props.variantIndex * 4u);
 
-    ByteAddressBuffer tileList = GET_BUFFER(props.variantTileListIndex);
+    // groupID.x is the tile slot in VariantTileList for g_Properties.variantIndex
+    ByteAddressBuffer tileOffsetsBuffer = GET_BUFFER(g_Properties.tileOffsetsBufferIndex);
+    uint tileOffset = tileOffsetsBuffer.Load(g_Properties.variantIndex * 4u);
+
+    ByteAddressBuffer tileList = GET_BUFFER(g_Properties.variantTileListIndex);
     uint tileSlot = groupID.x;
     uint tileIndex = tileList.Load((tileOffset + tileSlot) * 4u);
-    uint2 pixelCoord = DecodeTilePixelCoord(tileIndex, groupThreadId.xy, props.tilesPerRow);
+    uint2 pixelCoord = DecodeTilePixelCoord(tileIndex, groupThreadId.xy, g_Properties.tilesPerRow);
 
-    if (pixelCoord.x >= props.renderWidth || pixelCoord.y >= props.renderHeight)
+    if (pixelCoord.x >= g_Properties.renderWidth || pixelCoord.y >= g_Properties.renderHeight)
     {
         return;
     }
 
-    Texture2D<uint2> visBuffer = GET_TEXTURE2D(props.visBufferIndex);
+    Texture2D<uint2> visBuffer = GET_TEXTURE2D(g_Properties.visBufferIndex);
     uint2 raw = visBuffer[pixelCoord];
 
     float depth;
@@ -60,7 +65,7 @@ void CSMain(
     uint passBit = (visibleMeshletIndex >> 23u) & 1u;
     uint rawMeshletIndex = visibleMeshletIndex & 0x7FFFFFu;
 
-    STRUCT_BUFFER visibleBufferIndex = (passBit == 0u) ? props.visibleMeshletsPass1 : props.visibleMeshletsPass2;
+    STRUCT_BUFFER visibleBufferIndex = (passBit == 0u) ? g_Properties.visibleMeshletsPass1 : g_Properties.visibleMeshletsPass2;
     StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = GET_BUFFER(visibleBufferIndex);
     VisibleMeshletEntry visible = visibleMeshlets[rawMeshletIndex];
 
@@ -78,7 +83,7 @@ void CSMain(
     uint candidateVariant = UnpackMaterialVariantIndex(packedMaterial);
 
     // Check if pixel actually belongs to this shader variant
-    if (candidateVariant != props.variantIndex)
+    if (candidateVariant != g_Properties.variantIndex)
     {
         return;
     }
@@ -121,9 +126,9 @@ void CSMain(
     #error "Unsupported template type for deferred texturing"
 #endif
 
-    WriteGBuffer(pixelCoord, outputs, props.gbuffer0Uav, props.gbuffer1Uav, props.gbuffer2Uav, props.gbuffer3Uav);
+    WriteGBuffer(pixelCoord, outputs, g_Properties.gbuffer0Uav, g_Properties.gbuffer1Uav, g_Properties.gbuffer2Uav, g_Properties.gbuffer3Uav);
 
-    RWTexture2D<float2> motionVectorBuffer = GET_TEXTURE2D(props.motionVectorUav);
+    RWTexture2D<float2> motionVectorBuffer = GET_TEXTURE2D(g_Properties.motionVectorUav);
     motionVectorBuffer[pixelCoord] = attrs.motionVectors;
 }
 

@@ -233,12 +233,12 @@ public sealed unsafe class RenderContext
         var propertyBufferDesc = new BufferDesc
         {
             Size = (uint)propertySpan.Length,
-            Stride = (uint)sizeof(T),
-            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            Stride = 256,
+            Usage = BufferUsage.Upload,
             HeapType = HeapType.Upload,
         };
 
-        var properyBuffer = ResourceManager.CreateTransientUploadBuffer(in propertyBufferDesc, out var offset, out var srv);
+        var properyBuffer = ResourceManager.CreateTransientUploadBuffer(in propertyBufferDesc, 256, out var offset);
 
         var mappedData = ResourceDatabase.MapResource(properyBuffer.AsResource(), 0, null);
         Logger.DebugAssert(mappedData != null, "Failed to map property buffer.");
@@ -251,14 +251,7 @@ public sealed unsafe class RenderContext
         error = ResourceDatabase.UnmapResource(properyBuffer.AsResource(), 0, null);
         Logger.DebugAssert(error.IsSuccess, $"Failed to unmap property buffer: {error}.");
 
-        Logger.DebugAssert(offset <= uint.MaxValue, "Property buffer offset is out of range.");
-        var pushConstant = new PushConstantsData
-        {
-            userData0 = srv,
-            userData1 = (uint)offset, //unlikely to overflow.
-        };
-
-        CommandBuffer.SetComputeRoot32Constants(RootSignatureLayout.PUSH_CONSTANT_SLOT, pushConstant.AsUInts());
+        CommandBuffer.SetConstantBufferView(RootSignatureLayout.PASS_PROPERTIES_CBV_SLOT, properyBuffer, offset);
         CommandBuffer.DispatchCompute(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
     }
 }

@@ -112,7 +112,7 @@ public interface ICommandBuffer : IRHIObject
     /// </summary>
     /// <param name="slot">The zero-based index of the slot to bind the constant buffer view to.</param>
     /// <param name="buffer">A graphics buffer to use as the constant buffer view.</param>
-    void SetConstantBufferView(uint slot, Handle<GPUBuffer> buffer);
+    void SetConstantBufferView(uint slot, Handle<GPUBuffer> buffer, ulong byteOffset = 0);
 
     /// <summary>
     /// Binds a vertex buffer to the specified slot for subsequent draw calls.

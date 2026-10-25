@@ -10,7 +10,9 @@ public static class RootSignatureLayout
     public const int VIEW_DATA_CBV_SLOT = 1;
     public const int FRAME_DATA_CBV_SLOT = 2;
 
-    public const int ROOT_PARAMETER_COUNT = 3;
+    public const int PASS_PROPERTIES_CBV_SLOT = 3;
+
+    public const int ROOT_PARAMETER_COUNT = 4;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 16)]

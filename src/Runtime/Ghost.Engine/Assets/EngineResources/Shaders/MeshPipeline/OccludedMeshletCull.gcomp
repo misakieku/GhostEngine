@@ -24,17 +24,16 @@ compute "Internal/OccludedMeshletCull"
 
     hlsl
     {
-        bool TestHZB(float4 clipMin, float4 clipMax, InternalOccludedMeshletCullShaderProperties props)
+        bool TestHZB(float4 clipMin, float4 clipMax)
         {
-            return HZBVisible(clipMin, clipMax, props.hzbMipCount, props.renderWidth, props.renderHeight, props.hzbTexture, props.hzbBaseWidth, props.hzbBaseHeight);
+            return HZBVisible(clipMin, clipMax, g_Properties.hzbMipCount, g_Properties.renderWidth, g_Properties.renderHeight, g_Properties.hzbTexture, g_Properties.hzbBaseWidth, g_Properties.hzbBaseHeight);
         }
 
         [numthreads(64, 1, 1)]
         void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         {
-            InternalOccludedMeshletCullShaderProperties props = LoadData<InternalOccludedMeshletCullShaderProperties>(g_PushConstantData.userData0, 0);
 
-            RWByteAddressBuffer counterBuf = GET_BUFFER(props.counterBufferUav);
+            RWByteAddressBuffer counterBuf = GET_BUFFER(g_Properties.counterBufferUav);
             uint occludedCount = counterBuf.Load(4);
 
             uint slotIndex = dispatchThreadId.x;
@@ -47,7 +46,7 @@ compute "Internal/OccludedMeshletCull"
 
             if (isValid)
             {
-                StructuredBuffer<MeshletCandidateRecord> occludedBuffer = GET_BUFFER(props.occludedMeshletsUav);
+                StructuredBuffer<MeshletCandidateRecord> occludedBuffer = GET_BUFFER(g_Properties.occludedMeshletsUav);
                 rec = occludedBuffer[slotIndex];
 
                 InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
@@ -64,9 +63,9 @@ compute "Internal/OccludedMeshletCull"
                 BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, localToRWS);
                 if (cullResult.isVisible)
                 {
-                    if (cullResult.clipValid && props.hzbMipCount > 0)
+                    if (cullResult.clipValid && g_Properties.hzbMipCount > 0)
                     {
-                        isVisible = TestHZB(cullResult.clipMin, cullResult.clipMax, props);
+                        isVisible = TestHZB(cullResult.clipMin, cullResult.clipMax);
                         // isVisible = true;
                     }
                     else
@@ -89,9 +88,9 @@ compute "Internal/OccludedMeshletCull"
             if (isVisible)
             {
                 uint slot = waveVisibleBase + localVisibleOffset;
-                if (slot < props.maxVisibleMeshlets)
+                if (slot < g_Properties.maxVisibleMeshlets)
                 {
-                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = GET_BUFFER(props.visibleMeshletsUav);
+                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = GET_BUFFER(g_Properties.visibleMeshletsUav);
                     UnbinnedMeshletEntry entry;
                     entry.instanceIndex = rec.instanceIndex;
                     entry.meshletIndex = rec.meshletIndex;

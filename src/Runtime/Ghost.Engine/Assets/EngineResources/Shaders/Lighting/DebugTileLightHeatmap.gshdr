@@ -90,21 +90,20 @@ shader "Hidden/DebugTileLightHeatmap"
 
             float4 PSMain(PSInput input) : SV_TARGET
             {
-                HiddenDebugTileLightHeatmapShaderProperties props = LoadData<HiddenDebugTileLightHeatmapShaderProperties>(g_PushConstantData.userData0, 0);
 
                 uint2 pixelCoord = uint2(input.position.xy);
-                if (pixelCoord.x >= props.renderWidth || pixelCoord.y >= props.renderHeight)
+                if (pixelCoord.x >= g_Properties.renderWidth || pixelCoord.y >= g_Properties.renderHeight)
                 {
                     return float4(0.0f, 0.0f, 0.0f, 1.0f);
                 }
 
                 uint2 tileCoord = pixelCoord / 16u;
-                uint tileIndex = tileCoord.y * props.tilesX + tileCoord.x;
+                uint tileIndex = tileCoord.y * g_Properties.tilesX + tileCoord.x;
 
-                ByteAddressBuffer tileLightList = GET_BUFFER(props.tileLightListBufferIndex);
+                ByteAddressBuffer tileLightList = GET_BUFFER(g_Properties.tileLightListBufferIndex);
                 uint count = GetTileLightCount<DWORDS_PER_TILE>(tileLightList, tileIndex);
 
-                Texture2D<float> depthTexture = GET_TEXTURE2D(props.depthTextureIndex);
+                Texture2D<float> depthTexture = GET_TEXTURE2D(g_Properties.depthTextureIndex);
                 float depth = depthTexture[pixelCoord];
 
                 float4 color = GetHeatmapColor(count);

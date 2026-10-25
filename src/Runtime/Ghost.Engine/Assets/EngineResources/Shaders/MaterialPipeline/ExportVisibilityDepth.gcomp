@@ -19,15 +19,14 @@ compute "Internal/ExportVisibilityDepth"
         [numthreads(16, 16, 1)]
         void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         {
-            InternalExportVisibilityDepthShaderProperties props = LoadData<InternalExportVisibilityDepthShaderProperties>(g_PushConstantData.userData0, 0);
-            RWTexture2D<float> depthTexture = GET_TEXTURE2D(props.depthTextureUav);
+            RWTexture2D<float> depthTexture = GET_TEXTURE2D(g_Properties.depthTextureUav);
 
-            if (dispatchThreadId.x >= props.renderWidth || dispatchThreadId.y >= props.renderHeight)
+            if (dispatchThreadId.x >= g_Properties.renderWidth || dispatchThreadId.y >= g_Properties.renderHeight)
             {
                 return;
             }
 
-            Texture2D<uint2> visBuffer = GET_TEXTURE2D(props.visBufferIndex);
+            Texture2D<uint2> visBuffer = GET_TEXTURE2D(g_Properties.visBufferIndex);
             float depth = asfloat(visBuffer[dispatchThreadId.xy].y);
 
             depthTexture[dispatchThreadId.xy] = depth;

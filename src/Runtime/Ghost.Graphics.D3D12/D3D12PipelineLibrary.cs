@@ -120,6 +120,18 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
             }
         };
 
+        rootParameters[RootSignatureLayout.PASS_PROPERTIES_CBV_SLOT] = new D3D12_ROOT_PARAMETER1
+        {
+            ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+            ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
+            Descriptor = new D3D12_ROOT_DESCRIPTOR1
+            {
+                ShaderRegister = 3, // b3
+                RegisterSpace = 0,
+                Flags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE
+            }
+        };
+
         var rootSignatureDesc = new D3D12_ROOT_SIGNATURE_DESC1
         {
             NumParameters = RootSignatureLayout.ROOT_PARAMETER_COUNT,

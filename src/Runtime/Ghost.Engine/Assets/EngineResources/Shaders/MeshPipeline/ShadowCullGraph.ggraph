@@ -56,13 +56,12 @@ compute "Internal/ShadowCullGraph"
             uint3 dispatchThreadId : SV_DispatchThreadID,
             [NodeId("HierarchyTraverseNode")] [MaxRecords(64)] NodeOutput<HierarchyNodeRecord> hierarchyQueue)
         {
-            InternalShadowCullGraphShaderProperties props = LoadData<InternalShadowCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
 
             uint instanceIndex = dispatchThreadId.x;
             uint shadowViewIndex = dispatchThreadId.y;
 
             bool isVisible = false;
-            if (instanceIndex < props.instanceCount && shadowViewIndex < props.shadowViewCount)
+            if (instanceIndex < g_Properties.instanceCount && shadowViewIndex < g_Properties.shadowViewCount)
             {
                 InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, instanceIndex);
                 if (IS_VALID_BUFFER(instance.meshBuffer))
@@ -72,7 +71,7 @@ compute "Internal/ShadowCullGraph"
                     float3 worldMin, worldMax;
                     TransformAABB(mesh.worldBoundsMin, mesh.worldBoundsMax, localToRWS, worldMin, worldMax);
 
-                    GPUShadowCullingData shadowCull = LoadDataAtOffset<GPUShadowCullingData>(props.shadowViewsBuffer, sizeof(GPUShadowViewData) * shadowViewIndex); // Cull data at offset 0
+                    GPUShadowCullingData shadowCull = LoadDataAtOffset<GPUShadowCullingData>(g_Properties.shadowViewsBuffer, sizeof(GPUShadowViewData) * shadowViewIndex); // Cull data at offset 0
                     isVisible = AABBIntersectFrustum(worldMin, worldMax, shadowCull.planes);
                 }
             }
@@ -96,7 +95,6 @@ compute "Internal/ShadowCullGraph"
             [NodeId("HierarchyTraverseNode")] [MaxRecords(7)] NodeOutput<HierarchyNodeRecord> selfQueue,
             [NodeId("MeshletCullNode")]       [MaxRecords(1)] NodeOutput<MeshletGroupRecord> groupQueue)
         {
-            InternalShadowCullGraphShaderProperties props = LoadData<InternalShadowCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
             HierarchyNodeRecord rec = inputRecord.Get();
 
             InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, rec.instanceIndex);
@@ -113,7 +111,7 @@ compute "Internal/ShadowCullGraph"
             float3 worldCenter = mul(localToRWS, float4(node.bounds.xyz, 1.0f)).xyz;
             float worldRadius = node.bounds.w * maxScale;
 
-            GPUShadowCullingData shadowCull = LoadDataAtOffset<GPUShadowCullingData>(props.shadowViewsBuffer, sizeof(GPUShadowViewData) * rec.shadowViewIndex); // Cull data at offset 0
+            GPUShadowCullingData shadowCull = LoadDataAtOffset<GPUShadowCullingData>(g_Properties.shadowViewsBuffer, sizeof(GPUShadowViewData) * rec.shadowViewIndex); // Cull data at offset 0
             if (!SphereIntersectFrustum(worldCenter, worldRadius, shadowCull.planes))
             {
                 return;
@@ -210,8 +208,7 @@ compute "Internal/ShadowCullGraph"
             uint safeMeshletIndex = isValid ? meshletIndex : groupRec.meshletStartIndex;
             Meshlet meshlet = LoadMeshlet(safeMeshletIndex, groupRec.rawBuffer, groupRec.meshletBufferOffset);
 
-            InternalShadowCullGraphShaderProperties props = LoadData<InternalShadowCullGraphShaderProperties>(g_PushConstantData.userData0, 0);
-            GPUShadowCullingData shadowCull = LoadDataAtOffset<GPUShadowCullingData>(props.shadowViewsBuffer, sizeof(GPUShadowViewData) * groupRec.shadowViewIndex); // Cull data at offset 0
+            GPUShadowCullingData shadowCull = LoadDataAtOffset<GPUShadowCullingData>(g_Properties.shadowViewsBuffer, sizeof(GPUShadowViewData) * groupRec.shadowViewIndex); // Cull data at offset 0
 
             float4 localToRWS_row0 = 0.0f;
             float4 localToRWS_row1 = 0.0f;
@@ -319,7 +316,7 @@ compute "Internal/ShadowCullGraph"
             uint waveVisibleCount = WaveActiveCountBits(isVisible);
             uint localVisibleOffset = WavePrefixCountBits(isVisible);
 
-            RWByteAddressBuffer counterBuf = GET_BUFFER(props.counterBufferUav);
+            RWByteAddressBuffer counterBuf = GET_BUFFER(g_Properties.counterBufferUav);
             uint waveVisibleBase = 0;
             if (WaveIsFirstLane() && waveVisibleCount > 0)
             {
@@ -330,9 +327,9 @@ compute "Internal/ShadowCullGraph"
             if (isVisible)
             {
                 uint slot = waveVisibleBase + localVisibleOffset;
-                if (slot < props.maxVisibleMeshlets)
+                if (slot < g_Properties.maxVisibleMeshlets)
                 {
-                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = GET_BUFFER(props.visibleMeshletsUav);
+                    RWStructuredBuffer<UnbinnedMeshletEntry> visibleBuffer = GET_BUFFER(g_Properties.visibleMeshletsUav);
                     UnbinnedMeshletEntry entry;
                     entry.instanceIndex = groupRec.instanceIndex;
                     entry.meshletIndex = meshletIndex;

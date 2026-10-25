@@ -102,5 +102,46 @@ public class ShaderPropertiesGeneratorTest
         Assert.AreEqual(16, (int)Marshal.OffsetOf<InternalTileLightCullingShaderProperties>(nameof(InternalTileLightCullingShaderProperties.tilesX)));
         Assert.AreEqual(20, (int)Marshal.OffsetOf<InternalTileLightCullingShaderProperties>(nameof(InternalTileLightCullingShaderProperties.tilesY)));
     }
-}
 
+    [TestMethod]
+    public unsafe void TestInternalConvolveSkyIrradianceSHShaderProperties_LayoutAndOffset()
+    {
+#pragma warning disable MSTEST0032 // Assertion condition is always true
+        Assert.AreEqual("Internal/ConvolveSkyIrradianceSH", InternalConvolveSkyIrradianceSHShaderProperties.SHADER_NAME);
+#pragma warning restore MSTEST0032 // Assertion condition is always true
+        var size = sizeof(InternalConvolveSkyIrradianceSHShaderProperties);
+        Assert.AreEqual(48, size);
+
+        Assert.AreEqual(0, (int)Marshal.OffsetOf<InternalConvolveSkyIrradianceSHShaderProperties>(nameof(InternalConvolveSkyIrradianceSHShaderProperties.skyboxTintAndIntensity)));
+        Assert.AreEqual(16, (int)Marshal.OffsetOf<InternalConvolveSkyIrradianceSHShaderProperties>(nameof(InternalConvolveSkyIrradianceSHShaderProperties.skyboxRotationSinCos)));
+        Assert.AreEqual(24, (int)Marshal.OffsetOf<InternalConvolveSkyIrradianceSHShaderProperties>(nameof(InternalConvolveSkyIrradianceSHShaderProperties.skyboxTexture)));
+        Assert.AreEqual(28, (int)Marshal.OffsetOf<InternalConvolveSkyIrradianceSHShaderProperties>(nameof(InternalConvolveSkyIrradianceSHShaderProperties.skyboxSampler)));
+        Assert.AreEqual(32, (int)Marshal.OffsetOf<InternalConvolveSkyIrradianceSHShaderProperties>(nameof(InternalConvolveSkyIrradianceSHShaderProperties.persistentViewStateUav)));
+        Assert.AreEqual(36, (int)Marshal.OffsetOf<InternalConvolveSkyIrradianceSHShaderProperties>(nameof(InternalConvolveSkyIrradianceSHShaderProperties.viewId)));
+        Assert.AreEqual(40, (int)Marshal.OffsetOf<InternalConvolveSkyIrradianceSHShaderProperties>(nameof(InternalConvolveSkyIrradianceSHShaderProperties.skyboxMipCount)));
+        Assert.AreEqual(44, (int)Marshal.OffsetOf<InternalConvolveSkyIrradianceSHShaderProperties>(nameof(InternalConvolveSkyIrradianceSHShaderProperties.skyboxWidth)));
+    }
+
+    [TestMethod]
+    public unsafe void TestInternalBuildHZBShaderProperties_LayoutAndOffset()
+    {
+#pragma warning disable MSTEST0032 // Assertion condition is always true
+        Assert.AreEqual("Internal/BuildHZB", InternalBuildHZBShaderProperties.SHADER_NAME);
+#pragma warning restore MSTEST0032 // Assertion condition is always true
+        var size = sizeof(InternalBuildHZBShaderProperties);
+        Assert.AreEqual(80, size);
+
+        Assert.AreEqual(0, (int)Marshal.OffsetOf<InternalBuildHZBShaderProperties>(nameof(InternalBuildHZBShaderProperties.srcBuffer)));
+        Assert.AreEqual(4, (int)Marshal.OffsetOf<InternalBuildHZBShaderProperties>(nameof(InternalBuildHZBShaderProperties.srcUavMip)));
+        Assert.AreEqual(8, (int)Marshal.OffsetOf<InternalBuildHZBShaderProperties>(nameof(InternalBuildHZBShaderProperties.dstUavMip0)));
+        Assert.AreEqual(12, (int)Marshal.OffsetOf<InternalBuildHZBShaderProperties>(nameof(InternalBuildHZBShaderProperties.dstUavMip1)));
+        Assert.AreEqual(16, (int)Marshal.OffsetOf<InternalBuildHZBShaderProperties>(nameof(InternalBuildHZBShaderProperties.dstUavMip2)));
+        Assert.AreEqual(20, (int)Marshal.OffsetOf<InternalBuildHZBShaderProperties>(nameof(InternalBuildHZBShaderProperties.dstUavMip3)));
+        Assert.AreEqual(24, (int)Marshal.OffsetOf<InternalBuildHZBShaderProperties>(nameof(InternalBuildHZBShaderProperties.minDstCount)));
+        Assert.AreEqual(28, (int)Marshal.OffsetOf<InternalBuildHZBShaderProperties>(nameof(InternalBuildHZBShaderProperties.isFirstBatch)));
+        Assert.AreEqual(32, (int)Marshal.OffsetOf<InternalBuildHZBShaderProperties>(nameof(InternalBuildHZBShaderProperties.srcLimit)));
+        Assert.AreEqual(40, (int)Marshal.OffsetOf<InternalBuildHZBShaderProperties>(nameof(InternalBuildHZBShaderProperties._padding)));
+        Assert.AreEqual(48, (int)Marshal.OffsetOf<InternalBuildHZBShaderProperties>(nameof(InternalBuildHZBShaderProperties.dstSize01)));
+        Assert.AreEqual(64, (int)Marshal.OffsetOf<InternalBuildHZBShaderProperties>(nameof(InternalBuildHZBShaderProperties.dstSize23)));
+    }
+}

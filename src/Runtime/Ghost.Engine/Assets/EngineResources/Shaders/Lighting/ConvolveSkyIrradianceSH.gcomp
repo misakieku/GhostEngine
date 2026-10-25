@@ -2,14 +2,14 @@ compute "Internal/ConvolveSkyIrradianceSH"
 {
     properties
     {
+        float4 skyboxTintAndIntensity; // xyz: tint, w: intensity
+        float2 skyboxRotationSinCos;   // x: sin, y: cos
         TextureCube skyboxTexture;
         SamplerState skyboxSampler;
         uint persistentViewStateUav;
         uint viewId;
         uint skyboxMipCount;
         uint skyboxWidth;
-        float4 skyboxTintAndIntensity; // xyz: tint, w: intensity
-        float2 skyboxRotationSinCos;   // x: sin, y: cos
     }
 
     includes
@@ -45,7 +45,6 @@ compute "Internal/ConvolveSkyIrradianceSH"
         [numthreads(THREAD_COUNT, 1, 1)]
         void CSMain(uint tid : SV_GroupThreadID)
         {
-            InternalConvolveSkyIrradianceSHShaderProperties props = LoadData<InternalConvolveSkyIrradianceSHShaderProperties>(g_PushConstantData.userData0, 0);
 
             float localSH[SH_COEFF_COUNT];
             for (uint c = 0; c < SH_COEFF_COUNT; ++c)
@@ -53,12 +52,12 @@ compute "Internal/ConvolveSkyIrradianceSH"
                 localSH[c] = 0.0f;
             }
 
-            float cubeWidth = max(1.0f, float(props.skyboxWidth));
+            float cubeWidth = max(1.0f, float(g_Properties.skyboxWidth));
             float invOmegaP = (6.0f * cubeWidth * cubeWidth) / (4.0f * PI);
             float omegaS = (4.0f * PI) / float(SAMPLE_COUNT);
-            float mipLevel = clamp(0.5f * log2(omegaS * invOmegaP), 0.0f, max(0.0f, float(props.skyboxMipCount) - 1.0f));
+            float mipLevel = clamp(0.5f * log2(omegaS * invOmegaP), 0.0f, max(0.0f, float(g_Properties.skyboxMipCount) - 1.0f));
 
-            float3 tintAndIntensity = props.skyboxTintAndIntensity.rgb * props.skyboxTintAndIntensity.w;
+            float3 tintAndIntensity = g_Properties.skyboxTintAndIntensity.rgb * g_Properties.skyboxTintAndIntensity.w;
 
             for (uint s = 0; s < SAMPLES_PER_THREAD; ++s)
             {
@@ -72,9 +71,9 @@ compute "Internal/ConvolveSkyIrradianceSH"
                 float z = r * sin(phi);
 
                 float3 dir = float3(x, y, z);
-                float3 rotatedDir = RotateDirectionY(dir, props.skyboxRotationSinCos);
+                float3 rotatedDir = RotateDirectionY(dir, g_Properties.skyboxRotationSinCos);
 
-                float3 radiance = SampleTextureCubeLevel<float4>(props.skyboxTexture, props.skyboxSampler, rotatedDir, mipLevel).rgb * tintAndIntensity;
+                float3 radiance = SampleTextureCubeLevel<float4>(g_Properties.skyboxTexture, g_Properties.skyboxSampler, rotatedDir, mipLevel).rgb * tintAndIntensity;
 
                 for (uint ch = 0; ch < 3; ++ch)
                 {
@@ -127,8 +126,8 @@ compute "Internal/ConvolveSkyIrradianceSH"
                 sh.shBb = float4(s_sh[0][22], s_sh[0][23], 3.0f * s_sh[0][24], s_sh[0][25]);
                 sh.shC  = float4(s_sh[0][8], s_sh[0][17], s_sh[0][26], 1.0f);
 
-                RWByteAddressBuffer uavBuf = GET_BUFFER(props.persistentViewStateUav);
-                StoreViewSH9(uavBuf, props.viewId, sh);
+                RWByteAddressBuffer uavBuf = GET_BUFFER(g_Properties.persistentViewStateUav);
+                StoreViewSH9(uavBuf, g_Properties.viewId, sh);
             }
         }
     }

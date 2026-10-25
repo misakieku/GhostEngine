@@ -24,16 +24,15 @@ compute "Internal/PrepareDeferredTexturingIndirectArgs"
         [numthreads(SCAN_THREADS, 1, 1)]
         void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         {
-            InternalPrepareDeferredTexturingIndirectArgsShaderProperties props = LoadData<InternalPrepareDeferredTexturingIndirectArgsShaderProperties>(g_PushConstantData.userData0, 0);
 
-            RWByteAddressBuffer counterBuffer = GET_BUFFER(props.counterBuffer);
-            RWByteAddressBuffer indirectArgsBuffer = GET_BUFFER(props.indirectArgsBuffer);
-            RWByteAddressBuffer binOffsets = GET_BUFFER(props.binOffsetsBuffer);
-            RWByteAddressBuffer binCounters = GET_BUFFER(props.binScatterCounters);
+            RWByteAddressBuffer counterBuffer = GET_BUFFER(g_Properties.counterBuffer);
+            RWByteAddressBuffer indirectArgsBuffer = GET_BUFFER(g_Properties.indirectArgsBuffer);
+            RWByteAddressBuffer binOffsets = GET_BUFFER(g_Properties.binOffsetsBuffer);
+            RWByteAddressBuffer binCounters = GET_BUFFER(g_Properties.binScatterCounters);
 
             uint v = dispatchThreadId.x;
             uint count = 0;
-            if (v < props.maxVariants)
+            if (v < g_Properties.maxVariants)
             {
                 count = counterBuffer.Load(CLASSIFICATION_OFFSET_VARIANT_COUNTS + v * 4u);
             }
@@ -58,7 +57,7 @@ compute "Internal/PrepareDeferredTexturingIndirectArgs"
             // Convert inclusive scan to exclusive prefix sum
             uint exclusiveOffset = (v > 0) ? s_scan[v - 1] : 0;
 
-            if (v < props.maxVariants)
+            if (v < g_Properties.maxVariants)
             {
                 binOffsets.Store(v * 4u, exclusiveOffset);
                 binCounters.Store(v * 4u, exclusiveOffset);

@@ -189,13 +189,6 @@ public partial class ResourceManager
 
     public Handle<GPUBuffer> CreateTransientBuffer(scoped in BufferDesc desc, string? name = null)
     {
-#if GHOST_SAFETY_CHECKS
-        if (desc.HeapType == HeapType.Upload)
-        {
-            Logger.Info("Creating transient upload buffer. Consider using CreateTransientUploadBuffer for better performance.");
-        }
-#endif
-
         var size = _resourceAllocator.GetSizeInfo(ResourceDesc.Buffer(desc));
 
         lock (_transientWriteLock)
@@ -275,14 +268,15 @@ public partial class ResourceManager
         }
     }
 
-    public Handle<GPUBuffer> CreateTransientUploadBuffer(scoped in BufferDesc desc, out ulong offset, out uint srvIndex)
+    public Handle<GPUBuffer> CreateTransientUploadBuffer(scoped in BufferDesc desc, uint alignment, out ulong offset, out uint srvIndex)
     {
         Logger.DebugAssert(desc.HeapType == HeapType.Upload, "Transient upload buffer must be of HeapType.Upload");
 
         while (true)
         {
             var currentOffset = Volatile.Read(ref _uploadBufferOffset);
-            var newOffset = currentOffset + desc.Size;
+            var alignedOffset = (currentOffset + (alignment - 1UL)) & ~(alignment - 1UL);
+            var newOffset = alignedOffset + desc.Size;
 
             if (newOffset > DEFAULT_TRANSIENT_PAGE_SIZE)
             {
@@ -294,7 +288,7 @@ public partial class ResourceManager
 
             if (Interlocked.CompareExchange(ref _uploadBufferOffset, newOffset, currentOffset) == currentOffset)
             {
-                offset = currentOffset;
+                offset = alignedOffset;
                 srvIndex = _uploadBufferSrvIndex;
                 return _uploadBuffer;
             }
@@ -302,9 +296,21 @@ public partial class ResourceManager
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Handle<GPUBuffer> CreateTransientUploadBuffer(scoped in BufferDesc desc, out ulong offset, out uint srvIndex)
+    {
+        return CreateTransientUploadBuffer(in desc, 4, out offset, out srvIndex);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Handle<GPUBuffer> CreateTransientUploadBuffer(scoped in BufferDesc desc, uint alignment, out ulong offset)
+    {
+        return CreateTransientUploadBuffer(in desc, alignment, out offset, out _);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Handle<GPUBuffer> CreateTransientUploadBuffer(BufferDesc desc, out ulong offset)
     {
-        return CreateTransientUploadBuffer(desc, out offset, out _);
+        return CreateTransientUploadBuffer(desc, 4, out offset, out _);
     }
 
     private void EndFramePool(ulong completedFrame)

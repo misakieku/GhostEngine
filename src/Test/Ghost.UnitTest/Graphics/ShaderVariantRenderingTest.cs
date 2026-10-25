@@ -70,6 +70,7 @@ public sealed class ShaderVariantRenderingTest
         public uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource) => uint.MaxValue;
         public void SetUserData(uint userData0, uint userData1 = 0, uint userData2 = 0, uint userData3 = 0) { }
         public void SetUserDataWithProperties<TProperty>(scoped in TProperty property, uint userData1 = 0, uint userData2 = 0, uint userData3 = 0) where TProperty : unmanaged { }
+        public void SetPassProperties<TProperty>(scoped in TProperty property) where TProperty : unmanaged { }
 
         public void SetActiveCompute(Handle<ComputeShader> computeShader, int entryIndex)
         {

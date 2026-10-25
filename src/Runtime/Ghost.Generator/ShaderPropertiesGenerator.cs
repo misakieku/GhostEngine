@@ -129,19 +129,23 @@ namespace Ghost.Generator
                     }
                 }
 
-                if (allProperties.Count == 0 && string.IsNullOrEmpty(shader.templateName))
+                if (allProperties.Count == 0)
                 {
                     continue;
                 }
 
-                // 3. Generate field code with initializers
+                // 3. Generate field code with initializers and explicit HLSL cbuffer packing offsets
                 var fieldsSb = new StringBuilder();
                 var inCustomSection = false;
+
+                var registerIndex = 0;
+                var byteOffsetInRegister = 0;
 
                 for (var i = 0; i < allProperties.Count; i++)
                 {
                     var prop = allProperties[i];
                     var csType = MapHlslTypeToCSharp(prop.type);
+                    var fieldOffset = ComputeFieldOffset(prop.type, ref registerIndex, ref byteOffsetInRegister);
 
                     if (i == 0 && prop.isFromTemplate)
                     {
@@ -158,6 +162,7 @@ namespace Ghost.Generator
                     }
 
                     var defVal = FormatDefaultValueToCSharp(prop.type, csType, prop.defaultValue);
+                    fieldsSb.AppendLine($"        [FieldOffset({fieldOffset})]");
                     if (!string.IsNullOrEmpty(defVal))
                     {
                         fieldsSb.AppendLine($"        public {csType} {prop.name} = {defVal};");
@@ -183,7 +188,7 @@ using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Engine.ShaderProperties
 {
-    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    [StructLayout(LayoutKind.Explicit, Pack = 4)]
     public partial struct {{structName}}()
     {
 {{fieldsCode}}
@@ -194,6 +199,115 @@ namespace Ghost.Engine.ShaderProperties
 """;
 
                 context.AddSource($"{structName}.g.cs", SourceText.From(code, Encoding.UTF8));
+            }
+        }
+
+        private static int GetHlslTypeSize(string hlslType)
+        {
+            return hlslType.Trim().ToLowerInvariant() switch
+            {
+                "float" or "int" or "uint" or "bool" => 4,
+                "float2" or "int2" or "uint2" or "bool2" => 8,
+                "float3" or "int3" or "uint3" or "bool3" => 12,
+                "float4" or "int4" or "uint4" or "bool4" or "quaternion" => 16,
+
+                "float4x4" or "matrix4x4" => 64,
+                "float3x4" => 48,
+                "float4x3" => 64,
+                "float3x3" => 48,
+                "float2x2" => 32,
+                "int2x4" => 32,
+
+                "texture2d" or "texture3d" or "texturecube" or "texture2darray" or "texturecubearray"
+                    or "samplerstate" or "sampler" or "byte_address_buffer" or "struct_buffer" or "structured_buffer"
+                    or "texture2dhandle" or "texture3dhandle" or "bufferhandle" => 4,
+
+                _ => 4,
+            };
+        }
+
+        private static int ComputeFieldOffset(string hlslType, ref int registerIndex, ref int byteOffsetInRegister)
+        {
+            var typeSize = GetHlslTypeSize(hlslType);
+
+            // Matrix types start on 16-byte boundary and take full 16-byte registers per row/column
+            if (typeSize > 16)
+            {
+                if (byteOffsetInRegister > 0)
+                {
+                    registerIndex++;
+                    byteOffsetInRegister = 0;
+                }
+
+                var offset = registerIndex * 16;
+                registerIndex += typeSize / 16;
+                byteOffsetInRegister = 0;
+                return offset;
+            }
+
+            // 16-byte vector must start on 16-byte boundary
+            if (typeSize == 16)
+            {
+                if (byteOffsetInRegister > 0)
+                {
+                    registerIndex++;
+                    byteOffsetInRegister = 0;
+                }
+
+                var offset = registerIndex * 16;
+                registerIndex++;
+                byteOffsetInRegister = 0;
+                return offset;
+            }
+
+            // 12-byte vector (float3) fits only if byteOffsetInRegister <= 4
+            if (typeSize == 12)
+            {
+                if (byteOffsetInRegister > 4)
+                {
+                    registerIndex++;
+                    byteOffsetInRegister = 0;
+                }
+
+                var offset = registerIndex * 16 + byteOffsetInRegister;
+                byteOffsetInRegister += 12;
+                if (byteOffsetInRegister == 16)
+                {
+                    registerIndex++;
+                    byteOffsetInRegister = 0;
+                }
+                return offset;
+            }
+
+            // 8-byte vector (float2) fits only if byteOffsetInRegister <= 8
+            if (typeSize == 8)
+            {
+                if (byteOffsetInRegister > 8)
+                {
+                    registerIndex++;
+                    byteOffsetInRegister = 0;
+                }
+
+                var offset = registerIndex * 16 + byteOffsetInRegister;
+                byteOffsetInRegister += 8;
+                if (byteOffsetInRegister == 16)
+                {
+                    registerIndex++;
+                    byteOffsetInRegister = 0;
+                }
+                return offset;
+            }
+
+            // 4-byte scalar (float, int, uint, bool, handle) fits in any slot in current register
+            {
+                var offset = registerIndex * 16 + byteOffsetInRegister;
+                byteOffsetInRegister += 4;
+                if (byteOffsetInRegister == 16)
+                {
+                    registerIndex++;
+                    byteOffsetInRegister = 0;
+                }
+                return offset;
             }
         }
 

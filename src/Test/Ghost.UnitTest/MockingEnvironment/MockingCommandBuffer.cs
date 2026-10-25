@@ -161,7 +161,7 @@ internal class MockingCommandBuffer : ICommandBuffer
         _state.CommandCount++;
     }
 
-    public void SetConstantBufferView(uint slot, Handle<GPUBuffer> buffer)
+    public void SetConstantBufferView(uint slot, Handle<GPUBuffer> buffer, ulong byteOffset = 0)
     {
         _state.CommandCount++;
     }

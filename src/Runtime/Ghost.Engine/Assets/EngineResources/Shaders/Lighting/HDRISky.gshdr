@@ -53,28 +53,27 @@ shader "Hidden/HDRISky"
                 }
             }
 
-            float4 RenderSky(float3 dirWS, HiddenHDRISkyShaderProperties props, float exposure)
+            float4 RenderSky(float3 dirWS, float exposure)
             {
-                if (!IS_VALID_BUFFER(props.skyboxTexture))
+                if (!IS_VALID_BUFFER(g_Properties.skyboxTexture))
                 {
                     return float4(0.0f, 0.0f, 0.0f, 1.0f);
                 }
 
-                float3 rotatedDir = RotateDirectionY(dirWS, props.skyboxRotationSinCos);
-                float3 skyColor = SampleTextureCubeLevel<float4>(props.skyboxTexture, props.skyboxSampler, rotatedDir, 0.0f).rgb;
-                skyColor *= props.skyboxTintAndIntensity.rgb * props.skyboxTintAndIntensity.w * exposure;
+                float3 rotatedDir = RotateDirectionY(dirWS, g_Properties.skyboxRotationSinCos);
+                float3 skyColor = SampleTextureCubeLevel<float4>(g_Properties.skyboxTexture, g_Properties.skyboxSampler, rotatedDir, 0.0f).rgb;
+                skyColor *= g_Properties.skyboxTintAndIntensity.rgb * g_Properties.skyboxTintAndIntensity.w * exposure;
                 return float4(skyColor, 1.0f);
             }
 
             float4 PSMain_Baking(PSInput input) : SV_TARGET
             {
-                HiddenHDRISkyShaderProperties props = LoadData<HiddenHDRISkyShaderProperties>(g_PushConstantData.userData0, 0);
 
                 float2 ndc = float2(input.uv.x * 2.0f - 1.0f, 1.0f - input.uv.y * 2.0f);
                 float3 dirVS = float3(ndc.x / g_ViewData.projectionMatrix[0][0], ndc.y / g_ViewData.projectionMatrix[1][1], 1.0f);
                 float3 dirWS = normalize(TransformViewToWorld(dirVS));
 
-                return RenderSky(dirWS, props, 1.0f);
+                return RenderSky(dirWS, 1.0f);
             }
         }
 
@@ -125,25 +124,24 @@ shader "Hidden/HDRISky"
                 }
             }
 
-            float4 RenderSky(float3 dirWS, HiddenHDRISkyShaderProperties props, float exposure)
+            float4 RenderSky(float3 dirWS, float exposure)
             {
-                if (!IS_VALID_BUFFER(props.skyboxTexture))
+                if (!IS_VALID_BUFFER(g_Properties.skyboxTexture))
                 {
                     return float4(0.0f, 0.0f, 0.0f, 1.0f);
                 }
 
-                float3 rotatedDir = RotateDirectionY(dirWS, props.skyboxRotationSinCos);
-                float3 skyColor = SampleTextureCubeLevel<float4>(props.skyboxTexture, props.skyboxSampler, rotatedDir, 0.0f).rgb;
-                skyColor *= props.skyboxTintAndIntensity.rgb * props.skyboxTintAndIntensity.w * exposure;
+                float3 rotatedDir = RotateDirectionY(dirWS, g_Properties.skyboxRotationSinCos);
+                float3 skyColor = SampleTextureCubeLevel<float4>(g_Properties.skyboxTexture, g_Properties.skyboxSampler, rotatedDir, 0.0f).rgb;
+                skyColor *= g_Properties.skyboxTintAndIntensity.rgb * g_Properties.skyboxTintAndIntensity.w * exposure;
                 return float4(skyColor, 1.0f);
             }
 
             float4 PSMain_Render(PSInput input) : SV_TARGET
             {
-                HiddenHDRISkyShaderProperties props = LoadData<HiddenHDRISkyShaderProperties>(g_PushConstantData.userData0, 0);
 
                 // Early discard if foreground geometry is present (Reversed-Z: far is 0.0f)
-                Texture2D<float> depthTexture = GET_TEXTURE2D(props.depthTexture);
+                Texture2D<float> depthTexture = GET_TEXTURE2D(g_Properties.depthTexture);
                 float depth = depthTexture[(uint2)input.position.xy];
                 if (depth > 0.0f)
                 {
@@ -156,7 +154,7 @@ shader "Hidden/HDRISky"
 
                 float exposure = 1.0f; // TODO: Apply camera exposure multiplier once exposure system is implemented
 
-                return RenderSky(dirWS, props, exposure);
+                return RenderSky(dirWS, exposure);
             }
         }
 
