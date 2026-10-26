@@ -124,7 +124,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             default(ActionState));
 
         _meshAsset = engine.AssetManager.ResolveAsset("Meshes/dragon");
-        _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/SimpleLit");
+        _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/StandardLit");
         //_textureAsset = engine.AssetManager.ResolveAsset("Meshes/an-afternoon-in-a-persian-garden/textures/TerraceAndWalls8kDay");
 
         var meshHandle = default(Handle<Mesh>);
@@ -138,7 +138,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         var mat = engine.RenderEngine.ResourceManager.CreateMaterial(shaderHandle);
         var srv = engine.RenderEngine.GraphicsEngine.ResourceDatabase.GetBindlessIndex(textureHandle.AsResource());
 
-        engine.RenderEngine.ResourceManager.SetMaterialProperty(mat, new MyShaderSimpleLitShaderProperties
+        engine.RenderEngine.ResourceManager.SetMaterialProperty(mat, new GhostStandardLitShaderProperties
         {
             // baseColor = engine.RenderEngine.GraphicsEngine.ResourceDatabase.GetBindlessIndex(textureHandle.AsResource()),
             // sampler = engine.RenderEngine.ResourceManager.StaticSampler.LinearRepeat,

@@ -1,0 +1,43 @@
+shader "Ghost/StandardLit" : "Lit"
+{
+    properties
+    {
+        uint baseColor;
+        uint sampler;
+        float roughness = 0.4;
+        float metallic = 0.0;
+        float occlusion = 1.0;
+    }
+
+    strategy "DEFERREDLIGHTING_STRATEGY" "StandardLitDeferredLighting" ("EngineResources/Shaders/Material/Lit/StandardLit.hlsl");
+
+    strategy "DEFERREDTEXTURING_STRATEGY" "StandardLitDeferredTexturing"
+    {
+        struct StandardLitDeferredTexturing
+        {
+            static StandardLitDeferredTexturing Create()
+            {
+                return (StandardLitDeferredTexturing)0;
+            }
+
+            SurfaceData GetSurfaceData(MaterialContext ctx, MaterialProperties props)
+            {
+                float3 baseColor = float3(1.0, 1.0, 1.0);
+                if (IS_VALID_BUFFER(props.baseColor))
+                {
+                    baseColor = SampleTexture2DGrad<float4>(props.baseColor, props.sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv).rgb;
+                }
+
+                SurfaceData surface = (SurfaceData)0;
+                surface.shadingModel = SHADING_MODEL_ID;
+                surface.albedo = baseColor;
+                surface.normalWS = ctx.normalWS;
+                surface.roughness = props.roughness;
+                surface.metallic = props.metallic;
+                surface.occlusion = props.occlusion;
+                surface.emissive = float3(0.0, 0.0, 0.0);
+                return surface;
+            }
+        };
+    }
+}
