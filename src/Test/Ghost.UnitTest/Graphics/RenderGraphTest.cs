@@ -368,6 +368,14 @@ public partial class RenderGraphTest
         var unusedPass = execution.Dump.Passes.First(p => p.Name == "Unused");
         Assert.IsTrue(unusedPass.IsCulled, "Pass 'Unused' should be culled.");
         Assert.IsNull(unusedPass.EffectiveQueue);
+
+        var html = execution.Dump.ExportHtml();
+        Assert.IsNotNull(html);
+        Assert.Contains("heapContainer", html);
+        Assert.Contains("Heap Memory Map", html);
+        Assert.Contains("Linear Address Space", html);
+        Assert.Contains("2D Memory Aliasing Map", html);
+        Assert.Contains("renderHeapView", html);
     }
 
     [TestMethod]

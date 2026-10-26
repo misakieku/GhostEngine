@@ -207,8 +207,8 @@ internal sealed class RenderGraphExecutor : IDisposable
 
                         activeCommandBuffer = AcquireCommandBuffer(
                             executionContext,
-                            marker.NextCommandBufferType,
-                            marker.ProducerCommandBufferIds,
+                            marker.nextCommandBufferType,
+                            marker.producerCommandBufferIds,
                             flags);
                         context.BeginNewFrame(activeCommandBuffer);
                         break;

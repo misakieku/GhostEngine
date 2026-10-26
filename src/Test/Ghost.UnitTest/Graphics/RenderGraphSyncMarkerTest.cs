@@ -21,18 +21,18 @@ public partial class RenderGraphTest
 
         Assert.AreEqual(RGExecutionOpType.CommandBufferSyncPoint, reader.Read<RGExecutionOpType>());
         var computeMarker = RGCommandStream.ReadSyncMarker(ref reader);
-        Assert.AreEqual(CommandQueueType.Compute, computeMarker.NextCommandBufferType);
-        Assert.IsTrue(computeMarker.ProducerCommandBufferIds.SequenceEqual(new int[] { 0 }));
+        Assert.AreEqual(CommandQueueType.Compute, computeMarker.nextCommandBufferType);
+        Assert.IsTrue(computeMarker.producerCommandBufferIds.SequenceEqual(new int[] { 0 }));
 
         Assert.AreEqual(RGExecutionOpType.CommandBufferSyncPoint, reader.Read<RGExecutionOpType>());
         var independentGraphicsMarker = RGCommandStream.ReadSyncMarker(ref reader);
-        Assert.AreEqual(CommandQueueType.Graphics, independentGraphicsMarker.NextCommandBufferType);
-        Assert.AreEqual(0, independentGraphicsMarker.ProducerCommandBufferIds.Length);
+        Assert.AreEqual(CommandQueueType.Graphics, independentGraphicsMarker.nextCommandBufferType);
+        Assert.AreEqual(0, independentGraphicsMarker.producerCommandBufferIds.Length);
 
         Assert.AreEqual(RGExecutionOpType.CommandBufferSyncPoint, reader.Read<RGExecutionOpType>());
         var joinMarker = RGCommandStream.ReadSyncMarker(ref reader);
-        Assert.AreEqual(CommandQueueType.Graphics, joinMarker.NextCommandBufferType);
-        Assert.IsTrue(joinMarker.ProducerCommandBufferIds.SequenceEqual(new int[] { 1, 2 }));
+        Assert.AreEqual(CommandQueueType.Graphics, joinMarker.nextCommandBufferType);
+        Assert.IsTrue(joinMarker.producerCommandBufferIds.SequenceEqual(new int[] { 1, 2 }));
 
         Assert.AreEqual(0, reader.RemainingBytes);
         writer.Dispose();
