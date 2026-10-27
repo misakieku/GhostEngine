@@ -95,16 +95,10 @@ RasterTriangle SetupTriangle(int4 scissorRect, float4 verts[3])
     const float scaleToUnit = subpixelSamples / (tri.c0 + tri.c1 + tri.c2);
 
     // Correct for fill convention
-    // Top left rule for CCW
-#if 1
-    tri.c0 -= saturate(tri.edge12.y + saturate(1.0f - tri.edge12.x));
-    tri.c1 -= saturate(tri.edge20.y + saturate(1.0f - tri.edge20.x));
-    tri.c2 -= saturate(tri.edge01.y + saturate(1.0f - tri.edge01.x));
-#else
-    tri.c0 -= ( tri.edge12.y < 0 || ( tri.edge12.y == 0 && tri.edge12.x > 0 ) ) ? 0 : 1;
-    tri.c1 -= ( tri.edge20.y < 0 || ( tri.edge20.y == 0 && tri.edge20.x > 0 ) ) ? 0 : 1;
-    tri.c2 -= ( tri.edge01.y < 0 || ( tri.edge01.y == 0 && tri.edge01.x > 0 ) ) ? 0 : 1;
-#endif
+    // Top left rule for CCW (Exact discrete rule prevents fractional seam cracks on near-horizontal edges)
+    tri.c0 -= (tri.edge12.y < 0.0f || (tri.edge12.y == 0.0f && tri.edge12.x > 0.0f)) ? 0.0f : 1.0f;
+    tri.c1 -= (tri.edge20.y < 0.0f || (tri.edge20.y == 0.0f && tri.edge20.x > 0.0f)) ? 0.0f : 1.0f;
+    tri.c2 -= (tri.edge01.y < 0.0f || (tri.edge01.y == 0.0f && tri.edge01.x > 0.0f)) ? 0.0f : 1.0f;
 
 #if 0
     // Step in pixel increments
@@ -132,7 +126,7 @@ RasterTriangle SetupTriangle(int4 scissorRect, float4 verts[3])
 
 void WritePixel(uint2 pixelPos, float3 c3, RasterTriangle tri, TEXTURE2D visBufferIndex, uint visibleMeshletIndex, uint primitiveID)
 {
-    float depth = tri.depthPlane.x + tri.depthPlane.y * c3.y + tri.depthPlane.z * c3.z;
+    float depth = saturate(tri.depthPlane.x + tri.depthPlane.y * c3.y + tri.depthPlane.z * c3.z);
     RWTexture2D<uint64_t> visBuffer = GET_TEXTURE2D(visBufferIndex);
     uint64_t currentPacked = visBuffer[pixelPos];
     uint currentDepthInt = (uint)(currentPacked >> VBUFFER_DEPTH_SHIFT);
@@ -154,43 +148,46 @@ void RasterizeTri_Rect(RasterTriangle tri, TEXTURE2D visBufferIndex, uint visibl
     float cy1 = tri.c1;
     float cy2 = tri.c2;
 
-    float cx0 = cy0;
-    float cx1 = cy1;
-    float cx2 = cy2;
-
-    int x = tri.minPixel.x;
     int y = tri.minPixel.y;
-
     while (true)
     {
-        if (min3(cx0, cx1, cx2) >= 0)
+        int x = tri.minPixel.x;
+        if (min3(cy0, cy1, cy2) >= 0.0f)
         {
-            WritePixel(uint2(x, y), float3(cx0, cx1, cx2), tri, visBufferIndex, visibleMeshletIndex, primitiveID);
+            WritePixel(uint2(x, y), float3(cy0, cy1, cy2), tri, visBufferIndex, visibleMeshletIndex, primitiveID);
         }
 
         if (x < tri.maxPixel.x)
         {
-            cx0 -= tri.edge12.y;
-            cx1 -= tri.edge20.y;
-            cx2 -= tri.edge01.y;
+            float cx0 = cy0 - tri.edge12.y;
+            float cx1 = cy1 - tri.edge20.y;
+            float cx2 = cy2 - tri.edge01.y;
             x++;
-        }
-        else if (y < tri.maxPixel.y)
-        {
-            cy0 += tri.edge12.x;
-            cy1 += tri.edge20.x;
-            cy2 += tri.edge01.x;
-            y++;
 
-            cx0 = cy0;
-            cx1 = cy1;
-            cx2 = cy2;
-            x = tri.minPixel.x;
+            while (true)
+            {
+                if (min3(cx0, cx1, cx2) >= 0.0f)
+                {
+                    WritePixel(uint2(x, y), float3(cx0, cx1, cx2), tri, visBufferIndex, visibleMeshletIndex, primitiveID);
+                }
+
+                if (x >= tri.maxPixel.x)
+                    break;
+
+                cx0 -= tri.edge12.y;
+                cx1 -= tri.edge20.y;
+                cx2 -= tri.edge01.y;
+                x++;
+            }
         }
-        else
-        {
+
+        if (y >= tri.maxPixel.y)
             break;
-        }
+
+        cy0 += tri.edge12.x;
+        cy1 += tri.edge20.x;
+        cy2 += tri.edge01.x;
+        y++;
     }
 }
 
@@ -212,8 +209,8 @@ void RasterizeTri_Scanline(RasterTriangle tri, TEXTURE2D visBufferIndex, uint vi
         float3 minX = select(openEdge, crossX, 0.0);
         float3 maxX = select(openEdge, tri.maxPixel.x - tri.minPixel.x, crossX);
 
-        float x0 = ceil(max3(minX.x, minX.y, minX.z));
-        float x1 = min3(maxX.x, maxX.y, maxX.z);
+        float x0 = ceil(max3(minX.x, minX.y, minX.z) - 1e-4f);
+        float x1 = min3(maxX.x, maxX.y, maxX.z) + 1e-4f;
         
         float cx0 = cy0 - x0 * tri.edge12.y;
         float cx1 = cy1 - x0 * tri.edge20.y;

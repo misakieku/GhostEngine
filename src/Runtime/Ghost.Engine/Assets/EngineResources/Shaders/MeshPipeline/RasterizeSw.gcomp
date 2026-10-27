@@ -22,7 +22,7 @@ compute "Internal/RasterizeSw"
     hlsl
     {
         #define SW_RASTER_THREADS 64
-        #define SUBPIXEL_SAMPLES 8u
+        #define SUBPIXEL_SAMPLES 256u
 
         groupshared float4 s_VertexPositions[MAX_VERTICES_PER_MESHLET];
 
@@ -61,7 +61,7 @@ compute "Internal/RasterizeSw"
 
             float2 viewSize = float2((float)g_Properties.renderWidth, (float)g_Properties.renderHeight);
             float2 viewportScale = float2(0.5f, -0.5f) * viewSize * (float)SUBPIXEL_SAMPLES;
-            float2 viewportBias = (viewSize * 0.5f) * (float)SUBPIXEL_SAMPLES;
+            float2 viewportBias = (viewSize * 0.5f) * (float)SUBPIXEL_SAMPLES + 0.5f;
             int4 scissorRect = int4(0, 0, (int)g_Properties.renderWidth, (int)g_Properties.renderHeight);
 
             // Phase 1: Transform vertices into shared memory

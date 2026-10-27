@@ -81,7 +81,7 @@ The compute rasterizer launches with `[numthreads(64, 1, 1)]` (1 wave/warp on NV
 1. **Phase 1: Vertex Transform & LDS Projection**:
    - Up to 64 vertices per meshlet are transformed in parallel into camera-relative clip space:
      $$P_{\text{clip}} = M_{\text{worldViewProj}} \cdot \begin{pmatrix} P_{\text{local}} \\ 1 \end{pmatrix}$$
-   - Projected into 8-subpixel fixed-point coordinates and cached in shared memory (`s_VertexPositions[64]`, consuming only 1024 bytes of LDS):
+   - Projected into 256-subpixel (8-bit fixed-point) coordinates and cached in shared memory (`s_VertexPositions[64]`, consuming only 1024 bytes of LDS):
      $$\text{subpixel}_{xy} = \left\lfloor \frac{P_{\text{clip}.xy}}{P_{\text{clip}.w}} \cdot \text{viewportScale} + \text{viewportBias} \right\rfloor$$
    - `GroupMemoryBarrierWithGroupSync()` ensures all vertices are ready.
 
@@ -174,6 +174,35 @@ Thread 0 now reads the inclusive scan results directly from groupshared memory:
 uint totalHwOpaque = s_scan[31];
 uint totalSwOpaque = s_scan[63] - s_scan[31];
 ```
+
+---
+
+### 4.4 Case Study 4: Watertight Rasterization & Subpixel Precision (White Dots & Seam Cracks)
+**Symptom**: Thin horizontal white seam cracks and isolated 1-pixel white dots appearing across the dragon's surface, where the background sky shone through unwritten holes in the Visibility Buffer (`visBuffer == 0`).
+
+**Root Cause Analysis & Resolutions**:
+1. **The 8 vs. 256 Subpixel Precision Bug**:
+   - `SUBPIXEL_SAMPLES` was originally defined as `8u` in `RasterizeSw.gcomp`, confusing 8 bits of subpixel precision with the number 8.
+   - At 8 samples ($1/8\text{ px} = 0.125\text{ px}$ spacing), the subpixel grid was $32\times$ coarser than the D3D12 hardware standard ($256$ subpixels, $1/256\text{ px} \approx 0.0039\text{ px}$).
+   - The fill convention tie-breaker subtracted $1 / \text{subpixelSamples} = 1/8 = 0.125\text{ px}$. For small micro-triangles and slivers on curved geometry whose width or height was $< 0.125\text{ px}$, subtracting $0.125$ pushed the edge function below zero across the entire triangle. The triangle was wiped out completely, leaving an unwritten 1-pixel hole.
+   - **Fix**: Changed `SUBPIXEL_SAMPLES` to `256u` (`1u << 8u`, matching Nanite's `NANITE_SUBPIXEL_SAMPLES`), reducing the tie-break nudge to $0.0039\text{ px}$ and restoring full D3D12-compliant subpixel fidelity.
+
+2. **Top-Left Tie-Breaking Fill Convention (The Horizontal Seam Crack)**:
+   - `Rasterizer.hlsl` originally used an ALU approximation: `tri.c0 -= saturate(tri.edge12.y + saturate(1.0f - tri.edge12.x))`.
+   - On near-horizontal edges with subpixel $\text{edge}.y \in (0, 1)$, `saturate` subtracted fractional values (e.g., $0.25$ and $0.75$) instead of a discrete binary $\{0.0, 1.0\}$. Both adjoining triangles evaluated to $C < 0$ at the shared edge, creating a continuous 1-pixel horizontal crack along the geometry seam.
+   - **Fix**: Replaced with the exact discrete Top-Left boolean rule:
+     ```hlsl
+     tri.c0 -= (tri.edge12.y < 0.0f || (tri.edge12.y == 0.0f && tri.edge12.x > 0.0f)) ? 0.0f : 1.0f;
+     tri.c1 -= (tri.edge20.y < 0.0f || (tri.edge20.y == 0.0f && tri.edge20.x > 0.0f)) ? 0.0f : 1.0f;
+     tri.c2 -= (tri.edge01.y < 0.0f || (tri.edge01.y == 0.0f && tri.edge01.x > 0.0f)) ? 0.0f : 1.0f;
+     ```
+
+3. **Subpixel Viewport Rounding Bias**:
+   - `viewportBias` was missing `+ 0.5f` before `floor()`, which caused downward truncation instead of round-to-nearest subpixel integer.
+   - **Fix**: Added `+ 0.5f` to `viewportBias` matching Nanite (`Raster.ViewportBias += 0.5f`).
+
+4. **Depth Clamping (`saturate`)**:
+   - Added `saturate(...)` to depth interpolation in `WritePixel` matching UE's `FVisBufferPixel::Write()` to prevent any negative float bit patterns (`0x80000000`) in reversed-Z from creating invalid near-plane values.
 
 ---
 
