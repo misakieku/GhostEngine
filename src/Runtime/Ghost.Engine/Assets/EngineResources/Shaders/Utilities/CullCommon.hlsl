@@ -144,36 +144,46 @@ bool IsTriangleFrontFacing(float4 h0, float4 h1, float4 h2, float subpixelThresh
     maxZ  = max(maxZ,  (P).z  * rcpW); \
 }
 
-template<bool usePreVP>
-BBoxFrustumResult BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 worldMatrix)
+struct WorldBox
 {
-    BBoxFrustumResult result = (BBoxFrustumResult)0;
-    
-    // Object space center and half-extents
+    float3 centerWorld;
+    float3 dXWorld;
+    float3 dYWorld;
+    float3 dZWorld;
+};
+
+WorldBox ComputeWorldBox(float3 bboxMin, float3 bboxMax, float4x4 worldMatrix)
+{
+    WorldBox box;
     float3 boxCenter = 0.5f * (bboxMin + bboxMax);
     float3 boxExtent = 0.5f * (bboxMax - bboxMin);
+    box.centerWorld = mul(worldMatrix, float4(boxCenter, 1.0f)).xyz;
+    box.dXWorld = worldMatrix._m00_m10_m20 * boxExtent.x;
+    box.dYWorld = worldMatrix._m01_m11_m21 * boxExtent.y;
+    box.dZWorld = worldMatrix._m02_m12_m22 * boxExtent.z;
+    return box;
+}
 
-    // Transform to world space using column vectors (GhostEngine is column-major: mul(M, v))
-    float3 centerWorld = mul(worldMatrix, float4(boxCenter, 1.0f)).xyz;
-    float3 dXWorld = worldMatrix._m00_m10_m20 * boxExtent.x;
-    float3 dYWorld = worldMatrix._m01_m11_m21 * boxExtent.y;
-    float3 dZWorld = worldMatrix._m02_m12_m22 * boxExtent.z;
+template<bool usePreVP, bool computeClipBounds>
+BBoxFrustumResult BBoxIntersectFrustumFromWorld(WorldBox box)
+{
+    BBoxFrustumResult result = (BBoxFrustumResult)0;
 
     // Transform to clip space using constant buffer view-projection
     float4 cClip, dX, dY, dZ;
     if (usePreVP)
     {
-        cClip = mul(g_ViewData.preVPMatrix, float4(centerWorld, 1.0f));
-        dX = mul(g_ViewData.preVPMatrix, float4(dXWorld, 0.0f));
-        dY = mul(g_ViewData.preVPMatrix, float4(dYWorld, 0.0f));
-        dZ = mul(g_ViewData.preVPMatrix, float4(dZWorld, 0.0f));
+        cClip = mul(g_ViewData.preVPMatrix, float4(box.centerWorld, 1.0f));
+        dX = mul(g_ViewData.preVPMatrix, float4(box.dXWorld, 0.0f));
+        dY = mul(g_ViewData.preVPMatrix, float4(box.dYWorld, 0.0f));
+        dZ = mul(g_ViewData.preVPMatrix, float4(box.dZWorld, 0.0f));
     }
     else
     {
-        cClip = mul(g_ViewData.viewProjectionMatrix, float4(centerWorld, 1.0f));
-        dX = mul(g_ViewData.viewProjectionMatrix, float4(dXWorld, 0.0f));
-        dY = mul(g_ViewData.viewProjectionMatrix, float4(dYWorld, 0.0f));
-        dZ = mul(g_ViewData.viewProjectionMatrix, float4(dZWorld, 0.0f));
+        cClip = mul(g_ViewData.viewProjectionMatrix, float4(box.centerWorld, 1.0f));
+        dX = mul(g_ViewData.viewProjectionMatrix, float4(box.dXWorld, 0.0f));
+        dY = mul(g_ViewData.viewProjectionMatrix, float4(box.dYWorld, 0.0f));
+        dZ = mul(g_ViewData.viewProjectionMatrix, float4(box.dZWorld, 0.0f));
     }
 
     // Frustum culling (6 homogeneous clip-space plane tests in reversed-Z)
@@ -207,8 +217,13 @@ BBoxFrustumResult BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 
     if ((cClip.w - cClip.z) + rNear < 0.0f)
         return result;
 
-    // Near plane crossing test (cannot project 2D NDC if any corner is behind eye or penetrates near plane)
     result.isVisible = true;
+    if (!computeClipBounds)
+    {
+        return result;
+    }
+
+    // Near plane crossing test (cannot project 2D NDC if any corner is behind eye or penetrates near plane)
     float minW = cClip.w - (abs(dX.w) + abs(dY.w) + abs(dZ.w));
     float minNear = (cClip.w - cClip.z) - rNear;
     if (minW <= CULL_EPSILON || minNear < 0.0f)
@@ -249,6 +264,13 @@ BBoxFrustumResult BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 
     result.clipMax = float4(clamp(maxXY, float2(-1.0f, -1.0f), float2(1.0f, 1.0f)), maxZVal, 0.0f);
 
     return result;
+}
+
+template<bool usePreVP>
+BBoxFrustumResult BBoxIntersectFrustum(float3 bboxMin, float3 bboxMax, float4x4 worldMatrix)
+{
+    WorldBox box = ComputeWorldBox(bboxMin, bboxMax, worldMatrix);
+    return BBoxIntersectFrustumFromWorld<usePreVP, true>(box);
 }
 
 #undef ACCUMULATE_CLIP_CORNER

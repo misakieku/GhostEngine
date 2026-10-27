@@ -1,0 +1,135 @@
+compute "Internal/RasterizeSw"
+{
+    properties
+    {
+        uint visBufferIndex;
+        uint visibleMeshletsBuffer;
+        uint binOffsetsBuffer;
+        uint renderWidth;
+        uint renderHeight;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Mesh.hlsl";
+        "EngineResources/Shaders/Utilities/CullCommon.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/VisibilityBufferEncoding.hlsl";
+        "EngineResources/Shaders/MeshPipeline/Rasterizer.hlsl";
+    }
+
+    hlsl
+    {
+        #define SW_RASTER_THREADS 64
+        #define SUBPIXEL_SAMPLES 8u
+
+        groupshared float4 s_VertexPositions[MAX_VERTICES_PER_MESHLET];
+
+        [numthreads(SW_RASTER_THREADS, 1, 1)]
+        void CSMain(uint3 groupID : SV_GroupID, uint groupThreadID : SV_GroupThreadID)
+        {
+            ByteAddressBuffer binOffsets = GET_BUFFER(g_Properties.binOffsetsBuffer);
+            uint swMeshletBaseOffset = binOffsets.Load(32u * 4u);
+            uint binnedSlot = swMeshletBaseOffset + groupID.x;
+
+            StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = GET_BUFFER(g_Properties.visibleMeshletsBuffer);
+            VisibleMeshletEntry visible = visibleMeshlets[binnedSlot];
+
+            InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
+            MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
+            Meshlet meshlet = LoadMeshlet(visible.meshletIndex, meshData);
+
+            uint vertexCount = meshlet.packedCounts & 0xFFu;
+            uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
+
+            float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
+            float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, localToRWS);
+            float det3x3 = determinant((float3x3)localToRWS);
+            bool reverseWinding = (det3x3 < 0.0f);
+
+            uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
+            uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
+            uint materialBufferIndex = UnpackMaterialByteOffset(packedMaterial);
+            ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
+            float doubleSided = asfloat(matBuf.Load(materialBufferIndex + 12u));
+            bool backfaceCull = (doubleSided == 0.0f);
+
+            BYTE_ADDRESS_BUFFER pageBufferIndex;
+            uint pageBase;
+            GetMeshletPageBufferAndBase(meshData, meshlet.pageIndex, pageBufferIndex, pageBase);
+
+            float2 viewSize = float2((float)g_Properties.renderWidth, (float)g_Properties.renderHeight);
+            float2 viewportScale = float2(0.5f, -0.5f) * viewSize * (float)SUBPIXEL_SAMPLES;
+            float2 viewportBias = (viewSize * 0.5f) * (float)SUBPIXEL_SAMPLES;
+            int4 scissorRect = int4(0, 0, (int)g_Properties.renderWidth, (int)g_Properties.renderHeight);
+
+            // Phase 1: Transform vertices into shared memory
+            if (groupThreadID < vertexCount)
+            {
+                ByteAddressBuffer pageBuffer = GET_BUFFER(pageBufferIndex);
+                uint vOffset = pageBase + meshlet.vertexOffset + groupThreadID * PACKED_VERTEX_STRIDE;
+                float3 pos = asfloat(pageBuffer.Load3(vOffset));
+                float4 clipPos = mul(worldViewProj, float4(pos, 1.0f));
+
+                // Project to subpixel coordinates
+                float4 subpixel = float4(clipPos.xyz, 1.0f) / max(clipPos.w, 1e-6f);
+                subpixel.xy = floor(subpixel.xy * viewportScale + viewportBias);
+                subpixel.w = clipPos.w;
+
+                s_VertexPositions[groupThreadID] = subpixel;
+            }
+
+            GroupMemoryBarrierWithGroupSync();
+
+            // Phase 2: Parallel triangle rasterization
+            ByteAddressBuffer pageBuffer = GET_BUFFER(pageBufferIndex);
+
+            for (uint primId = groupThreadID; primId < triangleCount; primId += SW_RASTER_THREADS)
+            {
+                uint packedIndices = pageBuffer.Load(pageBase + meshlet.triangleOffset + primId * PACKED_TRIANGLE_STRIDE);
+                uint3 indices = uint3(packedIndices & 0xFFu, (packedIndices >> 8u) & 0xFFu, (packedIndices >> 16u) & 0xFFu);
+
+                float4 v0 = s_VertexPositions[indices.x];
+                float4 v1 = s_VertexPositions[indices.y];
+                float4 v2 = s_VertexPositions[indices.z];
+
+                if (min3(v0.w, v1.w, v2.w) <= 0.0f)
+                {
+                    continue;
+                }
+
+                float4 verts[3];
+                if (reverseWinding)
+                {
+                    verts[0] = v0;
+                    verts[1] = v1;
+                    verts[2] = v2;
+                }
+                else
+                {
+                    verts[0] = v0;
+                    verts[1] = v2;
+                    verts[2] = v1;
+                }
+
+                RasterTriangle tri;
+                if (backfaceCull)
+                {
+                    tri = SetupTriangle<SUBPIXEL_SAMPLES, true>(scissorRect, verts);
+                }
+                else
+                {
+                    tri = SetupTriangle<SUBPIXEL_SAMPLES, false>(scissorRect, verts);
+                }
+
+                if (tri.isValid)
+                {
+                    RasterizeTri_Adaptive(tri, g_Properties.visBufferIndex, binnedSlot, primId);
+                }
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

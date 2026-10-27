@@ -228,6 +228,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 0, out var indirectArg0, out var binOffsets0, out var binScatterCounters0);
         visibleMeshlets0 = AddScatterMeshletsPass(viewContext.RenderGraph, unbinnedMeshlets0, binScatterCounters0, counterBuffer, 0);
         AddVisibilityBufferPass(viewContext.RenderGraph, visibleMeshlets0, binOffsets0, indirectArg0, 0, sceneBuffer, viewContext.RenderSize, ref currentVisBuffer);
+        AddSoftwareRasterizerPass(viewContext.RenderGraph, visibleMeshlets0, binOffsets0, indirectArg0, currentVisBuffer, viewContext.RenderSize);
         AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzbTexture, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize);
 
         // Pass 2: Late-Z Meshlet Culling

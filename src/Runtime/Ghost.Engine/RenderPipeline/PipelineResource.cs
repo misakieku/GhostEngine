@@ -29,6 +29,9 @@ internal partial class MeshPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/MeshPipeline/ScatterMeshlets")]
     public Handle<ComputeShader> scatterMeshletsShader;
 
+    [ResolveAsset("EngineResources/Shaders/MeshPipeline/RasterizeSw")]
+    public Handle<ComputeShader> rasterizeSwShader;
+
     [ResolveAsset("EngineResources/Shaders/Blit")]
     public Handle<Shader> blitShader;
 

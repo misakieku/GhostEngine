@@ -86,6 +86,18 @@ internal unsafe partial class GhostRenderPipeline
         public uint maxVariants;
     }
 
+    private struct SoftwareRasterizerPassData
+    {
+        public Identifier<RGBuffer> visibleMeshlets;
+        public Identifier<RGBuffer> binOffsetsBuffer;
+        public Identifier<RGBuffer> indirectArgsBuffer;
+        public Identifier<RGTexture> visBuffer;
+        public Handle<ComputeShader> shader;
+        public uint2 renderSize;
+        public ulong swIndirectOffset;
+        public ICommandSignature commandSignature;
+    }
+
     private struct ScatterMeshletsPassData
     {
         public Identifier<RGBuffer> unbinnedBuffer;
@@ -128,7 +140,8 @@ internal unsafe partial class GhostRenderPipeline
         public const uint INDIRECT_OFFSET_PASS1_VARIANTS = 0;
         public static uint GetPass2VariantsIndirectOffset(uint maxVariants) => maxVariants * 16u;
         public static uint GetPass2CullIndirectOffset(uint maxVariants) => maxVariants * 32u;
-        public static uint GetIndirectArgsBufferSize(uint maxVariants) => maxVariants * 32u + 16u;
+        public static uint GetPass1SwIndirectOffset(uint maxVariants) => maxVariants * 32u + 16u;
+        public static uint GetIndirectArgsBufferSize(uint maxVariants) => maxVariants * 32u + 32u;
         public static uint GetBinOffsetsBufferSize(uint maxVariants) => maxVariants * 4u;
     }
 
@@ -356,6 +369,7 @@ internal unsafe partial class GhostRenderPipeline
             var visibleArgsOffset = passData.cullPassIndex == 0 ? CullCommon.INDIRECT_OFFSET_PASS1_VARIANTS : CullCommon.GetPass2VariantsIndirectOffset(passData.maxVariants);
             var occludedCountOffset = passData.cullPassIndex == 0 ? CullCommon.OFFSET_PASS1_OCCLUDED_COUNT : uint.MaxValue;
             var cullArgsOffset = passData.cullPassIndex == 0 ? CullCommon.GetPass2CullIndirectOffset(passData.maxVariants) : uint.MaxValue;
+            var swArgsOffset = passData.cullPassIndex == 0 ? CullCommon.GetPass1SwIndirectOffset(passData.maxVariants) : uint.MaxValue;
 
             var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
             var indirectUav = computeCtx.GetActualBindlessIndex(passData.indirectArgsBuffer, BindlessAccess.UnorderedAccess);
@@ -374,6 +388,7 @@ internal unsafe partial class GhostRenderPipeline
                 maxVariants = passData.maxVariants,
                 occludedCountOffset = occludedCountOffset,
                 cullArgsOffset = cullArgsOffset,
+                swArgsOffset = swArgsOffset,
             };
 
             computeCtx.SetActiveCompute(passData.shader, 0);
@@ -443,6 +458,52 @@ internal unsafe partial class GhostRenderPipeline
         });
 
         return binnedBuffer;
+    }
+
+    private void AddSoftwareRasterizerPass(RenderGraph rg, Identifier<RGBuffer> visibleMeshlets, Identifier<RGBuffer> binOffsetsBuffer, Identifier<RGBuffer> indirectArgsBuffer, Identifier<RGTexture> visBuffer, uint2 renderSize)
+    {
+        using var builder = rg.AddComputeRenderPass<SoftwareRasterizerPassData>("Rasterize_Software");
+
+        builder.UseBuffer(visibleMeshlets, AccessFlags.Read);
+        builder.UseBuffer(binOffsetsBuffer, AccessFlags.Read);
+        builder.UseBuffer(indirectArgsBuffer, AccessFlags.Read);
+        builder.UseTexture(visBuffer, AccessFlags.ReadWrite);
+
+        var maxVariants = GetMaxCullVariants();
+
+        builder.SetPassData(new SoftwareRasterizerPassData
+        {
+            visibleMeshlets = visibleMeshlets,
+            binOffsetsBuffer = binOffsetsBuffer,
+            indirectArgsBuffer = indirectArgsBuffer,
+            visBuffer = visBuffer,
+            shader = _meshPipelineResource.rasterizeSwShader,
+            renderSize = renderSize,
+            swIndirectOffset = CullCommon.GetPass1SwIndirectOffset(maxVariants),
+            commandSignature = _dispatchCommandSignature
+        });
+
+        builder.SetRenderFunc<SoftwareRasterizerPassData>(static (ref readonly passData, computeCtx) =>
+        {
+            var visibleBufferIndex = computeCtx.GetActualBindlessIndex(passData.visibleMeshlets, BindlessAccess.ShaderResource);
+            var binOffsetsIndex = computeCtx.GetActualBindlessIndex(passData.binOffsetsBuffer, BindlessAccess.ShaderResource);
+            var visBufferUav = computeCtx.GetActualBindlessIndex(passData.visBuffer, BindlessAccess.UnorderedAccess);
+
+            var props = new InternalRasterizeSwShaderProperties
+            {
+                visBufferIndex = visBufferUav,
+                visibleMeshletsBuffer = visibleBufferIndex,
+                binOffsetsBuffer = binOffsetsIndex,
+                renderWidth = passData.renderSize.x,
+                renderHeight = passData.renderSize.y
+            };
+
+            computeCtx.SetActiveCompute(passData.shader, 0);
+            computeCtx.SetUserDataWithProperties(in props);
+
+            var actualIndirectBuf = computeCtx.GetActualBuffer(passData.indirectArgsBuffer);
+            computeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, passData.swIndirectOffset);
+        });
     }
 
     private void AddBuildHZBPasses(RenderGraph rg, Identifier<RGTexture> visBuffer, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, uint2 renderSize)

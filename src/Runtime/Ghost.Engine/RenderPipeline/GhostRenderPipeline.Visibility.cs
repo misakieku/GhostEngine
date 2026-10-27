@@ -163,7 +163,7 @@ internal partial class GhostRenderPipeline
                 ref readonly var variant = ref dispatchVariants[i];
                 if (variant.Shader.IsValid && unsafeCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.Visibility))
                 {
-                    var bin = (uint)variant.DenseIndex;
+                    var bin = (variant.DenseIndex == 0) ? 0u : (uint)(64 + variant.DenseIndex - 1);
                     unsafeCtx.SetUserData(visibleBufferIndex, visBufferUav, binOffsetsIndex, (bin << 1) | (passData.passIndex & 1u));
                     var variantIndirectOffset = passData.indirectArgsOffset + bin * 16UL;
                     unsafeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, variantIndirectOffset);

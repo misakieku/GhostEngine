@@ -56,6 +56,16 @@ compute "Internal/MeshletCullGraph"
             uint3 dispatchGrid : SV_DispatchGrid;
         };
 
+        #define NUM_DEPTH_BUCKETS 32u
+        #define SW_MAX_EDGE_PIXELS 32.0f
+
+        uint DepthToBucket(float z, float minZ, float maxZ)
+        {
+            float clampedZ = clamp(z, minZ, maxZ);
+            float t = (log2(clampedZ) - log2(minZ)) / (log2(maxZ) - log2(minZ));
+            return (uint)clamp(floor(t * (float)NUM_DEPTH_BUCKETS), 0u, NUM_DEPTH_BUCKETS - 1u);
+        }
+
         bool TestHZB(float4 clipMin, float4 clipMax)
         {
             return HZBVisible(clipMin, clipMax, g_Properties.hzbMipCount, g_Properties.renderWidth, g_Properties.renderHeight, g_Properties.hzbTexture, g_Properties.hzbBaseWidth, g_Properties.hzbBaseHeight);
@@ -87,24 +97,49 @@ compute "Internal/MeshletCullGraph"
                     MeshData mesh = LoadData<MeshData>(instance.meshBuffer, 0);
 
                     float4x4 localToRWS = ApplyCameraTranslationToMatrix(instance.localToWorld);
-                    float3 worldMin, worldMax;
-                    TransformAABB(mesh.worldBoundsMin, mesh.worldBoundsMax, localToRWS, worldMin, worldMax);
-                    
-                    float3 worldCenter = (worldMin + worldMax) * 0.5f;
-                    float worldRadius = length(worldMax - worldCenter);
-                    float z_view = dot(worldCenter, g_ViewData.cameraDirection);
+                    WorldBox worldBox = ComputeWorldBox(mesh.worldBoundsMin, mesh.worldBoundsMax, localToRWS);
 
-                    if (z_view > worldRadius && length(worldCenter) > worldRadius)
+                    float worldRadius = sqrt(dot(worldBox.dXWorld, worldBox.dXWorld) + dot(worldBox.dYWorld, worldBox.dYWorld) + dot(worldBox.dZWorld, worldBox.dZWorld));
+                    float z_view = dot(worldBox.centerWorld, g_ViewData.cameraDirection);
+
+                    bool passesDetail = true;
+                    if (z_view > worldRadius && length(worldBox.centerWorld) > worldRadius)
                     {
                         float d_percentage = (worldRadius * g_ViewData.projectionMatrix[1][1] * 100.0f) / z_view;
-                        if (d_percentage > g_Properties.cullingThreshold)
+                        if (d_percentage <= g_Properties.cullingThreshold)
                         {
-                            isVisible = AABBIntersectFrustum(worldMin, worldMax, g_ViewData.frustum.planes);
+                            passesDetail = false;
                         }
                     }
-                    else
+
+                    if (passesDetail)
                     {
-                        isVisible = AABBIntersectFrustum(worldMin, worldMax, g_ViewData.frustum.planes);
+                        BBoxFrustumResult cullResult = BBoxIntersectFrustumFromWorld<false, false>(worldBox);
+                        if (cullResult.isVisible)
+                        {
+                            bool isOccluded = false;
+                            if (g_Properties.hzbMipCount > 0)
+                            {
+                                if (g_Properties.cullPassIndex == 0)
+                                {
+                                    BBoxFrustumResult prevCull = BBoxIntersectFrustumFromWorld<true, true>(worldBox);
+                                    if (prevCull.isVisible && prevCull.clipValid)
+                                    {
+                                        isOccluded = !TestHZB(prevCull.clipMin, prevCull.clipMax);
+                                    }
+                                }
+                                else
+                                {
+                                    BBoxFrustumResult clipResult = BBoxIntersectFrustumFromWorld<false, true>(worldBox);
+                                    if (clipResult.clipValid)
+                                    {
+                                        isOccluded = !TestHZB(clipResult.clipMin, clipResult.clipMax);
+                                    }
+                                }
+                            }
+
+                            isVisible = !isOccluded;
+                        }
                     }
                 }
             }
@@ -395,7 +430,21 @@ compute "Internal/MeshletCullGraph"
                     uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, materialPaletteIndex, localMaterialIndex);
                     variantIndex = UnpackMaterialVariantIndex(packedMaterial);
                     uint hasAlpha = UnpackMaterialHasAlpha(packedMaterial);
-                    cullBin = (hasAlpha != 0u) ? (variantIndex + 1u) : 0u;
+                    if (hasAlpha == 0u)
+                    {
+                        float dist = max(length(meshletWorldCenter), 0.001f);
+                        float clusterRadiusPx = (meshletWorldRadius * g_ViewData.projectionMatrix[1][1] * g_ViewData.screenSize.y * 0.5f) / max(dist - meshletWorldRadius, 0.001f);
+                        uint triangleCount = (meshlet.packedCounts >> 8u) & 0xFFu;
+                        // Approximate projected triangle edge length: cluster diameter / sqrt(triangleCount)
+                        float projectedEdgePx = clusterRadiusPx * (2.0f * rsqrt(max((float)triangleCount, 1.0f)));
+                        bool isSoftware = (projectedEdgePx < SW_MAX_EDGE_PIXELS);
+                        uint depthBucket = DepthToBucket(dist, 0.1f, 1000.0f);
+                        cullBin = isSoftware ? (NUM_DEPTH_BUCKETS + depthBucket) : depthBucket;
+                    }
+                    else
+                    {
+                        cullBin = (NUM_DEPTH_BUCKETS * 2u) + variantIndex;
+                    }
 
                     uint wordIdx = variantIndex >> 5u;
                     uint bitIdx = variantIndex & 31u;
@@ -407,7 +456,8 @@ compute "Internal/MeshletCullGraph"
 
                     if (isValid)
                     {
-                        BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, localToRWS);
+                        WorldBox worldBox = ComputeWorldBox(meshlet.boundingBoxMin, meshlet.boundingBoxMax, localToRWS);
+                        BBoxFrustumResult cullResult = BBoxIntersectFrustumFromWorld<false, false>(worldBox);
                         inFrustum = cullResult.isVisible;
                         // inFrustum = true;
                         if (WaveActiveAnyTrue(inFrustum))
@@ -416,15 +466,19 @@ compute "Internal/MeshletCullGraph"
                             {
                                 if (g_Properties.cullPassIndex == 0)
                                 {
-                                    BBoxFrustumResult prevCullResult = BBoxIntersectFrustum<true>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, localToRWS);
+                                    BBoxFrustumResult prevCullResult = BBoxIntersectFrustumFromWorld<true, true>(worldBox);
                                     if (prevCullResult.isVisible && prevCullResult.clipValid)
                                     {
                                         isOccluded = !TestHZB(prevCullResult.clipMin, prevCullResult.clipMax);
                                     }
                                 }
-                                else if (cullResult.clipValid)
+                                else
                                 {
-                                    isOccluded = !TestHZB(cullResult.clipMin, cullResult.clipMax);
+                                    BBoxFrustumResult clipResult = BBoxIntersectFrustumFromWorld<false, true>(worldBox);
+                                    if (clipResult.clipValid)
+                                    {
+                                        isOccluded = !TestHZB(clipResult.clipMin, clipResult.clipMax);
+                                    }
                                 }
                             }
 
@@ -475,22 +529,42 @@ compute "Internal/MeshletCullGraph"
             }
 
             // Count visible meshlets per variant for prefix-sum binning (Bin 0 is opaque, Bins 1..N are alpha-clip variants)
-            uint activeMask = WaveActiveBallot(isVisible).x;
-            while (activeMask != 0)
+            if (waveVisibleCount > 0)
             {
-                uint firstLane = firstbitlow(activeMask);
-                uint v = WaveReadLaneAt(cullBin, firstLane);
-                bool match = isVisible && (cullBin == v);
-                uint count = WaveActiveCountBits(match);
-
-                if (WaveGetLaneIndex() == firstLane && v < MAX_CULL_VARIANTS)
+                uint minBin = WaveActiveMin(isVisible ? cullBin : 0xFFFFFFFFu);
+                uint maxBin = WaveActiveMax(isVisible ? cullBin : 0u);
+                if (minBin == maxBin)
                 {
-                    uint variantCounterOffset = (g_Properties.cullPassIndex == 0)
-                        ? (OFFSET_PASS1_VARIANT_COUNTS + v * 4u)
-                        : (OFFSET_PASS2_VARIANT_COUNTS + v * 4u);
-                    counterBuf.InterlockedAdd(variantCounterOffset, count);
+                    // Fast path: all visible meshlets in this wave share the same material variant (95%+ common case)
+                    if (WaveIsFirstLane() && minBin < MAX_CULL_VARIANTS)
+                    {
+                        uint variantCounterOffset = (g_Properties.cullPassIndex == 0)
+                            ? (OFFSET_PASS1_VARIANT_COUNTS + minBin * 4u)
+                            : (OFFSET_PASS2_VARIANT_COUNTS + minBin * 4u);
+                        counterBuf.InterlockedAdd(variantCounterOffset, waveVisibleCount);
+                    }
                 }
-                activeMask &= ~WaveActiveBallot(match).x;
+                else
+                {
+                    // Slow path: mixed variants across the wave
+                    uint activeMask = WaveActiveBallot(isVisible).x;
+                    while (activeMask != 0)
+                    {
+                        uint firstLane = firstbitlow(activeMask);
+                        uint v = WaveReadLaneAt(cullBin, firstLane);
+                        bool match = isVisible && (cullBin == v);
+                        uint count = WaveActiveCountBits(match);
+
+                        if (WaveGetLaneIndex() == firstLane && v < MAX_CULL_VARIANTS)
+                        {
+                            uint variantCounterOffset = (g_Properties.cullPassIndex == 0)
+                                ? (OFFSET_PASS1_VARIANT_COUNTS + v * 4u)
+                                : (OFFSET_PASS2_VARIANT_COUNTS + v * 4u);
+                            counterBuf.InterlockedAdd(variantCounterOffset, count);
+                        }
+                        activeMask &= ~WaveActiveBallot(match).x;
+                    }
+                }
             }
 
             if (isOccludedCandidate)

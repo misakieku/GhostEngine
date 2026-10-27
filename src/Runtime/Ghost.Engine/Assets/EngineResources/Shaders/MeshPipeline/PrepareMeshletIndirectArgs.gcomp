@@ -12,6 +12,7 @@ compute "Internal/PrepareMeshletIndirectArgs"
         uint maxVariants;
         uint occludedCountOffset;
         uint cullArgsOffset;
+        uint swArgsOffset;
     }
 
     includes
@@ -74,9 +75,29 @@ compute "Internal/PrepareMeshletIndirectArgs"
                 indirectArgsBuffer.Store3(g_Properties.visibleArgsOffset + v * 16u, uint3(count, 1, 1));
             }
 
-            // Thread 0 also prepares the Pass 2 cull dispatch arguments if requested
+            // Thread 0 also prepares the Pass 2 cull dispatch arguments if requested and SW rasterizer dispatch
             if (v == 0)
             {
+                // Total HW Opaque is sum of bins 0..31 (s_scan[31] after inclusive scan)
+                uint totalHwOpaque = s_scan[31];
+                if (totalHwOpaque > g_Properties.maxCount)
+                {
+                    totalHwOpaque = g_Properties.maxCount;
+                }
+                indirectArgsBuffer.Store3(g_Properties.visibleArgsOffset, uint3(totalHwOpaque, 1, 1));
+
+                // Total SW Opaque is sum of bins 32..63 (s_scan[63] minus s_scan[31])
+                uint totalSwOpaque = s_scan[63] - s_scan[31];
+                if (totalSwOpaque > g_Properties.maxCount)
+                {
+                    totalSwOpaque = g_Properties.maxCount;
+                }
+                if (g_Properties.swArgsOffset != 0xFFFFFFFF)
+                {
+                    // D3D12_DISPATCH_ARGUMENTS: ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ
+                    indirectArgsBuffer.Store3(g_Properties.swArgsOffset, uint3(totalSwOpaque, 1, 1));
+                }
+
                 if (g_Properties.cullArgsOffset != 0xFFFFFFFF && g_Properties.occludedCountOffset != 0xFFFFFFFF)
                 {
                     uint occludedCount = counterBuffer.Load(g_Properties.occludedCountOffset);
