@@ -11,24 +11,6 @@ using System.Diagnostics;
 
 namespace Ghost.Engine;
 
-/// <summary>
-/// Indicates that the method should be called during the engine's configuration phase. Methods marked with this attribute will be invoked before the engine is created, allowing for any necessary configuration or setup to be performed.
-/// </summary>
-[AttributeUsage(AttributeTargets.Method)]
-public sealed class RuntimeConfigurationAttribute : Attribute;
-
-/// <summary>
-/// Indicates that the method should be called during the engine's initialization phase. Methods marked with this attribute will be invoked right after the engine is created and before the main loop starts.
-/// </summary>
-[AttributeUsage(AttributeTargets.Method)]
-public sealed class RuntimeInitializeAttribute : Attribute;
-
-/// <summary>
-/// Indicates that the method should be called during the engine's shutdown phase. Methods marked with this attribute will be invoked right before the engine is disposed and the application exits.
-/// </summary>
-[AttributeUsage(AttributeTargets.Method)]
-public sealed class RuntimeShutdownAttribute : Attribute;
-
 public struct EngineDesc
 {
     public required AllocationManagerDesc AllocationManagerDesc
@@ -128,6 +110,8 @@ public sealed partial class EngineCore : IDisposable
         _renderEngine.Start();
         _stopwatch.Start();
 
+        EngineProfiler.Stopwatch = _stopwatch;
+
         foreach (var world in World.GetWorldEnumerator())
         {
             world.AddService(_inputManager);
@@ -182,6 +166,8 @@ public sealed partial class EngineCore : IDisposable
     public void Dispose()
     {
         TempJobAllocatorManager.Dispose();
+        EngineProfiler.Stopwatch = null;
+
         _renderEngine.ReleasePipeline();
         _assetManager.Dispose();
         _renderEngine.Dispose();

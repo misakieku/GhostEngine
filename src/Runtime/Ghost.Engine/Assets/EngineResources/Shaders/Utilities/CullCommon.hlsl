@@ -447,4 +447,22 @@ bool EvaluateLODDetailSufficient(float objectError, float3 sphereCenter, float s
     return pixelError <= errorThreshold;
 }
 
+#define SW_MAX_EDGE_PIXELS 32.0f
+
+// Evaluates whether a meshlet should be rasterized via software rasterizer based on projected triangle edge length
+bool IsSoftwareMeshlet(
+    float3 clusterCenterToView,
+    float clusterRadius,
+    float proj11,
+    float screenOrTileHeight,
+    uint triangleCount,
+    float maxEdgePixels)
+{
+    float dist = max(length(clusterCenterToView), 0.001f);
+    float clusterRadiusPx = (clusterRadius * proj11 * screenOrTileHeight * 0.5f) / max(dist - clusterRadius, 0.001f);
+    // Approximate projected triangle edge length: cluster diameter / sqrt(triangleCount)
+    float projectedEdgePx = clusterRadiusPx * (2.0f * rsqrt(max((float)triangleCount, 1.0f)));
+    return (projectedEdgePx < maxEdgePixels);
+}
+
 #endif // GHOST_CULL_COMMON_HLSL

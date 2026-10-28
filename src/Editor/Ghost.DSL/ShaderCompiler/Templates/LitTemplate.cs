@@ -42,8 +42,8 @@ internal sealed class LitTemplate : IShaderTemplate
             strategy = "ALPHA_STRATEGY",
             pipeline = new PipelineSemantic
             {
-                zTest = ZTest.GreaterEqual,
-                zWrite = ZWrite.On,
+                zTest = ZTest.Disabled,
+                zWrite = ZWrite.Off,
                 cull = Cull.Off,
                 blend = Blend.Opaque,
                 colorMask = ColorWriteMask.None

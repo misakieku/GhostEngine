@@ -1,0 +1,30 @@
+compute "Internal/ClearShadowAtlas"
+{
+    properties
+    {
+        uint shadowAtlasIndex;
+        uint atlasResolution;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(16, 16, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            if (dispatchThreadId.x >= g_Properties.atlasResolution || dispatchThreadId.y >= g_Properties.atlasResolution)
+            {
+                return;
+            }
+
+            RWTexture2D<uint> shadowAtlas = GET_TEXTURE2D(g_Properties.shadowAtlasIndex);
+            shadowAtlas[dispatchThreadId.xy] = 0u;
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

@@ -55,7 +55,9 @@ public struct GPUShadowCullingData
     [GenerateAsHLSLType("float4", 6)]
     public Frustum.PlaneArray planes;       // Frustum planes for culling
     public float4 size;                     // x: shadow atlas size, y: atlas texel size, z: tile size, w: tile texel size
+    public float4 lightPosRWSAndProj11;     // xyz: light position in RWS, w: proj11 (projectionMatrix[1][1])
     public float lodErrorThreshold;         // Coarse LOD error threshold for this shadow view
+    public float3 padding;
 }
 
 [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GPULightData.hlsl")]
@@ -71,6 +73,7 @@ public struct GPUShadowSamplingData
     public float worldTexelSize;            // World space size of a texel in the shadow map
     public float normalBias;                // Normal bias for this shadow view
     public float slopeBias;                 // Slope based depth bias for this shadow view
+    public float padding;
 }
 
 [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GPULightData.hlsl")]

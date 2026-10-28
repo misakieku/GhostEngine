@@ -83,6 +83,8 @@ internal unsafe partial class GhostRenderPipeline
             return math.lerp(baseBias, maxBaseBias, math.min(1.0f, (softness * 100) / 5));
         }
 
+
+
         public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
         {
             ref readonly var request = ref lights[loopIndex];
@@ -114,7 +116,7 @@ internal unsafe partial class GhostRenderPipeline
             var nearPlane = shadowData.nearPlane > 0.0f ? shadowData.nearPlane : 0.05f;
             var farPlane = light.range;
             var lightType = light.lightTypeAndFlags & 0xFu;
-            var lodErrorThreshold = meshletLodErrorThreshold * (viewHeight / shadowSize) * shadowData.lodErrorScale > 0 ? shadowData.lodErrorScale : 1.0f;
+            var lodErrorThreshold = meshletLodErrorThreshold * (viewHeight / shadowSize) * (shadowData.lodErrorScale > 0 ? shadowData.lodErrorScale : 1.0f);
 
             // TODO: Expose softnessScale?
             var softness = GetNonDirectionalSoftness(1.0f, viewHeight, light.size.x);
@@ -146,6 +148,7 @@ internal unsafe partial class GhostRenderPipeline
                     {
                         planes = shadowFrustum.planes,
                         size = size,
+                        lightPosRWSAndProj11 = new float4(lightPosRWS, projMat[1][1]),
                         lodErrorThreshold = lodErrorThreshold,
                     },
                     samplingData = new GPUShadowSamplingData
@@ -191,6 +194,7 @@ internal unsafe partial class GhostRenderPipeline
                         {
                             planes = shadowFrustum.planes,
                             size = size,
+                            lightPosRWSAndProj11 = new float4(lightPosRWS, projMat[1][1]),
                             lodErrorThreshold = lodErrorThreshold,
                         },
                         samplingData = new GPUShadowSamplingData
@@ -614,6 +618,27 @@ internal unsafe partial class GhostRenderPipeline
         public SetWorkGraphFlags flags;
         public uint maxVisibleMeshlets;
         public uint counterBufferSize;
+        public float cullingThreshold;
+    }
+
+    private struct ClearShadowAtlasPassData
+    {
+        public Identifier<RGTexture> shadowAtlas;
+        public Handle<ComputeShader> shader;
+        public uint atlasResolution;
+    }
+
+    private struct SoftwareShadowRasterPassData
+    {
+        public Identifier<RGTexture> shadowAtlas;
+        public Identifier<RGBuffer> binnedMeshlets;
+        public Identifier<RGBuffer> binOffsetsBuffer;
+        public Identifier<RGBuffer> indirectArgs;
+        public Handle<ComputeShader> shader;
+        public ICommandSignature commandSignature;
+        public uint shadowViewsBufferSrv;
+        public uint atlasResolution;
+        public uint swIndirectOffset;
     }
 
     private struct PunctualShadowRasterPassData
@@ -622,9 +647,9 @@ internal unsafe partial class GhostRenderPipeline
         public Identifier<RGBuffer> binnedMeshlets;
         public Identifier<RGBuffer> binOffsetsBuffer;
         public Identifier<RGBuffer> indirectArgs;
-        public Handle<Shader> opaqueShadowShader;
         public ICommandSignature commandSignature;
         public uint shadowViewsBufferSrv;
+        public uint atlasResolution;
         public ShaderVariantRegistry variantRegistry;
     }
 
@@ -697,6 +722,7 @@ internal unsafe partial class GhostRenderPipeline
                 flags = flags,
                 maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
                 counterBufferSize = counterBufferSize,
+                cullingThreshold = _settings.InstanceCullingThreshold,
             });
 
             cullBuilder.SetRenderFunc<ShadowCullPassData>(static (ref readonly passData, computeCtx) =>
@@ -714,6 +740,7 @@ internal unsafe partial class GhostRenderPipeline
                     instanceCount = passData.instanceCount,
                     shadowViewsBuffer = passData.shadowViewsBufferSrv,
                     shadowViewCount = passData.shadowViewCount,
+                    cullingThreshold = passData.cullingThreshold,
                 };
 
                 var setProgramDesc = SetProgramDesc.ForWorkGraph(
@@ -794,6 +821,7 @@ internal unsafe partial class GhostRenderPipeline
                     maxVariants = passData.maxVariants,
                     occludedCountOffset = uint.MaxValue,
                     cullArgsOffset = uint.MaxValue,
+                    swArgsOffset = uint.MaxValue,
                 };
 
                 computeCtx.SetActiveCompute(passData.shader, 0);
@@ -858,41 +886,87 @@ internal unsafe partial class GhostRenderPipeline
             });
         }
 
-        // Raster Shadow Depth
+        // 1. Create and Clear Shadow Atlas UAV
         Identifier<RGTexture> shadowAtlas;
-        using (var rasterBuilder = rg.AddRasterRenderPass<PunctualShadowRasterPassData>("PunctualShadowRaster"))
+        using (var clearBuilder = rg.AddComputeRenderPass<ClearShadowAtlasPassData>("ClearShadowAtlas"))
         {
-            var shadowAtlasDesc = RGTextureDesc.AbsoluteDepth(
+            var shadowAtlasDesc = RGTextureDesc.Absolute(
                 _settings.ShadowAtlasResolution,
                 _settings.ShadowAtlasResolution,
                 TextureFormat.R32_Typeless,
-                usage: TextureUsage.DepthStencil | TextureUsage.ShaderResource,
-                typelessViewFormat: new TypelessFormatDesc { Dsv = TextureFormat.D32_Float, Srv = TextureFormat.R32_Float });
+                clearAtFirstUse: false,
+                usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource,
+                typelessViewFormat: new TypelessFormatDesc { Srv = TextureFormat.R32_Float, Uav = TextureFormat.R32_UInt });
 
-            shadowAtlas = rasterBuilder.CreateTexture(in shadowAtlasDesc, "PunctualShadowAtlas");
+            shadowAtlas = clearBuilder.CreateTexture(in shadowAtlasDesc, "PunctualShadowAtlas");
 
-            rasterBuilder.SetDepthAttachment(shadowAtlas, AccessFlags.WriteAll);
-            rasterBuilder.UseBuffer(binnedMeshlets, AccessFlags.Read);
-            rasterBuilder.UseBuffer(binOffsets, AccessFlags.Read);
-            rasterBuilder.UseBuffer(indirectArgs, AccessFlags.Read);
+            clearBuilder.UseTexture(shadowAtlas, AccessFlags.Write);
+            clearBuilder.SetPassData(new ClearShadowAtlasPassData
+            {
+                shadowAtlas = shadowAtlas,
+                shader = _lightingPipelineResource.clearShadowAtlasShader,
+                atlasResolution = _settings.ShadowAtlasResolution
+            });
 
-            rasterBuilder.SetPassData(new PunctualShadowRasterPassData
+            clearBuilder.SetRenderFunc<ClearShadowAtlasPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var shadowAtlasUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.shadowAtlas).AsResource(), BindlessAccess.UnorderedAccess);
+                var props = new InternalClearShadowAtlasShaderProperties
+                {
+                    shadowAtlasIndex = shadowAtlasUav,
+                    atlasResolution = passData.atlasResolution
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+                var threadGroups = Math.Max(1u, (passData.atlasResolution + 15u) / 16u);
+                computeCtx.DispatchCompute(threadGroups, threadGroups, 1);
+            });
+        }
+
+        // 2. Hardware Raster Shadow Depth for Macro-triangles (Bins 0 and 2..N)
+        using (var unsafeBuilder = rg.AddUnsafeRenderPass<PunctualShadowRasterPassData>("PunctualShadowRaster"))
+        {
+            unsafeBuilder.UseRandomAccessTexture(shadowAtlas);
+            unsafeBuilder.UseBuffer(binnedMeshlets, AccessFlags.Read);
+            unsafeBuilder.UseBuffer(binOffsets, AccessFlags.Read);
+            unsafeBuilder.UseBuffer(indirectArgs, AccessFlags.Read);
+
+            unsafeBuilder.SetPassData(new PunctualShadowRasterPassData
             {
                 shadowAtlas = shadowAtlas,
                 binnedMeshlets = binnedMeshlets,
                 binOffsetsBuffer = binOffsets,
                 indirectArgs = indirectArgs,
-                opaqueShadowShader = _lightingPipelineResource.opaqueShadowRasterizer,
                 commandSignature = _dispatchMeshCommandSignature,
                 shadowViewsBufferSrv = shadowViewsBufferSrv,
+                atlasResolution = _settings.ShadowAtlasResolution,
                 variantRegistry = _assetManager.ShaderVariants,
             });
 
-            rasterBuilder.SetRenderFunc<PunctualShadowRasterPassData>(static (ref readonly passData, rasterCtx) =>
+            unsafeBuilder.SetRenderFunc<PunctualShadowRasterPassData>(static (ref readonly passData, unsafeCtx) =>
             {
-                var binnedMeshletsSrv = rasterCtx.GetActualBindlessIndex(passData.binnedMeshlets, BindlessAccess.ShaderResource);
-                var binOffsetsSrv = rasterCtx.GetActualBindlessIndex(passData.binOffsetsBuffer, BindlessAccess.ShaderResource);
-                var actualIndirectBuf = rasterCtx.GetActualBuffer(passData.indirectArgs);
+                unsafeCtx.SetViewport(new ViewportDesc
+                {
+                    X = 0,
+                    Y = 0,
+                    Width = passData.atlasResolution,
+                    Height = passData.atlasResolution,
+                    MinDepth = 0.0f,
+                    MaxDepth = 1.0f
+                });
+                unsafeCtx.SetScissorRect(new RectDesc
+                {
+                    Left = 0,
+                    Top = 0,
+                    Right = passData.atlasResolution,
+                    Bottom = passData.atlasResolution
+                });
+
+                var binnedMeshletsSrv = unsafeCtx.GetActualBindlessIndex(passData.binnedMeshlets, BindlessAccess.ShaderResource);
+                var binOffsetsSrv = unsafeCtx.GetActualBindlessIndex(passData.binOffsetsBuffer, BindlessAccess.ShaderResource);
+                var shadowAtlasUav = unsafeCtx.GetActualBindlessIndex(passData.shadowAtlas, BindlessAccess.UnorderedAccess);
+                var actualIndirectBuf = unsafeCtx.GetActualBuffer(passData.indirectArgs);
 
                 var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.Shadow);
                 if (dispatchVariants.Length == 0)
@@ -900,33 +974,70 @@ internal unsafe partial class GhostRenderPipeline
                     return;
                 }
 
-                // Slot 0: Opaque shadow caster (MS only, null PS, hardware double-rate Fast-Z)
-                if (passData.opaqueShadowShader.IsValid && rasterCtx.TrySetActiveShaderPass(passData.opaqueShadowShader, 0))
+                // Slot 0: Opaque shadow caster (HW Bin 0)
+                ref readonly var opaqueVariant = ref dispatchVariants[0];
+                if (opaqueVariant.Shader.IsValid && unsafeCtx.TrySetActiveShaderPass(opaqueVariant.Shader, PassSemantic.Shadow))
                 {
-                    rasterCtx.SetUserData(binnedMeshletsSrv, passData.shadowViewsBufferSrv, binOffsetsSrv, 0);
-                    rasterCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, 0);
-                }
-                else
-                {
-                    ref readonly var opaqueVariant = ref dispatchVariants[0];
-                    if (opaqueVariant.Shader.IsValid && rasterCtx.TrySetActiveShaderPass(opaqueVariant.Shader, PassSemantic.Shadow))
-                    {
-                        rasterCtx.SetUserData(binnedMeshletsSrv, passData.shadowViewsBufferSrv, binOffsetsSrv, 0);
-                        rasterCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, 0);
-                    }
+                    unsafeCtx.SetUserData(binnedMeshletsSrv, passData.shadowViewsBufferSrv, binOffsetsSrv, shadowAtlasUav << 8);
+                    unsafeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, 0);
                 }
 
-                // Slots 1..N-1: Alpha-tested / masked shadow variants (MS + PS with material ALPHA_STRATEGY)
+                // Slots 1..N-1: Alpha-tested / masked shadow variants (HW Bins 2..N)
+                // Note: Bin 1 is SW Opaque, so alpha variants start at targetVariant = 2.
                 for (var i = 1; i < dispatchVariants.Length; i++)
                 {
                     ref readonly var variant = ref dispatchVariants[i];
-                    if (variant.Shader.IsValid && rasterCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.Shadow))
+                    if (variant.Shader.IsValid && unsafeCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.Shadow))
                     {
-                        var targetVariant = (uint)i;
-                        rasterCtx.SetUserData(binnedMeshletsSrv, passData.shadowViewsBufferSrv, binOffsetsSrv, targetVariant << 1);
-                        rasterCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, (ulong)i * INDIRECT_ARGS_STRIDE);
+                        var targetVariant = (uint)(i + 1);
+                        unsafeCtx.SetUserData(binnedMeshletsSrv, passData.shadowViewsBufferSrv, binOffsetsSrv, (shadowAtlasUav << 8) | (targetVariant & 0xFFu));
+                        unsafeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, (ulong)targetVariant * INDIRECT_ARGS_STRIDE);
                     }
                 }
+            });
+        }
+
+        // Software Raster Shadow Depth for Micro-triangles (Bin 1)
+        using (var swBuilder = rg.AddComputeRenderPass<SoftwareShadowRasterPassData>("RasterizeShadowSw"))
+        {
+            swBuilder.UseTexture(shadowAtlas, AccessFlags.ReadWrite);
+            swBuilder.UseBuffer(binnedMeshlets, AccessFlags.Read);
+            swBuilder.UseBuffer(binOffsets, AccessFlags.Read);
+            swBuilder.UseBuffer(indirectArgs, AccessFlags.Read);
+
+            swBuilder.SetPassData(new SoftwareShadowRasterPassData
+            {
+                shadowAtlas = shadowAtlas,
+                binnedMeshlets = binnedMeshlets,
+                binOffsetsBuffer = binOffsets,
+                indirectArgs = indirectArgs,
+                shader = _lightingPipelineResource.rasterizeShadowSwShader,
+                commandSignature = _dispatchCommandSignature,
+                shadowViewsBufferSrv = shadowViewsBufferSrv,
+                atlasResolution = _settings.ShadowAtlasResolution,
+                swIndirectOffset = CullCommon.INDIRECT_OFFSET_PASS1_VARIANTS + 16u
+            });
+
+            swBuilder.SetRenderFunc<SoftwareShadowRasterPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var shadowAtlasUav = computeCtx.GetActualBindlessIndex(passData.shadowAtlas, BindlessAccess.UnorderedAccess);
+                var binnedMeshletsSrv = computeCtx.GetActualBindlessIndex(passData.binnedMeshlets, BindlessAccess.ShaderResource);
+                var binOffsetsSrv = computeCtx.GetActualBindlessIndex(passData.binOffsetsBuffer, BindlessAccess.ShaderResource);
+
+                var props = new InternalRasterizeShadowSwShaderProperties
+                {
+                    shadowAtlasUavIndex = shadowAtlasUav,
+                    binnedMeshletsBuffer = binnedMeshletsSrv,
+                    binOffsetsBuffer = binOffsetsSrv,
+                    shadowViewsBufferSrv = passData.shadowViewsBufferSrv,
+                    atlasResolution = passData.atlasResolution,
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+
+                var actualIndirectBuf = computeCtx.GetActualBuffer(passData.indirectArgs);
+                computeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, passData.swIndirectOffset);
             });
         }
 

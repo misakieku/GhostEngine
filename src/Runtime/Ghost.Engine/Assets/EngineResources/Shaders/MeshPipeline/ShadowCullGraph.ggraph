@@ -8,6 +8,7 @@ compute "Internal/ShadowCullGraph"
         uint instanceCount;
         uint shadowViewsBuffer;
         uint shadowViewCount;
+        float cullingThreshold;
     }
 
     includes
@@ -63,16 +64,37 @@ compute "Internal/ShadowCullGraph"
             bool isVisible = false;
             if (instanceIndex < g_Properties.instanceCount && shadowViewIndex < g_Properties.shadowViewCount)
             {
-                InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, instanceIndex);
-                if (IS_VALID_BUFFER(instance.meshBuffer))
+                GPUShadowCullingData shadowCull = LoadDataAtOffset<GPUShadowCullingData>(g_Properties.shadowViewsBuffer, sizeof(GPUShadowViewData) * shadowViewIndex); // Cull data at offset 0
+                if (shadowCull.size.z > 0.0f)
                 {
-                    MeshData mesh = LoadData<MeshData>(instance.meshBuffer, 0);
-                    float4x4 localToRWS = ApplyCameraTranslationToMatrix(instance.localToWorld);
-                    float3 worldMin, worldMax;
-                    TransformAABB(mesh.worldBoundsMin, mesh.worldBoundsMax, localToRWS, worldMin, worldMax);
+                    InstanceData instance = LoadData<InstanceData>(g_FrameData.sceneBuffer, instanceIndex);
+                    if (IS_VALID_BUFFER(instance.meshBuffer))
+                    {
+                        MeshData mesh = LoadData<MeshData>(instance.meshBuffer, 0);
+                        float4x4 localToRWS = ApplyCameraTranslationToMatrix(instance.localToWorld);
+                        float3 worldMin, worldMax;
+                        TransformAABB(mesh.worldBoundsMin, mesh.worldBoundsMax, localToRWS, worldMin, worldMax);
 
-                    GPUShadowCullingData shadowCull = LoadDataAtOffset<GPUShadowCullingData>(g_Properties.shadowViewsBuffer, sizeof(GPUShadowViewData) * shadowViewIndex); // Cull data at offset 0
-                    isVisible = AABBIntersectFrustum(worldMin, worldMax, shadowCull.planes);
+                        float3 worldCenter = (worldMin + worldMax) * 0.5f;
+                        float worldRadius = length((worldMax - worldMin) * 0.5f);
+                        float3 toInstance = worldCenter - shadowCull.lightPosRWSAndProj11.xyz;
+                        float dist = length(toInstance);
+
+                        bool passesDetail = true;
+                        if (g_Properties.cullingThreshold > 0.0f && dist > worldRadius)
+                        {
+                            float d_percentage = (worldRadius * shadowCull.lightPosRWSAndProj11.w * 100.0f) / dist;
+                            if (d_percentage <= g_Properties.cullingThreshold)
+                            {
+                                passesDetail = false;
+                            }
+                        }
+
+                        if (passesDetail)
+                        {
+                            isVisible = AABBIntersectFrustum(worldMin, worldMax, shadowCull.planes);
+                        }
+                    }
                 }
             }
 
@@ -307,7 +329,22 @@ compute "Internal/ShadowCullGraph"
                         uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, materialPaletteIndex, localMaterialIndex);
                         uint variantIndex = UnpackMaterialVariantIndex(packedMaterial);
                         uint hasAlpha = UnpackMaterialHasAlpha(packedMaterial);
-                        cullBin = (hasAlpha != 0u) ? (variantIndex + 1u) : 0u;
+                        if (hasAlpha == 0u)
+                        {
+                            uint triangleCount = (meshlet.packedCounts >> 8u) & 0xFFu;
+                            bool isSoftware = IsSoftwareMeshlet(
+                                meshletWorldCenter - shadowCull.lightPosRWSAndProj11.xyz,
+                                meshletWorldRadius,
+                                shadowCull.lightPosRWSAndProj11.w,
+                                shadowCull.size.z,
+                                triangleCount,
+                                SW_MAX_EDGE_PIXELS);
+                            cullBin = isSoftware ? 1u : 0u;
+                        }
+                        else
+                        {
+                            cullBin = 2u + variantIndex;
+                        }
                     }
                 }
             }

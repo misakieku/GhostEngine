@@ -86,8 +86,11 @@ internal partial class LightingPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/Lighting/TileLightCulling")]
     public Handle<ComputeShader> tileLightCullingShader;
 
-    [ResolveAsset("EngineResources/Shaders/Lighting/Shadow")]
-    public Handle<Shader> opaqueShadowRasterizer;
+    [ResolveAsset("EngineResources/Shaders/Lighting/ClearShadowAtlas")]
+    public Handle<ComputeShader> clearShadowAtlasShader;
+
+    [ResolveAsset("EngineResources/Shaders/Lighting/RasterizeShadowSw")]
+    public Handle<ComputeShader> rasterizeShadowSwShader;
 
     [ResolveAsset("EngineResources/Shaders/Lighting/ConvolveSkyIrradianceSH")]
     public Handle<ComputeShader> convolveSkyIrradianceShader;

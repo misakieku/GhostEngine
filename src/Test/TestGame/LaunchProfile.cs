@@ -94,11 +94,11 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 
     public void OnEngineInitialized(EngineCore engine)
     {
-        const int entityCapacity = 100_000;
-        const float size = 25.0f;
+        const int entityCapacity = 100_0;
+        const float size = 5.0f;
         const float baseScale = 1.0f;
-        const float lightSize = size * 0.5f;
-        const int lightCount = 0;
+        const float lightSize = size * 1.0f;
+        const int lightCount = 10;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -198,7 +198,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 {
                     type = isSpot ? PunctualLightType.Spot : PunctualLightType.Point,
                     color = color,
-                    shadowSize = 0,
+                    shadowSize = 256,
                     intensity = 3.0f, // RandomFloat(0.5f, 1.0f),
                     range = 25.0f, // RandomFloat(10.0f, 15.0f),
                     innerSpotAngle = math.radians(15.0f),
@@ -232,7 +232,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         });
         volumeData.Set(new HDRISettings
         {
-            intensity = 1.0f,
+            intensity = 0.1f,
             tint = new float3(1.0f, 1.0f, 1.0f),
             texture = skyboxHandle,
         });

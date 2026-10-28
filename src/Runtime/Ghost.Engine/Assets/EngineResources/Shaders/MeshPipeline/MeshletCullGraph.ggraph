@@ -57,7 +57,6 @@ compute "Internal/MeshletCullGraph"
         };
 
         #define NUM_DEPTH_BUCKETS 32u
-        #define SW_MAX_EDGE_PIXELS 32.0f
 
         uint DepthToBucket(float z, float minZ, float maxZ)
         {
@@ -433,11 +432,14 @@ compute "Internal/MeshletCullGraph"
                     if (hasAlpha == 0u)
                     {
                         float dist = max(length(meshletWorldCenter), 0.001f);
-                        float clusterRadiusPx = (meshletWorldRadius * g_ViewData.projectionMatrix[1][1] * g_ViewData.screenSize.y * 0.5f) / max(dist - meshletWorldRadius, 0.001f);
                         uint triangleCount = (meshlet.packedCounts >> 8u) & 0xFFu;
-                        // Approximate projected triangle edge length: cluster diameter / sqrt(triangleCount)
-                        float projectedEdgePx = clusterRadiusPx * (2.0f * rsqrt(max((float)triangleCount, 1.0f)));
-                        bool isSoftware = (projectedEdgePx < SW_MAX_EDGE_PIXELS);
+                        bool isSoftware = IsSoftwareMeshlet(
+                            meshletWorldCenter,
+                            meshletWorldRadius,
+                            g_ViewData.projectionMatrix[1][1],
+                            g_ViewData.screenSize.y,
+                            triangleCount,
+                            SW_MAX_EDGE_PIXELS);
                         uint depthBucket = DepthToBucket(dist, 0.1f, 1000.0f);
                         cullBin = isSoftware ? (NUM_DEPTH_BUCKETS + depthBucket) : depthBucket;
                     }

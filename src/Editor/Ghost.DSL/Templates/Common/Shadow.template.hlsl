@@ -15,7 +15,7 @@
 #error "Unsupported template type for shadow."
 #endif
 
-#ifdef ALPHA_STRATEGY
+#ifndef SHADOW_PIXEL_STAGE
 #define SHADOW_PIXEL_STAGE 1
 #endif
 #include "EngineResources/Shaders/Lighting/ShadowRaster.hlsl"

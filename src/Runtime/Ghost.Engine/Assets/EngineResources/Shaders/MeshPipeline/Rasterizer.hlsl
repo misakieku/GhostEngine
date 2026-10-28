@@ -124,25 +124,53 @@ RasterTriangle SetupTriangle(int4 scissorRect, float4 verts[3])
     return tri;
 }
 
-void WritePixel(uint2 pixelPos, float3 c3, RasterTriangle tri, TEXTURE2D visBufferIndex, uint visibleMeshletIndex, uint primitiveID)
+struct VisibilityPixelWriter
 {
-    float depth = saturate(tri.depthPlane.x + tri.depthPlane.y * c3.y + tri.depthPlane.z * c3.z);
-    RWTexture2D<uint64_t> visBuffer = GET_TEXTURE2D(visBufferIndex);
-    uint64_t currentPacked = visBuffer[pixelPos];
-    uint currentDepthInt = (uint)(currentPacked >> VBUFFER_DEPTH_SHIFT);
-    uint depthInt = asuint(depth);
+    TEXTURE2D visBufferIndex;
+    uint visibleMeshletIndex;
+    uint primitiveID;
 
-    // In Reversed-Z, a closer fragment has a strictly greater depth integer
-    if (depthInt <= currentDepthInt)
+    void Write(uint2 pixelPos, float3 c3, RasterTriangle tri)
     {
-        return;
+        float depth = saturate(tri.depthPlane.x + tri.depthPlane.y * c3.y + tri.depthPlane.z * c3.z);
+        RWTexture2D<uint64_t> visBuffer = GET_TEXTURE2D(visBufferIndex);
+        uint64_t currentPacked = visBuffer[pixelPos];
+        uint currentDepthInt = (uint)(currentPacked >> VBUFFER_DEPTH_SHIFT);
+        uint depthInt = asuint(depth);
+
+        // In Reversed-Z, a closer fragment has a strictly greater depth integer
+        if (depthInt <= currentDepthInt)
+        {
+            return;
+        }
+
+        uint64_t newPacked = PackVisibility64(depth, visibleMeshletIndex, primitiveID);
+        InterlockedMax(visBuffer[pixelPos], newPacked);
     }
+};
 
-    uint64_t newPacked = PackVisibility64(depth, visibleMeshletIndex, primitiveID);
-    InterlockedMax(visBuffer[pixelPos], newPacked);
-}
+struct ShadowDepthPixelWriter
+{
+    TEXTURE2D shadowAtlasUavIndex;
 
-void RasterizeTri_Rect(RasterTriangle tri, TEXTURE2D visBufferIndex, uint visibleMeshletIndex, uint primitiveID)
+    void Write(uint2 pixelPos, float3 c3, RasterTriangle tri)
+    {
+        float depth = saturate(tri.depthPlane.x + tri.depthPlane.y * c3.y + tri.depthPlane.z * c3.z);
+        RWTexture2D<uint> shadowAtlas = GET_TEXTURE2D(shadowAtlasUavIndex);
+        uint currentDepthInt = shadowAtlas[pixelPos];
+        uint depthInt = asuint(depth);
+
+        if (depthInt <= currentDepthInt)
+        {
+            return;
+        }
+
+        InterlockedMax(shadowAtlas[pixelPos], depthInt);
+    }
+};
+
+template<typename TPixelWriter>
+void RasterizeTri_Rect(RasterTriangle tri, TPixelWriter writer)
 {
     float cy0 = tri.c0;
     float cy1 = tri.c1;
@@ -154,7 +182,7 @@ void RasterizeTri_Rect(RasterTriangle tri, TEXTURE2D visBufferIndex, uint visibl
         int x = tri.minPixel.x;
         if (min3(cy0, cy1, cy2) >= 0.0f)
         {
-            WritePixel(uint2(x, y), float3(cy0, cy1, cy2), tri, visBufferIndex, visibleMeshletIndex, primitiveID);
+            writer.Write(uint2(x, y), float3(cy0, cy1, cy2), tri);
         }
 
         if (x < tri.maxPixel.x)
@@ -168,7 +196,7 @@ void RasterizeTri_Rect(RasterTriangle tri, TEXTURE2D visBufferIndex, uint visibl
             {
                 if (min3(cx0, cx1, cx2) >= 0.0f)
                 {
-                    WritePixel(uint2(x, y), float3(cx0, cx1, cx2), tri, visBufferIndex, visibleMeshletIndex, primitiveID);
+                    writer.Write(uint2(x, y), float3(cx0, cx1, cx2), tri);
                 }
 
                 if (x >= tri.maxPixel.x)
@@ -191,7 +219,8 @@ void RasterizeTri_Rect(RasterTriangle tri, TEXTURE2D visBufferIndex, uint visibl
     }
 }
 
-void RasterizeTri_Scanline(RasterTriangle tri, TEXTURE2D visBufferIndex, uint visibleMeshletIndex, uint primitiveID)
+template<typename TPixelWriter>
+void RasterizeTri_Scanline(RasterTriangle tri, TPixelWriter writer)
 {
     float cy0 = tri.c0;
     float cy1 = tri.c1;
@@ -223,7 +252,7 @@ void RasterizeTri_Scanline(RasterTriangle tri, TEXTURE2D visBufferIndex, uint vi
         {
             if (min3(cx0, cx1, cx2) >= 0)
             {
-                WritePixel(uint2(x, y), float3(cx0, cx1, cx2), tri, visBufferIndex, visibleMeshletIndex, primitiveID);
+                writer.Write(uint2(x, y), float3(cx0, cx1, cx2), tri);
             }
 
             cx0 -= tri.edge12.y;
@@ -246,18 +275,37 @@ void RasterizeTri_Scanline(RasterTriangle tri, TEXTURE2D visBufferIndex, uint vi
 // false for now
 #define MESHLET_PIXEL_PROGRAMMABLE false
 
-void RasterizeTri_Adaptive(RasterTriangle tri, TEXTURE2D visBufferIndex, uint visibleMeshletIndex, uint primitiveID)
+template<typename TPixelWriter>
+void RasterizeTri_Adaptive(RasterTriangle tri, TPixelWriter writer)
 {
     bool scanline = MESHLET_PIXEL_PROGRAMMABLE || WaveActiveAnyTrue(tri.maxPixel.x - tri.minPixel.x > 4);
 
     if (scanline)
     {
-        RasterizeTri_Scanline(tri, visBufferIndex, visibleMeshletIndex, primitiveID);
+        RasterizeTri_Scanline(tri, writer);
     }
     else
     {
-        RasterizeTri_Rect(tri, visBufferIndex, visibleMeshletIndex, primitiveID);
+        RasterizeTri_Rect(tri, writer);
     }
+}
+
+// Convenience wrapper for visibility buffer pass
+void RasterizeTri_Adaptive(RasterTriangle tri, TEXTURE2D visBufferIndex, uint visibleMeshletIndex, uint primitiveID)
+{
+    VisibilityPixelWriter writer;
+    writer.visBufferIndex = visBufferIndex;
+    writer.visibleMeshletIndex = visibleMeshletIndex;
+    writer.primitiveID = primitiveID;
+    RasterizeTri_Adaptive(tri, writer);
+}
+
+// Convenience wrapper for shadow depth pass
+void RasterizeShadowTri_Adaptive(RasterTriangle tri, TEXTURE2D shadowAtlasUavIndex)
+{
+    ShadowDepthPixelWriter writer;
+    writer.shadowAtlasUavIndex = shadowAtlasUavIndex;
+    RasterizeTri_Adaptive(tri, writer);
 }
 
 #endif // GHOST_RASTERIZER_HLSL

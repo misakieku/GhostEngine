@@ -1,6 +1,6 @@
 {
-  "Id": "9ff3f56f-c5ba-4dc8-9731-97333159d507",
-  "Type": "Shader",
+  "Id": "58fd873c-ef5e-4cfe-819a-a3e4b4cb8b91",
+  "Type": "ComputeShader",
   "SettingsType": "Ghost.AssetForge.Core.Bakers.ShaderBakeSettings",
   "Settings": {
     "Version": 1,

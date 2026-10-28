@@ -55,7 +55,7 @@ void MSMain(
         STRUCT_BUFFER visibleBufferIndex = g_PushConstantData.userData0;
         uint shadowViewsBufferSrv = g_PushConstantData.userData1;
         BYTE_ADDRESS_BUFFER binOffsetsIndex = g_PushConstantData.userData2;
-        uint targetVariantIndex = g_PushConstantData.userData3 >> 1u;
+        uint targetVariantIndex = g_PushConstantData.userData3 & 0xFFu;
 
         uint binnedSlot = groupID;
         if (IS_VALID_BUFFER(binOffsetsIndex))
@@ -78,13 +78,9 @@ void MSMain(
         uint vertexCount = meshlet.packedCounts & 0xFFu;
         uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
 
-#if SHADOW_PIXEL_STAGE
         uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
         uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
         uint materialBufferIndex = UnpackMaterialByteOffset(packedMaterial);
-#else
-        uint materialBufferIndex = 0u;
-#endif
 
         ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
         float doubleSided = asfloat(matBuf.Load(materialBufferIndex + 12u));
@@ -172,7 +168,22 @@ void MSMain(
 #if SHADOW_PIXEL_STAGE
 void PSMain(ShadowPixelInput input)
 {
-    uint targetVariantIndex = g_PushConstantData.userData3 >> 1u;
+    uint shadowAtlasUav = g_PushConstantData.userData3 >> 8u;
+    uint targetVariantIndex = g_PushConstantData.userData3 & 0xFFu;
+
+    uint2 pixelPos = (uint2)input.position.xy;
+    float depth = saturate(input.position.z);
+    uint depthInt = asuint(depth);
+
+    RWTexture2D<uint> shadowAtlas = GET_TEXTURE2D(shadowAtlasUav);
+    uint currentDepthInt = shadowAtlas[pixelPos];
+
+    // Early depth test: occluder must be closer (larger depth in reversed-Z) than current closest occluder
+    if (depthInt <= currentDepthInt)
+    {
+        return;
+    }
+
     if (targetVariantIndex > 0u)
     {
         ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
@@ -184,10 +195,12 @@ void PSMain(ShadowPixelInput input)
             float coverage = strategy.GetAlphaCoverage(input.materialBufferIndex, input.uv);
             if (coverage < alphaClipThreshold)
             {
-                discard;
+                return;
             }
         }
     }
+
+    InterlockedMax(shadowAtlas[pixelPos], depthInt);
 }
 #endif
 

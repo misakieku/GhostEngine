@@ -36,7 +36,9 @@ struct GPUShadowCullingData
 {
     float4 planes[6];
     float4 size;
+    float4 lightPosRWSAndProj11;
     float lodErrorThreshold;
+    float3 padding;
 };
 
 struct GPUShadowSamplingData
@@ -48,6 +50,7 @@ struct GPUShadowSamplingData
     float worldTexelSize;
     float normalBias;
     float slopeBias;
+    float padding;
 };
 
 struct GPUShadowViewData
