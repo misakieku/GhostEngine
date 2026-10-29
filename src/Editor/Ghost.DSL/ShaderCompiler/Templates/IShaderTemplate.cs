@@ -34,6 +34,7 @@ public class TemplatePassDef
     public PipelineSemantic pipeline = new();
     public List<TemplateStage> stages = new List<TemplateStage>();
     public string? strategy;
+    public List<KeywordGroupDef> keywordGroups = new();
 }
 
 

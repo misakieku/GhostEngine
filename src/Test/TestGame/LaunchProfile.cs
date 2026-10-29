@@ -34,6 +34,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         MeshletLodErrorThreshold = 1.0f,
         InstanceCullingThreshold = 2.0f,
         DebugMode = RenderPipelineDebugMode.None,
+        ShadowMode = PipelineShadowMode.PCF,
     };
 
     public EngineDesc GetEngineDesc()

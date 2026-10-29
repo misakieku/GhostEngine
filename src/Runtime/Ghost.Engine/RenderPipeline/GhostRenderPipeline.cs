@@ -33,6 +33,10 @@ internal partial class GhostRenderPipeline : IRenderPipeline
     private readonly GPUScene _gpuScene;
     private readonly GPUViewManager _gpuViewManager;
 
+    private static readonly PipelineKeyword s_kwShadowPCF = PipelineKeywordRegistry.GetOrRegister("_SHADOW_PCF");
+    private static readonly PipelineKeyword s_kwShadowVSM = PipelineKeywordRegistry.GetOrRegister("_SHADOW_VSM");
+    private static readonly PipelineKeyword s_kwShadowRIS = PipelineKeywordRegistry.GetOrRegister("_SHADOW_RIS");
+
     private bool _disposed;
     private int _lastRenderRequestCount = -1;
     private uint _lastInstanceCount = uint.MaxValue;
@@ -164,11 +168,27 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
             var viewBuffer = RenderPipelineUtility.CreateViewDataBuffer(ctx, request, renderView, viewMatrix, projMatrix, viewProjMatrix, frustum, ref viewContext.prevViewProjMatrix, ref viewContext.prevCameraPosition);
 
+            var viewKeywords = KeywordMask128.Empty;
+            switch (_settings.ShadowMode)
+            {
+                case PipelineShadowMode.VSM:
+                    viewKeywords = viewKeywords.Set(s_kwShadowVSM.Id);
+                    break;
+                case PipelineShadowMode.RIS:
+                    viewKeywords = viewKeywords.Set(s_kwShadowRIS.Id);
+                    break;
+                default:
+                    viewKeywords = viewKeywords.Set(s_kwShadowPCF.Id);
+                    break;
+            }
+
             var renderGraph = viewContext.RenderGraph;
 
-            renderGraph.Reset();
+            renderGraph.BeginRecord(viewKeywords);
             renderGraph.SetFrameData(frameBuffer);
             renderGraph.SetViewData(viewBuffer);
+
+            _meshPipelineResource.EnsureWorkGraphProgram(_renderEngine, _assetManager, viewKeywords);
 
             var colorTarget = renderGraph.ImportTexture(renderView.ColorTexture, ResourceBarrierData.Present, ResourceBarrierData.Present);
             var historyHzb = renderGraph.ImportTexture(viewContext.HzbTexture, ResourceBarrierData.Common, ResourceBarrierData.Common);

@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
+using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using System.Runtime.CompilerServices;
 
@@ -73,7 +74,18 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
     private readonly int[][] _variantToDispatchSlot;
     private readonly int[] _states;
     private readonly uint[] _generations;
+    private IPipelineLibrary? _pipelineLibrary;
+    private ShaderLibrary? _shaderLibrary;
+    private IGraphicsEngine? _graphicsEngine;
+    private readonly Dictionary<ulong, IWorkGraphProgram> _workGraphPrograms = new();
     private bool _disposed;
+
+    public void InitializeServices(IPipelineLibrary pipelineLibrary, ShaderLibrary shaderLibrary, IGraphicsEngine graphicsEngine)
+    {
+        _pipelineLibrary = pipelineLibrary;
+        _shaderLibrary = shaderLibrary;
+        _graphicsEngine = graphicsEngine;
+    }
 
     internal ShaderVariantRegistry(ResourceManager resourceManager, IReadOnlyList<ShaderCatalogEntry> catalog)
     {
@@ -546,11 +558,308 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
         return descriptor;
     }
 
+    public Key128<PipelineState> ResolveComputePipeline(Handle<ComputeShader> shader, KeywordMask128 keywords, int entryIndex = 0)
+    {
+        if (_pipelineLibrary == null || _shaderLibrary == null)
+        {
+            throw new InvalidOperationException("ShaderVariantRegistry services have not been initialized.");
+        }
+
+        var r = _resourceManager.GetComputeShaderReference(shader);
+        if (r.IsFailure)
+        {
+            throw InvalidResourceHandleException.Create(shader);
+        }
+
+        ref var cs = ref r.Value;
+        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(cs.UniqueID, entryIndex, keywords);
+        if (error.IsFailure)
+        {
+            return default;
+        }
+
+        var passId = cs.GetEntryID(entryIndex);
+        var pipelineKey = RHIUtility.CreateComputePipelineKey(passId, compiledHash);
+        if (_pipelineLibrary.HasPipelineStateObject(pipelineKey))
+        {
+            return pipelineKey;
+        }
+
+        var cacheResult = _shaderLibrary.GetCompiledCache(cs.UniqueID, entryIndex, keywords);
+        if (cacheResult.IsFailure)
+        {
+            Logger.Warning($"Failed to load compiled cache for compute pipeline {pipelineKey}.");
+            return default;
+        }
+
+        var cache = cacheResult.Value;
+        ShaderLibrary.ParseCacheData(cache.byteCode, out _, out var offsets, out var byteCodes);
+        if (offsets.Length != 1)
+        {
+            Logger.Warning($"Compute shader pass 0x{passId:X16} has {offsets.Length} bytecode entries, expected 1.");
+            return default;
+        }
+
+        var psoDesc = new ComputePSODesc
+        {
+            CompiledHash = compiledHash,
+            PassId = passId,
+            CsCode = byteCodes.Slice((int)offsets[0]),
+        };
+
+        var createResult = _pipelineLibrary.CreateComputePipeline(in psoDesc);
+        if (createResult.IsFailure)
+        {
+            Logger.Warning($"Failed to create compute pipeline {pipelineKey}: {createResult.Message}");
+            return default;
+        }
+
+        return pipelineKey;
+    }
+
+    public Key128<PipelineState> ResolvePassComputePipeline(Handle<Shader> shader, PassSemantic semantic, KeywordMask128 keywords)
+    {
+        if (_pipelineLibrary == null || _shaderLibrary == null)
+        {
+            throw new InvalidOperationException("ShaderVariantRegistry services have not been initialized.");
+        }
+
+        var r = _resourceManager.GetShaderReference(shader);
+        if (r.IsFailure)
+        {
+            throw InvalidResourceHandleException.Create(shader);
+        }
+
+        ref var s = ref r.Value;
+        var passIndex = s.GetPassIndex(semantic);
+        if (passIndex < 0)
+        {
+            return default;
+        }
+
+        ref readonly var pass = ref s.GetPassReference(passIndex);
+        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(s.UniqueID, passIndex, keywords);
+        if (error.IsFailure)
+        {
+            return default;
+        }
+
+        var passId = pass.Key.Value;
+        var pipelineKey = RHIUtility.CreateComputePipelineKey(passId, compiledHash);
+        if (_pipelineLibrary.HasPipelineStateObject(pipelineKey))
+        {
+            return pipelineKey;
+        }
+
+        var cacheResult = _shaderLibrary.GetCompiledCache(s.UniqueID, passIndex, keywords);
+        if (cacheResult.IsFailure)
+        {
+            Logger.Warning($"Failed to load compiled cache for compute pass pipeline {pipelineKey}.");
+            return default;
+        }
+
+        var cache = cacheResult.Value;
+        ShaderLibrary.ParseCacheData(cache.byteCode, out _, out var offsets, out var byteCodes);
+        if (offsets.Length != 1)
+        {
+            Logger.Warning($"Compute pass 0x{passId:X16} has {offsets.Length} bytecode entries, expected 1.");
+            return default;
+        }
+
+        var psoDesc = new ComputePSODesc
+        {
+            CompiledHash = compiledHash,
+            PassId = passId,
+            CsCode = byteCodes.Slice((int)offsets[0]),
+        };
+
+        var createResult = _pipelineLibrary.CreateComputePipeline(in psoDesc);
+        if (createResult.IsFailure)
+        {
+            Logger.Warning($"Failed to create compute pipeline {pipelineKey}: {createResult.Message}");
+            return default;
+        }
+
+        return pipelineKey;
+    }
+
+    public Key128<PipelineState> ResolveGraphicsPipeline(
+        Handle<Shader> shader,
+        PassSemantic semantic,
+        KeywordMask128 keywords,
+        ReadOnlySpan<TextureFormat> rtvFormats,
+        TextureFormat dsvFormat,
+        PipelineState? pipelineOverride = null)
+    {
+        if (_pipelineLibrary == null || _shaderLibrary == null)
+        {
+            throw new InvalidOperationException("ShaderVariantRegistry services have not been initialized.");
+        }
+
+        var r = _resourceManager.GetShaderReference(shader);
+        if (r.IsFailure)
+        {
+            throw InvalidResourceHandleException.Create(shader);
+        }
+
+        ref var s = ref r.Value;
+        var passIndex = s.GetPassIndex(semantic);
+        if (passIndex < 0)
+        {
+            return default;
+        }
+
+        ref readonly var pass = ref s.GetPassReference(passIndex);
+        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(s.UniqueID, passIndex, keywords);
+        if (error.IsFailure)
+        {
+            return default;
+        }
+
+        var pipelineOption = pipelineOverride ?? pass.DefaultState;
+        var passAttachmentHash = new PassAttachmentHash(rtvFormats, dsvFormat);
+        var pipelineKey = RHIUtility.CreateGraphicsPipelineKey(pass.Key.Value, compiledHash, pipelineOption, passAttachmentHash);
+        if (_pipelineLibrary.HasPipelineStateObject(pipelineKey))
+        {
+            return pipelineKey;
+        }
+
+        var cacheResult = _shaderLibrary.GetCompiledCache(s.UniqueID, passIndex, keywords);
+        if (cacheResult.IsFailure)
+        {
+            Logger.Warning($"Failed to load compiled cache for graphics pipeline {pipelineKey}.");
+            return default;
+        }
+
+        var cache = cacheResult.Value;
+        ShaderLibrary.ParseCacheData(cache.byteCode, out _, out var offsets, out var byteCodes);
+
+        var hasAmplification = (pass.StageMask & ShaderStageMask.Amplification) != 0;
+        var hasPixel = (pass.StageMask & ShaderStageMask.Pixel) != 0;
+        var byteCodeIndex = 0;
+        var asByteCode = ReadOnlySpan<byte>.Empty;
+        if (hasAmplification)
+        {
+            asByteCode = byteCodes.Slice((int)offsets[0], (int)(offsets[1] - offsets[0]));
+            byteCodeIndex++;
+        }
+
+        var msStart = (int)offsets[byteCodeIndex];
+        var msByteCode = byteCodes.Slice(msStart, hasPixel ? (int)(offsets[byteCodeIndex + 1] - offsets[byteCodeIndex]) : byteCodes.Length - msStart);
+        byteCodeIndex++;
+
+        var psByteCode = ReadOnlySpan<byte>.Empty;
+        if (hasPixel)
+        {
+            psByteCode = byteCodes.Slice((int)offsets[byteCodeIndex]);
+        }
+
+        var psoDesc = new GraphicsPSODesc
+        {
+            CompiledHash = compiledHash,
+            PassId = pass.Key.Value,
+            PipelineOption = pipelineOption,
+            RtvFormats = rtvFormats,
+            DsvFormat = dsvFormat,
+            AsCode = asByteCode,
+            MsCode = msByteCode,
+            PsCode = psByteCode,
+        };
+
+        var createResult = _pipelineLibrary.CreateGraphicsPipeline(in psoDesc);
+        if (createResult.IsFailure)
+        {
+            Logger.Warning($"Failed to create graphics pipeline {pipelineKey}: {createResult.Message}");
+            return default;
+        }
+
+        return pipelineKey;
+    }
+
+    public IWorkGraphProgram ResolveWorkGraphProgram(IAssetEntry workGraphEntry, KeywordMask128 keywords)
+    {
+        if (_graphicsEngine == null)
+        {
+            throw new InvalidOperationException("ShaderVariantRegistry graphics engine service has not been initialized.");
+        }
+
+        if (workGraphEntry is not WorkGraphAssetEntry wgEntry)
+        {
+            throw new ArgumentException("Asset entry must be a WorkGraphAssetEntry.", nameof(workGraphEntry));
+        }
+
+        var bytecode = wgEntry.GetBytecode(keywords);
+        if (bytecode.IsEmpty)
+        {
+            throw new InvalidOperationException($"Work graph '{wgEntry.AssetName}' bytecode is not available.");
+        }
+
+        var cacheKey = wgEntry.ShaderId ^ keywords.Low ^ (keywords.High << 1);
+        lock (_workGraphPrograms)
+        {
+            if (_workGraphPrograms.TryGetValue(cacheKey, out var existing))
+            {
+                return existing;
+            }
+
+            var program = _graphicsEngine.CreateWorkGraphProgram(bytecode, wgEntry.AssetName);
+            _workGraphPrograms[cacheKey] = program;
+            return program;
+        }
+    }
+
+    public bool TryBindCompute(ICommandBuffer cmd, Handle<ComputeShader> shader, KeywordMask128 keywords, int entryIndex = 0)
+    {
+        var pso = ResolveComputePipeline(shader, keywords, entryIndex);
+        if (pso != default)
+        {
+            cmd.SetPipelineState(pso);
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool TryBindPassCompute(ICommandBuffer cmd, Handle<Shader> shader, PassSemantic semantic, KeywordMask128 keywords)
+    {
+        var pso = ResolvePassComputePipeline(shader, semantic, keywords);
+        if (pso != default)
+        {
+            cmd.SetPipelineState(pso);
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool TryBindWorkGraph(ICommandBuffer cmd, IAssetEntry workGraphEntry, KeywordMask128 keywords, ulong backingMemoryAddress = 0, ulong backingMemorySize = 0, SetWorkGraphFlags flags = SetWorkGraphFlags.None)
+    {
+        var program = ResolveWorkGraphProgram(workGraphEntry, keywords);
+        if (program != null)
+        {
+            var desc = SetProgramDesc.ForWorkGraph(program.ProgramIdentifier, backingMemoryAddress, backingMemorySize, flags);
+            cmd.SetProgram(in desc);
+            return true;
+        }
+
+        return false;
+    }
+
     public void Dispose()
     {
         if (_disposed)
         {
             return;
+        }
+
+        lock (_workGraphPrograms)
+        {
+            foreach (var program in _workGraphPrograms.Values)
+            {
+                program.Dispose();
+            }
+
+            _workGraphPrograms.Clear();
         }
 
         for (var i = 0; i < _variants.Length; i++)

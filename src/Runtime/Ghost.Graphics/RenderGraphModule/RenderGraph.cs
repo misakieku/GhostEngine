@@ -82,14 +82,14 @@ public sealed class RenderGraph : IDisposable
     }
 
     /// <summary>
-    /// Resets the render graph for a new frame.
+    /// Begins recording for a new frame with optional active pipeline keywords.
     /// </summary>
-    public void Reset()
+    public void BeginRecord(KeywordMask128 activeKeywords = default)
     {
         _blackboard.Reset();
         _resourceRegistry.Reset();
 
-        _context.Reset();
+        _context.Reset(activeKeywords);
 
         // Return passes to the pool and reset count
         for (var i = 0; i < _passes.Count; i++)
@@ -99,6 +99,15 @@ public sealed class RenderGraph : IDisposable
         }
 
         _passes.Clear();
+    }
+
+    /// <summary>
+    /// Resets the render graph for a new frame.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Reset(KeywordMask128 activeKeywords = default)
+    {
+        BeginRecord(activeKeywords);
     }
 
     /// <summary>

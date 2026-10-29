@@ -332,6 +332,7 @@ public static class TemplateStitcher
                 localPipeline = DSLShaderCompiler.MergePipeline(semantics.pipeline, passDef.pipeline.ToPipelineState()),
                 defines = defines.ToArray(),
                 shadingModelId = shadingModelId,
+                keywordGroups = passDef.keywordGroups?.ToArray() ?? Array.Empty<KeywordGroupDef>(),
             };
 
             foreach (var stageDef in passDef.stages)

@@ -3,6 +3,11 @@
 
 #include "EngineResources/Shaders/Generated/GPULightData.hlsl"
 
+#if defined(_SHADOW_RIS)
+typedef float3 ShadowType; // Colored shadow?
+#else
+typedef float ShadowType;
+#endif
 
 float SampleShadow_GetTriangleTexelArea(float triangleHeight)
 {
@@ -143,16 +148,20 @@ uint GetCubeFaceID(float3 L)
     return faceIdx;
 }
 
-float GetPunctualShadowAttenuation(ShadingContext ctx, GPUPunctualLight light, float3 N, float3 L, float4 distance, float3 lightPositonRWS, uint lightIndex)
+ShadowType GetPunctualShadowAttenuation(ShadingContext ctx, GPUPunctualLight light, float3 N, float3 L, float4 distance, float3 lightPositonRWS, uint lightIndex)
 {
-    float shadow = 1.0f;
+    ShadowType shadow = 1.0f;
+
+#if defined(_SHADOW_VSM)
+#elif defined(_SHADOW_RIS)
+#else
     int shadowIndex = -1;
 
     if (IS_VALID_BUFFER(ctx.shadowIndicesBufferIndex))
     {
         shadowIndex = LoadData<int>(ctx.shadowIndicesBufferIndex, lightIndex);
     }
-
+    
     if (shadowIndex >= 0 && IS_VALID_BUFFER(ctx.shadowAtlasIndex) && IS_VALID_BUFFER(ctx.shadowViewsBufferIndex))
     {
         uint lightType = light.lightTypeAndShadowSize & 0xFu;
@@ -190,6 +199,7 @@ float GetPunctualShadowAttenuation(ShadingContext ctx, GPUPunctualLight light, f
             }
         }
     }
+#endif
 
     return shadow;
 }

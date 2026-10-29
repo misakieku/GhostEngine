@@ -126,13 +126,23 @@ public struct ShaderContentHeader()
         public uint entryPointCount;
         public PassSemantic semantic;
         public ShaderStageMask stageMask;
-        public ushort reserved;
+        public ushort variantCount;
         public ulong passId;
         public PipelineState localPipeline;
         public long nameOffset; // Offset relative to the start of the asset
         public uint nameSize;
         public uint shadingModelId;
         public long dataOffset; // Offset relative to the start of the asset
+        public long dataSize;
+    }
+
+    public struct VariantHeader
+    {
+        public uint entryPointCount;
+        public uint keywordCount;
+        public long keywordOffset; // Offset relative to the start of the asset
+        public uint keywordSize;
+        public long dataOffset;    // Offset relative to the start of the asset
         public long dataSize;
     }
 
@@ -146,7 +156,7 @@ public struct ShaderContentHeader()
     }
 
     public const uint MAGIC = 0x52484453; // SHDR
-    public const uint VERSION = 5;
+    public const uint VERSION = 6;
 
     public uint magic = MAGIC;
     public uint version = VERSION;
@@ -318,6 +328,15 @@ public static class ShaderBytecodePoolConstants
 }
 
 /// <summary>
+/// Runtime metadata for one variant of a pass in a baked shader.
+/// </summary>
+public sealed class ShaderCatalogPassVariant
+{
+    public string[] Keywords { get; init; } = Array.Empty<string>();
+    public ulong[] BytecodeHashes { get; init; } = Array.Empty<ulong>();
+}
+
+/// <summary>
 /// Runtime metadata for one pass in a baked shader.
 /// </summary>
 public sealed class ShaderCatalogPass
@@ -330,6 +349,7 @@ public sealed class ShaderCatalogPass
     public PipelineState LocalPipeline { get; init; }
     public uint ShadingModelId { get; init; }
     public ulong[] BytecodeHashes { get; init; } = Array.Empty<ulong>();
+    public ShaderCatalogPassVariant[] Variants { get; init; } = Array.Empty<ShaderCatalogPassVariant>();
 }
 
 /// <summary>

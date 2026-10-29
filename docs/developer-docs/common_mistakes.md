@@ -46,6 +46,57 @@ Because `Count` was never incremented, subsequent code querying `list.Count` to 
   MemoryUtility.MemCpy((byte*)list.GetUnsafePtr() + offset, pSource, (nuint)size);
   ```
 
+### 1.2 `UnsafeArray<T>` Does NOT Zero Memory by Default (Unlike C# or Unity `NativeArray`)
+
+#### The Mistake
+Allocating an `UnsafeArray<T>` expecting the elements to be zero-initialized:
+
+```csharp
+// BAD: Memory is NOT cleared!
+var passes = new UnsafeArray<PassCache>(count, AllocationHandle.Persistent);
+```
+
+In standard managed C#, `new T[count]` always zeros all memory. In Unity, `NativeArray<T>` defaults to `NativeArrayOptions.ClearMemory`. Developers transitioning from C# or Unity easily assume unmanaged arrays are automatically zeroed.
+
+#### The Reality
+In `Misaki.HighPerformance.LowLevel.Collections.UnsafeArray<T>`, the default constructor argument is `AllocationOption.None`, meaning allocated memory contains **uninitialized garbage data**.
+
+#### The Consequence
+If `T` is a struct containing nested unmanaged collections, handles, or pointers (e.g., `struct PassCache { UnsafeArray<PassVariantCache> variants; }`), uninitialized elements contain garbage in internal fields (`_buffer`, `_count`, `_memoryHandle`):
+
+1. **False loop execution**: Calling `pass.variants.Length` directly returns `_count`, which holds non-zero garbage. Code running `for (var i = 0; i < pass.variants.Length; i++)` will enter the loop unexpectedly on uninitialized slots.
+2. **`InvalidOperationException: The UnsafeArray is not created.`**: Accessing the indexer `pass.variants[0]` runs internal safety checks (`CheckIndexBounds -> ThrowIfNotCreated`). Because `_memoryHandle` contains garbage, `IsCreated` returns `false` and throws.
+3. **Cascading cleanup crashes & leaked allocations**: If this occurs inside `Dispose()`, cleanup aborts midway, leaving other unmanaged resources in memory and triggering leak detection (e.g. `MemoryLeakException: Found X memory leaks!`).
+
+#### The Correct Patterns
+
+- **Always pass `AllocationOption.Clear` when allocating structs with nested unmanaged members**:
+  ```csharp
+  var passes = new UnsafeArray<PassCache>(count, AllocationHandle.Persistent, AllocationOption.Clear);
+  ```
+
+- **Call `.Clear()` if allocating without the option**:
+  ```csharp
+  var array = new UnsafeArray<T>(count, handle);
+  array.Clear(); // Zeroes the entire buffer
+  ```
+
+- **Defensively guard nested unmanaged collections with `.IsCreated` before indexing or disposing**:
+  ```csharp
+  public readonly void Dispose()
+  {
+      if (variants.IsCreated)
+      {
+          for (var i = 0; i < variants.Length; i++)
+          {
+              variants[i].cache.Dispose();
+          }
+
+          variants.Dispose();
+      }
+  }
+  ```
+
 ---
 
 ## 2. Memory Alignment in Heterogeneous Buffers

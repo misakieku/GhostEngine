@@ -382,6 +382,11 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     public uint ShadowAtlasResolution { get; set; } = 4096;
 
     /// <summary>
+    /// Active shadow sampling mode for lighting passes. Default is PCF.
+    /// </summary>
+    public PipelineShadowMode ShadowMode { get; set; } = PipelineShadowMode.PCF;
+
+    /// <summary>
     /// Size of the GPU Page Pool in Megabytes. Default is 0 (auto-calculate based on MaxVisibleMeshletsOnScreen).
     /// </summary>
     public uint MeshletStreamingPoolSizeMB { get; set; } = 0;
@@ -422,4 +427,11 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     {
         return new GhostRenderPipeline(renderEngine, assetManager, jobScheduler, this);
     }
+}
+
+public enum PipelineShadowMode
+{
+    PCF = 0,
+    VSM = 1,
+    RIS = 2,
 }

@@ -88,6 +88,14 @@ internal sealed class LitTemplate : IShaderTemplate
             stages = new List<TemplateStage>
             {
                 new() { templateFile = "Lit/Lit_DeferredLighting.template.hlsl", entryPoint = "CSMain", stage = ShaderStage.ComputeShader },
+            },
+            keywordGroups = new()
+            {
+                new KeywordGroupDef
+                {
+                    Name = "SHADOW_MODE",
+                    Keywords = new[] { "_SHADOW_PCF", "_SHADOW_VSM", "_SHADOW_RIS" }
+                }
             }
         }
     };

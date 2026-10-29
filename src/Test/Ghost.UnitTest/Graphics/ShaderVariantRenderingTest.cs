@@ -60,6 +60,12 @@ public sealed class ShaderVariantRenderingTest
             _rejectedShader = rejectedShader;
         }
 
+        public KeywordMask128 ActiveKeywords => default;
+
+        public void SetPipelineState(Key128<PipelineState> pso)
+        {
+        }
+
         public Handle<GPUResource> GetActualResource(Identifier<RGResource> resource) => Handle<GPUResource>.Invalid;
         public Handle<GPUTexture> GetActualTexture(Identifier<RGTexture> texture) => Handle<GPUTexture>.Invalid;
         public Handle<GPUBuffer> GetActualBuffer(Identifier<RGBuffer> buffer) => Handle<GPUBuffer>.Invalid;

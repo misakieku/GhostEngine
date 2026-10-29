@@ -122,24 +122,59 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
             return Result.Failure($"Compute shader asset {assetId} is incompatible with compute stage.");
         }
 
-        var entryHeadersSize = pass.entryPointCount * sizeof(ShaderContentHeader.EntryPointHeader);
-        if (entryHeadersSize > pass.dataSize)
+        if (pass.variantCount <= 1)
         {
-            return Result.Failure($"Compute shader asset {assetId} contains an invalid entry-point table.");
-        }
-
-        for (var entryIndex = 0; entryIndex < pass.entryPointCount; entryIndex++)
-        {
-            var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(
-                payload,
-                pass.dataOffset + (entryIndex * sizeof(ShaderContentHeader.EntryPointHeader)),
-                payloadSize);
-            var isPooled = entry.bytecodeHash != 0;
-            if (entry.stage != ShaderStage.ComputeShader ||
-                (!isPooled && (entry.byteCodeOffset < entryHeadersSize ||
-                 !IsRangeValid(entry.byteCodeOffset, entry.byteCodeSize, pass.dataSize))))
+            var entryHeadersSize = pass.entryPointCount * sizeof(ShaderContentHeader.EntryPointHeader);
+            if (entryHeadersSize > pass.dataSize)
             {
-                return Result.Failure($"Compute shader asset {assetId} contains incompatible entry point {entryIndex}.");
+                return Result.Failure($"Compute shader asset {assetId} contains an invalid entry-point table.");
+            }
+
+            for (var entryIndex = 0; entryIndex < pass.entryPointCount; entryIndex++)
+            {
+                var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(
+                    payload,
+                    pass.dataOffset + (entryIndex * sizeof(ShaderContentHeader.EntryPointHeader)),
+                    payloadSize);
+                var isPooled = entry.bytecodeHash != 0;
+                if (entry.stage != ShaderStage.ComputeShader ||
+                    (!isPooled && (entry.byteCodeOffset < entryHeadersSize ||
+                     !IsRangeValid(entry.byteCodeOffset, entry.byteCodeSize, pass.dataSize))))
+                {
+                    return Result.Failure($"Compute shader asset {assetId} contains incompatible entry point {entryIndex}.");
+                }
+            }
+        }
+        else
+        {
+            var variantHeadersSize = pass.variantCount * sizeof(ShaderContentHeader.VariantHeader);
+            if (variantHeadersSize > pass.dataSize)
+            {
+                return Result.Failure($"Compute shader asset {assetId} contains an invalid variant table.");
+            }
+
+            for (var v = 0; v < pass.variantCount; v++)
+            {
+                var vh = ReadAt<ShaderContentHeader.VariantHeader>(payload, pass.dataOffset + (v * sizeof(ShaderContentHeader.VariantHeader)), payloadSize);
+                if (!IsRangeValid(vh.keywordOffset, vh.keywordSize, payloadSize) ||
+                    !IsRangeValid(vh.dataOffset, vh.dataSize, payloadSize))
+                {
+                    return Result.Failure($"Compute shader asset {assetId} contains invalid variant {v} ranges.");
+                }
+
+                for (var entryIndex = 0; entryIndex < pass.entryPointCount; entryIndex++)
+                {
+                    var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(
+                        payload,
+                        vh.dataOffset + (entryIndex * sizeof(ShaderContentHeader.EntryPointHeader)),
+                        payloadSize);
+                    var isPooled = entry.bytecodeHash != 0;
+                    if (entry.stage != ShaderStage.ComputeShader ||
+                        (!isPooled && !IsRangeValid(vh.dataOffset + entry.byteCodeOffset, entry.byteCodeSize, payloadSize)))
+                    {
+                        return Result.Failure($"Compute shader asset {assetId} contains incompatible entry point {entryIndex} in variant {v}.");
+                    }
+                }
             }
         }
 
@@ -172,42 +207,85 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
             ref var csRef = ref ResourceManager.GetComputeShaderReference(_actualHandle).Value;
             csRef = new ComputeShader(descriptor);
 
-            Span<ShaderByteCode> byteCodes = stackalloc ShaderByteCode[MAX_ENTRY_POINT_COUNT];
-            Span<int> entryOffsets = stackalloc int[MAX_ENTRY_POINT_COUNT + 1];
-            entryOffsets[0] = 0;
+            var variantCount = pass.variantCount > 0 ? (int)pass.variantCount : 1;
+            var compiledVariants = new CompiledVariantData[variantCount];
+            var supportedMask = KeywordMask128.Empty;
 
-            for (var entryIndex = 0; entryIndex < pass.entryPointCount; entryIndex++)
+            if (pass.variantCount <= 1)
             {
-                var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(
-                    payload,
-                    pass.dataOffset + (entryIndex * sizeof(ShaderContentHeader.EntryPointHeader)),
-                    payloadSize);
+                var byteCodes = new ShaderByteCode[pass.entryPointCount];
+                for (var entryIndex = 0; entryIndex < pass.entryPointCount; entryIndex++)
+                {
+                    var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(
+                        payload,
+                        pass.dataOffset + (entryIndex * sizeof(ShaderContentHeader.EntryPointHeader)),
+                        payloadSize);
 
-                if (entry.bytecodeHash != 0 && Manager.TryGetPooledBytecode(entry.bytecodeHash, out var pooledCode))
-                {
-                    byteCodes[entryIndex] = pooledCode;
-                }
-                else if (entry.byteCodeSize > 0 && IsRangeValid(pass.dataOffset + entry.byteCodeOffset, entry.byteCodeSize, payloadSize))
-                {
-                    byteCodes[entryIndex] = new ShaderByteCode
+                    if (entry.bytecodeHash != 0 && Manager.TryGetPooledBytecode(entry.bytecodeHash, out var pooledCode))
                     {
-                        pCode = payload + pass.dataOffset + entry.byteCodeOffset,
-                        size = (ulong)entry.byteCodeSize,
-                    };
-                }
-                else
-                {
-                    DiscardStagedPayload();
-                    return Result.Failure($"Compute shader asset {AssetId} could not resolve bytecode 0x{entry.bytecodeHash:X16} for entry {entryIndex}.");
+                        byteCodes[entryIndex] = pooledCode;
+                    }
+                    else if (entry.byteCodeSize > 0 && IsRangeValid(pass.dataOffset + entry.byteCodeOffset, entry.byteCodeSize, payloadSize))
+                    {
+                        byteCodes[entryIndex] = new ShaderByteCode
+                        {
+                            pCode = payload + pass.dataOffset + entry.byteCodeOffset,
+                            size = (ulong)entry.byteCodeSize,
+                        };
+                    }
+                    else
+                    {
+                        DiscardStagedPayload();
+                        return Result.Failure($"Compute shader asset {AssetId} could not resolve bytecode 0x{entry.bytecodeHash:X16} for entry {entryIndex}.");
+                    }
                 }
 
-                entryOffsets[entryIndex + 1] = entryIndex + 1;
+                compiledVariants[0] = new CompiledVariantData(default, byteCodes);
+            }
+            else
+            {
+                for (var v = 0; v < pass.variantCount; v++)
+                {
+                    var vh = ReadAt<ShaderContentHeader.VariantHeader>(payload, pass.dataOffset + (v * sizeof(ShaderContentHeader.VariantHeader)), payloadSize);
+                    var kwString = vh.keywordSize > 0
+                        ? System.Text.Encoding.UTF8.GetString(payload + vh.keywordOffset, (int)vh.keywordSize)
+                        : string.Empty;
+                    var variantMask = PipelineKeywordRegistry.ParseMask(kwString);
+                    supportedMask |= variantMask;
+
+                    var byteCodes = new ShaderByteCode[pass.entryPointCount];
+                    for (var entryIndex = 0; entryIndex < pass.entryPointCount; entryIndex++)
+                    {
+                        var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(
+                            payload,
+                            vh.dataOffset + (entryIndex * sizeof(ShaderContentHeader.EntryPointHeader)),
+                            payloadSize);
+
+                        if (entry.bytecodeHash != 0 && Manager.TryGetPooledBytecode(entry.bytecodeHash, out var pooledCode))
+                        {
+                            byteCodes[entryIndex] = pooledCode;
+                        }
+                        else if (entry.byteCodeSize > 0 && IsRangeValid(vh.dataOffset + entry.byteCodeOffset, entry.byteCodeSize, payloadSize))
+                        {
+                            byteCodes[entryIndex] = new ShaderByteCode
+                            {
+                                pCode = payload + vh.dataOffset + entry.byteCodeOffset,
+                                size = (ulong)entry.byteCodeSize,
+                            };
+                        }
+                        else
+                        {
+                            DiscardStagedPayload();
+                            return Result.Failure($"Compute shader asset {AssetId} could not resolve bytecode 0x{entry.bytecodeHash:X16} for entry {entryIndex} in variant {v}.");
+                        }
+                    }
+
+                    compiledVariants[v] = new CompiledVariantData(variantMask, byteCodes);
+                }
             }
 
-            var publishResult = shaderLibrary.PublishCompiledGeneration(
-                header.shaderId,
-                entryOffsets[..((int)pass.entryPointCount + 1)],
-                byteCodes[..(int)pass.entryPointCount]);
+            var passData = new CompiledPassData(supportedMask, compiledVariants);
+            var publishResult = shaderLibrary.PublishCompiledGeneration(header.shaderId, new ReadOnlySpan<CompiledPassData>(ref passData));
             if (publishResult.IsFailure)
             {
                 DiscardStagedPayload();

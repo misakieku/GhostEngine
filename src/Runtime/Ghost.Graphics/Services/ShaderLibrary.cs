@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
@@ -6,6 +7,7 @@ using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Services;
 
@@ -26,6 +28,30 @@ internal struct ShaderCacheView
     public ulong compiledHash;
 }
 
+public readonly struct CompiledVariantData
+{
+    public readonly KeywordMask128 RuntimeMask;
+    public readonly ShaderByteCode[] ByteCodes;
+
+    public CompiledVariantData(KeywordMask128 runtimeMask, ShaderByteCode[] byteCodes)
+    {
+        RuntimeMask = runtimeMask;
+        ByteCodes = byteCodes;
+    }
+}
+
+public readonly struct CompiledPassData
+{
+    public readonly KeywordMask128 SupportedMask;
+    public readonly CompiledVariantData[] Variants;
+
+    public CompiledPassData(KeywordMask128 supportedMask, CompiledVariantData[] variants)
+    {
+        SupportedMask = supportedMask;
+        Variants = variants;
+    }
+}
+
 public unsafe class ShaderLibrary : IDisposable
 {
     public struct CacheHeader
@@ -36,18 +62,46 @@ public unsafe class ShaderLibrary : IDisposable
         public int byteCodeSize;
     }
 
-    private struct CacheEntry : IDisposable
+    internal struct PassVariantCache
     {
-        public UnsafeArray<ShaderCache> cache;
+        public KeywordMask128 runtimeMask;
+        public ShaderCache cache;
+    }
+
+    internal struct PassCache : IDisposable
+    {
+        public KeywordMask128 supportedMask;
+        public UnsafeArray<PassVariantCache> variants;
 
         public readonly void Dispose()
         {
-            for (var i = 0; i < cache.Length; i++)
+            if (variants.IsCreated)
             {
-                cache[i].Dispose();
-            }
+                for (var i = 0; i < variants.Length; i++)
+                {
+                    variants[i].cache.Dispose();
+                }
 
-            cache.Dispose();
+                variants.Dispose();
+            }
+        }
+    }
+
+    private struct CacheEntry : IDisposable
+    {
+        public UnsafeArray<PassCache> passes;
+
+        public readonly void Dispose()
+        {
+            if (passes.IsCreated)
+            {
+                for (var i = 0; i < passes.Length; i++)
+                {
+                    passes[i].Dispose();
+                }
+
+                passes.Dispose();
+            }
         }
     }
 
@@ -202,22 +256,33 @@ public unsafe class ShaderLibrary : IDisposable
         ref var entry = ref _inMemoryCache.GetValueRefOrAddDefault(id, out var exists);
         if (!exists)
         {
-            entry.cache = new UnsafeArray<ShaderCache>(index + 1, AllocationHandle.Persistent);
+            entry.passes = new UnsafeArray<PassCache>(index + 1, AllocationHandle.Persistent, AllocationOption.Clear);
         }
-        else if (index >= entry.cache.Length)
+        else if (index >= entry.passes.Length)
         {
-            var newCaches = new UnsafeArray<ShaderCache>(index + 1, AllocationHandle.Persistent);
-            for (var i = 0; i < entry.cache.Length; i++)
+            var newPasses = new UnsafeArray<PassCache>(index + 1, AllocationHandle.Persistent, AllocationOption.Clear);
+            for (var i = 0; i < entry.passes.Length; i++)
             {
-                newCaches[i] = entry.cache[i];
+                newPasses[i] = entry.passes[i];
             }
 
-            entry.cache.Dispose();
-            entry.cache = newCaches;
+            entry.passes.Dispose();
+            entry.passes = newPasses;
         }
 
-        var oldCache = entry.cache[index];
-        entry.cache[index] = newCache;
+        ref var pass = ref entry.passes[index];
+        if (!pass.variants.IsCreated || pass.variants.Length == 0)
+        {
+            pass.variants = new UnsafeArray<PassVariantCache>(1, AllocationHandle.Persistent, AllocationOption.Clear);
+        }
+
+        var oldCache = pass.variants[0].cache;
+        pass.variants[0] = new PassVariantCache
+        {
+            runtimeMask = default,
+            cache = newCache,
+        };
+
         if (oldCache.byteCode.IsCreated)
         {
             EvictPipelineIfUnused(oldCache.compiledHash);
@@ -229,33 +294,49 @@ public unsafe class ShaderLibrary : IDisposable
         }
     }
 
-    internal Result PublishCompiledGeneration(ulong id, ReadOnlySpan<int> passEntryOffsets, ReadOnlySpan<ShaderByteCode> byteCodes)
+    internal Result PublishCompiledGeneration(ulong id, ReadOnlySpan<CompiledPassData> passes)
     {
-        if (passEntryOffsets.Length < 2 || passEntryOffsets[0] != 0 || passEntryOffsets[^1] != byteCodes.Length)
+        if (passes.IsEmpty)
         {
-            return Result.Failure("Shader generation contains invalid pass entry offsets.");
-        }
-
-        for (var i = 0; i < passEntryOffsets.Length - 1; i++)
-        {
-            if (passEntryOffsets[i] < 0 || passEntryOffsets[i] >= passEntryOffsets[i + 1])
-            {
-                return Result.Failure($"Shader generation pass {i} contains no bytecode or invalid entry offsets.");
-            }
+            return Result.Failure("Shader generation contains no passes.");
         }
 
         var newEntry = new CacheEntry
         {
-            cache = new UnsafeArray<ShaderCache>(passEntryOffsets.Length - 1, AllocationHandle.Persistent),
+            passes = new UnsafeArray<PassCache>(passes.Length, AllocationHandle.Persistent, AllocationOption.Clear),
         };
 
         try
         {
-            for (var passIndex = 0; passIndex < newEntry.cache.Length; passIndex++)
+            for (var passIndex = 0; passIndex < passes.Length; passIndex++)
             {
-                var start = passEntryOffsets[passIndex];
-                var length = passEntryOffsets[passIndex + 1] - start;
-                newEntry.cache[passIndex] = CreateShaderCache(id, passIndex, byteCodes.Slice(start, length));
+                var passData = passes[passIndex];
+                var variants = passData.Variants ?? Array.Empty<CompiledVariantData>();
+                var variantCount = variants.Length;
+                if (variantCount == 0)
+                {
+                    newEntry.Dispose();
+                    return Result.Failure($"Shader generation pass {passIndex} contains no variants.");
+                }
+
+                var passCache = new PassCache
+                {
+                    supportedMask = passData.SupportedMask,
+                    variants = new UnsafeArray<PassVariantCache>(variantCount, AllocationHandle.Persistent, AllocationOption.Clear),
+                };
+
+                for (var v = 0; v < variantCount; v++)
+                {
+                    var variantData = variants[v];
+                    var byteCodes = variantData.ByteCodes ?? Array.Empty<ShaderByteCode>();
+                    passCache.variants[v] = new PassVariantCache
+                    {
+                        runtimeMask = variantData.RuntimeMask,
+                        cache = CreateShaderCache(id, passIndex, byteCodes),
+                    };
+                }
+
+                newEntry.passes[passIndex] = passCache;
             }
         }
         catch (Exception ex)
@@ -282,35 +363,122 @@ public unsafe class ShaderLibrary : IDisposable
         return Result.Success();
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal Result<ShaderCacheView, Error> GetCompiledCache(ulong id, int index)
+    internal Result PublishCompiledGeneration(ulong id, ReadOnlySpan<int> passEntryOffsets, ReadOnlySpan<ShaderByteCode> byteCodes)
     {
-        if (_inMemoryCache.TryGetValue(id, out var entry) && (uint)index < (uint)entry.cache.Length)
+        if (passEntryOffsets.Length < 2 || passEntryOffsets[0] != 0 || passEntryOffsets[^1] != byteCodes.Length)
         {
-            var shaderCache = entry.cache[index];
+            return Result.Failure("Shader generation contains invalid pass entry offsets.");
+        }
 
-            return new ShaderCacheView
+        var passCount = passEntryOffsets.Length - 1;
+        var passData = new CompiledPassData[passCount];
+
+        for (var i = 0; i < passCount; i++)
+        {
+            if (passEntryOffsets[i] < 0 || passEntryOffsets[i] >= passEntryOffsets[i + 1])
             {
-                byteCode = new ReadOnlyView<byte>((byte*)shaderCache.byteCode.GetUnsafePtr(), (int)shaderCache.byteCode.Size),
-                compiledHash = shaderCache.compiledHash,
-            };
+                return Result.Failure($"Shader generation pass {i} contains no bytecode or invalid entry offsets.");
+            }
+
+            var start = passEntryOffsets[i];
+            var length = passEntryOffsets[i + 1] - start;
+            var subBytes = byteCodes.Slice(start, length).ToArray();
+            var variant = new CompiledVariantData(default, subBytes);
+            passData[i] = new CompiledPassData(default, new[] { variant });
+        }
+
+        return PublishCompiledGeneration(id, passData);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal Result<ShaderCacheView, Error> GetCompiledCache(ulong id, int index, KeywordMask128 activeKeywords = default)
+    {
+        if (_inMemoryCache.TryGetValue(id, out var entry) && entry.passes.IsCreated && (uint)index < (uint)entry.passes.Length)
+        {
+            ref readonly var pass = ref entry.passes[index];
+            if (!pass.variants.IsCreated || pass.variants.Length == 0)
+            {
+                return Error.NotFound;
+            }
+
+            var selectedIndex = 0;
+            if (pass.variants.Length > 1)
+            {
+                var targetMask = activeKeywords & pass.supportedMask;
+                for (var v = 0; v < pass.variants.Length; v++)
+                {
+                    if (pass.variants[v].runtimeMask == targetMask)
+                    {
+                        selectedIndex = v;
+                        break;
+                    }
+                }
+            }
+
+            var shaderCache = pass.variants[selectedIndex].cache;
+            if (shaderCache.byteCode.IsCreated)
+            {
+                return new ShaderCacheView
+                {
+                    byteCode = new ReadOnlyView<byte>((byte*)shaderCache.byteCode.GetUnsafePtr(), (int)shaderCache.byteCode.Size),
+                    compiledHash = shaderCache.compiledHash,
+                };
+            }
         }
 
         return Error.NotFound;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal Result<ulong, Error> GetCompiledHash(ulong id, int passIndex)
+    internal Result<ulong, Error> GetCompiledHash(ulong id, int passIndex, KeywordMask128 activeKeywords = default)
     {
-        if (_inMemoryCache.TryGetValue(id, out var entry) &&
-            (uint)passIndex < (uint)entry.cache.Length &&
-            entry.cache[passIndex].byteCode.IsCreated)
+        if (_inMemoryCache.TryGetValue(id, out var entry) && entry.passes.IsCreated && (uint)passIndex < (uint)entry.passes.Length)
         {
-            return entry.cache[passIndex].compiledHash;
+            ref readonly var pass = ref entry.passes[passIndex];
+            if (!pass.variants.IsCreated || pass.variants.Length == 0)
+            {
+                return Error.NotFound;
+            }
+
+            if (pass.variants.Length == 1)
+            {
+                if (pass.variants[0].cache.byteCode.IsCreated)
+                {
+                    return pass.variants[0].cache.compiledHash;
+                }
+            }
+            else
+            {
+                var targetMask = activeKeywords & pass.supportedMask;
+                for (var v = 0; v < pass.variants.Length; v++)
+                {
+                    if (pass.variants[v].runtimeMask == targetMask && pass.variants[v].cache.byteCode.IsCreated)
+                    {
+                        return pass.variants[v].cache.compiledHash;
+                    }
+                }
+
+                if (pass.variants[0].cache.byteCode.IsCreated)
+                {
+                    return pass.variants[0].cache.compiledHash;
+                }
+            }
         }
 
         _shaderCompilationBridge?.RequestCompilation(id, passIndex);
         return Error.NotFound;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal Result<ShaderCacheView, Error> GetCompiledCache(ulong id, int index)
+    {
+        return GetCompiledCache(id, index, default);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal Result<ulong, Error> GetCompiledHash(ulong id, int passIndex)
+    {
+        return GetCompiledHash(id, passIndex, default);
     }
 
     internal void BeginFrame(ulong submittedFrame)
@@ -363,27 +531,56 @@ public unsafe class ShaderLibrary : IDisposable
 
     private void EvictPipelinesIfUnused(scoped in CacheEntry entry)
     {
-        for (var i = 0; i < entry.cache.Length; i++)
+        if (!entry.passes.IsCreated)
         {
-            var hash = entry.cache[i].compiledHash;
-            if (hash == 0)
+            return;
+        }
+
+        for (var p = 0; p < entry.passes.Length; p++)
+        {
+            ref readonly var pass = ref entry.passes[p];
+            if (!pass.variants.IsCreated)
             {
                 continue;
             }
 
-            var duplicate = false;
-            for (var previous = 0; previous < i; previous++)
+            for (var v = 0; v < pass.variants.Length; v++)
             {
-                if (entry.cache[previous].compiledHash == hash)
+                var hash = pass.variants[v].cache.compiledHash;
+                if (hash == 0)
                 {
-                    duplicate = true;
-                    break;
+                    continue;
                 }
-            }
 
-            if (!duplicate)
-            {
-                EvictPipelineIfUnused(hash);
+                var duplicate = false;
+                for (var prevP = 0; prevP <= p; prevP++)
+                {
+                    ref readonly var checkPass = ref entry.passes[prevP];
+                    if (!checkPass.variants.IsCreated)
+                    {
+                        continue;
+                    }
+
+                    var maxV = (prevP == p) ? v : checkPass.variants.Length;
+                    for (var prevV = 0; prevV < maxV; prevV++)
+                    {
+                        if (checkPass.variants[prevV].cache.compiledHash == hash)
+                        {
+                            duplicate = true;
+                            break;
+                        }
+                    }
+
+                    if (duplicate)
+                    {
+                        break;
+                    }
+                }
+
+                if (!duplicate)
+                {
+                    EvictPipelineIfUnused(hash);
+                }
             }
         }
     }
@@ -397,11 +594,25 @@ public unsafe class ShaderLibrary : IDisposable
 
         foreach (var pair in _inMemoryCache)
         {
-            for (var i = 0; i < pair.Value.cache.Length; i++)
+            if (!pair.Value.passes.IsCreated)
             {
-                if (pair.Value.cache[i].byteCode.IsCreated && pair.Value.cache[i].compiledHash == compiledHash)
+                continue;
+            }
+
+            for (var p = 0; p < pair.Value.passes.Length; p++)
+            {
+                ref readonly var pass = ref pair.Value.passes[p];
+                if (!pass.variants.IsCreated)
                 {
-                    return;
+                    continue;
+                }
+
+                for (var v = 0; v < pass.variants.Length; v++)
+                {
+                    if (pass.variants[v].cache.byteCode.IsCreated && pass.variants[v].cache.compiledHash == compiledHash)
+                    {
+                        return;
+                    }
                 }
             }
         }

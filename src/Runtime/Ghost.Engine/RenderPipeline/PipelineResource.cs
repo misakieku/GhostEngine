@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Engine.Streaming;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
@@ -38,8 +39,23 @@ internal partial class MeshPipelineResource : IPipelineResource
     public IWorkGraphProgram? cullWorkGraphProgram;
     public IWorkGraphProgram? shadowCullWorkGraphProgram;
 
-    public void EnsureWorkGraphProgram(RenderEngine renderEngine)
+    public void EnsureWorkGraphProgram(RenderEngine renderEngine, AssetManager? assetManager = null, KeywordMask128 keywords = default)
     {
+        if (assetManager != null)
+        {
+            if (cullWorkGraphEntry is WorkGraphAssetEntry wg && !wg.Bytecode.IsEmpty)
+            {
+                cullWorkGraphProgram = assetManager.ShaderVariants.ResolveWorkGraphProgram(cullWorkGraphEntry, keywords);
+            }
+
+            if (shadowCullWorkGraphEntry is WorkGraphAssetEntry shadowWg && !shadowWg.Bytecode.IsEmpty)
+            {
+                shadowCullWorkGraphProgram = assetManager.ShaderVariants.ResolveWorkGraphProgram(shadowCullWorkGraphEntry, keywords);
+            }
+
+            return;
+        }
+
         if (cullWorkGraphProgram == null && cullWorkGraphEntry is WorkGraphAssetEntry wgEntry && !wgEntry.Bytecode.IsEmpty)
         {
             cullWorkGraphProgram = renderEngine.GraphicsEngine.CreateWorkGraphProgram(wgEntry.Bytecode, "MeshletCullGraph");

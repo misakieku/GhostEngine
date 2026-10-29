@@ -365,6 +365,7 @@ public static class DSLShaderCompiler
                 meshShaderCode = meshShaderCode,
                 pixelShaderCode = pixelShaderCode,
                 defines = pass.defines?.ToArray() ?? Array.Empty<string>(),
+                keywordGroups = Array.Empty<KeywordGroupDef>(),
             };
         }
 

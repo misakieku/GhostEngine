@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
@@ -10,20 +11,48 @@ namespace Ghost.Engine.Streaming;
 
 internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, IShaderCommitableAssetEntry
 {
+    private struct WorkGraphVariant
+    {
+        public KeywordMask128 mask;
+        public byte* ptr;
+        public int size;
+    }
+
     private MemoryBlock _payload;
-    private byte* _bytecodePtr;
-    private int _bytecodeSize;
+    private WorkGraphVariant[]? _variants;
+    private KeywordMask128 _supportedMask;
     private ulong _shaderId;
     private bool _bytecodeReady;
 
-    public ReadOnlySpan<byte> Bytecode => _bytecodePtr != null && _bytecodeSize > 0
-        ? new ReadOnlySpan<byte>(_bytecodePtr, _bytecodeSize)
-        : ReadOnlySpan<byte>.Empty;
+    public ReadOnlySpan<byte> GetBytecode(KeywordMask128 activeKeywords = default)
+    {
+        if (_variants == null || _variants.Length == 0)
+        {
+            return ReadOnlySpan<byte>.Empty;
+        }
+
+        if (_variants.Length == 1)
+        {
+            return new ReadOnlySpan<byte>(_variants[0].ptr, _variants[0].size);
+        }
+
+        var target = activeKeywords & _supportedMask;
+        for (var i = 0; i < _variants.Length; i++)
+        {
+            if (_variants[i].mask == target)
+            {
+                return new ReadOnlySpan<byte>(_variants[i].ptr, _variants[i].size);
+            }
+        }
+
+        return new ReadOnlySpan<byte>(_variants[0].ptr, _variants[0].size);
+    }
+
+    public ReadOnlySpan<byte> Bytecode => GetBytecode(default);
 
     public ulong ShaderId => _shaderId;
 
     internal override AssetState FailureState => _bytecodeReady ? AssetState.Ready : AssetState.Failed;
-
 
     public WorkGraphAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, AssetType assetType, Guid[] dependencies, string assetName)
         : base(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName)
@@ -41,8 +70,8 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
         {
             _payload.Dispose();
             _payload = default;
-            _bytecodePtr = null;
-            _bytecodeSize = 0;
+            _variants = null;
+            _supportedMask = default;
         }
     }
 
@@ -90,17 +119,66 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
 
             var passOffset = header.nameOffset + header.nameSize;
             var pass = ReadAt<ShaderContentHeader.PassHeader>(payload, passOffset, payloadSize);
-            var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(payload, pass.dataOffset, payloadSize);
 
-            if (entry.bytecodeHash != 0 && Manager.TryGetPooledBytecode(entry.bytecodeHash, out var pooledCode))
+            var variantCount = pass.variantCount > 0 ? (int)pass.variantCount : 1;
+            _variants = new WorkGraphVariant[variantCount];
+            _supportedMask = KeywordMask128.Empty;
+
+            if (pass.variantCount <= 1)
             {
-                _bytecodePtr = pooledCode.pCode;
-                _bytecodeSize = (int)pooledCode.size;
+                var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(payload, pass.dataOffset, payloadSize);
+                byte* ptr;
+                int size;
+                if (entry.bytecodeHash != 0 && Manager.TryGetPooledBytecode(entry.bytecodeHash, out var pooledCode))
+                {
+                    ptr = pooledCode.pCode;
+                    size = (int)pooledCode.size;
+                }
+                else
+                {
+                    ptr = payload + pass.dataOffset + entry.byteCodeOffset;
+                    size = (int)entry.byteCodeSize;
+                }
+
+                _variants[0] = new WorkGraphVariant
+                {
+                    mask = KeywordMask128.Empty,
+                    ptr = ptr,
+                    size = size,
+                };
             }
             else
             {
-                _bytecodePtr = payload + pass.dataOffset + entry.byteCodeOffset;
-                _bytecodeSize = (int)entry.byteCodeSize;
+                for (var v = 0; v < pass.variantCount; v++)
+                {
+                    var vh = ReadAt<ShaderContentHeader.VariantHeader>(payload, pass.dataOffset + (v * sizeof(ShaderContentHeader.VariantHeader)), payloadSize);
+                    var kwString = vh.keywordSize > 0
+                        ? System.Text.Encoding.UTF8.GetString(payload + vh.keywordOffset, (int)vh.keywordSize)
+                        : string.Empty;
+                    var mask = PipelineKeywordRegistry.ParseMask(kwString);
+                    _supportedMask |= mask;
+
+                    var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(payload, vh.dataOffset, payloadSize);
+                    byte* ptr;
+                    int size;
+                    if (entry.bytecodeHash != 0 && Manager.TryGetPooledBytecode(entry.bytecodeHash, out var pooledCode))
+                    {
+                        ptr = pooledCode.pCode;
+                        size = (int)pooledCode.size;
+                    }
+                    else
+                    {
+                        ptr = payload + vh.dataOffset + entry.byteCodeOffset;
+                        size = (int)entry.byteCodeSize;
+                    }
+
+                    _variants[v] = new WorkGraphVariant
+                    {
+                        mask = mask,
+                        ptr = ptr,
+                        size = size,
+                    };
+                }
             }
 
             return Result.Success();
@@ -141,16 +219,49 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
             return Result.Failure($"Work graph asset {assetId} contains invalid pass metadata.");
         }
 
-        var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(payload, pass.dataOffset, payloadSize);
-        var isPooled = entry.bytecodeHash != 0;
-        if (!isPooled && !IsRangeValid(entry.byteCodeOffset, entry.byteCodeSize, pass.dataSize))
+        if (pass.variantCount <= 1)
         {
-            return Result.Failure($"Work graph asset {assetId} contains invalid library bytecode.");
-        }
+            var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(payload, pass.dataOffset, payloadSize);
+            var isPooled = entry.bytecodeHash != 0;
+            if (!isPooled && !IsRangeValid(pass.dataOffset + entry.byteCodeOffset, entry.byteCodeSize, payloadSize))
+            {
+                return Result.Failure($"Work graph asset {assetId} contains invalid library bytecode.");
+            }
 
-        if (entry.stage != ShaderStage.Library)
+            if (entry.stage != ShaderStage.Library)
+            {
+                return Result.Failure($"Work graph asset {assetId} contains incompatible stage for library bytecode.");
+            }
+        }
+        else
         {
-            return Result.Failure($"Work graph asset {assetId} contains incompatible stage for library bytecode.");
+            var variantHeadersSize = pass.variantCount * sizeof(ShaderContentHeader.VariantHeader);
+            if (variantHeadersSize > pass.dataSize)
+            {
+                return Result.Failure($"Work graph asset {assetId} contains an invalid variant table.");
+            }
+
+            for (var v = 0; v < pass.variantCount; v++)
+            {
+                var vh = ReadAt<ShaderContentHeader.VariantHeader>(payload, pass.dataOffset + (v * sizeof(ShaderContentHeader.VariantHeader)), payloadSize);
+                if (!IsRangeValid(vh.keywordOffset, vh.keywordSize, payloadSize) ||
+                    !IsRangeValid(vh.dataOffset, vh.dataSize, payloadSize))
+                {
+                    return Result.Failure($"Work graph asset {assetId} contains invalid variant {v} ranges.");
+                }
+
+                var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(payload, vh.dataOffset, payloadSize);
+                var isPooled = entry.bytecodeHash != 0;
+                if (!isPooled && !IsRangeValid(vh.dataOffset + entry.byteCodeOffset, entry.byteCodeSize, payloadSize))
+                {
+                    return Result.Failure($"Work graph asset {assetId} contains invalid library bytecode for variant {v}.");
+                }
+
+                if (entry.stage != ShaderStage.Library)
+                {
+                    return Result.Failure($"Work graph asset {assetId} contains incompatible stage for variant {v}.");
+                }
+            }
         }
 
         return Result.Success();
@@ -158,25 +269,29 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
 
     public Result CommitShaderBytecode(ShaderLibrary shaderLibrary)
     {
-        if (!_payload.IsCreated || _bytecodePtr == null)
+        if (!_payload.IsCreated || _variants == null || _variants.Length == 0)
         {
             return Result.Failure($"Work graph asset {AssetId} has no staged payload.");
         }
 
         try
         {
-            Span<ShaderByteCode> byteCodes = stackalloc ShaderByteCode[1];
-            Span<int> entryOffsets = stackalloc int[2];
-            entryOffsets[0] = 0;
-            entryOffsets[1] = 1;
+            var variantCount = _variants.Length;
+            var compiledVariants = new CompiledVariantData[variantCount];
 
-            byteCodes[0] = new ShaderByteCode
+            for (var i = 0; i < variantCount; i++)
             {
-                pCode = _bytecodePtr,
-                size = (ulong)_bytecodeSize,
-            };
+                var byteCodes = new ShaderByteCode[1];
+                byteCodes[0] = new ShaderByteCode
+                {
+                    pCode = _variants[i].ptr,
+                    size = (ulong)_variants[i].size,
+                };
+                compiledVariants[i] = new CompiledVariantData(_variants[i].mask, byteCodes);
+            }
 
-            var publishResult = shaderLibrary.PublishCompiledGeneration(_shaderId, entryOffsets, byteCodes);
+            var passData = new CompiledPassData(_supportedMask, compiledVariants);
+            var publishResult = shaderLibrary.PublishCompiledGeneration(_shaderId, new ReadOnlySpan<CompiledPassData>(ref passData));
             if (publishResult.IsFailure)
             {
                 return publishResult;

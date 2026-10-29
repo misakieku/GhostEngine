@@ -23,7 +23,7 @@ DirectLighting ShadeSurface_Punctual(ShadingContext ctx, BSDFData bsdf, T strate
 
         if (lightColor.a > 0.0f && light.shadowDimmer > 0.0f)
         {
-            float shadow = GetPunctualShadowAttenuation(ctx, light, bsdf.normalWS, vector.L, vector.distance, lightPosRWS, lightIndex);
+            ShadowType shadow = GetPunctualShadowAttenuation(ctx, light, bsdf.normalWS, vector.L, vector.distance, lightPosRWS, lightIndex);
             lightColor.rgb *= lerp(1.0f, shadow, light.shadowDimmer);
         }
 

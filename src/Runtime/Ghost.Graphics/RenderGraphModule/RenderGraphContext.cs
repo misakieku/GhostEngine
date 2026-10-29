@@ -20,6 +20,7 @@ public interface IRenderGraphContext
     IResourceDatabase ResourceDatabase { get; }
 
     float2 RelativeScale { get; }
+    KeywordMask128 ActiveKeywords { get; }
 
     Handle<GPUResource> GetActualResource(Identifier<RGResource> resource);
     Handle<GPUTexture> GetActualTexture(Identifier<RGTexture> texture);
@@ -41,6 +42,7 @@ public interface IRenderGraphContext
 
     void ClearBuffer(Identifier<RGBuffer> buffer, uint sizeInBytes, uint clearValue = 0, uint dstOffset = 0);
     void DiscardResource(Identifier<RGResource> resource, DiscardDesc? desc);
+    void SetPipelineState(Key128<PipelineState> pipeline);
 }
 
 public interface IRasterRenderContext : IRenderGraphContext
@@ -103,6 +105,8 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
 
     public int ActiveMeshIndexCount => _activeMeshIndexCount;
+    private KeywordMask128 _activeKeywords;
+    public KeywordMask128 ActiveKeywords => _activeKeywords;
 
     // TODO: Upload relative scale to gpu.
     public float2 RelativeScale
@@ -125,8 +129,9 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
         _dsvFormat = TextureFormat.Unknown;
     }
 
-    internal void Reset()
+    internal void Reset(KeywordMask128 activeKeywords = default)
     {
+        _activeKeywords = activeKeywords;
         _commandBuffer = null!;
         _propertyAllocator.Reset();
         _activeFrameBuffer = default;
@@ -318,7 +323,7 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
             return false;
         }
 
-        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shaderId, passIndex);
+        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shaderId, passIndex, _activeKeywords);
         if (error.IsFailure)
         {
             return false;
@@ -331,7 +336,7 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
             return true;
         }
 
-        var compiledCacheResult = _shaderLibrary.GetCompiledCache(shaderId, passIndex);
+        var compiledCacheResult = _shaderLibrary.GetCompiledCache(shaderId, passIndex, _activeKeywords);
         if (compiledCacheResult.IsFailure)
         {
             Logger.Warning($"Failed to load compiled shader cache for graphics pipeline {pipelineKey}. Skipping draw call.");
@@ -397,7 +402,7 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
     private bool TryResolveComputePipeline(ulong passId, ulong shaderId, int entryIndex, out Key128<PipelineState> pipelineKey)
     {
         pipelineKey = default;
-        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shaderId, entryIndex);
+        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shaderId, entryIndex, _activeKeywords);
         if (error.IsFailure)
         {
             return false;
@@ -409,7 +414,7 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
             return true;
         }
 
-        var compiledCacheResult = _shaderLibrary.GetCompiledCache(shaderId, entryIndex);
+        var compiledCacheResult = _shaderLibrary.GetCompiledCache(shaderId, entryIndex, _activeKeywords);
         if (compiledCacheResult.IsFailure)
         {
             Logger.Warning($"Failed to load compiled shader cache for compute pipeline {pipelineKey}. Skipping compute dispatch.");
@@ -617,6 +622,11 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
         ref var shader = ref r.Value;
         var passIndex = shader.GetPassIndex(semantic);
         return TrySetActiveShaderPass(in shader, passIndex, pipelineOverride);
+    }
+
+    public void SetPipelineState(Key128<PipelineState> pipeline)
+    {
+        _commandBuffer.SetPipelineState(pipeline);
     }
 
     public void SetActiveMesh(Handle<Mesh> mesh)

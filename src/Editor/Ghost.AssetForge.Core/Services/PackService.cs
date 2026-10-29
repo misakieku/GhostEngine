@@ -71,17 +71,66 @@ public class PackService
             stream.Position = assetStart + nextPassOffset;
             var pass = stream.Read<ShaderContentHeader.PassHeader>();
 
-            var bytecodeHashes = new ulong[pass.entryPointCount];
-            var entryHeadersSize = pass.entryPointCount * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>();
-            if (pass.dataSize >= entryHeadersSize && assetStart + pass.dataOffset + entryHeadersSize <= stream.Length)
+            ShaderCatalogPassVariant[] variants;
+            ulong[] defaultBytecodeHashes;
+
+            if (pass.variantCount > 1)
             {
-                var entryHeadersOffset = assetStart + pass.dataOffset;
-                stream.Position = entryHeadersOffset;
-                for (var ep = 0; ep < pass.entryPointCount; ep++)
+                var variantHeaders = new ShaderContentHeader.VariantHeader[pass.variantCount];
+                stream.Position = assetStart + pass.dataOffset;
+                for (var v = 0; v < pass.variantCount; v++)
                 {
-                    var entryHeader = stream.Read<ShaderContentHeader.EntryPointHeader>();
-                    bytecodeHashes[ep] = entryHeader.bytecodeHash;
+                    variantHeaders[v] = stream.Read<ShaderContentHeader.VariantHeader>();
                 }
+
+                variants = new ShaderCatalogPassVariant[pass.variantCount];
+                for (var v = 0; v < pass.variantCount; v++)
+                {
+                    var vHeader = variantHeaders[v];
+                    var kwStr = ReadUtf8String(stream, assetStart, vHeader.keywordOffset, vHeader.keywordSize);
+                    var keywords = string.IsNullOrEmpty(kwStr) ? Array.Empty<string>() : kwStr.Split(';');
+
+                    var vBytecodeHashes = new ulong[vHeader.entryPointCount];
+                    stream.Position = assetStart + vHeader.dataOffset;
+                    for (var ep = 0; ep < vHeader.entryPointCount; ep++)
+                    {
+                        var epHeader = stream.Read<ShaderContentHeader.EntryPointHeader>();
+                        vBytecodeHashes[ep] = epHeader.bytecodeHash;
+                    }
+
+                    variants[v] = new ShaderCatalogPassVariant
+                    {
+                        Keywords = keywords,
+                        BytecodeHashes = vBytecodeHashes,
+                    };
+                }
+
+                defaultBytecodeHashes = variants.Length > 0 ? variants[0].BytecodeHashes : Array.Empty<ulong>();
+            }
+            else
+            {
+                var bytecodeHashes = new ulong[pass.entryPointCount];
+                var entryHeadersSize = pass.entryPointCount * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>();
+                if (pass.dataSize >= entryHeadersSize && assetStart + pass.dataOffset + entryHeadersSize <= stream.Length)
+                {
+                    var entryHeadersOffset = assetStart + pass.dataOffset;
+                    stream.Position = entryHeadersOffset;
+                    for (var ep = 0; ep < pass.entryPointCount; ep++)
+                    {
+                        var entryHeader = stream.Read<ShaderContentHeader.EntryPointHeader>();
+                        bytecodeHashes[ep] = entryHeader.bytecodeHash;
+                    }
+                }
+
+                defaultBytecodeHashes = bytecodeHashes;
+                variants = new[]
+                {
+                    new ShaderCatalogPassVariant
+                    {
+                        Keywords = Array.Empty<string>(),
+                        BytecodeHashes = bytecodeHashes,
+                    }
+                };
             }
 
             passes[i] = new ShaderCatalogPass
@@ -93,7 +142,8 @@ public class PackService
                 PassId = pass.passId,
                 LocalPipeline = pass.localPipeline,
                 ShadingModelId = pass.shadingModelId,
-                BytecodeHashes = bytecodeHashes,
+                BytecodeHashes = defaultBytecodeHashes,
+                Variants = variants,
             };
             nextPassOffset = pass.dataOffset + pass.dataSize;
         }
@@ -109,6 +159,20 @@ public class PackService
             PropertyBufferSize = header.propertyBufferSize,
             Passes = passes,
         };
+    }
+
+    private struct StrippedVariantInfo
+    {
+        public byte[] KeywordBytes;
+        public ShaderContentHeader.EntryPointHeader[] EntryPoints;
+    }
+
+    private struct StrippedPassInfo
+    {
+        public ShaderContentHeader.PassHeader Header;
+        public byte[] NameBytes;
+        public ShaderContentHeader.EntryPointHeader[]? SingleEntryPoints;
+        public StrippedVariantInfo[]? Variants;
     }
 
     private static bool TryCreateStrippedShaderStream(string cacheFile, Dictionary<ulong, byte[]> uniqueBytecodes, [NotNullWhen(true)] out MemoryStream? strippedStream)
@@ -141,10 +205,7 @@ public class PackService
             stream.Position = assetStart + header.nameOffset;
             stream.ReadExactly(nameBytes);
 
-            var passHeaders = new ShaderContentHeader.PassHeader[header.passCount];
-            var passNames = new byte[header.passCount][];
-            var passEntryPoints = new ShaderContentHeader.EntryPointHeader[header.passCount][];
-
+            var strippedPasses = new StrippedPassInfo[header.passCount];
             var nextPassOffset = header.nameOffset + header.nameSize;
             var hasAnyPooled = false;
 
@@ -156,52 +217,118 @@ public class PackService
                 }
 
                 stream.Position = assetStart + nextPassOffset;
-                passHeaders[i] = stream.Read<ShaderContentHeader.PassHeader>();
+                var passHeader = stream.Read<ShaderContentHeader.PassHeader>();
 
-                if (passHeaders[i].nameOffset < 0 || assetStart + passHeaders[i].nameOffset + passHeaders[i].nameSize > stream.Length)
+                if (passHeader.nameOffset < 0 || assetStart + passHeader.nameOffset + passHeader.nameSize > stream.Length)
                 {
                     return false;
                 }
 
-                var pName = new byte[passHeaders[i].nameSize];
-                stream.Position = assetStart + passHeaders[i].nameOffset;
+                var pName = new byte[passHeader.nameSize];
+                stream.Position = assetStart + passHeader.nameOffset;
                 stream.ReadExactly(pName);
-                passNames[i] = pName;
 
-                var entryHeadersSize = passHeaders[i].entryPointCount * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>();
-                if (passHeaders[i].dataSize < entryHeadersSize ||
-                    passHeaders[i].dataOffset < 0 ||
-                    assetStart + passHeaders[i].dataOffset + entryHeadersSize > stream.Length)
+                if (passHeader.variantCount > 1)
                 {
-                    return false;
-                }
-
-                var entryPoints = new ShaderContentHeader.EntryPointHeader[passHeaders[i].entryPointCount];
-                stream.Position = assetStart + passHeaders[i].dataOffset;
-                for (var ep = 0; ep < entryPoints.Length; ep++)
-                {
-                    entryPoints[ep] = stream.Read<ShaderContentHeader.EntryPointHeader>();
-                    if (entryPoints[ep].bytecodeHash != 0)
+                    var variantHeaders = new ShaderContentHeader.VariantHeader[passHeader.variantCount];
+                    stream.Position = assetStart + passHeader.dataOffset;
+                    for (var v = 0; v < passHeader.variantCount; v++)
                     {
-                        hasAnyPooled = true;
-                        if (entryPoints[ep].byteCodeSize > 0 && !uniqueBytecodes.ContainsKey(entryPoints[ep].bytecodeHash))
+                        variantHeaders[v] = stream.Read<ShaderContentHeader.VariantHeader>();
+                    }
+
+                    var variants = new StrippedVariantInfo[passHeader.variantCount];
+                    for (var v = 0; v < passHeader.variantCount; v++)
+                    {
+                        var vHeader = variantHeaders[v];
+                        var kwBytes = new byte[vHeader.keywordSize];
+                        if (vHeader.keywordSize > 0)
                         {
-                            var codeOffset = assetStart + passHeaders[i].dataOffset + entryPoints[ep].byteCodeOffset;
-                            if (codeOffset + entryPoints[ep].byteCodeSize <= stream.Length)
+                            stream.Position = assetStart + vHeader.keywordOffset;
+                            stream.ReadExactly(kwBytes);
+                        }
+
+                        var entryPoints = new ShaderContentHeader.EntryPointHeader[vHeader.entryPointCount];
+                        stream.Position = assetStart + vHeader.dataOffset;
+                        for (var ep = 0; ep < entryPoints.Length; ep++)
+                        {
+                            entryPoints[ep] = stream.Read<ShaderContentHeader.EntryPointHeader>();
+                            if (entryPoints[ep].bytecodeHash != 0)
                             {
-                                var codeBytes = new byte[entryPoints[ep].byteCodeSize];
-                                var prevPos = stream.Position;
-                                stream.Position = codeOffset;
-                                stream.ReadExactly(codeBytes);
-                                stream.Position = prevPos;
-                                uniqueBytecodes[entryPoints[ep].bytecodeHash] = codeBytes;
+                                hasAnyPooled = true;
+                                if (entryPoints[ep].byteCodeSize > 0 && !uniqueBytecodes.ContainsKey(entryPoints[ep].bytecodeHash))
+                                {
+                                    var codeOffset = assetStart + vHeader.dataOffset + entryPoints[ep].byteCodeOffset;
+                                    if (codeOffset + entryPoints[ep].byteCodeSize <= stream.Length)
+                                    {
+                                        var codeBytes = new byte[entryPoints[ep].byteCodeSize];
+                                        var prevPos = stream.Position;
+                                        stream.Position = codeOffset;
+                                        stream.ReadExactly(codeBytes);
+                                        stream.Position = prevPos;
+                                        uniqueBytecodes[entryPoints[ep].bytecodeHash] = codeBytes;
+                                    }
+                                }
+                            }
+                        }
+
+                        variants[v] = new StrippedVariantInfo
+                        {
+                            KeywordBytes = kwBytes,
+                            EntryPoints = entryPoints,
+                        };
+                    }
+
+                    strippedPasses[i] = new StrippedPassInfo
+                    {
+                        Header = passHeader,
+                        NameBytes = pName,
+                        Variants = variants,
+                    };
+                }
+                else
+                {
+                    var entryHeadersSize = passHeader.entryPointCount * Unsafe.SizeOf<ShaderContentHeader.EntryPointHeader>();
+                    if (passHeader.dataSize < entryHeadersSize ||
+                        passHeader.dataOffset < 0 ||
+                        assetStart + passHeader.dataOffset + entryHeadersSize > stream.Length)
+                    {
+                        return false;
+                    }
+
+                    var entryPoints = new ShaderContentHeader.EntryPointHeader[passHeader.entryPointCount];
+                    stream.Position = assetStart + passHeader.dataOffset;
+                    for (var ep = 0; ep < entryPoints.Length; ep++)
+                    {
+                        entryPoints[ep] = stream.Read<ShaderContentHeader.EntryPointHeader>();
+                        if (entryPoints[ep].bytecodeHash != 0)
+                        {
+                            hasAnyPooled = true;
+                            if (entryPoints[ep].byteCodeSize > 0 && !uniqueBytecodes.ContainsKey(entryPoints[ep].bytecodeHash))
+                            {
+                                var codeOffset = assetStart + passHeader.dataOffset + entryPoints[ep].byteCodeOffset;
+                                if (codeOffset + entryPoints[ep].byteCodeSize <= stream.Length)
+                                {
+                                    var codeBytes = new byte[entryPoints[ep].byteCodeSize];
+                                    var prevPos = stream.Position;
+                                    stream.Position = codeOffset;
+                                    stream.ReadExactly(codeBytes);
+                                    stream.Position = prevPos;
+                                    uniqueBytecodes[entryPoints[ep].bytecodeHash] = codeBytes;
+                                }
                             }
                         }
                     }
+
+                    strippedPasses[i] = new StrippedPassInfo
+                    {
+                        Header = passHeader,
+                        NameBytes = pName,
+                        SingleEntryPoints = entryPoints,
+                    };
                 }
 
-                passEntryPoints[i] = entryPoints;
-                nextPassOffset = passHeaders[i].dataOffset + passHeaders[i].dataSize;
+                nextPassOffset = passHeader.dataOffset + passHeader.dataSize;
             }
 
             if (!hasAnyPooled)
@@ -220,28 +347,78 @@ public class PackService
             var passHeaderPositions = new long[header.passCount];
             for (var i = 0; i < header.passCount; i++)
             {
+                var passInfo = strippedPasses[i];
+                var curPassHeader = passInfo.Header;
                 passHeaderPositions[i] = ms.Position;
-                ms.Write(passHeaders[i]); // placeholder
+                ms.Write(curPassHeader); // placeholder
 
                 var newPassNameOffset = ms.Position;
-                ms.Write(passNames[i]);
-                passHeaders[i].nameOffset = newPassNameOffset;
-                passHeaders[i].nameSize = (uint)passNames[i].Length;
+                ms.Write(passInfo.NameBytes);
+                curPassHeader.nameOffset = newPassNameOffset;
+                curPassHeader.nameSize = (uint)passInfo.NameBytes.Length;
 
                 var newPassDataOffset = ms.Position;
-                for (var ep = 0; ep < passEntryPoints[i].Length; ep++)
+                if (curPassHeader.variantCount > 1 && passInfo.Variants != null)
                 {
-                    var epHeader = passEntryPoints[i][ep];
-                    epHeader.byteCodeOffset = 0;
-                    ms.Write(epHeader);
+                    var variantHeadersPos = ms.Position;
+                    for (var v = 0; v < passInfo.Variants.Length; v++)
+                    {
+                        ms.Write(default(ShaderContentHeader.VariantHeader));
+                    }
+
+                    var newVariantHeaders = new ShaderContentHeader.VariantHeader[passInfo.Variants.Length];
+                    for (var v = 0; v < passInfo.Variants.Length; v++)
+                    {
+                        var vInfo = passInfo.Variants[v];
+                        var newKwOffset = ms.Position;
+                        if (vInfo.KeywordBytes.Length > 0)
+                        {
+                            ms.Write(vInfo.KeywordBytes);
+                        }
+
+                        var newVarDataOffset = ms.Position;
+                        for (var ep = 0; ep < vInfo.EntryPoints.Length; ep++)
+                        {
+                            var epHeader = vInfo.EntryPoints[ep];
+                            epHeader.byteCodeOffset = 0;
+                            ms.Write(epHeader);
+                        }
+
+                        newVariantHeaders[v] = new ShaderContentHeader.VariantHeader
+                        {
+                            entryPointCount = (uint)vInfo.EntryPoints.Length,
+                            keywordCount = 0,
+                            keywordOffset = newKwOffset,
+                            keywordSize = (uint)vInfo.KeywordBytes.Length,
+                            dataOffset = newVarDataOffset,
+                            dataSize = ms.Position - newVarDataOffset,
+                        };
+                    }
+
+                    var endOfPassData = ms.Position;
+                    ms.Position = variantHeadersPos;
+                    for (var v = 0; v < newVariantHeaders.Length; v++)
+                    {
+                        ms.Write(newVariantHeaders[v]);
+                    }
+                    ms.Position = endOfPassData;
+                }
+                else if (passInfo.SingleEntryPoints != null)
+                {
+                    for (var ep = 0; ep < passInfo.SingleEntryPoints.Length; ep++)
+                    {
+                        var epHeader = passInfo.SingleEntryPoints[ep];
+                        epHeader.byteCodeOffset = 0;
+                        ms.Write(epHeader);
+                    }
                 }
 
-                passHeaders[i].dataOffset = newPassDataOffset;
-                passHeaders[i].dataSize = ms.Position - newPassDataOffset;
+                curPassHeader.dataOffset = newPassDataOffset;
+                curPassHeader.dataSize = ms.Position - newPassDataOffset;
 
                 var curPos = ms.Position;
                 ms.Position = passHeaderPositions[i];
-                ms.Write(passHeaders[i]);
+                ms.Write(curPassHeader);
                 ms.Position = curPos;
             }
 

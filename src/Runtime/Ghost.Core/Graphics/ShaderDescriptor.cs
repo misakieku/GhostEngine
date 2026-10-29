@@ -88,6 +88,12 @@ public struct ShaderCode()
     }
 }
 
+public sealed class KeywordGroupDef
+{
+    public string Name { get; init; } = string.Empty;
+    public string[] Keywords { get; init; } = Array.Empty<string>();
+}
+
 public struct PassDescriptor
 {
     public GraphicsShaderDescriptor shader;
@@ -103,6 +109,7 @@ public struct PassDescriptor
     public string[] defines;
     public PipelineState localPipeline;
     public uint shadingModelId;
+    public KeywordGroupDef[] keywordGroups;
 }
 
 public class GraphicsShaderDescriptor
@@ -149,4 +156,6 @@ public class ComputeShaderDescriptor
     {
         get; init;
     }
+
+    public KeywordGroupDef[] KeywordGroups { get; init; } = Array.Empty<KeywordGroupDef>();
 }

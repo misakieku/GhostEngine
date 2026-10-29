@@ -11,6 +11,7 @@ using System.Collections.Concurrent;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Ghost.AssetForge.Core.Bakers;
 
@@ -99,10 +100,208 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
 
     private static void WriteName(Stream stream, long assetStartOffset, string name, ref long nameOffset, ref uint nameSize)
     {
-        var nameBytes = System.Text.Encoding.UTF8.GetBytes(name);
+        var nameBytes = Encoding.UTF8.GetBytes(name);
         nameOffset = stream.Position - assetStartOffset;
         nameSize = (uint)nameBytes.Length;
         stream.Write(nameBytes);
+    }
+
+    private static List<string[]> GenerateKeywordPermutations(IReadOnlyList<KeywordGroupDef>? groups)
+    {
+        var result = new List<string[]>();
+        if (groups == null || groups.Count == 0)
+        {
+            result.Add(Array.Empty<string>());
+            return result;
+        }
+
+        void Recurse(int groupIndex, List<string> current)
+        {
+            if (groupIndex == groups.Count)
+            {
+                result.Add(current.ToArray());
+                return;
+            }
+
+            var group = groups[groupIndex];
+            if (group.Keywords.Length == 0)
+            {
+                Recurse(groupIndex + 1, current);
+                return;
+            }
+
+            for (var i = 0; i < group.Keywords.Length; i++)
+            {
+                current.Add(group.Keywords[i]);
+                Recurse(groupIndex + 1, current);
+                current.RemoveAt(current.Count - 1);
+            }
+        }
+
+        Recurse(0, new List<string>());
+        return result;
+    }
+
+    private static List<(ShaderStage stage, UnsafeArray<byte> bytecode)> CompileGraphicsPassEntries(
+        PassDescriptor pass, ShaderCompilationConfig configTemplate, string[] permutationDefines)
+    {
+        var activeDefines = pass.defines.Concat(configTemplate.defines).Concat(permutationDefines);
+        if (pass.computeShaderCode.IsCreated)
+        {
+            var config = configTemplate with
+            {
+                stage = ShaderStage.ComputeShader,
+                defines = activeDefines,
+                entryPoint = pass.computeShaderCode.entryPoint,
+                shaderCode = pass.computeShaderCode.code,
+            };
+
+            var csByteCode = CompileStage(in config);
+            return new List<(ShaderStage stage, UnsafeArray<byte> bytecode)> { (ShaderStage.ComputeShader, csByteCode) };
+        }
+
+        if (!pass.meshShaderCode.IsCreated || !pass.stageMask.HasFlag(ShaderStageMask.Mesh))
+        {
+            throw new InvalidOperationException($"Shader pass '{pass.name}' is missing required graphics shader stages.");
+        }
+
+        var entries = new List<(ShaderStage stage, UnsafeArray<byte> bytecode)>();
+        var msConfig = configTemplate with
+        {
+            stage = ShaderStage.MeshShader,
+            defines = activeDefines,
+            entryPoint = pass.meshShaderCode.entryPoint,
+            shaderCode = pass.meshShaderCode.code,
+        };
+
+        var msByteCode = CompileStage(in msConfig);
+        entries.Add((ShaderStage.MeshShader, msByteCode));
+
+        if (pass.pixelShaderCode.IsCreated)
+        {
+            var psConfig = configTemplate with
+            {
+                stage = ShaderStage.PixelShader,
+                defines = activeDefines,
+                entryPoint = pass.pixelShaderCode.entryPoint,
+                shaderCode = pass.pixelShaderCode.code,
+            };
+            var psByteCode = CompileStage(in psConfig);
+            entries.Add((ShaderStage.PixelShader, psByteCode));
+        }
+
+        if (pass.amplificationShaderCode.IsCreated)
+        {
+            var asConfig = configTemplate with
+            {
+                stage = ShaderStage.AmplificationShader,
+                defines = activeDefines,
+                entryPoint = pass.amplificationShaderCode.entryPoint,
+                shaderCode = pass.amplificationShaderCode.code,
+            };
+            var asByteCode = CompileStage(in asConfig);
+            entries.Add((ShaderStage.AmplificationShader, asByteCode));
+        }
+
+        return entries;
+    }
+
+    private static List<(ShaderStage stage, UnsafeArray<byte> bytecode)> CompileComputeShaderEntries(
+        ComputeShaderDescriptor descriptor, ShaderCompilationConfig configTemplate, string[] permutationDefines)
+    {
+        var activeDefines = descriptor.Defines.Concat(configTemplate.defines).Concat(permutationDefines);
+        var entries = new List<(ShaderStage stage, UnsafeArray<byte> bytecode)>(descriptor.ShaderCodes.Length);
+
+        for (var j = 0; j < descriptor.ShaderCodes.Length; j++)
+        {
+            var shaderCode = descriptor.ShaderCodes[j];
+            var config = configTemplate with
+            {
+                stage = ShaderStage.ComputeShader,
+                defines = activeDefines,
+                entryPoint = shaderCode.entryPoint,
+                shaderCode = shaderCode.code,
+            };
+
+            entries.Add((ShaderStage.ComputeShader, CompileStage(in config)));
+        }
+
+        return entries;
+    }
+
+    private static async Task WriteMultiVariantPass(
+        Stream dst,
+        long assetStartOffset,
+        long passDataStart,
+        uint entryPointCount,
+        List<string[]> permutations,
+        Func<string[], List<(ShaderStage stage, UnsafeArray<byte> bytecode)>> compileFunc,
+        CancellationToken cancellationToken)
+    {
+        if (permutations.Count <= 1)
+        {
+            var entries = compileFunc(permutations.Count == 1 ? permutations[0] : Array.Empty<string>());
+            try
+            {
+                await WriteShaderEntries(dst, passDataStart, cancellationToken, entries);
+            }
+            finally
+            {
+                for (var i = 0; i < entries.Count; i++)
+                {
+                    entries[i].bytecode.Dispose();
+                }
+            }
+            return;
+        }
+
+        var variantHeadersPos = dst.Position;
+        for (var v = 0; v < permutations.Count; v++)
+        {
+            dst.Write(default(ShaderContentHeader.VariantHeader));
+        }
+
+        var variantHeaders = new ShaderContentHeader.VariantHeader[permutations.Count];
+        for (var v = 0; v < permutations.Count; v++)
+        {
+            var permutation = permutations[v];
+            var kwStr = string.Join(';', permutation);
+            var kwBytes = Encoding.UTF8.GetBytes(kwStr);
+            var kwOffset = dst.Position - assetStartOffset;
+            dst.Write(kwBytes);
+
+            var variantDataStart = dst.Position;
+            var entries = compileFunc(permutation);
+            try
+            {
+                await WriteShaderEntries(dst, variantDataStart, cancellationToken, entries);
+            }
+            finally
+            {
+                for (var i = 0; i < entries.Count; i++)
+                {
+                    entries[i].bytecode.Dispose();
+                }
+            }
+
+            variantHeaders[v] = new ShaderContentHeader.VariantHeader
+            {
+                entryPointCount = entryPointCount,
+                keywordCount = (uint)permutation.Length,
+                keywordOffset = kwOffset,
+                keywordSize = (uint)kwBytes.Length,
+                dataOffset = variantDataStart - assetStartOffset,
+                dataSize = dst.Position - variantDataStart,
+            };
+        }
+
+        var endOfPassData = dst.Position;
+        dst.Position = variantHeadersPos;
+        for (var v = 0; v < permutations.Count; v++)
+        {
+            dst.Write(variantHeaders[v]);
+        }
+        dst.Position = endOfPassData;
     }
 
     private static async Task WriteShaderEntries(Stream stream, long passDataOffset, CancellationToken cancellationToken, params IReadOnlyList<(ShaderStage stage, UnsafeArray<byte> bytecode)> entries)
@@ -254,12 +453,14 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 for (var passIdx = 0; passIdx < descriptor.Passes.Length; passIdx++)
                 {
                     var pass = descriptor.Passes[passIdx];
+                    var permutations = GenerateKeywordPermutations(pass.keywordGroups);
                     var passHeaderOffset = dst.Position;
                     var passHeader = new ShaderContentHeader.PassHeader
                     {
                         entryPointCount = pass.computeShaderCode.IsCreated ? 1u : (1 + (pass.amplificationShaderCode.IsCreated ? 1u : 0u) + (pass.pixelShaderCode.IsCreated ? 1u : 0u)),
                         semantic = pass.semantic,
                         stageMask = pass.stageMask,
+                        variantCount = (ushort)permutations.Count,
                         passId = ShaderIdentity.GetPassId(header.shaderId, passIdx),
                         localPipeline = pass.localPipeline,
                         shadingModelId = pass.shadingModelId,
@@ -268,65 +469,10 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                     WriteName(dst, assetStartOffset, pass.name, ref passHeader.nameOffset, ref passHeader.nameSize);
                     var passDataStart = dst.Position;
 
-                    if (pass.computeShaderCode.IsCreated)
-                    {
-                        var config = configTemplate with
-                        {
-                            stage = ShaderStage.ComputeShader,
-                            defines = pass.defines.Concat(configTemplate.defines),
-                            entryPoint = pass.computeShaderCode.entryPoint,
-                            shaderCode = pass.computeShaderCode.code,
-                        };
-
-                        using var csByteCode = CompileStage(in config);
-                        await WriteShaderEntries(dst, passDataStart, cancellationToken,
-                            (ShaderStage.ComputeShader, csByteCode));
-                    }
-                    else
-                    {
-                        // Mesh shader stage is required for graphics shaders
-                        if (!pass.meshShaderCode.IsCreated || !pass.stageMask.HasFlag(ShaderStageMask.Mesh))
-                        {
-                            throw new InvalidOperationException($"Shader pass '{pass.name}' is missing required graphics shader stages.");
-                        }
-
-                        var entries = new List<(ShaderStage stage, UnsafeArray<byte> bytecode)>();
-                        var config = configTemplate with
-                        {
-                            stage = ShaderStage.MeshShader,
-                            defines = pass.defines.Concat(configTemplate.defines),
-                            entryPoint = pass.meshShaderCode.entryPoint,
-                            shaderCode = pass.meshShaderCode.code,
-                        };
-
-                        using var msByteCode = CompileStage(in config);
-                        entries.Add((ShaderStage.MeshShader, msByteCode));
-
-                        var psByteCode = default(UnsafeArray<byte>);
-                        if (pass.pixelShaderCode.IsCreated)
-                        {
-                            config.stage = ShaderStage.PixelShader;
-                            config.entryPoint = pass.pixelShaderCode.entryPoint;
-                            config.shaderCode = pass.pixelShaderCode.code;
-                            psByteCode = CompileStage(in config);
-                            entries.Add((ShaderStage.PixelShader, psByteCode));
-                        }
-
-                        var asByteCode = default(UnsafeArray<byte>);
-                        if (pass.amplificationShaderCode.IsCreated)
-                        {
-                            config.stage = ShaderStage.AmplificationShader;
-                            config.entryPoint = pass.amplificationShaderCode.entryPoint;
-                            config.shaderCode = pass.amplificationShaderCode.code;
-                            asByteCode = CompileStage(in config);
-                            entries.Add((ShaderStage.AmplificationShader, asByteCode));
-                        }
-
-                        await WriteShaderEntries(dst, passDataStart, cancellationToken, entries);
-
-                        psByteCode.Dispose();
-                        asByteCode.Dispose();
-                    }
+                    await WriteMultiVariantPass(
+                        dst, assetStartOffset, passDataStart, passHeader.entryPointCount, permutations,
+                        perm => CompileGraphicsPassEntries(pass, configTemplate, perm),
+                        cancellationToken);
 
                     passHeader.dataOffset = passDataStart - assetStartOffset;
                     passHeader.dataSize = dst.Position - passDataStart;
@@ -364,12 +510,14 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 dst.Write(header);
                 WriteName(dst, assetStartOffset, descriptor.Name, ref header.nameOffset, ref header.nameSize);
 
+                var permutations = GenerateKeywordPermutations(descriptor.KeywordGroups);
                 var passHeaderOffset = dst.Position;
                 var passHeader = new ShaderContentHeader.PassHeader
                 {
                     entryPointCount = (uint)descriptor.ShaderCodes.Length,
                     semantic = PassSemantic.Custom,
                     stageMask = ShaderStageMask.Compute,
+                    variantCount = (ushort)permutations.Count,
                     passId = ShaderIdentity.GetPassId(header.shaderId, 0),
                     localPipeline = PipelineState.Default,
                 };
@@ -377,34 +525,11 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 dst.Write(passHeader); // Placeholder
                 WriteName(dst, assetStartOffset, descriptor.Name, ref passHeader.nameOffset, ref passHeader.nameSize);
                 var passDataStart = dst.Position;
-                var byteCodes = new UnsafeArray<byte>[descriptor.ShaderCodes.Length];
 
-                try
-                {
-                    for (var j = 0; j < descriptor.ShaderCodes.Length; j++)
-                    {
-                        var shaderCode = descriptor.ShaderCodes[j];
-                        var config = configTemplate with
-                        {
-                            stage = ShaderStage.ComputeShader,
-                            defines = descriptor.Defines.Concat(configTemplate.defines),
-                            entryPoint = shaderCode.entryPoint,
-                            shaderCode = shaderCode.code,
-                        };
-
-                        byteCodes[j] = CompileStage(in config);
-                    }
-
-                    var entries = byteCodes.Select((bc, index) => (ShaderStage.ComputeShader, bc)).ToArray();
-                    await WriteShaderEntries(dst, passDataStart, cancellationToken, entries);
-                }
-                finally
-                {
-                    foreach (var code in byteCodes)
-                    {
-                        code.Dispose();
-                    }
-                }
+                await WriteMultiVariantPass(
+                    dst, assetStartOffset, passDataStart, passHeader.entryPointCount, permutations,
+                    perm => CompileComputeShaderEntries(descriptor, configTemplate, perm),
+                    cancellationToken);
 
                 passHeader.dataOffset = passDataStart - assetStartOffset;
                 passHeader.dataSize = dst.Position - passDataStart;
@@ -446,12 +571,14 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 dst.Write(header);
                 WriteName(dst, assetStartOffset, descriptor.Name, ref header.nameOffset, ref header.nameSize);
 
+                var permutations = GenerateKeywordPermutations(descriptor.KeywordGroups);
                 var passHeaderOffset = dst.Position;
                 var passHeader = new ShaderContentHeader.PassHeader
                 {
                     entryPointCount = 1,
                     semantic = PassSemantic.Custom,
                     stageMask = ShaderStageMask.None,
+                    variantCount = (ushort)permutations.Count,
                     passId = ShaderIdentity.GetPassId(header.shaderId, 0),
                     localPipeline = PipelineState.Default,
                 };
@@ -460,17 +587,24 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 WriteName(dst, assetStartOffset, descriptor.Name, ref passHeader.nameOffset, ref passHeader.nameSize);
                 var passDataStart = dst.Position;
 
-                var shaderCode = descriptor.ShaderCodes.Length > 0 ? descriptor.ShaderCodes[0] : default;
-                var config = configTemplate with
-                {
-                    stage = ShaderStage.Library,
-                    defines = descriptor.Defines.Concat(configTemplate.defines),
-                    entryPoint = string.Empty,
-                    shaderCode = shaderCode.code,
-                };
+                await WriteMultiVariantPass(
+                    dst, assetStartOffset, passDataStart, 1, permutations,
+                    perm =>
+                    {
+                        var shaderCode = descriptor.ShaderCodes.Length > 0 ? descriptor.ShaderCodes[0] : default;
+                        var activeDefines = descriptor.Defines.Concat(configTemplate.defines).Concat(perm);
+                        var config = configTemplate with
+                        {
+                            stage = ShaderStage.Library,
+                            defines = activeDefines,
+                            entryPoint = string.Empty,
+                            shaderCode = shaderCode.code,
+                        };
 
-                using var libraryByteCode = CompileStage(in config);
-                await WriteShaderEntries(dst, passDataStart, cancellationToken, (ShaderStage.Library, libraryByteCode));
+                        var libraryByteCode = CompileStage(in config);
+                        return new List<(ShaderStage, UnsafeArray<byte>)> { (ShaderStage.Library, libraryByteCode) };
+                    },
+                    cancellationToken);
 
                 passHeader.dataOffset = passDataStart - assetStartOffset;
                 passHeader.dataSize = dst.Position - passDataStart;

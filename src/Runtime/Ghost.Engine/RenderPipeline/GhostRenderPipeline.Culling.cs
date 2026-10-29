@@ -168,7 +168,6 @@ internal unsafe partial class GhostRenderPipeline
     private void AddMeshletCullPass1(RenderGraph rg, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 screenSize, uint2 hzbBaseSize, uint instanceCount,
         out Identifier<RGBuffer> visibleMeshlets, out Identifier<RGBuffer> occludedMeshlets, out Identifier<RGBuffer> counterBuffer)
     {
-        _meshPipelineResource.EnsureWorkGraphProgram(_renderEngine);
         Logger.DebugAssert(_meshPipelineResource.cullWorkGraphProgram != null, "Cull work graph program should be initialized.");
 
         var cullProgram = _meshPipelineResource.cullWorkGraphProgram;
