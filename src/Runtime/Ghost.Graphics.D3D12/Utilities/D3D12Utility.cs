@@ -590,7 +590,7 @@ internal static unsafe class D3D12Utility
     {
         var flags = D3D12_RESOURCE_FLAG_NONE;
 
-        if (usage.HasFlag(BufferUsage.UnorderedAccess))
+        if (usage.HasFlag(BufferUsage.UnorderedAccess) || usage.HasFlag(BufferUsage.AccelerationStructure))
         {
             flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         }
@@ -887,16 +887,22 @@ internal static unsafe class D3D12Utility
         return srvDesc;
     }
 
-    public static D3D12_SHADER_RESOURCE_VIEW_DESC CreateBufferSrvDesc(ID3D12Resource* pResource, uint stride, bool isRaw)
+    public static D3D12_SHADER_RESOURCE_VIEW_DESC CreateBufferSrvDesc(ID3D12Resource* pResource, uint stride, BufferUsage usage)
     {
+        var isAccelerationStructure = usage.HasFlag(BufferUsage.AccelerationStructure);
+
         var resourceDesc = pResource->GetDesc();
         var srvDesc = new D3D12_SHADER_RESOURCE_VIEW_DESC
         {
-            ViewDimension = D3D12_SRV_DIMENSION_BUFFER,
+            ViewDimension = isAccelerationStructure ? D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE : D3D12_SRV_DIMENSION_BUFFER,
             Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
         };
-
-        if (isRaw)
+        
+        if (isAccelerationStructure)
+        {
+            srvDesc.RaytracingAccelerationStructure.Location = pResource->GetGPUVirtualAddress();
+        }
+        else if (usage.HasFlag(BufferUsage.Raw))
         {
             srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
             srvDesc.Buffer.FirstElement = 0;
@@ -1162,7 +1168,7 @@ internal static unsafe class D3D12Utility
         return uavDesc;
     }
 
-    public static D3D12_UNORDERED_ACCESS_VIEW_DESC CreateBufferUavDesc(ID3D12Resource* pResource, uint stride, bool isRaw)
+    public static D3D12_UNORDERED_ACCESS_VIEW_DESC CreateBufferUavDesc(ID3D12Resource* pResource, uint stride, BufferUsage usage)
     {
         var resourceDesc = pResource->GetDesc();
         var uavDesc = new D3D12_UNORDERED_ACCESS_VIEW_DESC
@@ -1170,7 +1176,7 @@ internal static unsafe class D3D12Utility
             ViewDimension = D3D12_UAV_DIMENSION_BUFFER,
         };
 
-        if (isRaw)
+        if (usage.HasFlag(BufferUsage.Raw))
         {
             uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
             uavDesc.Buffer.FirstElement = 0;
@@ -1319,7 +1325,6 @@ internal static unsafe class D3D12Utility
         else
         {
             ref readonly var bufferDesc = ref desc.BufferDescriptor;
-            var isRaw = bufferDesc.Usage.HasFlag(BufferUsage.Raw);
 
             if (bufferDesc.Usage.HasFlag(BufferUsage.Constant) && resourceDesc.Width <= 65536)
             {
@@ -1339,9 +1344,10 @@ internal static unsafe class D3D12Utility
                 resourceDescriptor.srv = originalGroup.srv.IsValid ? originalGroup.srv : descriptorAllocator.AllocateCbvSrvUav();
                 resourceDescriptor.srvCount = 1;
                 var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.srv);
-                var srvDesc = CreateBufferSrvDesc(pResource, bufferDesc.Stride, isRaw);
+                var srvDesc = CreateBufferSrvDesc(pResource, bufferDesc.Stride, bufferDesc.Usage);
 
-                device.NativeObject.Get()->CreateShaderResourceView(pResource, &srvDesc, cpuHandle);
+                var pSrvResource = srvDesc.ViewDimension == D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE ? null : pResource;
+                device.NativeObject.Get()->CreateShaderResourceView(pSrvResource, &srvDesc, cpuHandle);
             }
 
             if (bufferDesc.Usage.HasFlag(BufferUsage.UnorderedAccess))
@@ -1349,7 +1355,7 @@ internal static unsafe class D3D12Utility
                 resourceDescriptor.uav = originalGroup.uav.IsValid ? originalGroup.uav : descriptorAllocator.AllocateCbvSrvUav();
                 resourceDescriptor.uavCount = 1;
                 var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.uav);
-                var uavDesc = CreateBufferUavDesc(pResource, bufferDesc.Stride, isRaw);
+                var uavDesc = CreateBufferUavDesc(pResource, bufferDesc.Stride, bufferDesc.Usage);
 
                 device.NativeObject.Get()->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
             }

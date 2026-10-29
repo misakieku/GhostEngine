@@ -20,7 +20,7 @@ public struct GPUPunctualLight
     public float range;
 
     public float3 color;
-    public uint lightTypeAndFlags;  // bits 0..3: type (0=Point, 1=Spot), bits 4..31: flags
+    public uint lightTypeAndShadowSize;  // bits 0..3: type (0=Point, 1=Spot), bits 4..31: shadow size
 
     public float3 directionWS;
     public float spotAngleScale;    // 1.0 / max(0.001, cosInner - cosOuter)

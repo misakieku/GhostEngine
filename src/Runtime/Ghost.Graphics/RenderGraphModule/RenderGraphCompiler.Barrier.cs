@@ -301,6 +301,26 @@ internal unsafe partial class RenderGraphCompiler
             {
                 ref var usage = ref usages[resource.Value];
                 var discard = pass.resourceDiscards[resourceType].Contains(resource);
+
+                if ((RGResourceType)resourceType == RGResourceType.Buffer)
+                {
+                    ref readonly var resourceInfo = ref _resourceRegistry.GetResource(resource);
+                    if (resourceInfo.bufferDesc.Usage.HasFlag(BufferUsage.AccelerationStructure))
+                    {
+                        ApplyUsage(
+                            ref usage,
+                            resource,
+                            RGResourceType.Buffer,
+                            reads: false,
+                            writes: true,
+                            discard: discard,
+                            PassResourceUsageClass.UnorderedAccess,
+                            PassResourceUsagePriority.Explicit,
+                            new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.RaytracingAccelerationStructureWrite, BarrierSync.BuildRaytracingAccelerationStructure));
+                        continue;
+                    }
+                }
+
                 switch (pass.type)
                 {
                     case RenderPassType.Compute:
@@ -394,10 +414,18 @@ internal unsafe partial class RenderGraphCompiler
             BarrierLayout.UnorderedAccess,
             BarrierAccess.UnorderedAccess,
             pass.type == RenderPassType.Compute ? BarrierSync.ComputeShading : BarrierSync.AllShading);
+
         foreach (var resource in pass.randomAccess)
         {
             ref readonly var resourceInfo = ref _resourceRegistry.GetResource(resource);
             ref var usage = ref usages[resource.Value];
+
+            var targetState = randomAccessState;
+            if (resourceInfo.type == RGResourceType.Buffer && resourceInfo.bufferDesc.Usage.HasFlag(BufferUsage.AccelerationStructure))
+            {
+                targetState = new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.RaytracingAccelerationStructureWrite, BarrierSync.BuildRaytracingAccelerationStructure);
+            }
+
             ApplyUsage(
                 ref usage,
                 resource,
@@ -407,9 +435,8 @@ internal unsafe partial class RenderGraphCompiler
                 discard: pass.resourceDiscards[(int)resourceInfo.type].Contains(resource),
                 PassResourceUsageClass.UnorderedAccess,
                 PassResourceUsagePriority.Explicit,
-                randomAccessState);
+                targetState);
         }
-
     }
 
     private int EmitImplicitTransitions(
@@ -655,7 +682,11 @@ internal unsafe partial class RenderGraphCompiler
         var access = BarrierAccess.ShaderResource;
 
         ref readonly var resource = ref _resourceRegistry.GetResource(handle);
-        if (resource.bufferDesc.Usage.HasFlag(BufferUsage.IndirectArgument))
+        if (resource.bufferDesc.Usage.HasFlag(BufferUsage.AccelerationStructure))
+        {
+            access = BarrierAccess.RaytracingAccelerationStructureRead;
+        }
+        else if (resource.bufferDesc.Usage.HasFlag(BufferUsage.IndirectArgument))
         {
             sync = BarrierSync.ExecuteIndirect;
             access = BarrierAccess.IndirectArgument;

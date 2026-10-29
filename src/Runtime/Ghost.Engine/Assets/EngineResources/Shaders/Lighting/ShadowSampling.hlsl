@@ -155,7 +155,7 @@ float GetPunctualShadowAttenuation(ShadingContext ctx, GPUPunctualLight light, f
 
     if (shadowIndex >= 0 && IS_VALID_BUFFER(ctx.shadowAtlasIndex) && IS_VALID_BUFFER(ctx.shadowViewsBufferIndex))
     {
-        uint lightType = light.lightTypeAndFlags & 0xFu;
+        uint lightType = light.lightTypeAndShadowSize & 0xFu;
         if (lightType == GPULIGHT_TYPE_POINT) // Point Light cubemap face selection
         {
             shadowIndex += GetCubeFaceID(-L);

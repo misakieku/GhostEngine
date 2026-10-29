@@ -98,13 +98,12 @@ internal unsafe partial class GhostRenderPipeline
                 return;
             }
 
-            // TODO: Distance culling.
             if (!MathUtility.SphereIntersectFrustum(lightPosRWS, light.range, frustum.planes))
             {
                 return;
             }
 
-            var shadowSize = (light.lightTypeAndFlags >> 4) & 0xFFFFu;
+            var shadowSize = (light.lightTypeAndShadowSize >> 4) & 0xFFFFu;
             if (shadowSize == 0)
             {
                 return;
@@ -115,7 +114,7 @@ internal unsafe partial class GhostRenderPipeline
             var size = new float4(allocator.AtlasSize, 1.0f / allocator.AtlasSize, shadowSize, 1.0f / shadowSize);
             var nearPlane = shadowData.nearPlane > 0.0f ? shadowData.nearPlane : 0.05f;
             var farPlane = light.range;
-            var lightType = light.lightTypeAndFlags & 0xFu;
+            var lightType = light.lightTypeAndShadowSize & 0xFu;
             var lodErrorThreshold = meshletLodErrorThreshold * (viewHeight / shadowSize) * (shadowData.lodErrorScale > 0 ? shadowData.lodErrorScale : 1.0f);
 
             // TODO: Expose softnessScale?
@@ -222,7 +221,6 @@ internal unsafe partial class GhostRenderPipeline
         shadowViewsBufferSrv = uint.MaxValue;
         shadowViewCount = 0;
         shadowIndicesBufferSrv = uint.MaxValue;
-
 
         var lightCount = lights.Length;
         if (lightCount == 0)

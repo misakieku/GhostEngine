@@ -210,6 +210,57 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
         }
     }
 
+    public AccelerationStructurePrebuildInfo GetAccelerationStructurePrebuildInfo(scoped in AccelerationStructureBuildInputs inputs)
+    {
+        D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS d3d12Inputs = default;
+        d3d12Inputs.Type = inputs.type == AccelerationStructureType.TopLevel
+            ? D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL
+            : D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+        d3d12Inputs.Flags = (D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS)inputs.flags;
+        d3d12Inputs.NumDescs = inputs.numDescs;
+        d3d12Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+
+        D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo;
+
+        if (inputs.type == AccelerationStructureType.TopLevel)
+        {
+            d3d12Inputs.InstanceDescs = inputs.instanceDescs;
+            NativeObject.Get()->GetRaytracingAccelerationStructurePrebuildInfo(&d3d12Inputs, &prebuildInfo);
+        }
+        else
+        {
+            var geomCount = inputs.numDescs;
+            var pGeoms = stackalloc D3D12_RAYTRACING_GEOMETRY_DESC[(int)geomCount];
+
+            for (uint i = 0; i < geomCount; i++)
+            {
+                ref readonly var srcGeom = ref inputs.pGeometries[i];
+                pGeoms[i].Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+                pGeoms[i].Flags = (D3D12_RAYTRACING_GEOMETRY_FLAGS)srcGeom.flags;
+                pGeoms[i].Triangles.Transform3x4 = srcGeom.triangles.transform3x4;
+                pGeoms[i].Triangles.IndexFormat = srcGeom.triangles.indexCount > 0
+                    ? (srcGeom.triangles.indexFormat == IndexType.UInt16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT)
+                    : DXGI_FORMAT_UNKNOWN;
+                pGeoms[i].Triangles.VertexFormat = srcGeom.triangles.vertexFormat.ToDXGIFormat();
+                pGeoms[i].Triangles.IndexCount = srcGeom.triangles.indexCount;
+                pGeoms[i].Triangles.VertexCount = srcGeom.triangles.vertexCount;
+                pGeoms[i].Triangles.IndexBuffer = srcGeom.triangles.indexCount > 0 ? srcGeom.triangles.indexBuffer : 0;
+                pGeoms[i].Triangles.VertexBuffer.StartAddress = srcGeom.triangles.vertexBuffer;
+                pGeoms[i].Triangles.VertexBuffer.StrideInBytes = srcGeom.triangles.vertexStride;
+            }
+
+            d3d12Inputs.pGeometryDescs = pGeoms;
+            NativeObject.Get()->GetRaytracingAccelerationStructurePrebuildInfo(&d3d12Inputs, &prebuildInfo);
+        }
+
+        return new AccelerationStructurePrebuildInfo
+        {
+            resultDataMaxSizeInBytes = prebuildInfo.ResultDataMaxSizeInBytes,
+            scratchDataSizeInBytes = prebuildInfo.ScratchDataSizeInBytes,
+            updateScratchDataSizeInBytes = prebuildInfo.UpdateScratchDataSizeInBytes
+        };
+    }
+
     protected override void Dispose(bool disposing)
     {
         _graphicsQueue.Dispose();

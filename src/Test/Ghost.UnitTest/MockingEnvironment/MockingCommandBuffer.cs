@@ -109,6 +109,11 @@ internal class MockingCommandBuffer : ICommandBuffer
         DispatchCallCount++;
     }
 
+    public void BuildRaytracingAccelerationStructure(scoped in BuildAccelerationStructureDesc desc)
+    {
+        _state.CommandCount++;
+    }
+
     public void DispatchGraph(scoped in DispatchGraphDesc desc)
     {
         _state.CommandCount++;

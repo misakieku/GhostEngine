@@ -60,7 +60,7 @@ internal class LightGatherSystem : ISystem
                     positionWS = posWS,
                     range = light.range,
                     color = light.color * light.intensity,
-                    lightTypeAndFlags = flags,
+                    lightTypeAndShadowSize = flags,
                     directionWS = dirWS,
                     spotAngleScale = spotAngleScale,
                     spotAngleOffset = spotAngleOffset,
@@ -70,7 +70,7 @@ internal class LightGatherSystem : ISystem
                     lightDimmer = lightDimmer,
                     diffuseDimmer = diffuseDimmer,
                     specularDimmer = specularDimmer,
-                    shadowDimmer = math.saturate(light.shadowDimmer),
+                    shadowDimmer = light.shadowSize > 0 ? math.saturate(light.shadowDimmer) : 0.0f,
                     fadeDistance = light.fadeDistance,
                 };
 

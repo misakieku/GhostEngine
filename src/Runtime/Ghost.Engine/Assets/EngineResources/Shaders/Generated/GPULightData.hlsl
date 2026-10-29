@@ -10,7 +10,7 @@ struct GPUPunctualLight
     float3 positionWS;
     float range;
     float3 color;
-    uint lightTypeAndFlags;
+    uint lightTypeAndShadowSize;
     float3 directionWS;
     float spotAngleScale;
     float4 size;

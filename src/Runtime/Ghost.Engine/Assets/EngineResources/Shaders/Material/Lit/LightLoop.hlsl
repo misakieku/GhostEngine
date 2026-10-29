@@ -19,7 +19,7 @@ DirectLighting ShadeSurface_Punctual(ShadingContext ctx, BSDFData bsdf, T strate
     if (light.lightDimmer > 0.0f && strategy.IsNonZeroBSDF(V, vector.L, bsdf))
     {
         float4 lightColor = EvaluateLight_Punctual(light, vector.L, vector.distance);
-        lightColor.rgb *= lightColor.a;
+        lightColor.rgb *= lightColor.a * light.lightDimmer;
 
         if (lightColor.a > 0.0f && light.shadowDimmer > 0.0f)
         {

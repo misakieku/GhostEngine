@@ -18,9 +18,9 @@ internal unsafe class D3D12WorkGraphProgram : D3D12Object<ID3D12StateObject>, IW
     private ProgramIdentifier _programIdentifier;
 
     private Handle<GPUBuffer> _backingMemory;
-    private ulong _backingMemoryAddress;
-    private ulong _backingMemorySize;
-    private uint _workGraphIndex;
+    private readonly ulong _backingMemoryAddress;
+    private readonly ulong _backingMemorySize;
+    private readonly uint _workGraphIndex;
 
     private bool _isInitialized;
 

@@ -1286,6 +1286,107 @@ public struct SetProgramDesc
     }
 }
 
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public unsafe struct RaytracingInstanceDesc
+{
+    // 3x4 row-major transform matrix (48 bytes)
+    public float transform00, transform01, transform02, transform03;
+    public float transform10, transform11, transform12, transform13;
+    public float transform20, transform21, transform22, transform23;
+
+    // Packed 24-bit InstanceID + 8-bit InstanceMask (4 bytes)
+    private uint _instanceIdAndMask;
+
+    // Packed 24-bit HitGroupIndex + 8-bit Flags (4 bytes)
+    private uint _contributionAndFlags;
+
+    // 64-bit GPU Virtual Address of BLAS (8 bytes)
+    public ulong accelerationStructure;
+
+    public uint InstanceID
+    {
+        readonly get => _instanceIdAndMask & 0x00FFFFFFu;
+        set => _instanceIdAndMask = (_instanceIdAndMask & 0xFF000000u) | (value & 0x00FFFFFFu);
+    }
+
+    public byte InstanceMask
+    {
+        readonly get => (byte)(_instanceIdAndMask >> 24);
+        set => _instanceIdAndMask = (_instanceIdAndMask & 0x00FFFFFFu) | ((uint)value << 24);
+    }
+
+    public uint HitGroupIndex
+    {
+        readonly get => _contributionAndFlags & 0x00FFFFFFu;
+        set => _contributionAndFlags = (_contributionAndFlags & 0xFF000000u) | (value & 0x00FFFFFFu);
+    }
+
+    public RaytracingInstanceFlags Flags
+    {
+        readonly get => (RaytracingInstanceFlags)(_contributionAndFlags >> 24);
+        set => _contributionAndFlags = (_contributionAndFlags & 0x00FFFFFFu) | ((uint)value << 24);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetTransform(in float4x4 localToWorld)
+    {
+        // Transpose the column-major matrix so rows hold (Basis.X, Basis.Y, Basis.Z, Translation)
+        var transposed = math.transpose(localToWorld);
+        // Copy the first 3 rows (12 floats = 48 bytes) into Transform
+        fixed (void* pDst = &transform00)
+        {
+            Unsafe.CopyBlock(pDst, &transposed, 48);
+        }
+    }
+}
+
+public struct RaytracingGeometryTrianglesDesc
+{
+    public ulong transform3x4;      // Optional GPU VA (0 if none)
+    public IndexType indexFormat;   // UInt16, UInt32, or None (non-indexed)
+    public TextureFormat vertexFormat; // Usually R32G32B32_Float
+    public uint indexCount;
+    public uint vertexCount;
+    public ulong indexBuffer;       // GPU VA
+    public ulong vertexBuffer;      // GPU VA
+    public uint vertexStride;
+}
+
+public struct RaytracingGeometryDesc
+{
+    public RaytracingGeometryType type;
+    public RaytracingGeometryFlags flags;
+    public RaytracingGeometryTrianglesDesc triangles;
+}
+
+public unsafe struct AccelerationStructureBuildInputs
+{
+    public AccelerationStructureType type;
+    public AccelerationStructureBuildFlags flags;
+    public uint numDescs; // Geometry count if BLAS, Instance count if TLAS
+
+    // For TLAS:
+    public ulong instanceDescs; // GPU Virtual Address of the RaytracingInstanceDesc array
+
+    // For BLAS:
+    public RaytracingGeometryDesc* pGeometries; // Pointer to geometries array
+}
+
+public struct AccelerationStructurePrebuildInfo
+{
+    public ulong resultDataMaxSizeInBytes;
+    public ulong scratchDataSizeInBytes;
+    public ulong updateScratchDataSizeInBytes;
+}
+
+public struct BuildAccelerationStructureDesc
+{
+    public ulong destinationAddress; // GPU VA of destination AS buffer
+    public ulong scratchAddress;     // GPU VA of scratch buffer
+    public ulong sourceAddress;      // Optional GPU VA for updates (0 for build)
+    public AccelerationStructureBuildInputs inputs;
+}
+
 public struct SwapChainDesc
 {
     public required uint Width
@@ -1619,6 +1720,7 @@ public enum BufferUsage
     Raw = 1 << 6,
     Upload = 1 << 8,
     Readback = 1 << 9,
+    AccelerationStructure = 1 << 10,
 }
 
 public enum IndexType
@@ -1707,4 +1809,45 @@ public enum SetWorkGraphFlags
 {
     None,
     Initialize
+}
+
+public enum AccelerationStructureType : byte
+{
+    TopLevel = 0,    // TLAS (Instances)
+    BottomLevel = 1, // BLAS (Geometries / Triangles)
+}
+
+[Flags]
+public enum AccelerationStructureBuildFlags : uint
+{
+    None = 0,
+    AllowUpdate = 1 << 0,
+    AllowCompaction = 1 << 1,
+    PreferFastTrace = 1 << 2,
+    PreferFastBuild = 1 << 3,
+    MinimizeMemory = 1 << 4,
+}
+
+public enum RaytracingGeometryType : byte
+{
+    Triangles = 0,
+    AABBs = 1,
+}
+
+[Flags]
+public enum RaytracingGeometryFlags : byte
+{
+    None = 0,
+    Opaque = 1 << 0,
+    NoDuplicateAnyHitInvocation = 1 << 1,
+}
+
+[Flags]
+public enum RaytracingInstanceFlags : byte
+{
+    None = 0,
+    TriangleCullDisable = 1 << 0,
+    TriangleFrontCounterClockwise = 1 << 1,
+    ForceOpaque = 1 << 2,
+    ForceNonOpaque = 1 << 3,
 }

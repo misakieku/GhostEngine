@@ -89,6 +89,12 @@ public interface ICommandBuffer : IRHIObject
     void EndRenderPass();
 
     /// <summary>
+    /// Records a build or update of a ray tracing acceleration structure (BLAS or TLAS).
+    /// </summary>
+    /// <param name="desc">The description of the acceleration structure build operation.</param>
+    void BuildRaytracingAccelerationStructure(scoped in BuildAccelerationStructureDesc desc);
+
+    /// <summary>
     /// Inserts multiple resource barriers.
     /// </summary>
     /// <param name="barrierDescs">Resource barrier descriptions</param>
@@ -152,6 +158,10 @@ public interface ICommandBuffer : IRHIObject
     /// <param name="offsetIn32Bits">The Offset, in 32-bit values, from the start of the root parameter where the constants will be set.</param>
     void SetComputeRoot32Constants(uint rootIndex, ReadOnlySpan<uint> constantBuffer, uint offsetIn32Bits = 0);
 
+    /// <summary>
+    /// Sets the program (shader) to be used for subsequent rendering operations.
+    /// </summary>
+    /// <param name="desc">The description of the program to set.</param>
     void SetProgram(scoped in SetProgramDesc desc);
 
     /// <summary>
@@ -194,6 +204,10 @@ public interface ICommandBuffer : IRHIObject
     /// </summary>
     void DispatchRay();
 
+    /// <summary>
+    /// Dispatches a gpu work graph.
+    /// </summary>
+    /// <param name="desc">The description of the work graph to dispatch.</param>
     void DispatchGraph(scoped in DispatchGraphDesc desc);
 
     /// <summary>

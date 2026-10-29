@@ -47,7 +47,7 @@ float4 EvaluateLight_Punctual(GPUPunctualLight light, float3 L, float4 distance)
     float smoothFactor = saturate(1.0f - factor * factor);
     float attenuation = (smoothFactor * smoothFactor) / max(distance.y, 0.0001f);
 
-    uint lightType = light.lightTypeAndFlags & 0xFu;
+    uint lightType = light.lightTypeAndShadowSize & 0xFu;
     if (lightType == GPULIGHT_TYPE_SPOT) // Spot = 1
     {
         // Spot cone attenuation
