@@ -118,6 +118,8 @@ public class AntlrShaderCompiler
             hlsl = syntax.Hlsl?.Code
         };
 
+        ConvertKeywords(syntax.Keywords, semantics.keywordGroups);
+
         if (syntax.Properties != null)
         {
             foreach (var prop in syntax.Properties.Properties)
@@ -287,6 +289,8 @@ public class AntlrShaderCompiler
             localPipeline = ConvertPipeline(pass.LocalPipeline, errors)
         };
 
+        ConvertKeywords(pass.Keywords, semantic.keywordGroups);
+
 
         foreach (var entry in pass.ShaderEntries)
         {
@@ -356,6 +360,8 @@ public class AntlrShaderCompiler
             pipeline = ConvertPipeline(syntax.Pipeline, errors)
         };
 
+        ConvertKeywords(syntax.Keywords, semantics.keywordGroups);
+
         if (syntax.Properties != null)
         {
             foreach (var prop in syntax.Properties.Properties)
@@ -412,6 +418,28 @@ public class AntlrShaderCompiler
         }
 
         return semantics;
+    }
+
+    private static void ConvertKeywords(KeywordsBlockSyntax? keywords, List<KeywordGroupDef> dst)
+    {
+        if (keywords == null)
+        {
+            return;
+        }
+
+        foreach (var group in keywords.Groups)
+        {
+            if (group.Keywords.Count == 0)
+            {
+                continue;
+            }
+
+            dst.Add(new KeywordGroupDef
+            {
+                Name = string.IsNullOrEmpty(group.Name) ? group.Keywords[0] : group.Name,
+                Keywords = group.Keywords.ToArray(),
+            });
+        }
     }
 
     private class ErrorListener : BaseErrorListener, IAntlrErrorListener<int>, IAntlrErrorListener<IToken>

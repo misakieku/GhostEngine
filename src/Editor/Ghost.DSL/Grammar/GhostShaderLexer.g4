@@ -10,6 +10,7 @@ INCLUDES: 'includes';
 PROPERTIES: 'properties';
 HLSL: 'hlsl';
 STRATEGY: 'strategy';
+KEYWORDS: 'keywords';
 
 // Punctuation
 LBRACE: '{';

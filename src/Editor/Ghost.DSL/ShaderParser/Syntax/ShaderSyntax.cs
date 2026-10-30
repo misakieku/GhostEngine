@@ -8,6 +8,7 @@ public class GraphicsShaderSyntax
     public IncludesBlockSyntax? Includes { get; set; }
     public HlslBlockSyntax? Hlsl { get; set; }
     public PipelineBlockSyntax? Pipeline { get; set; }
+    public KeywordsBlockSyntax? Keywords { get; set; }
     public List<PassBlockSyntax> Passes { get; set; } = new();
     public List<StrategyBlockSyntax> Strategies { get; set; } = new();
     public List<FunctionCallSyntax> FunctionCalls { get; set; } = new();
@@ -28,6 +29,7 @@ public class ComputeShaderSyntax
     public DefinesBlockSyntax? Defines { get; set; }
     public IncludesBlockSyntax? Includes { get; set; }
     public HlslBlockSyntax? Hlsl { get; set; }
+    public KeywordsBlockSyntax? Keywords { get; set; }
     public List<FunctionCallSyntax> FunctionCalls { get; set; } = new();
     public List<ShaderEntrySyntax> ShaderEntries { get; set; } = new();
 }
@@ -56,7 +58,19 @@ public class PassBlockSyntax
     public DefinesBlockSyntax? Defines { get; set; }
     public IncludesBlockSyntax? Includes { get; set; }
     public HlslBlockSyntax? Hlsl { get; set; }
+    public KeywordsBlockSyntax? Keywords { get; set; }
     public List<ShaderEntrySyntax> ShaderEntries { get; set; } = new();
+}
+
+public class KeywordsBlockSyntax
+{
+    public List<KeywordGroupSyntax> Groups { get; set; } = new();
+}
+
+public class KeywordGroupSyntax
+{
+    public string Name { get; set; } = string.Empty;
+    public List<string> Keywords { get; set; } = new();
 }
 
 public class DefinesBlockSyntax

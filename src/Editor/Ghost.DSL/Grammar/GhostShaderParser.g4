@@ -13,7 +13,7 @@ shader:
     RBRACE;
 
 shaderBody:
-    (propertiesBlock | includesBlock | pipelineBlock | hlslBlock | strategyBlock | passBlock | functionCall)*;
+    (propertiesBlock | includesBlock | pipelineBlock | hlslBlock | strategyBlock | passBlock | keywordsBlock | functionCall)*;
 
 // Properties block
 propertiesBlock:
@@ -53,7 +53,18 @@ passBlock:
 
 // Template
 passBody:
-    (definesBlock | includesBlock | pipelineBlock | hlslBlock | shaderEntry)*;
+    (definesBlock | includesBlock | pipelineBlock | hlslBlock | keywordsBlock | shaderEntry)*;
+
+keywordsBlock:
+    KEYWORDS LBRACE
+        keywordStatement*
+    RBRACE;
+
+keywordStatement:
+    (groupName=IDENTIFIER COLON)? keywordItem (COMMA keywordItem)* SEMICOLON;
+
+keywordItem:
+    IDENTIFIER;
 
 definesBlock:
     DEFINES LBRACE

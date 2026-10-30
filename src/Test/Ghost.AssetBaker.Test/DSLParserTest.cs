@@ -247,4 +247,116 @@ shader ""Hidden/Blit""
         Assert.HasCount(1, semantics.passes);
     }
 #endif
+
+    [TestMethod]
+    public void TestParseGraphicsShader_WithKeywords()
+    {
+        var shaderSource = @"
+shader ""Custom/KeywordsTest""
+{
+    keywords
+    {
+        GLOBAL_FEATURE: _GLOBAL_A, _GLOBAL_B;
+    }
+
+    pass ""Forward""
+    {
+        keywords
+        {
+            SHADOW_MODE: _SHADOW_PCF, _SHADOW_VSM, _SHADOW_RIS;
+            _DEBUG_OVERLAY;
+        }
+
+        hlsl
+        {
+            void MSMain() {}
+            float4 PSMain() : SV_TARGET { return 0; }
+        }
+
+        ms ""hlsl_block"" : ""MSMain"";
+        ps ""hlsl_block"" : ""PSMain"";
+    }
+}
+";
+
+        var syntaxResult = DSLShaderCompiler.ParseGraphicsShaderSyntax(shaderSource);
+        Assert.IsTrue(syntaxResult.IsSuccess, $"Failed to parse syntax: {syntaxResult.Message}");
+
+        var syntax = syntaxResult.Value;
+        Assert.IsNotNull(syntax.Keywords);
+        Assert.HasCount(1, syntax.Keywords.Groups);
+        Assert.AreEqual("GLOBAL_FEATURE", syntax.Keywords.Groups[0].Name);
+
+        Assert.HasCount(1, syntax.Passes);
+        var passSyntax = syntax.Passes[0];
+        Assert.IsNotNull(passSyntax.Keywords);
+        Assert.HasCount(2, passSyntax.Keywords.Groups);
+        Assert.AreEqual("SHADOW_MODE", passSyntax.Keywords.Groups[0].Name);
+        Assert.HasCount(3, passSyntax.Keywords.Groups[0].Keywords);
+        Assert.AreEqual("_DEBUG_OVERLAY", passSyntax.Keywords.Groups[1].Name);
+        Assert.HasCount(1, passSyntax.Keywords.Groups[1].Keywords);
+
+        var semanticsResult = DSLShaderCompiler.GetShaderSemantics(syntax);
+        Assert.IsTrue(semanticsResult.IsSuccess, $"Failed to get semantics: {semanticsResult.Message}");
+
+        var descriptorResult = DSLShaderCompiler.ResolveShader(semanticsResult.Value);
+        Assert.IsTrue(descriptorResult.IsSuccess, $"Failed to resolve shader: {descriptorResult.Message}");
+
+        var descriptor = descriptorResult.Value;
+        Assert.HasCount(1, descriptor.Passes);
+        var passDesc = descriptor.Passes[0];
+        // 1 global group + 2 pass groups = 3 groups combined
+        Assert.HasCount(3, passDesc.keywordGroups);
+        Assert.AreEqual("GLOBAL_FEATURE", passDesc.keywordGroups[0].Name);
+        Assert.AreEqual("SHADOW_MODE", passDesc.keywordGroups[1].Name);
+        CollectionAssert.AreEqual(new[] { "_SHADOW_PCF", "_SHADOW_VSM", "_SHADOW_RIS" }, passDesc.keywordGroups[1].Keywords);
+        Assert.AreEqual("_DEBUG_OVERLAY", passDesc.keywordGroups[2].Name);
+        CollectionAssert.AreEqual(new[] { "_DEBUG_OVERLAY" }, passDesc.keywordGroups[2].Keywords);
+    }
+
+    [TestMethod]
+    public void TestParseComputeShader_WithKeywords()
+    {
+        var computeSource = @"
+compute ""Custom/ComputeKeywordsTest""
+{
+    keywords
+    {
+        CULL_MODE: _CULL_FRUSTUM, _CULL_HZB;
+        _INDIRECT_DISPATCH;
+    }
+
+    hlsl
+    {
+        void CSMain() {}
+    }
+
+    cs ""hlsl_block"" : ""CSMain"";
+}
+";
+
+        var syntaxResult = DSLShaderCompiler.ParseComputeShaderSyntax(computeSource);
+        Assert.IsTrue(syntaxResult.IsSuccess, $"Failed to parse syntax: {syntaxResult.Message}");
+
+        var syntax = syntaxResult.Value;
+        Assert.IsNotNull(syntax.Keywords);
+        Assert.HasCount(2, syntax.Keywords.Groups);
+        Assert.AreEqual("CULL_MODE", syntax.Keywords.Groups[0].Name);
+        CollectionAssert.AreEqual(new[] { "_CULL_FRUSTUM", "_CULL_HZB" }, syntax.Keywords.Groups[0].Keywords);
+        Assert.AreEqual("_INDIRECT_DISPATCH", syntax.Keywords.Groups[1].Name);
+        CollectionAssert.AreEqual(new[] { "_INDIRECT_DISPATCH" }, syntax.Keywords.Groups[1].Keywords);
+
+        var semanticsResult = DSLShaderCompiler.GetShaderSemantics(syntax);
+        Assert.IsTrue(semanticsResult.IsSuccess, $"Failed to get semantics: {semanticsResult.Message}");
+
+        var descriptorResult = DSLShaderCompiler.ResolveShader(semanticsResult.Value);
+        Assert.IsTrue(descriptorResult.IsSuccess, $"Failed to resolve compute shader: {descriptorResult.Message}");
+
+        var descriptor = descriptorResult.Value;
+        Assert.HasCount(2, descriptor.KeywordGroups);
+        Assert.AreEqual("CULL_MODE", descriptor.KeywordGroups[0].Name);
+        CollectionAssert.AreEqual(new[] { "_CULL_FRUSTUM", "_CULL_HZB" }, descriptor.KeywordGroups[0].Keywords);
+        Assert.AreEqual("_INDIRECT_DISPATCH", descriptor.KeywordGroups[1].Name);
+        CollectionAssert.AreEqual(new[] { "_INDIRECT_DISPATCH" }, descriptor.KeywordGroups[1].Keywords);
+    }
 }

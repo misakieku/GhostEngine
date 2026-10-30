@@ -42,6 +42,7 @@ public class ShaderPassSemantic
     public List<string>? defines;
     public List<string>? includes;
     public PipelineSemantic? localPipeline;
+    public List<KeywordGroupDef> keywordGroups = new();
 }
 
 public class GraphicsShaderSemantics
@@ -53,6 +54,7 @@ public class GraphicsShaderSemantics
     public List<PropertySemantic> properties = new List<PropertySemantic>();
     public List<string> includes = new List<string>();
     public PipelineSemantic? pipeline;
+    public List<KeywordGroupDef> keywordGroups = new();
     public List<ShaderPassSemantic> passes = new List<ShaderPassSemantic>();
     public Dictionary<string, StrategySemantic> strategies = new(StringComparer.OrdinalIgnoreCase);
 }
@@ -72,5 +74,6 @@ public class ComputeShaderSemantics
     public List<PropertySemantic> properties = new List<PropertySemantic>();
     public List<string> defines = new List<string>();
     public List<string> includes = new List<string>();
+    public List<KeywordGroupDef> keywordGroups = new();
     public List<ShaderEntryPoint> entryPoints = new List<ShaderEntryPoint>();
 }

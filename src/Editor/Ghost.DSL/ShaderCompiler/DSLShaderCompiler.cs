@@ -355,6 +355,10 @@ public static class DSLShaderCompiler
                 stageMask |= ShaderStageMask.Pixel;
             }
 
+            var combinedKeywords = (semantics.keywordGroups ?? new List<KeywordGroupDef>())
+                .Concat(pass.keywordGroups ?? new List<KeywordGroupDef>())
+                .ToArray();
+
             passes[i] = new PassDescriptor
             {
                 name = pass.name,
@@ -365,7 +369,7 @@ public static class DSLShaderCompiler
                 meshShaderCode = meshShaderCode,
                 pixelShaderCode = pixelShaderCode,
                 defines = pass.defines?.ToArray() ?? Array.Empty<string>(),
-                keywordGroups = Array.Empty<KeywordGroupDef>(),
+                keywordGroups = combinedKeywords,
             };
         }
 
@@ -443,6 +447,7 @@ public static class DSLShaderCompiler
             PropertyBufferSize = propertyBufferSize,
             ShaderCodes = shaderCodes,
             Defines = semantics.defines?.ToArray() ?? Array.Empty<string>(),
+            KeywordGroups = semantics.keywordGroups?.ToArray() ?? Array.Empty<KeywordGroupDef>(),
         };
     }
 }

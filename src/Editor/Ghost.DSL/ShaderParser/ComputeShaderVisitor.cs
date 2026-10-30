@@ -56,9 +56,48 @@ internal class ComputeShaderVisitor : GhostComputeShaderParserBaseVisitor<object
             {
                 compute.ShaderEntries.Add((ShaderEntrySyntax)VisitComputeEntry(computeEntry));
             }
+
+            foreach (var kwBlock in computeBody.keywordsBlock())
+            {
+                compute.Keywords = (KeywordsBlockSyntax)VisitKeywordsBlock(kwBlock);
+            }
         }
 
         return compute;
+    }
+
+    public override object VisitKeywordsBlock([NotNull] GhostComputeShaderParser.KeywordsBlockContext context)
+    {
+        var keywords = new KeywordsBlockSyntax();
+
+        foreach (var statement in context.keywordStatement())
+        {
+            var group = (KeywordGroupSyntax)VisitKeywordStatement(statement);
+            keywords.Groups.Add(group);
+        }
+
+        return keywords;
+    }
+
+    public override object VisitKeywordStatement([NotNull] GhostComputeShaderParser.KeywordStatementContext context)
+    {
+        var group = new KeywordGroupSyntax();
+
+        foreach (var item in context.keywordItem())
+        {
+            group.Keywords.Add(item.IDENTIFIER().GetText());
+        }
+
+        if (context.groupName != null)
+        {
+            group.Name = context.groupName.Text;
+        }
+        else if (group.Keywords.Count > 0)
+        {
+            group.Name = group.Keywords[0];
+        }
+
+        return group;
     }
 
     public override object VisitDefinesBlock([NotNull] GhostComputeShaderParser.DefinesBlockContext context)

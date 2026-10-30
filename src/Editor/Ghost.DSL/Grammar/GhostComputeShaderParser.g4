@@ -13,7 +13,18 @@ compute:
     RBRACE;
 
 computeBody:
-    (propertiesBlock | definesBlock | includesBlock | hlslBlock | computeEntry | functionCall)*;
+    (propertiesBlock | definesBlock | includesBlock | hlslBlock | keywordsBlock | computeEntry | functionCall)*;
+
+keywordsBlock:
+    KEYWORDS LBRACE
+        keywordStatement*
+    RBRACE;
+
+keywordStatement:
+    (groupName=IDENTIFIER COLON)? keywordItem (COMMA keywordItem)* SEMICOLON;
+
+keywordItem:
+    IDENTIFIER;
 
 // Properties block
 propertiesBlock:

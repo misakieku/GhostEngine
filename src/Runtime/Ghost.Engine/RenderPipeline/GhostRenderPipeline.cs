@@ -167,21 +167,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             }
 
             var viewBuffer = RenderPipelineUtility.CreateViewDataBuffer(ctx, request, renderView, viewMatrix, projMatrix, viewProjMatrix, frustum, ref viewContext.prevViewProjMatrix, ref viewContext.prevCameraPosition);
-
-            var viewKeywords = KeywordMask128.Empty;
-            switch (_settings.ShadowMode)
-            {
-                case PipelineShadowMode.VSM:
-                    viewKeywords = viewKeywords.Set(s_kwShadowVSM.Id);
-                    break;
-                case PipelineShadowMode.RIS:
-                    viewKeywords = viewKeywords.Set(s_kwShadowRIS.Id);
-                    break;
-                default:
-                    viewKeywords = viewKeywords.Set(s_kwShadowPCF.Id);
-                    break;
-            }
-
+            var viewKeywords = BuildViewKeywords();
             var renderGraph = viewContext.RenderGraph;
 
             renderGraph.BeginRecord(viewKeywords);
@@ -232,6 +218,25 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         }
 
         return Result.Success();
+    }
+
+    private KeywordMask128 BuildViewKeywords()
+    {
+        var viewKeywords = KeywordMask128.Empty;
+        switch (_settings.ShadowMode)
+        {
+            case PipelineShadowMode.VSM:
+                viewKeywords = viewKeywords.Set(s_kwShadowVSM.Id);
+                break;
+            case PipelineShadowMode.RIS:
+                viewKeywords = viewKeywords.Set(s_kwShadowRIS.Id);
+                break;
+            case PipelineShadowMode.PCF:
+                viewKeywords = viewKeywords.Set(s_kwShadowPCF.Id);
+                break;
+        }
+
+        return viewKeywords;
     }
 
     private void AddCullingAndVbufferPasses(GPUViewContext viewContext, uint instanceCount, Identifier<RGTexture> hzbTexture, uint sceneBuffer,

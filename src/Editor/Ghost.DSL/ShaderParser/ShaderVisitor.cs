@@ -59,6 +59,11 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
                 shader.Strategies.Add((StrategyBlockSyntax)VisitStrategyBlock(stratBlock));
             }
 
+            foreach (var kwBlock in shaderBody.keywordsBlock())
+            {
+                shader.Keywords = (KeywordsBlockSyntax)VisitKeywordsBlock(kwBlock);
+            }
+
             foreach (var funcCall in shaderBody.functionCall())
             {
                 shader.FunctionCalls.Add((FunctionCallSyntax)VisitFunctionCall(funcCall));
@@ -134,9 +139,48 @@ public class ShaderVisitor : GhostShaderParserBaseVisitor<object>
             {
                 pass.ShaderEntries.Add((ShaderEntrySyntax)VisitShaderEntry(shaderEntry));
             }
+
+            foreach (var kwBlock in passBody.keywordsBlock())
+            {
+                pass.Keywords = (KeywordsBlockSyntax)VisitKeywordsBlock(kwBlock);
+            }
         }
 
         return pass;
+    }
+
+    public override object VisitKeywordsBlock([NotNull] GhostShaderParser.KeywordsBlockContext context)
+    {
+        var keywords = new KeywordsBlockSyntax();
+
+        foreach (var statement in context.keywordStatement())
+        {
+            var group = (KeywordGroupSyntax)VisitKeywordStatement(statement);
+            keywords.Groups.Add(group);
+        }
+
+        return keywords;
+    }
+
+    public override object VisitKeywordStatement([NotNull] GhostShaderParser.KeywordStatementContext context)
+    {
+        var group = new KeywordGroupSyntax();
+
+        foreach (var item in context.keywordItem())
+        {
+            group.Keywords.Add(item.IDENTIFIER().GetText());
+        }
+
+        if (context.groupName != null)
+        {
+            group.Name = context.groupName.Text;
+        }
+        else if (group.Keywords.Count > 0)
+        {
+            group.Name = group.Keywords[0];
+        }
+
+        return group;
     }
 
     public override object VisitDefinesBlock([NotNull] GhostShaderParser.DefinesBlockContext context)
