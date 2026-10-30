@@ -299,6 +299,7 @@ public class BakeService
                 {
                     stream.Dispose();
                 }
+
                 subAssetStreams.Clear();
             }
 

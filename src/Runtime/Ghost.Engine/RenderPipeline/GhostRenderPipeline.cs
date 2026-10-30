@@ -3,7 +3,6 @@ using Ghost.Core.Graphics;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Utilities;
 using Ghost.Graphics;
-using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
@@ -107,18 +106,18 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         return new GhostRenderPayload(this);
     }
 
-    public void RecordPrelude(RenderContext ctx, int frameIndex, IRenderPayload payload)
+    public void RecordPrelude(scoped in RenderContext ctx, ICommandBuffer commandBuffer, int frameIndex, IRenderPayload payload)
     {
         var ghostPayload = (GhostRenderPayload)payload;
 
-        ctx.ResourceManager.UploadMaterials(ctx);
-        ctx.ResourceManager.UploadMaterialPaletteData(ctx);
+        ctx.ResourceManager.UploadMaterials(ctx, commandBuffer);
+        ctx.ResourceManager.UploadMaterialPaletteData(ctx, commandBuffer);
 
         // Update GPU scene instance buffer once per frame prelude
-        UpdateGPUScene(ctx, ghostPayload);
+        UpdateGPUScene(ctx, commandBuffer, ghostPayload);
     }
 
-    public Result ExecuteGraph(ResourceContext ctx, int frameIndex, IRenderPayload payload, in RenderGraphExecutionContext executionContext)
+    public Result ExecuteGraph(scoped in ResourceContext ctx, int frameIndex, IRenderPayload payload, in RenderGraphExecutionContext executionContext)
     {
         var ghostPayload = (GhostRenderPayload)payload;
         if (_lastRenderRequestCount != ghostPayload.RenderRequests.Length || _lastInstanceCount != ghostPayload.InstanceCount)
@@ -195,13 +194,13 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
             var litColor = AddDeferredLightingPass(
                 renderGraph, gbuffer, currentDepth, tileLightList, shadowAtlas, shadowViewsBufferSrv, shadowIndicesBufferSrv, tileShadingModelMaskBuffer,
-                in skyContext, request.viewId, viewContext.RenderSize);
+                in skyContext, historyHzb, viewContext.HzbMipCount, viewContext.HzbSize, request.viewId, viewContext.RenderSize);
 
             AddSkyPass(renderGraph, in skyContext, litColor, currentDepth);
 
             renderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
 
-            var result = renderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.GenerateDump);
+            var result = renderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.Default);
             if (result.IsFailure)
             {
                 return Result.Failure($"Render graph execution failed: {result.Error}");

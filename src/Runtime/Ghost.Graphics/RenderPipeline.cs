@@ -48,13 +48,14 @@ public interface IRenderPipeline : IDisposable
     IRenderPayload CreatePayload();
 
     /// <summary>
-    /// Records pre-graph commands into the open <see cref="RenderContext.CommandBuffer"/> (the frame prelude).
+    /// Records pre-graph commands into the open <see cref="RenderContext.GraphicsCommandBuffer"/> (the frame prelude).
     /// The command buffer must be open when this is called; the outer frame owns Begin, End, and submission.
     /// </summary>
     /// <param name="ctx">The render context for the current frame.</param>
+    /// <param name="commandBuffer">The command buffer to record commands into.</param>
     /// <param name="frameIndex">The index of the current frame.</param>
     /// <param name="payload">The payload containing the render requests for the current frame.</param>
-    void RecordPrelude(RenderContext ctx, int frameIndex, IRenderPayload payload);
+    void RecordPrelude(scoped in RenderContext ctx, ICommandBuffer commandBuffer, int frameIndex, IRenderPayload payload);
 
     /// <summary>
     /// Compiles and executes the render graph, submitting its native command buffers through the
@@ -65,7 +66,7 @@ public interface IRenderPipeline : IDisposable
     /// <param name="payload">The payload containing the render requests for the current frame.</param>
     /// <param name="executionContext">The execution context containing the frame scheduler and command allocators.</param>
     /// <returns>The result of the graph execution.</returns>
-    Result ExecuteGraph(ResourceContext ctx, int frameIndex, IRenderPayload payload, in RenderGraphExecutionContext executionContext);
+    Result ExecuteGraph(scoped in ResourceContext ctx, int frameIndex, IRenderPayload payload, in RenderGraphExecutionContext executionContext);
 }
 
 public readonly ref struct RenderViewData : IDisposable

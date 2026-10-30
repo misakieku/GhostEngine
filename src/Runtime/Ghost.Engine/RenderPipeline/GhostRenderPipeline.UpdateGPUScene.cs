@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
+using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
@@ -130,9 +131,9 @@ internal partial class GhostRenderPipeline
         public Handle<ComputeShader> updateGPUSceneShader;
     }
 
-    private void UpdateGPUScene(RenderContext ctx, GhostRenderPayload payload)
+    private void UpdateGPUScene(RenderContext ctx, ICommandBuffer commandBuffer, GhostRenderPayload payload)
     {
-        _gpuScene.ResizeIfNeeded(ctx.CommandBuffer, payload.InstanceCount);
+        _gpuScene.ResizeIfNeeded(commandBuffer, payload.InstanceCount);
 
         if (!_gpuSceneResource.updateGPUSceneShader.IsValid)
         {
@@ -172,9 +173,9 @@ internal partial class GhostRenderPipeline
         var maxCount = Math.Max(updateCount, removeCount);
         var threadGroups = new uint3((uint)Math.Ceiling(maxCount / 64.0), 1, 1);
 
-        ctx.DispatchCompute(_gpuSceneResource.updateGPUSceneShader, 0, in property, threadGroups);
+        ctx.DispatchCompute(commandBuffer, _gpuSceneResource.updateGPUSceneShader, 0, in property, threadGroups);
 
-        ctx.CommandBuffer.Barrier(BarrierDesc.Buffer(
+        commandBuffer.Barrier(BarrierDesc.Buffer(
             _gpuScene.SceneBuffer,
             BarrierSync.ComputeShading,
             BarrierSync.AllShading,

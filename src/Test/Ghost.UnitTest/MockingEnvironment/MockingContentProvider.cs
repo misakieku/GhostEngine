@@ -189,6 +189,15 @@ internal class MockingContentProvider : IContentProvider
         header.rootPageSize = stream.Position - header.rootPageOffset;
         header.materialPartOffset = stream.Position; stream.Write(materialParts); header.materialPartSize = sizeof(MeshContentMaterialPart);
 
+        var proxyPositions = new float3[] { new float3(0, 0, 0), new float3(1, 0, 0), new float3(0, 1, 0) };
+        var proxyIndices = new uint[] { 0, 1, 2 };
+        header.rayTracingProxyOffset = stream.Position;
+        header.rayTracingProxyVertexCount = proxyPositions.Length;
+        header.rayTracingProxyIndexCount = proxyIndices.Length;
+        stream.Write(proxyPositions);
+        stream.Write(proxyIndices);
+        header.rayTracingProxySize = stream.Position - header.rayTracingProxyOffset;
+
         pageDirectory[0].fileOffset = (ulong)header.rootPageOffset;
         var endPos = stream.Position;
         stream.Position = pageDirPos;

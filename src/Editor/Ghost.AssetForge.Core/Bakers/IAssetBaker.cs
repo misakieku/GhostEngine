@@ -41,7 +41,7 @@ public struct AssetBakerContext()
 
     public readonly IReadOnlyCollection<string> Dependencies => _dependencies;
 
-    public void AddDependency(string filePath)
+    public readonly void AddDependency(string filePath)
     {
         if (!string.IsNullOrWhiteSpace(filePath))
         {
@@ -49,7 +49,7 @@ public struct AssetBakerContext()
         }
     }
 
-    internal void ResetDependencies()
+    internal readonly void ResetDependencies()
     {
         _dependencies.Clear();
     }
@@ -68,7 +68,7 @@ public struct AssetBakerContext()
         return stream;
     }
 
-    internal void ResetSubAssets()
+    internal readonly void ResetSubAssets()
     {
         _subAssets.Clear();
     }

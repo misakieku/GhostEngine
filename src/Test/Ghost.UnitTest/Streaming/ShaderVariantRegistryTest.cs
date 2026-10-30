@@ -22,11 +22,14 @@ public sealed class ShaderVariantRegistryTest
             CreateEntry(secondAsset, "MyLit", familyId, PassSemantic.Forward, PassSemantic.Shadow),
         };
 
+        using var engine = new MockingGraphicsEngine();
         using var renderDevice = new MockingRenderDevice();
         using var resourceDatabase = new MockingResourceDatabase();
+        using var pipelineLibrary = new MockingPipelineLibrary();
         using var resourceAllocator = new MockingResourceAllocator(resourceDatabase);
+        using var shaderLibrary = new ShaderLibrary(null, pipelineLibrary, null);
         using var resourceManager = new ResourceManager(renderDevice, resourceAllocator, resourceDatabase);
-        using var registry = new ShaderVariantRegistry(resourceManager, catalog);
+        using var registry = new ShaderVariantRegistry(engine, pipelineLibrary, shaderLibrary, resourceManager, catalog);
 
         Assert.AreEqual(2, registry.Count);
         Assert.IsTrue(registry.TryGetVariantIndex(firstAsset, out var firstIndex));
@@ -77,11 +80,14 @@ public sealed class ShaderVariantRegistryTest
             CreateEntry(assetId, "ReloadableLit", ShaderIdentity.GetShaderId("Lit"), PassSemantic.Forward),
         };
 
+        using var engine = new MockingGraphicsEngine();
         using var renderDevice = new MockingRenderDevice();
         using var resourceDatabase = new MockingResourceDatabase();
+        using var pipelineLibrary = new MockingPipelineLibrary();
         using var resourceAllocator = new MockingResourceAllocator(resourceDatabase);
+        using var shaderLibrary = new ShaderLibrary(null, pipelineLibrary, null);
         using var resourceManager = new ResourceManager(renderDevice, resourceAllocator, resourceDatabase);
-        using var registry = new ShaderVariantRegistry(resourceManager, catalog);
+        using var registry = new ShaderVariantRegistry(engine, pipelineLibrary, shaderLibrary, resourceManager, catalog);
 
         Assert.IsTrue(registry.TryGetVariantIndex(assetId, out var index));
         var handle = registry.GetVariant(index).Shader;
@@ -110,11 +116,14 @@ public sealed class ShaderVariantRegistryTest
             CreateEntryWithShadingModel(thirdAsset, "CustomLit", familyId, 2u, PassSemantic.DeferredLighting),
         };
 
+        using var engine = new MockingGraphicsEngine();
         using var renderDevice = new MockingRenderDevice();
         using var resourceDatabase = new MockingResourceDatabase();
+        using var pipelineLibrary = new MockingPipelineLibrary();
         using var resourceAllocator = new MockingResourceAllocator(resourceDatabase);
+        using var shaderLibrary = new ShaderLibrary(null, pipelineLibrary, null);
         using var resourceManager = new ResourceManager(renderDevice, resourceAllocator, resourceDatabase);
-        using var registry = new ShaderVariantRegistry(resourceManager, catalog);
+        using var registry = new ShaderVariantRegistry(engine, pipelineLibrary, shaderLibrary, resourceManager, catalog);
 
         var dispatchVariants = registry.GetDispatchVariants(PassSemantic.DeferredLighting);
         Assert.AreEqual(2, dispatchVariants.Length);
@@ -154,11 +163,14 @@ public sealed class ShaderVariantRegistryTest
             CreateEntryWithBytecode(thirdAsset, "CustomLit", familyId, customBytecode, PassSemantic.Visibility),
         };
 
+        using var engine = new MockingGraphicsEngine();
         using var renderDevice = new MockingRenderDevice();
         using var resourceDatabase = new MockingResourceDatabase();
+        using var pipelineLibrary = new MockingPipelineLibrary();
         using var resourceAllocator = new MockingResourceAllocator(resourceDatabase);
+        using var shaderLibrary = new ShaderLibrary(null, pipelineLibrary, null);
         using var resourceManager = new ResourceManager(renderDevice, resourceAllocator, resourceDatabase);
-        using var registry = new ShaderVariantRegistry(resourceManager, catalog);
+        using var registry = new ShaderVariantRegistry(engine, pipelineLibrary, shaderLibrary, resourceManager, catalog);
 
         var dispatchVariants = registry.GetDispatchVariants(PassSemantic.Visibility);
         Assert.AreEqual(2, dispatchVariants.Length);

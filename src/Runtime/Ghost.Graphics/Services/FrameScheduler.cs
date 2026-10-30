@@ -52,6 +52,7 @@ public sealed class FrameScheduler : IDisposable
     private UnsafeArray<ulong> _lastWaitedFenceValues;
 
     private readonly List<SubmissionRecord> _submissions;
+    private readonly HashSet<ICommandBuffer> _unsubmittedCommandBuffers;
 
     private UnsafeArray<int> _indegrees;
     private UnsafeArray<int> _executionOrder;
@@ -94,6 +95,7 @@ public sealed class FrameScheduler : IDisposable
         _lastWaitedFenceValues = new UnsafeArray<ulong>(QUEUE_COUNT * QUEUE_COUNT, AllocationHandle.Persistent, AllocationOption.Clear);
 
         _submissions = new List<SubmissionRecord>(16);
+        _unsubmittedCommandBuffers = new HashSet<ICommandBuffer>(8);
 
         _indegrees = new UnsafeArray<int>();
         _executionOrder = new UnsafeArray<int>();
@@ -123,12 +125,15 @@ public sealed class FrameScheduler : IDisposable
 #if DEBUG
         cmd.Name = $"FrameScheduler_{type}_Cmd_{_debugCmdIndex++}";
 #endif
+        _unsubmittedCommandBuffers.Add(cmd);
         return cmd;
     }
 
     public void ReturnPooledCommandBuffer(ICommandBuffer commandBuffer)
     {
         ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(commandBuffer);
+        _unsubmittedCommandBuffers.Remove(commandBuffer);
         _graphicsEngine.ReturnPooledCommandBuffer(commandBuffer);
     }
 
@@ -218,6 +223,8 @@ public sealed class FrameScheduler : IDisposable
         {
             throw new InvalidOperationException("A command buffer must be ended before it is submitted to the frame scheduler.");
         }
+
+        _unsubmittedCommandBuffers.Remove(commandBuffer);
 
         var queueType = GetQueueType(commandBuffer.Type);
         var queueIndex = GetQueueIndex(queueType);
@@ -628,6 +635,12 @@ public sealed class FrameScheduler : IDisposable
 
     private void ResetPendingState()
     {
+        foreach (var cmd in _unsubmittedCommandBuffers)
+        {
+            _graphicsEngine.ReturnPooledCommandBuffer(cmd);
+        }
+        _unsubmittedCommandBuffers.Clear();
+
         _submissions.Clear();
         _dependencies.Clear();
         for (var i = 0; i < QUEUE_COUNT; i++)
@@ -688,6 +701,12 @@ public sealed class FrameScheduler : IDisposable
         }
         finally
         {
+            foreach (var cmd in _unsubmittedCommandBuffers)
+            {
+                _graphicsEngine.ReturnPooledCommandBuffer(cmd);
+            }
+            _unsubmittedCommandBuffers.Clear();
+
             for (var i = 0; i < QUEUE_COUNT; i++)
             {
                 _fences[i].Dispose();

@@ -216,6 +216,7 @@ Use public fields only for data-container structs. Prefer private field + public
 - Use `Misaki.HighPerformance.*` allocation APIs (`AllocationManager`, `UnsafeList<T>`, `UnsafeHashMap<T,V>`, etc.) for long-lived unmanaged buffers. Note: `UnsafeList<T>.Resize` only adjusts capacity, not element count; use `list.UnsafeSetCount(newCount)` when populating memory directly via pointers/`MemCpy`, or `Add`/`AddRange`.
 - All runtime/ECS types must be AOT-compatible and trimmable (`<IsAotCompatible>True</IsAotCompatible>`, `<IsTrimmable>True</IsTrimmable>` in Release)
 - Avoid LINQ in hot paths; use `for` loops or `foreach` over `Span<T>`
+- Prefer unsafe collection types over managed collection types if T is unmanaged.
 
 ### Source Generators &amp; Attributes
 

@@ -197,8 +197,8 @@ internal interface IProcessableAssetEntry : IAssetEntry
 
 internal interface IUploadableAssetEntry : IAssetEntry
 {
-    Result OnRecordUploadCommands(in ResourceStreamingContext context);
-    void OnUploadComplete(in ResourceStreamingContext context);
+    Result OnRecordUploadCommands(scoped in RenderContext context, ICommandBuffer copyCommandBuffer);
+    void OnUploadComplete(scoped in RenderContext context, ICommandBuffer commandBuffer);
 }
 
 internal interface IShaderCommitableAssetEntry : IAssetEntry

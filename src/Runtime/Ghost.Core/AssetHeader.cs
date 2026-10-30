@@ -231,7 +231,7 @@ public struct CacheFileHeader()
     /// <summary>
     /// Writes this header to the given stream at its current position.
     /// </summary>
-    public void WriteTo(Stream stream)
+    public readonly void WriteTo(Stream stream)
     {
         Span<byte> bytes = stackalloc byte[SIZE];
         MemoryMarshal.Write(bytes, in this);
@@ -286,7 +286,7 @@ public struct PackFileHeader()
     /// <summary>
     /// Writes this header to the given stream at its current position.
     /// </summary>
-    public void WriteTo(Stream stream)
+    public readonly void WriteTo(Stream stream)
     {
         Span<byte> bytes = stackalloc byte[SIZE];
         MemoryMarshal.Write(bytes, in this);

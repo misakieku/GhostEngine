@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Graphics.Core;
 using Ghost.Graphics.FrameScheduling;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
@@ -7,6 +6,7 @@ using Ghost.Graphics.Services;
 using Ghost.Graphics.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 
 namespace Ghost.Graphics;
 
@@ -22,11 +22,6 @@ internal readonly struct RenderEngineDesc
         get; init;
     }
 
-    public required IResourceStreamingProcessor ResourceStreamingProcessor
-    {
-        get; init;
-    }
-
     public string? ShaderCacheDirectory
     {
         get; init;
@@ -36,14 +31,13 @@ internal readonly struct RenderEngineDesc
     {
         get; init;
     }
-
 }
 
 /// <summary>
 /// Application-level render system that orchestrates multiple renderers
 /// and handles frame synchronization
 /// </summary>
-public class RenderEngine : IDisposable
+public sealed class RenderEngine : IDisposable
 {
     private struct FrameResource : IDisposable
     {
@@ -93,11 +87,10 @@ public class RenderEngine : IDisposable
         }
     }
 
-    private readonly IResourceStreamingProcessor _streamingProcessor;
-
     private IRenderPipeline? _renderPipeline;
 
     private readonly IGraphicsEngine _graphicsEngine;
+
     private readonly ResourceManager _resourceManager;
     private readonly SwapChainManager _swapChainManager;
     private readonly ShaderLibrary _shaderLibrary;
@@ -108,10 +101,11 @@ public class RenderEngine : IDisposable
 
     private readonly ConcurrentDictionary<ISwapChain, uint2> _resizeRequest;
 
-    private ulong _submittedFrame;
+    private ImmutableArray<IRenderLoopCommand> _preRenderLoopCommands;
+    private ImmutableArray<IRenderLoopCommand> _postRenderLoopCommands;
 
+    private ulong _submittedFrame;
     private bool _isRunning;
-    private bool _disposed;
 
     internal ShaderLibrary ShaderLibrary => _shaderLibrary;
 
@@ -129,7 +123,6 @@ public class RenderEngine : IDisposable
     internal RenderEngine(RenderEngineDesc desc)
     {
         _graphicsEngine = desc.GraphicsEngine;
-        _streamingProcessor = desc.ResourceStreamingProcessor;
 
         _resourceManager = new ResourceManager(_graphicsEngine.Device, _graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase);
         _swapChainManager = new SwapChainManager(_graphicsEngine, desc.FrameBufferCount);
@@ -159,14 +152,10 @@ public class RenderEngine : IDisposable
 
         _shutdownCts = new CancellationTokenSource();
         _resizeRequest = new ConcurrentDictionary<ISwapChain, uint2>();
+        _preRenderLoopCommands = ImmutableArray<IRenderLoopCommand>.Empty;
+        _postRenderLoopCommands = ImmutableArray<IRenderLoopCommand>.Empty;
 
         _isRunning = false;
-        _disposed = false;
-    }
-
-    ~RenderEngine()
-    {
-        Dispose();
     }
 
     private void StopRenderLoop(Result result)
@@ -179,9 +168,6 @@ public class RenderEngine : IDisposable
 
     private void RenderLoop()
     {
-        var renderContext = new RenderContext(_resourceManager, _graphicsEngine.ResourceAllocator, _graphicsEngine.ResourceDatabase,
-            _graphicsEngine.PipelineLibrary, _shaderLibrary, _frameResources.Length);
-
         while (_isRunning)
         {
             var frameIndex = (int)(_submittedFrame % (ulong)_frameResources.Length);
@@ -213,19 +199,7 @@ public class RenderEngine : IDisposable
                 _frameScheduler.WaitForFrame(frameResource.Completion);
                 var completedFrame = frameResource.Completion.FrameNumber;
 
-                if (!_resizeRequest.IsEmpty)
-                {
-                    WaitIdle();
-
-                    var keys = _resizeRequest.Keys.ToArray();
-                    foreach (var swapChain in keys)
-                    {
-                        if (_resizeRequest.TryRemove(swapChain, out var newSize))
-                        {
-                            swapChain.Resize(newSize.x, newSize.y);
-                        }
-                    }
-                }
+                ResizePendingSwapChain();
 
                 if (_submittedFrame < completedFrame)
                 {
@@ -241,106 +215,45 @@ public class RenderEngine : IDisposable
                 _graphicsEngine.BeginFrame(_submittedFrame);
                 _shaderLibrary.BeginFrame(_submittedFrame);
 
-                var preludeCmd = _frameScheduler.GetPooledCommandBuffer(CommandBufferType.Graphics);
-                var preludeSubmitted = false;
-
-                try
+                var renderContext = new RenderContext
                 {
-                    // --- Prelude: streaming uploads and pre-graph rendering commands ---
-                    preludeCmd.Begin(frameResource.GraphicsCommandAllocator);
+                    FrameScheduler = _frameScheduler,
+                    CopyCommandAllocator = frameResource.CopyCommandAllocator,
+                    GraphicsCommandAllocator = frameResource.GraphicsCommandAllocator,
+                    ResourceManager = _resourceManager,
+                    ResourceDatabase = _graphicsEngine.ResourceDatabase,
+                    ResourceAllocator = _graphicsEngine.ResourceAllocator,
+                    PipelineLibrary = _graphicsEngine.PipelineLibrary,
+                    FrameBufferCount = _frameResources.Length,
+                    ShaderLibrary = _shaderLibrary,
+                    FrameIndex = frameIndex,
+                };
 
-                    var streamingContext = new ResourceStreamingContext
-                    {
-                        FrameScheduler = _frameScheduler,
-                        GraphicsEngine = _graphicsEngine,
-                        CopyCommandAllocator = frameResource.CopyCommandAllocator,
-                        ResourceManager = _resourceManager,
-                        ResourceDatabase = _graphicsEngine.ResourceDatabase,
-                        ResourceAllocator = _graphicsEngine.ResourceAllocator,
-                        CommandBuffer = preludeCmd,
-                        ShaderLibrary = _shaderLibrary,
-                        FrameIndex = frameIndex,
-                    };
-
-                    _streamingProcessor.ProcessPendingUploads(streamingContext);
-                    _streamingProcessor.ProcessPendingShaderCommits(streamingContext);
-
-                    renderContext.BeginFrame(preludeCmd);
-
-                    if (_renderPipeline != null && frameResource.RenderPayload != null)
-                    {
-                        _renderPipeline.RecordPrelude(renderContext, frameIndex, frameResource.RenderPayload);
-                    }
-
-                    var result = preludeCmd.End();
-                    if (result.IsFailure)
-                    {
-                        StopRenderLoop(result);
-                        break;
-                    }
-
-                    if (preludeCmd.State.CommandCount > 0)
-                    {
-                        _frameScheduler.Submit(preludeCmd);
-                        preludeSubmitted = true;
-                    }
-
-                    // --- Graph: compile and execute the render graph ---
-                    if (_renderPipeline != null && frameResource.RenderPayload != null)
-                    {
-                        var executionContext = new RenderGraphExecutionContext(
-                            _graphicsEngine,
-                            _frameScheduler,
-                            frameResource.GraphicsCommandAllocator,
-                            frameResource.ComputeCommandAllocator);
-
-                        result = _renderPipeline.ExecuteGraph(renderContext.ResourceContext, frameIndex, frameResource.RenderPayload, executionContext);
-                        if (result.IsFailure)
-                        {
-                            StopRenderLoop(result);
-                            break;
-                        }
-                    }
-
-                    var postRenderCmd = _frameScheduler.GetPooledCommandBuffer(CommandBufferType.Graphics);
-                    var postRenderSubmitted = false;
-                    try
-                    {
-                        postRenderCmd.Begin(frameResource.GraphicsCommandAllocator);
-                        _streamingProcessor.ProcessPostRender(streamingContext with { CommandBuffer = postRenderCmd });
-                        var postResult = postRenderCmd.End();
-                        if (postResult.IsFailure)
-                        {
-                            StopRenderLoop(postResult);
-                            break;
-                        }
-
-                        if (postRenderCmd.State.CommandCount > 0)
-                        {
-                            _frameScheduler.Submit(postRenderCmd);
-                            postRenderSubmitted = true;
-                        }
-                    }
-                    finally
-                    {
-                        if (!postRenderSubmitted)
-                        {
-                            _frameScheduler.ReturnPooledCommandBuffer(postRenderCmd);
-                        }
-                    }
-                    frameResource.Completion = _frameScheduler.Flush();
-                    _submittedFrame = frameResource.Completion.FrameNumber;
-                    _swapChainManager.PresentAll();
-                }
-                finally
+                var result = ExecutePrelude(frameIndex, frameResource, renderContext);
+                if (result.IsFailure)
                 {
-                    if (!preludeSubmitted)
-                    {
-                        _frameScheduler.ReturnPooledCommandBuffer(preludeCmd);
-                    }
+                    StopRenderLoop(result);
+                    break;
                 }
 
-                // End the frame and retire resources based on the oldest completed frame slot.
+                result = ExecuteRenderPipeline(frameIndex, frameResource, renderContext);
+                if (result.IsFailure)
+                {
+                    StopRenderLoop(result);
+                    break;
+                }
+
+                result = ExecutePostlude(frameResource, renderContext);
+                if (result.IsFailure)
+                {
+                    StopRenderLoop(result);
+                    break;
+                }
+
+                frameResource.Completion = _frameScheduler.Flush();
+                _submittedFrame = frameResource.Completion.FrameNumber;
+                _swapChainManager.PresentAll();
+
                 _resourceManager.EndFrame(completedFrame);
                 _graphicsEngine.EndFrame(completedFrame);
                 _shaderLibrary.EndFrame(completedFrame);
@@ -359,9 +272,101 @@ public class RenderEngine : IDisposable
         }
     }
 
+    private void ResizePendingSwapChain()
+    {
+        if (!_resizeRequest.IsEmpty)
+        {
+            WaitIdle();
+
+            var keys = _resizeRequest.Keys.ToArray();
+            foreach (var swapChain in keys)
+            {
+                if (_resizeRequest.TryRemove(swapChain, out var newSize))
+                {
+                    swapChain.Resize(newSize.x, newSize.y);
+                }
+            }
+        }
+    }
+
+    private Result ExecutePrelude(int frameIndex, FrameResource frameResource, RenderContext renderContext)
+    {
+        if (_preRenderLoopCommands.IsEmpty && _renderPipeline == null)
+        {
+            return Result.Success();
+        }
+
+        var preludeCmd = _frameScheduler.GetPooledCommandBuffer(CommandBufferType.Graphics);
+        preludeCmd.Begin(frameResource.GraphicsCommandAllocator);
+
+        if (!_preRenderLoopCommands.IsEmpty)
+        {
+            foreach (var command in _preRenderLoopCommands)
+            {
+                command.Execute(renderContext, preludeCmd);
+            }
+        }
+
+        if (_renderPipeline != null && frameResource.RenderPayload != null)
+        {
+            _renderPipeline.RecordPrelude(renderContext, preludeCmd, frameIndex, frameResource.RenderPayload);
+        }
+
+        var result = preludeCmd.End();
+        if (result.IsFailure)
+        {
+            return result;
+        }
+
+        _frameScheduler.Submit(preludeCmd);
+        return Result.Success();
+    }
+
+    private Result ExecuteRenderPipeline(int frameIndex, FrameResource frameResource, RenderContext renderContext)
+    {
+        if (_renderPipeline != null && frameResource.RenderPayload != null)
+        {
+            var executionContext = new RenderGraphExecutionContext(
+                _graphicsEngine,
+                _frameScheduler,
+                frameResource.GraphicsCommandAllocator,
+                frameResource.ComputeCommandAllocator);
+
+            var result = _renderPipeline.ExecuteGraph(renderContext.ResourceContext, frameIndex, frameResource.RenderPayload, executionContext);
+            if (result.IsFailure)
+            {
+                return result;
+            }
+        }
+
+        return Result.Success();
+    }
+
+    private Result ExecutePostlude(FrameResource frameResource, RenderContext renderContext)
+    {
+        if (!_postRenderLoopCommands.IsEmpty)
+        {
+            var postRenderCmd = _frameScheduler.GetPooledCommandBuffer(CommandBufferType.Graphics);
+            postRenderCmd.Begin(frameResource.GraphicsCommandAllocator);
+            foreach (var command in _postRenderLoopCommands)
+            {
+                command.Execute(renderContext, postRenderCmd);
+            }
+
+            var result = postRenderCmd.End();
+            if (result.IsFailure)
+            {
+                return result;
+            }
+
+            _frameScheduler.Submit(postRenderCmd);
+        }
+
+        return Result.Success();
+    }
+
     internal void Start()
     {
-        Logger.DebugAssert(!_disposed, "Cannot start a disposed RenderSystem.");
         Logger.DebugAssert(_renderPipeline != null, "Cannot start RenderEngine without a RenderPipeline.");
 
         if (_isRunning)
@@ -375,8 +380,6 @@ public class RenderEngine : IDisposable
 
     internal void Stop()
     {
-        Logger.DebugAssert(!_disposed, "Cannot stop a disposed RenderSystem.");
-
         if (!_isRunning)
         {
             return;
@@ -395,8 +398,6 @@ public class RenderEngine : IDisposable
 
     internal void SignalCPUReady(int frameIndex)
     {
-        Logger.DebugAssert(!_disposed, "Cannot signal CPU ready on a disposed RenderSystem.");
-
         var eventIndex = frameIndex % _frameResources.Length;
         ref var frameResource = ref _frameResources[eventIndex];
 
@@ -404,11 +405,28 @@ public class RenderEngine : IDisposable
         frameResource.CpuReadyEvent.Set();
     }
 
+    public void AddPreRenderLoopCommand(params ReadOnlySpan<IRenderLoopCommand> commands)
+    {
+        _preRenderLoopCommands = _preRenderLoopCommands.AddRange(commands);
+    }
+
+    public void AddPreRenderLoopCommand(params IEnumerable<IRenderLoopCommand> commands)
+    {
+        _preRenderLoopCommands = _preRenderLoopCommands.AddRange(commands);
+    }
+
+    public void AddPostRenderLoopCommand(params ReadOnlySpan<IRenderLoopCommand> commands)
+    {
+        _postRenderLoopCommands = _postRenderLoopCommands.AddRange(commands);
+    }
+
+    public void AddPostRenderLoopCommand(params IEnumerable<IRenderLoopCommand> commands)
+    {
+        _postRenderLoopCommands = _postRenderLoopCommands.AddRange(commands);
+    }
 
     public void SetRenderPipeline(IRenderPipeline renderPipeline)
     {
-        ArgumentNullException.ThrowIfNull(renderPipeline);
-
         if (_isRunning)
         {
             WaitIdle();
@@ -426,9 +444,6 @@ public class RenderEngine : IDisposable
 
     public void SetRenderPipeline(IRenderPipeline renderPipeline, Func<RenderEngine, IRenderPipeline, IRenderPayload> payloadFactory)
     {
-        ArgumentNullException.ThrowIfNull(renderPipeline);
-        ArgumentNullException.ThrowIfNull(payloadFactory);
-
         if (_isRunning)
         {
             WaitIdle();
@@ -446,9 +461,6 @@ public class RenderEngine : IDisposable
 
     public void SetRenderPipeline(IRenderPipeline renderPipeline, IRenderPayload[] payloads)
     {
-        ArgumentNullException.ThrowIfNull(renderPipeline);
-        ArgumentNullException.ThrowIfNull(payloads);
-
         if (payloads.Length != _frameResources.Length)
         {
             throw new ArgumentException($"Payload count ({payloads.Length}) must match frame buffer count ({_frameResources.Length}).");
@@ -493,14 +505,11 @@ public class RenderEngine : IDisposable
 
     public void RequestSwapChainResize(ISwapChain swapChain, uint2 newSize)
     {
-        Logger.DebugAssert(!_disposed, "Cannot request swap chain resize on a disposed RenderSystem.");
         _resizeRequest.AddOrUpdate(swapChain, newSize, (_, _) => newSize);
     }
 
     public bool WaitForGPUReady(int frameIndex, int timeOut = -1)
     {
-        Logger.DebugAssert(!_disposed, "Cannot wait for GPU ready on a disposed RenderSystem.");
-
         var eventIndex = frameIndex % _frameResources.Length;
         ref var frameResource = ref _frameResources[eventIndex];
         var success = frameResource.GpuReadyEvent.Wait(timeOut);
@@ -514,14 +523,11 @@ public class RenderEngine : IDisposable
 
     public void WaitIdle()
     {
-        Logger.DebugAssert(!_disposed, "Cannot wait idle on a disposed RenderSystem.");
         _frameScheduler.WaitIdle();
     }
 
     public IRenderPayload GetCurrentFramePayload(int frameIndex)
     {
-        Logger.DebugAssert(!_disposed, "Cannot get current frame payload from a disposed RenderSystem.");
-
         var eventIndex = frameIndex % _frameResources.Length;
         ref var frameResource = ref _frameResources[eventIndex];
 
@@ -530,12 +536,24 @@ public class RenderEngine : IDisposable
 
     public void Dispose()
     {
-        if (_disposed)
+        Stop();
+
+        if (!_preRenderLoopCommands.IsEmpty)
         {
-            return;
+            foreach (var command in _preRenderLoopCommands)
+            {
+                command.Dispose();
+            }
         }
 
-        Stop();
+        if (!_postRenderLoopCommands.IsEmpty)
+        {
+            foreach (var command in _postRenderLoopCommands)
+            {
+                command.Dispose();
+            }
+        }
+
         _frameScheduler.Dispose();
 
         for (var i = 0; i < _frameResources.Length; i++)
@@ -556,8 +574,5 @@ public class RenderEngine : IDisposable
         _shutdownCts.Dispose();
 
         RenderThreadTempAllocatorManager.Dispose();
-
-        _disposed = true;
-        GC.SuppressFinalize(this);
     }
 }

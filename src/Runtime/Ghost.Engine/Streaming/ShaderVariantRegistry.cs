@@ -74,21 +74,16 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
     private readonly int[][] _variantToDispatchSlot;
     private readonly int[] _states;
     private readonly uint[] _generations;
-    private IPipelineLibrary? _pipelineLibrary;
-    private ShaderLibrary? _shaderLibrary;
-    private IGraphicsEngine? _graphicsEngine;
+    private readonly IGraphicsEngine _graphicsEngine;
+    private readonly IPipelineLibrary _pipelineLibrary;
+    private readonly ShaderLibrary _shaderLibrary;
     private readonly Dictionary<ulong, IWorkGraphProgram> _workGraphPrograms = new();
-    private bool _disposed;
 
-    public void InitializeServices(IPipelineLibrary pipelineLibrary, ShaderLibrary shaderLibrary, IGraphicsEngine graphicsEngine)
+    internal ShaderVariantRegistry(IGraphicsEngine graphicsEngine, IPipelineLibrary pipelineLibrary, ShaderLibrary shaderLibrary, ResourceManager resourceManager, IReadOnlyList<ShaderCatalogEntry> catalog)
     {
+        _graphicsEngine = graphicsEngine;
         _pipelineLibrary = pipelineLibrary;
         _shaderLibrary = shaderLibrary;
-        _graphicsEngine = graphicsEngine;
-    }
-
-    internal ShaderVariantRegistry(ResourceManager resourceManager, IReadOnlyList<ShaderCatalogEntry> catalog)
-    {
         _resourceManager = resourceManager;
 
         var graphicsCount = 0;
@@ -560,11 +555,6 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
 
     public Key128<PipelineState> ResolveComputePipeline(Handle<ComputeShader> shader, KeywordMask128 keywords, int entryIndex = 0)
     {
-        if (_pipelineLibrary == null || _shaderLibrary == null)
-        {
-            throw new InvalidOperationException("ShaderVariantRegistry services have not been initialized.");
-        }
-
         var r = _resourceManager.GetComputeShaderReference(shader);
         if (r.IsFailure)
         {
@@ -619,11 +609,6 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
 
     public Key128<PipelineState> ResolvePassComputePipeline(Handle<Shader> shader, PassSemantic semantic, KeywordMask128 keywords)
     {
-        if (_pipelineLibrary == null || _shaderLibrary == null)
-        {
-            throw new InvalidOperationException("ShaderVariantRegistry services have not been initialized.");
-        }
-
         var r = _resourceManager.GetShaderReference(shader);
         if (r.IsFailure)
         {
@@ -691,11 +676,6 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
         TextureFormat dsvFormat,
         PipelineState? pipelineOverride = null)
     {
-        if (_pipelineLibrary == null || _shaderLibrary == null)
-        {
-            throw new InvalidOperationException("ShaderVariantRegistry services have not been initialized.");
-        }
-
         var r = _resourceManager.GetShaderReference(shader);
         if (r.IsFailure)
         {
@@ -778,11 +758,6 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
 
     public IWorkGraphProgram ResolveWorkGraphProgram(IAssetEntry workGraphEntry, KeywordMask128 keywords)
     {
-        if (_graphicsEngine == null)
-        {
-            throw new InvalidOperationException("ShaderVariantRegistry graphics engine service has not been initialized.");
-        }
-
         if (workGraphEntry is not WorkGraphAssetEntry wgEntry)
         {
             throw new ArgumentException("Asset entry must be a WorkGraphAssetEntry.", nameof(workGraphEntry));
@@ -847,11 +822,6 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
 
     public void Dispose()
     {
-        if (_disposed)
-        {
-            return;
-        }
-
         lock (_workGraphPrograms)
         {
             foreach (var program in _workGraphPrograms.Values)
@@ -866,8 +836,5 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
         {
             _resourceManager.ReleaseShader(_variants[i].Shader);
         }
-
-        _disposed = true;
-        GC.SuppressFinalize(this);
     }
 }

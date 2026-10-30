@@ -94,7 +94,6 @@ public sealed partial class ResourceManager : IDisposable
     /// </summary>
     public Handle<GPUBuffer> MaterialPoolBuffer => _materialPoolBuffer;
 
-    public IResourceAllocator ResourceAllocator => _resourceAllocator;
     public StaticSampler StaticSampler => _staticSampler;
 
     public ResourceManager(IRenderDevice renderDevice, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase)
@@ -479,7 +478,8 @@ public sealed partial class ResourceManager : IDisposable
     /// Uploads all dirty materials to the GPU. Must be called once per frame on the render thread, before any draw calls.
     /// </summary>
     /// <param name="ctx">The render context to use for the upload.</param>
-    public void UploadMaterials(RenderContext ctx)
+    /// <param name="commandBuffer">The command buffer to use for the upload.</param>
+    public void UploadMaterials(scoped in RenderContext ctx, ICommandBuffer commandBuffer)
     {
         Logger.DebugAssert(!_disposed);
 
@@ -490,7 +490,7 @@ public sealed partial class ResourceManager : IDisposable
                 var newCapacity = Math.Max(_materialPoolCapacity * 2u, _materialPoolAllocatedBytes);
                 var newBuffer = CreateMaterialBuffer(newCapacity, "GlobalMaterialBuffer_Resized");
 
-                ctx.CommandBuffer.CopyBuffer(newBuffer, _materialPoolBuffer, 0, 0, _materialPoolCapacity);
+                commandBuffer.CopyBuffer(newBuffer, _materialPoolBuffer, 0, 0, _materialPoolCapacity);
 
                 _resourceDatabase.ReleaseResource(_materialPoolBuffer.AsResource());
                 _materialPoolBuffer = newBuffer;
@@ -520,7 +520,7 @@ public sealed partial class ResourceManager : IDisposable
                 var rawData = material.GetRawPropertyCache();
                 if (rawData.Length > 0)
                 {
-                    ctx.UploadBufferRange(_materialPoolBuffer, rawData, material.PoolOffset);
+                    ctx.UploadBufferRange(commandBuffer, _materialPoolBuffer, rawData, material.PoolOffset);
                 }
 
                 material.ClearDirty();
@@ -536,7 +536,9 @@ public sealed partial class ResourceManager : IDisposable
     /// Must be called once per frame on the render thread, before any draw calls.
     /// Handles buffer growth with copy-on-resize semantics (same pattern as GPUScene).
     /// </summary>
-    public void UploadMaterialPaletteData(RenderContext ctx)
+    /// <param name="ctx">The render context to use for the upload.</param>
+    /// <param name="commandBuffer">The command buffer to use for the upload.</param>
+    public void UploadMaterialPaletteData(scoped in RenderContext ctx, ICommandBuffer commandBuffer)
     {
         Logger.DebugAssert(!_disposed);
 
@@ -571,7 +573,7 @@ public sealed partial class ResourceManager : IDisposable
             var newCapacity = Math.Max(_paletteOffsetCapacity * 2, (uint)offsets.Length);
             var newBuffer = CreatePaletteBuffer(newCapacity, "PaletteOffsetBuffer_Resized");
 
-            ctx.CommandBuffer.CopyBuffer(newBuffer, _paletteOffsetBuffer, 0, 0, _paletteOffsetCapacity * sizeof(uint));
+            commandBuffer.CopyBuffer(newBuffer, _paletteOffsetBuffer, 0, 0, _paletteOffsetCapacity * sizeof(uint));
 
             _resourceDatabase.ReleaseResource(_paletteOffsetBuffer.AsResource());
             _paletteOffsetBuffer = newBuffer;
@@ -588,7 +590,7 @@ public sealed partial class ResourceManager : IDisposable
             var newCapacity = Math.Max(_materialIndexCapacity * 2, (uint)indices.Length);
             var newBuffer = CreatePaletteBuffer(newCapacity, "MaterialIndexBuffer_Resized");
 
-            ctx.CommandBuffer.CopyBuffer(newBuffer, _materialIndexBuffer, 0, 0, _materialIndexCapacity * sizeof(uint));
+            commandBuffer.CopyBuffer(newBuffer, _materialIndexBuffer, 0, 0, _materialIndexCapacity * sizeof(uint));
 
             _resourceDatabase.ReleaseResource(_materialIndexBuffer.AsResource());
             _materialIndexBuffer = newBuffer;
@@ -602,13 +604,13 @@ public sealed partial class ResourceManager : IDisposable
         if (offsetEnd > offsetStart)
         {
             var dirtyOffsets = offsets.Slice(offsetStart, offsetEnd - offsetStart);
-            ctx.UploadBufferRange(_paletteOffsetBuffer, dirtyOffsets, (uint)(offsetStart * sizeof(uint)));
+            ctx.UploadBufferRange(commandBuffer, _paletteOffsetBuffer, dirtyOffsets, (uint)(offsetStart * sizeof(uint)));
         }
 
         if (indicesEnd > indicesStart)
         {
             var dirtyIndices = indices.Slice(indicesStart, indicesEnd - indicesStart);
-            ctx.UploadBufferRange(_materialIndexBuffer, dirtyIndices, (uint)(indicesStart * sizeof(uint)));
+            ctx.UploadBufferRange(commandBuffer, _materialIndexBuffer, dirtyIndices, (uint)(indicesStart * sizeof(uint)));
         }
 
         _materialPalettes.ClearDirty();

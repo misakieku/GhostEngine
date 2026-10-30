@@ -114,14 +114,14 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
         get; set;
     }
 
-    internal RenderGraphContext(ResourceManager resourceManager, ShaderLibrary shaderLibrary, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, RenderGraphResourceRegistry resources)
+    internal RenderGraphContext(ResourceManager resourceManager, ShaderLibrary shaderLibrary, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, RenderGraphResourceRegistry resources)
     {
         _resourceManager = resourceManager;
         _shaderLibrary = shaderLibrary;
         _resourceDatabase = resourceDatabase;
         _pipelineLibrary = pipelineLibrary;
         _resources = resources;
-        _propertyAllocator = new RenderGraphPropertyAllocator(resourceManager.ResourceAllocator, resourceDatabase);
+        _propertyAllocator = new RenderGraphPropertyAllocator(resourceAllocator, resourceDatabase);
 
         _commandBuffer = null!;
 

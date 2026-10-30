@@ -134,7 +134,7 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
         }
     }
 
-    public Result OnRecordUploadCommands(in ResourceStreamingContext context)
+    public Result OnRecordUploadCommands(scoped in RenderContext context, ICommandBuffer copyCommandBuffer)
     {
         var dataSize = _contentSize - _dataOffset - sizeof(TextureContentHeader);
         if (_contentStream.CanSeek)
@@ -147,7 +147,7 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
             context.ResourceManager,
             context.ResourceDatabase,
             context.ResourceAllocator,
-            context.CopyCommandBuffer,
+            copyCommandBuffer,
             memory.GetUnsafePtr(),
             (nuint)dataSize,
             in _desc);
@@ -162,14 +162,14 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
         return Result.Success();
     }
 
-    public void OnUploadComplete(in ResourceStreamingContext context)
+    public void OnUploadComplete(scoped in RenderContext context, ICommandBuffer commandBuffer)
     {
         try
         {
             var actualHandle = context.ResourceDatabase.Replace(_actualHandle.AsResource(), _tempHandle.AsResource());
             Logger.DebugAssert(actualHandle.IsValid);
 
-            context.CommandBuffer.Barrier(BarrierDesc.Texture(actualHandle.AsTexture(), BarrierSync.None, BarrierSync.AllShading, BarrierAccess.Common, BarrierAccess.ShaderResource, BarrierLayout.Common, BarrierLayout.ShaderResource));
+            commandBuffer.Barrier(BarrierDesc.Texture(actualHandle.AsTexture(), BarrierSync.None, BarrierSync.AllShading, BarrierAccess.Common, BarrierAccess.ShaderResource, BarrierLayout.Common, BarrierLayout.ShaderResource));
 
             _actualHandle = actualHandle.AsTexture();
             _tempHandle = Handle<GPUTexture>.Invalid;

@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Jobs;
@@ -136,16 +137,18 @@ public partial class AssetManager : IDisposable
     /// </summary>
     public MeshletStreamingManager MeshletStreamingManager => _meshletStreamingManager;
 
-    internal AssetManager(IResourceDatabase resourceDatabase, ResourceManager resourceManager, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler, uint frameBufferCount)
+    internal AssetManager(RenderEngine renderEngine, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler, uint frameBufferCount)
     {
-        _resourceDatabase = resourceDatabase;
-        _resourceManager = resourceManager;
+        _resourceDatabase = renderEngine.GraphicsEngine.ResourceDatabase;
+        _resourceManager = renderEngine.ResourceManager;
         _contentProvider = contentProvider;
         _streamingProcessor = streamingProcessor;
         _jobScheduler = jobScheduler;
-        _shaderVariants = new ShaderVariantRegistry(resourceManager, contentProvider.ShaderCatalog);
-        _meshletStreamingManager = new MeshletStreamingManager(resourceManager.ResourceAllocator, resourceDatabase, frameBufferCount);
-        _streamingProcessor.SetMeshletStreamingManager(_meshletStreamingManager);
+
+        _shaderVariants = new ShaderVariantRegistry(renderEngine.GraphicsEngine, renderEngine.GraphicsEngine.PipelineLibrary,
+            renderEngine.ShaderLibrary, renderEngine.ResourceManager, contentProvider.ShaderCatalog);
+        
+        _meshletStreamingManager = new MeshletStreamingManager(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, frameBufferCount);
 
         if (contentProvider.HasAsset(ShaderBytecodePool.POOL_ASSET_ID))
         {

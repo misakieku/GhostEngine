@@ -151,7 +151,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         return bytesToRead;
     }
 
-    public Result OnRecordUploadCommands(in ResourceStreamingContext context)
+    public Result OnRecordUploadCommands(scoped in RenderContext context, ICommandBuffer copyCommandBuffer)
     {
         var hierarchyBytes = (uint)_header.hierarchySize;
         var groupBytes = (uint)_header.groupSize;
@@ -193,16 +193,16 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
             _contentStream.Position = _header.rootPageOffset;
             _contentStream.ReadExactly(new Span<byte>(pStaging + pageBufferBase, (int)rootPageBytes));
 
-            var globalPageOffset = 0u;
+            // 5. Ray Tracing Proxy Geometry
             var rootPageSpan = new ReadOnlySpan<byte>(pStaging + pageBufferBase, (int)rootPageBytes);
-            globalPageOffset = streamingManager.RegisterMesh(this, (uint)_header.pageCount, rootPageSpan);
+            var globalPageOffset = streamingManager.RegisterMesh(this, (uint)_header.pageCount, rootPageSpan);
             _globalPageTableOffset = globalPageOffset;
 
             var meshBuffer = ResourceUtility.CreateBuffer(
                 context.ResourceManager,
                 context.ResourceDatabase,
                 context.ResourceAllocator,
-                context.CopyCommandBuffer,
+                copyCommandBuffer,
                 pStaging,
                 (nuint)totalGpuBufferSize,
                 in desc,
@@ -243,7 +243,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
                 context.ResourceManager,
                 context.ResourceDatabase,
                 context.ResourceAllocator,
-                context.CopyCommandBuffer,
+                copyCommandBuffer,
                 &meshData,
                 (nuint)sizeof(MeshData),
                 in meshDataBufferDesc,
@@ -292,7 +292,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         }
     }
 
-    public void OnUploadComplete(in ResourceStreamingContext context)
+    public void OnUploadComplete(scoped in RenderContext context, ICommandBuffer copyCommandBuffer)
     {
         var (dstMeshRef, dstError) = context.ResourceManager.GetMeshReference(_actualHandle);
         var (srcMeshRef, srcError) = context.ResourceManager.GetMeshReference(_tempHandle);
@@ -320,7 +320,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         context.ResourceManager.ReleaseMesh(_tempHandle);
         _tempHandle = Handle<Mesh>.Invalid;
 
-        context.CommandBuffer.Barrier(
+        copyCommandBuffer.Barrier(
             BarrierDesc.Buffer(dstMesh.MeshBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource),
             BarrierDesc.Buffer(dstMesh.MeshDataBuffer, BarrierSync.Copy, BarrierSync.AllShading, BarrierAccess.CopyDest, BarrierAccess.ShaderResource));
     }

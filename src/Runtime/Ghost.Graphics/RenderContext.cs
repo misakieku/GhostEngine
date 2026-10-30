@@ -1,11 +1,12 @@
 using Ghost.Core;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.InteropServices;
 
-namespace Ghost.Graphics.Core;
+namespace Ghost.Graphics;
 
 public readonly struct ResourceContext
 {
@@ -40,81 +41,78 @@ public readonly struct ResourceContext
     }
 }
 
-public sealed unsafe class RenderContext
+
+public readonly unsafe struct RenderContext
 {
-    private const ulong UPLOAD_BUFFER_SIZE = 64 * 1024 * 1024; // 64 MB
-
-    private ICommandBuffer? _commandBuffer;
-
-    public ICommandBuffer CommandBuffer
+    public required FrameScheduler FrameScheduler
     {
-        get
-        {
-            Logger.DebugAssert(_commandBuffer != null, "Command buffer is not set. Call BeginFrame() before using the render context.");
-            return _commandBuffer;
-        }
+        get; init;
     }
 
-    public ResourceManager ResourceManager
+    public required ICommandAllocator CopyCommandAllocator
     {
-        get;
+        get; init;
     }
 
-    public IResourceAllocator ResourceAllocator
+    public required ICommandAllocator GraphicsCommandAllocator
     {
-        get;
+        get; init;
     }
 
-    public IResourceDatabase ResourceDatabase
+    public required ResourceManager ResourceManager
     {
-        get;
+        get; init;
     }
 
-    public IPipelineLibrary PipelineLibrary
+    public required IResourceDatabase ResourceDatabase
     {
-        get;
+        get; init;
     }
 
-    internal ShaderLibrary ShaderLibrary
+    public required IResourceAllocator ResourceAllocator
     {
-        get;
+        get; init;
     }
 
-    public ResourceContext ResourceContext
+    public required IPipelineLibrary PipelineLibrary
     {
-        get;
+        get; init;
     }
 
-    internal RenderContext(ResourceManager resourceManager, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, IPipelineLibrary pipelineLibrary, ShaderLibrary shaderLibrary, int frameBufferCount)
+    public required ShaderLibrary ShaderLibrary
     {
-        ResourceManager = resourceManager;
-        ResourceAllocator = resourceAllocator;
-        ResourceDatabase = resourceDatabase;
-        PipelineLibrary = pipelineLibrary;
-        ShaderLibrary = shaderLibrary;
-
-        ResourceContext = new ResourceContext
-        {
-            FrameBufferCount = frameBufferCount,
-            ResourceManager = resourceManager,
-            ResourceAllocator = resourceAllocator,
-            ResourceDatabase = resourceDatabase,
-            PipelineLibrary = pipelineLibrary,
-            ShaderLibrary = shaderLibrary,
-        };
+        get; init;
     }
 
-    internal void BeginFrame(ICommandBuffer commandBuffer)
+    public required int FrameIndex
     {
-        _commandBuffer = commandBuffer;
+        get; init;
     }
 
-    public void UploadBuffer<T>(Handle<GPUBuffer> buffer, params ReadOnlySpan<T> data)
+    public required int FrameBufferCount
+    {
+        get; init;
+    }
+
+    public ResourceContext ResourceContext => new ResourceContext
+    {
+        FrameBufferCount = FrameBufferCount,
+        ResourceManager = ResourceManager,
+        ResourceAllocator = ResourceAllocator,
+        ResourceDatabase = ResourceDatabase,
+        PipelineLibrary = PipelineLibrary,
+        ShaderLibrary = ShaderLibrary,
+    };
+
+    public void UploadBuffer<T>(ICommandBuffer commandBuffer, Handle<GPUBuffer> buffer, params ReadOnlySpan<T> data)
         where T : unmanaged
     {
+        Logger.DebugAssert(commandBuffer.Type != CommandBufferType.Compute, "UploadBuffer can not be called from a compute command buffer.");
+
         var r = ResourceDatabase.GetResourceDescription(buffer.AsResource());
         if (r.IsFailure)
         {
+            Logger.Error($"Failed to get resource description for buffer {buffer}. Error: {r.Error}");
             return;
         }
 
@@ -150,7 +148,7 @@ public sealed unsafe class RenderContext
                 ResourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
             }
 
-            CommandBuffer.CopyBuffer(buffer, uploadHandle, 0, srcOffset, sizeInBytes);
+            commandBuffer.CopyBuffer(buffer, uploadHandle, 0, srcOffset, sizeInBytes);
         }
     }
 
@@ -158,9 +156,11 @@ public sealed unsafe class RenderContext
     /// Uploads a sub-range of data into an existing GPU buffer at the specified byte offset.
     /// Used for incremental uploads (e.g. dirty palette ranges).
     /// </summary>
-    public void UploadBufferRange<T>(Handle<GPUBuffer> buffer, ReadOnlySpan<T> data, uint byteOffset)
+    public void UploadBufferRange<T>(ICommandBuffer commandBuffer, Handle<GPUBuffer> buffer, ReadOnlySpan<T> data, uint byteOffset)
         where T : unmanaged
     {
+        Logger.DebugAssert(commandBuffer.Type != CommandBufferType.Compute, "UploadBuffer can not be called from a compute command buffer.");
+
         if (data.IsEmpty)
         {
             return;
@@ -183,12 +183,14 @@ public sealed unsafe class RenderContext
             ResourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
         }
 
-        CommandBuffer.CopyBuffer(buffer, uploadHandle, byteOffset, srcOffset, sizeInBytes);
+        commandBuffer.CopyBuffer(buffer, uploadHandle, byteOffset, srcOffset, sizeInBytes);
     }
 
-    public void DispatchCompute<T>(Handle<ComputeShader> compute, int entryIndex, scoped in T property, uint3 threadGroupCount)
+    public void DispatchCompute<T>(ICommandBuffer commandBuffer, Handle<ComputeShader> compute, int entryIndex, scoped in T property, uint3 threadGroupCount)
         where T : unmanaged
     {
+        Logger.DebugAssert(commandBuffer.Type != CommandBufferType.Copy, "UploadBuffer can not be called from a copy command buffer.");
+
         ref var shader = ref ResourceManager.GetComputeShaderReference(compute).GetValueOrThrow();
 
         var (compiledHash, error) = ShaderLibrary.GetCompiledHash(shader.UniqueID, entryIndex);
@@ -227,7 +229,7 @@ public sealed unsafe class RenderContext
             PipelineLibrary.CreateComputePipeline(in psoDes).GetValueOrThrow();
         }
 
-        CommandBuffer.SetPipelineState(pipelineKey);
+        commandBuffer.SetPipelineState(pipelineKey);
 
         var propertySpan = MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in property));
         var propertyBufferDesc = new BufferDesc
@@ -251,7 +253,7 @@ public sealed unsafe class RenderContext
         error = ResourceDatabase.UnmapResource(properyBuffer.AsResource(), 0, null);
         Logger.DebugAssert(error.IsSuccess, $"Failed to unmap property buffer: {error}.");
 
-        CommandBuffer.SetConstantBufferView(RootSignatureLayout.PASS_PROPERTIES_CBV_SLOT, properyBuffer, offset);
-        CommandBuffer.DispatchCompute(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
+        commandBuffer.SetConstantBufferView(RootSignatureLayout.PASS_PROPERTIES_CBV_SLOT, properyBuffer, offset);
+        commandBuffer.DispatchCompute(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
     }
 }

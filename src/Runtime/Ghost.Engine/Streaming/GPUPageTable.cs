@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Buffer;
@@ -19,12 +18,11 @@ public sealed unsafe class GPUPageTable : IDisposable
     private readonly IResourceDatabase _resourceDatabase;
 
     private Handle<GPUBuffer> _tableBuffer;
-    private uint _capacity;
+    private readonly uint _capacity;
     private uint _allocatedPages;
     private UnsafeArray<uint> _cpuTable;
     private UnsafeList<uint> _dirtyPages;
     private bool _isInShaderResource;
-    private bool _disposed;
 
     public Handle<GPUBuffer> Buffer => _tableBuffer;
     public uint Capacity => _capacity;
@@ -127,25 +125,10 @@ public sealed unsafe class GPUPageTable : IDisposable
         _dirtyPages.Clear();
     }
 
-    public void FlushUpdates(RenderContext ctx)
-    {
-        FlushUpdates(ctx.ResourceManager, ctx.ResourceDatabase, ctx.CommandBuffer);
-    }
-
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
-
-        if (_cpuTable.IsCreated)
-        {
-            _cpuTable.Dispose();
-        }
-
-        if (_dirtyPages.IsCreated)
-        {
-            _dirtyPages.Dispose();
-        }
+        _cpuTable.Dispose();
+        _dirtyPages.Dispose();
 
         if (_tableBuffer.IsValid)
         {

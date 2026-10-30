@@ -9,7 +9,7 @@ using System.Collections.Concurrent;
 
 namespace Ghost.Engine.Streaming;
 
-internal class ResourceStreamingProcessor : IResourceStreamingProcessor
+internal class ResourceStreamingProcessor
 {
     private const int MAX_UPLOADS_PER_FRAME = 8;
 
@@ -19,12 +19,6 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
     private readonly ConcurrentQueue<IUploadableAssetEntry> _pendingFinalize;
     private readonly List<IUploadableAssetEntry> _recordedUploads;
     private SubmissionHandle _pendingCopySubmission;
-    private MeshletStreamingManager? _meshletStreamingManager;
-
-    public void SetMeshletStreamingManager(MeshletStreamingManager manager)
-    {
-        _meshletStreamingManager = manager;
-    }
 
     public ResourceStreamingProcessor()
     {
@@ -58,7 +52,7 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
         return false;
     }
 
-    public void ProcessPendingShaderCommits(in ResourceStreamingContext context)
+    public void ProcessPendingShaderCommits(in RenderContext context)
     {
         while (_pendingShaderCommit.TryDequeue(out var entry))
         {
@@ -106,15 +100,14 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
         jobScheduler.WaitAll(handles);
     }
 
-    public void ProcessPendingUploads(in ResourceStreamingContext context)
+    public void ProcessPendingUploads(in RenderContext context, ICommandBuffer commandBuffer)
     {
-        _meshletStreamingManager?.Update(in context);
         // 1. If there is a pending copy batch from a previous frame, check its opaque completion handle.
         if (_pendingCopySubmission.IsValid && context.FrameScheduler.IsComplete(_pendingCopySubmission))
         {
             while (_pendingFinalize.TryDequeue(out var item))
             {
-                item.OnUploadComplete(context);
+                item.OnUploadComplete(context, commandBuffer);
                 item.State = AssetState.Ready;
             }
 
@@ -140,9 +133,6 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
         {
             copyCommandBuffer.Begin(context.CopyCommandAllocator);
 
-            var uploadContext = context;
-            uploadContext.CopyCommandBuffer = copyCommandBuffer;
-
             while (_recordedUploads.Count < MAX_UPLOADS_PER_FRAME && _pendingUpload.TryDequeue(out var entry))
             {
                 if (entry.State != AssetState.Loaded)
@@ -151,7 +141,7 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
                     continue;
                 }
 
-                if (entry.OnRecordUploadCommands(uploadContext).IsFailure)
+                if (entry.OnRecordUploadCommands(context, copyCommandBuffer).IsFailure)
                 {
                     Logger.Error($"Failed to record upload commands for asset {entry.AssetId}. Skipping upload.");
                     entry.State = AssetState.Failed;
@@ -195,13 +185,7 @@ internal class ResourceStreamingProcessor : IResourceStreamingProcessor
                 }
 
                 _recordedUploads.Clear();
-                context.FrameScheduler.ReturnPooledCommandBuffer(copyCommandBuffer);
             }
         }
-    }
-
-    public void ProcessPostRender(in ResourceStreamingContext context)
-    {
-        _meshletStreamingManager?.RecordReadbackCopy(context.CommandBuffer, context.FrameIndex);
     }
 }

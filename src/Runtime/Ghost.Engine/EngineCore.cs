@@ -83,7 +83,6 @@ public sealed partial class EngineCore : IDisposable
         _contentProvider = contentProvider;
 
         _jobScheduler = new JobScheduler(in jobSchedulerDesc);
-        _streamingProcessor = new ResourceStreamingProcessor();
 
         var renderingDesc = new RenderEngineDesc
         {
@@ -91,22 +90,21 @@ public sealed partial class EngineCore : IDisposable
             FrameBufferCount = renderDesc.FrameBufferCount,
             ShaderCacheDirectory = renderDesc.ShaderCacheDirectory,
             ShaderCompilationBridge = renderDesc.ShaderCompilationBridge,
-            ResourceStreamingProcessor = _streamingProcessor,
         };
 
         _renderEngine = new RenderEngine(renderingDesc);
-        _assetManager = new AssetManager(_renderEngine.GraphicsEngine.ResourceDatabase, _renderEngine.ResourceManager, _contentProvider,
-            _streamingProcessor, _jobScheduler, renderingDesc.FrameBufferCount);
-        _assetManager.ShaderVariants.InitializeServices(
-            _renderEngine.GraphicsEngine.PipelineLibrary,
-            _renderEngine.ShaderLibrary,
-            _renderEngine.GraphicsEngine);
+        _streamingProcessor = new ResourceStreamingProcessor();
+
+        _assetManager = new AssetManager(_renderEngine, _contentProvider, _streamingProcessor, _jobScheduler, renderingDesc.FrameBufferCount);
 
         var pipeline = renderDesc.RenderPipelineSettings.CreatePipeline(_renderEngine, _assetManager, _jobScheduler);
         _renderEngine.SetRenderPipeline(pipeline);
 
         _inputManager = new RawInputManager();
         _stopwatch = new Stopwatch();
+
+        _renderEngine.AddPreRenderLoopCommand(new MeshletStreamingPreCommand(_assetManager.MeshletStreamingManager), new StreamingCommand(_streamingProcessor));
+        _renderEngine.AddPostRenderLoopCommand(new MeshletStreamingPostCommand(_assetManager.MeshletStreamingManager));
     }
 
     public void Start()
@@ -173,9 +171,10 @@ public sealed partial class EngineCore : IDisposable
         EngineProfiler.Stopwatch = null;
 
         _renderEngine.ReleasePipeline();
+
+        _inputManager.Dispose();
         _assetManager.Dispose();
         _renderEngine.Dispose();
         _jobScheduler.Dispose();
-        _inputManager.Dispose();
     }
 }
