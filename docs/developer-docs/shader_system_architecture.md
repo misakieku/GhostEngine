@@ -1,5 +1,7 @@
 # Shader System Architecture & Developer Guide
 
+> For authoring `.gshdr` / `.gcomp` / `.ggraph` files (syntax, properties, templates, strategies, and pitfalls), see the [Shader DSL Authoring Guide](./shader_dsl_guide.md).
+
 **Modules**: `Ghost.AssetForge.Core`, `Ghost.DSL`, `Ghost.Engine.Streaming`, `Ghost.Graphics`, `Ghost.Graphics.RHI`  
 **Target Platform**: .NET 10 / Windows / DirectX 12  
 **Primary locations**: `src/Editor`, `src/Runtime/Ghost.Engine/Streaming`, `src/Runtime/Ghost.Graphics`, `src/Runtime/Ghost.Core`

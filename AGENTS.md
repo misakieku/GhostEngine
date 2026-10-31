@@ -2,6 +2,7 @@
 
 > [!IMPORTANT]
 > This is a WIP engine with 0 user base, backward capability make no senses.
+> **NEVER WRITE PARAMETERS OF A METHOD IN MULTIPLE LINES IF THERE ARE SHORTER THAN 200**
 
 ## Repository Overview
 
@@ -294,3 +295,4 @@ To find how to use a specific system, you can find documents in `docs\documents`
 Currently only `ECS` and `RenderGraph` have a completed document.
 
 Developer guidelines, architectural references, and known pitfalls can be found in `docs\developer-docs\` (e.g., `common_mistakes.md`).
+Read them (at least list the file names to see what they cover) before you start to write code.
