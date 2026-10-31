@@ -231,4 +231,9 @@ internal class MockingCommandBuffer : ICommandBuffer
     {
         _state.CommandCount++;
     }
+
+    public void InsertFullPipelineBarrier()
+    {
+        _state.CommandCount++;
+    }
 }

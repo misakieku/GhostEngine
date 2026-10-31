@@ -35,6 +35,7 @@ struct ShadingContext
     uint2 tileCoord;
     float depth;
     float linearDepth;
+    TEXTURE2D depthTextureIndex;
     TEXTURE2D shadowAtlasIndex;
     BYTE_ADDRESS_BUFFER shadowViewsBufferIndex;
     BYTE_ADDRESS_BUFFER shadowIndicesBufferIndex;
@@ -45,6 +46,11 @@ struct ShadingContext
     uint skyboxMipCount;
     float4 skyboxTintAndIntensity;
     float2 skyboxRotationSinCos;
+    TEXTURE2D hzbTextureIndex;
+    uint hzbMipCount;
+    float2 hzbUvFactor;
+    uint2 hzbBaseSize;
+    uint tlasIndex;
 };
 
 struct DirectLighting

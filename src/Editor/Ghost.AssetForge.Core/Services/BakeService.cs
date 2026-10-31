@@ -277,6 +277,7 @@ public class BakeService
 
         try
         {
+            // TODO: In memory cache for small assets.
             await using (var fs = new FileStream(tempCacheFile, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 // Write the CacheFileHeader (magic + baker version) before the baker's payload

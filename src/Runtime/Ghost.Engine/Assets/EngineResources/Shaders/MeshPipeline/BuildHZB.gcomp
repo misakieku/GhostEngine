@@ -32,22 +32,23 @@ compute "Internal/BuildHZB"
                 ((i >> 1) & 3) | ((i >> 3) & 4));
         }
 
-        groupshared float s_minDepth[32];
+        groupshared float2 s_depths[32];
         
-        void SubgroupMergeDepths(uint threadID, uint bitIndex, inout float minDepth)
+        void SubgroupMergeDepths(uint threadID, uint bitIndex, inout float2 depths)
         {
             uint highIndex = threadID >> (bitIndex + 1);
             uint lowIndex = threadID & ((1 << (bitIndex + 1)) - 1);
         
             if (lowIndex == (1 << bitIndex))
             {
-                s_minDepth[highIndex] = minDepth;
+                s_depths[highIndex] = depths;
             }
             GroupMemoryBarrierWithGroupSync();
         
             if (lowIndex == 0)
             {
-                minDepth = min(minDepth, s_minDepth[highIndex]);
+                depths.x = min(depths.x, s_depths[highIndex].x);
+                depths.y = max(depths.y, s_depths[highIndex].y);
             }
             GroupMemoryBarrierWithGroupSync();
         }
@@ -66,72 +67,77 @@ compute "Internal/BuildHZB"
             int2 srcCoord01 = readOffsetUL + int2(0, 1);
             int2 srcCoord11 = readOffsetUL + int2(1, 1);
 
-            float p00, p10, p01, p11;
+            float2 depths;
             if (g_Properties.isFirstBatch != 0)
             {
                 Texture2D<uint2> visBuffer = GET_TEXTURE2D(g_Properties.srcBuffer);
-                p00 = srcCoord00.x < g_Properties.srcLimit.x && srcCoord00.y < g_Properties.srcLimit.y ? asfloat(visBuffer[srcCoord00].y) : 0.0;
-                p10 = srcCoord10.x < g_Properties.srcLimit.x && srcCoord10.y < g_Properties.srcLimit.y ? asfloat(visBuffer[srcCoord10].y) : 0.0;
-                p01 = srcCoord01.x < g_Properties.srcLimit.x && srcCoord01.y < g_Properties.srcLimit.y ? asfloat(visBuffer[srcCoord01].y) : 0.0;
-                p11 = srcCoord11.x < g_Properties.srcLimit.x && srcCoord11.y < g_Properties.srcLimit.y ? asfloat(visBuffer[srcCoord11].y) : 0.0;
+                float p00 = srcCoord00.x < g_Properties.srcLimit.x && srcCoord00.y < g_Properties.srcLimit.y ? asfloat(visBuffer[srcCoord00].y) : 0.0;
+                float p10 = srcCoord10.x < g_Properties.srcLimit.x && srcCoord10.y < g_Properties.srcLimit.y ? asfloat(visBuffer[srcCoord10].y) : 0.0;
+                float p01 = srcCoord01.x < g_Properties.srcLimit.x && srcCoord01.y < g_Properties.srcLimit.y ? asfloat(visBuffer[srcCoord01].y) : 0.0;
+                float p11 = srcCoord11.x < g_Properties.srcLimit.x && srcCoord11.y < g_Properties.srcLimit.y ? asfloat(visBuffer[srcCoord11].y) : 0.0;
+
+                depths.x = min(min(p00, p10), min(p01, p11));
+                depths.y = max(max(p00, p10), max(p01, p11));
             }
             else
             {
-                RWTexture2D<float> srcMip = GET_TEXTURE2D(g_Properties.srcUavMip);
-                p00 = srcMip[srcCoord00];
-                p10 = srcMip[srcCoord10];
-                p01 = srcMip[srcCoord01];
-                p11 = srcMip[srcCoord11];
-            }
+                RWTexture2D<float2> srcMip = GET_TEXTURE2D(g_Properties.srcUavMip);
+                float2 d00 = srcMip[srcCoord00];
+                float2 d10 = srcMip[srcCoord10];
+                float2 d01 = srcMip[srcCoord01];
+                float2 d11 = srcMip[srcCoord11];
 
-            float minDepth = min(min(p00, p10), min(p01, p11));
+                depths.x = min(min(d00.x, d10.x), min(d01.x, d11.x));
+                depths.y = max(max(d00.y, d10.y), max(d01.y, d11.y));
+            }
 
             // Write Mip 0
             if (g_Properties.minDstCount >= 1 && all(dstCoord0 < (int2)g_Properties.dstSize01.xy))
             {
-                RWTexture2D<float> dstMip0 = GET_TEXTURE2D(g_Properties.dstUavMip0);
-                dstMip0[dstCoord0] = minDepth;
+                RWTexture2D<float2> dstMip0 = GET_TEXTURE2D(g_Properties.dstUavMip0);
+                dstMip0[dstCoord0] = depths;
             }
 
             // Merge to thread 0 in subgroup size 4 (Mip 1)
-            // SubgroupMergeDepths(threadID, 0, minDepth);
-            // SubgroupMergeDepths(threadID, 1, minDepth);
             // Use QuadReadAcrossX and QuadReadAcrossY to avoid shared memory and sync
-            minDepth = min(minDepth, QuadReadAcrossX(minDepth));
-            minDepth = min(minDepth, QuadReadAcrossY(minDepth));
+            depths.x = min(depths.x, QuadReadAcrossX(depths.x));
+            depths.x = min(depths.x, QuadReadAcrossY(depths.x));
+            depths.y = max(depths.y, QuadReadAcrossX(depths.y));
+            depths.y = max(depths.y, QuadReadAcrossY(depths.y));
+
             if (g_Properties.minDstCount >= 2 && (threadID & 0x3) == 0)
             {
                 int2 dstCoord1 = dstCoord0 >> 1;
                 if (all(dstCoord1 < (int2)g_Properties.dstSize01.zw))
                 {
-                    RWTexture2D<float> dstMip1 = GET_TEXTURE2D(g_Properties.dstUavMip1);
-                    dstMip1[dstCoord1] = minDepth;
+                    RWTexture2D<float2> dstMip1 = GET_TEXTURE2D(g_Properties.dstUavMip1);
+                    dstMip1[dstCoord1] = depths;
                 }
             }
 
             // Merge to thread 0 in subgroup size 16 (Mip 2)
-            SubgroupMergeDepths(threadID, 2, minDepth);
-            SubgroupMergeDepths(threadID, 3, minDepth);
+            SubgroupMergeDepths(threadID, 2, depths);
+            SubgroupMergeDepths(threadID, 3, depths);
             if (g_Properties.minDstCount >= 3 && (threadID & 0xF) == 0)
             {
                 int2 dstCoord2 = dstCoord0 >> 2;
                 if (all(dstCoord2 < (int2)g_Properties.dstSize23.xy))
                 {
-                    RWTexture2D<float> dstMip2 = GET_TEXTURE2D(g_Properties.dstUavMip2);
-                    dstMip2[dstCoord2] = minDepth;
+                    RWTexture2D<float2> dstMip2 = GET_TEXTURE2D(g_Properties.dstUavMip2);
+                    dstMip2[dstCoord2] = depths;
                 }
             }
 
             // Merge to thread 0 in subgroup size 64 (Mip 3)
-            SubgroupMergeDepths(threadID, 4, minDepth);
-            SubgroupMergeDepths(threadID, 5, minDepth);
+            SubgroupMergeDepths(threadID, 4, depths);
+            SubgroupMergeDepths(threadID, 5, depths);
             if (g_Properties.minDstCount >= 4 && (threadID & 0x3F) == 0)
             {
                 int2 dstCoord3 = dstCoord0 >> 3;
                 if (all(dstCoord3 < (int2)g_Properties.dstSize23.zw))
                 {
-                    RWTexture2D<float> dstMip3 = GET_TEXTURE2D(g_Properties.dstUavMip3);
-                    dstMip3[dstCoord3] = minDepth;
+                    RWTexture2D<float2> dstMip3 = GET_TEXTURE2D(g_Properties.dstUavMip3);
+                    dstMip3[dstCoord3] = depths;
                 }
             }
         }

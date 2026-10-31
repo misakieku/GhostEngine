@@ -3,6 +3,7 @@ using Ghost.Core.Graphics;
 using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Utilities;
+using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
@@ -223,7 +224,7 @@ internal unsafe partial class GhostRenderPipeline
         shadowIndicesBufferSrv = uint.MaxValue;
 
         var lightCount = lights.Length;
-        if (lightCount == 0)
+        if (lightCount == 0 || _settings.ShadowMode == PipelineShadowMode.RIS)
         {
             return;
         }
@@ -444,7 +445,13 @@ internal unsafe partial class GhostRenderPipeline
         public uint skyboxMipCount;
         public float4 skyboxTintAndIntensity;
         public float2 skyboxRotationSinCos;
-        public float2 _pad;
+        public uint hzbTextureSrv;
+        public uint hzbMipCount;
+        public float2 hzbUvFactor;
+        public uint2 hzbBaseSize;
+        public uint tlasIndex;
+        public uint risResolvedDiffuseSrv;
+        public uint risResolvedSpecularSrv;
     }
 
     private struct DeferredLightingPassData
@@ -458,6 +465,9 @@ internal unsafe partial class GhostRenderPipeline
         public Identifier<RGTexture> litColorTarget;
         public Identifier<RGTexture> shadowAtlas;
         public Identifier<RGBuffer> tileShadingModelMaskBuffer;
+        public Identifier<RGTexture> hzbTexture;
+        public Identifier<RGTexture> risResolvedDiffuse;
+        public Identifier<RGTexture> risResolvedSpecular;
         public SkyContext skyContext;
         public uint viewId;
         public uint shadowViewsBufferSrv;
@@ -466,12 +476,16 @@ internal unsafe partial class GhostRenderPipeline
         public uint tilesPerRow;
         public uint tilesY;
         public uint2 renderSize;
+        public uint2 hzbSize;
+        public uint hzbMipCount;
+        public uint tlasIndex;
     }
 
     private Identifier<RGTexture> AddDeferredLightingPass(
         RenderGraph rg, in GBufferResources gbuffer, Identifier<RGTexture> depthTexture, Identifier<RGBuffer> tileLightList,
         Identifier<RGTexture> shadowAtlas, uint shadowViewsBufferSrv, uint shadowIndicesBufferSrv, Identifier<RGBuffer> tileShadingModelMaskBuffer,
-        in SkyContext skyContext, uint viewId, uint2 renderSize)
+        in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, uint viewId, uint2 renderSize,
+        Identifier<RGTexture> risResolvedDiffuse, Identifier<RGTexture> risResolvedSpecular)
     {
         var tilesX = (renderSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
         var tilesY = (renderSize.y + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
@@ -493,10 +507,21 @@ internal unsafe partial class GhostRenderPipeline
         builder.UseTexture(depthTexture, AccessFlags.Read);
         builder.UseBuffer(tileLightList, AccessFlags.Read);
         builder.UseBuffer(tileShadingModelMaskBuffer, AccessFlags.Read);
+        builder.UseTexture(hzbTexture, AccessFlags.Read);
 
         if (shadowAtlas.IsValid)
         {
             builder.UseTexture(shadowAtlas, AccessFlags.Read);
+        }
+
+        if (risResolvedDiffuse.IsValid)
+        {
+            builder.UseTexture(risResolvedDiffuse, AccessFlags.Read);
+        }
+
+        if (risResolvedSpecular.IsValid)
+        {
+            builder.UseTexture(risResolvedSpecular, AccessFlags.Read);
         }
 
         if (skyContext.skyboxTexture.IsValid)
@@ -527,6 +552,9 @@ internal unsafe partial class GhostRenderPipeline
             litColorTarget = litColorTarget,
             shadowAtlas = shadowAtlas,
             tileShadingModelMaskBuffer = tileShadingModelMaskBuffer,
+            hzbTexture = hzbTexture,
+            risResolvedDiffuse = risResolvedDiffuse,
+            risResolvedSpecular = risResolvedSpecular,
             skyContext = skyContext,
             viewId = viewId,
             shadowViewsBufferSrv = shadowViewsBufferSrv,
@@ -534,7 +562,10 @@ internal unsafe partial class GhostRenderPipeline
             variantRegistry = _assetManager.ShaderVariants,
             tilesPerRow = tilesX,
             tilesY = tilesY,
-            renderSize = renderSize
+            renderSize = renderSize,
+            hzbSize = hzbSize,
+            hzbMipCount = hzbMipCount,
+            tlasIndex = _rayTracingManager.TLASBindlessIndex
         });
 
         builder.SetRenderFunc<DeferredLightingPassData>(static (ref readonly passData, computeCtx) =>
@@ -551,6 +582,13 @@ internal unsafe partial class GhostRenderPipeline
             var skyboxSrv = computeCtx.GetActualBindlessIndex(passData.skyContext.skyboxTexture, BindlessAccess.ShaderResource);
             var iblLutSrv = computeCtx.GetActualBindlessIndex(passData.skyContext.iblLutTexture, BindlessAccess.ShaderResource);
             var persistentViewStateSrv = computeCtx.GetActualBindlessIndex(passData.skyContext.persistentViewStateBuffer, BindlessAccess.ShaderResource);
+            var hzbSrv = passData.hzbTexture.IsValid ? computeCtx.GetActualBindlessIndex(passData.hzbTexture, BindlessAccess.ShaderResource) : 0;
+            var risDiffSrv = passData.risResolvedDiffuse.IsValid ? computeCtx.GetActualBindlessIndex(passData.risResolvedDiffuse, BindlessAccess.ShaderResource) : 0u;
+            var risSpecSrv = passData.risResolvedSpecular.IsValid ? computeCtx.GetActualBindlessIndex(passData.risResolvedSpecular, BindlessAccess.ShaderResource) : 0u;
+
+            var hzbUvFactor = (passData.hzbSize.x > 0 && passData.hzbSize.y > 0)
+                ? new float2(passData.renderSize.x * 0.5f / passData.hzbSize.x, passData.renderSize.y * 0.5f / passData.hzbSize.y)
+                : new float2(1.0f, 1.0f);
 
             var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.DeferredLighting);
 
@@ -591,7 +629,13 @@ internal unsafe partial class GhostRenderPipeline
                     skyboxMipCount = passData.skyContext.skyboxMipCount,
                     skyboxTintAndIntensity = passData.skyContext.skyTintAndIntensity,
                     skyboxRotationSinCos = passData.skyContext.skyRotationSinCos,
-                    _pad = float2.zero
+                    hzbTextureSrv = hzbSrv,
+                    hzbMipCount = passData.hzbMipCount,
+                    hzbUvFactor = hzbUvFactor,
+                    hzbBaseSize = passData.hzbSize,
+                    tlasIndex = passData.tlasIndex,
+                    risResolvedDiffuseSrv = risDiffSrv,
+                    risResolvedSpecularSrv = risSpecSrv
                 };
 
                 computeCtx.SetUserDataWithProperties(in props, target: DataTarget.Compute);
@@ -600,6 +644,377 @@ internal unsafe partial class GhostRenderPipeline
         });
 
         return litColorTarget;
+    }
+
+    private struct RisLightSamplingPassData
+    {
+        public Identifier<RGTexture> depthTexture;
+        public Identifier<RGTexture> gbuffer0;
+        public Identifier<RGTexture> gbuffer1;
+        public Identifier<RGBuffer> tileLightList;
+        public Identifier<RGTexture> risLightSamples;
+        public Handle<ComputeShader> shader;
+        public uint2 renderSize;
+        public uint tilesPerRow;
+        public uint frameIndex;
+    }
+
+    private struct RisRayTracePassData
+    {
+        public Identifier<RGTexture> depthTexture;
+        public Identifier<RGTexture> gbuffer1;
+        public Identifier<RGTexture> risLightSamples;
+        public Identifier<RGTexture> risShadowMask;
+        public Handle<ComputeShader> shader;
+        public uint2 renderSize;
+        public uint tlasIndex;
+        public uint viewId;
+        public uint frameIndex;
+    }
+
+    private struct RisResolveShadingPassData
+    {
+        public Identifier<RGTexture> depthTexture;
+        public Identifier<RGTexture> gbuffer0;
+        public Identifier<RGTexture> gbuffer1;
+        public Identifier<RGTexture> gbuffer2;
+        public Identifier<RGTexture> risLightSamples;
+        public Identifier<RGTexture> risShadowMask;
+        public Identifier<RGTexture> risResolvedDiffuse;
+        public Identifier<RGTexture> risResolvedSpecular;
+        public Handle<ComputeShader> shader;
+        public uint2 renderSize;
+    }
+
+    private struct RisDenoiserTemporalPassData
+    {
+        public Identifier<RGTexture> depthTexture;
+        public Identifier<RGTexture> gbuffer1;
+        public Identifier<RGTexture> currentDiffuse;
+        public Identifier<RGTexture> currentSpecular;
+        public Identifier<RGTexture> historyDiffuse;
+        public Identifier<RGTexture> historySpecular;
+        public Identifier<RGTexture> outputDiffuse;
+        public Identifier<RGTexture> outputSpecular;
+        public Handle<ComputeShader> shader;
+        public uint2 renderSize;
+        public uint historyValid;
+    }
+
+    private struct RisDenoiserSpatialPassData
+    {
+        public Identifier<RGTexture> depthTexture;
+        public Identifier<RGTexture> gbuffer1;
+        public Identifier<RGTexture> inputDiffuse;
+        public Identifier<RGTexture> inputSpecular;
+        public Identifier<RGTexture> outputDiffuse;
+        public Identifier<RGTexture> outputSpecular;
+        public Handle<ComputeShader> shader;
+        public uint2 renderSize;
+    }
+
+    private void AddRisPasses(
+        RenderGraph rg, GPUViewContext viewContext, in GBufferResources gbuffer, Identifier<RGTexture> depthTexture,
+        Identifier<RGBuffer> tileLightList, uint2 renderSize, uint frameIndex, uint viewId,
+        out Identifier<RGTexture> resolvedDiffuse, out Identifier<RGTexture> resolvedSpecular)
+    {
+        var tilesX = (renderSize.x + 15u) / 16u;
+
+        // 1. RisLightSampling (Generates 1 winner light and weight W per pixel)
+
+        Identifier<RGTexture> risLightSamples;
+        using (var samplingBuilder = rg.AddComputeRenderPass<RisLightSamplingPassData>("RisLightSampling"))
+        {
+            var samplesDesc = RGTextureDesc.Relative(1.0f, TextureFormat.R32G32_UInt, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
+            risLightSamples = samplingBuilder.CreateTexture(in samplesDesc, "RisLightSamples");
+
+            samplingBuilder.UseTexture(depthTexture, AccessFlags.Read);
+            samplingBuilder.UseTexture(gbuffer.GBuffer0, AccessFlags.Read);
+            samplingBuilder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
+            samplingBuilder.UseBuffer(tileLightList, AccessFlags.Read);
+            samplingBuilder.UseTexture(risLightSamples, AccessFlags.Write);
+
+            samplingBuilder.SetPassData(new RisLightSamplingPassData
+            {
+                depthTexture = depthTexture,
+                gbuffer0 = gbuffer.GBuffer0,
+                gbuffer1 = gbuffer.GBuffer1,
+                tileLightList = tileLightList,
+                risLightSamples = risLightSamples,
+                shader = _lightingPipelineResource.risLightSamplingShader,
+                renderSize = renderSize,
+                tilesPerRow = tilesX,
+                frameIndex = frameIndex
+            });
+
+            samplingBuilder.SetRenderFunc<RisLightSamplingPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
+                var gb0Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer0, BindlessAccess.ShaderResource);
+                var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
+                var tileLightListSrv = computeCtx.GetActualBindlessIndex(passData.tileLightList, BindlessAccess.ShaderResource);
+                var samplesUav = computeCtx.GetActualBindlessIndex(passData.risLightSamples, BindlessAccess.UnorderedAccess);
+
+                var props = new InternalRisLightSamplingShaderProperties
+                {
+                    depthTextureIndex = depthSrv,
+                    gbuffer0Index = gb0Srv,
+                    gbuffer1Index = gb1Srv,
+                    tileLightListBufferIndex = tileLightListSrv,
+                    risLightSamplesUav = samplesUav,
+                    renderWidth = passData.renderSize.x,
+                    renderHeight = passData.renderSize.y,
+                    tilesPerRow = passData.tilesPerRow,
+                    frameIndex = passData.frameIndex
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+                computeCtx.DispatchCompute((passData.renderSize.x + 15u) / 16u, (passData.renderSize.y + 15u) / 16u, 1);
+            });
+        }
+
+        // 2. RisRayTrace (Inline DXR 1.1 shadow ray query)
+        Identifier<RGTexture> risShadowMask;
+        using (var rayTraceBuilder = rg.AddComputeRenderPass<RisRayTracePassData>("RisRayTrace"))
+        {
+            var shadowDesc = RGTextureDesc.Relative(1.0f, TextureFormat.R8_UNorm, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
+            risShadowMask = rg.CreateTexture(in shadowDesc, "RisShadowMask");
+
+            rayTraceBuilder.UseTexture(depthTexture, AccessFlags.Read);
+            rayTraceBuilder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
+            rayTraceBuilder.UseTexture(risLightSamples, AccessFlags.Read);
+            rayTraceBuilder.UseTexture(risShadowMask, AccessFlags.Write);
+
+            rayTraceBuilder.SetPassData(new RisRayTracePassData
+            {
+                depthTexture = depthTexture,
+                gbuffer1 = gbuffer.GBuffer1,
+                risLightSamples = risLightSamples,
+                risShadowMask = risShadowMask,
+                shader = _lightingPipelineResource.risRayTraceShader,
+                renderSize = renderSize,
+                tlasIndex = _rayTracingManager.TLASBindlessIndex,
+                viewId = viewId,
+                frameIndex = frameIndex
+            });
+
+            rayTraceBuilder.SetRenderFunc<RisRayTracePassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
+                var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
+                var samplesSrv = computeCtx.GetActualBindlessIndex(passData.risLightSamples, BindlessAccess.ShaderResource);
+                var shadowUav = computeCtx.GetActualBindlessIndex(passData.risShadowMask, BindlessAccess.UnorderedAccess);
+
+                var props = new InternalRisRayTraceShaderProperties
+                {
+                    depthTextureIndex = depthSrv,
+                    gbuffer1Index = gb1Srv,
+                    risLightSamplesIndex = samplesSrv,
+                    risShadowMaskUav = shadowUav,
+                    renderWidth = passData.renderSize.x,
+                    renderHeight = passData.renderSize.y,
+                    tlasIndex = passData.tlasIndex,
+                    viewId = passData.viewId,
+                    frameIndex = passData.frameIndex
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+                computeCtx.DispatchCompute((passData.renderSize.x + 7u) / 8u, (passData.renderSize.y + 3u) / 4u, 1);
+            });
+        }
+
+        // 3. RisResolveShading (Evaluates diffuse irradiance & specular radiance)
+
+        using (var resolveBuilder = rg.AddComputeRenderPass<RisResolveShadingPassData>("RisResolveShading"))
+        {
+            var diffuseDesc = RGTextureDesc.Relative(1.0f, TextureFormat.R16G16B16A16_Float, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
+            var specularDesc = RGTextureDesc.Relative(1.0f, TextureFormat.R16G16B16A16_Float, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
+            resolvedDiffuse = rg.CreateTexture(in diffuseDesc, "RisResolvedDiffuse");
+            resolvedSpecular = rg.CreateTexture(in specularDesc, "RisResolvedSpecular");
+
+            resolveBuilder.UseTexture(depthTexture, AccessFlags.Read);
+            resolveBuilder.UseTexture(gbuffer.GBuffer0, AccessFlags.Read);
+            resolveBuilder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
+            resolveBuilder.UseTexture(gbuffer.GBuffer2, AccessFlags.Read);
+            resolveBuilder.UseTexture(risLightSamples, AccessFlags.Read);
+            resolveBuilder.UseTexture(risShadowMask, AccessFlags.Read);
+            resolveBuilder.UseTexture(resolvedDiffuse, AccessFlags.Write);
+            resolveBuilder.UseTexture(resolvedSpecular, AccessFlags.Write);
+
+            resolveBuilder.SetPassData(new RisResolveShadingPassData
+            {
+                depthTexture = depthTexture,
+                gbuffer0 = gbuffer.GBuffer0,
+                gbuffer1 = gbuffer.GBuffer1,
+                gbuffer2 = gbuffer.GBuffer2,
+                risLightSamples = risLightSamples,
+                risShadowMask = risShadowMask,
+                risResolvedDiffuse = resolvedDiffuse,
+                risResolvedSpecular = resolvedSpecular,
+                shader = _lightingPipelineResource.risResolveShadingShader,
+                renderSize = renderSize
+            });
+
+            resolveBuilder.SetRenderFunc<RisResolveShadingPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
+                var gb0Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer0, BindlessAccess.ShaderResource);
+                var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
+                var gb2Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer2, BindlessAccess.ShaderResource);
+                var samplesSrv = computeCtx.GetActualBindlessIndex(passData.risLightSamples, BindlessAccess.ShaderResource);
+                var shadowSrv = computeCtx.GetActualBindlessIndex(passData.risShadowMask, BindlessAccess.ShaderResource);
+                var diffUav = computeCtx.GetActualBindlessIndex(passData.risResolvedDiffuse, BindlessAccess.UnorderedAccess);
+                var specUav = computeCtx.GetActualBindlessIndex(passData.risResolvedSpecular, BindlessAccess.UnorderedAccess);
+
+                var props = new InternalRisResolveShadingShaderProperties
+                {
+                    depthTextureIndex = depthSrv,
+                    gbuffer0Index = gb0Srv,
+                    gbuffer1Index = gb1Srv,
+                    gbuffer2Index = gb2Srv,
+                    risLightSamplesIndex = samplesSrv,
+                    risShadowMaskIndex = shadowSrv,
+                    risResolvedDiffuseUav = diffUav,
+                    risResolvedSpecularUav = specUav,
+                    renderWidth = passData.renderSize.x,
+                    renderHeight = passData.renderSize.y
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+                computeCtx.DispatchCompute((passData.renderSize.x + 15u) / 16u, (passData.renderSize.y + 15u) / 16u, 1);
+            });
+        }
+
+        // 4. RisDenoiserTemporal (Reprojection, variance clamping, EMA accumulation)
+        var historyDiffuse = rg.ImportTexture(viewContext.RisHistoryDiffuse, ResourceBarrierData.Common, ResourceBarrierData.Common);
+        var historySpecular = rg.ImportTexture(viewContext.RisHistorySpecular, ResourceBarrierData.Common, ResourceBarrierData.Common);
+
+        Identifier<RGTexture> temporalDiffuse;
+        Identifier<RGTexture> temporalSpecular;
+
+        using (var temporalBuilder = rg.AddComputeRenderPass<RisDenoiserTemporalPassData>("RisDenoiserTemporal"))
+        {
+            temporalDiffuse = temporalBuilder.CreateTexture(historyDiffuse, "RisTemporalDiffuse");
+            temporalSpecular = temporalBuilder.CreateTexture(historySpecular, "RisTemporalSpecular");
+
+            temporalBuilder.UseTexture(depthTexture, AccessFlags.Read);
+            temporalBuilder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
+            temporalBuilder.UseTexture(resolvedDiffuse, AccessFlags.Read);
+            temporalBuilder.UseTexture(resolvedSpecular, AccessFlags.Read);
+            temporalBuilder.UseTexture(historyDiffuse, AccessFlags.Read);
+            temporalBuilder.UseTexture(historySpecular, AccessFlags.Read);
+            temporalBuilder.UseTexture(temporalDiffuse, AccessFlags.Write);
+            temporalBuilder.UseTexture(temporalSpecular, AccessFlags.Write);
+
+            temporalBuilder.QueueTextureExtraction(temporalDiffuse, viewContext.RisHistoryDiffuse);
+            temporalBuilder.QueueTextureExtraction(temporalSpecular, viewContext.RisHistorySpecular);
+
+            temporalBuilder.SetPassData(new RisDenoiserTemporalPassData
+            {
+                depthTexture = depthTexture,
+                gbuffer1 = gbuffer.GBuffer1,
+                currentDiffuse = resolvedDiffuse,
+                currentSpecular = resolvedSpecular,
+                historyDiffuse = historyDiffuse,
+                historySpecular = historySpecular,
+                outputDiffuse = temporalDiffuse,
+                outputSpecular = temporalSpecular,
+                shader = _lightingPipelineResource.risDenoiserTemporalShader,
+                renderSize = renderSize,
+                historyValid = viewContext.hasValidRisHistory ? 1u : 0u
+            });
+
+            viewContext.hasValidRisHistory = true;
+
+            temporalBuilder.SetRenderFunc<RisDenoiserTemporalPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
+                var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
+                var curDiffSrv = computeCtx.GetActualBindlessIndex(passData.currentDiffuse, BindlessAccess.ShaderResource);
+                var curSpecSrv = computeCtx.GetActualBindlessIndex(passData.currentSpecular, BindlessAccess.ShaderResource);
+                var histDiffSrv = computeCtx.GetActualBindlessIndex(passData.historyDiffuse, BindlessAccess.ShaderResource);
+                var histSpecSrv = computeCtx.GetActualBindlessIndex(passData.historySpecular, BindlessAccess.ShaderResource);
+                var outDiffUav = computeCtx.GetActualBindlessIndex(passData.outputDiffuse, BindlessAccess.UnorderedAccess);
+                var outSpecUav = computeCtx.GetActualBindlessIndex(passData.outputSpecular, BindlessAccess.UnorderedAccess);
+
+                var props = new InternalRisDenoiserTemporalShaderProperties
+                {
+                    depthTextureIndex = depthSrv,
+                    gbuffer1Index = gb1Srv,
+                    currentDiffuseIndex = curDiffSrv,
+                    currentSpecularIndex = curSpecSrv,
+                    historyDiffuseIndex = histDiffSrv,
+                    historySpecularIndex = histSpecSrv,
+                    outputDiffuseUav = outDiffUav,
+                    outputSpecularUav = outSpecUav,
+                    renderWidth = passData.renderSize.x,
+                    renderHeight = passData.renderSize.y,
+                    historyValid = passData.historyValid
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+                computeCtx.DispatchCompute((passData.renderSize.x + 15u) / 16u, (passData.renderSize.y + 15u) / 16u, 1);
+            });
+        }
+
+        // 5. RisDenoiserSpatial (Edge-preserving cross-bilateral filter)
+        var filteredDiffuse = rg.CreateTexture(resolvedDiffuse, "RisFilteredDiffuse");
+        var filteredSpecular = rg.CreateTexture(resolvedSpecular, "RisFilteredSpecular");
+
+        using (var denoiserBuilder = rg.AddComputeRenderPass<RisDenoiserSpatialPassData>("RisDenoiserSpatial"))
+        {
+            denoiserBuilder.UseTexture(depthTexture, AccessFlags.Read);
+            denoiserBuilder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
+            denoiserBuilder.UseTexture(temporalDiffuse, AccessFlags.Read);
+            denoiserBuilder.UseTexture(temporalSpecular, AccessFlags.Read);
+            denoiserBuilder.UseTexture(filteredDiffuse, AccessFlags.Write);
+            denoiserBuilder.UseTexture(filteredSpecular, AccessFlags.Write);
+
+            denoiserBuilder.SetPassData(new RisDenoiserSpatialPassData
+            {
+                depthTexture = depthTexture,
+                gbuffer1 = gbuffer.GBuffer1,
+                inputDiffuse = temporalDiffuse,
+                inputSpecular = temporalSpecular,
+                outputDiffuse = filteredDiffuse,
+                outputSpecular = filteredSpecular,
+                shader = _lightingPipelineResource.risDenoiserSpatialShader,
+                renderSize = renderSize
+            });
+
+            denoiserBuilder.SetRenderFunc<RisDenoiserSpatialPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
+                var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
+                var inDiffSrv = computeCtx.GetActualBindlessIndex(passData.inputDiffuse, BindlessAccess.ShaderResource);
+                var inSpecSrv = computeCtx.GetActualBindlessIndex(passData.inputSpecular, BindlessAccess.ShaderResource);
+                var outDiffUav = computeCtx.GetActualBindlessIndex(passData.outputDiffuse, BindlessAccess.UnorderedAccess);
+                var outSpecUav = computeCtx.GetActualBindlessIndex(passData.outputSpecular, BindlessAccess.UnorderedAccess);
+
+                var props = new InternalRisDenoiserSpatialShaderProperties
+                {
+                    depthTextureIndex = depthSrv,
+                    gbuffer1Index = gb1Srv,
+                    inputDiffuseIndex = inDiffSrv,
+                    inputSpecularIndex = inSpecSrv,
+                    outputDiffuseUav = outDiffUav,
+                    outputSpecularUav = outSpecUav,
+                    renderWidth = passData.renderSize.x,
+                    renderHeight = passData.renderSize.y
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+                computeCtx.DispatchCompute((passData.renderSize.x + 15u) / 16u, (passData.renderSize.y + 15u) / 16u, 1);
+            });
+        }
+
+        resolvedDiffuse = filteredDiffuse;
+        resolvedSpecular = filteredSpecular;
     }
 
     private struct ShadowCullPassData

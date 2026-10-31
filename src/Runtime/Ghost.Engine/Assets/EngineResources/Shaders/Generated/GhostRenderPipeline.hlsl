@@ -47,7 +47,13 @@ struct DeferredLightingShaderProperties
     uint skyboxMipCount;
     float4 skyboxTintAndIntensity;
     float2 skyboxRotationSinCos;
-    float2 _pad;
+    uint hzbTextureSrv;
+    uint hzbMipCount;
+    float2 hzbUvFactor;
+    uint2 hzbBaseSize;
+    uint tlasIndex;
+    uint risResolvedDiffuseSrv;
+    uint risResolvedSpecularSrv;
 };
 
 

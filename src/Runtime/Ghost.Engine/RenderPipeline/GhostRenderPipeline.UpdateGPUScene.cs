@@ -75,6 +75,8 @@ internal partial class GhostRenderPipeline
                     shadowCastingMode = (uint)addRequest.meshInstance.shadowCastingMode
                 };
 
+                _rayTracingManager.OnInstanceUpdated(addRequest.instanceId, in addRequest.localToWorld, addRequest.meshInstance.mesh);
+
                 i++;
             }
 
@@ -111,6 +113,8 @@ internal partial class GhostRenderPipeline
                     instanceID = removeRequest.instanceId,
                     swapWithInstanceID = removeRequest.swapWithInstanceId
                 };
+
+                _rayTracingManager.OnInstanceRemoved(removeRequest.instanceId, removeRequest.swapWithInstanceId);
 
                 i++;
             }

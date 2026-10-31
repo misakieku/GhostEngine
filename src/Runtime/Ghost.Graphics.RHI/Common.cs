@@ -1679,6 +1679,7 @@ public enum TextureFormat
     R10G10B10A2_UNorm,
 
     R16G16B16A16_Float,
+    R32G32B32_Float,
     R32G32B32A32_Float,
 
     D24_UNorm_S8_UInt,

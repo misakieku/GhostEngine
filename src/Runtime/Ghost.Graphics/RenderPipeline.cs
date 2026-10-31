@@ -62,11 +62,12 @@ public interface IRenderPipeline : IDisposable
     /// frame scheduler embedded in <paramref name="executionContext"/>.
     /// </summary>
     /// <param name="ctx">The resource context for the current frame.</param>
-    /// <param name="frameIndex">The index of the current frame.</param>
+    /// <param name="frameIndex">The ring-buffer slot index of the current frame.</param>
+    /// <param name="frameNumber">The monotonically increasing submitted frame counter.</param>
     /// <param name="payload">The payload containing the render requests for the current frame.</param>
     /// <param name="executionContext">The execution context containing the frame scheduler and command allocators.</param>
     /// <returns>The result of the graph execution.</returns>
-    Result ExecuteGraph(scoped in ResourceContext ctx, int frameIndex, IRenderPayload payload, in RenderGraphExecutionContext executionContext);
+    Result ExecuteGraph(scoped in ResourceContext ctx, int frameIndex, ulong frameNumber, IRenderPayload payload, in RenderGraphExecutionContext executionContext);
 }
 
 public readonly ref struct RenderViewData : IDisposable

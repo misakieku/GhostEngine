@@ -406,31 +406,31 @@ bool HZBVisible(float4 clipMin, float4 clipMax, uint hzbMipCount, uint renderWid
     int4 xCoords = min(coarseRect.x + int4(0, 1, 2, 3), coarseRect.z);
     int4 yCoords = min(coarseRect.y + int4(0, 1, 2, 3), coarseRect.w);
 
-    Texture2D<float> hzbTex = GET_TEXTURE2D(hzbTexture);
+    Texture2D<float2> hzbTex = GET_TEXTURE2D(hzbTexture);
 
     float4 row0 = float4(
-        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.x)],
-        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.x)],
-        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.x)],
-        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.x)]);
+        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.x)].x,
+        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.x)].x,
+        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.x)].x,
+        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.x)].x);
 
     float4 row1 = float4(
-        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.y)],
-        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.y)],
-        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.y)],
-        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.y)]);
+        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.y)].x,
+        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.y)].x,
+        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.y)].x,
+        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.y)].x);
 
     float4 row2 = float4(
-        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.z)],
-        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.z)],
-        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.z)],
-        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.z)]);
+        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.z)].x,
+        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.z)].x,
+        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.z)].x,
+        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.z)].x);
 
     float4 row3 = float4(
-        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.w)],
-        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.w)],
-        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.w)],
-        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.w)]);
+        hzbTex.mips[hzbMip][int2(xCoords.x, yCoords.w)].x,
+        hzbTex.mips[hzbMip][int2(xCoords.y, yCoords.w)].x,
+        hzbTex.mips[hzbMip][int2(xCoords.z, yCoords.w)].x,
+        hzbTex.mips[hzbMip][int2(xCoords.w, yCoords.w)].x);
 
     float4 minByCol = min(min(min(row0, row1), row2), row3);
     float minOccluderDepth = min(min(min(minByCol.x, minByCol.y), minByCol.z), minByCol.w);

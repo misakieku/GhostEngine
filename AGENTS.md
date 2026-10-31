@@ -115,6 +115,8 @@ dotnet run --project src/Test/Ghost.AssetBaker.Test/Ghost.AssetForge.Test.csproj
 
 `Ghost.UnitTest` targets `net10.0-windows10.0.22621.0` (Windows-only). Editor integration tests are `#if false`-guarded until asset service is fully wired.
 
+**You don't need to run the test if your changes are all high level consumer (passes in render graph, shader code, etc) that does not effect core infrastructure**
+
 ### Custom TestRunner — `Ghost.MicroTest`
 
 Console executable with internal `ITest`/`TestRunner` (no shared `Ghost.Test.Core` library). Run directly:

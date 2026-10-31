@@ -65,8 +65,18 @@ internal unsafe partial class RenderGraphCompiler
 
     private UnsafeList<ResolvedPassResourceUsage> BuildPassResourceUsagePlan(List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, Span<PassResourceUsageRange> usageRanges, AllocationHandle allocationHandle)
     {
+        var totalEstimatedUsages = 0;
+        for (var i = 0; i < compiledPasses.Length; i++)
+        {
+            var p = passes[compiledPasses[i]];
+            for (var t = 0; t < (int)RGResourceType.Count; t++)
+            {
+                totalEstimatedUsages += p.resourceReads[t].Count + p.resourceWrites[t].Count;
+            }
+        }
+
         var usageRecords = new UnsafeList<ResolvedPassResourceUsage>(
-            Math.Max(1, compiledPasses.Length * 4),
+            Math.Max(Math.Max(1, compiledPasses.Length * 8), totalEstimatedUsages),
             allocationHandle);
         var resourceCount = _resourceRegistry.ResourceCount;
         if (resourceCount == 0)
@@ -75,15 +85,15 @@ internal unsafe partial class RenderGraphCompiler
             return usageRecords;
         }
 
-        using var scope = AllocationManager.CreateStackScope();
         using var resolvedUsages = new UnsafeArray<ResolvedPassResourceUsage>(
             resourceCount,
-            scope.AllocationHandle,
+            allocationHandle,
             AllocationOption.Clear);
 
         for (var scheduleIndex = 0; scheduleIndex < compiledPasses.Length; scheduleIndex++)
         {
-            ResolvePassResourceUsages(passes[compiledPasses[scheduleIndex]], resolvedUsages.AsSpan());
+            var pass = passes[compiledPasses[scheduleIndex]];
+            ResolvePassResourceUsages(pass, resolvedUsages.AsSpan());
 
             ref var range = ref usageRanges[scheduleIndex];
             range.start = usageRecords.Count;
@@ -137,6 +147,11 @@ internal unsafe partial class RenderGraphCompiler
             for (var recordOffset = 0; recordOffset < range.count; recordOffset++)
             {
                 ref readonly var usage = ref usageRecords[range.start + recordOffset];
+                if (usage.resource.IsInvalid || usage.resource.Value < 0)
+                {
+                    continue;
+                }
+
                 var resourceUseOffset = usage.resource.Value * trackedQueueCount;
                 for (var sourceQueueIndex = 0; sourceQueueIndex < trackedQueueCount; sourceQueueIndex++)
                 {
@@ -188,6 +203,11 @@ internal unsafe partial class RenderGraphCompiler
             for (var recordOffset = 0; recordOffset < range.count; recordOffset++)
             {
                 ref readonly var usage = ref usageRecords[range.start + recordOffset];
+                if (usage.resource.IsInvalid || usage.resource.Value < 0)
+                {
+                    continue;
+                }
+
                 if (!TryGetAliasingPredecessor(scheduleIndex, usage.resource, ref aliasingPlan, resourceOrdering, out var predecessor))
                 {
                     continue;

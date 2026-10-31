@@ -96,6 +96,9 @@ public class MeshBakerTests
         Assert.IsGreaterThan(0, header.meshletCount);
         Assert.IsGreaterThan(0, header.meshletGroupCount);
         Assert.IsGreaterThan(0, header.meshletHierarchyNodeCount);
+        Assert.IsGreaterThan(0, header.rayTracingProxyVertexCount);
+        Assert.IsGreaterThan(0, header.rayTracingProxyIndexCount);
+        Assert.IsGreaterThan(0L, header.rayTracingProxySize);
 
         Assert.AreEqual(32, Marshal.SizeOf<MeshletHierarchyNode>());
     }

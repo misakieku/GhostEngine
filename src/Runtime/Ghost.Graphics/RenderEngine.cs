@@ -263,7 +263,7 @@ public sealed class RenderEngine : IDisposable
             }
             catch (Exception ex)
             {
-                StopRenderLoop(Result.Failure($"An exception occurred during rendering: {ex.Message}"));
+                StopRenderLoop(Result.Failure($"An exception occurred during rendering: {ex}"));
             }
             finally
             {
@@ -332,7 +332,7 @@ public sealed class RenderEngine : IDisposable
                 frameResource.GraphicsCommandAllocator,
                 frameResource.ComputeCommandAllocator);
 
-            var result = _renderPipeline.ExecuteGraph(renderContext.ResourceContext, frameIndex, frameResource.RenderPayload, executionContext);
+            var result = _renderPipeline.ExecuteGraph(renderContext.ResourceContext, frameIndex, _submittedFrame, frameResource.RenderPayload, executionContext);
             if (result.IsFailure)
             {
                 return result;

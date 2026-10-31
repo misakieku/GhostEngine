@@ -96,11 +96,11 @@ public struct MeshletMeshData : IDisposable
     }
 }
 
-[StructLayout(LayoutKind.Sequential, Size = 192)]
+[StructLayout(LayoutKind.Sequential, Size = 216)]
 public struct MeshContentHeader
 {
     public const uint MAGIC = 0x48534D47; // GMSH
-    public const uint VERSION = 3;
+    public const uint VERSION = 4;
 
     public uint magic;
     public uint version;
@@ -133,6 +133,11 @@ public struct MeshContentHeader
     public long bulkPagesSize;
     public long materialPartOffset;
     public long materialPartSize;
+
+    public long rayTracingProxyOffset;
+    public long rayTracingProxySize;
+    public int rayTracingProxyVertexCount;
+    public int rayTracingProxyIndexCount;
 }
 
 [StructLayout(LayoutKind.Sequential)]

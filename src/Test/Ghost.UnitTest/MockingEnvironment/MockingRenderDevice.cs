@@ -21,6 +21,7 @@ internal class MockingRenderDevice : IRenderDevice
         get; set;
     } = "MockingRenderDevice";
 
+    public AccelerationStructurePrebuildInfo GetAccelerationStructurePrebuildInfo(scoped in AccelerationStructureBuildInputs inputs) => default;
 
     public void Dispose()
     {

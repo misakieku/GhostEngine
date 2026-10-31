@@ -97,6 +97,56 @@ If `T` is a struct containing nested unmanaged collections, handles, or pointers
   }
   ```
 
+### 1.3 Stack Allocator (`CreateStackScope`) Nesting with Resizable Collections
+
+#### The Mistake
+Passing a resizable collection (like `UnsafeList<T>` or `BufferWriter`) allocated on an outer stack scope into a method that opens an inner `CreateStackScope()`, and then resizing or appending past the capacity of that collection:
+
+```csharp
+// BAD: Outer stack scope holds the collection
+using var outerScope = AllocationManager.CreateStackScope();
+var list = new UnsafeList<T>(capacity: 128, outerScope.AllocationHandle);
+
+ProcessItems(list);
+
+void ProcessItems(UnsafeList<T> list)
+{
+    using var innerScope = AllocationManager.CreateStackScope();
+    var scratch = new UnsafeArray<T>(100, innerScope.AllocationHandle);
+
+    for (var i = 0; i < 200; i++)
+    {
+        list.Add(item); // RESIZES past 128!
+    }
+    // innerScope.Dispose() rewinds stack pointer past list's reallocated buffer!
+}
+```
+
+#### The Reality
+A stack allocator operates as a strict LIFO bump allocator:
+1. `list` is allocated at the outer watermark.
+2. `innerScope` records the current watermark and allocates `scratch` above it.
+3. When `list.Add()` causes `list` to grow, `list.Resize()` allocates its new, larger buffer on top of the stack (above `scratch` and inside `innerScope`).
+4. When `innerScope.Dispose()` runs, it rewinds the stack pointer back to the watermark recorded at step 2.
+5. The collection's new buffer now sits in **"free" stack space**. The very next stack allocation in the caller will silently allocate directly over the collection's memory, corrupting elements (often producing phantom `-1` values, broken handles, or `IndexOutOfRangeException`).
+
+#### The Correct Patterns
+- **If a method appends to or resizes an external collection, it must NOT create an internal `StackScope` around those allocations.**
+- **Pass `AllocationHandle` as a parameter**: Allocate both the collection and any local scratch buffers using the caller's handle without creating an inner scope:
+  ```csharp
+  void ProcessItems(UnsafeList<T> list, AllocationHandle allocationHandle)
+  {
+      // Scratch uses caller's handle; no stack rewind happens until caller exits
+      using var scratch = new UnsafeArray<T>(100, allocationHandle, AllocationOption.Clear);
+
+      for (var i = 0; i < 200; i++)
+      {
+          list.Add(item);
+      }
+  }
+  ```
+- **Size resizable collections accurately upfront**: Precompute or conservatively estimate capacities so `UnsafeList` never reallocates on stack memory.
+
 ---
 
 ## 2. Memory Alignment in Heterogeneous Buffers

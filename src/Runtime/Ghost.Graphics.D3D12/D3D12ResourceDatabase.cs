@@ -64,6 +64,24 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             this.viewGroup = viewGroup;
             this.desc = desc;
         }
+
+        public readonly void SetName(string name)
+        {
+            if (isExternal)
+            {
+                resource.resource.Get()->SetName(name);
+            }
+            else
+            {
+                resource.allocation.Get()->SetName(name);
+                var pResource = resource.allocation.Get()->GetResource();
+                if (pResource != null)
+                {
+                    pResource->SetName(name);
+                }
+            }
+        }
+
         public readonly uint Release(D3D12DescriptorAllocator descriptorAllocator)
         {
             if (isShared)
@@ -208,6 +226,11 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             if (!string.IsNullOrEmpty(name))
             {
                 allocation->SetName(name);
+                var pResource = allocation->GetResource();
+                if (pResource != null)
+                {
+                    pResource->SetName(name);
+                }
 #if GHOST_SAFETY_CHECKS
                 _resourceName[handle] = name;
 #endif
@@ -268,6 +291,18 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         }
 
         return r.Value.desc;
+    }
+
+    public ulong GetGPUVirtualAddress(Handle<GPUResource> handle)
+    {
+        var r = GetResourceRecord(handle);
+        if (r.IsFailure)
+        {
+            return 0;
+        }
+
+        var pRes = r.Value.ResourcePtr.Get();
+        return pRes != null ? pRes->GetGPUVirtualAddress() : 0;
     }
 
     public uint GetBindlessIndex(Handle<GPUResource> handle, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.ALL_SUBRESOURCES)
@@ -419,7 +454,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
 
         if (record.Allocated)
         {
-            record.ResourcePtr.Get()->SetName(name);
+            record.SetName(name);
 #if GHOST_SAFETY_CHECKS
             _resourceName[handle] = name;
 #endif
@@ -508,31 +543,62 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         _descriptorAllocator.Release(new Identifier<SamplerDescriptor>(id.Value));
     }
 
-    public Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB)
+    public Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB, bool preserveBindlessIndex = true)
     {
-        ref var recordA = ref _resources.GetElementReferenceAt(handleA.ID, handleA.Generation, out var existA);
-        ref var recordB = ref _resources.GetElementReferenceAt(handleB.ID, handleB.Generation, out var existB);
-        if (!existA || !existB)
+        Logger.DebugAssert(!_disposed);
+
+        lock (_writeLock)
         {
-            return Error.NotFound;
+            ref var recordA = ref _resources.GetElementReferenceAt(handleA.ID, handleA.Generation, out var existA);
+            ref var recordB = ref _resources.GetElementReferenceAt(handleB.ID, handleB.Generation, out var existB);
+            if (!existA || !existB)
+            {
+                return Error.NotFound;
+            }
+
+            if (preserveBindlessIndex)
+            {
+                // ViewGroups are pinned to their slots — save before swap
+                var viewA = recordA.viewGroup;
+                var viewB = recordB.viewGroup;
+
+                var temp = recordA;
+                recordA = recordB;
+                recordB = temp;
+
+                // Restore viewGroups to their original slots
+                recordA.viewGroup = viewA;
+                recordB.viewGroup = viewB;
+
+                if (recordA.Allocated)
+                {
+                    recordA.viewGroup = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordA.desc, recordA.ResourcePtr, viewA);
+                }
+
+                if (recordB.Allocated)
+                {
+                    recordB.viewGroup = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordB.desc, recordB.ResourcePtr, viewB);
+                }
+            }
+            else
+            {
+                (recordA, recordB) = (recordB, recordA);
+            }
+
+#if GHOST_SAFETY_CHECKS
+            if (recordA.Allocated && _resourceName.TryGetValue(handleA, out var aName))
+            {
+                recordA.SetName(aName);
+            }
+
+            if (recordB.Allocated && _resourceName.TryGetValue(handleB, out var bName))
+            {
+                recordB.SetName(bName);
+            }
+#endif
+
+            return Error.None;
         }
-
-        // ViewGroups are pinned to their slots — save before swap
-        var viewA = recordA.viewGroup;
-        var viewB = recordB.viewGroup;
-
-        var temp = recordA;
-        recordA = recordB;
-        recordB = temp;
-
-        // Restore viewGroups to their original slots
-        recordA.viewGroup = viewA;
-        recordB.viewGroup = viewB;
-
-        recordA.viewGroup = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordA.desc, recordA.ResourcePtr, viewA);
-        recordB.viewGroup = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordB.desc, recordB.ResourcePtr, viewB);
-
-        return Error.None;
     }
 
     public Handle<GPUResource> Replace(Handle<GPUResource> dst, Handle<GPUResource> src)
@@ -561,6 +627,13 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             recordDst.viewGroup = srcView;
             recordSrc.viewGroup = default;
         }
+
+#if GHOST_SAFETY_CHECKS
+        if (_resourceName.TryGetValue(src, out var srcName))
+        {
+            recordDst.SetName(srcName);
+        }
+#endif
 
         ReleaseResource(src);
 
@@ -732,7 +805,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
             }
             else
             {
-                Swap(pending.a, pending.b);
+                Swap(pending.a, pending.b, preserveBindlessIndex: true);
             }
         }
 

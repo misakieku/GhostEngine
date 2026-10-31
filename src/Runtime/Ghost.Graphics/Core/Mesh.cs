@@ -150,6 +150,54 @@ public struct Mesh : IResourceReleasable
     }
 
     /// <summary>
+    /// Gets the offset of the ray tracing proxy vertex buffer in the GPU buffer.
+    /// </summary>
+    public ulong RayTracingProxyVertexBufferOffset
+    {
+        get; internal set;
+    }
+
+    /// <summary>
+    /// Gets the offset of the ray tracing proxy index buffer in the GPU buffer.
+    /// </summary>
+    public ulong RayTracingProxyIndexBufferOffset
+    {
+        get; internal set;
+    }
+
+    /// <summary>
+    /// Gets the number of vertices in the ray tracing proxy.
+    /// </summary>
+    public int RayTracingProxyVertexCount
+    {
+        get; internal set;
+    }
+
+    /// <summary>
+    /// Gets the number of indices in the ray tracing proxy.
+    /// </summary>
+    public int RayTracingProxyIndexCount
+    {
+        get; internal set;
+    }
+
+    /// <summary>
+    /// Gets the handle to the ray tracing proxy bottom-level acceleration structure (BLAS) buffer on the GPU.
+    /// </summary>
+    public Handle<GPUBuffer> RayTracingProxyBlas
+    {
+        get; internal set;
+    }
+
+    /// <summary>
+    /// Gets the 64-bit GPU virtual address of the ray tracing proxy BLAS.
+    /// </summary>
+    public ulong ProxyBlasGpuAddress
+    {
+        get; internal set;
+    }
+
+    /// <summary>
     /// Gets the handle to the mesh data buffer on the GPU.
     /// </summary>
     public Handle<GPUBuffer> MeshDataBuffer
@@ -191,6 +239,11 @@ public struct Mesh : IResourceReleasable
 
         database.ReleaseResource(MeshBuffer.AsResource());
         database.ReleaseResource(MeshDataBuffer.AsResource());
+
+        if (RayTracingProxyBlas.IsValid)
+        {
+            database.ReleaseResource(RayTracingProxyBlas.AsResource());
+        }
     }
 }
 

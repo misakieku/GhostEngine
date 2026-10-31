@@ -3,19 +3,24 @@ namespace Ghost.MeshOptimizer;
 [Flags]
 public enum SimplifyOptions : uint
 {
-    LockBorder = 1 << 0,
-    Sparse = 1 << 1,
-    ErrorAbsolute = 1 << 2,
-    Prune = 1 << 3,
-    Regularize = 1 << 4,
-    Permissive = 1 << 5
+    None = 0,
+    LockBorder = Api.meshopt_SimplifyLockBorder,
+    Sparse = Api.meshopt_SimplifySparse,
+    ErrorAbsolute = Api.meshopt_SimplifyErrorAbsolute,
+    Prune = Api.meshopt_SimplifyPrune,
+    Regularize = Api.meshopt_SimplifyRegularize,
+    Permissive = Api.meshopt_SimplifyPermissive,
+    RegularizeLight = Api.meshopt_SimplifyRegularizeLight,
+    PreserveFolds = Api.meshopt_SimplifyPreserveFolds,
 }
 
 [Flags]
 public enum SimplifyVertexOptions : byte
 {
-    Lock = 1 << 0,
-    Protect = 1 << 1
+    None = 0,
+    Lock = Api.meshopt_SimplifyVertex_Lock,
+    Protect = Api.meshopt_SimplifyVertex_Protect,
+    Priority = Api.meshopt_SimplifyVertex_Priority,
 }
 
 public unsafe partial struct MeshOptApi

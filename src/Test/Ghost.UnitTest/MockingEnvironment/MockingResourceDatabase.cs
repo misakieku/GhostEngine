@@ -214,7 +214,7 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
 
 
 
-    public Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB)
+    public Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB, bool preserveBindlessIndex = true)
     {
         if (_resources.TryGetValue(GetKey(handleA), out var recordA) &&
             _resources.TryGetValue(GetKey(handleB), out var recordB))
@@ -279,5 +279,10 @@ internal unsafe class MockingResourceDatabase : IResourceDatabase
         }
 
         return false;
+    }
+
+    public ulong GetGPUVirtualAddress(Handle<GPUResource> handle)
+    {
+        return (ulong)handle.ID * 0x1000u;
     }
 }

@@ -1,0 +1,253 @@
+compute "Internal/RisLightSampling"
+{
+    properties
+    {
+        uint depthTextureIndex;
+        uint gbuffer0Index;
+        uint gbuffer1Index;
+        uint tileLightListBufferIndex;
+        uint risLightSamplesUav;
+        uint renderWidth;
+        uint renderHeight;
+        uint tilesPerRow;
+        uint frameIndex;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Common.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl";
+        "EngineResources/Shaders/Lighting/LightGridCommon.hlsl";
+        "EngineResources/Shaders/Lighting/LightEvaluation.hlsl";
+        "EngineResources/Shaders/Material/Lit/BSDF.hlsl";
+        "EngineResources/Shaders/Utilities/Random.hlsl";
+        "EngineResources/Shaders/Lighting/RisCommon.hlsl";
+        "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl";
+        "EngineResources/Shaders/Generated/GPULightData.hlsl";
+    }
+
+    hlsl
+    {
+        struct SharedCandidateLight
+        {
+            float3 positionRWS;
+            float invRangeSq;
+            float3 radianceScale;
+            uint indexAndFlags;
+            float3 directionWS;
+            float spotAngleScale;
+            float spotAngleOffset;
+            float diffuseDimmer;
+            float specularDimmer;
+            float minRoughness;
+        };
+
+        groupshared SharedCandidateLight s_lights[64];
+
+        [numthreads(16, 16, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID, uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
+        {
+            uint2 pixelCoord = dispatchThreadId.xy;
+            bool inBounds = (pixelCoord.x < g_Properties.renderWidth && pixelCoord.y < g_Properties.renderHeight);
+
+            if (!IS_VALID_BUFFER(g_Properties.tileLightListBufferIndex) || !IS_VALID_BUFFER(g_FrameData.punctualLightsBuffer))
+            {
+                if (inBounds)
+                {
+                    RWTexture2D<uint2> risLightSamples = GET_TEXTURE2D(g_Properties.risLightSamplesUav);
+                    risLightSamples[pixelCoord] = PackRisLightSample(0xFFFFFFFF, 0.0f);
+                }
+                return;
+            }
+
+            uint tileIndex = groupId.y * g_Properties.tilesPerRow + groupId.x;
+            ByteAddressBuffer tileLightList = GET_BUFFER(g_Properties.tileLightListBufferIndex);
+            uint lightCount = min(GetTileLightCount<DWORDS_PER_TILE>(tileLightList, tileIndex), MAX_LIGHTS_PER_TILE);
+
+            if (lightCount == 0u)
+            {
+                if (inBounds)
+                {
+                    RWTexture2D<uint2> risLightSamples = GET_TEXTURE2D(g_Properties.risLightSamplesUav);
+                    risLightSamples[pixelCoord] = PackRisLightSample(0xFFFFFFFF, 0.0f);
+                }
+                return;
+            }
+
+            // Overlap per-pixel depth fetch with cooperative 16x16 tile light preloading into LDS
+            Texture2D<float> depthTexture = GET_TEXTURE2D(g_Properties.depthTextureIndex);
+            float depth = inBounds ? depthTexture[pixelCoord] : 0.0f;
+
+            if (groupIndex < lightCount)
+            {
+                SharedCandidateLight entry = (SharedCandidateLight)0;
+                entry.invRangeSq = -1.0f;
+
+                TileLightFetchResult fetch = FetchTileLight<DWORDS_PER_TILE>(tileLightList, tileIndex, groupIndex);
+                if (fetch.valid)
+                {
+                    GPUPunctualLight src = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, fetch.lightIndex);
+                    if (src.lightDimmer > 0.0f && any(src.color > 0.0f))
+                    {
+                        uint isSpot = ((src.lightTypeAndShadowSize & 0xFu) == GPULIGHT_TYPE_SPOT) ? 0x10000u : 0u;
+                        entry.positionRWS = TransformAbsoluteWorldToCameraRelative(src.positionWS);
+                        entry.invRangeSq = src.invRangeSq;
+                        entry.radianceScale = src.color * src.lightDimmer;
+                        entry.indexAndFlags = (fetch.lightIndex & 0xFFFFu) | isSpot;
+                        entry.directionWS = src.directionWS;
+                        entry.spotAngleScale = src.spotAngleScale;
+                        entry.spotAngleOffset = src.spotAngleOffset;
+                        entry.diffuseDimmer = src.diffuseDimmer;
+                        entry.specularDimmer = src.specularDimmer;
+                        entry.minRoughness = src.minRoughness;
+                    }
+                }
+
+                s_lights[groupIndex] = entry;
+            }
+
+            GroupMemoryBarrierWithGroupSync();
+
+            if (!inBounds)
+            {
+                return;
+            }
+
+            RWTexture2D<uint2> risLightSamples = GET_TEXTURE2D(g_Properties.risLightSamplesUav);
+            if (depth <= 0.0f)
+            {
+                risLightSamples[pixelCoord] = PackRisLightSample(0xFFFFFFFF, 0.0f);
+                return;
+            }
+
+            float zView;
+            float2 ndc;
+            float3 positionRWS = ReconstructPositionRWS(pixelCoord, depth, zView, ndc);
+            float3 V = GetWorldSpaceNormalizeViewDir(positionRWS);
+
+            Texture2D<float4> gb0Tex = GET_TEXTURE2D(g_Properties.gbuffer0Index);
+            Texture2D<float4> gb1Tex = GET_TEXTURE2D(g_Properties.gbuffer1Index);
+            float4 gb0 = gb0Tex[pixelCoord];
+            float4 gb1 = gb1Tex[pixelCoord];
+
+            float3 albedo = gb0.rgb;
+            float metallic = gb0.a;
+            float3 normalWS = OctahedralDecode(gb1.rg);
+            float surfaceRoughness = gb1.b;
+            float3 f0 = lerp(float3(0.04f, 0.04f, 0.04f), albedo, metallic);
+            float3 diffuseWeight = max(albedo * (1.0f - metallic), 0.02f);
+            float clampedNdotV = ClampNdotV(dot(normalWS, V));
+
+            // Hoist surface-invariant BSDF terms outside the light loop
+            float baseRoughness = max(surfaceRoughness * surfaceRoughness, 0.001f);
+            float basePartLambdaV = GetSmithJointGGXPartLambdaV(clampedNdotV, baseRoughness);
+            float xV = 1.0f - clampedNdotV;
+            float xV2 = xV * xV;
+            float xV5 = xV2 * xV2 * xV;
+
+            // Single-scalar rescaled reservoir sampling driven by spatially stratified IGN + golden-ratio temporal sequence
+            float spatialSeed = InterleavedGradientNoise(float2(pixelCoord) + float2(7.31f, 11.79f), 0);
+            float randSample = frac(spatialSeed + float(g_Properties.frameIndex & 4095u) * 0.61803398875f);
+            float weightSum = 0.0f;
+            uint winnerLightIndex = 0u;
+            float winnerTargetPdf = 0.0f;
+
+            [loop]
+            for (uint k = 0u; k < lightCount; ++k)
+            {
+                SharedCandidateLight cand = s_lights[k];
+                if (cand.invRangeSq < 0.0f)
+                {
+                    continue;
+                }
+
+                // Early sphere-range and backface rejection BEFORE rsqrt(distSq)
+                float3 unL = cand.positionRWS - positionRWS;
+                float distSq = dot(unL, unL);
+                float rangeFactor = distSq * cand.invRangeSq;
+                if (rangeFactor >= 1.0f || dot(normalWS, unL) <= 0.0f)
+                {
+                    continue;
+                }
+
+                float invDist = rsqrt(max(distSq, 1e-8f));
+                float3 L = unL * invDist;
+                float clampedNdotL = saturate(dot(normalWS, L));
+
+                float smoothFactor = saturate(1.0f - rangeFactor * rangeFactor);
+                float attenuation = (smoothFactor * smoothFactor) / max(distSq, 0.0001f);
+                if ((cand.indexAndFlags & 0x10000u) != 0u)
+                {
+                    float spotAtten = saturate(dot(-L, cand.directionWS) * cand.spotAngleScale + cand.spotAngleOffset);
+                    attenuation *= spotAtten * spotAtten;
+                }
+
+                if (attenuation <= 0.0f)
+                {
+                    continue;
+                }
+
+                float3 lightRadiance = cand.radianceScale * attenuation;
+
+                float3 H = normalize(L + V);
+                float NdotH = saturate(dot(normalWS, H));
+                float LdotH = saturate(dot(L, H));
+                float LdotV = dot(L, V);
+
+                float perceptualRoughness = surfaceRoughness;
+                float roughness = baseRoughness;
+                float partLambdaV = basePartLambdaV;
+                if (cand.minRoughness > surfaceRoughness)
+                {
+                    perceptualRoughness = cand.minRoughness;
+                    roughness = max(perceptualRoughness * perceptualRoughness, 0.001f);
+                    partLambdaV = GetSmithJointGGXPartLambdaV(clampedNdotV, roughness);
+                }
+
+                float3 F = F_Schlick(f0, LdotH);
+                float DV = DV_SmithJointGGX(NdotH, clampedNdotL, clampedNdotV, roughness, partLambdaV);
+
+                // Disney Burley diffuse with hoisted xV5
+                float fd90Minus1 = (0.5f + (perceptualRoughness + perceptualRoughness * LdotV)) - 1.0f;
+                float xL = 1.0f - clampedNdotL;
+                float xL2 = xL * xL;
+                float diffTerm = (INV_PI * 0.96552f) * (1.0f + fd90Minus1 * (xL2 * xL2 * xL)) * (1.0f + fd90Minus1 * xV5);
+
+                float3 diffuseContrib = diffTerm * clampedNdotL * lightRadiance * cand.diffuseDimmer * diffuseWeight;
+                float3 specularContrib = (F * DV) * clampedNdotL * lightRadiance * cand.specularDimmer;
+                float pHat = Luminance(diffuseContrib + specularContrib);
+
+                if (pHat > 1e-6f)
+                {
+                    float prevWeightSum = weightSum;
+                    weightSum += pHat;
+                    float scaledRand = randSample * weightSum;
+                    if (scaledRand >= prevWeightSum)
+                    {
+                        winnerLightIndex = cand.indexAndFlags & 0xFFFFu;
+                        winnerTargetPdf = pHat;
+                        randSample = (scaledRand - prevWeightSum) / pHat;
+                    }
+                    else
+                    {
+                        randSample = scaledRand / max(prevWeightSum, 1e-7f);
+                    }
+                    randSample = clamp(randSample, 0.0f, 0.99999994f);
+                }
+            }
+
+            if (weightSum > 0.0f && winnerTargetPdf > 0.0f)
+            {
+                float W = weightSum / winnerTargetPdf;
+                risLightSamples[pixelCoord] = PackRisLightSample(winnerLightIndex, W);
+            }
+            else
+            {
+                risLightSamples[pixelCoord] = PackRisLightSample(0xFFFFFFFF, 0.0f);
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

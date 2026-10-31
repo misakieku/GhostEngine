@@ -58,7 +58,12 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
                 float shadow = 1.0f;
                 if ((int)dirIdx == g_FrameData.primaryDirectionalLightIndex && dirLight.castShadows != 0u)
                 {
-                    // Primary directional shadow evaluation (CSM placeholder)
+                    // Primary directional shadow evaluation (CSM placeholder + contact shadows)
+                    float hitDist = 0.0f;
+                    if (TraceScreenContactShadow(ctx, normalize(L), 0.25f, 2.0f, hitDist))
+                    {
+                        shadow = 0.0f;
+                    }
                 }
 
                 DirectLighting dirDirect = strategy.EvaluateDirectLighting(bsdf, preLightData, V, normalize(L), dirLight.color * shadow);
@@ -73,6 +78,10 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
         uint tileIndex = ctx.tileCoord.y * tilesPerRow + ctx.tileCoord.x;
         uint lightCount = min(GetTileLightCount<DWORDS_PER_TILE>(tileLightList, tileIndex), MAX_LIGHTS_PER_TILE);
 
+#if defined(_SHADOW_RIS)
+        // Decoupled RIS pipeline: punctual lights are evaluated in dedicated passes
+        // (RisLightSampling -> RisRayTrace -> RisResolveShading) and composited in Lit_DeferredLighting!
+#else
         for (uint lightOffset = 0u; lightOffset < lightCount; lightOffset++)
         {
             TileLightFetchResult fetch = FetchTileLight<DWORDS_PER_TILE>(tileLightList, tileIndex, lightOffset);
@@ -85,6 +94,7 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
             DirectLighting lighting = ShadeSurface_Punctual<T>(ctx, bsdf, strategy, light, preLightData, V, fetch.lightIndex);
             AccumulateDirectLighting(totalLighting, lighting);
         }
+#endif
     }
 
     // Image-Based Lighting (Diffuse SH9 + Specular Split-Sum Cubemap)

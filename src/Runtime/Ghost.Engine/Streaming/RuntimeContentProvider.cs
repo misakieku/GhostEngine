@@ -6,6 +6,7 @@ using ZstdSharp;
 
 namespace Ghost.Engine.Streaming;
 
+// TODO: Use memory-mapped files and random access.
 public class RuntimeContentProvider : IContentProvider
 {
     private readonly Manifest _manifest;
@@ -13,7 +14,7 @@ public class RuntimeContentProvider : IContentProvider
     private readonly Dictionary<Guid, string> _guidToVirtualPath;
     private readonly ConcurrentDictionary<string, MemoryMappedFile> _packFiles;
     private readonly string _packDirectory;
-    private readonly object _validatedPacksLock = new();
+    private readonly Lock _validatedPacksLock = new();
     private readonly HashSet<string> _validatedPacks = new(StringComparer.Ordinal);
 
     public IReadOnlyList<ShaderCatalogEntry> ShaderCatalog => _manifest.Shaders;

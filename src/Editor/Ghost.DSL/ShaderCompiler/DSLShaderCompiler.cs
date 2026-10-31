@@ -426,6 +426,11 @@ public static class DSLShaderCompiler
 
     public static Result<ComputeShaderDescriptor> ResolveShader(ComputeShaderSemantics semantics, string? shaderPath = null)
     {
+        if (semantics.entryPoints.Count == 0)
+        {
+            return Result.Failure("No entry points found in compute shader.");
+        }
+
         var propertiesCode = BuildPropertiesStruct(semantics.name, semantics.properties);
         var propertyBufferSize = CalculatePropertyBufferSize(semantics.properties);
 

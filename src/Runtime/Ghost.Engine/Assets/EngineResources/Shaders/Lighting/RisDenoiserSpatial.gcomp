@@ -1,0 +1,262 @@
+compute "Internal/RisDenoiserSpatial"
+{
+    properties
+    {
+        uint depthTextureIndex;
+        uint gbuffer1Index;
+        uint inputDiffuseIndex;
+        uint inputSpecularIndex;
+        uint outputDiffuseUav;
+        uint outputSpecularUav;
+        uint renderWidth;
+        uint renderHeight;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Common.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl";
+        "EngineResources/Shaders/Lighting/RisCommon.hlsl";
+        "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl";
+    }
+
+    hlsl
+    {
+        static const int MAX_RADIUS = 3;
+        static const int SHARED_DIM = 16 + MAX_RADIUS * 2; // 22x22
+
+        groupshared float s_zView[SHARED_DIM][SHARED_DIM];
+        groupshared uint2 s_normalRough[SHARED_DIM][SHARED_DIM];
+        groupshared uint2 s_diffuse[SHARED_DIM][SHARED_DIM];
+        groupshared uint2 s_specular[SHARED_DIM][SHARED_DIM];
+
+        uint2 PackHalf4(float4 v)
+        {
+            uint2 lo = f32tof16(v.xy);
+            uint2 hi = f32tof16(v.zw);
+            return uint2(lo.x | (lo.y << 16u), hi.x | (hi.y << 16u));
+        }
+
+        uint2 PackHalf3(float3 v)
+        {
+            uint2 lo = f32tof16(v.xy);
+            uint hi = f32tof16(v.z);
+            return uint2(lo.x | (lo.y << 16u), hi);
+        }
+
+        float4 UnpackHalf4(uint2 p)
+        {
+            return float4(
+                f16tof32(p.x & 0xFFFFu),
+                f16tof32(p.x >> 16u),
+                f16tof32(p.y & 0xFFFFu),
+                f16tof32(p.y >> 16u));
+        }
+
+        float3 UnpackHalf3(uint2 p)
+        {
+            return float3(
+                f16tof32(p.x & 0xFFFFu),
+                f16tof32(p.x >> 16u),
+                f16tof32(p.y & 0xFFFFu));
+        }
+
+        float3 TonemapLighting(float3 c, float strength)
+        {
+            return c * rcp(1.0f + strength * Luminance(c));
+        }
+
+        float3 InverseTonemapLighting(float3 c, float strength)
+        {
+            return c * rcp(max(1.0f - strength * Luminance(c), 1e-4f));
+        }
+
+        float SelectGaussianWeight(int a, float g1, float g2, float g3)
+        {
+            return (a == 0) ? 1.0f : ((a == 1) ? g1 : ((a == 2) ? g2 : g3));
+        }
+
+        [numthreads(16, 16, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupThreadID, uint3 groupId : SV_GroupID)
+        {
+            Texture2D<float> depthTexture = GET_TEXTURE2D(g_Properties.depthTextureIndex);
+            Texture2D<float4> gb1 = GET_TEXTURE2D(g_Properties.gbuffer1Index);
+            Texture2D<float4> inDiffuseTex = GET_TEXTURE2D(g_Properties.inputDiffuseIndex);
+            Texture2D<float4> inSpecularTex = GET_TEXTURE2D(g_Properties.inputSpecularIndex);
+
+            // Cooperatively preload 22x22 tile (1.89 texels/thread instead of 49 global fetches/thread)
+            uint linearIdx = groupThreadId.y * 16u + groupThreadId.x;
+            int2 tileOrigin = int2(groupId.xy * 16u) - int2(MAX_RADIUS, MAX_RADIUS);
+            int widthI = int(g_Properties.renderWidth);
+            int heightI = int(g_Properties.renderHeight);
+            float n = g_ViewData.nearClip;
+            float f = g_ViewData.farClip;
+            float nf = n * f;
+            float fMinusN = f - n;
+
+            for (uint loadIdx = linearIdx; loadIdx < uint(SHARED_DIM * SHARED_DIM); loadIdx += 256u)
+            {
+                uint lx = loadIdx % uint(SHARED_DIM);
+                uint ly = loadIdx / uint(SHARED_DIM);
+                int2 sc = tileOrigin + int2(int(lx), int(ly));
+
+                if (sc.x >= 0 && sc.y >= 0 && sc.x < widthI && sc.y < heightI)
+                {
+                    float d = depthTexture[sc];
+                    if (d > 0.0f)
+                    {
+                        float4 gbVal = gb1[sc];
+                        float4 diffVal = inDiffuseTex[sc];
+                        float3 specVal = inSpecularTex[sc].rgb;
+                        float3 decNormal = OctahedralDecode(gbVal.rg);
+
+                        s_zView[ly][lx] = nf * rcp(fMinusN * d + n);
+                        s_normalRough[ly][lx] = PackHalf4(float4(decNormal, gbVal.b));
+                        s_diffuse[ly][lx] = PackHalf4(diffVal);
+                        s_specular[ly][lx] = PackHalf3(specVal);
+                    }
+                    else
+                    {
+                        s_zView[ly][lx] = 0.0f;
+                    }
+                }
+                else
+                {
+                    s_zView[ly][lx] = 0.0f;
+                }
+            }
+
+            GroupMemoryBarrierWithGroupSync();
+
+            uint2 pixelCoord = dispatchThreadId.xy;
+            if (pixelCoord.x >= g_Properties.renderWidth || pixelCoord.y >= g_Properties.renderHeight)
+            {
+                return;
+            }
+
+            RWTexture2D<float4> outDiffuse = GET_TEXTURE2D(g_Properties.outputDiffuseUav);
+            RWTexture2D<float4> outSpecular = GET_TEXTURE2D(g_Properties.outputSpecularUav);
+
+            int2 centerShared = int2(groupThreadId.xy) + int2(MAX_RADIUS, MAX_RADIUS);
+            float centerZView = s_zView[centerShared.y][centerShared.x];
+            if (centerZView <= 0.0f)
+            {
+                outDiffuse[pixelCoord] = 0.0f;
+                outSpecular[pixelCoord] = 0.0f;
+                return;
+            }
+
+            float4 centerNormalRough = UnpackHalf4(s_normalRough[centerShared.y][centerShared.x]);
+            float3 centerNormal = normalize(centerNormalRough.xyz);
+            float centerRoughness = centerNormalRough.w;
+            float4 centerDiffuse = UnpackHalf4(s_diffuse[centerShared.y][centerShared.x]);
+            float3 centerSpecular = UnpackHalf3(s_specular[centerShared.y][centerShared.x]);
+
+            // View-space tangent plane setup: dot(N_vs, samplePosVS - centerPosVS) reduces each tap to 4 FMAs
+            float2 invProj = rcp(float2(g_ViewData.projectionMatrix[0][0], g_ViewData.projectionMatrix[1][1]));
+            float2 pixToViewScale = float2(2.0f * g_ViewData.screenSize.z * invProj.x, -2.0f * g_ViewData.screenSize.w * invProj.y);
+            float2 pixToViewBias = float2(-invProj.x, invProj.y);
+            float2 centerRayXY = (float2(pixelCoord) + 0.5f) * pixToViewScale + pixToViewBias;
+            float3 centerNormalVS = TransformWorldToView(centerNormal);
+            float planeOffset = (centerNormalVS.x * centerRayXY.x + centerNormalVS.y * centerRayXY.y + centerNormalVS.z) * centerZView;
+            float planeDistToLog2 = (-100.0f * 1.44269504f) * rcp(max(centerZView, 1e-3f));
+
+            // Disocclusion-adaptive spatial blur & tonemap (UE5 MegaLights style):
+            // Newly disoccluded / low-history pixels filter wider (7x7) and suppress fireflies;
+            // converged pixels tighten kernel (5x5) and fade tonemap bias toward linear HDR.
+            float numFrames = max(centerDiffuse.a * 32.0f, 1.0f);
+            float disocclusionFactor = 1.0f - saturate((numFrames - 1.0f) / 7.0f);
+            float tonemapStrength = lerp(0.1f, 1.0f, disocclusionFactor);
+            int radius = (disocclusionFactor > 0.05f) ? 3 : 2;
+
+            float sigmaDiff = lerp(1.1f, 2.4f, disocclusionFactor);
+            float sigmaSpec = max(sigmaDiff * saturate(centerRoughness * 2.5f + 0.25f), 0.5f);
+            float kDiff = -1.44269504f * rcp(2.0f * sigmaDiff * sigmaDiff);
+            float kSpec = -1.44269504f * rcp(2.0f * sigmaSpec * sigmaSpec);
+            float specNormalPower = lerp(24.0f, 4.0f, saturate(centerRoughness * 2.0f));
+
+            // Precomputed separable 1D Gaussian weights (eliminates 98 exp() SFU calls inside the loop)
+            float gDiff1 = exp2(1.0f * kDiff);
+            float gDiff2 = exp2(4.0f * kDiff);
+            float gDiff3 = exp2(9.0f * kDiff);
+            float gSpec1 = exp2(1.0f * kSpec);
+            float gSpec2 = exp2(4.0f * kSpec);
+            float gSpec3 = exp2(9.0f * kSpec);
+
+            float3 diffuseSum = float3(0.0f, 0.0f, 0.0f);
+            float3 specularSum = float3(0.0f, 0.0f, 0.0f);
+            float diffWeightSum = 0.0f;
+            float specWeightSum = 0.0f;
+
+            [loop]
+            for (int dy = -radius; dy <= radius; ++dy)
+            {
+                int sy = centerShared.y + dy;
+                int ay = abs(dy);
+                float gyDiff = SelectGaussianWeight(ay, gDiff1, gDiff2, gDiff3);
+                float gySpec = SelectGaussianWeight(ay, gSpec1, gSpec2, gSpec3);
+                float rayY = centerRayXY.y + float(dy) * pixToViewScale.y;
+                float nyTerm = centerNormalVS.y * rayY + centerNormalVS.z;
+
+                [loop]
+                for (int dx = -radius; dx <= radius; ++dx)
+                {
+                    int sx = centerShared.x + dx;
+                    float sampleZView = s_zView[sy][sx];
+                    if (sampleZView <= 0.0f)
+                    {
+                        continue;
+                    }
+
+                    // 1. Tangent-Plane Depth Weight in View Space
+                    float rayX = centerRayXY.x + float(dx) * pixToViewScale.x;
+                    float planeDist = (centerNormalVS.x * rayX + nyTerm) * sampleZView - planeOffset;
+                    float wDepth = exp2(abs(planeDist) * planeDistToLog2);
+
+                    if (wDepth < 1e-3f)
+                    {
+                        continue;
+                    }
+
+                    // 2. Normal Edge-Stopping Weight
+                    float3 sampleNormal = UnpackHalf3(s_normalRough[sy][sx]);
+                    float normalDot = saturate(dot(centerNormal, sampleNormal));
+                    if (normalDot <= 1e-2f)
+                    {
+                        continue;
+                    }
+
+                    float normalDot2 = normalDot * normalDot;
+                    float wNormalDiff = normalDot2 * normalDot2; // normalDot^4
+                    float wNormalSpec = (normalDot >= 0.9999f) ? 1.0f : exp2(log2(normalDot) * specNormalPower);
+
+                    // 3. Separable Spatial Gaussian Weight
+                    int ax = abs(dx);
+                    float wDiff = (SelectGaussianWeight(ax, gDiff1, gDiff2, gDiff3) * gyDiff) * (wNormalDiff * wDepth);
+                    float wSpec = (SelectGaussianWeight(ax, gSpec1, gSpec2, gSpec3) * gySpec) * (wNormalSpec * wDepth);
+
+                    float3 sampleDiffuse = UnpackHalf3(s_diffuse[sy][sx]);
+                    float3 sampleSpecular = UnpackHalf3(s_specular[sy][sx]);
+
+                    diffuseSum += TonemapLighting(sampleDiffuse, tonemapStrength) * wDiff;
+                    specularSum += TonemapLighting(sampleSpecular, tonemapStrength) * wSpec;
+                    diffWeightSum += wDiff;
+                    specWeightSum += wSpec;
+                }
+            }
+
+            float3 resolvedDiff = (diffWeightSum > 1e-4f)
+                ? InverseTonemapLighting(diffuseSum * rcp(diffWeightSum), tonemapStrength)
+                : centerDiffuse.rgb;
+            float3 resolvedSpec = (specWeightSum > 1e-4f)
+                ? InverseTonemapLighting(specularSum * rcp(specWeightSum), tonemapStrength)
+                : centerSpecular;
+
+            outDiffuse[pixelCoord] = float4(resolvedDiff, 1.0f);
+            outSpecular[pixelCoord] = float4(resolvedSpec, 1.0f);
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

@@ -5,6 +5,7 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.Services;
@@ -736,6 +737,12 @@ public sealed partial class ResourceManager : IDisposable
                 computeShader.ReleaseResource(_resourceDatabase);
             }
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ulong GetGPUVirtualAddress(Handle<GPUResource> handle)
+    {
+        return _resourceDatabase.GetGPUVirtualAddress(handle);
     }
 
     public void Dispose()

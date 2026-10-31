@@ -101,6 +101,11 @@ public interface ICommandBuffer : IRHIObject
     void Barrier(params ReadOnlySpan<BarrierDesc> barrierDescs);
 
     /// <summary>
+    /// Inserts a full execution and memory barrier across all pipeline stages.
+    /// </summary>
+    void InsertFullPipelineBarrier();
+
+    /// <summary>
     /// Discards a GPU resource.
     /// </summary>
     /// <param name="resource">The handle to the GPU resource to discard.</param>

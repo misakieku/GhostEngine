@@ -88,13 +88,15 @@ void CSMain(
     DEFERREDLIGHTING_STRATEGY strategy = DEFERREDLIGHTING_STRATEGY::Create();
     BSDFData bsdf = strategy.GetBSDFData(positionRWS, gbuffer.GetTangent(surface.normalWS), surface);
 
-    ShadingContext shadingCtx;
+    ShadingContext shadingCtx = (ShadingContext)0;
     shadingCtx.positionRWS = positionRWS;
+    shadingCtx.normalWS = surface.normalWS;
     shadingCtx.positionNDC = ndc;
     shadingCtx.positionSS = pixelCoord;
     shadingCtx.tileCoord = groupID.xy;
     shadingCtx.depth = depth;
     shadingCtx.linearDepth = zView;
+    shadingCtx.depthTextureIndex = g_Properties.depthTextureIndex;
     shadingCtx.shadowAtlasIndex = g_Properties.shadowAtlasSrv;
     shadingCtx.shadowViewsBufferIndex = g_Properties.shadowViewsBufferSrv;
     shadingCtx.shadowIndicesBufferIndex = g_Properties.shadowIndicesBufferSrv;
@@ -105,10 +107,25 @@ void CSMain(
     shadingCtx.skyboxMipCount = g_Properties.skyboxMipCount;
     shadingCtx.skyboxTintAndIntensity = g_Properties.skyboxTintAndIntensity;
     shadingCtx.skyboxRotationSinCos = g_Properties.skyboxRotationSinCos;
+    shadingCtx.hzbTextureIndex = g_Properties.hzbTextureSrv;
+    shadingCtx.hzbMipCount = g_Properties.hzbMipCount;
+    shadingCtx.hzbUvFactor = g_Properties.hzbUvFactor;
+    shadingCtx.hzbBaseSize = g_Properties.hzbBaseSize;
+    shadingCtx.tlasIndex = g_Properties.tlasIndex;
 
     // Execute Light Loop
     ByteAddressBuffer tileLightList = GET_BUFFER(g_Properties.tileLightListBufferIndex);
     LightLoopOutput light = ExecuteLightLoop<DEFERREDLIGHTING_STRATEGY>(shadingCtx, bsdf, strategy, V, tileLightList, g_Properties.tilesPerRow);
+
+#if defined(_SHADOW_RIS)
+    if (IS_VALID_TEXTURE(g_Properties.risResolvedDiffuseSrv))
+    {
+        Texture2D<float4> risDiffTex = GET_TEXTURE2D(g_Properties.risResolvedDiffuseSrv);
+        Texture2D<float4> risSpecTex = GET_TEXTURE2D(g_Properties.risResolvedSpecularSrv);
+        light.diffuse += risDiffTex[pixelCoord].rgb * bsdf.diffuseColor;
+        light.specular += risSpecTex[pixelCoord].rgb;
+    }
+#endif
 
     float3 finalColor = light.diffuse + light.specular;
 

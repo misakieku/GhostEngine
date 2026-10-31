@@ -72,4 +72,10 @@ public partial class MeshBakeSettings : ObservableObject, IBakeSettings
 
     [ObservableProperty]
     public partial bool FlipUVs { get; set; } = true;
+
+    [ObservableProperty]
+    public partial float FallbackPercentage { get; set; } = 0.0f;
+
+    [ObservableProperty]
+    public partial float FallbackRelativeError { get; set; } = 0.01f;
 }

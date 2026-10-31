@@ -1,0 +1,264 @@
+compute "Internal/RisDenoiserTemporal"
+{
+    properties
+    {
+        uint depthTextureIndex;
+        uint gbuffer1Index;
+        uint currentDiffuseIndex;
+        uint currentSpecularIndex;
+        uint historyDiffuseIndex;
+        uint historySpecularIndex;
+        uint outputDiffuseUav;
+        uint outputSpecularUav;
+        uint renderWidth;
+        uint renderHeight;
+        uint historyValid;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Common.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl";
+        "EngineResources/Shaders/Lighting/RisCommon.hlsl";
+        "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl";
+    }
+
+    hlsl
+    {
+        static const int TILE_BORDER = 2;
+        static const int SHARED_DIM = 16 + TILE_BORDER * 2; // 20x20
+
+        // 64-bit aligned FP16 LDS arrays: lossless for R16G16B16A16_Float inputs and issues single LDS.64 loads without 3-DWORD bank conflicts
+        groupshared uint2 s_diffuse[SHARED_DIM][SHARED_DIM];
+        groupshared uint2 s_specular[SHARED_DIM][SHARED_DIM];
+
+        uint2 PackHalf3(float3 v)
+        {
+            uint2 lo = f32tof16(v.xy);
+            uint hi = f32tof16(v.z);
+            return uint2(lo.x | (lo.y << 16u), hi);
+        }
+
+        float3 UnpackHalf3(uint2 p)
+        {
+            return float3(
+                f16tof32(p.x & 0xFFFFu),
+                f16tof32(p.x >> 16u),
+                f16tof32(p.y & 0xFFFFu));
+        }
+
+        [numthreads(16, 16, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupThreadID, uint3 groupId : SV_GroupID)
+        {
+            uint2 pixelCoord = dispatchThreadId.xy;
+            bool inBounds = (pixelCoord.x < g_Properties.renderWidth && pixelCoord.y < g_Properties.renderHeight);
+
+            // Overlap per-pixel depth fetch with cooperative 20x20 LDS neighborhood preloading
+            Texture2D<float> depthTexture = GET_TEXTURE2D(g_Properties.depthTextureIndex);
+            float depth = inBounds ? depthTexture[pixelCoord] : 0.0f;
+
+            Texture2D<float4> currentDiffuseTex = GET_TEXTURE2D(g_Properties.currentDiffuseIndex);
+            Texture2D<float4> currentSpecularTex = GET_TEXTURE2D(g_Properties.currentSpecularIndex);
+
+            uint linearIdx = groupThreadId.y * 16u + groupThreadId.x;
+            int2 tileOrigin = int2(groupId.xy * 16u) - int2(TILE_BORDER, TILE_BORDER);
+            int2 maxCoord = int2(int(g_Properties.renderWidth) - 1, int(g_Properties.renderHeight) - 1);
+
+            for (uint loadIdx = linearIdx; loadIdx < uint(SHARED_DIM * SHARED_DIM); loadIdx += 256u)
+            {
+                uint lx = loadIdx % uint(SHARED_DIM);
+                uint ly = loadIdx / uint(SHARED_DIM);
+                int2 loadCoord = clamp(tileOrigin + int2(int(lx), int(ly)), int2(0, 0), maxCoord);
+                s_diffuse[ly][lx] = PackHalf3(currentDiffuseTex[loadCoord].rgb);
+                s_specular[ly][lx] = PackHalf3(currentSpecularTex[loadCoord].rgb);
+            }
+            GroupMemoryBarrierWithGroupSync();
+
+            if (!inBounds)
+            {
+                return;
+            }
+
+            RWTexture2D<float4> outDiffuse = GET_TEXTURE2D(g_Properties.outputDiffuseUav);
+            RWTexture2D<float4> outSpecular = GET_TEXTURE2D(g_Properties.outputSpecularUav);
+
+            if (depth <= 0.0f)
+            {
+                outDiffuse[pixelCoord] = 0.0f;
+                outSpecular[pixelCoord] = 0.0f;
+                return;
+            }
+
+            int2 centerShared = int2(groupThreadId.xy) + int2(TILE_BORDER, TILE_BORDER);
+            float3 currentDiffuse = UnpackHalf3(s_diffuse[centerShared.y][centerShared.x]);
+            float3 currentSpecular = UnpackHalf3(s_specular[centerShared.y][centerShared.x]);
+
+            float zView;
+            float2 ndc;
+            float3 positionRWS = ReconstructPositionRWS(pixelCoord, depth, zView, ndc);
+
+            // 5x5 minus corners (21-tap, UE5 MegaLights style) neighborhood statistics in LDS.
+            // With stratified IGN sampling, 21 taps prevent local shadow misses from collapsing StdDev to 0.
+            float3 diffMean = float3(0.0f, 0.0f, 0.0f);
+            float3 diffM2 = float3(0.0f, 0.0f, 0.0f);
+            float3 specMean = float3(0.0f, 0.0f, 0.0f);
+            float3 specM2 = float3(0.0f, 0.0f, 0.0f);
+
+            [unroll]
+            for (int ny = -TILE_BORDER; ny <= TILE_BORDER; ++ny)
+            {
+                [unroll]
+                for (int nx = -TILE_BORDER; nx <= TILE_BORDER; ++nx)
+                {
+                    if (abs(nx) == TILE_BORDER && abs(ny) == TILE_BORDER)
+                    {
+                        continue;
+                    }
+
+                    int2 sc = centerShared + int2(nx, ny);
+                    float3 d = UnpackHalf3(s_diffuse[sc.y][sc.x]);
+                    float3 s = UnpackHalf3(s_specular[sc.y][sc.x]);
+                    diffMean += d;
+                    diffM2 += d * d;
+                    specMean += s;
+                    specM2 += s * s;
+                }
+            }
+
+            const float INV_SAMPLE_COUNT = 1.0f / 21.0f;
+            diffMean *= INV_SAMPLE_COUNT;
+            diffM2 *= INV_SAMPLE_COUNT;
+            specMean *= INV_SAMPLE_COUNT;
+            specM2 *= INV_SAMPLE_COUNT;
+
+            float3 diffStdDev = sqrt(max(diffM2 - diffMean * diffMean, 0.0f));
+            float3 specStdDev = sqrt(max(specM2 - specMean * specMean, 0.0f));
+
+            // Reproject to t - 1 screen space using preVPMatrix
+            float4 prevClip = mul(g_ViewData.preVPMatrix, float4(positionRWS, 1.0f));
+            float prevInvW = (prevClip.w > 1e-4f) ? rcp(prevClip.w) : 0.0f;
+            float2 prevScreenUV = float2(prevClip.x * prevInvW * 0.5f + 0.5f, 1.0f - (prevClip.y * prevInvW * 0.5f + 0.5f));
+            float2 renderSizeF = float2(g_Properties.renderWidth, g_Properties.renderHeight);
+            float2 prevScreenPos = prevScreenUV * renderSizeF - 0.5f;
+            float motionPixels = length(prevScreenPos - float2(pixelCoord));
+
+            bool canReproject = (g_Properties.historyValid != 0u) &&
+                                (prevClip.w > 1e-4f) &&
+                                IS_VALID_TEXTURE(g_Properties.historyDiffuseIndex) &&
+                                IS_VALID_TEXTURE(g_Properties.historySpecularIndex) &&
+                                all(prevScreenUV >= 0.0f) && all(prevScreenUV <= 1.0f);
+
+            const float HISTORY_FRAMES_SCALE = 32.0f;
+            float numFrames = 1.0f;
+            float3 finalDiffuse = currentDiffuse;
+            float3 finalSpecular = currentSpecular;
+
+            if (canReproject)
+            {
+                Texture2D<float4> histDiffTex = GET_TEXTURE2D(g_Properties.historyDiffuseIndex);
+                Texture2D<float4> histSpecTex = GET_TEXTURE2D(g_Properties.historySpecularIndex);
+
+                float4 accumHistDiff = float4(0.0f, 0.0f, 0.0f, 0.0f);
+                float3 accumHistSpec = float3(0.0f, 0.0f, 0.0f);
+                float validWeight = 0.0f;
+                float prevLinearDepth = prevClip.w;
+                float invPrevDepth = 1.0f / max(prevLinearDepth, 1e-3f);
+
+                // Exact 1-tap fast path when reprojected pixel aligns with integer grid (static camera),
+                // non-unrolled 4-tap depth-weighted bilinear filter under subpixel motion.
+                float2 nearestPos = round(prevScreenPos);
+                if (all(abs(prevScreenPos - nearestPos) < 1e-3f))
+                {
+                    int2 tapCoord = clamp(int2(nearestPos), int2(0, 0), maxCoord);
+                    float4 hd = histDiffTex[tapCoord];
+                    float4 hs = histSpecTex[tapCoord];
+                    float tapDepth = hs.a;
+                    float relDepth = abs(tapDepth - prevLinearDepth) * invPrevDepth;
+                    if (tapDepth > 0.0f && relDepth < 0.04f)
+                    {
+                        accumHistDiff = hd;
+                        accumHistSpec = hs.rgb;
+                        validWeight = 1.0f;
+                    }
+                }
+                else
+                {
+                    int2 baseCoord = int2(floor(prevScreenPos));
+                    float2 f = saturate(prevScreenPos - float2(baseCoord));
+
+                    [loop]
+                    for (int tap = 0; tap < 4; ++tap)
+                    {
+                        int tx = tap & 1;
+                        int ty = tap >> 1;
+                        int2 tapCoord = baseCoord + int2(tx, ty);
+                        float wx = (tx == 0) ? (1.0f - f.x) : f.x;
+                        float wy = (ty == 0) ? (1.0f - f.y) : f.y;
+                        float wb = wx * wy;
+
+                        if (wb > 1e-4f && all(tapCoord >= int2(0, 0)) && all(tapCoord <= maxCoord))
+                        {
+                            float4 hd = histDiffTex[tapCoord];
+                            float4 hs = histSpecTex[tapCoord];
+                            float tapDepth = hs.a;
+                            float relDepth = abs(tapDepth - prevLinearDepth) * invPrevDepth;
+
+                            if (tapDepth > 0.0f && relDepth < 0.04f)
+                            {
+                                float w = wb * exp2(-relDepth * (50.0f * 1.44269504f));
+                                accumHistDiff += hd * w;
+                                accumHistSpec += hs.rgb * w;
+                                validWeight += w;
+                            }
+                        }
+                    }
+                }
+
+                if (validWeight > 1e-4f)
+                {
+                    float invValidWeight = rcp(validWeight);
+                    float4 histDiff = accumHistDiff * invValidWeight;
+                    float3 histSpec = accumHistSpec * invValidWeight;
+
+                    // Motion-adaptive neighborhood clamping:
+                    // - Static pixels keep soft clamping so high-light-count occlusion variance never snaps history to black.
+                    // - Camera motion tightens clamping and shortens history window (especially for view-dependent specular).
+                    float motionFactor = saturate(motionPixels * 0.5f);
+                    float diffGamma = lerp(3.5f, 1.75f, motionFactor);
+                    float specGamma = lerp(2.75f, 1.25f, motionFactor);
+
+                    float3 diffMin = max(diffMean - diffGamma * diffStdDev, 0.0f);
+                    float3 diffMax = diffMean + diffGamma * diffStdDev;
+                    float3 specMin = max(specMean - specGamma * specStdDev, 0.0f);
+                    float3 specMax = specMean + specGamma * specStdDev;
+
+                    float3 boxClampedDiff = clamp(histDiff.rgb, diffMin, diffMax);
+                    float3 boxClampedSpec = clamp(histSpec, specMin, specMax);
+
+                    float diffClampBlend = saturate(0.12f + motionPixels * 0.45f);
+                    float specClampBlend = saturate(0.25f + motionPixels * 0.65f);
+
+                    float3 clampedHistDiff = lerp(histDiff.rgb, boxClampedDiff, diffClampBlend);
+                    float3 clampedHistSpec = lerp(histSpec, boxClampedSpec, specClampBlend);
+
+                    float maxDiffFrames = lerp(24.0f, 8.0f, motionFactor);
+                    float maxSpecFrames = lerp(16.0f, 4.0f, motionFactor);
+
+                    float prevFrames = histDiff.a * HISTORY_FRAMES_SCALE;
+                    float diffFrames = min(prevFrames + 1.0f, maxDiffFrames);
+                    float specFrames = min(prevFrames + 1.0f, maxSpecFrames);
+                    numFrames = diffFrames;
+
+                    finalDiffuse = lerp(clampedHistDiff, currentDiffuse, rcp(diffFrames));
+                    finalSpecular = lerp(clampedHistSpec, currentSpecular, rcp(specFrames));
+                }
+            }
+
+            outDiffuse[pixelCoord] = float4(max(finalDiffuse, 0.0f), numFrames / HISTORY_FRAMES_SCALE);
+            outSpecular[pixelCoord] = float4(max(finalSpecular, 0.0f), zView);
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

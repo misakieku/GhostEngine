@@ -1,0 +1,147 @@
+compute "Internal/RisResolveShading"
+{
+    properties
+    {
+        uint depthTextureIndex;
+        uint gbuffer0Index;
+        uint gbuffer1Index;
+        uint gbuffer2Index;
+        uint risLightSamplesIndex;
+        uint risShadowMaskIndex;
+        uint risResolvedDiffuseUav;
+        uint risResolvedSpecularUav;
+        uint renderWidth;
+        uint renderHeight;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Common.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl";
+        "EngineResources/Shaders/Lighting/LightEvaluation.hlsl";
+        "EngineResources/Shaders/Material/Lit/Lit.hlsl";
+        "EngineResources/Shaders/Material/Lit/BSDF.hlsl";
+        "EngineResources/Shaders/Lighting/RisCommon.hlsl";
+        "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl";
+        "EngineResources/Shaders/Generated/GPULightData.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(16, 16, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            uint2 pixelCoord = dispatchThreadId.xy;
+            if (pixelCoord.x >= g_Properties.renderWidth || pixelCoord.y >= g_Properties.renderHeight)
+            {
+                return;
+            }
+
+            RWTexture2D<float4> diffuseUav = GET_TEXTURE2D(g_Properties.risResolvedDiffuseUav);
+            RWTexture2D<float4> specularUav = GET_TEXTURE2D(g_Properties.risResolvedSpecularUav);
+
+            if (!IS_VALID_TEXTURE(g_Properties.risLightSamplesIndex) || !IS_VALID_TEXTURE(g_Properties.risShadowMaskIndex) || !IS_VALID_BUFFER(g_FrameData.punctualLightsBuffer))
+            {
+                diffuseUav[pixelCoord] = 0.0f;
+                specularUav[pixelCoord] = 0.0f;
+                return;
+            }
+
+            // Load shadow mask and RIS sample first: sky, unlit, and occluded pixels all early-out
+            // without touching depth, GBuffer0, GBuffer1, or the punctual light buffer.
+            Texture2D<uint2> lightSamplesTex = GET_TEXTURE2D(g_Properties.risLightSamplesIndex);
+            Texture2D<float> shadowMaskTex = GET_TEXTURE2D(g_Properties.risShadowMaskIndex);
+            RisLightSample sampleData = UnpackRisLightSample(lightSamplesTex[pixelCoord]);
+            float shadow = shadowMaskTex[pixelCoord];
+
+            if (shadow <= 0.0f || sampleData.lightIndex == 0xFFFFFFFF || sampleData.weight <= 0.0f)
+            {
+                diffuseUav[pixelCoord] = 0.0f;
+                specularUav[pixelCoord] = 0.0f;
+                return;
+            }
+
+            Texture2D<float> depthTexture = GET_TEXTURE2D(g_Properties.depthTextureIndex);
+            Texture2D<float4> gb0Tex = GET_TEXTURE2D(g_Properties.gbuffer0Index);
+            Texture2D<float4> gb1Tex = GET_TEXTURE2D(g_Properties.gbuffer1Index);
+
+            float depth = depthTexture[pixelCoord];
+            float4 gb0 = gb0Tex[pixelCoord];
+            float4 gb1 = gb1Tex[pixelCoord];
+            GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, sampleData.lightIndex);
+
+            if (depth <= 0.0f)
+            {
+                diffuseUav[pixelCoord] = 0.0f;
+                specularUav[pixelCoord] = 0.0f;
+                return;
+            }
+
+            float zView;
+            float2 ndc;
+            float3 positionRWS = ReconstructPositionRWS(pixelCoord, depth, zView, ndc);
+            float3 V = GetWorldSpaceNormalizeViewDir(positionRWS);
+
+            float3 albedo = gb0.rgb;
+            float metallic = gb0.a;
+            float3 normalWS = OctahedralDecode(gb1.rg);
+            float surfaceRoughness = gb1.b;
+
+            float3 lightPosRWS = TransformAbsoluteWorldToCameraRelative(light.positionWS);
+            float3 unL = lightPosRWS - positionRWS;
+            float distSq = dot(unL, unL);
+            float rangeFactor = distSq * light.invRangeSq;
+
+            if (rangeFactor < 1.0f && dot(normalWS, unL) > 0.0f)
+            {
+                float invDist = rsqrt(max(distSq, 1e-8f));
+                float3 L = unL * invDist;
+                float clampedNdotL = saturate(dot(normalWS, L));
+
+                float smoothFactor = saturate(1.0f - rangeFactor * rangeFactor);
+                float attenuation = (smoothFactor * smoothFactor) / max(distSq, 0.0001f);
+                if ((light.lightTypeAndShadowSize & 0xFu) == GPULIGHT_TYPE_SPOT)
+                {
+                    float spotAtten = saturate(dot(-L, light.directionWS) * light.spotAngleScale + light.spotAngleOffset);
+                    attenuation *= spotAtten * spotAtten;
+                }
+
+                float3 lightRadiance = light.color * (attenuation * light.lightDimmer * shadow * sampleData.weight);
+                if (any(lightRadiance > 0.0f))
+                {
+                    float3 H = normalize(L + V);
+                    float NdotH = saturate(dot(normalWS, H));
+                    float LdotH = saturate(dot(L, H));
+                    float LdotV = dot(L, V);
+                    float clampedNdotV = ClampNdotV(dot(normalWS, V));
+
+                    float perceptualRoughness = max(surfaceRoughness, light.minRoughness);
+                    float roughness = max(perceptualRoughness * perceptualRoughness, 0.001f);
+                    float partLambdaV = GetSmithJointGGXPartLambdaV(clampedNdotV, roughness);
+
+                    // Specular Term
+                    float3 f0 = lerp(float3(0.04f, 0.04f, 0.04f), albedo, metallic);
+                    float3 F = F_Schlick(f0, LdotH);
+                    float DV = DV_SmithJointGGX(NdotH, clampedNdotL, clampedNdotV, roughness, partLambdaV);
+                    float3 specTerm = F * DV;
+
+                    // Diffuse Term (Albedo-free irradiance)
+                    float diffTerm = DisneyDiffuse(clampedNdotV, clampedNdotL, LdotV, perceptualRoughness);
+
+                    float3 diffuseIrradiance = diffTerm * clampedNdotL * lightRadiance * light.diffuseDimmer;
+                    float3 specularRadiance = specTerm * clampedNdotL * lightRadiance * light.specularDimmer;
+
+                    diffuseUav[pixelCoord] = float4(diffuseIrradiance, 1.0f);
+                    specularUav[pixelCoord] = float4(specularRadiance, 1.0f);
+                    return;
+                }
+            }
+
+            diffuseUav[pixelCoord] = 0.0f;
+            specularUav[pixelCoord] = 0.0f;
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

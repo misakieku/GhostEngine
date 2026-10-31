@@ -97,6 +97,13 @@ public unsafe interface IResourceDatabase : IDisposable
     void ReleaseRawBufferSRV(uint descriptorIndex);
 
     /// <summary>
+    /// Retrieves the 64-bit GPU virtual address of a buffer or acceleration structure resource.
+    /// </summary>
+    /// <param name="handle">A handle that identifies the GPU resource. Must reference a valid resource.</param>
+    /// <returns>The 64-bit GPU virtual address, or 0 if invalid.</returns>
+    ulong GetGPUVirtualAddress(Handle<GPUResource> handle);
+
+    /// <summary>
     /// Retrieves the name of the GPU resource associated with the specified handle.
     /// </summary>
     /// <remarks>
@@ -153,8 +160,9 @@ public unsafe interface IResourceDatabase : IDisposable
     /// </summary>
     /// <param name="handleA">The first handle whose associated resource is to be swapped.</param>
     /// <param name="handleB">The second handle whose associated resource is to be swapped.</param>
+    /// <param name="preserveBindlessIndex">If true (default), keeps each handle's existing bindless descriptor slots and rewrites the descriptors; if false, swaps the resource records and view groups directly without mutating descriptors.</param>
     /// <returns>An Error indicating the success or failure of the swap operation.</returns>
-    Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB);
+    Error Swap(Handle<GPUResource> handleA, Handle<GPUResource> handleB, bool preserveBindlessIndex = true);
 
     /// <summary>
     /// Replaces the GPU resource associated with the destination handle with the resource associated with the source handle, and release the original resource of the destination handle.

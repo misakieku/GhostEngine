@@ -1,7 +1,10 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
+using Ghost.MeshOptimizer;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.Mathematics;
 using System.Runtime.InteropServices;
 
 namespace Ghost.AssetForge.Core.Bakers;
@@ -45,13 +48,13 @@ public unsafe partial class MeshBaker : IAssetBaker
 
                 if (i == 0)
                 {
-                    WriteMeshContent(dst, mesh, pMeshletData);
+                    WriteMeshContent(dst, mesh, pMeshletData, meshSettings);
                 }
                 else
                 {
                     var subPath = string.IsNullOrWhiteSpace(mesh.Name) ? $"Mesh_{i}" : mesh.Name;
                     using var subStream = ctx.AddSubAsset(subPath, AssetType.Mesh);
-                    WriteMeshContent(subStream, mesh, pMeshletData);
+                    WriteMeshContent(subStream, mesh, pMeshletData, meshSettings);
                 }
             }
 
@@ -66,7 +69,7 @@ public unsafe partial class MeshBaker : IAssetBaker
         }
     }
 
-    private static void WriteMeshContent(Stream stream, ParsedMesh mesh, MeshletMeshData* meshletData)
+    private static void WriteMeshContent(Stream stream, ParsedMesh mesh, MeshletMeshData* meshletData, MeshBakeSettings settings)
     {
         var assetStartOffset = stream.Position;
 
@@ -150,6 +153,15 @@ public unsafe partial class MeshBaker : IAssetBaker
         WriteMaterialParts(stream, mesh.materialParts.AsSpan());
         header.materialPartSize = stream.Position - assetStartOffset - header.materialPartOffset;
 
+        // 8. Ray Tracing Proxy Geometry
+        using var proxyMesh = BuildRayTracingProxy(mesh, settings, AllocationHandle.Persistent);
+        header.rayTracingProxyOffset = stream.Position - assetStartOffset;
+        header.rayTracingProxyVertexCount = proxyMesh.positions.Count;
+        header.rayTracingProxyIndexCount = proxyMesh.indices.Count;
+        stream.Write(proxyMesh.positions.AsSpan());
+        stream.Write(proxyMesh.indices.AsSpan());
+        header.rayTracingProxySize = stream.Position - assetStartOffset - header.rayTracingProxyOffset;
+
         var endOfAsset = stream.Position;
 
         // Backpatch Page Directory with real file offsets
@@ -161,6 +173,127 @@ public unsafe partial class MeshBaker : IAssetBaker
         stream.Write(header);
         stream.Position = endOfAsset;
         stream.Flush();
+    }
+
+    internal struct RayTracingProxyMesh : IDisposable
+    {
+        public UnsafeList<float3> positions;
+        public UnsafeList<uint> indices;
+
+        public void Dispose()
+        {
+            positions.Dispose();
+            indices.Dispose();
+        }
+    }
+
+    private static RayTracingProxyMesh BuildRayTracingProxy(ParsedMesh mesh, MeshBakeSettings settings, AllocationHandle allocationHandle)
+    {
+        var pVertices = (Vertex*)mesh.vertices.GetUnsafePtr();
+        var triCount = mesh.indices.Count / 3;
+
+        var percent = Math.Clamp(settings.FallbackPercentage, 0.0f, 1.0f);
+
+        if (percent >= 1.0f || triCount <= 1000)
+        {
+            var fallbackProxy = new RayTracingProxyMesh
+            {
+                positions = new UnsafeList<float3>(mesh.vertices.Count, allocationHandle),
+                indices = new UnsafeList<uint>(mesh.indices.Count, allocationHandle)
+            };
+            for (var i = 0; i < mesh.vertices.Count; i++)
+            {
+                fallbackProxy.positions.Add(pVertices[i].position);
+            }
+            fallbackProxy.indices.AddRange(mesh.indices.AsSpan());
+            return fallbackProxy;
+        }
+
+        nuint targetIndexCount;
+        float targetError;
+
+        if (percent > 0.0f)
+        {
+            // Percentage mode (> 0.0): target exact fraction of triangles
+            targetIndexCount = (nuint)Math.Max(3, (int)(mesh.indices.Count * percent));
+            targetError = 1.0f;
+        }
+        else
+        {
+            // Relative error mode (== 0.0): reduce as much as target error allows
+            targetIndexCount = 3;
+            targetError = settings.FallbackRelativeError > 0.0f ? settings.FallbackRelativeError : 0.01f;
+        }
+
+        using var destIndices = new UnsafeArray<uint>(mesh.indices.Count, allocationHandle);
+        var resultError = 0.0f;
+
+        var simplifiedIndexCount = MeshOptApi.Simplify(
+            (uint*)destIndices.GetUnsafePtr(),
+            (uint*)mesh.indices.GetUnsafePtr(),
+            (nuint)mesh.indices.Count,
+            (float*)&pVertices->position,
+            (nuint)mesh.vertices.Count,
+            (nuint)sizeof(Vertex),
+            targetIndexCount,
+            targetError,
+            percent > 0.0f ? SimplifyOptions.None : SimplifyOptions.LockBorder,
+            &resultError);
+
+        if (simplifiedIndexCount == 0 || simplifiedIndexCount > (nuint)mesh.indices.Count)
+        {
+            var fallbackProxy = new RayTracingProxyMesh
+            {
+                positions = new UnsafeList<float3>(mesh.vertices.Count, allocationHandle),
+                indices = new UnsafeList<uint>(mesh.indices.Count, allocationHandle)
+            };
+            for (var i = 0; i < mesh.vertices.Count; i++)
+            {
+                fallbackProxy.positions.Add(pVertices[i].position);
+            }
+            fallbackProxy.indices.AddRange(mesh.indices.AsSpan());
+            return fallbackProxy;
+        }
+
+        using var remap = new UnsafeArray<uint>(mesh.vertices.Count, allocationHandle);
+        var numUniqueVertices = (uint)MeshOptApi.GenerateVertexRemap(
+            (uint*)remap.GetUnsafePtr(),
+            (uint*)destIndices.GetUnsafePtr(),
+            simplifiedIndexCount,
+            pVertices,
+            (nuint)mesh.vertices.Count,
+            (nuint)sizeof(Vertex));
+
+        var proxy = new RayTracingProxyMesh
+        {
+            positions = new UnsafeList<float3>((int)numUniqueVertices, allocationHandle),
+            indices = new UnsafeList<uint>((int)simplifiedIndexCount, allocationHandle)
+        };
+        proxy.positions.UnsafeSetCount((int)numUniqueVertices);
+        proxy.indices.UnsafeSetCount((int)simplifiedIndexCount);
+
+        for (var i = 0; i < mesh.vertices.Count; i++)
+        {
+            var newIdx = remap[i];
+            if (newIdx != ~0u && newIdx < numUniqueVertices)
+            {
+                proxy.positions[(int)newIdx] = pVertices[i].position;
+            }
+        }
+
+        MeshOptApi.RemapIndexBuffer(
+            (uint*)proxy.indices.GetUnsafePtr(),
+            (uint*)destIndices.GetUnsafePtr(),
+            simplifiedIndexCount,
+            (uint*)remap.GetUnsafePtr());
+
+        MeshOptApi.OptimizeVertexCache(
+            (uint*)proxy.indices.GetUnsafePtr(),
+            (uint*)proxy.indices.GetUnsafePtr(),
+            simplifiedIndexCount,
+            numUniqueVertices);
+
+        return proxy;
     }
 
     private static void WriteMaterialParts(Stream stream, ReadOnlySpan<MaterialPartInfo> parts)

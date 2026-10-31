@@ -563,7 +563,8 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
             if (res.isExtracted)
             {
-                if (TryReuseImportedResourceInPlace(i, default))
+                var wasInPlaceReused = cachedBackingResources[i] == res.extractionTarget;
+                if (wasInPlaceReused && TryReuseImportedResourceInPlace(i, default))
                 {
                     continue;
                 }

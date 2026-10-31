@@ -1,8 +1,10 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Buffers;
+using System.Xml.Linq;
 
 namespace Ghost.Graphics.Utilities;
 
@@ -35,7 +37,7 @@ public static unsafe class ResourceUtility
                 HeapType = HeapType.Upload,
             };
 
-            var uploadHandle = resourceManager.CreateTransientBuffer(uploadDesc);
+            var uploadHandle = resourceManager.CreateTransientBuffer(uploadDesc, "Transient upload buffer");
             if (uploadHandle.IsInvalid)
             {
                 return Error.OutOfMemory;
@@ -111,7 +113,7 @@ public static unsafe class ResourceUtility
                 HeapType = HeapType.Upload,
             };
 
-            var uploadHandle = resourceManager.CreateTransientBuffer(uploadDesc);
+            var uploadHandle = resourceManager.CreateTransientBuffer(uploadDesc, "Transient upload buffer");
             if (uploadHandle.IsInvalid)
             {
                 return Error.OutOfMemory;
@@ -207,7 +209,7 @@ public static unsafe class ResourceUtility
             HeapType = HeapType.Upload,
         };
 
-        var uploadHandle = resourceManager.CreateTransientBuffer(in uploadDesc);
+        var uploadHandle = resourceManager.CreateTransientBuffer(in uploadDesc, "Transient texture upload buffer");
         if (uploadHandle.IsInvalid)
         {
             return Error.OutOfMemory;

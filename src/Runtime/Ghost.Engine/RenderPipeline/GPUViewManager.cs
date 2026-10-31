@@ -47,6 +47,7 @@ public sealed class GPUViewContext : IDisposable
     public float4x4 prevViewProjMatrix;
     public float3 prevCameraPosition;
     public ulong prevSkyHash;
+    public bool hasValidRisHistory;
 
     public uint ViewId
     {
@@ -59,6 +60,16 @@ public sealed class GPUViewContext : IDisposable
     }
 
     public Handle<GPUTexture> HzbTexture
+    {
+        get; private set;
+    }
+
+    public Handle<GPUTexture> RisHistoryDiffuse
+    {
+        get; private set;
+    }
+
+    public Handle<GPUTexture> RisHistorySpecular
     {
         get; private set;
     }
@@ -156,24 +167,57 @@ public sealed class GPUViewContext : IDisposable
                 HzbTexture = Handle<GPUTexture>.Invalid;
             }
 
+            ReleaseRisHistoryTextures();
+
             var hzbDesc = new TextureDesc
             {
                 Dimension = TextureDimension.Texture2D,
                 Width = HzbSize.x,
                 Height = HzbSize.y,
                 MipLevels = HzbMipCount,
-                Format = TextureFormat.R32_Float,
+                Format = TextureFormat.R32G32_Float,
                 Usage = TextureUsage.ShaderResource | TextureUsage.UnorderedAccess,
                 Slice = 1,
             };
 
             HzbTexture = _allocator.CreateTexture(in hzbDesc, "HZB Texture");
 
+            var risHistoryDesc = new TextureDesc
+            {
+                Dimension = TextureDimension.Texture2D,
+                Width = renderSize.x,
+                Height = renderSize.y,
+                MipLevels = 1,
+                Format = TextureFormat.R16G16B16A16_Float,
+                Usage = TextureUsage.ShaderResource | TextureUsage.UnorderedAccess,
+                Slice = 1,
+            };
+
+            RisHistoryDiffuse = _allocator.CreateTexture(in risHistoryDesc, "RIS History Diffuse");
+            RisHistorySpecular = _allocator.CreateTexture(in risHistoryDesc, "RIS History Specular");
+
             prevViewProjMatrix = default; // Zero out so resize is not static
             prevCameraPosition = default;
         }
 
         RenderSize = renderSize;
+    }
+
+    private void ReleaseRisHistoryTextures()
+    {
+        if (RisHistoryDiffuse.IsValid)
+        {
+            _database.ReleaseResource(RisHistoryDiffuse.AsResource());
+            RisHistoryDiffuse = Handle<GPUTexture>.Invalid;
+        }
+
+        if (RisHistorySpecular.IsValid)
+        {
+            _database.ReleaseResource(RisHistorySpecular.AsResource());
+            RisHistorySpecular = Handle<GPUTexture>.Invalid;
+        }
+
+        hasValidRisHistory = false;
     }
 
     public void Dispose()
@@ -183,6 +227,8 @@ public sealed class GPUViewContext : IDisposable
             _database.ReleaseResource(HzbTexture.AsResource());
             HzbTexture = Handle<GPUTexture>.Invalid;
         }
+
+        ReleaseRisHistoryTextures();
 
         _renderGraph?.Dispose();
         _shadowAllocator?.Dispose();

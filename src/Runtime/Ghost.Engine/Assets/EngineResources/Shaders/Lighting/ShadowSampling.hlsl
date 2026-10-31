@@ -2,12 +2,10 @@
 #define GHOST_SHADOW_SAMPLING_HLSL
 
 #include "EngineResources/Shaders/Generated/GPULightData.hlsl"
+#include "EngineResources/Shaders/Lighting/ScreenSpaceTracing.hlsl"
 
-#if defined(_SHADOW_RIS)
-typedef float3 ShadowType; // Colored shadow?
-#else
 typedef float ShadowType;
-#endif
+
 
 float SampleShadow_GetTriangleTexelArea(float triangleHeight)
 {
@@ -150,11 +148,24 @@ uint GetCubeFaceID(float3 L)
 
 ShadowType GetPunctualShadowAttenuation(ShadingContext ctx, GPUPunctualLight light, float3 N, float3 L, float4 distance, float3 lightPositonRWS, uint lightIndex)
 {
-    ShadowType shadow = 1.0f;
+    ShadowType shadow = (ShadowType)1.0f;
 
 #if defined(_SHADOW_VSM)
 #elif defined(_SHADOW_RIS)
+    uint ditherSeed = lightIndex * 1973u + ctx.viewId * 9277u;
+    float2 rngSample = float2(
+        InterleavedGradientNoise((float2)ctx.positionSS, ditherSeed),
+        InterleavedGradientNoise((float2)ctx.positionSS, ditherSeed + 1337u)
+    );
+    shadow = (ShadowType)EvaluatePunctualVisibility_RIS(ctx, light, lightPositonRWS, L, distance.x, rngSample, 0.01f);
 #else
+    // Near-field Screen Space Full-Resolution Contact Shadow for shadow-mapped lights
+    float hitDist = 0.0f;
+    if (TraceScreenContactShadow(ctx, L, min(distance.x, 0.25f), 2.0f, hitDist))
+    {
+        return (ShadowType)0.0f;
+    }
+
     int shadowIndex = -1;
 
     if (IS_VALID_BUFFER(ctx.shadowIndicesBufferIndex))

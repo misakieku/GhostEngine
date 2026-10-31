@@ -36,6 +36,8 @@
 #define GET_TEXTURECUBE_ARRAY(id) GLOBAL_TEXTURECUBE_ARRAY_HEAP[id]
 #define GET_BUFFER(id) GLOBAL_BUFFER_HEAP[id]
 #define GET_SAMPLER(id) GLOBAL_SAMPLER_HEAP[id]
+#define GET_TLAS(id) GLOBAL_BUFFER_HEAP[id]
+
 
 
 // Static sampler
@@ -60,6 +62,7 @@
 
 #define INVALID_BUFFER_INDEX 0
 #define IS_VALID_BUFFER(index) ((index) != INVALID_BUFFER_INDEX)
+#define IS_VALID_TEXTURE(index) ((index) != INVALID_BUFFER_INDEX)
 
 template<typename T>
 T SampleTexture2D(TEXTURE2D texId, SAMPLER sampId, float2 uv)

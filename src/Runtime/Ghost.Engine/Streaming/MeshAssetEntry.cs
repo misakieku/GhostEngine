@@ -7,6 +7,7 @@ using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Ghost.Graphics.Utilities;
 using Misaki.HighPerformance.LowLevel;
+using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -112,6 +113,12 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
                 return Result.Failure("Mesh content contains an invalid material part range.");
             }
 
+            if (header.rayTracingProxySize > 0 && !ValidateRange(header.rayTracingProxyOffset, header.rayTracingProxySize, contentSize))
+            {
+                contentStream.Dispose();
+                return Result.Failure("Mesh content contains an invalid ray tracing proxy range.");
+            }
+
             _contentStream = contentStream;
             _header = header;
 
@@ -161,9 +168,11 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
 
         var pageBufferBase = alignedMetaBytes;
         var rootPageBytes = (uint)_header.rootPageSize;
+        var rootEndOffset = pageBufferBase + (ulong)rootPageBytes;
 
-        var streamingManager = Manager.MeshletStreamingManager;
-        var totalGpuBufferSize = pageBufferBase + (ulong)rootPageBytes;
+        var proxyBytes = (uint)_header.rayTracingProxySize;
+        var proxyBaseOffset = (rootEndOffset + 15u) & ~15u;
+        var totalGpuBufferSize = proxyBytes > 0 ? (proxyBaseOffset + proxyBytes) : rootEndOffset;
 
         var desc = new BufferDesc
         {
@@ -194,6 +203,13 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
             _contentStream.ReadExactly(new Span<byte>(pStaging + pageBufferBase, (int)rootPageBytes));
 
             // 5. Ray Tracing Proxy Geometry
+            if (proxyBytes > 0)
+            {
+                _contentStream.Position = _header.rayTracingProxyOffset;
+                _contentStream.ReadExactly(new Span<byte>(pStaging + proxyBaseOffset, (int)proxyBytes));
+            }
+
+            var streamingManager = Manager.MeshletStreamingManager;
             var rootPageSpan = new ReadOnlySpan<byte>(pStaging + pageBufferBase, (int)rootPageBytes);
             var globalPageOffset = streamingManager.RegisterMesh(this, (uint)_header.pageCount, rootPageSpan);
             _globalPageTableOffset = globalPageOffset;
@@ -274,6 +290,10 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
                 MeshletTrianglesBufferOffset = pageBufferBase,
                 MeshletGroupBufferOffset = hierarchyBytes,
                 MeshletHierarchyBufferOffset = 0,
+                RayTracingProxyVertexBufferOffset = proxyBytes > 0 ? proxyBaseOffset : 0,
+                RayTracingProxyIndexBufferOffset = proxyBytes > 0 ? (proxyBaseOffset + (ulong)(_header.rayTracingProxyVertexCount * sizeof(float3))) : 0,
+                RayTracingProxyVertexCount = _header.rayTracingProxyVertexCount,
+                RayTracingProxyIndexCount = _header.rayTracingProxyIndexCount,
             };
 
             var newHandle = context.ResourceManager.RegisterMesh(ref mesh);

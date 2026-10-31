@@ -149,6 +149,26 @@ public sealed class RenderGraph : IDisposable
     }
 
     /// <summary>
+    /// Creates a transient texture in the render graph.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Identifier<RGTexture> CreateTexture(Identifier<RGTexture> relativeTo, string? name = null)
+    {
+        var desc = _resourceRegistry.GetResource(relativeTo).rgTextureDesc;
+        return _resourceRegistry.CreateTexture(in desc, name);
+    }
+
+    /// <summary>
+    /// Creates a transient buffer in the render graph.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Identifier<RGBuffer> CreateBuffer(Identifier<RGBuffer> relativeTo, string? name = null)
+    {
+        var desc = _resourceRegistry.GetResource(relativeTo).bufferDesc;
+        return _resourceRegistry.CreateBuffer(in desc, name);
+    }
+
+    /// <summary>
     /// Imports an external texture into the render graph.
     /// </summary>
     /// <param name="texture">The external texture handle.</param>
@@ -310,22 +330,19 @@ public sealed class RenderGraph : IDisposable
             {
                 continue;
             }
-            if (res.extractionFlags.HasFlag(ResourceExtractionFlags.ReleaseAfterExtract))
+
+            // Immediate record + viewGroup swap: no live GPU descriptors are overwritten, so in-flight
+            // passes keep reading their baked bindless indices while dst immediately points to this
+            // frame's extracted resource for the next CPU frame.
+            var dstWasAllocated = _resourceDatabase.IsAllocated(dst);
+            _resourceDatabase.Swap(dst, src, preserveBindlessIndex: false);
+
+            if (res.extractionFlags.HasFlag(ResourceExtractionFlags.ReleaseAfterExtract) || !dstWasAllocated)
             {
-                // Deferred Replace: dst keeps its old resource/descriptors until this frame retires, so
-                // in-flight passes sampling the persistent handle (e.g. next frame's HZB history read)
-                // never observe this frame's not-yet-written transient. The displaced old resource is
-                // released through the deferred release path at apply time.
-                _resourceDatabase.QueueReplace(dst, src);
+                _resourceDatabase.ReleaseResource(src);
             }
             else
             {
-                // Deferred Swap & Pool Recycle.
-                // Swapping swaps dst and src inside IResourceDatabase once this frame retires.
-                // After Swap, src holds dst's OLD resource handle; its return to the pool is deferred
-                // through ReleasePooledResourceDeferred (plain data, no closures) so pooled reuse also
-                // waits out in-flight readers.
-                _resourceDatabase.QueueSwap(dst, src);
                 _resourceManager.ReleasePooledResourceDeferred(src);
             }
         }

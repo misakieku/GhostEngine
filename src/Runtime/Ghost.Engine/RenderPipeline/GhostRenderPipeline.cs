@@ -31,6 +31,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
     private readonly GPUScene _gpuScene;
     private readonly GPUViewManager _gpuViewManager;
+    private readonly RayTracingManager _rayTracingManager;
 
     private static readonly PipelineKeyword s_kwShadowPCF = PipelineKeywordRegistry.GetOrRegister("_SHADOW_PCF");
     private static readonly PipelineKeyword s_kwShadowVSM = PipelineKeywordRegistry.GetOrRegister("_SHADOW_VSM");
@@ -42,6 +43,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
     public GPUScene GPUScene => _gpuScene;
     public GPUViewManager GPUViewManager => _gpuViewManager;
+    public RayTracingManager RayTracingManager => _rayTracingManager;
     public GhostRenderPipelineSettings Settings => _settings;
 
     public GhostRenderPipeline(RenderEngine renderEngine, AssetManager assetManager, JobScheduler jobScheduler, GhostRenderPipelineSettings settings)
@@ -60,6 +62,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
         _gpuScene = new GPUScene(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, settings.MaxVisibleMeshletsOnScreen / 64);
         _gpuViewManager = new GPUViewManager(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, renderEngine.GraphicsEngine.PipelineLibrary, renderEngine.ResourceManager, renderEngine.ShaderLibrary);
+        _rayTracingManager = new RayTracingManager(renderEngine.GraphicsEngine, renderEngine.ResourceManager);
 
         _gpuSceneResource.Resolve();
         _meshPipelineResource.Resolve();
@@ -115,9 +118,19 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
         // Update GPU scene instance buffer once per frame prelude
         UpdateGPUScene(ctx, commandBuffer, ghostPayload);
+
+        // Build any newly added mesh proxy BLASes
+        _rayTracingManager.BuildPendingBlas(commandBuffer);
+
+        // Build scene TLAS using the primary view's camera position
+        var cameraPos = ghostPayload.RenderRequests.Length > 0
+            ? ghostPayload.RenderRequests[0].view.localToWorld.c3.xyz
+            : float3.zero;
+
+        _rayTracingManager.BuildTLAS(commandBuffer, in cameraPos, _gpuScene.InstanceCount);
     }
 
-    public Result ExecuteGraph(scoped in ResourceContext ctx, int frameIndex, IRenderPayload payload, in RenderGraphExecutionContext executionContext)
+    public Result ExecuteGraph(scoped in ResourceContext ctx, int frameIndex, ulong frameNumber, IRenderPayload payload, in RenderGraphExecutionContext executionContext)
     {
         var ghostPayload = (GhostRenderPayload)payload;
         if (_lastRenderRequestCount != ghostPayload.RenderRequests.Length || _lastInstanceCount != ghostPayload.InstanceCount)
@@ -188,13 +201,28 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
             var gbuffer = AddDeferredTexturingPass(renderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, tileOffsetsBuffer, indirectArgsBuffer, viewContext.RenderSize);
             var tileLightList = AddTileLightCullingPass(renderGraph, currentDepth, viewContext.RenderSize);
-            var shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
+
+            Identifier<RGTexture> risResolvedDiffuse = Identifier<RGTexture>.Invalid;
+            Identifier<RGTexture> risResolvedSpecular = Identifier<RGTexture>.Invalid;
+            Identifier<RGTexture> shadowAtlas = Identifier<RGTexture>.Invalid;
+
+            if (_settings.ShadowMode == PipelineShadowMode.RIS)
+            {
+                AddRisPasses(renderGraph, viewContext, gbuffer, currentDepth, tileLightList, viewContext.RenderSize, (uint)frameNumber, request.viewId, out risResolvedDiffuse, out risResolvedSpecular);
+            }
+            else
+            {
+                viewContext.hasValidRisHistory = false;
+                shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
+            }
+
             var persistentViewStateBuffer = renderGraph.ImportBuffer(_gpuViewManager.PersistentViewStateBuffer, ResourceBarrierData.Common, ResourceBarrierData.Common);
             var skyContext = PrepareSky(renderGraph, viewContext, in request, ghostPayload, persistentViewStateBuffer);
 
             var litColor = AddDeferredLightingPass(
                 renderGraph, gbuffer, currentDepth, tileLightList, shadowAtlas, shadowViewsBufferSrv, shadowIndicesBufferSrv, tileShadingModelMaskBuffer,
-                in skyContext, historyHzb, viewContext.HzbMipCount, viewContext.HzbSize, request.viewId, viewContext.RenderSize);
+                in skyContext, historyHzb, viewContext.HzbMipCount, viewContext.HzbSize, request.viewId, viewContext.RenderSize,
+                risResolvedDiffuse, risResolvedSpecular);
 
             AddSkyPass(renderGraph, in skyContext, litColor, currentDepth);
 
@@ -290,5 +318,6 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
         _gpuScene.Dispose();
         _gpuViewManager.Dispose();
+        _rayTracingManager.Dispose();
     }
 }

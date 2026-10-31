@@ -64,4 +64,9 @@ public interface IRenderDevice : IRHIObject
     {
         get;
     }
+
+    /// <summary>
+    /// Retrieves prebuild info (memory sizes) required to build or update a raytracing acceleration structure.
+    /// </summary>
+    AccelerationStructurePrebuildInfo GetAccelerationStructurePrebuildInfo(scoped in AccelerationStructureBuildInputs inputs);
 }

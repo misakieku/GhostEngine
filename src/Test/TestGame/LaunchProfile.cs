@@ -34,7 +34,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         MeshletLodErrorThreshold = 1.0f,
         InstanceCullingThreshold = 2.0f,
         DebugMode = RenderPipelineDebugMode.None,
-        ShadowMode = PipelineShadowMode.PCF,
+        ShadowMode = PipelineShadowMode.RIS,
     };
 
     public EngineDesc GetEngineDesc()
@@ -99,7 +99,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         const float size = 5.0f;
         const float baseScale = 1.0f;
         const float lightSize = size * 1.0f;
-        const int lightCount = 10;
+        const int lightCount = 25;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -167,6 +167,9 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
             var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f)));
             var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
+            //var position = new float3(0, 0, 3);
+            //var rotation = quaternion.identity;
+            //var scale = float3.one * baseScale;
 
             var localToWorld = new LocalToWorld
             {
@@ -200,8 +203,8 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                     type = isSpot ? PunctualLightType.Spot : PunctualLightType.Point,
                     color = color,
                     shadowSize = 256,
-                    intensity = 3.0f, // RandomFloat(0.5f, 1.0f),
-                    range = 25.0f, // RandomFloat(10.0f, 15.0f),
+                    intensity = 1.0f, // RandomFloat(0.5f, 1.0f),
+                    range = 15.0f, // RandomFloat(10.0f, 15.0f),
                     innerSpotAngle = math.radians(15.0f),
                     outerSpotAngle = math.radians(40.0f),
                     nearPlane = 0.1f,
@@ -263,6 +266,13 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                     ? RenderPipelineDebugMode.None
                     : RenderPipelineDebugMode.TileLightHeatmap;
                 Logger.Info($"[TestGame] Toggled DebugMode: {_renderPipelineSettings.DebugMode}");
+            }
+            else if (e.key.key == SDL_Keycode.SDLK_F2)
+            {
+                _renderPipelineSettings.ShadowMode = _renderPipelineSettings.ShadowMode == PipelineShadowMode.RIS
+                    ? PipelineShadowMode.PCF
+                    : PipelineShadowMode.RIS;
+                Logger.Info($"[TestGame] Toggled ShadowMode: {_renderPipelineSettings.ShadowMode}");
             }
         }
     }

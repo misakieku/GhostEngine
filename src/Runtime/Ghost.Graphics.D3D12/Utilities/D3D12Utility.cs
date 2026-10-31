@@ -166,6 +166,7 @@ internal static unsafe class D3D12Utility
             TextureFormat.R10G10B10A2_UNorm => DXGI_FORMAT_R10G10B10A2_UNORM,
 
             TextureFormat.R16G16B16A16_Float => DXGI_FORMAT_R16G16B16A16_FLOAT,
+            TextureFormat.R32G32B32_Float => DXGI_FORMAT_R32G32B32_FLOAT,
             TextureFormat.R32G32B32A32_Float => DXGI_FORMAT_R32G32B32A32_FLOAT,
 
             TextureFormat.D24_UNorm_S8_UInt => DXGI_FORMAT_D24_UNORM_S8_UINT,
@@ -593,6 +594,11 @@ internal static unsafe class D3D12Utility
         if (usage.HasFlag(BufferUsage.UnorderedAccess) || usage.HasFlag(BufferUsage.AccelerationStructure))
         {
             flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        }
+
+        if (usage.HasFlag(BufferUsage.AccelerationStructure))
+        {
+            flags |= D3D12_RESOURCE_FLAG_RAYTRACING_ACCELERATION_STRUCTURE;
         }
 
         return flags;

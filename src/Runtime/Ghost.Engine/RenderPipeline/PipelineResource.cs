@@ -114,6 +114,21 @@ internal partial class LightingPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/Lighting/HDRISky")]
     public Handle<Shader> hdriSkyShader;
 
+    [ResolveAsset("EngineResources/Shaders/Lighting/RisLightSampling")]
+    public Handle<ComputeShader> risLightSamplingShader;
+
+    [ResolveAsset("EngineResources/Shaders/Lighting/RisRayTrace")]
+    public Handle<ComputeShader> risRayTraceShader;
+
+    [ResolveAsset("EngineResources/Shaders/Lighting/RisResolveShading")]
+    public Handle<ComputeShader> risResolveShadingShader;
+
+    [ResolveAsset("EngineResources/Shaders/Lighting/RisDenoiserTemporal")]
+    public Handle<ComputeShader> risDenoiserTemporalShader;
+
+    [ResolveAsset("EngineResources/Shaders/Lighting/RisDenoiserSpatial")]
+    public Handle<ComputeShader> risDenoiserSpatialShader;
+
     [ResolveAsset("EngineResources/Textures/PBR")]
     public Handle<GPUTexture> iblLutTexture;
 }
