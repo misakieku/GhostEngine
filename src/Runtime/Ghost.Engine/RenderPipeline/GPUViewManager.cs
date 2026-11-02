@@ -6,6 +6,7 @@ using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -42,13 +43,12 @@ public sealed class GPUViewContext : IDisposable
     private readonly ResourceManager _resourceManager;
     private readonly ShaderLibrary _shaderLibrary;
 
+    private readonly Dictionary<Type, IViewHistory> _histories = new();
     private RenderGraph? _renderGraph;
-    private ShadowAtlasRegionAllocator? _shadowAllocator;
 
     public float4x4 prevViewProjMatrix;
     public float3 prevCameraPosition;
     public ulong prevSkyHash;
-    public bool hasValidRisHistory;
 
     public uint ViewId
     {
@@ -56,31 +56,6 @@ public sealed class GPUViewContext : IDisposable
     }
 
     public bool IsActive
-    {
-        get; private set;
-    }
-
-    public Handle<GPUTexture> HzbTexture
-    {
-        get; private set;
-    }
-
-    public Handle<GPUTexture> RisHistoryDiffuse
-    {
-        get; private set;
-    }
-
-    public Handle<GPUTexture> RisHistorySpecular
-    {
-        get; private set;
-    }
-
-    public uint HzbMipCount
-    {
-        get; private set;
-    }
-
-    public uint2 HzbSize
     {
         get; private set;
     }
@@ -95,18 +70,8 @@ public sealed class GPUViewContext : IDisposable
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            Logger.DebugAssert(_renderGraph != null, "RenderGraph is not initialized. Call EnsureResources() first.");
+            Logger.DebugAssert(_renderGraph != null, "RenderGraph is not initialized.");
             return _renderGraph;
-        }
-    }
-
-    public ShadowAtlasRegionAllocator ShadowAllocator
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            Logger.DebugAssert(_shadowAllocator != null, "ShadowAllocator is not initialized. Call EnsureResources() first.");
-            return _shadowAllocator;
         }
     }
 
@@ -125,20 +90,36 @@ public sealed class GPUViewContext : IDisposable
     internal void Active()
     {
         IsActive = true;
+        _renderGraph ??= new RenderGraph(_database, _allocator, _pipelineLibrary, _resourceManager, _shaderLibrary);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ComputeHZBDimensions(uint2 renderSize, out uint2 hzbSize, out uint hzbMipCount)
+    public THistory GetOrCreateHistory<THistory>(Func<IResourceAllocator, IResourceDatabase, THistory> factory)
+        where THistory : class, IViewHistory
     {
-        var potWidth = System.Numerics.BitOperations.RoundUpToPowerOf2(renderSize.x);
-        var potHeight = System.Numerics.BitOperations.RoundUpToPowerOf2(renderSize.y);
-        hzbSize = new uint2(Math.Max(1u, potWidth >> 1), Math.Max(1u, potHeight >> 1));
+        var type = typeof(THistory);
+        if (!_histories.TryGetValue(type, out var history))
+        {
+            history = factory(_allocator, _database);
+            _histories[type] = history;
+        }
 
-        var calculatedMipCount = (uint)Math.Floor(Math.Log2(Math.Max(hzbSize.x, hzbSize.y))) + 1;
-        hzbMipCount = Math.Clamp(calculatedMipCount, 1u, 16u);
+        return (THistory)history;
     }
 
-    public void EnsureResources(uint2 renderSize, ShadowMode shadowMode, uint shadowAtlasResolution)
+    public bool TryGetHistory<THistory>([NotNullWhen(true)] out THistory? history)
+        where THistory : class, IViewHistory
+    {
+        if (_histories.TryGetValue(typeof(THistory), out var h))
+        {
+            history = (THistory)h;
+            return true;
+        }
+
+        history = null;
+        return false;
+    }
+
+    public void EnsureSize(uint2 renderSize)
     {
         if (renderSize.x == 0 || renderSize.y == 0)
         {
@@ -147,140 +128,32 @@ public sealed class GPUViewContext : IDisposable
 
         _renderGraph ??= new RenderGraph(_database, _allocator, _pipelineLibrary, _resourceManager, _shaderLibrary);
 
-        if (shadowMode == ShadowMode.ShadowMap)
-        {
-            if (_shadowAllocator == null)
-            {
-                _shadowAllocator = new ShadowAtlasRegionAllocator(shadowAtlasResolution, AllocationHandle.Persistent);
-            }
-            else
-            {
-                _shadowAllocator.Reset(shadowAtlasResolution);
-            }
-        }
-
-        ComputeHZBDimensions(renderSize, out var baseSize, out var hzbMipCount);
-
-        HzbSize = baseSize;
-        HzbMipCount = hzbMipCount;
-
         if (RenderSize.x != renderSize.x || RenderSize.y != renderSize.y)
         {
-            ReleaseResources();
-
-            var hzbDesc = new TextureDesc
+            foreach (var history in _histories.Values)
             {
-                Dimension = TextureDimension.Texture2D,
-                Width = HzbSize.x,
-                Height = HzbSize.y,
-                MipLevels = HzbMipCount,
-                Format = TextureFormat.R32G32_Float,
-                Usage = TextureUsage.ShaderResource | TextureUsage.UnorderedAccess,
-                Slice = 1,
-            };
-
-            HzbTexture = _allocator.CreateTexture(in hzbDesc, "HZB Texture");
-
-            if (shadowMode == ShadowMode.RayTraced)
-            {
-                var risHistoryDesc = new TextureDesc
-                {
-                    Dimension = TextureDimension.Texture2D,
-                    Width = renderSize.x,
-                    Height = renderSize.y,
-                    MipLevels = 1,
-                    Format = TextureFormat.R16G16B16A16_Float,
-                    Usage = TextureUsage.ShaderResource | TextureUsage.UnorderedAccess,
-                    Slice = 1,
-                };
-
-                RisHistoryDiffuse = _allocator.CreateTexture(in risHistoryDesc, "RIS History Diffuse");
-                RisHistorySpecular = _allocator.CreateTexture(in risHistoryDesc, "RIS History Specular");
+                history.OnResize(renderSize);
             }
 
-            prevViewProjMatrix = default; // Zero out so resize is not static
+            prevViewProjMatrix = default;
             prevCameraPosition = default;
+            RenderSize = renderSize;
         }
-        else
-        {
-            if (shadowMode == ShadowMode.RayTraced)
-            {
-                var risHistoryDesc = new TextureDesc
-                {
-                    Dimension = TextureDimension.Texture2D,
-                    Width = renderSize.x,
-                    Height = renderSize.y,
-                    MipLevels = 1,
-                    Format = TextureFormat.R16G16B16A16_Float,
-                    Usage = TextureUsage.ShaderResource | TextureUsage.UnorderedAccess,
-                    Slice = 1,
-                };
-
-                if (RisHistoryDiffuse.IsInvalid)
-                {
-                    RisHistoryDiffuse = _allocator.CreateTexture(in risHistoryDesc, "RIS History Diffuse");
-                }
-
-                if (RisHistorySpecular.IsInvalid)
-                {
-                    RisHistorySpecular = _allocator.CreateTexture(in risHistoryDesc, "RIS History Specular");
-                }
-            }
-            else
-            {
-                if (RisHistoryDiffuse.IsValid)
-                {
-                    _database.ReleaseResource(RisHistoryDiffuse.AsResource());
-                    RisHistoryDiffuse = Handle<GPUTexture>.Invalid;
-                }
-
-                if (RisHistorySpecular.IsValid)
-                {
-                    _database.ReleaseResource(RisHistorySpecular.AsResource());
-                    RisHistorySpecular = Handle<GPUTexture>.Invalid;
-                }
-            }
-        }
-
-        RenderSize = renderSize;
-    }
-
-    private void ReleaseResources()
-    {
-        if (HzbTexture.IsValid)
-        {
-            _database.ReleaseResource(HzbTexture.AsResource());
-            HzbTexture = Handle<GPUTexture>.Invalid;
-        }
-
-        if (RisHistoryDiffuse.IsValid)
-        {
-            _database.ReleaseResource(RisHistoryDiffuse.AsResource());
-            RisHistoryDiffuse = Handle<GPUTexture>.Invalid;
-        }
-
-        if (RisHistorySpecular.IsValid)
-        {
-            _database.ReleaseResource(RisHistorySpecular.AsResource());
-            RisHistorySpecular = Handle<GPUTexture>.Invalid;
-        }
-
-        hasValidRisHistory = false;
     }
 
     public void Dispose()
     {
-        ReleaseResources();
+        foreach (var history in _histories.Values)
+        {
+            history.Dispose();
+        }
+        _histories.Clear();
 
         _renderGraph?.Dispose();
-        _shadowAllocator?.Dispose();
-
         _renderGraph = null;
-        _shadowAllocator = null;
 
         IsActive = false;
         RenderSize = default;
-        HzbSize = default;
         prevViewProjMatrix = default;
         prevCameraPosition = default;
         prevSkyHash = 0;

@@ -170,17 +170,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             var viewKeywords = BuildViewKeywords(shadowSettings);
 
             var viewContext = _gpuViewManager.GetView(request.viewId);
-            viewContext.EnsureResources(viewPort.Size, shadowSettings.shadowMode.GetValueOrDefault(), _settings.ShadowAtlasResolution);
-
-            var shadowViewsBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
-            var shadowIndicesBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
-            var shadowViewCount = 0u;
-
-            if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
-            {
-                ExecutePerViewShadowSetup(ctx, viewContext.ShadowAllocator, in frustum, viewPort.Size.y, lights, request.view.localToWorld.c3.xyz,
-                    out shadowViewsBufferSrv, out shadowViewCount, out shadowIndicesBufferSrv);
-            }
+            viewContext.EnsureSize(viewPort.Size);
 
             if (viewContext.prevViewProjMatrix.Equals(float4x4.zero))
             {
@@ -200,47 +190,71 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             _meshPipelineResource.EnsureWorkGraphProgram(_renderEngine, _assetManager, viewKeywords);
 
             var colorTarget = renderGraph.ImportTexture(renderView.ColorTexture, ResourceBarrierData.Present, ResourceBarrierData.Present);
-            var historyHzb = renderGraph.ImportTexture(viewContext.HzbTexture, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
-            AddCullingAndVbufferPasses(viewContext, ghostPayload.InstanceCount, historyHzb, _gpuScene.SceneBufferSrvIndex,
-                out var currentDepth, out var currentVisBuffer,
-                out var visibleMeshlets0, out var visibleMeshlets1);
+            var hzbHistory = viewContext.GetOrCreateHistory(static (alloc, db) => new HzbViewHistory(alloc, db));
+            hzbHistory.EnsureResources(viewContext.RenderSize);
+            var historyHzb = renderGraph.ImportTexture(hzbHistory.Texture, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
-            AddTileClassificationPass(renderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, viewContext.RenderSize,
-                out var tileListBuffer, out var tileOffsetsBuffer,
-                out var indirectArgsBuffer, out var tileShadingModelMaskBuffer);
+            // Geometry & Visibility passes
+            AddCullingAndVbufferPasses(renderGraph, hzbHistory, viewContext.RenderSize, ghostPayload.InstanceCount, historyHzb, _gpuScene.SceneBufferSrvIndex);
 
-            var gbuffer = AddDeferredTexturingPass(renderGraph, currentVisBuffer, visibleMeshlets0, visibleMeshlets1, tileListBuffer, tileOffsetsBuffer, indirectArgsBuffer, viewContext.RenderSize);
-            var tileLightList = AddTileLightCullingPass(renderGraph, currentDepth, viewContext.RenderSize);
+            // Tile Classification & Deferred Texturing
+            AddTileClassificationPass(renderGraph, viewContext.RenderSize);
+            var gbuffer = AddDeferredTexturingPass(renderGraph, viewContext.RenderSize);
+            var tileLightList = AddTileLightCullingPass(renderGraph, viewContext.RenderSize);
+            var gbufferData = new GBufferPassData
+            {
+                gbuffer = gbuffer,
+                tileLightList = tileLightList
+            };
+            renderGraph.Blackboard.Add(ref gbufferData);
 
-            Identifier<RGTexture> risResolvedDiffuse = Identifier<RGTexture>.Invalid;
-            Identifier<RGTexture> risResolvedSpecular = Identifier<RGTexture>.Invalid;
-            Identifier<RGTexture> shadowAtlas = Identifier<RGTexture>.Invalid;
-
+            // Shadow Passes
+            var hasShadowAtlas = false;
             if (shadowSettings.shadowMode == ShadowMode.RayTraced)
             {
-                AddRisPasses(renderGraph, viewContext, gbuffer, currentDepth, tileLightList, viewContext.RenderSize, (uint)frameNumber, request.viewId, out risResolvedDiffuse, out risResolvedSpecular);
+                var risHistory = viewContext.GetOrCreateHistory(static (alloc, db) => new RisViewHistory(alloc, db));
+                risHistory.EnsureResources(viewContext.RenderSize);
+                AddRisPasses(renderGraph, risHistory, viewContext.RenderSize, (uint)frameNumber, request.viewId);
             }
             else if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
             {
-                viewContext.hasValidRisHistory = false;
-                shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
+                ExecutePerViewShadowSetup(ctx, in frustum, viewPort.Size.y, lights, request.view.localToWorld.c3.xyz,
+                    out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
+
+                var shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
+                var shadowMapData = new ShadowMapPassData
+                {
+                    shadowAtlas = shadowAtlas,
+                    shadowViewsBufferSrv = shadowViewsBufferSrv,
+                    shadowIndicesBufferSrv = shadowIndicesBufferSrv
+                };
+                renderGraph.Blackboard.Add(ref shadowMapData);
+                hasShadowAtlas = true;
+
+                if (viewContext.TryGetHistory<RisViewHistory>(out var risHistory))
+                {
+                    risHistory.Invalidate();
+                }
             }
             else
             {
-                viewContext.hasValidRisHistory = false;
+                if (viewContext.TryGetHistory<RisViewHistory>(out var risHistory))
+                {
+                    risHistory.Invalidate();
+                }
             }
 
+            // Sky & Lighting
             var persistentViewStateBuffer = renderGraph.ImportBuffer(_gpuViewManager.PersistentViewStateBuffer, ResourceBarrierData.Common, ResourceBarrierData.Common);
             var skyContext = PrepareSky(renderGraph, viewContext, in request, ghostPayload, persistentViewStateBuffer);
 
             var litColor = AddDeferredLightingPass(
-                renderGraph, gbuffer, currentDepth, tileLightList, shadowAtlas, shadowViewsBufferSrv, shadowIndicesBufferSrv, tileShadingModelMaskBuffer,
-                in skyContext, historyHzb, viewContext.HzbMipCount, viewContext.HzbSize, request.viewId, viewContext.RenderSize,
-                risResolvedDiffuse, risResolvedSpecular);
+                renderGraph, in skyContext, historyHzb, hzbHistory.HzbMipCount, hzbHistory.HzbSize, request.viewId, viewContext.RenderSize);
 
-            AddSkyPass(renderGraph, in skyContext, litColor, currentDepth);
+            AddSkyPass(renderGraph, in skyContext, litColor);
 
+            // Presentation
             renderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
 
             var result = renderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.Default);
@@ -253,7 +267,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             // re-specify D3D12_SET_WORK_GRAPH_FLAG_INITIALIZE. Latching here (rather than at pass-build
             // time) keeps the flag honest if this frame's graph was compiled but failed to execute.
             _meshPipelineResource.cullWorkGraphProgram?.MarkInitialized();
-            if (shadowAtlas.IsValid)
+            if (hasShadowAtlas)
             {
                 _meshPipelineResource.shadowCullWorkGraphProgram?.MarkInitialized();
             }
@@ -278,35 +292,43 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         return viewKeywords;
     }
 
-    private void AddCullingAndVbufferPasses(GPUViewContext viewContext, uint instanceCount, Identifier<RGTexture> hzbTexture, uint sceneBuffer,
-        out Identifier<RGTexture> currentDepth, out Identifier<RGTexture> currentVisBuffer, out Identifier<RGBuffer> visibleMeshlets0, out Identifier<RGBuffer> visibleMeshlets1)
+    private void AddCullingAndVbufferPasses(RenderGraph rg, HzbViewHistory hzbHistory, uint2 renderSize, uint instanceCount, Identifier<RGTexture> hzbTexture, uint sceneBuffer)
     {
-        currentVisBuffer = Identifier<RGTexture>.Invalid;
-        currentDepth = Identifier<RGTexture>.Invalid;
+        var currentVisBuffer = Identifier<RGTexture>.Invalid;
+        var currentDepth = Identifier<RGTexture>.Invalid;
 
         // Pass 1: Early-Z Hierarchical Meshlet Culling
 
-        AddMeshletCullPass1(viewContext.RenderGraph, hzbTexture, viewContext.HzbMipCount, viewContext.RenderSize, viewContext.HzbSize, instanceCount,
+        AddMeshletCullPass1(rg, hzbTexture, hzbHistory.HzbMipCount, renderSize, hzbHistory.HzbSize, instanceCount,
             out var unbinnedMeshlets0, out var occludedMeshlets, out var counterBuffer);
 
-        AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 0, out var indirectArg0, out var binOffsets0, out var binScatterCounters0);
-        visibleMeshlets0 = AddScatterMeshletsPass(viewContext.RenderGraph, unbinnedMeshlets0, binScatterCounters0, counterBuffer, 0);
-        AddVisibilityBufferPass(viewContext.RenderGraph, visibleMeshlets0, binOffsets0, indirectArg0, 0, sceneBuffer, viewContext.RenderSize, ref currentVisBuffer);
-        AddSoftwareRasterizerPass(viewContext.RenderGraph, visibleMeshlets0, binOffsets0, indirectArg0, currentVisBuffer, viewContext.RenderSize);
-        AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzbTexture, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize);
+        AddPrepareIndirectArgsPass(rg, counterBuffer, 0, out var indirectArg0, out var binOffsets0, out var binScatterCounters0);
+        var visibleMeshlets0 = AddScatterMeshletsPass(rg, unbinnedMeshlets0, binScatterCounters0, counterBuffer, 0);
+        AddVisibilityBufferPass(rg, visibleMeshlets0, binOffsets0, indirectArg0, 0, sceneBuffer, renderSize, ref currentVisBuffer);
+        AddSoftwareRasterizerPass(rg, visibleMeshlets0, binOffsets0, indirectArg0, currentVisBuffer, renderSize);
+        AddBuildHZBPasses(rg, currentVisBuffer, hzbTexture, hzbHistory.HzbMipCount, hzbHistory.HzbSize, renderSize);
 
         // Pass 2: Late-Z Meshlet Culling
 
-        var unbinnedMeshlets1 = AddMeshletCullPass2(viewContext.RenderGraph, occludedMeshlets, counterBuffer, indirectArg0, hzbTexture,
-            viewContext.HzbMipCount, viewContext.RenderSize, viewContext.HzbSize);
+        var unbinnedMeshlets1 = AddMeshletCullPass2(rg, occludedMeshlets, counterBuffer, indirectArg0, hzbTexture,
+            hzbHistory.HzbMipCount, renderSize, hzbHistory.HzbSize);
 
-        AddPrepareIndirectArgsPass(viewContext.RenderGraph, counterBuffer, 1, out var indirectArg1, out var binOffsets1, out var binScatterCounters1);
-        visibleMeshlets1 = AddScatterMeshletsPass(viewContext.RenderGraph, unbinnedMeshlets1, binScatterCounters1, counterBuffer, 1);
-        AddVisibilityBufferPass(viewContext.RenderGraph, visibleMeshlets1, binOffsets1, indirectArg1, 1, sceneBuffer, viewContext.RenderSize, ref currentVisBuffer);
+        AddPrepareIndirectArgsPass(rg, counterBuffer, 1, out var indirectArg1, out var binOffsets1, out var binScatterCounters1);
+        var visibleMeshlets1 = AddScatterMeshletsPass(rg, unbinnedMeshlets1, binScatterCounters1, counterBuffer, 1);
+        AddVisibilityBufferPass(rg, visibleMeshlets1, binOffsets1, indirectArg1, 1, sceneBuffer, renderSize, ref currentVisBuffer);
 
         // Export stable depth ONCE at the end of geometry passes
-        AddExportVisibilityDepthPass(viewContext.RenderGraph, currentVisBuffer, viewContext.RenderSize, ref currentDepth);
-        AddBuildHZBPasses(viewContext.RenderGraph, currentVisBuffer, hzbTexture, viewContext.HzbMipCount, viewContext.HzbSize, viewContext.RenderSize);
+        AddExportVisibilityDepthPass(rg, currentVisBuffer, renderSize, ref currentDepth);
+        AddBuildHZBPasses(rg, currentVisBuffer, hzbTexture, hzbHistory.HzbMipCount, hzbHistory.HzbSize, renderSize);
+
+        var visData = new GeometryVisibilityData
+        {
+            depth = currentDepth,
+            visBuffer = currentVisBuffer,
+            visibleMeshlets0 = visibleMeshlets0,
+            visibleMeshlets1 = visibleMeshlets1
+        };
+        rg.Blackboard.Add(ref visData);
     }
 
     public void Dispose()

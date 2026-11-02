@@ -169,8 +169,9 @@ internal unsafe partial class GhostRenderPipeline
             true);
     }
 
-    private void AddSkyPass(RenderGraph renderGraph, in SkyContext skyContext, Identifier<RGTexture> litColorTarget, Identifier<RGTexture> depthTexture)
+    private void AddSkyPass(RenderGraph renderGraph, in SkyContext skyContext, Identifier<RGTexture> litColorTarget)
     {
+        var depthTexture = renderGraph.Blackboard.Get<GeometryVisibilityData>().depth;
         switch (skyContext.skyType)
         {
             case SkyType.HDRI when skyContext.hasSky && skyContext.skyboxTexture.IsValid:

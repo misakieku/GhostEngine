@@ -93,8 +93,17 @@ internal partial class GhostRenderPipeline
         }, default);
     }
 
-    private GBufferResources AddDeferredTexturingPass(RenderGraph rg, Identifier<RGTexture> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, Identifier<RGBuffer> tileListBuffer, Identifier<RGBuffer> tileOffsetsBuffer, Identifier<RGBuffer> indirectArgsBuffer, uint2 screenSize)
+    private GBufferResources AddDeferredTexturingPass(RenderGraph rg, uint2 screenSize)
     {
+        ref readonly var vis = ref rg.Blackboard.Get<GeometryVisibilityData>();
+        ref readonly var tile = ref rg.Blackboard.Get<TileClassificationData>();
+        var visBuffer = vis.visBuffer;
+        var visibleMeshlets0 = vis.visibleMeshlets0;
+        var visibleMeshlets1 = vis.visibleMeshlets1;
+        var tileListBuffer = tile.tileListBuffer;
+        var tileOffsetsBuffer = tile.tileOffsetsBuffer;
+        var indirectArgsBuffer = tile.indirectArgsBuffer;
+
         var tilesX = (screenSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
 
         using var builder = rg.AddComputeRenderPass<DeferredTexturingPassData>("DeferredTexturing");

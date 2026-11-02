@@ -1,6 +1,9 @@
+using Ghost.Graphics.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace Ghost.Engine.RenderPipeline;
 
@@ -24,7 +27,7 @@ public struct ShadowAtlasRegion
 /// Fast 2D shelf allocator for managing per-view transient shadow atlas regions.
 /// Supports single-tile allocations (Spot lights) and 6-tile blocks (Point lights).
 /// </summary>
-public sealed class ShadowAtlasRegionAllocator : IDisposable
+public unsafe struct ShadowAtlasRegionAllocator : IDisposable
 {
     private struct Shelf
     {
@@ -33,32 +36,51 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
         public uint currentX;
     }
 
-    private readonly Lock _lock;
+    private int _spinLock;
     private uint _atlasSize;
     private UnsafeList<Shelf> _shelves;
     private uint _nextShelfY;
 
     public uint AtlasSize => _atlasSize;
 
+    public ShadowAtlasRegionAllocator(uint atlasSize) : this(atlasSize, AllocationHandle.TempRender)
+    {
+    }
+
     public ShadowAtlasRegionAllocator(uint atlasSize, AllocationHandle allocationHandle)
     {
-        _lock = new Lock();
+        _spinLock = 0;
         _atlasSize = atlasSize;
         _shelves = new UnsafeList<Shelf>(16, allocationHandle);
         _nextShelfY = 0;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void AcquireLock()
+    {
+        var spinner = new SpinWait();
+        while (Interlocked.Exchange(ref _spinLock, 1) != 0)
+        {
+            spinner.SpinOnce();
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void ReleaseLock()
+    {
+        Volatile.Write(ref _spinLock, 0);
+    }
+
     public void Reset(uint atlasSize)
     {
         _atlasSize = atlasSize;
-
         _shelves.Clear();
         _nextShelfY = 0;
     }
 
     /// <summary>
     /// Allocates a single tile of the given dimensions in the shadow atlas.
-    /// Thread-safe via internal Lock.
+    /// Thread-safe via internal spinlock.
     /// </summary>
     public bool Allocate(uint size, out ShadowAtlasRegion region)
     {
@@ -68,15 +90,20 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
             return false;
         }
 
-        lock (_lock)
+        AcquireLock();
+        try
         {
             return AllocateCore(size, out region);
+        }
+        finally
+        {
+            ReleaseLock();
         }
     }
 
     /// <summary>
     /// Allocates 6 contiguous tiles of the given dimension for a point light's 6 cubemap faces (+X, -X, +Y, -Y, +Z, -Z).
-    /// Thread-safe via internal Lock.
+    /// Thread-safe via internal spinlock.
     /// </summary>
     public bool AllocatePointLightBlock(uint faceSize, Span<ShadowAtlasRegion> outFaces)
     {
@@ -90,7 +117,8 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
             return false;
         }
 
-        lock (_lock)
+        AcquireLock();
+        try
         {
             // Snapshot current state in case allocation fails midway
             var snapshotNextY = _nextShelfY;
@@ -126,6 +154,10 @@ public sealed class ShadowAtlasRegionAllocator : IDisposable
             }
 
             return true;
+        }
+        finally
+        {
+            ReleaseLock();
         }
     }
 

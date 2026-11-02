@@ -25,7 +25,7 @@ internal unsafe partial class GhostRenderPipeline
         public ReadOnlyView<PunctualLightRequest> lights;
         public UnsafeArray<int> shadowIndices;
         public Frustum frustum;
-        public ShadowAtlasRegionAllocator allocator;
+        public ShadowAtlasRegionAllocator* allocator;
         public float meshletLodErrorThreshold;
         public float viewHeight;
         public float3 cameraPosition;
@@ -110,7 +110,7 @@ internal unsafe partial class GhostRenderPipeline
 
             Logger.DebugAssert(shadowSize >= 32);
 
-            var size = new float4(allocator.AtlasSize, 1.0f / allocator.AtlasSize, shadowSize, 1.0f / shadowSize);
+            var size = new float4(allocator->AtlasSize, 1.0f / allocator->AtlasSize, shadowSize, 1.0f / shadowSize);
             var nearPlane = shadowData.nearPlane > 0.0f ? shadowData.nearPlane : 0.05f;
             var farPlane = light.range;
             var lightType = light.lightTypeAndShadowSize & 0xFu;
@@ -122,7 +122,7 @@ internal unsafe partial class GhostRenderPipeline
 
             if (lightType == (uint)GPULightType.Spot) // Spot
             {
-                if (!allocator.Allocate(shadowSize, out var region))
+                if (!allocator->Allocate(shadowSize, out var region))
                 {
                     return;
                 }
@@ -167,7 +167,7 @@ internal unsafe partial class GhostRenderPipeline
             else if (lightType == (uint)GPULightType.Point) // Point
             {
                 Span<ShadowAtlasRegion> faceRegions = stackalloc ShadowAtlasRegion[6];
-                if (!allocator.AllocatePointLightBlock(shadowSize, faceRegions))
+                if (!allocator->AllocatePointLightBlock(shadowSize, faceRegions))
                 {
                     return;
                 }
@@ -214,7 +214,7 @@ internal unsafe partial class GhostRenderPipeline
         }
     }
 
-    private void ExecutePerViewShadowSetup(ResourceContext ctx, ShadowAtlasRegionAllocator atlasAllocator, in Frustum viewFrustum, float viewHeight, ReadOnlyView<PunctualLightRequest> lights, float3 cameraPosition,
+    private void ExecutePerViewShadowSetup(ResourceContext ctx, in Frustum viewFrustum, float viewHeight, ReadOnlyView<PunctualLightRequest> lights, float3 cameraPosition,
         out uint shadowViewsBufferSrv, out uint shadowViewCount, out uint shadowIndicesBufferSrv)
     {
         shadowViewsBufferSrv = uint.MaxValue;
@@ -235,11 +235,12 @@ internal unsafe partial class GhostRenderPipeline
         shadowIndices.AsSpan().Fill(-1);
 
         using var shadowViews = new UnsafeList<GPUShadowViewData>(Math.Max(16, lightCount * 6), AllocationHandle.TempRender);
+        using var atlasAllocator = new ShadowAtlasRegionAllocator(_settings.ShadowAtlasResolution, AllocationHandle.TempRender);
         var job = new PerViewShadowSetupJob
         {
             lights = lights,
             frustum = viewFrustum,
-            allocator = atlasAllocator,
+            allocator = &atlasAllocator,
             shadowViewsWriter = shadowViews.AsParallelWriter(),
             shadowIndices = shadowIndices,
             meshletLodErrorThreshold = _settings.MeshletLodErrorThreshold,
@@ -359,8 +360,9 @@ internal unsafe partial class GhostRenderPipeline
             0.0f, 0.0f, 0.0f, 1.0f);
     }
 
-    private Identifier<RGBuffer> AddTileLightCullingPass(RenderGraph rg, Identifier<RGTexture> depthTexture, uint2 renderSize)
+    private Identifier<RGBuffer> AddTileLightCullingPass(RenderGraph rg, uint2 renderSize)
     {
+        var depthTexture = rg.Blackboard.Get<GeometryVisibilityData>().depth;
         // TODO: For Dynamic Resolution Scaling (DRS), size this buffer using the maximum resolution (window/backbuffer size)
         // instead of dynamic renderSize so that BufferDesc.Size remains constant and the render graph hash does not change every frame.
         // Dispatches will continue to use the dynamic viewport tilesX/tilesY.
@@ -479,12 +481,27 @@ internal unsafe partial class GhostRenderPipeline
         public uint tlasIndex;
     }
 
-    private Identifier<RGTexture> AddDeferredLightingPass(
-        RenderGraph rg, in GBufferResources gbuffer, Identifier<RGTexture> depthTexture, Identifier<RGBuffer> tileLightList,
-        Identifier<RGTexture> shadowAtlas, uint shadowViewsBufferSrv, uint shadowIndicesBufferSrv, Identifier<RGBuffer> tileShadingModelMaskBuffer,
-        in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, uint viewId, uint2 renderSize,
-        Identifier<RGTexture> risResolvedDiffuse, Identifier<RGTexture> risResolvedSpecular)
+    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph rg, in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, uint viewId, uint2 renderSize)
     {
+        ref readonly var vis = ref rg.Blackboard.Get<GeometryVisibilityData>();
+        ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
+        ref readonly var tile = ref rg.Blackboard.Get<TileClassificationData>();
+
+        ref readonly var shadowMap = ref rg.Blackboard.TryGet<ShadowMapPassData>(out var hasShadowMap);
+        ref readonly var ris = ref rg.Blackboard.TryGet<RisPassData>(out var hasRis);
+
+        var shadowAtlas = hasShadowMap ? shadowMap.shadowAtlas : Identifier<RGTexture>.Invalid;
+        var shadowViewsBufferSrv = hasShadowMap ? shadowMap.shadowViewsBufferSrv : uint.MaxValue;
+        var shadowIndicesBufferSrv = hasShadowMap ? shadowMap.shadowIndicesBufferSrv : uint.MaxValue;
+
+        var risResolvedDiffuse = hasRis ? ris.resolvedDiffuse : Identifier<RGTexture>.Invalid;
+        var risResolvedSpecular = hasRis ? ris.resolvedSpecular : Identifier<RGTexture>.Invalid;
+
+        ref readonly var gbuffer = ref gbufferData.gbuffer;
+        var depthTexture = vis.depth;
+        var tileLightList = gbufferData.tileLightList;
+        var tileShadingModelMaskBuffer = tile.tileShadingModelMaskBuffer;
+
         var tilesX = (renderSize.x + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
         var tilesY = (renderSize.y + CLASSIFICATION_TILE_SIZE - 1u) / CLASSIFICATION_TILE_SIZE;
 
@@ -711,11 +728,14 @@ internal unsafe partial class GhostRenderPipeline
         public uint2 renderSize;
     }
 
-    private void AddRisPasses(
-        RenderGraph rg, GPUViewContext viewContext, in GBufferResources gbuffer, Identifier<RGTexture> depthTexture,
-        Identifier<RGBuffer> tileLightList, uint2 renderSize, uint frameIndex, uint viewId,
-        out Identifier<RGTexture> resolvedDiffuse, out Identifier<RGTexture> resolvedSpecular)
+    private void AddRisPasses(RenderGraph rg, RisViewHistory risHistory, uint2 renderSize, uint frameIndex, uint viewId)
     {
+        ref readonly var vis = ref rg.Blackboard.Get<GeometryVisibilityData>();
+        ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
+        var depthTexture = vis.depth;
+        ref readonly var gbuffer = ref gbufferData.gbuffer;
+        var tileLightList = gbufferData.tileLightList;
+
         var tilesX = (renderSize.x + 15u) / 16u;
 
         // 1. RisLightSampling (Generates 1 winner light and weight W per pixel)
@@ -825,6 +845,8 @@ internal unsafe partial class GhostRenderPipeline
 
         // 3. RisResolveShading (Evaluates diffuse irradiance & specular radiance)
 
+        Identifier<RGTexture> resolvedDiffuse;
+        Identifier<RGTexture> resolvedSpecular;
         using (var resolveBuilder = rg.AddComputeRenderPass<RisResolveShadingPassData>("RisResolveShading"))
         {
             var diffuseDesc = RGTextureDesc.Relative(1.0f, TextureFormat.R16G16B16A16_Float, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
@@ -887,8 +909,8 @@ internal unsafe partial class GhostRenderPipeline
         }
 
         // 4. RisDenoiserTemporal (Reprojection, variance clamping, EMA accumulation)
-        var historyDiffuse = rg.ImportTexture(viewContext.RisHistoryDiffuse, ResourceBarrierData.Common, ResourceBarrierData.Common);
-        var historySpecular = rg.ImportTexture(viewContext.RisHistorySpecular, ResourceBarrierData.Common, ResourceBarrierData.Common);
+        var historyDiffuse = rg.ImportTexture(risHistory.DiffuseHistory, ResourceBarrierData.Common, ResourceBarrierData.Common);
+        var historySpecular = rg.ImportTexture(risHistory.SpecularHistory, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
         Identifier<RGTexture> temporalDiffuse;
         Identifier<RGTexture> temporalSpecular;
@@ -907,8 +929,8 @@ internal unsafe partial class GhostRenderPipeline
             temporalBuilder.UseTexture(temporalDiffuse, AccessFlags.Write);
             temporalBuilder.UseTexture(temporalSpecular, AccessFlags.Write);
 
-            temporalBuilder.QueueTextureExtraction(temporalDiffuse, viewContext.RisHistoryDiffuse);
-            temporalBuilder.QueueTextureExtraction(temporalSpecular, viewContext.RisHistorySpecular);
+            temporalBuilder.QueueTextureExtraction(temporalDiffuse, risHistory.DiffuseHistory);
+            temporalBuilder.QueueTextureExtraction(temporalSpecular, risHistory.SpecularHistory);
 
             temporalBuilder.SetPassData(new RisDenoiserTemporalPassData
             {
@@ -922,10 +944,10 @@ internal unsafe partial class GhostRenderPipeline
                 outputSpecular = temporalSpecular,
                 shader = _lightingPipelineResource.risDenoiserTemporalShader,
                 renderSize = renderSize,
-                historyValid = viewContext.hasValidRisHistory ? 1u : 0u
+                historyValid = risHistory.IsValid ? 1u : 0u
             });
 
-            viewContext.hasValidRisHistory = true;
+            risHistory.MarkValid();
 
             temporalBuilder.SetRenderFunc<RisDenoiserTemporalPassData>(static (ref readonly passData, computeCtx) =>
             {
@@ -1011,8 +1033,12 @@ internal unsafe partial class GhostRenderPipeline
             });
         }
 
-        resolvedDiffuse = filteredDiffuse;
-        resolvedSpecular = filteredSpecular;
+        var risData = new RisPassData
+        {
+            resolvedDiffuse = filteredDiffuse,
+            resolvedSpecular = filteredSpecular
+        };
+        rg.Blackboard.Add(ref risData);
     }
 
     private struct ShadowCullPassData

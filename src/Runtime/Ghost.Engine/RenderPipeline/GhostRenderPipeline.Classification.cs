@@ -338,9 +338,13 @@ internal partial class GhostRenderPipeline
         return binnedTileListBuffer;
     }
 
-    private void AddTileClassificationPass(RenderGraph rg, Identifier<RGTexture> visBuffer, Identifier<RGBuffer> visibleMeshlets0, Identifier<RGBuffer> visibleMeshlets1, uint2 screenSize,
-        out Identifier<RGBuffer> binnedTileListBuffer, out Identifier<RGBuffer> tileOffsetsBuffer, out Identifier<RGBuffer> indirectArgsBuffer, out Identifier<RGBuffer> tileShadingModelMaskBuffer)
+    private void AddTileClassificationPass(RenderGraph rg, uint2 screenSize)
     {
+        ref readonly var vis = ref rg.Blackboard.Get<GeometryVisibilityData>();
+        var visBuffer = vis.visBuffer;
+        var visibleMeshlets0 = vis.visibleMeshlets0;
+        var visibleMeshlets1 = vis.visibleMeshlets1;
+
         // TODO: For Dynamic Resolution Scaling (DRS), size UnbinnedTileEntries and BinnedVariantTileList using the maximum
         // resolution (window/backbuffer size) rather than dynamic screenSize so that BufferDesc.Size remains constant and does
         // not invalidate the render graph hash each frame. Passes will still dispatch using dynamic viewport tile counts.
@@ -384,8 +388,17 @@ internal partial class GhostRenderPipeline
         }
 
         var countersBuffer = AddClearClassificationCountersPass(rg, MAX_CLASSIFICATION_VARIANTS);
-        var unbinnedTilesBuffer = AddTileMaterialClassificationPass(rg, visBuffer, visibleMeshlets0, visibleMeshlets1, countersBuffer, screenSize, maxTileEntries, deferredMask0, deferredMask1, out tileShadingModelMaskBuffer);
-        AddPrepareDeferredTexturingIndirectArgsPass(rg, countersBuffer, MAX_CLASSIFICATION_VARIANTS, out indirectArgsBuffer, out tileOffsetsBuffer, out var binScatterCounters);
-        binnedTileListBuffer = AddScatterVariantTilesPass(rg, unbinnedTilesBuffer, binScatterCounters, countersBuffer, maxTileEntries);
+        var unbinnedTilesBuffer = AddTileMaterialClassificationPass(rg, visBuffer, visibleMeshlets0, visibleMeshlets1, countersBuffer, screenSize, maxTileEntries, deferredMask0, deferredMask1, out var tileShadingModelMaskBuffer);
+        AddPrepareDeferredTexturingIndirectArgsPass(rg, countersBuffer, MAX_CLASSIFICATION_VARIANTS, out var indirectArgsBuffer, out var tileOffsetsBuffer, out var binScatterCounters);
+        var binnedTileListBuffer = AddScatterVariantTilesPass(rg, unbinnedTilesBuffer, binScatterCounters, countersBuffer, maxTileEntries);
+
+        var tileData = new TileClassificationData
+        {
+            tileListBuffer = binnedTileListBuffer,
+            tileOffsetsBuffer = tileOffsetsBuffer,
+            indirectArgsBuffer = indirectArgsBuffer,
+            tileShadingModelMaskBuffer = tileShadingModelMaskBuffer
+        };
+        rg.Blackboard.Add(ref tileData);
     }
 }
