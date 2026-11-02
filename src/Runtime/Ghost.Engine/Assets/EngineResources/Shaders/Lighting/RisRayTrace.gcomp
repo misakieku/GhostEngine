@@ -6,6 +6,8 @@ compute "Internal/RisRayTrace"
         uint gbuffer1Index;
         uint risLightSamplesIndex;
         uint risShadowMaskUav;
+        uint unresolvedRaysBufferSrv;
+        uint counterBufferSrv;
         uint renderWidth;
         uint renderHeight;
         uint tlasIndex;
@@ -28,72 +30,49 @@ compute "Internal/RisRayTrace"
 
     hlsl
     {
-        [numthreads(8, 4, 1)]
+        [numthreads(64, 1, 1)]
         void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
         {
-            uint2 pixelCoord = dispatchThreadId.xy;
-            if (pixelCoord.x >= g_Properties.renderWidth || pixelCoord.y >= g_Properties.renderHeight)
+            uint rayIndex = dispatchThreadId.x;
+            RWByteAddressBuffer counter = GET_BUFFER(g_Properties.counterBufferSrv);
+            uint totalRays = counter.Load(0);
+            if (rayIndex >= totalRays)
             {
                 return;
             }
 
-            RWTexture2D<float> shadowMaskUav = GET_TEXTURE2D(g_Properties.risShadowMaskUav);
+            RWByteAddressBuffer unresolvedRays = GET_BUFFER(g_Properties.unresolvedRaysBufferSrv);
+            uint packedCoord = unresolvedRays.Load(rayIndex * 4u);
+            uint2 pixelCoord = uint2(packedCoord & 0xFFFF, packedCoord >> 16);
 
-            if (!IS_VALID_TEXTURE(g_Properties.risLightSamplesIndex) || !IS_VALID_BUFFER(g_FrameData.punctualLightsBuffer))
-            {
-                shadowMaskUav[pixelCoord] = 0.0f;
-                return;
-            }
+            Texture2D<float> depthTex = GET_TEXTURE2D(g_Properties.depthTextureIndex);
+            float depth = depthTex[pixelCoord];
 
-            // Issue depth and light sample loads together so L2 latency overlaps
-            Texture2D<float> depthTexture = GET_TEXTURE2D(g_Properties.depthTextureIndex);
-            Texture2D<uint2> lightSamplesTex = GET_TEXTURE2D(g_Properties.risLightSamplesIndex);
-            float depth = depthTexture[pixelCoord];
-            uint2 rawSample = lightSamplesTex[pixelCoord];
+            Texture2D<uint2> risSamples = GET_TEXTURE2D(g_Properties.risLightSamplesIndex);
+            RisLightSample sampleData = UnpackRisLightSample(risSamples[pixelCoord]);
 
-            if (depth <= 0.0f)
-            {
-                shadowMaskUav[pixelCoord] = 1.0f;
-                return;
-            }
-
-            RisLightSample sampleData = UnpackRisLightSample(rawSample);
-            if (sampleData.lightIndex == 0xFFFFFFFF || sampleData.weight <= 0.0f)
-            {
-                shadowMaskUav[pixelCoord] = 0.0f;
-                return;
-            }
-
-            // Issue GBuffer normal and punctual light loads together before waiting on either
             Texture2D<float4> gb1 = GET_TEXTURE2D(g_Properties.gbuffer1Index);
             float2 encNormal = gb1[pixelCoord].rg;
             GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, sampleData.lightIndex);
 
-            float shadow = 1.0f;
-            if (light.shadowDimmer > 0.0f)
-            {
-                float zView;
-                float2 ndc;
-                float3 positionRWS = ReconstructPositionRWS(pixelCoord, depth, zView, ndc);
-                float3 surfacePosWS = TransformCameraRelativeToAbsoluteWorld(positionRWS);
-                float3 normalWS = OctahedralDecode(encNormal);
+            float zView;
+            float2 ndc;
+            float3 positionRWS = ReconstructPositionRWS(pixelCoord, depth, zView, ndc);
+            float3 surfacePosWS = TransformCameraRelativeToAbsoluteWorld(positionRWS);
+            float3 normalWS = OctahedralDecode(encNormal);
 
-                // Orthogonal 2D spatial IGN seed + Martin Roberts R2 quasi-random temporal sequence
-                float u0 = InterleavedGradientNoise(float2(pixelCoord), 0);
-                float v0 = InterleavedGradientNoise(float2(float(pixelCoord.y) + 19.19f, -float(pixelCoord.x) + 47.73f), 0);
-                float frameF = float(g_Properties.frameIndex & 4095u);
-                float2 rngSample = frac(float2(u0, v0) + frameF * float2(0.7548776662f, 0.5698402910f));
+            float2 rngSample = GetDecorrelatedSample2D(pixelCoord, g_Properties.frameIndex);
 
-                float3 rayDirWS;
-                float rayDist;
-                ComputeSoftShadowRay(surfacePosWS, light.positionWS, light.size.x, rngSample, rayDirWS, rayDist);
+            float3 rayDirWS;
+            float rayDist;
+            ComputeSoftShadowRay(surfacePosWS, light.positionWS, light.size.x, rngSample, rayDirWS, rayDist);
 
-                float3 rayOriginWS = surfacePosWS;
-                ApplyPositionBias(rayOriginWS, rayDirWS, normalWS, 0.02f);
-                shadow = TraceRayQueryShadow(g_Properties.tlasIndex, rayOriginWS, rayDirWS, max(rayDist - 0.02f, 0.01f), 0.01f);
-                shadow = lerp(1.0f, shadow, light.shadowDimmer);
-            }
+            float3 rayOriginWS = surfacePosWS;
+            ApplyPositionBias(rayOriginWS, rayDirWS, normalWS, 0.02f);
+            float shadow = TraceRayQueryShadow(g_Properties.tlasIndex, rayOriginWS, rayDirWS, max(rayDist - 0.02f, 0.01f), 0.01f);
+            shadow = lerp(1.0f, shadow, light.shadowDimmer);
 
+            RWTexture2D<float> shadowMaskUav = GET_TEXTURE2D(g_Properties.risShadowMaskUav);
             shadowMaskUav[pixelCoord] = shadow;
         }
     }

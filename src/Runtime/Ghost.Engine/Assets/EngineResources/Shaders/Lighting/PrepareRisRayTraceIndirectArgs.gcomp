@@ -1,0 +1,30 @@
+compute "Internal/PrepareRisRayTraceIndirectArgs"
+{
+    properties
+    {
+        uint counterBufferUav;
+        uint indirectArgsBufferUav;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Common.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(1, 1, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            RWByteAddressBuffer counter = GET_BUFFER(g_Properties.counterBufferUav);
+            RWByteAddressBuffer indirectArgs = GET_BUFFER(g_Properties.indirectArgsBufferUav);
+            uint rayCount = counter.Load(0);
+            uint groupCountX = (rayCount + 63u) / 64u;
+            // D3D12_DISPATCH_ARGUMENTS: ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ
+            indirectArgs.Store3(0, uint3(groupCountX, 1u, 1u));
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

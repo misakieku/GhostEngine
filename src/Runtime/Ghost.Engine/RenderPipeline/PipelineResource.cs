@@ -117,6 +117,12 @@ internal partial class LightingPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/Lighting/RisLightSampling")]
     public Handle<ComputeShader> risLightSamplingShader;
 
+    [ResolveAsset("EngineResources/Shaders/Lighting/RisScreenContactShadow")]
+    public Handle<ComputeShader> risScreenContactShadowShader;
+
+    [ResolveAsset("EngineResources/Shaders/Lighting/PrepareRisRayTraceIndirectArgs")]
+    public Handle<ComputeShader> prepareRisRayTraceIndirectArgsShader;
+
     [ResolveAsset("EngineResources/Shaders/Lighting/RisRayTrace")]
     public Handle<ComputeShader> risRayTraceShader;
 

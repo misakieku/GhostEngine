@@ -4,6 +4,7 @@ compute "Internal/RisDenoiserTemporal"
     {
         uint depthTextureIndex;
         uint gbuffer1Index;
+        uint motionVectorTextureIndex;
         uint currentDiffuseIndex;
         uint currentSpecularIndex;
         uint historyDiffuseIndex;
@@ -135,11 +136,24 @@ compute "Internal/RisDenoiserTemporal"
             float3 diffStdDev = sqrt(max(diffM2 - diffMean * diffMean, 0.0f));
             float3 specStdDev = sqrt(max(specM2 - specMean * specMean, 0.0f));
 
-            // Reproject to t - 1 screen space using preVPMatrix
+            // Reproject to t - 1 screen space using MotionVectors (with fallback to preVPMatrix)
             float4 prevClip = mul(g_ViewData.preVPMatrix, float4(positionRWS, 1.0f));
-            float prevInvW = (prevClip.w > 1e-4f) ? rcp(prevClip.w) : 0.0f;
-            float2 prevScreenUV = float2(prevClip.x * prevInvW * 0.5f + 0.5f, 1.0f - (prevClip.y * prevInvW * 0.5f + 0.5f));
             float2 renderSizeF = float2(g_Properties.renderWidth, g_Properties.renderHeight);
+            float2 currentScreenUV = (float2(pixelCoord) + 0.5f) * g_ViewData.screenSize.zw;
+
+            float2 prevScreenUV;
+            if (IS_VALID_TEXTURE(g_Properties.motionVectorTextureIndex))
+            {
+                Texture2D<float2> motionVectorTex = GET_TEXTURE2D(g_Properties.motionVectorTextureIndex);
+                float2 motionVector = motionVectorTex[pixelCoord];
+                prevScreenUV = currentScreenUV - motionVector;
+            }
+            else
+            {
+                float prevInvW = (prevClip.w > 1e-4f) ? rcp(prevClip.w) : 0.0f;
+                prevScreenUV = float2(prevClip.x * prevInvW * 0.5f + 0.5f, 1.0f - (prevClip.y * prevInvW * 0.5f + 0.5f));
+            }
+
             float2 prevScreenPos = prevScreenUV * renderSizeF - 0.5f;
             float motionPixels = length(prevScreenPos - float2(pixelCoord));
 

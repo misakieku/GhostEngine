@@ -33,14 +33,13 @@ compute "Internal/RisLightSampling"
         {
             float3 positionRWS;
             float invRangeSq;
-            float3 radianceScale;
+            float radianceLum;
             uint indexAndFlags;
             float3 directionWS;
             float spotAngleScale;
             float spotAngleOffset;
             float diffuseDimmer;
             float specularDimmer;
-            float minRoughness;
         };
 
         groupshared SharedCandidateLight s_lights[64];
@@ -93,14 +92,13 @@ compute "Internal/RisLightSampling"
                         uint isSpot = ((src.lightTypeAndShadowSize & 0xFu) == GPULIGHT_TYPE_SPOT) ? 0x10000u : 0u;
                         entry.positionRWS = TransformAbsoluteWorldToCameraRelative(src.positionWS);
                         entry.invRangeSq = src.invRangeSq;
-                        entry.radianceScale = src.color * src.lightDimmer;
+                        entry.radianceLum = Luminance(src.color * src.lightDimmer);
                         entry.indexAndFlags = (fetch.lightIndex & 0xFFFFu) | isSpot;
                         entry.directionWS = src.directionWS;
                         entry.spotAngleScale = src.spotAngleScale;
                         entry.spotAngleOffset = src.spotAngleOffset;
                         entry.diffuseDimmer = src.diffuseDimmer;
                         entry.specularDimmer = src.specularDimmer;
-                        entry.minRoughness = src.minRoughness;
                     }
                 }
 
@@ -139,16 +137,15 @@ compute "Internal/RisLightSampling"
             float3 diffuseWeight = max(albedo * (1.0f - metallic), 0.02f);
             float clampedNdotV = ClampNdotV(dot(normalWS, V));
 
-            // Hoist surface-invariant BSDF terms outside the light loop
-            float baseRoughness = max(surfaceRoughness * surfaceRoughness, 0.001f);
-            float basePartLambdaV = GetSmithJointGGXPartLambdaV(clampedNdotV, baseRoughness);
-            float xV = 1.0f - clampedNdotV;
-            float xV2 = xV * xV;
-            float xV5 = xV2 * xV2 * xV;
+            // Hoist surface-invariant scalar terms outside the candidate light loop
+            float diffuseWeightLum = Luminance(diffuseWeight);
+            float f0Lum = Luminance(f0);
+            float roughness = max(surfaceRoughness * surfaceRoughness, 0.001f);
+            float a2 = roughness * roughness;
+            float a2Minus1 = a2 - 1.0f;
 
-            // Single-scalar rescaled reservoir sampling driven by spatially stratified IGN + golden-ratio temporal sequence
-            float spatialSeed = InterleavedGradientNoise(float2(pixelCoord) + float2(7.31f, 11.79f), 0);
-            float randSample = frac(spatialSeed + float(g_Properties.frameIndex & 4095u) * 0.61803398875f);
+            // Single-scalar rescaled reservoir sampling driven by isotropic spatial hash + golden-ratio temporal sequence
+            float randSample = GetDecorrelatedSample1D(pixelCoord, g_Properties.frameIndex);
             float weightSum = 0.0f;
             uint winnerLightIndex = 0u;
             float winnerTargetPdf = 0.0f;
@@ -188,35 +185,28 @@ compute "Internal/RisLightSampling"
                     continue;
                 }
 
-                float3 lightRadiance = cand.radianceScale * attenuation;
+                float lightRadianceLum = cand.radianceLum * attenuation;
 
+                // 1. Scalar Lambertian diffuse target term
+                float diffTerm = (clampedNdotL * INV_PI) * (cand.diffuseDimmer * diffuseWeightLum);
+
+                // 2. Scalar simplified GGX specular target term (exact GGX distribution tail, Kelemen V, no pow/SFU)
                 float3 H = normalize(L + V);
                 float NdotH = saturate(dot(normalWS, H));
                 float LdotH = saturate(dot(L, H));
-                float LdotV = dot(L, V);
 
-                float perceptualRoughness = surfaceRoughness;
-                float roughness = baseRoughness;
-                float partLambdaV = basePartLambdaV;
-                if (cand.minRoughness > surfaceRoughness)
-                {
-                    perceptualRoughness = cand.minRoughness;
-                    roughness = max(perceptualRoughness * perceptualRoughness, 0.001f);
-                    partLambdaV = GetSmithJointGGXPartLambdaV(clampedNdotV, roughness);
-                }
+                float d = (NdotH * NdotH) * a2Minus1 + 1.0f;
+                float D = a2 / max(PI * d * d, 1e-7f);
+                float V_fast = rcp(4.0f * LdotH * LdotH + 0.001f);
 
-                float3 F = F_Schlick(f0, LdotH);
-                float DV = DV_SmithJointGGX(NdotH, clampedNdotL, clampedNdotV, roughness, partLambdaV);
+                float xH = saturate(1.0f - LdotH);
+                float xH2 = xH * xH;
+                float F = f0Lum + (1.0f - f0Lum) * (xH2 * xH2 * xH);
 
-                // Disney Burley diffuse with hoisted xV5
-                float fd90Minus1 = (0.5f + (perceptualRoughness + perceptualRoughness * LdotV)) - 1.0f;
-                float xL = 1.0f - clampedNdotL;
-                float xL2 = xL * xL;
-                float diffTerm = (INV_PI * 0.96552f) * (1.0f + fd90Minus1 * (xL2 * xL2 * xL)) * (1.0f + fd90Minus1 * xV5);
+                float specTerm = (F * D * V_fast) * clampedNdotL * cand.specularDimmer;
 
-                float3 diffuseContrib = diffTerm * clampedNdotL * lightRadiance * cand.diffuseDimmer * diffuseWeight;
-                float3 specularContrib = (F * DV) * clampedNdotL * lightRadiance * cand.specularDimmer;
-                float pHat = Luminance(diffuseContrib + specularContrib);
+                // 3. Final target PDF (purely scalar arithmetic)
+                float pHat = lightRadianceLum * (diffTerm + specTerm);
 
                 if (pHat > 1e-6f)
                 {

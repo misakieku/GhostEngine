@@ -26,6 +26,7 @@ compute "Internal/RisDenoiserSpatial"
         static const int MAX_RADIUS = 3;
         static const int SHARED_DIM = 16 + MAX_RADIUS * 2; // 22x22
 
+        // 64-bit aligned FP16 LDS (13.5 KB total): issues single LDS.64 loads without 3-DWORD bank conflicts or occupancy cliffs
         groupshared float s_zView[SHARED_DIM][SHARED_DIM];
         groupshared uint2 s_normalRough[SHARED_DIM][SHARED_DIM];
         groupshared uint2 s_diffuse[SHARED_DIM][SHARED_DIM];
@@ -150,22 +151,22 @@ compute "Internal/RisDenoiserSpatial"
             float4 centerNormalRough = UnpackHalf4(s_normalRough[centerShared.y][centerShared.x]);
             float3 centerNormal = normalize(centerNormalRough.xyz);
             float centerRoughness = centerNormalRough.w;
-            float4 centerDiffuse = UnpackHalf4(s_diffuse[centerShared.y][centerShared.x]);
-            float3 centerSpecular = UnpackHalf3(s_specular[centerShared.y][centerShared.x]);
+            float centerFrames = f16tof32(s_diffuse[centerShared.y][centerShared.x].y >> 16u);
 
-            // View-space tangent plane setup: dot(N_vs, samplePosVS - centerPosVS) reduces each tap to 4 FMAs
+            // View-space tangent plane folded into 4 scalars (saves 3 live VGPRs across the 49-tap loop)
             float2 invProj = rcp(float2(g_ViewData.projectionMatrix[0][0], g_ViewData.projectionMatrix[1][1]));
             float2 pixToViewScale = float2(2.0f * g_ViewData.screenSize.z * invProj.x, -2.0f * g_ViewData.screenSize.w * invProj.y);
             float2 pixToViewBias = float2(-invProj.x, invProj.y);
             float2 centerRayXY = (float2(pixelCoord) + 0.5f) * pixToViewScale + pixToViewBias;
             float3 centerNormalVS = TransformWorldToView(centerNormal);
-            float planeOffset = (centerNormalVS.x * centerRayXY.x + centerNormalVS.y * centerRayXY.y + centerNormalVS.z) * centerZView;
+            float centerRayDotN = centerNormalVS.x * centerRayXY.x + centerNormalVS.y * centerRayXY.y + centerNormalVS.z;
+            float planeOffset = centerRayDotN * centerZView;
+            float dPlaneX = centerNormalVS.x * pixToViewScale.x;
+            float dPlaneY = centerNormalVS.y * pixToViewScale.y;
             float planeDistToLog2 = (-100.0f * 1.44269504f) * rcp(max(centerZView, 1e-3f));
 
-            // Disocclusion-adaptive spatial blur & tonemap (UE5 MegaLights style):
-            // Newly disoccluded / low-history pixels filter wider (7x7) and suppress fireflies;
-            // converged pixels tighten kernel (5x5) and fade tonemap bias toward linear HDR.
-            float numFrames = max(centerDiffuse.a * 32.0f, 1.0f);
+            // Disocclusion-adaptive spatial blur & tonemap (UE5 MegaLights style)
+            float numFrames = max(centerFrames * 32.0f, 1.0f);
             float disocclusionFactor = 1.0f - saturate((numFrames - 1.0f) / 7.0f);
             float tonemapStrength = lerp(0.1f, 1.0f, disocclusionFactor);
             int radius = (disocclusionFactor > 0.05f) ? 3 : 2;
@@ -174,9 +175,9 @@ compute "Internal/RisDenoiserSpatial"
             float sigmaSpec = max(sigmaDiff * saturate(centerRoughness * 2.5f + 0.25f), 0.5f);
             float kDiff = -1.44269504f * rcp(2.0f * sigmaDiff * sigmaDiff);
             float kSpec = -1.44269504f * rcp(2.0f * sigmaSpec * sigmaSpec);
-            float specNormalPower = lerp(24.0f, 4.0f, saturate(centerRoughness * 2.0f));
+            float specRoughnessBlend = saturate(centerRoughness * 2.0f);
 
-            // Precomputed separable 1D Gaussian weights (eliminates 98 exp() SFU calls inside the loop)
+            // Precomputed separable 1D Gaussian weights
             float gDiff1 = exp2(1.0f * kDiff);
             float gDiff2 = exp2(4.0f * kDiff);
             float gDiff3 = exp2(9.0f * kDiff);
@@ -196,8 +197,7 @@ compute "Internal/RisDenoiserSpatial"
                 int ay = abs(dy);
                 float gyDiff = SelectGaussianWeight(ay, gDiff1, gDiff2, gDiff3);
                 float gySpec = SelectGaussianWeight(ay, gSpec1, gSpec2, gSpec3);
-                float rayY = centerRayXY.y + float(dy) * pixToViewScale.y;
-                float nyTerm = centerNormalVS.y * rayY + centerNormalVS.z;
+                float nyTerm = centerRayDotN + float(dy) * dPlaneY;
 
                 [loop]
                 for (int dx = -radius; dx <= radius; ++dx)
@@ -210,8 +210,7 @@ compute "Internal/RisDenoiserSpatial"
                     }
 
                     // 1. Tangent-Plane Depth Weight in View Space
-                    float rayX = centerRayXY.x + float(dx) * pixToViewScale.x;
-                    float planeDist = (centerNormalVS.x * rayX + nyTerm) * sampleZView - planeOffset;
+                    float planeDist = (nyTerm + float(dx) * dPlaneX) * sampleZView - planeOffset;
                     float wDepth = exp2(abs(planeDist) * planeDistToLog2);
 
                     if (wDepth < 1e-3f)
@@ -229,7 +228,9 @@ compute "Internal/RisDenoiserSpatial"
 
                     float normalDot2 = normalDot * normalDot;
                     float wNormalDiff = normalDot2 * normalDot2; // normalDot^4
-                    float wNormalSpec = (normalDot >= 0.9999f) ? 1.0f : exp2(log2(normalDot) * specNormalPower);
+                    float n8 = wNormalDiff * wNormalDiff;
+                    float n16 = n8 * n8;
+                    float wNormalSpec = lerp(n16 * n8, wNormalDiff, specRoughnessBlend);
 
                     // 3. Separable Spatial Gaussian Weight
                     int ax = abs(dx);
@@ -248,10 +249,10 @@ compute "Internal/RisDenoiserSpatial"
 
             float3 resolvedDiff = (diffWeightSum > 1e-4f)
                 ? InverseTonemapLighting(diffuseSum * rcp(diffWeightSum), tonemapStrength)
-                : centerDiffuse.rgb;
+                : UnpackHalf3(s_diffuse[centerShared.y][centerShared.x]);
             float3 resolvedSpec = (specWeightSum > 1e-4f)
                 ? InverseTonemapLighting(specularSum * rcp(specWeightSum), tonemapStrength)
-                : centerSpecular;
+                : UnpackHalf3(s_specular[centerShared.y][centerShared.x]);
 
             outDiffuse[pixelCoord] = float4(resolvedDiff, 1.0f);
             outSpecular[pixelCoord] = float4(resolvedSpec, 1.0f);

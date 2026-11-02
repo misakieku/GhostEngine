@@ -674,12 +674,37 @@ internal unsafe partial class GhostRenderPipeline
         public uint frameIndex;
     }
 
+    private struct RisScreenContactShadowPassData
+    {
+        public Identifier<RGTexture> depthTexture;
+        public Identifier<RGTexture> gbuffer1;
+        public Identifier<RGTexture> risLightSamples;
+        public Identifier<RGTexture> risShadowMask;
+        public Identifier<RGBuffer> unresolvedRaysBuffer;
+        public Identifier<RGBuffer> counterBuffer;
+        public Handle<ComputeShader> shader;
+        public uint2 renderSize;
+        public uint viewId;
+        public uint frameIndex;
+    }
+
+    private struct PrepareRisRayTraceIndirectArgsPassData
+    {
+        public Identifier<RGBuffer> counterBuffer;
+        public Identifier<RGBuffer> indirectArgsBuffer;
+        public Handle<ComputeShader> shader;
+    }
+
     private struct RisRayTracePassData
     {
         public Identifier<RGTexture> depthTexture;
         public Identifier<RGTexture> gbuffer1;
         public Identifier<RGTexture> risLightSamples;
         public Identifier<RGTexture> risShadowMask;
+        public Identifier<RGBuffer> unresolvedRaysBuffer;
+        public Identifier<RGBuffer> counterBuffer;
+        public Identifier<RGBuffer> indirectArgsBuffer;
+        public ICommandSignature commandSignature;
         public Handle<ComputeShader> shader;
         public uint2 renderSize;
         public uint tlasIndex;
@@ -705,6 +730,7 @@ internal unsafe partial class GhostRenderPipeline
     {
         public Identifier<RGTexture> depthTexture;
         public Identifier<RGTexture> gbuffer1;
+        public Identifier<RGTexture> motionVectors;
         public Identifier<RGTexture> currentDiffuse;
         public Identifier<RGTexture> currentSpecular;
         public Identifier<RGTexture> historyDiffuse;
@@ -792,17 +818,129 @@ internal unsafe partial class GhostRenderPipeline
             });
         }
 
-        // 2. RisRayTrace (Inline DXR 1.1 shadow ray query)
-        Identifier<RGTexture> risShadowMask;
+        // 2A. RisScreenContactShadow (Evaluates screen contact shadow & compacts unresolved rays)
+        var shadowDesc = RGTextureDesc.Relative(1.0f, TextureFormat.R8_UNorm, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
+        var risShadowMask = rg.CreateTexture(in shadowDesc, "RisShadowMask");
+
+        var maxPixels = renderSize.x * renderSize.y;
+        var raysDesc = new BufferDesc
+        {
+            Size = maxPixels * 4u,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        };
+        var unresolvedRaysBuffer = rg.CreateBuffer(in raysDesc, "RisUnresolvedRays");
+
+        var counterDesc = new BufferDesc
+        {
+            Size = 4u,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        };
+        var counterBuffer = rg.CreateBuffer(in counterDesc, "RisRayCounter");
+
+        var indirectDesc = new BufferDesc
+        {
+            Size = 12u,
+            Stride = 4,
+            Usage = BufferUsage.IndirectArgument | BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        };
+        var indirectArgsBuffer = rg.CreateBuffer(in indirectDesc, "RisRayTraceIndirectArgs");
+
+        using (var contactShadowBuilder = rg.AddComputeRenderPass<RisScreenContactShadowPassData>("RisScreenContactShadow"))
+        {
+            contactShadowBuilder.UseTexture(depthTexture, AccessFlags.Read);
+            contactShadowBuilder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
+            contactShadowBuilder.UseTexture(risLightSamples, AccessFlags.Read);
+            contactShadowBuilder.UseTexture(risShadowMask, AccessFlags.Write);
+            contactShadowBuilder.UseBuffer(unresolvedRaysBuffer, AccessFlags.Write);
+            contactShadowBuilder.UseBuffer(counterBuffer, AccessFlags.ReadWrite);
+
+            contactShadowBuilder.SetPassData(new RisScreenContactShadowPassData
+            {
+                depthTexture = depthTexture,
+                gbuffer1 = gbuffer.GBuffer1,
+                risLightSamples = risLightSamples,
+                risShadowMask = risShadowMask,
+                unresolvedRaysBuffer = unresolvedRaysBuffer,
+                counterBuffer = counterBuffer,
+                shader = _lightingPipelineResource.risScreenContactShadowShader,
+                renderSize = renderSize,
+                viewId = viewId,
+                frameIndex = frameIndex
+            });
+
+            contactShadowBuilder.SetRenderFunc<RisScreenContactShadowPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                computeCtx.ClearBuffer(passData.counterBuffer, 4);
+
+                var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
+                var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
+                var samplesSrv = computeCtx.GetActualBindlessIndex(passData.risLightSamples, BindlessAccess.ShaderResource);
+                var shadowUav = computeCtx.GetActualBindlessIndex(passData.risShadowMask, BindlessAccess.UnorderedAccess);
+                var raysUav = computeCtx.GetActualBindlessIndex(passData.unresolvedRaysBuffer, BindlessAccess.UnorderedAccess);
+                var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
+
+                var props = new InternalRisScreenContactShadowShaderProperties
+                {
+                    depthTextureIndex = depthSrv,
+                    gbuffer1Index = gb1Srv,
+                    risLightSamplesIndex = samplesSrv,
+                    risShadowMaskUav = shadowUav,
+                    unresolvedRaysBufferUav = raysUav,
+                    counterBufferUav = counterUav,
+                    renderWidth = passData.renderSize.x,
+                    renderHeight = passData.renderSize.y,
+                    viewId = passData.viewId,
+                    frameIndex = passData.frameIndex
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+                computeCtx.DispatchCompute((passData.renderSize.x + 7u) / 8u, (passData.renderSize.y + 7u) / 8u, 1);
+            });
+        }
+
+        // 2B. PrepareRisRayTraceIndirectArgs (Computes 1D thread group dispatch size from ray count)
+        using (var prepareBuilder = rg.AddComputeRenderPass<PrepareRisRayTraceIndirectArgsPassData>("PrepareRisRayTraceIndirectArgs"))
+        {
+            prepareBuilder.UseBuffer(counterBuffer, AccessFlags.Read);
+            prepareBuilder.UseBuffer(indirectArgsBuffer, AccessFlags.Write);
+
+            prepareBuilder.SetPassData(new PrepareRisRayTraceIndirectArgsPassData
+            {
+                counterBuffer = counterBuffer,
+                indirectArgsBuffer = indirectArgsBuffer,
+                shader = _lightingPipelineResource.prepareRisRayTraceIndirectArgsShader
+            });
+
+            prepareBuilder.SetRenderFunc<PrepareRisRayTraceIndirectArgsPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
+                var indirectUav = computeCtx.GetActualBindlessIndex(passData.indirectArgsBuffer, BindlessAccess.UnorderedAccess);
+
+                var props = new InternalPrepareRisRayTraceIndirectArgsShaderProperties
+                {
+                    counterBufferUav = counterUav,
+                    indirectArgsBufferUav = indirectUav
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+                computeCtx.DispatchCompute(1, 1, 1);
+            });
+        }
+
+        // 2C. RisRayTrace (1D Indirect DXR 1.1 shadow ray query with 100% active lane occupancy)
         using (var rayTraceBuilder = rg.AddComputeRenderPass<RisRayTracePassData>("RisRayTrace"))
         {
-            var shadowDesc = RGTextureDesc.Relative(1.0f, TextureFormat.R8_UNorm, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
-            risShadowMask = rg.CreateTexture(in shadowDesc, "RisShadowMask");
-
             rayTraceBuilder.UseTexture(depthTexture, AccessFlags.Read);
             rayTraceBuilder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
             rayTraceBuilder.UseTexture(risLightSamples, AccessFlags.Read);
-            rayTraceBuilder.UseTexture(risShadowMask, AccessFlags.Write);
+            rayTraceBuilder.UseBuffer(unresolvedRaysBuffer, AccessFlags.Read);
+            rayTraceBuilder.UseBuffer(counterBuffer, AccessFlags.Read);
+            rayTraceBuilder.UseBuffer(indirectArgsBuffer, AccessFlags.Read);
+            rayTraceBuilder.UseTexture(risShadowMask, AccessFlags.ReadWrite);
 
             rayTraceBuilder.SetPassData(new RisRayTracePassData
             {
@@ -810,6 +948,10 @@ internal unsafe partial class GhostRenderPipeline
                 gbuffer1 = gbuffer.GBuffer1,
                 risLightSamples = risLightSamples,
                 risShadowMask = risShadowMask,
+                unresolvedRaysBuffer = unresolvedRaysBuffer,
+                counterBuffer = counterBuffer,
+                indirectArgsBuffer = indirectArgsBuffer,
+                commandSignature = _dispatchCommandSignature,
                 shader = _lightingPipelineResource.risRayTraceShader,
                 renderSize = renderSize,
                 tlasIndex = _rayTracingManager.TLASBindlessIndex,
@@ -823,6 +965,9 @@ internal unsafe partial class GhostRenderPipeline
                 var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
                 var samplesSrv = computeCtx.GetActualBindlessIndex(passData.risLightSamples, BindlessAccess.ShaderResource);
                 var shadowUav = computeCtx.GetActualBindlessIndex(passData.risShadowMask, BindlessAccess.UnorderedAccess);
+                var raysSrv = computeCtx.GetActualBindlessIndex(passData.unresolvedRaysBuffer, BindlessAccess.ShaderResource);
+                var counterSrv = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.ShaderResource);
+                var actualIndirectBuf = computeCtx.GetActualBuffer(passData.indirectArgsBuffer);
 
                 var props = new InternalRisRayTraceShaderProperties
                 {
@@ -830,6 +975,8 @@ internal unsafe partial class GhostRenderPipeline
                     gbuffer1Index = gb1Srv,
                     risLightSamplesIndex = samplesSrv,
                     risShadowMaskUav = shadowUav,
+                    unresolvedRaysBufferSrv = raysSrv,
+                    counterBufferSrv = counterSrv,
                     renderWidth = passData.renderSize.x,
                     renderHeight = passData.renderSize.y,
                     tlasIndex = passData.tlasIndex,
@@ -839,7 +986,7 @@ internal unsafe partial class GhostRenderPipeline
 
                 computeCtx.SetActiveCompute(passData.shader, 0);
                 computeCtx.SetUserDataWithProperties(in props);
-                computeCtx.DispatchCompute((passData.renderSize.x + 7u) / 8u, (passData.renderSize.y + 3u) / 4u, 1);
+                computeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, 0);
             });
         }
 
@@ -922,6 +1069,7 @@ internal unsafe partial class GhostRenderPipeline
 
             temporalBuilder.UseTexture(depthTexture, AccessFlags.Read);
             temporalBuilder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
+            temporalBuilder.UseTexture(gbuffer.MotionVectors, AccessFlags.Read);
             temporalBuilder.UseTexture(resolvedDiffuse, AccessFlags.Read);
             temporalBuilder.UseTexture(resolvedSpecular, AccessFlags.Read);
             temporalBuilder.UseTexture(historyDiffuse, AccessFlags.Read);
@@ -936,6 +1084,7 @@ internal unsafe partial class GhostRenderPipeline
             {
                 depthTexture = depthTexture,
                 gbuffer1 = gbuffer.GBuffer1,
+                motionVectors = gbuffer.MotionVectors,
                 currentDiffuse = resolvedDiffuse,
                 currentSpecular = resolvedSpecular,
                 historyDiffuse = historyDiffuse,
@@ -953,6 +1102,7 @@ internal unsafe partial class GhostRenderPipeline
             {
                 var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
                 var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
+                var motionVecSrv = passData.motionVectors.IsValid ? computeCtx.GetActualBindlessIndex(passData.motionVectors, BindlessAccess.ShaderResource) : uint.MaxValue;
                 var curDiffSrv = computeCtx.GetActualBindlessIndex(passData.currentDiffuse, BindlessAccess.ShaderResource);
                 var curSpecSrv = computeCtx.GetActualBindlessIndex(passData.currentSpecular, BindlessAccess.ShaderResource);
                 var histDiffSrv = computeCtx.GetActualBindlessIndex(passData.historyDiffuse, BindlessAccess.ShaderResource);
@@ -964,6 +1114,7 @@ internal unsafe partial class GhostRenderPipeline
                 {
                     depthTextureIndex = depthSrv,
                     gbuffer1Index = gb1Srv,
+                    motionVectorTextureIndex = motionVecSrv,
                     currentDiffuseIndex = curDiffSrv,
                     currentSpecularIndex = curSpecSrv,
                     historyDiffuseIndex = histDiffSrv,

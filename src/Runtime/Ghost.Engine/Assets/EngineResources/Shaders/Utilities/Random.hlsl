@@ -101,7 +101,7 @@ float2 InitRandom(float2 input)
     return r;
 }
 
-//From  Next Generation Post Processing in Call of Duty: Advanced Warfare [Jimenez 2014]
+// From Next Generation Post Processing in Call of Duty: Advanced Warfare [Jimenez 2014]
 // http://advances.realtimerendering.com/s2014/index.html
 float InterleavedGradientNoise(float2 pixCoord, int frameCount)
 {
@@ -109,6 +109,41 @@ float InterleavedGradientNoise(float2 pixCoord, int frameCount)
     float2 frameMagicScale = float2(2.083f, 4.867f);
     pixCoord += frameCount * frameMagicScale;
     return frac(magic.z * frac(dot(pixCoord, magic.xy)));
+}
+
+// High-performance 2D integer hash (Wang / Triple32 / PCG derivative) with isotropic spatial distribution
+uint Hash2D(uint2 v)
+{
+    uint2 q = v * 1664525u + 1013904223u;
+    q.x += q.y * 1664525u;
+    q.y += q.x * 1664525u;
+    q ^= (q >> 16u);
+    q.x += q.y * 1664525u;
+    q.y += q.x * 1664525u;
+    q ^= (q >> 16u);
+    return q.x ^ q.y;
+}
+
+// Spatiotemporally decorrelated 2D quasi-random sample in [0, 1)^2:
+// Combines an isotropic 2D spatial hash with Martin Roberts R2 low-discrepancy temporal sequence.
+// Completely eliminates Jimenez IGN rank-1 lattice diagonal striping across screen space.
+float2 GetDecorrelatedSample2D(uint2 pixelCoord, uint frameIndex)
+{
+    uint h1 = Hash2D(pixelCoord);
+    uint h2 = Hash2D(pixelCoord ^ 0x9E3779B9u);
+    float2 spatialSeed = float2(ConstructFloat(h1), ConstructFloat(h2));
+    const float2 r2 = float2(0.7548776662f, 0.5698402910f);
+    return frac(spatialSeed + float(frameIndex & 4095u) * r2);
+}
+
+// Spatiotemporally decorrelated 1D quasi-random sample in [0, 1):
+// For 1D streaming reservoir sampling (RIS candidate selection)
+float GetDecorrelatedSample1D(uint2 pixelCoord, uint frameIndex)
+{
+    uint h = Hash2D(pixelCoord + uint2(71u, 131u));
+    float spatialSeed = ConstructFloat(h);
+    const float phiInv = 0.61803398875f; // Golden ratio conjugate
+    return frac(spatialSeed + float(frameIndex & 4095u) * phiInv);
 }
 
 // 32-bit Xorshift random number generator

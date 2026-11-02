@@ -1,0 +1,131 @@
+compute "Internal/RisScreenContactShadow"
+{
+    properties
+    {
+        uint depthTextureIndex;
+        uint gbuffer1Index;
+        uint risLightSamplesIndex;
+        uint risShadowMaskUav;
+        uint unresolvedRaysBufferUav;
+        uint counterBufferUav;
+        uint renderWidth;
+        uint renderHeight;
+        uint viewId;
+        uint frameIndex;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Common.hlsl";
+        "EngineResources/Shaders/Utilities/Random.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl";
+        "EngineResources/Shaders/Lighting/RayTracingCommon.hlsl";
+        "EngineResources/Shaders/Lighting/LightEvaluation.hlsl";
+        "EngineResources/Shaders/Lighting/RisCommon.hlsl";
+        "EngineResources/Shaders/Lighting/ScreenSpaceTracing.hlsl";
+        "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl";
+        "EngineResources/Shaders/Generated/GPULightData.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(8, 8, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            uint2 pixelCoord = dispatchThreadId.xy;
+            bool inBounds = (pixelCoord.x < g_Properties.renderWidth && pixelCoord.y < g_Properties.renderHeight);
+
+            bool needsHardwareRay = false;
+            float shadow = 1.0f;
+
+            if (inBounds)
+            {
+                Texture2D<float> depthTex = GET_TEXTURE2D(g_Properties.depthTextureIndex);
+                float depth = depthTex[pixelCoord];
+                if (depth <= 0.0f)
+                {
+                    RWTexture2D<float> shadowMaskUav = GET_TEXTURE2D(g_Properties.risShadowMaskUav);
+                    shadowMaskUav[pixelCoord] = 1.0f;
+                }
+                else
+                {
+                    Texture2D<uint2> risSamples = GET_TEXTURE2D(g_Properties.risLightSamplesIndex);
+                    RisLightSample sampleData = UnpackRisLightSample(risSamples[pixelCoord]);
+
+                    if (sampleData.lightIndex == 0xFFFFFFFF)
+                    {
+                        RWTexture2D<float> shadowMaskUav = GET_TEXTURE2D(g_Properties.risShadowMaskUav);
+                        shadowMaskUav[pixelCoord] = 1.0f;
+                    }
+                    else
+                    {
+                        Texture2D<float4> gb1 = GET_TEXTURE2D(g_Properties.gbuffer1Index);
+                        float2 encNormal = gb1[pixelCoord].rg;
+                        GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, sampleData.lightIndex);
+
+                        if (light.shadowDimmer > 0.0f)
+                        {
+                            float zView;
+                            float2 ndc;
+                            float3 positionRWS = ReconstructPositionRWS(pixelCoord, depth, zView, ndc);
+                            float3 surfacePosWS = TransformCameraRelativeToAbsoluteWorld(positionRWS);
+                            float3 normalWS = OctahedralDecode(encNormal);
+
+                            float2 rngSample = GetDecorrelatedSample2D(pixelCoord, g_Properties.frameIndex);
+
+                            float3 rayDirWS;
+                            float rayDist;
+                            ComputeSoftShadowRay(surfacePosWS, light.positionWS, light.size.x, rngSample, rayDirWS, rayDist);
+
+                            float NdotL = dot(normalWS, rayDirWS);
+                            if (NdotL <= 0.0f)
+                            {
+                                shadow = 0.0f;
+                            }
+                            else
+                            {
+                                float hitDist = 0.0f;
+                                bool contactHit = TraceScreenContactShadow(positionRWS, normalWS, pixelCoord, g_Properties.depthTextureIndex, rayDirWS, rayDist, 1.5f, hitDist);
+                                if (contactHit)
+                                {
+                                    shadow = 0.0f;
+                                }
+                                else
+                                {
+                                    needsHardwareRay = true;
+                                }
+                            }
+
+                            shadow = lerp(1.0f, shadow, light.shadowDimmer);
+                        }
+
+                        RWTexture2D<float> shadowMaskUav = GET_TEXTURE2D(g_Properties.risShadowMaskUav);
+                        shadowMaskUav[pixelCoord] = shadow;
+                    }
+                }
+            }
+
+            // Stream compaction using wave intrinsics
+            uint waveCount = WaveActiveCountBits(needsHardwareRay);
+            uint waveIndex = WavePrefixCountBits(needsHardwareRay);
+            uint waveBase = 0;
+            if (WaveIsFirstLane() && waveCount > 0)
+            {
+                RWByteAddressBuffer counter = GET_BUFFER(g_Properties.counterBufferUav);
+                counter.InterlockedAdd(0, waveCount, waveBase);
+            }
+            waveBase = WaveReadLaneFirst(waveBase);
+
+            if (needsHardwareRay)
+            {
+                uint rayIndex = waveBase + waveIndex;
+                RWByteAddressBuffer unresolvedRays = GET_BUFFER(g_Properties.unresolvedRaysBufferUav);
+                uint packedCoord = (pixelCoord.y << 16) | (pixelCoord.x & 0xFFFF);
+                unresolvedRays.Store(rayIndex * 4u, packedCoord);
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}
