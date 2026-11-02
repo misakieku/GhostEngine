@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.D3D12;
 

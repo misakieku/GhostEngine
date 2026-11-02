@@ -19,7 +19,7 @@ compute "Internal/RisRayTrace"
         "EngineResources/Shaders/Common.hlsl";
         "EngineResources/Shaders/Utilities/Random.hlsl";
         "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl";
-        "EngineResources/Shaders/Lighting/ScreenSpaceTracing.hlsl";
+        "EngineResources/Shaders/Lighting/RayTracingCommon.hlsl";
         "EngineResources/Shaders/Lighting/LightEvaluation.hlsl";
         "EngineResources/Shaders/Lighting/RisCommon.hlsl";
         "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl";

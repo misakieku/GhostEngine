@@ -6,6 +6,7 @@
 // ============================================================
 
 #include "EngineResources/Shaders/Properties.hlsl"
+#include "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl"
 #include "EngineResources/Shaders/Material/Lit/Lit.hlsl"
 

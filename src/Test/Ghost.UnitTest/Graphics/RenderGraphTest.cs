@@ -157,7 +157,7 @@ public partial class RenderGraphTest
         Identifier<RGTexture> vbuffer;
         using (var builder = _renderGraph.AddRasterRenderPass<VBufferPassData>("Vbuffer"))
         {
-            var cullingData = _renderGraph.Blackboard.Get<CullingPassData>();
+            var cullingData = _renderGraph.Blackboard.GetPassData<CullingPassData>();
             var vbufferData = new VBufferPassData
             {
                 scene = builder.UseBuffer(cullingData.scene, AccessFlags.Read),

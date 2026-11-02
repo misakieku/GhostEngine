@@ -15,6 +15,8 @@ public static class RHIUtility
     public const ulong GRAPHICS_PIPELINE_KEY_FLAG = 0x1ul;
     public const ulong COMPUTE_PIPELINE_KEY_FLAG = 0x2ul;
 
+    public const uint INVALID_BINDLESS_INDEX = 0u;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetBytesPerPixel(this TextureFormat format)
     {

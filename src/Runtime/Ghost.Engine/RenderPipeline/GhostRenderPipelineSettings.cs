@@ -329,6 +329,8 @@ public enum RenderPipelineDebugMode : uint
 
 public class GhostRenderPipelineSettings : IRenderPipelineSettings
 {
+    public RenderPipelineDebugMode DebugMode { get; set; } = RenderPipelineDebugMode.None;
+
     /// <summary>
     /// Target screen-space pixel error threshold for meshlet DAG LOD refinement. Default is 2.0f.
     /// </summary>
@@ -354,37 +356,10 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     /// </remarks>
     public uint MaxVisibleMeshletsOnScreen { get; set; } = 2_097_152;
 
-    public RenderPipelineDebugMode DebugMode { get; set; } = RenderPipelineDebugMode.None;
-
-    /// <summary>
-    /// Resolution of the primary directional shadow map Texture2DArray (per cascade slice). Default is 2048.
-    /// </summary>
-    public uint DirectionalShadowResolution { get; set; } = 2048;
-
-    /// <summary>
-    /// Number of Cascaded Shadow Map (CSM) splits for the primary directional light (1 to 4). Default is 4.
-    /// </summary>
-    public uint DirectionalShadowCascades { get; set; } = 4;
-
-    /// <summary>
-    /// Maximum shadow distance in meters for directional cascaded shadows. Default is 150.0m.
-    /// </summary>
-    public float DirectionalShadowDistance { get; set; } = 150.0f;
-
-    /// <summary>
-    /// Blend factor between logarithmic and linear cascade splits. Default is 0.85f.
-    /// </summary>
-    public float DirectionalShadowSplitLambda { get; set; } = 0.85f;
-
     /// <summary>
     /// Resolution of the shadow atlas for punctual lights (point and spot lights). Default is 4096.
     /// </summary>
     public uint ShadowAtlasResolution { get; set; } = 4096;
-
-    /// <summary>
-    /// Active shadow sampling mode for lighting passes. Default is PCF.
-    /// </summary>
-    public PipelineShadowMode ShadowMode { get; set; } = PipelineShadowMode.PCF;
 
     /// <summary>
     /// Size of the GPU Page Pool in Megabytes. Default is 0 (auto-calculate based on MaxVisibleMeshletsOnScreen).
@@ -427,11 +402,4 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     {
         return new GhostRenderPipeline(renderEngine, assetManager, jobScheduler, this);
     }
-}
-
-public enum PipelineShadowMode
-{
-    PCF = 0,
-    VSM = 1,
-    RIS = 2,
 }

@@ -14,6 +14,7 @@ compute "Internal/ShadowCullGraph"
     includes
     {
         "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl";
         "EngineResources/Shaders/Mesh.hlsl";
         "EngineResources/Shaders/Utilities/CullCommon.hlsl";
         "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl";

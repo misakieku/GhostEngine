@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Utilities;
+using Ghost.Engine.Volumes;
 using Ghost.Graphics;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
@@ -34,7 +35,6 @@ internal partial class GhostRenderPipeline : IRenderPipeline
     private readonly RayTracingManager _rayTracingManager;
 
     private static readonly PipelineKeyword s_kwShadowPCF = PipelineKeywordRegistry.GetOrRegister("_SHADOW_PCF");
-    private static readonly PipelineKeyword s_kwShadowVSM = PipelineKeywordRegistry.GetOrRegister("_SHADOW_VSM");
     private static readonly PipelineKeyword s_kwShadowRIS = PipelineKeywordRegistry.GetOrRegister("_SHADOW_RIS");
 
     private bool _disposed;
@@ -166,11 +166,21 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             var viewProjMatrix = math.mul(projMatrix, viewMatrix);
             var frustum = Frustum.Create(viewProjMatrix, float3.zero, request.view.localToWorld.c2.xyz, request.view.nearClipPlane, request.view.farClipPlane);
 
-            var viewContext = _gpuViewManager.GetView(request.viewId);
-            viewContext.EnsureResources(viewPort.Size, _settings.ShadowAtlasResolution);
+            var shadowSettings = ghostPayload.GetViewVolumeData<ShadowSettings>(request.viewId);
+            var viewKeywords = BuildViewKeywords(shadowSettings);
 
-            ExecutePerViewShadowSetup(ctx, viewContext.ShadowAllocator, in frustum, viewPort.Size.y, lights, request.view.localToWorld.c3.xyz,
-                out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
+            var viewContext = _gpuViewManager.GetView(request.viewId);
+            viewContext.EnsureResources(viewPort.Size, shadowSettings.shadowMode.GetValueOrDefault(), _settings.ShadowAtlasResolution);
+
+            var shadowViewsBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
+            var shadowIndicesBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
+            var shadowViewCount = 0u;
+
+            if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
+            {
+                ExecutePerViewShadowSetup(ctx, viewContext.ShadowAllocator, in frustum, viewPort.Size.y, lights, request.view.localToWorld.c3.xyz,
+                    out shadowViewsBufferSrv, out shadowViewCount, out shadowIndicesBufferSrv);
+            }
 
             if (viewContext.prevViewProjMatrix.Equals(float4x4.zero))
             {
@@ -178,8 +188,9 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 viewContext.prevCameraPosition = request.view.localToWorld.c3.xyz;
             }
 
-            var viewBuffer = RenderPipelineUtility.CreateViewDataBuffer(ctx, request, renderView, viewMatrix, projMatrix, viewProjMatrix, frustum, ref viewContext.prevViewProjMatrix, ref viewContext.prevCameraPosition);
-            var viewKeywords = BuildViewKeywords();
+            var viewBuffer = RenderPipelineUtility.CreateViewDataBuffer(ctx, request, renderView, viewMatrix, projMatrix, viewProjMatrix, frustum,
+                ref viewContext.prevViewProjMatrix, ref viewContext.prevCameraPosition);
+
             var renderGraph = viewContext.RenderGraph;
 
             renderGraph.BeginRecord(viewKeywords);
@@ -206,14 +217,18 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             Identifier<RGTexture> risResolvedSpecular = Identifier<RGTexture>.Invalid;
             Identifier<RGTexture> shadowAtlas = Identifier<RGTexture>.Invalid;
 
-            if (_settings.ShadowMode == PipelineShadowMode.RIS)
+            if (shadowSettings.shadowMode == ShadowMode.RayTraced)
             {
                 AddRisPasses(renderGraph, viewContext, gbuffer, currentDepth, tileLightList, viewContext.RenderSize, (uint)frameNumber, request.viewId, out risResolvedDiffuse, out risResolvedSpecular);
+            }
+            else if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
+            {
+                viewContext.hasValidRisHistory = false;
+                shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
             }
             else
             {
                 viewContext.hasValidRisHistory = false;
-                shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
             }
 
             var persistentViewStateBuffer = renderGraph.ImportBuffer(_gpuViewManager.PersistentViewStateBuffer, ResourceBarrierData.Common, ResourceBarrierData.Common);
@@ -247,19 +262,16 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         return Result.Success();
     }
 
-    private KeywordMask128 BuildViewKeywords()
+    private KeywordMask128 BuildViewKeywords(in ShadowSettings shadowSettings)
     {
         var viewKeywords = KeywordMask128.Empty;
-        switch (_settings.ShadowMode)
+        switch (shadowSettings.shadowMode)
         {
-            case PipelineShadowMode.VSM:
-                viewKeywords = viewKeywords.Set(s_kwShadowVSM.Id);
-                break;
-            case PipelineShadowMode.RIS:
-                viewKeywords = viewKeywords.Set(s_kwShadowRIS.Id);
-                break;
-            case PipelineShadowMode.PCF:
+            case ShadowMode.ShadowMap:
                 viewKeywords = viewKeywords.Set(s_kwShadowPCF.Id);
+                break;
+            case ShadowMode.RayTraced:
+                viewKeywords = viewKeywords.Set(s_kwShadowRIS.Id);
                 break;
         }
 

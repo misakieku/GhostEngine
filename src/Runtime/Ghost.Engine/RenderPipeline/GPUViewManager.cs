@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
+using Ghost.Engine.Volumes;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
@@ -137,7 +138,7 @@ public sealed class GPUViewContext : IDisposable
         hzbMipCount = Math.Clamp(calculatedMipCount, 1u, 16u);
     }
 
-    public void EnsureResources(uint2 renderSize, uint shadowAtlasResolution)
+    public void EnsureResources(uint2 renderSize, ShadowMode shadowMode, uint shadowAtlasResolution)
     {
         if (renderSize.x == 0 || renderSize.y == 0)
         {
@@ -145,13 +146,17 @@ public sealed class GPUViewContext : IDisposable
         }
 
         _renderGraph ??= new RenderGraph(_database, _allocator, _pipelineLibrary, _resourceManager, _shaderLibrary);
-        if (_shadowAllocator == null)
+
+        if (shadowMode == ShadowMode.ShadowMap)
         {
-            _shadowAllocator = new ShadowAtlasRegionAllocator(shadowAtlasResolution, AllocationHandle.Persistent);
-        }
-        else
-        {
-            _shadowAllocator.Reset(shadowAtlasResolution);
+            if (_shadowAllocator == null)
+            {
+                _shadowAllocator = new ShadowAtlasRegionAllocator(shadowAtlasResolution, AllocationHandle.Persistent);
+            }
+            else
+            {
+                _shadowAllocator.Reset(shadowAtlasResolution);
+            }
         }
 
         ComputeHZBDimensions(renderSize, out var baseSize, out var hzbMipCount);
@@ -161,13 +166,7 @@ public sealed class GPUViewContext : IDisposable
 
         if (RenderSize.x != renderSize.x || RenderSize.y != renderSize.y)
         {
-            if (HzbTexture.IsValid)
-            {
-                _database.ReleaseResource(HzbTexture.AsResource());
-                HzbTexture = Handle<GPUTexture>.Invalid;
-            }
-
-            ReleaseRisHistoryTextures();
+            ReleaseResources();
 
             var hzbDesc = new TextureDesc
             {
@@ -182,29 +181,78 @@ public sealed class GPUViewContext : IDisposable
 
             HzbTexture = _allocator.CreateTexture(in hzbDesc, "HZB Texture");
 
-            var risHistoryDesc = new TextureDesc
+            if (shadowMode == ShadowMode.RayTraced)
             {
-                Dimension = TextureDimension.Texture2D,
-                Width = renderSize.x,
-                Height = renderSize.y,
-                MipLevels = 1,
-                Format = TextureFormat.R16G16B16A16_Float,
-                Usage = TextureUsage.ShaderResource | TextureUsage.UnorderedAccess,
-                Slice = 1,
-            };
+                var risHistoryDesc = new TextureDesc
+                {
+                    Dimension = TextureDimension.Texture2D,
+                    Width = renderSize.x,
+                    Height = renderSize.y,
+                    MipLevels = 1,
+                    Format = TextureFormat.R16G16B16A16_Float,
+                    Usage = TextureUsage.ShaderResource | TextureUsage.UnorderedAccess,
+                    Slice = 1,
+                };
 
-            RisHistoryDiffuse = _allocator.CreateTexture(in risHistoryDesc, "RIS History Diffuse");
-            RisHistorySpecular = _allocator.CreateTexture(in risHistoryDesc, "RIS History Specular");
+                RisHistoryDiffuse = _allocator.CreateTexture(in risHistoryDesc, "RIS History Diffuse");
+                RisHistorySpecular = _allocator.CreateTexture(in risHistoryDesc, "RIS History Specular");
+            }
 
             prevViewProjMatrix = default; // Zero out so resize is not static
             prevCameraPosition = default;
+        }
+        else
+        {
+            if (shadowMode == ShadowMode.RayTraced)
+            {
+                var risHistoryDesc = new TextureDesc
+                {
+                    Dimension = TextureDimension.Texture2D,
+                    Width = renderSize.x,
+                    Height = renderSize.y,
+                    MipLevels = 1,
+                    Format = TextureFormat.R16G16B16A16_Float,
+                    Usage = TextureUsage.ShaderResource | TextureUsage.UnorderedAccess,
+                    Slice = 1,
+                };
+
+                if (RisHistoryDiffuse.IsInvalid)
+                {
+                    RisHistoryDiffuse = _allocator.CreateTexture(in risHistoryDesc, "RIS History Diffuse");
+                }
+
+                if (RisHistorySpecular.IsInvalid)
+                {
+                    RisHistorySpecular = _allocator.CreateTexture(in risHistoryDesc, "RIS History Specular");
+                }
+            }
+            else
+            {
+                if (RisHistoryDiffuse.IsValid)
+                {
+                    _database.ReleaseResource(RisHistoryDiffuse.AsResource());
+                    RisHistoryDiffuse = Handle<GPUTexture>.Invalid;
+                }
+
+                if (RisHistorySpecular.IsValid)
+                {
+                    _database.ReleaseResource(RisHistorySpecular.AsResource());
+                    RisHistorySpecular = Handle<GPUTexture>.Invalid;
+                }
+            }
         }
 
         RenderSize = renderSize;
     }
 
-    private void ReleaseRisHistoryTextures()
+    private void ReleaseResources()
     {
+        if (HzbTexture.IsValid)
+        {
+            _database.ReleaseResource(HzbTexture.AsResource());
+            HzbTexture = Handle<GPUTexture>.Invalid;
+        }
+
         if (RisHistoryDiffuse.IsValid)
         {
             _database.ReleaseResource(RisHistoryDiffuse.AsResource());
@@ -222,13 +270,7 @@ public sealed class GPUViewContext : IDisposable
 
     public void Dispose()
     {
-        if (HzbTexture.IsValid)
-        {
-            _database.ReleaseResource(HzbTexture.AsResource());
-            HzbTexture = Handle<GPUTexture>.Invalid;
-        }
-
-        ReleaseRisHistoryTextures();
+        ReleaseResources();
 
         _renderGraph?.Dispose();
         _shadowAllocator?.Dispose();

@@ -527,7 +527,7 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
 
         if (addToBlackboard)
         {
-            _blackboard.Add<RenderGraphPass<T>, T>(typedPass);
+            _blackboard.AddPassData<RenderGraphPass<T>, T>(typedPass);
         }
     }
 

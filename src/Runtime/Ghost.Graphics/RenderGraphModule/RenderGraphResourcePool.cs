@@ -517,7 +517,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
                 var ops = new CreationOptions
                 {
-                    AllocationType = ResourceAllocationType.Suballocation,
+                    Flags = ResourceAllocationFlags.Suballocation,
                     Heap = _resourceHeap,
                     Offset = placedResult.Value.heapOffset,
                 };

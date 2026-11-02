@@ -77,8 +77,6 @@ cbuffer cbViewData : register(b1)
     ViewData g_ViewData;
 };
 
-#include "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl"
-
 cbuffer cbFrameData : register(b2)
 {
     FrameData g_FrameData;

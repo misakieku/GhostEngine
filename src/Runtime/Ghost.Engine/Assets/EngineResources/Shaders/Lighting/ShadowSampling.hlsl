@@ -1,11 +1,11 @@
 #ifndef GHOST_SHADOW_SAMPLING_HLSL
 #define GHOST_SHADOW_SAMPLING_HLSL
 
+#include "EngineResources/Shaders/Common.hlsl"
 #include "EngineResources/Shaders/Generated/GPULightData.hlsl"
 #include "EngineResources/Shaders/Lighting/ScreenSpaceTracing.hlsl"
 
 typedef float ShadowType;
-
 
 float SampleShadow_GetTriangleTexelArea(float triangleHeight)
 {
@@ -146,34 +146,26 @@ uint GetCubeFaceID(float3 L)
     return faceIdx;
 }
 
-ShadowType GetPunctualShadowAttenuation(ShadingContext ctx, GPUPunctualLight light, float3 N, float3 L, float4 distance, float3 lightPositonRWS, uint lightIndex)
+ShadowType GetPunctualShadowAttenuation(float3 positionRWS, uint2 positionSS, float3 N, float3 L, float4 distance, GPUPunctualLight light,
+    uint lightIndex, BYTE_ADDRESS_BUFFER shadowIndicesBuffer, BYTE_ADDRESS_BUFFER shadowViewsBuffer, TEXTURE2D shadowAtlas, TEXTURE2D depthTexture)
 {
     ShadowType shadow = (ShadowType)1.0f;
-
-#if defined(_SHADOW_VSM)
-#elif defined(_SHADOW_RIS)
-    uint ditherSeed = lightIndex * 1973u + ctx.viewId * 9277u;
-    float2 rngSample = float2(
-        InterleavedGradientNoise((float2)ctx.positionSS, ditherSeed),
-        InterleavedGradientNoise((float2)ctx.positionSS, ditherSeed + 1337u)
-    );
-    shadow = (ShadowType)EvaluatePunctualVisibility_RIS(ctx, light, lightPositonRWS, L, distance.x, rngSample, 0.01f);
-#else
+    
     // Near-field Screen Space Full-Resolution Contact Shadow for shadow-mapped lights
     float hitDist = 0.0f;
-    if (TraceScreenContactShadow(ctx, L, min(distance.x, 0.25f), 2.0f, hitDist))
+    if (TraceScreenContactShadow(positionRWS, N, positionSS, depthTexture, L, min(distance.x, 0.25f), 2.0f, hitDist))
     {
         return (ShadowType)0.0f;
     }
 
     int shadowIndex = -1;
 
-    if (IS_VALID_BUFFER(ctx.shadowIndicesBufferIndex))
+    if (IS_VALID_BUFFER(shadowIndicesBuffer))
     {
-        shadowIndex = LoadData<int>(ctx.shadowIndicesBufferIndex, lightIndex);
+        shadowIndex = LoadData<int>(shadowIndicesBuffer, lightIndex);
     }
     
-    if (shadowIndex >= 0 && IS_VALID_BUFFER(ctx.shadowAtlasIndex) && IS_VALID_BUFFER(ctx.shadowViewsBufferIndex))
+    if (shadowIndex >= 0 && IS_VALID_TEXTURE(shadowAtlas) && IS_VALID_BUFFER(shadowViewsBuffer))
     {
         uint lightType = light.lightTypeAndShadowSize & 0xFu;
         if (lightType == GPULIGHT_TYPE_POINT) // Point Light cubemap face selection
@@ -181,9 +173,9 @@ ShadowType GetPunctualShadowAttenuation(ShadingContext ctx, GPUPunctualLight lig
             shadowIndex += GetCubeFaceID(-L);
         }
 
-        GPUShadowSamplingData shadowCull = LoadDataAtOffset<GPUShadowSamplingData>(ctx.shadowViewsBufferIndex, sizeof(GPUShadowViewData) * shadowIndex + sizeof(GPUShadowCullingData));
+        GPUShadowSamplingData shadowCull = LoadDataAtOffset<GPUShadowSamplingData>(shadowViewsBuffer, sizeof(GPUShadowViewData) * shadowIndex + sizeof(GPUShadowCullingData));
 
-        float3 biasedPosRWS = ctx.positionRWS + N * shadowCull.normalBias * shadowCull.worldTexelSize * distance.x;
+        float3 biasedPosRWS = positionRWS + N * shadowCull.normalBias * shadowCull.worldTexelSize * distance.x;
         float4 clipPos = mul(shadowCull.shadowViewProj, float4(biasedPosRWS, 1.0f));
 
         if (clipPos.w > 0.0001f)
@@ -204,13 +196,12 @@ ShadowType GetPunctualShadowAttenuation(ShadingContext ctx, GPUPunctualLight lig
             {
                 uv = saturate(uv);
                 float2 atlasUV = shadowCull.tileOffsetScale.xy + uv * shadowCull.tileOffsetScale.zw;
-                Texture2D<float> shadowAtlas = GET_TEXTURE2D(ctx.shadowAtlasIndex);
+                Texture2D<float> shadowAtlasTex = GET_TEXTURE2D(shadowAtlas);
 
-                shadow = SampleShadow_PCF5x5(shadowAtlas, GET_SAMPLER(LinearClampCompareGESampler), shadowCull.tileOffsetScale, atlasUV, receiverDepth, shadowCull.size.x, shadowCull.size.y);
+                shadow = SampleShadow_PCF5x5(shadowAtlasTex, GET_SAMPLER(LinearClampCompareGESampler), shadowCull.tileOffsetScale, atlasUV, receiverDepth, shadowCull.size.x, shadowCull.size.y);
             }
         }
     }
-#endif
 
     return shadow;
 }

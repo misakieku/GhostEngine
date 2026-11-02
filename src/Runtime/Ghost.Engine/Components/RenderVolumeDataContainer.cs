@@ -98,6 +98,20 @@ public unsafe struct RenderVolumeDataContainer : ICleanupComponent, IDisposable
     }
 
     /// <summary>
+    /// Attempts to retrieve a reference to the component data stored in this container.
+    /// </summary>
+    /// <typeparam name="T">The volume component type.</typeparam>
+    /// <param name="exists">True if the component exists, false otherwise.</param>
+    /// <returns>A reference to the component data if found, otherwise a reference to a default value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly ref T GetRef<T>(out bool exists)
+        where T : unmanaged, IVolumeComponent<T>
+    {
+        exists = TryGetPtr(VolumeBlenderTrampoline<T>.TypeId, out void* ptr);
+        return ref Unsafe.AsRef<T>(ptr);
+    }
+
+    /// <summary>
     /// Removes a volume component setting from this container if present.
     /// </summary>
     /// <typeparam name="T">The volume component type.</typeparam>

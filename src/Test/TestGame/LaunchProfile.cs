@@ -25,8 +25,9 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
     private World _world = null!;
     private IAssetEntry _meshAsset = null!;
     private IAssetEntry _shaderAsset = null!;
-    //private IAssetEntry _textureAsset = null!;
     private IAssetEntry _skyAsset = null!;
+
+    private Entity _volumeEntity;
 
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
@@ -34,7 +35,6 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         MeshletLodErrorThreshold = 1.0f,
         InstanceCullingThreshold = 2.0f,
         DebugMode = RenderPipelineDebugMode.None,
-        ShadowMode = PipelineShadowMode.RIS,
     };
 
     public EngineDesc GetEngineDesc()
@@ -126,7 +126,6 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 
         _meshAsset = engine.AssetManager.ResolveAsset("Meshes/dragon");
         _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/StandardLit");
-        //_textureAsset = engine.AssetManager.ResolveAsset("Meshes/an-afternoon-in-a-persian-garden/textures/TerraceAndWalls8kDay");
 
         var meshHandle = default(Handle<Mesh>);
         var shaderHandle = default(Handle<Shader>);
@@ -134,7 +133,6 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 
         _meshAsset.ReadAssetData(ref meshHandle);
         _shaderAsset.ReadAssetData(ref shaderHandle);
-        //_textureAsset.ReadAssetData(ref textureHandle);
 
         var mat = engine.RenderEngine.ResourceManager.CreateMaterial(shaderHandle);
         var srv = engine.RenderEngine.GraphicsEngine.ResourceDatabase.GetBindlessIndex(textureHandle.AsResource());
@@ -167,9 +165,6 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
             var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f)));
             var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
-            //var position = new float3(0, 0, 3);
-            //var rotation = quaternion.identity;
-            //var scale = float3.one * baseScale;
 
             var localToWorld = new LocalToWorld
             {
@@ -240,8 +235,12 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             tint = new float3(1.0f, 1.0f, 1.0f),
             texture = skyboxHandle,
         });
+        volumeData.Set(new ShadowSettings
+        {
+            shadowMode = ShadowMode.RayTraced,
+        });
 
-        _world.EntityManager.CreateEntity(
+        _volumeEntity = _world.EntityManager.CreateEntity(
             new RenderVolume { renderingLayerMask = RenderingLayerMask.All, isGlobal = true, weight = 1.0f, priority = 1 },
             volumeData);
 
@@ -269,10 +268,16 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             }
             else if (e.key.key == SDL_Keycode.SDLK_F2)
             {
-                _renderPipelineSettings.ShadowMode = _renderPipelineSettings.ShadowMode == PipelineShadowMode.RIS
-                    ? PipelineShadowMode.PCF
-                    : PipelineShadowMode.RIS;
-                Logger.Info($"[TestGame] Toggled ShadowMode: {_renderPipelineSettings.ShadowMode}");
+                ref var volumeData = ref _world.EntityManager.GetComponent<RenderVolumeDataContainer>(_volumeEntity);
+                volumeData.GetRef<ShadowSettings>(out var exists);
+                if (exists)
+                {
+                    ref var shadowSettings = ref volumeData.GetRef<ShadowSettings>(out _);
+                    shadowSettings.shadowMode = shadowSettings.shadowMode == ShadowMode.RayTraced
+                        ? ShadowMode.ShadowMap
+                        : ShadowMode.RayTraced;
+                    Logger.Info($"[TestGame] Toggled ShadowMode: {shadowSettings.shadowMode}");
+                }
             }
         }
     }
@@ -283,7 +288,6 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 
         _meshAsset.Release();
         _shaderAsset.Release();
-        //_textureAsset.Release();
         _skyAsset.Release();
     }
 }

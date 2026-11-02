@@ -26,6 +26,17 @@ internal sealed partial class D3D12ResourceAllocator
             throw new InvalidOperationException($"ERROR: Texture size too large for DirectX 12 (width {width}, height {height})");
         }
     }
+
+    private static D3D12MA_ALLOCATION_FLAGS GetAllocationFlags(ResourceAllocationFlags flags)
+    {
+        D3D12MA_ALLOCATION_FLAGS d3d12maFlags = D3D12MA_ALLOCATION_FLAG_NONE;
+        if (flags.HasFlag(ResourceAllocationFlags.Committed))
+        {
+            d3d12maFlags |= D3D12MA_ALLOCATION_FLAG_COMMITTED;
+        }
+
+        return d3d12maFlags;
+    }
 }
 
 internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
@@ -80,7 +91,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
     {
         HRESULT hr;
 
-        if (options.AllocationType == ResourceAllocationType.Suballocation)
+        if (options.Flags.HasFlag(ResourceAllocationFlags.Suballocation))
         {
             // pAllocation should be the render graph Heap. ppvResource should be the out resource.
             var result = _resourceDatabase.GetResourceRecord(options.Heap);
@@ -172,10 +183,10 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         var allocationDesc = new D3D12MA_ALLOCATION_DESC
         {
             HeapType = D3D12_HEAP_TYPE_DEFAULT,
-            Flags = D3D12MA_ALLOCATION_FLAG_NONE
+            Flags = GetAllocationFlags(options.Flags),
         };
 
-        var isSubAllocation = options.AllocationType == ResourceAllocationType.Suballocation;
+        var isSubAllocation = options.Heap.IsValid && options.Flags.HasFlag(ResourceAllocationFlags.Suballocation);
         D3D12MA_Allocation* pAllocation = default;
         ID3D12Resource* pResource = default;
         HRESULT hr;
@@ -232,10 +243,10 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         var allocationDesc = new D3D12MA_ALLOCATION_DESC
         {
             HeapType = desc.HeapType.ToD3D12HeapType(),
-            Flags = D3D12MA_ALLOCATION_FLAG_NONE,
+            Flags = GetAllocationFlags(options.Flags),
         };
 
-        var isSubAllocation = options.Heap.IsValid;
+        var isSubAllocation = options.Heap.IsValid && options.Flags.HasFlag(ResourceAllocationFlags.Suballocation);
         D3D12MA_Allocation* pAllocation = default;
         ID3D12Resource* pResource = default;
         HRESULT hr;

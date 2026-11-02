@@ -24,6 +24,7 @@ shader "Hidden/HDRISky"
         includes
         {
             "EngineResources/Shaders/Properties.hlsl";
+            "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl";
             "EngineResources/Shaders/Lighting/SphericalHarmonics.hlsl";
         }
 
@@ -95,6 +96,7 @@ shader "Hidden/HDRISky"
         includes
         {
             "EngineResources/Shaders/Properties.hlsl";
+            "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl";
             "EngineResources/Shaders/Lighting/SphericalHarmonics.hlsl";
         }
 

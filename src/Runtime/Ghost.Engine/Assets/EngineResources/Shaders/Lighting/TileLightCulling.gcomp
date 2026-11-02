@@ -13,7 +13,7 @@ compute "Internal/TileLightCulling"
     includes
     {
         "EngineResources/Shaders/Properties.hlsl";
-        "EngineResources/Shaders/Common.hlsl";
+        "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl";
         "EngineResources/Shaders/Lighting/LightGridCommon.hlsl";
         "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl";
         "EngineResources/Shaders/Generated/GPULightData.hlsl";

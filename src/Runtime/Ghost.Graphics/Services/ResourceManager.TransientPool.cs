@@ -173,7 +173,7 @@ public partial class ResourceManager
 
             var handle = _resourceAllocator.CreateTexture(in desc, name, new CreationOptions
             {
-                AllocationType = ResourceAllocationType.Suballocation,
+                Flags = ResourceAllocationFlags.Suballocation,
                 Heap = page.heap,
                 Offset = alignedOffset,
             });
@@ -254,7 +254,7 @@ public partial class ResourceManager
 
             var handle = _resourceAllocator.CreateBuffer(in desc, name, new CreationOptions
             {
-                AllocationType = ResourceAllocationType.Suballocation,
+                Flags = ResourceAllocationFlags.Suballocation,
                 Heap = page.heap,
                 Offset = alignedOffset,
             });

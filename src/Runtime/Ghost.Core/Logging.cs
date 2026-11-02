@@ -100,18 +100,18 @@ public static class Logger
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Log(string? message, LogLevel level)
         {
+            var stackTrace = CaptureStackTrace ? new StackTrace(true).ToString() : null;
+            var logMessage = new LogMessage(level, message ?? string.Empty, stackTrace);
+
             lock (_lock)
             {
-                var stackTrace = CaptureStackTrace ? new StackTrace(true).ToString() : null;
-                var logMessage = new LogMessage(level, message ?? string.Empty, stackTrace);
-
                 _logs.Add(logMessage);
-                OnLogAdded?.Invoke(logMessage);
-
-#if DEBUG
-                System.Diagnostics.Debug.WriteLine($"[{level}] " + message);
-#endif
             }
+
+            OnLogAdded?.Invoke(logMessage);
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine($"[{level}] " + message);
+#endif
         }
 
         [StackTraceHidden]
@@ -130,8 +130,9 @@ public static class Logger
             lock (_lock)
             {
                 _logs.Clear();
-                OnLogsCleared?.Invoke();
             }
+
+            OnLogsCleared?.Invoke();
         }
 
         public void Flush()
@@ -141,19 +142,12 @@ public static class Logger
                 return;
             }
 
+            using var writer = new StreamWriter(LogFilePath, append: false);
             lock (_lock)
             {
-                try
+                foreach (var log in _logs)
                 {
-                    using var writer = new StreamWriter(LogFilePath, append: false);
-                    foreach (var log in _logs)
-                    {
-                        writer.WriteLine(log.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Failed to flush logs to file: {ex.Message}");
+                    writer.WriteLine(log.ToString());
                 }
             }
         }

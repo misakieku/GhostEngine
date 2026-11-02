@@ -23,7 +23,8 @@ DirectLighting ShadeSurface_Punctual(ShadingContext ctx, BSDFData bsdf, T strate
 
         if (lightColor.a > 0.0f && light.shadowDimmer > 0.0f)
         {
-            ShadowType shadow = GetPunctualShadowAttenuation(ctx, light, bsdf.normalWS, vector.L, vector.distance, lightPosRWS, lightIndex);
+            ShadowType shadow = GetPunctualShadowAttenuation(ctx.positionRWS, ctx.positionSS, bsdf.normalWS, vector.L, vector.distance, light,
+                lightIndex, g_Properties.shadowIndicesBufferSrv, g_Properties.shadowViewsBufferSrv, g_Properties.shadowAtlasSrv, g_Properties.depthTextureIndex);
             lightColor.rgb *= lerp(1.0f, shadow, light.shadowDimmer);
         }
 
@@ -60,7 +61,7 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
                 {
                     // Primary directional shadow evaluation (CSM placeholder + contact shadows)
                     float hitDist = 0.0f;
-                    if (TraceScreenContactShadow(ctx, normalize(L), 0.25f, 2.0f, hitDist))
+                    if (TraceScreenContactShadow(ctx.positionRWS, bsdf.normalWS, ctx.positionSS, g_Properties.depthTextureIndex, normalize(L), 0.25f, 2.0f, hitDist))
                     {
                         shadow = 0.0f;
                     }
@@ -71,17 +72,30 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
             }
         }
     }
+    
+#if defined(_SHADOW_RIS)
+    // Decoupled RIS pipeline
+    // Punctual lights are evaluated in dedicated passes
+    // (RisLightSampling -> RisRayTrace -> RisResolveShading) and composite the results here
+    
+    if (IS_VALID_TEXTURE(g_Properties.risResolvedDiffuseSrv))
+    {
+        Texture2D<float4> risDiffTex = GET_TEXTURE2D(g_Properties.risResolvedDiffuseSrv);
+        Texture2D<float4> risSpecTex = GET_TEXTURE2D(g_Properties.risResolvedSpecularSrv);
+        
+        DirectLighting lighting;
+        lighting.diffuse = risDiffTex[ctx.positionSS].rgb * bsdf.diffuseColor;
+        lighting.specular = risSpecTex[ctx.positionSS].rgb;
 
+        AccumulateDirectLighting(totalLighting, lighting);
+    }
+#else
     // Punctual Lights (Point / Spot) via FPTL Tile List
     if (IS_VALID_BUFFER(g_FrameData.punctualLightsBuffer))
     {
         uint tileIndex = ctx.tileCoord.y * tilesPerRow + ctx.tileCoord.x;
         uint lightCount = min(GetTileLightCount<DWORDS_PER_TILE>(tileLightList, tileIndex), MAX_LIGHTS_PER_TILE);
 
-#if defined(_SHADOW_RIS)
-        // Decoupled RIS pipeline: punctual lights are evaluated in dedicated passes
-        // (RisLightSampling -> RisRayTrace -> RisResolveShading) and composited in Lit_DeferredLighting!
-#else
         for (uint lightOffset = 0u; lightOffset < lightCount; lightOffset++)
         {
             TileLightFetchResult fetch = FetchTileLight<DWORDS_PER_TILE>(tileLightList, tileIndex, lightOffset);
@@ -94,11 +108,11 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
             DirectLighting lighting = ShadeSurface_Punctual<T>(ctx, bsdf, strategy, light, preLightData, V, fetch.lightIndex);
             AccumulateDirectLighting(totalLighting, lighting);
         }
-#endif
     }
+#endif
 
     // Image-Based Lighting (Diffuse SH9 + Specular Split-Sum Cubemap)
-    if (IS_VALID_BUFFER(ctx.skyboxTextureIndex))
+    if (IS_VALID_TEXTURE(g_Properties.skyboxTextureSrv) || IS_VALID_BUFFER(g_Properties.persistentViewStateBufferSrv))
     {
         IndirectLighting ibl = strategy.EvaluateIndirectLighting(ctx, bsdf, preLightData, V);
         AccumulateIndirectLighting(totalLighting, ibl);

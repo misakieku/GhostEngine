@@ -238,12 +238,6 @@ public static unsafe class RenderPipelineUtility
         return frameGpuBuffer;
     }
 
-    public static Handle<GPUBuffer> CreateViewDataBuffer(ResourceContext ctx, RenderRequest request, RenderViewData renderView, float4x4 viewMatrix, float4x4 projMatrix, float4x4 viewProjMatrix, Frustum frustum, ref float4x4 prevVP)
-    {
-        var dummyCam = request.view.localToWorld.c3.xyz;
-        return CreateViewDataBuffer(ctx, request, renderView, viewMatrix, projMatrix, viewProjMatrix, frustum, ref prevVP, ref dummyCam);
-    }
-
     public static Handle<GPUBuffer> CreateViewDataBuffer(ResourceContext ctx, RenderRequest request, RenderViewData renderView, float4x4 viewMatrix, float4x4 projMatrix, float4x4 viewProjMatrix, Frustum frustum, ref float4x4 prevVP, ref float3 prevCameraPos)
     {
         var camPos = request.view.localToWorld.c3.xyz;
@@ -282,6 +276,7 @@ public static unsafe class RenderPipelineUtility
             Usage = BufferUsage.Constant | BufferUsage.ShaderResource,
             HeapType = HeapType.Upload,
         };
+
         var viewGpuBuffer = ctx.ResourceManager.CreateTransientBuffer(in viewDesc, "ViewDataBuffer");
         var pViewData = (ViewData*)ctx.ResourceDatabase.MapResource(viewGpuBuffer.AsResource(), 0, null);
         *pViewData = viewData;

@@ -257,6 +257,7 @@ public class SystemDAGTests
         Assert.IsNotNull(group);
     }
 
+#if GHOST_ECS_SYSTEM_DAG_TEST // This test took a long time to run in CI, so it's disabled by default. You can enable it for stress testing.
     [TestMethod]
     public void TestSystemGroup_StressLoop()
     {
@@ -278,4 +279,5 @@ public class SystemDAGTests
             group.Cleanup(in api);
         }
     }
+#endif
 }

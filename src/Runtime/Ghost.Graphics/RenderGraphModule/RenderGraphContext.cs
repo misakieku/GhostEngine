@@ -188,18 +188,34 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.ALL_SUBRESOURCES)
     {
+        if (texture.IsInvalid)
+        {
+            return RHIUtility.INVALID_BINDLESS_INDEX;
+        }
+
         return _resourceDatabase.GetBindlessIndex(GetActualTexture(texture).AsResource(), access, subResource);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void GetActualBindlessIndices(Identifier<RGTexture> texture, ReadOnlySpan<uint> subResources, Span<uint> outIndices, BindlessAccess access = BindlessAccess.ShaderResource)
     {
+        if (texture.IsInvalid)
+        {
+            outIndices.Fill(RHIUtility.INVALID_BINDLESS_INDEX);
+            return;
+        }
+
         _resourceDatabase.GetBindlessIndices(GetActualTexture(texture).AsResource(), subResources, outIndices, access);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource)
     {
+        if (buffer.IsInvalid)
+        {
+            return RHIUtility.INVALID_BINDLESS_INDEX;
+        }
+
         return _resourceDatabase.GetBindlessIndex(GetActualBuffer(buffer).AsResource(), access);
     }
 

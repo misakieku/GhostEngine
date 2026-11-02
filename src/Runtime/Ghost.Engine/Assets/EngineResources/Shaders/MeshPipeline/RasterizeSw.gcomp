@@ -13,6 +13,7 @@ compute "Internal/RasterizeSw"
     {
         "EngineResources/Shaders/Properties.hlsl";
         "EngineResources/Shaders/Mesh.hlsl";
+        "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl";
         "EngineResources/Shaders/Utilities/CullCommon.hlsl";
         "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl";
         "EngineResources/Shaders/MaterialPipeline/VisibilityBufferEncoding.hlsl";

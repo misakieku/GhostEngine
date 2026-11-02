@@ -2,15 +2,18 @@ using Ghost.Core;
 
 namespace Ghost.Graphics.RHI;
 
-public enum ResourceAllocationType
+[Flags]
+public enum ResourceAllocationFlags
 {
-    Default,
-    Suballocation,
+    Default = 0,
+    Suballocation = 1 << 0,
+    Committed = 1 << 1,
+    NoneZeroed = 1 << 2,
 }
 
 public struct CreationOptions
 {
-    public ResourceAllocationType AllocationType
+    public ResourceAllocationFlags Flags
     {
         get; set;
     }

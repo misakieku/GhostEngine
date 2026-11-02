@@ -84,8 +84,6 @@ internal unsafe partial class GhostRenderPipeline
             return math.lerp(baseBias, maxBaseBias, math.min(1.0f, (softness * 100) / 5));
         }
 
-
-
         public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
         {
             ref readonly var request = ref lights[loopIndex];
@@ -224,7 +222,7 @@ internal unsafe partial class GhostRenderPipeline
         shadowIndicesBufferSrv = uint.MaxValue;
 
         var lightCount = lights.Length;
-        if (lightCount == 0 || _settings.ShadowMode == PipelineShadowMode.RIS)
+        if (lightCount == 0)
         {
             return;
         }

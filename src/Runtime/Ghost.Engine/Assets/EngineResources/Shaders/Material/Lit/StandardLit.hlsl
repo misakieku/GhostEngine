@@ -67,9 +67,9 @@ struct StandardLitDeferredLighting
 
         // Precompute multi-scattering energy compensation factor using the split-sum LUT
         float2 envBRDF = float2(0.0f, 0.0f);
-        if (IS_VALID_BUFFER(ctx.iblLutTextureIndex))
+        if (IS_VALID_TEXTURE(g_Properties.iblLutTextureSrv))
         {
-            envBRDF = SampleTexture2DLevel<float4>(ctx.iblLutTextureIndex, LinearClampSampler, float2(data.clampedNdotV, bsdf.perceptualRoughness), 0.0f).rg;
+            envBRDF = SampleTexture2DLevel<float4>(g_Properties.iblLutTextureSrv, LinearClampSampler, float2(data.clampedNdotV, bsdf.perceptualRoughness), 0.0f).rg;
         }
 
         float reflectivity = envBRDF.x + envBRDF.y;
@@ -125,28 +125,28 @@ struct StandardLitDeferredLighting
         IndirectLighting indirect = (IndirectLighting)0;
 
         // 1. Diffuse IBL via Spherical Harmonics L2
-        if (IS_VALID_BUFFER(ctx.persistentViewStateBufferIndex))
+        if (IS_VALID_BUFFER(g_Properties.persistentViewStateBufferSrv))
         {
-            PackedSH9 sh = LoadViewSH9(ctx.persistentViewStateBufferIndex, ctx.viewId);
+            PackedSH9 sh = LoadViewSH9(g_Properties.persistentViewStateBufferSrv, g_Properties.viewId);
             float3 diffuseIrradiance = EvaluateSH9Irradiance(sh, bsdf.normalWS);
             indirect.diffuse = diffuseIrradiance * bsdf.diffuseColor * bsdf.ambientOcclusion;
         }
 
         // 2. Specular IBL via GGX prefiltered cubemap + Split-Sum BRDF LUT
-        if (IS_VALID_BUFFER(ctx.skyboxTextureIndex))
+        if (IS_VALID_TEXTURE(g_Properties.skyboxTextureSrv))
         {
             float3 R = reflect(-V, bsdf.normalWS);
-            float3 rotatedR = RotateDirectionY(R, ctx.skyboxRotationSinCos);
+            float3 rotatedR = RotateDirectionY(R, g_Properties.skyboxRotationSinCos);
 
-            float mip = bsdf.perceptualRoughness * max(0.0f, float(ctx.skyboxMipCount) - 1.0f);
-            float3 prefilteredSpec = SampleTextureCubeLevel<float4>(ctx.skyboxTextureIndex, TrilinearClampSampler, rotatedR, mip).rgb;
-            prefilteredSpec *= ctx.skyboxTintAndIntensity.rgb * ctx.skyboxTintAndIntensity.w;
+            float mip = bsdf.perceptualRoughness * max(0.0f, float(g_Properties.skyboxMipCount) - 1.0f);
+            float3 prefilteredSpec = SampleTextureCubeLevel<float4>(g_Properties.skyboxTextureSrv, TrilinearClampSampler, rotatedR, mip).rgb;
+            prefilteredSpec *= g_Properties.skyboxTintAndIntensity.rgb * g_Properties.skyboxTintAndIntensity.w;
 
             float2 envBRDF = float2(0.0f, 0.0f);
-            if (IS_VALID_BUFFER(ctx.iblLutTextureIndex))
+            if (IS_VALID_TEXTURE(g_Properties.iblLutTextureSrv))
             {
                 // PBR.dds contains BRDF LUT in RG channels: x = scale, y = bias
-                envBRDF = SampleTexture2DLevel<float4>(ctx.iblLutTextureIndex, LinearClampSampler, float2(preLightData.clampedNdotV, bsdf.perceptualRoughness), 0.0f).rg;
+                envBRDF = SampleTexture2DLevel<float4>(g_Properties.iblLutTextureSrv, LinearClampSampler, float2(preLightData.clampedNdotV, bsdf.perceptualRoughness), 0.0f).rg;
             }
 
             float3 specularColor = prefilteredSpec * (bsdf.fresnel0 * envBRDF.x + envBRDF.y) * bsdf.specularOcclusion;
