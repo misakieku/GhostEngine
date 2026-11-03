@@ -454,6 +454,36 @@ internal unsafe partial class GhostRenderPipeline
         public uint risResolvedSpecularSrv;
     }
 
+    [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl")]
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RisResolveShadingShaderProperties
+    {
+        public uint depthTextureIndex;
+        public uint gbuffer0Srv;
+        public uint gbuffer1Srv;
+        public uint gbuffer2Srv;
+        public uint gbuffer3Srv;
+        public uint risLightSamplesIndex;
+        public uint risShadowMaskIndex;
+        public uint tileShadingModelMaskBufferIndex;
+        public uint risResolvedDiffuseUav;
+        public uint risResolvedSpecularUav;
+        public uint renderWidth;
+        public uint renderHeight;
+        public uint tilesPerRow;
+        public uint shadingModelId;
+        public uint iblLutTextureSrv;
+        public uint persistentViewStateBufferSrv;
+        public uint viewId;
+        public uint skyboxTextureSrv;
+        public uint skyboxMipCount;
+        public uint _pad0;
+        public float4 skyboxTintAndIntensity;
+        public float2 skyboxRotationSinCos;
+        public uint _pad1;
+        public uint _pad2;
+    }
+
     private struct DeferredLightingPassData
     {
         public Identifier<RGTexture> gbuffer0;
@@ -718,11 +748,15 @@ internal unsafe partial class GhostRenderPipeline
         public Identifier<RGTexture> gbuffer0;
         public Identifier<RGTexture> gbuffer1;
         public Identifier<RGTexture> gbuffer2;
+        public Identifier<RGTexture> gbuffer3;
+        public Identifier<RGBuffer> tileShadingModelMaskBuffer;
         public Identifier<RGTexture> risLightSamples;
         public Identifier<RGTexture> risShadowMask;
         public Identifier<RGTexture> risResolvedDiffuse;
         public Identifier<RGTexture> risResolvedSpecular;
-        public Handle<ComputeShader> shader;
+        public ShaderVariantRegistry variantRegistry;
+        public uint tilesPerRow;
+        public uint tilesY;
         public uint2 renderSize;
     }
 
@@ -758,27 +792,30 @@ internal unsafe partial class GhostRenderPipeline
     {
         ref readonly var vis = ref rg.Blackboard.Get<GeometryVisibilityData>();
         ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
+        ref readonly var tile = ref rg.Blackboard.Get<TileClassificationData>();
         var depthTexture = vis.depth;
         ref readonly var gbuffer = ref gbufferData.gbuffer;
         var tileLightList = gbufferData.tileLightList;
+        var tileShadingModelMaskBuffer = tile.tileShadingModelMaskBuffer;
 
         var tilesX = (renderSize.x + 15u) / 16u;
+        var tilesY = (renderSize.y + 15u) / 16u;
 
         // 1. RisLightSampling (Generates 1 winner light and weight W per pixel)
 
         Identifier<RGTexture> risLightSamples;
-        using (var samplingBuilder = rg.AddComputeRenderPass<RisLightSamplingPassData>("RisLightSampling"))
+        using (var builder = rg.AddComputeRenderPass<RisLightSamplingPassData>("RisLightSampling"))
         {
             var samplesDesc = RGTextureDesc.Relative(1.0f, TextureFormat.R32G32_UInt, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
-            risLightSamples = samplingBuilder.CreateTexture(in samplesDesc, "RisLightSamples");
+            risLightSamples = builder.CreateTexture(in samplesDesc, "RisLightSamples");
 
-            samplingBuilder.UseTexture(depthTexture, AccessFlags.Read);
-            samplingBuilder.UseTexture(gbuffer.GBuffer0, AccessFlags.Read);
-            samplingBuilder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
-            samplingBuilder.UseBuffer(tileLightList, AccessFlags.Read);
-            samplingBuilder.UseTexture(risLightSamples, AccessFlags.Write);
+            builder.UseTexture(depthTexture, AccessFlags.Read);
+            builder.UseTexture(gbuffer.GBuffer0, AccessFlags.Read);
+            builder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
+            builder.UseBuffer(tileLightList, AccessFlags.Read);
+            builder.UseTexture(risLightSamples, AccessFlags.Write);
 
-            samplingBuilder.SetPassData(new RisLightSamplingPassData
+            builder.SetPassData(new RisLightSamplingPassData
             {
                 depthTexture = depthTexture,
                 gbuffer0 = gbuffer.GBuffer0,
@@ -791,7 +828,7 @@ internal unsafe partial class GhostRenderPipeline
                 frameIndex = frameIndex
             });
 
-            samplingBuilder.SetRenderFunc<RisLightSamplingPassData>(static (ref readonly passData, computeCtx) =>
+            builder.SetRenderFunc<RisLightSamplingPassData>(static (ref readonly passData, computeCtx) =>
             {
                 var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
                 var gb0Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer0, BindlessAccess.ShaderResource);
@@ -847,16 +884,16 @@ internal unsafe partial class GhostRenderPipeline
         };
         var indirectArgsBuffer = rg.CreateBuffer(in indirectDesc, "RisRayTraceIndirectArgs");
 
-        using (var contactShadowBuilder = rg.AddComputeRenderPass<RisScreenContactShadowPassData>("RisScreenContactShadow"))
+        using (var builder = rg.AddComputeRenderPass<RisScreenContactShadowPassData>("RisScreenContactShadow"))
         {
-            contactShadowBuilder.UseTexture(depthTexture, AccessFlags.Read);
-            contactShadowBuilder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
-            contactShadowBuilder.UseTexture(risLightSamples, AccessFlags.Read);
-            contactShadowBuilder.UseTexture(risShadowMask, AccessFlags.Write);
-            contactShadowBuilder.UseBuffer(unresolvedRaysBuffer, AccessFlags.Write);
-            contactShadowBuilder.UseBuffer(counterBuffer, AccessFlags.ReadWrite);
+            builder.UseTexture(depthTexture, AccessFlags.Read);
+            builder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
+            builder.UseTexture(risLightSamples, AccessFlags.Read);
+            builder.UseTexture(risShadowMask, AccessFlags.Write);
+            builder.UseBuffer(unresolvedRaysBuffer, AccessFlags.Write);
+            builder.UseBuffer(counterBuffer, AccessFlags.ReadWrite);
 
-            contactShadowBuilder.SetPassData(new RisScreenContactShadowPassData
+            builder.SetPassData(new RisScreenContactShadowPassData
             {
                 depthTexture = depthTexture,
                 gbuffer1 = gbuffer.GBuffer1,
@@ -870,7 +907,7 @@ internal unsafe partial class GhostRenderPipeline
                 frameIndex = frameIndex
             });
 
-            contactShadowBuilder.SetRenderFunc<RisScreenContactShadowPassData>(static (ref readonly passData, computeCtx) =>
+            builder.SetRenderFunc<RisScreenContactShadowPassData>(static (ref readonly passData, computeCtx) =>
             {
                 computeCtx.ClearBuffer(passData.counterBuffer, 4);
 
@@ -902,19 +939,19 @@ internal unsafe partial class GhostRenderPipeline
         }
 
         // 2B. PrepareRisRayTraceIndirectArgs (Computes 1D thread group dispatch size from ray count)
-        using (var prepareBuilder = rg.AddComputeRenderPass<PrepareRisRayTraceIndirectArgsPassData>("PrepareRisRayTraceIndirectArgs"))
+        using (var builder = rg.AddComputeRenderPass<PrepareRisRayTraceIndirectArgsPassData>("PrepareRisRayTraceIndirectArgs"))
         {
-            prepareBuilder.UseBuffer(counterBuffer, AccessFlags.Read);
-            prepareBuilder.UseBuffer(indirectArgsBuffer, AccessFlags.Write);
+            builder.UseBuffer(counterBuffer, AccessFlags.Read);
+            builder.UseBuffer(indirectArgsBuffer, AccessFlags.Write);
 
-            prepareBuilder.SetPassData(new PrepareRisRayTraceIndirectArgsPassData
+            builder.SetPassData(new PrepareRisRayTraceIndirectArgsPassData
             {
                 counterBuffer = counterBuffer,
                 indirectArgsBuffer = indirectArgsBuffer,
                 shader = _lightingPipelineResource.prepareRisRayTraceIndirectArgsShader
             });
 
-            prepareBuilder.SetRenderFunc<PrepareRisRayTraceIndirectArgsPassData>(static (ref readonly passData, computeCtx) =>
+            builder.SetRenderFunc<PrepareRisRayTraceIndirectArgsPassData>(static (ref readonly passData, computeCtx) =>
             {
                 var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
                 var indirectUav = computeCtx.GetActualBindlessIndex(passData.indirectArgsBuffer, BindlessAccess.UnorderedAccess);
@@ -932,17 +969,17 @@ internal unsafe partial class GhostRenderPipeline
         }
 
         // 2C. RisRayTrace (1D Indirect DXR 1.1 shadow ray query with 100% active lane occupancy)
-        using (var rayTraceBuilder = rg.AddComputeRenderPass<RisRayTracePassData>("RisRayTrace"))
+        using (var builder = rg.AddComputeRenderPass<RisRayTracePassData>("RisRayTrace"))
         {
-            rayTraceBuilder.UseTexture(depthTexture, AccessFlags.Read);
-            rayTraceBuilder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
-            rayTraceBuilder.UseTexture(risLightSamples, AccessFlags.Read);
-            rayTraceBuilder.UseBuffer(unresolvedRaysBuffer, AccessFlags.Read);
-            rayTraceBuilder.UseBuffer(counterBuffer, AccessFlags.Read);
-            rayTraceBuilder.UseBuffer(indirectArgsBuffer, AccessFlags.Read);
-            rayTraceBuilder.UseTexture(risShadowMask, AccessFlags.ReadWrite);
+            builder.UseTexture(depthTexture, AccessFlags.Read);
+            builder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
+            builder.UseTexture(risLightSamples, AccessFlags.Read);
+            builder.UseBuffer(unresolvedRaysBuffer, AccessFlags.Read);
+            builder.UseBuffer(counterBuffer, AccessFlags.Read);
+            builder.UseBuffer(indirectArgsBuffer, AccessFlags.Read);
+            builder.UseTexture(risShadowMask, AccessFlags.ReadWrite);
 
-            rayTraceBuilder.SetPassData(new RisRayTracePassData
+            builder.SetPassData(new RisRayTracePassData
             {
                 depthTexture = depthTexture,
                 gbuffer1 = gbuffer.GBuffer1,
@@ -959,7 +996,7 @@ internal unsafe partial class GhostRenderPipeline
                 frameIndex = frameIndex
             });
 
-            rayTraceBuilder.SetRenderFunc<RisRayTracePassData>(static (ref readonly passData, computeCtx) =>
+            builder.SetRenderFunc<RisRayTracePassData>(static (ref readonly passData, computeCtx) =>
             {
                 var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
                 var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
@@ -994,64 +1031,102 @@ internal unsafe partial class GhostRenderPipeline
 
         Identifier<RGTexture> resolvedDiffuse;
         Identifier<RGTexture> resolvedSpecular;
-        using (var resolveBuilder = rg.AddComputeRenderPass<RisResolveShadingPassData>("RisResolveShading"))
+
+        using (var builder = rg.AddComputeRenderPass<RisResolveShadingPassData>("RisResolveShading"))
         {
             var diffuseDesc = RGTextureDesc.Relative(1.0f, TextureFormat.R16G16B16A16_Float, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
             var specularDesc = RGTextureDesc.Relative(1.0f, TextureFormat.R16G16B16A16_Float, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
-            resolvedDiffuse = rg.CreateTexture(in diffuseDesc, "RisResolvedDiffuse");
-            resolvedSpecular = rg.CreateTexture(in specularDesc, "RisResolvedSpecular");
+            resolvedDiffuse = builder.CreateTexture(in diffuseDesc, "RisResolvedDiffuse");
+            resolvedSpecular = builder.CreateTexture(in specularDesc, "RisResolvedSpecular");
 
-            resolveBuilder.UseTexture(depthTexture, AccessFlags.Read);
-            resolveBuilder.UseTexture(gbuffer.GBuffer0, AccessFlags.Read);
-            resolveBuilder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
-            resolveBuilder.UseTexture(gbuffer.GBuffer2, AccessFlags.Read);
-            resolveBuilder.UseTexture(risLightSamples, AccessFlags.Read);
-            resolveBuilder.UseTexture(risShadowMask, AccessFlags.Read);
-            resolveBuilder.UseTexture(resolvedDiffuse, AccessFlags.Write);
-            resolveBuilder.UseTexture(resolvedSpecular, AccessFlags.Write);
+            builder.UseTexture(depthTexture, AccessFlags.Read);
+            builder.UseTexture(gbuffer.GBuffer0, AccessFlags.Read);
+            builder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
+            builder.UseTexture(gbuffer.GBuffer2, AccessFlags.Read);
+            builder.UseTexture(gbuffer.GBuffer3, AccessFlags.Read);
+            builder.UseBuffer(tileShadingModelMaskBuffer, AccessFlags.Read);
+            builder.UseTexture(risLightSamples, AccessFlags.Read);
+            builder.UseTexture(risShadowMask, AccessFlags.Read);
+            builder.UseTexture(resolvedDiffuse, AccessFlags.Write);
+            builder.UseTexture(resolvedSpecular, AccessFlags.Write);
 
-            resolveBuilder.SetPassData(new RisResolveShadingPassData
+            builder.SetPassData(new RisResolveShadingPassData
             {
                 depthTexture = depthTexture,
                 gbuffer0 = gbuffer.GBuffer0,
                 gbuffer1 = gbuffer.GBuffer1,
                 gbuffer2 = gbuffer.GBuffer2,
+                gbuffer3 = gbuffer.GBuffer3,
+                tileShadingModelMaskBuffer = tileShadingModelMaskBuffer,
                 risLightSamples = risLightSamples,
                 risShadowMask = risShadowMask,
                 risResolvedDiffuse = resolvedDiffuse,
                 risResolvedSpecular = resolvedSpecular,
-                shader = _lightingPipelineResource.risResolveShadingShader,
+                variantRegistry = _assetManager.ShaderVariants,
+                tilesPerRow = tilesX,
+                tilesY = tilesY,
                 renderSize = renderSize
             });
 
-            resolveBuilder.SetRenderFunc<RisResolveShadingPassData>(static (ref readonly passData, computeCtx) =>
+            builder.SetRenderFunc<RisResolveShadingPassData>(static (ref readonly passData, computeCtx) =>
             {
                 var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
                 var gb0Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer0, BindlessAccess.ShaderResource);
                 var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
                 var gb2Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer2, BindlessAccess.ShaderResource);
+                var gb3Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer3, BindlessAccess.ShaderResource);
+                var maskBufferSrv = computeCtx.GetActualBindlessIndex(passData.tileShadingModelMaskBuffer, BindlessAccess.ShaderResource);
                 var samplesSrv = computeCtx.GetActualBindlessIndex(passData.risLightSamples, BindlessAccess.ShaderResource);
                 var shadowSrv = computeCtx.GetActualBindlessIndex(passData.risShadowMask, BindlessAccess.ShaderResource);
                 var diffUav = computeCtx.GetActualBindlessIndex(passData.risResolvedDiffuse, BindlessAccess.UnorderedAccess);
                 var specUav = computeCtx.GetActualBindlessIndex(passData.risResolvedSpecular, BindlessAccess.UnorderedAccess);
 
-                var props = new InternalRisResolveShadingShaderProperties
-                {
-                    depthTextureIndex = depthSrv,
-                    gbuffer0Index = gb0Srv,
-                    gbuffer1Index = gb1Srv,
-                    gbuffer2Index = gb2Srv,
-                    risLightSamplesIndex = samplesSrv,
-                    risShadowMaskIndex = shadowSrv,
-                    risResolvedDiffuseUav = diffUav,
-                    risResolvedSpecularUav = specUav,
-                    renderWidth = passData.renderSize.x,
-                    renderHeight = passData.renderSize.y
-                };
+                var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.RisResolveShading);
 
-                computeCtx.SetActiveCompute(passData.shader, 0);
-                computeCtx.SetUserDataWithProperties(in props);
-                computeCtx.DispatchCompute((passData.renderSize.x + 15u) / 16u, (passData.renderSize.y + 15u) / 16u, 1);
+                for (var i = 0; i < dispatchVariants.Length; i++)
+                {
+                    ref readonly var variant = ref dispatchVariants[i];
+
+                    if (!passData.variantRegistry.IsBytecodeReady(variant.DenseIndex) ||
+                        !computeCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.RisResolveShading))
+                    {
+                        continue;
+                    }
+
+                    ref readonly var variantRecord = ref passData.variantRegistry.GetVariant(new ShaderVariantIndex(variant.DenseIndex));
+                    var shadingModelId = variantRecord.ShadingModelId;
+
+                    var props = new RisResolveShadingShaderProperties
+                    {
+                        depthTextureIndex = depthSrv,
+                        gbuffer0Srv = gb0Srv,
+                        gbuffer1Srv = gb1Srv,
+                        gbuffer2Srv = gb2Srv,
+                        gbuffer3Srv = gb3Srv,
+                        risLightSamplesIndex = samplesSrv,
+                        risShadowMaskIndex = shadowSrv,
+                        tileShadingModelMaskBufferIndex = maskBufferSrv,
+                        risResolvedDiffuseUav = diffUav,
+                        risResolvedSpecularUav = specUav,
+                        renderWidth = passData.renderSize.x,
+                        renderHeight = passData.renderSize.y,
+                        tilesPerRow = passData.tilesPerRow,
+                        shadingModelId = shadingModelId,
+                        iblLutTextureSrv = uint.MaxValue,
+                        persistentViewStateBufferSrv = uint.MaxValue,
+                        viewId = 0,
+                        skyboxTextureSrv = uint.MaxValue,
+                        skyboxMipCount = 0,
+                        _pad0 = 0,
+                        skyboxTintAndIntensity = default,
+                        skyboxRotationSinCos = default,
+                        _pad1 = 0,
+                        _pad2 = 0
+                    };
+
+                    computeCtx.SetUserDataWithProperties(in props, target: DataTarget.Compute);
+                    computeCtx.DispatchCompute(passData.tilesPerRow, passData.tilesY, 1);
+                }
             });
         }
 
@@ -1062,25 +1137,25 @@ internal unsafe partial class GhostRenderPipeline
         Identifier<RGTexture> temporalDiffuse;
         Identifier<RGTexture> temporalSpecular;
 
-        using (var temporalBuilder = rg.AddComputeRenderPass<RisDenoiserTemporalPassData>("RisDenoiserTemporal"))
+        using (var builder = rg.AddComputeRenderPass<RisDenoiserTemporalPassData>("RisDenoiserTemporal"))
         {
-            temporalDiffuse = temporalBuilder.CreateTexture(historyDiffuse, "RisTemporalDiffuse");
-            temporalSpecular = temporalBuilder.CreateTexture(historySpecular, "RisTemporalSpecular");
+            temporalDiffuse = builder.CreateTexture(historyDiffuse, "RisTemporalDiffuse");
+            temporalSpecular = builder.CreateTexture(historySpecular, "RisTemporalSpecular");
 
-            temporalBuilder.UseTexture(depthTexture, AccessFlags.Read);
-            temporalBuilder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
-            temporalBuilder.UseTexture(gbuffer.MotionVectors, AccessFlags.Read);
-            temporalBuilder.UseTexture(resolvedDiffuse, AccessFlags.Read);
-            temporalBuilder.UseTexture(resolvedSpecular, AccessFlags.Read);
-            temporalBuilder.UseTexture(historyDiffuse, AccessFlags.Read);
-            temporalBuilder.UseTexture(historySpecular, AccessFlags.Read);
-            temporalBuilder.UseTexture(temporalDiffuse, AccessFlags.Write);
-            temporalBuilder.UseTexture(temporalSpecular, AccessFlags.Write);
+            builder.UseTexture(depthTexture, AccessFlags.Read);
+            builder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
+            builder.UseTexture(gbuffer.MotionVectors, AccessFlags.Read);
+            builder.UseTexture(resolvedDiffuse, AccessFlags.Read);
+            builder.UseTexture(resolvedSpecular, AccessFlags.Read);
+            builder.UseTexture(historyDiffuse, AccessFlags.Read);
+            builder.UseTexture(historySpecular, AccessFlags.Read);
+            builder.UseTexture(temporalDiffuse, AccessFlags.Write);
+            builder.UseTexture(temporalSpecular, AccessFlags.Write);
 
-            temporalBuilder.QueueTextureExtraction(temporalDiffuse, risHistory.DiffuseHistory);
-            temporalBuilder.QueueTextureExtraction(temporalSpecular, risHistory.SpecularHistory);
+            builder.QueueTextureExtraction(temporalDiffuse, risHistory.DiffuseHistory);
+            builder.QueueTextureExtraction(temporalSpecular, risHistory.SpecularHistory);
 
-            temporalBuilder.SetPassData(new RisDenoiserTemporalPassData
+            builder.SetPassData(new RisDenoiserTemporalPassData
             {
                 depthTexture = depthTexture,
                 gbuffer1 = gbuffer.GBuffer1,
@@ -1098,7 +1173,7 @@ internal unsafe partial class GhostRenderPipeline
 
             risHistory.MarkValid();
 
-            temporalBuilder.SetRenderFunc<RisDenoiserTemporalPassData>(static (ref readonly passData, computeCtx) =>
+            builder.SetRenderFunc<RisDenoiserTemporalPassData>(static (ref readonly passData, computeCtx) =>
             {
                 var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
                 var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
@@ -1136,16 +1211,16 @@ internal unsafe partial class GhostRenderPipeline
         var filteredDiffuse = rg.CreateTexture(resolvedDiffuse, "RisFilteredDiffuse");
         var filteredSpecular = rg.CreateTexture(resolvedSpecular, "RisFilteredSpecular");
 
-        using (var denoiserBuilder = rg.AddComputeRenderPass<RisDenoiserSpatialPassData>("RisDenoiserSpatial"))
+        using (var builder = rg.AddComputeRenderPass<RisDenoiserSpatialPassData>("RisDenoiserSpatial"))
         {
-            denoiserBuilder.UseTexture(depthTexture, AccessFlags.Read);
-            denoiserBuilder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
-            denoiserBuilder.UseTexture(temporalDiffuse, AccessFlags.Read);
-            denoiserBuilder.UseTexture(temporalSpecular, AccessFlags.Read);
-            denoiserBuilder.UseTexture(filteredDiffuse, AccessFlags.Write);
-            denoiserBuilder.UseTexture(filteredSpecular, AccessFlags.Write);
+            builder.UseTexture(depthTexture, AccessFlags.Read);
+            builder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
+            builder.UseTexture(temporalDiffuse, AccessFlags.Read);
+            builder.UseTexture(temporalSpecular, AccessFlags.Read);
+            builder.UseTexture(filteredDiffuse, AccessFlags.Write);
+            builder.UseTexture(filteredSpecular, AccessFlags.Write);
 
-            denoiserBuilder.SetPassData(new RisDenoiserSpatialPassData
+            builder.SetPassData(new RisDenoiserSpatialPassData
             {
                 depthTexture = depthTexture,
                 gbuffer1 = gbuffer.GBuffer1,
@@ -1157,7 +1232,7 @@ internal unsafe partial class GhostRenderPipeline
                 renderSize = renderSize
             });
 
-            denoiserBuilder.SetRenderFunc<RisDenoiserSpatialPassData>(static (ref readonly passData, computeCtx) =>
+            builder.SetRenderFunc<RisDenoiserSpatialPassData>(static (ref readonly passData, computeCtx) =>
             {
                 var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
                 var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
@@ -1275,28 +1350,28 @@ internal unsafe partial class GhostRenderPipeline
 
         Identifier<RGBuffer> unbinnedMeshlets;
         Identifier<RGBuffer> counterBuffer;
-        using (var cullBuilder = rg.AddComputeRenderPass<ShadowCullPassData>("MeshletCull_Shadow"))
+        using (var builder = rg.AddComputeRenderPass<ShadowCullPassData>("MeshletCull_Shadow"))
         {
             // Work Graph Shadow Culling
-            unbinnedMeshlets = cullBuilder.CreateBuffer(new BufferDesc
+            unbinnedMeshlets = builder.CreateBuffer(new BufferDesc
             {
                 Size = visibleBufferSize,
                 Stride = entrySize,
                 Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
             }, "ShadowUnbinnedMeshlets");
 
-            counterBuffer = cullBuilder.CreateBuffer(new BufferDesc
+            counterBuffer = builder.CreateBuffer(new BufferDesc
             {
                 Size = counterBufferSize,
                 Stride = 4,
                 Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
             }, "ShadowCounterBuffer");
 
-            cullBuilder.AllowPassCulling(false);
-            cullBuilder.UseBuffer(unbinnedMeshlets, AccessFlags.Write);
-            cullBuilder.UseBuffer(counterBuffer, AccessFlags.ReadWrite);
+            builder.AllowPassCulling(false);
+            builder.UseBuffer(unbinnedMeshlets, AccessFlags.Write);
+            builder.UseBuffer(counterBuffer, AccessFlags.ReadWrite);
 
-            cullBuilder.SetPassData(new ShadowCullPassData
+            builder.SetPassData(new ShadowCullPassData
             {
                 visibleMeshlets = unbinnedMeshlets,
                 counterBuffer = counterBuffer,
@@ -1313,7 +1388,7 @@ internal unsafe partial class GhostRenderPipeline
                 cullingThreshold = _settings.InstanceCullingThreshold,
             });
 
-            cullBuilder.SetRenderFunc<ShadowCullPassData>(static (ref readonly passData, computeCtx) =>
+            builder.SetRenderFunc<ShadowCullPassData>(static (ref readonly passData, computeCtx) =>
             {
                 computeCtx.ClearBuffer(passData.counterBuffer, passData.counterBufferSize);
 
@@ -1350,35 +1425,35 @@ internal unsafe partial class GhostRenderPipeline
         Identifier<RGBuffer> indirectArgs;
         Identifier<RGBuffer> binOffsets;
         Identifier<RGBuffer> binScatterCounters;
-        using (var prepBuilder = rg.AddComputeRenderPass<PrepareIndirectArgsPassData>("PrepareShadowIndirectArgs"))
+        using (var builder = rg.AddComputeRenderPass<PrepareIndirectArgsPassData>("PrepareShadowIndirectArgs"))
         {
-            indirectArgs = prepBuilder.CreateBuffer(new BufferDesc
+            indirectArgs = builder.CreateBuffer(new BufferDesc
             {
                 Size = CullCommon.GetIndirectArgsBufferSize(maxVariants),
                 Stride = 4,
                 Usage = BufferUsage.IndirectArgument | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
             }, "ShadowIndirectArgsBuffer");
 
-            binOffsets = prepBuilder.CreateBuffer(new BufferDesc
+            binOffsets = builder.CreateBuffer(new BufferDesc
             {
                 Size = CullCommon.GetBinOffsetsBufferSize(maxVariants),
                 Stride = 4,
                 Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
             }, "ShadowBinOffsetsBuffer");
 
-            binScatterCounters = prepBuilder.CreateBuffer(new BufferDesc
+            binScatterCounters = builder.CreateBuffer(new BufferDesc
             {
                 Size = CullCommon.GetBinOffsetsBufferSize(maxVariants),
                 Stride = 4,
                 Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
             }, "ShadowBinScatterCounters");
 
-            prepBuilder.UseBuffer(counterBuffer, AccessFlags.Read);
-            prepBuilder.UseBuffer(indirectArgs, AccessFlags.Write);
-            prepBuilder.UseBuffer(binOffsets, AccessFlags.Write);
-            prepBuilder.UseBuffer(binScatterCounters, AccessFlags.Write);
+            builder.UseBuffer(counterBuffer, AccessFlags.Read);
+            builder.UseBuffer(indirectArgs, AccessFlags.Write);
+            builder.UseBuffer(binOffsets, AccessFlags.Write);
+            builder.UseBuffer(binScatterCounters, AccessFlags.Write);
 
-            prepBuilder.SetPassData(new PrepareIndirectArgsPassData
+            builder.SetPassData(new PrepareIndirectArgsPassData
             {
                 counterBuffer = counterBuffer,
                 indirectArgsBuffer = indirectArgs,
@@ -1390,7 +1465,7 @@ internal unsafe partial class GhostRenderPipeline
                 maxVariants = maxVariants
             });
 
-            prepBuilder.SetRenderFunc<PrepareIndirectArgsPassData>(static (ref readonly passData, computeCtx) =>
+            builder.SetRenderFunc<PrepareIndirectArgsPassData>(static (ref readonly passData, computeCtx) =>
             {
                 var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
                 var indirectUav = computeCtx.GetActualBindlessIndex(passData.indirectArgsBuffer, BindlessAccess.UnorderedAccess);
@@ -1420,21 +1495,21 @@ internal unsafe partial class GhostRenderPipeline
 
         // Scatter Shadow Meshlets into contiguous variant bins
         Identifier<RGBuffer> binnedMeshlets;
-        using (var scatterBuilder = rg.AddComputeRenderPass<ScatterMeshletsPassData>("ScatterShadowMeshlets"))
+        using (var builder = rg.AddComputeRenderPass<ScatterMeshletsPassData>("ScatterShadowMeshlets"))
         {
-            binnedMeshlets = scatterBuilder.CreateBuffer(new BufferDesc
+            binnedMeshlets = builder.CreateBuffer(new BufferDesc
             {
                 Size = visibleBufferSize,
                 Stride = entrySize,
                 Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
             }, "ShadowBinnedMeshlets");
 
-            scatterBuilder.UseBuffer(unbinnedMeshlets, AccessFlags.Read);
-            scatterBuilder.UseBuffer(binnedMeshlets, AccessFlags.Write);
-            scatterBuilder.UseBuffer(binScatterCounters, AccessFlags.ReadWrite);
-            scatterBuilder.UseBuffer(counterBuffer, AccessFlags.Read);
+            builder.UseBuffer(unbinnedMeshlets, AccessFlags.Read);
+            builder.UseBuffer(binnedMeshlets, AccessFlags.Write);
+            builder.UseBuffer(binScatterCounters, AccessFlags.ReadWrite);
+            builder.UseBuffer(counterBuffer, AccessFlags.Read);
 
-            scatterBuilder.SetPassData(new ScatterMeshletsPassData
+            builder.SetPassData(new ScatterMeshletsPassData
             {
                 unbinnedBuffer = unbinnedMeshlets,
                 binnedBuffer = binnedMeshlets,
@@ -1446,7 +1521,7 @@ internal unsafe partial class GhostRenderPipeline
                 isShadowPass = 1
             });
 
-            scatterBuilder.SetRenderFunc<ScatterMeshletsPassData>(static (ref readonly passData, computeCtx) =>
+            builder.SetRenderFunc<ScatterMeshletsPassData>(static (ref readonly passData, computeCtx) =>
             {
                 var unbinnedSrv = computeCtx.GetActualBindlessIndex(passData.unbinnedBuffer, BindlessAccess.ShaderResource);
                 var binnedUav = computeCtx.GetActualBindlessIndex(passData.binnedBuffer, BindlessAccess.UnorderedAccess);
@@ -1476,7 +1551,7 @@ internal unsafe partial class GhostRenderPipeline
 
         // 1. Create and Clear Shadow Atlas UAV
         Identifier<RGTexture> shadowAtlas;
-        using (var clearBuilder = rg.AddComputeRenderPass<ClearShadowAtlasPassData>("ClearShadowAtlas"))
+        using (var builder = rg.AddComputeRenderPass<ClearShadowAtlasPassData>("ClearShadowAtlas"))
         {
             var shadowAtlasDesc = RGTextureDesc.Absolute(
                 _settings.ShadowAtlasResolution,
@@ -1486,17 +1561,17 @@ internal unsafe partial class GhostRenderPipeline
                 usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource,
                 typelessViewFormat: new TypelessFormatDesc { Srv = TextureFormat.R32_Float, Uav = TextureFormat.R32_UInt });
 
-            shadowAtlas = clearBuilder.CreateTexture(in shadowAtlasDesc, "PunctualShadowAtlas");
+            shadowAtlas = builder.CreateTexture(in shadowAtlasDesc, "PunctualShadowAtlas");
 
-            clearBuilder.UseTexture(shadowAtlas, AccessFlags.Write);
-            clearBuilder.SetPassData(new ClearShadowAtlasPassData
+            builder.UseTexture(shadowAtlas, AccessFlags.Write);
+            builder.SetPassData(new ClearShadowAtlasPassData
             {
                 shadowAtlas = shadowAtlas,
                 shader = _lightingPipelineResource.clearShadowAtlasShader,
                 atlasResolution = _settings.ShadowAtlasResolution
             });
 
-            clearBuilder.SetRenderFunc<ClearShadowAtlasPassData>(static (ref readonly passData, computeCtx) =>
+            builder.SetRenderFunc<ClearShadowAtlasPassData>(static (ref readonly passData, computeCtx) =>
             {
                 var shadowAtlasUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.shadowAtlas).AsResource(), BindlessAccess.UnorderedAccess);
                 var props = new InternalClearShadowAtlasShaderProperties
@@ -1513,14 +1588,14 @@ internal unsafe partial class GhostRenderPipeline
         }
 
         // 2. Hardware Raster Shadow Depth for Macro-triangles (Bins 0 and 2..N)
-        using (var unsafeBuilder = rg.AddUnsafeRenderPass<PunctualShadowRasterPassData>("PunctualShadowRaster"))
+        using (var builder = rg.AddUnsafeRenderPass<PunctualShadowRasterPassData>("PunctualShadowRaster"))
         {
-            unsafeBuilder.UseRandomAccessTexture(shadowAtlas);
-            unsafeBuilder.UseBuffer(binnedMeshlets, AccessFlags.Read);
-            unsafeBuilder.UseBuffer(binOffsets, AccessFlags.Read);
-            unsafeBuilder.UseBuffer(indirectArgs, AccessFlags.Read);
+            builder.UseRandomAccessTexture(shadowAtlas);
+            builder.UseBuffer(binnedMeshlets, AccessFlags.Read);
+            builder.UseBuffer(binOffsets, AccessFlags.Read);
+            builder.UseBuffer(indirectArgs, AccessFlags.Read);
 
-            unsafeBuilder.SetPassData(new PunctualShadowRasterPassData
+            builder.SetPassData(new PunctualShadowRasterPassData
             {
                 shadowAtlas = shadowAtlas,
                 binnedMeshlets = binnedMeshlets,
@@ -1532,7 +1607,7 @@ internal unsafe partial class GhostRenderPipeline
                 variantRegistry = _assetManager.ShaderVariants,
             });
 
-            unsafeBuilder.SetRenderFunc<PunctualShadowRasterPassData>(static (ref readonly passData, unsafeCtx) =>
+            builder.SetRenderFunc<PunctualShadowRasterPassData>(static (ref readonly passData, unsafeCtx) =>
             {
                 unsafeCtx.SetViewport(new ViewportDesc
                 {
@@ -1586,14 +1661,14 @@ internal unsafe partial class GhostRenderPipeline
         }
 
         // Software Raster Shadow Depth for Micro-triangles (Bin 1)
-        using (var swBuilder = rg.AddComputeRenderPass<SoftwareShadowRasterPassData>("RasterizeShadowSw"))
+        using (var builder = rg.AddComputeRenderPass<SoftwareShadowRasterPassData>("RasterizeShadowSw"))
         {
-            swBuilder.UseTexture(shadowAtlas, AccessFlags.ReadWrite);
-            swBuilder.UseBuffer(binnedMeshlets, AccessFlags.Read);
-            swBuilder.UseBuffer(binOffsets, AccessFlags.Read);
-            swBuilder.UseBuffer(indirectArgs, AccessFlags.Read);
+            builder.UseTexture(shadowAtlas, AccessFlags.ReadWrite);
+            builder.UseBuffer(binnedMeshlets, AccessFlags.Read);
+            builder.UseBuffer(binOffsets, AccessFlags.Read);
+            builder.UseBuffer(indirectArgs, AccessFlags.Read);
 
-            swBuilder.SetPassData(new SoftwareShadowRasterPassData
+            builder.SetPassData(new SoftwareShadowRasterPassData
             {
                 shadowAtlas = shadowAtlas,
                 binnedMeshlets = binnedMeshlets,
@@ -1606,7 +1681,7 @@ internal unsafe partial class GhostRenderPipeline
                 swIndirectOffset = CullCommon.INDIRECT_OFFSET_PASS1_VARIANTS + 16u
             });
 
-            swBuilder.SetRenderFunc<SoftwareShadowRasterPassData>(static (ref readonly passData, computeCtx) =>
+            builder.SetRenderFunc<SoftwareShadowRasterPassData>(static (ref readonly passData, computeCtx) =>
             {
                 var shadowAtlasUav = computeCtx.GetActualBindlessIndex(passData.shadowAtlas, BindlessAccess.UnorderedAccess);
                 var binnedMeshletsSrv = computeCtx.GetActualBindlessIndex(passData.binnedMeshlets, BindlessAccess.ShaderResource);

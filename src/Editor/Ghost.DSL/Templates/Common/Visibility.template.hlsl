@@ -183,10 +183,11 @@ void MSMain(
         if (s_Meshlet.doubleSided == 0.0f)
         {
             isCulled = !IsTriangleFrontFacing(v0, v1, v2);
-            if (!isCulled)
-            {
-                isCulled = IsTriangleOutsideFrustum(v0, v1, v2);
-            }
+        }
+        
+        if (!isCulled)
+        {
+            isCulled = IsTriangleOutsideFrustum(v0, v1, v2);
         }
 
         outPrims[primId].cullPrim = isCulled;

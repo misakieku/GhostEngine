@@ -4,8 +4,8 @@
 #include "EngineResources/Shaders/Common.hlsl"
 #include "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl"
 
-// Flags for inline shadow ray traversal: opaque, first hit, skip procedural, cull backfaces
-#define SHADOW_RAY_QUERY_FLAGS (RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_CULL_BACK_FACING_TRIANGLES)
+// Flags for inline shadow ray traversal: opaque, first hit, skip procedural
+#define SHADOW_RAY_QUERY_FLAGS (RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE)
 
 // Offsets ray origin along surface normal to prevent self-intersection with coarse proxy geometry (UE MegaLights style)
 void ApplyPositionBias(inout float3 rayOrigin, float3 rayDirection, float3 worldNormal, float maxNormalBias)

@@ -100,6 +100,7 @@ void CSMain(
     ctx.uv = attrs.uv;
     ctx.ddx_uv = attrs.ddx_uv;
     ctx.ddy_uv = attrs.ddy_uv;
+    ctx.isFrontFace = attrs.isFrontFacing;
 
     MaterialProperties matProps = LoadMaterialData<MaterialProperties>(attrs.cbufferIndex);
     DEFERREDTEXTURING_STRATEGY strategy = DEFERREDTEXTURING_STRATEGY::Create();

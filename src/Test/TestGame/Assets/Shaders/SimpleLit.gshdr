@@ -11,6 +11,8 @@ shader "MyShader/SimpleLit" : "Lit"
 
     strategy "DEFERREDTEXTURING_STRATEGY" "SimpleLitDeferredTexturing"
     {
+        #include "EngineResources/Shaders/Utilities/MaterialUtility.hlsl"
+
         struct SimpleLitDeferredTexturing
         {
             static SimpleLitDeferredTexturing Create()
@@ -25,6 +27,8 @@ shader "MyShader/SimpleLit" : "Lit"
                 {
                     baseColor = SampleTexture2DGrad<float4>(props.baseColor, props.sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv).rgb;
                 }
+
+                ApplyDoubleSidedFlipOrMirror(ctx, props.doubleSidedConstants);
 
                 SurfaceData surface = (SurfaceData)0;
                 surface.shadingModel = SHADING_MODEL_ID;

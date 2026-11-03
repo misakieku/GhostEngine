@@ -147,6 +147,50 @@ public sealed class ShaderVariantRegistryTest
     }
 
     [TestMethod]
+    public void RisResolveShadingDeduplicatesAcrossMatchingShadingModelIds()
+    {
+        var firstAsset = Guid.NewGuid();
+        var secondAsset = Guid.NewGuid();
+        var thirdAsset = Guid.NewGuid();
+        var familyId = ShaderIdentity.GetShaderId("Lit");
+
+        var catalog = new ShaderCatalogEntry[]
+        {
+            CreateEntryWithShadingModel(firstAsset, "SimpleLit", familyId, 1u, PassSemantic.RisResolveShading),
+            CreateEntryWithShadingModel(secondAsset, "MobileLit", familyId, 1u, PassSemantic.RisResolveShading),
+            CreateEntryWithShadingModel(thirdAsset, "CustomLit", familyId, 2u, PassSemantic.RisResolveShading),
+        };
+
+        using var engine = new MockingGraphicsEngine();
+        using var renderDevice = new MockingRenderDevice();
+        using var resourceDatabase = new MockingResourceDatabase();
+        using var pipelineLibrary = new MockingPipelineLibrary();
+        using var resourceAllocator = new MockingResourceAllocator(resourceDatabase);
+        using var shaderLibrary = new ShaderLibrary(null, pipelineLibrary, null);
+        using var resourceManager = new ResourceManager(renderDevice, resourceAllocator, resourceDatabase);
+        using var registry = new ShaderVariantRegistry(engine, pipelineLibrary, shaderLibrary, resourceManager, catalog);
+
+        var dispatchVariants = registry.GetDispatchVariants(PassSemantic.RisResolveShading);
+        Assert.AreEqual(2, dispatchVariants.Length);
+        Assert.AreEqual(0, dispatchVariants[0].DenseIndex);
+        Assert.AreEqual(2, dispatchVariants[1].DenseIndex);
+
+        ref readonly var firstVariant = ref registry.GetVariant(new ShaderVariantIndex(0));
+        ref readonly var secondVariant = ref registry.GetVariant(new ShaderVariantIndex(1));
+        ref readonly var thirdVariant = ref registry.GetVariant(new ShaderVariantIndex(2));
+
+        Assert.AreEqual(1u, firstVariant.ShadingModelId);
+        Assert.AreEqual(1u, secondVariant.ShadingModelId);
+        Assert.AreEqual(2u, thirdVariant.ShadingModelId);
+
+        registry.PublishBytecodeReady(secondAsset);
+        dispatchVariants = registry.GetDispatchVariants(PassSemantic.RisResolveShading);
+        Assert.AreEqual(2, dispatchVariants.Length);
+        Assert.AreEqual(1, dispatchVariants[0].DenseIndex);
+        Assert.AreEqual(2, dispatchVariants[1].DenseIndex);
+    }
+
+    [TestMethod]
     public void VisibilityDeduplicatesMatchingBytecodeAndAssignsBin0()
     {
         var firstAsset = Guid.NewGuid();
@@ -196,7 +240,7 @@ public sealed class ShaderVariantRegistryTest
             {
                 Name = semantics[i].ToString(),
                 Semantic = semantics[i],
-                StageMask = semantics[i] == PassSemantic.DeferredTexturing || semantics[i] == PassSemantic.DeferredLighting ? ShaderStageMask.Compute : ShaderStageMask.Mesh | ShaderStageMask.Pixel,
+                StageMask = semantics[i] == PassSemantic.DeferredTexturing || semantics[i] == PassSemantic.DeferredLighting || semantics[i] == PassSemantic.RisResolveShading ? ShaderStageMask.Compute : ShaderStageMask.Mesh | ShaderStageMask.Pixel,
                 PassId = ShaderIdentity.GetPassId(shaderId, i),
                 LocalPipeline = PipelineState.Default,
                 ShadingModelId = 0u,
@@ -232,7 +276,7 @@ public sealed class ShaderVariantRegistryTest
             {
                 Name = semantics[i].ToString(),
                 Semantic = semantics[i],
-                StageMask = semantics[i] == PassSemantic.DeferredTexturing || semantics[i] == PassSemantic.DeferredLighting ? ShaderStageMask.Compute : ShaderStageMask.Mesh | ShaderStageMask.Pixel,
+                StageMask = semantics[i] == PassSemantic.DeferredTexturing || semantics[i] == PassSemantic.DeferredLighting || semantics[i] == PassSemantic.RisResolveShading ? ShaderStageMask.Compute : ShaderStageMask.Mesh | ShaderStageMask.Pixel,
                 PassId = ShaderIdentity.GetPassId(shaderId, i),
                 LocalPipeline = PipelineState.Default,
                 ShadingModelId = shadingModelId,

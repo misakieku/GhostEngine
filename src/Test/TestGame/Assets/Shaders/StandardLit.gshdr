@@ -13,6 +13,8 @@ shader "Ghost/StandardLit" : "Lit"
 
     strategy "DEFERREDTEXTURING_STRATEGY" "StandardLitDeferredTexturing"
     {
+        #include "EngineResources/Shaders/Utilities/MaterialUtility.hlsl"
+
         struct StandardLitDeferredTexturing
         {
             static StandardLitDeferredTexturing Create()
@@ -28,10 +30,12 @@ shader "Ghost/StandardLit" : "Lit"
                     baseColor = SampleTexture2DGrad<float4>(props.baseColor, props.sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv).rgb;
                 }
 
+                ApplyDoubleSidedFlipOrMirror(ctx, props.doubleSidedConstants);
+
                 SurfaceData surface = (SurfaceData)0;
                 surface.shadingModel = SHADING_MODEL_ID;
                 surface.albedo = baseColor;
-                surface.normalWS = ctx.normalWS;
+                surface.normalWS = ctx.normalWS, ctx.isFrontFace;
                 surface.roughness = props.roughness;
                 surface.metallic = props.metallic;
                 surface.occlusion = props.occlusion;

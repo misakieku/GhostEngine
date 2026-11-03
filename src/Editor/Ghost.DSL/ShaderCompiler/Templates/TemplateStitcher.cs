@@ -211,6 +211,7 @@ public static class TemplateStitcher
         }
 
         var needsProperties = passDef.semantic != PassSemantic.DeferredLighting &&
+            passDef.semantic != PassSemantic.RisResolveShading &&
             (passDef.semantic == PassSemantic.DeferredTexturing || hasStrategy);
         var propertiesStruct = needsProperties
             ? BuildPropertiesStruct(template, semantics)

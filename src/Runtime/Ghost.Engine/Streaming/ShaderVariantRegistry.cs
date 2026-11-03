@@ -152,7 +152,7 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
                 for (var passIndex = 0; passIndex < entry.Passes.Length; passIndex++)
                 {
                     var pass = entry.Passes[passIndex];
-                    if (pass.Semantic == PassSemantic.DeferredLighting)
+                    if (pass.Semantic == PassSemantic.DeferredLighting || pass.Semantic == PassSemantic.RisResolveShading)
                     {
                         shadingModelId = pass.ShadingModelId;
                     }
@@ -451,12 +451,12 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
         {
             _pipelineKey = pass.LocalPipeline.GetHashCode64();
             _stageMask = pass.StageMask;
-            _shadingModelId = pass.Semantic == PassSemantic.DeferredLighting ? pass.ShadingModelId : 0u;
+            _shadingModelId = (pass.Semantic == PassSemantic.DeferredLighting || pass.Semantic == PassSemantic.RisResolveShading) ? pass.ShadingModelId : 0u;
             _bytecodeHashes = pass.BytecodeHashes ?? Array.Empty<ulong>();
 
             if (_bytecodeHashes.Length == 0 || pass.Semantic == PassSemantic.DeferredTexturing)
             {
-                _fallbackKey = (pass.Semantic == PassSemantic.DeferredLighting && pass.ShadingModelId != 0)
+                _fallbackKey = ((pass.Semantic == PassSemantic.DeferredLighting || pass.Semantic == PassSemantic.RisResolveShading) && pass.ShadingModelId != 0)
                     ? pass.ShadingModelId
                     : (uint)pass.PassId;
             }

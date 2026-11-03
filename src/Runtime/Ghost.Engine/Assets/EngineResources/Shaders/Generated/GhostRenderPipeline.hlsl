@@ -56,6 +56,34 @@ struct DeferredLightingShaderProperties
     uint risResolvedSpecularSrv;
 };
 
+struct RisResolveShadingShaderProperties
+{
+    uint depthTextureIndex;
+    uint gbuffer0Srv;
+    uint gbuffer1Srv;
+    uint gbuffer2Srv;
+    uint gbuffer3Srv;
+    uint risLightSamplesIndex;
+    uint risShadowMaskIndex;
+    uint tileShadingModelMaskBufferIndex;
+    uint risResolvedDiffuseUav;
+    uint risResolvedSpecularUav;
+    uint renderWidth;
+    uint renderHeight;
+    uint tilesPerRow;
+    uint shadingModelId;
+    uint iblLutTextureSrv;
+    uint persistentViewStateBufferSrv;
+    uint viewId;
+    uint skyboxTextureSrv;
+    uint skyboxMipCount;
+    uint _pad0;
+    float4 skyboxTintAndIntensity;
+    float2 skyboxRotationSinCos;
+    uint _pad1;
+    uint _pad2;
+};
+
 
 struct UpdateInstanceData
 {

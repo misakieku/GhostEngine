@@ -74,6 +74,24 @@ internal sealed class LitTemplate : IShaderTemplate
         },
         new TemplatePassDef
         {
+            name = "RisResolveShading",
+            semantic = PassSemantic.RisResolveShading,
+            strategy = "DEFERREDLIGHTING_STRATEGY",
+            pipeline = new PipelineSemantic
+            {
+                zTest = ZTest.Disabled,
+                zWrite = ZWrite.Off,
+                cull = Cull.Back,
+                blend = Blend.Opaque,
+                colorMask = ColorWriteMask.All
+            },
+            stages = new List<TemplateStage>
+            {
+                new() { templateFile = "Lit/Lit_RisResolveShading.template.hlsl", entryPoint = "CSMain", stage = ShaderStage.ComputeShader },
+            }
+        },
+        new TemplatePassDef
+        {
             name = "DeferredLighting",
             semantic = PassSemantic.DeferredLighting,
             strategy = "DEFERREDLIGHTING_STRATEGY",

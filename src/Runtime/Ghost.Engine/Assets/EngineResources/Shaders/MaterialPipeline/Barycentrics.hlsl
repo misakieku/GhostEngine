@@ -28,10 +28,6 @@ float2 PixelToClipSpace(float2 pixelPos, float2 invViewportSize)
     return pixelPos * invViewportSize * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f);
 }
 
-/// <summary>
-/// Reconstructs perspective-correct barycentrics, vertex attributes, and analytical screen derivatives
-/// entirely in Homogeneous Clip Space (Nanite / Projective 2D Line Formulation).
-/// </summary>
 InterpolatedAttributes EvaluateBarycentricsAndDerivatives(uint2 pixelCoord, float depth, uint instanceIndex, uint meshletIndex, uint primitiveID, MeshData meshData)
 {
     Meshlet meshlet = LoadMeshlet(meshletIndex, meshData);

@@ -38,8 +38,9 @@ public enum PassSemantic : byte
     Shadow = 2,
     DeferredTexturing = 3,
     DeferredLighting = 4,
-    Custom = 5,
-    Count = 6
+    RisResolveShading = 5,
+    Custom = 6,
+    Count = 7
 }
 
 public static class PassSemanticExtensions
@@ -53,6 +54,7 @@ public static class PassSemanticExtensions
             "Shadow" => PassSemantic.Shadow,
             "DeferredTexturing" => PassSemantic.DeferredTexturing,
             "DeferredLighting" => PassSemantic.DeferredLighting,
+            "RisResolveShading" => PassSemantic.RisResolveShading,
             _ => PassSemantic.Custom,
         };
     }

@@ -6,23 +6,12 @@
 // ============================================================
 
 #include "EngineResources/Shaders/Properties.hlsl"
+#include "EngineResources/Shaders/MaterialContext.hlsl"
 
 struct SurfaceData
 {
     float3 albedo;
     float3 emissive;
-};
-
-struct MaterialContext
-{
-    uint instanceIndex;
-    uint materialIndex;
-    float3 positionRWS;
-    float3 normalWS;
-    float4 tangentWS;
-    float2 uv;
-    float2 ddx_uv;
-    float2 ddy_uv;
 };
 
 $GHOST_PROPERTIES_STRUCT$

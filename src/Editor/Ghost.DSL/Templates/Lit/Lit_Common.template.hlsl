@@ -8,9 +8,10 @@
 #include "EngineResources/Shaders/Properties.hlsl"
 #include "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl"
 #include "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl"
+#include "EngineResources/Shaders/MaterialContext.hlsl"
 #include "EngineResources/Shaders/Material/Lit/Lit.hlsl"
 
-#if !defined(GHOST_PASS_DEFERREDLIGHTING)
+#if !defined(GHOST_PASS_DEFERREDLIGHTING) && !defined(GHOST_PASS_RISRESOLVESHADING)
 $GHOST_PROPERTIES_STRUCT$
 #endif
 
@@ -65,7 +66,7 @@ struct DefaultDeferredTexturingStrategy
 #endif
 #endif
 
-#if defined(GHOST_PASS_DEFERREDLIGHTING)
+#if defined(GHOST_PASS_DEFERREDLIGHTING) || defined(GHOST_PASS_RISRESOLVESHADING)
 #ifndef DEFERREDLIGHTING_STRATEGY
 #define DEFERREDLIGHTING_STRATEGY DefaultDeferredLightingStrategy
 struct BSDFData
