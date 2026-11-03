@@ -3,7 +3,6 @@ using Ghost.AssetForge.Core.Attributes;
 using Ghost.Core;
 using Ghost.StbI;
 using Misaki.HighPerformance.Mathematics;
-using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 
 namespace Ghost.AssetForge.Core.Bakers;
@@ -206,74 +205,65 @@ internal partial class TextureBaker : IAssetBaker
 
     private static unsafe TextureInfo GetImageInfo(string sourcePath, TextureBakeSettings settings)
     {
+        var nameBytes = System.Text.Encoding.UTF8.GetBytes(sourcePath);
+
         try
         {
-            using var mmf = MemoryMappedFile.CreateFromFile(sourcePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
-            using var accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+            var ext = Path.GetExtension(sourcePath);
+            var isCube = settings.Basic.TextureShape == TextureShape.TextureCube;
 
-            byte* ptr = null;
-            try
+            int imageWidth, imageHeight, colorComponents;
+            bool isFloat;
+            void* pPixels;
+
+            fixed (byte* ptr = nameBytes)
             {
-                var ext = Path.GetExtension(sourcePath);
-                var isCube = settings.Basic.TextureShape == TextureShape.TextureCube;
+                var pName = (sbyte*)ptr;
+                var bitsPerChannel = StbIApi.Is16Bit(pName) > 0 ? 16 : 8;
+                isFloat = isCube || bitsPerChannel > 8;
 
-                accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
-
-                int imageWidth, imageHeight, colorComponents;
-                var bufferSpan = new ReadOnlySpan<byte>(ptr, (int)new FileInfo(sourcePath).Length);
-                var bitsPerChannel = StbIApi.Is16BitFromMemory(bufferSpan) > 0 ? 16 : 8;
-                var isFloat = isCube || bitsPerChannel > 8;
-
-                void* pPixels;
                 if (isFloat)
                 {
-                    pPixels = StbIApi.LoadfFromMemory(bufferSpan, &imageWidth, &imageHeight, &colorComponents, 4);
+                    pPixels = StbIApi.Loadf(pName, &imageWidth, &imageHeight, &colorComponents, 4);
                 }
                 else
                 {
-                    pPixels = StbIApi.LoadFromMemory(bufferSpan, &imageWidth, &imageHeight, &colorComponents, 4);
+                    pPixels = StbIApi.Load(pName, &imageWidth, &imageHeight, &colorComponents, 4);
                 }
-
-                if (pPixels == null)
-                {
-                    throw new Exception($"Failed to decode image using StbIApi: {sourcePath}");
-                }
-
-                if (!settings.Advanced.CustomChannelMapping.Equals(new int4(0, 1, 2, 3)))
-                {
-                    if (math.any(settings.Advanced.CustomChannelMapping > 3) || math.any(settings.Advanced.CustomChannelMapping < 0))
-                    {
-                        throw new ArgumentException("Invalid custom channel mapping. All values must be between 0 and 3.");
-                    }
-
-                    if (isFloat)
-                    {
-                        SwizzleChannels((float*)pPixels, imageWidth, imageHeight, settings.Advanced.CustomChannelMapping);
-                    }
-                    else
-                    {
-                        SwizzleChannels((byte*)pPixels, imageWidth, imageHeight, settings.Advanced.CustomChannelMapping);
-                    }
-                }
-
-                return new TextureInfo
-                {
-                    pixelData = (IntPtr)pPixels,
-                    width = imageWidth,
-                    height = imageHeight,
-                    depth = 1,
-                    bitsPerChannel = isFloat ? 32 : 8,
-                    colorComponents = 4, // Forced 4 channels in stbi call
-                    isCube = isCube,
-                };
             }
-            finally
+
+            if (pPixels == null)
             {
-                if (ptr != null)
+                throw new Exception($"Failed to decode image using StbIApi: {sourcePath}");
+            }
+
+            if (!settings.Advanced.CustomChannelMapping.Equals(new int4(0, 1, 2, 3)))
+            {
+                if (math.any(settings.Advanced.CustomChannelMapping > 3) || math.any(settings.Advanced.CustomChannelMapping < 0))
                 {
-                    accessor.SafeMemoryMappedViewHandle.ReleasePointer();
+                    throw new ArgumentException("Invalid custom channel mapping. All values must be between 0 and 3.");
+                }
+
+                if (isFloat)
+                {
+                    SwizzleChannels((float*)pPixels, imageWidth, imageHeight, settings.Advanced.CustomChannelMapping);
+                }
+                else
+                {
+                    SwizzleChannels((byte*)pPixels, imageWidth, imageHeight, settings.Advanced.CustomChannelMapping);
                 }
             }
+
+            return new TextureInfo
+            {
+                pixelData = (IntPtr)pPixels,
+                width = imageWidth,
+                height = imageHeight,
+                depth = 1,
+                bitsPerChannel = isFloat ? 32 : 8,
+                colorComponents = 4, // Forced 4 channels in stbi call
+                isCube = isCube,
+            };
         }
         catch (Exception ex)
         {

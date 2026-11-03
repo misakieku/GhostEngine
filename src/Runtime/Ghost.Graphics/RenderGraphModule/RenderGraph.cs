@@ -294,8 +294,6 @@ public sealed class RenderGraph : IDisposable
     /// <summary>
     /// Compiles the render graph and executes all compiled passes.
     /// </summary>
-    // TODO: Maybe we can introduce a new method called BeginRecord and take the ViewPortState as a parameter,
-    // When there is a relative texture, we can resolve the actual size directly?
     public Result<RGExecution, Error> CompileAndExecute(in RenderGraphExecutionContext executionContext, ViewportState viewport, RGFlags flags = RGFlags.Default)
     {
         _resourceRegistry.ResolveTextureSizes(in viewport);

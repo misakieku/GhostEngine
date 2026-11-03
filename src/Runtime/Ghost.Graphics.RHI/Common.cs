@@ -1648,7 +1648,6 @@ public enum RenderTargetType
     Depth
 }
 
-// TODO: Support compressed formats (BCn, ASTC, ETC2, etc)
 public enum TextureFormat
 {
     Unknown,

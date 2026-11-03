@@ -237,6 +237,12 @@ Use public fields only for data-container structs. Prefer private field + public
 - Use `<remarks>` for non-obvious behavior or threading constraints
 - Document thread-safety expectations explicitly
 
+### Comment
+
+- Write comment per section where it's hard to understand not per line. A good code should be a comment by itself.
+- Write comment directly without step or number prefix (`// This is a comment` instead of `// Step 1 (or 1.): This is a comment`).
+- Use `TODO: `, `FIX: `, `NOTE: `, `UNDONE: `, `HACK: ` for important comments.
+
 ---
 
 ## Project Structure

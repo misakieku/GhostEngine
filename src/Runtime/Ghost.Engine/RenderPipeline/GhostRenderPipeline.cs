@@ -210,38 +210,33 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             renderGraph.Blackboard.Add(ref gbufferData);
 
             // Shadow Passes
-            var hasShadowAtlas = false;
             if (shadowSettings.shadowMode == ShadowMode.RayTraced)
             {
                 var risHistory = viewContext.GetOrCreateHistory(static (alloc, db) => new RisViewHistory(alloc, db));
                 risHistory.EnsureResources(viewContext.RenderSize);
                 AddRisPasses(renderGraph, risHistory, viewContext.RenderSize, (uint)frameNumber, request.viewId);
             }
-            else if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
-            {
-                ExecutePerViewShadowSetup(ctx, in frustum, viewPort.Size.y, lights, request.view.localToWorld.c3.xyz,
-                    out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
-
-                var shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
-                var shadowMapData = new ShadowMapPassData
-                {
-                    shadowAtlas = shadowAtlas,
-                    shadowViewsBufferSrv = shadowViewsBufferSrv,
-                    shadowIndicesBufferSrv = shadowIndicesBufferSrv
-                };
-                renderGraph.Blackboard.Add(ref shadowMapData);
-                hasShadowAtlas = true;
-
-                if (viewContext.TryGetHistory<RisViewHistory>(out var risHistory))
-                {
-                    risHistory.Invalidate();
-                }
-            }
             else
             {
                 if (viewContext.TryGetHistory<RisViewHistory>(out var risHistory))
                 {
                     risHistory.Invalidate();
+                }
+
+                if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
+                {
+                    ExecutePerViewShadowSetup(ctx, in frustum, viewPort.Size.y, lights, request.view.localToWorld.c3.xyz,
+                        out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
+
+                    var shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
+                    var shadowMapData = new ShadowMapPassData
+                    {
+                        shadowAtlas = shadowAtlas,
+                        shadowViewsBufferSrv = shadowViewsBufferSrv,
+                        shadowIndicesBufferSrv = shadowIndicesBufferSrv
+                    };
+
+                    renderGraph.Blackboard.Add(ref shadowMapData);
                 }
             }
 
@@ -267,7 +262,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             // re-specify D3D12_SET_WORK_GRAPH_FLAG_INITIALIZE. Latching here (rather than at pass-build
             // time) keeps the flag honest if this frame's graph was compiled but failed to execute.
             _meshPipelineResource.cullWorkGraphProgram?.MarkInitialized();
-            if (hasShadowAtlas)
+            if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
             {
                 _meshPipelineResource.shadowCullWorkGraphProgram?.MarkInitialized();
             }

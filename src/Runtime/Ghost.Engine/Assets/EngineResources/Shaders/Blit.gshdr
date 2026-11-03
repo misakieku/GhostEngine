@@ -54,10 +54,12 @@ shader "Hidden/Blit"
             {
                 float4 color = SampleTexture2D<float4>(g_Properties.mainTex, g_Properties.sampler_mainTex, input.uv.xy);
                 
-                if (g_Properties.linearToSRGB)
-                {
-                    color = LinearToSRGB(color);
-                }
+                // HACK: Agx tome map should be a post-processing effect, but for now we apply it here to avoid a separate pass.
+                // if (g_Properties.linearToSRGB)
+                // {
+                //     color = LinearToSRGB(color);
+                // }
+                color.rgb = AgxToneMapping(color.rgb);
 
                 return color;
             }

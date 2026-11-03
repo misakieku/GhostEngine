@@ -61,9 +61,6 @@ public sealed partial class ResourceManager : IDisposable
     private UnsafeList<Handle<Material>> _dirtyMaterials;
     private UnsafeHashSet<int> _dirtyMaterialSet;
 
-    // TODO: Any better way? System.Threading.Lock is very fast though, it use spin lock before entering kernel.
-    // rw lock slim is an option but it has more overhead on read. Because more than 90% of the time we are reading, it may not be a good option.
-    // Plus UnsafeSlotMap use jagged array internally, which means we can have concurrent read and write, but not add and remove, on different slots without any issue, so we only need to lock when writing to those slots.
     private readonly Lock _meshWriteLock;
     private readonly Lock _materialWriteLock;
     private readonly Lock _shaderWriteLock;
