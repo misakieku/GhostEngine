@@ -1,13 +1,17 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
-using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.RenderPipeline;
 
-public sealed class HzbViewHistory : IViewHistory
+public sealed class HzbViewResource : IViewResource<HzbViewResource, HzbViewResource.Desc>
 {
+    public struct Desc
+    {
+        public uint2 renderSize;
+    }
+
     private readonly IResourceAllocator _allocator;
     private readonly IResourceDatabase _database;
 
@@ -15,7 +19,12 @@ public sealed class HzbViewHistory : IViewHistory
     public uint2 HzbSize { get; private set; }
     public uint HzbMipCount { get; private set; }
 
-    public HzbViewHistory(IResourceAllocator allocator, IResourceDatabase database)
+    public static HzbViewResource Create(IResourceAllocator allocator, IResourceDatabase database)
+    {
+        return new HzbViewResource(allocator, database);
+    }
+
+    private HzbViewResource(IResourceAllocator allocator, IResourceDatabase database)
     {
         _allocator = allocator;
         _database = database;
@@ -32,9 +41,9 @@ public sealed class HzbViewHistory : IViewHistory
         hzbMipCount = Math.Clamp(calculatedMipCount, 1u, 16u);
     }
 
-    public void EnsureResources(uint2 renderSize)
+    public void EnsureResource(in Desc desc)
     {
-        ComputeHZBDimensions(renderSize, out var hzbSize, out var hzbMipCount);
+        ComputeHZBDimensions(desc.renderSize, out var hzbSize, out var hzbMipCount);
         if (Texture.IsValid && HzbSize.x == hzbSize.x && HzbSize.y == hzbSize.y && HzbMipCount == hzbMipCount)
         {
             return;

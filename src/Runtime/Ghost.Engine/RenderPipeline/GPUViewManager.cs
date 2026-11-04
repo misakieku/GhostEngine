@@ -1,10 +1,8 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
-using Ghost.Engine.Volumes;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -37,13 +35,34 @@ public struct GPUPersistentViewState
 
 public sealed class GPUViewContext : IDisposable
 {
+    private class ResourceRecord
+    {
+        public IViewResource Resource
+        {
+            get;
+        }
+
+        public bool Used
+        {
+            get; set;
+        }
+
+        public ResourceRecord(IViewResource resource, bool used)
+        {
+            Resource = resource;
+            Used = used;
+        }
+    }
+
     private readonly IResourceAllocator _allocator;
     private readonly IResourceDatabase _database;
     private readonly IPipelineLibrary _pipelineLibrary;
     private readonly ResourceManager _resourceManager;
     private readonly ShaderLibrary _shaderLibrary;
 
-    private readonly Dictionary<Type, IViewHistory> _histories = new();
+    private readonly Dictionary<Type, ResourceRecord> _resources = new(16);
+    private readonly List<Type> _unusedResources = new(16);
+
     private RenderGraph? _renderGraph;
 
     public float4x4 prevViewProjMatrix;
@@ -93,30 +112,67 @@ public sealed class GPUViewContext : IDisposable
         _renderGraph ??= new RenderGraph(_database, _allocator, _pipelineLibrary, _resourceManager, _shaderLibrary);
     }
 
-    public THistory GetOrCreateHistory<THistory>(Func<IResourceAllocator, IResourceDatabase, THistory> factory)
-        where THistory : class, IViewHistory
+    internal void ReleaseUnusedResource()
     {
-        var type = typeof(THistory);
-        if (!_histories.TryGetValue(type, out var history))
+        foreach (var kvp in _resources)
         {
-            history = factory(_allocator, _database);
-            _histories[type] = history;
+            if (!kvp.Value.Used)
+            {
+                _unusedResources.Add(kvp.Key);
+            }
+            else
+            {
+                kvp.Value.Used = false;
+            }
         }
 
-        return (THistory)history;
+        foreach (var type in _unusedResources)
+        {
+            if (_resources.TryGetValue(type, out var res))
+            {
+                res.Resource.Dispose();
+                _resources.Remove(type);
+            }
+        }
+
+        _unusedResources.Clear();
     }
 
-    public bool TryGetHistory<THistory>([NotNullWhen(true)] out THistory? history)
-        where THistory : class, IViewHistory
+    public TResource GetOrCreateResource<TResource, TDesc>(in TDesc desc)
+        where TResource : class, IViewResource<TResource, TDesc>
+        where TDesc : struct
     {
-        if (_histories.TryGetValue(typeof(THistory), out var h))
+        TResource resource;
+        var type = typeof(TResource);
+
+        ref var res = ref CollectionsMarshal.GetValueRefOrAddDefault(_resources, type, out var exists);
+        if (!exists || res == null)
         {
-            history = (THistory)h;
-            return true;
+            resource = TResource.Create(_allocator, _database);
+            res = new ResourceRecord(resource, true);
+        }
+        else
+        {
+            res.Used = true;
+            resource = (TResource)res.Resource;
         }
 
-        history = null;
-        return false;
+        resource.EnsureResource(desc);
+        return resource;
+    }
+
+    public bool TryGetResource<TResource>([NotNullWhen(true)] out TResource? resource)
+        where TResource : class, IViewResource
+    {
+        if (!_resources.TryGetValue(typeof(TResource), out var res))
+        {
+            resource = null;
+            return false;
+        }
+
+        res.Used = true;
+        resource = (TResource)res.Resource;
+        return true;
     }
 
     public void EnsureSize(uint2 renderSize)
@@ -130,11 +186,6 @@ public sealed class GPUViewContext : IDisposable
 
         if (RenderSize.x != renderSize.x || RenderSize.y != renderSize.y)
         {
-            foreach (var history in _histories.Values)
-            {
-                history.OnResize(renderSize);
-            }
-
             prevViewProjMatrix = default;
             prevCameraPosition = default;
             RenderSize = renderSize;
@@ -143,11 +194,12 @@ public sealed class GPUViewContext : IDisposable
 
     public void Dispose()
     {
-        foreach (var history in _histories.Values)
+        foreach (var res in _resources.Values)
         {
-            history.Dispose();
+            res.Resource.Dispose();
         }
-        _histories.Clear();
+
+        _resources.Clear();
 
         _renderGraph?.Dispose();
         _renderGraph = null;
@@ -229,6 +281,20 @@ internal sealed class GPUViewManager : IDisposable
         }
 
         return _views[viewId];
+    }
+
+    public void EndFrame()
+    {
+        lock (_lock)
+        {
+            foreach (var view in _views)
+            {
+                if (view.IsActive)
+                {
+                    view.ReleaseUnusedResource();
+                }
+            }
+        }
     }
 
     public void Dispose()

@@ -1,13 +1,15 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
-using Ghost.Graphics.Services;
-using Misaki.HighPerformance.Mathematics;
-using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.RenderPipeline;
 
-public sealed unsafe class RayTracingViewHistory : IViewHistory
+public sealed unsafe class RayTracingViewResource : IViewResource<RayTracingViewResource, RayTracingViewResource.Desc>
 {
+    public struct Desc
+    {
+        public ulong requiredSize;
+    }
+
     private readonly IResourceAllocator _allocator;
     private readonly IResourceDatabase _database;
 
@@ -19,15 +21,46 @@ public sealed unsafe class RayTracingViewHistory : IViewHistory
     public ulong InstanceDescCapacity { get; private set; }
     public uint TLASBindlessIndex { get; set; }
 
-    public RayTracingViewHistory(IResourceAllocator allocator, IResourceDatabase database)
+    public static RayTracingViewResource Create(IResourceAllocator allocator, IResourceDatabase database)
+    {
+        return new RayTracingViewResource(allocator, database);
+    }
+
+    private RayTracingViewResource(IResourceAllocator allocator, IResourceDatabase database)
     {
         _allocator = allocator;
         _database = database;
     }
 
-    public void EnsureInstanceDescBuffer(ulong requiredSize)
+    public void ReleaseResource()
     {
-        if (InstanceDescBuffer.IsValid && InstanceDescCapacity >= requiredSize)
+        if (TLASBuffer.IsValid)
+        {
+            _database.ReleaseResource(TLASBuffer.AsResource());
+            TLASBuffer = Handle<GPUBuffer>.Invalid;
+            TLASBufferCapacity = 0;
+        }
+
+        if (TLASScratchBuffer.IsValid)
+        {
+            _database.ReleaseResource(TLASScratchBuffer.AsResource());
+            TLASScratchBuffer = Handle<GPUBuffer>.Invalid;
+            TLASScratchCapacity = 0;
+        }
+
+        if (InstanceDescBuffer.IsValid)
+        {
+            _database.ReleaseResource(InstanceDescBuffer.AsResource());
+            InstanceDescBuffer = Handle<GPUBuffer>.Invalid;
+            InstanceDescCapacity = 0;
+        }
+
+        TLASBindlessIndex = 0;
+    }
+
+    public void EnsureResource(in Desc desc)
+    {
+        if (InstanceDescBuffer.IsValid && InstanceDescCapacity >= desc.requiredSize)
         {
             return;
         }
@@ -37,8 +70,8 @@ public sealed unsafe class RayTracingViewHistory : IViewHistory
             _database.ReleaseResource(InstanceDescBuffer.AsResource());
         }
 
-        InstanceDescCapacity = Math.Max(requiredSize, Math.Max(InstanceDescCapacity * 2, 65536ul));
-        var desc = new BufferDesc
+        InstanceDescCapacity = Math.Max(desc.requiredSize, Math.Max(InstanceDescCapacity * 2, 65536ul));
+        var bufDesc = new BufferDesc
         {
             Size = InstanceDescCapacity,
             Stride = (uint)sizeof(RaytracingInstanceDesc),
@@ -46,7 +79,7 @@ public sealed unsafe class RayTracingViewHistory : IViewHistory
             HeapType = HeapType.Upload
         };
 
-        InstanceDescBuffer = _allocator.CreateBuffer(in desc, "TLAS_InstanceDescBuffer");
+        InstanceDescBuffer = _allocator.CreateBuffer(in bufDesc, "TLAS_InstanceDescBuffer");
     }
 
     public void EnsureTLASBuffers(ulong requiredResultSize, ulong requiredScratchSize)
@@ -90,38 +123,8 @@ public sealed unsafe class RayTracingViewHistory : IViewHistory
         }
     }
 
-    public void OnResize(uint2 newSize)
-    {
-    }
-
-    public void Reset()
-    {
-        if (TLASBuffer.IsValid)
-        {
-            _database.ReleaseResource(TLASBuffer.AsResource());
-            TLASBuffer = Handle<GPUBuffer>.Invalid;
-            TLASBufferCapacity = 0;
-        }
-
-        if (TLASScratchBuffer.IsValid)
-        {
-            _database.ReleaseResource(TLASScratchBuffer.AsResource());
-            TLASScratchBuffer = Handle<GPUBuffer>.Invalid;
-            TLASScratchCapacity = 0;
-        }
-
-        if (InstanceDescBuffer.IsValid)
-        {
-            _database.ReleaseResource(InstanceDescBuffer.AsResource());
-            InstanceDescBuffer = Handle<GPUBuffer>.Invalid;
-            InstanceDescCapacity = 0;
-        }
-
-        TLASBindlessIndex = 0;
-    }
-
     public void Dispose()
     {
-        Reset();
+        ReleaseResource();
     }
 }

@@ -511,7 +511,7 @@ internal unsafe partial class GhostRenderPipeline
         public uint tlasIndex;
     }
 
-    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph rg, in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, uint viewId, uint2 renderSize, RayTracingViewHistory? rtHistory)
+    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph rg, in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, uint viewId, uint2 renderSize, RayTracingViewResource? rtHistory)
     {
         ref readonly var vis = ref rg.Blackboard.Get<GeometryVisibilityData>();
         ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
@@ -737,7 +737,7 @@ internal unsafe partial class GhostRenderPipeline
         public ICommandSignature commandSignature;
         public Handle<ComputeShader> shader;
         public uint2 renderSize;
-        public RayTracingViewHistory rtHistory;
+        public RayTracingViewResource rtHistory;
         public uint viewId;
         public uint frameIndex;
     }
@@ -788,7 +788,7 @@ internal unsafe partial class GhostRenderPipeline
         public uint2 renderSize;
     }
 
-    private void AddRisPasses(RenderGraph rg, RisViewHistory risHistory, RayTracingViewHistory rtHistory, uint2 renderSize, uint frameIndex, uint viewId)
+    private void AddRisPasses(RenderGraph rg, RisViewResource risResource, RayTracingViewResource rtHistory, uint2 renderSize, uint frameIndex, uint viewId)
     {
         ref readonly var vis = ref rg.Blackboard.Get<GeometryVisibilityData>();
         ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
@@ -1131,8 +1131,8 @@ internal unsafe partial class GhostRenderPipeline
         }
 
         // 4. RisDenoiserTemporal (Reprojection, variance clamping, EMA accumulation)
-        var historyDiffuse = rg.ImportTexture(risHistory.DiffuseHistory, ResourceBarrierData.Common, ResourceBarrierData.Common);
-        var historySpecular = rg.ImportTexture(risHistory.SpecularHistory, ResourceBarrierData.Common, ResourceBarrierData.Common);
+        var historyDiffuse = rg.ImportTexture(risResource.DiffuseHistory, ResourceBarrierData.Common, ResourceBarrierData.Common);
+        var historySpecular = rg.ImportTexture(risResource.SpecularHistory, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
         Identifier<RGTexture> temporalDiffuse;
         Identifier<RGTexture> temporalSpecular;
@@ -1152,8 +1152,8 @@ internal unsafe partial class GhostRenderPipeline
             builder.UseTexture(temporalDiffuse, AccessFlags.Write);
             builder.UseTexture(temporalSpecular, AccessFlags.Write);
 
-            builder.QueueTextureExtraction(temporalDiffuse, risHistory.DiffuseHistory);
-            builder.QueueTextureExtraction(temporalSpecular, risHistory.SpecularHistory);
+            builder.QueueTextureExtraction(temporalDiffuse, risResource.DiffuseHistory);
+            builder.QueueTextureExtraction(temporalSpecular, risResource.SpecularHistory);
 
             builder.SetPassData(new RisDenoiserTemporalPassData
             {
@@ -1168,10 +1168,8 @@ internal unsafe partial class GhostRenderPipeline
                 outputSpecular = temporalSpecular,
                 shader = _lightingPipelineResource.risDenoiserTemporalShader,
                 renderSize = renderSize,
-                historyValid = risHistory.IsValid ? 1u : 0u
+                historyValid = risResource.HasHistory ? 1u : 0u
             });
-
-            risHistory.MarkValid();
 
             builder.SetRenderFunc<RisDenoiserTemporalPassData>(static (ref readonly passData, computeCtx) =>
             {

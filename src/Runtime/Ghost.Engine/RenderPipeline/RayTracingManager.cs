@@ -27,7 +27,7 @@ public struct TLASBuildSettings
 public struct BuildTLASPassData
 {
     public RayTracingManager rayTracingManager;
-    public RayTracingViewHistory viewHistory;
+    public RayTracingViewResource viewHistory;
     public TLASBuildSettings settings;
     public uint activeInstanceCount;
 }
@@ -302,7 +302,7 @@ public sealed unsafe class RayTracingManager : IDisposable
         cmd.InsertFullPipelineBarrier();
     }
 
-    public void BuildTLAS(RayTracingViewHistory viewHistory, in TLASBuildSettings settings, ICommandBuffer cmd, uint activeInstanceCount)
+    public void BuildTLAS(RayTracingViewResource viewHistory, in TLASBuildSettings settings, ICommandBuffer cmd, uint activeInstanceCount)
     {
         var count = Math.Min((int)activeInstanceCount, _instances.Count);
         if (count == 0)
@@ -310,9 +310,6 @@ public sealed unsafe class RayTracingManager : IDisposable
             viewHistory.TLASBindlessIndex = 0;
             return;
         }
-
-        var maxPossible = Math.Max(count, 1);
-        viewHistory.EnsureInstanceDescBuffer((ulong)maxPossible * (ulong)sizeof(RaytracingInstanceDesc));
 
         var pMapped = (RaytracingInstanceDesc*)_resourceDatabase.MapResource(viewHistory.InstanceDescBuffer.AsResource(), 0, null);
         var survivingCount = 0u;

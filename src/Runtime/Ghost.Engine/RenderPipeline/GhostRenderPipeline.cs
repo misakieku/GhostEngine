@@ -12,7 +12,7 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.RenderPipeline;
 
-internal partial class GhostRenderPipeline : IRenderPipeline
+internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 {
     [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl")]
     private struct PipelineConstants
@@ -142,12 +142,12 @@ internal partial class GhostRenderPipeline : IRenderPipeline
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool HasRTEnable(in ShadowSettings shadowSettings)
+    private static bool IsRTEnable(in ShadowSettings shadowSettings)
     {
         return shadowSettings.shadowMode == ShadowMode.RayTraced;
     }
 
-    private void AddCullingAndVbufferPasses(RenderGraph rg, HzbViewHistory hzbHistory, uint2 renderSize, uint instanceCount, Identifier<RGTexture> hzbTexture, uint sceneBuffer)
+    private void AddCullingAndVbufferPasses(RenderGraph rg, HzbViewResource hzbHistory, uint2 renderSize, uint instanceCount, Identifier<RGTexture> hzbTexture, uint sceneBuffer)
     {
         var currentVisBuffer = Identifier<RGTexture>.Invalid;
         var currentDepth = Identifier<RGTexture>.Invalid;
@@ -248,14 +248,21 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
             var colorTarget = renderGraph.ImportTexture(renderView.ColorTexture, ResourceBarrierData.Present, ResourceBarrierData.Present);
 
-            var hzbHistory = viewContext.GetOrCreateHistory(static (alloc, db) => new HzbViewHistory(alloc, db));
-            hzbHistory.EnsureResources(viewContext.RenderSize);
+            var hzbHistory = viewContext.GetOrCreateResource<HzbViewResource, HzbViewResource.Desc>(new HzbViewResource.Desc
+            {
+                renderSize = viewContext.RenderSize
+            });
             var historyHzb = renderGraph.ImportTexture(hzbHistory.Texture, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
-            RayTracingViewHistory? rtHistory = null;
-            if (HasRTEnable(shadowSettings))
+            RayTracingViewResource? rtHistory = null;
+            if (IsRTEnable(shadowSettings))
             {
-                rtHistory = viewContext.GetOrCreateHistory(static (alloc, db) => new RayTracingViewHistory(alloc, db));
+                var desc = new RayTracingViewResource.Desc
+                {
+                    requiredSize = ghostPayload.InstanceCount * (ulong)sizeof(RaytracingInstanceDesc)
+                };
+
+                rtHistory = viewContext.GetOrCreateResource<RayTracingViewResource, RayTracingViewResource.Desc>(in desc);
                 var rtSettings = ghostPayload.GetViewVolumeData<RayTracingSettings>(request.viewId);
                 using (var builder = renderGraph.AddUnsafeRenderPass<BuildTLASPassData>("Build TLAS"))
                 {
@@ -282,13 +289,6 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                     });
                 }
             }
-            else
-            {
-                if (viewContext.TryGetHistory<RayTracingViewHistory>(out var existingRtHistory))
-                {
-                    existingRtHistory.Reset();
-                }
-            }
 
             // Geometry & Visibility passes
             AddCullingAndVbufferPasses(renderGraph, hzbHistory, viewContext.RenderSize, ghostPayload.InstanceCount, historyHzb, _gpuScene.SceneBufferSrvIndex);
@@ -310,17 +310,16 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             {
                 Logger.DebugAssert(rtHistory != null);
 
-                var risHistory = viewContext.GetOrCreateHistory(static (alloc, db) => new RisViewHistory(alloc, db));
-                risHistory.EnsureResources(viewContext.RenderSize);
+                var desc = new RisViewResource.Desc
+                {
+                    renderSize = viewContext.RenderSize
+                };
+
+                var risHistory = viewContext.GetOrCreateResource<RisViewResource, RisViewResource.Desc>(in desc);
                 AddRisPasses(renderGraph, risHistory, rtHistory, viewContext.RenderSize, (uint)frameNumber, request.viewId);
             }
             else
             {
-                if (viewContext.TryGetHistory<RisViewHistory>(out var risHistory))
-                {
-                    risHistory.Invalidate();
-                }
-
                 if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
                 {
                     ExecutePerViewShadowSetup(ctx, in frustum, viewPort.Size.y, lights, request.view.localToWorld.c3.xyz,
@@ -365,6 +364,8 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 _meshPipelineResource.shadowCullWorkGraphProgram?.MarkInitialized();
             }
         }
+
+        _gpuViewManager.EndFrame();
 
         return Result.Success();
     }
