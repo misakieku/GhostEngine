@@ -183,6 +183,24 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     {
         // We capture the count here to prevent that main thread continues to add more requests for next frame while the render thread is still processing current frame's requests.
         _instanceCount = _renderPipeline.GPUScene.InstanceCount;
+
+        if (_renderRequests.Count > 1)
+        {
+            // Sort request with texture target to render first.
+            _renderRequests.AsSpan().Sort(static (a, b) =>
+            {
+                if (a.colorTarget.IsValid)
+                {
+                    return -1;
+                }
+                else if (b.colorTarget.IsValid)
+                {
+                    return 1;
+                }
+
+                return 0;
+            });
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

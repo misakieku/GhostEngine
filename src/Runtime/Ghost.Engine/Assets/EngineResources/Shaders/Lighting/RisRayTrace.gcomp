@@ -58,18 +58,18 @@ compute "Internal/RisRayTrace"
             float zView;
             float2 ndc;
             float3 positionRWS = ReconstructPositionRWS(pixelCoord, depth, zView, ndc);
-            float3 surfacePosWS = TransformCameraRelativeToAbsoluteWorld(positionRWS);
             float3 normalWS = OctahedralDecode(encNormal);
 
             float2 rngSample = GetDecorrelatedSample2D(pixelCoord, g_Properties.frameIndex);
 
-            float3 rayDirWS;
+            float3 lightPosRWS = TransformAbsoluteWorldToCameraRelative(light.positionWS);
+            float3 rayDirRWS;
             float rayDist;
-            ComputeSoftShadowRay(surfacePosWS, light.positionWS, light.size.x, rngSample, rayDirWS, rayDist);
+            ComputeSoftShadowRay(positionRWS, lightPosRWS, light.size.x, rngSample, rayDirRWS, rayDist);
 
-            float3 rayOriginWS = surfacePosWS;
-            ApplyPositionBias(rayOriginWS, rayDirWS, normalWS, 0.02f);
-            float shadow = TraceRayQueryShadow(g_Properties.tlasIndex, rayOriginWS, rayDirWS, max(rayDist - 0.02f, 0.01f), 0.01f);
+            float3 rayOriginRWS = positionRWS;
+            ApplyPositionBias(rayOriginRWS, rayDirRWS, normalWS, 0.02f);
+            float shadow = TraceRayQueryShadow(g_Properties.tlasIndex, rayOriginRWS, rayDirRWS, max(rayDist - 0.02f, 0.01f), 0.01f);
             shadow = lerp(1.0f, shadow, light.shadowDimmer);
 
             RWTexture2D<float> shadowMaskUav = GET_TEXTURE2D(g_Properties.risShadowMaskUav);

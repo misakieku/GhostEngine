@@ -96,7 +96,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
     public void OnEngineInitialized(EngineCore engine)
     {
         const int entityCapacity = 100_0;
-        const float size = 5.0f;
+        const float size = 10.0f;
         const float baseScale = 1.0f;
         const float lightSize = size * 1.0f;
         const int lightCount = 25;
@@ -238,6 +238,11 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         volumeData.Set(new ShadowSettings
         {
             shadowMode = ShadowMode.RayTraced,
+        });
+        volumeData.Set(new RayTracingSettings
+        {
+            cullMode = RayTracingCullMode.ExtendedFrustum,
+            solidAngleThreshold = math.radians(4.0f),
         });
 
         _volumeEntity = _world.EntityManager.CreateEntity(

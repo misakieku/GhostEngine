@@ -1,4 +1,5 @@
 using Misaki.HighPerformance.Mathematics;
+using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -210,6 +211,15 @@ public struct Frustum
         return (math.cross(n2, n1) * p0.w + math.cross(n0, n2) * p1.w - math.cross(n0, n1) * p2.w) * (1.0f / det);
     }
 
+    /// <summary>
+    /// Creates a frustum from a view-projection matrix, camera position, and direction.
+    /// </summary>
+    /// <param name="vpMatrix">The view-projection matrix. </param>
+    /// <param name="viewPos">The camera position. </param>
+    /// <param name="viewDir">The camera direction. </param>
+    /// <param name="nearClip">The near clip plane distance. </param>
+    /// <param name="farClip">The far clip plane distance. </param>
+    /// <returns>The created frustum. </returns>
     public static Frustum Create(float4x4 vpMatrix, float3 viewPos, float3 viewDir, float nearClip, float farClip)
     {
         var frustum = new Frustum();
@@ -233,6 +243,91 @@ public struct Frustum
         frustum.corners[7] = new float4(IntersectFrustumPlanes(frustum.planes[1], frustum.planes[2], frustum.planes[5]), 0.0f);
 
         return frustum;
+    }
+
+    /// <summary>
+    /// Computes the tightest OBB enclosing the frustum aligned with its view axes.
+    /// </summary>
+    /// <returns>The computed OBB.</returns>
+    public OBB GetOBB()
+    {
+        // Extract Forward axis from the near plane normal (planes[4])
+        var forward = planes[4].xyz;
+        if (math.lengthsq(forward) < 1e-6f)
+        {
+            // Fallback if planes are uninitialized: vector from near center to far center
+            var nearCenter = (corners[0].xyz + corners[1].xyz + corners[2].xyz + corners[3].xyz) * 0.25f;
+            var farCenter = (corners[4].xyz + corners[5].xyz + corners[6].xyz + corners[7].xyz) * 0.25f;
+            forward = math.normalize(farCenter - nearCenter);
+        }
+        else
+        {
+            forward = math.normalize(forward);
+        }
+
+        // Extract Right axis across the near plane (corners[0] is Top-Left, corners[1] is Top-Right)
+        var right = corners[1].xyz - corners[0].xyz;
+        if (math.lengthsq(right) < 1e-6f)
+        {
+            right = (corners[3].xyz - corners[2].xyz) + (corners[5].xyz - corners[4].xyz);
+        }
+        right = math.normalize(right);
+
+        // Orthonormalize basis (X = Right, Y = Up, Z = Forward)
+        var up = math.normalize(math.cross(forward, right));
+        right = math.cross(up, forward); // Enforce exact perpendicularity
+
+        var rotation = new quaternion(new float3x3(right, up, forward));
+
+        return GetOBBInternal(rotation, right, up, forward);
+    }
+
+    /// <summary>
+    /// Computes the OBB using a pre-existing camera rotation (skips axis extraction).
+    /// </summary>
+    /// <param name="rotation">The camera rotation quaternion.</param>
+    /// <returns>The computed OBB.</returns>
+    public OBB GetOBB(quaternion rotation)
+    {
+        var right = math.rotate(rotation, new float3(1f, 0f, 0f));
+        var up = math.rotate(rotation, new float3(0f, 1f, 0f));
+        var forward = math.rotate(rotation, new float3(0f, 0f, 1f));
+
+        return GetOBBInternal(rotation, right, up, forward);
+    }
+
+    private OBB GetOBBInternal(quaternion rotation, float3 right, float3 up, float3 forward)
+    {
+        // Use corner[0] as an origin offset to preserve single-precision floating point accuracy
+        var origin = corners[0].xyz;
+
+        var min = new float3(float.MaxValue);
+        var max = new float3(float.MinValue);
+
+        for (int i = 0; i < 8; i++)
+        {
+            var delta = corners[i].xyz - origin;
+
+            // Project onto the orthonormal axes
+            var localPos = new float3(
+                math.dot(delta, right),
+                math.dot(delta, up),
+                math.dot(delta, forward)
+            );
+
+            min = math.min(min, localPos);
+            max = math.max(max, localPos);
+        }
+
+        var localCenter = (min + max) * 0.5f;
+
+        // Half-extents convention (distance from center to each face along axes)
+        var extents = (max - min) * 0.5f;
+
+        // Reconstruct world-space center
+        var worldCenter = origin + (right * localCenter.x) + (up * localCenter.y) + (forward * localCenter.z);
+
+        return new OBB(rotation, worldCenter, extents);
     }
 }
 

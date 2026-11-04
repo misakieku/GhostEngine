@@ -511,7 +511,7 @@ internal unsafe partial class GhostRenderPipeline
         public uint tlasIndex;
     }
 
-    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph rg, in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, uint viewId, uint2 renderSize)
+    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph rg, in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, uint viewId, uint2 renderSize, RayTracingViewHistory? rtHistory)
     {
         ref readonly var vis = ref rg.Blackboard.Get<GeometryVisibilityData>();
         ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
@@ -610,7 +610,7 @@ internal unsafe partial class GhostRenderPipeline
             renderSize = renderSize,
             hzbSize = hzbSize,
             hzbMipCount = hzbMipCount,
-            tlasIndex = _rayTracingManager.TLASBindlessIndex
+            tlasIndex = rtHistory == null ? RHIUtility.INVALID_BINDLESS_INDEX : rtHistory.TLASBindlessIndex
         });
 
         builder.SetRenderFunc<DeferredLightingPassData>(static (ref readonly passData, computeCtx) =>
@@ -737,7 +737,7 @@ internal unsafe partial class GhostRenderPipeline
         public ICommandSignature commandSignature;
         public Handle<ComputeShader> shader;
         public uint2 renderSize;
-        public uint tlasIndex;
+        public RayTracingViewHistory rtHistory;
         public uint viewId;
         public uint frameIndex;
     }
@@ -788,7 +788,7 @@ internal unsafe partial class GhostRenderPipeline
         public uint2 renderSize;
     }
 
-    private void AddRisPasses(RenderGraph rg, RisViewHistory risHistory, uint2 renderSize, uint frameIndex, uint viewId)
+    private void AddRisPasses(RenderGraph rg, RisViewHistory risHistory, RayTracingViewHistory rtHistory, uint2 renderSize, uint frameIndex, uint viewId)
     {
         ref readonly var vis = ref rg.Blackboard.Get<GeometryVisibilityData>();
         ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
@@ -991,7 +991,7 @@ internal unsafe partial class GhostRenderPipeline
                 commandSignature = _dispatchCommandSignature,
                 shader = _lightingPipelineResource.risRayTraceShader,
                 renderSize = renderSize,
-                tlasIndex = _rayTracingManager.TLASBindlessIndex,
+                rtHistory = rtHistory,
                 viewId = viewId,
                 frameIndex = frameIndex
             });
@@ -1016,7 +1016,7 @@ internal unsafe partial class GhostRenderPipeline
                     counterBufferSrv = counterSrv,
                     renderWidth = passData.renderSize.x,
                     renderHeight = passData.renderSize.y,
-                    tlasIndex = passData.tlasIndex,
+                    tlasIndex = passData.rtHistory.TLASBindlessIndex,
                     viewId = passData.viewId,
                     frameIndex = passData.frameIndex
                 };

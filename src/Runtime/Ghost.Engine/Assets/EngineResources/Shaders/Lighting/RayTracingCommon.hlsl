@@ -16,10 +16,10 @@ void ApplyPositionBias(inout float3 rayOrigin, float3 rayDirection, float3 world
     rayOrigin += worldNormal * normalBias;
 }
 
-// Traces an inline ray query against the scene TLAS.
+// Traces an inline ray query against the scene TLAS (in camera-relative world space).
 // Uses fast hardware traversal with early out on any committed hit.
 // Returns 0.0f if occluded, 1.0f if unoccluded.
-float TraceRayQueryShadow(uint tlasIndex, float3 rayOriginWS, float3 rayDirWS, float maxDistance, float tMin)
+float TraceRayQueryShadow(uint tlasIndex, float3 rayOriginRWS, float3 rayDirRWS, float maxDistance, float tMin)
 {
     if (!IS_VALID_BUFFER(tlasIndex) || maxDistance <= tMin)
     {
@@ -27,8 +27,8 @@ float TraceRayQueryShadow(uint tlasIndex, float3 rayOriginWS, float3 rayDirWS, f
     }
 
     RayDesc ray;
-    ray.Origin = rayOriginWS;
-    ray.Direction = rayDirWS;
+    ray.Origin = rayOriginRWS;
+    ray.Direction = rayDirRWS;
     ray.TMin = tMin;
     ray.TMax = maxDistance;
 
@@ -71,10 +71,10 @@ float2 SampleConcentricDisk(float2 u)
     return float2(r * cos(theta), r * sin(theta));
 }
 
-// Computes soft-shadow jittered ray origin, direction, and distance for a spherical punctual light.
-void ComputeSoftShadowRay(float3 surfacePosWS, float3 lightPosWS, float lightRadius, float2 rngSample, out float3 outRayDirWS, out float outRayDist)
+// Computes soft-shadow jittered ray origin, direction, and distance for a spherical punctual light in camera-relative coordinates.
+void ComputeSoftShadowRay(float3 surfacePosRWS, float3 lightPosRWS, float lightRadius, float2 rngSample, out float3 outRayDirRWS, out float outRayDist)
 {
-    float3 toLight = lightPosWS - surfacePosWS;
+    float3 toLight = lightPosRWS - surfacePosRWS;
     float dist = length(toLight);
     float3 L = toLight / max(dist, 0.0001f);
 
@@ -89,14 +89,14 @@ void ComputeSoftShadowRay(float3 surfacePosWS, float3 lightPosWS, float lightRad
         float3 tangent = float3(1.0f + s * L.x * L.x * a, s * b, -s * L.x);
         float3 bitangent = float3(b, s + L.y * L.y * a, -L.y);
 
-        float3 jitteredLightPosWS = lightPosWS + (tangent * disc.x + bitangent * disc.y) * lightRadius;
-        float3 jitteredToLight = jitteredLightPosWS - surfacePosWS;
+        float3 jitteredLightPosRWS = lightPosRWS + (tangent * disc.x + bitangent * disc.y) * lightRadius;
+        float3 jitteredToLight = jitteredLightPosRWS - surfacePosRWS;
         outRayDist = length(jitteredToLight);
-        outRayDirWS = jitteredToLight / max(outRayDist, 0.0001f);
+        outRayDirRWS = jitteredToLight / max(outRayDist, 0.0001f);
     }
     else
     {
-        outRayDirWS = L;
+        outRayDirRWS = L;
         outRayDist = dist;
     }
 }

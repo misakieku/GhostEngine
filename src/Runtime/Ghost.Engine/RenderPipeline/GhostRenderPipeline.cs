@@ -8,6 +8,7 @@ using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.RenderPipeline;
 
@@ -62,7 +63,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
         _gpuScene = new GPUScene(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, settings.MaxVisibleMeshletsOnScreen / 64);
         _gpuViewManager = new GPUViewManager(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, renderEngine.GraphicsEngine.PipelineLibrary, renderEngine.ResourceManager, renderEngine.ShaderLibrary);
-        _rayTracingManager = new RayTracingManager(renderEngine.GraphicsEngine, renderEngine.ResourceManager);
+        _rayTracingManager = new RayTracingManager(renderEngine.GraphicsEngine.Device, renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, renderEngine.ResourceManager, jobScheduler);
 
         _gpuSceneResource.Resolve();
         _meshPipelineResource.Resolve();
@@ -121,13 +122,69 @@ internal partial class GhostRenderPipeline : IRenderPipeline
 
         // Build any newly added mesh proxy BLASes
         _rayTracingManager.BuildPendingBlas(commandBuffer);
+    }
 
-        // Build scene TLAS using the primary view's camera position
-        var cameraPos = ghostPayload.RenderRequests.Length > 0
-            ? ghostPayload.RenderRequests[0].view.localToWorld.c3.xyz
-            : float3.zero;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static KeywordMask128 BuildViewKeywords(in ShadowSettings shadowSettings)
+    {
+        var viewKeywords = KeywordMask128.Empty;
+        switch (shadowSettings.shadowMode)
+        {
+            case ShadowMode.ShadowMap:
+                viewKeywords = viewKeywords.Set(s_kwShadowPCF.Id);
+                break;
+            case ShadowMode.RayTraced:
+                viewKeywords = viewKeywords.Set(s_kwShadowRIS.Id);
+                break;
+        }
 
-        _rayTracingManager.BuildTLAS(commandBuffer, in cameraPos, _gpuScene.InstanceCount);
+        return viewKeywords;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool HasRTEnable(in ShadowSettings shadowSettings)
+    {
+        return shadowSettings.shadowMode == ShadowMode.RayTraced;
+    }
+
+    private void AddCullingAndVbufferPasses(RenderGraph rg, HzbViewHistory hzbHistory, uint2 renderSize, uint instanceCount, Identifier<RGTexture> hzbTexture, uint sceneBuffer)
+    {
+        var currentVisBuffer = Identifier<RGTexture>.Invalid;
+        var currentDepth = Identifier<RGTexture>.Invalid;
+
+        // Pass 1: Early-Z Hierarchical Meshlet Culling
+
+        AddMeshletCullPass1(rg, hzbTexture, hzbHistory.HzbMipCount, renderSize, hzbHistory.HzbSize, instanceCount,
+            out var unbinnedMeshlets0, out var occludedMeshlets, out var counterBuffer);
+
+        AddPrepareIndirectArgsPass(rg, counterBuffer, 0, out var indirectArg0, out var binOffsets0, out var binScatterCounters0);
+        var visibleMeshlets0 = AddScatterMeshletsPass(rg, unbinnedMeshlets0, binScatterCounters0, counterBuffer, 0);
+        AddVisibilityBufferPass(rg, visibleMeshlets0, binOffsets0, indirectArg0, 0, sceneBuffer, renderSize, ref currentVisBuffer);
+        AddSoftwareRasterizerPass(rg, visibleMeshlets0, binOffsets0, indirectArg0, currentVisBuffer, renderSize);
+        AddBuildHZBPasses(rg, currentVisBuffer, hzbTexture, hzbHistory.HzbMipCount, hzbHistory.HzbSize, renderSize);
+
+        // Pass 2: Late-Z Meshlet Culling
+
+        var unbinnedMeshlets1 = AddMeshletCullPass2(rg, occludedMeshlets, counterBuffer, indirectArg0, hzbTexture,
+            hzbHistory.HzbMipCount, renderSize, hzbHistory.HzbSize);
+
+        AddPrepareIndirectArgsPass(rg, counterBuffer, 1, out var indirectArg1, out var binOffsets1, out var binScatterCounters1);
+        var visibleMeshlets1 = AddScatterMeshletsPass(rg, unbinnedMeshlets1, binScatterCounters1, counterBuffer, 1);
+        AddVisibilityBufferPass(rg, visibleMeshlets1, binOffsets1, indirectArg1, 1, sceneBuffer, renderSize, ref currentVisBuffer);
+
+        // Export stable depth ONCE at the end of geometry passes
+        AddExportVisibilityDepthPass(rg, currentVisBuffer, renderSize, ref currentDepth);
+        AddBuildHZBPasses(rg, currentVisBuffer, hzbTexture, hzbHistory.HzbMipCount, hzbHistory.HzbSize, renderSize);
+
+        var visData = new GeometryVisibilityData
+        {
+            depth = currentDepth,
+            visBuffer = currentVisBuffer,
+            visibleMeshlets0 = visibleMeshlets0,
+            visibleMeshlets1 = visibleMeshlets1
+        };
+
+        rg.Blackboard.Add(ref visData);
     }
 
     public Result ExecuteGraph(scoped in ResourceContext ctx, int frameIndex, ulong frameNumber, IRenderPayload payload, in RenderGraphExecutionContext executionContext)
@@ -195,6 +252,44 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             hzbHistory.EnsureResources(viewContext.RenderSize);
             var historyHzb = renderGraph.ImportTexture(hzbHistory.Texture, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
+            RayTracingViewHistory? rtHistory = null;
+            if (HasRTEnable(shadowSettings))
+            {
+                rtHistory = viewContext.GetOrCreateHistory(static (alloc, db) => new RayTracingViewHistory(alloc, db));
+                var rtSettings = ghostPayload.GetViewVolumeData<RayTracingSettings>(request.viewId);
+                using (var builder = renderGraph.AddUnsafeRenderPass<BuildTLASPassData>("Build TLAS"))
+                {
+                    builder.AllowPassCulling(false);
+                    builder.SetPassData(new BuildTLASPassData
+                    {
+                        rayTracingManager = _rayTracingManager,
+                        viewHistory = rtHistory,
+                        settings = new TLASBuildSettings
+                        {
+                            frustum = frustum,
+                            cameraPosition = request.view.localToWorld.c3.xyz,
+                            cameraRotation = request.view.localToWorld.GetRotation(),
+                            cullMode = rtSettings.cullMode.GetValueOrDefault(),
+                            sphereCullDistance = rtSettings.sphereCullDistance.GetValueOrDefault(),
+                            solidAngleThreshold = rtSettings.solidAngleThreshold.GetValueOrDefault()
+                        },
+                        activeInstanceCount = _gpuScene.InstanceCount
+                    });
+
+                    builder.SetRenderFunc<BuildTLASPassData>(static (ref readonly data, ctx) =>
+                    {
+                        data.rayTracingManager.BuildTLAS(data.viewHistory, in data.settings, ctx.GetCommandBufferUnsafe(), data.activeInstanceCount);
+                    });
+                }
+            }
+            else
+            {
+                if (viewContext.TryGetHistory<RayTracingViewHistory>(out var existingRtHistory))
+                {
+                    existingRtHistory.Reset();
+                }
+            }
+
             // Geometry & Visibility passes
             AddCullingAndVbufferPasses(renderGraph, hzbHistory, viewContext.RenderSize, ghostPayload.InstanceCount, historyHzb, _gpuScene.SceneBufferSrvIndex);
 
@@ -207,14 +302,17 @@ internal partial class GhostRenderPipeline : IRenderPipeline
                 gbuffer = gbuffer,
                 tileLightList = tileLightList
             };
+
             renderGraph.Blackboard.Add(ref gbufferData);
 
             // Shadow Passes
             if (shadowSettings.shadowMode == ShadowMode.RayTraced)
             {
+                Logger.DebugAssert(rtHistory != null);
+
                 var risHistory = viewContext.GetOrCreateHistory(static (alloc, db) => new RisViewHistory(alloc, db));
                 risHistory.EnsureResources(viewContext.RenderSize);
-                AddRisPasses(renderGraph, risHistory, viewContext.RenderSize, (uint)frameNumber, request.viewId);
+                AddRisPasses(renderGraph, risHistory, rtHistory, viewContext.RenderSize, (uint)frameNumber, request.viewId);
             }
             else
             {
@@ -245,7 +343,7 @@ internal partial class GhostRenderPipeline : IRenderPipeline
             var skyContext = PrepareSky(renderGraph, viewContext, in request, ghostPayload, persistentViewStateBuffer);
 
             var litColor = AddDeferredLightingPass(
-                renderGraph, in skyContext, historyHzb, hzbHistory.HzbMipCount, hzbHistory.HzbSize, request.viewId, viewContext.RenderSize);
+                renderGraph, in skyContext, historyHzb, hzbHistory.HzbMipCount, hzbHistory.HzbSize, request.viewId, viewContext.RenderSize, rtHistory);
 
             AddSkyPass(renderGraph, in skyContext, litColor);
 
@@ -269,61 +367,6 @@ internal partial class GhostRenderPipeline : IRenderPipeline
         }
 
         return Result.Success();
-    }
-
-    private KeywordMask128 BuildViewKeywords(in ShadowSettings shadowSettings)
-    {
-        var viewKeywords = KeywordMask128.Empty;
-        switch (shadowSettings.shadowMode)
-        {
-            case ShadowMode.ShadowMap:
-                viewKeywords = viewKeywords.Set(s_kwShadowPCF.Id);
-                break;
-            case ShadowMode.RayTraced:
-                viewKeywords = viewKeywords.Set(s_kwShadowRIS.Id);
-                break;
-        }
-
-        return viewKeywords;
-    }
-
-    private void AddCullingAndVbufferPasses(RenderGraph rg, HzbViewHistory hzbHistory, uint2 renderSize, uint instanceCount, Identifier<RGTexture> hzbTexture, uint sceneBuffer)
-    {
-        var currentVisBuffer = Identifier<RGTexture>.Invalid;
-        var currentDepth = Identifier<RGTexture>.Invalid;
-
-        // Pass 1: Early-Z Hierarchical Meshlet Culling
-
-        AddMeshletCullPass1(rg, hzbTexture, hzbHistory.HzbMipCount, renderSize, hzbHistory.HzbSize, instanceCount,
-            out var unbinnedMeshlets0, out var occludedMeshlets, out var counterBuffer);
-
-        AddPrepareIndirectArgsPass(rg, counterBuffer, 0, out var indirectArg0, out var binOffsets0, out var binScatterCounters0);
-        var visibleMeshlets0 = AddScatterMeshletsPass(rg, unbinnedMeshlets0, binScatterCounters0, counterBuffer, 0);
-        AddVisibilityBufferPass(rg, visibleMeshlets0, binOffsets0, indirectArg0, 0, sceneBuffer, renderSize, ref currentVisBuffer);
-        AddSoftwareRasterizerPass(rg, visibleMeshlets0, binOffsets0, indirectArg0, currentVisBuffer, renderSize);
-        AddBuildHZBPasses(rg, currentVisBuffer, hzbTexture, hzbHistory.HzbMipCount, hzbHistory.HzbSize, renderSize);
-
-        // Pass 2: Late-Z Meshlet Culling
-
-        var unbinnedMeshlets1 = AddMeshletCullPass2(rg, occludedMeshlets, counterBuffer, indirectArg0, hzbTexture,
-            hzbHistory.HzbMipCount, renderSize, hzbHistory.HzbSize);
-
-        AddPrepareIndirectArgsPass(rg, counterBuffer, 1, out var indirectArg1, out var binOffsets1, out var binScatterCounters1);
-        var visibleMeshlets1 = AddScatterMeshletsPass(rg, unbinnedMeshlets1, binScatterCounters1, counterBuffer, 1);
-        AddVisibilityBufferPass(rg, visibleMeshlets1, binOffsets1, indirectArg1, 1, sceneBuffer, renderSize, ref currentVisBuffer);
-
-        // Export stable depth ONCE at the end of geometry passes
-        AddExportVisibilityDepthPass(rg, currentVisBuffer, renderSize, ref currentDepth);
-        AddBuildHZBPasses(rg, currentVisBuffer, hzbTexture, hzbHistory.HzbMipCount, hzbHistory.HzbSize, renderSize);
-
-        var visData = new GeometryVisibilityData
-        {
-            depth = currentDepth,
-            visBuffer = currentVisBuffer,
-            visibleMeshlets0 = visibleMeshlets0,
-            visibleMeshlets1 = visibleMeshlets1
-        };
-        rg.Blackboard.Add(ref visData);
     }
 
     public void Dispose()

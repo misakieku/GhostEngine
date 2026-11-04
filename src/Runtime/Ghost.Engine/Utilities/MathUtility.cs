@@ -56,6 +56,29 @@ public static class MathUtility
 
             rotation = new quaternion(rotationMatrix);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float3 GetTranslation()
+        {
+            return matrix.c3.xyz;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float3 GetScale()
+        {
+            var scaleX = math.length(matrix.c0.xyz);
+            var scaleY = math.length(matrix.c1.xyz);
+            var scaleZ = math.length(matrix.c2.xyz);
+            return new float3(scaleX, scaleY, scaleZ);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public quaternion GetRotation()
+        {
+            var scale = matrix.GetScale();
+            var rotationMatrix = new float3x3(matrix.c0.xyz / scale.x, matrix.c1.xyz / scale.y, matrix.c2.xyz / scale.z);
+            return new quaternion(rotationMatrix);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

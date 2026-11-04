@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Engine.Volumes;
 
@@ -42,11 +43,17 @@ public partial struct RayTracingSettings
     /// </summary>
     public float? sphereCullDistance;
 
+    /// <summary>
+    /// Specifies the solid angle threshold in radians used for culling when using solid angle culling.
+    /// </summary>
+    public float? solidAngleThreshold;
+
     public static RayTracingSettings Default => new RayTracingSettings
     {
         rayBias = 0.001f,
         distanceRayBias = 0.01f,
         cullMode = RayTracingCullMode.ExtendedFrustum,
-        sphereCullDistance = 1000.0f
+        sphereCullDistance = 1000.0f,
+        solidAngleThreshold = math.radians(4.0f),
     };
 }
