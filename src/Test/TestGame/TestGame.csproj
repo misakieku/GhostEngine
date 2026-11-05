@@ -19,7 +19,7 @@
     <ProjectReference Include="..\..\Runtime\Ghost.Graphics.D3D12\Ghost.Graphics.D3D12.csproj" />
     <ProjectReference Include="..\..\Runtime\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
-
+  
   <ItemGroup>
     <RuntimeHostConfigurationOption Include="DOTNET_DbgEnableMiniDump" Value="1" />
     <RuntimeHostConfigurationOption Include="DOTNET_DbgMiniDumpType" Value="3" />

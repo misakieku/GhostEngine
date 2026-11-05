@@ -940,7 +940,9 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             && !pass.hasSideEffects
             && pass.maxColorIndex < 0
             && pass.depthAccess.id.IsInvalid
-            && pass.renderTargetWrites.Count == 0;
+            && pass.renderTargetWrites.Count == 0
+            && pass.depthTargetWrites.Count == 0
+            && pass.depthTargetReads.Count == 0;
     }
 
     private static int FindFirstDependent(int sourceIndex, int passCount, ReadOnlySpan<byte> reachability)

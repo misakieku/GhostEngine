@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Engine.Utilities;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
@@ -11,6 +12,11 @@ namespace Ghost.UnitTest.Graphics;
 [DoNotParallelize]
 public partial class RenderGraphTest
 {
+    private struct DepthPassData
+    {
+        public Identifier<RGTexture> target;
+    }
+
     private struct CullingPassData
     {
         public Identifier<RGBuffer> scene;
@@ -743,6 +749,76 @@ public partial class RenderGraphTest
 
         Assert.IsTrue(hasRenderTargetBarrier, "Must issue a RenderTarget barrier for color attachment.");
         Assert.IsTrue(hasShaderResourceBarrier, "Must issue a ShaderResource barrier when reading texture.");
+    }
+
+    [TestMethod]
+    public void TestUnsafeDepthTargetEmitsDepthStencilBarriers()
+    {
+        Identifier<RGTexture> depthTexture;
+
+        using (var builder = _renderGraph.AddUnsafeRenderPass<DepthPassData>("ClearDepthPass"))
+        {
+            builder.AllowPassCulling(false);
+            depthTexture = builder.CreateTexture(RGTextureDesc.RelativeDepth(1.0f), "SceneDepth");
+            builder.UseDepthTargetTexture(depthTexture, AccessFlags.WriteAll);
+            builder.SetPassData(new DepthPassData { target = depthTexture });
+            builder.SetRenderFunc<DepthPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        using (var builder = _renderGraph.AddUnsafeRenderPass<DepthPassData>("ReadDepthPass"))
+        {
+            builder.AllowPassCulling(false);
+            builder.UseDepthTargetTexture(depthTexture, AccessFlags.Read);
+            builder.SetPassData(new DepthPassData { target = depthTexture });
+            builder.SetRenderFunc<DepthPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        var exec = CompileAndExecute(new ViewportState
+        {
+            Size = new uint2(1920, 1080),
+            ActualSize = new uint2(1920, 1080),
+        }).GetValueOrThrow();
+
+        var hasDepthWriteBarrier = GetRecordedBarriers().Any(b => b.LayoutAfter == BarrierLayout.DepthStencilWrite);
+        var hasDepthReadBarrier = GetRecordedBarriers().Any(b => b.LayoutAfter == BarrierLayout.DepthStencilRead);
+
+        Assert.IsTrue(hasDepthWriteBarrier, "Must issue a DepthStencilWrite barrier for unsafe depth write.");
+        Assert.IsTrue(hasDepthReadBarrier, "Must issue a DepthStencilRead barrier for unsafe depth read.");
+    }
+
+    [TestMethod]
+    public void TestClearDepthStencilPassEmitsBarrier()
+    {
+        Identifier<RGTexture> depthTexture;
+        using (var builder = _renderGraph.AddRasterRenderPass<VBufferPassData>("InitPass"))
+        {
+            builder.AllowPassCulling(false);
+            depthTexture = builder.CreateTexture(RGTextureDesc.RelativeDepth(1.0f), "SceneDepth");
+            var color = builder.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8G8_UNorm), "Color");
+            builder.SetColorAttachment(color, 0, AccessFlags.WriteAll);
+            builder.SetPassData(new VBufferPassData());
+            builder.SetRenderFunc<VBufferPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        _renderGraph.AddClearDepthStencilPass(depthTexture, 1.0f, 0, includeDepth: true, includeStencil: false);
+
+        // Read depth in an unculled pass so ClearDepthStencilPass is not culled
+        using (var builder = _renderGraph.AddUnsafeRenderPass<DepthPassData>("ConsumerPass"))
+        {
+            builder.AllowPassCulling(false);
+            builder.UseDepthTargetTexture(depthTexture, AccessFlags.Read);
+            builder.SetPassData(new DepthPassData { target = depthTexture });
+            builder.SetRenderFunc<DepthPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        var exec = CompileAndExecute(new ViewportState
+        {
+            Size = new uint2(1920, 1080),
+            ActualSize = new uint2(1920, 1080),
+        }).GetValueOrThrow();
+
+        var hasDepthWriteBarrier = GetRecordedBarriers().Any(b => b.LayoutAfter == BarrierLayout.DepthStencilWrite);
+        Assert.IsTrue(hasDepthWriteBarrier, "ClearDepthStencilPass must emit a DepthStencilWrite barrier.");
     }
 
     [TestMethod]

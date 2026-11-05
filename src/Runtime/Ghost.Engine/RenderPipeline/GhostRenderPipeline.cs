@@ -147,10 +147,9 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         return shadowSettings.shadowMode == ShadowMode.RayTraced;
     }
 
-    private void AddCullingAndVbufferPasses(RenderGraph rg, HzbViewResource hzbHistory, uint2 renderSize, uint instanceCount, Identifier<RGTexture> hzbTexture, uint sceneBuffer)
+    private Identifier<RGTexture> AddCullingAndVbufferPasses(RenderGraph rg, HzbViewResource hzbHistory, uint2 renderSize, uint instanceCount, Identifier<RGTexture> hzbTexture, uint sceneBuffer)
     {
         var currentVisBuffer = Identifier<RGTexture>.Invalid;
-        var currentDepth = Identifier<RGTexture>.Invalid;
 
         // Pass 1: Early-Z Hierarchical Meshlet Culling
 
@@ -173,18 +172,19 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         AddVisibilityBufferPass(rg, visibleMeshlets1, binOffsets1, indirectArg1, 1, sceneBuffer, renderSize, ref currentVisBuffer);
 
         // Export stable depth ONCE at the end of geometry passes
-        AddExportVisibilityDepthPass(rg, currentVisBuffer, renderSize, ref currentDepth);
+        var depthtexture = AddExportVisibilityDepthPass(rg, currentVisBuffer, renderSize);
         AddBuildHZBPasses(rg, currentVisBuffer, hzbTexture, hzbHistory.HzbMipCount, hzbHistory.HzbSize, renderSize);
 
         var visData = new GeometryVisibilityData
         {
-            depth = currentDepth,
             visBuffer = currentVisBuffer,
             visibleMeshlets0 = visibleMeshlets0,
             visibleMeshlets1 = visibleMeshlets1
         };
 
         rg.Blackboard.Add(ref visData);
+
+        return depthtexture;
     }
 
     public Result ExecuteGraph(scoped in ResourceContext ctx, int frameIndex, ulong frameNumber, IRenderPayload payload, in RenderGraphExecutionContext executionContext)
@@ -291,12 +291,12 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             }
 
             // Geometry & Visibility passes
-            AddCullingAndVbufferPasses(renderGraph, hzbHistory, viewContext.RenderSize, ghostPayload.InstanceCount, historyHzb, _gpuScene.SceneBufferSrvIndex);
+            var depthTexture = AddCullingAndVbufferPasses(renderGraph, hzbHistory, viewContext.RenderSize, ghostPayload.InstanceCount, historyHzb, _gpuScene.SceneBufferSrvIndex);
 
             // Tile Classification & Deferred Texturing
             AddTileClassificationPass(renderGraph, viewContext.RenderSize);
             var gbuffer = AddDeferredTexturingPass(renderGraph, viewContext.RenderSize);
-            var tileLightList = AddTileLightCullingPass(renderGraph, viewContext.RenderSize);
+            var tileLightList = AddTileLightCullingPass(renderGraph, depthTexture, viewContext.RenderSize);
             var gbufferData = new GBufferPassData
             {
                 gbuffer = gbuffer,
@@ -316,7 +316,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 };
 
                 var risHistory = viewContext.GetOrCreateResource<RisViewResource, RisViewResource.Desc>(in desc);
-                AddRisPasses(renderGraph, risHistory, rtHistory, viewContext.RenderSize, (uint)frameNumber, request.viewId);
+                AddRisPasses(renderGraph, risHistory, rtHistory, depthTexture, viewContext.RenderSize, (uint)frameNumber, request.viewId);
             }
             else
             {
@@ -340,11 +340,10 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             // Sky & Lighting
             var persistentViewStateBuffer = renderGraph.ImportBuffer(_gpuViewManager.PersistentViewStateBuffer, ResourceBarrierData.Common, ResourceBarrierData.Common);
             var skyContext = PrepareSky(renderGraph, viewContext, in request, ghostPayload, persistentViewStateBuffer);
+            var litColor = AddDeferredLightingPass(renderGraph, in skyContext, historyHzb, hzbHistory.HzbMipCount, hzbHistory.HzbSize,
+                    depthTexture, request.viewId, viewContext.RenderSize, rtHistory);
 
-            var litColor = AddDeferredLightingPass(
-                renderGraph, in skyContext, historyHzb, hzbHistory.HzbMipCount, hzbHistory.HzbSize, request.viewId, viewContext.RenderSize, rtHistory);
-
-            AddSkyPass(renderGraph, in skyContext, litColor);
+            AddSkyPass(renderGraph, in skyContext, litColor, depthTexture);
 
             // Presentation
             renderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);

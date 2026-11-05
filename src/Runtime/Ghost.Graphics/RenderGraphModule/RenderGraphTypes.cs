@@ -6,11 +6,21 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
+internal enum PassResourceUsageClass : byte
+{
+    None,
+    ShaderRead,
+    IndirectArgument,
+    UnorderedAccess,
+    ColorAttachment,
+    DepthRead,
+    DepthWrite
+}
+
 public enum RGResourceType : int
 {
     Texture,
     Buffer,
-    // AccelerationStructure,
     Count
 }
 

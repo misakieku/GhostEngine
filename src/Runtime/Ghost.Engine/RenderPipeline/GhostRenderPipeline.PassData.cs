@@ -7,7 +7,6 @@ internal partial class GhostRenderPipeline
 {
     private struct GeometryVisibilityData
     {
-        public Identifier<RGTexture> depth;
         public Identifier<RGTexture> visBuffer;
         public Identifier<RGBuffer> visibleMeshlets0;
         public Identifier<RGBuffer> visibleMeshlets1;

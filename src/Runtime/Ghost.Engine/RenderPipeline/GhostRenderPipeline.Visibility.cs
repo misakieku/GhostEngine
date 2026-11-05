@@ -172,28 +172,24 @@ internal partial class GhostRenderPipeline
         });
     }
 
-    private void AddExportVisibilityDepthPass(RenderGraph rg, Identifier<RGTexture> visBuffer, uint2 screenSize, ref Identifier<RGTexture> existingDepth)
+    private Identifier<RGTexture> AddExportVisibilityDepthPass(RenderGraph rg, Identifier<RGTexture> visBuffer, uint2 screenSize)
     {
-
         using var builder = rg.AddComputeRenderPass<ExportVisibilityDepthPassData>("ExportVisibilityDepth");
 
-        if (existingDepth.IsInvalid)
-        {
-            var depthDesc = RGTextureDesc.Relative(
-                1.0f,
-                TextureFormat.R32_Float,
-                usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource,
-                clearAtFirstUse: false);
-            existingDepth = builder.CreateTexture(in depthDesc, "SceneDepthBuffer");
-        }
+        var depthDesc = RGTextureDesc.Relative(
+            1.0f,
+            TextureFormat.R32_Float,
+            usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource,
+            clearAtFirstUse: false);
+        var depthTexture = builder.CreateTexture(in depthDesc, "SceneDepthBuffer");
 
         builder.UseTexture(visBuffer, AccessFlags.Read);
-        builder.UseTexture(existingDepth, AccessFlags.Write);
+        builder.UseTexture(depthTexture, AccessFlags.Write);
 
         builder.SetPassData(new ExportVisibilityDepthPassData
         {
             visBuffer = visBuffer,
-            depthTexture = existingDepth,
+            depthTexture = depthTexture,
             shader = _materialPipelineResource.exportVisibilityDepthShader,
             renderSize = screenSize
         });
@@ -218,6 +214,8 @@ internal partial class GhostRenderPipeline
             var threadGroupsY = Math.Max(1u, (passData.renderSize.y + 15) / 16);
             computeCtx.DispatchCompute(threadGroupsX, threadGroupsY, 1);
         });
+
+        return depthTexture;
     }
 
     private void DisposeVisibility()

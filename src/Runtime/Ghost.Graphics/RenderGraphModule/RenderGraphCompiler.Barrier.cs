@@ -410,6 +410,38 @@ internal unsafe partial class RenderGraphCompiler
                 renderTargetState);
         }
 
+        var depthTargetWriteState = new ResourceBarrierData(BarrierLayout.DepthStencilWrite, BarrierAccess.DepthStencilWrite, BarrierSync.DepthStencil);
+        foreach (var resource in pass.depthTargetWrites)
+        {
+            ref var usage = ref usages[resource.Value];
+            ApplyUsage(
+                ref usage,
+                resource,
+                RGResourceType.Texture,
+                pass.resourceReads[(int)RGResourceType.Texture].Contains(resource),
+                pass.resourceWrites[(int)RGResourceType.Texture].Contains(resource),
+                pass.resourceDiscards[(int)RGResourceType.Texture].Contains(resource),
+                PassResourceUsageClass.DepthWrite,
+                PassResourceUsagePriority.Explicit,
+                depthTargetWriteState);
+        }
+
+        var depthTargetReadState = new ResourceBarrierData(BarrierLayout.DepthStencilRead, BarrierAccess.DepthStencilRead, BarrierSync.DepthStencil);
+        foreach (var resource in pass.depthTargetReads)
+        {
+            ref var usage = ref usages[resource.Value];
+            ApplyUsage(
+                ref usage,
+                resource,
+                RGResourceType.Texture,
+                pass.resourceReads[(int)RGResourceType.Texture].Contains(resource),
+                pass.resourceWrites[(int)RGResourceType.Texture].Contains(resource),
+                pass.resourceDiscards[(int)RGResourceType.Texture].Contains(resource),
+                PassResourceUsageClass.DepthRead,
+                PassResourceUsagePriority.Explicit,
+                depthTargetReadState);
+        }
+
         var randomAccessState = new ResourceBarrierData(
             BarrierLayout.UnorderedAccess,
             BarrierAccess.UnorderedAccess,
@@ -699,7 +731,8 @@ internal unsafe partial class RenderGraphCompiler
     {
 
         using var scope = AllocationManager.CreateStackScope();
-        using var renderTargets = new UnsafeHashSet<Identifier<RGResource>>(laterPass.maxColorIndex + 1, scope.AllocationHandle);
+        var targetCapacity = laterPass.maxColorIndex + 1 + (laterPass.depthAccess.id.IsInvalid ? 0 : 1) + laterPass.renderTargetWrites.Count + laterPass.depthTargetWrites.Count + laterPass.depthTargetReads.Count;
+        using var renderTargets = new UnsafeHashSet<Identifier<RGResource>>(Math.Max(1, targetCapacity), scope.AllocationHandle);
 
         for (var i = 0; i <= laterPass.maxColorIndex; i++)
         {
@@ -712,6 +745,21 @@ internal unsafe partial class RenderGraphCompiler
         if (!laterPass.depthAccess.id.IsInvalid)
         {
             renderTargets.Add(laterPass.depthAccess.id.AsResource());
+        }
+
+        foreach (var resource in laterPass.renderTargetWrites)
+        {
+            renderTargets.Add(resource);
+        }
+
+        foreach (var resource in laterPass.depthTargetWrites)
+        {
+            renderTargets.Add(resource);
+        }
+
+        foreach (var resource in laterPass.depthTargetReads)
+        {
+            renderTargets.Add(resource);
         }
 
         for (var resType = 0; resType < (int)RGResourceType.Count; resType++)

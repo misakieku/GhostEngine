@@ -360,9 +360,8 @@ internal unsafe partial class GhostRenderPipeline
             0.0f, 0.0f, 0.0f, 1.0f);
     }
 
-    private Identifier<RGBuffer> AddTileLightCullingPass(RenderGraph rg, uint2 renderSize)
+    private Identifier<RGBuffer> AddTileLightCullingPass(RenderGraph rg, Identifier<RGTexture> depthTexture, uint2 renderSize)
     {
-        var depthTexture = rg.Blackboard.Get<GeometryVisibilityData>().depth;
         // TODO: For Dynamic Resolution Scaling (DRS), size this buffer using the maximum resolution (window/backbuffer size)
         // instead of dynamic renderSize so that BufferDesc.Size remains constant and the render graph hash does not change every frame.
         // Dispatches will continue to use the dynamic viewport tilesX/tilesY.
@@ -511,9 +510,8 @@ internal unsafe partial class GhostRenderPipeline
         public uint tlasIndex;
     }
 
-    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph rg, in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, uint viewId, uint2 renderSize, RayTracingViewResource? rtHistory)
+    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph rg, in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, Identifier<RGTexture> depthTexture, uint viewId, uint2 renderSize, RayTracingViewResource? rtHistory)
     {
-        ref readonly var vis = ref rg.Blackboard.Get<GeometryVisibilityData>();
         ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
         ref readonly var tile = ref rg.Blackboard.Get<TileClassificationData>();
 
@@ -528,7 +526,6 @@ internal unsafe partial class GhostRenderPipeline
         var risResolvedSpecular = hasRis ? ris.resolvedSpecular : Identifier<RGTexture>.Invalid;
 
         ref readonly var gbuffer = ref gbufferData.gbuffer;
-        var depthTexture = vis.depth;
         var tileLightList = gbufferData.tileLightList;
         var tileShadingModelMaskBuffer = tile.tileShadingModelMaskBuffer;
 
@@ -788,12 +785,10 @@ internal unsafe partial class GhostRenderPipeline
         public uint2 renderSize;
     }
 
-    private void AddRisPasses(RenderGraph rg, RisViewResource risResource, RayTracingViewResource rtHistory, uint2 renderSize, uint frameIndex, uint viewId)
+    private void AddRisPasses(RenderGraph rg, RisViewResource risResource, RayTracingViewResource rtHistory, Identifier<RGTexture> depthTexture, uint2 renderSize, uint frameIndex, uint viewId)
     {
-        ref readonly var vis = ref rg.Blackboard.Get<GeometryVisibilityData>();
         ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
         ref readonly var tile = ref rg.Blackboard.Get<TileClassificationData>();
-        var depthTexture = vis.depth;
         ref readonly var gbuffer = ref gbufferData.gbuffer;
         var tileLightList = gbufferData.tileLightList;
         var tileShadingModelMaskBuffer = tile.tileShadingModelMaskBuffer;

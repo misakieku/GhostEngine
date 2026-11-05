@@ -289,17 +289,15 @@ public sealed unsafe class RayTracingManager : IDisposable
             };
 
             cmd.BuildRaytracingAccelerationStructure(in buildDesc);
-
-            cmd.Barrier(
-                BarrierDesc.Buffer(blasBuffer, BarrierSync.BuildRaytracingAccelerationStructure, BarrierSync.BuildRaytracingAccelerationStructure | BarrierSync.AllShading, BarrierAccess.RaytracingAccelerationStructureWrite, BarrierAccess.RaytracingAccelerationStructureRead, force: true)
-            );
+            cmd.Barrier(BarrierDesc.Buffer(blasBuffer,
+                BarrierSync.BuildRaytracingAccelerationStructure, BarrierSync.BuildRaytracingAccelerationStructure | BarrierSync.AllShading,
+                BarrierAccess.RaytracingAccelerationStructureWrite, BarrierAccess.RaytracingAccelerationStructureRead, force: true));
 
             mesh.RayTracingProxyBlas = blasBuffer;
             mesh.ProxyBlasGpuAddress = blasGpuVA;
         }
 
         _pendingBlasBuilds.Clear();
-        cmd.InsertFullPipelineBarrier();
     }
 
     public void BuildTLAS(RayTracingViewResource viewHistory, in TLASBuildSettings settings, ICommandBuffer cmd, uint activeInstanceCount)
@@ -376,11 +374,9 @@ public sealed unsafe class RayTracingManager : IDisposable
         };
 
         cmd.BuildRaytracingAccelerationStructure(in buildDesc);
-
-        cmd.Barrier(
-            BarrierDesc.Buffer(viewHistory.TLASBuffer, BarrierSync.BuildRaytracingAccelerationStructure, BarrierSync.AllShading, BarrierAccess.RaytracingAccelerationStructureWrite, BarrierAccess.RaytracingAccelerationStructureRead, force: true)
-        );
-        cmd.InsertFullPipelineBarrier();
+        cmd.Barrier(BarrierDesc.Buffer(viewHistory.TLASBuffer,
+            BarrierSync.BuildRaytracingAccelerationStructure, BarrierSync.AllShading,
+            BarrierAccess.RaytracingAccelerationStructureWrite, BarrierAccess.RaytracingAccelerationStructureRead, force: true));
 
         viewHistory.TLASBindlessIndex = _resourceDatabase.GetBindlessIndex(viewHistory.TLASBuffer.AsResource());
     }

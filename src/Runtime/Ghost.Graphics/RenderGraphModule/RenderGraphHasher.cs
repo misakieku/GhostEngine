@@ -101,6 +101,8 @@ internal static unsafe class RenderGraphHasher
 
             WriteResourceSet(&writer, pass.randomAccess, scratch.AsSpan());
             WriteResourceSet(&writer, pass.renderTargetWrites, scratch.AsSpan());
+            WriteResourceSet(&writer, pass.depthTargetWrites, scratch.AsSpan());
+            WriteResourceSet(&writer, pass.depthTargetReads, scratch.AsSpan());
 
             writer.Write(pass.GetRenderFuncHashCode());
         }

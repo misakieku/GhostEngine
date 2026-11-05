@@ -213,6 +213,14 @@ public interface IUnsafeRenderGraphBuilder : IRenderGraphBuilder
     Identifier<RGTexture> UseRenderTargetTexture(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.Write);
 
     /// <summary>
+    /// Declares that a texture will be used as a depth-stencil target by the unsafe pass.
+    /// </summary>
+    /// <param name="texture">The texture used as a depth target.</param>
+    /// <param name="flags">The access performed by the pass.</param>
+    /// <returns>The declared texture.</returns>
+    Identifier<RGTexture> UseDepthTargetTexture(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.ReadWrite);
+
+    /// <summary>
     /// Binds a texture for random access operations within the current rendering pass.
     /// </summary>
     /// <param name="texture">The identifier of the texture to be used for random access.</param>
@@ -454,6 +462,27 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         ValidateDeclaration(resource, PassResourceUsageClass.ColorAttachment);
         UseResource(resource, flags, RGResourceType.Texture);
         _pass.renderTargetWrites.Add(resource);
+        return texture;
+    }
+
+    public Identifier<RGTexture> UseDepthTargetTexture(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.ReadWrite)
+    {
+        ThrowIfDisposed();
+
+        var isWrite = flags.HasFlag(AccessFlags.Write);
+        var usageClass = isWrite ? PassResourceUsageClass.DepthWrite : PassResourceUsageClass.DepthRead;
+        var resource = texture.AsResource();
+        ValidateDeclaration(resource, usageClass);
+        UseResource(resource, flags, RGResourceType.Texture);
+        if (isWrite)
+        {
+            _pass.depthTargetWrites.Add(resource);
+        }
+        else
+        {
+            _pass.depthTargetReads.Add(resource);
+        }
+
         return texture;
     }
 
