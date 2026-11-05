@@ -238,10 +238,7 @@ internal unsafe partial class GhostRenderPipeline
 
         builder.SetColorAttachment(litColorTarget, 0, AccessFlags.Write);
         builder.UseTexture(depthTexture, AccessFlags.Read);
-        if (skyboxTexture.IsValid)
-        {
-            builder.UseTexture(skyboxTexture, AccessFlags.Read);
-        }
+        builder.UseTexture(skyboxTexture, AccessFlags.Read);
 
         builder.SetPassData(new HDRISkyPassData
         {
@@ -262,9 +259,7 @@ internal unsafe partial class GhostRenderPipeline
 
             var props = new HiddenHDRISkyShaderProperties
             {
-                skyboxTexture = passData.skyboxTexture.IsValid
-                    ? rasterCtx.GetActualBindlessIndex(passData.skyboxTexture, BindlessAccess.ShaderResource)
-                    : 0u,
+                skyboxTexture = rasterCtx.GetActualBindlessIndex(passData.skyboxTexture, BindlessAccess.ShaderResource),
                 skyboxSampler = rasterCtx.ResourceManager.StaticSampler.GetSampler(StaticSamplerType.TrilinearClamp),
                 depthTexture = rasterCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource),
                 depthSampler = rasterCtx.ResourceManager.StaticSampler.GetSampler(StaticSamplerType.PointClamp),

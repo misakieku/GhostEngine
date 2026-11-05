@@ -38,4 +38,9 @@ internal partial class GhostRenderPipeline
         public Identifier<RGTexture> resolvedDiffuse;
         public Identifier<RGTexture> resolvedSpecular;
     }
+
+    private struct RayTracingData
+    {
+        public Identifier<RGBuffer> tlas;
+    }
 }

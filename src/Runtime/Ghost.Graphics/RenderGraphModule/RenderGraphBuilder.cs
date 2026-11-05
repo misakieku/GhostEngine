@@ -97,7 +97,7 @@ public interface IRenderGraphBuilder : IDisposable
     /// </summary>
     /// <param name="texture">The identifier of the texture to be used in the render graph pass.</param>
     /// <param name="accessMode">The access mode specifying how the texture will be read or written during the pass.</param>
-    /// <returns>An identifier for the texture.</returns>
+    /// <returns>An identifier for the texture. Invalid if the texture is invalid.</returns>
     Identifier<RGTexture> UseTexture(Identifier<RGTexture> texture, AccessFlags accessMode);
 
     /// <summary>
@@ -105,8 +105,7 @@ public interface IRenderGraphBuilder : IDisposable
     /// </summary>
     /// <param name="buffer">The identifier of the buffer to be used in the render graph pass.</param>
     /// <param name="accessMode">The access mode specifying how the buffer will be read or written during the pass.</param>
-    /// <param name="hint">Optional hint about how the buffer will be used.</param>
-    /// <returns>An identifier for the buffer.</returns>
+    /// <returns>An identifier for the buffer. Invalid if the buffer is invalid.</returns>
     Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags accessMode);
 
     /// <summary>
@@ -403,12 +402,24 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
     public Identifier<RGTexture> UseTexture(Identifier<RGTexture> texture, AccessFlags flags)
     {
         ThrowIfDisposed();
+
+        if (texture.IsInvalid)
+        {
+            return Identifier<RGTexture>.Invalid;
+        }
+
         return UseResource(texture.AsResource(), flags, RGResourceType.Texture).AsTexture();
     }
 
     public Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags flags)
     {
         ThrowIfDisposed();
+
+        if (buffer.IsInvalid)
+        {
+            return Identifier<RGBuffer>.Invalid;
+        }
+
         return UseResource(buffer.AsResource(), flags, RGResourceType.Buffer).AsBuffer();
     }
 

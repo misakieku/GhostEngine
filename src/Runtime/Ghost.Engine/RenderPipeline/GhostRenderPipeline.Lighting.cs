@@ -217,9 +217,9 @@ internal unsafe partial class GhostRenderPipeline
     private void ExecutePerViewShadowSetup(ResourceContext ctx, in Frustum viewFrustum, float viewHeight, ReadOnlyView<PunctualLightRequest> lights, float3 cameraPosition,
         out uint shadowViewsBufferSrv, out uint shadowViewCount, out uint shadowIndicesBufferSrv)
     {
-        shadowViewsBufferSrv = uint.MaxValue;
+        shadowViewsBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
         shadowViewCount = 0;
-        shadowIndicesBufferSrv = uint.MaxValue;
+        shadowIndicesBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
 
         var lightCount = lights.Length;
         if (lightCount == 0)
@@ -299,7 +299,7 @@ internal unsafe partial class GhostRenderPipeline
     {
         UploadDirectionalLights(ctx, payload, out directionalLightSrv, out directionalLightCount, out primaryDirectionalLightIndex);
 
-        punctualLightsSrv = uint.MaxValue;
+        punctualLightsSrv = RHIUtility.INVALID_BINDLESS_INDEX;
         punctualLightCount = (uint)payload.PunctualLights.Count;
 
         if (punctualLightCount > 0)
@@ -507,20 +507,23 @@ internal unsafe partial class GhostRenderPipeline
         public uint2 renderSize;
         public uint2 hzbSize;
         public uint hzbMipCount;
-        public uint tlasIndex;
+        public Identifier<RGBuffer> tlas;
     }
 
-    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph rg, in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, Identifier<RGTexture> depthTexture, uint viewId, uint2 renderSize, RayTracingViewResource? rtHistory)
+    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph rg, in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, Identifier<RGTexture> depthTexture, uint viewId, uint2 renderSize)
     {
         ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
         ref readonly var tile = ref rg.Blackboard.Get<TileClassificationData>();
 
         ref readonly var shadowMap = ref rg.Blackboard.TryGet<ShadowMapPassData>(out var hasShadowMap);
         ref readonly var ris = ref rg.Blackboard.TryGet<RisPassData>(out var hasRis);
+        ref readonly var rtData = ref rg.Blackboard.TryGet<RayTracingData>(out var hasRtData);
+
+        var tlasBuffer = hasRtData ? rtData.tlas : Identifier<RGBuffer>.Invalid;
 
         var shadowAtlas = hasShadowMap ? shadowMap.shadowAtlas : Identifier<RGTexture>.Invalid;
-        var shadowViewsBufferSrv = hasShadowMap ? shadowMap.shadowViewsBufferSrv : uint.MaxValue;
-        var shadowIndicesBufferSrv = hasShadowMap ? shadowMap.shadowIndicesBufferSrv : uint.MaxValue;
+        var shadowViewsBufferSrv = hasShadowMap ? shadowMap.shadowViewsBufferSrv : RHIUtility.INVALID_BINDLESS_INDEX;
+        var shadowIndicesBufferSrv = hasShadowMap ? shadowMap.shadowIndicesBufferSrv : RHIUtility.INVALID_BINDLESS_INDEX;
 
         var risResolvedDiffuse = hasRis ? ris.resolvedDiffuse : Identifier<RGTexture>.Invalid;
         var risResolvedSpecular = hasRis ? ris.resolvedSpecular : Identifier<RGTexture>.Invalid;
@@ -550,37 +553,13 @@ internal unsafe partial class GhostRenderPipeline
         builder.UseBuffer(tileLightList, AccessFlags.Read);
         builder.UseBuffer(tileShadingModelMaskBuffer, AccessFlags.Read);
         builder.UseTexture(hzbTexture, AccessFlags.Read);
-
-        if (shadowAtlas.IsValid)
-        {
-            builder.UseTexture(shadowAtlas, AccessFlags.Read);
-        }
-
-        if (risResolvedDiffuse.IsValid)
-        {
-            builder.UseTexture(risResolvedDiffuse, AccessFlags.Read);
-        }
-
-        if (risResolvedSpecular.IsValid)
-        {
-            builder.UseTexture(risResolvedSpecular, AccessFlags.Read);
-        }
-
-        if (skyContext.skyboxTexture.IsValid)
-        {
-            builder.UseTexture(skyContext.skyboxTexture, AccessFlags.Read);
-        }
-
-        if (skyContext.iblLutTexture.IsValid)
-        {
-            builder.UseTexture(skyContext.iblLutTexture, AccessFlags.Read);
-        }
-
-        if (skyContext.persistentViewStateBuffer.IsValid)
-        {
-            builder.UseBuffer(skyContext.persistentViewStateBuffer, AccessFlags.Read);
-        }
-
+        builder.UseBuffer(tlasBuffer, AccessFlags.Read);
+        builder.UseTexture(shadowAtlas, AccessFlags.Read);
+        builder.UseTexture(risResolvedDiffuse, AccessFlags.Read);
+        builder.UseTexture(risResolvedSpecular, AccessFlags.Read);
+        builder.UseTexture(skyContext.skyboxTexture, AccessFlags.Read);
+        builder.UseTexture(skyContext.iblLutTexture, AccessFlags.Read);
+        builder.UseBuffer(skyContext.persistentViewStateBuffer, AccessFlags.Read);
         builder.UseTexture(litColorTarget, AccessFlags.Write);
 
         builder.SetPassData(new DeferredLightingPassData
@@ -607,7 +586,7 @@ internal unsafe partial class GhostRenderPipeline
             renderSize = renderSize,
             hzbSize = hzbSize,
             hzbMipCount = hzbMipCount,
-            tlasIndex = rtHistory == null ? RHIUtility.INVALID_BINDLESS_INDEX : rtHistory.TLASBindlessIndex
+            tlas = tlasBuffer
         });
 
         builder.SetRenderFunc<DeferredLightingPassData>(static (ref readonly passData, computeCtx) =>
@@ -624,9 +603,10 @@ internal unsafe partial class GhostRenderPipeline
             var skyboxSrv = computeCtx.GetActualBindlessIndex(passData.skyContext.skyboxTexture, BindlessAccess.ShaderResource);
             var iblLutSrv = computeCtx.GetActualBindlessIndex(passData.skyContext.iblLutTexture, BindlessAccess.ShaderResource);
             var persistentViewStateSrv = computeCtx.GetActualBindlessIndex(passData.skyContext.persistentViewStateBuffer, BindlessAccess.ShaderResource);
-            var hzbSrv = passData.hzbTexture.IsValid ? computeCtx.GetActualBindlessIndex(passData.hzbTexture, BindlessAccess.ShaderResource) : 0;
-            var risDiffSrv = passData.risResolvedDiffuse.IsValid ? computeCtx.GetActualBindlessIndex(passData.risResolvedDiffuse, BindlessAccess.ShaderResource) : 0u;
-            var risSpecSrv = passData.risResolvedSpecular.IsValid ? computeCtx.GetActualBindlessIndex(passData.risResolvedSpecular, BindlessAccess.ShaderResource) : 0u;
+            var hzbSrv = computeCtx.GetActualBindlessIndex(passData.hzbTexture, BindlessAccess.ShaderResource);
+            var risDiffSrv = computeCtx.GetActualBindlessIndex(passData.risResolvedDiffuse, BindlessAccess.ShaderResource);
+            var risSpecSrv = computeCtx.GetActualBindlessIndex(passData.risResolvedSpecular, BindlessAccess.ShaderResource);
+            var tlasSrv = computeCtx.GetActualBindlessIndex(passData.tlas, BindlessAccess.ShaderResource);
 
             var hzbUvFactor = (passData.hzbSize.x > 0 && passData.hzbSize.y > 0)
                 ? new float2(passData.renderSize.x * 0.5f / passData.hzbSize.x, passData.renderSize.y * 0.5f / passData.hzbSize.y)
@@ -675,7 +655,7 @@ internal unsafe partial class GhostRenderPipeline
                     hzbMipCount = passData.hzbMipCount,
                     hzbUvFactor = hzbUvFactor,
                     hzbBaseSize = passData.hzbSize,
-                    tlasIndex = passData.tlasIndex,
+                    tlasIndex = tlasSrv,
                     risResolvedDiffuseSrv = risDiffSrv,
                     risResolvedSpecularSrv = risSpecSrv
                 };
@@ -734,7 +714,7 @@ internal unsafe partial class GhostRenderPipeline
         public ICommandSignature commandSignature;
         public Handle<ComputeShader> shader;
         public uint2 renderSize;
-        public RayTracingViewResource rtHistory;
+        public Identifier<RGBuffer> tlas;
         public uint viewId;
         public uint frameIndex;
     }
@@ -785,11 +765,14 @@ internal unsafe partial class GhostRenderPipeline
         public uint2 renderSize;
     }
 
-    private void AddRisPasses(RenderGraph rg, RisViewResource risResource, RayTracingViewResource rtHistory, Identifier<RGTexture> depthTexture, uint2 renderSize, uint frameIndex, uint viewId)
+    private void AddRisPasses(RenderGraph rg, RisViewResource risResource, Identifier<RGTexture> depthTexture, uint2 renderSize, uint frameIndex, uint viewId)
     {
         ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
         ref readonly var tile = ref rg.Blackboard.Get<TileClassificationData>();
+        ref readonly var rtData = ref rg.Blackboard.Get<RayTracingData>();
         ref readonly var gbuffer = ref gbufferData.gbuffer;
+
+        var tlasBuffer = rtData.tlas;
         var tileLightList = gbufferData.tileLightList;
         var tileShadingModelMaskBuffer = tile.tileShadingModelMaskBuffer;
 
@@ -972,6 +955,7 @@ internal unsafe partial class GhostRenderPipeline
             builder.UseBuffer(unresolvedRaysBuffer, AccessFlags.Read);
             builder.UseBuffer(counterBuffer, AccessFlags.Read);
             builder.UseBuffer(indirectArgsBuffer, AccessFlags.Read);
+            builder.UseBuffer(tlasBuffer, AccessFlags.Read);
             builder.UseTexture(risShadowMask, AccessFlags.ReadWrite);
 
             builder.SetPassData(new RisRayTracePassData
@@ -986,7 +970,7 @@ internal unsafe partial class GhostRenderPipeline
                 commandSignature = _dispatchCommandSignature,
                 shader = _lightingPipelineResource.risRayTraceShader,
                 renderSize = renderSize,
-                rtHistory = rtHistory,
+                tlas = tlasBuffer,
                 viewId = viewId,
                 frameIndex = frameIndex
             });
@@ -1000,6 +984,7 @@ internal unsafe partial class GhostRenderPipeline
                 var raysSrv = computeCtx.GetActualBindlessIndex(passData.unresolvedRaysBuffer, BindlessAccess.ShaderResource);
                 var counterSrv = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.ShaderResource);
                 var actualIndirectBuf = computeCtx.GetActualBuffer(passData.indirectArgsBuffer);
+                var tlasSrv = passData.tlas.IsValid ? computeCtx.GetActualBindlessIndex(passData.tlas, BindlessAccess.ShaderResource) : RHIUtility.INVALID_BINDLESS_INDEX;
 
                 var props = new InternalRisRayTraceShaderProperties
                 {
@@ -1011,7 +996,7 @@ internal unsafe partial class GhostRenderPipeline
                     counterBufferSrv = counterSrv,
                     renderWidth = passData.renderSize.x,
                     renderHeight = passData.renderSize.y,
-                    tlasIndex = passData.rtHistory.TLASBindlessIndex,
+                    tlasIndex = tlasSrv,
                     viewId = passData.viewId,
                     frameIndex = passData.frameIndex
                 };
@@ -1107,10 +1092,10 @@ internal unsafe partial class GhostRenderPipeline
                         renderHeight = passData.renderSize.y,
                         tilesPerRow = passData.tilesPerRow,
                         shadingModelId = shadingModelId,
-                        iblLutTextureSrv = uint.MaxValue,
-                        persistentViewStateBufferSrv = uint.MaxValue,
+                        iblLutTextureSrv = RHIUtility.INVALID_BINDLESS_INDEX,
+                        persistentViewStateBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX,
                         viewId = 0,
-                        skyboxTextureSrv = uint.MaxValue,
+                        skyboxTextureSrv = RHIUtility.INVALID_BINDLESS_INDEX,
                         skyboxMipCount = 0,
                         _pad0 = 0,
                         skyboxTintAndIntensity = default,
@@ -1170,7 +1155,7 @@ internal unsafe partial class GhostRenderPipeline
             {
                 var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
                 var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
-                var motionVecSrv = passData.motionVectors.IsValid ? computeCtx.GetActualBindlessIndex(passData.motionVectors, BindlessAccess.ShaderResource) : uint.MaxValue;
+                var motionVecSrv = computeCtx.GetActualBindlessIndex(passData.motionVectors, BindlessAccess.ShaderResource);
                 var curDiffSrv = computeCtx.GetActualBindlessIndex(passData.currentDiffuse, BindlessAccess.ShaderResource);
                 var curSpecSrv = computeCtx.GetActualBindlessIndex(passData.currentSpecular, BindlessAccess.ShaderResource);
                 var histDiffSrv = computeCtx.GetActualBindlessIndex(passData.historyDiffuse, BindlessAccess.ShaderResource);
@@ -1702,7 +1687,7 @@ internal unsafe partial class GhostRenderPipeline
 
     private void UploadDirectionalLights(ResourceContext ctx, GhostRenderPayload payload, out uint directionalLightSrv, out uint directionalLightCount, out int primaryDirectionalLightIndex)
     {
-        directionalLightSrv = uint.MaxValue;
+        directionalLightSrv = RHIUtility.INVALID_BINDLESS_INDEX;
         directionalLightCount = payload.DirectionalLightCount;
         primaryDirectionalLightIndex = payload.PrimaryDirectionalLightIndex;
 

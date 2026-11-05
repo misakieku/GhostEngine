@@ -109,6 +109,10 @@ public sealed class ShaderVariantRenderingTest
         {
         }
 
+        public void BuildRaytracingAccelerationStructure(scoped in BuildAccelerationStructureDesc desc)
+        {
+        }
+
         public void SetPushConstants(scoped in PushConstantsData pushConstants)
         {
         }

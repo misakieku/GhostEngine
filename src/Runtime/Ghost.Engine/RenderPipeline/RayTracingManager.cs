@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Engine.Utilities;
 using Ghost.Engine.Volumes;
 using Ghost.Graphics.Core;
+using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Jobs;
@@ -27,9 +28,11 @@ public struct TLASBuildSettings
 public struct BuildTLASPassData
 {
     public RayTracingManager rayTracingManager;
-    public RayTracingViewResource viewHistory;
     public TLASBuildSettings settings;
     public uint activeInstanceCount;
+    public Identifier<RGBuffer> instanceDescBuffer;
+    public Identifier<RGBuffer> scratchBuffer;
+    public Identifier<RGBuffer> tlasBuffer;
 }
 
 public sealed unsafe class RayTracingManager : IDisposable
@@ -149,7 +152,7 @@ public sealed unsafe class RayTracingManager : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ulong Align256(ulong size) => (size + 255ul) & ~255ul;
+    public static ulong Align256(ulong size) => (size + 255ul) & ~255ul;
 
     public void OnInstanceUpdated(uint instanceId, in float4x4 localToWorld, Handle<Mesh> mesh)
     {
@@ -300,16 +303,22 @@ public sealed unsafe class RayTracingManager : IDisposable
         _pendingBlasBuilds.Clear();
     }
 
-    public void BuildTLAS(RayTracingViewResource viewHistory, in TLASBuildSettings settings, ICommandBuffer cmd, uint activeInstanceCount)
+    public void BuildTLAS(
+        in TLASBuildSettings settings,
+        IComputeRenderContext computeCtx,
+        Identifier<RGBuffer> instanceDescBuffer,
+        Identifier<RGBuffer> scratchBuffer,
+        Identifier<RGBuffer> tlasBuffer,
+        uint activeInstanceCount)
     {
         var count = Math.Min((int)activeInstanceCount, _instances.Count);
         if (count == 0)
         {
-            viewHistory.TLASBindlessIndex = 0;
             return;
         }
 
-        var pMapped = (RaytracingInstanceDesc*)_resourceDatabase.MapResource(viewHistory.InstanceDescBuffer.AsResource(), 0, null);
+        var instanceDescResource = computeCtx.GetActualBuffer(instanceDescBuffer).AsResource();
+        var pMapped = (RaytracingInstanceDesc*)computeCtx.ResourceDatabase.MapResource(instanceDescResource, 0, null);
         var survivingCount = 0u;
 
         var maxDistSq = settings.sphereCullDistance * settings.sphereCullDistance;
@@ -333,15 +342,16 @@ public sealed unsafe class RayTracingManager : IDisposable
         var handle = _jobScheduler.ScheduleParallelFor(ref job, count, 128, JobPriority.High);
         _jobScheduler.Wait(handle);
 
-        _resourceDatabase.UnmapResource(viewHistory.InstanceDescBuffer.AsResource(), 0, null);
+        computeCtx.ResourceDatabase.UnmapResource(instanceDescResource, 0, null);
 
         if (survivingCount == 0)
         {
-            viewHistory.TLASBindlessIndex = 0;
             return;
         }
 
-        var instanceDescsVA = _resourceDatabase.GetGPUVirtualAddress(viewHistory.InstanceDescBuffer.AsResource());
+        var instanceDescsVA = computeCtx.ResourceDatabase.GetGPUVirtualAddress(instanceDescResource);
+        var tlasGpuVA = computeCtx.ResourceDatabase.GetGPUVirtualAddress(computeCtx.GetActualBuffer(tlasBuffer).AsResource());
+        var scratchGpuVA = computeCtx.ResourceDatabase.GetGPUVirtualAddress(computeCtx.GetActualBuffer(scratchBuffer).AsResource());
 
         var inputs = new AccelerationStructureBuildInputs
         {
@@ -351,20 +361,6 @@ public sealed unsafe class RayTracingManager : IDisposable
             instanceDescs = instanceDescsVA
         };
 
-        var prebuildInfo = _renderDevice.GetAccelerationStructurePrebuildInfo(in inputs);
-        var alignedResultSize = Align256(prebuildInfo.resultDataMaxSizeInBytes);
-        var alignedScratchSize = Align256(prebuildInfo.scratchDataSizeInBytes);
-
-        viewHistory.EnsureTLASBuffers(alignedResultSize, alignedScratchSize);
-
-        var tlasGpuVA = _resourceDatabase.GetGPUVirtualAddress(viewHistory.TLASBuffer.AsResource());
-        var scratchGpuVA = _resourceDatabase.GetGPUVirtualAddress(viewHistory.TLASScratchBuffer.AsResource());
-
-        cmd.Barrier(
-            BarrierDesc.Buffer(viewHistory.TLASBuffer, BarrierSync.All, BarrierSync.BuildRaytracingAccelerationStructure, BarrierAccess.Common, BarrierAccess.RaytracingAccelerationStructureWrite, force: true),
-            BarrierDesc.Buffer(viewHistory.TLASScratchBuffer, BarrierSync.All, BarrierSync.BuildRaytracingAccelerationStructure, BarrierAccess.Common, BarrierAccess.UnorderedAccess, force: true)
-        );
-
         var buildDesc = new BuildAccelerationStructureDesc
         {
             inputs = inputs,
@@ -373,12 +369,7 @@ public sealed unsafe class RayTracingManager : IDisposable
             sourceAddress = 0
         };
 
-        cmd.BuildRaytracingAccelerationStructure(in buildDesc);
-        cmd.Barrier(BarrierDesc.Buffer(viewHistory.TLASBuffer,
-            BarrierSync.BuildRaytracingAccelerationStructure, BarrierSync.AllShading,
-            BarrierAccess.RaytracingAccelerationStructureWrite, BarrierAccess.RaytracingAccelerationStructureRead, force: true));
-
-        viewHistory.TLASBindlessIndex = _resourceDatabase.GetBindlessIndex(viewHistory.TLASBuffer.AsResource());
+        computeCtx.BuildRaytracingAccelerationStructure(in buildDesc);
     }
 
     private void EnsureBlasScratchBuffer(ulong requiredSize)

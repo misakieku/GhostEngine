@@ -347,6 +347,10 @@ internal unsafe partial class RenderGraphCompiler
                     ref readonly var resourceInfo = ref _resourceRegistry.GetResource(resource);
                     if (resourceInfo.bufferDesc.Usage.HasFlag(BufferUsage.AccelerationStructure))
                     {
+                        var access = resourceInfo.bufferDesc.Usage.HasFlag(BufferUsage.UnorderedAccess)
+                            ? BarrierAccess.UnorderedAccess
+                            : BarrierAccess.RaytracingAccelerationStructureWrite;
+
                         ApplyUsage(
                             ref usage,
                             resource,
@@ -356,7 +360,7 @@ internal unsafe partial class RenderGraphCompiler
                             discard: discard,
                             PassResourceUsageClass.UnorderedAccess,
                             PassResourceUsagePriority.Explicit,
-                            new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.RaytracingAccelerationStructureWrite, BarrierSync.BuildRaytracingAccelerationStructure));
+                            new ResourceBarrierData(BarrierLayout.Undefined, access, BarrierSync.BuildRaytracingAccelerationStructure));
                         continue;
                     }
                 }
@@ -495,7 +499,10 @@ internal unsafe partial class RenderGraphCompiler
             var targetState = randomAccessState;
             if (resourceInfo.type == RGResourceType.Buffer && resourceInfo.bufferDesc.Usage.HasFlag(BufferUsage.AccelerationStructure))
             {
-                targetState = new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.RaytracingAccelerationStructureWrite, BarrierSync.BuildRaytracingAccelerationStructure);
+                var access = resourceInfo.bufferDesc.Usage.HasFlag(BufferUsage.UnorderedAccess)
+                    ? BarrierAccess.UnorderedAccess
+                    : BarrierAccess.RaytracingAccelerationStructureWrite;
+                targetState = new ResourceBarrierData(BarrierLayout.Undefined, access, BarrierSync.BuildRaytracingAccelerationStructure);
             }
 
             ApplyUsage(

@@ -275,10 +275,7 @@ internal unsafe partial class GhostRenderPipeline
             var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
             var streamingRequestsUav = computeCtx.GetActualBindlessIndex(passData.streamingRequestsBuffer, BindlessAccess.UnorderedAccess);
             var streamingRequestsBitmaskUav = computeCtx.GetActualBindlessIndex(passData.streamingRequestsBitmaskBuffer, BindlessAccess.UnorderedAccess);
-
-            var hzbTextureIndex = (passData.hzbMipCount > 0 && passData.hzbTexture.IsValid)
-                ? computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.hzbTexture).AsResource(), BindlessAccess.ShaderResource)
-                : uint.MaxValue;
+            var hzbTextureIndex = computeCtx.GetActualBindlessIndex(passData.hzbTexture, BindlessAccess.ShaderResource);
 
             var props = new InternalMeshletCullGraphShaderProperties
             {
@@ -608,9 +605,9 @@ internal unsafe partial class GhostRenderPipeline
             srcBuffer = srcBuffer,
             srcUavMip = srcUavMip,
             dstUavMip0 = dstUavs[0],
-            dstUavMip1 = passData.minDstCount >= 2 ? dstUavs[1] : uint.MaxValue,
-            dstUavMip2 = passData.minDstCount >= 3 ? dstUavs[2] : uint.MaxValue,
-            dstUavMip3 = passData.minDstCount >= 4 ? dstUavs[3] : uint.MaxValue,
+            dstUavMip1 = passData.minDstCount >= 2 ? dstUavs[1] : RHIUtility.INVALID_BINDLESS_INDEX,
+            dstUavMip2 = passData.minDstCount >= 3 ? dstUavs[2] : RHIUtility.INVALID_BINDLESS_INDEX,
+            dstUavMip3 = passData.minDstCount >= 4 ? dstUavs[3] : RHIUtility.INVALID_BINDLESS_INDEX,
             minDstCount = passData.minDstCount,
             isFirstBatch = passData.isFirstBatch,
             srcLimit = passData.srcLimit,
@@ -646,11 +643,7 @@ internal unsafe partial class GhostRenderPipeline
         builder.UseBuffer(occludedMeshlets, AccessFlags.Read);
         builder.UseBuffer(counter, AccessFlags.ReadWrite);
         builder.UseBuffer(indirectArgument, AccessFlags.Read);
-
-        if (hzbTexture.IsValid)
-        {
-            builder.UseTexture(hzbTexture, AccessFlags.Read);
-        }
+        builder.UseTexture(hzbTexture, AccessFlags.Read);
 
         var maxVariants = GetMaxCullVariants();
 
@@ -676,10 +669,7 @@ internal unsafe partial class GhostRenderPipeline
             var visibleUav = computeCtx.GetActualBindlessIndex(passData.visibleMeshletsPass2, BindlessAccess.UnorderedAccess);
             var occludedSrv = computeCtx.GetActualBindlessIndex(passData.occludedMeshlets, BindlessAccess.ShaderResource);
             var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
-
-            var hzbTextureIndex = (passData.hzbMipCount > 0 && passData.hzbTexture.IsValid)
-                ? computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.hzbTexture).AsResource(), BindlessAccess.ShaderResource)
-                : uint.MaxValue;
+            var hzbTextureIndex = computeCtx.GetActualBindlessIndex(passData.hzbTexture, BindlessAccess.ShaderResource);
 
             var props = new InternalOccludedMeshletCullShaderProperties
             {

@@ -32,6 +32,38 @@ internal unsafe class D3D12DebugLayer
         _dxgiInfoQueue.Attach(pDxgiInfoQueue);
     }
 
+    public void ConfigureDeviceFilters(D3D12RenderDevice device)
+    {
+        ID3D12InfoQueue* pInfoQueue = default;
+        if (device.NativeObject.Get()->QueryInterface(__uuidof(pInfoQueue), (void**)&pInfoQueue).SUCCEEDED)
+        {
+            var denySeverities = stackalloc D3D12_MESSAGE_SEVERITY[]
+            {
+                D3D12_MESSAGE_SEVERITY.D3D12_MESSAGE_SEVERITY_INFO,
+                D3D12_MESSAGE_SEVERITY.D3D12_MESSAGE_SEVERITY_MESSAGE
+            };
+
+            var denyIds = stackalloc D3D12_MESSAGE_ID[]
+            {
+                D3D12_MESSAGE_ID.D3D12_MESSAGE_ID_HEAP_ADDRESS_RANGE_INTERSECTS_MULTIPLE_BUFFERS
+            };
+
+            var filter = new D3D12_INFO_QUEUE_FILTER
+            {
+                DenyList = new D3D12_INFO_QUEUE_FILTER_DESC
+                {
+                    NumSeverities = 2,
+                    pSeverityList = denySeverities,
+                    NumIDs = 1,
+                    pIDList = denyIds
+                }
+            };
+
+            pInfoQueue->PushStorageFilter(&filter);
+            pInfoQueue->Release();
+        }
+    }
+
     public void Dispose()
     {
         ThrowIfFailed(_dxgiDebug.Get()->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL | DXGI_DEBUG_RLO_IGNORE_INTERNAL));

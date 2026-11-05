@@ -4,6 +4,7 @@ using Ghost.Engine.Streaming;
 using Ghost.Engine.Utilities;
 using Ghost.Engine.Volumes;
 using Ghost.Graphics;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
@@ -147,6 +148,93 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         return shadowSettings.shadowMode == ShadowMode.RayTraced;
     }
 
+    private void AddBuildTLASPass(RenderGraph rg, in RenderRequest request, in Frustum frustum, GhostRenderPayload ghostPayload)
+    {
+        var activeInstanceCount = Math.Min(ghostPayload.InstanceCount, _gpuScene.InstanceCount);
+        if (activeInstanceCount == 0)
+        {
+            var emptyRtData = new RayTracingData
+            {
+                tlas = Identifier<RGBuffer>.Invalid
+            };
+            rg.Blackboard.Add(ref emptyRtData);
+
+            return;
+        }
+
+        var inputs = new AccelerationStructureBuildInputs
+        {
+            type = AccelerationStructureType.TopLevel,
+            flags = AccelerationStructureBuildFlags.PreferFastTrace,
+            numDescs = activeInstanceCount,
+            instanceDescs = 0
+        };
+        var prebuildInfo = _renderEngine.GraphicsEngine.Device.GetAccelerationStructurePrebuildInfo(in inputs);
+        var alignedResultSize = RayTracingManager.Align256(prebuildInfo.resultDataMaxSizeInBytes);
+        var alignedScratchSize = RayTracingManager.Align256(prebuildInfo.scratchDataSizeInBytes);
+
+        using var builder = rg.AddComputeRenderPass<BuildTLASPassData>("Build TLAS");
+        builder.EnableAsyncCompute(true);
+
+        var instanceDescBuffer = builder.CreateBuffer(new BufferDesc
+        {
+            Size = activeInstanceCount * (ulong)sizeof(RaytracingInstanceDesc),
+            Stride = (uint)sizeof(RaytracingInstanceDesc),
+            Usage = BufferUsage.ShaderResource,
+            HeapType = HeapType.Upload
+        }, "TLAS_InstanceDescBuffer");
+
+        var scratchBuffer = builder.CreateBuffer(new BufferDesc
+        {
+            Size = alignedScratchSize,
+            Stride = 1,
+            Usage = BufferUsage.AccelerationStructure | BufferUsage.UnorderedAccess,
+            HeapType = HeapType.Default
+        }, "TLAS_ScratchBuffer");
+
+        var tlasBuffer = builder.CreateBuffer(new BufferDesc
+        {
+            Size = alignedResultSize,
+            Stride = 1,
+            Usage = BufferUsage.AccelerationStructure | BufferUsage.ShaderResource,
+            HeapType = HeapType.Default
+        }, "Scene_TLAS");
+
+        builder.UseBuffer(instanceDescBuffer, AccessFlags.Read);
+        builder.UseBuffer(scratchBuffer, AccessFlags.Write);
+        builder.UseBuffer(tlasBuffer, AccessFlags.Write);
+
+        var rtSettings = ghostPayload.GetViewVolumeData<RayTracingSettings>(request.viewId);
+        builder.SetPassData(new BuildTLASPassData
+        {
+            rayTracingManager = _rayTracingManager,
+            settings = new TLASBuildSettings
+            {
+                frustum = frustum,
+                cameraPosition = request.view.localToWorld.c3.xyz,
+                cameraRotation = request.view.localToWorld.GetRotation(),
+                cullMode = rtSettings.cullMode.GetValueOrDefault(),
+                sphereCullDistance = rtSettings.sphereCullDistance.GetValueOrDefault(),
+                solidAngleThreshold = rtSettings.solidAngleThreshold.GetValueOrDefault()
+            },
+            activeInstanceCount = activeInstanceCount,
+            instanceDescBuffer = instanceDescBuffer,
+            scratchBuffer = scratchBuffer,
+            tlasBuffer = tlasBuffer
+        });
+
+        builder.SetRenderFunc<BuildTLASPassData>(static (ref readonly data, computeCtx) =>
+        {
+            data.rayTracingManager.BuildTLAS(in data.settings, computeCtx, data.instanceDescBuffer, data.scratchBuffer, data.tlasBuffer, data.activeInstanceCount);
+        });
+
+        var rtData = new RayTracingData
+        {
+            tlas = tlasBuffer
+        };
+        rg.Blackboard.Add(ref rtData);
+    }
+
     private Identifier<RGTexture> AddCullingAndVbufferPasses(RenderGraph rg, HzbViewResource hzbHistory, uint2 renderSize, uint instanceCount, Identifier<RGTexture> hzbTexture, uint sceneBuffer)
     {
         var currentVisBuffer = Identifier<RGTexture>.Invalid;
@@ -247,47 +335,16 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             _meshPipelineResource.EnsureWorkGraphProgram(_renderEngine, _assetManager, viewKeywords);
 
             var colorTarget = renderGraph.ImportTexture(renderView.ColorTexture, ResourceBarrierData.Present, ResourceBarrierData.Present);
-
             var hzbHistory = viewContext.GetOrCreateResource<HzbViewResource, HzbViewResource.Desc>(new HzbViewResource.Desc
             {
                 renderSize = viewContext.RenderSize
             });
+
             var historyHzb = renderGraph.ImportTexture(hzbHistory.Texture, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
-            RayTracingViewResource? rtHistory = null;
             if (IsRTEnable(shadowSettings))
             {
-                var desc = new RayTracingViewResource.Desc
-                {
-                    requiredSize = ghostPayload.InstanceCount * (ulong)sizeof(RaytracingInstanceDesc)
-                };
-
-                rtHistory = viewContext.GetOrCreateResource<RayTracingViewResource, RayTracingViewResource.Desc>(in desc);
-                var rtSettings = ghostPayload.GetViewVolumeData<RayTracingSettings>(request.viewId);
-                using (var builder = renderGraph.AddUnsafeRenderPass<BuildTLASPassData>("Build TLAS"))
-                {
-                    builder.AllowPassCulling(false);
-                    builder.SetPassData(new BuildTLASPassData
-                    {
-                        rayTracingManager = _rayTracingManager,
-                        viewHistory = rtHistory,
-                        settings = new TLASBuildSettings
-                        {
-                            frustum = frustum,
-                            cameraPosition = request.view.localToWorld.c3.xyz,
-                            cameraRotation = request.view.localToWorld.GetRotation(),
-                            cullMode = rtSettings.cullMode.GetValueOrDefault(),
-                            sphereCullDistance = rtSettings.sphereCullDistance.GetValueOrDefault(),
-                            solidAngleThreshold = rtSettings.solidAngleThreshold.GetValueOrDefault()
-                        },
-                        activeInstanceCount = _gpuScene.InstanceCount
-                    });
-
-                    builder.SetRenderFunc<BuildTLASPassData>(static (ref readonly data, ctx) =>
-                    {
-                        data.rayTracingManager.BuildTLAS(data.viewHistory, in data.settings, ctx.GetCommandBufferUnsafe(), data.activeInstanceCount);
-                    });
-                }
+                AddBuildTLASPass(renderGraph, in request, in frustum, ghostPayload);
             }
 
             // Geometry & Visibility passes
@@ -308,15 +365,13 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             // Shadow Passes
             if (shadowSettings.shadowMode == ShadowMode.RayTraced)
             {
-                Logger.DebugAssert(rtHistory != null);
-
                 var desc = new RisViewResource.Desc
                 {
                     renderSize = viewContext.RenderSize
                 };
 
                 var risHistory = viewContext.GetOrCreateResource<RisViewResource, RisViewResource.Desc>(in desc);
-                AddRisPasses(renderGraph, risHistory, rtHistory, depthTexture, viewContext.RenderSize, (uint)frameNumber, request.viewId);
+                AddRisPasses(renderGraph, risHistory, depthTexture, viewContext.RenderSize, (uint)frameNumber, request.viewId);
             }
             else
             {
@@ -341,7 +396,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             var persistentViewStateBuffer = renderGraph.ImportBuffer(_gpuViewManager.PersistentViewStateBuffer, ResourceBarrierData.Common, ResourceBarrierData.Common);
             var skyContext = PrepareSky(renderGraph, viewContext, in request, ghostPayload, persistentViewStateBuffer);
             var litColor = AddDeferredLightingPass(renderGraph, in skyContext, historyHzb, hzbHistory.HzbMipCount, hzbHistory.HzbSize,
-                    depthTexture, request.viewId, viewContext.RenderSize, rtHistory);
+                    depthTexture, request.viewId, viewContext.RenderSize);
 
             AddSkyPass(renderGraph, in skyContext, litColor, depthTexture);
 

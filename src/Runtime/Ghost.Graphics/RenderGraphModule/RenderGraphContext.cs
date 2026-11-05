@@ -67,6 +67,7 @@ public interface IComputeRenderContext : IRenderGraphContext
     void DispatchCompute(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ);
     void SetProgram(scoped in SetProgramDesc desc);
     void DispatchGraph(scoped in DispatchGraphDesc desc);
+    void BuildRaytracingAccelerationStructure(scoped in BuildAccelerationStructureDesc desc);
 }
 
 public interface IUnsafeRenderContext : IRasterRenderContext, IComputeRenderContext
@@ -704,6 +705,11 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
     public void DispatchGraph(scoped in DispatchGraphDesc desc)
     {
         _commandBuffer.DispatchGraph(in desc);
+    }
+
+    public void BuildRaytracingAccelerationStructure(scoped in BuildAccelerationStructureDesc desc)
+    {
+        _commandBuffer.BuildRaytracingAccelerationStructure(in desc);
     }
 
     public void ClearBuffer(Identifier<RGBuffer> buffer, uint sizeInBytes, uint clearValue = 0, uint dstOffset = 0)

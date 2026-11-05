@@ -63,9 +63,10 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _commandBufferPool = new Stack<ICommandBuffer>[3];
         _commandBufferReturnQueue = new Queue<CommandBufferReturnEntry>(4);
 
-        foreach (var type in Enum.GetValues<CommandBufferType>())
+        _debugLayer?.ConfigureDeviceFilters(_device);
+        for (var i = 0; i < 3; i++)
         {
-            _commandBufferPool[(int)type] = new Stack<ICommandBuffer>(4);
+            _commandBufferPool[i] = new Stack<ICommandBuffer>(4);
         }
     }
 
