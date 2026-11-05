@@ -229,7 +229,8 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     effectiveQueues,
                     syncBoundaries,
                     commandBufferIds,
-                    reachability);
+                    reachability,
+                    flags);
 
                 ref readonly var cacheData = ref _compilationCache.SetCached(
                     _resourceRegistry,
@@ -984,7 +985,8 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         ReadOnlySpan<CommandQueueType> effectiveQueues,
         ReadOnlySpan<SyncBoundary> syncBoundaries,
         ReadOnlySpan<int> commandBufferIds,
-        ReadOnlySpan<byte> reachability)
+        ReadOnlySpan<byte> reachability,
+        RGFlags flags)
     {
         using var scope = AllocationManager.CreateStackScope();
         using var usageRanges = new UnsafeArray<PassResourceUsageRange>(compiledPasses.Length, scope.AllocationHandle, AllocationOption.Clear);
@@ -1018,6 +1020,25 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             ref aliasingPlan,
             resourceOrdering,
             scope.AllocationHandle);
+
+        using var splitPlans = new UnsafeList<SplitBarrierPlan>(_resourceRegistry.ResourceCount, scope.AllocationHandle);
+        using var splitBeginHeads = new UnsafeArray<int>(compiledPasses.Length, scope.AllocationHandle);
+        splitBeginHeads.AsSpan().Fill(-1);
+        using var activeSplitPlans = new UnsafeArray<ActiveSplitPlan>(_resourceRegistry.ResourceCount, scope.AllocationHandle, AllocationOption.Clear);
+
+        if (!flags.HasFlag(RGFlags.DisableSplitBarriers))
+        {
+            BuildSplitBarrierPlan(
+                passes,
+                compiledPasses,
+                usageRanges.AsSpan(),
+                usageRecords.AsSpan(),
+                nativePasses,
+                effectiveQueues,
+                commandBufferIds,
+                &splitPlans,
+                splitBeginHeads.AsSpan());
+        }
 
         var nativePassIndex = 0;
         var commandBufferId = 0;
@@ -1070,7 +1091,10 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     ref aliasingPlan,
                     resourceOrdering,
                     resourceStates.AsSpan(),
-                    handoffs.AsSpan());
+                    handoffs.AsSpan(),
+                    splitBeginHeads.AsSpan(),
+                    splitPlans.AsSpan(),
+                    activeSplitPlans.AsSpan());
 
                 // 2. Begin Native Render Pass
                 writer.Write(RGExecutionOpType.BeginNativePass);
@@ -1101,7 +1125,10 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     ref aliasingPlan,
                     resourceOrdering,
                     resourceStates.AsSpan(),
-                    handoffs.AsSpan());
+                    handoffs.AsSpan(),
+                    splitBeginHeads.AsSpan(),
+                    splitPlans.AsSpan(),
+                    activeSplitPlans.AsSpan());
 
                 writer.Write(RGExecutionOpType.ExecutePass);
                 writer.Write(logicalPassIndex);

@@ -298,7 +298,7 @@ public sealed class RenderGraph : IDisposable
     {
         _resourceRegistry.ResolveTextureSizes(in viewport);
 
-        var graphHash = RenderGraphHasher.ComputeGraphHash(_passes, _resourceRegistry);
+        var graphHash = RenderGraphHasher.ComputeGraphHash(_passes, _resourceRegistry, flags);
         var result = _compiler.Compile(in viewport, graphHash, _passes, flags, _memoryPool.AllocationHandle);
         if (result.IsFailure)
         {

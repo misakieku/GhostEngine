@@ -319,6 +319,20 @@ public sealed class RenderGraphDump
                             var predecessorLabel = $"{predName} [{predecessor.type} #{predecessorId}]";
                             lines.Add($"       ├─ Aliasing: {predecessorLabel} -> {resourceLabel} -> {targetStateLabel}, Flags: {barrier.flags}");
                         }
+                        else if (barrier.flags.HasFlag(BarrierFlags.SplitBegin))
+                        {
+                            lines.Add(
+                                $"       ├─ SplitBegin: {resourceLabel}, Layout: [{barrier.sourceState.layout} -> {barrier.targetState.layout}], " +
+                                $"Access: [{barrier.sourceState.access} -> {barrier.targetState.access}], " +
+                                $"Sync: [{barrier.sourceState.sync} -> Split], Flags: {barrier.flags}");
+                        }
+                        else if (barrier.flags.HasFlag(BarrierFlags.SplitEnd))
+                        {
+                            lines.Add(
+                                $"       ├─ SplitEnd: {resourceLabel}, Layout: [{barrier.sourceState.layout} -> {barrier.targetState.layout}], " +
+                                $"Access: [{barrier.sourceState.access} -> {barrier.targetState.access}], " +
+                                $"Sync: [Split -> {barrier.targetState.sync}], Flags: {barrier.flags}");
+                        }
                         else
                         {
                             lines.Add(
