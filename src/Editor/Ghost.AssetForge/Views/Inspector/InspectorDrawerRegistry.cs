@@ -47,14 +47,14 @@ public class InspectorDrawerRegistry
 
     public FrameworkElement? DrawProperty(PropertyInfo property, object target)
     {
-        // 1. Check for Custom Attribute drawer
+        // Check for Custom Attribute drawer
         var drawerAttr = property.GetCustomAttribute<DrawerAttribute>();
         if (drawerAttr != null && _attributeDrawers.TryGetValue(drawerAttr.GetType(), out var attrDrawer))
         {
             return attrDrawer.Draw(property, target);
         }
 
-        // 2. Fallback to default drawers
+        // Fallback to default drawers
         var propType = property.PropertyType;
         if (propType == typeof(bool)) return _boolDrawer.Draw(property, target);
         if (propType.IsEnum) return _enumDrawer.Draw(property, target);
@@ -89,7 +89,7 @@ public class InspectorDrawerRegistry
 
         var type = target.GetType();
 
-        // 1. Check for Custom Editor
+        // Check for Custom Editor
         if (_customEditors.TryGetValue(type, out var customEditor))
         {
             return customEditor.Draw(target);

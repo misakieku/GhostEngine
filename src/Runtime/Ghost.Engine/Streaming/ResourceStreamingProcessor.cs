@@ -102,7 +102,7 @@ internal class ResourceStreamingProcessor
 
     public void ProcessPendingUploads(in RenderContext context, ICommandBuffer commandBuffer)
     {
-        // 1. If there is a pending copy batch from a previous frame, check its opaque completion handle.
+        // If there is a pending copy batch from a previous frame, check its opaque completion handle.
         if (_pendingCopySubmission.IsValid && context.FrameScheduler.IsComplete(_pendingCopySubmission))
         {
             while (_pendingFinalize.TryDequeue(out var item))
@@ -119,7 +119,7 @@ internal class ResourceStreamingProcessor
             return;
         }
 
-        // 2. Collect entries that are in state == Loaded (I/O done, not yet uploaded).
+        // Collect entries that are in state == Loaded (I/O done, not yet uploaded).
         //    Cap per frame to avoid stalling (e.g., max 8 textures per frame).
         if (_pendingUpload.IsEmpty)
         {

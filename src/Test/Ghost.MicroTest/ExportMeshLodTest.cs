@@ -86,12 +86,12 @@ internal unsafe class ExportMeshLodTest : ITest
                 var meshName = string.IsNullOrWhiteSpace(mesh.Name) ? $"Mesh_{m}" : mesh.Name;
                 Console.WriteLine($"\n--- Processing mesh: {meshName} (Vertices: {mesh.vertices.Count}, Triangles: {mesh.indices.Count / 3}) ---");
 
-                // 1. Export original parsed mesh as base / reference
+                // Export original parsed mesh as base / reference
                 var originalObjPath = Path.Combine(outputDir, $"{meshName}_original.obj");
                 ExportOriginalMeshAsObj(mesh, originalObjPath);
                 Console.WriteLine($"[LOD Base] Original mesh exported -> {originalObjPath}");
 
-                // 2. Build meshlets & LOD hierarchy
+                // Build meshlets & LOD hierarchy
                 using var meshletDataPtr = MeshProcessor.BuildMeshlets(
                     mesh.vertices.AsReadOnly(),
                     mesh.indices.AsReadOnly(),
@@ -106,7 +106,7 @@ internal unsafe class ExportMeshLodTest : ITest
                 var totalMeshlets = pMeshletData->meshlets.Count;
                 Console.WriteLine($"Built {totalMeshlets} meshlets across {lodCount} LOD levels.");
 
-                // 3. Export each LOD level as a separate OBJ file
+                // Export each LOD level as a separate OBJ file
                 for (var lod = 0; lod < lodCount; lod++)
                 {
                     var lodObjPath = Path.Combine(outputDir, $"{meshName}_lod_{lod}.obj");

@@ -273,7 +273,7 @@ public abstract class SystemGroup : ISystem
     // TODO: Also analyze resource read/write dependencies to determine if systems can run in parallel or need barriers.
     private static List<ISystem> Sort(List<ISystem> systems, out Dictionary<Type, HashSet<Type>> outDependencies)
     {
-        // 1. Build the Graph
+        // Build the Graph
         // Key64: The System, Value: Systems that MUST run before the Key64
         var dependencies = new Dictionary<Type, HashSet<Type>>();
         var systemMap = systems.ToDictionary(s => s.GetType(), s => s);
@@ -309,7 +309,7 @@ public abstract class SystemGroup : ISystem
             }
         }
 
-        // 2. Topological Sort (Kahn's Algorithm variant)
+        // Topological Sort (Kahn's Algorithm variant)
         var sortedList = new List<ISystem>();
         var visited = new HashSet<Type>();
 

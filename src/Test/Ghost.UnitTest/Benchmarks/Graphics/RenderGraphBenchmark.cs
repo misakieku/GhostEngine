@@ -143,7 +143,7 @@ public class RenderGraphBenchmark
         var sceneBuffer = rg.ImportBuffer(sceneBufferHandle);
 
         // ---------------------------------------------------------------------------------------
-        // 1. GPU Culling & Hi-Z (3 Async Compute Passes)
+        // GPU Culling & Hi-Z (3 Async Compute Passes)
         // ---------------------------------------------------------------------------------------
         Identifier<RGBuffer> visibleBuffer;
         Identifier<RGTexture> hizPyramid;
@@ -170,7 +170,7 @@ public class RenderGraphBenchmark
         }
 
         // ---------------------------------------------------------------------------------------
-        // 2. Depth Prepass (1 Raster Pass)
+        // Depth Prepass (1 Raster Pass)
         // ---------------------------------------------------------------------------------------
         Identifier<RGTexture> mainDepth;
         using (var builder = rg.AddRasterRenderPass<GBufferPassData>("DepthPrepass"))
@@ -183,7 +183,7 @@ public class RenderGraphBenchmark
         }
 
         // ---------------------------------------------------------------------------------------
-        // 3. Shadow Map Passes (6 Raster Passes)
+        // Shadow Map Passes (6 Raster Passes)
         // ---------------------------------------------------------------------------------------
         for (var c = 0; c < 4; c++)
         {
@@ -206,7 +206,7 @@ public class RenderGraphBenchmark
         }
 
         // ---------------------------------------------------------------------------------------
-        // 4. Base Pass / G-Buffer (1 Raster Pass with 4 RTVs + Depth)
+        // Base Pass / G-Buffer (1 Raster Pass with 4 RTVs + Depth)
         // ---------------------------------------------------------------------------------------
         Identifier<RGTexture> gAlbedo, gNormal, gMaterial, gVelocity;
         using (var builder = rg.AddRasterRenderPass<GBufferPassData>("GBuffer_BasePass"))
@@ -228,7 +228,7 @@ public class RenderGraphBenchmark
         }
 
         // ---------------------------------------------------------------------------------------
-        // 5. GTAO Ambient Occlusion (2 Compute Passes)
+        // GTAO Ambient Occlusion (2 Compute Passes)
         // ---------------------------------------------------------------------------------------
         Identifier<RGTexture> gtaoRaw, gtaoDenoised;
         using (var builder = rg.AddComputeRenderPass<ComputePostPassData>("GTAO_Compute"))
@@ -252,7 +252,7 @@ public class RenderGraphBenchmark
         }
 
         // ---------------------------------------------------------------------------------------
-        // 6. Deferred Tiled Lighting & SSR (3 Compute Passes)
+        // Deferred Tiled Lighting & SSR (3 Compute Passes)
         // ---------------------------------------------------------------------------------------
         Identifier<RGTexture> hdrLighting, ssrRaw;
         using (var builder = rg.AddComputeRenderPass<ComputePostPassData>("Deferred_Tiled_Lighting"))
@@ -288,7 +288,7 @@ public class RenderGraphBenchmark
         }
 
         // ---------------------------------------------------------------------------------------
-        // 7. Volumetric Fog (1 Compute Pass)
+        // Volumetric Fog (1 Compute Pass)
         // ---------------------------------------------------------------------------------------
         using (var builder = rg.AddComputeRenderPass<ComputePostPassData>("VolumetricFog_Inject"))
         {
@@ -299,7 +299,7 @@ public class RenderGraphBenchmark
         }
 
         // ---------------------------------------------------------------------------------------
-        // 8. Post-Processing Pipeline (TAA, DoF, Bloom Pyramid 5 down + 4 up, Tonemap, FSR) (~15 Passes)
+        // Post-Processing Pipeline (TAA, DoF, Bloom Pyramid 5 down + 4 up, Tonemap, FSR) (~15 Passes)
         // ---------------------------------------------------------------------------------------
         Identifier<RGTexture> taaOutput;
         using (var builder = rg.AddComputeRenderPass<ComputePostPassData>("TAA_Resolve"))
@@ -362,7 +362,7 @@ public class RenderGraphBenchmark
         }
 
         // ---------------------------------------------------------------------------------------
-        // 9. Final UI & Swapchain Blit (1 Unsafe Pass, Writes BackBuffer)
+        // Final UI & Swapchain Blit (1 Unsafe Pass, Writes BackBuffer)
         // ---------------------------------------------------------------------------------------
         using (var builder = rg.AddUnsafeRenderPass<FinalCompositePassData>("UI_Swapchain_Blit"))
         {

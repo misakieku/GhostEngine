@@ -50,7 +50,7 @@ public class InputEvaluationSystem : SystemBase
                     continue;
                 }
 
-                // 1. Digital Buttons
+                // Digital Buttons
                 for (var b = 0; b < profile.Buttons.Count; b++)
                 {
                     var binding = profile.Buttons[b];
@@ -58,7 +58,7 @@ public class InputEvaluationSystem : SystemBase
                     state.SetButton(binding.Action, isDown);
                 }
 
-                // 2. 1D Axes
+                // 1D Axes
                 for (var a = 0; a < profile.Axes1D.Count; a++)
                 {
                     var binding = profile.Axes1D[a];
@@ -74,7 +74,7 @@ public class InputEvaluationSystem : SystemBase
                     state.SetAxis(binding.Axis, val);
                 }
 
-                // 3. 2D Composites (e.g. WASD)
+                // 2D Composites (e.g. WASD)
                 for (var c = 0; c < profile.Composites2D.Count; c++)
                 {
                     var comp = profile.Composites2D[c];
@@ -105,7 +105,7 @@ public class InputEvaluationSystem : SystemBase
                     state.SetAxis(comp.AxisY, vec.y);
                 }
 
-                // 4. 2D Analog Sticks (Override or combine with digital composite if active)
+                // 2D Analog Sticks (Override or combine with digital composite if active)
                 var hasStickLook = false;
                 for (var s = 0; s < profile.Sticks2D.Count; s++)
                 {
@@ -126,7 +126,7 @@ public class InputEvaluationSystem : SystemBase
                     }
                 }
 
-                // 5. Mouse Look Delta
+                // Mouse Look Delta
                 if (profile.MouseLook.HasValue)
                 {
                     var mouse = profile.MouseLook.Value;

@@ -203,7 +203,7 @@ public unsafe class MemoryMappedAssetLoadingTests
         {
             using var provider = new RuntimeContentProvider(manifestPath);
 
-            // 1. Test uncompressed MMF
+            // Test uncompressed MMF
             var rawResult = provider.OpenReadAsync(rawId);
             Assert.IsTrue(rawResult.IsSuccess);
             using (var rawPayload = rawResult.Value)
@@ -213,7 +213,7 @@ public unsafe class MemoryMappedAssetLoadingTests
                 CollectionAssert.AreEqual(originalData, rawPayload.Span.ToArray());
             }
 
-            // 2. Test LZ4 decompression
+            // Test LZ4 decompression
             var lz4Result = provider.OpenReadAsync(lz4Id);
             Assert.IsTrue(lz4Result.IsSuccess);
             using (var lz4Payload = lz4Result.Value)
@@ -223,7 +223,7 @@ public unsafe class MemoryMappedAssetLoadingTests
                 CollectionAssert.AreEqual(originalData, lz4Payload.Span.ToArray());
             }
 
-            // 3. Test Zstd decompression
+            // Test Zstd decompression
             var zstdResult = provider.OpenReadAsync(zstdId);
             Assert.IsTrue(zstdResult.IsSuccess);
             using (var zstdPayload = zstdResult.Value)

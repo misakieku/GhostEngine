@@ -28,7 +28,7 @@ public class InputProfileDatabase
     {
         var map = new InputMap();
 
-        // 1. Move 2D: WASD + Gamepad Left Stick
+        // Move 2D: WASD + Gamepad Left Stick
         map.Composites2D.Add(new Composite2DBinding
         {
             AxisX = ActionAxis.MoveX,
@@ -50,7 +50,7 @@ public class InputProfileDatabase
             Deadzone = 0.15f
         });
 
-        // 2. Elevation: E (Up) / Q (Down)
+        // Elevation: E (Up) / Q (Down)
         map.Axes1D.Add(new Axis1DBinding
         {
             Axis = ActionAxis.Elevation,
@@ -58,7 +58,7 @@ public class InputProfileDatabase
             Negative = InputControl.Key(SDL_Keycode.SDLK_Q)
         });
 
-        // 3. Look: Mouse Delta + Gamepad Right Stick
+        // Look: Mouse Delta + Gamepad Right Stick
         map.MouseLook = new MouseDeltaBinding
         {
             AxisX = ActionAxis.LookX,
@@ -77,7 +77,7 @@ public class InputProfileDatabase
             Deadzone = 0.15f
         });
 
-        // 4. Sprint: Left Shift / Gamepad Left Stick click
+        // Sprint: Left Shift / Gamepad Left Stick click
         map.Buttons.Add(new ButtonBinding
         {
             Action = ActionButton.Sprint,
@@ -85,7 +85,7 @@ public class InputProfileDatabase
             Secondary = InputControl.GamepadBtn(SDL_GamepadButton.SDL_GAMEPAD_BUTTON_LEFT_STICK)
         });
 
-        // 5. Toggle Mouse Lock: Escape
+        // Toggle Mouse Lock: Escape
         map.Buttons.Add(new ButtonBinding
         {
             Action = ActionButton.ToggleMouseLock,

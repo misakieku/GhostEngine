@@ -100,28 +100,28 @@ public unsafe partial class MeshBaker : IAssetBaker
         // Write header placeholder
         stream.Write(header);
 
-        // 1. Hierarchy DAG nodes
+        // Hierarchy DAG nodes
         header.hierarchyOffset = stream.Position - assetStartOffset;
         stream.Write(meshletData->hierarchyNodes.AsSpan());
         header.hierarchySize = stream.Position - assetStartOffset - header.hierarchyOffset;
 
-        // 2. Meshlet Groups
+        // Meshlet Groups
         header.groupOffset = stream.Position - assetStartOffset;
         stream.Write(meshletData->groups.AsSpan());
         header.groupSize = stream.Position - assetStartOffset - header.groupOffset;
 
-        // 3. Reordered Meshlets table
+        // Reordered Meshlets table
         header.meshletOffset = stream.Position - assetStartOffset;
         stream.Write(reorderedMeshlets.AsSpan());
         header.meshletSize = stream.Position - assetStartOffset - header.meshletOffset;
 
-        // 4. Page Directory Table placeholder
+        // Page Directory Table placeholder
         var pageDirStartPos = stream.Position;
         header.pageDirectoryOffset = stream.Position - assetStartOffset;
         stream.Write(pageDirectory.AsSpan());
         header.pageDirectorySize = stream.Position - assetStartOffset - header.pageDirectoryOffset;
 
-        // 5. Root Page 0 (uncompressed payload)
+        // Root Page 0 (uncompressed payload)
         if (pageBuffers.Length > 0 && pageDirectory[0].isRootPage != 0)
         {
             header.rootPageOffset = stream.Position - assetStartOffset;
@@ -132,7 +132,7 @@ public unsafe partial class MeshBaker : IAssetBaker
             p0.fileOffset = (ulong)header.rootPageOffset;
         }
 
-        // 6. Bulk Pages 1..N
+        // Bulk Pages 1..N
         if (pageBuffers.Length > 1)
         {
             header.bulkPagesOffset = stream.Position - assetStartOffset;
@@ -147,12 +147,12 @@ public unsafe partial class MeshBaker : IAssetBaker
             header.bulkPagesSize = stream.Position - assetStartOffset - header.bulkPagesOffset;
         }
 
-        // 7. Material Parts
+        // Material Parts
         header.materialPartOffset = stream.Position - assetStartOffset;
         WriteMaterialParts(stream, mesh.materialParts.AsSpan());
         header.materialPartSize = stream.Position - assetStartOffset - header.materialPartOffset;
 
-        // 8. Ray Tracing Proxy Geometry
+        // Ray Tracing Proxy Geometry
         using var proxyMesh = BuildRayTracingProxy(mesh, settings, AllocationHandle.Persistent);
         header.rayTracingProxyOffset = stream.Position - assetStartOffset;
         header.rayTracingProxyVertexCount = proxyMesh.positions.Count;

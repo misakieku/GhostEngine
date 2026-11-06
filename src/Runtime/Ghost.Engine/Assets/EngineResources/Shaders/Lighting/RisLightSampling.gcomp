@@ -187,10 +187,10 @@ compute "Internal/RisLightSampling"
 
                 float lightRadianceLum = cand.radianceLum * attenuation;
 
-                // 1. Scalar Lambertian diffuse target term
+                // Scalar Lambertian diffuse target term
                 float diffTerm = (clampedNdotL * INV_PI) * (cand.diffuseDimmer * diffuseWeightLum);
 
-                // 2. Scalar simplified GGX specular target term (exact GGX distribution tail, Kelemen V, no pow/SFU)
+                // Scalar simplified GGX specular target term (exact GGX distribution tail, Kelemen V, no pow/SFU)
                 float3 H = normalize(L + V);
                 float NdotH = saturate(dot(normalWS, H));
                 float LdotH = saturate(dot(L, H));
@@ -205,7 +205,7 @@ compute "Internal/RisLightSampling"
 
                 float specTerm = (F * D * V_fast) * clampedNdotL * cand.specularDimmer;
 
-                // 3. Final target PDF (purely scalar arithmetic)
+                // Final target PDF (purely scalar arithmetic)
                 float pHat = lightRadianceLum * (diffTerm + specTerm);
 
                 if (pHat > 1e-6f)

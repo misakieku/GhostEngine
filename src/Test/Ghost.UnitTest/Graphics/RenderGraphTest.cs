@@ -1604,9 +1604,9 @@ public partial class RenderGraphTest
             Assert.AreEqual(persistentSlot.AsResource(), f1CurrentBacking, "Backing resource must be the persistent slot handle.");
 
             // Verify barrier chaining:
-            // 1. Transition on the shared resource from Common to ShaderResource (for EarlyPass)
-            // 2. Transition from ShaderResource to UnorderedAccess (for BuildPass) - NO discard
-            // 3. Closing transition to Common
+            // Transition on the shared resource from Common to ShaderResource (for EarlyPass)
+            // Transition from ShaderResource to UnorderedAccess (for BuildPass) - NO discard
+            // Closing transition to Common
             var recordedBarriers = GetRecordedBarriers().Where(b => b.Resource == persistentSlot.AsResource()).ToList();
             Assert.HasCount(3, recordedBarriers, "Expected exactly 3 chained transitions (Common->SRV, SRV->UAV, UAV->Common) for in-place reused resource.");
 

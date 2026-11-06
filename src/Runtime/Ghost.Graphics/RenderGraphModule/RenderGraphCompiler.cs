@@ -1080,7 +1080,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     }
                 }
 
-                // 1. Issue all prologue barriers (handoff acquire + transitions) for all merged passes before beginning native pass
+                // Issue all prologue barriers (handoff acquire + transitions) for all merged passes before beginning native pass
                 EmitPassPrologueBarriersForMergedPasses(
                     usageRecords.AsSpan(),
                     usageRanges.AsSpan(),
@@ -1096,11 +1096,11 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     splitPlans.AsSpan(),
                     activeSplitPlans.AsSpan());
 
-                // 2. Begin Native Render Pass
+                // Begin Native Render Pass
                 writer.Write(RGExecutionOpType.BeginNativePass);
                 writer.Write(nativePassIndex);
 
-                // 3. Execute merged passes
+                // Execute merged passes
                 for (var i = 0; i < nativePass.mergedPassIndices.Count; i++)
                 {
                     var mergedPassIdx = nativePass.mergedPassIndices[i];
@@ -1109,7 +1109,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     idx++;
                 }
 
-                // 4. End Native Render Pass
+                // End Native Render Pass
                 writer.Write(RGExecutionOpType.EndNativePass);
                 nativePassIndex++;
             }

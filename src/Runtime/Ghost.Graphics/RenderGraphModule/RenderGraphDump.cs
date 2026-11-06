@@ -2120,7 +2120,7 @@ public sealed class RenderGraphDump
                     document.getElementById('heap2dPassHeaders').style.width = (displayPasses.length * colWidth) + 'px';
                     document.getElementById('heap2dChartBody').innerHTML = chartBlocksHtml || '<div style="padding:20px; color:var(--text-muted);">No placed resources match current filter</div>';
 
-                    // 5. Render Heap Blocks Table
+                    // Render Heap Blocks Table
                     let tableHtml = '';
                     let visibleBlockCount = 0;
 

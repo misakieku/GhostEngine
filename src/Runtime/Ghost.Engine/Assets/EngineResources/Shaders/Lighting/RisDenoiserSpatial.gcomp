@@ -209,7 +209,7 @@ compute "Internal/RisDenoiserSpatial"
                         continue;
                     }
 
-                    // 1. Tangent-Plane Depth Weight in View Space
+                    // Tangent-Plane Depth Weight in View Space
                     float planeDist = (nyTerm + float(dx) * dPlaneX) * sampleZView - planeOffset;
                     float wDepth = exp2(abs(planeDist) * planeDistToLog2);
 
@@ -218,7 +218,7 @@ compute "Internal/RisDenoiserSpatial"
                         continue;
                     }
 
-                    // 2. Normal Edge-Stopping Weight
+                    // Normal Edge-Stopping Weight
                     float3 sampleNormal = UnpackHalf3(s_normalRough[sy][sx]);
                     float normalDot = saturate(dot(centerNormal, sampleNormal));
                     if (normalDot <= 1e-2f)
@@ -232,7 +232,7 @@ compute "Internal/RisDenoiserSpatial"
                     float n16 = n8 * n8;
                     float wNormalSpec = lerp(n16 * n8, wNormalDiff, specRoughnessBlend);
 
-                    // 3. Separable Spatial Gaussian Weight
+                    // Separable Spatial Gaussian Weight
                     int ax = abs(dx);
                     float wDiff = (SelectGaussianWeight(ax, gDiff1, gDiff2, gDiff3) * gyDiff) * (wNormalDiff * wDepth);
                     float wSpec = (SelectGaussianWeight(ax, gSpec1, gSpec2, gSpec3) * gySpec) * (wNormalSpec * wDepth);

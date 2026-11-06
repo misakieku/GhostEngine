@@ -477,6 +477,7 @@ public unsafe partial class EntityManager : IDisposable
             var idComp = a.ID.CompareTo(b.ID);
             return idComp != 0 ? idComp : a.Generation.CompareTo(b.Generation);
         });
+
         for (var i = 1; i < dedupeSpan.Length; i++)
         {
             if (dedupeSpan[i - 1] == dedupeSpan[i])
@@ -486,7 +487,7 @@ public unsafe partial class EntityManager : IDisposable
         }
 #endif
 
-        // 1. GATHER + MIGRATE (no removals yet)
+        // GATHER + MIGRATE (no removals yet)
         // Resolve all entities to their locations. Entities with ICleanupComponent are
         // moved to a cleanup-only archetype where they survive until cleanup systems
         // finish processing them. Nothing is removed from the source chunks here — the
@@ -546,7 +547,7 @@ public unsafe partial class EntityManager : IDisposable
             return;
         }
 
-        // 2. BATCH REMOVAL
+        // BATCH REMOVAL
         // Sorting groups the locations by (archetype, chunk) automatically.
         toRemove.AsSpan().Sort();
 
@@ -579,7 +580,7 @@ public unsafe partial class EntityManager : IDisposable
             lastArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
         }
 
-        // 3. FINALIZE
+        // FINALIZE
         // Migrated entities keep their slot-map entry (pointing at the cleanup archetype);
         // destroyed entities are removed from the slot map.
         for (var i = 0; i < migrated.Count; i++)

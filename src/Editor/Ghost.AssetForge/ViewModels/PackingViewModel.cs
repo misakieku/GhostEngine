@@ -195,10 +195,10 @@ public partial class PackingViewModel : ObservableObject
 
         try
         {
-            // 1. Bake
+            // Bake
             await _bakeService.BakeProjectAsync(_cts.Token);
 
-            // 2. Pack
+            // Pack
             _dispatcher.TryEnqueue(() => StatusText = "Packing assets...");
             await _packService.PackProjectAsync(_cts.Token);
 

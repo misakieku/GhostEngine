@@ -84,14 +84,14 @@ internal sealed unsafe class ChunkDebugView
                 .GetMethod(nameof(ReadComponentArray), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
                 .MakeGenericMethod(type);
 
-            // 3. Invoke it to get a Position[] or Velocity[]
+            // Invoke it to get a Position[] or Velocity[]
             var array = readMethod.Invoke(null, [(long)pData, layout.offset, count]);
             if (array == null)
             {
                 continue;
             }
 
-            // 4. Wrap it in a nice label so the debugger shows "Position[]"
+            // Wrap it in a nice label so the debugger shows "Position[]"
             views.Add(new ComponentArrayView(type.Name, array));
         }
 
@@ -622,7 +622,7 @@ internal unsafe struct Archetype : IDisposable
         ref var group = ref _chunkGroups[groupIndex];
         var idx = 0;
 
-        // 1. Fill the active chunk.
+        // Fill the active chunk.
         if (group.activeChunkIndex >= 0)
         {
             ref var chunk = ref _chunks[group.activeChunkIndex];
@@ -646,7 +646,7 @@ internal unsafe struct Archetype : IDisposable
             }
         }
 
-        // 2. Reuse other chunks of this group with room (empty chunks included).
+        // Reuse other chunks of this group with room (empty chunks included).
         for (var i = 0; i < _chunks.Count && idx < rowIndex.Length; i++)
         {
             ref var chunk = ref _chunks[i];
@@ -673,7 +673,7 @@ internal unsafe struct Archetype : IDisposable
             chunk._structuralVersion = world.Version;
         }
 
-        // 3. Create new chunks as needed.
+        // Create new chunks as needed.
         while (idx < rowIndex.Length)
         {
             var newChunkIndex = AllocateChunkIndex(world.Version, groupIndex);

@@ -340,7 +340,7 @@ public static unsafe class PagePacker
         var pageBuffer = new byte[totalPayloadBytes];
         fixed (byte* pDst = pageBuffer)
         {
-            // 1. Write PageHeader
+            // Write PageHeader
             var pHeader = (PageHeader*)pDst;
             pHeader->magic = PageHeader.MAGIC;
             pHeader->meshletCount = (ushort)pageMeshlets.Count;
@@ -352,7 +352,7 @@ public static unsafe class PagePacker
             pHeader->pageIndex = pageIndex;
             pHeader->reserved = 0;
 
-            // 2. Write Meshlets
+            // Write Meshlets
             if (pageMeshlets.Count > 0)
             {
                 fixed (Meshlet* pMl = pageMeshlets.AsSpan())
@@ -361,7 +361,7 @@ public static unsafe class PagePacker
                 }
             }
 
-            // 3. Write PackedVertices
+            // Write PackedVertices
             if (pageVertices.Count > 0)
             {
                 fixed (PackedVertex* pVerts = pageVertices.AsSpan())
@@ -370,7 +370,7 @@ public static unsafe class PagePacker
                 }
             }
 
-            // 4. Write Micro-triangles
+            // Write Micro-triangles
             if (pageTriangles.Count > 0)
             {
                 fixed (uint* pTris = pageTriangles.AsSpan())

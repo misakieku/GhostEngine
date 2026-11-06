@@ -775,7 +775,7 @@ internal unsafe partial class GhostRenderPipeline
         var tilesX = (renderSize.x + 15u) / 16u;
         var tilesY = (renderSize.y + 15u) / 16u;
 
-        // 1. RisLightSampling (Generates 1 winner light and weight W per pixel)
+        // RisLightSampling (Generates 1 winner light and weight W per pixel)
 
         Identifier<RGTexture> risLightSamples;
         using (var builder = rg.AddComputeRenderPass<RisLightSamplingPassData>("RisLightSampling"))
@@ -1003,7 +1003,7 @@ internal unsafe partial class GhostRenderPipeline
             });
         }
 
-        // 3. RisResolveShading (Evaluates diffuse irradiance & specular radiance)
+        // RisResolveShading (Evaluates diffuse irradiance & specular radiance)
 
         Identifier<RGTexture> resolvedDiffuse;
         Identifier<RGTexture> resolvedSpecular;
@@ -1106,7 +1106,7 @@ internal unsafe partial class GhostRenderPipeline
             });
         }
 
-        // 4. RisDenoiserTemporal (Reprojection, variance clamping, EMA accumulation)
+        // RisDenoiserTemporal (Reprojection, variance clamping, EMA accumulation)
         var historyDiffuse = rg.ImportTexture(risResource.DiffuseHistory, ResourceBarrierData.Common, ResourceBarrierData.Common);
         var historySpecular = rg.ImportTexture(risResource.SpecularHistory, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
@@ -1181,7 +1181,7 @@ internal unsafe partial class GhostRenderPipeline
             });
         }
 
-        // 5. RisDenoiserSpatial (Edge-preserving cross-bilateral filter)
+        // RisDenoiserSpatial (Edge-preserving cross-bilateral filter)
         var filteredDiffuse = rg.CreateTexture(resolvedDiffuse, "RisFilteredDiffuse");
         var filteredSpecular = rg.CreateTexture(resolvedSpecular, "RisFilteredSpecular");
 
@@ -1523,7 +1523,7 @@ internal unsafe partial class GhostRenderPipeline
             });
         }
 
-        // 1. Create and Clear Shadow Atlas UAV
+        // Create and Clear Shadow Atlas UAV
         Identifier<RGTexture> shadowAtlas;
         using (var builder = rg.AddComputeRenderPass<ClearShadowAtlasPassData>("ClearShadowAtlas"))
         {
@@ -1561,7 +1561,7 @@ internal unsafe partial class GhostRenderPipeline
             });
         }
 
-        // 2. Hardware Raster Shadow Depth for Macro-triangles (Bins 0 and 2..N)
+        // Hardware Raster Shadow Depth for Macro-triangles (Bins 0 and 2..N)
         using (var builder = rg.AddUnsafeRenderPass<PunctualShadowRasterPassData>("PunctualShadowRaster"))
         {
             builder.UseRandomAccessTexture(shadowAtlas);

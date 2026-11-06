@@ -312,7 +312,7 @@ public static partial class ShaderIncludeResolver
 
     private static string? ResolvePath(string includeTarget, string currentFileDir, IReadOnlyList<string> assetDirectories)
     {
-        // 1. If target is rooted with leading slash: resolve against assetDirectories
+        // If target is rooted with leading slash: resolve against assetDirectories
         if (includeTarget.StartsWith('/'))
         {
             var relative = includeTarget.TrimStart('/');
@@ -327,7 +327,7 @@ public static partial class ShaderIncludeResolver
         }
         else
         {
-            // 2. Relative include: first check current file directory
+            // Relative include: first check current file directory
             if (!string.IsNullOrEmpty(currentFileDir))
             {
                 var candidate = Path.Combine(currentFileDir, includeTarget);
@@ -337,7 +337,7 @@ public static partial class ShaderIncludeResolver
                 }
             }
 
-            // 3. Fallback: search each asset directory
+            // Fallback: search each asset directory
             foreach (var assetDir in assetDirectories)
             {
                 var candidate = Path.Combine(assetDir, includeTarget);
