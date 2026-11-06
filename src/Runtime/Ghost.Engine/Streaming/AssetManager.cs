@@ -22,15 +22,6 @@ public sealed class ResolveAssetAttribute : Attribute
     }
 }
 
-public struct AssetReadData
-{
-    public Guid assetId;
-    public AssetType assetType;
-    public Stream stream;
-    public long streamSize;
-    public long contentSize;
-}
-
 public interface IContentProvider : IDisposable
 {
     IReadOnlyList<ShaderCatalogEntry> ShaderCatalog { get; }
@@ -39,7 +30,7 @@ public interface IContentProvider : IDisposable
     bool HasAsset(Guid guid);
     Guid[] GetDependencies(Guid guid);
     AssetType GetAssetType(Guid guid);
-    Result<AssetReadData> OpenReadAsync(Guid guid, CancellationToken token = default);
+    Result<AssetPayload> OpenReadAsync(Guid guid, CancellationToken token = default);
 }
 
 internal struct LoadAssetJob : IJob
@@ -84,8 +75,7 @@ internal struct LoadAssetJob : IJob
                 return;
             }
 
-            var readData = openResult.Value;
-            var result = loadable.OnLoadContent(readData.stream, readData.contentSize);
+            var result = loadable.OnLoadContent(openResult.Value);
             if (result.IsFailure)
             {
                 entry.State = entry.FailureState;
@@ -153,12 +143,11 @@ public partial class AssetManager : IDisposable
         if (contentProvider.HasAsset(ShaderBytecodePool.POOL_ASSET_ID))
         {
             var readResult = contentProvider.OpenReadAsync(ShaderBytecodePool.POOL_ASSET_ID);
-            if (readResult.IsSuccess && readResult.Value.stream != null)
+            if (readResult.IsSuccess && readResult.Value.IsValid)
             {
-                using var stream = readResult.Value.stream;
                 try
                 {
-                    _bytecodePool = new ShaderBytecodePool(stream);
+                    _bytecodePool = new ShaderBytecodePool(readResult.Value);
                 }
                 catch (Exception ex)
                 {

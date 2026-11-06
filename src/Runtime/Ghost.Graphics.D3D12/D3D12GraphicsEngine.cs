@@ -14,7 +14,7 @@ public static class D3D12GraphicsEngineFactory
     }
 }
 
-internal class D3D12GraphicsEngine : IGraphicsEngine
+internal sealed class D3D12GraphicsEngine : IGraphicsEngine
 {
     private readonly struct CommandBufferReturnEntry
     {
@@ -57,7 +57,7 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _descriptorAllocator = new D3D12DescriptorAllocator(_device);
 
         _resourceDatabase = new D3D12ResourceDatabase(_device, _descriptorAllocator);
-        _pipelineLibrary = new D3D12PipelineLibrary(_device);
+        _pipelineLibrary = new D3D12PipelineLibrary(_device, desc.PipelineLibraryPath);
         _resourceAllocator = new D3D12ResourceAllocator(_device, _descriptorAllocator, _resourceDatabase, _pipelineLibrary);
 
         _commandBufferPool = new Stack<ICommandBuffer>[3];
@@ -68,11 +68,6 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         {
             _commandBufferPool[i] = new Stack<ICommandBuffer>(4);
         }
-    }
-
-    ~D3D12GraphicsEngine()
-    {
-        Dispose();
     }
 
     public ICommandAllocator CreateCommandAllocator(CommandBufferType type = CommandBufferType.Graphics)
@@ -189,6 +184,5 @@ internal class D3D12GraphicsEngine : IGraphicsEngine
         _debugLayer?.Dispose();
 
         _disposed = true;
-        GC.SuppressFinalize(this);
     }
 }

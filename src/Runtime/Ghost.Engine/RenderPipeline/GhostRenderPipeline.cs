@@ -148,18 +148,12 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         return shadowSettings.shadowMode == ShadowMode.RayTraced;
     }
 
-    private void AddBuildTLASPass(RenderGraph rg, in RenderRequest request, in Frustum frustum, GhostRenderPayload ghostPayload)
+    private Identifier<RGBuffer> AddBuildTLASPass(RenderGraph rg, in RenderRequest request, in Frustum frustum, GhostRenderPayload ghostPayload)
     {
         var activeInstanceCount = Math.Min(ghostPayload.InstanceCount, _gpuScene.InstanceCount);
         if (activeInstanceCount == 0)
         {
-            var emptyRtData = new RayTracingData
-            {
-                tlas = Identifier<RGBuffer>.Invalid
-            };
-            rg.Blackboard.Add(ref emptyRtData);
-
-            return;
+            return Identifier<RGBuffer>.Invalid;
         }
 
         var inputs = new AccelerationStructureBuildInputs
@@ -228,11 +222,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             data.rayTracingManager.BuildTLAS(in data.settings, computeCtx, data.instanceDescBuffer, data.scratchBuffer, data.tlasBuffer, data.activeInstanceCount);
         });
 
-        var rtData = new RayTracingData
-        {
-            tlas = tlasBuffer
-        };
-        rg.Blackboard.Add(ref rtData);
+        return tlasBuffer;
     }
 
     private Identifier<RGTexture> AddCullingAndVbufferPasses(RenderGraph rg, HzbViewResource hzbHistory, uint2 renderSize, uint instanceCount, Identifier<RGTexture> hzbTexture, uint sceneBuffer)
@@ -342,9 +332,10 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
             var historyHzb = renderGraph.ImportTexture(hzbHistory.Texture, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
+            var tlasBuffer = Identifier<RGBuffer>.Invalid;
             if (IsRTEnable(shadowSettings))
             {
-                AddBuildTLASPass(renderGraph, in request, in frustum, ghostPayload);
+                tlasBuffer = AddBuildTLASPass(renderGraph, in request, in frustum, ghostPayload);
             }
 
             // Geometry & Visibility passes
@@ -371,32 +362,29 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 };
 
                 var risHistory = viewContext.GetOrCreateResource<RisViewResource, RisViewResource.Desc>(in desc);
-                AddRisPasses(renderGraph, risHistory, depthTexture, viewContext.RenderSize, (uint)frameNumber, request.viewId);
+                AddRisPasses(renderGraph, risHistory, depthTexture, tlasBuffer, viewContext.RenderSize, (uint)frameNumber, request.viewId);
             }
-            else
+            else if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
             {
-                if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
+                ExecutePerViewShadowSetup(ctx, in frustum, viewPort.Size.y, lights, request.view.localToWorld.c3.xyz,
+                    out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
+
+                var shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
+                var shadowMapData = new ShadowMapPassData
                 {
-                    ExecutePerViewShadowSetup(ctx, in frustum, viewPort.Size.y, lights, request.view.localToWorld.c3.xyz,
-                        out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
+                    shadowAtlas = shadowAtlas,
+                    shadowViewsBufferSrv = shadowViewsBufferSrv,
+                    shadowIndicesBufferSrv = shadowIndicesBufferSrv
+                };
 
-                    var shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
-                    var shadowMapData = new ShadowMapPassData
-                    {
-                        shadowAtlas = shadowAtlas,
-                        shadowViewsBufferSrv = shadowViewsBufferSrv,
-                        shadowIndicesBufferSrv = shadowIndicesBufferSrv
-                    };
-
-                    renderGraph.Blackboard.Add(ref shadowMapData);
-                }
+                renderGraph.Blackboard.Add(ref shadowMapData);
             }
 
             // Sky & Lighting
             var persistentViewStateBuffer = renderGraph.ImportBuffer(_gpuViewManager.PersistentViewStateBuffer, ResourceBarrierData.Common, ResourceBarrierData.Common);
             var skyContext = PrepareSky(renderGraph, viewContext, in request, ghostPayload, persistentViewStateBuffer);
             var litColor = AddDeferredLightingPass(renderGraph, in skyContext, historyHzb, hzbHistory.HzbMipCount, hzbHistory.HzbSize,
-                    depthTexture, request.viewId, viewContext.RenderSize);
+                    depthTexture, tlasBuffer, request.viewId, viewContext.RenderSize);
 
             AddSkyPass(renderGraph, in skyContext, litColor, depthTexture);
 

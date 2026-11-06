@@ -510,16 +510,14 @@ internal unsafe partial class GhostRenderPipeline
         public Identifier<RGBuffer> tlas;
     }
 
-    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph rg, in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, Identifier<RGTexture> depthTexture, uint viewId, uint2 renderSize)
+    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph rg, in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize,
+        Identifier<RGTexture> depthTexture, Identifier<RGBuffer> tlasBuffer, uint viewId, uint2 renderSize)
     {
         ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
         ref readonly var tile = ref rg.Blackboard.Get<TileClassificationData>();
 
         ref readonly var shadowMap = ref rg.Blackboard.TryGet<ShadowMapPassData>(out var hasShadowMap);
         ref readonly var ris = ref rg.Blackboard.TryGet<RisPassData>(out var hasRis);
-        ref readonly var rtData = ref rg.Blackboard.TryGet<RayTracingData>(out var hasRtData);
-
-        var tlasBuffer = hasRtData ? rtData.tlas : Identifier<RGBuffer>.Invalid;
 
         var shadowAtlas = hasShadowMap ? shadowMap.shadowAtlas : Identifier<RGTexture>.Invalid;
         var shadowViewsBufferSrv = hasShadowMap ? shadowMap.shadowViewsBufferSrv : RHIUtility.INVALID_BINDLESS_INDEX;
@@ -765,14 +763,12 @@ internal unsafe partial class GhostRenderPipeline
         public uint2 renderSize;
     }
 
-    private void AddRisPasses(RenderGraph rg, RisViewResource risResource, Identifier<RGTexture> depthTexture, uint2 renderSize, uint frameIndex, uint viewId)
+    private void AddRisPasses(RenderGraph rg, RisViewResource risResource, Identifier<RGTexture> depthTexture, Identifier<RGBuffer> tlasBuffer, uint2 renderSize, uint frameIndex, uint viewId)
     {
         ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
         ref readonly var tile = ref rg.Blackboard.Get<TileClassificationData>();
-        ref readonly var rtData = ref rg.Blackboard.Get<RayTracingData>();
         ref readonly var gbuffer = ref gbufferData.gbuffer;
 
-        var tlasBuffer = rtData.tlas;
         var tileLightList = gbufferData.tileLightList;
         var tileShadingModelMaskBuffer = tile.tileShadingModelMaskBuffer;
 

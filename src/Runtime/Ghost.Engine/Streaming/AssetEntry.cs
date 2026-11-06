@@ -31,7 +31,7 @@ internal static class AssetEntryFactory
             AssetType.Shader => new ShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName),
             AssetType.ComputeShader => new ComputeShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName),
             AssetType.WorkGraph => new WorkGraphAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName),
-            AssetType.Scene => new SceneAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies, assetName),
+            AssetType.Scene => throw new NotImplementedException(),
             AssetType.Audio => throw new NotImplementedException(),
             AssetType.Video => throw new NotImplementedException(),
             AssetType.Json => throw new NotImplementedException(),
@@ -187,7 +187,7 @@ public interface IAssetEntry
 
 internal interface ILoadableAssetEntry : IAssetEntry
 {
-    Result OnLoadContent([Owner] Stream contentStream, long contentSize);
+    Result OnLoadContent([Owner] AssetPayload payload);
 }
 
 internal interface IProcessableAssetEntry : IAssetEntry

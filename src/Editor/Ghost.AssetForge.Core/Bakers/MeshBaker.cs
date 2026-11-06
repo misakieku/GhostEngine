@@ -12,8 +12,7 @@ namespace Ghost.AssetForge.Core.Bakers;
 [AssetBaker(Extensions = [".fbx", ".obj"], Type = AssetType.Mesh, SettingsType = typeof(MeshBakeSettings), SettingsVersion = MeshBakeSettings.VERSION)]
 public unsafe partial class MeshBaker : IAssetBaker
 {
-    public bool CompressOutput => false;
-
+    public bool CompressOutput => false; // We don't compress mesh assets because we want faster load times during meshlet streaming. We may need to add a gpu friendly compression option in the future.
     public Task BakeAssetAsync(string src, Stream dst, IBakeSettings settings, AssetBakerContext ctx, CancellationToken cancellationToken)
     {
         if (settings is not MeshBakeSettings meshSettings)

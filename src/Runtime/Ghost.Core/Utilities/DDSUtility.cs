@@ -1,4 +1,5 @@
 using Ghost.Core.Graphics;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Core.Utilities;
 
@@ -16,6 +17,48 @@ public static unsafe class DDSUtility
 
     public const uint DDSCAPS2_CUBEMAP = 0x00000200;
     public const uint RESOURCE_MISC_TEXTURECUBE = 0x4;
+
+    public static bool TryParseDdsHeader(ReadOnlySpan<byte> bytes, out DDS_HEADER header, out DDS_HEADER_DXT10? dxt10, out uint dataOffset)
+    {
+        header = default;
+        dxt10 = default;
+        dataOffset = 0;
+
+        if (bytes.Length < (sizeof(uint) + sizeof(DDS_HEADER)))
+        {
+            return false;
+        }
+
+        var magic = MemoryMarshal.Read<uint>(bytes);
+        if (magic != DDS_MAGIC)
+        {
+            return false;
+        }
+
+        header = MemoryMarshal.Read<DDS_HEADER>(bytes[sizeof(uint)..]);
+        if (header.dwSize != sizeof(DDS_HEADER) || header.ddspf.dwSize != sizeof(DDS_PIXELFORMAT))
+        {
+            return false;
+        }
+
+        if ((header.ddspf.dwFlags & 0x00000004) != 0 && header.ddspf.dwFourCC == FOURCC_DX10)
+        {
+            var dxt10HeaderSize = sizeof(uint) + sizeof(DDS_HEADER) + sizeof(DDS_HEADER_DXT10);
+            if (bytes.Length < dxt10HeaderSize)
+            {
+                return false;
+            }
+
+            dxt10 = MemoryMarshal.Read<DDS_HEADER_DXT10>(bytes[(sizeof(uint) + sizeof(DDS_HEADER))..]);
+            dataOffset = (uint)dxt10HeaderSize;
+        }
+        else
+        {
+            dataOffset = (uint)(sizeof(uint) + sizeof(DDS_HEADER));
+        }
+
+        return true;
+    }
 
     public static bool TryParseDdsHeader(Stream stream, long sizeInBytes, out DDS_HEADER header, out DDS_HEADER_DXT10? dxt10, out uint dataOffset)
     {

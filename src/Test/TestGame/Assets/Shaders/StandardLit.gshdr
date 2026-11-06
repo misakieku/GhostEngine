@@ -35,7 +35,7 @@ shader "Ghost/StandardLit" : "Lit"
                 SurfaceData surface = (SurfaceData)0;
                 surface.shadingModel = SHADING_MODEL_ID;
                 surface.albedo = baseColor;
-                surface.normalWS = ctx.normalWS, ctx.isFrontFace;
+                surface.normalWS = ctx.normalWS;
                 surface.roughness = props.roughness;
                 surface.metallic = props.metallic;
                 surface.occlusion = props.occlusion;
