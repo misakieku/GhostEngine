@@ -10,12 +10,11 @@ public enum ShadowMode
     /// </summary>
     None,
     /// <summary>
-    /// Shadows are rendered using shadow maps. This is the default mode and is suitable for most scenarios.
+    /// Shadows are rendered using shadow maps.
     /// </summary>
-    ShadowMap,
+    PCF,
     /// <summary>
-    /// Shadows are rendered using ray tracing (RIS for punctual lights).
-    /// This mode provides more accurate and realistic shadows, and often has better performance than shadow maps if there are many lights in the scene needing shadows.
+    /// Shadows are rendered using ray tracing.
     /// </summary>
     RayTraced,
 }
@@ -49,7 +48,7 @@ public partial struct ShadowSettings
 
     public static ShadowSettings Default => new ShadowSettings
     {
-        shadowMode = ShadowMode.ShadowMap,
+        shadowMode = ShadowMode.PCF,
         maxDistance = 400.0f,
         cascadeCount = 4,
         splits = new float3(0.1f, 0.3f, 0.6f),

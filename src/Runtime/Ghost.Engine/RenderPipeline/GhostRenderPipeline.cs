@@ -36,8 +36,10 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
     private readonly GPUViewManager _gpuViewManager;
     private readonly RayTracingManager _rayTracingManager;
 
+    private static readonly PipelineKeyword s_kwDirectLightingFPTL = PipelineKeywordRegistry.GetOrRegister("_DIRECTLIGHTING_FPTL");
+    private static readonly PipelineKeyword s_kwDirectLightingStochastic = PipelineKeywordRegistry.GetOrRegister("_DIRECTLIGHTING_STOCHASTIC");
     private static readonly PipelineKeyword s_kwShadowPCF = PipelineKeywordRegistry.GetOrRegister("_SHADOW_PCF");
-    private static readonly PipelineKeyword s_kwShadowRIS = PipelineKeywordRegistry.GetOrRegister("_SHADOW_RIS");
+    private static readonly PipelineKeyword s_kwShadowRayTraced = PipelineKeywordRegistry.GetOrRegister("_SHADOW_RAYTRACED");
 
     private bool _disposed;
     private int _lastRenderRequestCount = -1;
@@ -45,8 +47,6 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
     public GPUScene GPUScene => _gpuScene;
     public GPUViewManager GPUViewManager => _gpuViewManager;
-    public RayTracingManager RayTracingManager => _rayTracingManager;
-    public GhostRenderPipelineSettings Settings => _settings;
 
     public GhostRenderPipeline(RenderEngine renderEngine, AssetManager assetManager, JobScheduler jobScheduler, GhostRenderPipelineSettings settings)
     {
@@ -111,6 +111,19 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         return new GhostRenderPayload(this);
     }
 
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool IsRTEnable(in ShadowSettings shadowSettings)
+    {
+        if (!_settings.EnableRayTracing)
+        {
+            return false;
+        }
+
+        return _settings.DirectLightingMode == DirectLightingMode.Stochastic ||
+            shadowSettings.shadowMode == ShadowMode.RayTraced;
+    }
+
     public void RecordPrelude(scoped in RenderContext ctx, ICommandBuffer commandBuffer, int frameIndex, IRenderPayload payload)
     {
         var ghostPayload = (GhostRenderPayload)payload;
@@ -126,26 +139,43 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static KeywordMask128 BuildViewKeywords(in ShadowSettings shadowSettings)
+    private void ModifyVolumeSettings(ref ShadowSettings shadowSettings)
+    {
+        if (!_settings.EnableRayTracing)
+        {
+            if (shadowSettings.shadowMode == ShadowMode.RayTraced)
+            {
+                shadowSettings.shadowMode = ShadowMode.PCF;
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private KeywordMask128 BuildViewKeywords(in ShadowSettings shadowSettings)
     {
         var viewKeywords = KeywordMask128.Empty;
+
+        switch (_settings.DirectLightingMode)
+        {
+            case DirectLightingMode.FPTL:
+                viewKeywords = viewKeywords.Set(s_kwDirectLightingFPTL.Id);
+                break;
+            case DirectLightingMode.Stochastic:
+                viewKeywords = viewKeywords.Set(s_kwDirectLightingStochastic.Id);
+                break;
+        }
+
         switch (shadowSettings.shadowMode)
         {
-            case ShadowMode.ShadowMap:
+            case ShadowMode.PCF:
                 viewKeywords = viewKeywords.Set(s_kwShadowPCF.Id);
                 break;
             case ShadowMode.RayTraced:
-                viewKeywords = viewKeywords.Set(s_kwShadowRIS.Id);
+                viewKeywords = viewKeywords.Set(s_kwShadowRayTraced.Id);
                 break;
         }
 
         return viewKeywords;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsRTEnable(in ShadowSettings shadowSettings)
-    {
-        return shadowSettings.shadowMode == ShadowMode.RayTraced;
     }
 
     private Identifier<RGBuffer> AddBuildTLASPass(RenderGraph rg, in RenderRequest request, in Frustum frustum, GhostRenderPayload ghostPayload)
@@ -302,8 +332,9 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             var frustum = Frustum.Create(viewProjMatrix, float3.zero, request.view.localToWorld.c2.xyz, request.view.nearClipPlane, request.view.farClipPlane);
 
             var shadowSettings = ghostPayload.GetViewVolumeData<ShadowSettings>(request.viewId);
-            var viewKeywords = BuildViewKeywords(shadowSettings);
+            ModifyVolumeSettings(ref shadowSettings);
 
+            var viewKeywords = BuildViewKeywords(shadowSettings);
             var viewContext = _gpuViewManager.GetView(request.viewId);
             viewContext.EnsureSize(viewPort.Size);
 
@@ -354,7 +385,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             renderGraph.Blackboard.Add(ref gbufferData);
 
             // Shadow Passes
-            if (shadowSettings.shadowMode == ShadowMode.RayTraced)
+            if (_settings.DirectLightingMode == DirectLightingMode.Stochastic)
             {
                 var desc = new RisViewResource.Desc
                 {
@@ -364,12 +395,21 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 var risHistory = viewContext.GetOrCreateResource<RisViewResource, RisViewResource.Desc>(in desc);
                 AddRisPasses(renderGraph, risHistory, depthTexture, tlasBuffer, viewContext.RenderSize, (uint)frameNumber, request.viewId);
             }
-            else if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
+            else // FPTL
             {
                 ExecutePerViewShadowSetup(ctx, in frustum, viewPort.Size.y, lights, request.view.localToWorld.c3.xyz,
                     out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
 
-                var shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
+                Identifier<RGTexture> shadowAtlas;
+                if (shadowSettings.shadowMode == ShadowMode.PCF)
+                {
+                    shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
+                }
+                else
+                {
+                    shadowAtlas = Identifier<RGTexture>.Invalid;
+                }
+
                 var shadowMapData = new ShadowMapPassData
                 {
                     shadowAtlas = shadowAtlas,
@@ -401,7 +441,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             // re-specify D3D12_SET_WORK_GRAPH_FLAG_INITIALIZE. Latching here (rather than at pass-build
             // time) keeps the flag honest if this frame's graph was compiled but failed to execute.
             _meshPipelineResource.cullWorkGraphProgram?.MarkInitialized();
-            if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
+            if (shadowSettings.shadowMode == ShadowMode.PCF)
             {
                 _meshPipelineResource.shadowCullWorkGraphProgram?.MarkInitialized();
             }

@@ -73,7 +73,7 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
         }
     }
     
-#if defined(_SHADOW_RIS)
+#if defined(_DIRECTLIGHTING_STOCHASTIC)
     // Decoupled RIS pipeline
     // Punctual lights are evaluated in dedicated passes
     // (RisLightSampling -> RisRayTrace -> RisResolveShading) and composite the results here
@@ -109,6 +109,8 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
             AccumulateDirectLighting(totalLighting, lighting);
         }
     }
+    
+    // TODO: Evaluate area lights (rect / disc / tube) via FPTL tile list
 #endif
 
     // Image-Based Lighting (Diffuse SH9 + Specular Split-Sum Cubemap)

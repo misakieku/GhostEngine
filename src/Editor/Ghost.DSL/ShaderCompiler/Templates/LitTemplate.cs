@@ -111,8 +111,13 @@ internal sealed class LitTemplate : IShaderTemplate
             {
                 new KeywordGroupDef
                 {
+                    Name = "DIRECTLIGHTING_MODE",
+                    Keywords = new[] { "_DIRECTLIGHTING_FPTL", "_DIRECTLIGHTING_STOCHASTIC" }
+                },
+                new KeywordGroupDef
+                {
                     Name = "SHADOW_MODE",
-                    Keywords = new[] { "_SHADOW_PCF", "_SHADOW_RIS" }
+                    Keywords = new[] { "_SHADOW_PCF", "_SHADOW_RAYTRACED" }
                 }
             }
         }

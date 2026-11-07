@@ -829,37 +829,30 @@ internal unsafe partial class GhostRenderPipeline
             });
         }
 
-        // 2A. RisScreenContactShadow (Evaluates screen contact shadow & compacts unresolved rays)
-        var shadowDesc = RGTextureDesc.Relative(1.0f, TextureFormat.R8_UNorm, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource);
-        var risShadowMask = rg.CreateTexture(in shadowDesc, "RisShadowMask");
-
-        var maxPixels = renderSize.x * renderSize.y;
-        var raysDesc = new BufferDesc
-        {
-            Size = maxPixels * 4u,
-            Stride = 4,
-            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-        };
-        var unresolvedRaysBuffer = rg.CreateBuffer(in raysDesc, "RisUnresolvedRays");
-
-        var counterDesc = new BufferDesc
-        {
-            Size = 4u,
-            Stride = 4,
-            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-        };
-        var counterBuffer = rg.CreateBuffer(in counterDesc, "RisRayCounter");
-
-        var indirectDesc = new BufferDesc
-        {
-            Size = 12u,
-            Stride = 4,
-            Usage = BufferUsage.IndirectArgument | BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-        };
-        var indirectArgsBuffer = rg.CreateBuffer(in indirectDesc, "RisRayTraceIndirectArgs");
+        // RisScreenContactShadow (Evaluates screen contact shadow & compacts unresolved rays)
+        Identifier<RGTexture> risShadowMask;
+        Identifier<RGBuffer> unresolvedRaysBuffer;
+        Identifier<RGBuffer> counterBuffer;
+        Identifier<RGBuffer> indirectArgsBuffer;
 
         using (var builder = rg.AddComputeRenderPass<RisScreenContactShadowPassData>("RisScreenContactShadow"))
         {
+            var maxPixels = renderSize.x * renderSize.y;
+
+            risShadowMask = rg.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8_UNorm, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource), "RisShadowMask");
+            unresolvedRaysBuffer = builder.CreateBuffer(new BufferDesc
+            {
+                Size = maxPixels * 4u,
+                Stride = 4,
+                Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+            }, "RisUnresolvedRays");
+            counterBuffer = builder.CreateBuffer(new BufferDesc
+            {
+                Size = 4u,
+                Stride = 4,
+                Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+            }, "RisRayCounter");
+
             builder.UseTexture(depthTexture, AccessFlags.Read);
             builder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
             builder.UseTexture(risLightSamples, AccessFlags.Read);
@@ -912,9 +905,18 @@ internal unsafe partial class GhostRenderPipeline
             });
         }
 
-        // 2B. PrepareRisRayTraceIndirectArgs (Computes 1D thread group dispatch size from ray count)
+        // PrepareRisRayTraceIndirectArgs (Computes 1D thread group dispatch size from ray count)
         using (var builder = rg.AddComputeRenderPass<PrepareRisRayTraceIndirectArgsPassData>("PrepareRisRayTraceIndirectArgs"))
         {
+            var indirectDesc = new BufferDesc
+            {
+                Size = 12u,
+                Stride = 4,
+                Usage = BufferUsage.IndirectArgument | BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+            };
+
+            indirectArgsBuffer = builder.CreateBuffer(in indirectDesc, "RisRayTraceIndirectArgs");
+
             builder.UseBuffer(counterBuffer, AccessFlags.Read);
             builder.UseBuffer(indirectArgsBuffer, AccessFlags.Write);
 
@@ -942,7 +944,7 @@ internal unsafe partial class GhostRenderPipeline
             });
         }
 
-        // 2C. RisRayTrace (1D Indirect DXR 1.1 shadow ray query with 100% active lane occupancy)
+        // RisRayTrace (1D Indirect DXR 1.1 shadow ray query with 100% active lane occupancy)
         using (var builder = rg.AddComputeRenderPass<RisRayTracePassData>("RisRayTrace"))
         {
             builder.UseTexture(depthTexture, AccessFlags.Read);
@@ -1182,11 +1184,14 @@ internal unsafe partial class GhostRenderPipeline
         }
 
         // RisDenoiserSpatial (Edge-preserving cross-bilateral filter)
-        var filteredDiffuse = rg.CreateTexture(resolvedDiffuse, "RisFilteredDiffuse");
-        var filteredSpecular = rg.CreateTexture(resolvedSpecular, "RisFilteredSpecular");
+        Identifier<RGTexture> filteredDiffuse;
+        Identifier<RGTexture> filteredSpecular;
 
         using (var builder = rg.AddComputeRenderPass<RisDenoiserSpatialPassData>("RisDenoiserSpatial"))
         {
+            filteredDiffuse = builder.CreateTexture(resolvedDiffuse, "RisFilteredDiffuse");
+            filteredSpecular = builder.CreateTexture(resolvedSpecular, "RisFilteredSpecular");
+
             builder.UseTexture(depthTexture, AccessFlags.Read);
             builder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
             builder.UseTexture(temporalDiffuse, AccessFlags.Read);

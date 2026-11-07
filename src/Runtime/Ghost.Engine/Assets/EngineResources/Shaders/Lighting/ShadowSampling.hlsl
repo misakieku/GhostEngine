@@ -151,6 +151,7 @@ ShadowType GetPunctualShadowAttenuation(float3 positionRWS, uint2 positionSS, fl
 {
     ShadowType shadow = (ShadowType)1.0f;
     
+#if defined(_SHADOW_PCF)
     // Near-field Screen Space Full-Resolution Contact Shadow for shadow-mapped lights
     float hitDist = 0.0f;
     if (TraceScreenContactShadow(positionRWS, N, positionSS, depthTexture, L, min(distance.x, 0.25f), 2.0f, hitDist))
@@ -202,6 +203,8 @@ ShadowType GetPunctualShadowAttenuation(float3 positionRWS, uint2 positionSS, fl
             }
         }
     }
+#elif defined(_SHADOW_RAYTRACED)
+#endif
 
     return shadow;
 }

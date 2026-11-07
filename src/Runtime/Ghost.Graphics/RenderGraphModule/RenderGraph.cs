@@ -133,6 +133,9 @@ public sealed class RenderGraph : IDisposable
     /// <summary>
     /// Creates a transient buffer in the render graph.
     /// </summary>
+    /// <remarks>
+    /// Always prefer <see cref="IRenderGraphBuilder.CreateBuffer(Identifier{RGBuffer}, string?)"/>.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Identifier<RGBuffer> CreateBuffer(scoped in BufferDesc desc, string? name = null)
     {
@@ -142,6 +145,9 @@ public sealed class RenderGraph : IDisposable
     /// <summary>
     /// Creates a transient texture in the render graph.
     /// </summary>
+    /// <remarks>
+    /// Always prefer <see cref="IRenderGraphBuilder.CreateTexture(Identifier{RGTexture}, string?)"/>.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Identifier<RGTexture> CreateTexture(scoped in RGTextureDesc desc, string? name = null)
     {
@@ -149,23 +155,29 @@ public sealed class RenderGraph : IDisposable
     }
 
     /// <summary>
-    /// Creates a transient texture in the render graph.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Identifier<RGTexture> CreateTexture(Identifier<RGTexture> relativeTo, string? name = null)
-    {
-        var desc = _resourceRegistry.GetResource(relativeTo).rgTextureDesc;
-        return _resourceRegistry.CreateTexture(in desc, name);
-    }
-
-    /// <summary>
     /// Creates a transient buffer in the render graph.
     /// </summary>
+    /// <remarks>
+    /// Always prefer <see cref="IRenderGraphBuilder.CreateBuffer(Identifier{RGBuffer}, string?)"/>
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Identifier<RGBuffer> CreateBuffer(Identifier<RGBuffer> relativeTo, string? name = null)
     {
         var desc = _resourceRegistry.GetResource(relativeTo).bufferDesc;
         return _resourceRegistry.CreateBuffer(in desc, name);
+    }
+
+    /// <summary>
+    /// Creates a transient texture in the render graph.
+    /// </summary>
+    /// <remarks>
+    /// Always prefer <see cref="IRenderGraphBuilder.CreateTexture(Identifier{RGTexture}, string?)"/>
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Identifier<RGTexture> CreateTexture(Identifier<RGTexture> relativeTo, string? name = null)
+    {
+        var desc = _resourceRegistry.GetResource(relativeTo).rgTextureDesc;
+        return _resourceRegistry.CreateTexture(in desc, name);
     }
 
     /// <summary>

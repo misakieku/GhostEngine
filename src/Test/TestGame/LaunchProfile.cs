@@ -34,6 +34,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         MaxVisibleMeshletsOnScreen = 2_097_152,
         MeshletLodErrorThreshold = 1.0f,
         InstanceCullingThreshold = 2.0f,
+        EnableRayTracing = true,
         DebugMode = RenderPipelineDebugMode.None,
     };
 
@@ -237,7 +238,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         });
         volumeData.Set(new ShadowSettings
         {
-            shadowMode = ShadowMode.RayTraced,
+            shadowMode = ShadowMode.PCF,
         });
         volumeData.Set(new RayTracingSettings
         {
@@ -264,7 +265,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
     {
         if (e.Type == SDL_EventType.SDL_EVENT_KEY_DOWN && !e.key.repeat)
         {
-            if (e.key.key == SDL_Keycode.SDLK_F1 || e.key.key == SDL_Keycode.SDLK_H)
+            if (e.key.key == SDL_Keycode.SDLK_F1)
             {
                 _renderPipelineSettings.DebugMode = _renderPipelineSettings.DebugMode == RenderPipelineDebugMode.TileLightHeatmap
                     ? RenderPipelineDebugMode.None
@@ -273,16 +274,10 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             }
             else if (e.key.key == SDL_Keycode.SDLK_F2)
             {
-                ref var volumeData = ref _world.EntityManager.GetComponent<RenderVolumeDataContainer>(_volumeEntity);
-                volumeData.GetRef<ShadowSettings>(out var exists);
-                if (exists)
-                {
-                    ref var shadowSettings = ref volumeData.GetRef<ShadowSettings>(out _);
-                    shadowSettings.shadowMode = shadowSettings.shadowMode == ShadowMode.RayTraced
-                        ? ShadowMode.ShadowMap
-                        : ShadowMode.RayTraced;
-                    Logger.Info($"[TestGame] Toggled ShadowMode: {shadowSettings.shadowMode}");
-                }
+                _renderPipelineSettings.DirectLightingMode = _renderPipelineSettings.DirectLightingMode == DirectLightingMode.FPTL
+                    ? DirectLightingMode.Stochastic
+                    : DirectLightingMode.FPTL;
+                Logger.Info($"[TestGame] Toggled DirectLightingMode: {_renderPipelineSettings.DirectLightingMode}");
             }
         }
     }
