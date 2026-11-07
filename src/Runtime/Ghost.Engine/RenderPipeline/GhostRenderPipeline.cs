@@ -77,7 +77,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         InitializeDeferredTexturing(renderEngine);
     }
 
-    private static void ValidateRequiredGPUFeatures(IRenderDevice renderDevice)
+    private void ValidateRequiredGPUFeatures(IRenderDevice renderDevice)
     {
         var supported = renderDevice.DeviceFeture.SupportedFeatures;
         if (!supported.HasFlag(FeatureSupport.MeshShaders))
@@ -104,6 +104,12 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         {
             throw new PlatformNotSupportedException("Work graphs are not supported on this device. GhostRenderPipeline requires work graphs support.");
         }
+
+        if (!supported.HasFlag(FeatureSupport.RayTracing) && _settings.EnableRayTracing)
+        {
+            Logger.Warning("Ray tracing is not supported on this device but is enabled in the render pipeline settings. Ray tracing features will be disabled.");
+            _settings.EnableRayTracing = false;
+        }
     }
 
     public IRenderPayload CreatePayload()
@@ -113,7 +119,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool IsRTEnable(in ShadowSettings shadowSettings)
+    private bool IsRTEnabled(in ShadowSettings shadowSettings)
     {
         if (!_settings.EnableRayTracing)
         {
@@ -364,7 +370,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             var historyHzb = renderGraph.ImportTexture(hzbHistory.Texture, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
             var tlasBuffer = Identifier<RGBuffer>.Invalid;
-            if (IsRTEnable(shadowSettings))
+            if (IsRTEnabled(shadowSettings))
             {
                 tlasBuffer = AddBuildTLASPass(renderGraph, in request, in frustum, ghostPayload);
             }
@@ -385,6 +391,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             renderGraph.Blackboard.Add(ref gbufferData);
 
             // Shadow Passes
+            var shadowAtlas = Identifier<RGTexture>.Invalid;
             if (_settings.DirectLightingMode == DirectLightingMode.Stochastic)
             {
                 var desc = new RisViewResource.Desc
@@ -400,14 +407,9 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 ExecutePerViewShadowSetup(ctx, in frustum, viewPort.Size.y, lights, request.view.localToWorld.c3.xyz,
                     out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
 
-                Identifier<RGTexture> shadowAtlas;
                 if (shadowSettings.shadowMode == ShadowMode.PCF)
                 {
                     shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
-                }
-                else
-                {
-                    shadowAtlas = Identifier<RGTexture>.Invalid;
                 }
 
                 var shadowMapData = new ShadowMapPassData
@@ -431,19 +433,10 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             // Presentation
             renderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
 
-            var result = renderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.Default);
+            var result = renderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.GenerateDump);
             if (result.IsFailure)
             {
                 return Result.Failure($"Render graph execution failed: {result.Error}");
-            }
-
-            // The graph has now actually consumed its backing memory, so subsequent dispatches must not
-            // re-specify D3D12_SET_WORK_GRAPH_FLAG_INITIALIZE. Latching here (rather than at pass-build
-            // time) keeps the flag honest if this frame's graph was compiled but failed to execute.
-            _meshPipelineResource.cullWorkGraphProgram?.MarkInitialized();
-            if (shadowSettings.shadowMode == ShadowMode.PCF)
-            {
-                _meshPipelineResource.shadowCullWorkGraphProgram?.MarkInitialized();
             }
         }
 

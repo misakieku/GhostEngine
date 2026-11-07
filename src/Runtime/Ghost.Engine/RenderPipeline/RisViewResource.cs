@@ -16,6 +16,7 @@ public sealed class RisViewResource : IViewResource<RisViewResource, RisViewReso
 
     public Handle<GPUTexture> DiffuseHistory { get; private set; }
     public Handle<GPUTexture> SpecularHistory { get; private set; }
+    public Handle<GPUBuffer> VisibleLightHashHistory { get; private set; }
     public uint2 RenderSize { get; private set; }
     public bool HasHistory { get; private set; }
 
@@ -44,13 +45,19 @@ public sealed class RisViewResource : IViewResource<RisViewResource, RisViewReso
             SpecularHistory = Handle<GPUTexture>.Invalid;
         }
 
+        if (VisibleLightHashHistory.IsValid)
+        {
+            _database.ReleaseResource(VisibleLightHashHistory.AsResource());
+            VisibleLightHashHistory = Handle<GPUBuffer>.Invalid;
+        }
+
         RenderSize = default;
         HasHistory = false;
     }
 
     public void EnsureResource(in Desc desc)
     {
-        if (RenderSize.x == desc.renderSize.x && RenderSize.y == desc.renderSize.y && DiffuseHistory.IsValid && SpecularHistory.IsValid)
+        if (RenderSize.x == desc.renderSize.x && RenderSize.y == desc.renderSize.y && DiffuseHistory.IsValid && SpecularHistory.IsValid && VisibleLightHashHistory.IsValid)
         {
             HasHistory = true;
             return;
@@ -71,6 +78,19 @@ public sealed class RisViewResource : IViewResource<RisViewResource, RisViewReso
 
         DiffuseHistory = _allocator.CreateTexture(in texDesc, "RIS History Diffuse");
         SpecularHistory = _allocator.CreateTexture(in texDesc, "RIS History Specular");
+
+        var tilesX = (desc.renderSize.x + 15u) / 16u;
+        var tilesY = (desc.renderSize.y + 15u) / 16u;
+        var hashBufferSize = tilesX * tilesY * 16u;
+
+        var bufDesc = new BufferDesc
+        {
+            Size = hashBufferSize,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource | BufferUsage.UnorderedAccess
+        };
+
+        VisibleLightHashHistory = _allocator.CreateBuffer(in bufDesc, "RIS History Visible Light Hash");
         RenderSize = desc.renderSize;
     }
 

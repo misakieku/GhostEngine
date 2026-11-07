@@ -126,6 +126,12 @@ internal partial class LightingPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/Lighting/RisRayTrace")]
     public Handle<ComputeShader> risRayTraceShader;
 
+    [ResolveAsset("EngineResources/Shaders/Lighting/RisBuildVisibleLightHash")]
+    public Handle<ComputeShader> risBuildVisibleLightHashShader;
+
+    [ResolveAsset("EngineResources/Shaders/Lighting/RisFilterVisibleLightHash")]
+    public Handle<ComputeShader> risFilterVisibleLightHashShader;
+
     [ResolveAsset("EngineResources/Shaders/Lighting/RisResolveShading")]
     public Handle<ComputeShader> risResolveShadingShader;
 

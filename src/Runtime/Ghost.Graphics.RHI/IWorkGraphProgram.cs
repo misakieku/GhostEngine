@@ -11,7 +11,6 @@ public interface IWorkGraphProgram : IRHIObject
     bool IsInitialized { get; }
 
     uint GetEntrypointIndex(string nodeName);
-    void MarkInitialized();
     void Bind(ICommandBuffer cmdBuffer);
     void Dispatch(ICommandBuffer cmdBuffer, scoped in DispatchGraphDesc desc);
 }

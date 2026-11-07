@@ -112,6 +112,8 @@ internal partial class GhostRenderPipeline
         builder.UseRandomAccessTexture(existingVisBuffer);
         builder.UseBuffer(indirectArgsBuffer, AccessFlags.Read);
 
+        builder.AllowAsyncComputeOverlap(true);
+
         var maxVariants = GetMaxCullVariants();
 
         builder.SetPassData(new VisibilityPassData

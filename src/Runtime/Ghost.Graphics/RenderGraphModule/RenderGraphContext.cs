@@ -65,6 +65,7 @@ public interface IComputeRenderContext : IRenderGraphContext
 {
     void SetActiveCompute(Handle<ComputeShader> computeShader, int entryIndex);
     void DispatchCompute(uint threadGroupCountX, uint threadGroupCountY, uint threadGroupCountZ);
+    void SetWorkGraph(IWorkGraphProgram workGraphProgram);
     void SetProgram(scoped in SetProgramDesc desc);
     void DispatchGraph(scoped in DispatchGraphDesc desc);
     void BuildRaytracingAccelerationStructure(scoped in BuildAccelerationStructureDesc desc);
@@ -695,6 +696,11 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
     public void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset = 0, Handle<GPUBuffer> countBuffer = default, ulong countBufferOffset = 0)
     {
         _commandBuffer.ExecuteIndirect(commandSignature, maxCommandCount, argumentBuffer, argumentOffset, countBuffer, countBufferOffset);
+    }
+
+    public void SetWorkGraph(IWorkGraphProgram workGraphProgram)
+    {
+        workGraphProgram.Bind(_commandBuffer);
     }
 
     public void SetProgram(scoped in SetProgramDesc desc)

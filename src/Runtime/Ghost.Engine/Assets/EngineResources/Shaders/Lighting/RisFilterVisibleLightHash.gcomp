@@ -1,0 +1,65 @@
+compute "Internal/RisFilterVisibleLightHash"
+{
+    properties
+    {
+        uint rawVisibleLightHashBufferIndex;
+        uint filteredVisibleLightHashUav;
+        uint tilesPerRow;
+        uint tilesPerColumn;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Common.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(8, 8, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            uint2 tileCoord = dispatchThreadId.xy;
+            if (tileCoord.x >= g_Properties.tilesPerRow || tileCoord.y >= g_Properties.tilesPerColumn)
+            {
+                return;
+            }
+
+            if (!IS_VALID_BUFFER(g_Properties.rawVisibleLightHashBufferIndex) || !IS_VALID_BUFFER(g_Properties.filteredVisibleLightHashUav))
+            {
+                return;
+            }
+
+            ByteAddressBuffer rawBuf = GET_BUFFER(g_Properties.rawVisibleLightHashBufferIndex);
+            RWByteAddressBuffer filteredBuf = GET_BUFFER(g_Properties.filteredVisibleLightHashUav);
+
+            uint4 mergedHash = uint4(0u, 0u, 0u, 0u);
+
+            int2 offsets[5] = {
+                int2(0, 0),
+                int2(1, 0),
+                int2(-1, 0),
+                int2(0, 1),
+                int2(0, -1)
+            };
+
+            [unroll]
+            for (int k = 0; k < 5; ++k)
+            {
+                int2 neighbor = int2(tileCoord) + offsets[k];
+                if (neighbor.x >= 0 && neighbor.x < (int)g_Properties.tilesPerRow &&
+                    neighbor.y >= 0 && neighbor.y < (int)g_Properties.tilesPerColumn)
+                {
+                    uint neighborTileIndex = (uint)neighbor.y * g_Properties.tilesPerRow + (uint)neighbor.x;
+                    uint4 tap = rawBuf.Load4(neighborTileIndex * 16u);
+                    mergedHash |= tap;
+                }
+            }
+
+            uint currentTileIndex = tileCoord.y * g_Properties.tilesPerRow + tileCoord.x;
+            filteredBuf.Store4(currentTileIndex * 16u, mergedHash);
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

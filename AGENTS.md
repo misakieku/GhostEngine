@@ -133,6 +133,8 @@ This will be your c# playground.
 
 `TestGame` is a `WinExe` with `PublishAot=true`, `<IsGameProject>true</IsGameProject>`, and `InvariantGlobalization=true`. It serves as a buildable entry point that exercises the full engine pipeline (ECS → graphics → asset baking).
 
+**Building this project will automatically incremental build modified assets and generate meta file for newly created assets.**
+
 ---
 
 ## Code Style

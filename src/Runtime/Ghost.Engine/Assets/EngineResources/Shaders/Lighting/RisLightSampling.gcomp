@@ -6,6 +6,7 @@ compute "Internal/RisLightSampling"
         uint gbuffer0Index;
         uint gbuffer1Index;
         uint tileLightListBufferIndex;
+        uint visibleLightHashHistoryBufferIndex;
         uint risLightSamplesUav;
         uint renderWidth;
         uint renderHeight;
@@ -124,6 +125,27 @@ compute "Internal/RisLightSampling"
             float3 positionRWS = ReconstructPositionRWS(pixelCoord, depth, zView, ndc);
             float3 V = GetWorldSpaceNormalizeViewDir(positionRWS);
 
+            // Reproject to t - 1 screen space to query Visible Light Hash history
+            uint4 historyHash = uint4(0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu);
+            bool hasValidHistory = false;
+
+            if (IS_VALID_BUFFER(g_Properties.visibleLightHashHistoryBufferIndex))
+            {
+                float4 prevClip = mul(g_ViewData.preVPMatrix, float4(positionRWS, 1.0f));
+                float prevInvW = (prevClip.w > 1e-4f) ? rcp(prevClip.w) : 0.0f;
+                float2 prevScreenUV = float2(prevClip.x * prevInvW * 0.5f + 0.5f, 1.0f - (prevClip.y * prevInvW * 0.5f + 0.5f));
+                hasValidHistory = (prevClip.w > 1e-4f) && all(prevScreenUV >= 0.0f) && all(prevScreenUV <= 1.0f);
+
+                if (hasValidHistory)
+                {
+                    float2 prevPixelCoord = prevScreenUV * float2(g_Properties.renderWidth, g_Properties.renderHeight);
+                    uint2 prevTileCoord = clamp(uint2(prevPixelCoord / 16.0f), 0u, uint2(g_Properties.tilesPerRow - 1u, (g_Properties.renderHeight + 15u) / 16u - 1u));
+                    uint prevTileIndex = prevTileCoord.y * g_Properties.tilesPerRow + prevTileCoord.x;
+                    ByteAddressBuffer historyBuf = GET_BUFFER(g_Properties.visibleLightHashHistoryBufferIndex);
+                    historyHash = historyBuf.Load4(prevTileIndex * 16u);
+                }
+            }
+
             Texture2D<float4> gb0Tex = GET_TEXTURE2D(g_Properties.gbuffer0Index);
             Texture2D<float4> gb1Tex = GET_TEXTURE2D(g_Properties.gbuffer1Index);
             float4 gb0 = gb0Tex[pixelCoord];
@@ -210,6 +232,23 @@ compute "Internal/RisLightSampling"
 
                 if (pHat > 1e-6f)
                 {
+                    // Temporal visibility guiding: downweight candidate lights that were occluded in history
+                    if (IS_VALID_BUFFER(g_Properties.visibleLightHashHistoryBufferIndex))
+                    {
+                        uint h = PCGHash(cand.indexAndFlags & 0xFFFFu);
+                        uint bit0 = h & 127u;
+                        uint bit1 = (h >> 8u) & 127u;
+
+                        bool test0 = (historyHash[bit0 >> 5u] & (1u << (bit0 & 31u))) != 0u;
+                        bool test1 = (historyHash[bit1 >> 5u] & (1u << (bit1 & 31u))) != 0u;
+                        bool wasVisibleInHistory = test0 && test1;
+
+                        if (!wasVisibleInHistory)
+                        {
+                            pHat *= hasValidHistory ? 0.10f : 0.40f;
+                        }
+                    }
+
                     float prevWeightSum = weightSum;
                     weightSum += pHat;
                     float scaledRand = randSample * weightSum;

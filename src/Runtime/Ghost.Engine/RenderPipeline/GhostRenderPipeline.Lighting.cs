@@ -672,11 +672,31 @@ internal unsafe partial class GhostRenderPipeline
         public Identifier<RGTexture> gbuffer0;
         public Identifier<RGTexture> gbuffer1;
         public Identifier<RGBuffer> tileLightList;
+        public Identifier<RGBuffer> visibleLightHashHistory;
         public Identifier<RGTexture> risLightSamples;
         public Handle<ComputeShader> shader;
         public uint2 renderSize;
         public uint tilesPerRow;
         public uint frameIndex;
+    }
+
+    private struct RisBuildVisibleLightHashPassData
+    {
+        public Identifier<RGTexture> risLightSamples;
+        public Identifier<RGTexture> risShadowMask;
+        public Identifier<RGBuffer> visibleLightHashUav;
+        public Handle<ComputeShader> shader;
+        public uint2 renderSize;
+        public uint tilesPerRow;
+    }
+
+    private struct RisFilterVisibleLightHashPassData
+    {
+        public Identifier<RGBuffer> rawVisibleLightHash;
+        public Identifier<RGBuffer> filteredVisibleLightHash;
+        public Handle<ComputeShader> shader;
+        public uint tilesPerRow;
+        public uint tilesPerColumn;
     }
 
     private struct RisScreenContactShadowPassData
@@ -777,6 +797,12 @@ internal unsafe partial class GhostRenderPipeline
 
         // RisLightSampling (Generates 1 winner light and weight W per pixel)
 
+        var visibleLightHashHistory = Identifier<RGBuffer>.Invalid;
+        if (risResource.HasHistory && risResource.VisibleLightHashHistory.IsValid)
+        {
+            visibleLightHashHistory = rg.ImportBuffer(risResource.VisibleLightHashHistory, ResourceBarrierData.Common, ResourceBarrierData.Common);
+        }
+
         Identifier<RGTexture> risLightSamples;
         using (var builder = rg.AddComputeRenderPass<RisLightSamplingPassData>("RisLightSampling"))
         {
@@ -787,6 +813,10 @@ internal unsafe partial class GhostRenderPipeline
             builder.UseTexture(gbuffer.GBuffer0, AccessFlags.Read);
             builder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
             builder.UseBuffer(tileLightList, AccessFlags.Read);
+            if (visibleLightHashHistory.IsValid)
+            {
+                builder.UseBuffer(visibleLightHashHistory, AccessFlags.Read);
+            }
             builder.UseTexture(risLightSamples, AccessFlags.Write);
 
             builder.SetPassData(new RisLightSamplingPassData
@@ -795,6 +825,7 @@ internal unsafe partial class GhostRenderPipeline
                 gbuffer0 = gbuffer.GBuffer0,
                 gbuffer1 = gbuffer.GBuffer1,
                 tileLightList = tileLightList,
+                visibleLightHashHistory = visibleLightHashHistory,
                 risLightSamples = risLightSamples,
                 shader = _lightingPipelineResource.risLightSamplingShader,
                 renderSize = renderSize,
@@ -808,6 +839,9 @@ internal unsafe partial class GhostRenderPipeline
                 var gb0Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer0, BindlessAccess.ShaderResource);
                 var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
                 var tileLightListSrv = computeCtx.GetActualBindlessIndex(passData.tileLightList, BindlessAccess.ShaderResource);
+                var historyHashSrv = passData.visibleLightHashHistory.IsValid
+                    ? computeCtx.GetActualBindlessIndex(passData.visibleLightHashHistory, BindlessAccess.ShaderResource)
+                    : RHIUtility.INVALID_BINDLESS_INDEX;
                 var samplesUav = computeCtx.GetActualBindlessIndex(passData.risLightSamples, BindlessAccess.UnorderedAccess);
 
                 var props = new InternalRisLightSamplingShaderProperties
@@ -816,6 +850,7 @@ internal unsafe partial class GhostRenderPipeline
                     gbuffer0Index = gb0Srv,
                     gbuffer1Index = gb1Srv,
                     tileLightListBufferIndex = tileLightListSrv,
+                    visibleLightHashHistoryBufferIndex = historyHashSrv,
                     risLightSamplesUav = samplesUav,
                     renderWidth = passData.renderSize.x,
                     renderHeight = passData.renderSize.y,
@@ -1003,6 +1038,102 @@ internal unsafe partial class GhostRenderPipeline
                 computeCtx.SetUserDataWithProperties(in props);
                 computeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, 0);
             });
+        }
+
+        // RisBuildVisibleLightHash (Constructs per-tile 128-bit Bloom filter of visible lights)
+        var hashBufferSize = tilesX * tilesY * 16u;
+        var rawHashDesc = new BufferDesc
+        {
+            Size = hashBufferSize,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        };
+        var filteredHashDesc = new BufferDesc
+        {
+            Size = hashBufferSize,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        };
+
+        Identifier<RGBuffer> rawVisibleLightHash;
+        using (var builder = rg.AddComputeRenderPass<RisBuildVisibleLightHashPassData>("RisBuildVisibleLightHash"))
+        {
+            rawVisibleLightHash = builder.CreateBuffer(in rawHashDesc, "RisVisibleLightHashRaw");
+            builder.UseTexture(risLightSamples, AccessFlags.Read);
+            builder.UseTexture(risShadowMask, AccessFlags.Read);
+            builder.UseBuffer(rawVisibleLightHash, AccessFlags.Write);
+
+            builder.SetPassData(new RisBuildVisibleLightHashPassData
+            {
+                risLightSamples = risLightSamples,
+                risShadowMask = risShadowMask,
+                visibleLightHashUav = rawVisibleLightHash,
+                shader = _lightingPipelineResource.risBuildVisibleLightHashShader,
+                renderSize = renderSize,
+                tilesPerRow = tilesX
+            });
+
+            builder.SetRenderFunc<RisBuildVisibleLightHashPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var samplesSrv = computeCtx.GetActualBindlessIndex(passData.risLightSamples, BindlessAccess.ShaderResource);
+                var shadowSrv = computeCtx.GetActualBindlessIndex(passData.risShadowMask, BindlessAccess.ShaderResource);
+                var hashUav = computeCtx.GetActualBindlessIndex(passData.visibleLightHashUav, BindlessAccess.UnorderedAccess);
+
+                var props = new InternalRisBuildVisibleLightHashShaderProperties
+                {
+                    risLightSamplesIndex = samplesSrv,
+                    risShadowMaskIndex = shadowSrv,
+                    visibleLightHashUav = hashUav,
+                    renderWidth = passData.renderSize.x,
+                    renderHeight = passData.renderSize.y,
+                    tilesPerRow = passData.tilesPerRow
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+                computeCtx.DispatchCompute((passData.renderSize.x + 15u) / 16u, (passData.renderSize.y + 15u) / 16u, 1);
+            });
+        }
+
+        // RisFilterVisibleLightHash (Dilates 128-bit Bloom filter cross-tile to preserve penumbra boundaries under motion)
+        Identifier<RGBuffer> filteredVisibleLightHash;
+        using (var builder = rg.AddComputeRenderPass<RisFilterVisibleLightHashPassData>("RisFilterVisibleLightHash"))
+        {
+            filteredVisibleLightHash = builder.CreateBuffer(in filteredHashDesc, "RisVisibleLightHashFiltered");
+            builder.UseBuffer(rawVisibleLightHash, AccessFlags.Read);
+            builder.UseBuffer(filteredVisibleLightHash, AccessFlags.Write);
+
+            builder.SetPassData(new RisFilterVisibleLightHashPassData
+            {
+                rawVisibleLightHash = rawVisibleLightHash,
+                filteredVisibleLightHash = filteredVisibleLightHash,
+                shader = _lightingPipelineResource.risFilterVisibleLightHashShader,
+                tilesPerRow = tilesX,
+                tilesPerColumn = tilesY
+            });
+
+            builder.SetRenderFunc<RisFilterVisibleLightHashPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var rawSrv = computeCtx.GetActualBindlessIndex(passData.rawVisibleLightHash, BindlessAccess.ShaderResource);
+                var filteredUav = computeCtx.GetActualBindlessIndex(passData.filteredVisibleLightHash, BindlessAccess.UnorderedAccess);
+
+                var props = new InternalRisFilterVisibleLightHashShaderProperties
+                {
+                    rawVisibleLightHashBufferIndex = rawSrv,
+                    filteredVisibleLightHashUav = filteredUav,
+                    tilesPerRow = passData.tilesPerRow,
+                    tilesPerColumn = passData.tilesPerColumn
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+                computeCtx.DispatchCompute((passData.tilesPerRow + 7u) / 8u, (passData.tilesPerColumn + 7u) / 8u, 1);
+            });
+
+            if (risResource.VisibleLightHashHistory.IsValid)
+            {
+                builder.QueueBufferExtraction(filteredVisibleLightHash, risResource.VisibleLightHashHistory);
+            }
         }
 
         // RisResolveShading (Evaluates diffuse irradiance & specular radiance)
@@ -1248,16 +1379,13 @@ internal unsafe partial class GhostRenderPipeline
 
     private struct ShadowCullPassData
     {
+        public IWorkGraphProgram cullWorkGraphProgram;
         public Identifier<RGBuffer> visibleMeshlets;
         public Identifier<RGBuffer> counterBuffer;
         public uint instanceCount;
         public uint shadowViewCount;
         public uint shadowViewsBufferSrv;
         public uint entrypointIndex;
-        public ProgramIdentifier programIdentifier;
-        public ulong backingMemoryAddress;
-        public ulong backingMemorySize;
-        public SetWorkGraphFlags flags;
         public uint maxVisibleMeshlets;
         public uint counterBufferSize;
         public float cullingThreshold;
@@ -1309,12 +1437,6 @@ internal unsafe partial class GhostRenderPipeline
             return Identifier<RGTexture>.Invalid;
         }
 
-#if DEBUG
-        var flags = SetWorkGraphFlags.Initialize;
-#else
-        var flags = shadowProgram.IsInitialized ? SetWorkGraphFlags.None : SetWorkGraphFlags.Initialize;
-#endif
-
         var entrypointIndex = shadowProgram.GetEntrypointIndex("InstanceCullNode");
         if (entrypointIndex == uint.MaxValue)
         {
@@ -1352,16 +1474,13 @@ internal unsafe partial class GhostRenderPipeline
 
             builder.SetPassData(new ShadowCullPassData
             {
+                cullWorkGraphProgram = shadowProgram,
                 visibleMeshlets = unbinnedMeshlets,
                 counterBuffer = counterBuffer,
                 instanceCount = instanceCount,
                 shadowViewCount = shadowViewCount,
                 shadowViewsBufferSrv = shadowViewsBufferSrv,
                 entrypointIndex = entrypointIndex,
-                programIdentifier = shadowProgram.ProgramIdentifier,
-                backingMemoryAddress = shadowProgram.BackingMemoryAddress,
-                backingMemorySize = shadowProgram.BackingMemorySize,
-                flags = flags,
                 maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
                 counterBufferSize = counterBufferSize,
                 cullingThreshold = _settings.InstanceCullingThreshold,
@@ -1385,12 +1504,7 @@ internal unsafe partial class GhostRenderPipeline
                     cullingThreshold = passData.cullingThreshold,
                 };
 
-                var setProgramDesc = SetProgramDesc.ForWorkGraph(
-                    passData.programIdentifier,
-                    passData.backingMemoryAddress,
-                    passData.backingMemorySize,
-                    passData.flags);
-                computeCtx.SetProgram(in setProgramDesc);
+                computeCtx.SetWorkGraph(passData.cullWorkGraphProgram);
                 computeCtx.SetUserDataWithProperties(in props);
 
                 var threadGroupsX = Math.Max(1u, (passData.instanceCount + 63) / 64);
