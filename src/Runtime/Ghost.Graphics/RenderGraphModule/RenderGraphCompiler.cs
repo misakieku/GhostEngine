@@ -98,7 +98,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         AliasingPlan aliasingPlan;
 
         // Try to restore from cache
-        if (_compilationCache.TryGetCached(graphHash, out var cached))
+        if (_compilationCache.TryGetCached(graphHash, flags, out var cached))
         {
             // Check if view state changed
             var scale = viewport.CalculateScale(cached.viewport);
@@ -183,7 +183,10 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         try
         {
             // Reorder passes to ensure best performance
-            ReorderPasses(passes, nodes.AsSpan(), &compiledPasses);
+            if (!flags.HasFlag(RGFlags.DisablePassReordering))
+            {
+                ReorderPasses(passes, nodes.AsSpan(), &compiledPasses);
+            }
 
             var compiledPassCount = compiledPasses.Count;
             using var effectiveQueues = new UnsafeArray<CommandQueueType>(compiledPassCount, schedulingScope.AllocationHandle);
@@ -198,7 +201,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 
             using var resourceOrdering = RenderGraphResourceOrdering.Build(_resourceRegistry, scheduleIndexByPassIndex, reachability, compiledPassCount, schedulingScope.AllocationHandle);
 
-            aliasingPlan = RenderGraphAliasingBuilder.Build(_resourceRegistry, _resourceAllocator, resourceOrdering, flags.HasFlag(RGFlags.NoAliasing), allocationHandle);
+            aliasingPlan = RenderGraphAliasingBuilder.Build(_resourceRegistry, _resourceAllocator, resourceOrdering, flags.HasFlag(RGFlags.DisableAliasing), allocationHandle);
             error = _resourceRegistry.AllocateBackingResources(ref aliasingPlan, _compilationCache, in resourceOrdering);
 
             if (error != Error.None)
@@ -235,6 +238,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 ref readonly var cacheData = ref _compilationCache.SetCached(
                     _resourceRegistry,
                     graphHash,
+                    flags,
                     viewport,
                     passes,
                     compiledPasses,

@@ -433,7 +433,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             // Presentation
             renderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
 
-            var result = renderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.GenerateDump);
+            var result = renderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.Default);
             if (result.IsFailure)
             {
                 return Result.Failure($"Render graph execution failed: {result.Error}");

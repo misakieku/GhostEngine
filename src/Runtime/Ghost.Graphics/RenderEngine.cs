@@ -236,6 +236,8 @@ public sealed class RenderEngine : IDisposable
                     break;
                 }
 
+                _frameScheduler.FlushPending();
+
                 result = ExecuteRenderPipeline(frameIndex, frameResource, renderContext);
                 if (result.IsFailure)
                 {

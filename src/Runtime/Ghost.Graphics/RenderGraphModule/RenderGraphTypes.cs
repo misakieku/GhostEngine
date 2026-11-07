@@ -364,10 +364,6 @@ public enum RGFlags
     /// </summary>
     Default = 0,
     /// <summary>
-    /// Alias for default execution behavior.
-    /// </summary>
-    None = Default,
-    /// <summary>
     /// Generate a detailed dump of the render graph execution for debugging and analysis.
     /// </summary>
     GenerateDump = 1 << 0,
@@ -378,11 +374,15 @@ public enum RGFlags
     /// <summary>
     /// Prevent memory heap aliasing for resources, ensuring each resource has a unique memory allocation.
     /// </summary>
-    NoAliasing = 1 << 2,
+    DisableAliasing = 1 << 2,
     /// <summary>
     /// Disables split barriers, emitting atomic barriers instead.
     /// </summary>
     DisableSplitBarriers = 1 << 3,
+    /// <summary>
+    /// Disables reordering of render-graph passes, preserving the original submission order.
+    /// </summary>
+    DisablePassReordering = 1 << 4,
 }
 
 /// <summary>
