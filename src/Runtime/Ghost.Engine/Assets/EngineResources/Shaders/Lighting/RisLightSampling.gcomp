@@ -166,11 +166,19 @@ compute "Internal/RisLightSampling"
             float a2 = roughness * roughness;
             float a2Minus1 = a2 - 1.0f;
 
-            // Single-scalar rescaled reservoir sampling driven by isotropic spatial hash + golden-ratio temporal sequence
-            float randSample = GetDecorrelatedSample1D(pixelCoord, g_Properties.frameIndex);
-            float weightSum = 0.0f;
-            uint winnerLightIndex = 0u;
-            float winnerTargetPdf = 0.0f;
+            // Dual-reservoir streaming sampling (UE5 MegaLights style):
+            // - ReservoirVisible: samples candidate lights known to be visible in history
+            // - ReservoirHidden: samples candidate lights missing from history (capped to <= 20% of sample budget)
+            float randVisible = GetDecorrelatedSample1D(pixelCoord, g_Properties.frameIndex);
+            float randHidden = frac(randVisible + 0.61803398875f);
+
+            float weightSumVisible = 0.0f;
+            uint winnerLightVisible = 0u;
+            float winnerTargetPdfVisible = 0.0f;
+
+            float weightSumHidden = 0.0f;
+            uint winnerLightHidden = 0u;
+            float winnerTargetPdfHidden = 0.0f;
 
             [loop]
             for (uint k = 0u; k < lightCount; ++k)
@@ -227,12 +235,14 @@ compute "Internal/RisLightSampling"
 
                 float specTerm = (F * D * V_fast) * clampedNdotL * cand.specularDimmer;
 
-                // Final target PDF (purely scalar arithmetic)
-                float pHat = lightRadianceLum * (diffTerm + specTerm);
-
-                if (pHat > 1e-6f)
+                // Target PDF with perceptual log2 weighting (UE5 MegaLights style) to prevent HDR fireflies
+                float linearLum = lightRadianceLum * (diffTerm + specTerm);
+                if (linearLum > 1e-6f)
                 {
-                    // Temporal visibility guiding: downweight candidate lights that were occluded in history
+                    float pHat = log2(linearLum + 1.0f);
+
+                    // Check if light was visible in history Bloom filter
+                    bool isVisibleInHistory = true;
                     if (IS_VALID_BUFFER(g_Properties.visibleLightHashHistoryBufferIndex))
                     {
                         uint h = PCGHash(cand.indexAndFlags & 0xFFFFu);
@@ -241,35 +251,80 @@ compute "Internal/RisLightSampling"
 
                         bool test0 = (historyHash[bit0 >> 5u] & (1u << (bit0 & 31u))) != 0u;
                         bool test1 = (historyHash[bit1 >> 5u] & (1u << (bit1 & 31u))) != 0u;
-                        bool wasVisibleInHistory = test0 && test1;
-
-                        if (!wasVisibleInHistory)
-                        {
-                            pHat *= hasValidHistory ? 0.10f : 0.40f;
-                        }
+                        isVisibleInHistory = test0 && test1;
                     }
 
-                    float prevWeightSum = weightSum;
-                    weightSum += pHat;
-                    float scaledRand = randSample * weightSum;
-                    if (scaledRand >= prevWeightSum)
+                    if (isVisibleInHistory)
                     {
-                        winnerLightIndex = cand.indexAndFlags & 0xFFFFu;
-                        winnerTargetPdf = pHat;
-                        randSample = (scaledRand - prevWeightSum) / pHat;
+                        float prevSum = weightSumVisible;
+                        weightSumVisible += pHat;
+                        float scaled = randVisible * weightSumVisible;
+                        if (scaled >= prevSum)
+                        {
+                            winnerLightVisible = cand.indexAndFlags & 0xFFFFu;
+                            winnerTargetPdfVisible = pHat;
+                            randVisible = (scaled - prevSum) / pHat;
+                        }
+                        else
+                        {
+                            randVisible = scaled / max(prevSum, 1e-7f);
+                        }
+                        randVisible = clamp(randVisible, 0.0f, 0.99999994f);
                     }
                     else
                     {
-                        randSample = scaledRand / max(prevWeightSum, 1e-7f);
+                        float prevSum = weightSumHidden;
+                        weightSumHidden += pHat;
+                        float scaled = randHidden * weightSumHidden;
+                        if (scaled >= prevSum)
+                        {
+                            winnerLightHidden = cand.indexAndFlags & 0xFFFFu;
+                            winnerTargetPdfHidden = pHat;
+                            randHidden = (scaled - prevSum) / pHat;
+                        }
+                        else
+                        {
+                            randHidden = scaled / max(prevSum, 1e-7f);
+                        }
+                        randHidden = clamp(randHidden, 0.0f, 0.99999994f);
                     }
-                    randSample = clamp(randSample, 0.0f, 0.99999994f);
                 }
             }
 
-            if (weightSum > 0.0f && winnerTargetPdf > 0.0f)
+            // Clamped reservoir merge: limit hidden lights to at most 20% of total weight sum
+            uint finalWinnerIndex = 0xFFFFFFFFu;
+            float finalWinnerPdf = 0.0f;
+            float totalWeight = 0.0f;
+
+            if (weightSumVisible > 0.0f)
             {
-                float W = weightSum / winnerTargetPdf;
-                risLightSamples[pixelCoord] = PackRisLightSample(winnerLightIndex, W);
+                float clampedHiddenWeight = min(weightSumHidden, weightSumVisible * 0.25f);
+                totalWeight = weightSumVisible + clampedHiddenWeight;
+
+                float selectionRoll = frac(randVisible * 1.61803398875f) * totalWeight;
+                if (selectionRoll < weightSumVisible)
+                {
+                    finalWinnerIndex = winnerLightVisible;
+                    finalWinnerPdf = winnerTargetPdfVisible;
+                }
+                else
+                {
+                    finalWinnerIndex = winnerLightHidden;
+                    finalWinnerPdf = winnerTargetPdfHidden;
+                }
+            }
+            else if (weightSumHidden > 0.0f)
+            {
+                // All candidate lights in tile were occluded in history, relax budget to 100%
+                totalWeight = weightSumHidden;
+                finalWinnerIndex = winnerLightHidden;
+                finalWinnerPdf = winnerTargetPdfHidden;
+            }
+
+            if (totalWeight > 0.0f && finalWinnerPdf > 0.0f)
+            {
+                float W = totalWeight / finalWinnerPdf;
+                risLightSamples[pixelCoord] = PackRisLightSample(finalWinnerIndex, W);
             }
             else
             {

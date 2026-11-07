@@ -4,7 +4,7 @@ This document details the architectural design, mathematical foundations, hardwa
 
 ---
 
-# 1. Architectural Overview & Motivation
+# Architectural Overview & Motivation
 
 ## The Many-Light Shadow Bottleneck
 In scenes with dozens or hundreds of shadow-casting punctual lights (point and spot lights), traditional shadow mapping (even with virtualized shadow atlases and GPU-driven meshlet culling) hits two fundamental walls:
@@ -55,7 +55,7 @@ flowchart TD
 
 ---
 
-# 2. Hardware Ray-Tracing Infrastructure
+# Hardware Ray-Tracing Infrastructure
 
 ## Offline Simplified Ray-Tracing Proxy Meshes (`MeshBaker`)
 Building Bottom-Level Acceleration Structures (BLAS) directly from full-resolution Nanite-style LOD0 meshlets (millions of micro-triangles per asset) wastes VRAM, inflates BVH build times, and causes severe ray-traversal divergence.
@@ -81,7 +81,7 @@ During asset baking in `MeshBaker.cs`:
 
 ---
 
-# 3. Decoupled Multi-Pass RIS & Spatiotemporal Denoiser
+# Decoupled Multi-Pass RIS & Spatiotemporal Denoiser
 
 ## Pass 1: Candidate Light Importance Sampling (`RisLightSampling.gcomp`)
 For each pixel $\mathbf{x}$ with reconstructed camera-relative position $\mathbf{P}_{\text{RWS}}$ and G-Buffer surface $(\mathbf{N}, \mathbf{V}, \alpha, \text{albedo}, \text{metallic})$, we iterate over the $M \le 63$ fine-pruned punctual lights in the pixel's $16 \times 16$ FPTL tile.
@@ -238,27 +238,9 @@ $$d_{\text{disocc}} = 1 - \text{saturate}\left(\frac{N_{\text{frames}} - 1}{7}\r
 
 ---
 
-# 4. Critical Debugging Root Causes & Engineering Lessons
+# Critical Debugging Root Causes & Engineering Lessons
 
-## Lesson 1: The 3-Frame `QueueSwap` Lag ("100x Motion Blur" & Multi-Light Flicker)
-### Symptom
-Moving the camera produced extreme ghosting trails resembling 100x motion blur, and static surfaces lit by many lights flickered with a 3-frame beat pattern.
-
-### Root Cause
-`RenderGraph.CompileAndExecute` extracted `RisTemporalDiffuse` into persistent `viewContext.RisHistoryDiffuse` by calling `ResourceDatabase.QueueSwap(actualHandle, target)`.
-In GhostEngine's D3D12 RHI, `QueueSwap` was originally built for async streaming buffer growth: it **queues** the swap into a deferred queue that waits `FRAMES_IN_FLIGHT` (3 frames!) so existing bindless indices stay stable for in-flight command lists, while swapping the underlying `ID3D12Resource` pointers later.
-As a result:
-- Frame $t$ did **not** read history from frame $t - 1$; it read stale history from frame $t - 3$!
-- Temporal accumulation split into **three independent non-communicating frame chains** ($t \bmod 3$), tripling convergence lag and causing 3-frame oscillation and severe reprojection mismatch under camera motion.
-
-### Fix
-Added `bool preserveBindlessIndex = true` (default `true` for backward safety across streaming callers) to `IResourceDatabase.Swap`:
-- When `preserveBindlessIndex: false` (used by `RenderGraph` texture extraction, where passes resolve fresh bindless indices every frame via `GetActualBindlessIndex`), `D3D12ResourceDatabase.Swap` **immediately** swaps both the `ResourceRecord` and `ResourceViewGroup` in $O(1)$ on the CPU timeline, and `RenderGraphResourcePool.RestoreBackingResources` synchronizes initial/current D3D12 barrier states across the swapped handles.
-- Also threaded `ulong frameNumber` (`_submittedFrame`) into `IRenderPipeline.ExecuteGraph` so temporal RNG sequences advance monotonically once per rendered frame.
-
----
-
-## Lesson 2: 6-Band Soft-Shadow Stepping from Linearly Correlated IGN
+## 6-Band Soft-Shadow Stepping from Linearly Correlated IGN
 ### Symptom
 Close inspection of soft shadow penumbrae revealed ~6 distinct stepped shadow silhouettes fanned along a single diagonal direction instead of a smooth isotropic penumbra.
 

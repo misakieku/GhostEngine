@@ -38,6 +38,7 @@ compute "Internal/RisScreenContactShadow"
 
             bool needsHardwareRay = false;
             float shadow = 1.0f;
+            float traversedDist = 0.0f;
 
             if (inBounds)
             {
@@ -86,7 +87,7 @@ compute "Internal/RisScreenContactShadow"
                             else
                             {
                                 float hitDist = 0.0f;
-                                bool contactHit = TraceScreenContactShadow(positionRWS, normalWS, pixelCoord, g_Properties.depthTextureIndex, rayDirWS, rayDist, 1.5f, hitDist);
+                                bool contactHit = TraceScreenContactShadow(positionRWS, normalWS, pixelCoord, g_Properties.depthTextureIndex, rayDirWS, min(rayDist, 0.25f), 1.5f, hitDist, traversedDist);
                                 if (contactHit)
                                 {
                                     shadow = 0.0f;
@@ -121,7 +122,8 @@ compute "Internal/RisScreenContactShadow"
             {
                 uint rayIndex = waveBase + waveIndex;
                 RWByteAddressBuffer unresolvedRays = GET_BUFFER(g_Properties.unresolvedRaysBufferUav);
-                uint packedCoord = (pixelCoord.y << 16) | (pixelCoord.x & 0xFFFF);
+                uint packedTraversed = (uint)(saturate(min(traversedDist, 0.04f) / 0.04f) * 255.0f);
+                uint packedCoord = (packedTraversed << 24) | ((pixelCoord.y & 0xFFF) << 12) | (pixelCoord.x & 0xFFF);
                 unresolvedRays.Store(rayIndex * 4u, packedCoord);
             }
         }

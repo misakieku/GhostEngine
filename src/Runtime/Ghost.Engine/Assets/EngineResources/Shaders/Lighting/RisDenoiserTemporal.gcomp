@@ -250,8 +250,21 @@ compute "Internal/RisDenoiserTemporal"
                     float3 boxClampedDiff = clamp(histDiff.rgb, diffMin, diffMax);
                     float3 boxClampedSpec = clamp(histSpec, specMin, specMax);
 
-                    float diffClampBlend = saturate(0.12f + motionPixels * 0.45f);
-                    float specClampBlend = saturate(0.25f + motionPixels * 0.65f);
+                    // Confidence estimation based on distance from history to neighborhood bounding box (UE5 MegaLights style)
+                    // If a light or shadow moves under a static camera, history falls outside the neighborhood box.
+                    // Tracking the normalized distance allows dynamically dropping accumulation frames to eliminate ghosting trails.
+                    float3 diffExtent = max((diffMax - diffMin) * 0.5f, 0.001f);
+                    float3 diffDistToBox = abs(histDiff.rgb - boxClampedDiff) / diffExtent;
+                    float maxDiffDist = max(diffDistToBox.x, max(diffDistToBox.y, diffDistToBox.z));
+                    float diffConfidence = saturate(1.0f - maxDiffDist);
+
+                    float3 specExtent = max((specMax - specMin) * 0.5f, 0.001f);
+                    float3 specDistToBox = abs(histSpec - boxClampedSpec) / specExtent;
+                    float maxSpecDist = max(specDistToBox.x, max(specDistToBox.y, specDistToBox.z));
+                    float specConfidence = saturate(1.0f - maxSpecDist);
+
+                    float diffClampBlend = saturate(0.12f + motionPixels * 0.45f + (1.0f - diffConfidence) * 0.88f);
+                    float specClampBlend = saturate(0.25f + motionPixels * 0.65f + (1.0f - specConfidence) * 0.75f);
 
                     float3 clampedHistDiff = lerp(histDiff.rgb, boxClampedDiff, diffClampBlend);
                     float3 clampedHistSpec = lerp(histSpec, boxClampedSpec, specClampBlend);
@@ -259,9 +272,12 @@ compute "Internal/RisDenoiserTemporal"
                     float maxDiffFrames = lerp(24.0f, 8.0f, motionFactor);
                     float maxSpecFrames = lerp(16.0f, 4.0f, motionFactor);
 
+                    float adaptiveMaxDiffFrames = lerp(3.0f, maxDiffFrames, diffConfidence);
+                    float adaptiveMaxSpecFrames = lerp(2.0f, maxSpecFrames, specConfidence);
+
                     float prevFrames = histDiff.a * HISTORY_FRAMES_SCALE;
-                    float diffFrames = min(prevFrames + 1.0f, maxDiffFrames);
-                    float specFrames = min(prevFrames + 1.0f, maxSpecFrames);
+                    float diffFrames = min(prevFrames + 1.0f, adaptiveMaxDiffFrames);
+                    float specFrames = min(prevFrames + 1.0f, adaptiveMaxSpecFrames);
                     numFrames = diffFrames;
 
                     finalDiffuse = lerp(clampedHistDiff, currentDiffuse, rcp(diffFrames));

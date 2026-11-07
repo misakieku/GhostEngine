@@ -7,11 +7,11 @@
 #include "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl"
 
 // Marches a micro-contact ray through the full-resolution depth buffer.
-// Specifically tuned to bridge the geometric gap between full-res rendered meshlets
-// and simplified RayTracingProxy BLAS geometry (3-5 cm scale) without terminator acne.
-bool TraceScreenContactShadow(float3 positionRWS, float3 normalWS, uint2 pixelCoord, TEXTURE2D depthTextureIndex, float3 rayDirWS, float maxDistance, float compareToleranceScale, out float hitDistance)
+// Bridges the geometric gap between full-res rendered geometry and shadow maps/proxy BLAS.
+bool TraceScreenContactShadow(float3 positionRWS, float3 normalWS, uint2 pixelCoord, TEXTURE2D depthTextureIndex, float3 rayDirWS, float maxDistance, float compareToleranceScale, out float hitDistance, out float traversedDistance)
 {
     hitDistance = 0.0f;
+    traversedDistance = 0.0f;
 
     if (!IS_VALID_TEXTURE(depthTextureIndex) || maxDistance <= 0.0f)
     {
@@ -24,8 +24,7 @@ bool TraceScreenContactShadow(float3 positionRWS, float3 normalWS, uint2 pixelCo
         return false;
     }
 
-    // Clamp contact ray length to micro-scale (max 4cm) to strictly bridge the proxy mesh gap
-    float contactDist = min(maxDistance, 0.04f);
+    float contactDist = maxDistance;
 
     // Dynamic normal bias: small bias to lift the origin off the receiver surface
     float normalBias = 0.001f + 0.002f * (1.0f - saturate(NdotL));
@@ -58,32 +57,32 @@ bool TraceScreenContactShadow(float3 positionRWS, float3 normalWS, uint2 pixelCo
     float2 rayStepPixels = (rayEnd.xy - rayStart.xy) * 0.5f * g_ViewData.screenSize.xy;
     float pixelDist = length(rayStepPixels);
 
-    // TODO: Expose configurable parameters (contact shadow distance, normal bias, dynamic depth-scaling, and smooth distance fade)
-    // Reject rays that project to less than 1.5 pixels on screen
-    if (pixelDist < 1.5f)
+    if (pixelDist < 1.0f)
     {
         return false;
     }
 
-    // Analytical step-out: ensure the first evaluation sample is completely outside the origin pixel cell
-    float minStepTime = min(1.5f / pixelDist, 0.5f);
+    const int NUM_STEPS = 16;
+    float step = 1.0f / float(NUM_STEPS);
+    // Ensure the first evaluation sample is outside the origin pixel cell without skipping large portions of the ray
+    float minStepTime = min(1.0f / max(pixelDist, 1.0f), step * 0.5f);
+    step = (1.0f - minStepTime) / float(NUM_STEPS);
 
-    // View-space depth derivative for Device-Z tolerance
+    // View-space depth derivative for Device-Z tolerance over the entire contact shadow volume
     float3 rayOriginVS = TransformWorldToView(rayOriginWS);
     float4 rayDepthClip = TransformViewToHClip(rayOriginVS + float3(0.0f, 0.0f, contactDist));
     float3 rayDepth = rayDepthClip.xyz / max(rayDepthClip.w, 1e-5f);
+    float maxThickness = abs(rayDepth.z - rayStart.z) * compareToleranceScale;
 
-    const int NUM_STEPS = 8;
-    float step = (1.0f - minStepTime) / float(NUM_STEPS);
-    float compareTolerance = abs(rayDepth.z - rayStart.z) * (1.0f / float(NUM_STEPS)) * compareToleranceScale;
-
-    // Sample starting depth on full-resolution depth buffer (point sampled)
-    float2 startUV = rayStart.xy * float2(0.5f, -0.5f) + 0.5f;
-    float startDepth = SampleTexture2DLevel<float>(depthTextureIndex, PointClampSampler, startUV, 0.0f);
+    // Exact starting depth from depth buffer at pixelCoord
+    Texture2D<float> depthTex = GET_TEXTURE2D(depthTextureIndex);
+    float startDepth = depthTex[pixelCoord];
 
     // Low-discrepancy dither
     float dither = ConstructFloat(JenkinsHash(pixelCoord));
     float sampleTime = minStepTime + (dither * 0.5f) * step;
+    float lastTraversedTime = 0.0f;
+    bool completedAllSteps = true;
 
     [unroll(NUM_STEPS)]
     for (int i = 0; i < NUM_STEPS; ++i)
@@ -94,31 +93,38 @@ bool TraceScreenContactShadow(float3 positionRWS, float3 normalWS, uint2 pixelCo
         // Off-screen boundary check [0, 1]
         if (any(sampleUV < 0.0f) || any(sampleUV > 1.0f))
         {
+            completedAllSteps = false;
             break;
         }
 
-        // Bilinear and point filtered depth: picking min in Reversed-Z selects the deeper surface,
-        // smoothing staircase pixel boundaries on curved geometry (matching UE5 HZB_TRACE_USE_BILINEAR_SAMPLED_DEPTH).
-        float pointDepth = SampleTexture2DLevel<float>(depthTextureIndex, PointClampSampler, sampleUV, 0.0f);
-        float linearDepth = SampleTexture2DLevel<float>(depthTextureIndex, LinearClampSampler, sampleUV, 0.0f);
-        float sampleDepth = min(pointDepth, linearDepth);
+        // Point sampled depth on full-resolution depth buffer
+        float sampleDepth = SampleTexture2DLevel<float>(depthTextureIndex, PointClampSampler, sampleUV, 0.0f);
 
-        // Skip sky/background (sampleDepth <= 0.0f in reversed-Z) and origin pixel
-        if (sampleDepth > 0.0f && abs(sampleDepth - startDepth) > 0.00005f)
+        // Skip sky/background and origin pixel
+        if (sampleDepth > 0.0f && sampleDepth != startDepth)
         {
             float depthDiff = samplePos.z - sampleDepth;
-            // Ray is behind the surface by less than compareTolerance in Reversed-Z
-            if (depthDiff < 0.0f && abs(depthDiff) < compareTolerance)
+            // Ray is behind the surface in Reversed-Z, and within the contact shadow depth volume (prevents false hits from distant foreground objects)
+            if (depthDiff < -1e-5f && abs(depthDiff) < maxThickness)
             {
                 hitDistance = sampleTime * contactDist;
+                traversedDistance = hitDistance;
                 return true;
             }
         }
 
+        lastTraversedTime = sampleTime;
         sampleTime += step;
     }
 
+    traversedDistance = (completedAllSteps ? 1.0f : saturate(lastTraversedTime)) * contactDist;
     return false;
+}
+
+bool TraceScreenContactShadow(float3 positionRWS, float3 normalWS, uint2 pixelCoord, TEXTURE2D depthTextureIndex, float3 rayDirWS, float maxDistance, float compareToleranceScale, out float hitDistance)
+{
+    float dummyTraversed;
+    return TraceScreenContactShadow(positionRWS, normalWS, pixelCoord, depthTextureIndex, rayDirWS, maxDistance, compareToleranceScale, hitDistance, dummyTraversed);
 }
 
 #endif // GHOST_SCREEN_SPACE_TRACING_HLSL

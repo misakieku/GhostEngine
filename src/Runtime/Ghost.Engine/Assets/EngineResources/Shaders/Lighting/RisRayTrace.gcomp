@@ -43,7 +43,8 @@ compute "Internal/RisRayTrace"
 
             RWByteAddressBuffer unresolvedRays = GET_BUFFER(g_Properties.unresolvedRaysBufferSrv);
             uint packedCoord = unresolvedRays.Load(rayIndex * 4u);
-            uint2 pixelCoord = uint2(packedCoord & 0xFFFF, packedCoord >> 16);
+            uint2 pixelCoord = uint2(packedCoord & 0xFFF, (packedCoord >> 12) & 0xFFF);
+            float traversedDist = ((packedCoord >> 24) & 0xFF) * (0.04f / 255.0f);
 
             Texture2D<float> depthTex = GET_TEXTURE2D(g_Properties.depthTextureIndex);
             float depth = depthTex[pixelCoord];
@@ -67,9 +68,10 @@ compute "Internal/RisRayTrace"
             float rayDist;
             ComputeSoftShadowRay(positionRWS, lightPosRWS, light.size.x, rngSample, rayDirRWS, rayDist);
 
-            float3 rayOriginRWS = positionRWS;
+            float3 rayOriginRWS = positionRWS + rayDirRWS * traversedDist;
             ApplyPositionBias(rayOriginRWS, rayDirRWS, normalWS, 0.02f);
-            float shadow = TraceRayQueryShadow(g_Properties.tlasIndex, rayOriginRWS, rayDirRWS, max(rayDist - 0.02f, 0.01f), 0.01f);
+            float remainingDist = max(rayDist - traversedDist, 0.01f);
+            float shadow = TraceRayQueryShadow(g_Properties.tlasIndex, rayOriginRWS, rayDirRWS, max(remainingDist - 0.02f, 0.01f), 0.01f);
             shadow = lerp(1.0f, shadow, light.shadowDimmer);
 
             RWTexture2D<float> shadowMaskUav = GET_TEXTURE2D(g_Properties.risShadowMaskUav);
