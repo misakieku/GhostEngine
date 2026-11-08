@@ -31,6 +31,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     private UnsafeList<uint> _viewsToRelease;
 
     private UnsafeList<GPUDirectionalLight> _directionalLights;
+    private UnsafeList<DirectionalLightRequest> _directionalLightRequests;
     private int _primaryDirectionalLightIndex = -1;
 
     private readonly UnsafeParallelQueue<PunctualLightRequest>* _pPunctualLights;
@@ -52,6 +53,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     public UnsafeParallelQueue<PunctualLightRequest>.ParallelConsumer PunctualLights => _pPunctualLights->AsParallelConsumer();
 
     public ReadOnlyView<GPUDirectionalLight> DirectionalLights => _directionalLights;
+    public ReadOnlyView<DirectionalLightRequest> DirectionalLightRequests => _directionalLightRequests;
     public uint DirectionalLightCount => (uint)_directionalLights.Count;
     public int PrimaryDirectionalLightIndex => _primaryDirectionalLightIndex;
 
@@ -69,6 +71,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _renderRequests = new UnsafeList<RenderRequest>(4, AllocationHandle.Persistent);
         _viewsToRelease = new UnsafeList<uint>(4, AllocationHandle.Persistent);
         _directionalLights = new UnsafeList<GPUDirectionalLight>(4, AllocationHandle.Persistent);
+        _directionalLightRequests = new UnsafeList<DirectionalLightRequest>(4, AllocationHandle.Persistent);
 
         _volumeDataBuffer = new UnsafeList<byte>(256, AllocationHandle.Persistent);
         _viewComponentMasks = new UnsafeList<ulong>(4, AllocationHandle.Persistent);
@@ -96,10 +99,19 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _punctualLightsProducer.Enqueue(request);
     }
 
+    public uint AddDirectionalLight(scoped in DirectionalLightRequest request)
+    {
+        var index = (uint)_directionalLights.Count;
+        _directionalLights.Add(request.light);
+        _directionalLightRequests.Add(request);
+        return index;
+    }
+
     public uint AddDirectionalLight(scoped in GPUDirectionalLight light)
     {
         var index = (uint)_directionalLights.Count;
         _directionalLights.Add(light);
+        _directionalLightRequests.Add(new DirectionalLightRequest { light = light });
         return index;
     }
 
@@ -108,10 +120,21 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _primaryDirectionalLightIndex = index;
     }
 
+    public void SetDirectionalLight(scoped in DirectionalLightRequest request)
+    {
+        _directionalLights.Clear();
+        _directionalLightRequests.Clear();
+        _directionalLights.Add(request.light);
+        _directionalLightRequests.Add(request);
+        _primaryDirectionalLightIndex = 0;
+    }
+
     public void SetDirectionalLight(scoped in GPUDirectionalLight light)
     {
         _directionalLights.Clear();
+        _directionalLightRequests.Clear();
         _directionalLights.Add(light);
+        _directionalLightRequests.Add(new DirectionalLightRequest { light = light });
         _primaryDirectionalLightIndex = 0;
     }
 
@@ -293,6 +316,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     {
         _renderRequests.Clear();
         _directionalLights.Clear();
+        _directionalLightRequests.Clear();
         _primaryDirectionalLightIndex = -1;
         _pPunctualLights->Clear();
         _pUpdateRequest->Clear();
@@ -322,6 +346,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         _renderRequests.Dispose();
         _viewsToRelease.Dispose();
         _directionalLights.Dispose();
+        _directionalLightRequests.Dispose();
         _pPunctualLights->Dispose();
         _pUpdateRequest->Dispose();
         _pRemoveRequest->Dispose();

@@ -447,6 +447,13 @@ bool EvaluateLODDetailSufficient(float objectError, float3 sphereCenter, float s
     return pixelError <= errorThreshold;
 }
 
+// Evaluates orthographic texel-space geometric error for directional shadow meshlet DAG refinement
+bool EvaluateOrthoLODDetailSufficient(float objectError, float proj11, float screenHeight, float errorThreshold)
+{
+    float pixelError = objectError * proj11 * screenHeight * 0.5f;
+    return pixelError <= errorThreshold;
+}
+
 #define SW_MAX_EDGE_PIXELS 32.0f
 
 // Evaluates whether a meshlet should be rasterized via software rasterizer based on projected triangle edge length

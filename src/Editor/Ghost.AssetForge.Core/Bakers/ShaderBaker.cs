@@ -411,7 +411,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
             shaderModel = shaderSettings.ShaderModel,
         };
 
-        await BakeShaderAssetAsync(src, assetType, dst, ctx, codeStr, ext, configTemplate, cancellationToken);
+        await BakeShaderAssetAsync(src, assetType, dst, ctx, codeStr, ext, configTemplate, null, cancellationToken);
 
         foreach (var group in shaderSettings.DefineGroups)
         {
@@ -421,11 +421,11 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 defines = shaderSettings.Defines.Concat(group.Value),
             };
 
-            await BakeShaderAssetAsync(src, assetType, subAssetStream, ctx, codeStr, ext, configWithGroup, cancellationToken);
+            await BakeShaderAssetAsync(src, assetType, subAssetStream, ctx, codeStr, ext, configWithGroup, group.Key, cancellationToken);
         }
     }
 
-    private static async Task BakeShaderAssetAsync(string src, AssetType assetType, Stream dst, AssetBakerContext ctx, string codeStr, string ext, ShaderCompilationConfig configTemplate, CancellationToken cancellationToken)
+    private static async Task BakeShaderAssetAsync(string src, AssetType assetType, Stream dst, AssetBakerContext ctx, string codeStr, string ext, ShaderCompilationConfig configTemplate, string? subAssetName, CancellationToken cancellationToken)
     {
         switch (assetType)
         {
@@ -437,18 +437,19 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 var descriptor = DSLShaderCompiler.ResolveShader(semantics, src).GetValueOrThrow();
 
                 var assetStartOffset = dst.Position;
+                var shaderName = string.IsNullOrEmpty(subAssetName) ? descriptor.Name : $"{descriptor.Name}#{subAssetName}";
                 var header = new ShaderContentHeader
                 {
                     shaderType = ShaderType.Graphics,
                     passCount = (uint)descriptor.Passes.Length,
                     propertyBufferSize = descriptor.PropertyBufferSize,
-                    shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
+                    shaderId = ShaderIdentity.GetShaderId(shaderName),
                     familyId = ShaderIdentity.GetShaderId(semantics.templateName ?? descriptor.Name),
                     layoutHash = GetLayoutHash(descriptor.PropertyBufferSize, descriptor.Name),
                 };
 
                 dst.Write(header);
-                WriteName(dst, assetStartOffset, descriptor.Name, ref header.nameOffset, ref header.nameSize);
+                WriteName(dst, assetStartOffset, shaderName, ref header.nameOffset, ref header.nameSize);
 
                 for (var passIdx = 0; passIdx < descriptor.Passes.Length; passIdx++)
                 {
@@ -497,18 +498,19 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 var descriptor = DSLShaderCompiler.ResolveShader(semantics, src).GetValueOrThrow();
 
                 var assetStartOffset = dst.Position;
+                var shaderName = string.IsNullOrEmpty(subAssetName) ? descriptor.Name : $"{descriptor.Name}#{subAssetName}";
                 var header = new ShaderContentHeader
                 {
                     shaderType = ShaderType.Compute,
                     passCount = 1,
                     propertyBufferSize = descriptor.PropertyBufferSize,
-                    shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
+                    shaderId = ShaderIdentity.GetShaderId(shaderName),
                     familyId = ShaderIdentity.GetShaderId(descriptor.Name),
                     layoutHash = GetLayoutHash(descriptor.PropertyBufferSize, descriptor.Name),
                 };
 
                 dst.Write(header);
-                WriteName(dst, assetStartOffset, descriptor.Name, ref header.nameOffset, ref header.nameSize);
+                WriteName(dst, assetStartOffset, shaderName, ref header.nameOffset, ref header.nameSize);
 
                 var permutations = GenerateKeywordPermutations(descriptor.KeywordGroups);
                 var passHeaderOffset = dst.Position;
@@ -523,7 +525,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 };
 
                 dst.Write(passHeader); // Placeholder
-                WriteName(dst, assetStartOffset, descriptor.Name, ref passHeader.nameOffset, ref passHeader.nameSize);
+                WriteName(dst, assetStartOffset, shaderName, ref passHeader.nameOffset, ref passHeader.nameSize);
                 var passDataStart = dst.Position;
 
                 await WriteMultiVariantPass(
@@ -558,18 +560,19 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 }
 
                 var assetStartOffset = dst.Position;
+                var shaderName = string.IsNullOrEmpty(subAssetName) ? descriptor.Name : $"{descriptor.Name}#{subAssetName}";
                 var header = new ShaderContentHeader
                 {
                     shaderType = ShaderType.WorkGraph,
                     passCount = 1,
                     propertyBufferSize = descriptor.PropertyBufferSize,
-                    shaderId = ShaderIdentity.GetShaderId(descriptor.Name),
+                    shaderId = ShaderIdentity.GetShaderId(shaderName),
                     familyId = ShaderIdentity.GetShaderId(descriptor.Name),
                     layoutHash = GetLayoutHash(descriptor.PropertyBufferSize, descriptor.Name),
                 };
 
                 dst.Write(header);
-                WriteName(dst, assetStartOffset, descriptor.Name, ref header.nameOffset, ref header.nameSize);
+                WriteName(dst, assetStartOffset, shaderName, ref header.nameOffset, ref header.nameSize);
 
                 var permutations = GenerateKeywordPermutations(descriptor.KeywordGroups);
                 var passHeaderOffset = dst.Position;
@@ -584,7 +587,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
                 };
 
                 dst.Write(passHeader); // Placeholder
-                WriteName(dst, assetStartOffset, descriptor.Name, ref passHeader.nameOffset, ref passHeader.nameSize);
+                WriteName(dst, assetStartOffset, shaderName, ref passHeader.nameOffset, ref passHeader.nameSize);
                 var passDataStart = dst.Position;
 
                 await WriteMultiVariantPass(

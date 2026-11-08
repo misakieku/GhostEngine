@@ -176,7 +176,7 @@ ShadowType GetPunctualShadowAttenuation(float3 positionRWS, uint2 positionSS, fl
 
         GPUShadowSamplingData shadowCull = LoadDataAtOffset<GPUShadowSamplingData>(shadowViewsBuffer, sizeof(GPUShadowViewData) * shadowIndex + sizeof(GPUShadowCullingData));
 
-        float3 biasedPosRWS = positionRWS + N * shadowCull.normalBias * shadowCull.worldTexelSize * distance.x;
+        float3 biasedPosRWS = positionRWS + N * (shadowCull.normalBias * distance.x);
         float4 clipPos = mul(shadowCull.shadowViewProj, float4(biasedPosRWS, 1.0f));
 
         if (clipPos.w > 0.0001f)
@@ -190,7 +190,7 @@ ShadowType GetPunctualShadowAttenuation(float3 positionRWS, uint2 positionSS, fl
 
             // In Reversed-Z perspective, a depth delta in NDC scales as 1 / (distance^2):
             float ndcDepthScale = abs(shadowCull.shadowProjection.w) * distance.z * distance.z;
-            float receiverDepth = ndc.z + (1.0f / 65536.0f) + (shadowCull.slopeBias * clampedSlope * shadowCull.worldTexelSize * ndcDepthScale);
+            float receiverDepth = ndc.z + (1.0f / 65536.0f) + (shadowCull.slopeBias * clampedSlope * ndcDepthScale);
 
             // Spot lights check cone bounds; Point lights cover all 360 deg, so clamp instead of discarding
             if (all(uv >= 0.0f) && all(uv <= 1.0f))
@@ -204,6 +204,112 @@ ShadowType GetPunctualShadowAttenuation(float3 positionRWS, uint2 positionSS, fl
         }
     }
 #elif defined(_SHADOW_RAYTRACED)
+#endif
+
+    return shadow;
+}
+
+ShadowType GetDirectionalShadowAttenuation(
+    float3 positionRWS,
+    float3 N,
+    float3 L,
+    BYTE_ADDRESS_BUFFER directionalShadowViewsBuffer,
+    TEXTURE2D directionalShadowAtlas,
+    uint cascadeCount,
+    float4 cascadeSplits,
+    float4 cascadeBlends,
+    float maxShadowDistance,
+    float shadowFadeRange)
+{
+    ShadowType shadow = (ShadowType)1.0f;
+
+#if defined(_SHADOW_PCF)
+    if (!IS_VALID_TEXTURE(directionalShadowAtlas) || !IS_VALID_BUFFER(directionalShadowViewsBuffer) || cascadeCount == 0u)
+    {
+        return shadow;
+    }
+
+    float zView = dot(positionRWS, g_ViewData.cameraDirection);
+    if (zView > maxShadowDistance || zView < 0.0f)
+    {
+        return shadow;
+    }
+
+    uint cascadeIdx = 0u;
+    [unroll]
+    for (uint c = 0u; c < 4u; ++c)
+    {
+        if (c < cascadeCount && zView > cascadeSplits[c])
+        {
+            cascadeIdx = c + 1u;
+        }
+    }
+
+    if (cascadeIdx >= cascadeCount)
+    {
+        return shadow;
+    }
+
+    Texture2D<float> shadowAtlasTex = GET_TEXTURE2D(directionalShadowAtlas);
+    SamplerComparisonState samp = GET_SAMPLER(LinearClampCompareGESampler);
+
+    float NdotL = saturate(dot(N, L));
+    float slope = sqrt(saturate(1.0f - NdotL * NdotL)) / max(NdotL, 0.1f);
+    float clampedSlope = min(slope, 2.0f);
+
+    GPUShadowSamplingData shadowCull = LoadDataAtOffset<GPUShadowSamplingData>(
+        directionalShadowViewsBuffer, sizeof(GPUShadowViewData) * cascadeIdx + sizeof(GPUShadowCullingData));
+
+    float3 biasedPosRWS = positionRWS + N * shadowCull.normalBias;
+    float4 clipPos = mul(shadowCull.shadowViewProj, float4(biasedPosRWS, 1.0f));
+    float2 uv = clipPos.xy * float2(0.5f, -0.5f) + 0.5f;
+
+    float receiverDepth = clipPos.z + (1.0f / 65536.0f) + (shadowCull.slopeBias * clampedSlope);
+
+    if (all(uv >= 0.0f) && all(uv <= 1.0f))
+    {
+        float2 atlasUV = shadowCull.tileOffsetScale.xy + uv * shadowCull.tileOffsetScale.zw;
+        shadow = SampleShadow_PCF5x5(shadowAtlasTex, samp, shadowCull.tileOffsetScale, atlasUV, receiverDepth, shadowCull.size.x, shadowCull.size.y);
+    }
+
+    if (cascadeIdx + 1u < cascadeCount)
+    {
+        float splitDist = cascadeSplits[cascadeIdx];
+        float blendFactor = cascadeBlends[cascadeIdx];
+        float blendRange = splitDist * blendFactor;
+        float blendStart = splitDist - blendRange;
+
+        if (zView > blendStart && blendRange > 0.001f)
+        {
+            float alpha = saturate((zView - blendStart) / blendRange);
+            uint nextCascade = cascadeIdx + 1u;
+
+            GPUShadowSamplingData nextShadowCull = LoadDataAtOffset<GPUShadowSamplingData>(
+                directionalShadowViewsBuffer, sizeof(GPUShadowViewData) * nextCascade + sizeof(GPUShadowCullingData));
+
+            float3 nextBiasedPos = positionRWS + N * nextShadowCull.normalBias;
+            float4 nextClipPos = mul(nextShadowCull.shadowViewProj, float4(nextBiasedPos, 1.0f));
+            float2 nextUV = nextClipPos.xy * float2(0.5f, -0.5f) + 0.5f;
+            float nextReceiverDepth = nextClipPos.z + (1.0f / 65536.0f) + (nextShadowCull.slopeBias * clampedSlope);
+
+            if (all(nextUV >= 0.0f) && all(nextUV <= 1.0f))
+            {
+                float2 nextAtlasUV = nextShadowCull.tileOffsetScale.xy + nextUV * nextShadowCull.tileOffsetScale.zw;
+                float nextShadow = SampleShadow_PCF5x5(shadowAtlasTex, samp, nextShadowCull.tileOffsetScale, nextAtlasUV, nextReceiverDepth, nextShadowCull.size.x, nextShadowCull.size.y);
+                shadow = lerp(shadow, nextShadow, alpha);
+            }
+        }
+    }
+
+    if (shadowFadeRange > 0.001f)
+    {
+        float fadeStart = maxShadowDistance - shadowFadeRange;
+        if (zView > fadeStart)
+        {
+            float fadeAlpha = saturate((zView - fadeStart) / shadowFadeRange);
+            shadow = lerp(shadow, 1.0f, fadeAlpha);
+        }
+    }
 #endif
 
     return shadow;

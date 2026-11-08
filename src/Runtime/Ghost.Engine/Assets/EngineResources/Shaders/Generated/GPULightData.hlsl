@@ -29,7 +29,11 @@ struct GPUDirectionalLight
     float3 directionWS;
     uint castShadows;
     float3 color;
-    float shadowBiasMultiplier;
+    float angularDiameter;
+    float lightDimmer;
+    float shadowDimmer;
+    float diffuseDimmer;
+    float specularDimmer;
 };
 
 struct GPUShadowCullingData

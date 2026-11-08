@@ -54,21 +54,46 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
         {
             GPUDirectionalLight dirLight = LoadData<GPUDirectionalLight>(g_FrameData.directionalLightBuffer, dirIdx);
             float3 L = -dirLight.directionWS;
-            if (any(dirLight.color > 0.0001f) && any(L != 0.0f))
+            if (dirLight.lightDimmer > 0.0f && any(dirLight.color > 0.0001f) && any(L != 0.0f))
             {
+                float3 lightColor = dirLight.color * dirLight.lightDimmer;
                 float shadow = 1.0f;
-                if ((int)dirIdx == g_FrameData.primaryDirectionalLightIndex && dirLight.castShadows != 0u)
+                if ((int)dirIdx == g_FrameData.primaryDirectionalLightIndex && dirLight.castShadows != 0u && dirLight.shadowDimmer > 0.0f)
                 {
-                    // Primary directional shadow evaluation (CSM placeholder + contact shadows)
+                    float csmShadow = GetDirectionalShadowAttenuation(
+                        ctx.positionRWS,
+                        bsdf.normalWS,
+                        normalize(L),
+                        g_Properties.directionalShadowViewsBufferSrv,
+                        g_Properties.directionalShadowAtlasSrv,
+                        g_Properties.cascadeCount,
+                        g_Properties.cascadeSplits,
+                        g_Properties.cascadeBlends,
+                        g_Properties.maxShadowDistance,
+                        g_Properties.shadowFadeRange);
+
                     float hitDist = 0.0f;
-                    if (TraceScreenContactShadow(ctx.positionRWS, bsdf.normalWS, ctx.positionSS, g_Properties.depthTextureIndex, normalize(L), 0.25f, 2.0f, hitDist))
-                    {
-                        shadow = 0.0f;
-                    }
+                    //if (TraceScreenContactShadow(ctx.positionRWS, bsdf.normalWS, ctx.positionSS, g_Properties.depthTextureIndex, normalize(L), 0.25f, 2.0f, hitDist))
+                    //{
+                    //    csmShadow = 0.0f;
+                    //}
+                    
+                    shadow = lerp(1.0f, csmShadow, dirLight.shadowDimmer);
                 }
 
-                DirectLighting dirDirect = strategy.EvaluateDirectLighting(bsdf, preLightData, V, normalize(L), dirLight.color * shadow);
-                AccumulateDirectLighting(totalLighting, dirDirect);
+                if (dirLight.angularDiameter > 0.0f)
+                {
+                    float minRough = saturate(dirLight.angularDiameter * 0.5f);
+                    strategy.ClampRoughness(bsdf, minRough * minRough);
+                }
+
+                if (any(lightColor > 0.0f))
+                {
+                    DirectLighting dirDirect = strategy.EvaluateDirectLighting(bsdf, preLightData, V, normalize(L), lightColor * shadow);
+                    dirDirect.diffuse *= dirLight.diffuseDimmer;
+                    dirDirect.specular *= dirLight.specularDimmer;
+                    AccumulateDirectLighting(totalLighting, dirDirect);
+                }
             }
         }
     }
@@ -77,6 +102,8 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
     // Decoupled RIS pipeline
     // Punctual lights are evaluated in dedicated passes
     // (RisLightSampling -> RisRayTrace -> RisResolveShading) and composite the results here
+    
+    // TODO: Stochastic directional lighting
     
     if (IS_VALID_TEXTURE(g_Properties.risResolvedDiffuseSrv))
     {

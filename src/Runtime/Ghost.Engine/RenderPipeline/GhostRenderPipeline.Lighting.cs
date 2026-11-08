@@ -3,6 +3,7 @@ using Ghost.Core.Graphics;
 using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Utilities;
+using Ghost.Engine.Volumes;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
@@ -140,6 +141,8 @@ internal unsafe partial class GhostRenderPipeline
                 var shadowFrustum = Frustum.Create(shadowViewProj, lightPosRWS, light.directionWS, nearPlane, farPlane);
                 var pro = new float4(projMat[0][0], projMat[1][1], projMat[2][2], projMat[3][2]);
 
+                var worldTexelSize = 2.0f / projMat[0][0] / shadowSize * 1.4142135623731f;
+
                 var svData = new GPUShadowViewData
                 {
                     cullingData = new GPUShadowCullingData
@@ -155,9 +158,9 @@ internal unsafe partial class GhostRenderPipeline
                         tileOffsetScale = region.tileOffsetScale,
                         shadowProjection = pro,
                         size = size,
-                        normalBias = shadowData.normalBias,
-                        slopeBias = basis * shadowData.depthBias,
-                        worldTexelSize = 2.0f / projMat[0][0] / shadowSize * 1.4142135623731f,
+                        normalBias = shadowData.normalBias * worldTexelSize,
+                        slopeBias = basis * shadowData.depthBias * worldTexelSize,
+                        worldTexelSize = worldTexelSize,
                     }
                 };
 
@@ -177,6 +180,8 @@ internal unsafe partial class GhostRenderPipeline
                 var fov = 2.0f * math.atan(shadowSize / (shadowSize - 2.0f * guardPixels)); // 1.570796f; // 90 degrees in radians
                 var projMat = CreatePerspectiveReversedZ(fov, 1.0f, nearPlane, farPlane);
                 var pro = new float4(projMat[0][0], projMat[1][1], projMat[2][2], projMat[3][2]);
+
+                var worldTexelSize = 2.0f / projMat[0][0] / shadowSize * 1.4142135623731f;
 
                 Span<GPUShadowViewData> faceViews = stackalloc GPUShadowViewData[6];
                 for (var f = 0; f < 6; f++)
@@ -201,9 +206,9 @@ internal unsafe partial class GhostRenderPipeline
                             tileOffsetScale = faceRegions[f].tileOffsetScale,
                             shadowProjection = pro,
                             size = size,
-                            normalBias = shadowData.normalBias,
-                            slopeBias = basis * shadowData.depthBias,
-                            worldTexelSize = 2.0f / projMat[0][0] / shadowSize * 1.4142135623731f,
+                            normalBias = shadowData.normalBias * worldTexelSize,
+                            slopeBias = basis * shadowData.depthBias * worldTexelSize,
+                            worldTexelSize = worldTexelSize,
                         }
                     };
                 }
@@ -451,6 +456,13 @@ internal unsafe partial class GhostRenderPipeline
         public uint tlasIndex;
         public uint risResolvedDiffuseSrv;
         public uint risResolvedSpecularSrv;
+        public uint directionalShadowAtlasSrv;
+        public uint directionalShadowViewsBufferSrv;
+        public uint cascadeCount;
+        public float maxShadowDistance;
+        public float shadowFadeRange;
+        public float4 cascadeSplits;
+        public float4 cascadeBlends;
     }
 
     [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl")]
@@ -501,6 +513,13 @@ internal unsafe partial class GhostRenderPipeline
         public uint viewId;
         public uint shadowViewsBufferSrv;
         public uint shadowIndicesBufferSrv;
+        public Identifier<RGTexture> directionalShadowAtlas;
+        public uint directionalShadowViewsBufferSrv;
+        public uint cascadeCount;
+        public float maxShadowDistance;
+        public float shadowFadeRange;
+        public float4 cascadeSplits;
+        public float4 cascadeBlends;
         public ShaderVariantRegistry variantRegistry;
         public uint tilesPerRow;
         public uint tilesY;
@@ -522,6 +541,13 @@ internal unsafe partial class GhostRenderPipeline
         var shadowAtlas = hasShadowMap ? shadowMap.shadowAtlas : Identifier<RGTexture>.Invalid;
         var shadowViewsBufferSrv = hasShadowMap ? shadowMap.shadowViewsBufferSrv : RHIUtility.INVALID_BINDLESS_INDEX;
         var shadowIndicesBufferSrv = hasShadowMap ? shadowMap.shadowIndicesBufferSrv : RHIUtility.INVALID_BINDLESS_INDEX;
+        var directionalShadowAtlas = hasShadowMap ? shadowMap.directionalShadowAtlas : Identifier<RGTexture>.Invalid;
+        var directionalShadowViewsBufferSrv = hasShadowMap ? shadowMap.directionalShadowViewsBufferSrv : RHIUtility.INVALID_BINDLESS_INDEX;
+        var cascadeCount = hasShadowMap ? shadowMap.cascadeCount : 0u;
+        var maxShadowDistance = hasShadowMap ? shadowMap.maxShadowDistance : 0f;
+        var shadowFadeRange = hasShadowMap ? shadowMap.shadowFadeRange : 0f;
+        var cascadeSplits = hasShadowMap ? shadowMap.cascadeSplits : default;
+        var cascadeBlends = hasShadowMap ? shadowMap.cascadeBlends : default;
 
         var risResolvedDiffuse = hasRis ? ris.resolvedDiffuse : Identifier<RGTexture>.Invalid;
         var risResolvedSpecular = hasRis ? ris.resolvedSpecular : Identifier<RGTexture>.Invalid;
@@ -553,6 +579,10 @@ internal unsafe partial class GhostRenderPipeline
         builder.UseTexture(hzbTexture, AccessFlags.Read);
         builder.UseBuffer(tlasBuffer, AccessFlags.Read);
         builder.UseTexture(shadowAtlas, AccessFlags.Read);
+        if (directionalShadowAtlas.IsValid)
+        {
+            builder.UseTexture(directionalShadowAtlas, AccessFlags.Read);
+        }
         builder.UseTexture(risResolvedDiffuse, AccessFlags.Read);
         builder.UseTexture(risResolvedSpecular, AccessFlags.Read);
         builder.UseTexture(skyContext.skyboxTexture, AccessFlags.Read);
@@ -578,6 +608,13 @@ internal unsafe partial class GhostRenderPipeline
             viewId = viewId,
             shadowViewsBufferSrv = shadowViewsBufferSrv,
             shadowIndicesBufferSrv = shadowIndicesBufferSrv,
+            directionalShadowAtlas = directionalShadowAtlas,
+            directionalShadowViewsBufferSrv = directionalShadowViewsBufferSrv,
+            cascadeCount = cascadeCount,
+            maxShadowDistance = maxShadowDistance,
+            shadowFadeRange = shadowFadeRange,
+            cascadeSplits = cascadeSplits,
+            cascadeBlends = cascadeBlends,
             variantRegistry = _assetManager.ShaderVariants,
             tilesPerRow = tilesX,
             tilesY = tilesY,
@@ -597,6 +634,9 @@ internal unsafe partial class GhostRenderPipeline
             var tileLightListSrv = computeCtx.GetActualBindlessIndex(passData.tileLightList, BindlessAccess.ShaderResource);
             var litColorUav = computeCtx.GetActualBindlessIndex(passData.litColorTarget, BindlessAccess.UnorderedAccess);
             var shadowAtlasSrv = computeCtx.GetActualBindlessIndex(passData.shadowAtlas, BindlessAccess.ShaderResource);
+            var directionalShadowAtlasSrv = passData.directionalShadowAtlas.IsValid
+                ? computeCtx.GetActualBindlessIndex(passData.directionalShadowAtlas, BindlessAccess.ShaderResource)
+                : RHIUtility.INVALID_BINDLESS_INDEX;
             var tileShadingModelMaskSrv = computeCtx.GetActualBindlessIndex(passData.tileShadingModelMaskBuffer, BindlessAccess.ShaderResource);
             var skyboxSrv = computeCtx.GetActualBindlessIndex(passData.skyContext.skyboxTexture, BindlessAccess.ShaderResource);
             var iblLutSrv = computeCtx.GetActualBindlessIndex(passData.skyContext.iblLutTexture, BindlessAccess.ShaderResource);
@@ -642,6 +682,13 @@ internal unsafe partial class GhostRenderPipeline
                     shadowAtlasSrv = shadowAtlasSrv,
                     shadowViewsBufferSrv = passData.shadowViewsBufferSrv,
                     shadowIndicesBufferSrv = passData.shadowIndicesBufferSrv,
+                    directionalShadowAtlasSrv = directionalShadowAtlasSrv,
+                    directionalShadowViewsBufferSrv = passData.directionalShadowViewsBufferSrv,
+                    cascadeCount = passData.cascadeCount,
+                    maxShadowDistance = passData.maxShadowDistance,
+                    shadowFadeRange = passData.shadowFadeRange,
+                    cascadeSplits = passData.cascadeSplits,
+                    cascadeBlends = passData.cascadeBlends,
                     skyboxTextureSrv = skyboxSrv,
                     iblLutTextureSrv = iblLutSrv,
                     persistentViewStateBufferSrv = persistentViewStateSrv,
@@ -1502,6 +1549,7 @@ internal unsafe partial class GhostRenderPipeline
                     shadowViewsBuffer = passData.shadowViewsBufferSrv,
                     shadowViewCount = passData.shadowViewCount,
                     cullingThreshold = passData.cullingThreshold,
+                    occluderHzbSrv = RHIUtility.INVALID_BINDLESS_INDEX,
                 };
 
                 computeCtx.SetWorkGraph(passData.cullWorkGraphProgram);
@@ -1825,5 +1873,713 @@ internal unsafe partial class GhostRenderPipeline
 
             directionalLightSrv = ctx.ResourceDatabase.GetBindlessIndex(dirBuffer.AsResource());
         }
+    }
+
+    private static readonly float4[] s_directionalQuadrantOffsets =
+    [
+        new float4(0.0f, 0.0f, 0.5f, 0.5f),
+        new float4(0.5f, 0.0f, 0.5f, 0.5f),
+        new float4(0.0f, 0.5f, 0.5f, 0.5f),
+        new float4(0.5f, 0.5f, 0.5f, 0.5f)
+    ];
+
+    private struct DirectionalShadowSetupResult
+    {
+        public uint directionalShadowViewsBufferSrv;
+        public uint cascadeCount;
+        public uint shadowSize;
+        public uint atlasResolution;
+        public float4 cascadeSplits;
+        public float4 cascadeBlends;
+        public float maxShadowDistance;
+        public float shadowFadeRange;
+    }
+
+    private struct ClearShadowOccludersPassData
+    {
+        public Identifier<RGTexture> occluderMap;
+        public Handle<ComputeShader> clearShader;
+        public uint cascadeCount;
+    }
+
+    private struct GenerateShadowOccludersPassData
+    {
+        public Identifier<RGTexture> depthTexture;
+        public Identifier<RGTexture> occluderMap;
+        public Handle<ComputeShader> generateShader;
+        public uint directionalShadowViewsBufferSrv;
+        public uint2 renderSize;
+        public uint cascadeCount;
+        public float4 cascadeSplits;
+    }
+
+    private struct BuildShadowOccluderHZBPassData
+    {
+        public Identifier<RGTexture> occluderMap;
+        public Handle<ComputeShader> shader;
+        public uint cascadeCount;
+    }
+
+    private struct DirectionalShadowCullPassData
+    {
+        public IWorkGraphProgram cullWorkGraphProgram;
+        public Identifier<RGBuffer> visibleMeshlets;
+        public Identifier<RGBuffer> counterBuffer;
+        public Identifier<RGTexture> occluderMap;
+        public uint instanceCount;
+        public uint cascadeCount;
+        public uint directionalShadowViewsBufferSrv;
+        public uint entrypointIndex;
+        public uint maxVisibleMeshlets;
+        public uint counterBufferSize;
+        public float cullingThreshold;
+    }
+
+    private static float4x4 CreateOrthographicReversedZ(float sizeX, float sizeY, float nearClip, float farClip)
+    {
+        var m00 = 2.0f / sizeX;
+        var m11 = 2.0f / sizeY;
+        var range = farClip - nearClip;
+        var m22 = -1.0f / range;
+        var m23 = farClip / range;
+
+        return new float4x4(
+            m00, 0.0f, 0.0f, 0.0f,
+            0.0f, m11, 0.0f, 0.0f,
+            0.0f, 0.0f, m22, m23,
+            0.0f, 0.0f, 0.0f, 1.0f);
+    }
+
+    private DirectionalShadowSetupResult ComputeDirectionalCascadeViews(ResourceContext ctx, in DirectionalLightRequest dirRequest, in RenderRequest request, in float4x4 projMatrix, in ShadowSettings shadowSettings, float viewHeight)
+    {
+        var count = shadowSettings.cascadeCount.GetValueOrDefault(4);
+        var cascadeCount = (uint)math.clamp(count, 1, 4);
+
+        var maxDist = shadowSettings.maxDistance.GetValueOrDefault(400.0f);
+        maxDist = Math.Min(maxDist, request.view.farClipPlane);
+        var shadowFadeRange = maxDist * 0.1f;
+
+        var defaultSplits = new float3(0.1f, 0.3f, 0.6f);
+        var userSplits = shadowSettings.splits.GetValueOrDefault(defaultSplits);
+        float4 cascadeSplits;
+        if (cascadeCount == 1)
+        {
+            cascadeSplits = new float4(maxDist, maxDist, maxDist, maxDist);
+        }
+        else if (cascadeCount == 2)
+        {
+            cascadeSplits = new float4(userSplits.x * maxDist, maxDist, maxDist, maxDist);
+        }
+        else if (cascadeCount == 3)
+        {
+            cascadeSplits = new float4(userSplits.x * maxDist, userSplits.y * maxDist, maxDist, maxDist);
+        }
+        else
+        {
+            cascadeSplits = new float4(userSplits.x * maxDist, userSplits.y * maxDist, userSplits.z * maxDist, maxDist);
+        }
+
+        var cascadeBlends = shadowSettings.blends.GetValueOrDefault(new float4(0.1f, 0.2f, 0.3f, 0.4f));
+
+        var shadowSize = dirRequest.shadowSize > 0 ? dirRequest.shadowSize : 1024u;
+        var atlasResolution = shadowSize * 2u;
+
+        var tanHalfFovY = 1.0f / Math.Max(0.0001f, projMatrix[1][1]);
+        var tanHalfFovX = 1.0f / Math.Max(0.0001f, projMatrix[0][0]);
+        var fovDiag = math.sqrt(tanHalfFovX * tanHalfFovX + tanHalfFovY * tanHalfFovY);
+
+        var camDir = math.normalize(request.view.localToWorld.c2.xyz);
+        var lightDir = math.normalize(dirRequest.light.directionWS);
+        var lightUp = math.abs(lightDir.y) > 0.99f ? new float3(0.0f, 0.0f, 1.0f) : new float3(0.0f, 1.0f, 0.0f);
+        var lightRight = math.normalize(math.cross(lightUp, lightDir));
+        lightUp = math.cross(lightDir, lightRight);
+
+        Span<GPUShadowViewData> views = stackalloc GPUShadowViewData[(int)cascadeCount];
+
+        for (var i = 0u; i < cascadeCount; i++)
+        {
+            var nearDist = (i == 0) ? request.view.nearClipPlane : cascadeSplits[(int)i - 1];
+            var farDist = cascadeSplits[(int)i];
+
+            var rNear = nearDist * fovDiag;
+            var rFar = farDist * fovDiag;
+            var cz = (farDist + nearDist) * 0.5f + (rFar * rFar - rNear * rNear) / Math.Max(0.001f, 2.0f * (farDist - nearDist));
+            if (cz > farDist)
+            {
+                cz = farDist;
+            }
+            var sphereRadius = math.sqrt(rFar * rFar + (farDist - cz) * (farDist - cz));
+
+            var centerRWS = camDir * cz;
+            var worldTexelSize = (2.0f * sphereRadius) / shadowSize;
+
+            var cx = math.dot(centerRWS, lightRight);
+            var cy = math.dot(centerRWS, lightUp);
+            var snappedCx = math.floor(cx / worldTexelSize) * worldTexelSize;
+            var snappedCy = math.floor(cy / worldTexelSize) * worldTexelSize;
+            var snappedCenterRWS = centerRWS + lightRight * (snappedCx - cx) + lightUp * (snappedCy - cy);
+
+            var nearExtrusion = Math.Max(200.0f, sphereRadius * 2.0f);
+            var farPlane = sphereRadius * 2.0f + nearExtrusion;
+            var lightPosRWS = snappedCenterRWS - lightDir * (sphereRadius + nearExtrusion);
+
+            var viewMat = CreateLookAtMatrix(lightPosRWS, lightDir, lightUp);
+            var projMat = CreateOrthographicReversedZ(sphereRadius * 2.0f, sphereRadius * 2.0f, 0.05f, farPlane);
+            var shadowViewProj = math.mul(projMat, viewMat);
+            var shadowFrustum = Frustum.Create(shadowViewProj, lightPosRWS, lightDir, 0.05f, farPlane);
+
+            var size = new float4(atlasResolution, 1.0f / atlasResolution, shadowSize, 1.0f / shadowSize);
+            var ndcDepthScale = Math.Abs(projMat[2][2]);
+
+            views[(int)i] = new GPUShadowViewData
+            {
+                cullingData = new GPUShadowCullingData
+                {
+                    planes = shadowFrustum.planes,
+                    size = size,
+                    lightPosRWSAndProj11 = new float4(lightPosRWS, projMat[1][1]),
+                    lodErrorThreshold = _settings.MeshletLodErrorThreshold * (dirRequest.shadowData.lodErrorScale > 0 ? dirRequest.shadowData.lodErrorScale : 1.0f)
+                },
+                samplingData = new GPUShadowSamplingData
+                {
+                    shadowViewProj = shadowViewProj,
+                    tileOffsetScale = s_directionalQuadrantOffsets[i],
+                    shadowProjection = new float4(projMat[0][0], projMat[1][1], projMat[2][2], projMat[2][3]),
+                    size = size,
+                    worldTexelSize = worldTexelSize,
+                    normalBias = dirRequest.shadowData.normalBias * worldTexelSize,
+                    slopeBias = dirRequest.shadowData.depthBias * worldTexelSize * ndcDepthScale
+                }
+            };
+        }
+
+        var viewsBufferSize = cascadeCount * (uint)sizeof(GPUShadowViewData);
+        var bufferDesc = new BufferDesc
+        {
+            Size = viewsBufferSize,
+            Stride = (uint)sizeof(GPUShadowViewData),
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+            HeapType = HeapType.Upload
+        };
+
+        var shadowViewsBuffer = ctx.ResourceManager.CreateTransientBuffer(in bufferDesc, "DirectionalShadowViewsBuffer");
+        var pViews = (GPUShadowViewData*)ctx.ResourceDatabase.MapResource(shadowViewsBuffer.AsResource(), 0, null);
+        fixed (GPUShadowViewData* pSrc = views)
+        {
+            MemoryUtility.MemCpy(pViews, pSrc, viewsBufferSize);
+        }
+        ctx.ResourceDatabase.UnmapResource(shadowViewsBuffer.AsResource(), 0, null);
+
+        var directionalShadowViewsBufferSrv = ctx.ResourceDatabase.GetBindlessIndex(shadowViewsBuffer.AsResource());
+
+        return new DirectionalShadowSetupResult
+        {
+            directionalShadowViewsBufferSrv = directionalShadowViewsBufferSrv,
+            cascadeCount = cascadeCount,
+            shadowSize = shadowSize,
+            atlasResolution = atlasResolution,
+            cascadeSplits = cascadeSplits,
+            cascadeBlends = cascadeBlends,
+            maxShadowDistance = maxDist,
+            shadowFadeRange = shadowFadeRange
+        };
+    }
+
+    private void AddGenerateShadowOccludersPass(RenderGraph rg, Identifier<RGTexture> depthTexture, Identifier<RGTexture> occluderMap, uint directionalShadowViewsBufferSrv, uint2 renderSize, uint cascadeCount, float4 cascadeSplits)
+    {
+        using (var clearBuilder = rg.AddComputeRenderPass<ClearShadowOccludersPassData>("ClearShadowOccluders"))
+        {
+            clearBuilder.UseTexture(occluderMap, AccessFlags.Write);
+            clearBuilder.SetPassData(new ClearShadowOccludersPassData
+            {
+                occluderMap = occluderMap,
+                clearShader = _lightingPipelineResource.clearShadowOccludersShader,
+                cascadeCount = cascadeCount
+            });
+
+            clearBuilder.SetRenderFunc<ClearShadowOccludersPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var occluderActual = computeCtx.GetActualTexture(passData.occluderMap);
+                var occluderRes = occluderActual.AsResource();
+
+                Span<uint> uavs = stackalloc uint[4];
+                for (var c = 0u; c < 4u; c++)
+                {
+                    uavs[(int)c] = c < passData.cascadeCount
+                        ? computeCtx.ResourceDatabase.GetBindlessIndex(occluderRes, BindlessAccess.UnorderedAccess, c * 7u)
+                        : RHIUtility.INVALID_BINDLESS_INDEX;
+                }
+
+                var clearProps = new InternalClearShadowOccludersShaderProperties
+                {
+                    occluderUav0 = uavs[0],
+                    occluderUav1 = uavs[1],
+                    occluderUav2 = uavs[2],
+                    occluderUav3 = uavs[3]
+                };
+                computeCtx.SetActiveCompute(passData.clearShader, 0);
+                computeCtx.SetUserDataWithProperties(in clearProps);
+                computeCtx.DispatchCompute(8, 8, 1);
+            });
+        }
+
+        using (var builder = rg.AddComputeRenderPass<GenerateShadowOccludersPassData>("GenerateShadowOccluders"))
+        {
+            builder.UseTexture(depthTexture, AccessFlags.Read);
+            builder.UseTexture(occluderMap, AccessFlags.ReadWrite);
+
+            builder.SetPassData(new GenerateShadowOccludersPassData
+            {
+                depthTexture = depthTexture,
+                occluderMap = occluderMap,
+                generateShader = _lightingPipelineResource.generateShadowOccludersShader,
+                directionalShadowViewsBufferSrv = directionalShadowViewsBufferSrv,
+                renderSize = renderSize,
+                cascadeCount = cascadeCount,
+                cascadeSplits = cascadeSplits
+            });
+
+            builder.SetRenderFunc<GenerateShadowOccludersPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
+                var occluderActual = computeCtx.GetActualTexture(passData.occluderMap);
+                var occluderRes = occluderActual.AsResource();
+
+                Span<uint> uavs = stackalloc uint[4];
+                for (var c = 0u; c < 4u; c++)
+                {
+                    uavs[(int)c] = c < passData.cascadeCount
+                        ? computeCtx.ResourceDatabase.GetBindlessIndex(occluderRes, BindlessAccess.UnorderedAccess, c * 7u)
+                        : RHIUtility.INVALID_BINDLESS_INDEX;
+                }
+
+                var genProps = new InternalGenerateShadowOccludersShaderProperties
+                {
+                    cameraDepthTextureIndex = depthSrv,
+                    directionalShadowViewsBuffer = passData.directionalShadowViewsBufferSrv,
+                    occluderUav0 = uavs[0],
+                    occluderUav1 = uavs[1],
+                    occluderUav2 = uavs[2],
+                    occluderUav3 = uavs[3],
+                    cameraWidth = passData.renderSize.x,
+                    cameraHeight = passData.renderSize.y,
+                    cascadeCount = passData.cascadeCount,
+                    cascadeSplits = passData.cascadeSplits
+                };
+
+                computeCtx.SetActiveCompute(passData.generateShader, 0);
+                computeCtx.SetUserDataWithProperties(in genProps);
+                var groupsX = Math.Max(1u, (passData.renderSize.x + 15u) / 16u);
+                var groupsY = Math.Max(1u, (passData.renderSize.y + 15u) / 16u);
+                computeCtx.DispatchCompute(groupsX, groupsY, 1);
+            });
+        }
+    }
+
+    private void AddBuildShadowOccluderHZBPass(RenderGraph rg, Identifier<RGTexture> occluderMap, uint cascadeCount)
+    {
+        using var builder = rg.AddComputeRenderPass<BuildShadowOccluderHZBPassData>("BuildShadowOccluderHZB");
+        builder.UseTexture(occluderMap, AccessFlags.ReadWrite);
+
+        builder.SetPassData(new BuildShadowOccluderHZBPassData
+        {
+            occluderMap = occluderMap,
+            shader = _lightingPipelineResource.buildShadowOccluderHZBShader,
+            cascadeCount = cascadeCount
+        });
+
+        builder.SetRenderFunc<BuildShadowOccluderHZBPassData>(static (ref readonly passData, computeCtx) =>
+        {
+            var occluderActual = computeCtx.GetActualTexture(passData.occluderMap);
+            var occluderRes = occluderActual.AsResource();
+            var baseOccluderUav = computeCtx.ResourceDatabase.GetBindlessIndex(occluderRes, BindlessAccess.UnorderedAccess, 0);
+
+            var props = new InternalBuildShadowOccluderHZBShaderProperties
+            {
+                baseOccluderUav = baseOccluderUav,
+                cascadeCount = passData.cascadeCount
+            };
+
+            computeCtx.SetActiveCompute(passData.shader, 0);
+            computeCtx.SetUserDataWithProperties(in props);
+            computeCtx.DispatchCompute(1, 1, passData.cascadeCount);
+        });
+    }
+
+    private Identifier<RGTexture> AddDirectionalShadowMapPass(RenderGraph rg, uint instanceCount, Identifier<RGTexture> occluderMap, uint directionalShadowViewsBufferSrv, uint cascadeCount, uint atlasResolution)
+    {
+        if (cascadeCount == 0 || instanceCount == 0)
+        {
+            return Identifier<RGTexture>.Invalid;
+        }
+
+        _meshPipelineResource.EnsureWorkGraphProgram(_renderEngine);
+        var shadowProgram = _meshPipelineResource.directionalShadowCullWorkGraphProgram;
+        if (shadowProgram == null)
+        {
+            return Identifier<RGTexture>.Invalid;
+        }
+
+        var entrypointIndex = shadowProgram.GetEntrypointIndex("InstanceCullNode");
+        if (entrypointIndex == uint.MaxValue)
+        {
+            entrypointIndex = 0;
+        }
+
+        var entrySize = (uint)sizeof(UnbinnedMeshletEntry);
+        var visibleBufferSize = _settings.MaxVisibleMeshletsOnScreen * entrySize;
+
+        var maxVariants = GetMaxCullVariants();
+        var counterBufferSize = CullCommon.GetCounterBufferSize(maxVariants);
+
+        Identifier<RGBuffer> unbinnedMeshlets;
+        Identifier<RGBuffer> counterBuffer;
+        using (var builder = rg.AddComputeRenderPass<DirectionalShadowCullPassData>("MeshletCull_DirectionalShadow"))
+        {
+            unbinnedMeshlets = builder.CreateBuffer(new BufferDesc
+            {
+                Size = visibleBufferSize,
+                Stride = entrySize,
+                Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+            }, "DirectionalShadowUnbinnedMeshlets");
+
+            counterBuffer = builder.CreateBuffer(new BufferDesc
+            {
+                Size = counterBufferSize,
+                Stride = 4,
+                Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+            }, "DirectionalShadowCounterBuffer");
+
+            builder.AllowPassCulling(false);
+            builder.UseBuffer(unbinnedMeshlets, AccessFlags.Write);
+            builder.UseBuffer(counterBuffer, AccessFlags.ReadWrite);
+            if (occluderMap.IsValid)
+            {
+                builder.UseTexture(occluderMap, AccessFlags.Read);
+            }
+
+            builder.SetPassData(new DirectionalShadowCullPassData
+            {
+                cullWorkGraphProgram = shadowProgram,
+                visibleMeshlets = unbinnedMeshlets,
+                counterBuffer = counterBuffer,
+                occluderMap = occluderMap,
+                instanceCount = instanceCount,
+                cascadeCount = cascadeCount,
+                directionalShadowViewsBufferSrv = directionalShadowViewsBufferSrv,
+                entrypointIndex = entrypointIndex,
+                maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
+                counterBufferSize = counterBufferSize,
+                cullingThreshold = _settings.InstanceCullingThreshold,
+            });
+
+            builder.SetRenderFunc<DirectionalShadowCullPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                computeCtx.ClearBuffer(passData.counterBuffer, passData.counterBufferSize);
+
+                var visibleUav = computeCtx.GetActualBindlessIndex(passData.visibleMeshlets, BindlessAccess.UnorderedAccess);
+                var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
+                var occluderHzbSrv = passData.occluderMap.IsValid
+                    ? computeCtx.GetActualBindlessIndex(passData.occluderMap, BindlessAccess.ShaderResource)
+                    : RHIUtility.INVALID_BINDLESS_INDEX;
+
+                var props = new InternalShadowCullGraphShaderProperties
+                {
+                    visibleMeshletsUav = visibleUav,
+                    counterBufferUav = counterUav,
+                    maxVisibleMeshlets = passData.maxVisibleMeshlets,
+                    instanceCount = passData.instanceCount,
+                    shadowViewsBuffer = passData.directionalShadowViewsBufferSrv,
+                    shadowViewCount = passData.cascadeCount,
+                    cullingThreshold = passData.cullingThreshold,
+                    occluderHzbSrv = occluderHzbSrv,
+                };
+
+                computeCtx.SetWorkGraph(passData.cullWorkGraphProgram);
+                computeCtx.SetUserDataWithProperties(in props);
+
+                var threadGroupsX = Math.Max(1u, (passData.instanceCount + 63) / 64);
+                var record = new WorkGraphDispatchGridRecord(threadGroupsX, passData.cascadeCount, 1);
+                var dispatchDesc = DispatchGraphDesc.ForCPUInput(passData.entrypointIndex, 1, &record, (ulong)sizeof(WorkGraphDispatchGridRecord));
+                computeCtx.DispatchGraph(in dispatchDesc);
+            });
+        }
+
+        Identifier<RGBuffer> indirectArgs;
+        Identifier<RGBuffer> binOffsets;
+        Identifier<RGBuffer> binScatterCounters;
+        using (var builder = rg.AddComputeRenderPass<PrepareIndirectArgsPassData>("PrepareDirectionalShadowIndirectArgs"))
+        {
+            indirectArgs = builder.CreateBuffer(new BufferDesc
+            {
+                Size = CullCommon.GetIndirectArgsBufferSize(maxVariants),
+                Stride = 4,
+                Usage = BufferUsage.IndirectArgument | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+            }, "DirectionalShadowIndirectArgsBuffer");
+
+            binOffsets = builder.CreateBuffer(new BufferDesc
+            {
+                Size = CullCommon.GetBinOffsetsBufferSize(maxVariants),
+                Stride = 4,
+                Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+            }, "DirectionalShadowBinOffsetsBuffer");
+
+            binScatterCounters = builder.CreateBuffer(new BufferDesc
+            {
+                Size = CullCommon.GetBinOffsetsBufferSize(maxVariants),
+                Stride = 4,
+                Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+            }, "DirectionalShadowBinScatterCounters");
+
+            builder.UseBuffer(counterBuffer, AccessFlags.Read);
+            builder.UseBuffer(indirectArgs, AccessFlags.Write);
+            builder.UseBuffer(binOffsets, AccessFlags.Write);
+            builder.UseBuffer(binScatterCounters, AccessFlags.Write);
+
+            builder.SetPassData(new PrepareIndirectArgsPassData
+            {
+                counterBuffer = counterBuffer,
+                indirectArgsBuffer = indirectArgs,
+                binOffsetsBuffer = binOffsets,
+                binScatterCounters = binScatterCounters,
+                shader = _meshPipelineResource.prepareIndirectArgsShader,
+                cullPassIndex = 0,
+                maxCount = _settings.MaxVisibleMeshletsOnScreen,
+                maxVariants = maxVariants
+            });
+
+            builder.SetRenderFunc<PrepareIndirectArgsPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
+                var indirectUav = computeCtx.GetActualBindlessIndex(passData.indirectArgsBuffer, BindlessAccess.UnorderedAccess);
+                var binOffsetsUav = computeCtx.GetActualBindlessIndex(passData.binOffsetsBuffer, BindlessAccess.UnorderedAccess);
+                var binCountersUav = computeCtx.GetActualBindlessIndex(passData.binScatterCounters, BindlessAccess.UnorderedAccess);
+
+                var props = new InternalPrepareMeshletIndirectArgsShaderProperties
+                {
+                    counterBuffer = counterUav,
+                    indirectArgsBuffer = indirectUav,
+                    binOffsetsBuffer = binOffsetsUav,
+                    binScatterCounters = binCountersUav,
+                    variantCountsOffset = CullCommon.OFFSET_PASS1_VARIANT_COUNTS,
+                    visibleArgsOffset = CullCommon.INDIRECT_OFFSET_PASS1_VARIANTS,
+                    maxCount = passData.maxCount,
+                    maxVariants = passData.maxVariants,
+                    occludedCountOffset = uint.MaxValue,
+                    cullArgsOffset = uint.MaxValue,
+                    swArgsOffset = uint.MaxValue,
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+                computeCtx.DispatchCompute(1, 1, 1);
+            });
+        }
+
+        Identifier<RGBuffer> binnedMeshlets;
+        using (var builder = rg.AddComputeRenderPass<ScatterMeshletsPassData>("ScatterDirectionalShadowMeshlets"))
+        {
+            binnedMeshlets = builder.CreateBuffer(new BufferDesc
+            {
+                Size = visibleBufferSize,
+                Stride = entrySize,
+                Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+            }, "DirectionalShadowBinnedMeshlets");
+
+            builder.UseBuffer(unbinnedMeshlets, AccessFlags.Read);
+            builder.UseBuffer(binnedMeshlets, AccessFlags.Write);
+            builder.UseBuffer(binScatterCounters, AccessFlags.ReadWrite);
+            builder.UseBuffer(counterBuffer, AccessFlags.Read);
+
+            builder.SetPassData(new ScatterMeshletsPassData
+            {
+                unbinnedBuffer = unbinnedMeshlets,
+                binnedBuffer = binnedMeshlets,
+                binScatterCounters = binScatterCounters,
+                counterBuffer = counterBuffer,
+                shader = _meshPipelineResource.scatterMeshletsShader,
+                totalVisibleOffset = CullCommon.OFFSET_PASS1_VISIBLE_COUNT,
+                maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
+                isShadowPass = 1
+            });
+
+            builder.SetRenderFunc<ScatterMeshletsPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var unbinnedSrv = computeCtx.GetActualBindlessIndex(passData.unbinnedBuffer, BindlessAccess.ShaderResource);
+                var binnedUav = computeCtx.GetActualBindlessIndex(passData.binnedBuffer, BindlessAccess.UnorderedAccess);
+                var countersUav = computeCtx.GetActualBindlessIndex(passData.binScatterCounters, BindlessAccess.UnorderedAccess);
+                var counterBufUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
+
+                var props = new InternalScatterMeshletsShaderProperties
+                {
+                    unbinnedBuffer = unbinnedSrv,
+                    binnedBuffer = binnedUav,
+                    binScatterCounters = countersUav,
+                    counterBuffer = counterBufUav,
+                    totalVisibleOffset = passData.totalVisibleOffset,
+                    maxVisibleMeshlets = passData.maxVisibleMeshlets,
+                    isShadowPass = passData.isShadowPass
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+
+                var threadGroups = Math.Max(1u, (passData.maxVisibleMeshlets + 63u) / 64u);
+                var threadGroupsX = Math.Min(threadGroups, 65535u);
+                var threadGroupsY = (threadGroups + 65534u) / 65535u;
+                computeCtx.DispatchCompute(threadGroupsX, threadGroupsY, 1);
+            });
+        }
+
+        Identifier<RGTexture> directionalAtlas;
+        using (var builder = rg.AddComputeRenderPass<ClearShadowAtlasPassData>("ClearDirectionalShadowAtlas"))
+        {
+            var atlasDesc = RGTextureDesc.Absolute(
+                atlasResolution,
+                atlasResolution,
+                TextureFormat.R32_Typeless,
+                clearAtFirstUse: false,
+                usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource,
+                typelessViewFormat: new TypelessFormatDesc { Srv = TextureFormat.R32_Float, Uav = TextureFormat.R32_UInt });
+
+            directionalAtlas = builder.CreateTexture(in atlasDesc, "DirectionalShadowAtlas");
+            builder.UseTexture(directionalAtlas, AccessFlags.Write);
+
+            builder.SetPassData(new ClearShadowAtlasPassData
+            {
+                shadowAtlas = directionalAtlas,
+                shader = _lightingPipelineResource.clearShadowAtlasShader,
+                atlasResolution = atlasResolution
+            });
+
+            builder.SetRenderFunc<ClearShadowAtlasPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var shadowAtlasUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.shadowAtlas).AsResource(), BindlessAccess.UnorderedAccess);
+                var props = new InternalClearShadowAtlasShaderProperties
+                {
+                    shadowAtlasIndex = shadowAtlasUav,
+                    atlasResolution = passData.atlasResolution
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+                var threadGroups = Math.Max(1u, (passData.atlasResolution + 15u) / 16u);
+                computeCtx.DispatchCompute(threadGroups, threadGroups, 1);
+            });
+        }
+
+        using (var builder = rg.AddUnsafeRenderPass<PunctualShadowRasterPassData>("DirectionalShadowRaster"))
+        {
+            builder.UseRandomAccessTexture(directionalAtlas);
+            builder.UseBuffer(binnedMeshlets, AccessFlags.Read);
+            builder.UseBuffer(binOffsets, AccessFlags.Read);
+            builder.UseBuffer(indirectArgs, AccessFlags.Read);
+
+            builder.SetPassData(new PunctualShadowRasterPassData
+            {
+                shadowAtlas = directionalAtlas,
+                binnedMeshlets = binnedMeshlets,
+                binOffsetsBuffer = binOffsets,
+                indirectArgs = indirectArgs,
+                commandSignature = _dispatchMeshCommandSignature,
+                shadowViewsBufferSrv = directionalShadowViewsBufferSrv,
+                atlasResolution = atlasResolution,
+                variantRegistry = _assetManager.ShaderVariants,
+            });
+
+            builder.SetRenderFunc<PunctualShadowRasterPassData>(static (ref readonly passData, unsafeCtx) =>
+            {
+                unsafeCtx.SetViewport(new ViewportDesc
+                {
+                    X = 0,
+                    Y = 0,
+                    Width = passData.atlasResolution,
+                    Height = passData.atlasResolution,
+                    MinDepth = 0.0f,
+                    MaxDepth = 1.0f
+                });
+                unsafeCtx.SetScissorRect(new RectDesc
+                {
+                    Left = 0,
+                    Top = 0,
+                    Right = passData.atlasResolution,
+                    Bottom = passData.atlasResolution
+                });
+
+                var binnedMeshletsSrv = unsafeCtx.GetActualBindlessIndex(passData.binnedMeshlets, BindlessAccess.ShaderResource);
+                var binOffsetsSrv = unsafeCtx.GetActualBindlessIndex(passData.binOffsetsBuffer, BindlessAccess.ShaderResource);
+                var shadowAtlasUav = unsafeCtx.GetActualBindlessIndex(passData.shadowAtlas, BindlessAccess.UnorderedAccess);
+                var actualIndirectBuf = unsafeCtx.GetActualBuffer(passData.indirectArgs);
+
+                var dispatchVariants = passData.variantRegistry.GetDispatchVariants(PassSemantic.Shadow);
+                if (dispatchVariants.Length == 0)
+                {
+                    return;
+                }
+
+                ref readonly var opaqueVariant = ref dispatchVariants[0];
+                if (opaqueVariant.Shader.IsValid && unsafeCtx.TrySetActiveShaderPass(opaqueVariant.Shader, PassSemantic.Shadow))
+                {
+                    unsafeCtx.SetUserData(binnedMeshletsSrv, passData.shadowViewsBufferSrv, binOffsetsSrv, shadowAtlasUav << 8);
+                    unsafeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, 0);
+                }
+
+                for (var i = 1; i < dispatchVariants.Length; i++)
+                {
+                    ref readonly var variant = ref dispatchVariants[i];
+                    if (variant.Shader.IsValid && unsafeCtx.TrySetActiveShaderPass(variant.Shader, PassSemantic.Shadow))
+                    {
+                        var targetVariant = (uint)(i + 1);
+                        unsafeCtx.SetUserData(binnedMeshletsSrv, passData.shadowViewsBufferSrv, binOffsetsSrv, (shadowAtlasUav << 8) | (targetVariant & 0xFFu));
+                        unsafeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, (ulong)targetVariant * INDIRECT_ARGS_STRIDE);
+                    }
+                }
+            });
+        }
+
+        using (var builder = rg.AddComputeRenderPass<SoftwareShadowRasterPassData>("RasterizeDirectionalShadowSw"))
+        {
+            builder.UseTexture(directionalAtlas, AccessFlags.ReadWrite);
+            builder.UseBuffer(binnedMeshlets, AccessFlags.Read);
+            builder.UseBuffer(binOffsets, AccessFlags.Read);
+            builder.UseBuffer(indirectArgs, AccessFlags.Read);
+
+            builder.SetPassData(new SoftwareShadowRasterPassData
+            {
+                shadowAtlas = directionalAtlas,
+                binnedMeshlets = binnedMeshlets,
+                binOffsetsBuffer = binOffsets,
+                indirectArgs = indirectArgs,
+                shader = _lightingPipelineResource.rasterizeShadowSwShader,
+                commandSignature = _dispatchCommandSignature,
+                shadowViewsBufferSrv = directionalShadowViewsBufferSrv,
+                atlasResolution = atlasResolution,
+                swIndirectOffset = CullCommon.INDIRECT_OFFSET_PASS1_VARIANTS + 16u
+            });
+
+            builder.SetRenderFunc<SoftwareShadowRasterPassData>(static (ref readonly passData, computeCtx) =>
+            {
+                var shadowAtlasUav = computeCtx.GetActualBindlessIndex(passData.shadowAtlas, BindlessAccess.UnorderedAccess);
+                var binnedMeshletsSrv = computeCtx.GetActualBindlessIndex(passData.binnedMeshlets, BindlessAccess.ShaderResource);
+                var binOffsetsSrv = computeCtx.GetActualBindlessIndex(passData.binOffsetsBuffer, BindlessAccess.ShaderResource);
+
+                var props = new InternalRasterizeShadowSwShaderProperties
+                {
+                    shadowAtlasUavIndex = shadowAtlasUav,
+                    binnedMeshletsBuffer = binnedMeshletsSrv,
+                    binOffsetsBuffer = binOffsetsSrv,
+                    shadowViewsBufferSrv = passData.shadowViewsBufferSrv,
+                    atlasResolution = passData.atlasResolution,
+                };
+
+                computeCtx.SetActiveCompute(passData.shader, 0);
+                computeCtx.SetUserDataWithProperties(in props);
+
+                var actualIndirectBuf = computeCtx.GetActualBuffer(passData.indirectArgs);
+                computeCtx.ExecuteIndirect(passData.commandSignature, 1, actualIndirectBuf, passData.swIndirectOffset);
+            });
+        }
+
+        return directionalAtlas;
     }
 }

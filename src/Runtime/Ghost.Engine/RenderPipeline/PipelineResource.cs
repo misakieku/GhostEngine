@@ -15,6 +15,9 @@ internal partial class MeshPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/MeshPipeline/ShadowCullGraph")]
     public IAssetEntry shadowCullWorkGraphEntry = null!;
 
+    [ResolveAsset("EngineResources/Shaders/MeshPipeline/ShadowCullGraph#Directional")]
+    public IAssetEntry directionalShadowCullWorkGraphEntry = null!;
+
     [ResolveAsset("EngineResources/Shaders/MeshPipeline/OccludedMeshletCull")]
     public Handle<ComputeShader> occludedMeshletCullShader;
 
@@ -38,6 +41,7 @@ internal partial class MeshPipelineResource : IPipelineResource
 
     public IWorkGraphProgram? cullWorkGraphProgram;
     public IWorkGraphProgram? shadowCullWorkGraphProgram;
+    public IWorkGraphProgram? directionalShadowCullWorkGraphProgram;
 
     public void EnsureWorkGraphProgram(RenderEngine renderEngine, AssetManager? assetManager = null, KeywordMask128 keywords = default)
     {
@@ -53,6 +57,11 @@ internal partial class MeshPipelineResource : IPipelineResource
                 shadowCullWorkGraphProgram = assetManager.ShaderVariants.ResolveWorkGraphProgram(shadowCullWorkGraphEntry, keywords);
             }
 
+            if (directionalShadowCullWorkGraphEntry is WorkGraphAssetEntry dirShadowWg && !dirShadowWg.Bytecode.IsEmpty)
+            {
+                directionalShadowCullWorkGraphProgram = assetManager.ShaderVariants.ResolveWorkGraphProgram(directionalShadowCullWorkGraphEntry, keywords);
+            }
+
             return;
         }
 
@@ -65,6 +74,11 @@ internal partial class MeshPipelineResource : IPipelineResource
         {
             shadowCullWorkGraphProgram = renderEngine.GraphicsEngine.CreateWorkGraphProgram(shadowWgEntry.Bytecode, "ShadowCullGraph");
         }
+
+        if (directionalShadowCullWorkGraphProgram == null && directionalShadowCullWorkGraphEntry is WorkGraphAssetEntry dirShadowWgEntry && !dirShadowWgEntry.Bytecode.IsEmpty)
+        {
+            directionalShadowCullWorkGraphProgram = renderEngine.GraphicsEngine.CreateWorkGraphProgram(dirShadowWgEntry.Bytecode, "ShadowCullGraph_Directional");
+        }
     }
 
     partial void OnDisposing()
@@ -73,6 +87,8 @@ internal partial class MeshPipelineResource : IPipelineResource
         cullWorkGraphProgram = null;
         shadowCullWorkGraphProgram?.Dispose();
         shadowCullWorkGraphProgram = null;
+        directionalShadowCullWorkGraphProgram?.Dispose();
+        directionalShadowCullWorkGraphProgram = null;
     }
 }
 
@@ -104,6 +120,15 @@ internal partial class LightingPipelineResource : IPipelineResource
 
     [ResolveAsset("EngineResources/Shaders/Lighting/ClearShadowAtlas")]
     public Handle<ComputeShader> clearShadowAtlasShader;
+
+    [ResolveAsset("EngineResources/Shaders/Lighting/ClearShadowOccluders")]
+    public Handle<ComputeShader> clearShadowOccludersShader;
+
+    [ResolveAsset("EngineResources/Shaders/Lighting/GenerateShadowOccluders")]
+    public Handle<ComputeShader> generateShadowOccludersShader;
+
+    [ResolveAsset("EngineResources/Shaders/Lighting/BuildShadowOccluderHZB")]
+    public Handle<ComputeShader> buildShadowOccluderHZBShader;
 
     [ResolveAsset("EngineResources/Shaders/Lighting/RasterizeShadowSw")]
     public Handle<ComputeShader> rasterizeShadowSwShader;

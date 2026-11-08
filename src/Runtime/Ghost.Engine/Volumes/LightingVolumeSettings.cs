@@ -12,7 +12,7 @@ public enum ShadowMode
     /// <summary>
     /// Shadows are rendered using shadow maps.
     /// </summary>
-    PCF,
+    ShadowMap,
     /// <summary>
     /// Shadows are rendered using ray tracing.
     /// </summary>
@@ -48,7 +48,7 @@ public partial struct ShadowSettings
 
     public static ShadowSettings Default => new ShadowSettings
     {
-        shadowMode = ShadowMode.PCF,
+        shadowMode = ShadowMode.ShadowMap,
         maxDistance = 400.0f,
         cascadeCount = 4,
         splits = new float3(0.1f, 0.3f, 0.6f),

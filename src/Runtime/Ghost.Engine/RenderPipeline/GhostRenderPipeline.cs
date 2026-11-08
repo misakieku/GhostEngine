@@ -151,7 +151,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         {
             if (shadowSettings.shadowMode == ShadowMode.RayTraced)
             {
-                shadowSettings.shadowMode = ShadowMode.PCF;
+                shadowSettings.shadowMode = ShadowMode.ShadowMap;
             }
         }
     }
@@ -173,7 +173,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
         switch (shadowSettings.shadowMode)
         {
-            case ShadowMode.PCF:
+            case ShadowMode.ShadowMap:
                 viewKeywords = viewKeywords.Set(s_kwShadowPCF.Id);
                 break;
             case ShadowMode.RayTraced:
@@ -342,7 +342,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
             var viewKeywords = BuildViewKeywords(shadowSettings);
             var viewContext = _gpuViewManager.GetView(request.viewId);
-            viewContext.EnsureSize(viewPort.Size);
+            viewContext.Initialize(viewPort.Size);
 
             if (viewContext.prevViewProjMatrix.Equals(float4x4.zero))
             {
@@ -364,7 +364,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             var colorTarget = renderGraph.ImportTexture(renderView.ColorTexture, ResourceBarrierData.Present, ResourceBarrierData.Present);
             var hzbHistory = viewContext.GetOrCreateResource<HzbViewResource, HzbViewResource.Desc>(new HzbViewResource.Desc
             {
-                renderSize = viewContext.RenderSize
+                renderSize = viewPort.ActualSize
             });
 
             var historyHzb = renderGraph.ImportTexture(hzbHistory.Texture, ResourceBarrierData.Common, ResourceBarrierData.Common);
@@ -376,12 +376,12 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             }
 
             // Geometry & Visibility passes
-            var depthTexture = AddCullingAndVbufferPasses(renderGraph, hzbHistory, viewContext.RenderSize, ghostPayload.InstanceCount, historyHzb, _gpuScene.SceneBufferSrvIndex);
+            var depthTexture = AddCullingAndVbufferPasses(renderGraph, hzbHistory, viewPort.Size, ghostPayload.InstanceCount, historyHzb, _gpuScene.SceneBufferSrvIndex);
 
             // Tile Classification & Deferred Texturing
-            AddTileClassificationPass(renderGraph, viewContext.RenderSize);
-            var gbuffer = AddDeferredTexturingPass(renderGraph, viewContext.RenderSize);
-            var tileLightList = AddTileLightCullingPass(renderGraph, depthTexture, viewContext.RenderSize);
+            AddTileClassificationPass(renderGraph, viewPort.Size);
+            var gbuffer = AddDeferredTexturingPass(renderGraph, viewPort.Size);
+            var tileLightList = AddTileLightCullingPass(renderGraph, depthTexture, viewPort.Size);
             var gbufferData = new GBufferPassData
             {
                 gbuffer = gbuffer,
@@ -392,41 +392,93 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
             // Shadow Passes
             var shadowAtlas = Identifier<RGTexture>.Invalid;
+            var shadowViewsBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
+            var shadowIndicesBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
+
             if (_settings.DirectLightingMode == DirectLightingMode.Stochastic)
             {
                 var desc = new RisViewResource.Desc
                 {
-                    renderSize = viewContext.RenderSize
+                    renderSize = viewPort.ActualSize
                 };
 
                 var risHistory = viewContext.GetOrCreateResource<RisViewResource, RisViewResource.Desc>(in desc);
-                AddRisPasses(renderGraph, risHistory, depthTexture, tlasBuffer, viewContext.RenderSize, (uint)frameNumber, request.viewId);
+                AddRisPasses(renderGraph, risHistory, depthTexture, tlasBuffer, viewPort.Size, (uint)frameNumber, request.viewId);
             }
             else // FPTL
             {
                 ExecutePerViewShadowSetup(ctx, in frustum, viewPort.Size.y, lights, request.view.localToWorld.c3.xyz,
-                    out var shadowViewsBufferSrv, out var shadowViewCount, out var shadowIndicesBufferSrv);
+                    out shadowViewsBufferSrv, out var shadowViewCount, out shadowIndicesBufferSrv);
 
-                if (shadowSettings.shadowMode == ShadowMode.PCF)
+                if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
                 {
                     shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
                 }
-
-                var shadowMapData = new ShadowMapPassData
-                {
-                    shadowAtlas = shadowAtlas,
-                    shadowViewsBufferSrv = shadowViewsBufferSrv,
-                    shadowIndicesBufferSrv = shadowIndicesBufferSrv
-                };
-
-                renderGraph.Blackboard.Add(ref shadowMapData);
             }
+
+            var directionalShadowAtlas = Identifier<RGTexture>.Invalid;
+            var directionalShadowViewsBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
+            var cascadeCount = 0u;
+            var cascadeSplits = default(float4);
+            var cascadeBlends = default(float4);
+            var maxShadowDistance = 0f;
+            var shadowFadeRange = 0f;
+
+            if (ghostPayload.PrimaryDirectionalLightIndex >= 0 && shadowSettings.shadowMode == ShadowMode.ShadowMap)
+            {
+                ref readonly var dirRequest = ref ghostPayload.DirectionalLightRequests[ghostPayload.PrimaryDirectionalLightIndex];
+                if (dirRequest.light.castShadows != 0 && dirRequest.light.shadowDimmer > 0.0f)
+                {
+                    var setupResult = ComputeDirectionalCascadeViews(ctx, in dirRequest, in request, in projMatrix, in shadowSettings, viewPort.Size.y);
+                    directionalShadowViewsBufferSrv = setupResult.directionalShadowViewsBufferSrv;
+                    cascadeCount = setupResult.cascadeCount;
+                    cascadeSplits = setupResult.cascadeSplits;
+                    cascadeBlends = setupResult.cascadeBlends;
+                    maxShadowDistance = setupResult.maxShadowDistance;
+                    shadowFadeRange = setupResult.shadowFadeRange;
+
+                    var occluderMapDesc = RGTextureDesc.Absolute(
+                        64,
+                        64,
+                        TextureFormat.R32_Typeless,
+                        clearColor: default,
+                        clearAtFirstUse: false,
+                        discardAtLastUse: true,
+                        dimension: TextureDimension.Texture2DArray,
+                        mipLevels: 7,
+                        slice: setupResult.cascadeCount,
+                        usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource,
+                        typelessViewFormat: new TypelessFormatDesc { Srv = TextureFormat.R32_Float, Uav = TextureFormat.R32_UInt });
+
+                    var occluderMap = renderGraph.CreateTexture(in occluderMapDesc, "CascadeOccluderMap");
+                    AddGenerateShadowOccludersPass(renderGraph, depthTexture, occluderMap, directionalShadowViewsBufferSrv, viewPort.Size, cascadeCount, cascadeSplits);
+                    AddBuildShadowOccluderHZBPass(renderGraph, occluderMap, cascadeCount);
+
+                    directionalShadowAtlas = AddDirectionalShadowMapPass(renderGraph, ghostPayload.InstanceCount, occluderMap, directionalShadowViewsBufferSrv, cascadeCount, setupResult.atlasResolution);
+                }
+            }
+
+            var shadowMapData = new ShadowMapPassData
+            {
+                shadowAtlas = shadowAtlas,
+                shadowViewsBufferSrv = shadowViewsBufferSrv,
+                shadowIndicesBufferSrv = shadowIndicesBufferSrv,
+                directionalShadowAtlas = directionalShadowAtlas,
+                directionalShadowViewsBufferSrv = directionalShadowViewsBufferSrv,
+                cascadeCount = cascadeCount,
+                cascadeSplits = cascadeSplits,
+                cascadeBlends = cascadeBlends,
+                maxShadowDistance = maxShadowDistance,
+                shadowFadeRange = shadowFadeRange
+            };
+
+            renderGraph.Blackboard.Add(ref shadowMapData);
 
             // Sky & Lighting
             var persistentViewStateBuffer = renderGraph.ImportBuffer(_gpuViewManager.PersistentViewStateBuffer, ResourceBarrierData.Common, ResourceBarrierData.Common);
             var skyContext = PrepareSky(renderGraph, viewContext, in request, ghostPayload, persistentViewStateBuffer);
             var litColor = AddDeferredLightingPass(renderGraph, in skyContext, historyHzb, hzbHistory.HzbMipCount, hzbHistory.HzbSize,
-                    depthTexture, tlasBuffer, request.viewId, viewContext.RenderSize);
+                    depthTexture, tlasBuffer, request.viewId, viewPort.Size);
 
             AddSkyPass(renderGraph, in skyContext, litColor, depthTexture);
 

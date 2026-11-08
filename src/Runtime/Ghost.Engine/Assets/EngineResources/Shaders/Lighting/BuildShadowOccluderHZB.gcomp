@@ -1,0 +1,126 @@
+compute "Internal/BuildShadowOccluderHZB"
+{
+    properties
+    {
+        uint baseOccluderUav;
+        uint cascadeCount;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+    }
+
+    hlsl
+    {
+        groupshared float gs_Mip[32][32];
+
+        [numthreads(16, 16, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupThreadID)
+        {
+            uint slice = dispatchThreadId.z;
+            if (slice >= g_Properties.cascadeCount || !IS_VALID_TEXTURE(g_Properties.baseOccluderUav))
+            {
+                return;
+            }
+
+            uint2 gtid = groupThreadId.xy;
+            uint sliceBaseUav = g_Properties.baseOccluderUav + slice * 7u;
+
+            RWTexture2DArray<uint> mip0 = GET_TEXTURE2D_ARRAY(sliceBaseUav + 0u);
+            RWTexture2DArray<uint> mip1 = GET_TEXTURE2D_ARRAY(sliceBaseUav + 1u);
+            RWTexture2DArray<uint> mip2 = GET_TEXTURE2D_ARRAY(sliceBaseUav + 2u);
+            RWTexture2DArray<uint> mip3 = GET_TEXTURE2D_ARRAY(sliceBaseUav + 3u);
+            RWTexture2DArray<uint> mip4 = GET_TEXTURE2D_ARRAY(sliceBaseUav + 4u);
+            RWTexture2DArray<uint> mip5 = GET_TEXTURE2D_ARRAY(sliceBaseUav + 5u);
+            RWTexture2DArray<uint> mip6 = GET_TEXTURE2D_ARRAY(sliceBaseUav + 6u);
+
+            // Mip 1 (32x32) from Mip 0 (64x64)
+            [unroll]
+            for (uint dy = 0u; dy < 2u; ++dy)
+            {
+                [unroll]
+                for (uint dx = 0u; dx < 2u; ++dx)
+                {
+                    uint2 m1Coord = gtid * 2u + uint2(dx, dy);
+                    uint2 m0Coord = m1Coord * 2u;
+                    float d00 = asfloat(mip0[uint3(m0Coord + uint2(0u, 0u), 0)]);
+                    float d10 = asfloat(mip0[uint3(m0Coord + uint2(1u, 0u), 0)]);
+                    float d01 = asfloat(mip0[uint3(m0Coord + uint2(0u, 1u), 0)]);
+                    float d11 = asfloat(mip0[uint3(m0Coord + uint2(1u, 1u), 0)]);
+                    float minVal = min(min(d00, d10), min(d01, d11));
+                    mip1[uint3(m1Coord, 0)] = asuint(minVal);
+                    gs_Mip[m1Coord.y][m1Coord.x] = minVal;
+                }
+            }
+
+            GroupMemoryBarrierWithGroupSync();
+
+            // Mip 2 (16x16) from Mip 1 (32x32)
+            uint2 s2 = gtid * 2u;
+            float m2Val = min(min(gs_Mip[s2.y][s2.x], gs_Mip[s2.y][s2.x + 1u]), min(gs_Mip[s2.y + 1u][s2.x], gs_Mip[s2.y + 1u][s2.x + 1u]));
+            mip2[uint3(gtid, 0)] = asuint(m2Val);
+
+            GroupMemoryBarrierWithGroupSync();
+            gs_Mip[gtid.y][gtid.x] = m2Val;
+            GroupMemoryBarrierWithGroupSync();
+
+            // Mip 3 (8x8) from Mip 2 (16x16)
+            float m3Val = 2.0f;
+            if (gtid.x < 8u && gtid.y < 8u)
+            {
+                uint2 s3 = gtid * 2u;
+                m3Val = min(min(gs_Mip[s3.y][s3.x], gs_Mip[s3.y][s3.x + 1u]), min(gs_Mip[s3.y + 1u][s3.x], gs_Mip[s3.y + 1u][s3.x + 1u]));
+                mip3[uint3(gtid, 0)] = asuint(m3Val);
+            }
+
+            GroupMemoryBarrierWithGroupSync();
+            if (gtid.x < 8u && gtid.y < 8u)
+            {
+                gs_Mip[gtid.y][gtid.x] = m3Val;
+            }
+            GroupMemoryBarrierWithGroupSync();
+
+            // Mip 4 (4x4) from Mip 3 (8x8)
+            float m4Val = 2.0f;
+            if (gtid.x < 4u && gtid.y < 4u)
+            {
+                uint2 s4 = gtid * 2u;
+                m4Val = min(min(gs_Mip[s4.y][s4.x], gs_Mip[s4.y][s4.x + 1u]), min(gs_Mip[s4.y + 1u][s4.x], gs_Mip[s4.y + 1u][s4.x + 1u]));
+                mip4[uint3(gtid, 0)] = asuint(m4Val);
+            }
+
+            GroupMemoryBarrierWithGroupSync();
+            if (gtid.x < 4u && gtid.y < 4u)
+            {
+                gs_Mip[gtid.y][gtid.x] = m4Val;
+            }
+            GroupMemoryBarrierWithGroupSync();
+
+            // Mip 5 (2x2) from Mip 4 (4x4)
+            float m5Val = 2.0f;
+            if (gtid.x < 2u && gtid.y < 2u)
+            {
+                uint2 s5 = gtid * 2u;
+                m5Val = min(min(gs_Mip[s5.y][s5.x], gs_Mip[s5.y][s5.x + 1u]), min(gs_Mip[s5.y + 1u][s5.x], gs_Mip[s5.y + 1u][s5.x + 1u]));
+                mip5[uint3(gtid, 0)] = asuint(m5Val);
+            }
+
+            GroupMemoryBarrierWithGroupSync();
+            if (gtid.x < 2u && gtid.y < 2u)
+            {
+                gs_Mip[gtid.y][gtid.x] = m5Val;
+            }
+            GroupMemoryBarrierWithGroupSync();
+
+            // Mip 6 (1x1) from Mip 5 (2x2)
+            if (gtid.x == 0u && gtid.y == 0u)
+            {
+                float m6Val = min(min(gs_Mip[0][0], gs_Mip[0][1]), min(gs_Mip[1][0], gs_Mip[1][1]));
+                mip6[uint3(0u, 0u, 0u)] = asuint(m6Val);
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

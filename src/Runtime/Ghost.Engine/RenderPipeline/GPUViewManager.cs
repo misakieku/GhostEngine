@@ -65,6 +65,7 @@ public sealed class GPUViewContext : IDisposable
 
     private RenderGraph? _renderGraph;
 
+    private uint2 _renderSize;
     public float4x4 prevViewProjMatrix;
     public float3 prevCameraPosition;
     public ulong prevSkyHash;
@@ -75,11 +76,6 @@ public sealed class GPUViewContext : IDisposable
     }
 
     public bool IsActive
-    {
-        get; private set;
-    }
-
-    public uint2 RenderSize
     {
         get; private set;
     }
@@ -175,7 +171,7 @@ public sealed class GPUViewContext : IDisposable
         return true;
     }
 
-    public void EnsureSize(uint2 renderSize)
+    public void Initialize(uint2 renderSize)
     {
         if (renderSize.x == 0 || renderSize.y == 0)
         {
@@ -184,11 +180,11 @@ public sealed class GPUViewContext : IDisposable
 
         _renderGraph ??= new RenderGraph(_database, _allocator, _pipelineLibrary, _resourceManager, _shaderLibrary);
 
-        if (RenderSize.x != renderSize.x || RenderSize.y != renderSize.y)
+        if (_renderSize.x != renderSize.x || _renderSize.y != renderSize.y)
         {
             prevViewProjMatrix = default;
             prevCameraPosition = default;
-            RenderSize = renderSize;
+            _renderSize = renderSize;
         }
     }
 
@@ -205,7 +201,7 @@ public sealed class GPUViewContext : IDisposable
         _renderGraph = null;
 
         IsActive = false;
-        RenderSize = default;
+        _renderSize = default;
         prevViewProjMatrix = default;
         prevCameraPosition = default;
         prevSkyHash = 0;

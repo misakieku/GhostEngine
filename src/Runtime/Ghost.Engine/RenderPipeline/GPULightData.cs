@@ -44,8 +44,14 @@ public struct GPUDirectionalLight
 {
     public float3 directionWS;
     public uint castShadows;
+
     public float3 color;
-    public float shadowBiasMultiplier;
+    public float angularDiameter;
+
+    public float lightDimmer;       // Light intensity scale;
+    public float shadowDimmer;      // Shadow intensity scale;
+    public float diffuseDimmer;
+    public float specularDimmer;
 }
 
 [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GPULightData.hlsl")]
@@ -97,4 +103,11 @@ public struct PunctualLightRequest
 {
     public GPUPunctualLight light;
     public ShadowData shadowData;
+}
+
+public struct DirectionalLightRequest
+{
+    public GPUDirectionalLight light;
+    public ShadowData shadowData;
+    public uint shadowSize;
 }

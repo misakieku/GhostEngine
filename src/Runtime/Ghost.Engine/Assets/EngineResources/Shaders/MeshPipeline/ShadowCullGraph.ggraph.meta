@@ -8,6 +8,8 @@
     "Options": "None",
     "ShaderModel": "SM_6_8",
     "Defines": [],
-    "DefineGroups": {}
+    "DefineGroups": {
+      "Directional": [ "SHADOWCULL_DIRECTIONAL" ]
+    }
   }
 }

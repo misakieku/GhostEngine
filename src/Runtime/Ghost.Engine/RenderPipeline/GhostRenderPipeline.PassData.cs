@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RenderGraphModule;
+using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Engine.RenderPipeline;
 
@@ -31,6 +32,13 @@ internal partial class GhostRenderPipeline
         public Identifier<RGTexture> shadowAtlas;
         public uint shadowViewsBufferSrv;
         public uint shadowIndicesBufferSrv;
+        public Identifier<RGTexture> directionalShadowAtlas;
+        public uint directionalShadowViewsBufferSrv;
+        public uint cascadeCount;
+        public float4 cascadeSplits;
+        public float4 cascadeBlends;
+        public float maxShadowDistance;
+        public float shadowFadeRange;
     }
 
     private struct RisPassData

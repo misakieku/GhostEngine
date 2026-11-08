@@ -100,7 +100,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         const float size = 5.0f;
         const float baseScale = 1.0f;
         const float lightSize = size * 1.0f;
-        const int lightCount = 25;
+        const int lightCount = 0;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -175,17 +175,25 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             _world.EntityManager.SetComponent(entity, localToWorld);
         }
 
-        //_world.EntityManager.CreateEntity(
-        //    new DirectionalLight
-        //    {
-        //        color = new float3(1.0f, 0.95f, 0.85f),
-        //        intensity = 1.0f,
-        //        castShadows = true
-        //    },
-        //    new LocalToWorld
-        //    {
-        //        matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(new float3(45.0f, 45.0f, 0.0f)), new float3(1.0f, 1.0f, 1.0f))
-        //    });
+        _world.EntityManager.CreateEntity(
+            new DirectionalLight
+            {
+                color = new float3(1.0f, 0.95f, 0.85f),
+                intensity = 10.0f,
+                castShadows = true,
+                shadowSize = 2048,
+                lightingDimmer = 1.0f,
+                shadowDimmer = 1.0f,
+                diffuseDimmer = 1.0f,
+                specularDimmer = 1.0f,
+                normalBias = 0.75f,
+                depthBias = 0.5f,
+                shadowLodErrorScale = 5.0f,
+            },
+            new LocalToWorld
+            {
+                matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(math.radians(new float3(45.0f, 45.0f, 0.0f))), new float3(1.0f, 1.0f, 1.0f))
+            });
 
         for (var i = 0; i < lightCount; i++)
         {
@@ -238,7 +246,8 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         });
         volumeData.Set(new ShadowSettings
         {
-            shadowMode = ShadowMode.PCF,
+            shadowMode = ShadowMode.ShadowMap,
+            maxDistance = 50.0f,
         });
         volumeData.Set(new RayTracingSettings
         {
