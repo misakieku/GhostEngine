@@ -27,8 +27,6 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
     private IAssetEntry _shaderAsset = null!;
     private IAssetEntry _skyAsset = null!;
 
-    private Entity _volumeEntity;
-
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
         EnableRayTracing = true,
@@ -256,7 +254,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             solidAngleThreshold = math.radians(4.0f),
         });
 
-        _volumeEntity = _world.EntityManager.CreateEntity(
+        _world.EntityManager.CreateEntity(
             new RenderVolume { renderingLayerMask = RenderingLayerMask.All, isGlobal = true, weight = 1.0f, priority = 1 },
             volumeData);
 

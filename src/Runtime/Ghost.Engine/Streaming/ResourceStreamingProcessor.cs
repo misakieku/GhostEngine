@@ -74,7 +74,7 @@ internal class ResourceStreamingProcessor
         }
     }
 
-    public void ProcessPendingResource(JobScheduler jobScheduler, object? context)
+    public void ProcessPendingResource(JobScheduler jobScheduler)
     {
         using var scope = AllocationManager.CreateStackScope();
         using var handles = new UnsafeList<JobHandle>(_pendingProcess.Count, scope.AllocationHandle);

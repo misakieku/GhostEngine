@@ -196,6 +196,7 @@ Use public fields only for data-container structs. Prefer private field + public
 - Prefer `ref struct` / `readonly ref struct` for stack-only types (`RefResult<T,E>`, `SystemAPI`)
 - Use `partial class` to split large classes by concern
 - Use the `field` keyword for auto-property backing fields when a dedicated private field is unnecessary
+- Prefer private over internal over public for access modifier
 
 ### Imports
 

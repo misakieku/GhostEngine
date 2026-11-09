@@ -116,7 +116,7 @@ public unsafe partial class EntityManager : IDisposable
         var it = signature.GetIterator();
         while (it.Next(out var componentID))
         {
-            if (ComponentRegistry.GetComponentInfo(componentID).isCleanup)
+            if (ComponentRegistry.GetComponentInfo(componentID).IsCleanup)
             {
                 compCount++;
             }
@@ -127,7 +127,7 @@ public unsafe partial class EntityManager : IDisposable
         var i = 0;
         while (collectIt.Next(out var componentID))
         {
-            if (ComponentRegistry.GetComponentInfo(componentID).isCleanup)
+            if (ComponentRegistry.GetComponentInfo(componentID).IsCleanup)
             {
                 componentTypeIDs[i++] = componentID;
             }
@@ -788,7 +788,7 @@ public unsafe partial class EntityManager : IDisposable
     public Error AddComponent(Entity entity, Identifier<IComponent> componentID, void* pComponent)
     {
 #if GHOST_SAFETY_CHECKS
-        if (ComponentRegistry.GetComponentInfo(componentID).isShared)
+        if (ComponentRegistry.GetComponentInfo(componentID).IsShared)
         {
             return Error.InvalidArgument;
         }
@@ -911,7 +911,7 @@ public unsafe partial class EntityManager : IDisposable
     public Error RemoveComponent(Entity entity, Identifier<IComponent> componentID)
     {
 #if GHOST_SAFETY_CHECKS
-        if (ComponentRegistry.GetComponentInfo(componentID).isShared)
+        if (ComponentRegistry.GetComponentInfo(componentID).IsShared)
         {
             return Error.InvalidArgument;
         }
@@ -1144,7 +1144,7 @@ public unsafe partial class EntityManager : IDisposable
 
     private void SetComponentSequential_Core(ReadOnlySpan<Entity> entities, Identifier<IComponent> componentID, void* pComponent, ref readonly Archetype archetype)
     {
-        var size = ComponentRegistry.GetComponentInfo(componentID).size;
+        var size = ComponentRegistry.GetComponentInfo(componentID).Size;
         var batch = (int)Math.Ceiling((double)entities.Length / archetype.EntityCapacity);
         var batchSize = entities.Length > archetype.EntityCapacity
             ? archetype.EntityCapacity
@@ -1625,7 +1625,7 @@ public unsafe partial class EntityManager : IDisposable
     public void* GetSharedComponent(Entity entity, Identifier<IComponent> componentID)
     {
 #if GHOST_SAFETY_CHECKS
-        if (!ComponentRegistry.GetComponentInfo(componentID).isShared)
+        if (!ComponentRegistry.GetComponentInfo(componentID).IsShared)
         {
             throw new InvalidOperationException("GetSharedComponent can only be used with shared components.");
         }

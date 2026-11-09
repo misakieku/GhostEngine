@@ -184,7 +184,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
         _writer.Write(ECBOpCode.SetComponent);
         _writer.Write(entity);
         _writer.Write(componentID);
-        _writer.WriteMemory(data, ComponentRegistry.GetComponentInfo(componentID).size);
+        _writer.WriteMemory(data, ComponentRegistry.GetComponentInfo(componentID).Size);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -312,7 +312,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
                 case ECBOpCode.AddComponent:
                     var entityToAdd = reader.Read<Entity>();
                     var addCompTypeID = reader.Read<Identifier<IComponent>>();
-                    var pAddCompData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(addCompTypeID).size);
+                    var pAddCompData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(addCompTypeID).Size);
                     entityManager.AddComponent(MapEntity(entityToAdd, &tempMap), addCompTypeID, pAddCompData);
                     break;
 
@@ -325,14 +325,14 @@ public unsafe struct EntityCommandBuffer : IDisposable
                 case ECBOpCode.SetComponent:
                     var entityToSet = reader.Read<Entity>();
                     var setCompTypeID = reader.Read<Identifier<IComponent>>();
-                    var pSetCompData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(setCompTypeID).size);
+                    var pSetCompData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(setCompTypeID).Size);
                     entityManager.SetComponent(MapEntity(entityToSet, &tempMap), setCompTypeID, pSetCompData);
                     break;
 
                 case ECBOpCode.AddSharedComponent:
                     var entityToAddShared = reader.Read<Entity>();
                     var addSharedTypeID = reader.Read<Identifier<IComponent>>();
-                    var pAddSharedData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(addSharedTypeID).size);
+                    var pAddSharedData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(addSharedTypeID).Size);
                     entityManager.AddSharedComponent(MapEntity(entityToAddShared, &tempMap), addSharedTypeID, pAddSharedData);
                     break;
 
@@ -345,7 +345,7 @@ public unsafe struct EntityCommandBuffer : IDisposable
                 case ECBOpCode.SetSharedComponent:
                     var entityToSetShared = reader.Read<Entity>();
                     var setSharedTypeID = reader.Read<Identifier<IComponent>>();
-                    var pSetSharedData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(setSharedTypeID).size);
+                    var pSetSharedData = reader.ReadBuffer((nuint)ComponentRegistry.GetComponentInfo(setSharedTypeID).Size);
                     entityManager.SetSharedComponent(MapEntity(entityToSetShared, &tempMap), setSharedTypeID, pSetSharedData);
                     break;
 

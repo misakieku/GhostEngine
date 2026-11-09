@@ -81,7 +81,7 @@ public unsafe partial class EntityManager
     /// <param name="component<#= j #>">The component to add to the entity.</param>
 <# } #>
     /// <param name="count">The number of entities to create.</param>
-    public void CreateEntities<<#= generics #>>(<#= compGenerics #>, int count)
+    public Error CreateEntities<<#= generics #>>(<#= compGenerics #>, int count)
 <#= restrictions #>
     {
         var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[<#= i #>];
@@ -101,18 +101,21 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
     }
 
     /// <summary>
-    /// Creates entities with the specified components.
+    /// Creates entities with the specified component values.
     /// </summary>
 <# for (var j = 0; j < i; j++) { #>
     /// <typeparam name="T<#= j #>">The type of the component.</typeparam>
 <# } #>
+    /// <param name="entities">The span to hold the created entities.</param>
 <# for (var j = 0; j < i; j++) { #>
     /// <param name="component<#= j #>">The component to add to the entity.</param>
 <# } #>
-    public void CreateEntities<<#= generics #>>(Span<Entity> entities, <#= compGenerics #>)
+    public Error CreateEntities<<#= generics #>>(Span<Entity> entities, <#= compGenerics #>)
 <#= restrictions #>
     {
         var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[<#= i #>];
@@ -129,6 +132,46 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+<# for (var j = 0; j < i; j++) { #>
+    /// <typeparam name="T<#= j #>">The type of the component.</typeparam>
+<# } #>
+    /// <param name="count">The number of entities to create.</param>
+    public void CreateEntities<<#= generics #>>(int count)
+<#= restrictions #>
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[<#= i #>];
+<# for (var j = 0; j < i; j++) { #>
+        ids[<#= j #>] = ComponentTypeID<T<#= j #>>.Value;
+<# } #>
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(count, set);
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+<# for (var j = 0; j < i; j++) { #>
+    /// <typeparam name="T<#= j #>">The type of the component.</typeparam>
+<# } #>
+    /// <param name="entities">The span to hold the created entities.</param>
+    public void CreateEntities<<#= generics #>>(Span<Entity> entities)
+<#= restrictions #>
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[<#= i #>];
+<# for (var j = 0; j < i; j++) { #>
+        ids[<#= j #>] = ComponentTypeID<T<#= j #>>.Value;
+<# } #>
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(entities, set);
     }
 
     /// <summary>

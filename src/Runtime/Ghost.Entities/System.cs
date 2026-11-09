@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace Ghost.Entities;
 
+[Obsolete("MainThreadAttribute does not work properly today. Should avoid this right now.")]
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false)]
 public sealed class MainThreadAttribute : Attribute;
 
@@ -527,6 +528,7 @@ public abstract class SystemGroup : ISystem
 
             var depHandles = depHandlesBuffer.AsSpan().Slice(0, validDepCount);
 
+            // FIX: This is wrong. Main thread system with should be a sync point in the dag, rather than executing them ahead of the jobs.
             if (node.isMainThread)
             {
                 if (depHandles.Length > 0)

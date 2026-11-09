@@ -10,11 +10,7 @@ public class Program
     private static void Main(string[] args)
     {
         //BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
-        BenchmarkRunner.Run<EntitiesSystemWithTwoComponents>();
-        //var b = new EntitiesSystemWithTwoComponents();
-        //b.Setup();
-        //b.Query_Job();
-        //b.CleanUp();
+        BenchmarkRunner.Run<EntitiesBenchmark>();
     }
 }
 

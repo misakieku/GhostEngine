@@ -284,13 +284,13 @@ internal unsafe struct Archetype : IDisposable
 
             var info = ComponentRegistry.GetComponentInfo(componentIds[i]);
 
-            if (info.isShared)
+            if (info.IsShared)
             {
                 sharedInfos.Add(info);  // store info directly — components list skips shared
                 continue;
             }
 
-            if (info.isCleanup)
+            if (info.IsCleanup)
             {
                 cleanupCount++;
             }
@@ -300,7 +300,7 @@ internal unsafe struct Archetype : IDisposable
 
         if (sharedInfos.Count > 0)
         {
-            sharedInfos.AsSpan().Sort(static (a, b) => a.id.Value.CompareTo(b.id.Value));
+            sharedInfos.AsSpan().Sort(static (a, b) => a.ID.Value.CompareTo(b.ID.Value));
 
             var offset = 0;
 
@@ -310,12 +310,12 @@ internal unsafe struct Archetype : IDisposable
                 var info = sharedInfos[i];
                 _sharedLayouts[i] = new SharedComponentLayout
                 {
-                    componentID = info.id.Value,
-                    size = info.size,
+                    componentID = info.ID.Value,
+                    size = info.Size,
                     offset = offset
                 };
 
-                offset += info.size;
+                offset += info.Size;
             }
 
             _sharedDataSize = offset;
@@ -332,10 +332,10 @@ internal unsafe struct Archetype : IDisposable
         for (var i = 0; i < components.Count; i++)
         {
             var comp = components[i];
-            bytesPerEntity += comp.size;
-            if (comp.id > maxComponentID)
+            bytesPerEntity += comp.Size;
+            if (comp.ID > maxComponentID)
             {
-                maxComponentID = comp.id;
+                maxComponentID = comp.ID;
             }
         }
 
@@ -347,7 +347,7 @@ internal unsafe struct Archetype : IDisposable
 
         _componentIDToLayoutIndex.AsSpan().Fill(-1);
 
-        components.AsSpan().Sort(static (a, b) => b.alignment.CompareTo(a.alignment));
+        components.AsSpan().Sort(static (a, b) => b.Alignment.CompareTo(a.Alignment));
         using var tempOffsets = new UnsafeArray<int>(components.Count, scope.AllocationHandle);
         using var tempBitmaskOffsets = new UnsafeArray<int>(components.Count, scope.AllocationHandle);
 
@@ -363,15 +363,15 @@ internal unsafe struct Archetype : IDisposable
 
             for (var i = 0; i < components.Count; i++)
             {
-                var size = components[i].size;
-                var align = components[i].alignment;
+                var size = components[i].Size;
+                var align = components[i].Alignment;
 
                 currentOffset = (currentOffset + align - 1) & ~(align - 1);
                 tempOffsets[i] = currentOffset;
                 currentOffset += _entityCapacity * size;
 
                 var bitmaskOffset = -1;
-                if (components[i].isEnableable)
+                if (components[i].IsEnableable)
                 {
                     var bitmaskSize = (_entityCapacity + Chunk.BIT_ALIGNMENT_MINUS_ONE) / Chunk.BIT_ALIGNMENT;
                     // Reserve space for the bitmask (1 bit per entity)
@@ -396,14 +396,14 @@ internal unsafe struct Archetype : IDisposable
                 {
                     _layouts[i] = new ComponentMemoryLayout
                     {
-                        componentID = components[i].id,
+                        componentID = components[i].ID,
                         offset = tempOffsets[i],
-                        size = components[i].size,
+                        size = components[i].Size,
                         enableBitsOffset = tempBitmaskOffsets[i],
                         versionIndex = i
                     };
 
-                    _componentIDToLayoutIndex[components[i].id] = i;
+                    _componentIDToLayoutIndex[components[i].ID] = i;
                 }
 
                 return;
@@ -723,7 +723,7 @@ internal unsafe struct Archetype : IDisposable
     public readonly void SetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID, void* pComponent)
     {
 #if GHOST_SAFETY_CHECKS
-        if (ComponentRegistry.GetComponentInfo(componentID).isShared)
+        if (ComponentRegistry.GetComponentInfo(componentID).IsShared)
         {
             throw new InvalidOperationException("SetComponentData cannot be used for shared components. Use SetSharedComponentData instead.");
         }
@@ -738,7 +738,7 @@ internal unsafe struct Archetype : IDisposable
         ref var chunk = ref _chunks[chunkIndex];
 
         var chunkBase = chunk.GetUnsafePtr();
-        var size = ComponentRegistry.GetComponentInfo(componentID).size;
+        var size = ComponentRegistry.GetComponentInfo(componentID).Size;
         var dst = chunkBase + offset + (size * rowIndex);
 
         MemoryUtility.MemCpy(dst, pComponent, (nuint)size);
@@ -751,7 +751,7 @@ internal unsafe struct Archetype : IDisposable
     public readonly void* GetComponentData(int chunkIndex, int rowIndex, Identifier<IComponent> componentID)
     {
 #if GHOST_SAFETY_CHECKS
-        if (ComponentRegistry.GetComponentInfo(componentID).isShared)
+        if (ComponentRegistry.GetComponentInfo(componentID).IsShared)
         {
             throw new InvalidOperationException("GetComponentData cannot be used for shared components. Use GetSharedComponentData instead.");
         }
@@ -766,7 +766,7 @@ internal unsafe struct Archetype : IDisposable
         var chunk = _chunks[chunkIndex];
 
         var chunkBase = chunk.GetUnsafePtr();
-        var size = ComponentRegistry.GetComponentInfo(componentID).size;
+        var size = ComponentRegistry.GetComponentInfo(componentID).Size;
         return chunkBase + offset + (size * rowIndex);
     }
 
@@ -1098,7 +1098,7 @@ internal unsafe struct Archetype : IDisposable
         var it = _signature.GetIterator();
         while (it.Next(out var componentID))
         {
-            if (ComponentRegistry.GetComponentInfo(componentID).isCleanup)
+            if (ComponentRegistry.GetComponentInfo(componentID).IsCleanup)
             {
                 _cleanupEdge = -1;
                 break;

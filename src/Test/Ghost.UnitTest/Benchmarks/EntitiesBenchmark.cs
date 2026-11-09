@@ -178,7 +178,7 @@ public class EntitiesBenchmark
     [Benchmark]
     public void CreateEntities()
     {
-        _world.EntityManager.CreateEntities(_entities, new VelocityComponent { delta = new float3(1, 2, 3) }, new LocalToWorld { matrix = float4x4.identity });
+        _world.EntityManager.CreateEntities<VelocityComponent, LocalToWorld>(_entities);
 
         // We must destory thoes entities right here because iteration cleanup in benchmark dotnet is slow and cause gc (add noise to the test method).
         // It’s unfair to ecs but we must do it.

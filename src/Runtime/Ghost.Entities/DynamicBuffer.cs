@@ -17,6 +17,16 @@ public unsafe struct DynamicBuffer<T>
     public readonly int Capacity => _capacity;
     public readonly int Count => _count;
 
+    public readonly ref T this[int index]
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            CheckIndex(index);
+            return ref _pBase[index];
+        }
+    }
+
     internal DynamicBuffer(T* pBase)
     {
         _inlineCapacity = ComponentTypeID<T>.InlineBufferCapacity;
@@ -26,16 +36,6 @@ public unsafe struct DynamicBuffer<T>
 
         _capacity = _inlineCapacity;
         _count = 0;
-    }
-
-    public readonly ref T this[int index]
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            CheckIndex(index);
-            return ref _pBase[index];
-        }
     }
 
     [Conditional("GHOST_SAFETY_CHECKS")]
@@ -127,6 +127,18 @@ public unsafe struct DynamicBuffer<T>
 
     public void Clear()
     {
+        _count = 0;
+    }
+
+    public void Dispose()
+    {
+        if (*_pExternalPtr != null)
+        {
+            MemoryUtility.Free(*_pExternalPtr);
+            *_pExternalPtr = null;
+        }
+
+        _capacity = _inlineCapacity;
         _count = 0;
     }
 }

@@ -2,12 +2,12 @@ shader "Ghost/StandardLit" : "Lit"
 {
     properties
     {
-        float3 baseColor;
+        float3 baseColor = float3(0.73, 0.73, 0.73);
         Texture2D baseColorMap;
         Texture2D normalMap;
         Texture2D ormMap;
         Sampler sampler;
-        float roughness;
+        float roughness = 0.5;
         float metallic;
         float3 emissionColor;
         Texture2D emissionMap;

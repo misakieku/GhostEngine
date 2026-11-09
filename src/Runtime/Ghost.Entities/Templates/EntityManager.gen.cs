@@ -55,7 +55,7 @@ public unsafe partial class EntityManager
     /// <typeparam name="T0">The type of the component.</typeparam>
     /// <param name="component0">The component to add to the entity.</param>
     /// <param name="count">The number of entities to create.</param>
-    public void CreateEntities<T0>(scoped in T0 component0, int count)
+    public Error CreateEntities<T0>(scoped in T0 component0, int count)
         where T0 : unmanaged, IComponentData
     {
         var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[1];
@@ -73,14 +73,17 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
     }
 
     /// <summary>
-    /// Creates entities with the specified components.
+    /// Creates entities with the specified component values.
     /// </summary>
     /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
     /// <param name="component0">The component to add to the entity.</param>
-    public void CreateEntities<T0>(Span<Entity> entities, scoped in T0 component0)
+    public Error CreateEntities<T0>(Span<Entity> entities, scoped in T0 component0)
         where T0 : unmanaged, IComponentData
     {
         var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[1];
@@ -95,6 +98,38 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <param name="count">The number of entities to create.</param>
+    public void CreateEntities<T0>(int count)
+        where T0 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[1];
+        ids[0] = ComponentTypeID<T0>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(count, set);
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
+    public void CreateEntities<T0>(Span<Entity> entities)
+        where T0 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[1];
+        ids[0] = ComponentTypeID<T0>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(entities, set);
     }
 
     /// <summary>
@@ -189,7 +224,7 @@ public unsafe partial class EntityManager
     /// <param name="component0">The component to add to the entity.</param>
     /// <param name="component1">The component to add to the entity.</param>
     /// <param name="count">The number of entities to create.</param>
-    public void CreateEntities<T0, T1>(scoped in T0 component0, scoped in T1 component1, int count)
+    public Error CreateEntities<T0, T1>(scoped in T0 component0, scoped in T1 component1, int count)
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
     {
@@ -209,16 +244,19 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
     }
 
     /// <summary>
-    /// Creates entities with the specified components.
+    /// Creates entities with the specified component values.
     /// </summary>
     /// <typeparam name="T0">The type of the component.</typeparam>
     /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
     /// <param name="component0">The component to add to the entity.</param>
     /// <param name="component1">The component to add to the entity.</param>
-    public void CreateEntities<T0, T1>(Span<Entity> entities, scoped in T0 component0, scoped in T1 component1)
+    public Error CreateEntities<T0, T1>(Span<Entity> entities, scoped in T0 component0, scoped in T1 component1)
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
     {
@@ -235,6 +273,44 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <param name="count">The number of entities to create.</param>
+    public void CreateEntities<T0, T1>(int count)
+        where T0 : unmanaged, IComponentData
+        where T1 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[2];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(count, set);
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
+    public void CreateEntities<T0, T1>(Span<Entity> entities)
+        where T0 : unmanaged, IComponentData
+        where T1 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[2];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(entities, set);
     }
 
     /// <summary>
@@ -348,7 +424,7 @@ public unsafe partial class EntityManager
     /// <param name="component1">The component to add to the entity.</param>
     /// <param name="component2">The component to add to the entity.</param>
     /// <param name="count">The number of entities to create.</param>
-    public void CreateEntities<T0, T1, T2>(scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, int count)
+    public Error CreateEntities<T0, T1, T2>(scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, int count)
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
         where T2 : unmanaged, IComponentData
@@ -370,18 +446,21 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
     }
 
     /// <summary>
-    /// Creates entities with the specified components.
+    /// Creates entities with the specified component values.
     /// </summary>
     /// <typeparam name="T0">The type of the component.</typeparam>
     /// <typeparam name="T1">The type of the component.</typeparam>
     /// <typeparam name="T2">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
     /// <param name="component0">The component to add to the entity.</param>
     /// <param name="component1">The component to add to the entity.</param>
     /// <param name="component2">The component to add to the entity.</param>
-    public void CreateEntities<T0, T1, T2>(Span<Entity> entities, scoped in T0 component0, scoped in T1 component1, scoped in T2 component2)
+    public Error CreateEntities<T0, T1, T2>(Span<Entity> entities, scoped in T0 component0, scoped in T1 component1, scoped in T2 component2)
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
         where T2 : unmanaged, IComponentData
@@ -400,6 +479,50 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <typeparam name="T2">The type of the component.</typeparam>
+    /// <param name="count">The number of entities to create.</param>
+    public void CreateEntities<T0, T1, T2>(int count)
+        where T0 : unmanaged, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[3];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(count, set);
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <typeparam name="T2">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
+    public void CreateEntities<T0, T1, T2>(Span<Entity> entities)
+        where T0 : unmanaged, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[3];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(entities, set);
     }
 
     /// <summary>
@@ -532,7 +655,7 @@ public unsafe partial class EntityManager
     /// <param name="component2">The component to add to the entity.</param>
     /// <param name="component3">The component to add to the entity.</param>
     /// <param name="count">The number of entities to create.</param>
-    public void CreateEntities<T0, T1, T2, T3>(scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, int count)
+    public Error CreateEntities<T0, T1, T2, T3>(scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, int count)
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
         where T2 : unmanaged, IComponentData
@@ -556,20 +679,23 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
     }
 
     /// <summary>
-    /// Creates entities with the specified components.
+    /// Creates entities with the specified component values.
     /// </summary>
     /// <typeparam name="T0">The type of the component.</typeparam>
     /// <typeparam name="T1">The type of the component.</typeparam>
     /// <typeparam name="T2">The type of the component.</typeparam>
     /// <typeparam name="T3">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
     /// <param name="component0">The component to add to the entity.</param>
     /// <param name="component1">The component to add to the entity.</param>
     /// <param name="component2">The component to add to the entity.</param>
     /// <param name="component3">The component to add to the entity.</param>
-    public void CreateEntities<T0, T1, T2, T3>(Span<Entity> entities, scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3)
+    public Error CreateEntities<T0, T1, T2, T3>(Span<Entity> entities, scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3)
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
         where T2 : unmanaged, IComponentData
@@ -590,6 +716,56 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <typeparam name="T2">The type of the component.</typeparam>
+    /// <typeparam name="T3">The type of the component.</typeparam>
+    /// <param name="count">The number of entities to create.</param>
+    public void CreateEntities<T0, T1, T2, T3>(int count)
+        where T0 : unmanaged, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        where T3 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[4];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(count, set);
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <typeparam name="T2">The type of the component.</typeparam>
+    /// <typeparam name="T3">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
+    public void CreateEntities<T0, T1, T2, T3>(Span<Entity> entities)
+        where T0 : unmanaged, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        where T3 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[4];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(entities, set);
     }
 
     /// <summary>
@@ -741,7 +917,7 @@ public unsafe partial class EntityManager
     /// <param name="component3">The component to add to the entity.</param>
     /// <param name="component4">The component to add to the entity.</param>
     /// <param name="count">The number of entities to create.</param>
-    public void CreateEntities<T0, T1, T2, T3, T4>(scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4, int count)
+    public Error CreateEntities<T0, T1, T2, T3, T4>(scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4, int count)
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
         where T2 : unmanaged, IComponentData
@@ -767,22 +943,25 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
     }
 
     /// <summary>
-    /// Creates entities with the specified components.
+    /// Creates entities with the specified component values.
     /// </summary>
     /// <typeparam name="T0">The type of the component.</typeparam>
     /// <typeparam name="T1">The type of the component.</typeparam>
     /// <typeparam name="T2">The type of the component.</typeparam>
     /// <typeparam name="T3">The type of the component.</typeparam>
     /// <typeparam name="T4">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
     /// <param name="component0">The component to add to the entity.</param>
     /// <param name="component1">The component to add to the entity.</param>
     /// <param name="component2">The component to add to the entity.</param>
     /// <param name="component3">The component to add to the entity.</param>
     /// <param name="component4">The component to add to the entity.</param>
-    public void CreateEntities<T0, T1, T2, T3, T4>(Span<Entity> entities, scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4)
+    public Error CreateEntities<T0, T1, T2, T3, T4>(Span<Entity> entities, scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4)
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
         where T2 : unmanaged, IComponentData
@@ -805,6 +984,62 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <typeparam name="T2">The type of the component.</typeparam>
+    /// <typeparam name="T3">The type of the component.</typeparam>
+    /// <typeparam name="T4">The type of the component.</typeparam>
+    /// <param name="count">The number of entities to create.</param>
+    public void CreateEntities<T0, T1, T2, T3, T4>(int count)
+        where T0 : unmanaged, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        where T3 : unmanaged, IComponentData
+        where T4 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[5];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(count, set);
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <typeparam name="T2">The type of the component.</typeparam>
+    /// <typeparam name="T3">The type of the component.</typeparam>
+    /// <typeparam name="T4">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
+    public void CreateEntities<T0, T1, T2, T3, T4>(Span<Entity> entities)
+        where T0 : unmanaged, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        where T3 : unmanaged, IComponentData
+        where T4 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[5];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(entities, set);
     }
 
     /// <summary>
@@ -975,7 +1210,7 @@ public unsafe partial class EntityManager
     /// <param name="component4">The component to add to the entity.</param>
     /// <param name="component5">The component to add to the entity.</param>
     /// <param name="count">The number of entities to create.</param>
-    public void CreateEntities<T0, T1, T2, T3, T4, T5>(scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4, scoped in T5 component5, int count)
+    public Error CreateEntities<T0, T1, T2, T3, T4, T5>(scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4, scoped in T5 component5, int count)
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
         where T2 : unmanaged, IComponentData
@@ -1003,10 +1238,12 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
     }
 
     /// <summary>
-    /// Creates entities with the specified components.
+    /// Creates entities with the specified component values.
     /// </summary>
     /// <typeparam name="T0">The type of the component.</typeparam>
     /// <typeparam name="T1">The type of the component.</typeparam>
@@ -1014,13 +1251,14 @@ public unsafe partial class EntityManager
     /// <typeparam name="T3">The type of the component.</typeparam>
     /// <typeparam name="T4">The type of the component.</typeparam>
     /// <typeparam name="T5">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
     /// <param name="component0">The component to add to the entity.</param>
     /// <param name="component1">The component to add to the entity.</param>
     /// <param name="component2">The component to add to the entity.</param>
     /// <param name="component3">The component to add to the entity.</param>
     /// <param name="component4">The component to add to the entity.</param>
     /// <param name="component5">The component to add to the entity.</param>
-    public void CreateEntities<T0, T1, T2, T3, T4, T5>(Span<Entity> entities, scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4, scoped in T5 component5)
+    public Error CreateEntities<T0, T1, T2, T3, T4, T5>(Span<Entity> entities, scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4, scoped in T5 component5)
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
         where T2 : unmanaged, IComponentData
@@ -1045,6 +1283,68 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <typeparam name="T2">The type of the component.</typeparam>
+    /// <typeparam name="T3">The type of the component.</typeparam>
+    /// <typeparam name="T4">The type of the component.</typeparam>
+    /// <typeparam name="T5">The type of the component.</typeparam>
+    /// <param name="count">The number of entities to create.</param>
+    public void CreateEntities<T0, T1, T2, T3, T4, T5>(int count)
+        where T0 : unmanaged, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        where T3 : unmanaged, IComponentData
+        where T4 : unmanaged, IComponentData
+        where T5 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[6];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
+        ids[5] = ComponentTypeID<T5>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(count, set);
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <typeparam name="T2">The type of the component.</typeparam>
+    /// <typeparam name="T3">The type of the component.</typeparam>
+    /// <typeparam name="T4">The type of the component.</typeparam>
+    /// <typeparam name="T5">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
+    public void CreateEntities<T0, T1, T2, T3, T4, T5>(Span<Entity> entities)
+        where T0 : unmanaged, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        where T3 : unmanaged, IComponentData
+        where T4 : unmanaged, IComponentData
+        where T5 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[6];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
+        ids[5] = ComponentTypeID<T5>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(entities, set);
     }
 
     /// <summary>
@@ -1234,7 +1534,7 @@ public unsafe partial class EntityManager
     /// <param name="component5">The component to add to the entity.</param>
     /// <param name="component6">The component to add to the entity.</param>
     /// <param name="count">The number of entities to create.</param>
-    public void CreateEntities<T0, T1, T2, T3, T4, T5, T6>(scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4, scoped in T5 component5, scoped in T6 component6, int count)
+    public Error CreateEntities<T0, T1, T2, T3, T4, T5, T6>(scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4, scoped in T5 component5, scoped in T6 component6, int count)
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
         where T2 : unmanaged, IComponentData
@@ -1264,10 +1564,12 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
     }
 
     /// <summary>
-    /// Creates entities with the specified components.
+    /// Creates entities with the specified component values.
     /// </summary>
     /// <typeparam name="T0">The type of the component.</typeparam>
     /// <typeparam name="T1">The type of the component.</typeparam>
@@ -1276,6 +1578,7 @@ public unsafe partial class EntityManager
     /// <typeparam name="T4">The type of the component.</typeparam>
     /// <typeparam name="T5">The type of the component.</typeparam>
     /// <typeparam name="T6">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
     /// <param name="component0">The component to add to the entity.</param>
     /// <param name="component1">The component to add to the entity.</param>
     /// <param name="component2">The component to add to the entity.</param>
@@ -1283,7 +1586,7 @@ public unsafe partial class EntityManager
     /// <param name="component4">The component to add to the entity.</param>
     /// <param name="component5">The component to add to the entity.</param>
     /// <param name="component6">The component to add to the entity.</param>
-    public void CreateEntities<T0, T1, T2, T3, T4, T5, T6>(Span<Entity> entities, scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4, scoped in T5 component5, scoped in T6 component6)
+    public Error CreateEntities<T0, T1, T2, T3, T4, T5, T6>(Span<Entity> entities, scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4, scoped in T5 component5, scoped in T6 component6)
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
         where T2 : unmanaged, IComponentData
@@ -1310,6 +1613,74 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <typeparam name="T2">The type of the component.</typeparam>
+    /// <typeparam name="T3">The type of the component.</typeparam>
+    /// <typeparam name="T4">The type of the component.</typeparam>
+    /// <typeparam name="T5">The type of the component.</typeparam>
+    /// <typeparam name="T6">The type of the component.</typeparam>
+    /// <param name="count">The number of entities to create.</param>
+    public void CreateEntities<T0, T1, T2, T3, T4, T5, T6>(int count)
+        where T0 : unmanaged, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        where T3 : unmanaged, IComponentData
+        where T4 : unmanaged, IComponentData
+        where T5 : unmanaged, IComponentData
+        where T6 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[7];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
+        ids[5] = ComponentTypeID<T5>.Value;
+        ids[6] = ComponentTypeID<T6>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(count, set);
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <typeparam name="T2">The type of the component.</typeparam>
+    /// <typeparam name="T3">The type of the component.</typeparam>
+    /// <typeparam name="T4">The type of the component.</typeparam>
+    /// <typeparam name="T5">The type of the component.</typeparam>
+    /// <typeparam name="T6">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
+    public void CreateEntities<T0, T1, T2, T3, T4, T5, T6>(Span<Entity> entities)
+        where T0 : unmanaged, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        where T3 : unmanaged, IComponentData
+        where T4 : unmanaged, IComponentData
+        where T5 : unmanaged, IComponentData
+        where T6 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[7];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
+        ids[5] = ComponentTypeID<T5>.Value;
+        ids[6] = ComponentTypeID<T6>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(entities, set);
     }
 
     /// <summary>
@@ -1518,7 +1889,7 @@ public unsafe partial class EntityManager
     /// <param name="component6">The component to add to the entity.</param>
     /// <param name="component7">The component to add to the entity.</param>
     /// <param name="count">The number of entities to create.</param>
-    public void CreateEntities<T0, T1, T2, T3, T4, T5, T6, T7>(scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4, scoped in T5 component5, scoped in T6 component6, scoped in T7 component7, int count)
+    public Error CreateEntities<T0, T1, T2, T3, T4, T5, T6, T7>(scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4, scoped in T5 component5, scoped in T6 component6, scoped in T7 component7, int count)
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
         where T2 : unmanaged, IComponentData
@@ -1550,10 +1921,12 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
     }
 
     /// <summary>
-    /// Creates entities with the specified components.
+    /// Creates entities with the specified component values.
     /// </summary>
     /// <typeparam name="T0">The type of the component.</typeparam>
     /// <typeparam name="T1">The type of the component.</typeparam>
@@ -1563,6 +1936,7 @@ public unsafe partial class EntityManager
     /// <typeparam name="T5">The type of the component.</typeparam>
     /// <typeparam name="T6">The type of the component.</typeparam>
     /// <typeparam name="T7">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
     /// <param name="component0">The component to add to the entity.</param>
     /// <param name="component1">The component to add to the entity.</param>
     /// <param name="component2">The component to add to the entity.</param>
@@ -1571,7 +1945,7 @@ public unsafe partial class EntityManager
     /// <param name="component5">The component to add to the entity.</param>
     /// <param name="component6">The component to add to the entity.</param>
     /// <param name="component7">The component to add to the entity.</param>
-    public void CreateEntities<T0, T1, T2, T3, T4, T5, T6, T7>(Span<Entity> entities, scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4, scoped in T5 component5, scoped in T6 component6, scoped in T7 component7)
+    public Error CreateEntities<T0, T1, T2, T3, T4, T5, T6, T7>(Span<Entity> entities, scoped in T0 component0, scoped in T1 component1, scoped in T2 component2, scoped in T3 component3, scoped in T4 component4, scoped in T5 component5, scoped in T6 component6, scoped in T7 component7)
         where T0 : unmanaged, IComponentData
         where T1 : unmanaged, IComponentData
         where T2 : unmanaged, IComponentData
@@ -1600,6 +1974,80 @@ public unsafe partial class EntityManager
         {
             DestroyEntities(entities);
         }
+
+        return err;
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <typeparam name="T2">The type of the component.</typeparam>
+    /// <typeparam name="T3">The type of the component.</typeparam>
+    /// <typeparam name="T4">The type of the component.</typeparam>
+    /// <typeparam name="T5">The type of the component.</typeparam>
+    /// <typeparam name="T6">The type of the component.</typeparam>
+    /// <typeparam name="T7">The type of the component.</typeparam>
+    /// <param name="count">The number of entities to create.</param>
+    public void CreateEntities<T0, T1, T2, T3, T4, T5, T6, T7>(int count)
+        where T0 : unmanaged, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        where T3 : unmanaged, IComponentData
+        where T4 : unmanaged, IComponentData
+        where T5 : unmanaged, IComponentData
+        where T6 : unmanaged, IComponentData
+        where T7 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[8];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
+        ids[5] = ComponentTypeID<T5>.Value;
+        ids[6] = ComponentTypeID<T6>.Value;
+        ids[7] = ComponentTypeID<T7>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(count, set);
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+    /// <typeparam name="T0">The type of the component.</typeparam>
+    /// <typeparam name="T1">The type of the component.</typeparam>
+    /// <typeparam name="T2">The type of the component.</typeparam>
+    /// <typeparam name="T3">The type of the component.</typeparam>
+    /// <typeparam name="T4">The type of the component.</typeparam>
+    /// <typeparam name="T5">The type of the component.</typeparam>
+    /// <typeparam name="T6">The type of the component.</typeparam>
+    /// <typeparam name="T7">The type of the component.</typeparam>
+    /// <param name="entities">The span to hold the created entities.</param>
+    public void CreateEntities<T0, T1, T2, T3, T4, T5, T6, T7>(Span<Entity> entities)
+        where T0 : unmanaged, IComponentData
+        where T1 : unmanaged, IComponentData
+        where T2 : unmanaged, IComponentData
+        where T3 : unmanaged, IComponentData
+        where T4 : unmanaged, IComponentData
+        where T5 : unmanaged, IComponentData
+        where T6 : unmanaged, IComponentData
+        where T7 : unmanaged, IComponentData
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[8];
+        ids[0] = ComponentTypeID<T0>.Value;
+        ids[1] = ComponentTypeID<T1>.Value;
+        ids[2] = ComponentTypeID<T2>.Value;
+        ids[3] = ComponentTypeID<T3>.Value;
+        ids[4] = ComponentTypeID<T4>.Value;
+        ids[5] = ComponentTypeID<T5>.Value;
+        ids[6] = ComponentTypeID<T6>.Value;
+        ids[7] = ComponentTypeID<T7>.Value;
+
+        var set = new ComponentSetView(ids);
+        CreateEntities(entities, set);
     }
 
     /// <summary>
