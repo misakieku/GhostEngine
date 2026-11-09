@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
@@ -455,7 +456,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entities">The entities to destroy.</param>
     public void DestroyEntities(params ReadOnlySpan<Entity> entities)
     {
-        if (entities.Length == 0)
+        if (entities.IsEmpty)
         {
             return;
         }
@@ -1112,10 +1113,12 @@ public unsafe partial class EntityManager : IDisposable
         }
 
         ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+#if GHOST_SAFETY_CHECKS
         if (!archetype.HasComponent(componentID))
         {
             return Error.NotFound;
         }
+#endif
 
         archetype.SetComponentData(location.chunkIndex, location.rowIndex, componentID, pComponent);
 
@@ -1130,10 +1133,72 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="component">The component data.</param>
     /// <returns>The result status of the operation.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Error SetComponent<T>(Entity entity, T component)
+    public Error SetComponent<T>(Entity entity, scoped in T component)
         where T : unmanaged, IComponentData
     {
-        return SetComponent(entity, ComponentTypeID<T>.Value, &component);
+        fixed (T* pComponent = &component)
+        {
+            return SetComponent(entity, ComponentTypeID<T>.Value, pComponent);
+        }
+    }
+
+    private void SetComponentSequential_Core(ReadOnlySpan<Entity> entities, Identifier<IComponent> componentID, void* pComponent, ref readonly Archetype archetype)
+    {
+        var size = ComponentRegistry.GetComponentInfo(componentID).size;
+        var batch = (int)Math.Ceiling((double)entities.Length / archetype.EntityCapacity);
+        var batchSize = entities.Length > archetype.EntityCapacity
+            ? archetype.EntityCapacity
+            : entities.Length;
+
+        for (var i = 0; i < batch; i++)
+        {
+            var length = (uint)batchSize * (i + 1) > entities.Length
+                ? entities.Length - (batchSize * i)
+                : batchSize;
+            var entitySlice = entities.Slice(archetype.EntityCapacity * i, length);
+            var first = entitySlice[0];
+
+            ref readonly var location = ref _entityLocations.GetElementReferenceAt(first.ID, first.Generation, out var exist);
+            Logger.DebugAssert(exist);
+
+            var ptr = archetype.GetComponentData(location.chunkIndex, location.rowIndex, componentID);
+            CollectionUtility.Fill(ptr, (nuint)size, (nuint)length, pComponent);
+        }
+    }
+
+    /// <summary>
+    /// Sets the component data for a sequential range of entities.
+    /// </summary>
+    /// <remarks>
+    /// This method is valid only when all entities in the collection are stored in contiguous memory and ordered sequentially, with the first entity located at the very beginning of that memory.
+    /// </remarks>
+    /// <typeparam name="T">The component type.</typeparam>
+    /// <param name="entities">The entities whose component data is set.</param>
+    /// <param name="componentID">The identifier of the component to set.</param>
+    /// <param name="pComponent">A pointer to the component data to copy.</param>
+    /// <returns>The result status of the operation.</returns>
+    public Error SetComponentSequential(ReadOnlySpan<Entity> entities, Identifier<IComponent> componentID, void* pComponent)
+    {
+        return SetComponentsSequential(entities, [componentID], &pComponent);
+    }
+
+    /// <summary>
+    /// Sets the specified component value for each entity in sequential order.
+    /// </summary>
+    /// <remarks>
+    /// This method is valid only when all entities in the collection are stored in contiguous memory and ordered sequentially, with the first entity located at the very beginning of that memory.
+    /// </remarks>
+    /// <typeparam name="T">The component data type.</typeparam>
+    /// <param name="entities">The entities to update.</param>
+    /// <param name="component">The component value to set.</param>
+    /// <returns>An error indicating whether the operation succeeded.</returns>
+    public Error SetComponentSequential<T>(ReadOnlySpan<Entity> entities, scoped in T component)
+        where T : unmanaged, IComponentData
+    {
+        fixed (T* pComponent = &component)
+        {
+            return SetComponentSequential(entities, ComponentTypeID<T>.Value, pComponent);
+        }
     }
 
     /// <summary>
@@ -1151,14 +1216,58 @@ public unsafe partial class EntityManager : IDisposable
         }
 
         ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+#if GHOST_SAFETY_CHECKS
         if (!archetype.HasComponents(componentIDs))
         {
             return Error.NotFound;
         }
+#endif
 
         for (var i = 0; i < componentIDs.Length; i++)
         {
             archetype.SetComponentData(location.chunkIndex, location.rowIndex, componentIDs[i], ppComponents[i]);
+        }
+
+        return Error.None;
+    }
+
+    /// <summary>
+    /// Sets the component data for a sequential range of entities.
+    /// </summary>
+    /// <remarks>
+    /// This method is valid only when all entities in the collection are stored in contiguous memory and ordered sequentially, with the first entity located at the very beginning of that memory.
+    /// </remarks>
+    /// <typeparam name="T">The component type.</typeparam>
+    /// <param name="entities">The entities whose component data is set.</param>
+    /// <param name="componentIDs">The component space IDs to set.</param>
+    /// <param name="ppComponents">The pointers to the component data.</param>
+    /// <returns>The result status of the operation.</returns>
+    public Error SetComponentsSequential(ReadOnlySpan<Entity> entities, ReadOnlySpan<Identifier<IComponent>> componentIDs, void** ppComponents)
+    {
+        if (entities.IsEmpty)
+        {
+            return Error.None;
+        }
+
+        var first = entities[0];
+        if (!_entityLocations.TryGetElementAt(first.ID, first.Generation, out var location))
+        {
+            return Error.NotFound;
+        }
+
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+
+#if GHOST_SAFETY_CHECKS
+        if (!archetype.HasComponents(componentIDs))
+        {
+            return Error.NotFound;
+        }
+#endif
+
+        for (var i = 0; i < componentIDs.Length; i++)
+        {
+            var componentID = componentIDs[i];
+            SetComponentSequential_Core(entities, componentID, ppComponents[i], ref archetype);
         }
 
         return Error.None;
@@ -1216,6 +1325,23 @@ public unsafe partial class EntityManager : IDisposable
     }
 
     /// <summary>
+    /// Check if the specified entity has the specified components.
+    /// </summary>
+    /// <param name="entity">The entity to check.</param>
+    /// <param name="componentIDs">The component space IDs to check.</param>
+    /// <returns>True if the entity has all components, false otherwise.</returns>
+    public bool HasComponents(Entity entity, ReadOnlySpan<Identifier<IComponent>> componentIDs)
+    {
+        if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
+        {
+            return false;
+        }
+
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+        return archetype.HasComponents(componentIDs);
+    }
+
+    /// <summary>
     /// Check if the specified entity has the specified component.
     /// </summary>
     /// <typeparam name="T">The component space.</typeparam>
@@ -1226,14 +1352,6 @@ public unsafe partial class EntityManager : IDisposable
         where T : unmanaged, IComponent
     {
         return HasComponent(entity, ComponentTypeID<T>.Value);
-    }
-
-    internal ref readonly Archetype GetEntityArchetype(Entity entity)
-    {
-        if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
-            throw new ArgumentException("Entity does not exist.", nameof(entity));
-
-        return ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
     }
 
     /// <summary>

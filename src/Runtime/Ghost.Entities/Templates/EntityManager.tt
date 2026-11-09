@@ -72,6 +72,66 @@ public unsafe partial class EntityManager
     }
 
     /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+<# for (var j = 0; j < i; j++) { #>
+    /// <typeparam name="T<#= j #>">The type of the component.</typeparam>
+<# } #>
+<# for (var j = 0; j < i; j++) { #>
+    /// <param name="component<#= j #>">The component to add to the entity.</param>
+<# } #>
+    /// <param name="count">The number of entities to create.</param>
+    public void CreateEntities<<#= generics #>>(<#= compGenerics #>, int count)
+<#= restrictions #>
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[<#= i #>];
+<# for (var j = 0; j < i; j++) { #>
+        ids[<#= j #>] = ComponentTypeID<T<#= j #>>.Value;
+<# } #>
+
+        var set = new ComponentSetView(ids);
+
+        using var scope = AllocationManager.CreateStackScope();
+        using var entities = new UnsafeArray<Entity>(count, scope.AllocationHandle);
+
+        CreateEntities(entities, set);
+        var err = SetComponentsSequential(entities, <#= InlineFor(0, i, "in component{0}") #>);
+        
+        if (err != Error.None)
+        {
+            DestroyEntities(entities);
+        }
+    }
+
+    /// <summary>
+    /// Creates entities with the specified components.
+    /// </summary>
+<# for (var j = 0; j < i; j++) { #>
+    /// <typeparam name="T<#= j #>">The type of the component.</typeparam>
+<# } #>
+<# for (var j = 0; j < i; j++) { #>
+    /// <param name="component<#= j #>">The component to add to the entity.</param>
+<# } #>
+    public void CreateEntities<<#= generics #>>(Span<Entity> entities, <#= compGenerics #>)
+<#= restrictions #>
+    {
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[<#= i #>];
+<# for (var j = 0; j < i; j++) { #>
+        ids[<#= j #>] = ComponentTypeID<T<#= j #>>.Value;
+<# } #>
+
+        var set = new ComponentSetView(ids);
+
+        CreateEntities(entities, set);
+        var err = SetComponentsSequential(entities, <#= InlineFor(0, i, "in component{0}") #>);
+        
+        if (err != Error.None)
+        {
+            DestroyEntities(entities);
+        }
+    }
+
+    /// <summary>
     /// Sets the specified components for an existing entity.
     /// </summary>
 <# for (var j = 0; j < i; j++) { #>
@@ -89,11 +149,35 @@ public unsafe partial class EntityManager
         var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[<#= i #>];
 
 <# for (var j = 0; j < i; j++) { #>
-        ppv[<#= j #>] = Unsafe.AsPointer(in component<#= j #>);
-        ids[<#= j #>] = ComponentTypeID<T<#= j #>>.Value;
+        fixed (T<#= j #>* pComponent<#= j #> = &component<#= j #>)
+<# } #>
+        {
+<# for (var j = 0; j < i; j++) { #>
+            ppv[<#= j #>] = pComponent<#= j #>;
+            ids[<#= j #>] = ComponentTypeID<T<#= j #>>.Value;
 <# } #>
 
-        return SetComponents(entity, ids, ppv);
+            return SetComponents(entity, ids, ppv);
+        }
+    }
+
+    public Error SetComponentsSequential<<#= generics #>>(ReadOnlySpan<Entity> entities, <#= compGenerics #>)
+<#= restrictions #>
+    {
+        var ppv = stackalloc void*[<#= i #>];
+        var ids = (Span<Identifier<IComponent>>)stackalloc Identifier<IComponent>[<#= i #>];
+
+<# for (var j = 0; j < i; j++) { #>
+        fixed (T<#= j #>* pComponent<#= j #> = &component<#= j #>)
+<# } #>
+        {
+<# for (var j = 0; j < i; j++) { #>
+            ppv[<#= j #>] = pComponent<#= j #>;
+            ids[<#= j #>] = ComponentTypeID<T<#= j #>>.Value;
+<# } #>
+
+            return SetComponentsSequential(entities, ids, ppv);
+        }
     }
 
 <# } #>

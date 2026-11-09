@@ -7,7 +7,7 @@ using Ghost.UnitTest.MockingEnvironment;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 
-namespace Ghost.UnitTest.Benchmarks.Graphics;
+namespace Ghost.UnitTest.Benchmarks;
 
 [MemoryDiagnoser]
 public class RenderGraphBenchmark

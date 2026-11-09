@@ -85,6 +85,30 @@ public class EntityManagerTests
     }
 
     [TestMethod]
+    public void TestEntityManager_SetComponentSequential()
+    {
+        Span<Entity> entities = stackalloc Entity[10];
+        _world.EntityManager.CreateEntities(entities, new CompA { value = 42 });
+
+        for (var i = 0; i < 10; i++)
+        {
+            Assert.AreEqual(42, _world.EntityManager.GetComponent<CompA>(entities[i]).value);
+        }
+    }
+
+    [TestMethod]
+    public void TestEntityManager_SetComponentSequential_OverSize()
+    {
+        var entities = new Entity[2000];
+        _world.EntityManager.CreateEntities(entities, new CompA { value = 42 });
+
+        for (var i = 0; i < 2000; i++)
+        {
+            Assert.AreEqual(42, _world.EntityManager.GetComponent<CompA>(entities[i]).value);
+        }
+    }
+
+    [TestMethod]
     public void TestEntityManager_DestroyEntity()
     {
         var entity = _world.EntityManager.CreateEntity();
