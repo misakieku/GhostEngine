@@ -46,7 +46,9 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
 {
     AggregateLighting totalLighting = (AggregateLighting)0;
     PreLightData preLightData = strategy.GetPreLightData(ctx, V, bsdf);
-
+    
+#if defined(_DIRECTLIGHTING_STANDARD)
+    
     // Directional Lights (Multiple, with single primary shadow caster)
     if (IS_VALID_BUFFER(g_FrameData.directionalLightBuffer) && g_FrameData.directionalLightCount > 0u)
     {
@@ -73,10 +75,10 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
                         g_Properties.shadowFadeRange);
 
                     float hitDist = 0.0f;
-                    //if (TraceScreenContactShadow(ctx.positionRWS, bsdf.normalWS, ctx.positionSS, g_Properties.depthTextureIndex, normalize(L), 0.25f, 2.0f, hitDist))
-                    //{
-                    //    csmShadow = 0.0f;
-                    //}
+                    if (TraceScreenContactShadow(ctx.positionRWS, bsdf.normalWS, ctx.positionSS, g_Properties.depthTextureIndex, normalize(L), 0.25f, 2.0f, hitDist))
+                    {
+                        csmShadow = 0.0f;
+                    }
                     
                     shadow = lerp(1.0f, csmShadow, dirLight.shadowDimmer);
                 }
@@ -98,25 +100,6 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
         }
     }
     
-#if defined(_DIRECTLIGHTING_STOCHASTIC)
-    // Decoupled RIS pipeline
-    // Punctual lights are evaluated in dedicated passes
-    // (RisLightSampling -> RisRayTrace -> RisResolveShading) and composite the results here
-    
-    // TODO: Stochastic directional lighting
-    
-    if (IS_VALID_TEXTURE(g_Properties.risResolvedDiffuseSrv))
-    {
-        Texture2D<float4> risDiffTex = GET_TEXTURE2D(g_Properties.risResolvedDiffuseSrv);
-        Texture2D<float4> risSpecTex = GET_TEXTURE2D(g_Properties.risResolvedSpecularSrv);
-        
-        DirectLighting lighting;
-        lighting.diffuse = risDiffTex[ctx.positionSS].rgb * bsdf.diffuseColor;
-        lighting.specular = risSpecTex[ctx.positionSS].rgb;
-
-        AccumulateDirectLighting(totalLighting, lighting);
-    }
-#else
     // Punctual Lights (Point / Spot) via FPTL Tile List
     if (IS_VALID_BUFFER(g_FrameData.punctualLightsBuffer))
     {
@@ -138,6 +121,24 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
     }
     
     // TODO: Evaluate area lights (rect / disc / tube) via FPTL tile list
+#elif defined(_DIRECTLIGHTING_STOCHASTIC)
+    // TODO: Stochastic directional lighting
+    
+    // Decoupled RIS pipeline
+    // Punctual lights are evaluated in dedicated passes
+    // (RisLightSampling -> RisRayTrace -> RisResolveShading) and composite the results here
+    
+    if (IS_VALID_TEXTURE(g_Properties.risResolvedDiffuseSrv))
+    {
+        Texture2D<float4> risDiffTex = GET_TEXTURE2D(g_Properties.risResolvedDiffuseSrv);
+        Texture2D<float4> risSpecTex = GET_TEXTURE2D(g_Properties.risResolvedSpecularSrv);
+        
+        DirectLighting lighting;
+        lighting.diffuse = risDiffTex[ctx.positionSS].rgb * bsdf.diffuseColor;
+        lighting.specular = risSpecTex[ctx.positionSS].rgb;
+
+        AccumulateDirectLighting(totalLighting, lighting);
+    }
 #endif
 
     // Image-Based Lighting (Diffuse SH9 + Specular Split-Sum Cubemap)

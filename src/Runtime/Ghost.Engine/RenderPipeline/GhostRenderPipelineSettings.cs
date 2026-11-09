@@ -14,13 +14,42 @@ public enum RenderPipelineDebugMode : uint
 
 public enum DirectLightingMode : uint
 {
-    FPTL,
+    Standard,
     Stochastic,
 }
 
 public class GhostRenderPipelineSettings : IRenderPipelineSettings
 {
     public RenderPipelineDebugMode DebugMode { get; set; } = RenderPipelineDebugMode.None;
+
+    /// <summary>
+    /// Maximum number of visible meshlets on screen. Default is 2,097,152 (2^21). Maximum is 16,777,216 (2^24).
+    /// </summary>
+    /// <remarks>
+    /// This value controls the maximum number of meshlets that can be visible on screen at any given time. Adjust this value based on performance and visual quality requirements.
+    /// If the number of visible meshlets exceeds this limit, some meshlets may be culled or not rendered and cause visual artifacts. It is recommended to set this value based on the expected scene complexity and the capabilities of the target hardware.
+    /// </remarks>
+    public uint MaxVisibleMeshletsOnScreen { get; init; } = 2_097_152;
+
+    /// <summary>
+    /// Resolution of the shadow atlas for punctual lights (point and spot lights). Default is 4096.
+    /// </summary>
+    public uint ShadowAtlasResolution { get; init; } = 4096;
+
+    /// <summary>
+    /// Size of the GPU Page Pool in Megabytes. Default is 0 (auto-calculate based on MaxVisibleMeshletsOnScreen).
+    /// </summary>
+    public uint MeshletStreamingPoolSizeMB { get; init; } = 0;
+
+    /// <summary>
+    /// Maximum number of page streaming requests emitted by the GPU per frame. Default is 16,384.
+    /// </summary>
+    public uint MaxStreamingRequestsPerFrame { get; init; } = 16_384;
+
+    /// <summary>
+    /// Enables or disables ray tracing support in the render pipeline. Default is false.
+    /// </summary>
+    public bool EnableRayTracing { get; init; } = false;
 
     /// <summary>
     /// Target screen-space pixel error threshold for meshlet DAG LOD refinement. Default is 2.0f.
@@ -39,35 +68,6 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     public float InstanceCullingThreshold { get; set; } = 2.0f;
 
     /// <summary>
-    /// Maximum number of visible meshlets on screen. Default is 2,097,152 (2^21). Maximum is 16,777,216 (2^24).
-    /// </summary>
-    /// <remarks>
-    /// This value controls the maximum number of meshlets that can be visible on screen at any given time. Adjust this value based on performance and visual quality requirements.
-    /// If the number of visible meshlets exceeds this limit, some meshlets may be culled or not rendered and cause visual artifacts. It is recommended to set this value based on the expected scene complexity and the capabilities of the target hardware.
-    /// </remarks>
-    public uint MaxVisibleMeshletsOnScreen { get; set; } = 2_097_152;
-
-    /// <summary>
-    /// Resolution of the shadow atlas for punctual lights (point and spot lights). Default is 4096.
-    /// </summary>
-    public uint ShadowAtlasResolution { get; set; } = 4096;
-
-    /// <summary>
-    /// Size of the GPU Page Pool in Megabytes. Default is 0 (auto-calculate based on MaxVisibleMeshletsOnScreen).
-    /// </summary>
-    public uint MeshletStreamingPoolSizeMB { get; set; } = 0;
-
-    /// <summary>
-    /// Maximum number of page streaming requests emitted by the GPU per frame. Default is 16,384.
-    /// </summary>
-    public uint MaxStreamingRequestsPerFrame { get; set; } = 16_384;
-
-    /// <summary>
-    /// Enables or disables ray tracing support in the render pipeline. Default is false.
-    /// </summary>
-    public bool EnableRayTracing { get; set; } = false;
-
-    /// <summary>
     /// The direct lighting mode to use for rendering. Default is FPTL.
     /// </summary>
     public DirectLightingMode DirectLightingMode
@@ -83,7 +83,7 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
 
             field = value;
         }
-    } = DirectLightingMode.FPTL;
+    } = DirectLightingMode.Standard;
 
     /// <summary>
     /// Calculates the GPU Page Pool size in Megabytes based on MaxVisibleMeshletsOnScreen.

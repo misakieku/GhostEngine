@@ -22,6 +22,16 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         public const uint MAX_LIGHTS_PER_TILE = 63u;
     }
 
+    private struct HardwareFeatureSettings
+    {
+        public bool useRayTracing;
+    }
+    
+    private static readonly PipelineKeyword s_kwDirectLightingStandard = PipelineKeywordRegistry.GetOrRegister("_DIRECTLIGHTING_STANDARD");
+    private static readonly PipelineKeyword s_kwDirectLightingStochastic = PipelineKeywordRegistry.GetOrRegister("_DIRECTLIGHTING_STOCHASTIC");
+    private static readonly PipelineKeyword s_kwShadowShadowMap = PipelineKeywordRegistry.GetOrRegister("_SHADOW_SHADOWMAP");
+    private static readonly PipelineKeyword s_kwShadowRayTraced = PipelineKeywordRegistry.GetOrRegister("_SHADOW_RAYTRACED");
+
     private readonly RenderEngine _renderEngine;
     private readonly AssetManager _assetManager;
     private readonly JobScheduler _jobScheduler;
@@ -36,10 +46,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
     private readonly GPUViewManager _gpuViewManager;
     private readonly RayTracingManager _rayTracingManager;
 
-    private static readonly PipelineKeyword s_kwDirectLightingFPTL = PipelineKeywordRegistry.GetOrRegister("_DIRECTLIGHTING_FPTL");
-    private static readonly PipelineKeyword s_kwDirectLightingStochastic = PipelineKeywordRegistry.GetOrRegister("_DIRECTLIGHTING_STOCHASTIC");
-    private static readonly PipelineKeyword s_kwShadowPCF = PipelineKeywordRegistry.GetOrRegister("_SHADOW_PCF");
-    private static readonly PipelineKeyword s_kwShadowRayTraced = PipelineKeywordRegistry.GetOrRegister("_SHADOW_RAYTRACED");
+    private HardwareFeatureSettings _hardwareFeatures;
 
     private bool _disposed;
     private int _lastRenderRequestCount = -1;
@@ -50,12 +57,12 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
     public GhostRenderPipeline(RenderEngine renderEngine, AssetManager assetManager, JobScheduler jobScheduler, GhostRenderPipelineSettings settings)
     {
-        ValidateRequiredGPUFeatures(renderEngine.GraphicsEngine.Device);
-
         _renderEngine = renderEngine;
         _assetManager = assetManager;
         _jobScheduler = jobScheduler;
         _settings = settings;
+
+        _hardwareFeatures = ValidateRequiredGPUFeatures(renderEngine.GraphicsEngine.Device);
 
         _gpuSceneResource = new GPUSceneResource(assetManager);
         _meshPipelineResource = new MeshPipelineResource(assetManager);
@@ -77,8 +84,13 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         InitializeDeferredTexturing(renderEngine);
     }
 
-    private void ValidateRequiredGPUFeatures(IRenderDevice renderDevice)
+    private HardwareFeatureSettings ValidateRequiredGPUFeatures(IRenderDevice renderDevice)
     {
+        var settings = new HardwareFeatureSettings
+        {
+            useRayTracing = _settings.EnableRayTracing
+        };
+
         var supported = renderDevice.DeviceFeture.SupportedFeatures;
         if (!supported.HasFlag(FeatureSupport.MeshShaders))
         {
@@ -108,8 +120,10 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         if (!supported.HasFlag(FeatureSupport.RayTracing) && _settings.EnableRayTracing)
         {
             Logger.Warning("Ray tracing is not supported on this device but is enabled in the render pipeline settings. Ray tracing features will be disabled.");
-            _settings.EnableRayTracing = false;
+            settings.useRayTracing = false;
         }
+
+        return settings;
     }
 
     public IRenderPayload CreatePayload()
@@ -121,7 +135,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsRTEnabled(in ShadowSettings shadowSettings)
     {
-        if (!_settings.EnableRayTracing)
+        if (!_hardwareFeatures.useRayTracing)
         {
             return false;
         }
@@ -140,14 +154,17 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         // Update GPU scene instance buffer once per frame prelude
         UpdateGPUScene(ctx, commandBuffer, ghostPayload);
 
-        // Build any newly added mesh proxy BLASes
-        _rayTracingManager.BuildPendingBlas(commandBuffer);
+        if (_hardwareFeatures.useRayTracing)
+        {
+            // Build any newly added mesh proxy BLASes
+            _rayTracingManager.BuildPendingBlas(commandBuffer);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ModifyVolumeSettings(ref ShadowSettings shadowSettings)
     {
-        if (!_settings.EnableRayTracing)
+        if (!_hardwareFeatures.useRayTracing)
         {
             if (shadowSettings.shadowMode == ShadowMode.RayTraced)
             {
@@ -163,8 +180,8 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
         switch (_settings.DirectLightingMode)
         {
-            case DirectLightingMode.FPTL:
-                viewKeywords = viewKeywords.Set(s_kwDirectLightingFPTL.Id);
+            case DirectLightingMode.Standard:
+                viewKeywords = viewKeywords.Set(s_kwDirectLightingStandard.Id);
                 break;
             case DirectLightingMode.Stochastic:
                 viewKeywords = viewKeywords.Set(s_kwDirectLightingStochastic.Id);
@@ -174,7 +191,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         switch (shadowSettings.shadowMode)
         {
             case ShadowMode.ShadowMap:
-                viewKeywords = viewKeywords.Set(s_kwShadowPCF.Id);
+                viewKeywords = viewKeywords.Set(s_kwShadowShadowMap.Id);
                 break;
             case ShadowMode.RayTraced:
                 viewKeywords = viewKeywords.Set(s_kwShadowRayTraced.Id);
@@ -391,11 +408,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             renderGraph.Blackboard.Add(ref gbufferData);
 
             // Shadow Passes
-            var shadowAtlas = Identifier<RGTexture>.Invalid;
-            var shadowViewsBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
-            var shadowIndicesBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
-
-            if (_settings.DirectLightingMode == DirectLightingMode.Stochastic)
+            if (_hardwareFeatures.useRayTracing && _settings.DirectLightingMode == DirectLightingMode.Stochastic)
             {
                 var desc = new RisViewResource.Desc
                 {
@@ -407,72 +420,8 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             }
             else // FPTL
             {
-                ExecutePerViewShadowSetup(ctx, in frustum, viewPort.Size.y, lights, request.view.localToWorld.c3.xyz,
-                    out shadowViewsBufferSrv, out var shadowViewCount, out shadowIndicesBufferSrv);
-
-                if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
-                {
-                    shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
-                }
+                AddShadowPasses(renderGraph, ctx, in request, in frustum, in projMatrix, ghostPayload, lights, shadowSettings, depthTexture, viewPort.Size);
             }
-
-            var directionalShadowAtlas = Identifier<RGTexture>.Invalid;
-            var directionalShadowViewsBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
-            var cascadeCount = 0u;
-            var cascadeSplits = default(float4);
-            var cascadeBlends = default(float4);
-            var maxShadowDistance = 0f;
-            var shadowFadeRange = 0f;
-
-            if (ghostPayload.PrimaryDirectionalLightIndex >= 0 && shadowSettings.shadowMode == ShadowMode.ShadowMap)
-            {
-                ref readonly var dirRequest = ref ghostPayload.DirectionalLightRequests[ghostPayload.PrimaryDirectionalLightIndex];
-                if (dirRequest.light.castShadows != 0 && dirRequest.light.shadowDimmer > 0.0f)
-                {
-                    var setupResult = ComputeDirectionalCascadeViews(ctx, in dirRequest, in request, in projMatrix, in shadowSettings, viewPort.Size.y);
-                    directionalShadowViewsBufferSrv = setupResult.directionalShadowViewsBufferSrv;
-                    cascadeCount = setupResult.cascadeCount;
-                    cascadeSplits = setupResult.cascadeSplits;
-                    cascadeBlends = setupResult.cascadeBlends;
-                    maxShadowDistance = setupResult.maxShadowDistance;
-                    shadowFadeRange = setupResult.shadowFadeRange;
-
-                    var occluderMapDesc = RGTextureDesc.Absolute(
-                        64,
-                        64,
-                        TextureFormat.R32_Typeless,
-                        clearColor: default,
-                        clearAtFirstUse: false,
-                        discardAtLastUse: true,
-                        dimension: TextureDimension.Texture2DArray,
-                        mipLevels: 7,
-                        slice: setupResult.cascadeCount,
-                        usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource,
-                        typelessViewFormat: new TypelessFormatDesc { Srv = TextureFormat.R32_Float, Uav = TextureFormat.R32_UInt });
-
-                    var occluderMap = renderGraph.CreateTexture(in occluderMapDesc, "CascadeOccluderMap");
-                    AddGenerateShadowOccludersPass(renderGraph, depthTexture, occluderMap, directionalShadowViewsBufferSrv, viewPort.Size, cascadeCount, cascadeSplits);
-                    AddBuildShadowOccluderHZBPass(renderGraph, occluderMap, cascadeCount);
-
-                    directionalShadowAtlas = AddDirectionalShadowMapPass(renderGraph, ghostPayload.InstanceCount, occluderMap, directionalShadowViewsBufferSrv, cascadeCount, setupResult.atlasResolution);
-                }
-            }
-
-            var shadowMapData = new ShadowMapPassData
-            {
-                shadowAtlas = shadowAtlas,
-                shadowViewsBufferSrv = shadowViewsBufferSrv,
-                shadowIndicesBufferSrv = shadowIndicesBufferSrv,
-                directionalShadowAtlas = directionalShadowAtlas,
-                directionalShadowViewsBufferSrv = directionalShadowViewsBufferSrv,
-                cascadeCount = cascadeCount,
-                cascadeSplits = cascadeSplits,
-                cascadeBlends = cascadeBlends,
-                maxShadowDistance = maxShadowDistance,
-                shadowFadeRange = shadowFadeRange
-            };
-
-            renderGraph.Blackboard.Add(ref shadowMapData);
 
             // Sky & Lighting
             var persistentViewStateBuffer = renderGraph.ImportBuffer(_gpuViewManager.PersistentViewStateBuffer, ResourceBarrierData.Common, ResourceBarrierData.Common);

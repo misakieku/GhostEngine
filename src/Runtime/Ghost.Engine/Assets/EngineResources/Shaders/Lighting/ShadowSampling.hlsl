@@ -151,7 +151,7 @@ ShadowType GetPunctualShadowAttenuation(float3 positionRWS, uint2 positionSS, fl
 {
     ShadowType shadow = (ShadowType)1.0f;
     
-#if defined(_SHADOW_PCF)
+#if defined(_SHADOW_SHADOWMAP)
     // Near-field Screen Space Full-Resolution Contact Shadow for shadow-mapped lights
     float hitDist = 0.0f;
     if (TraceScreenContactShadow(positionRWS, N, positionSS, depthTexture, L, min(distance.x, 0.25f), 2.0f, hitDist))
@@ -223,7 +223,7 @@ ShadowType GetDirectionalShadowAttenuation(
 {
     ShadowType shadow = (ShadowType)1.0f;
 
-#if defined(_SHADOW_PCF)
+#if defined(_SHADOW_SHADOWMAP)
     if (!IS_VALID_TEXTURE(directionalShadowAtlas) || !IS_VALID_BUFFER(directionalShadowViewsBuffer) || cascadeCount == 0u)
     {
         return shadow;
@@ -310,6 +310,7 @@ ShadowType GetDirectionalShadowAttenuation(
             shadow = lerp(shadow, 1.0f, fadeAlpha);
         }
     }
+#elif defined(_SHADOW_RAYTRACED)
 #endif
 
     return shadow;

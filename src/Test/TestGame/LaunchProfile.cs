@@ -31,10 +31,10 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
+        EnableRayTracing = true,
         MaxVisibleMeshletsOnScreen = 2_097_152,
         MeshletLodErrorThreshold = 1.0f,
         InstanceCullingThreshold = 2.0f,
-        EnableRayTracing = true,
         DebugMode = RenderPipelineDebugMode.None,
     };
 
@@ -100,7 +100,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         const float size = 5.0f;
         const float baseScale = 1.0f;
         const float lightSize = size * 1.0f;
-        const int lightCount = 0;
+        const int lightCount = 5;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -240,7 +240,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         });
         volumeData.Set(new HDRISettings
         {
-            intensity = 1.0f,
+            intensity = 0.1f,
             tint = new float3(1.0f, 1.0f, 1.0f),
             texture = skyboxHandle,
         });
@@ -283,9 +283,9 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             }
             else if (e.key.key == SDL_Keycode.SDLK_F2)
             {
-                _renderPipelineSettings.DirectLightingMode = _renderPipelineSettings.DirectLightingMode == DirectLightingMode.FPTL
+                _renderPipelineSettings.DirectLightingMode = _renderPipelineSettings.DirectLightingMode == DirectLightingMode.Standard
                     ? DirectLightingMode.Stochastic
-                    : DirectLightingMode.FPTL;
+                    : DirectLightingMode.Standard;
                 Logger.Info($"[TestGame] Toggled DirectLightingMode: {_renderPipelineSettings.DirectLightingMode}");
             }
         }
