@@ -26,10 +26,10 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
     {
         public bool useRayTracing;
     }
-    
+
     private static readonly PipelineKeyword s_kwDirectLightingStandard = PipelineKeywordRegistry.GetOrRegister("_DIRECTLIGHTING_STANDARD");
     private static readonly PipelineKeyword s_kwDirectLightingStochastic = PipelineKeywordRegistry.GetOrRegister("_DIRECTLIGHTING_STOCHASTIC");
-    private static readonly PipelineKeyword s_kwShadowShadowMap = PipelineKeywordRegistry.GetOrRegister("_SHADOW_SHADOWMAP");
+    private static readonly PipelineKeyword s_kwShadowShadowMapLow = PipelineKeywordRegistry.GetOrRegister("_SHADOW_SHADOWMAP_LOW");
     private static readonly PipelineKeyword s_kwShadowRayTraced = PipelineKeywordRegistry.GetOrRegister("_SHADOW_RAYTRACED");
 
     private readonly RenderEngine _renderEngine;
@@ -41,6 +41,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
     private readonly MeshPipelineResource _meshPipelineResource;
     private readonly MaterialPipelineResource _materialPipelineResource;
     private readonly LightingPipelineResource _lightingPipelineResource;
+    private readonly PostProcessPipelineResource _postProcessPipelineResource;
 
     private readonly GPUScene _gpuScene;
     private readonly GPUViewManager _gpuViewManager;
@@ -68,6 +69,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         _meshPipelineResource = new MeshPipelineResource(assetManager);
         _materialPipelineResource = new MaterialPipelineResource(assetManager);
         _lightingPipelineResource = new LightingPipelineResource(assetManager);
+        _postProcessPipelineResource = new PostProcessPipelineResource(assetManager);
 
         _gpuScene = new GPUScene(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, settings.MaxVisibleMeshletsOnScreen / 64);
         _gpuViewManager = new GPUViewManager(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, renderEngine.GraphicsEngine.PipelineLibrary, renderEngine.ResourceManager, renderEngine.ShaderLibrary);
@@ -77,6 +79,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         _meshPipelineResource.Resolve();
         _materialPipelineResource.Resolve();
         _lightingPipelineResource.Resolve();
+        _postProcessPipelineResource.Resolve();
 
         InitializeCulling(renderEngine, assetManager);
         InitializeVisibility(renderEngine, assetManager);
@@ -191,7 +194,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         switch (shadowSettings.shadowMode)
         {
             case ShadowMode.ShadowMap:
-                viewKeywords = viewKeywords.Set(s_kwShadowShadowMap.Id);
+                viewKeywords = viewKeywords.Set(s_kwShadowShadowMapLow.Id);
                 break;
             case ShadowMode.RayTraced:
                 viewKeywords = viewKeywords.Set(s_kwShadowRayTraced.Id);
@@ -251,7 +254,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         builder.UseBuffer(scratchBuffer, AccessFlags.Write);
         builder.UseBuffer(tlasBuffer, AccessFlags.Write);
 
-        var rtSettings = ghostPayload.GetViewVolumeData<RayTracingSettings>(request.viewId);
+        ref readonly var rtSettings = ref ghostPayload.GetViewVolumeData<RayTracingSettings>(request.viewId);
         builder.SetPassData(new BuildTLASPassData
         {
             rayTracingManager = _rayTracingManager,
@@ -426,13 +429,16 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             // Sky & Lighting
             var persistentViewStateBuffer = renderGraph.ImportBuffer(_gpuViewManager.PersistentViewStateBuffer, ResourceBarrierData.Common, ResourceBarrierData.Common);
             var skyContext = PrepareSky(renderGraph, viewContext, in request, ghostPayload, persistentViewStateBuffer);
-            var litColor = AddDeferredLightingPass(renderGraph, in skyContext, historyHzb, hzbHistory.HzbMipCount, hzbHistory.HzbSize,
+            var litColor = AddDeferredLightingPass(renderGraph, ghostPayload, in skyContext, historyHzb, hzbHistory.HzbMipCount, hzbHistory.HzbSize,
                     depthTexture, tlasBuffer, request.viewId, viewPort.Size);
 
             AddSkyPass(renderGraph, in skyContext, litColor, depthTexture);
+            
+            // Post-Processing
+            var post = AddPostProcessPass(renderGraph, ghostPayload, viewPort.Size, request.viewId, litColor, depthTexture);
 
             // Presentation
-            renderGraph.AddBlitPass(litColor, colorTarget, _meshPipelineResource.blitShader, true);
+            renderGraph.AddBlitPass(post, colorTarget, _meshPipelineResource.blitShader, false);
 
             var result = renderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.Default);
             if (result.IsFailure)
@@ -464,6 +470,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         _meshPipelineResource.Dispose();
         _materialPipelineResource.Dispose();
         _lightingPipelineResource.Dispose();
+        _postProcessPipelineResource.Dispose();
 
         _gpuScene.Dispose();
         _gpuViewManager.Dispose();

@@ -61,6 +61,9 @@ struct DeferredLightingShaderProperties
     float shadowFadeRange;
     float4 cascadeSplits;
     float4 cascadeBlends;
+    uint enableContactShadows;
+    float contactShadowDistance;
+    float contactShadowTolerance;
 };
 
 struct RisResolveShadingShaderProperties

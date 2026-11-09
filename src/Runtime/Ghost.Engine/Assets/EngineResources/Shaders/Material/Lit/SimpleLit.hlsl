@@ -102,14 +102,14 @@ struct SimpleLitDeferredLighting
             float3 rotatedR = RotateDirectionY(R, g_Properties.skyboxRotationSinCos);
 
             float mip = bsdf.perceptualRoughness * max(0.0f, float(g_Properties.skyboxMipCount) - 1.0f);
-            float3 prefilteredSpec = SampleTextureCubeLevel<float4>(g_Properties.skyboxTextureSrv, TrilinearClampSampler, rotatedR, mip).rgb;
+            float3 prefilteredSpec = SampleTextureCubeLevel<float4>(g_Properties.skyboxTextureSrv, TRILINEAR_CLAMP_SAMPLER, rotatedR, mip).rgb;
             prefilteredSpec *= g_Properties.skyboxTintAndIntensity.rgb * g_Properties.skyboxTintAndIntensity.w;
 
             float2 envBRDF = float2(0.0f, 0.0f);
             if (IS_VALID_TEXTURE(g_Properties.iblLutTextureSrv))
             {
                 // PBR.dds contains BRDF LUT in RG channels: x = scale, y = bias
-                envBRDF = SampleTexture2DLevel<float4>(g_Properties.iblLutTextureSrv, LinearClampSampler, float2(preLightData.NdotV, bsdf.perceptualRoughness), 0.0f).rg;
+                envBRDF = SampleTexture2DLevel<float4>(g_Properties.iblLutTextureSrv, LINEAR_CLAMP_SAMPLER, float2(preLightData.NdotV, bsdf.perceptualRoughness), 0.0f).rg;
             }
 
             float3 specularColor = prefilteredSpec * (bsdf.fresnel0 * envBRDF.x + envBRDF.y) * bsdf.specularOcclusion;

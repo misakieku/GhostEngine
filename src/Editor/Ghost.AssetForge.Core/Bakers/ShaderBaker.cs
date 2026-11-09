@@ -145,13 +145,16 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
     private static List<(ShaderStage stage, UnsafeArray<byte> bytecode)> CompileGraphicsPassEntries(
         PassDescriptor pass, ShaderCompilationConfig configTemplate, string[] permutationDefines)
     {
-        var activeDefines = pass.defines.Concat(configTemplate.defines).Concat(permutationDefines);
+        var activeDefines = pass.defines
+            .Concat(configTemplate.defines)
+            .Concat(permutationDefines);
+
         if (pass.computeShaderCode.IsCreated)
         {
             var config = configTemplate with
             {
                 stage = ShaderStage.ComputeShader,
-                defines = activeDefines,
+                defines = activeDefines.Concat(["__COMPUTE__"]),
                 entryPoint = pass.computeShaderCode.entryPoint,
                 shaderCode = pass.computeShaderCode.code,
             };
@@ -169,7 +172,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
         var msConfig = configTemplate with
         {
             stage = ShaderStage.MeshShader,
-            defines = activeDefines,
+            defines = activeDefines.Concat(["__GRAPHICS__"]),
             entryPoint = pass.meshShaderCode.entryPoint,
             shaderCode = pass.meshShaderCode.code,
         };
@@ -182,7 +185,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
             var psConfig = configTemplate with
             {
                 stage = ShaderStage.PixelShader,
-                defines = activeDefines,
+                defines = activeDefines.Concat(["__GRAPHICS__"]),
                 entryPoint = pass.pixelShaderCode.entryPoint,
                 shaderCode = pass.pixelShaderCode.code,
             };
@@ -195,7 +198,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
             var asConfig = configTemplate with
             {
                 stage = ShaderStage.AmplificationShader,
-                defines = activeDefines,
+                defines = activeDefines.Concat(["__GRAPHICS__"]),
                 entryPoint = pass.amplificationShaderCode.entryPoint,
                 shaderCode = pass.amplificationShaderCode.code,
             };

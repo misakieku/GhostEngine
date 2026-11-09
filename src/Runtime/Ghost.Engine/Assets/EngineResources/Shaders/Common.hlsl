@@ -42,19 +42,19 @@
 
 // Static sampler
 
-#define PointClampSampler 1
-#define PointRepeatSampler 2
+#define POINT_CLAMP_SAMPLER 1
+#define POINT_REPEAT_SAMPLER 2
 
-#define LinearClampSampler 3
-#define LinearRepeatSampler 4
+#define LINEAR_CLAMP_SAMPLER 3
+#define LINEAR_REPEAT_SAMPLER 4
 
-#define TrilinearClampSampler 5
-#define TrilinearRepeatSampler 6
+#define TRILINEAR_CLAMP_SAMPLER 5
+#define TRILINEAR_REPEAT_SAMPLER 6
 
-#define AnisotropicClampSampler 7
-#define AnisotropicRepeatSampler 8
+#define ANISO_CLAMP_SAMPLER 7
+#define ANISO_REPEAT_SAMPLER 8
 
-#define LinearClampCompareGESampler 9
+#define LINEAR_CLAMP_GE_SAMPLER 9
 
 
 #define MAX_VERTICES_PER_MESHLET 64

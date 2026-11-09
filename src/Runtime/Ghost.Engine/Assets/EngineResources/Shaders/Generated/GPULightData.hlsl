@@ -22,6 +22,8 @@ struct GPUPunctualLight
     float shadowDimmer;
     float minRoughness;
     float fadeDistance;
+    uint contactShadow;
+    float3 padding;
 };
 
 struct GPUDirectionalLight
@@ -34,6 +36,8 @@ struct GPUDirectionalLight
     float shadowDimmer;
     float diffuseDimmer;
     float specularDimmer;
+    uint contactShadow;
+    float3 padding;
 };
 
 struct GPUShadowCullingData

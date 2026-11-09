@@ -37,9 +37,9 @@ compute "Internal/BuildHZB"
         void SubgroupMergeDepths(uint threadID, uint bitIndex, inout float2 depths)
         {
             uint highIndex = threadID >> (bitIndex + 1);
-            uint lowIndex = threadID & ((1 << (bitIndex + 1)) - 1);
+            uint lowIndex = threadID & ((1u << (bitIndex + 1)) - 1);
         
-            if (lowIndex == (1 << bitIndex))
+            if (lowIndex == (1u << bitIndex))
             {
                 s_depths[highIndex] = depths;
             }

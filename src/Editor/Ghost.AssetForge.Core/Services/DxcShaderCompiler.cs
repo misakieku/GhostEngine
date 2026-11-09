@@ -87,24 +87,6 @@ internal sealed partial class DXCShaderCompiler
             }
         }
 
-        if (config.stage == ShaderStage.AmplificationShader
-            || config.stage == ShaderStage.MeshShader
-            || config.stage == ShaderStage.PixelShader)
-        {
-            argsArray.Add("-D");
-            argsArray.Add("__GRAPHICS__");
-        }
-        else if (config.stage == ShaderStage.ComputeShader)
-        {
-            argsArray.Add("-D");
-            argsArray.Add("__COMPUTE__");
-        }
-        else if (config.stage == ShaderStage.Library)
-        {
-            argsArray.Add("-D");
-            argsArray.Add("__WORK_GRAPH__");
-        }
-
         if (config.options.HasFlag(CompilerOption.KeepDebugInfo))
         {
             argsArray.Add("-Zi");

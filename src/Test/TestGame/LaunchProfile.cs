@@ -126,7 +126,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             default(ActionState));
 
         _meshAsset = engine.AssetManager.ResolveAsset("Meshes/dragon");
-        _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/StandardLit");
+        _shaderAsset = engine.AssetManager.ResolveAsset("EngineResources/Shaders/Material/Lit/StandardLit");
 
         var meshHandle = default(Handle<Mesh>);
         var shaderHandle = default(Handle<Shader>);
@@ -140,9 +140,9 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 
         engine.RenderEngine.ResourceManager.SetMaterialProperty(mat, new GhostStandardLitShaderProperties
         {
-            // baseColor = engine.RenderEngine.GraphicsEngine.ResourceDatabase.GetBindlessIndex(textureHandle.AsResource()),
-            // sampler = engine.RenderEngine.ResourceManager.StaticSampler.LinearRepeat,
+            baseColor = new float3(1.0f),
             roughness = 0.75f,
+            metallic = 0.0f,
         });
 
         var materialPallette = engine.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);
@@ -164,7 +164,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             });
 
             var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
-            var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f)));
+            var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2)));
             var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
 
             var localToWorld = new LocalToWorld
@@ -189,10 +189,11 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 normalBias = 0.75f,
                 depthBias = 0.5f,
                 shadowLodErrorScale = 5.0f,
+                contactShadow = true,
             },
             new LocalToWorld
             {
-                matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(math.radians(new float3(45.0f, 45.0f, 0.0f))), new float3(1.0f, 1.0f, 1.0f))
+                matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(math.radians(new float3(45.0f, 225.0f, 0.0f))), new float3(1.0f, 1.0f, 1.0f))
             });
 
         for (var i = 0; i < lightCount; i++)
@@ -240,7 +241,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         });
         volumeData.Set(new HDRISettings
         {
-            intensity = 0.1f,
+            intensity = 1.0f,
             tint = new float3(1.0f, 1.0f, 1.0f),
             texture = skyboxHandle,
         });

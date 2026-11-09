@@ -112,6 +112,11 @@ public struct PunctualLight : IComponentData
     /// </summary>
     public float shadowLodErrorScale;
 
+    /// <summary>
+    /// Whether to use contact shadows for this light.
+    /// </summary>
+    public bool contactShadow;
+
     public static PunctualLight CreatePoint(float3 color, float intensity, float range, uint shadowSize = 0) => new()
     {
         type = PunctualLightType.Point,

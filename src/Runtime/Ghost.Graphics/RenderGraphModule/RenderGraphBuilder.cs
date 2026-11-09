@@ -96,17 +96,17 @@ public interface IRenderGraphBuilder : IDisposable
     /// Registers the specified texture for use in the current render graph pass with the given access mode.
     /// </summary>
     /// <param name="texture">The identifier of the texture to be used in the render graph pass.</param>
-    /// <param name="accessMode">The access mode specifying how the texture will be read or written during the pass.</param>
+    /// <param name="accessFlags">The access flags specifying how the texture will be read or written during the pass.</param>
     /// <returns>An identifier for the texture. Invalid if the texture is invalid.</returns>
-    Identifier<RGTexture> UseTexture(Identifier<RGTexture> texture, AccessFlags accessMode);
+    Identifier<RGTexture> UseTexture(Identifier<RGTexture> texture, AccessFlags accessFlags);
 
     /// <summary>
     /// Registers the specified buffer for use in the current render graph pass with the given access mode.
     /// </summary>
     /// <param name="buffer">The identifier of the buffer to be used in the render graph pass.</param>
-    /// <param name="accessMode">The access mode specifying how the buffer will be read or written during the pass.</param>
+    /// <param name="accessFlags">The access flags specifying how the buffer will be read or written during the pass.</param>
     /// <returns>An identifier for the buffer. Invalid if the buffer is invalid.</returns>
-    Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags accessMode);
+    Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags accessFlags);
 
     /// <summary>
     /// Extracts the actual texture associated with the given identifier for use in outside of the render graph execution context.

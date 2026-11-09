@@ -169,3 +169,10 @@ internal partial class LightingPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Textures/PBR")]
     public Handle<GPUTexture> iblLutTexture;
 }
+
+
+internal partial class PostProcessPipelineResource : IPipelineResource
+{
+    [ResolveAsset("EngineResources/Shaders/PostProcess/UberPost")]
+    public Handle<ComputeShader> uberPostShader;
+}

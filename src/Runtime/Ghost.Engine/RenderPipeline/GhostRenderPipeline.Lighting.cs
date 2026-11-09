@@ -3,6 +3,7 @@ using Ghost.Core.Graphics;
 using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Utilities;
+using Ghost.Engine.Volumes;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
@@ -12,7 +13,6 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using Misaki.HighPerformance.Mathematics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.RenderPipeline;
@@ -197,6 +197,9 @@ internal unsafe partial class GhostRenderPipeline
         public float shadowFadeRange;
         public float4 cascadeSplits;
         public float4 cascadeBlends;
+        public uint enableContactShadows;
+        public float contactShadowDistance;
+        public float contactShadowTolerance;
     }
 
     [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl")]
@@ -231,6 +234,7 @@ internal unsafe partial class GhostRenderPipeline
 
     private struct DeferredLightingPassData
     {
+        public ShaderVariantRegistry variantRegistry;
         public Identifier<RGTexture> gbuffer0;
         public Identifier<RGTexture> gbuffer1;
         public Identifier<RGTexture> gbuffer2;
@@ -254,23 +258,28 @@ internal unsafe partial class GhostRenderPipeline
         public float shadowFadeRange;
         public float4 cascadeSplits;
         public float4 cascadeBlends;
-        public ShaderVariantRegistry variantRegistry;
         public uint tilesPerRow;
         public uint tilesY;
         public uint2 renderSize;
         public uint2 hzbSize;
         public uint hzbMipCount;
         public Identifier<RGBuffer> tlas;
+
+        public bool enableContactShadows;
+        public float contactShadowDistance;
+        public float contactShadowTolerance;
     }
 
-    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph rg, in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize,
+    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph renderGraph, GhostRenderPayload payload, in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize,
         Identifier<RGTexture> depthTexture, Identifier<RGBuffer> tlasBuffer, uint viewId, uint2 renderSize)
     {
-        ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
-        ref readonly var tile = ref rg.Blackboard.Get<TileClassificationData>();
+        ref readonly var gbufferData = ref renderGraph.Blackboard.Get<GBufferPassData>();
+        ref readonly var tile = ref renderGraph.Blackboard.Get<TileClassificationData>();
 
-        ref readonly var shadowMap = ref rg.Blackboard.TryGet<ShadowMapPassData>(out var hasShadowMap);
-        ref readonly var ris = ref rg.Blackboard.TryGet<RisPassData>(out var hasRis);
+        ref readonly var shadowMap = ref renderGraph.Blackboard.TryGet<ShadowMapPassData>(out var hasShadowMap);
+        ref readonly var ris = ref renderGraph.Blackboard.TryGet<RisPassData>(out var hasRis);
+
+        ref readonly var contactShadowSettings = ref payload.GetViewVolumeData<ContactShadowSettings>(viewId);
 
         var shadowAtlas = hasShadowMap ? shadowMap.shadowAtlas : Identifier<RGTexture>.Invalid;
         var shadowViewsBufferSrv = hasShadowMap ? shadowMap.shadowViewsBufferSrv : RHIUtility.INVALID_BINDLESS_INDEX;
@@ -298,10 +307,10 @@ internal unsafe partial class GhostRenderPipeline
             TextureFormat.R16G16B16A16_Float,
             usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource | TextureUsage.RenderTarget);
 
-        var litColorTarget = rg.CreateTexture(in litColorDesc, "HDRColorBuffer");
-        rg.AddDiscardRenderTargetPass(litColorTarget, "ClearHDRColorBuffer");
+        var litColorTarget = renderGraph.CreateTexture(in litColorDesc, "HDRColorBuffer");
+        renderGraph.AddDiscardRenderTargetPass(litColorTarget, "ClearHDRColorBuffer");
 
-        using var builder = rg.AddComputeRenderPass<DeferredLightingPassData>("DeferredLighting");
+        using var builder = renderGraph.AddComputeRenderPass<DeferredLightingPassData>("DeferredLighting");
 
         builder.UseTexture(gbuffer.GBuffer0, AccessFlags.Read);
         builder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
@@ -355,7 +364,11 @@ internal unsafe partial class GhostRenderPipeline
             renderSize = renderSize,
             hzbSize = hzbSize,
             hzbMipCount = hzbMipCount,
-            tlas = tlasBuffer
+            tlas = tlasBuffer,
+
+            enableContactShadows = contactShadowSettings.enabled.GetValueOrDefault(),
+            contactShadowDistance = contactShadowSettings.maxDistance.GetValueOrDefault(),
+            contactShadowTolerance = contactShadowSettings.tolerance.GetValueOrDefault(),
         });
 
         builder.SetRenderFunc<DeferredLightingPassData>(static (ref readonly passData, computeCtx) =>
@@ -427,6 +440,9 @@ internal unsafe partial class GhostRenderPipeline
                     iblLutTextureSrv = iblLutSrv,
                     persistentViewStateBufferSrv = persistentViewStateSrv,
                     viewId = passData.viewId,
+                    enableContactShadows = passData.enableContactShadows ? 1u : 0u,
+                    contactShadowDistance = passData.contactShadowDistance,
+                    contactShadowTolerance = passData.contactShadowTolerance,
                     skyboxMipCount = passData.skyContext.skyboxMipCount,
                     skyboxTintAndIntensity = passData.skyContext.skyTintAndIntensity,
                     skyboxRotationSinCos = passData.skyContext.skyRotationSinCos,

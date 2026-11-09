@@ -72,6 +72,7 @@ internal class LightGatherSystem : ISystem
                     specularDimmer = specularDimmer,
                     shadowDimmer = light.shadowSize > 0 ? math.saturate(light.shadowDimmer) : 0.0f,
                     fadeDistance = light.fadeDistance,
+                    contactShadow = light.contactShadow ? 1u : 0u,
                 };
 
                 var shadowData = new ShadowData
@@ -159,6 +160,7 @@ internal class LightGatherSystem : ISystem
                     shadowDimmer = isCaster ? math.saturate(light.shadowDimmer) : 0.0f,
                     diffuseDimmer = diffuseDimmer,
                     specularDimmer = specularDimmer,
+                    contactShadow = light.contactShadow ? 1u : 0u,
                 };
 
                 var shadowData = new ShadowData

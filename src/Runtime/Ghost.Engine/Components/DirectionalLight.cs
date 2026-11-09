@@ -78,6 +78,11 @@ public struct DirectionalLight : IComponentData
     /// </summary>
     public float shadowLodErrorScale;
 
+    /// <summary>
+    /// Whether to use contact shadows for this light.
+    /// </summary>
+    public bool contactShadow;
+
     public static DirectionalLight Default => new()
     {
         color = new float3(1.0f, 1.0f, 1.0f),
@@ -94,5 +99,6 @@ public struct DirectionalLight : IComponentData
         depthBias = 0.0f,
         shadowDimmer = 1.0f,
         shadowLodErrorScale = 1.0f,
+        contactShadow = false,
     };
 }

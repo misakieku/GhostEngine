@@ -117,7 +117,7 @@ internal sealed class LitTemplate : IShaderTemplate
                 new KeywordGroupDef
                 {
                     Name = "SHADOW_MODE",
-                    Keywords = new[] { "_SHADOW_SHADOWMAP", "_SHADOW_RAYTRACED" }
+                    Keywords = new[] { "_SHADOW_SHADOWMAP_LOW", "_SHADOW_RAYTRACED" }
                 }
             }
         }

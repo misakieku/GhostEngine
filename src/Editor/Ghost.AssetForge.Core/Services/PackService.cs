@@ -449,7 +449,7 @@ public class PackService
             return;
         }
 
-        var virtualPathToFile = _context.EnumerateAssetFiles();
+        var virtualPathToFile = _context.EnumerateAssetFiles(_bakerRegistry.AllSupportedExtensions);
 
         var allAssetFiles = virtualPathToFile.Values.ToArray();
         var allAssetVirtualPaths = virtualPathToFile.Keys.ToArray();

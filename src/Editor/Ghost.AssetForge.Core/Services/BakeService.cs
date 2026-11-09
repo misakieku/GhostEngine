@@ -51,7 +51,7 @@ public class BakeService
     public async Task<BakeResult> BakeProjectAsync(BakeConfig config, CancellationToken cancellationToken = default)
     {
         // Map VirtualPath -> AbsolutePath. Later directories overwrite earlier ones.
-        var virtualPathToFile = _context.EnumerateAssetFiles();
+        var virtualPathToFile = _context.EnumerateAssetFiles(_bakerRegistry.AllSupportedExtensions);
 
         if (virtualPathToFile.Count == 0)
         {
@@ -393,7 +393,7 @@ public class BakeService
         }
     }
 
-    private static List<KeyValuePair<string, List<string>>> FindDuplicateBaseNames(Dictionary<string, string> virtualPathToFile)
+    private List<KeyValuePair<string, List<string>>> FindDuplicateBaseNames(Dictionary<string, string> virtualPathToFile)
     {
         var baseNames = new Dictionary<string, List<string>>();
         foreach (var virtualPath in virtualPathToFile.Keys)
@@ -407,6 +407,7 @@ public class BakeService
                 files = new List<string>();
                 baseNames[key] = files;
             }
+
             files.Add(virtualPath);
         }
 

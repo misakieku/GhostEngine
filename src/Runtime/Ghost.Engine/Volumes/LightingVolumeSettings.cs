@@ -23,26 +23,26 @@ public enum ShadowMode
 public partial struct ShadowSettings
 {
     /// <summary>
-    /// Specifies the shadow rendering mode. This can be set to use shadow maps or ray tracing for shadows. The default is ShadowMap.
+    /// Specifies the shadow rendering mode.
     /// </summary>
     public ShadowMode? shadowMode;
 
     /// <summary>
-    /// Specifies the maximum distance at which shadows are rendered. This value can be adjusted to control the shadow rendering range in the scene. The default is 400.0f.
+    /// Specifies the maximum distance at which shadows are rendered.
     /// </summary>
     public float? maxDistance;
 
     /// <summary>
-    /// Specifies the number of cascades used for shadow mapping. This value can be adjusted to control the quality and performance of shadow rendering. The default is 4.
+    /// Specifies the number of cascades used for shadow mapping.
     /// </summary>
     [Hardcut]
     public int? cascadeCount;
     /// <summary>
-    /// Specifies the split distances (percentages) for each cascade in shadow mapping. This value can be adjusted to control the distribution of shadow cascades in the scene. The default is (0.1f, 0.3f, 0.6f).
+    /// Specifies the split distances (percentages) for each cascade in shadow mapping.
     /// </summary>
     public float3? splits;
     /// <summary>
-    /// Specifies the blend distances (percentages) for each cascade in shadow mapping. This value can be adjusted to control the blending between shadow cascades in the scene. The default is (0.1f, 0.2f, 0.3f, 0.4f).
+    /// Specifies the blend distances (percentages) for each cascade in shadow mapping.
     /// </summary>
     public float4? blends;
 
@@ -53,5 +53,31 @@ public partial struct ShadowSettings
         cascadeCount = 4,
         splits = new float3(0.1f, 0.3f, 0.6f),
         blends = new float4(0.1f, 0.2f, 0.3f, 0.4f)
+    };
+}
+
+[VolumeComponent]
+public partial struct ContactShadowSettings: IVolumeComponent<ContactShadowSettings>
+{
+    /// <summary>
+    /// Specifies whether contact shadows are enabled.
+    /// </summary>
+    public bool? enabled;
+
+    /// <summary>
+    /// Specifies the maximum distance at which contact shadows are rendered.
+    /// </summary>
+    public float? maxDistance;
+
+    /// <summary>
+    /// Specifies the tolerance for contact shadow rendering.
+    /// </summary>
+    public float? tolerance;
+
+    public static ContactShadowSettings Default => new ContactShadowSettings
+    {
+        enabled = true,
+        maxDistance = 0.25f,
+        tolerance = 0.15f
     };
 }

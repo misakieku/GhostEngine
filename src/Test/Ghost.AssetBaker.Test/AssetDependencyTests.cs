@@ -253,7 +253,7 @@ shader ""Test/Cycle""
         // Second Bake without changes -> should be skipped!
         var secondResult = await _bakeService.BakeProjectAsync();
         Assert.AreEqual(0, secondResult.Succeeded, "No assets should be baked when unchanged.");
-        Assert.AreEqual(2, secondResult.Skipped, "Both header and shader should be skipped when unchanged.");
+        Assert.AreEqual(1, secondResult.Skipped, "Both header and shader should be skipped when unchanged."); // Hlsl does not considered as an assets so it's 1 here.
         var secondWriteTime = File.GetLastWriteTimeUtc(cachedFile);
         Assert.AreEqual(firstWriteTime, secondWriteTime, "Cache timestamp should not change on skip.");
 

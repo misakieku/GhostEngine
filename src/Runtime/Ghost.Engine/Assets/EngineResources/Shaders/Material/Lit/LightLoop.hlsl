@@ -23,8 +23,19 @@ DirectLighting ShadeSurface_Punctual(ShadingContext ctx, BSDFData bsdf, T strate
 
         if (lightColor.a > 0.0f && light.shadowDimmer > 0.0f)
         {
-            ShadowType shadow = GetPunctualShadowAttenuation(ctx.positionRWS, ctx.positionSS, bsdf.normalWS, vector.L, vector.distance, light,
-                lightIndex, g_Properties.shadowIndicesBufferSrv, g_Properties.shadowViewsBufferSrv, g_Properties.shadowAtlasSrv, g_Properties.depthTextureIndex);
+            ShadowType shadow;
+            float hitDist = 0.0f;
+            if (g_Properties.enableContactShadows != 0u && light.contactShadow != 0u
+                && TraceScreenContactShadow(ctx.positionRWS, ctx.normalWS, ctx.positionSS, g_Properties.depthTextureIndex, vector.L, min(vector.distance.x, g_Properties.contactShadowDistance), g_Properties.contactShadowTolerance, hitDist))
+            {
+                shadow = (ShadowType)0.0f;
+            }
+            else
+            {
+                ShadowType shadow = GetPunctualShadowAttenuation(ctx.positionRWS, bsdf.normalWS, vector.L, vector.distance, light,
+                    lightIndex, g_Properties.shadowIndicesBufferSrv, g_Properties.shadowViewsBufferSrv, g_Properties.shadowAtlasSrv);
+            }
+            
             lightColor.rgb *= lerp(1.0f, shadow, light.shadowDimmer);
         }
 
@@ -56,31 +67,27 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
         {
             GPUDirectionalLight dirLight = LoadData<GPUDirectionalLight>(g_FrameData.directionalLightBuffer, dirIdx);
             float3 L = -dirLight.directionWS;
-            if (dirLight.lightDimmer > 0.0f && any(dirLight.color > 0.0001f) && any(L != 0.0f))
+            if (dirLight.lightDimmer > 0.0f && any(dirLight.color > 0.0f))
             {
                 float3 lightColor = dirLight.color * dirLight.lightDimmer;
-                float shadow = 1.0f;
                 if ((int)dirIdx == g_FrameData.primaryDirectionalLightIndex && dirLight.castShadows != 0u && dirLight.shadowDimmer > 0.0f)
                 {
-                    float csmShadow = GetDirectionalShadowAttenuation(
-                        ctx.positionRWS,
-                        bsdf.normalWS,
-                        normalize(L),
-                        g_Properties.directionalShadowViewsBufferSrv,
-                        g_Properties.directionalShadowAtlasSrv,
-                        g_Properties.cascadeCount,
-                        g_Properties.cascadeSplits,
-                        g_Properties.cascadeBlends,
-                        g_Properties.maxShadowDistance,
-                        g_Properties.shadowFadeRange);
-
+                    ShadowType shadow;
                     float hitDist = 0.0f;
-                    if (TraceScreenContactShadow(ctx.positionRWS, bsdf.normalWS, ctx.positionSS, g_Properties.depthTextureIndex, normalize(L), 0.25f, 2.0f, hitDist))
+                    if (g_Properties.enableContactShadows != 0u && dirLight.contactShadow != 0u
+                        && TraceScreenContactShadow(ctx.positionRWS, ctx.normalWS, ctx.positionSS, g_Properties.depthTextureIndex, L, g_Properties.contactShadowDistance, g_Properties.contactShadowTolerance, hitDist))
                     {
-                        csmShadow = 0.0f;
+                        shadow = (ShadowType)0.0f;
+                    }
+                    else
+                    {
+                        shadow = GetDirectionalShadowAttenuation(
+                            ctx.positionRWS, bsdf.normalWS, L,
+                            g_Properties.directionalShadowViewsBufferSrv, g_Properties.directionalShadowAtlasSrv,
+                            g_Properties.cascadeCount, g_Properties.cascadeSplits, g_Properties.cascadeBlends, g_Properties.maxShadowDistance, g_Properties.shadowFadeRange);
                     }
                     
-                    shadow = lerp(1.0f, csmShadow, dirLight.shadowDimmer);
+                    lightColor *= lerp(1.0f, shadow, dirLight.shadowDimmer);
                 }
 
                 if (dirLight.angularDiameter > 0.0f)
@@ -91,7 +98,7 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
 
                 if (any(lightColor > 0.0f))
                 {
-                    DirectLighting dirDirect = strategy.EvaluateDirectLighting(bsdf, preLightData, V, normalize(L), lightColor * shadow);
+                    DirectLighting dirDirect = strategy.EvaluateDirectLighting(bsdf, preLightData, V, normalize(L), lightColor);
                     dirDirect.diffuse *= dirLight.diffuseDimmer;
                     dirDirect.specular *= dirLight.specularDimmer;
                     AccumulateDirectLighting(totalLighting, dirDirect);

@@ -134,18 +134,24 @@ namespace Ghost.Generator
                     continue;
                 }
 
-                // Generate field code with initializers and explicit HLSL cbuffer packing offsets
+                // Generate field code with initializers and explicit offsets
+                // Template shaders use raw ByteAddressBuffer layout (packed at 4-byte boundaries);
+                // non-template shaders use HLSL cbuffer register packing rules.
                 var fieldsSb = new StringBuilder();
                 var inCustomSection = false;
 
+                var isTemplateShader = !string.IsNullOrEmpty(shader.templateName);
                 var registerIndex = 0;
                 var byteOffsetInRegister = 0;
+                var currentRawOffset = 0;
 
                 for (var i = 0; i < allProperties.Count; i++)
                 {
                     var prop = allProperties[i];
                     var csType = MapHlslTypeToCSharp(prop.type);
-                    var fieldOffset = ComputeFieldOffset(prop.type, ref registerIndex, ref byteOffsetInRegister);
+                    var fieldOffset = isTemplateShader
+                        ? ComputeRawFieldOffset(prop.type, ref currentRawOffset)
+                        : ComputeFieldOffset(prop.type, ref registerIndex, ref byteOffsetInRegister);
 
                     if (i == 0 && prop.isFromTemplate)
                     {
@@ -200,6 +206,37 @@ namespace Ghost.Engine.ShaderProperties
 
                 context.AddSource($"{structName}.g.cs", SourceText.From(code, Encoding.UTF8));
             }
+        }
+
+        private static int GetRawHlslTypeSize(string hlslType)
+        {
+            return hlslType.Trim().ToLowerInvariant() switch
+            {
+                "float" or "int" or "uint" or "bool" => 4,
+                "float2" or "int2" or "uint2" or "bool2" => 8,
+                "float3" or "int3" or "uint3" or "bool3" => 12,
+                "float4" or "int4" or "uint4" or "bool4" or "quaternion" => 16,
+
+                "float4x4" or "matrix4x4" => 64,
+                "float3x4" => 48,
+                "float4x3" => 48,
+                "float3x3" => 36,
+                "float2x2" => 16,
+                "int2x4" => 32,
+
+                "texture2d" or "texture3d" or "texturecube" or "texture2darray" or "texturecubearray"
+                    or "samplerstate" or "sampler" or "byte_address_buffer" or "struct_buffer" or "structured_buffer"
+                    or "texture2dhandle" or "texture3dhandle" or "bufferhandle" => 4,
+
+                _ => 4,
+            };
+        }
+
+        private static int ComputeRawFieldOffset(string hlslType, ref int currentOffset)
+        {
+            var offset = currentOffset;
+            currentOffset += GetRawHlslTypeSize(hlslType);
+            return offset;
         }
 
         private static int GetHlslTypeSize(string hlslType)

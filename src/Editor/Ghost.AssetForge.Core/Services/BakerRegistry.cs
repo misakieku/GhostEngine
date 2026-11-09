@@ -11,6 +11,8 @@ public class BakerRegistry : IDisposable
     private readonly Dictionary<string, (Type type, int version)> _extToSettings = new();
     private readonly Dictionary<string, int> _extToBaker = new();
 
+    public ISet<string> AllSupportedExtensions => new HashSet<string>(_extToBaker.Keys);
+
     /// <summary>
     /// Creates a registry that auto-discovers <see cref="IAssetBaker"/> implementations
     /// decorated with <see cref="AssetBakerAttribute"/> via reflection over all loaded assemblies.

@@ -98,7 +98,7 @@ bool TraceScreenContactShadow(float3 positionRWS, float3 normalWS, uint2 pixelCo
         }
 
         // Point sampled depth on full-resolution depth buffer
-        float sampleDepth = SampleTexture2DLevel<float>(depthTextureIndex, PointClampSampler, sampleUV, 0.0f);
+        float sampleDepth = SampleTexture2DLevel<float>(depthTextureIndex, POINT_CLAMP_SAMPLER, sampleUV, 0.0f);
 
         // Skip sky/background and origin pixel
         if (sampleDepth > 0.0f && sampleDepth != startDepth)

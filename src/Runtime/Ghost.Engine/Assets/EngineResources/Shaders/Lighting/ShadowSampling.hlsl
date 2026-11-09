@@ -146,19 +146,11 @@ uint GetCubeFaceID(float3 L)
     return faceIdx;
 }
 
-ShadowType GetPunctualShadowAttenuation(float3 positionRWS, uint2 positionSS, float3 N, float3 L, float4 distance, GPUPunctualLight light,
-    uint lightIndex, BYTE_ADDRESS_BUFFER shadowIndicesBuffer, BYTE_ADDRESS_BUFFER shadowViewsBuffer, TEXTURE2D shadowAtlas, TEXTURE2D depthTexture)
+ShadowType GetPunctualShadowAttenuation(float3 positionRWS, float3 N, float3 L, float4 distance, GPUPunctualLight light,
+    uint lightIndex, BYTE_ADDRESS_BUFFER shadowIndicesBuffer, BYTE_ADDRESS_BUFFER shadowViewsBuffer, TEXTURE2D shadowAtlas)
 {
     ShadowType shadow = (ShadowType)1.0f;
-    
-#if defined(_SHADOW_SHADOWMAP)
-    // Near-field Screen Space Full-Resolution Contact Shadow for shadow-mapped lights
-    float hitDist = 0.0f;
-    if (TraceScreenContactShadow(positionRWS, N, positionSS, depthTexture, L, min(distance.x, 0.25f), 2.0f, hitDist))
-    {
-        return (ShadowType)0.0f;
-    }
-
+#if defined(_SHADOW_SHADOWMAP_LOW)    
     int shadowIndex = -1;
 
     if (IS_VALID_BUFFER(shadowIndicesBuffer))
@@ -199,7 +191,7 @@ ShadowType GetPunctualShadowAttenuation(float3 positionRWS, uint2 positionSS, fl
                 float2 atlasUV = shadowCull.tileOffsetScale.xy + uv * shadowCull.tileOffsetScale.zw;
                 Texture2D<float> shadowAtlasTex = GET_TEXTURE2D(shadowAtlas);
 
-                shadow = SampleShadow_PCF5x5(shadowAtlasTex, GET_SAMPLER(LinearClampCompareGESampler), shadowCull.tileOffsetScale, atlasUV, receiverDepth, shadowCull.size.x, shadowCull.size.y);
+                shadow = SampleShadow_PCF5x5(shadowAtlasTex, GET_SAMPLER(LINEAR_CLAMP_GE_SAMPLER), shadowCull.tileOffsetScale, atlasUV, receiverDepth, shadowCull.size.x, shadowCull.size.y);
             }
         }
     }
@@ -209,26 +201,17 @@ ShadowType GetPunctualShadowAttenuation(float3 positionRWS, uint2 positionSS, fl
     return shadow;
 }
 
-ShadowType GetDirectionalShadowAttenuation(
-    float3 positionRWS,
-    float3 N,
-    float3 L,
-    BYTE_ADDRESS_BUFFER directionalShadowViewsBuffer,
-    TEXTURE2D directionalShadowAtlas,
-    uint cascadeCount,
-    float4 cascadeSplits,
-    float4 cascadeBlends,
-    float maxShadowDistance,
-    float shadowFadeRange)
+ShadowType GetDirectionalShadowAttenuation(float3 positionRWS, float3 N,  float3 L,
+    BYTE_ADDRESS_BUFFER directionalShadowViewsBuffer, TEXTURE2D directionalShadowAtlas,
+    uint cascadeCount, float4 cascadeSplits, float4 cascadeBlends, float maxShadowDistance, float shadowFadeRange)
 {
     ShadowType shadow = (ShadowType)1.0f;
-
-#if defined(_SHADOW_SHADOWMAP)
+#if defined(_SHADOW_SHADOWMAP_LOW)
     if (!IS_VALID_TEXTURE(directionalShadowAtlas) || !IS_VALID_BUFFER(directionalShadowViewsBuffer) || cascadeCount == 0u)
     {
         return shadow;
     }
-
+    
     float zView = dot(positionRWS, g_ViewData.cameraDirection);
     if (zView > maxShadowDistance || zView < 0.0f)
     {
@@ -251,7 +234,7 @@ ShadowType GetDirectionalShadowAttenuation(
     }
 
     Texture2D<float> shadowAtlasTex = GET_TEXTURE2D(directionalShadowAtlas);
-    SamplerComparisonState samp = GET_SAMPLER(LinearClampCompareGESampler);
+    SamplerComparisonState samp = GET_SAMPLER(LINEAR_CLAMP_GE_SAMPLER);
 
     float NdotL = saturate(dot(N, L));
     float slope = sqrt(saturate(1.0f - NdotL * NdotL)) / max(NdotL, 0.1f);
