@@ -6,6 +6,7 @@ public class RenderSystemGroup : SystemGroup
 {
     public RenderSystemGroup()
     {
+        AddSystem<TransformSystem>();
         AddSystem<RenderVolumeCleanupSystem>();
         AddSystem<RenderVolumeSystem>();
         AddSystem<CameraRenderSystem>();

@@ -16,16 +16,23 @@ public interface IBakeSettings
     int Version { get; set; }
 }
 
-public readonly struct SubAssetEntry
+public readonly struct SubAssetEntry()
 {
     public required string SubPath { get; init; }
     public required AssetType Type { get; init; }
+    public Guid[] Dependencies { get; init; } = Array.Empty<Guid>();
 }
 
 public struct AssetBakerContext()
 {
     private readonly List<SubAssetEntry> _subAssets = new();
+    private readonly List<Guid> _assetDependencies = new();
     private readonly HashSet<string> _dependencies = new(StringComparer.OrdinalIgnoreCase);
+
+    public Guid AssetId
+    {
+        get; init;
+    }
 
     public required IReadOnlyList<string> AssetDirectories
     {
@@ -39,7 +46,17 @@ public struct AssetBakerContext()
 
     public readonly IReadOnlyList<SubAssetEntry> SubAssets => _subAssets;
 
+    public readonly IReadOnlyList<Guid> AssetDependencies => _assetDependencies;
+
     public readonly IReadOnlyCollection<string> Dependencies => _dependencies;
+
+    public readonly void AddAssetDependency(Guid assetGuid)
+    {
+        if (assetGuid != Guid.Empty && !_assetDependencies.Contains(assetGuid))
+        {
+            _assetDependencies.Add(assetGuid);
+        }
+    }
 
     public readonly void AddDependency(string filePath)
     {
@@ -56,7 +73,7 @@ public struct AssetBakerContext()
 
     internal Func<string, Stream>? SubAssetStreamFactory { get; set; }
 
-    public Stream AddSubAsset(string subPath, AssetType type)
+    public Stream AddSubAsset(string subPath, AssetType type, ReadOnlySpan<Guid> dependencies = default)
     {
         if (SubAssetStreamFactory is null)
         {
@@ -64,7 +81,12 @@ public struct AssetBakerContext()
         }
 
         var stream = SubAssetStreamFactory(subPath);
-        _subAssets.Add(new SubAssetEntry { SubPath = subPath, Type = type });
+        _subAssets.Add(new SubAssetEntry
+        {
+            SubPath = subPath,
+            Type = type,
+            Dependencies = dependencies.Length > 0 ? dependencies.ToArray() : Array.Empty<Guid>()
+        });
         return stream;
     }
 

@@ -65,7 +65,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         dst = Unsafe.BitCast<Handle<Mesh>, T>(_actualHandle);
     }
 
-    public Result OnLoadContent([Owner] AssetPayload payload)
+    public Result OnLoadContent([Owner] ref AssetPayload payload)
     {
         static bool ValidateRange(long offset, long size, long contentSize)
         {

@@ -23,8 +23,16 @@ internal class MockingContentProvider : IContentProvider
     }
 
     private readonly ConcurrentDictionary<Guid, MockAssetData> _assets = new();
+    private readonly ConcurrentDictionary<string, Guid> _pathToGuid = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<Guid, string> _guidToPath = new();
 
     public IReadOnlyList<ShaderCatalogEntry> ShaderCatalog { get; init; } = Array.Empty<ShaderCatalogEntry>();
+
+    public void RegisterPath(string path, Guid guid)
+    {
+        _pathToGuid[path] = guid;
+        _guidToPath[guid] = path;
+    }
 
     public void AddMockAsset(Guid guid, MockAssetData data)
     {
@@ -217,12 +225,12 @@ internal class MockingContentProvider : IContentProvider
 
     public Guid VirtualPathToGuid(string path)
     {
-        return Guid.Empty;
+        return _pathToGuid.TryGetValue(path, out var guid) ? guid : Guid.Empty;
     }
 
     public string VirtualPathFromGuid(Guid guid)
     {
-        return string.Empty;
+        return _guidToPath.TryGetValue(guid, out var path) ? path : string.Empty;
     }
 
     public AssetType GetAssetType(Guid guid)

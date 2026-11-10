@@ -1,11 +1,13 @@
 using Ghost.Entities;
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Components;
 
 /// <summary>
 /// Component representing a directional light source (Sun/Moon/Celestial body).
 /// </summary>
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct DirectionalLight : IComponentData
 {
     /// <summary>

@@ -3,9 +3,12 @@ using Ghost.Engine.Editor;
 using Ghost.Entities;
 using System.Runtime.CompilerServices;
 
+using System.Runtime.InteropServices;
+
 namespace Ghost.Engine.Components;
 
 [HideEditor]
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct Hierarchy : IComponentData
 {
     [ReadOnlyInInspector]

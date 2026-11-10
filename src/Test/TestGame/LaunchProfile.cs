@@ -23,8 +23,7 @@ namespace TestGame;
 internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 {
     private World _world = null!;
-    private IAssetEntry _meshAsset = null!;
-    private IAssetEntry _shaderAsset = null!;
+    private IAssetEntry _dragonPrefab = null!;
     private IAssetEntry _skyAsset = null!;
 
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
@@ -94,11 +93,11 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 
     public void OnEngineInitialized(EngineCore engine)
     {
-        const int entityCapacity = 100_0;
+        const int entityCapacity = 1;
         const float size = 5.0f;
         const float baseScale = 1.0f;
         const float lightSize = size * 1.0f;
-        const int lightCount = 5;
+        const int lightCount = 0;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -123,56 +122,17 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             new InputReceiver(InputProfileDatabase.FIRST_PERSON_CAMERA_PROFILE_ID, true),
             default(ActionState));
 
-        _meshAsset = engine.AssetManager.ResolveAsset("Meshes/dragon");
-        _shaderAsset = engine.AssetManager.ResolveAsset("EngineResources/Shaders/Material/Lit/StandardLit");
+        _dragonPrefab = engine.AssetManager.ResolveAsset("Meshes/dragon");
 
-        var meshHandle = default(Handle<Mesh>);
-        var shaderHandle = default(Handle<Shader>);
-        var textureHandle = default(Handle<GPUTexture>);
-
-        _meshAsset.ReadAssetData(ref meshHandle);
-        _shaderAsset.ReadAssetData(ref shaderHandle);
-
-        var mat = engine.RenderEngine.ResourceManager.CreateMaterial(shaderHandle);
-        var srv = engine.RenderEngine.GraphicsEngine.ResourceDatabase.GetBindlessIndex(textureHandle.AsResource());
-
-        engine.RenderEngine.ResourceManager.SetMaterialProperty(mat, new GhostStandardLitShaderProperties
+        for (var i = 0; i < entityCapacity; i++)
         {
-            baseColor = new float3(1.0f),
-            roughness = 0.75f,
-            metallic = 0.0f,
-        });
-
-        var materialPallette = engine.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);
-
-        using var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
-        var entities = new Entity[entityCapacity];
-        _world.EntityManager.CreateEntities(entities, meshSet);
-
-        for (var i = 0; i < entities.Length; i++)
-        {
-            var entity = entities[i];
-            _world.EntityManager.SetComponent(entity, new MeshInstance
-            {
-                mesh = meshHandle,
-                materialPalette = materialPallette,
-                renderingLayerMask = RenderingLayerMask.All,
-                shadowCastingMode = ShadowCastingMode.On,
-                staticShadowCaster = true,
-            });
-
             var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
             var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2)));
             var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
 
-            var localToWorld = new LocalToWorld
-            {
-                matrix = float4x4.TRS(position, rotation, scale)
-            };
-
-            _world.EntityManager.SetComponent(entity, localToWorld);
+            PrefabUtility.Instantiate(_world, _dragonPrefab, position, rotation, scale);
         }
-
+        
         _world.EntityManager.CreateEntity(
             new DirectionalLight
             {
@@ -294,8 +254,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
     {
         World.Destroy(_world);
 
-        _meshAsset.Release();
-        _shaderAsset.Release();
+        _dragonPrefab.Release();
         _skyAsset.Release();
     }
 }

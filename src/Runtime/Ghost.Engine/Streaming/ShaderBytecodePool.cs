@@ -22,7 +22,7 @@ public sealed unsafe class ShaderBytecodePool : IDisposable
 
     public int Count => _entries.Count;
 
-    public ShaderBytecodePool([Owner] AssetPayload payload)
+    public ShaderBytecodePool([Owner] ref AssetPayload payload)
     {
         _payload = payload;
         var ptr = _payload.Pointer;

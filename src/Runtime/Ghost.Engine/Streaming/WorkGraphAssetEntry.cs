@@ -91,7 +91,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
         }
     }
 
-    public Result OnLoadContent([Owner] AssetPayload payload)
+    public Result OnLoadContent([Owner] ref AssetPayload payload)
     {
         try
         {

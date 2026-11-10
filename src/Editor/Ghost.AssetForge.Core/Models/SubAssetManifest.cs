@@ -10,9 +10,10 @@ internal partial class SubAssetManifestContext : JsonSerializerContext { }
 
 public class SubAssetManifest
 {
+    public List<Guid> Dependencies { get; set; } = new();
     public List<SubAssetRecord> SubAssets { get; set; } = new();
 
-    public record SubAssetRecord(string SubPath, AssetType Type);
+    public record SubAssetRecord(string SubPath, AssetType Type, List<Guid>? Dependencies = null);
 
     public void Save(string path)
     {

@@ -49,7 +49,7 @@ public class RuntimeContentProvider : IContentProvider
 
     public Guid[] GetDependencies(Guid guid)
     {
-        return Array.Empty<Guid>();
+        return _guidToInfo.TryGetValue(guid, out var info) && info.Dependencies != null ? info.Dependencies : Array.Empty<Guid>();
     }
 
     public bool HasAsset(Guid guid)

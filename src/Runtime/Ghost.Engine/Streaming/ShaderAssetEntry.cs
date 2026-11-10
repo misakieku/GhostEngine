@@ -85,7 +85,7 @@ internal unsafe class ShaderAssetEntry : AssetEntry, ILoadableAssetEntry, IShade
         dst = Unsafe.BitCast<Handle<Shader>, T>(_actualHandle);
     }
 
-    public Result OnLoadContent([Owner] AssetPayload payload)
+    public Result OnLoadContent([Owner] ref AssetPayload payload)
     {
         try
         {

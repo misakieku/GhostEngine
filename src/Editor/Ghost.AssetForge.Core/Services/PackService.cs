@@ -572,6 +572,10 @@ public class PackService
                     var size = await CompressAndWriteAsync(assetPayloadStream, currentPackStream, compression, cancellationToken);
                     currentPackSize = currentPackStream.Position;
 
+                    var subManifestPath = cacheFile + ".sub.json";
+                    var subManifest = SubAssetManifest.Load(subManifestPath);
+                    var primaryDeps = subManifest?.Dependencies != null && subManifest.Dependencies.Count > 0 ? subManifest.Dependencies.ToArray() : Array.Empty<Guid>();
+
                     manifest.AddAsset(key, new AssetInfo
                     {
                         AssetId = metadata.Id,
@@ -581,6 +585,7 @@ public class PackService
                         Offset = offset,
                         Size = size,
                         UncompressedSize = uncompressedSize,
+                        Dependencies = primaryDeps,
                     });
 
                     Logger.Info($"Packed {key} into {currentPackName} (Offset: {offset}, Size: {size})");
@@ -591,12 +596,12 @@ public class PackService
                 }
 
                 // Pack sub-assets
-                var subManifestPath = cacheFile + ".sub.json";
-                var subManifest = SubAssetManifest.Load(subManifestPath);
-                if (subManifest != null)
+                var subManifestPathAfter = cacheFile + ".sub.json";
+                var subManifestAfter = SubAssetManifest.Load(subManifestPathAfter);
+                if (subManifestAfter != null)
                 {
                     var subAssetCacheDir = cacheFile + ".sub";
-                    foreach (var sub in subManifest.SubAssets)
+                    foreach (var sub in subManifestAfter.SubAssets)
                     {
                         var subCachePath = Path.Combine(subAssetCacheDir, sub.SubPath.Replace('/', Path.DirectorySeparatorChar));
                         if (!File.Exists(subCachePath)) continue;
@@ -633,6 +638,8 @@ public class PackService
                             manifest.Shaders.Add(ReadShaderCatalogEntry(subCachePath, subGuid));
                         }
 
+                        var subDeps = sub.Dependencies != null && sub.Dependencies.Count > 0 ? sub.Dependencies.ToArray() : Array.Empty<Guid>();
+
                         manifest.AddAsset(subKey, new AssetInfo
                         {
                             AssetId = subGuid,
@@ -642,6 +649,7 @@ public class PackService
                             Offset = subOffset,
                             Size = subSize,
                             UncompressedSize = subUncompressedSize,
+                            Dependencies = subDeps,
                         });
 
                         Logger.Info($"Packed {subKey} into {currentPackName} (Offset: {subOffset}, Size: {subSize})");

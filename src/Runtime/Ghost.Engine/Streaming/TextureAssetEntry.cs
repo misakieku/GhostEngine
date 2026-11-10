@@ -83,7 +83,7 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
         _payload.Dispose();
     }
 
-    public Result OnLoadContent([Owner] AssetPayload payload)
+    public Result OnLoadContent([Owner] ref AssetPayload payload)
     {
         try
         {

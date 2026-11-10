@@ -1,5 +1,6 @@
 using Ghost.Entities;
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Components;
 
@@ -15,6 +16,7 @@ public enum PunctualLightType : byte
 /// <summary>
 /// Component representing a localized punctual light source (Point or Spot).
 /// </summary>
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct PunctualLight : IComponentData
 {
     /// <summary>

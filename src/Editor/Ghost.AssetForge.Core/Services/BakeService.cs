@@ -256,6 +256,7 @@ public class BakeService
 
         var ctx = new AssetBakerContext
         {
+            AssetId = metadata.Id,
             AssetDirectories = _context.AssetDirectories,
             BakeConfig = config
         };
@@ -306,12 +307,13 @@ public class BakeService
 
             File.Move(tempCacheFile, cacheFile, overwrite: true);
 
-            if (ctx.SubAssets.Count > 0)
+            if (ctx.SubAssets.Count > 0 || ctx.AssetDependencies.Count > 0)
             {
                 var subManifest = new SubAssetManifest();
+                subManifest.Dependencies.AddRange(ctx.AssetDependencies);
                 foreach (var sub in ctx.SubAssets)
                 {
-                    subManifest.SubAssets.Add(new SubAssetManifest.SubAssetRecord(sub.SubPath, sub.Type));
+                    subManifest.SubAssets.Add(new SubAssetManifest.SubAssetRecord(sub.SubPath, sub.Type, new List<Guid>(sub.Dependencies)));
                 }
                 subManifest.Save(cacheFile + ".sub.json");
 

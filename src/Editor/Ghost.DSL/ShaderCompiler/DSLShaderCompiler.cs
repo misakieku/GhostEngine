@@ -143,7 +143,14 @@ public static class DSLShaderCompiler
         };
     }
 
-    private static int ComputeFieldOffset(string hlslType, ref int registerIndex, ref int byteOffsetInRegister)
+    public static int ComputeRawFieldOffset(string hlslType, ref int currentOffset)
+    {
+        var offset = currentOffset;
+        currentOffset += (int)GetRawPropertyTypeSize(hlslType);
+        return offset;
+    }
+
+    public static int ComputeFieldOffset(string hlslType, ref int registerIndex, ref int byteOffsetInRegister)
     {
         var typeSize = (int)GetPropertyTypeSize(hlslType);
 

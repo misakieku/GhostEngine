@@ -78,4 +78,7 @@ public partial class MeshBakeSettings : ObservableObject, IBakeSettings
 
     [ObservableProperty]
     public partial float FallbackRelativeError { get; set; } = 0.01f;
+
+    [ObservableProperty]
+    public partial Dictionary<string, Guid> MaterialSlotRemap { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
