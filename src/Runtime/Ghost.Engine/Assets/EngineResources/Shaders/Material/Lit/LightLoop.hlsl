@@ -26,13 +26,14 @@ DirectLighting ShadeSurface_Punctual(ShadingContext ctx, BSDFData bsdf, T strate
             ShadowType shadow;
             float hitDist = 0.0f;
             if (g_Properties.enableContactShadows != 0u && light.contactShadow != 0u
-                && TraceScreenContactShadow(ctx.positionRWS, ctx.normalWS, ctx.positionSS, g_Properties.depthTextureIndex, vector.L, min(vector.distance.x, g_Properties.contactShadowDistance), g_Properties.contactShadowTolerance, hitDist))
+                && TraceScreenContactShadow(ctx.positionRWS, ctx.normalWS, ctx.positionSS, g_Properties.depthTextureIndex, vector.L,
+                min(vector.distance.x, g_Properties.contactShadowDistance), g_Properties.contactShadowTolerance, hitDist))
             {
                 shadow = (ShadowType)0.0f;
             }
             else
             {
-                ShadowType shadow = GetPunctualShadowAttenuation(ctx.positionRWS, bsdf.normalWS, vector.L, vector.distance, light,
+                shadow = GetPunctualShadowAttenuation(ctx.positionRWS, bsdf.normalWS, vector.L, vector.distance, light,
                     lightIndex, g_Properties.shadowIndicesBufferSrv, g_Properties.shadowViewsBufferSrv, g_Properties.shadowAtlasSrv);
             }
             
@@ -75,7 +76,8 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
                     ShadowType shadow;
                     float hitDist = 0.0f;
                     if (g_Properties.enableContactShadows != 0u && dirLight.contactShadow != 0u
-                        && TraceScreenContactShadow(ctx.positionRWS, ctx.normalWS, ctx.positionSS, g_Properties.depthTextureIndex, L, g_Properties.contactShadowDistance, g_Properties.contactShadowTolerance, hitDist))
+                        && TraceScreenContactShadow(ctx.positionRWS, ctx.normalWS, ctx.positionSS, g_Properties.depthTextureIndex, L,
+                        g_Properties.contactShadowDistance, g_Properties.contactShadowTolerance, hitDist))
                     {
                         shadow = (ShadowType)0.0f;
                     }
@@ -129,11 +131,8 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
     
     // TODO: Evaluate area lights (rect / disc / tube) via FPTL tile list
 #elif defined(_DIRECTLIGHTING_STOCHASTIC)
-    // TODO: Stochastic directional lighting
-    
-    // Decoupled RIS pipeline
-    // Punctual lights are evaluated in dedicated passes
-    // (RisLightSampling -> RisRayTrace -> RisResolveShading) and composite the results here
+    // Stochastic lighting (Directional & Punctual) evaluated via decoupled RIS pipeline
+    // (RisLightSampling -> RisScreenContactShadow -> RisRayTrace -> RisResolveShading) and composite the results here
     
     if (IS_VALID_TEXTURE(g_Properties.risResolvedDiffuseSrv))
     {

@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Graphics.Core;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Engine.Volumes;
@@ -23,15 +24,24 @@ public enum RayTracingCullMode
 public partial struct RayTracingSettings
 {
     /// <summary>
-    /// Specifies the bias value applies when casting rays for all effects. This value should remain unchained unless your scene scale is significantly smaller or larger than average.
+    /// Specifies the bias value applies when casting rays for all effects.
     /// </summary>
     public float? rayBias;
 
     /// <summary>
-    /// Specifies the Ray Bias value used when the distance between the pixel and the camera is close to the far plane. Between the near and far plane the Ray Bias and Distant Ray Bias are interpolated linearly.
-    /// This does not affect Path Tracing or Recursive Rendering. This value can be increased to mitigate Ray Tracing z-fighting issues at a distance.
+    /// Specifies the Ray Bias value used when the distance between the pixel and the camera is close to the far plane.
     /// </summary>
     public float? distanceRayBias;
+
+    /// <summary>
+    /// Specifies the maximum distance at which shadows are cast for directional lights.
+    /// </summary>
+    public float? directionalShadowRayLength;
+
+    /// <summary>
+    /// Specifies the fallback illuminance value used for directional lights when the ray hit the point outside the light's shadow coverage.
+    /// </summary>
+    public float? directionalShadowFallback;
 
     /// <summary>
     /// Specifies the culling mode used for Ray Tracing. This can be set to use a bounding sphere, extended frustum, or solid angle for culling. The default is Extended Frustum.
@@ -50,8 +60,10 @@ public partial struct RayTracingSettings
 
     public static RayTracingSettings Default => new RayTracingSettings
     {
-        rayBias = 0.001f,
-        distanceRayBias = 0.01f,
+        rayBias = 0.02f,
+        distanceRayBias = 0.05f,
+        directionalShadowRayLength = 100.0f,
+        directionalShadowFallback = 0.0f,
         cullMode = RayTracingCullMode.ExtendedFrustum,
         sphereCullDistance = 1000.0f,
         solidAngleThreshold = math.radians(4.0f),

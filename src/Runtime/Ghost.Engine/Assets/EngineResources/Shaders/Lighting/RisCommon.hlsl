@@ -10,6 +10,19 @@ struct RisLightSample
     float weight;
 };
 
+#define RIS_LIGHT_TYPE_DIRECTIONAL_BIT 0x80000000u
+#define RIS_LIGHT_INDEX_MASK           0x7FFFFFFFu
+
+inline bool IsRisDirectionalLight(uint lightIndex)
+{
+    return (lightIndex & RIS_LIGHT_TYPE_DIRECTIONAL_BIT) != 0u;
+}
+
+inline uint GetRisRawLightIndex(uint lightIndex)
+{
+    return lightIndex & RIS_LIGHT_INDEX_MASK;
+}
+
 // Packs light sample into uint2 for compact texture storage (R32G32_UInt)
 uint2 PackRisLightSample(uint lightIndex, float weight)
 {

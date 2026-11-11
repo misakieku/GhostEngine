@@ -101,4 +101,29 @@ void ComputeSoftShadowRay(float3 surfacePosRWS, float3 lightPosRWS, float lightR
     }
 }
 
+// Computes soft-shadow jittered ray direction and max distance for a directional light.
+void ComputeDirectionalSoftShadowRay(float3 surfacePosRWS, float3 directionWS, float angularDiameter, float2 rngSample, float maxShadowDist, out float3 outRayDirRWS, out float outRayDist)
+{
+    float3 L = -directionWS;
+    if (angularDiameter > 0.0001f)
+    {
+        float2 disc = SampleConcentricDisk(rngSample);
+
+        // Orthonormal tangent basis perpendicular to L
+        float s = (L.z >= 0.0f) ? 1.0f : -1.0f;
+        float a = -1.0f / (s + L.z);
+        float b = L.x * L.y * a;
+        float3 tangent = float3(1.0f + s * L.x * L.x * a, s * b, -s * L.x);
+        float3 bitangent = float3(b, s + L.y * L.y * a, -L.y);
+
+        float halfAngle = angularDiameter * 0.5f;
+        outRayDirRWS = normalize(L + (tangent * disc.x + bitangent * disc.y) * tan(halfAngle));
+    }
+    else
+    {
+        outRayDirRWS = L;
+    }
+    outRayDist = maxShadowDist;
+}
+
 #endif // GHOST_RAY_TRACING_COMMON_HLSL

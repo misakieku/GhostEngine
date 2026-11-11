@@ -146,6 +146,34 @@ float GetDecorrelatedSample1D(uint2 pixelCoord, uint frameIndex)
     return frac(spatialSeed + float(frameIndex & 4095u) * phiInv);
 }
 
+#ifdef GET_TEXTURE2D
+static const uint STBN_SIZE = 128u;
+static const uint STBN_SIZE_MASK = 127u;
+static const uint STBN_DEPTH = 64u;
+static const uint STBN_DEPTH_MASK = 63u;
+
+float2 SampleStbn2D(uint stbnTextureIndex, uint2 pixelCoord, uint frameIndex)
+{
+    if (IS_VALID_TEXTURE(stbnTextureIndex))
+    {
+        Texture2D<float2> stbnTex = GET_TEXTURE2D(stbnTextureIndex);
+        uint2 wrappedXY = pixelCoord & STBN_SIZE_MASK;
+        uint wrappedZ = frameIndex & STBN_DEPTH_MASK;
+        uint cycle = frameIndex >> 6u;
+        float2 stbn = stbnTex.Load(int3(wrappedXY.x, wrappedZ * STBN_SIZE + wrappedXY.y, 0));
+        const float2 r2 = float2(0.7548776662f, 0.5698402910f);
+        return frac(stbn + float(cycle & 1023u) * r2);
+    }
+
+    return GetDecorrelatedSample2D(pixelCoord, frameIndex);
+}
+
+float SampleStbn1D(uint stbnTextureIndex, uint2 pixelCoord, uint frameIndex)
+{
+    return SampleStbn2D(stbnTextureIndex, pixelCoord, frameIndex).x;
+}
+#endif
+
 // 32-bit Xorshift random number generator
 uint XorShift(inout uint rngState)
 {

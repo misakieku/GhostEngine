@@ -163,7 +163,11 @@ compute "Internal/RisDenoiserTemporal"
                                 IS_VALID_TEXTURE(g_Properties.historySpecularIndex) &&
                                 all(prevScreenUV >= 0.0f) && all(prevScreenUV <= 1.0f);
 
-            const float HISTORY_FRAMES_SCALE = 32.0f;
+            const float PACKED_ALPHA_SCALE = 64.0f;
+            float diffMeanLum = Luminance(diffMean);
+            float diffStdDevLum = Luminance(diffStdDev);
+            float relVar = saturate(diffStdDevLum / max(diffMeanLum, 0.02f));
+
             float numFrames = 1.0f;
             float3 finalDiffuse = currentDiffuse;
             float3 finalSpecular = currentSpecular;
@@ -173,8 +177,10 @@ compute "Internal/RisDenoiserTemporal"
                 Texture2D<float4> histDiffTex = GET_TEXTURE2D(g_Properties.historyDiffuseIndex);
                 Texture2D<float4> histSpecTex = GET_TEXTURE2D(g_Properties.historySpecularIndex);
 
-                float4 accumHistDiff = float4(0.0f, 0.0f, 0.0f, 0.0f);
+                float3 accumHistDiff = float3(0.0f, 0.0f, 0.0f);
                 float3 accumHistSpec = float3(0.0f, 0.0f, 0.0f);
+                float accumFrames = 0.0f;
+                float accumRelVar = 0.0f;
                 float validWeight = 0.0f;
                 float prevLinearDepth = prevClip.w;
                 float invPrevDepth = 1.0f / max(prevLinearDepth, 1e-3f);
@@ -191,8 +197,14 @@ compute "Internal/RisDenoiserTemporal"
                     float relDepth = abs(tapDepth - prevLinearDepth) * invPrevDepth;
                     if (tapDepth > 0.0f && relDepth < 0.04f)
                     {
-                        accumHistDiff = hd;
+                        float tapUnpacked = hd.a * PACKED_ALPHA_SCALE;
+                        float tapFrames = max(floor(tapUnpacked + 1e-4f), 1.0f);
+                        float tapRelVar = saturate(tapUnpacked - tapFrames);
+
+                        accumHistDiff = hd.rgb;
                         accumHistSpec = hs.rgb;
+                        accumFrames = tapFrames;
+                        accumRelVar = tapRelVar;
                         validWeight = 1.0f;
                     }
                 }
@@ -220,9 +232,15 @@ compute "Internal/RisDenoiserTemporal"
 
                             if (tapDepth > 0.0f && relDepth < 0.04f)
                             {
+                                float tapUnpacked = hd.a * PACKED_ALPHA_SCALE;
+                                float tapFrames = max(floor(tapUnpacked + 1e-4f), 1.0f);
+                                float tapRelVar = saturate(tapUnpacked - tapFrames);
+
                                 float w = wb * exp2(-relDepth * (50.0f * 1.44269504f));
-                                accumHistDiff += hd * w;
+                                accumHistDiff += hd.rgb * w;
                                 accumHistSpec += hs.rgb * w;
+                                accumFrames += tapFrames * w;
+                                accumRelVar += tapRelVar * w;
                                 validWeight += w;
                             }
                         }
@@ -232,60 +250,76 @@ compute "Internal/RisDenoiserTemporal"
                 if (validWeight > 1e-4f)
                 {
                     float invValidWeight = rcp(validWeight);
-                    float4 histDiff = accumHistDiff * invValidWeight;
+                    float3 histDiff = accumHistDiff * invValidWeight;
                     float3 histSpec = accumHistSpec * invValidWeight;
+                    float prevFrames = max(accumFrames * invValidWeight, 1.0f);
+                    float prevRelVar = saturate(accumRelVar * invValidWeight);
 
                     // Motion-adaptive neighborhood clamping:
-                    // - Static pixels keep soft clamping so high-light-count occlusion variance never snaps history to black.
+                    // - Static pixels keep soft clamping and a relative signal floor so binary 0/1 Monte Carlo penumbra variance
+                    //   never collapses the bounding box to 0 or resets the temporal accumulation frame counter to 3.
                     // - Camera motion tightens clamping and shortens history window (especially for view-dependent specular).
                     float motionFactor = saturate(motionPixels * 0.5f);
                     float diffGamma = lerp(3.5f, 1.75f, motionFactor);
                     float specGamma = lerp(2.75f, 1.25f, motionFactor);
 
-                    float3 diffMin = max(diffMean - diffGamma * diffStdDev, 0.0f);
-                    float3 diffMax = diffMean + diffGamma * diffStdDev;
-                    float3 specMin = max(specMean - specGamma * specStdDev, 0.0f);
-                    float3 specMax = specMean + specGamma * specStdDev;
+                    float3 diffSignalScale = max(max(histDiff, diffMean), 0.05f);
+                    float3 specSignalScale = max(max(histSpec, specMean), 0.05f);
 
-                    float3 boxClampedDiff = clamp(histDiff.rgb, diffMin, diffMax);
+                    float3 diffTolerance = max(diffGamma * diffStdDev, diffSignalScale * lerp(0.25f, 0.02f, motionFactor));
+                    float3 specTolerance = max(specGamma * specStdDev, specSignalScale * lerp(0.20f, 0.02f, motionFactor));
+
+                    float3 diffMin = max(diffMean - diffTolerance, 0.0f);
+                    float3 diffMax = diffMean + diffTolerance;
+                    float3 specMin = max(specMean - specTolerance, 0.0f);
+                    float3 specMax = specMean + specTolerance;
+
+                    float3 boxClampedDiff = clamp(histDiff, diffMin, diffMax);
                     float3 boxClampedSpec = clamp(histSpec, specMin, specMax);
 
                     // Confidence estimation based on distance from history to neighborhood bounding box (UE5 MegaLights style)
-                    // If a light or shadow moves under a static camera, history falls outside the neighborhood box.
-                    // Tracking the normalized distance allows dynamically dropping accumulation frames to eliminate ghosting trails.
-                    float3 diffExtent = max((diffMax - diffMin) * 0.5f, 0.001f);
-                    float3 diffDistToBox = abs(histDiff.rgb - boxClampedDiff) / diffExtent;
+                    // Use relative signal extent floor so single-frame all-occluded/all-lit penumbra neighborhoods do not trigger false disocclusion resets.
+                    float3 diffExtent = max((diffMax - diffMin) * 0.5f, diffSignalScale * lerp(0.50f, 0.15f, motionFactor));
+                    float3 diffDistToBox = abs(histDiff - boxClampedDiff) / diffExtent;
                     float maxDiffDist = max(diffDistToBox.x, max(diffDistToBox.y, diffDistToBox.z));
                     float diffConfidence = saturate(1.0f - maxDiffDist);
 
-                    float3 specExtent = max((specMax - specMin) * 0.5f, 0.001f);
+                    float3 specExtent = max((specMax - specMin) * 0.5f, specSignalScale * lerp(0.50f, 0.15f, motionFactor));
                     float3 specDistToBox = abs(histSpec - boxClampedSpec) / specExtent;
                     float maxSpecDist = max(specDistToBox.x, max(specDistToBox.y, specDistToBox.z));
                     float specConfidence = saturate(1.0f - maxSpecDist);
 
-                    float diffClampBlend = saturate(0.12f + motionPixels * 0.45f + (1.0f - diffConfidence) * 0.88f);
-                    float specClampBlend = saturate(0.25f + motionPixels * 0.65f + (1.0f - specConfidence) * 0.75f);
+                    float diffClampBlend = saturate(lerp(0.08f, 0.35f, motionFactor) + (1.0f - diffConfidence) * lerp(0.35f, 0.65f, motionFactor));
+                    float specClampBlend = saturate(lerp(0.15f, 0.50f, motionFactor) + (1.0f - specConfidence) * lerp(0.45f, 0.65f, motionFactor));
 
-                    float3 clampedHistDiff = lerp(histDiff.rgb, boxClampedDiff, diffClampBlend);
+                    float3 clampedHistDiff = lerp(histDiff, boxClampedDiff, diffClampBlend);
                     float3 clampedHistSpec = lerp(histSpec, boxClampedSpec, specClampBlend);
 
-                    float maxDiffFrames = lerp(24.0f, 8.0f, motionFactor);
-                    float maxSpecFrames = lerp(16.0f, 4.0f, motionFactor);
+                    float maxDiffFrames = lerp(32.0f, 8.0f, motionFactor);
+                    float maxSpecFrames = lerp(20.0f, 4.0f, motionFactor);
+                    float minDiffFrames = lerp(12.0f, 3.0f, motionFactor);
+                    float minSpecFrames = lerp(8.0f, 2.0f, motionFactor);
 
-                    float adaptiveMaxDiffFrames = lerp(3.0f, maxDiffFrames, diffConfidence);
-                    float adaptiveMaxSpecFrames = lerp(2.0f, maxSpecFrames, specConfidence);
+                    float adaptiveMaxDiffFrames = lerp(minDiffFrames, maxDiffFrames, diffConfidence);
+                    float adaptiveMaxSpecFrames = lerp(minSpecFrames, maxSpecFrames, specConfidence);
 
-                    float prevFrames = histDiff.a * HISTORY_FRAMES_SCALE;
                     float diffFrames = min(prevFrames + 1.0f, adaptiveMaxDiffFrames);
                     float specFrames = min(prevFrames + 1.0f, adaptiveMaxSpecFrames);
                     numFrames = diffFrames;
 
                     finalDiffuse = lerp(clampedHistDiff, currentDiffuse, rcp(diffFrames));
                     finalSpecular = lerp(clampedHistSpec, currentSpecular, rcp(specFrames));
+
+                    float temporalDeltaLum = abs(Luminance(currentDiffuse) - Luminance(clampedHistDiff));
+                    float signalLum = max(max(Luminance(finalDiffuse), diffMeanLum), 0.02f);
+                    float instRelVar = saturate(max(diffStdDevLum, temporalDeltaLum * 0.5f) / signalLum);
+                    relVar = lerp(prevRelVar, instRelVar, max(rcp(diffFrames), 0.15f));
                 }
             }
 
-            outDiffuse[pixelCoord] = float4(max(finalDiffuse, 0.0f), numFrames / HISTORY_FRAMES_SCALE);
+            float clampedFrames = clamp(round(numFrames), 1.0f, 32.0f);
+            float packedAlpha = (clampedFrames + clamp(relVar, 0.0f, 0.98f)) * rcp(PACKED_ALPHA_SCALE);
+            outDiffuse[pixelCoord] = float4(max(finalDiffuse, 0.0f), packedAlpha);
             outSpecular[pixelCoord] = float4(max(finalSpecular, 0.0f), zView);
         }
     }

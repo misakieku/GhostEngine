@@ -157,9 +157,6 @@ internal partial class LightingPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/Lighting/RisFilterVisibleLightHash")]
     public Handle<ComputeShader> risFilterVisibleLightHashShader;
 
-    [ResolveAsset("EngineResources/Shaders/Lighting/RisResolveShading")]
-    public Handle<ComputeShader> risResolveShadingShader;
-
     [ResolveAsset("EngineResources/Shaders/Lighting/RisDenoiserTemporal")]
     public Handle<ComputeShader> risDenoiserTemporalShader;
 
@@ -168,6 +165,9 @@ internal partial class LightingPipelineResource : IPipelineResource
 
     [ResolveAsset("EngineResources/Textures/PBR")]
     public Handle<GPUTexture> iblLutTexture;
+
+    [ResolveAsset("EngineResources/Textures/STBN")]
+    public Handle<GPUTexture> stbnTexture;
 }
 
 

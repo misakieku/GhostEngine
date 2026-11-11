@@ -419,7 +419,8 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                 };
 
                 var risHistory = viewContext.GetOrCreateResource<RisViewResource, RisViewResource.Desc>(in desc);
-                AddRisPasses(renderGraph, risHistory, depthTexture, tlasBuffer, viewPort.Size, (uint)frameNumber, request.viewId);
+                ref readonly var rtSettings = ref ghostPayload.GetViewVolumeData<RayTracingSettings>(request.viewId);
+                AddRisPasses(renderGraph, risHistory, depthTexture, tlasBuffer, viewPort.Size, (uint)frameNumber, request.viewId, in rtSettings);
             }
             else // FPTL
             {

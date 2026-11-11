@@ -92,11 +92,11 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 
     public void OnEngineInitialized(EngineCore engine)
     {
-        const int entityCapacity = 1;
+        const int entityCapacity = 100_0;
         const float size = 5.0f;
         const float baseScale = 1.0f;
         const float lightSize = size * 1.0f;
-        const int lightCount = 0;
+        const int lightCount = 5;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -136,6 +136,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             new DirectionalLight
             {
                 color = new float3(1.0f, 0.95f, 0.85f),
+                sunDiskAngularDiameter = math.radians(0.53f),
                 intensity = 10.0f,
                 castShadows = true,
                 shadowResolution = 2048,
@@ -165,14 +166,14 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                     type = isSpot ? PunctualLightType.Spot : PunctualLightType.Point,
                     color = color,
                     shadowResolution = 256,
-                    intensity = 1.0f, // RandomFloat(0.5f, 1.0f),
+                    intensity = 3.0f, // RandomFloat(0.5f, 1.0f),
                     range = 15.0f, // RandomFloat(10.0f, 15.0f),
                     innerSpotAngle = math.radians(15.0f),
                     outerSpotAngle = math.radians(40.0f),
                     nearPlane = 0.1f,
                     normalBias = 0.75f,
                     depthBias = 0.5f,
-                    shadowLodErrorScale = 1.0f,
+                    shadowLodErrorScale = 5.0f,
                     fadeDistance = 1000.0f,
                     shadowFadeDistance = 1000.0f,
                     sourceRadius = 0.025f,
@@ -211,6 +212,8 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         {
             cullMode = RayTracingCullMode.ExtendedFrustum,
             solidAngleThreshold = math.radians(4.0f),
+            rayBias = 0.02f,
+            distanceRayBias = 0.05f,
         });
 
         _world.EntityManager.CreateEntity(

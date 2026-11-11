@@ -87,6 +87,37 @@ public class Program
                         return PbrLutGenerator.GenerateAsync(size, output, ct);
                     })
                     .Build())
+                .AddSubCommand(
+                    CommandBuilder.Create("stbn")
+                    .AddOption("size", (builder) => builder
+                        .WithDescription("The spatial width/height of each STBN slice.")
+                        .WithValueType(typeof(int))
+                        .WithRequired())
+                    .AddOption("depth", (builder) => builder
+                        .WithDescription("The temporal depth (number of slices) of the STBN texture.")
+                        .WithValueType(typeof(int))
+                        .WithRequired())
+                    .AddOption("output", (builder) => builder
+                        .WithDescription("The output path of the generated STBN texture.")
+                        .WithValueType(typeof(string))
+                        .WithRequired())
+                    .SetAsyncCommandAction(static (ctx, ct) =>
+                    {
+                        ctx.Options.TryGetValue("size", out var sizeObj);
+                        ctx.Options.TryGetValue("depth", out var depthObj);
+                        ctx.Options.TryGetValue("output", out var outputObj);
+                        var size = (int)sizeObj.value;
+                        var depth = (int)depthObj.value;
+                        var output = (string)outputObj.value;
+
+                        if (size <= 0 || depth <= 0)
+                        {
+                            throw new ArgumentException("Size and depth must be greater than 0.");
+                        }
+
+                        return StbnGenerator.GenerateAsync(size, depth, output, ct);
+                    })
+                    .Build())
                 .Build())
             .Build();
 

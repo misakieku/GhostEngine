@@ -5,6 +5,7 @@ compute "Internal/RisScreenContactShadow"
         uint depthTextureIndex;
         uint gbuffer1Index;
         uint risLightSamplesIndex;
+        uint stbnTextureIndex;
         uint risShadowMaskUav;
         uint unresolvedRaysBufferUav;
         uint counterBufferUav;
@@ -59,6 +60,56 @@ compute "Internal/RisScreenContactShadow"
                         RWTexture2D<float> shadowMaskUav = GET_TEXTURE2D(g_Properties.risShadowMaskUav);
                         shadowMaskUav[pixelCoord] = 1.0f;
                     }
+                    else if (IsRisDirectionalLight(sampleData.lightIndex))
+                    {
+                        Texture2D<float4> gb1 = GET_TEXTURE2D(g_Properties.gbuffer1Index);
+                        float2 encNormal = gb1[pixelCoord].rg;
+                        uint dirIdx = GetRisRawLightIndex(sampleData.lightIndex);
+                        GPUDirectionalLight dirLight = LoadData<GPUDirectionalLight>(g_FrameData.directionalLightBuffer, dirIdx);
+
+                        if (dirLight.shadowDimmer > 0.0f)
+                        {
+                            float zView;
+                            float2 ndc;
+                            float3 positionRWS = ReconstructPositionRWS(pixelCoord, depth, zView, ndc);
+                            float3 surfacePosWS = TransformCameraRelativeToAbsoluteWorld(positionRWS);
+                            float3 normalWS = OctahedralDecode(encNormal);
+
+                            float2 rngSample = SampleStbn2D(g_Properties.stbnTextureIndex, pixelCoord, g_Properties.frameIndex);
+
+                            float3 rayDirWS;
+                            float rayDist;
+                            ComputeDirectionalSoftShadowRay(surfacePosWS, dirLight.directionWS, dirLight.angularDiameter, rngSample, 1000.0f, rayDirWS, rayDist);
+
+                            float NdotL = dot(normalWS, rayDirWS);
+                            if (NdotL <= 0.0f)
+                            {
+                                shadow = 0.0f;
+                            }
+                            else
+                            {
+                                float hitDist = 0.0f;
+                                bool contactHit = false;
+                                if (dirLight.contactShadow != 0u)
+                                {
+                                    contactHit = TraceScreenContactShadow(positionRWS, normalWS, pixelCoord, g_Properties.depthTextureIndex, rayDirWS, 0.25f, 0.15f, hitDist, traversedDist);
+                                }
+                                if (contactHit)
+                                {
+                                    shadow = 0.0f;
+                                }
+                                else
+                                {
+                                    needsHardwareRay = true;
+                                }
+                            }
+
+                            shadow = lerp(1.0f, shadow, dirLight.shadowDimmer);
+                        }
+
+                        RWTexture2D<float> shadowMaskUav = GET_TEXTURE2D(g_Properties.risShadowMaskUav);
+                        shadowMaskUav[pixelCoord] = shadow;
+                    }
                     else
                     {
                         Texture2D<float4> gb1 = GET_TEXTURE2D(g_Properties.gbuffer1Index);
@@ -73,7 +124,7 @@ compute "Internal/RisScreenContactShadow"
                             float3 surfacePosWS = TransformCameraRelativeToAbsoluteWorld(positionRWS);
                             float3 normalWS = OctahedralDecode(encNormal);
 
-                            float2 rngSample = GetDecorrelatedSample2D(pixelCoord, g_Properties.frameIndex);
+                            float2 rngSample = SampleStbn2D(g_Properties.stbnTextureIndex, pixelCoord, g_Properties.frameIndex);
 
                             float3 rayDirWS;
                             float rayDist;
