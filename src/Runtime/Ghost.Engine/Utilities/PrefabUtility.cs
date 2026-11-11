@@ -5,6 +5,8 @@ using Ghost.Engine.Utilities;
 using Ghost.Entities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.Services;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 
@@ -15,137 +17,136 @@ public static unsafe class PrefabUtility
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<Entity> Instantiate(World world, IAssetEntry prefabAsset)
     {
-        return InstantiateCore(world, prefabAsset, float3.zero, quaternion.identity, new float3(1.0f), Entity.Invalid, applyTransform: false);
+        Span<Entity> root = stackalloc Entity[1];
+        var res = InstantiateCore(world, prefabAsset, float3.zero, quaternion.identity, new float3(1.0f), Entity.Invalid, applyTransform: false, 1, root);
+        return res.IsSuccess ? Result.Success(root[0]) : Result.Failure<Entity>(res.Message);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<Entity> Instantiate(World world, IAssetEntry prefabAsset, float3 position, quaternion rotation, float3 scale)
     {
-        return InstantiateCore(world, prefabAsset, position, rotation, scale, Entity.Invalid, applyTransform: true);
+        Span<Entity> root = stackalloc Entity[1];
+        var res = InstantiateCore(world, prefabAsset, position, rotation, scale, Entity.Invalid, applyTransform: true, 1, root);
+        return res.IsSuccess ? Result.Success(root[0]) : Result.Failure<Entity>(res.Message);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<Entity> Instantiate(World world, IAssetEntry prefabAsset, Entity parent)
     {
-        return InstantiateCore(world, prefabAsset, float3.zero, quaternion.identity, new float3(1.0f), parent, applyTransform: false);
+        Span<Entity> root = stackalloc Entity[1];
+        var res = InstantiateCore(world, prefabAsset, float3.zero, quaternion.identity, new float3(1.0f), parent, applyTransform: false, 1, root);
+        return res.IsSuccess ? Result.Success(root[0]) : Result.Failure<Entity>(res.Message);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Result<Entity> Instantiate(World world, IAssetEntry prefabAsset, float3 position, quaternion rotation, float3 scale, Entity parent)
     {
-        return InstantiateCore(world, prefabAsset, position, rotation, scale, parent, applyTransform: true);
+        Span<Entity> root = stackalloc Entity[1];
+        var res = InstantiateCore(world, prefabAsset, position, rotation, scale, parent, applyTransform: true, 1, root);
+        return res.IsSuccess ? Result.Success(root[0]) : Result.Failure<Entity>(res.Message);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Result<Entity> Instantiate(World world, AssetManager assetManager, string virtualPath)
+    public static Result Instantiate(World world, IAssetEntry prefabAsset, Span<Entity> outEntities)
     {
-        var entry = assetManager.ResolveAsset(virtualPath);
-        return InstantiateCore(world, entry, float3.zero, quaternion.identity, new float3(1.0f), Entity.Invalid, applyTransform: false);
+        return InstantiateCore(world, prefabAsset, float3.zero, quaternion.identity, new float3(1.0f), Entity.Invalid, applyTransform: false, outEntities.Length, outEntities);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Result<Entity> Instantiate(World world, AssetManager assetManager, string virtualPath, float3 position, quaternion rotation, float3 scale)
+    public static Result Instantiate(World world, IAssetEntry prefabAsset, Span<Entity> outEntities, float3 position, quaternion rotation, float3 scale)
     {
-        var entry = assetManager.ResolveAsset(virtualPath);
-        return InstantiateCore(world, entry, position, rotation, scale, Entity.Invalid, applyTransform: true);
+        return InstantiateCore(world, prefabAsset, position, rotation, scale, Entity.Invalid, applyTransform: true, outEntities.Length, outEntities);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Result<Entity> Instantiate(World world, AssetManager assetManager, string virtualPath, Entity parent)
+    public static Result Instantiate(World world, IAssetEntry prefabAsset, Span<Entity> outEntities, Entity parent)
     {
-        var entry = assetManager.ResolveAsset(virtualPath);
-        return InstantiateCore(world, entry, float3.zero, quaternion.identity, new float3(1.0f), parent, applyTransform: false);
+        return InstantiateCore(world, prefabAsset, float3.zero, quaternion.identity, new float3(1.0f), parent, applyTransform: false, outEntities.Length, outEntities);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Result<Entity> Instantiate(World world, AssetManager assetManager, string virtualPath, float3 position, quaternion rotation, float3 scale, Entity parent)
+    public static Result Instantiate(World world, IAssetEntry prefabAsset, Span<Entity> outEntities, float3 position, quaternion rotation, float3 scale, Entity parent)
     {
-        var entry = assetManager.ResolveAsset(virtualPath);
-        return InstantiateCore(world, entry, position, rotation, scale, parent, applyTransform: true);
+        return InstantiateCore(world, prefabAsset, position, rotation, scale, parent, applyTransform: true, outEntities.Length, outEntities);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Result<Entity> Instantiate(World world, AssetManager assetManager, Guid assetId)
+    public static Result Instantiate(World world, IAssetEntry prefabAsset, int count)
     {
-        var entry = assetManager.ResolveAsset(assetId);
-        return InstantiateCore(world, entry, float3.zero, quaternion.identity, new float3(1.0f), Entity.Invalid, applyTransform: false);
+        return InstantiateCore(world, prefabAsset, float3.zero, quaternion.identity, new float3(1.0f), Entity.Invalid, applyTransform: false, count);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Result<Entity> Instantiate(World world, AssetManager assetManager, Guid assetId, float3 position, quaternion rotation, float3 scale)
+    public static Result Instantiate(World world, IAssetEntry prefabAsset, int count, float3 position, quaternion rotation, float3 scale)
     {
-        var entry = assetManager.ResolveAsset(assetId);
-        return InstantiateCore(world, entry, position, rotation, scale, Entity.Invalid, applyTransform: true);
+        return InstantiateCore(world, prefabAsset, position, rotation, scale, Entity.Invalid, applyTransform: true, count);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Result<Entity> Instantiate(World world, AssetManager assetManager, Guid assetId, Entity parent)
+    public static Result Instantiate(World world, IAssetEntry prefabAsset, int count, Entity parent)
     {
-        var entry = assetManager.ResolveAsset(assetId);
-        return InstantiateCore(world, entry, float3.zero, quaternion.identity, new float3(1.0f), parent, applyTransform: false);
+        return InstantiateCore(world, prefabAsset, float3.zero, quaternion.identity, new float3(1.0f), parent, applyTransform: false, count);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Result<Entity> Instantiate(World world, AssetManager assetManager, Guid assetId, float3 position, quaternion rotation, float3 scale, Entity parent)
+    public static Result Instantiate(World world, IAssetEntry prefabAsset, int count, float3 position, quaternion rotation, float3 scale, Entity parent)
     {
-        var entry = assetManager.ResolveAsset(assetId);
-        return InstantiateCore(world, entry, position, rotation, scale, parent, applyTransform: true);
+        return InstantiateCore(world, prefabAsset, position, rotation, scale, parent, applyTransform: true, count);
     }
 
-    private static Result<Entity> InstantiateCore(World world, IAssetEntry prefabAsset, float3 position, quaternion rotation, float3 scale, Entity parent, bool applyTransform)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Result InstantiateCore(World world, IAssetEntry prefabAsset, float3 position, quaternion rotation, float3 scale, Entity parent, bool applyTransform, int count)
     {
-        if (world == null)
+        return InstantiateCoreInternal(world, prefabAsset, position, rotation, scale, parent, applyTransform, count, default);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Result InstantiateCore(World world, IAssetEntry prefabAsset, float3 position, quaternion rotation, float3 scale, Entity parent, bool applyTransform, int count, Span<Entity> outRoots)
+    {
+        return InstantiateCoreInternal(world, prefabAsset, position, rotation, scale, parent, applyTransform, count, outRoots);
+    }
+
+    private static Result InstantiateCoreInternal(World world, IAssetEntry prefabAsset, float3 position, quaternion rotation, float3 scale, Entity parent, bool applyTransform, int count, Span<Entity> outRoots)
+    {
+        if (count <= 0)
         {
-            return Result.Failure<Entity>("World cannot be null.");
+            return Result.Failure("Count must be greater than zero.");
         }
 
-        if (prefabAsset == null)
+        var validRes = ValidateAndEnsureReady(world, prefabAsset, out var prefabEntry, out var data);
+        if (validRes.IsFailure)
         {
-            return Result.Failure<Entity>("PrefabAsset cannot be null.");
+            return validRes;
         }
 
-        if (prefabAsset is not PrefabAssetEntry prefabEntry)
-        {
-            return Result.Failure<Entity>($"Expected PrefabAssetEntry but received {prefabAsset.GetType().Name}.");
-        }
-
-        if (prefabEntry.State != AssetState.Ready)
-        {
-            if (world.JobScheduler != null && prefabEntry.LoadJobHandle.IsValid)
-            {
-                world.JobScheduler.Wait(prefabEntry.LoadJobHandle);
-            }
-
-            if (prefabEntry.State != AssetState.Ready)
-            {
-                return Result.Failure<Entity>($"Prefab asset '{prefabEntry.AssetName}' is not ready (State: {prefabEntry.State}).");
-            }
-        }
-
-        var data = prefabEntry.PrefabData;
-        if (data == null || data.Entities.Length == 0)
-        {
-            return Result.Failure<Entity>($"Prefab asset '{prefabEntry.AssetName}' contains no entities.");
-        }
-
-        var entityCount = data.Entities.Length;
-        var spawned = new Entity[entityCount];
+        var templateEntityCount = data.Entities.Length;
         var hierarchyID = ComponentTypeID<Hierarchy>.Value;
-        var needHierarchy = entityCount > 1 || parent.IsValid;
+        var needHierarchy = templateEntityCount > 1 || parent.IsValid;
+
+        // 1. Pre-resolve fixups
+        var fixupCount = data.MeshMaterialFixups.Length;
+        Span<Handle<Mesh>> resolvedMeshes = stackalloc Handle<Mesh>[fixupCount];
+        Span<Identifier<MaterialPalette>> resolvedPalettes = stackalloc Identifier<MaterialPalette>[fixupCount];
+        ResolveFixups(prefabEntry, data, resolvedMeshes, resolvedPalettes);
+
+        // 2. Allocate and spawn all entities grouped by template entity
+        using var scope = AllocationManager.CreateStackScope();
+        using var spawned = new UnsafeArray<Entity>(templateEntityCount * count, scope.AllocationHandle);
 
         var maxCompCount = 0;
-        for (var i = 0; i < entityCount; i++)
+        for (var t = 0; t < templateEntityCount; t++)
         {
-            if (data.Entities[i].ComponentIDs.Length > maxCompCount)
+            if (data.Entities[t].ComponentIDs.Length > maxCompCount)
             {
-                maxCompCount = data.Entities[i].ComponentIDs.Length;
+                maxCompCount = data.Entities[t].ComponentIDs.Length;
             }
         }
         Span<Identifier<IComponent>> compSpan = stackalloc Identifier<IComponent>[maxCompCount + 1];
+        void** ppv = stackalloc void*[maxCompCount];
 
-        for (var i = 0; i < entityCount; i++)
+        for (var t = 0; t < templateEntityCount; t++)
         {
-            ref readonly var eData = ref data.Entities[i];
+            ref readonly var eData = ref data.Entities[t];
             var hasHierarchy = false;
             for (var c = 0; c < eData.ComponentIDs.Length; c++)
             {
@@ -165,96 +166,126 @@ public static unsafe class PrefabUtility
             }
 
             var setView = new ComponentSetView(entityComps);
-            var entity = world.EntityManager.CreateEntity(setView);
-            spawned[i] = entity;
-        }
+            var tSlice = spawned.AsSpan().Slice(t * count, count);
+            world.EntityManager.CreateEntities(tSlice, setView);
 
-        for (var i = 0; i < entityCount; i++)
-        {
-            var entity = spawned[i];
-            ref readonly var eData = ref data.Entities[i];
-            for (var c = 0; c < eData.ComponentIDs.Length; c++)
+            // Bulk populate template component data using SetComponentsSequential
+            if (eData.ComponentIDs.Length > 0)
             {
-                var compId = eData.ComponentIDs[c];
-                var bytes = eData.ComponentData[c];
-                fixed (byte* pBytes = bytes)
+                for (var c = 0; c < eData.ComponentIDs.Length; c++)
                 {
-                    world.EntityManager.SetComponent(entity, compId, pBytes);
+                    fixed (byte* p = eData.ComponentData[c])
+                    {
+                        ppv[c] = p;
+                    }
                 }
+                world.EntityManager.SetComponentsSequential(tSlice, eData.ComponentIDs, ppv);
             }
         }
 
+        // 3. Apply mesh and material fixups in bulk
+        for (var f = 0; f < fixupCount; f++)
+        {
+            ref readonly var fixup = ref data.MeshMaterialFixups[f];
+            if (fixup.entityIndex < 0 || fixup.entityIndex >= templateEntityCount)
+            {
+                continue;
+            }
+
+            var tSlice = spawned.AsSpan().Slice(fixup.entityIndex * count, count);
+            if (tSlice.Length > 0 && world.EntityManager.HasComponent<MeshInstance>(tSlice[0]))
+            {
+                var meshInstance = new MeshInstance
+                {
+                    mesh = resolvedMeshes[f],
+                    materialPalette = resolvedPalettes[f]
+                };
+                world.EntityManager.SetComponentsSequential(tSlice, in meshInstance);
+            }
+        }
+
+        // 4. Wire hierarchy
         if (needHierarchy)
         {
-            for (var i = 0; i < entityCount; i++)
+            WireHierarchy(world, data, spawned.AsSpan(), count, templateEntityCount, parent);
+        }
+
+        // 5. Apply transforms to root entities
+        var roots = spawned.AsSpan().Slice(0, count);
+        ApplyTransforms(world, roots, position, rotation, scale, parent, applyTransform);
+
+        // 6. Copy output roots directly to caller's span if requested
+        if (!outRoots.IsEmpty)
+        {
+            var copyLen = Math.Min(outRoots.Length, count);
+            roots.Slice(0, copyLen).CopyTo(outRoots);
+        }
+
+        return Result.Success();
+    }
+
+    private static Result ValidateAndEnsureReady(World world, IAssetEntry prefabAsset, out PrefabAssetEntry prefabEntry, out LoadedPrefabData prefabData)
+    {
+        prefabEntry = null!;
+        prefabData = null!;
+
+        if (world == null)
+        {
+            return Result.Failure("World cannot be null.");
+        }
+
+        if (prefabAsset == null)
+        {
+            return Result.Failure("PrefabAsset cannot be null.");
+        }
+
+        if (prefabAsset is not PrefabAssetEntry entry)
+        {
+            return Result.Failure($"Expected PrefabAssetEntry but received {prefabAsset.GetType().Name}.");
+        }
+
+        if (entry.State != AssetState.Ready)
+        {
+            if (world.JobScheduler != null && entry.LoadJobHandle.IsValid)
             {
-                ref readonly var header = ref data.Entities[i].Header;
-                var h = new Hierarchy
-                {
-                    parent = (i == 0)
-                        ? parent
-                        : (header.parentIndex >= 0 && header.parentIndex < entityCount ? spawned[header.parentIndex] : parent),
-                    firstChild = (header.firstChildIndex >= 0 && header.firstChildIndex < entityCount)
-                        ? spawned[header.firstChildIndex]
-                        : Entity.Invalid,
-                    nextSibling = (header.nextSiblingIndex >= 0 && header.nextSiblingIndex < entityCount)
-                        ? spawned[header.nextSiblingIndex]
-                        : Entity.Invalid
-                };
-                world.EntityManager.SetComponent(spawned[i], in h);
+                world.JobScheduler.Wait(entry.LoadJobHandle);
             }
 
-            if (parent.IsValid)
+            if (entry.State != AssetState.Ready)
             {
-                if (!world.EntityManager.HasComponent<Hierarchy>(parent))
-                {
-                    world.EntityManager.AddComponent(parent, new Hierarchy { parent = Entity.Invalid, firstChild = spawned[0], nextSibling = Entity.Invalid });
-                }
-                else
-                {
-                    ref var parentH = ref world.EntityManager.GetComponent<Hierarchy>(parent);
-                    if (parentH.firstChild == Entity.Invalid)
-                    {
-                        parentH.firstChild = spawned[0];
-                    }
-                    else
-                    {
-                        var cur = parentH.firstChild;
-                        while (cur.IsValid)
-                        {
-                            ref var curH = ref world.EntityManager.GetComponent<Hierarchy>(cur);
-                            if (curH.nextSibling == Entity.Invalid)
-                            {
-                                curH.nextSibling = spawned[0];
-                                break;
-                            }
-                            cur = curH.nextSibling;
-                        }
-                    }
-                }
+                return Result.Failure($"Prefab asset '{entry.AssetName}' is not ready (State: {entry.State}).");
             }
         }
 
+        var data = entry.PrefabData;
+        if (data == null || data.Entities.Length == 0)
+        {
+            return Result.Failure($"Prefab asset '{entry.AssetName}' contains no entities.");
+        }
+
+        prefabEntry = entry;
+        prefabData = data;
+        return Result.Success();
+    }
+
+    private static void ResolveFixups(PrefabAssetEntry prefabEntry, LoadedPrefabData data, Span<Handle<Mesh>> resolvedMeshes, Span<Identifier<MaterialPalette>> resolvedPalettes)
+    {
         var rm = prefabEntry.ResourceManager;
+        var fixupCount = data.MeshMaterialFixups.Length;
         var maxMatCount = 0;
-        for (var f = 0; f < data.MeshMaterialFixups.Length; f++)
+        for (var f = 0; f < fixupCount; f++)
         {
             if (data.MeshMaterialFixups[f].materialCount > maxMatCount)
             {
                 maxMatCount = data.MeshMaterialFixups[f].materialCount;
             }
         }
+
         Span<Handle<Material>> matBuffer = stackalloc Handle<Material>[maxMatCount];
 
-        for (var f = 0; f < data.MeshMaterialFixups.Length; f++)
+        for (var f = 0; f < fixupCount; f++)
         {
             ref readonly var fixup = ref data.MeshMaterialFixups[f];
-            if (fixup.entityIndex < 0 || fixup.entityIndex >= entityCount)
-            {
-                continue;
-            }
-
-            var targetEntity = spawned[fixup.entityIndex];
             var meshHandle = Handle<Mesh>.Invalid;
             if (fixup.meshDependencyIndex >= 0 && fixup.meshDependencyIndex < prefabEntry.Dependencies.Length)
             {
@@ -264,6 +295,7 @@ public static unsafe class PrefabUtility
                     meshAsset.ReadAssetData(ref meshHandle);
                 }
             }
+            resolvedMeshes[f] = meshHandle;
 
             var matPalette = new Identifier<MaterialPalette>(-1);
             if (fixup.materialCount > 0 && rm != null)
@@ -287,51 +319,125 @@ public static unsafe class PrefabUtility
                 var paletteIndex = rm.GetOrCreateMaterialPalette(matHandles);
                 matPalette = new Identifier<MaterialPalette>(paletteIndex);
             }
+            resolvedPalettes[f] = matPalette;
+        }
+    }
 
-            if (world.EntityManager.HasComponent<MeshInstance>(targetEntity))
+    private static void WireHierarchy(World world, LoadedPrefabData data, ReadOnlySpan<Entity> spawned, int count, int templateEntityCount, Entity parent)
+    {
+        for (var t = 0; t < templateEntityCount; t++)
+        {
+            ref readonly var header = ref data.Entities[t].Header;
+            var tSlice = spawned.Slice(t * count, count);
+
+            for (var i = 0; i < count; i++)
             {
-                ref var meshInstance = ref world.EntityManager.GetComponent<MeshInstance>(targetEntity);
-                meshInstance.mesh = meshHandle;
-                meshInstance.materialPalette = matPalette;
+                var myEntity = tSlice[i];
+                var myParent = (t == 0)
+                    ? parent
+                    : (header.parentIndex >= 0 && header.parentIndex < templateEntityCount
+                        ? spawned[header.parentIndex * count + i]
+                        : parent);
+
+                var myFirstChild = (header.firstChildIndex >= 0 && header.firstChildIndex < templateEntityCount)
+                    ? spawned[header.firstChildIndex * count + i]
+                    : Entity.Invalid;
+
+                var myNextSibling = (header.nextSiblingIndex >= 0 && header.nextSiblingIndex < templateEntityCount)
+                    ? spawned[header.nextSiblingIndex * count + i]
+                    : Entity.Invalid;
+
+                var h = new Hierarchy
+                {
+                    parent = myParent,
+                    firstChild = myFirstChild,
+                    nextSibling = myNextSibling
+                };
+                world.EntityManager.SetComponent(myEntity, in h);
             }
         }
 
-        var root = spawned[0];
-        if (applyTransform)
+        if (parent.IsValid)
         {
-            if (world.EntityManager.HasComponent<LocalTransform>(root))
+            var rootSlice = spawned.Slice(0, count);
+            if (!world.EntityManager.HasComponent<Hierarchy>(parent))
             {
-                ref var lt = ref world.EntityManager.GetComponent<LocalTransform>(root);
-                lt.position = position;
-                lt.rotation = rotation;
-                lt.scale = scale;
+                world.EntityManager.AddComponent(parent, new Hierarchy { parent = Entity.Invalid, firstChild = rootSlice[0], nextSibling = Entity.Invalid });
             }
-
-            if (world.EntityManager.HasComponent<LocalToWorld>(root))
+            else
             {
-                ref var ltw = ref world.EntityManager.GetComponent<LocalToWorld>(root);
-                if (parent.IsValid && world.EntityManager.HasComponent<LocalToWorld>(parent))
+                ref var parentH = ref world.EntityManager.GetComponent<Hierarchy>(parent);
+                if (parentH.firstChild == Entity.Invalid)
                 {
-                    ref readonly var parentLtw = ref world.EntityManager.GetComponent<LocalToWorld>(parent);
-                    ltw.matrix = math.mul(parentLtw.matrix, MathUtility.TRS(position, rotation, scale));
+                    parentH.firstChild = rootSlice[0];
                 }
                 else
                 {
-                    ltw.matrix = MathUtility.TRS(position, rotation, scale);
+                    var cur = parentH.firstChild;
+                    while (cur.IsValid)
+                    {
+                        ref var curH = ref world.EntityManager.GetComponent<Hierarchy>(cur);
+                        if (curH.nextSibling == Entity.Invalid)
+                        {
+                            curH.nextSibling = rootSlice[0];
+                            break;
+                        }
+                        cur = curH.nextSibling;
+                    }
+                }
+            }
+
+            for (var i = 0; i < count - 1; i++)
+            {
+                ref var h = ref world.EntityManager.GetComponent<Hierarchy>(rootSlice[i]);
+                h.nextSibling = rootSlice[i + 1];
+            }
+        }
+    }
+
+    private static void ApplyTransforms(World world, ReadOnlySpan<Entity> roots, float3 position, quaternion rotation, float3 scale, Entity parent, bool applyTransform)
+    {
+        var count = roots.Length;
+        if (count == 0)
+        {
+            return;
+        }
+
+        var parentHasLtw = parent.IsValid && world.EntityManager.HasComponent<LocalToWorld>(parent);
+        var parentMatrix = parentHasLtw ? world.EntityManager.GetComponent<LocalToWorld>(parent).matrix : float4x4.identity;
+
+        if (applyTransform)
+        {
+            var trs = MathUtility.TRS(position, rotation, scale);
+            var ltwMatrix = parentHasLtw ? math.mul(parentMatrix, trs) : trs;
+            var lt = new LocalTransform { position = position, rotation = rotation, scale = scale };
+            var ltw = new LocalToWorld { matrix = ltwMatrix };
+
+            if (world.EntityManager.HasComponent<LocalTransform>(roots[0]))
+            {
+                world.EntityManager.SetComponentsSequential(roots, in lt);
+            }
+
+            if (world.EntityManager.HasComponent<LocalToWorld>(roots[0]))
+            {
+                world.EntityManager.SetComponentsSequential(roots, in ltw);
+            }
+        }
+        else if (parentHasLtw)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                var r = roots[i];
+                if (world.EntityManager.HasComponent<LocalToWorld>(r))
+                {
+                    ref var ltw = ref world.EntityManager.GetComponent<LocalToWorld>(r);
+                    if (world.EntityManager.HasComponent<LocalTransform>(r))
+                    {
+                        ref readonly var lt = ref world.EntityManager.GetComponent<LocalTransform>(r);
+                        ltw.matrix = math.mul(parentMatrix, lt.ToMatrix());
+                    }
                 }
             }
         }
-        else if (parent.IsValid && world.EntityManager.HasComponent<LocalToWorld>(parent) && world.EntityManager.HasComponent<LocalToWorld>(root))
-        {
-            ref readonly var parentLtw = ref world.EntityManager.GetComponent<LocalToWorld>(parent);
-            ref var ltw = ref world.EntityManager.GetComponent<LocalToWorld>(root);
-            if (world.EntityManager.HasComponent<LocalTransform>(root))
-            {
-                ref readonly var lt = ref world.EntityManager.GetComponent<LocalTransform>(root);
-                ltw.matrix = math.mul(parentLtw.matrix, lt.ToMatrix());
-            }
-        }
-
-        return Result.Success(root);
     }
 }

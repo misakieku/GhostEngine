@@ -437,6 +437,22 @@ public unsafe class MaterialAndPrefabStreamingTests
         Assert.IsTrue(world.EntityManager.HasComponent<LocalTransform>(entity));
         Assert.IsTrue(world.EntityManager.HasComponent<LocalToWorld>(entity));
 
+        // Test fire-and-forget instantiate by count (caller does not care about receiving entity handles)
+        var countOnlyRes = PrefabUtility.Instantiate(world, prefabEntry, 10, new float3(5, 5, 5), quaternion.identity, new float3(1));
+        Assert.IsTrue(countOnlyRes.IsSuccess, countOnlyRes.Message);
+        Span<Entity> batchEntities = stackalloc Entity[20];
+        var batchRes = PrefabUtility.Instantiate(world, prefabEntry, batchEntities, new float3(1, 2, 3), quaternion.identity, new float3(1));
+        Assert.IsTrue(batchRes.IsSuccess, batchRes.Message);
+        for (var i = 0; i < batchEntities.Length; i++)
+        {
+            var e = batchEntities[i];
+            Assert.IsTrue(e.IsValid);
+            Assert.IsTrue(world.EntityManager.HasComponent<LocalTransform>(e));
+            Assert.IsTrue(world.EntityManager.HasComponent<LocalToWorld>(e));
+            ref readonly var trans = ref world.EntityManager.GetComponent<LocalTransform>(e);
+            Assert.AreEqual(1.0f, trans.position.x);
+        }
+
         prefabEntry.Release();
     }
 

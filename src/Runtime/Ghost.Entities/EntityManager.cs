@@ -1145,24 +1145,20 @@ public unsafe partial class EntityManager : IDisposable
     private void SetComponentSequential_Core(ReadOnlySpan<Entity> entities, Identifier<IComponent> componentID, void* pComponent, ref readonly Archetype archetype)
     {
         var size = ComponentRegistry.GetComponentInfo(componentID).Size;
-        var batch = (int)Math.Ceiling((double)entities.Length / archetype.EntityCapacity);
-        var batchSize = entities.Length > archetype.EntityCapacity
-            ? archetype.EntityCapacity
-            : entities.Length;
-
-        for (var i = 0; i < batch; i++)
+        var eIdx = 0;
+        while (eIdx < entities.Length)
         {
-            var length = (uint)batchSize * (i + 1) > entities.Length
-                ? entities.Length - (batchSize * i)
-                : batchSize;
-            var entitySlice = entities.Slice(archetype.EntityCapacity * i, length);
-            var first = entitySlice[0];
-
+            var first = entities[eIdx];
             ref readonly var location = ref _entityLocations.GetElementReferenceAt(first.ID, first.Generation, out var exist);
             Logger.DebugAssert(exist);
 
+            var remainingInChunk = archetype.EntityCapacity - location.rowIndex;
+            var countInChunk = Math.Min(entities.Length - eIdx, remainingInChunk);
+
             var ptr = archetype.GetComponentData(location.chunkIndex, location.rowIndex, componentID);
-            CollectionUtility.Fill(ptr, (nuint)size, (nuint)length, pComponent);
+            CollectionUtility.Fill(ptr, (nuint)size, (nuint)countInChunk, pComponent);
+
+            eIdx += countInChunk;
         }
     }
 
