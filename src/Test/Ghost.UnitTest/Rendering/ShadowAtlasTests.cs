@@ -208,9 +208,9 @@ public class ShadowAtlasTests
     public void PunctualLight_ShadowSize_PacksAndUnpacksCorrectly()
     {
         var spot = Ghost.Engine.Components.PunctualLight.CreateSpot(new float3(1, 1, 1), 5.0f, 15.0f, 0.2f, 0.5f, shadowSize: 512);
-        Assert.AreEqual(512u, spot.shadowSize);
+        Assert.AreEqual(512u, spot.shadowResolution);
 
-        var flags = ((uint)spot.type & 0xFu) | ((spot.shadowSize & 0xFFFFu) << 4);
+        var flags = ((uint)spot.type & 0xFu) | ((spot.shadowResolution & 0xFFFFu) << 4);
         var unpackedType = flags & 0xFu;
         var unpackedShadowSize = (flags >> 4) & 0xFFFFu;
 
@@ -218,9 +218,9 @@ public class ShadowAtlasTests
         Assert.AreEqual(512u, unpackedShadowSize);
 
         var unshadowedPoint = Ghost.Engine.Components.PunctualLight.CreatePoint(new float3(1, 0, 0), 2.0f, 8.0f, shadowSize: 0);
-        Assert.AreEqual(0u, unshadowedPoint.shadowSize);
+        Assert.AreEqual(0u, unshadowedPoint.shadowResolution);
 
-        var unshadowedFlags = ((uint)unshadowedPoint.type & 0xFu) | ((unshadowedPoint.shadowSize & 0xFFFFu) << 4);
+        var unshadowedFlags = ((uint)unshadowedPoint.type & 0xFu) | ((unshadowedPoint.shadowResolution & 0xFFFFu) << 4);
         Assert.AreEqual((uint)Ghost.Engine.Components.PunctualLightType.Point, unshadowedFlags & 0xFu);
         Assert.AreEqual(0u, (unshadowedFlags >> 4) & 0xFFFFu);
     }

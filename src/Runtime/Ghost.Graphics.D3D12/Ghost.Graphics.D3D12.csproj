@@ -1,16 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <PublishAot>true</PublishAot>
-    <Configurations>Debug;Release</Configurations>
-    <IsAotCompatible>True</IsAotCompatible>
-    <IsTrimmable>True</IsTrimmable>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.26100.6" />
     <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="3.1.0.1" />

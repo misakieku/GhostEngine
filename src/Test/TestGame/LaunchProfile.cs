@@ -3,7 +3,6 @@ using Ghost.Engine;
 using Ghost.Engine.Components;
 using Ghost.Engine.Input;
 using Ghost.Engine.RenderPipeline;
-using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Systems;
 using Ghost.Engine.Utilities;
@@ -132,14 +131,14 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 
             PrefabUtility.Instantiate(_world, _dragonPrefab, position, rotation, scale);
         }
-        
+
         _world.EntityManager.CreateEntity(
             new DirectionalLight
             {
                 color = new float3(1.0f, 0.95f, 0.85f),
                 intensity = 10.0f,
                 castShadows = true,
-                shadowSize = 2048,
+                shadowResolution = 2048,
                 lightingDimmer = 1.0f,
                 shadowDimmer = 1.0f,
                 diffuseDimmer = 1.0f,
@@ -165,7 +164,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 {
                     type = isSpot ? PunctualLightType.Spot : PunctualLightType.Point,
                     color = color,
-                    shadowSize = 256,
+                    shadowResolution = 256,
                     intensity = 1.0f, // RandomFloat(0.5f, 1.0f),
                     range = 15.0f, // RandomFloat(10.0f, 15.0f),
                     innerSpotAngle = math.radians(15.0f),

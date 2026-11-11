@@ -58,7 +58,7 @@ public struct DirectionalLight : IComponentData
     /// <summary>
     /// Resolution of the shadow map tile in the shadow atlas (e.g. 256, 512). 0 means no shadow.
     /// </summary>
-    public uint shadowSize;
+    public uint shadowResolution;
 
     /// <summary>
     /// Normal bias for shadow mapping.
@@ -96,7 +96,7 @@ public struct DirectionalLight : IComponentData
         volumetricScattering = 1.0f,
         affectAtmosphere = true,
         castShadows = false,
-        shadowSize = 0,
+        shadowResolution = 0,
         normalBias = 0.0f,
         depthBias = 0.0f,
         shadowDimmer = 1.0f,

@@ -48,7 +48,7 @@ internal class LightGatherSystem : ISystem
                     spotAngleOffset = -cosOuter * spotAngleScale;
                 }
 
-                var flags = ((uint)light.type & 0xFu) | ((light.shadowSize & 0xFFFFu) << 4);
+                var flags = ((uint)light.type & 0xFu) | ((light.shadowResolution & 0xFFFFu) << 4);
                 var t = light.sourceRadius * (light.sourceRadius + 0.2f);
                 var minRoughness = math.saturate(1.15f * t / (t + 1.02f));
                 var diffuseDimmer = math.saturate(light.diffuseDimmer);
@@ -70,7 +70,7 @@ internal class LightGatherSystem : ISystem
                     lightDimmer = lightDimmer,
                     diffuseDimmer = diffuseDimmer,
                     specularDimmer = specularDimmer,
-                    shadowDimmer = light.shadowSize > 0 ? math.saturate(light.shadowDimmer) : 0.0f,
+                    shadowDimmer = light.shadowResolution > 0 ? math.saturate(light.shadowDimmer) : 0.0f,
                     fadeDistance = light.fadeDistance,
                     contactShadow = light.contactShadow ? 1u : 0u,
                 };
@@ -148,7 +148,7 @@ internal class LightGatherSystem : ISystem
                 var diffuseDimmer = math.saturate(light.diffuseDimmer);
                 var specularDimmer = math.saturate(light.specularDimmer);
                 var lightDimmer = diffuseDimmer * specularDimmer == 0 ? 0 : math.saturate(light.lightingDimmer);
-                var isCaster = light.castShadows && light.shadowSize > 0;
+                var isCaster = light.castShadows && light.shadowResolution > 0;
 
                 var gpuLight = new GPUDirectionalLight
                 {
@@ -176,7 +176,7 @@ internal class LightGatherSystem : ISystem
                 {
                     light = gpuLight,
                     shadowData = shadowData,
-                    shadowSize = light.shadowSize
+                    shadowSize = light.shadowResolution
                 };
 
                 var addedIndex = (int)payload.AddDirectionalLight(in dirRequest);

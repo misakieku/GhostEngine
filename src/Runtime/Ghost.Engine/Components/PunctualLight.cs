@@ -82,7 +82,7 @@ public struct PunctualLight : IComponentData
     /// <summary>
     /// Resolution of the shadow map tile in the shadow atlas (e.g. 256, 512). 0 means no shadow.
     /// </summary>
-    public uint shadowSize;
+    public uint shadowResolution;
 
     /// <summary>
     /// Normal bias for shadow mapping.
@@ -131,7 +131,7 @@ public struct PunctualLight : IComponentData
         nearPlane = 0.05f,
         fadeDistance = 1000.0f,
         volumetricScattering = 1.0f,
-        shadowSize = shadowSize,
+        shadowResolution = shadowSize,
         normalBias = 0.75f,
         depthBias = 0.5f,
         lightingDimmer = 1.0f,
@@ -154,7 +154,7 @@ public struct PunctualLight : IComponentData
         nearPlane = 0.05f,
         fadeDistance = 1000.0f,
         volumetricScattering = 1.0f,
-        shadowSize = shadowSize,
+        shadowResolution = shadowSize,
         normalBias = 0.75f,
         depthBias = 0.5f,
         lightingDimmer = 1.0f,
