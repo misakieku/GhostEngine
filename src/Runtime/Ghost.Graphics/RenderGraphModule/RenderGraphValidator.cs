@@ -42,6 +42,11 @@ internal static class RenderGraphValidator
             return $"Render graph pass '{pass.name}' (#{pass.index}) declares unsafe render-target usage but has pass type {pass.type}.";
         }
 
+        if (pass.type != RenderPassType.Unsafe && (pass.depthTargetWrites.Count != 0 || pass.depthTargetReads.Count != 0))
+        {
+            return $"Render graph pass '{pass.name}' (#{pass.index}) declares unsafe depth-target usage but has pass type {pass.type}.";
+        }
+
         for (var colorIndex = 0; colorIndex <= pass.maxColorIndex; colorIndex++)
         {
             var color = pass.colorAccess[colorIndex];
@@ -81,6 +86,24 @@ internal static class RenderGraphValidator
         foreach (var resource in pass.renderTargetWrites)
         {
             var error = ValidateDeclaration(pass, resource, PassResourceUsageClass.ColorAttachment, resourceRegistry);
+            if (error is not null)
+            {
+                return error;
+            }
+        }
+
+        foreach (var resource in pass.depthTargetWrites)
+        {
+            var error = ValidateDeclaration(pass, resource, PassResourceUsageClass.DepthWrite, resourceRegistry);
+            if (error is not null)
+            {
+                return error;
+            }
+        }
+
+        foreach (var resource in pass.depthTargetReads)
+        {
+            var error = ValidateDeclaration(pass, resource, PassResourceUsageClass.DepthRead, resourceRegistry);
             if (error is not null)
             {
                 return error;
@@ -190,12 +213,22 @@ internal static class RenderGraphValidator
             return PassResourceUsageClass.ColorAttachment;
         }
 
+        if (pass.depthTargetWrites.Contains(resource) && AreConflicting(PassResourceUsageClass.DepthWrite, requestedUsage))
+        {
+            return PassResourceUsageClass.DepthWrite;
+        }
+
+        if (pass.depthTargetReads.Contains(resource) && AreConflicting(PassResourceUsageClass.DepthRead, requestedUsage))
+        {
+            return PassResourceUsageClass.DepthRead;
+        }
+
         return PassResourceUsageClass.None;
     }
 
     private static bool HasExplicitWriteUsage(RenderGraphPass pass, Identifier<RGResource> resource)
     {
-        if (pass.randomAccess.Contains(resource) || pass.renderTargetWrites.Contains(resource))
+        if (pass.randomAccess.Contains(resource) || pass.renderTargetWrites.Contains(resource) || pass.depthTargetWrites.Contains(resource))
         {
             return true;
         }

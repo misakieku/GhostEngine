@@ -402,7 +402,7 @@ public static class TemplateStitcher
                 allProperties.Add(prop);
             }
         }
-        var propertyBufferSize = DSLShaderCompiler.CalculatePropertyBufferSize(allProperties);
+        var propertyBufferSize = DSLShaderCompiler.CalculateRawPropertyBufferSize(allProperties);
         if (propertyBufferSize == 0 && reflectionData != null && reflectionData.Size > 0)
         {
             propertyBufferSize = reflectionData.Size;

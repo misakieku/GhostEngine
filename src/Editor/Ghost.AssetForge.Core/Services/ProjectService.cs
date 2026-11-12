@@ -77,7 +77,7 @@ public class ProjectService
         if (!File.Exists(csprojPath))
         {
             // Create a dummy csproj just to mark the directory
-            File.WriteAllText(csprojPath, "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <TargetFramework>net10.0</TargetFramework>\n  </PropertyGroup>\n</Project>");
+            File.WriteAllText(csprojPath, "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    \n  </PropertyGroup>\n</Project>");
         }
 
         OnProjectLoaded?.Invoke();

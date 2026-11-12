@@ -48,7 +48,7 @@ internal class LightGatherSystem : ISystem
                     spotAngleOffset = -cosOuter * spotAngleScale;
                 }
 
-                var flags = ((uint)light.type & 0xFu) | ((light.shadowSize & 0xFFFFu) << 4);
+                var flags = ((uint)light.type & 0xFu) | ((light.shadowResolution & 0xFFFFu) << 4);
                 var t = light.sourceRadius * (light.sourceRadius + 0.2f);
                 var minRoughness = math.saturate(1.15f * t / (t + 1.02f));
                 var diffuseDimmer = math.saturate(light.diffuseDimmer);
@@ -70,8 +70,9 @@ internal class LightGatherSystem : ISystem
                     lightDimmer = lightDimmer,
                     diffuseDimmer = diffuseDimmer,
                     specularDimmer = specularDimmer,
-                    shadowDimmer = light.shadowSize > 0 ? math.saturate(light.shadowDimmer) : 0.0f,
+                    shadowDimmer = light.shadowResolution > 0 ? math.saturate(light.shadowDimmer) : 0.0f,
                     fadeDistance = light.fadeDistance,
+                    contactShadow = light.contactShadow ? 1u : 0u,
                 };
 
                 var shadowData = new ShadowData
@@ -142,33 +143,50 @@ internal class LightGatherSystem : ISystem
                     continue;
                 }
 
-                var forward = transform.matrix.c2.xyz;
-                if (math.lengthsq(forward) > 1e-6f)
-                {
-                    forward = math.normalize(forward);
-                }
-                else
-                {
-                    forward = new float3(0.0f, -1.0f, 0.0f); // Default downward
-                }
+                var forward = math.normalize(transform.matrix.c2.xyz);
 
-                // TODO: Handle cascaded shadow maps and shadow matrices for directional lights.
+                var diffuseDimmer = math.saturate(light.diffuseDimmer);
+                var specularDimmer = math.saturate(light.specularDimmer);
+                var lightDimmer = diffuseDimmer * specularDimmer == 0 ? 0 : math.saturate(light.lightingDimmer);
+                var isCaster = light.castShadows && light.shadowResolution > 0;
+
                 var gpuLight = new GPUDirectionalLight
                 {
                     directionWS = forward,
-                    castShadows = light.castShadows ? 1u : 0u,
+                    castShadows = isCaster ? 1u : 0u,
                     color = light.color * light.intensity,
-                    shadowBiasMultiplier = light.shadowBiasMultiplier > 0.0f ? light.shadowBiasMultiplier : 1.0f,
+                    angularDiameter = light.sunDiskAngularDiameter,
+                    lightDimmer = lightDimmer,
+                    shadowDimmer = isCaster ? math.saturate(light.shadowDimmer) : 0.0f,
+                    diffuseDimmer = diffuseDimmer,
+                    specularDimmer = specularDimmer,
+                    contactShadow = light.contactShadow ? 1u : 0u,
                 };
 
-                var addedIndex = (int)payload.AddDirectionalLight(in gpuLight);
+                var shadowData = new ShadowData
+                {
+                    nearPlane = 0.05f,
+                    fadeDistance = 0.0f,
+                    lodErrorScale = light.shadowLodErrorScale > 0.0f ? light.shadowLodErrorScale : 1.0f,
+                    normalBias = light.normalBias,
+                    depthBias = light.depthBias,
+                };
+
+                var dirRequest = new DirectionalLightRequest
+                {
+                    light = gpuLight,
+                    shadowData = shadowData,
+                    shadowSize = light.shadowResolution
+                };
+
+                var addedIndex = (int)payload.AddDirectionalLight(in dirRequest);
 
                 // Luminance calculation: standard Rec. 709 coefficients
                 var luminance = (light.color.x * 0.2126f + light.color.y * 0.7152f + light.color.z * 0.0722f) * light.intensity;
                 // Shadow casters get priority; among casters, pick highest luminance
-                var score = luminance + (light.castShadows ? 10000.0f : 0.0f);
+                var score = luminance + (isCaster ? 10000.0f : 0.0f);
 
-                if (light.castShadows && score > bestScore)
+                if (isCaster && score > bestScore)
                 {
                     bestScore = score;
                     primaryIndex = addedIndex;

@@ -2,13 +2,9 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <PublishAot>true</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
     <IsGameProject>true</IsGameProject>
-
     <!-- Custom Asset Paths -->
     <GhostAssetDir>$(MSBuildProjectDirectory)\Assets</GhostAssetDir>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -18,6 +14,11 @@
     <ProjectReference Include="..\..\Runtime\Ghost.Engine\Ghost.Engine.csproj" />
     <ProjectReference Include="..\..\Runtime\Ghost.Graphics.D3D12\Ghost.Graphics.D3D12.csproj" />
     <ProjectReference Include="..\..\Runtime\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="DOTNET_DbgEnableMiniDump" Value="1" />
+    <RuntimeHostConfigurationOption Include="DOTNET_DbgMiniDumpType" Value="3" />
   </ItemGroup>
 
   <Import Project="..\..\GhostEngine.targets" />

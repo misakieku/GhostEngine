@@ -1,0 +1,46 @@
+compute "PostProcess/UberPost"
+{
+    properties
+    {
+        Texture2D src;
+        Texture2D dst;
+
+        uint tonemapMode;
+        bool agxPunchy;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Utilities/Color.hlsl";
+    }
+
+    hlsl
+    {
+        #define TONEMAP_AGX 1
+
+        #define GROUP_SIZE 8
+
+        float2 GetPositionNDC(float2 positionSS, float2 invScreenSize)
+        {
+            return (positionSS + float2(0.5f, 0.5f)) * invScreenSize;
+        }
+
+        [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            float2 positionNDC = GetPositionNDC(dispatchThreadId.xy, g_ViewData.screenSize.zw);
+            float3 color = SampleTexture2DLevel<float3>(g_Properties.src, LINEAR_CLAMP_SAMPLER, positionNDC, 0);
+
+            if (g_Properties.tonemapMode == TONEMAP_AGX)
+            {
+                color = AgxToneMapping(color, g_Properties.agxPunchy);
+            }
+
+            RWTexture2D<float3> dst = GET_TEXTURE2D(g_Properties.dst);
+            dst[dispatchThreadId.xy] = color;
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

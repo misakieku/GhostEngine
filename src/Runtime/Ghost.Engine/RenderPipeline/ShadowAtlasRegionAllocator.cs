@@ -41,7 +41,7 @@ public unsafe struct ShadowAtlasRegionAllocator : IDisposable
     private UnsafeList<Shelf> _shelves;
     private uint _nextShelfY;
 
-    public uint AtlasSize => _atlasSize;
+    public readonly uint AtlasSize => _atlasSize;
 
     public ShadowAtlasRegionAllocator(uint atlasSize) : this(atlasSize, AllocationHandle.TempRender)
     {

@@ -2,7 +2,7 @@ using Ghost.Core;
 using Ghost.Entities;
 using System.Runtime.CompilerServices;
 
-namespace Ghost.Engine;
+namespace Ghost.Engine.Utilities;
 
 public static class HierarchyUtility
 {

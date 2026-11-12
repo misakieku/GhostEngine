@@ -19,7 +19,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
     private Handle<Mesh> _actualHandle;
     private Handle<Mesh> _tempHandle;
 
-    private Stream _contentStream = null!;
+    private AssetPayload _payload;
 
     private MeshContentHeader _header;
     private PageDirectoryEntry[] _pageDirectory = null!;
@@ -45,8 +45,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         {
             ResourceManager.ReleaseMesh(_tempHandle);
         }
-        _contentStream?.Dispose();
-        _contentStream = null!;
+        _payload.Dispose();
     }
 
     public override void ReadAssetData(Span<byte> dst)
@@ -66,7 +65,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         dst = Unsafe.BitCast<Handle<Mesh>, T>(_actualHandle);
     }
 
-    public Result OnLoadContent([Owner] Stream contentStream, long contentSize)
+    public Result OnLoadContent([Owner] ref AssetPayload payload)
     {
         static bool ValidateRange(long offset, long size, long contentSize)
         {
@@ -75,11 +74,18 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
 
         try
         {
-            var header = contentStream.Read<MeshContentHeader>();
+            var contentSize = payload.Size;
+            if (contentSize < sizeof(MeshContentHeader))
+            {
+                payload.Dispose();
+                return Result.Failure("Mesh payload is too small to contain a valid header.");
+            }
+
+            var header = payload.Read<MeshContentHeader>(0);
 
             if (header.magic != MeshContentHeader.MAGIC || header.version != MeshContentHeader.VERSION)
             {
-                contentStream.Dispose();
+                payload.Dispose();
                 return Result.Failure($"Unsupported mesh content format. Expected magic 0x{MeshContentHeader.MAGIC:X8} v{MeshContentHeader.VERSION}, got 0x{header.magic:X8} v{header.version}.");
             }
 
@@ -87,7 +93,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
                 header.meshletHierarchyNodeCount == 0 || header.pageCount == 0 ||
                 header.rootPageCount == 0)
             {
-                contentStream.Dispose();
+                payload.Dispose();
                 return Result.Failure("Mesh content is missing required meshlet or page data.");
             }
 
@@ -97,47 +103,46 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
                 !ValidateRange(header.pageDirectoryOffset, header.pageDirectorySize, contentSize) ||
                 !ValidateRange(header.rootPageOffset, header.rootPageSize, contentSize))
             {
-                contentStream.Dispose();
+                payload.Dispose();
                 return Result.Failure("Mesh content contains an invalid data range.");
             }
 
             if (header.bulkPagesSize > 0 && !ValidateRange(header.bulkPagesOffset, header.bulkPagesSize, contentSize))
             {
-                contentStream.Dispose();
+                payload.Dispose();
                 return Result.Failure("Mesh content contains an invalid bulk pages range.");
             }
 
             if (header.materialPartSize > 0 && !ValidateRange(header.materialPartOffset, header.materialPartSize, contentSize))
             {
-                contentStream.Dispose();
+                payload.Dispose();
                 return Result.Failure("Mesh content contains an invalid material part range.");
             }
 
             if (header.rayTracingProxySize > 0 && !ValidateRange(header.rayTracingProxyOffset, header.rayTracingProxySize, contentSize))
             {
-                contentStream.Dispose();
+                payload.Dispose();
                 return Result.Failure("Mesh content contains an invalid ray tracing proxy range.");
             }
 
-            _contentStream = contentStream;
+            _payload = payload;
             _header = header;
 
             _pageDirectory = new PageDirectoryEntry[_header.pageCount];
-            _contentStream.Position = _header.pageDirectoryOffset;
-            _contentStream.ReadExactly(MemoryMarshal.AsBytes(_pageDirectory.AsSpan()));
+            _payload.Slice(_header.pageDirectoryOffset, (int)_header.pageDirectorySize).CopyTo(MemoryMarshal.AsBytes(_pageDirectory.AsSpan()));
 
             return Result.Success();
         }
         catch (Exception)
         {
-            contentStream.Dispose();
+            payload.Dispose();
             throw;
         }
     }
 
     public int ReadPage(uint pageIndex, Span<byte> dst)
     {
-        if (_contentStream == null || _pageDirectory == null || pageIndex >= (uint)_pageDirectory.Length)
+        if (!_payload.IsValid || _pageDirectory == null || pageIndex >= (uint)_pageDirectory.Length)
         {
             return 0;
         }
@@ -149,12 +154,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
             return 0;
         }
 
-        lock (_contentStream)
-        {
-            _contentStream.Position = (long)dir.fileOffset;
-            _contentStream.ReadExactly(dst[..bytesToRead]);
-        }
-
+        _payload.Read((long)dir.fileOffset, dst[..bytesToRead]);
         return bytesToRead;
     }
 
@@ -186,27 +186,14 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         var pStaging = (byte*)NativeMemory.AllocZeroed((nuint)totalGpuBufferSize);
         try
         {
-            // 1. Hierarchy nodes
-            _contentStream.Position = _header.hierarchyOffset;
-            _contentStream.ReadExactly(new Span<byte>(pStaging, (int)hierarchyBytes));
-
-            // 2. Groups
-            _contentStream.Position = _header.groupOffset;
-            _contentStream.ReadExactly(new Span<byte>(pStaging + hierarchyBytes, (int)groupBytes));
-
-            // 3. Meshlets
-            _contentStream.Position = _header.meshletOffset;
-            _contentStream.ReadExactly(new Span<byte>(pStaging + hierarchyBytes + groupBytes, (int)meshletBytes));
-
-            // 4. Root Page 0
-            _contentStream.Position = _header.rootPageOffset;
-            _contentStream.ReadExactly(new Span<byte>(pStaging + pageBufferBase, (int)rootPageBytes));
-
-            // 5. Ray Tracing Proxy Geometry
+            _payload.Slice(_header.hierarchyOffset, (int)hierarchyBytes).CopyTo(new Span<byte>(pStaging, (int)hierarchyBytes));
+            _payload.Slice(_header.groupOffset, (int)groupBytes).CopyTo(new Span<byte>(pStaging + hierarchyBytes, (int)groupBytes));
+            _payload.Slice(_header.meshletOffset, (int)meshletBytes).CopyTo(new Span<byte>(pStaging + hierarchyBytes + groupBytes, (int)meshletBytes));
+            _payload.Slice(_header.rootPageOffset, (int)rootPageBytes).CopyTo(new Span<byte>(pStaging + pageBufferBase, (int)rootPageBytes));
+            
             if (proxyBytes > 0)
             {
-                _contentStream.Position = _header.rayTracingProxyOffset;
-                _contentStream.ReadExactly(new Span<byte>(pStaging + proxyBaseOffset, (int)proxyBytes));
+                _payload.Slice(_header.rayTracingProxyOffset, (int)proxyBytes).CopyTo(new Span<byte>(pStaging + proxyBaseOffset, (int)proxyBytes));
             }
 
             var streamingManager = Manager.MeshletStreamingManager;

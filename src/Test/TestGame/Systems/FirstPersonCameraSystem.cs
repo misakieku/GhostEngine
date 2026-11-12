@@ -50,7 +50,7 @@ public class FirstPersonCameraSystem : SystemBase
                 ref readonly var input = ref actionStates[i];
                 ref var transform = ref transforms[i];
 
-                // 1. Mouse Lock Toggle (e.g. Escape or Start button)
+                // Mouse Lock Toggle (e.g. Escape or Start button)
                 if (input.WasPressed(ActionButton.ToggleMouseLock))
                 {
                     _rawInput.RelativeMouseMode = !_rawInput.RelativeMouseMode;
@@ -62,7 +62,7 @@ public class FirstPersonCameraSystem : SystemBase
                     _rawInput.RelativeMouseMode = true;
                 }
 
-                // 2. Orientation (Look / Rotation)
+                // Orientation (Look / Rotation)
                 var lookInput = input.GetVector2(ActionAxis.LookX, ActionAxis.LookY);
                 var isGamepad = _rawInput.ActiveDevice == DeviceType.Gamepad;
 
@@ -97,7 +97,7 @@ public class FirstPersonCameraSystem : SystemBase
                 var rotX = quaternion.AxisAngle(new float3(1.0f, 0.0f, 0.0f), cam.pitch);
                 var rotation = math.mul(rotY, rotX);
 
-                // 3. Movement (Displacement along view forward / right / world up)
+                // Movement (Displacement along view forward / right / world up)
                 var moveInput = input.GetVector2(ActionAxis.MoveX, ActionAxis.MoveY);
                 var elevation = input.GetAxis(ActionAxis.Elevation);
                 var isSprinting = input.IsDown(ActionButton.Sprint);

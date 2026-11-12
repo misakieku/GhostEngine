@@ -1,4 +1,12 @@
 <Project>
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Configurations>Debug;Release</Configurations>
+  </PropertyGroup>
+  
   <!--
   <PropertyGroup Condition="'$(Configuration)' == 'Debug_Editor'">
     <DefineConstants>$(DefineConstants);DEBUG;TRACE;GHOST_EDITOR;GHOST_SAFETY_CHECKS</DefineConstants>

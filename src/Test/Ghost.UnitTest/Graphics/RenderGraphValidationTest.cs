@@ -212,6 +212,41 @@ public class RenderGraphValidationTest
         AssertDetailedConflict(error, "DepthCompilerBackstopPass", resourceName, buffer.Value, "DepthWrite", "requires a texture resource");
     }
 
+    [TestMethod]
+    public void TestUnsafePassWithDepthTargetPassesValidation()
+    {
+        const string resourceName = "ValidUnsafeDepthTarget";
+        var builder = _renderGraph.AddUnsafeRenderPass<PassData>("ValidUnsafeDepthPass");
+        var depthTexture = builder.CreateTexture(RGTextureDesc.RelativeDepth(1.0f), resourceName);
+        builder.UseDepthTargetTexture(depthTexture, AccessFlags.WriteAll);
+        builder.SetPassData(new PassData { texture = depthTexture });
+        builder.SetRenderFunc<PassData>(static (ref readonly data, ctx) => { });
+
+        // Should not throw
+        builder.Dispose();
+    }
+
+    [TestMethod]
+    public void TestCompilerBackstopRejectsDepthTargetWritesForBuffer()
+    {
+        const string resourceName = "InvalidDepthTargetBuffer";
+        var builder = _renderGraph.AddUnsafeRenderPass<PassData>("DepthTargetCompilerBackstopPass");
+        builder.AllowPassCulling(false);
+        var buffer = builder.CreateBuffer(new BufferDesc { Size = 1024 }, resourceName);
+        builder.SetPassData(new PassData { buffer = buffer });
+        builder.SetRenderFunc<PassData>(static (ref readonly data, ctx) => { });
+        builder.Dispose();
+
+        var viewState = new ViewportState(1920, 1080, 1920, 1080);
+        CompileAndExecute(viewState).GetValueOrThrow();
+
+        var passes = GetPasses();
+        passes[0].depthTargetWrites.Add(buffer.AsResource());
+
+        var error = Assert.ThrowsExactly<InvalidOperationException>(() => CompileAndExecute(viewState));
+        AssertDetailedConflict(error, "DepthTargetCompilerBackstopPass", resourceName, buffer.Value, "DepthWrite", "requires a texture resource");
+    }
+
     private List<RenderGraphPass> GetPasses()
     {
         var passesField = typeof(RenderGraph).GetField("_passes", BindingFlags.Instance | BindingFlags.NonPublic);

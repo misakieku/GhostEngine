@@ -1,6 +1,6 @@
 {
   "Id": "e9863d03-adbc-4831-a874-286aa14c38f3",
-  "Type": "Mesh",
+  "Type": "EntityPrefab",
   "SettingsType": "Ghost.AssetForge.Core.Bakers.MeshBakeSettings",
   "Settings": {
     "Version": 1,
@@ -19,6 +19,9 @@
     "SimplifyFallbackPermissive": false,
     "SimplifyFallbackSloppy": true,
     "OptimizeClusters": true,
-    "FlipUVs": true
+    "FlipUVs": true,
+    "FallbackPercentage": 0,
+    "FallbackRelativeError": 0.01,
+    "MaterialSlotRemap": {}
   }
 }

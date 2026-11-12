@@ -105,7 +105,15 @@ public sealed class ShaderVariantRenderingTest
         {
         }
 
+        public void SetWorkGraph(IWorkGraphProgram workGraphProgram)
+        {
+        }
+
         public void DispatchGraph(scoped in DispatchGraphDesc desc)
+        {
+        }
+
+        public void BuildRaytracingAccelerationStructure(scoped in BuildAccelerationStructureDesc desc)
         {
         }
 

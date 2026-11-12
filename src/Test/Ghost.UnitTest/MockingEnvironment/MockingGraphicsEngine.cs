@@ -11,6 +11,7 @@ internal class MockingGraphicsEngine : IGraphicsEngine
     private readonly MockingRenderDevice _renderDevice;
     private readonly MockingResourceDatabase _resourceDatabase;
     private readonly MockingResourceAllocator _resourceAllocator;
+    private readonly MockingPipelineLibrary _pipelineLibrary = new();
     private readonly Stack<MockingCommandBuffer>[] _commandBufferPools;
     private readonly Queue<MockingCommandBuffer> _scriptedCommandBuffers;
     private readonly bool _ownsDependencies;
@@ -56,7 +57,7 @@ internal class MockingGraphicsEngine : IGraphicsEngine
 
     public IRenderDevice Device => _renderDevice;
 
-    public IPipelineLibrary PipelineLibrary => throw new NotImplementedException();
+    public IPipelineLibrary PipelineLibrary => _pipelineLibrary;
 
     public IResourceDatabase ResourceDatabase => _resourceDatabase;
 
@@ -229,6 +230,7 @@ internal class MockingGraphicsEngine : IGraphicsEngine
             return;
         }
 
+        _pipelineLibrary.Dispose();
         _resourceAllocator.Dispose();
         _resourceDatabase.Dispose();
         _renderDevice.Dispose();

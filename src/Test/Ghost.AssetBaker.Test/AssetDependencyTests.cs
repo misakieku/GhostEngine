@@ -231,7 +231,7 @@ shader ""Test/Cycle""
         };
         _projectService.SaveMetadata(testShader + ".meta", meta);
 
-        // 1. Initial Bake
+        // Initial Bake
         var firstResult = await _bakeService.BakeProjectAsync();
         Assert.AreEqual(0, firstResult.Failed, "First bake should succeed.");
         Assert.AreEqual(1, firstResult.Succeeded, "1 shader should be baked.");
@@ -250,14 +250,14 @@ shader ""Test/Cycle""
 
         var firstWriteTime = File.GetLastWriteTimeUtc(cachedFile);
 
-        // 2. Second Bake without changes -> should be skipped!
+        // Second Bake without changes -> should be skipped!
         var secondResult = await _bakeService.BakeProjectAsync();
         Assert.AreEqual(0, secondResult.Succeeded, "No assets should be baked when unchanged.");
-        Assert.AreEqual(2, secondResult.Skipped, "Both header and shader should be skipped when unchanged.");
+        Assert.AreEqual(1, secondResult.Skipped, "Both header and shader should be skipped when unchanged."); // Hlsl does not considered as an assets so it's 1 here.
         var secondWriteTime = File.GetLastWriteTimeUtc(cachedFile);
         Assert.AreEqual(firstWriteTime, secondWriteTime, "Cache timestamp should not change on skip.");
 
-        // 3. Modify Common.hlsl only (test.gshdr NOT touched)
+        // Modify Common.hlsl only (test.gshdr NOT touched)
         await Task.Delay(100); // Ensure timestamp resolution difference
         await File.WriteAllTextAsync(headerHlsl, "float GetColorMultiplier() { return 2.0; }\n");
 
@@ -302,7 +302,7 @@ shader ""Test/Cycle""
         };
         _projectService.SaveMetadata(sourceAsset + ".meta", meta);
 
-        // 1. Initial bake
+        // Initial bake
         var res1 = await _bakeService.BakeProjectAsync();
         Assert.AreEqual(1, res1.Succeeded);
 
@@ -313,12 +313,12 @@ shader ""Test/Cycle""
 
         var time1 = File.GetLastWriteTimeUtc(cachedFile);
 
-        // 2. Second bake -> skipped
+        // Second bake -> skipped
         var res2 = await _bakeService.BakeProjectAsync();
         Assert.AreEqual(1, res2.Skipped);
         Assert.AreEqual(time1, File.GetLastWriteTimeUtc(cachedFile));
 
-        // 3. Modify companion data file only
+        // Modify companion data file only
         await Task.Delay(100);
         await File.WriteAllTextAsync(companionFile, "version: 2\n");
 

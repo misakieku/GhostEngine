@@ -30,25 +30,25 @@ internal struct ShaderCacheView
 
 public readonly struct CompiledVariantData
 {
-    public readonly KeywordMask128 RuntimeMask;
-    public readonly ShaderByteCode[] ByteCodes;
+    public readonly KeywordMask128 runtimeMask;
+    public readonly ShaderByteCode[] byteCodes;
 
     public CompiledVariantData(KeywordMask128 runtimeMask, ShaderByteCode[] byteCodes)
     {
-        RuntimeMask = runtimeMask;
-        ByteCodes = byteCodes;
+        this.runtimeMask = runtimeMask;
+        this.byteCodes = byteCodes;
     }
 }
 
 public readonly struct CompiledPassData
 {
-    public readonly KeywordMask128 SupportedMask;
-    public readonly CompiledVariantData[] Variants;
+    public readonly KeywordMask128 supportedMask;
+    public readonly CompiledVariantData[] variants;
 
     public CompiledPassData(KeywordMask128 supportedMask, CompiledVariantData[] variants)
     {
-        SupportedMask = supportedMask;
-        Variants = variants;
+        this.supportedMask = supportedMask;
+        this.variants = variants;
     }
 }
 
@@ -311,7 +311,7 @@ public unsafe class ShaderLibrary : IDisposable
             for (var passIndex = 0; passIndex < passes.Length; passIndex++)
             {
                 var passData = passes[passIndex];
-                var variants = passData.Variants ?? Array.Empty<CompiledVariantData>();
+                var variants = passData.variants ?? Array.Empty<CompiledVariantData>();
                 var variantCount = variants.Length;
                 if (variantCount == 0)
                 {
@@ -321,17 +321,17 @@ public unsafe class ShaderLibrary : IDisposable
 
                 var passCache = new PassCache
                 {
-                    supportedMask = passData.SupportedMask,
+                    supportedMask = passData.supportedMask,
                     variants = new UnsafeArray<PassVariantCache>(variantCount, AllocationHandle.Persistent, AllocationOption.Clear),
                 };
 
                 for (var v = 0; v < variantCount; v++)
                 {
                     var variantData = variants[v];
-                    var byteCodes = variantData.ByteCodes ?? Array.Empty<ShaderByteCode>();
+                    var byteCodes = variantData.byteCodes ?? Array.Empty<ShaderByteCode>();
                     passCache.variants[v] = new PassVariantCache
                     {
-                        runtimeMask = variantData.RuntimeMask,
+                        runtimeMask = variantData.runtimeMask,
                         cache = CreateShaderCache(id, passIndex, byteCodes),
                     };
                 }

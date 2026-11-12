@@ -5,6 +5,7 @@ namespace Ghost.Graphics.RHI;
 
 public readonly struct GraphicsEngineDesc
 {
+    public string? PipelineLibraryPath { get; init; }
 }
 
 public interface IGraphicsEngine : IDisposable

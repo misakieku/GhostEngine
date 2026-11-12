@@ -1,0 +1,50 @@
+compute "Internal/ClearShadowOccluders"
+{
+    properties
+    {
+        uint occluderUav0;
+        uint occluderUav1;
+        uint occluderUav2;
+        uint occluderUav3;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(8, 8, 1)]
+        void CSMain(uint3 id : SV_DispatchThreadID)
+        {
+            if (id.x >= 64u || id.y >= 64u)
+            {
+                return;
+            }
+
+            if (IS_VALID_TEXTURE(g_Properties.occluderUav0))
+            {
+                RWTexture2DArray<uint> tex0 = GET_TEXTURE2D_ARRAY(g_Properties.occluderUav0);
+                tex0[uint3(id.xy, 0)] = 0x40000000u;
+            }
+            if (IS_VALID_TEXTURE(g_Properties.occluderUav1))
+            {
+                RWTexture2DArray<uint> tex1 = GET_TEXTURE2D_ARRAY(g_Properties.occluderUav1);
+                tex1[uint3(id.xy, 0)] = 0x40000000u;
+            }
+            if (IS_VALID_TEXTURE(g_Properties.occluderUav2))
+            {
+                RWTexture2DArray<uint> tex2 = GET_TEXTURE2D_ARRAY(g_Properties.occluderUav2);
+                tex2[uint3(id.xy, 0)] = 0x40000000u;
+            }
+            if (IS_VALID_TEXTURE(g_Properties.occluderUav3))
+            {
+                RWTexture2DArray<uint> tex3 = GET_TEXTURE2D_ARRAY(g_Properties.occluderUav3);
+                tex3[uint3(id.xy, 0)] = 0x40000000u;
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

@@ -151,7 +151,23 @@ compute "Internal/RisDenoiserSpatial"
             float4 centerNormalRough = UnpackHalf4(s_normalRough[centerShared.y][centerShared.x]);
             float3 centerNormal = normalize(centerNormalRough.xyz);
             float centerRoughness = centerNormalRough.w;
-            float centerFrames = f16tof32(s_diffuse[centerShared.y][centerShared.x].y >> 16u);
+            float centerPackedAlpha = f16tof32(s_diffuse[centerShared.y][centerShared.x].y >> 16u) * 64.0f;
+            float numFrames = max(floor(centerPackedAlpha + 1e-4f), 1.0f);
+
+            // 3x3 LDS neighborhood variance dilation (SVGF style) so noisy penumbra regions receive full 7x7 spatial filtering
+            // while zero-variance lit/umbra regions shrink to a tight kernel to preserve crisp contact shadows.
+            float localRelVar = 0.0f;
+            [unroll]
+            for (int vy = -1; vy <= 1; ++vy)
+            {
+                [unroll]
+                for (int vx = -1; vx <= 1; ++vx)
+                {
+                    float neighborPacked = f16tof32(s_diffuse[centerShared.y + vy][centerShared.x + vx].y >> 16u) * 64.0f;
+                    float neighborVar = saturate(neighborPacked - floor(neighborPacked + 1e-4f));
+                    localRelVar = max(localRelVar, neighborVar);
+                }
+            }
 
             // View-space tangent plane folded into 4 scalars (saves 3 live VGPRs across the 49-tap loop)
             float2 invProj = rcp(float2(g_ViewData.projectionMatrix[0][0], g_ViewData.projectionMatrix[1][1]));
@@ -165,13 +181,13 @@ compute "Internal/RisDenoiserSpatial"
             float dPlaneY = centerNormalVS.y * pixToViewScale.y;
             float planeDistToLog2 = (-100.0f * 1.44269504f) * rcp(max(centerZView, 1e-3f));
 
-            // Disocclusion-adaptive spatial blur & tonemap (UE5 MegaLights style)
-            float numFrames = max(centerFrames * 32.0f, 1.0f);
+            // Disocclusion + Variance-adaptive spatial blur & tonemap (SVGF / MegaLights hybrid)
             float disocclusionFactor = 1.0f - saturate((numFrames - 1.0f) / 7.0f);
-            float tonemapStrength = lerp(0.1f, 1.0f, disocclusionFactor);
-            int radius = (disocclusionFactor > 0.05f) ? 3 : 2;
+            float varianceFactor = saturate(max(disocclusionFactor, localRelVar * 1.35f));
+            float tonemapStrength = lerp(0.1f, 0.85f, varianceFactor);
+            int radius = (varianceFactor > 0.12f) ? 3 : ((varianceFactor > 0.02f) ? 2 : 1);
 
-            float sigmaDiff = lerp(1.1f, 2.4f, disocclusionFactor);
+            float sigmaDiff = lerp(0.65f, 2.8f, varianceFactor);
             float sigmaSpec = max(sigmaDiff * saturate(centerRoughness * 2.5f + 0.25f), 0.5f);
             float kDiff = -1.44269504f * rcp(2.0f * sigmaDiff * sigmaDiff);
             float kSpec = -1.44269504f * rcp(2.0f * sigmaSpec * sigmaSpec);
@@ -209,7 +225,7 @@ compute "Internal/RisDenoiserSpatial"
                         continue;
                     }
 
-                    // 1. Tangent-Plane Depth Weight in View Space
+                    // Tangent-Plane Depth Weight in View Space
                     float planeDist = (nyTerm + float(dx) * dPlaneX) * sampleZView - planeOffset;
                     float wDepth = exp2(abs(planeDist) * planeDistToLog2);
 
@@ -218,7 +234,7 @@ compute "Internal/RisDenoiserSpatial"
                         continue;
                     }
 
-                    // 2. Normal Edge-Stopping Weight
+                    // Normal Edge-Stopping Weight
                     float3 sampleNormal = UnpackHalf3(s_normalRough[sy][sx]);
                     float normalDot = saturate(dot(centerNormal, sampleNormal));
                     if (normalDot <= 1e-2f)
@@ -232,7 +248,7 @@ compute "Internal/RisDenoiserSpatial"
                     float n16 = n8 * n8;
                     float wNormalSpec = lerp(n16 * n8, wNormalDiff, specRoughnessBlend);
 
-                    // 3. Separable Spatial Gaussian Weight
+                    // Separable Spatial Gaussian Weight
                     int ax = abs(dx);
                     float wDiff = (SelectGaussianWeight(ax, gDiff1, gDiff2, gDiff3) * gyDiff) * (wNormalDiff * wDepth);
                     float wSpec = (SelectGaussianWeight(ax, gSpec1, gSpec2, gSpec3) * gySpec) * (wNormalSpec * wDepth);

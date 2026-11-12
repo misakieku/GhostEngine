@@ -261,7 +261,7 @@ internal static class RenderGraphNativePassBuilder
 
             // ===== LOAD OP INFERENCE =====
 
-            // 1. First use
+            // First use
             if (resourceOrdering.IsFirstUse(resource.index, firstScheduleIndex))
             {
                 // Clear at first use
@@ -275,17 +275,17 @@ internal static class RenderGraphNativePassBuilder
                     attachment.loadOp = AttachmentLoadOp.DontCare;
                 }
             }
-            // 2. Discard flag: DontCare for performance
+            // Discard flag: DontCare for performance
             else if (flags.HasFlag(AccessFlags.Discard))
             {
                 attachment.loadOp = AttachmentLoadOp.DontCare;
             }
-            // 3. Read flag: Must preserve existing contents
+            // Read flag: Must preserve existing contents
             else if (flags.HasFlag(AccessFlags.Read))
             {
                 attachment.loadOp = AttachmentLoadOp.Load;
             }
-            // 4. Continuation from previous pass
+            // Continuation from previous pass
             else
             {
                 attachment.loadOp = AttachmentLoadOp.Load;
@@ -322,7 +322,7 @@ internal static class RenderGraphNativePassBuilder
 
             // ===== LOAD OP INFERENCE =====
 
-            // 1. First Use
+            // First Use
             if (resourceOrdering.IsFirstUse(resource.index, firstScheduleIndex))
             {
                 // Clear at first use
@@ -337,17 +337,17 @@ internal static class RenderGraphNativePassBuilder
                     attachment.loadOp = AttachmentLoadOp.DontCare;
                 }
             }
-            // 2. Discard flag: DontCare for performance
+            // Discard flag: DontCare for performance
             else if (flags.HasFlag(AccessFlags.Discard))
             {
                 attachment.loadOp = AttachmentLoadOp.DontCare;
             }
-            // 3. Read flag: Must preserve existing contents
+            // Read flag: Must preserve existing contents
             else if (flags.HasFlag(AccessFlags.Read))
             {
                 attachment.loadOp = AttachmentLoadOp.Load;
             }
-            // 4. Continuation from previous pass
+            // Continuation from previous pass
             else
             {
                 attachment.loadOp = AttachmentLoadOp.Load;

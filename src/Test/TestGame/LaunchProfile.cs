@@ -3,7 +3,6 @@ using Ghost.Engine;
 using Ghost.Engine.Components;
 using Ghost.Engine.Input;
 using Ghost.Engine.RenderPipeline;
-using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Systems;
 using Ghost.Engine.Utilities;
@@ -23,14 +22,12 @@ namespace TestGame;
 internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 {
     private World _world = null!;
-    private IAssetEntry _meshAsset = null!;
-    private IAssetEntry _shaderAsset = null!;
+    private IAssetEntry _dragonPrefab = null!;
     private IAssetEntry _skyAsset = null!;
-
-    private Entity _volumeEntity;
 
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
+        EnableRayTracing = true,
         MaxVisibleMeshletsOnScreen = 2_097_152,
         MeshletLodErrorThreshold = 1.0f,
         InstanceCullingThreshold = 2.0f,
@@ -99,7 +96,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         const float size = 5.0f;
         const float baseScale = 1.0f;
         const float lightSize = size * 1.0f;
-        const int lightCount = 25;
+        const int lightCount = 5;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -124,67 +121,38 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             new InputReceiver(InputProfileDatabase.FIRST_PERSON_CAMERA_PROFILE_ID, true),
             default(ActionState));
 
-        _meshAsset = engine.AssetManager.ResolveAsset("Meshes/dragon");
-        _shaderAsset = engine.AssetManager.ResolveAsset("Shaders/StandardLit");
+        _dragonPrefab = engine.AssetManager.ResolveAsset("Meshes/dragon");
 
-        var meshHandle = default(Handle<Mesh>);
-        var shaderHandle = default(Handle<Shader>);
-        var textureHandle = default(Handle<GPUTexture>);
-
-        _meshAsset.ReadAssetData(ref meshHandle);
-        _shaderAsset.ReadAssetData(ref shaderHandle);
-
-        var mat = engine.RenderEngine.ResourceManager.CreateMaterial(shaderHandle);
-        var srv = engine.RenderEngine.GraphicsEngine.ResourceDatabase.GetBindlessIndex(textureHandle.AsResource());
-
-        engine.RenderEngine.ResourceManager.SetMaterialProperty(mat, new GhostStandardLitShaderProperties
+        for (var i = 0; i < entityCapacity; i++)
         {
-            // baseColor = engine.RenderEngine.GraphicsEngine.ResourceDatabase.GetBindlessIndex(textureHandle.AsResource()),
-            // sampler = engine.RenderEngine.ResourceManager.StaticSampler.LinearRepeat,
-            roughness = 0.75f,
-        });
-
-        var materialPallette = engine.RenderEngine.ResourceManager.GetOrCreateMaterialPalette([mat]);
-
-        using var meshSet = new ComponentSet(scope.AllocationHandle, ComponentTypeID<MeshInstance>.Value, ComponentTypeID<LocalToWorld>.Value);
-        var entities = new Entity[entityCapacity];
-        _world.EntityManager.CreateEntities(entities, meshSet);
-
-        for (var i = 0; i < entities.Length; i++)
-        {
-            var entity = entities[i];
-            _world.EntityManager.SetComponent(entity, new MeshInstance
-            {
-                mesh = meshHandle,
-                materialPalette = materialPallette,
-                renderingLayerMask = RenderingLayerMask.All,
-                shadowCastingMode = ShadowCastingMode.On,
-                staticShadowCaster = true,
-            });
-
             var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
-            var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f), RandomFloat(0.0f, 360.0f)));
+            var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2)));
             var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
 
-            var localToWorld = new LocalToWorld
-            {
-                matrix = float4x4.TRS(position, rotation, scale)
-            };
-
-            _world.EntityManager.SetComponent(entity, localToWorld);
+            PrefabUtility.Instantiate(_world, _dragonPrefab, position, rotation, scale);
         }
 
-        //_world.EntityManager.CreateEntity(
-        //    new DirectionalLight
-        //    {
-        //        color = new float3(1.0f, 0.95f, 0.85f),
-        //        intensity = 1.0f,
-        //        castShadows = true
-        //    },
-        //    new LocalToWorld
-        //    {
-        //        matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(new float3(45.0f, 45.0f, 0.0f)), new float3(1.0f, 1.0f, 1.0f))
-        //    });
+        _world.EntityManager.CreateEntity(
+            new DirectionalLight
+            {
+                color = new float3(1.0f, 0.95f, 0.85f),
+                sunDiskAngularDiameter = math.radians(0.53f),
+                intensity = 10.0f,
+                castShadows = true,
+                shadowResolution = 2048,
+                lightingDimmer = 1.0f,
+                shadowDimmer = 1.0f,
+                diffuseDimmer = 1.0f,
+                specularDimmer = 1.0f,
+                normalBias = 0.75f,
+                depthBias = 0.5f,
+                shadowLodErrorScale = 5.0f,
+                contactShadow = true,
+            },
+            new LocalToWorld
+            {
+                matrix = float4x4.TRS(new float3(0.0f, 50.0f, 0.0f), quaternion.EulerXYZ(math.radians(new float3(45.0f, 225.0f, 0.0f))), new float3(1.0f, 1.0f, 1.0f))
+            });
 
         for (var i = 0; i < lightCount; i++)
         {
@@ -197,15 +165,15 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 {
                     type = isSpot ? PunctualLightType.Spot : PunctualLightType.Point,
                     color = color,
-                    shadowSize = 256,
-                    intensity = 1.0f, // RandomFloat(0.5f, 1.0f),
+                    shadowResolution = 256,
+                    intensity = 3.0f, // RandomFloat(0.5f, 1.0f),
                     range = 15.0f, // RandomFloat(10.0f, 15.0f),
                     innerSpotAngle = math.radians(15.0f),
                     outerSpotAngle = math.radians(40.0f),
                     nearPlane = 0.1f,
                     normalBias = 0.75f,
                     depthBias = 0.5f,
-                    shadowLodErrorScale = 1.0f,
+                    shadowLodErrorScale = 5.0f,
                     fadeDistance = 1000.0f,
                     shadowFadeDistance = 1000.0f,
                     sourceRadius = 0.025f,
@@ -237,10 +205,18 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         });
         volumeData.Set(new ShadowSettings
         {
-            shadowMode = ShadowMode.RayTraced,
+            shadowMode = ShadowMode.ShadowMap,
+            maxDistance = 50.0f,
+        });
+        volumeData.Set(new RayTracingSettings
+        {
+            cullMode = RayTracingCullMode.ExtendedFrustum,
+            solidAngleThreshold = math.radians(4.0f),
+            rayBias = 0.02f,
+            distanceRayBias = 0.05f,
         });
 
-        _volumeEntity = _world.EntityManager.CreateEntity(
+        _world.EntityManager.CreateEntity(
             new RenderVolume { renderingLayerMask = RenderingLayerMask.All, isGlobal = true, weight = 1.0f, priority = 1 },
             volumeData);
 
@@ -259,7 +235,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
     {
         if (e.Type == SDL_EventType.SDL_EVENT_KEY_DOWN && !e.key.repeat)
         {
-            if (e.key.key == SDL_Keycode.SDLK_F1 || e.key.key == SDL_Keycode.SDLK_H)
+            if (e.key.key == SDL_Keycode.SDLK_F1)
             {
                 _renderPipelineSettings.DebugMode = _renderPipelineSettings.DebugMode == RenderPipelineDebugMode.TileLightHeatmap
                     ? RenderPipelineDebugMode.None
@@ -268,16 +244,10 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             }
             else if (e.key.key == SDL_Keycode.SDLK_F2)
             {
-                ref var volumeData = ref _world.EntityManager.GetComponent<RenderVolumeDataContainer>(_volumeEntity);
-                volumeData.GetRef<ShadowSettings>(out var exists);
-                if (exists)
-                {
-                    ref var shadowSettings = ref volumeData.GetRef<ShadowSettings>(out _);
-                    shadowSettings.shadowMode = shadowSettings.shadowMode == ShadowMode.RayTraced
-                        ? ShadowMode.ShadowMap
-                        : ShadowMode.RayTraced;
-                    Logger.Info($"[TestGame] Toggled ShadowMode: {shadowSettings.shadowMode}");
-                }
+                _renderPipelineSettings.DirectLightingMode = _renderPipelineSettings.DirectLightingMode == DirectLightingMode.Standard
+                    ? DirectLightingMode.Stochastic
+                    : DirectLightingMode.Standard;
+                Logger.Info($"[TestGame] Toggled DirectLightingMode: {_renderPipelineSettings.DirectLightingMode}");
             }
         }
     }
@@ -286,8 +256,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
     {
         World.Destroy(_world);
 
-        _meshAsset.Release();
-        _shaderAsset.Release();
+        _dragonPrefab.Release();
         _skyAsset.Release();
     }
 }

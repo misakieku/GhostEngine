@@ -2,6 +2,7 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Engine.Streaming;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Collections.Concurrent;
@@ -22,8 +23,16 @@ internal class MockingContentProvider : IContentProvider
     }
 
     private readonly ConcurrentDictionary<Guid, MockAssetData> _assets = new();
+    private readonly ConcurrentDictionary<string, Guid> _pathToGuid = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<Guid, string> _guidToPath = new();
 
     public IReadOnlyList<ShaderCatalogEntry> ShaderCatalog { get; init; } = Array.Empty<ShaderCatalogEntry>();
+
+    public void RegisterPath(string path, Guid guid)
+    {
+        _pathToGuid[path] = guid;
+        _guidToPath[guid] = path;
+    }
 
     public void AddMockAsset(Guid guid, MockAssetData data)
     {
@@ -216,12 +225,12 @@ internal class MockingContentProvider : IContentProvider
 
     public Guid VirtualPathToGuid(string path)
     {
-        return Guid.Empty;
+        return _pathToGuid.TryGetValue(path, out var guid) ? guid : Guid.Empty;
     }
 
     public string VirtualPathFromGuid(Guid guid)
     {
-        return string.Empty;
+        return _guidToPath.TryGetValue(guid, out var path) ? path : string.Empty;
     }
 
     public AssetType GetAssetType(Guid guid)
@@ -239,7 +248,7 @@ internal class MockingContentProvider : IContentProvider
         return _assets.ContainsKey(guid);
     }
 
-    public Result<AssetReadData> OpenReadAsync(Guid guid, CancellationToken token = default)
+    public unsafe Result<AssetPayload> OpenReadAsync(Guid guid, CancellationToken token = default)
     {
         if (_assets.TryGetValue(guid, out var asset))
         {
@@ -251,20 +260,20 @@ internal class MockingContentProvider : IContentProvider
                 Thread.Sleep(asset.readDelayMs);
             }
 
-            // Return a fast, in-memory stream representing our file
-            return new AssetReadData
+            var alignedSize = Misaki.HighPerformance.LowLevel.Utilities.MemoryUtility.AlignUp((nuint)asset.data.Length, 16);
+            var block = new Misaki.HighPerformance.LowLevel.Buffer.MemoryBlock(alignedSize, 16, AllocationHandle.Persistent);
+            fixed (byte* pSrc = asset.data)
             {
-                assetId = guid,
-                assetType = asset.type,
-                stream = new MemoryStream(asset.data, writable: false),
-            };
+                Misaki.HighPerformance.LowLevel.Utilities.MemoryUtility.MemCpy(block.GetUnsafePtr(), pSrc, (nuint)asset.data.Length);
+            }
+
+            return AssetPayload.FromAllocatedMemory(block, asset.data.Length);
         }
 
-        return Result<AssetReadData>.Failure($"Mock asset {guid} not found.");
+        return Result.Failure($"Mock asset {guid} not found.");
     }
 
     public void Dispose()
     {
-        throw new NotImplementedException();
     }
 }

@@ -194,7 +194,7 @@ compute "Internal/MeshletCullGraph"
                 return;
             }
 
-            // 2. Dual-Error Parent Error Pruning:
+            // Dual-Error Parent Error Pruning:
             // Only prune internal nodes whose parent error is already sufficient for all children;
             // never prune leaf groups (node.groupIndex >= 0) or the root node (rec.nodeIndex == 0)
             // which contains coarsest LOD representations!

@@ -1,5 +1,6 @@
 using Ghost.Entities;
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Components;
 
@@ -15,6 +16,7 @@ public enum PunctualLightType : byte
 /// <summary>
 /// Component representing a localized punctual light source (Point or Spot).
 /// </summary>
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct PunctualLight : IComponentData
 {
     /// <summary>
@@ -80,7 +82,7 @@ public struct PunctualLight : IComponentData
     /// <summary>
     /// Resolution of the shadow map tile in the shadow atlas (e.g. 256, 512). 0 means no shadow.
     /// </summary>
-    public uint shadowSize;
+    public uint shadowResolution;
 
     /// <summary>
     /// Normal bias for shadow mapping.
@@ -112,6 +114,11 @@ public struct PunctualLight : IComponentData
     /// </summary>
     public float shadowLodErrorScale;
 
+    /// <summary>
+    /// Whether to use contact shadows for this light.
+    /// </summary>
+    public bool contactShadow;
+
     public static PunctualLight CreatePoint(float3 color, float intensity, float range, uint shadowSize = 0) => new()
     {
         type = PunctualLightType.Point,
@@ -124,7 +131,7 @@ public struct PunctualLight : IComponentData
         nearPlane = 0.05f,
         fadeDistance = 1000.0f,
         volumetricScattering = 1.0f,
-        shadowSize = shadowSize,
+        shadowResolution = shadowSize,
         normalBias = 0.75f,
         depthBias = 0.5f,
         lightingDimmer = 1.0f,
@@ -147,7 +154,7 @@ public struct PunctualLight : IComponentData
         nearPlane = 0.05f,
         fadeDistance = 1000.0f,
         volumetricScattering = 1.0f,
-        shadowSize = shadowSize,
+        shadowResolution = shadowSize,
         normalBias = 0.75f,
         depthBias = 0.5f,
         lightingDimmer = 1.0f,

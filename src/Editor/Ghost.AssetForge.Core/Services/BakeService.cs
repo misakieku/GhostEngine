@@ -51,7 +51,7 @@ public class BakeService
     public async Task<BakeResult> BakeProjectAsync(BakeConfig config, CancellationToken cancellationToken = default)
     {
         // Map VirtualPath -> AbsolutePath. Later directories overwrite earlier ones.
-        var virtualPathToFile = _context.EnumerateAssetFiles();
+        var virtualPathToFile = _context.EnumerateAssetFiles(_bakerRegistry.AllSupportedExtensions);
 
         if (virtualPathToFile.Count == 0)
         {
@@ -256,6 +256,7 @@ public class BakeService
 
         var ctx = new AssetBakerContext
         {
+            AssetId = metadata.Id,
             AssetDirectories = _context.AssetDirectories,
             BakeConfig = config
         };
@@ -306,12 +307,13 @@ public class BakeService
 
             File.Move(tempCacheFile, cacheFile, overwrite: true);
 
-            if (ctx.SubAssets.Count > 0)
+            if (ctx.SubAssets.Count > 0 || ctx.AssetDependencies.Count > 0)
             {
                 var subManifest = new SubAssetManifest();
+                subManifest.Dependencies.AddRange(ctx.AssetDependencies);
                 foreach (var sub in ctx.SubAssets)
                 {
-                    subManifest.SubAssets.Add(new SubAssetManifest.SubAssetRecord(sub.SubPath, sub.Type));
+                    subManifest.SubAssets.Add(new SubAssetManifest.SubAssetRecord(sub.SubPath, sub.Type, new List<Guid>(sub.Dependencies)));
                 }
                 subManifest.Save(cacheFile + ".sub.json");
 
@@ -393,7 +395,7 @@ public class BakeService
         }
     }
 
-    private static List<KeyValuePair<string, List<string>>> FindDuplicateBaseNames(Dictionary<string, string> virtualPathToFile)
+    private List<KeyValuePair<string, List<string>>> FindDuplicateBaseNames(Dictionary<string, string> virtualPathToFile)
     {
         var baseNames = new Dictionary<string, List<string>>();
         foreach (var virtualPath in virtualPathToFile.Keys)
@@ -407,6 +409,7 @@ public class BakeService
                 files = new List<string>();
                 baseNames[key] = files;
             }
+
             files.Add(virtualPath);
         }
 

@@ -1,64 +1,158 @@
 using Ghost.Core;
+using Ghost.Engine.Utilities;
+using Ghost.Engine.Volumes;
 using Ghost.Graphics.Core;
+using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
-using Misaki.HighPerformance.LowLevel;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
+using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.RenderPipeline;
 
+public struct TLASBuildSettings
+{
+    public Frustum frustum;
+    public float3 cameraPosition;
+    public quaternion cameraRotation;
+    public RayTracingCullMode cullMode;
+    public float sphereCullDistance;
+    public float solidAngleThreshold;
+}
+
+public struct BuildTLASPassData
+{
+    public RayTracingManager rayTracingManager;
+    public TLASBuildSettings settings;
+    public uint activeInstanceCount;
+    public Identifier<RGBuffer> instanceDescBuffer;
+    public Identifier<RGBuffer> scratchBuffer;
+    public Identifier<RGBuffer> tlasBuffer;
+}
+
 public sealed unsafe class RayTracingManager : IDisposable
 {
-    public const float DEFAULT_RAY_TRACING_CULL_DISTANCE_METERS = 100.0f;
-    public const float DEFAULT_SOLID_ANGLE_THRESHOLD = 0.0005f;
-    public const float DEFAULT_NEAR_CULL_DISTANCE_METERS = 5.0f;
-    public const float DEFAULT_MAX_CULL_DISTANCE_METERS = 300.0f;
-
     [StructLayout(LayoutKind.Sequential)]
-    internal struct InstanceRecord
+    private struct InstanceRecord
     {
         public float4x4 localToWorld;
         public Handle<Mesh> mesh;
     }
 
-    private readonly IGraphicsEngine _graphicsEngine;
+    private struct InstanceCullingJob : IJobParallelFor
+    {
+        public ReadOnlyView<InstanceRecord> instances;
+        public ResourceManager resourceManager;
+        public TLASBuildSettings settings;
+        public OBB extendedFrustum;
+        public float maxDistSq;
+        public float solidAngle;
+
+        public uint* pSurvivingCount;
+        public RaytracingInstanceDesc* pMapped;
+
+        public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
+        {
+            ref readonly var inst = ref instances[loopIndex];
+            if (!inst.mesh.IsValid)
+            {
+                return;
+            }
+
+            var meshRes = resourceManager.GetMeshReference(inst.mesh);
+            if (meshRes.IsFailure || meshRes.Value.ProxyBlasGpuAddress == 0)
+            {
+                return;
+            }
+
+            ref readonly var mesh = ref meshRes.Value;
+            var center = (mesh.BoundingBox.Min + mesh.BoundingBox.Max) * 0.5f;
+            var localRadius = math.length(mesh.BoundingBox.Max - center);
+            if (localRadius < 0.001f)
+            {
+                localRadius = 1.0f;
+            }
+
+            var scale = inst.localToWorld.GetScale();
+            var maxScale = math.max(scale.x, math.max(scale.y, scale.z));
+            var worldRadius = localRadius * maxScale;
+            var worldRadiusSq = worldRadius * worldRadius;
+
+            var worldCenter = math.mul(inst.localToWorld, new float4(center, 1.0f)).xyz;
+            var rwsCenter = worldCenter - settings.cameraPosition;
+            var distSq = math.lengthsq(rwsCenter);
+
+            switch (settings.cullMode)
+            {
+                case RayTracingCullMode.ExtendedFrustum:
+                    var sphere = new SphereBounds(rwsCenter, worldRadius);
+                    if (!extendedFrustum.Overlaps(sphere))
+                    {
+                        return;
+                    }
+                    break;
+                case RayTracingCullMode.Sphere:
+                    var maxAllowedDist = settings.sphereCullDistance + worldRadius;
+                    if (distSq > maxAllowedDist * maxAllowedDist)
+                    {
+                        return;
+                    }
+                    break;
+                case RayTracingCullMode.SolidAngle:
+                    if (worldRadiusSq < distSq * solidAngle)
+                    {
+                        return;
+                    }
+                    break;
+            }
+
+            var id = Interlocked.Increment(ref *pSurvivingCount) - 1;
+
+            ref var desc = ref pMapped[id];
+            var localToRWS = inst.localToWorld;
+            localToRWS.c3.xyz -= settings.cameraPosition;
+            desc.SetTransform(in localToRWS);
+            desc.InstanceID = (uint)loopIndex;
+            desc.InstanceMask = 0xFF;
+            desc.HitGroupIndex = 0;
+            desc.Flags = RaytracingInstanceFlags.ForceOpaque;
+            desc.accelerationStructure = meshRes.Value.ProxyBlasGpuAddress;
+        }
+    }
+
+    private readonly IRenderDevice _renderDevice;
+    private readonly IResourceAllocator _resourceAllocator;
+    private readonly IResourceDatabase _resourceDatabase;
     private readonly ResourceManager _resourceManager;
+    private readonly JobScheduler _jobScheduler;
 
     private UnsafeList<InstanceRecord> _instances;
     private UnsafeList<Handle<Mesh>> _pendingBlasBuilds;
 
-    private Handle<GPUBuffer> _tlasBuffer;
-    private Handle<GPUBuffer> _tlasScratchBuffer;
-    private Handle<GPUBuffer> _instanceDescBuffer;
-    private ulong _tlasBufferCapacity;
-    private ulong _tlasScratchCapacity;
-    private ulong _instanceDescCapacity;
-
     private Handle<GPUBuffer> _sharedBlasScratchBuffer;
     private ulong _sharedBlasScratchCapacity;
 
-    private uint _tlasBindlessIndex;
     private bool _disposed;
 
-    public float CullingDistance = DEFAULT_RAY_TRACING_CULL_DISTANCE_METERS;
-    public float SolidAngleThreshold = DEFAULT_SOLID_ANGLE_THRESHOLD;
-    public float NearCullDistance = DEFAULT_NEAR_CULL_DISTANCE_METERS;
-    public float MaxCullDistance = DEFAULT_MAX_CULL_DISTANCE_METERS;
-    public uint TLASBindlessIndex => _tlasBindlessIndex;
-    public Handle<GPUBuffer> TLASBuffer => _tlasBuffer;
-
-    public RayTracingManager(IGraphicsEngine graphicsEngine, ResourceManager resourceManager)
+    public RayTracingManager(IRenderDevice device, IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, ResourceManager resourceManager, JobScheduler jobScheduler)
     {
-        _graphicsEngine = graphicsEngine;
+        _renderDevice = device;
+        _resourceAllocator = resourceAllocator;
+        _resourceDatabase = resourceDatabase;
         _resourceManager = resourceManager;
+        _jobScheduler = jobScheduler;
 
         _instances = new UnsafeList<InstanceRecord>(1024, AllocationHandle.Persistent);
         _pendingBlasBuilds = new UnsafeList<Handle<Mesh>>(64, AllocationHandle.Persistent);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong Align256(ulong size) => (size + 255ul) & ~255ul;
 
     public void OnInstanceUpdated(uint instanceId, in float4x4 localToWorld, Handle<Mesh> mesh)
     {
@@ -132,7 +226,7 @@ public sealed unsafe class RayTracingManager : IDisposable
                 continue;
             }
 
-            var meshBufferGpuVA = _graphicsEngine.ResourceDatabase.GetGPUVirtualAddress(mesh.MeshBuffer.AsResource());
+            var meshBufferGpuVA = _resourceDatabase.GetGPUVirtualAddress(mesh.MeshBuffer.AsResource());
             if (meshBufferGpuVA == 0)
             {
                 continue;
@@ -166,7 +260,7 @@ public sealed unsafe class RayTracingManager : IDisposable
                 pGeometries = &geomDesc
             };
 
-            var prebuildInfo = _graphicsEngine.Device.GetAccelerationStructurePrebuildInfo(in inputs);
+            var prebuildInfo = _renderDevice.GetAccelerationStructurePrebuildInfo(in inputs);
             var alignedResultSize = Align256(prebuildInfo.resultDataMaxSizeInBytes);
             var alignedScratchSize = Align256(prebuildInfo.scratchDataSizeInBytes);
 
@@ -178,11 +272,11 @@ public sealed unsafe class RayTracingManager : IDisposable
                 HeapType = HeapType.Default
             };
 
-            var blasBuffer = _graphicsEngine.ResourceAllocator.CreateBuffer(in blasDesc, $"BLAS_Mesh_{meshHandle.ID}");
-            var blasGpuVA = _graphicsEngine.ResourceDatabase.GetGPUVirtualAddress(blasBuffer.AsResource());
+            var blasBuffer = _resourceAllocator.CreateBuffer(in blasDesc, $"BLAS_Mesh_{meshHandle.ID}");
+            var blasGpuVA = _resourceDatabase.GetGPUVirtualAddress(blasBuffer.AsResource());
 
             EnsureBlasScratchBuffer(alignedScratchSize);
-            var scratchGpuVA = _graphicsEngine.ResourceDatabase.GetGPUVirtualAddress(_sharedBlasScratchBuffer.AsResource());
+            var scratchGpuVA = _resourceDatabase.GetGPUVirtualAddress(_sharedBlasScratchBuffer.AsResource());
 
             cmd.Barrier(
                 BarrierDesc.Buffer(blasBuffer, BarrierSync.None, BarrierSync.BuildRaytracingAccelerationStructure, BarrierAccess.NoAccess, BarrierAccess.RaytracingAccelerationStructureWrite, force: true),
@@ -198,98 +292,66 @@ public sealed unsafe class RayTracingManager : IDisposable
             };
 
             cmd.BuildRaytracingAccelerationStructure(in buildDesc);
-
-            cmd.Barrier(
-                BarrierDesc.Buffer(blasBuffer, BarrierSync.BuildRaytracingAccelerationStructure, BarrierSync.BuildRaytracingAccelerationStructure | BarrierSync.AllShading, BarrierAccess.RaytracingAccelerationStructureWrite, BarrierAccess.RaytracingAccelerationStructureRead, force: true)
-            );
+            cmd.Barrier(BarrierDesc.Buffer(blasBuffer,
+                BarrierSync.BuildRaytracingAccelerationStructure, BarrierSync.BuildRaytracingAccelerationStructure | BarrierSync.AllShading,
+                BarrierAccess.RaytracingAccelerationStructureWrite, BarrierAccess.RaytracingAccelerationStructureRead, force: true));
 
             mesh.RayTracingProxyBlas = blasBuffer;
             mesh.ProxyBlasGpuAddress = blasGpuVA;
         }
 
         _pendingBlasBuilds.Clear();
-        cmd.InsertFullPipelineBarrier();
     }
 
-    public void BuildTLAS(ICommandBuffer cmd, in float3 cameraPos, uint activeInstanceCount)
+    public void BuildTLAS(
+        in TLASBuildSettings settings,
+        IComputeRenderContext computeCtx,
+        Identifier<RGBuffer> instanceDescBuffer,
+        Identifier<RGBuffer> scratchBuffer,
+        Identifier<RGBuffer> tlasBuffer,
+        uint activeInstanceCount)
     {
         var count = Math.Min((int)activeInstanceCount, _instances.Count);
         if (count == 0)
         {
-            _tlasBindlessIndex = 0;
             return;
         }
 
-        var maxPossible = Math.Max(count, 1);
-        EnsureInstanceDescBuffer((ulong)maxPossible * (ulong)sizeof(RaytracingInstanceDesc));
-
-        var pMapped = (RaytracingInstanceDesc*)_graphicsEngine.ResourceDatabase.MapResource(_instanceDescBuffer.AsResource(), 0, null);
+        var instanceDescResource = computeCtx.GetActualBuffer(instanceDescBuffer).AsResource();
+        var pMapped = (RaytracingInstanceDesc*)computeCtx.ResourceDatabase.MapResource(instanceDescResource, 0, null);
         var survivingCount = 0u;
-        var nearDistSq = NearCullDistance * NearCullDistance;
-        var maxDistSq = MaxCullDistance * MaxCullDistance;
 
-        for (var i = 0; i < count; i++)
+        var maxDistSq = settings.sphereCullDistance * settings.sphereCullDistance;
+        var extendedFrustum = settings.frustum.GetOBB(settings.cameraRotation);
+        extendedFrustum.Extents = new float3(extendedFrustum.Extents.xy, extendedFrustum.Extents.z * 2.0f);
+        extendedFrustum.Center = float3.zero;
+        var solidAngle = math.square(math.tan(settings.solidAngleThreshold / 2.0f));
+
+        var job = new InstanceCullingJob
         {
-            ref readonly var inst = ref _instances[i];
-            if (!inst.mesh.IsValid)
-            {
-                continue;
-            }
+            instances = _instances.AsReadOnly(),
+            resourceManager = _resourceManager,
+            settings = settings,
+            extendedFrustum = extendedFrustum,
+            maxDistSq = maxDistSq,
+            solidAngle = solidAngle,
+            pSurvivingCount = &survivingCount,
+            pMapped = pMapped
+        };
 
-            var meshRes = _resourceManager.GetMeshReference(inst.mesh);
-            if (meshRes.IsFailure || meshRes.Value.ProxyBlasGpuAddress == 0)
-            {
-                continue;
-            }
+        var handle = _jobScheduler.ScheduleParallelFor(ref job, count, 128, JobPriority.High);
+        _jobScheduler.Wait(handle);
 
-            ref readonly var mesh = ref meshRes.Value;
-            var center = (mesh.BoundingBox.Min + mesh.BoundingBox.Max) * 0.5f;
-            var localRadius = math.length(mesh.BoundingBox.Max - center);
-            if (localRadius < 0.001f)
-            {
-                localRadius = 1.0f;
-            }
-
-            var scaleX = math.length(inst.localToWorld.c0.xyz);
-            var scaleY = math.length(inst.localToWorld.c1.xyz);
-            var scaleZ = math.length(inst.localToWorld.c2.xyz);
-            var maxScale = math.max(scaleX, math.max(scaleY, scaleZ));
-            var worldRadius = localRadius * maxScale;
-            var worldRadiusSq = worldRadius * worldRadius;
-
-            var worldCenter = math.mul(inst.localToWorld, new float4(center, 1.0f)).xyz;
-            var distSq = math.distancesq(worldCenter, cameraPos);
-
-            if (distSq > maxDistSq)
-            {
-                continue;
-            }
-
-            if (distSq > nearDistSq && worldRadiusSq < distSq * SolidAngleThreshold)
-            {
-                continue;
-            }
-
-            ref var desc = ref pMapped[survivingCount];
-            desc.SetTransform(in inst.localToWorld);
-            desc.InstanceID = (uint)i;
-            desc.InstanceMask = 0xFF;
-            desc.HitGroupIndex = 0;
-            desc.Flags = RaytracingInstanceFlags.ForceOpaque;
-            desc.accelerationStructure = meshRes.Value.ProxyBlasGpuAddress;
-
-            survivingCount++;
-        }
-
-        _graphicsEngine.ResourceDatabase.UnmapResource(_instanceDescBuffer.AsResource(), 0, null);
+        computeCtx.ResourceDatabase.UnmapResource(instanceDescResource, 0, null);
 
         if (survivingCount == 0)
         {
-            _tlasBindlessIndex = 0;
             return;
         }
 
-        var instanceDescsVA = _graphicsEngine.ResourceDatabase.GetGPUVirtualAddress(_instanceDescBuffer.AsResource());
+        var instanceDescsVA = computeCtx.ResourceDatabase.GetGPUVirtualAddress(instanceDescResource);
+        var tlasGpuVA = computeCtx.ResourceDatabase.GetGPUVirtualAddress(computeCtx.GetActualBuffer(tlasBuffer).AsResource());
+        var scratchGpuVA = computeCtx.ResourceDatabase.GetGPUVirtualAddress(computeCtx.GetActualBuffer(scratchBuffer).AsResource());
 
         var inputs = new AccelerationStructureBuildInputs
         {
@@ -299,20 +361,6 @@ public sealed unsafe class RayTracingManager : IDisposable
             instanceDescs = instanceDescsVA
         };
 
-        var prebuildInfo = _graphicsEngine.Device.GetAccelerationStructurePrebuildInfo(in inputs);
-        var alignedResultSize = Align256(prebuildInfo.resultDataMaxSizeInBytes);
-        var alignedScratchSize = Align256(prebuildInfo.scratchDataSizeInBytes);
-
-        EnsureTLASBuffers(alignedResultSize, alignedScratchSize);
-
-        var tlasGpuVA = _graphicsEngine.ResourceDatabase.GetGPUVirtualAddress(_tlasBuffer.AsResource());
-        var scratchGpuVA = _graphicsEngine.ResourceDatabase.GetGPUVirtualAddress(_tlasScratchBuffer.AsResource());
-
-        cmd.Barrier(
-            BarrierDesc.Buffer(_tlasBuffer, BarrierSync.All, BarrierSync.BuildRaytracingAccelerationStructure, BarrierAccess.Common, BarrierAccess.RaytracingAccelerationStructureWrite, force: true),
-            BarrierDesc.Buffer(_tlasScratchBuffer, BarrierSync.All, BarrierSync.BuildRaytracingAccelerationStructure, BarrierAccess.Common, BarrierAccess.UnorderedAccess, force: true)
-        );
-
         var buildDesc = new BuildAccelerationStructureDesc
         {
             inputs = inputs,
@@ -321,14 +369,7 @@ public sealed unsafe class RayTracingManager : IDisposable
             sourceAddress = 0
         };
 
-        cmd.BuildRaytracingAccelerationStructure(in buildDesc);
-
-        cmd.Barrier(
-            BarrierDesc.Buffer(_tlasBuffer, BarrierSync.BuildRaytracingAccelerationStructure, BarrierSync.AllShading, BarrierAccess.RaytracingAccelerationStructureWrite, BarrierAccess.RaytracingAccelerationStructureRead, force: true)
-        );
-        cmd.InsertFullPipelineBarrier();
-
-        _tlasBindlessIndex = _graphicsEngine.ResourceDatabase.GetBindlessIndex(_tlasBuffer.AsResource());
+        computeCtx.BuildRaytracingAccelerationStructure(in buildDesc);
     }
 
     private void EnsureBlasScratchBuffer(ulong requiredSize)
@@ -340,7 +381,7 @@ public sealed unsafe class RayTracingManager : IDisposable
 
         if (_sharedBlasScratchBuffer.IsValid)
         {
-            _graphicsEngine.ResourceDatabase.ReleaseResource(_sharedBlasScratchBuffer.AsResource());
+            _resourceDatabase.ReleaseResource(_sharedBlasScratchBuffer.AsResource());
         }
 
         _sharedBlasScratchCapacity = Math.Max(requiredSize, Math.Max(_sharedBlasScratchCapacity * 2, 65536ul));
@@ -352,76 +393,8 @@ public sealed unsafe class RayTracingManager : IDisposable
             HeapType = HeapType.Default
         };
 
-        _sharedBlasScratchBuffer = _graphicsEngine.ResourceAllocator.CreateBuffer(in desc, "BLAS_ScratchBuffer");
+        _sharedBlasScratchBuffer = _resourceAllocator.CreateBuffer(in desc, "BLAS_ScratchBuffer");
     }
-
-    private void EnsureInstanceDescBuffer(ulong requiredSize)
-    {
-        if (_instanceDescBuffer.IsValid && _instanceDescCapacity >= requiredSize)
-        {
-            return;
-        }
-
-        if (_instanceDescBuffer.IsValid)
-        {
-            _graphicsEngine.ResourceDatabase.ReleaseResource(_instanceDescBuffer.AsResource());
-        }
-
-        _instanceDescCapacity = Math.Max(requiredSize, Math.Max(_instanceDescCapacity * 2, 65536ul));
-        var desc = new BufferDesc
-        {
-            Size = _instanceDescCapacity,
-            Stride = (uint)sizeof(RaytracingInstanceDesc),
-            Usage = BufferUsage.ShaderResource,
-            HeapType = HeapType.Upload
-        };
-
-        _instanceDescBuffer = _graphicsEngine.ResourceAllocator.CreateBuffer(in desc, "TLAS_InstanceDescBuffer");
-    }
-
-    private void EnsureTLASBuffers(ulong requiredResultSize, ulong requiredScratchSize)
-    {
-        if (!_tlasBuffer.IsValid || _tlasBufferCapacity < requiredResultSize)
-        {
-            if (_tlasBuffer.IsValid)
-            {
-                _graphicsEngine.ResourceDatabase.ReleaseResource(_tlasBuffer.AsResource());
-            }
-
-            _tlasBufferCapacity = Math.Max(requiredResultSize, Math.Max(_tlasBufferCapacity * 2, 65536ul));
-            var desc = new BufferDesc
-            {
-                Size = _tlasBufferCapacity,
-                Stride = 1,
-                Usage = BufferUsage.AccelerationStructure | BufferUsage.ShaderResource,
-                HeapType = HeapType.Default
-            };
-
-            _tlasBuffer = _graphicsEngine.ResourceAllocator.CreateBuffer(in desc, "Scene_TLAS");
-        }
-
-        if (!_tlasScratchBuffer.IsValid || _tlasScratchCapacity < requiredScratchSize)
-        {
-            if (_tlasScratchBuffer.IsValid)
-            {
-                _graphicsEngine.ResourceDatabase.ReleaseResource(_tlasScratchBuffer.AsResource());
-            }
-
-            _tlasScratchCapacity = Math.Max(requiredScratchSize, Math.Max(_tlasScratchCapacity * 2, 65536ul));
-            var desc = new BufferDesc
-            {
-                Size = _tlasScratchCapacity,
-                Stride = 1,
-                Usage = BufferUsage.UnorderedAccess,
-                HeapType = HeapType.Default
-            };
-
-            _tlasScratchBuffer = _graphicsEngine.ResourceAllocator.CreateBuffer(in desc, "TLAS_ScratchBuffer");
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ulong Align256(ulong size) => (size + 255ul) & ~255ul;
 
     public void Dispose()
     {
@@ -433,24 +406,9 @@ public sealed unsafe class RayTracingManager : IDisposable
         _instances.Dispose();
         _pendingBlasBuilds.Dispose();
 
-        if (_tlasBuffer.IsValid)
-        {
-            _graphicsEngine.ResourceDatabase.ReleaseResource(_tlasBuffer.AsResource());
-        }
-
-        if (_tlasScratchBuffer.IsValid)
-        {
-            _graphicsEngine.ResourceDatabase.ReleaseResource(_tlasScratchBuffer.AsResource());
-        }
-
-        if (_instanceDescBuffer.IsValid)
-        {
-            _graphicsEngine.ResourceDatabase.ReleaseResource(_instanceDescBuffer.AsResource());
-        }
-
         if (_sharedBlasScratchBuffer.IsValid)
         {
-            _graphicsEngine.ResourceDatabase.ReleaseResource(_sharedBlasScratchBuffer.AsResource());
+            _resourceDatabase.ReleaseResource(_sharedBlasScratchBuffer.AsResource());
         }
 
         _disposed = true;

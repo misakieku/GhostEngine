@@ -910,7 +910,7 @@ public ref partial struct QueryBuilder : IDisposable
         for (var i = 0; i < _none.Count; i++)
         {
             var id = _none[i];
-            if (ComponentRegistry.GetComponentInfo(id).isEnableable)
+            if (ComponentRegistry.GetComponentInfo(id).IsEnableable)
             {
                 mask.rejectIfEnabled.SetBit(id); // Filter: Must Not be Enabled (Can be Absent or Disabled)
             }

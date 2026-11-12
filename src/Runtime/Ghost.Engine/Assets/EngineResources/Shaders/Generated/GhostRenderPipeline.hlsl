@@ -54,6 +54,16 @@ struct DeferredLightingShaderProperties
     uint tlasIndex;
     uint risResolvedDiffuseSrv;
     uint risResolvedSpecularSrv;
+    uint directionalShadowAtlasSrv;
+    uint directionalShadowViewsBufferSrv;
+    uint cascadeCount;
+    float maxShadowDistance;
+    float shadowFadeRange;
+    float4 cascadeSplits;
+    float4 cascadeBlends;
+    uint enableContactShadows;
+    float contactShadowDistance;
+    float contactShadowTolerance;
 };
 
 struct RisResolveShadingShaderProperties

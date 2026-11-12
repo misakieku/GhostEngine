@@ -31,6 +31,7 @@ internal unsafe partial class GhostRenderPipeline
 
     private struct MeshletCullPass1Data
     {
+        public IWorkGraphProgram cullWorkGraphProgram;
         public Identifier<RGBuffer> visibleMeshletsPass1;
         public Identifier<RGBuffer> occludedMeshlets;
         public Identifier<RGBuffer> counterBuffer;
@@ -47,10 +48,6 @@ internal unsafe partial class GhostRenderPipeline
         public float cullingThreshold;
         public uint threadGroupCount;
         public uint entrypointIndex;
-        public ProgramIdentifier programIdentifier;
-        public ulong backingMemoryAddress;
-        public ulong backingMemorySize;
-        public SetWorkGraphFlags flags;
         public uint cullPassSemantic;
         public uint counterBufferSize;
         public uint4 supportedVariantMask0;
@@ -171,12 +168,6 @@ internal unsafe partial class GhostRenderPipeline
         Logger.DebugAssert(_meshPipelineResource.cullWorkGraphProgram != null, "Cull work graph program should be initialized.");
 
         var cullProgram = _meshPipelineResource.cullWorkGraphProgram;
-#if DEBUG
-        var flags = SetWorkGraphFlags.Initialize; // Always initialize in debug mode so pix can capture the graph state.
-#else
-        var flags = cullProgram.IsInitialized ? SetWorkGraphFlags.None : SetWorkGraphFlags.Initialize;
-#endif
-
         var entrypointIndex = cullProgram.GetEntrypointIndex("InstanceCullNode");
         if (entrypointIndex == uint.MaxValue)
         {
@@ -239,6 +230,7 @@ internal unsafe partial class GhostRenderPipeline
 
         var passData = new MeshletCullPass1Data
         {
+            cullWorkGraphProgram = cullProgram,
             visibleMeshletsPass1 = visibleMeshlets,
             occludedMeshlets = occludedMeshlets,
             counterBuffer = counterBuffer,
@@ -255,10 +247,6 @@ internal unsafe partial class GhostRenderPipeline
             cullingThreshold = _settings.InstanceCullingThreshold,
             threadGroupCount = Math.Max(1u, (instanceCount + 63) / 64),
             entrypointIndex = entrypointIndex,
-            programIdentifier = cullProgram.ProgramIdentifier,
-            backingMemoryAddress = cullProgram.BackingMemoryAddress,
-            backingMemorySize = cullProgram.BackingMemorySize,
-            flags = flags,
             cullPassSemantic = cullPassSemantic,
             counterBufferSize = counterBufferSize,
             supportedVariantMask0 = new uint4(maskWords[0], maskWords[1], maskWords[2], maskWords[3]),
@@ -275,10 +263,7 @@ internal unsafe partial class GhostRenderPipeline
             var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
             var streamingRequestsUav = computeCtx.GetActualBindlessIndex(passData.streamingRequestsBuffer, BindlessAccess.UnorderedAccess);
             var streamingRequestsBitmaskUav = computeCtx.GetActualBindlessIndex(passData.streamingRequestsBitmaskBuffer, BindlessAccess.UnorderedAccess);
-
-            var hzbTextureIndex = (passData.hzbMipCount > 0 && passData.hzbTexture.IsValid)
-                ? computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.hzbTexture).AsResource(), BindlessAccess.ShaderResource)
-                : uint.MaxValue;
+            var hzbTextureIndex = computeCtx.GetActualBindlessIndex(passData.hzbTexture, BindlessAccess.ShaderResource);
 
             var props = new InternalMeshletCullGraphShaderProperties
             {
@@ -304,12 +289,7 @@ internal unsafe partial class GhostRenderPipeline
                 supportedVariantMask1 = passData.supportedVariantMask1,
             };
 
-            var setProgramDesc = SetProgramDesc.ForWorkGraph(
-                passData.programIdentifier,
-                passData.backingMemoryAddress,
-                passData.backingMemorySize,
-                passData.flags);
-            computeCtx.SetProgram(in setProgramDesc);
+            computeCtx.SetWorkGraph(passData.cullWorkGraphProgram);
             computeCtx.SetUserDataWithProperties(in props);
 
             var record = new WorkGraphDispatchGridRecord(passData.threadGroupCount, 1, 1);
@@ -608,9 +588,9 @@ internal unsafe partial class GhostRenderPipeline
             srcBuffer = srcBuffer,
             srcUavMip = srcUavMip,
             dstUavMip0 = dstUavs[0],
-            dstUavMip1 = passData.minDstCount >= 2 ? dstUavs[1] : uint.MaxValue,
-            dstUavMip2 = passData.minDstCount >= 3 ? dstUavs[2] : uint.MaxValue,
-            dstUavMip3 = passData.minDstCount >= 4 ? dstUavs[3] : uint.MaxValue,
+            dstUavMip1 = passData.minDstCount >= 2 ? dstUavs[1] : RHIUtility.INVALID_BINDLESS_INDEX,
+            dstUavMip2 = passData.minDstCount >= 3 ? dstUavs[2] : RHIUtility.INVALID_BINDLESS_INDEX,
+            dstUavMip3 = passData.minDstCount >= 4 ? dstUavs[3] : RHIUtility.INVALID_BINDLESS_INDEX,
             minDstCount = passData.minDstCount,
             isFirstBatch = passData.isFirstBatch,
             srcLimit = passData.srcLimit,
@@ -646,11 +626,7 @@ internal unsafe partial class GhostRenderPipeline
         builder.UseBuffer(occludedMeshlets, AccessFlags.Read);
         builder.UseBuffer(counter, AccessFlags.ReadWrite);
         builder.UseBuffer(indirectArgument, AccessFlags.Read);
-
-        if (hzbTexture.IsValid)
-        {
-            builder.UseTexture(hzbTexture, AccessFlags.Read);
-        }
+        builder.UseTexture(hzbTexture, AccessFlags.Read);
 
         var maxVariants = GetMaxCullVariants();
 
@@ -676,10 +652,7 @@ internal unsafe partial class GhostRenderPipeline
             var visibleUav = computeCtx.GetActualBindlessIndex(passData.visibleMeshletsPass2, BindlessAccess.UnorderedAccess);
             var occludedSrv = computeCtx.GetActualBindlessIndex(passData.occludedMeshlets, BindlessAccess.ShaderResource);
             var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
-
-            var hzbTextureIndex = (passData.hzbMipCount > 0 && passData.hzbTexture.IsValid)
-                ? computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.hzbTexture).AsResource(), BindlessAccess.ShaderResource)
-                : uint.MaxValue;
+            var hzbTextureIndex = computeCtx.GetActualBindlessIndex(passData.hzbTexture, BindlessAccess.ShaderResource);
 
             var props = new InternalOccludedMeshletCullShaderProperties
             {

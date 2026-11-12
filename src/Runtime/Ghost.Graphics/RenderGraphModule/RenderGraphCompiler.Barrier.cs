@@ -16,7 +16,9 @@ internal enum BarrierFlags
     ExplicitSource = 1 << 2,
     Force = 1 << 3,
     QueueRelease = 1 << 4,
-    QueueAcquire = 1 << 5
+    QueueAcquire = 1 << 5,
+    SplitBegin = 1 << 6,
+    SplitEnd = 1 << 7
 }
 
 internal enum PassResourceUsagePriority : byte
@@ -53,13 +55,40 @@ internal struct CompiledBarrier
 
     public override readonly string ToString()
     {
+        if (flags.HasFlag(BarrierFlags.SplitBegin))
+        {
+            return $"SplitBegin: {resource.Value} [{sourceState.layout} -> {targetState.layout}]";
+        }
+
+        if (flags.HasFlag(BarrierFlags.SplitEnd))
+        {
+            return $"SplitEnd: {resource.Value} [{sourceState.layout} -> {targetState.layout}]";
+        }
+
         return aliasingPredecessor.IsValid
             ? $"Aliasing: {aliasingPredecessor.Value}->{resource.Value} -> {targetState.layout}"
             : $"Transition: {resource.Value} -> {targetState.layout}";
     }
 }
 
-// TODO: Split barrier.
+internal struct SplitBarrierPlan
+{
+    public Identifier<RGResource> resource;
+    public int beginScheduleIndex;
+    public int endScheduleIndex;
+    public ResourceBarrierData sourceState;
+    public ResourceBarrierData targetState;
+    public int nextBeginPlanIndex;
+}
+
+internal struct ActiveSplitPlan
+{
+    public bool isValid;
+    public int endScheduleIndex;
+    public ResourceBarrierData sourceState;
+    public ResourceBarrierData targetState;
+}
+
 internal unsafe partial class RenderGraphCompiler
 {
     private const BarrierSync ALL_SHADING_STAGES = BarrierSync.AllShading
@@ -102,7 +131,10 @@ internal unsafe partial class RenderGraphCompiler
         ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering,
         Span<CompiledResourceState> resourceStates,
-        ReadOnlySpan<QueueHandoff> handoffs)
+        ReadOnlySpan<QueueHandoff> handoffs,
+        ReadOnlySpan<int> splitBeginHeads,
+        ReadOnlySpan<SplitBarrierPlan> splitPlans,
+        Span<ActiveSplitPlan> activeSplitPlans)
     {
         var startPos = writer.Position;
 
@@ -111,6 +143,7 @@ internal unsafe partial class RenderGraphCompiler
         writer.Write(0); // Count placeholder
 
         var count = WriteQueueHandoffBarriers(ref writer, handoffs, scheduleIndex, release: false);
+        count += EmitSplitBeginBarriers(scheduleIndex, splitBeginHeads, splitPlans, activeSplitPlans, resourceStates, effectiveQueue, ref writer);
         count += EmitImplicitTransitions(
             usages,
             scheduleIndex,
@@ -119,7 +152,8 @@ internal unsafe partial class RenderGraphCompiler
             ref aliasingPlan,
             resourceOrdering,
             resourceStates,
-            handoffs);
+            handoffs,
+            activeSplitPlans);
 
         if (count > 0)
         {
@@ -146,7 +180,10 @@ internal unsafe partial class RenderGraphCompiler
         ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering,
         Span<CompiledResourceState> resourceStates,
-        ReadOnlySpan<QueueHandoff> handoffs)
+        ReadOnlySpan<QueueHandoff> handoffs,
+        ReadOnlySpan<int> splitBeginHeads,
+        ReadOnlySpan<SplitBarrierPlan> splitPlans,
+        Span<ActiveSplitPlan> activeSplitPlans)
     {
         var startPos = writer.Position;
 
@@ -154,6 +191,8 @@ internal unsafe partial class RenderGraphCompiler
         writer.Write(0);
 
         var count = 0;
+        count += EmitSplitBeginBarriers(startScheduleIndex, splitBeginHeads, splitPlans, activeSplitPlans, resourceStates, effectiveQueues[startScheduleIndex], ref writer);
+
         for (var i = 0; i < passCount; i++)
         {
             var mergedScheduleIndex = startScheduleIndex + i;
@@ -164,11 +203,12 @@ internal unsafe partial class RenderGraphCompiler
                 allUsages.Slice(usageRange.start, usageRange.count),
                 mergedScheduleIndex,
                 effectiveQueues[mergedScheduleIndex],
-            ref writer,
-            ref aliasingPlan,
-            resourceOrdering,
-            resourceStates,
-            handoffs);
+                ref writer,
+                ref aliasingPlan,
+                resourceOrdering,
+                resourceStates,
+                handoffs,
+                activeSplitPlans);
         }
 
         if (count > 0)
@@ -307,6 +347,10 @@ internal unsafe partial class RenderGraphCompiler
                     ref readonly var resourceInfo = ref _resourceRegistry.GetResource(resource);
                     if (resourceInfo.bufferDesc.Usage.HasFlag(BufferUsage.AccelerationStructure))
                     {
+                        var access = resourceInfo.bufferDesc.Usage.HasFlag(BufferUsage.UnorderedAccess)
+                            ? BarrierAccess.UnorderedAccess
+                            : BarrierAccess.RaytracingAccelerationStructureWrite;
+
                         ApplyUsage(
                             ref usage,
                             resource,
@@ -316,7 +360,7 @@ internal unsafe partial class RenderGraphCompiler
                             discard: discard,
                             PassResourceUsageClass.UnorderedAccess,
                             PassResourceUsagePriority.Explicit,
-                            new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.RaytracingAccelerationStructureWrite, BarrierSync.BuildRaytracingAccelerationStructure));
+                            new ResourceBarrierData(BarrierLayout.Undefined, access, BarrierSync.BuildRaytracingAccelerationStructure));
                         continue;
                     }
                 }
@@ -410,6 +454,38 @@ internal unsafe partial class RenderGraphCompiler
                 renderTargetState);
         }
 
+        var depthTargetWriteState = new ResourceBarrierData(BarrierLayout.DepthStencilWrite, BarrierAccess.DepthStencilWrite, BarrierSync.DepthStencil);
+        foreach (var resource in pass.depthTargetWrites)
+        {
+            ref var usage = ref usages[resource.Value];
+            ApplyUsage(
+                ref usage,
+                resource,
+                RGResourceType.Texture,
+                pass.resourceReads[(int)RGResourceType.Texture].Contains(resource),
+                pass.resourceWrites[(int)RGResourceType.Texture].Contains(resource),
+                pass.resourceDiscards[(int)RGResourceType.Texture].Contains(resource),
+                PassResourceUsageClass.DepthWrite,
+                PassResourceUsagePriority.Explicit,
+                depthTargetWriteState);
+        }
+
+        var depthTargetReadState = new ResourceBarrierData(BarrierLayout.DepthStencilRead, BarrierAccess.DepthStencilRead, BarrierSync.DepthStencil);
+        foreach (var resource in pass.depthTargetReads)
+        {
+            ref var usage = ref usages[resource.Value];
+            ApplyUsage(
+                ref usage,
+                resource,
+                RGResourceType.Texture,
+                pass.resourceReads[(int)RGResourceType.Texture].Contains(resource),
+                pass.resourceWrites[(int)RGResourceType.Texture].Contains(resource),
+                pass.resourceDiscards[(int)RGResourceType.Texture].Contains(resource),
+                PassResourceUsageClass.DepthRead,
+                PassResourceUsagePriority.Explicit,
+                depthTargetReadState);
+        }
+
         var randomAccessState = new ResourceBarrierData(
             BarrierLayout.UnorderedAccess,
             BarrierAccess.UnorderedAccess,
@@ -423,7 +499,10 @@ internal unsafe partial class RenderGraphCompiler
             var targetState = randomAccessState;
             if (resourceInfo.type == RGResourceType.Buffer && resourceInfo.bufferDesc.Usage.HasFlag(BufferUsage.AccelerationStructure))
             {
-                targetState = new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.RaytracingAccelerationStructureWrite, BarrierSync.BuildRaytracingAccelerationStructure);
+                var access = resourceInfo.bufferDesc.Usage.HasFlag(BufferUsage.UnorderedAccess)
+                    ? BarrierAccess.UnorderedAccess
+                    : BarrierAccess.RaytracingAccelerationStructureWrite;
+                targetState = new ResourceBarrierData(BarrierLayout.Undefined, access, BarrierSync.BuildRaytracingAccelerationStructure);
             }
 
             ApplyUsage(
@@ -447,7 +526,8 @@ internal unsafe partial class RenderGraphCompiler
         ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering,
         Span<CompiledResourceState> resourceStates,
-        ReadOnlySpan<QueueHandoff> handoffs)
+        ReadOnlySpan<QueueHandoff> handoffs,
+        Span<ActiveSplitPlan> activeSplitPlans)
     {
         var count = 0;
         for (var usageIndex = 0; usageIndex < usages.Length; usageIndex++)
@@ -463,6 +543,23 @@ internal unsafe partial class RenderGraphCompiler
             if (HasQueueAcquire(handoffs, scheduleIndex, usage.resource))
             {
                 resourceState = new CompiledResourceState(usage.targetState, usage.writes);
+                continue;
+            }
+
+            if (!activeSplitPlans.IsEmpty
+                && (uint)usage.resource.Value < (uint)activeSplitPlans.Length
+                && activeSplitPlans[usage.resource.Value].isValid
+                && activeSplitPlans[usage.resource.Value].endScheduleIndex == scheduleIndex)
+            {
+                ref readonly var split = ref activeSplitPlans[usage.resource.Value];
+                count += AddSplitEndTransition(
+                    usage.resource,
+                    split.sourceState,
+                    usage.targetState,
+                    effectiveQueue,
+                    ref writer);
+                resourceState = new CompiledResourceState(usage.targetState, usage.writes);
+                activeSplitPlans[usage.resource.Value] = default;
                 continue;
             }
 
@@ -556,6 +653,205 @@ internal unsafe partial class RenderGraphCompiler
         };
         writer.Write(barrier);
         return 1;
+    }
+
+    private int AddSplitBeginTransition(Identifier<RGResource> id, ResourceBarrierData sourceState, ResourceBarrierData targetState, CommandQueueType queue, ref BufferWriter writer)
+    {
+        ref readonly var resource = ref _resourceRegistry.GetResource(id);
+        var barrier = new CompiledBarrier
+        {
+            resource = id,
+            sourceState = sourceState,
+            handoffState = new ResourceBarrierData(targetState.layout, targetState.access, BarrierSync.Split),
+            targetState = new ResourceBarrierData(targetState.layout, targetState.access, BarrierSync.Split),
+            aliasingPredecessor = Identifier<RGResource>.Invalid,
+            flags = BarrierFlags.SplitBegin,
+            resourceType = resource.type,
+            sourceQueue = queue,
+            destinationQueue = queue
+        };
+        writer.Write(barrier);
+        return 1;
+    }
+
+    private int AddSplitEndTransition(Identifier<RGResource> id, ResourceBarrierData sourceState, ResourceBarrierData targetState, CommandQueueType queue, ref BufferWriter writer)
+    {
+        ref readonly var resource = ref _resourceRegistry.GetResource(id);
+        var barrier = new CompiledBarrier
+        {
+            resource = id,
+            sourceState = new ResourceBarrierData(sourceState.layout, sourceState.access, BarrierSync.Split),
+            handoffState = targetState,
+            targetState = targetState,
+            aliasingPredecessor = Identifier<RGResource>.Invalid,
+            flags = BarrierFlags.SplitEnd,
+            resourceType = resource.type,
+            sourceQueue = queue,
+            destinationQueue = queue
+        };
+        writer.Write(barrier);
+        return 1;
+    }
+
+    private int EmitSplitBeginBarriers(
+        int scheduleIndex,
+        ReadOnlySpan<int> splitBeginHeads,
+        ReadOnlySpan<SplitBarrierPlan> splitPlans,
+        Span<ActiveSplitPlan> activeSplitPlans,
+        Span<CompiledResourceState> resourceStates,
+        CommandQueueType queue,
+        ref BufferWriter writer)
+    {
+        if (splitBeginHeads.IsEmpty || (uint)scheduleIndex >= (uint)splitBeginHeads.Length)
+        {
+            return 0;
+        }
+
+        var planIdx = splitBeginHeads[scheduleIndex];
+        var count = 0;
+        while (planIdx >= 0)
+        {
+            ref readonly var plan = ref splitPlans[planIdx];
+            count += AddSplitBeginTransition(
+                plan.resource,
+                plan.sourceState,
+                plan.targetState,
+                queue,
+                ref writer);
+
+            activeSplitPlans[plan.resource.Value] = new ActiveSplitPlan
+            {
+                isValid = true,
+                endScheduleIndex = plan.endScheduleIndex,
+                sourceState = plan.sourceState,
+                targetState = plan.targetState
+            };
+
+            resourceStates[plan.resource.Value] = new CompiledResourceState(
+                new ResourceBarrierData(plan.targetState.layout, plan.targetState.access, BarrierSync.Split),
+                writes: false);
+
+            planIdx = plan.nextBeginPlanIndex;
+        }
+
+        return count;
+    }
+
+    private void BuildSplitBarrierPlan(
+        List<RenderGraphPass> passes,
+        ReadOnlySpan<int> compiledPasses,
+        ReadOnlySpan<PassResourceUsageRange> usageRanges,
+        ReadOnlySpan<ResolvedPassResourceUsage> usageRecords,
+        ReadOnlySpan<NativeRenderPass> nativePasses,
+        ReadOnlySpan<CommandQueueType> effectiveQueues,
+        ReadOnlySpan<int> commandBufferIds,
+        UnsafeList<SplitBarrierPlan>* splitPlans,
+        Span<int> splitBeginHeads)
+    {
+        var compiledPassCount = compiledPasses.Length;
+        if (compiledPassCount < 3 || _resourceRegistry.ResourceCount == 0)
+        {
+            return;
+        }
+
+        using var scope = AllocationManager.CreateStackScope();
+        using var passEndScheduleIndex = new UnsafeArray<int>(compiledPassCount, scope.AllocationHandle);
+
+        var nativeIdx = 0;
+        var pIdx = 0;
+        while (pIdx < compiledPassCount)
+        {
+            var pass = passes[compiledPasses[pIdx]];
+            if (pass.type == RenderPassType.Raster && nativeIdx < nativePasses.Length)
+            {
+                var count = nativePasses[nativeIdx].mergedPassIndices.Count;
+                var endSchedule = pIdx + count;
+                for (var m = 0; m < count; m++)
+                {
+                    passEndScheduleIndex[pIdx + m] = endSchedule;
+                }
+
+                pIdx += count;
+                nativeIdx++;
+            }
+            else
+            {
+                passEndScheduleIndex[pIdx] = pIdx + 1;
+                pIdx++;
+            }
+        }
+
+        for (var r = 0; r < _resourceRegistry.ResourceCount; r++)
+        {
+            ref readonly var res = ref _resourceRegistry.GetResourceByIndex(r);
+            if (res.type != RGResourceType.Texture || (res.isImported && !res.isAllocated))
+            {
+                continue;
+            }
+
+            var prevScheduleIndex = -1;
+            ResolvedPassResourceUsage prevUsage = default;
+
+            for (var s = 0; s < compiledPassCount; s++)
+            {
+                ref readonly var range = ref usageRanges[s];
+                if (range.count == 0)
+                {
+                    continue;
+                }
+
+                var usages = usageRecords.Slice(range.start, range.count);
+                var found = false;
+                ResolvedPassResourceUsage currUsage = default;
+
+                for (var u = 0; u < usages.Length; u++)
+                {
+                    if (usages[u].resource.Value == r)
+                    {
+                        currUsage = usages[u];
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    continue;
+                }
+
+                if (prevScheduleIndex >= 0)
+                {
+                    var beginSchedule = passEndScheduleIndex[prevScheduleIndex];
+                    var endSchedule = s;
+
+                    if (beginSchedule < endSchedule
+                        && beginSchedule < compiledPassCount
+                        && prevUsage.targetState.layout != currUsage.targetState.layout
+                        && prevUsage.targetState.layout != BarrierLayout.Undefined
+                        && currUsage.targetState.layout != BarrierLayout.Undefined
+                        && !currUsage.discard
+                        && effectiveQueues[prevScheduleIndex] == effectiveQueues[s]
+                        && commandBufferIds[prevScheduleIndex] == commandBufferIds[s])
+                    {
+                        var planIndex = splitPlans->Count;
+                        var plan = new SplitBarrierPlan
+                        {
+                            resource = new Identifier<RGResource>(r),
+                            beginScheduleIndex = beginSchedule,
+                            endScheduleIndex = endSchedule,
+                            sourceState = prevUsage.targetState,
+                            targetState = currUsage.targetState,
+                            nextBeginPlanIndex = splitBeginHeads[beginSchedule]
+                        };
+                        splitPlans->Add(plan);
+                        splitBeginHeads[beginSchedule] = planIndex;
+                    }
+                }
+
+                prevScheduleIndex = s;
+                prevUsage = currUsage;
+            }
+        }
     }
 
     private int EmitClosingBarriers(ref BufferWriter writer, CommandQueueType activeQueue, Span<CompiledResourceState> resourceStates)
@@ -699,7 +995,8 @@ internal unsafe partial class RenderGraphCompiler
     {
 
         using var scope = AllocationManager.CreateStackScope();
-        using var renderTargets = new UnsafeHashSet<Identifier<RGResource>>(laterPass.maxColorIndex + 1, scope.AllocationHandle);
+        var targetCapacity = laterPass.maxColorIndex + 1 + (laterPass.depthAccess.id.IsInvalid ? 0 : 1) + laterPass.renderTargetWrites.Count + laterPass.depthTargetWrites.Count + laterPass.depthTargetReads.Count;
+        using var renderTargets = new UnsafeHashSet<Identifier<RGResource>>(Math.Max(1, targetCapacity), scope.AllocationHandle);
 
         for (var i = 0; i <= laterPass.maxColorIndex; i++)
         {
@@ -712,6 +1009,21 @@ internal unsafe partial class RenderGraphCompiler
         if (!laterPass.depthAccess.id.IsInvalid)
         {
             renderTargets.Add(laterPass.depthAccess.id.AsResource());
+        }
+
+        foreach (var resource in laterPass.renderTargetWrites)
+        {
+            renderTargets.Add(resource);
+        }
+
+        foreach (var resource in laterPass.depthTargetWrites)
+        {
+            renderTargets.Add(resource);
+        }
+
+        foreach (var resource in laterPass.depthTargetReads)
+        {
+            renderTargets.Add(resource);
         }
 
         for (var resType = 0; resType < (int)RGResourceType.Count; resType++)

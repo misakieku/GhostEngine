@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
@@ -115,7 +116,7 @@ public unsafe partial class EntityManager : IDisposable
         var it = signature.GetIterator();
         while (it.Next(out var componentID))
         {
-            if (ComponentRegistry.GetComponentInfo(componentID).isCleanup)
+            if (ComponentRegistry.GetComponentInfo(componentID).IsCleanup)
             {
                 compCount++;
             }
@@ -126,7 +127,7 @@ public unsafe partial class EntityManager : IDisposable
         var i = 0;
         while (collectIt.Next(out var componentID))
         {
-            if (ComponentRegistry.GetComponentInfo(componentID).isCleanup)
+            if (ComponentRegistry.GetComponentInfo(componentID).IsCleanup)
             {
                 componentTypeIDs[i++] = componentID;
             }
@@ -455,7 +456,7 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="entities">The entities to destroy.</param>
     public void DestroyEntities(params ReadOnlySpan<Entity> entities)
     {
-        if (entities.Length == 0)
+        if (entities.IsEmpty)
         {
             return;
         }
@@ -477,6 +478,7 @@ public unsafe partial class EntityManager : IDisposable
             var idComp = a.ID.CompareTo(b.ID);
             return idComp != 0 ? idComp : a.Generation.CompareTo(b.Generation);
         });
+
         for (var i = 1; i < dedupeSpan.Length; i++)
         {
             if (dedupeSpan[i - 1] == dedupeSpan[i])
@@ -486,7 +488,7 @@ public unsafe partial class EntityManager : IDisposable
         }
 #endif
 
-        // 1. GATHER + MIGRATE (no removals yet)
+        // GATHER + MIGRATE (no removals yet)
         // Resolve all entities to their locations. Entities with ICleanupComponent are
         // moved to a cleanup-only archetype where they survive until cleanup systems
         // finish processing them. Nothing is removed from the source chunks here — the
@@ -546,7 +548,7 @@ public unsafe partial class EntityManager : IDisposable
             return;
         }
 
-        // 2. BATCH REMOVAL
+        // BATCH REMOVAL
         // Sorting groups the locations by (archetype, chunk) automatically.
         toRemove.AsSpan().Sort();
 
@@ -579,7 +581,7 @@ public unsafe partial class EntityManager : IDisposable
             lastArchetype.RemoveEntities(prevChunkIndex, rowIndicesCache.AsSpan());
         }
 
-        // 3. FINALIZE
+        // FINALIZE
         // Migrated entities keep their slot-map entry (pointing at the cleanup archetype);
         // destroyed entities are removed from the slot map.
         for (var i = 0; i < migrated.Count; i++)
@@ -786,7 +788,7 @@ public unsafe partial class EntityManager : IDisposable
     public Error AddComponent(Entity entity, Identifier<IComponent> componentID, void* pComponent)
     {
 #if GHOST_SAFETY_CHECKS
-        if (ComponentRegistry.GetComponentInfo(componentID).isShared)
+        if (ComponentRegistry.GetComponentInfo(componentID).IsShared)
         {
             return Error.InvalidArgument;
         }
@@ -909,7 +911,7 @@ public unsafe partial class EntityManager : IDisposable
     public Error RemoveComponent(Entity entity, Identifier<IComponent> componentID)
     {
 #if GHOST_SAFETY_CHECKS
-        if (ComponentRegistry.GetComponentInfo(componentID).isShared)
+        if (ComponentRegistry.GetComponentInfo(componentID).IsShared)
         {
             return Error.InvalidArgument;
         }
@@ -1111,10 +1113,12 @@ public unsafe partial class EntityManager : IDisposable
         }
 
         ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+#if GHOST_SAFETY_CHECKS
         if (!archetype.HasComponent(componentID))
         {
             return Error.NotFound;
         }
+#endif
 
         archetype.SetComponentData(location.chunkIndex, location.rowIndex, componentID, pComponent);
 
@@ -1129,10 +1133,68 @@ public unsafe partial class EntityManager : IDisposable
     /// <param name="component">The component data.</param>
     /// <returns>The result status of the operation.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Error SetComponent<T>(Entity entity, T component)
+    public Error SetComponent<T>(Entity entity, scoped in T component)
         where T : unmanaged, IComponentData
     {
-        return SetComponent(entity, ComponentTypeID<T>.Value, &component);
+        fixed (T* pComponent = &component)
+        {
+            return SetComponent(entity, ComponentTypeID<T>.Value, pComponent);
+        }
+    }
+
+    private void SetComponentSequential_Core(ReadOnlySpan<Entity> entities, Identifier<IComponent> componentID, void* pComponent, ref readonly Archetype archetype)
+    {
+        var size = ComponentRegistry.GetComponentInfo(componentID).Size;
+        var eIdx = 0;
+        while (eIdx < entities.Length)
+        {
+            var first = entities[eIdx];
+            ref readonly var location = ref _entityLocations.GetElementReferenceAt(first.ID, first.Generation, out var exist);
+            Logger.DebugAssert(exist);
+
+            var remainingInChunk = archetype.EntityCapacity - location.rowIndex;
+            var countInChunk = Math.Min(entities.Length - eIdx, remainingInChunk);
+
+            var ptr = archetype.GetComponentData(location.chunkIndex, location.rowIndex, componentID);
+            CollectionUtility.Fill(ptr, (nuint)size, (nuint)countInChunk, pComponent);
+
+            eIdx += countInChunk;
+        }
+    }
+
+    /// <summary>
+    /// Sets the component data for a sequential range of entities.
+    /// </summary>
+    /// <remarks>
+    /// This method is valid only when all entities in the collection are stored in contiguous memory and ordered sequentially, with the first entity located at the very beginning of that memory.
+    /// </remarks>
+    /// <typeparam name="T">The component type.</typeparam>
+    /// <param name="entities">The entities whose component data is set.</param>
+    /// <param name="componentID">The identifier of the component to set.</param>
+    /// <param name="pComponent">A pointer to the component data to copy.</param>
+    /// <returns>The result status of the operation.</returns>
+    public Error SetComponentSequential(ReadOnlySpan<Entity> entities, Identifier<IComponent> componentID, void* pComponent)
+    {
+        return SetComponentsSequential(entities, [componentID], &pComponent);
+    }
+
+    /// <summary>
+    /// Sets the specified component value for each entity in sequential order.
+    /// </summary>
+    /// <remarks>
+    /// This method is valid only when all entities in the collection are stored in contiguous memory and ordered sequentially, with the first entity located at the very beginning of that memory.
+    /// </remarks>
+    /// <typeparam name="T">The component data type.</typeparam>
+    /// <param name="entities">The entities to update.</param>
+    /// <param name="component">The component value to set.</param>
+    /// <returns>An error indicating whether the operation succeeded.</returns>
+    public Error SetComponentSequential<T>(ReadOnlySpan<Entity> entities, scoped in T component)
+        where T : unmanaged, IComponentData
+    {
+        fixed (T* pComponent = &component)
+        {
+            return SetComponentSequential(entities, ComponentTypeID<T>.Value, pComponent);
+        }
     }
 
     /// <summary>
@@ -1150,14 +1212,58 @@ public unsafe partial class EntityManager : IDisposable
         }
 
         ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+#if GHOST_SAFETY_CHECKS
         if (!archetype.HasComponents(componentIDs))
         {
             return Error.NotFound;
         }
+#endif
 
         for (var i = 0; i < componentIDs.Length; i++)
         {
             archetype.SetComponentData(location.chunkIndex, location.rowIndex, componentIDs[i], ppComponents[i]);
+        }
+
+        return Error.None;
+    }
+
+    /// <summary>
+    /// Sets the component data for a sequential range of entities.
+    /// </summary>
+    /// <remarks>
+    /// This method is valid only when all entities in the collection are stored in contiguous memory and ordered sequentially, with the first entity located at the very beginning of that memory.
+    /// </remarks>
+    /// <typeparam name="T">The component type.</typeparam>
+    /// <param name="entities">The entities whose component data is set.</param>
+    /// <param name="componentIDs">The component space IDs to set.</param>
+    /// <param name="ppComponents">The pointers to the component data.</param>
+    /// <returns>The result status of the operation.</returns>
+    public Error SetComponentsSequential(ReadOnlySpan<Entity> entities, ReadOnlySpan<Identifier<IComponent>> componentIDs, void** ppComponents)
+    {
+        if (entities.IsEmpty)
+        {
+            return Error.None;
+        }
+
+        var first = entities[0];
+        if (!_entityLocations.TryGetElementAt(first.ID, first.Generation, out var location))
+        {
+            return Error.NotFound;
+        }
+
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+
+#if GHOST_SAFETY_CHECKS
+        if (!archetype.HasComponents(componentIDs))
+        {
+            return Error.NotFound;
+        }
+#endif
+
+        for (var i = 0; i < componentIDs.Length; i++)
+        {
+            var componentID = componentIDs[i];
+            SetComponentSequential_Core(entities, componentID, ppComponents[i], ref archetype);
         }
 
         return Error.None;
@@ -1215,6 +1321,23 @@ public unsafe partial class EntityManager : IDisposable
     }
 
     /// <summary>
+    /// Check if the specified entity has the specified components.
+    /// </summary>
+    /// <param name="entity">The entity to check.</param>
+    /// <param name="componentIDs">The component space IDs to check.</param>
+    /// <returns>True if the entity has all components, false otherwise.</returns>
+    public bool HasComponents(Entity entity, ReadOnlySpan<Identifier<IComponent>> componentIDs)
+    {
+        if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
+        {
+            return false;
+        }
+
+        ref var archetype = ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
+        return archetype.HasComponents(componentIDs);
+    }
+
+    /// <summary>
     /// Check if the specified entity has the specified component.
     /// </summary>
     /// <typeparam name="T">The component space.</typeparam>
@@ -1225,14 +1348,6 @@ public unsafe partial class EntityManager : IDisposable
         where T : unmanaged, IComponent
     {
         return HasComponent(entity, ComponentTypeID<T>.Value);
-    }
-
-    internal ref readonly Archetype GetEntityArchetype(Entity entity)
-    {
-        if (!_entityLocations.TryGetElementAt(entity.ID, entity.Generation, out var location))
-            throw new ArgumentException("Entity does not exist.", nameof(entity));
-
-        return ref _world.ComponentManager.GetArchetypeReference(location.archetypeID);
     }
 
     /// <summary>
@@ -1506,7 +1621,7 @@ public unsafe partial class EntityManager : IDisposable
     public void* GetSharedComponent(Entity entity, Identifier<IComponent> componentID)
     {
 #if GHOST_SAFETY_CHECKS
-        if (!ComponentRegistry.GetComponentInfo(componentID).isShared)
+        if (!ComponentRegistry.GetComponentInfo(componentID).IsShared)
         {
             throw new InvalidOperationException("GetSharedComponent can only be used with shared components.");
         }

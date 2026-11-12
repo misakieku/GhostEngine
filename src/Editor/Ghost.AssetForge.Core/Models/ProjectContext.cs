@@ -24,7 +24,7 @@ public sealed record ProjectContext(Project Project, IReadOnlyList<string> Asset
     /// its absolute path. Later directories overwrite earlier ones for the same virtual
     /// path. Files ending in <c>.meta</c> are excluded.
     /// </summary>
-    public Dictionary<string, string> EnumerateAssetFiles()
+    public Dictionary<string, string> EnumerateAssetFiles(ISet<string> supportedExts)
     {
         var virtualPathToFile = new Dictionary<string, string>();
 
@@ -36,7 +36,7 @@ public sealed record ProjectContext(Project Project, IReadOnlyList<string> Asset
             }
 
             var filesInDir = Directory.GetFiles(assetDir, "*.*", SearchOption.AllDirectories)
-                                      .Where(f => !f.EndsWith(".meta", StringComparison.OrdinalIgnoreCase));
+                                      .Where(f => supportedExts.Contains(Path.GetExtension(f)));
 
             foreach (var file in filesInDir)
             {

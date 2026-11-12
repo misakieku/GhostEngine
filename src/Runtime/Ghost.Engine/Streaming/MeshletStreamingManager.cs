@@ -253,7 +253,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
     {
         _currentFrame++;
 
-        // 1. Asynchronous, zero-stall readback of Frame N-Ring missing page requests
+        // Asynchronous, zero-stall readback of Frame N-Ring missing page requests
         if (_currentFrame > (ulong)_streamingRequestsReadbackBuffers.Length && _streamingRequestsReadbackBuffers.Length > 0)
         {
             var readbackSlot = context.FrameIndex % _streamingRequestsReadbackBuffers.Length;
@@ -270,7 +270,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
             }
         }
 
-        // 2. Process pending Root Page uploads
+        // Process pending Root Page uploads
         var hadRootUploads = _pendingRootUploads.Count > 0;
         var willUpload = hadRootUploads || _requestQueue.Count > 0;
         if (willUpload && _pagePoolInShaderResource)
@@ -298,7 +298,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
             _pendingRootUploads.Clear();
         }
 
-        // 3. Process streaming page requests up to frame budget
+        // Process streaming page requests up to frame budget
         var pagesUploaded = 0;
         while (_requestQueue.Count > 0 && pagesUploaded < _maxPagesPerFrame)
         {
@@ -360,10 +360,10 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
             _pagePoolInShaderResource = true;
         }
 
-        // 4. Flush dirty residency entries to GPU
+        // Flush dirty residency entries to GPU
         _pageTable.FlushUpdates(context.ResourceManager, context.ResourceDatabase, commandBuffer);
 
-        // 5. Reset GPU streaming request counter and bitmask for the upcoming frame
+        // Reset GPU streaming request counter and bitmask for the upcoming frame
         if (_streamingRequestsInUav)
         {
             commandBuffer.Barrier(BarrierDesc.Buffer(
@@ -414,7 +414,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
         var targetReadback = _streamingRequestsReadbackBuffers[readbackSlot];
         var copyBytes = (ulong)(4 + _maxRequestsPerFrame * 4);
 
-        // 1. Transition GPU buffer: UnorderedAccess -> CopySource
+        // Transition GPU buffer: UnorderedAccess -> CopySource
         var toCopy = BarrierDesc.Buffer(
             _streamingRequestsGpuBuffer,
             syncBefore: BarrierSync.AllShading,
@@ -423,10 +423,10 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
             accessAfter: BarrierAccess.CopySource);
         cmd.Barrier(toCopy);
 
-        // 2. DMA copy into Readback staging buffer (Readback heap has NO transition barriers)
+        // DMA copy into Readback staging buffer (Readback heap has NO transition barriers)
         cmd.CopyBuffer(targetReadback, _streamingRequestsGpuBuffer, 0, 0, copyBytes);
 
-        // 3. Transition GPU buffer back: CopySource -> UnorderedAccess
+        // Transition GPU buffer back: CopySource -> UnorderedAccess
         var toUav = BarrierDesc.Buffer(
             _streamingRequestsGpuBuffer,
             syncBefore: BarrierSync.Copy,
@@ -488,13 +488,13 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
 
     private bool TryAllocateOrEvictSlot(uint newGlobalPageID, out uint physicalSlot)
     {
-        // 1. Try allocate from free slots
+        // Try allocate from free slots
         if (_pagePool.TryAllocateSlot(out physicalSlot))
         {
             return true;
         }
 
-        // 2. Pool full: Find least-recently-used unpinned slot
+        // Pool full: Find least-recently-used unpinned slot
         var oldestFrame = ulong.MaxValue;
         var victimSlot = uint.MaxValue;
 

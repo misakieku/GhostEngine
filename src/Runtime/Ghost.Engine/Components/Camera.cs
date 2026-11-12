@@ -3,9 +3,11 @@ using Ghost.Entities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Mathematics;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Components;
 
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct Camera : IComponentData
 {
     public float nearClipPlane;

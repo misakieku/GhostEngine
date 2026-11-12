@@ -6,11 +6,21 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
+internal enum PassResourceUsageClass : byte
+{
+    None,
+    ShaderRead,
+    IndirectArgument,
+    UnorderedAccess,
+    ColorAttachment,
+    DepthRead,
+    DepthWrite
+}
+
 public enum RGResourceType : int
 {
     Texture,
     Buffer,
-    // AccelerationStructure,
     Count
 }
 
@@ -364,7 +374,15 @@ public enum RGFlags
     /// <summary>
     /// Prevent memory heap aliasing for resources, ensuring each resource has a unique memory allocation.
     /// </summary>
-    NoAliasing = 1 << 2,
+    DisableAliasing = 1 << 2,
+    /// <summary>
+    /// Disables split barriers, emitting atomic barriers instead.
+    /// </summary>
+    DisableSplitBarriers = 1 << 3,
+    /// <summary>
+    /// Disables reordering of render-graph passes, preserving the original submission order.
+    /// </summary>
+    DisablePassReordering = 1 << 4,
 }
 
 /// <summary>

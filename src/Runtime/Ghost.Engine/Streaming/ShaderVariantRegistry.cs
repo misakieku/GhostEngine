@@ -769,7 +769,7 @@ public sealed class ShaderVariantRegistry : IShaderVariantSource, IDisposable
             throw new InvalidOperationException($"Work graph '{wgEntry.AssetName}' bytecode is not available.");
         }
 
-        var cacheKey = wgEntry.ShaderId ^ keywords.Low ^ (keywords.High << 1);
+        var cacheKey = wgEntry.ShaderId ^ keywords.Low ^ (keywords.High << 1) ^ (ulong)(uint)wgEntry.AssetId.GetHashCode();
         lock (_workGraphPrograms)
         {
             if (_workGraphPrograms.TryGetValue(cacheKey, out var existing))

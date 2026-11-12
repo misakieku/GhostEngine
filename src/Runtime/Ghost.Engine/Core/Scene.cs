@@ -1,3 +1,4 @@
+#if false
 using Ghost.Core;
 using Ghost.Core.Utilities;
 using Ghost.Engine.Components;
@@ -976,3 +977,4 @@ public static class SceneManager
         return entities;
     }
 }
+#endif

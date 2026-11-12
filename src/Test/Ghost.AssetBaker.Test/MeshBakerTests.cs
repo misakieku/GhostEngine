@@ -46,8 +46,8 @@ public class MeshBakerTests
         Assert.IsNotNull(fbxBaker);
         Assert.IsInstanceOfType(fbxBaker, typeof(MeshBaker));
 
-        Assert.AreEqual(AssetType.Mesh, registry.DetectAssetType(".obj"));
-        Assert.AreEqual(AssetType.Mesh, registry.DetectAssetType(".fbx"));
+        Assert.AreEqual(AssetType.EntityPrefab, registry.DetectAssetType(".obj"));
+        Assert.AreEqual(AssetType.EntityPrefab, registry.DetectAssetType(".fbx"));
         Assert.AreEqual(typeof(MeshBakeSettings), registry.GetSettingsType(".obj"));
     }
 
@@ -73,10 +73,17 @@ public class MeshBakerTests
 
         var baker = new MeshBaker();
         var settings = new MeshBakeSettings();
+        var subStreams = new Dictionary<string, MemoryStream>();
         var ctx = new AssetBakerContext
         {
             AssetDirectories = [_tempDir],
             BakeConfig = new BakeConfig(),
+            SubAssetStreamFactory = subPath =>
+            {
+                var ms = new MemoryStream();
+                subStreams[subPath] = ms;
+                return ms;
+            }
         };
 
         using var outputStream = new MemoryStream();
@@ -85,22 +92,31 @@ public class MeshBakerTests
         Assert.IsGreaterThan(0L, outputStream.Length);
 
         outputStream.Position = 0;
-        var headerBytes = new byte[Marshal.SizeOf<MeshContentHeader>()];
+        var headerBytes = new byte[Marshal.SizeOf<PrefabContentHeader>()];
         outputStream.ReadExactly(headerBytes);
-        var header = MemoryMarshal.Read<MeshContentHeader>(headerBytes);
+        var header = MemoryMarshal.Read<PrefabContentHeader>(headerBytes);
 
-        Assert.AreEqual(MeshContentHeader.MAGIC, header.magic);
-        Assert.AreEqual(MeshContentHeader.VERSION, header.version);
-        Assert.IsGreaterThan(0, header.pageCount);
-        Assert.AreEqual(1, header.rootPageCount);
-        Assert.IsGreaterThan(0, header.meshletCount);
-        Assert.IsGreaterThan(0, header.meshletGroupCount);
-        Assert.IsGreaterThan(0, header.meshletHierarchyNodeCount);
-        Assert.IsGreaterThan(0, header.rayTracingProxyVertexCount);
-        Assert.IsGreaterThan(0, header.rayTracingProxyIndexCount);
-        Assert.IsGreaterThan(0L, header.rayTracingProxySize);
+        Assert.AreEqual(PrefabContentHeader.MAGIC, header.magic);
+        Assert.AreEqual(PrefabContentHeader.VERSION, header.version);
+        Assert.IsGreaterThan(0, header.entityCount);
+        Assert.IsGreaterThan(0, ctx.AssetDependencies.Count);
+        Assert.IsGreaterThan(0, header.componentTypeCount);
 
-        Assert.AreEqual(32, Marshal.SizeOf<MeshletHierarchyNode>());
+        // Verify sub-asset mesh was baked
+        Assert.IsGreaterThan(0, subStreams.Count);
+        var subMeshBytes = subStreams.Values.First().ToArray();
+        var meshHeader = MemoryMarshal.Read<MeshContentHeader>(subMeshBytes);
+
+        Assert.AreEqual(MeshContentHeader.MAGIC, meshHeader.magic);
+        Assert.AreEqual(MeshContentHeader.VERSION, meshHeader.version);
+        Assert.IsGreaterThan(0, meshHeader.pageCount);
+        Assert.AreEqual(1, meshHeader.rootPageCount);
+        Assert.IsGreaterThan(0, meshHeader.meshletCount);
+        Assert.IsGreaterThan(0, meshHeader.meshletGroupCount);
+        Assert.IsGreaterThan(0, meshHeader.meshletHierarchyNodeCount);
+        Assert.IsGreaterThan(0, meshHeader.rayTracingProxyVertexCount);
+        Assert.IsGreaterThan(0, meshHeader.rayTracingProxyIndexCount);
+        Assert.IsGreaterThan(0L, meshHeader.rayTracingProxySize);
     }
 
     [TestMethod]
@@ -125,10 +141,17 @@ public class MeshBakerTests
 
         var baker = new MeshBaker();
         var settings = new MeshBakeSettings();
+        var subStreams = new Dictionary<string, MemoryStream>();
         var ctx = new AssetBakerContext
         {
             AssetDirectories = [_tempDir],
             BakeConfig = new BakeConfig(),
+            SubAssetStreamFactory = subPath =>
+            {
+                var ms = new MemoryStream();
+                subStreams[subPath] = ms;
+                return ms;
+            }
         };
 
         using var outputStream = new MemoryStream();
@@ -145,15 +168,14 @@ public class MeshBakerTests
         CollectionAssert.AreEqual(prefix, readPrefix);
 
         // Verify header starts at offset 16 and has valid magic and relative offsets
-        var headerBytes = new byte[Marshal.SizeOf<MeshContentHeader>()];
+        var headerBytes = new byte[Marshal.SizeOf<PrefabContentHeader>()];
         outputStream.ReadExactly(headerBytes);
-        var header = MemoryMarshal.Read<MeshContentHeader>(headerBytes);
+        var header = MemoryMarshal.Read<PrefabContentHeader>(headerBytes);
 
-        Assert.AreEqual(MeshContentHeader.MAGIC, header.magic);
-        Assert.AreEqual(MeshContentHeader.VERSION, header.version);
-        Assert.AreEqual(Marshal.SizeOf<MeshContentHeader>(), (int)header.hierarchyOffset);
-        Assert.IsGreaterThan(0, (int)header.hierarchyOffset);
-        Assert.IsGreaterThan((int)header.hierarchyOffset, (int)header.groupOffset);
+        Assert.AreEqual(PrefabContentHeader.MAGIC, header.magic);
+        Assert.AreEqual(PrefabContentHeader.VERSION, header.version);
+        Assert.AreEqual(Marshal.SizeOf<PrefabContentHeader>(), (int)header.componentTypesOffset);
+        Assert.IsGreaterThan(0, ctx.AssetDependencies.Count);
     }
 
     [TestMethod]

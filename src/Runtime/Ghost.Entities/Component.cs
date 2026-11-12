@@ -29,16 +29,47 @@ public class InlineBufferCapacityAttribute : Attribute
     }
 }
 
-internal struct ComponentInfo
+[Flags]
+internal enum ComponentFlags
 {
-    public Identifier<IComponent> id;
-    public int size;
-    public int alignment;
-    public bool isEnableable;
-    public bool isCleanup;
-    public bool isShared;
-    public bool isBufferComponent;
-    public int inlineBufferCapacity;
+    Default = 0,
+    Enableable = 1 << 0,
+    Cleanup = 1 << 1,
+    Shared = 1 << 2,
+    Buffer = 1 << 3,
+}
+
+internal readonly struct ComponentInfo
+{
+    public Identifier<IComponent> ID
+    {
+        get; init;
+    }
+
+    public int Size
+    {
+        get; init;
+    }
+
+    public int Alignment
+    {
+        get; init;
+    }
+
+    public ComponentFlags Flags
+    {
+        get; init;
+    }
+
+    public int InlineBufferCapacity
+    {
+        get; init;
+    }
+
+    public bool IsEnableable => (Flags & ComponentFlags.Enableable) != 0;
+    public bool IsCleanup => (Flags & ComponentFlags.Cleanup) != 0;
+    public bool IsShared => (Flags & ComponentFlags.Shared) != 0;
+    public bool IsBuffer => (Flags & ComponentFlags.Buffer) != 0;
 }
 
 /// <summary>
@@ -49,15 +80,22 @@ public static class ComponentTypeID<T>
     where T : unmanaged, IComponent
 {
     public static readonly Identifier<IComponent> Value;
-    public static readonly bool IsShared = typeof(ISharedComponent).IsAssignableFrom(typeof(T));
-    public static readonly bool IsEnableable = typeof(IEnableableComponent).IsAssignableFrom(typeof(T));
-    public static readonly bool IsCleanup = typeof(ICleanupComponent).IsAssignableFrom(typeof(T));
-    public static readonly bool IsBufferComponent = typeof(IBufferElement).IsAssignableFrom(typeof(T));
-    public static readonly int InlineBufferCapacity = typeof(T).GetCustomAttribute<InlineBufferCapacityAttribute>()?.Capacity ?? 0;
+    public static readonly bool IsShared;
+    public static readonly bool IsEnableable;
+    public static readonly bool IsCleanup;
+    public static readonly bool IsBufferComponent;
+    public static readonly int InlineBufferCapacity;
 
     static ComponentTypeID()
     {
         Value = ComponentRegistry.GetOrRegisterComponentID<T>();
+
+        var info = ComponentRegistry.GetComponentInfo(Value);
+        IsShared = info.IsShared;
+        IsEnableable = info.IsEnableable;
+        IsCleanup = info.IsCleanup;
+        IsBufferComponent = info.IsBuffer;
+        InlineBufferCapacity = info.InlineBufferCapacity;
     }
 }
 
@@ -81,19 +119,37 @@ public static class ComponentRegistry
         {
             return existingID;
         }
+        
+        var flags = ComponentFlags.Default;
+        if (typeof(IEnableableComponent).IsAssignableFrom(type))
+        {
+            flags |= ComponentFlags.Enableable;
+        }
+
+        if (typeof(ICleanupComponent).IsAssignableFrom(type))
+        {
+            flags |= ComponentFlags.Cleanup;
+        }
+
+        if (typeof(ISharedComponent).IsAssignableFrom(type))
+        {
+            flags |= ComponentFlags.Shared;
+        }
+
+        if (typeof(IBufferElement).IsAssignableFrom(type))
+        {
+            flags |= ComponentFlags.Buffer;
+        }
 
         var newID = new Identifier<IComponent>(s_registeredComponents.Count);
         var stableName = typeof(T).FullName ?? typeof(T).Name;
         var info = new ComponentInfo
         {
-            id = newID,
-            size = sizeof(T),
-            alignment = (int)MemoryUtility.AlignOf<T>(),
-            isEnableable = typeof(IEnableableComponent).IsAssignableFrom(type),
-            isCleanup = typeof(ICleanupComponent).IsAssignableFrom(type),
-            isShared = typeof(ISharedComponent).IsAssignableFrom(type),
-            isBufferComponent = typeof(IBufferElement).IsAssignableFrom(type),
-            inlineBufferCapacity = type.GetCustomAttribute<InlineBufferCapacityAttribute>()?.Capacity ?? 0
+            ID = newID,
+            Size = sizeof(T),
+            Alignment = (int)MemoryUtility.AlignOf<T>(),
+            Flags = flags,
+            InlineBufferCapacity = type.GetCustomAttribute<InlineBufferCapacityAttribute>()?.Capacity ?? 0
         };
 
         s_registeredComponents.Add(info);

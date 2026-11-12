@@ -74,11 +74,12 @@ internal sealed class RenderGraphCompilationCache : IDisposable
 {
     private CachedCompilation _cached;
     private ulong _cachedHash;
+    private RGFlags _cachedFlags;
     private bool _hasCachedData;
 
-    public bool TryGetCached(ulong hash, [MaybeNullWhen(false)] out CachedCompilation result)
+    public bool TryGetCached(ulong hash, RGFlags flags, [MaybeNullWhen(false)] out CachedCompilation result)
     {
-        if (_hasCachedData && _cachedHash == hash)
+        if (_hasCachedData && _cachedHash == hash && _cachedFlags == flags)
         {
             result = _cached;
             return true;
@@ -91,6 +92,7 @@ internal sealed class RenderGraphCompilationCache : IDisposable
     public ref readonly CachedCompilation SetCached(
         RenderGraphResourceRegistry registry,
         ulong hash,
+        RGFlags flags,
         ViewportState viewport,
         List<RenderGraphPass> passes,
         ReadOnlySpan<int> compiledPasses,
@@ -101,6 +103,7 @@ internal sealed class RenderGraphCompilationCache : IDisposable
         AllocationHandle allocationHandle)
     {
         _cachedHash = hash;
+        _cachedFlags = flags;
         _hasCachedData = true;
         _cached.Dispose();
 
@@ -168,6 +171,7 @@ internal sealed class RenderGraphCompilationCache : IDisposable
     {
         _hasCachedData = false;
         _cachedHash = 0;
+        _cachedFlags = RGFlags.Default;
         _cached.Dispose();
     }
 

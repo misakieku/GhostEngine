@@ -9,6 +9,7 @@ compute "Internal/ShadowCullGraph"
         uint shadowViewsBuffer;
         uint shadowViewCount;
         float cullingThreshold;
+        uint occluderHzbSrv;
     }
 
     includes
@@ -47,6 +48,74 @@ compute "Internal/ShadowCullGraph"
             uint3 dispatchGrid : SV_DispatchGrid;
         };
 
+#if defined(SHADOWCULL_DIRECTIONAL)
+        bool IsAABBOccludedByHZB(float3 worldMin, float3 worldMax, uint shadowViewIndex, uint occluderHzbSrv, uint shadowViewsBuffer)
+        {
+            if (!IS_VALID_TEXTURE(occluderHzbSrv))
+            {
+                return false;
+            }
+
+            GPUShadowSamplingData samplingData = LoadDataAtOffset<GPUShadowSamplingData>(shadowViewsBuffer, sizeof(GPUShadowViewData) * shadowViewIndex + sizeof(GPUShadowCullingData));
+
+            float3 center = (worldMin + worldMax) * 0.5f;
+            float3 extents = (worldMax - worldMin) * 0.5f;
+
+            float3 clipCenter = mul(samplingData.shadowViewProj, float4(center, 1.0f)).xyz;
+            float3 clipExtents = abs(samplingData.shadowViewProj._m00_m10_m20) * extents.x +
+                                 abs(samplingData.shadowViewProj._m01_m11_m21) * extents.y +
+                                 abs(samplingData.shadowViewProj._m02_m12_m22) * extents.z;
+
+            float3 clipMin = clipCenter - clipExtents;
+            float3 clipMax = clipCenter + clipExtents;
+
+            float2 minUV = float2(clipMin.x * 0.5f + 0.5f, clipMax.y * -0.5f + 0.5f);
+            float2 maxUV = float2(clipMax.x * 0.5f + 0.5f, clipMin.y * -0.5f + 0.5f);
+            float maxZ = clipMax.z;
+
+            // Dilate AABB UV footprint by receiver normalBias and 5x5 PCF filter radius
+            float uvMargin = samplingData.normalBias * samplingData.shadowProjection.x * 0.5f + 3.0f * samplingData.size.w;
+            minUV -= uvMargin;
+            maxUV += uvMargin;
+
+            if (any(maxUV < 0.0f) || any(minUV > 1.0f))
+            {
+                return true;
+            }
+
+            minUV = saturate(minUV);
+            maxUV = saturate(maxUV);
+
+            int2 rectMin = clamp((int2)floor(minUV * 64.0f), int2(0, 0), int2(63, 63));
+            int2 rectMax = clamp((int2)floor(maxUV * 64.0f), rectMin, int2(63, 63));
+            int2 size = rectMax - rectMin;
+            int maxDim = max(size.x, size.y);
+            uint mip = maxDim > 0 ? (uint)firstbithigh((uint)maxDim) : 0u;
+            if (any(((rectMax >> mip) - (rectMin >> mip)) > 1))
+            {
+                mip += 1u;
+            }
+            mip = min(mip, 6u);
+
+            int2 c0 = rectMin >> mip;
+            int2 c1 = rectMax >> mip;
+
+            Texture2DArray<float> hzb = GET_TEXTURE2D_ARRAY(occluderHzbSrv);
+            float d00 = hzb.mips[mip][uint3(c0.x, c0.y, shadowViewIndex)].r;
+            float d10 = hzb.mips[mip][uint3(c1.x, c0.y, shadowViewIndex)].r;
+            float d01 = hzb.mips[mip][uint3(c0.x, c1.y, shadowViewIndex)].r;
+            float d11 = hzb.mips[mip][uint3(c1.x, c1.y, shadowViewIndex)].r;
+
+            float minReceiverDepth = min(min(d00, d10), min(d01, d11));
+            if (minReceiverDepth > 1.0f)
+            {
+                return true;
+            }
+
+            return maxZ < (minReceiverDepth - 1e-5f);
+        }
+#endif
+
         // Node 1: Entry point for instance-level culling across all shadow views
         [Shader("node")]
         [NodeLaunch("broadcasting")]
@@ -81,6 +150,23 @@ compute "Internal/ShadowCullGraph"
                         float3 toInstance = worldCenter - shadowCull.lightPosRWSAndProj11.xyz;
                         float dist = length(toInstance);
 
+#if defined(SHADOWCULL_DIRECTIONAL)
+                        bool passesDetail = true;
+                        if (g_Properties.cullingThreshold > 0.0f)
+                        {
+                            float d_percentage = worldRadius * shadowCull.lightPosRWSAndProj11.w * 100.0f;
+                            if (d_percentage <= g_Properties.cullingThreshold)
+                            {
+                                passesDetail = false;
+                            }
+                        }
+
+                        if (passesDetail && AABBIntersectFrustum(worldMin, worldMax, shadowCull.planes))
+                        {
+                            bool isOccluded = IsAABBOccludedByHZB(worldMin, worldMax, shadowViewIndex, g_Properties.occluderHzbSrv, g_Properties.shadowViewsBuffer);
+                            isVisible = !isOccluded;
+                        }
+#else
                         bool passesDetail = true;
                         if (g_Properties.cullingThreshold > 0.0f && dist > worldRadius)
                         {
@@ -95,6 +181,7 @@ compute "Internal/ShadowCullGraph"
                         {
                             isVisible = AABBIntersectFrustum(worldMin, worldMax, shadowCull.planes);
                         }
+#endif
                     }
                 }
             }
@@ -146,6 +233,13 @@ compute "Internal/ShadowCullGraph"
             // which contains coarsest LOD representations!
             if (node.groupIndex < 0 && rec.nodeIndex != 0)
             {
+#if defined(SHADOWCULL_DIRECTIONAL)
+                bool isParentDetailSufficient = (node.error < 3.4e38f) && EvaluateOrthoLODDetailSufficient(
+                    node.error * maxScale,
+                    shadowCull.lightPosRWSAndProj11.w,
+                    shadowCull.size.z,
+                    shadowCull.lodErrorThreshold);
+#else
                 bool isParentDetailSufficient = (node.error < 3.4e38f) && EvaluateLODDetailSufficient(
                     node.error * maxScale,
                     worldCenter,
@@ -154,6 +248,7 @@ compute "Internal/ShadowCullGraph"
                     g_ViewData.projectionMatrix[1][1],
                     shadowCull.size.z,
                     shadowCull.lodErrorThreshold);
+#endif
 
                 if (isParentDetailSufficient)
                 {
@@ -289,11 +384,26 @@ compute "Internal/ShadowCullGraph"
                 float3 meshletWorldCenter = mul(localToRWS, float4(meshlet.boundingSphere.xyz, 1.0f)).xyz;
                 float meshletWorldRadius = meshlet.boundingSphere.w * maxScale;
 
+#if defined(SHADOWCULL_DIRECTIONAL)
+                // Dual-Error Cut Condition 1: Parent Error check (Lower bound)
+                bool isParentDetailSufficient = (meshlet.parentError < 3.4e38f) && EvaluateOrthoLODDetailSufficient(
+                    meshlet.parentError * maxScale,
+                    shadowCull.lightPosRWSAndProj11.w,
+                    shadowCull.size.z,
+                    shadowCull.lodErrorThreshold);
+
+                // Dual-Error Cut Condition 2: Cluster Error test (Upper bound)
+                // Refinement gate: can only refine if finer child page is resident in GPUPageTable
+                bool isClusterDetailSufficient = !canRefine || (meshlet.clusterError <= 0.0f) || EvaluateOrthoLODDetailSufficient(
+                    meshlet.clusterError * maxScale,
+                    shadowCull.lightPosRWSAndProj11.w,
+                    shadowCull.size.z,
+                    shadowCull.lodErrorThreshold);
+#else
                 float3 meshletParentWorldCenter = mul(localToRWS, float4(meshlet.parentBoundingSphere.xyz, 1.0f)).xyz;
                 float meshletParentWorldRadius = meshlet.parentBoundingSphere.w * maxScale;
 
                 // Dual-Error Cut Condition 1: Parent Error check (Lower bound)
-                // Evaluate against camera perspective to match view pass LOD cut
                 bool isParentDetailSufficient = (meshlet.parentError < 3.4e38f) && EvaluateLODDetailSufficient(
                     meshlet.parentError * maxScale,
                     meshletParentWorldCenter,
@@ -313,6 +423,7 @@ compute "Internal/ShadowCullGraph"
                     g_ViewData.projectionMatrix[1][1],
                     shadowCull.size.z,
                     shadowCull.lodErrorThreshold);
+#endif
 
                 if (isParentDetailSufficient || !isClusterDetailSufficient)
                 {
@@ -324,6 +435,13 @@ compute "Internal/ShadowCullGraph"
                     TransformAABB(meshlet.boundingBoxMin, meshlet.boundingBoxMax, localToRWS, worldBoxMin, worldBoxMax);
                     isVisible = AABBIntersectFrustum(worldBoxMin, worldBoxMax, shadowCull.planes);
 
+#if defined(SHADOWCULL_DIRECTIONAL)
+                    if (isVisible)
+                    {
+                        isVisible = !IsAABBOccludedByHZB(worldBoxMin, worldBoxMax, groupRec.shadowViewIndex, g_Properties.occluderHzbSrv, g_Properties.shadowViewsBuffer);
+                    }
+#endif
+
                     if (isVisible)
                     {
                         uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
@@ -333,6 +451,12 @@ compute "Internal/ShadowCullGraph"
                         if (hasAlpha == 0u)
                         {
                             uint triangleCount = (meshlet.packedCounts >> 8u) & 0xFFu;
+#if defined(SHADOWCULL_DIRECTIONAL)
+                            float clusterRadiusPx = meshletWorldRadius * shadowCull.lightPosRWSAndProj11.w * shadowCull.size.z * 0.5f;
+                            float projectedEdgePx = clusterRadiusPx * (2.0f * rsqrt(max((float)triangleCount, 1.0f)));
+                            bool isSoftware = (projectedEdgePx < SW_MAX_EDGE_PIXELS);
+                            cullBin = isSoftware ? 1u : 0u;
+#else
                             bool isSoftware = IsSoftwareMeshlet(
                                 meshletWorldCenter - shadowCull.lightPosRWSAndProj11.xyz,
                                 meshletWorldRadius,
@@ -341,6 +465,7 @@ compute "Internal/ShadowCullGraph"
                                 triangleCount,
                                 SW_MAX_EDGE_PIXELS);
                             cullBin = isSoftware ? 1u : 0u;
+#endif
                         }
                         else
                         {

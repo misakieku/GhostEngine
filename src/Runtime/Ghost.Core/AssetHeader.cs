@@ -79,6 +79,7 @@ public readonly struct AssetInfo()
     public long Offset { get; init; }
     public long Size { get; init; }
     public long UncompressedSize { get; init; }
+    public Guid[] Dependencies { get; init; } = Array.Empty<Guid>();
 }
 
 /// <summary>

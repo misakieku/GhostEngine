@@ -22,15 +22,6 @@ public sealed class ResolveAssetAttribute : Attribute
     }
 }
 
-public struct AssetReadData
-{
-    public Guid assetId;
-    public AssetType assetType;
-    public Stream stream;
-    public long streamSize;
-    public long contentSize;
-}
-
 public interface IContentProvider : IDisposable
 {
     IReadOnlyList<ShaderCatalogEntry> ShaderCatalog { get; }
@@ -39,7 +30,7 @@ public interface IContentProvider : IDisposable
     bool HasAsset(Guid guid);
     Guid[] GetDependencies(Guid guid);
     AssetType GetAssetType(Guid guid);
-    Result<AssetReadData> OpenReadAsync(Guid guid, CancellationToken token = default);
+    Result<AssetPayload> OpenReadAsync(Guid guid, CancellationToken token = default);
 }
 
 internal struct LoadAssetJob : IJob
@@ -84,8 +75,8 @@ internal struct LoadAssetJob : IJob
                 return;
             }
 
-            var readData = openResult.Value;
-            var result = loadable.OnLoadContent(readData.stream, readData.contentSize);
+            var payload = openResult.Value;
+            var result = loadable.OnLoadContent(ref payload);
             if (result.IsFailure)
             {
                 entry.State = entry.FailureState;
@@ -125,6 +116,7 @@ public partial class AssetManager : IDisposable
 
     internal IContentProvider ContentProvider => _contentProvider;
     internal ResourceStreamingProcessor StreamingProcessor => _streamingProcessor;
+    internal ResourceManager ResourceManager => _resourceManager;
 
     /// <summary>
     /// Dense metadata registry for graphics shader variants.
@@ -138,27 +130,32 @@ public partial class AssetManager : IDisposable
     public MeshletStreamingManager MeshletStreamingManager => _meshletStreamingManager;
 
     internal AssetManager(RenderEngine renderEngine, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler, uint frameBufferCount)
+        : this(renderEngine.GraphicsEngine.ResourceDatabase, renderEngine.ResourceManager, contentProvider, streamingProcessor, jobScheduler, renderEngine.GraphicsEngine, renderEngine.ShaderLibrary, frameBufferCount)
     {
-        _resourceDatabase = renderEngine.GraphicsEngine.ResourceDatabase;
-        _resourceManager = renderEngine.ResourceManager;
+    }
+
+    internal AssetManager(IResourceDatabase resourceDatabase, ResourceManager resourceManager, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler, IGraphicsEngine graphicsEngine, ShaderLibrary shaderLibrary, uint frameBufferCount)
+    {
+        _resourceDatabase = resourceDatabase;
+        _resourceManager = resourceManager;
         _contentProvider = contentProvider;
         _streamingProcessor = streamingProcessor;
         _jobScheduler = jobScheduler;
 
-        _shaderVariants = new ShaderVariantRegistry(renderEngine.GraphicsEngine, renderEngine.GraphicsEngine.PipelineLibrary,
-            renderEngine.ShaderLibrary, renderEngine.ResourceManager, contentProvider.ShaderCatalog);
-        
-        _meshletStreamingManager = new MeshletStreamingManager(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, frameBufferCount);
+        _shaderVariants = new ShaderVariantRegistry(graphicsEngine, graphicsEngine.PipelineLibrary,
+            shaderLibrary, resourceManager, contentProvider.ShaderCatalog);
+
+        _meshletStreamingManager = new MeshletStreamingManager(graphicsEngine.ResourceAllocator, resourceDatabase, frameBufferCount);
 
         if (contentProvider.HasAsset(ShaderBytecodePool.POOL_ASSET_ID))
         {
             var readResult = contentProvider.OpenReadAsync(ShaderBytecodePool.POOL_ASSET_ID);
-            if (readResult.IsSuccess && readResult.Value.stream != null)
+            if (readResult.IsSuccess && readResult.Value.IsValid)
             {
-                using var stream = readResult.Value.stream;
                 try
                 {
-                    _bytecodePool = new ShaderBytecodePool(stream);
+                    var payload = readResult.Value;
+                    _bytecodePool = new ShaderBytecodePool(ref payload);
                 }
                 catch (Exception ex)
                 {
@@ -184,6 +181,11 @@ public partial class AssetManager : IDisposable
     internal bool TryGetEntry(Guid guid, [NotNullWhen(true)] out AssetEntry? entry)
     {
         return _entries.TryGetValue(guid, out entry);
+    }
+
+    internal void RegisterEntryForTesting(Guid guid, AssetEntry entry)
+    {
+        _entries[guid] = entry;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -300,10 +302,15 @@ public partial class AssetManager : IDisposable
             {
                 // This should create the entry and schedule the job on those assets does not have any dependency first.
                 var depEntry = GetOrCreateEntry(list[i]);
-                var depHandle = depEntry.LoadJobHandle;
-                Logger.DebugAssert(depHandle.IsValid);
 
-                depHandles.Add(depHandle);
+                if (depEntry.State != AssetState.Ready)
+                {
+                    var depHandle = depEntry.LoadJobHandle;
+                    if (depHandle.IsValid)
+                    {
+                        depHandles.Add(depHandle);
+                    }
+                }
 
                 // GetOrCreateEntry takes a reference on the entry. References on direct dependencies
                 // are balanced by this entry's Release() cascade; the transient reference on a
@@ -314,8 +321,11 @@ public partial class AssetManager : IDisposable
                 }
             }
 
-            dependency = _jobScheduler.CombineDependencies(depHandles);
-            entry.SetCombinedDependencyJobHandle(dependency);
+            if (depHandles.Count > 0)
+            {
+                dependency = _jobScheduler.CombineDependencies(depHandles);
+                entry.SetCombinedDependencyJobHandle(dependency);
+            }
         }
 
         var job = new LoadAssetJob

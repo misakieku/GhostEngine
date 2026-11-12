@@ -29,6 +29,8 @@ internal abstract class RenderGraphPass
 
     public RenderGraphResourceSet randomAccess = new RenderGraphResourceSet(8);
     public RenderGraphResourceSet renderTargetWrites = new RenderGraphResourceSet(4);
+    public RenderGraphResourceSet depthTargetWrites = new RenderGraphResourceSet(2);
+    public RenderGraphResourceSet depthTargetReads = new RenderGraphResourceSet(2);
 
     // Resource dependencies
     public readonly RenderGraphResourceSet[] resourceReads = new RenderGraphResourceSet[(int)RGResourceType.Count];
@@ -70,6 +72,8 @@ internal abstract class RenderGraphPass
 
         randomAccess.Clear();
         renderTargetWrites.Clear();
+        depthTargetWrites.Clear();
+        depthTargetReads.Clear();
 
         for (var i = 0; i < (int)RGResourceType.Count; i++)
         {

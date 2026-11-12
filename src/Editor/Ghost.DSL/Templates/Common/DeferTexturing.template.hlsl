@@ -32,8 +32,6 @@ void CSMain(
     uint3 groupThreadId : SV_GroupThreadID,
     uint groupIndex : SV_GroupIndex)
 {
-
-
     // groupID.x is the tile slot in VariantTileList for g_Properties.variantIndex
     ByteAddressBuffer tileOffsetsBuffer = GET_BUFFER(g_Properties.tileOffsetsBufferIndex);
     uint tileOffset = tileOffsetsBuffer.Load(g_Properties.variantIndex * 4u);

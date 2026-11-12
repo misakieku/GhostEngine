@@ -1,10 +1,8 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
-using Ghost.Engine.Volumes;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -37,15 +35,37 @@ public struct GPUPersistentViewState
 
 public sealed class GPUViewContext : IDisposable
 {
+    private class ResourceRecord
+    {
+        public IViewResource Resource
+        {
+            get;
+        }
+
+        public bool Used
+        {
+            get; set;
+        }
+
+        public ResourceRecord(IViewResource resource, bool used)
+        {
+            Resource = resource;
+            Used = used;
+        }
+    }
+
     private readonly IResourceAllocator _allocator;
     private readonly IResourceDatabase _database;
     private readonly IPipelineLibrary _pipelineLibrary;
     private readonly ResourceManager _resourceManager;
     private readonly ShaderLibrary _shaderLibrary;
 
-    private readonly Dictionary<Type, IViewHistory> _histories = new();
+    private readonly Dictionary<Type, ResourceRecord> _resources = new(16);
+    private readonly List<Type> _unusedResources = new(16);
+
     private RenderGraph? _renderGraph;
 
+    private uint2 _renderSize;
     public float4x4 prevViewProjMatrix;
     public float3 prevCameraPosition;
     public ulong prevSkyHash;
@@ -56,11 +76,6 @@ public sealed class GPUViewContext : IDisposable
     }
 
     public bool IsActive
-    {
-        get; private set;
-    }
-
-    public uint2 RenderSize
     {
         get; private set;
     }
@@ -93,33 +108,70 @@ public sealed class GPUViewContext : IDisposable
         _renderGraph ??= new RenderGraph(_database, _allocator, _pipelineLibrary, _resourceManager, _shaderLibrary);
     }
 
-    public THistory GetOrCreateHistory<THistory>(Func<IResourceAllocator, IResourceDatabase, THistory> factory)
-        where THistory : class, IViewHistory
+    internal void ReleaseUnusedResource()
     {
-        var type = typeof(THistory);
-        if (!_histories.TryGetValue(type, out var history))
+        foreach (var kvp in _resources)
         {
-            history = factory(_allocator, _database);
-            _histories[type] = history;
+            if (!kvp.Value.Used)
+            {
+                _unusedResources.Add(kvp.Key);
+            }
+            else
+            {
+                kvp.Value.Used = false;
+            }
         }
 
-        return (THistory)history;
-    }
-
-    public bool TryGetHistory<THistory>([NotNullWhen(true)] out THistory? history)
-        where THistory : class, IViewHistory
-    {
-        if (_histories.TryGetValue(typeof(THistory), out var h))
+        foreach (var type in _unusedResources)
         {
-            history = (THistory)h;
-            return true;
+            if (_resources.TryGetValue(type, out var res))
+            {
+                res.Resource.Dispose();
+                _resources.Remove(type);
+            }
         }
 
-        history = null;
-        return false;
+        _unusedResources.Clear();
     }
 
-    public void EnsureSize(uint2 renderSize)
+    public TResource GetOrCreateResource<TResource, TDesc>(in TDesc desc)
+        where TResource : class, IViewResource<TResource, TDesc>
+        where TDesc : struct
+    {
+        TResource resource;
+        var type = typeof(TResource);
+
+        ref var res = ref CollectionsMarshal.GetValueRefOrAddDefault(_resources, type, out var exists);
+        if (!exists || res == null)
+        {
+            resource = TResource.Create(_allocator, _database);
+            res = new ResourceRecord(resource, true);
+        }
+        else
+        {
+            res.Used = true;
+            resource = (TResource)res.Resource;
+        }
+
+        resource.EnsureResource(desc);
+        return resource;
+    }
+
+    public bool TryGetResource<TResource>([NotNullWhen(true)] out TResource? resource)
+        where TResource : class, IViewResource
+    {
+        if (!_resources.TryGetValue(typeof(TResource), out var res))
+        {
+            resource = null;
+            return false;
+        }
+
+        res.Used = true;
+        resource = (TResource)res.Resource;
+        return true;
+    }
+
+    public void Initialize(uint2 renderSize)
     {
         if (renderSize.x == 0 || renderSize.y == 0)
         {
@@ -128,32 +180,28 @@ public sealed class GPUViewContext : IDisposable
 
         _renderGraph ??= new RenderGraph(_database, _allocator, _pipelineLibrary, _resourceManager, _shaderLibrary);
 
-        if (RenderSize.x != renderSize.x || RenderSize.y != renderSize.y)
+        if (_renderSize.x != renderSize.x || _renderSize.y != renderSize.y)
         {
-            foreach (var history in _histories.Values)
-            {
-                history.OnResize(renderSize);
-            }
-
             prevViewProjMatrix = default;
             prevCameraPosition = default;
-            RenderSize = renderSize;
+            _renderSize = renderSize;
         }
     }
 
     public void Dispose()
     {
-        foreach (var history in _histories.Values)
+        foreach (var res in _resources.Values)
         {
-            history.Dispose();
+            res.Resource.Dispose();
         }
-        _histories.Clear();
+
+        _resources.Clear();
 
         _renderGraph?.Dispose();
         _renderGraph = null;
 
         IsActive = false;
-        RenderSize = default;
+        _renderSize = default;
         prevViewProjMatrix = default;
         prevCameraPosition = default;
         prevSkyHash = 0;
@@ -229,6 +277,20 @@ internal sealed class GPUViewManager : IDisposable
         }
 
         return _views[viewId];
+    }
+
+    public void EndFrame()
+    {
+        lock (_lock)
+        {
+            foreach (var view in _views)
+            {
+                if (view.IsActive)
+                {
+                    view.ReleaseUnusedResource();
+                }
+            }
+        }
     }
 
     public void Dispose()

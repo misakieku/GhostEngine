@@ -1,0 +1,69 @@
+compute "Internal/RisBuildVisibleLightHash"
+{
+    properties
+    {
+        uint risLightSamplesIndex;
+        uint risShadowMaskIndex;
+        uint visibleLightHashUav;
+        uint renderWidth;
+        uint renderHeight;
+        uint tilesPerRow;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Common.hlsl";
+        "EngineResources/Shaders/Utilities/Random.hlsl";
+        "EngineResources/Shaders/Lighting/RisCommon.hlsl";
+    }
+
+    hlsl
+    {
+        groupshared uint s_tileHash[4];
+
+        [numthreads(16, 16, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID, uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
+        {
+            if (groupIndex < 4u)
+            {
+                s_tileHash[groupIndex] = 0u;
+            }
+
+            GroupMemoryBarrierWithGroupSync();
+
+            uint2 pixelCoord = dispatchThreadId.xy;
+            bool inBounds = (pixelCoord.x < g_Properties.renderWidth && pixelCoord.y < g_Properties.renderHeight);
+
+            if (inBounds && IS_VALID_TEXTURE(g_Properties.risLightSamplesIndex) && IS_VALID_TEXTURE(g_Properties.risShadowMaskIndex))
+            {
+                Texture2D<uint2> risSamples = GET_TEXTURE2D(g_Properties.risLightSamplesIndex);
+                RisLightSample sampleData = UnpackRisLightSample(risSamples[pixelCoord]);
+
+                Texture2D<float> shadowMaskTex = GET_TEXTURE2D(g_Properties.risShadowMaskIndex);
+                float shadow = shadowMaskTex[pixelCoord];
+
+                if (sampleData.lightIndex != 0xFFFFFFFF && shadow > 0.001f)
+                {
+                    uint h = PCGHash(sampleData.lightIndex);
+                    uint bit0 = h & 127u;
+                    uint bit1 = (h >> 8u) & 127u;
+
+                    InterlockedOr(s_tileHash[bit0 >> 5u], 1u << (bit0 & 31u));
+                    InterlockedOr(s_tileHash[bit1 >> 5u], 1u << (bit1 & 31u));
+                }
+            }
+
+            GroupMemoryBarrierWithGroupSync();
+
+            if (groupIndex < 4u && IS_VALID_BUFFER(g_Properties.visibleLightHashUav))
+            {
+                uint tileIndex = groupId.y * g_Properties.tilesPerRow + groupId.x;
+                RWByteAddressBuffer hashBuf = GET_BUFFER(g_Properties.visibleLightHashUav);
+                hashBuf.Store(tileIndex * 16u + groupIndex * 4u, s_tileHash[groupIndex]);
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

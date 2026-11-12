@@ -6,6 +6,8 @@ compute "Internal/RisLightSampling"
         uint gbuffer0Index;
         uint gbuffer1Index;
         uint tileLightListBufferIndex;
+        uint visibleLightHashHistoryBufferIndex;
+        uint stbnTextureIndex;
         uint risLightSamplesUav;
         uint renderWidth;
         uint renderHeight;
@@ -50,7 +52,10 @@ compute "Internal/RisLightSampling"
             uint2 pixelCoord = dispatchThreadId.xy;
             bool inBounds = (pixelCoord.x < g_Properties.renderWidth && pixelCoord.y < g_Properties.renderHeight);
 
-            if (!IS_VALID_BUFFER(g_Properties.tileLightListBufferIndex) || !IS_VALID_BUFFER(g_FrameData.punctualLightsBuffer))
+            bool hasPunctual = IS_VALID_BUFFER(g_Properties.tileLightListBufferIndex) && IS_VALID_BUFFER(g_FrameData.punctualLightsBuffer);
+            bool hasDirectional = IS_VALID_BUFFER(g_FrameData.directionalLightBuffer) && (g_FrameData.directionalLightCount > 0u);
+
+            if (!hasPunctual && !hasDirectional)
             {
                 if (inBounds)
                 {
@@ -60,11 +65,15 @@ compute "Internal/RisLightSampling"
                 return;
             }
 
-            uint tileIndex = groupId.y * g_Properties.tilesPerRow + groupId.x;
-            ByteAddressBuffer tileLightList = GET_BUFFER(g_Properties.tileLightListBufferIndex);
-            uint lightCount = min(GetTileLightCount<DWORDS_PER_TILE>(tileLightList, tileIndex), MAX_LIGHTS_PER_TILE);
+            uint lightCount = 0u;
+            if (hasPunctual)
+            {
+                uint tileIndex = groupId.y * g_Properties.tilesPerRow + groupId.x;
+                ByteAddressBuffer tileLightList = GET_BUFFER(g_Properties.tileLightListBufferIndex);
+                lightCount = min(GetTileLightCount<DWORDS_PER_TILE>(tileLightList, tileIndex), MAX_LIGHTS_PER_TILE);
+            }
 
-            if (lightCount == 0u)
+            if (lightCount == 0u && !hasDirectional)
             {
                 if (inBounds)
                 {
@@ -83,6 +92,8 @@ compute "Internal/RisLightSampling"
                 SharedCandidateLight entry = (SharedCandidateLight)0;
                 entry.invRangeSq = -1.0f;
 
+                uint tileIndex = groupId.y * g_Properties.tilesPerRow + groupId.x;
+                ByteAddressBuffer tileLightList = GET_BUFFER(g_Properties.tileLightListBufferIndex);
                 TileLightFetchResult fetch = FetchTileLight<DWORDS_PER_TILE>(tileLightList, tileIndex, groupIndex);
                 if (fetch.valid)
                 {
@@ -124,6 +135,31 @@ compute "Internal/RisLightSampling"
             float3 positionRWS = ReconstructPositionRWS(pixelCoord, depth, zView, ndc);
             float3 V = GetWorldSpaceNormalizeViewDir(positionRWS);
 
+            float2 stbn = SampleStbn2D(g_Properties.stbnTextureIndex, pixelCoord, g_Properties.frameIndex);
+
+            // Reproject to t - 1 screen space to query Visible Light Hash history with stochastic bilinear tile offset
+            uint4 historyHash = uint4(0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu);
+            bool hasValidHistory = false;
+
+            if (IS_VALID_BUFFER(g_Properties.visibleLightHashHistoryBufferIndex))
+            {
+                float4 prevClip = mul(g_ViewData.preVPMatrix, float4(positionRWS, 1.0f));
+                float prevInvW = (prevClip.w > 1e-4f) ? rcp(prevClip.w) : 0.0f;
+                float2 prevScreenUV = float2(prevClip.x * prevInvW * 0.5f + 0.5f, 1.0f - (prevClip.y * prevInvW * 0.5f + 0.5f));
+                hasValidHistory = (prevClip.w > 1e-4f) && all(prevScreenUV >= 0.0f) && all(prevScreenUV <= 1.0f);
+
+                if (hasValidHistory)
+                {
+                    float2 tileJitter = frac(stbn + float2(0.61803399f, 0.38196601f)) - 0.5f;
+                    float2 prevPixelCoord = prevScreenUV * float2(g_Properties.renderWidth, g_Properties.renderHeight) + tileJitter * 16.0f;
+                    int2 maxTileCoord = int2(int(g_Properties.tilesPerRow) - 1, int((g_Properties.renderHeight + 15u) / 16u) - 1);
+                    uint2 prevTileCoord = uint2(clamp(int2(floor(prevPixelCoord / 16.0f)), int2(0, 0), maxTileCoord));
+                    uint prevTileIndex = prevTileCoord.y * g_Properties.tilesPerRow + prevTileCoord.x;
+                    ByteAddressBuffer historyBuf = GET_BUFFER(g_Properties.visibleLightHashHistoryBufferIndex);
+                    historyHash = historyBuf.Load4(prevTileIndex * 16u);
+                }
+            }
+
             Texture2D<float4> gb0Tex = GET_TEXTURE2D(g_Properties.gbuffer0Index);
             Texture2D<float4> gb1Tex = GET_TEXTURE2D(g_Properties.gbuffer1Index);
             float4 gb0 = gb0Tex[pixelCoord];
@@ -144,12 +180,20 @@ compute "Internal/RisLightSampling"
             float a2 = roughness * roughness;
             float a2Minus1 = a2 - 1.0f;
 
-            // Single-scalar rescaled reservoir sampling driven by isotropic spatial hash + golden-ratio temporal sequence
-            float randSample = GetDecorrelatedSample1D(pixelCoord, g_Properties.frameIndex);
-            float weightSum = 0.0f;
-            uint winnerLightIndex = 0u;
-            float winnerTargetPdf = 0.0f;
+            // Unified streaming reservoir sampler (UE5 MegaLights style)
+            struct LightSampler
+            {
+                float weightSum;
+                uint winnerIndex;
+                float winnerWeight;
+                float rand;
+            };
 
+            LightSampler lightSampler = (LightSampler)0;
+            lightSampler.winnerIndex = 0xFFFFFFFFu;
+            lightSampler.rand = stbn.x;
+
+            // 1. Sample Local Punctual Lights
             [loop]
             for (uint k = 0u; k < lightCount; ++k)
             {
@@ -187,10 +231,10 @@ compute "Internal/RisLightSampling"
 
                 float lightRadianceLum = cand.radianceLum * attenuation;
 
-                // 1. Scalar Lambertian diffuse target term
+                // Scalar Lambertian diffuse target term
                 float diffTerm = (clampedNdotL * INV_PI) * (cand.diffuseDimmer * diffuseWeightLum);
 
-                // 2. Scalar simplified GGX specular target term (exact GGX distribution tail, Kelemen V, no pow/SFU)
+                // Scalar simplified GGX specular target term
                 float3 H = normalize(L + V);
                 float NdotH = saturate(dot(normalWS, H));
                 float LdotH = saturate(dot(L, H));
@@ -205,32 +249,137 @@ compute "Internal/RisLightSampling"
 
                 float specTerm = (F * D * V_fast) * clampedNdotL * cand.specularDimmer;
 
-                // 3. Final target PDF (purely scalar arithmetic)
-                float pHat = lightRadianceLum * (diffTerm + specTerm);
-
-                if (pHat > 1e-6f)
+                float linearLum = lightRadianceLum * (diffTerm + specTerm);
+                if (linearLum > 1e-6f)
                 {
-                    float prevWeightSum = weightSum;
-                    weightSum += pHat;
-                    float scaledRand = randSample * weightSum;
-                    if (scaledRand >= prevWeightSum)
+                    float pHat = log2(linearLum + 1.0f);
+
+                    // History visibility check (MegaLights style: 10% weight for hidden lights, 40% on history miss)
+                    if (IS_VALID_BUFFER(g_Properties.visibleLightHashHistoryBufferIndex))
                     {
-                        winnerLightIndex = cand.indexAndFlags & 0xFFFFu;
-                        winnerTargetPdf = pHat;
-                        randSample = (scaledRand - prevWeightSum) / pHat;
+                        uint h = PCGHash(cand.indexAndFlags & 0xFFFFu);
+                        uint bit0 = h & 127u;
+                        uint bit1 = (h >> 8u) & 127u;
+
+                        bool test0 = (historyHash[bit0 >> 5u] & (1u << (bit0 & 31u))) != 0u;
+                        bool test1 = (historyHash[bit1 >> 5u] & (1u << (bit1 & 31u))) != 0u;
+                        if (!test0 || !test1)
+                        {
+                            pHat *= hasValidHistory ? 0.1f : 0.4f;
+                        }
+                    }
+
+                    // Streaming reservoir update (AddLightSample)
+                    float tau = lightSampler.weightSum / (lightSampler.weightSum + pHat);
+                    lightSampler.weightSum += pHat;
+
+                    if (lightSampler.rand >= tau)
+                    {
+                        lightSampler.winnerIndex = cand.indexAndFlags & 0xFFFFu;
+                        lightSampler.winnerWeight = pHat;
+                        lightSampler.rand = (lightSampler.rand - tau) / max(1.0f - tau, 1e-7f);
                     }
                     else
                     {
-                        randSample = scaledRand / max(prevWeightSum, 1e-7f);
+                        lightSampler.rand = lightSampler.rand / max(tau, 1e-7f);
                     }
-                    randSample = clamp(randSample, 0.0f, 0.99999994f);
+                    lightSampler.rand = clamp(lightSampler.rand, 0.0f, 0.99999994f);
                 }
             }
 
-            if (weightSum > 0.0f && winnerTargetPdf > 0.0f)
+            float localWeightSum = lightSampler.weightSum;
+
+            // 2. Sample Directional Lights (MegaLights Soft-Budget Clamped Stream)
+            if (hasDirectional)
             {
-                float W = weightSum / winnerTargetPdf;
-                risLightSamples[pixelCoord] = PackRisLightSample(winnerLightIndex, W);
+                for (uint dirIdx = 0u; dirIdx < g_FrameData.directionalLightCount; ++dirIdx)
+                {
+                    GPUDirectionalLight dirLight = LoadData<GPUDirectionalLight>(g_FrameData.directionalLightBuffer, dirIdx);
+                    if (dirLight.lightDimmer <= 0.0f || !any(dirLight.color > 0.0f))
+                    {
+                        continue;
+                    }
+
+                    float3 L = -dirLight.directionWS;
+                    float clampedNdotL = saturate(dot(normalWS, L));
+                    if (clampedNdotL <= 0.0f)
+                    {
+                        continue;
+                    }
+
+                    float diffTerm = (clampedNdotL * INV_PI) * (dirLight.diffuseDimmer * diffuseWeightLum);
+
+                    float3 H = normalize(L + V);
+                    float NdotH = saturate(dot(normalWS, H));
+                    float LdotH = saturate(dot(L, H));
+
+                    float minRough = (dirLight.angularDiameter > 0.0f) ? saturate(dirLight.angularDiameter * 0.5f) : 0.0f;
+                    float dirRoughness = max(roughness, minRough * minRough);
+                    float dirA2 = dirRoughness * dirRoughness;
+                    float dirA2Minus1 = dirA2 - 1.0f;
+
+                    float d = (NdotH * NdotH) * dirA2Minus1 + 1.0f;
+                    float D = dirA2 / max(PI * d * d, 1e-7f);
+                    float V_fast = rcp(4.0f * LdotH * LdotH + 0.001f);
+
+                    float xH = saturate(1.0f - LdotH);
+                    float xH2 = xH * xH;
+                    float F = f0Lum + (1.0f - f0Lum) * (xH2 * xH2 * xH);
+
+                    float specTerm = (F * D * V_fast) * clampedNdotL * dirLight.specularDimmer;
+
+                    float dirRadianceLum = Luminance(dirLight.color * dirLight.lightDimmer);
+                    float linearLum = dirRadianceLum * (diffTerm + specTerm);
+                    if (linearLum > 1e-6f)
+                    {
+                        float pHat = log2(linearLum + 1.0f);
+
+                        // MegaLights Directional Light Soft-Budget Clamping:
+                        // Clamp base directional weight to the local light weight sum when local lights affect this pixel
+                        // so directional light never starves local punctual lights, then apply history visibility guiding.
+                        float sampleWeight = pHat;
+                        if (localWeightSum > 0.0f)
+                        {
+                            sampleWeight = min(sampleWeight, max(localWeightSum, 0.001f));
+                        }
+
+                        if (IS_VALID_BUFFER(g_Properties.visibleLightHashHistoryBufferIndex))
+                        {
+                            uint h = PCGHash(RIS_LIGHT_TYPE_DIRECTIONAL_BIT | dirIdx);
+                            uint bit0 = h & 127u;
+                            uint bit1 = (h >> 8u) & 127u;
+
+                            bool test0 = (historyHash[bit0 >> 5u] & (1u << (bit0 & 31u))) != 0u;
+                            bool test1 = (historyHash[bit1 >> 5u] & (1u << (bit1 & 31u))) != 0u;
+                            if (!test0 || !test1)
+                            {
+                                sampleWeight *= hasValidHistory ? 0.1f : 0.4f;
+                            }
+                        }
+
+                        float tau = lightSampler.weightSum / (lightSampler.weightSum + sampleWeight);
+                        lightSampler.weightSum += sampleWeight;
+
+                        if (lightSampler.rand >= tau)
+                        {
+                            lightSampler.winnerIndex = RIS_LIGHT_TYPE_DIRECTIONAL_BIT | dirIdx;
+                            lightSampler.winnerWeight = sampleWeight;
+                            lightSampler.rand = (lightSampler.rand - tau) / max(1.0f - tau, 1e-7f);
+                        }
+                        else
+                        {
+                            lightSampler.rand = lightSampler.rand / max(tau, 1e-7f);
+                        }
+                        lightSampler.rand = clamp(lightSampler.rand, 0.0f, 0.99999994f);
+                    }
+                }
+            }
+
+            // 3. Finalize RIS Sample
+            if (lightSampler.weightSum > 0.0f && lightSampler.winnerWeight > 0.0f)
+            {
+                float W = lightSampler.weightSum / lightSampler.winnerWeight;
+                risLightSamples[pixelCoord] = PackRisLightSample(lightSampler.winnerIndex, W);
             }
             else
             {

@@ -28,6 +28,35 @@ internal sealed class ParsedMesh : IDisposable
     }
 }
 
+internal sealed unsafe class ParsedModelScene : IDisposable
+{
+    private DisposablePtr<ufbx_scene> _scenePtr;
+    public ufbx_scene* Scene => _scenePtr.Get();
+    public List<ParsedMesh> Meshes { get; }
+    public Dictionary<IntPtr, int> MeshPointerToIndex { get; }
+
+    public ParsedModelScene(DisposablePtr<ufbx_scene> scenePtr, List<ParsedMesh> meshes, Dictionary<IntPtr, int> meshPointerToIndex)
+    {
+        _scenePtr = scenePtr;
+        Meshes = meshes;
+        MeshPointerToIndex = meshPointerToIndex;
+    }
+
+    public void DisposeSceneOnly()
+    {
+        _scenePtr.Dispose();
+    }
+
+    public void Dispose()
+    {
+        for (var i = 0; i < Meshes.Count; i++)
+        {
+            Meshes[i].Dispose();
+        }
+        _scenePtr.Dispose();
+    }
+}
+
 internal static unsafe partial class MeshProcessor
 {
     private struct GeometryPart : IDisposable
@@ -424,6 +453,19 @@ internal static unsafe partial class MeshProcessor
 
     public static Result<List<ParsedMesh>> ParseModel(string filePath, MeshBakeSettings settings, AllocationHandle allocationHandle)
     {
+        var r = ParseModelScene(filePath, settings, allocationHandle);
+        if (r.IsFailure)
+        {
+            return Result.Failure<List<ParsedMesh>>(r.Message);
+        }
+
+        var meshes = r.Value.Meshes;
+        r.Value.DisposeSceneOnly();
+        return Result.Success(meshes);
+    }
+
+    public static Result<ParsedModelScene> ParseModelScene(string filePath, MeshBakeSettings settings, AllocationHandle allocationHandle)
+    {
         var error = new ufbx_error();
         var loadOpts = new ufbx_load_opts
         {
@@ -450,15 +492,14 @@ internal static unsafe partial class MeshProcessor
         var count = Encoding.UTF8.GetBytes(filePath, str.AsSpan());
         str[count] = 0;
 
-        // TODO: What if this is an extremely large file?
-
-        using var scene = new DisposablePtr<ufbx_scene>(ufbx_scene.LoadFile((sbyte*)str.GetUnsafePtr(), &loadOpts, &error));
+        var scene = new DisposablePtr<ufbx_scene>(ufbx_scene.LoadFile((sbyte*)str.GetUnsafePtr(), &loadOpts, &error));
         if (scene.Get() == null)
         {
-            return Result.Failure<List<ParsedMesh>>(error.description.ToString());
+            return Result.Failure<ParsedModelScene>(error.description.ToString());
         }
 
         var results = new List<ParsedMesh>();
+        var meshPointerToIndex = new Dictionary<IntPtr, int>();
 
         for (var i = 0u; i < scene.Get()->meshes.count; i++)
         {
@@ -466,15 +507,17 @@ internal static unsafe partial class MeshProcessor
             var parsed = ParseMeshGeometry(pMesh, settings, allocationHandle);
             if (parsed != null)
             {
+                meshPointerToIndex[(IntPtr)pMesh] = results.Count;
                 results.Add(parsed);
             }
         }
 
         if (results.Count == 0)
         {
-            return Result.Failure<List<ParsedMesh>>("No valid geometry found in the model file.");
+            scene.Dispose();
+            return Result.Failure<ParsedModelScene>("No valid geometry found in the model file.");
         }
 
-        return Result.Success(results);
+        return Result.Success(new ParsedModelScene(scene, results, meshPointerToIndex));
     }
 }

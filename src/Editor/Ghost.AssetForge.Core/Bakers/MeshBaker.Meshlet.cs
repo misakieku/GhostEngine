@@ -1123,7 +1123,7 @@ internal static unsafe partial class MeshProcessor
 
         try
         {
-            // 1. Group all meshlet groups by LOD level
+            // Group all meshlet groups by LOD level
             using var lodGroupLists = new UnsafeArray<UnsafeList<int>>(levelCount, allocationHandle);
             for (var i = 0; i < levelCount; i++)
             {
@@ -1139,7 +1139,7 @@ internal static unsafe partial class MeshProcessor
                 }
             }
 
-            // 2. Build bottom-up BVH for each LOD level (from coarsest to finest)
+            // Build bottom-up BVH for each LOD level (from coarsest to finest)
             for (var lvl = levelCount - 1; lvl >= 0; lvl--)
             {
                 var groupsInLod = lodGroupLists[lvl];
@@ -1266,7 +1266,7 @@ internal static unsafe partial class MeshProcessor
                 lodGroupLists[i].Dispose();
             }
 
-            // 3. Connect LOD roots into a single Top-Level BVH
+            // Connect LOD roots into a single Top-Level BVH
             int rootNodeIdx;
             if (lodRoots.Count == 1)
             {
@@ -1319,7 +1319,7 @@ internal static unsafe partial class MeshProcessor
                 currentRoots.Dispose();
             }
 
-            // 4. Linearize tree in BFS order (Root is placed at index 0)
+            // Linearize tree in BFS order (Root is placed at index 0)
             if (!meshletData->hierarchyNodes.IsCreated)
             {
                 meshletData->hierarchyNodes = new UnsafeList<MeshletHierarchyNode>(tempNodes.Count, allocationHandle);

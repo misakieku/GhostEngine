@@ -125,6 +125,7 @@ public sealed partial class EngineCore : IDisposable
     {
         RenderEngine.WaitForGPUReady(_frameIndex);
         RenderEngine.GetCurrentFramePayload(_frameIndex).BeginRecord();
+
         var currentTime = (float)_stopwatch.Elapsed.TotalSeconds;
         var deltaTime = currentTime - _lastFrameTime;
         _lastFrameTime = currentTime;

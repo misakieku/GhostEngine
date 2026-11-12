@@ -98,7 +98,7 @@ public class SharedComponentTests
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // 1. Chunk grouping — same archetype, different groups
+    // Chunk grouping — same archetype, different groups
     // ══════════════════════════════════════════════════════════════════════════
 
     [TestMethod]
@@ -129,7 +129,7 @@ public class SharedComponentTests
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // 2. ChunkView.GetSharedComponent
+    // ChunkView.GetSharedComponent
     // ══════════════════════════════════════════════════════════════════════════
 
     [TestMethod]
@@ -169,7 +169,7 @@ public class SharedComponentTests
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // 3. SetSharedComponent — intra-archetype move
+    // SetSharedComponent — intra-archetype move
     // ══════════════════════════════════════════════════════════════════════════
 
     [TestMethod]
@@ -235,7 +235,7 @@ public class SharedComponentTests
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // 4. AddSharedComponent
+    // AddSharedComponent
     // ══════════════════════════════════════════════════════════════════════════
 
     [TestMethod]
@@ -279,7 +279,7 @@ public class SharedComponentTests
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // 5. RemoveSharedComponent
+    // RemoveSharedComponent
     // ══════════════════════════════════════════════════════════════════════════
 
     [TestMethod]
@@ -314,7 +314,7 @@ public class SharedComponentTests
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // 6. Non-shared Add/Remove carries shared data through
+    // Non-shared Add/Remove carries shared data through
     // ══════════════════════════════════════════════════════════════════════════
 
     [TestMethod]
@@ -362,7 +362,7 @@ public class SharedComponentTests
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // 7. Multiple shared components
+    // Multiple shared components
     // ══════════════════════════════════════════════════════════════════════════
 
     [TestMethod]
@@ -412,7 +412,7 @@ public class SharedComponentTests
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // 8. Query filtering and entity count
+    // Query filtering and entity count
     // ══════════════════════════════════════════════════════════════════════════
 
     [TestMethod]
@@ -469,7 +469,7 @@ public class SharedComponentTests
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // 9. Canonical Ordering
+    // Canonical Ordering
     // ══════════════════════════════════════════════════════════════════════════
 
     [TestMethod]

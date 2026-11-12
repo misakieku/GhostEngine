@@ -30,35 +30,72 @@ compute "Internal/RasterizeSw"
         [numthreads(SW_RASTER_THREADS, 1, 1)]
         void CSMain(uint3 groupID : SV_GroupID, uint groupThreadID : SV_GroupThreadID)
         {
-            ByteAddressBuffer binOffsets = GET_BUFFER(g_Properties.binOffsetsBuffer);
-            uint swMeshletBaseOffset = binOffsets.Load(32u * 4u);
-            uint binnedSlot = swMeshletBaseOffset + groupID.x;
+            float4 wvp0 = 0.0f;
+            float4 wvp1 = 0.0f;
+            float4 wvp2 = 0.0f;
+            float4 wvp3 = 0.0f;
+            uint binnedSlot = 0u;
+            uint pageBufferIndex = 0u;
+            uint pageBase = 0u;
+            uint vertexOffset = 0u;
+            uint triangleOffset = 0u;
+            uint packedCounts = 0u;
+            uint flags = 0u;
 
-            StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = GET_BUFFER(g_Properties.visibleMeshletsBuffer);
-            VisibleMeshletEntry visible = visibleMeshlets[binnedSlot];
+            if (WaveIsFirstLane())
+            {
+                ByteAddressBuffer binOffsets = GET_BUFFER(g_Properties.binOffsetsBuffer);
+                uint swMeshletBaseOffset = binOffsets.Load(32u * 4u);
+                binnedSlot = swMeshletBaseOffset + groupID.x;
 
-            InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
-            MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
-            Meshlet meshlet = LoadMeshlet(visible.meshletIndex, meshData);
+                StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = GET_BUFFER(g_Properties.visibleMeshletsBuffer);
+                VisibleMeshletEntry visible = visibleMeshlets[binnedSlot];
 
-            uint vertexCount = meshlet.packedCounts & 0xFFu;
-            uint triangleCount = (meshlet.packedCounts >> 8) & 0xFFu;
+                InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, visible.instanceIndex);
+                MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0);
+                Meshlet meshlet = LoadMeshlet(visible.meshletIndex, meshData);
 
-            float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
-            float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, localToRWS);
-            float det3x3 = determinant((float3x3)localToRWS);
-            bool reverseWinding = (det3x3 < 0.0f);
+                float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
+                float4x4 worldViewProj = mul(g_ViewData.viewProjectionMatrix, localToRWS);
+                wvp0 = worldViewProj[0];
+                wvp1 = worldViewProj[1];
+                wvp2 = worldViewProj[2];
+                wvp3 = worldViewProj[3];
 
-            uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
-            uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
-            uint materialBufferIndex = UnpackMaterialByteOffset(packedMaterial);
-            ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
-            float doubleSided = asfloat(matBuf.Load(materialBufferIndex + 12u));
-            bool backfaceCull = (doubleSided == 0.0f);
+                float det3x3 = determinant((float3x3)localToRWS);
+                bool reverseWinding = (det3x3 < 0.0f);
 
-            BYTE_ADDRESS_BUFFER pageBufferIndex;
-            uint pageBase;
-            GetMeshletPageBufferAndBase(meshData, meshlet.pageIndex, pageBufferIndex, pageBase);
+                uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
+                uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
+                uint materialBufferIndex = UnpackMaterialByteOffset(packedMaterial);
+                ByteAddressBuffer matBuf = GET_BUFFER(g_FrameData.materialBuffer);
+                float doubleSided = asfloat(matBuf.Load(materialBufferIndex + 12u));
+                bool backfaceCull = (doubleSided == 0.0f);
+
+                GetMeshletPageBufferAndBase(meshData, meshlet.pageIndex, pageBufferIndex, pageBase);
+                vertexOffset = meshlet.vertexOffset;
+                triangleOffset = meshlet.triangleOffset;
+                packedCounts = meshlet.packedCounts;
+                flags = (reverseWinding ? 1u : 0u) | (backfaceCull ? 2u : 0u);
+            }
+
+            wvp0 = WaveReadLaneFirst(wvp0);
+            wvp1 = WaveReadLaneFirst(wvp1);
+            wvp2 = WaveReadLaneFirst(wvp2);
+            wvp3 = WaveReadLaneFirst(wvp3);
+            float4x4 worldViewProj = float4x4(wvp0, wvp1, wvp2, wvp3);
+            binnedSlot = WaveReadLaneFirst(binnedSlot);
+            pageBufferIndex = WaveReadLaneFirst(pageBufferIndex);
+            pageBase = WaveReadLaneFirst(pageBase);
+            vertexOffset = WaveReadLaneFirst(vertexOffset);
+            triangleOffset = WaveReadLaneFirst(triangleOffset);
+            packedCounts = WaveReadLaneFirst(packedCounts);
+            flags = WaveReadLaneFirst(flags);
+
+            uint vertexCount = packedCounts & 0xFFu;
+            uint triangleCount = (packedCounts >> 8) & 0xFFu;
+            bool reverseWinding = (flags & 1u) != 0u;
+            bool backfaceCull = (flags & 2u) != 0u;
 
             float2 viewSize = float2((float)g_Properties.renderWidth, (float)g_Properties.renderHeight);
             float2 viewportScale = float2(0.5f, -0.5f) * viewSize * (float)SUBPIXEL_SAMPLES;
@@ -69,7 +106,7 @@ compute "Internal/RasterizeSw"
             if (groupThreadID < vertexCount)
             {
                 ByteAddressBuffer pageBuffer = GET_BUFFER(pageBufferIndex);
-                uint vOffset = pageBase + meshlet.vertexOffset + groupThreadID * PACKED_VERTEX_STRIDE;
+                uint vOffset = pageBase + vertexOffset + groupThreadID * PACKED_VERTEX_STRIDE;
                 float3 pos = asfloat(pageBuffer.Load3(vOffset));
                 float4 clipPos = mul(worldViewProj, float4(pos, 1.0f));
 
@@ -88,7 +125,7 @@ compute "Internal/RasterizeSw"
 
             for (uint primId = groupThreadID; primId < triangleCount; primId += SW_RASTER_THREADS)
             {
-                uint packedIndices = pageBuffer.Load(pageBase + meshlet.triangleOffset + primId * PACKED_TRIANGLE_STRIDE);
+                uint packedIndices = pageBuffer.Load(pageBase + triangleOffset + primId * PACKED_TRIANGLE_STRIDE);
                 uint3 indices = uint3(packedIndices & 0xFFu, (packedIndices >> 8u) & 0xFFu, (packedIndices >> 16u) & 0xFFu);
 
                 float4 v0 = s_VertexPositions[indices.x];

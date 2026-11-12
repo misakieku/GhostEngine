@@ -69,7 +69,10 @@ void CSMain(
     RWTexture2D<float4> diffuseUav = GET_TEXTURE2D(g_Properties.risResolvedDiffuseUav);
     RWTexture2D<float4> specularUav = GET_TEXTURE2D(g_Properties.risResolvedSpecularUav);
 
-    if (!IS_VALID_TEXTURE(g_Properties.risLightSamplesIndex) || !IS_VALID_TEXTURE(g_Properties.risShadowMaskIndex) || !IS_VALID_BUFFER(g_FrameData.punctualLightsBuffer))
+    bool hasPunctual = IS_VALID_BUFFER(g_FrameData.punctualLightsBuffer);
+    bool hasDirectional = IS_VALID_BUFFER(g_FrameData.directionalLightBuffer);
+
+    if (!IS_VALID_TEXTURE(g_Properties.risLightSamplesIndex) || !IS_VALID_TEXTURE(g_Properties.risShadowMaskIndex) || (!hasPunctual && !hasDirectional))
     {
         diffuseUav[pixelCoord] = 0.0f;
         specularUav[pixelCoord] = 0.0f;
@@ -109,32 +112,23 @@ void CSMain(
     shadingCtx.depth = depth;
     shadingCtx.linearDepth = zView;
 
-    // Load Punctual Light & Evaluate Geometric Attenuation
-    GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, sampleData.lightIndex);
-    float3 lightPosRWS = TransformAbsoluteWorldToCameraRelative(light.positionWS);
-    float3 unL = lightPosRWS - positionRWS;
-    float distSq = dot(unL, unL);
-    float rangeFactor = distSq * light.invRangeSq;
-
-    if (rangeFactor < 1.0f && dot(surface.normalWS, unL) > 0.0f)
+    if (IsRisDirectionalLight(sampleData.lightIndex))
     {
-        float invDist = rsqrt(max(distSq, 1e-8f));
-        float3 L = unL * invDist;
+        uint dirIdx = GetRisRawLightIndex(sampleData.lightIndex);
+        GPUDirectionalLight dirLight = LoadData<GPUDirectionalLight>(g_FrameData.directionalLightBuffer, dirIdx);
+        float3 L = -dirLight.directionWS;
 
-        if (strategy.IsNonZeroBSDF(V, L, bsdf))
+        if (dirLight.lightDimmer > 0.0f && strategy.IsNonZeroBSDF(V, L, bsdf))
         {
-            float smoothFactor = saturate(1.0f - rangeFactor * rangeFactor);
-            float attenuation = (smoothFactor * smoothFactor) / max(distSq, 0.0001f);
-            if ((light.lightTypeAndShadowSize & 0xFu) == GPULIGHT_TYPE_SPOT)
-            {
-                float spotAtten = saturate(dot(-L, light.directionWS) * light.spotAngleScale + light.spotAngleOffset);
-                attenuation *= spotAtten * spotAtten;
-            }
-
-            float3 lightRadiance = light.color * (attenuation * light.lightDimmer * shadow * sampleData.weight);
+            float3 lightRadiance = dirLight.color * (dirLight.lightDimmer * shadow * sampleData.weight);
             if (any(lightRadiance > 0.0f))
             {
-                strategy.ClampRoughness(bsdf, light.minRoughness);
+                if (dirLight.angularDiameter > 0.0f)
+                {
+                    float minRough = saturate(dirLight.angularDiameter * 0.5f);
+                    strategy.ClampRoughness(bsdf, minRough * minRough);
+                }
+
                 PreLightData preLightData = strategy.GetPreLightData(shadingCtx, V, bsdf);
 
                 // Diffuse Term: evaluate direct lighting with pure 1.0 diffuse color to isolate irradiance
@@ -142,12 +136,57 @@ void CSMain(
                 bsdfUnmodulated.diffuseColor = float3(1.0f, 1.0f, 1.0f);
 
                 DirectLighting direct = strategy.EvaluateDirectLighting(bsdfUnmodulated, preLightData, V, L, lightRadiance);
-                direct.diffuse *= light.diffuseDimmer;
-                direct.specular *= light.specularDimmer;
+                direct.diffuse *= dirLight.diffuseDimmer;
+                direct.specular *= dirLight.specularDimmer;
 
                 diffuseUav[pixelCoord] = float4(direct.diffuse, 1.0f);
                 specularUav[pixelCoord] = float4(direct.specular, 1.0f);
                 return;
+            }
+        }
+    }
+    else
+    {
+        // Load Punctual Light & Evaluate Geometric Attenuation
+        GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, sampleData.lightIndex);
+        float3 lightPosRWS = TransformAbsoluteWorldToCameraRelative(light.positionWS);
+        float3 unL = lightPosRWS - positionRWS;
+        float distSq = dot(unL, unL);
+        float rangeFactor = distSq * light.invRangeSq;
+
+        if (rangeFactor < 1.0f && dot(surface.normalWS, unL) > 0.0f)
+        {
+            float invDist = rsqrt(max(distSq, 1e-8f));
+            float3 L = unL * invDist;
+
+            if (strategy.IsNonZeroBSDF(V, L, bsdf))
+            {
+                float smoothFactor = saturate(1.0f - rangeFactor * rangeFactor);
+                float attenuation = (smoothFactor * smoothFactor) / max(distSq, 0.0001f);
+                if ((light.lightTypeAndShadowSize & 0xFu) == GPULIGHT_TYPE_SPOT)
+                {
+                    float spotAtten = saturate(dot(-L, light.directionWS) * light.spotAngleScale + light.spotAngleOffset);
+                    attenuation *= spotAtten * spotAtten;
+                }
+
+                float3 lightRadiance = light.color * (attenuation * light.lightDimmer * shadow * sampleData.weight);
+                if (any(lightRadiance > 0.0f))
+                {
+                    strategy.ClampRoughness(bsdf, light.minRoughness);
+                    PreLightData preLightData = strategy.GetPreLightData(shadingCtx, V, bsdf);
+
+                    // Diffuse Term: evaluate direct lighting with pure 1.0 diffuse color to isolate irradiance
+                    BSDFData bsdfUnmodulated = bsdf;
+                    bsdfUnmodulated.diffuseColor = float3(1.0f, 1.0f, 1.0f);
+
+                    DirectLighting direct = strategy.EvaluateDirectLighting(bsdfUnmodulated, preLightData, V, L, lightRadiance);
+                    direct.diffuse *= light.diffuseDimmer;
+                    direct.specular *= light.specularDimmer;
+
+                    diffuseUav[pixelCoord] = float4(direct.diffuse, 1.0f);
+                    specularUav[pixelCoord] = float4(direct.specular, 1.0f);
+                    return;
+                }
             }
         }
     }

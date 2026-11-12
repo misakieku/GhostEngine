@@ -220,10 +220,10 @@ public class RenderVolumeTests
         var container = RenderVolumeDataContainer.Create();
         try
         {
-            // 1. Add EnvironmentSettings (2 bytes, 1 byte alignment)
+            // Add EnvironmentSettings (2 bytes, 1 byte alignment)
             container.Set(new EnvironmentSettings { skyType = SkyType.HDRI });
 
-            // 2. Add HDRISettings (48 bytes, 4 or 8 byte alignment)
+            // Add HDRISettings (48 bytes, 4 or 8 byte alignment)
             var expectedHandle = new Handle<GPUTexture>(15, 2);
             container.Set(new HDRISettings
             {
@@ -349,7 +349,7 @@ public class RenderVolumeTests
     [TestMethod]
     public void TestRenderVolumeSystem_EvaluatesAndBlendsVolumesIntoPayload()
     {
-        // 1. Create Camera entity with viewId = 1
+        // Create Camera entity with viewId = 1
         var cameraEntity = _world.EntityManager.CreateEntity();
         _world.EntityManager.AddComponent(cameraEntity, new Camera
         {
@@ -366,7 +366,7 @@ public class RenderVolumeTests
             viewId = 1
         });
 
-        // 2. Create Global Volume with priority 0, weight 1.0, Skybox intensity = 2.0
+        // Create Global Volume with priority 0, weight 1.0, Skybox intensity = 2.0
         var globalVolEntity = _world.EntityManager.CreateEntity();
         _world.EntityManager.AddComponent(globalVolEntity, new RenderVolume
         {
@@ -380,7 +380,7 @@ public class RenderVolumeTests
         globalContainer.Set(new EnvironmentSettings { skyType = SkyType.HDRI });
         _world.EntityManager.AddComponent(globalVolEntity, globalContainer);
 
-        // 3. Create Local Box Volume at (0, 0, 0) with scale 10x10x10, blendDistance = 5.0, priority = 10, Skybox intensity = 6.0
+        // Create Local Box Volume at (0, 0, 0) with scale 10x10x10, blendDistance = 5.0, priority = 10, Skybox intensity = 6.0
         var localVolEntity = _world.EntityManager.CreateEntity();
         _world.EntityManager.AddComponent(localVolEntity, new RenderVolume
         {
@@ -402,7 +402,7 @@ public class RenderVolumeTests
         localContainer.Set(new HDRISettings { intensity = 6.0f });
         _world.EntityManager.AddComponent(localVolEntity, localContainer);
 
-        // 4. Set up system and payload
+        // Set up system and payload
         var payload = new GhostRenderPayload(null!);
         try
         {

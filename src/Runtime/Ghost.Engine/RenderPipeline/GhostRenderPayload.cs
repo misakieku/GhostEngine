@@ -1,0 +1,361 @@
+using Ghost.Engine.Components;
+using Ghost.Engine.Volumes;
+using Ghost.Graphics;
+using Ghost.Graphics.Core;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Collections;
+using Misaki.HighPerformance.LowLevel.Utilities;
+using Misaki.HighPerformance.Mathematics;
+using System.Runtime.CompilerServices;
+
+namespace Ghost.Engine.RenderPipeline;
+
+public sealed unsafe class GhostRenderPayload : IRenderPayload
+{
+    public struct UpdateInstanceRequest
+    {
+        public MeshInstance meshInstance;
+        public float4x4 localToWorld;
+        public uint instanceId;
+    }
+
+    public struct RemoveInstanceRequest
+    {
+        public uint instanceId;
+        public uint swapWithInstanceId;
+    }
+
+    private readonly GhostRenderPipeline _renderPipeline;
+
+    private UnsafeList<RenderRequest> _renderRequests;
+    private UnsafeList<uint> _viewsToRelease;
+
+    private UnsafeList<GPUDirectionalLight> _directionalLights;
+    private UnsafeList<DirectionalLightRequest> _directionalLightRequests;
+    private int _primaryDirectionalLightIndex = -1;
+
+    private readonly UnsafeParallelQueue<PunctualLightRequest>* _pPunctualLights;
+    private readonly UnsafeParallelQueue<PunctualLightRequest>.ParallelProducer _punctualLightsProducer;
+
+    private readonly UnsafeParallelQueue<UpdateInstanceRequest>* _pUpdateRequest;
+    private readonly UnsafeParallelQueue<RemoveInstanceRequest>* _pRemoveRequest;
+
+    private readonly UnsafeParallelQueue<UpdateInstanceRequest>.ParallelProducer _updateRequestProducer;
+    private readonly UnsafeParallelQueue<RemoveInstanceRequest>.ParallelProducer _removeRequestProducer;
+
+    private UnsafeList<byte> _volumeDataBuffer;
+    private UnsafeList<ulong> _viewComponentMasks; // viewId -> 64-bit component mask
+
+    private uint _instanceCountBefore;
+    private uint _instanceCount;
+
+    public ReadOnlySpan<RenderRequest> RenderRequests => _renderRequests;
+    public UnsafeParallelQueue<PunctualLightRequest>.ParallelConsumer PunctualLights => _pPunctualLights->AsParallelConsumer();
+
+    public ReadOnlyView<GPUDirectionalLight> DirectionalLights => _directionalLights;
+    public ReadOnlyView<DirectionalLightRequest> DirectionalLightRequests => _directionalLightRequests;
+    public uint DirectionalLightCount => (uint)_directionalLights.Count;
+    public int PrimaryDirectionalLightIndex => _primaryDirectionalLightIndex;
+
+    public bool HasDirectionalLight => _directionalLights.Count > 0;
+
+    public UnsafeParallelQueue<UpdateInstanceRequest>.ParallelConsumer UpdateRequest => _pUpdateRequest->AsParallelConsumer();
+    public UnsafeParallelQueue<RemoveInstanceRequest>.ParallelConsumer RemoveRequest => _pRemoveRequest->AsParallelConsumer();
+    public uint InstanceCountBefore => _instanceCountBefore;
+    public uint InstanceCount => _instanceCount;
+
+    internal GhostRenderPayload(GhostRenderPipeline renderPipeline)
+    {
+        _renderPipeline = renderPipeline;
+
+        _renderRequests = new UnsafeList<RenderRequest>(4, AllocationHandle.Persistent);
+        _viewsToRelease = new UnsafeList<uint>(4, AllocationHandle.Persistent);
+        _directionalLights = new UnsafeList<GPUDirectionalLight>(4, AllocationHandle.Persistent);
+        _directionalLightRequests = new UnsafeList<DirectionalLightRequest>(4, AllocationHandle.Persistent);
+
+        _volumeDataBuffer = new UnsafeList<byte>(256, AllocationHandle.Persistent);
+        _viewComponentMasks = new UnsafeList<ulong>(4, AllocationHandle.Persistent);
+
+        _pPunctualLights = (UnsafeParallelQueue<PunctualLightRequest>*)MemoryUtility.Malloc(MemoryUtility.SizeOf<UnsafeParallelQueue<PunctualLightRequest>>());
+        *_pPunctualLights = new UnsafeParallelQueue<PunctualLightRequest>(1024, AllocationHandle.Persistent);
+
+        _pUpdateRequest = (UnsafeParallelQueue<UpdateInstanceRequest>*)MemoryUtility.Malloc(MemoryUtility.SizeOf<UnsafeParallelQueue<UpdateInstanceRequest>>());
+        _pRemoveRequest = (UnsafeParallelQueue<RemoveInstanceRequest>*)MemoryUtility.Malloc(MemoryUtility.SizeOf<UnsafeParallelQueue<RemoveInstanceRequest>>());
+        *_pUpdateRequest = new UnsafeParallelQueue<UpdateInstanceRequest>(1024, AllocationHandle.Persistent);
+        *_pRemoveRequest = new UnsafeParallelQueue<RemoveInstanceRequest>(1024, AllocationHandle.Persistent);
+
+        _punctualLightsProducer = _pPunctualLights->AsParallelProducer();
+        _updateRequestProducer = _pUpdateRequest->AsParallelProducer();
+        _removeRequestProducer = _pRemoveRequest->AsParallelProducer();
+    }
+
+    public void AddRenderRequest(scoped in RenderRequest renderRequest)
+    {
+        _renderRequests.Add(renderRequest);
+    }
+
+    public void AddPunctualLight(scoped in PunctualLightRequest request)
+    {
+        _punctualLightsProducer.Enqueue(request);
+    }
+
+    public uint AddDirectionalLight(scoped in DirectionalLightRequest request)
+    {
+        var index = (uint)_directionalLights.Count;
+        _directionalLights.Add(request.light);
+        _directionalLightRequests.Add(request);
+        return index;
+    }
+
+    public uint AddDirectionalLight(scoped in GPUDirectionalLight light)
+    {
+        var index = (uint)_directionalLights.Count;
+        _directionalLights.Add(light);
+        _directionalLightRequests.Add(new DirectionalLightRequest { light = light });
+        return index;
+    }
+
+    public void SetPrimaryDirectionalLightIndex(int index)
+    {
+        _primaryDirectionalLightIndex = index;
+    }
+
+    public void SetDirectionalLight(scoped in DirectionalLightRequest request)
+    {
+        _directionalLights.Clear();
+        _directionalLightRequests.Clear();
+        _directionalLights.Add(request.light);
+        _directionalLightRequests.Add(request);
+        _primaryDirectionalLightIndex = 0;
+    }
+
+    public void SetDirectionalLight(scoped in GPUDirectionalLight light)
+    {
+        _directionalLights.Clear();
+        _directionalLightRequests.Clear();
+        _directionalLights.Add(light);
+        _directionalLightRequests.Add(new DirectionalLightRequest { light = light });
+        _primaryDirectionalLightIndex = 0;
+    }
+
+    public uint AllocateView()
+    {
+        return _renderPipeline.GPUViewManager.AllocateView();
+    }
+
+    public void ReleaseView(uint viewId)
+    {
+        _viewsToRelease.Add(viewId);
+    }
+
+    /// <summary>
+    /// Adds a new instance to the persistent GPU scene and enqueues an update request for it.
+    /// </summary>
+    /// <remarks>
+    /// This method is thread-safe and can be called from multiple threads.
+    /// </remarks>
+    /// <param name="ltw">The local to world transformation matrix for the instance.</param>
+    /// <param name="meshInstance">The mesh instance data for the new instance.</param>
+    /// <returns></returns>
+    public uint AddInstance(float4x4 ltw, scoped in MeshInstance meshInstance)
+    {
+        var index = _renderPipeline.GPUScene.AddInstance();
+
+        _updateRequestProducer.Enqueue(new UpdateInstanceRequest { instanceId = index, localToWorld = ltw, meshInstance = meshInstance });
+        return index;
+    }
+
+    /// <summary>
+    /// Updates an existing instance in the persistent GPU scene and enqueues an update request for it.
+    /// </summary>
+    /// <remarks>
+    /// This method is thread-safe and can be called from multiple threads.
+    /// </remarks>
+    /// <param name="instanceId">The ID of the instance to be updated.</param>
+    /// <param name="ltw">The new local to world transformation matrix for the instance.</param>
+    /// <param name="meshInstance">The new mesh instance data for the instance.</param>
+    public void UpdateInstance(uint instanceId, float4x4 ltw, scoped in MeshInstance meshInstance)
+    {
+        _updateRequestProducer.Enqueue(new UpdateInstanceRequest { instanceId = instanceId, localToWorld = ltw, meshInstance = meshInstance });
+    }
+
+    /// <summary>
+    /// Removes an existing instance from the persistent GPU scene and enqueues a remove request for it.
+    /// </summary>
+    /// <remarks>
+    /// This method is thread-safe and can be called from multiple threads.
+    /// </remarks>
+    /// <param name="instanceId">The ID of the instance to be removed.</param>
+    public void RemoveInstance(uint instanceId)
+    {
+        var swapWithInstanceId = _renderPipeline.GPUScene.RemoveInstance(instanceId);
+        if (swapWithInstanceId != uint.MaxValue)
+        {
+            _removeRequestProducer.Enqueue(new RemoveInstanceRequest { instanceId = instanceId, swapWithInstanceId = swapWithInstanceId });
+        }
+    }
+
+    public void BeginRecord()
+    {
+        _instanceCountBefore = _renderPipeline.GPUScene.InstanceCount;
+    }
+
+    public void EndRecord()
+    {
+        // We capture the count here to prevent that main thread continues to add more requests for next frame while the render thread is still processing current frame's requests.
+        _instanceCount = _renderPipeline.GPUScene.InstanceCount;
+
+        if (_renderRequests.Count > 1)
+        {
+            // Sort request with texture target to render first.
+            _renderRequests.AsSpan().Sort(static (a, b) =>
+            {
+                if (a.colorTarget.IsValid)
+                {
+                    return -1;
+                }
+                else if (b.colorTarget.IsValid)
+                {
+                    return 1;
+                }
+
+                return 0;
+            });
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void EnsureViewVolumeCapacity(uint viewId)
+    {
+        var stride = VolumeRegistry.BytesPerView;
+        if (stride == 0)
+        {
+            return;
+        }
+
+        var requiredBytes = (int)(viewId + 1) * stride;
+        if (_volumeDataBuffer.Capacity < requiredBytes)
+        {
+            _volumeDataBuffer.Resize(requiredBytes);
+        }
+
+        if (_volumeDataBuffer.Count < requiredBytes)
+        {
+            _volumeDataBuffer.UnsafeSetCount(requiredBytes);
+        }
+
+        var requiredMasks = (int)viewId + 1;
+        if (_viewComponentMasks.Capacity < requiredMasks)
+        {
+            _viewComponentMasks.Resize(requiredMasks);
+        }
+
+        while (_viewComponentMasks.Count < requiredMasks)
+        {
+            _viewComponentMasks.Add(0UL);
+        }
+    }
+
+    /// <summary>
+    /// Gets a direct unmanaged pointer to the destination volume component memory inside this payload for the specified view and component type.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void* GetViewVolumeDataPointer(uint viewId, ushort typeId)
+    {
+        EnsureViewVolumeCapacity(viewId);
+        var offset = (int)viewId * VolumeRegistry.BytesPerView + VolumeRegistry.GetOffset(typeId);
+        return (byte*)_volumeDataBuffer.GetUnsafePtr() + offset;
+    }
+
+    /// <summary>
+    /// Marks that the specified volume component has been written or blended for this view.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MarkViewVolumeWritten(uint viewId, ushort typeId)
+    {
+        if (typeId < 64)
+        {
+            _viewComponentMasks[(int)viewId] |= (1UL << typeId);
+        }
+    }
+
+    public void SetViewVolumeData(uint viewId, ushort typeId, void* pData, int size)
+    {
+        var ptr = GetViewVolumeDataPointer(viewId, typeId);
+        MemoryUtility.MemCpy(ptr, pData, (nuint)size);
+        MarkViewVolumeWritten(viewId, typeId);
+    }
+
+    public void SetViewVolumeData<T>(uint viewId, in T data)
+        where T : unmanaged, IVolumeComponent<T>
+    {
+        VolumeBlenderTrampoline<T>.EnsureInitialized();
+        fixed (T* pData = &data)
+        {
+            SetViewVolumeData(viewId, VolumeBlenderTrampoline<T>.TypeId, pData, sizeof(T));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ref readonly T GetViewVolumeData<T>(uint viewId)
+        where T : unmanaged, IVolumeComponent<T>
+    {
+        VolumeBlenderTrampoline<T>.EnsureInitialized();
+        var typeId = VolumeBlenderTrampoline<T>.TypeId;
+        if (typeId < 64 && viewId < (uint)_viewComponentMasks.Count && (_viewComponentMasks[(int)viewId] & (1UL << typeId)) != 0)
+        {
+            var offset = (int)viewId * VolumeRegistry.BytesPerView + VolumeRegistry.GetOffset(typeId);
+            var ptr = (byte*)_volumeDataBuffer.GetUnsafePtr() + offset;
+            return ref *(T*)ptr;
+        }
+
+        return ref VolumeBlenderTrampoline<T>.CachedDefault;
+    }
+
+    public void Reset()
+    {
+        _renderRequests.Clear();
+        _directionalLights.Clear();
+        _directionalLightRequests.Clear();
+        _primaryDirectionalLightIndex = -1;
+        _pPunctualLights->Clear();
+        _pUpdateRequest->Clear();
+        _pRemoveRequest->Clear();
+
+        _volumeDataBuffer.Clear();
+        _viewComponentMasks.Clear();
+
+        for (var i = 0; i < _viewsToRelease.Count; i++)
+        {
+            _renderPipeline.GPUViewManager.ReleaseView(_viewsToRelease[i]);
+        }
+        _viewsToRelease.Clear();
+    }
+
+    private bool _disposed;
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        _renderRequests.Dispose();
+        _viewsToRelease.Dispose();
+        _directionalLights.Dispose();
+        _directionalLightRequests.Dispose();
+        _pPunctualLights->Dispose();
+        _pUpdateRequest->Dispose();
+        _pRemoveRequest->Dispose();
+
+        _volumeDataBuffer.Dispose();
+        _viewComponentMasks.Dispose();
+
+        MemoryUtility.Free(_pPunctualLights);
+        MemoryUtility.Free(_pUpdateRequest);
+        MemoryUtility.Free(_pRemoveRequest);
+    }
+}

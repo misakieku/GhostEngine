@@ -87,24 +87,6 @@ internal sealed partial class DXCShaderCompiler
             }
         }
 
-        if (config.stage == ShaderStage.AmplificationShader
-            || config.stage == ShaderStage.MeshShader
-            || config.stage == ShaderStage.PixelShader)
-        {
-            argsArray.Add("-D");
-            argsArray.Add("__GRAPHICS__");
-        }
-        else if (config.stage == ShaderStage.ComputeShader)
-        {
-            argsArray.Add("-D");
-            argsArray.Add("__COMPUTE__");
-        }
-        else if (config.stage == ShaderStage.Library)
-        {
-            argsArray.Add("-D");
-            argsArray.Add("__WORK_GRAPH__");
-        }
-
         if (config.options.HasFlag(CompilerOption.KeepDebugInfo))
         {
             argsArray.Add("-Zi");
@@ -219,22 +201,23 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
                 // Check compilation result
                 int hrStatus;
                 result->GetStatus(&hrStatus);
-                if (hrStatus < 0)
+
+                // Get warning/error messages
+                IDxcBlobEncoding* pErrorBlob = default;
+                result->GetErrorBuffer(&pErrorBlob);
+
+                if (pErrorBlob->GetBufferSize() > 0)
                 {
-                    // Get error messages
-                    IDxcBlobEncoding* pErrorBlob = default;
-                    result->GetErrorBuffer(&pErrorBlob);
+                    var errorMessage = Marshal.PtrToStringUTF8((IntPtr)pErrorBlob->GetBufferPointer());
+                    pErrorBlob->Release();
 
-                    if (pErrorBlob != null)
+                    if (hrStatus < 0)
                     {
-                        var errorMessage = Marshal.PtrToStringUTF8((IntPtr)pErrorBlob->GetBufferPointer());
-                        pErrorBlob->Release();
-
                         return Result.Failure($"DXC shader compilation failed:\n{errorMessage}");
                     }
                     else
                     {
-                        return Result.Failure("DXC shader compilation failed with unknown error.");
+                        Logger.Warning($"DXC shader compilation warnings:\n{errorMessage}");
                     }
                 }
 

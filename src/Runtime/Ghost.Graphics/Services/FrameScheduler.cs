@@ -310,6 +310,49 @@ public sealed class FrameScheduler : IDisposable
         return _fences[GetQueueIndex(submission.QueueType)].CompletedValue >= submission.FenceValue;
     }
 
+    public void FlushPending()
+    {
+        ThrowIfDisposed();
+        if (_activeTransaction.IsValid)
+        {
+            throw new InvalidOperationException("An active submission transaction must be committed or rolled back before flushing.");
+        }
+
+        if (_submissions.Count == 0)
+        {
+            return;
+        }
+
+        var submissionCount = _submissions.Count;
+        EnsureScratchCapacity(submissionCount);
+        _scheduled.Clear();
+
+        try
+        {
+            ValidateNoUnresolvedTransitions();
+            ExecutePendingSubmissions();
+
+            _latestSubmissions.CopyTo(_flushedSubmissions, 0, 0, QUEUE_COUNT);
+
+            // Clear only the current batch. 
+            // CRITICAL: Do NOT increment SubmittedFrame and do NOT advance _generation!
+            _submissions.Clear();
+            _dependencies.Clear();
+            for (var i = 0; i < QUEUE_COUNT; i++)
+            {
+                _currentQueueTailIndices[i] = -1;
+            }
+        }
+        catch
+        {
+            ReturnUnsubmittedCommandBuffers();
+            InvalidatePendingSubmissions();
+            _flushedSubmissions.CopyTo(_latestSubmissions, 0, 0, QUEUE_COUNT);
+            ResetPendingState();
+            throw;
+        }
+    }
+
     public FrameCompletionInfo Flush()
     {
         ThrowIfDisposed();
@@ -322,18 +365,16 @@ public sealed class FrameScheduler : IDisposable
         _debugCmdIndex = 0;
 #endif
 
-        var submissionCount = _submissions.Count;
-        EnsureScratchCapacity(submissionCount);
-
-        _scheduled.Clear();
-
         try
         {
-            ValidateNoUnresolvedTransitions();
-            ExecutePendingSubmissions();
+            // Flush any remaining submissions (from RenderGraph / Postlude)
+            if (_submissions.Count > 0)
+            {
+                FlushPending();
+            }
+
             SubmittedFrame++;
 
-            _latestSubmissions.CopyTo(_flushedSubmissions, 0, 0, QUEUE_COUNT);
             var completion = new FrameCompletionInfo(
                 SubmittedFrame,
                 _flushedSubmissions[GetQueueIndex(CommandQueueType.Graphics)],
@@ -347,7 +388,6 @@ public sealed class FrameScheduler : IDisposable
         {
             ReturnUnsubmittedCommandBuffers();
             InvalidatePendingSubmissions();
-
             _flushedSubmissions.CopyTo(_latestSubmissions, 0, 0, QUEUE_COUNT);
 
             ResetPendingState();

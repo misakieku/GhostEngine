@@ -5,6 +5,7 @@ compute "Internal/RisRayTrace"
         uint depthTextureIndex;
         uint gbuffer1Index;
         uint risLightSamplesIndex;
+        uint stbnTextureIndex;
         uint risShadowMaskUav;
         uint unresolvedRaysBufferSrv;
         uint counterBufferSrv;
@@ -13,6 +14,9 @@ compute "Internal/RisRayTrace"
         uint tlasIndex;
         uint viewId;
         uint frameIndex;
+        float rayBias;
+        float distanceRayBias;
+        float directionalShadowRayLength;
     }
 
     includes
@@ -43,7 +47,8 @@ compute "Internal/RisRayTrace"
 
             RWByteAddressBuffer unresolvedRays = GET_BUFFER(g_Properties.unresolvedRaysBufferSrv);
             uint packedCoord = unresolvedRays.Load(rayIndex * 4u);
-            uint2 pixelCoord = uint2(packedCoord & 0xFFFF, packedCoord >> 16);
+            uint2 pixelCoord = uint2(packedCoord & 0xFFF, (packedCoord >> 12) & 0xFFF);
+            float traversedDist = ((packedCoord >> 24) & 0xFF) * (0.04f / 255.0f);
 
             Texture2D<float> depthTex = GET_TEXTURE2D(g_Properties.depthTextureIndex);
             float depth = depthTex[pixelCoord];
@@ -53,24 +58,48 @@ compute "Internal/RisRayTrace"
 
             Texture2D<float4> gb1 = GET_TEXTURE2D(g_Properties.gbuffer1Index);
             float2 encNormal = gb1[pixelCoord].rg;
-            GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, sampleData.lightIndex);
 
             float zView;
             float2 ndc;
             float3 positionRWS = ReconstructPositionRWS(pixelCoord, depth, zView, ndc);
-            float3 surfacePosWS = TransformCameraRelativeToAbsoluteWorld(positionRWS);
             float3 normalWS = OctahedralDecode(encNormal);
 
-            float2 rngSample = GetDecorrelatedSample2D(pixelCoord, g_Properties.frameIndex);
+            float2 rngSample = SampleStbn2D(g_Properties.stbnTextureIndex, pixelCoord, g_Properties.frameIndex);
+            float normalBias = max(0.01f, lerp(g_Properties.rayBias, g_Properties.distanceRayBias, saturate(zView / g_ViewData.farClip)));
+            float shadow = 1.0f;
 
-            float3 rayDirWS;
-            float rayDist;
-            ComputeSoftShadowRay(surfacePosWS, light.positionWS, light.size.x, rngSample, rayDirWS, rayDist);
+            if (IsRisDirectionalLight(sampleData.lightIndex))
+            {
+                if (zView <= g_Properties.directionalShadowRayLength)
+                {
+                    uint dirIdx = GetRisRawLightIndex(sampleData.lightIndex);
+                    GPUDirectionalLight dirLight = LoadData<GPUDirectionalLight>(g_FrameData.directionalLightBuffer, dirIdx);
 
-            float3 rayOriginWS = surfacePosWS;
-            ApplyPositionBias(rayOriginWS, rayDirWS, normalWS, 0.02f);
-            float shadow = TraceRayQueryShadow(g_Properties.tlasIndex, rayOriginWS, rayDirWS, max(rayDist - 0.02f, 0.01f), 0.01f);
-            shadow = lerp(1.0f, shadow, light.shadowDimmer);
+                    float3 rayDirRWS;
+                    float rayDist;
+                    ComputeDirectionalSoftShadowRay(positionRWS, dirLight.directionWS, dirLight.angularDiameter, rngSample, g_Properties.directionalShadowRayLength, rayDirRWS, rayDist);
+
+                    float3 rayOriginRWS = positionRWS + rayDirRWS * traversedDist;
+                    ApplyPositionBias(rayOriginRWS, rayDirRWS, normalWS, normalBias);
+                    float remainingDist = max(rayDist - traversedDist, 0.01f);
+                    shadow = TraceRayQueryShadow(g_Properties.tlasIndex, rayOriginRWS, rayDirRWS, remainingDist, 0.01f);
+                    shadow = lerp(1.0f, shadow, dirLight.shadowDimmer);
+                }
+            }
+            else
+            {
+                GPUPunctualLight light = LoadData<GPUPunctualLight>(g_FrameData.punctualLightsBuffer, sampleData.lightIndex);
+                float3 lightPosRWS = TransformAbsoluteWorldToCameraRelative(light.positionWS);
+                float3 rayDirRWS;
+                float rayDist;
+                ComputeSoftShadowRay(positionRWS, lightPosRWS, light.size.x, rngSample, rayDirRWS, rayDist);
+
+                float3 rayOriginRWS = positionRWS + rayDirRWS * traversedDist;
+                ApplyPositionBias(rayOriginRWS, rayDirRWS, normalWS, normalBias);
+                float remainingDist = max(rayDist - traversedDist, 0.01f);
+                shadow = TraceRayQueryShadow(g_Properties.tlasIndex, rayOriginRWS, rayDirRWS, max(remainingDist - 0.02f, 0.01f), 0.01f);
+                shadow = lerp(1.0f, shadow, light.shadowDimmer);
+            }
 
             RWTexture2D<float> shadowMaskUav = GET_TEXTURE2D(g_Properties.risShadowMaskUav);
             shadowMaskUav[pixelCoord] = shadow;

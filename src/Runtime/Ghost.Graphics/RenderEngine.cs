@@ -160,10 +160,10 @@ public sealed class RenderEngine : IDisposable
 
     private void StopRenderLoop(Result result)
     {
-        Logger.Fatal($"Render failed: {result.Message}");
-
         _isRunning = false;
         _shutdownCts.Cancel();
+        
+        Logger.Fatal($"Render failed: {result.Message}");
     }
 
     private void RenderLoop()
@@ -235,6 +235,8 @@ public sealed class RenderEngine : IDisposable
                     StopRenderLoop(result);
                     break;
                 }
+
+                _frameScheduler.FlushPending();
 
                 result = ExecuteRenderPipeline(frameIndex, frameResource, renderContext);
                 if (result.IsFailure)

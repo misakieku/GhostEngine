@@ -69,11 +69,11 @@ public interface ICommandBuffer : IRHIObject
     /// Clears the specified depth-stencil view by resetting its depth and/or stencil values.
     /// </summary>
     /// <param name="depthStencil">A handle to the depth-stencil texture to be cleared. Must reference a valid depth-stencil resource.</param>
-    /// <param name="inlcludeDepth">A value indicating whether the depth component should be cleared.</param>
+    /// <param name="includeDepth">A value indicating whether the depth component should be cleared.</param>
     /// <param name="includeStencil">A value indicating whether the stencil component should be cleared.</param>
     /// <param name="clearDepth">The value to which the depth buffer will be set. Typically ranges from 0.0f (nearest) to 1.0f (farthest).</param>
     /// <param name="clearStencil">The value to which the stencil buffer will be set. Must be a valid stencil value supported by the format.</param>
-    void ClearDepthStencilView(Handle<GPUTexture> depthStencil, bool inlcludeDepth, bool includeStencil, float clearDepth = 1.0f, byte clearStencil = 0);
+    void ClearDepthStencilView(Handle<GPUTexture> depthStencil, bool includeDepth, bool includeStencil, float clearDepth = 1.0f, byte clearStencil = 0);
 
     /// <summary>
     /// Begins a render pass with the specified render Target

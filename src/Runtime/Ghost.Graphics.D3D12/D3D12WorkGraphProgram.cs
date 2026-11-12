@@ -22,13 +22,20 @@ internal unsafe class D3D12WorkGraphProgram : D3D12Object<ID3D12StateObject>, IW
     private readonly ulong _backingMemorySize;
     private readonly uint _workGraphIndex;
 
+#if !DEBUG
     private bool _isInitialized;
+#endif
 
     public ProgramIdentifier ProgramIdentifier => _programIdentifier;
     public Handle<GPUBuffer> BackingMemoryBuffer => _backingMemory;
     public ulong BackingMemoryAddress => _backingMemoryAddress;
     public ulong BackingMemorySize => _backingMemorySize;
-    public bool IsInitialized => _isInitialized;
+    public bool IsInitialized =>
+#if DEBUG
+        false;
+#else
+        _isInitialized;
+#endif
 
     internal D3D12WorkGraphProgram(D3D12RenderDevice device, D3D12ResourceDatabase resourceDatabase, D3D12ResourceAllocator resourceAllocator, ID3D12RootSignature* globalRootSignature, ReadOnlySpan<byte> bytecode, string programName)
         : base(CreateStateObject(device, globalRootSignature, bytecode, programName))
@@ -137,7 +144,7 @@ internal unsafe class D3D12WorkGraphProgram : D3D12Object<ID3D12StateObject>, IW
     {
         if (_workGraphProperties == null)
         {
-            return 0;
+            throw new InvalidOperationException("Work graph properties interface is not available!");
         }
 
         fixed (char* pNodeName = nodeName)
@@ -147,31 +154,26 @@ internal unsafe class D3D12WorkGraphProgram : D3D12Object<ID3D12StateObject>, IW
                 Name = pNodeName,
                 ArrayIndex = 0
             };
+
             var index = _workGraphProperties->GetEntrypointIndex(_workGraphIndex, nodeId);
             if (index == uint.MaxValue)
             {
-                Logger.Warning($"[D3D12WorkGraphProgram] Entrypoint '{nodeName}' was NOT found in work graph (Index {_workGraphIndex})!");
+                throw new NotFoundException($"Entrypoint '{nodeName}' was NOT found in work graph (Index {_workGraphIndex})!");
             }
 
             return index;
         }
     }
 
-    public void MarkInitialized()
-    {
-        _isInitialized = true;
-    }
-
     public void Bind(ICommandBuffer cmdBuffer)
     {
+#if DEBUG
+        var flags = SetWorkGraphFlags.Initialize; // In debug mode, always initialize the work graph to ensure proper validation and debugging in pix.
+#else
         var flags = _isInitialized ? SetWorkGraphFlags.None : SetWorkGraphFlags.Initialize;
-        var setProgramDesc = SetProgramDesc.ForWorkGraph(
-            _programIdentifier,
-            _backingMemoryAddress,
-            _backingMemorySize,
-            flags);
-
         _isInitialized = true;
+#endif
+        var setProgramDesc = SetProgramDesc.ForWorkGraph(_programIdentifier, _backingMemoryAddress, _backingMemorySize, flags);
         cmdBuffer.SetProgram(in setProgramDesc);
     }
 

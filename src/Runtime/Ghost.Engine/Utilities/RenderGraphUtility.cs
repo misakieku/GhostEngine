@@ -30,8 +30,8 @@ public static class RenderGraphUtility
         public Identifier<RGTexture> target;
         public float clearDepth;
         public byte clearStencil;
-        public bool clearDepthFlag;
-        public bool clearStencilFlag;
+        public bool includeDepth;
+        public bool includeStencil;
     }
 
     private struct BlitPassData
@@ -44,6 +44,11 @@ public static class RenderGraphUtility
     /// <summary>
     /// Adds an explicit pass to blit a texture to another texture using a specified blit shader.
     /// </summary>
+    /// <param name="rg">The render graph to add the pass to.</param>
+    /// <param name="src">The source texture.</param>
+    /// <param name="dst">The destination texture.</param>
+    /// <param name="blitShader">The blit shader to use.</param>
+    /// <param name="gammaCorrection">Whether to apply gamma correction.</param>
     public static void AddBlitPass(this RenderGraph rg, Identifier<RGTexture> src, Identifier<RGTexture> dst, Handle<Shader> blitShader, bool gammaCorrection = false)
     {
         if (blitShader.IsInvalid)
@@ -84,6 +89,10 @@ public static class RenderGraphUtility
     /// <summary>
     /// Adds an explicit pass to clear a render target view with a specified color.
     /// </summary>
+    /// <param name="rg">The render graph to add the pass to.</param>
+    /// <param name="target">The render target view to clear.</param>
+    /// <param name="clearColor">The color to clear the render target view with.</param>
+    /// <param name="passName">The name of the pass.</param>
     public static void AddClearRenderTargetPass(this RenderGraph rg, Identifier<RGTexture> target, Color128 clearColor, string passName = "ClearRenderTarget")
     {
         using var builder = rg.AddUnsafeRenderPass<ClearRenderTargetPassData>(passName);
@@ -102,6 +111,12 @@ public static class RenderGraphUtility
         });
     }
 
+    /// <summary>
+    /// Adds an explicit pass to discard a render target view, indicating that its contents are no longer needed.
+    /// </summary>
+    /// <param name="rg">The render graph to add the pass to.</param>
+    /// <param name="target">The render target view to discard.</param>
+    /// <param name="passName">The name of the pass.</param>
     public static void AddDiscardRenderTargetPass(this RenderGraph rg, Identifier<RGTexture> target, string passName = "DiscardRenderTarget")
     {
         using var builder = rg.AddUnsafeRenderPass<DiscardRenderTargetPassData>(passName);
@@ -121,18 +136,25 @@ public static class RenderGraphUtility
     /// <summary>
     /// Adds an explicit pass to clear a depth-stencil view with specified depth and stencil values.
     /// </summary>
-    public static void AddClearDepthStencilPass(this RenderGraph rg, Identifier<RGTexture> target, float clearDepth = 0.0f, byte clearStencil = 0, bool clearDepthFlag = true, bool clearStencilFlag = false, string passName = "ClearDepthStencil")
+    /// <param name="rg">The render graph to add the pass to.</param>
+    /// <param name="target">The depth-stencil view to clear.</param>
+    /// <param name="clearDepth">The depth value to clear with.</param>
+    /// <param name="clearStencil">The stencil value to clear with.</param>
+    /// <param name="includeDepth">Whether to clear the depth component.</param>
+    /// <param name="includeStencil">Whether to clear the stencil component.</param>
+    /// <param name="passName">The name of the pass.</param>
+    public static void AddClearDepthStencilPass(this RenderGraph rg, Identifier<RGTexture> target, float clearDepth = 0.0f, byte clearStencil = 0, bool includeDepth = true, bool includeStencil = false, string passName = "ClearDepthStencil")
     {
         using var builder = rg.AddUnsafeRenderPass<ClearDepthStencilPassData>(passName);
-        builder.UseTexture(target, AccessFlags.WriteAll);
+        builder.UseDepthTargetTexture(target, AccessFlags.WriteAll);
 
         builder.SetPassData(new ClearDepthStencilPassData
         {
             target = target,
             clearDepth = clearDepth,
             clearStencil = clearStencil,
-            clearDepthFlag = clearDepthFlag,
-            clearStencilFlag = clearStencilFlag
+            includeDepth = includeDepth,
+            includeStencil = includeStencil
         });
 
         builder.SetRenderFunc<ClearDepthStencilPassData>(static (ref readonly passData, unsafeCtx) =>
@@ -140,8 +162,8 @@ public static class RenderGraphUtility
             var actualTarget = unsafeCtx.GetActualTexture(passData.target);
             unsafeCtx.GetCommandBufferUnsafe().ClearDepthStencilView(
                 actualTarget,
-                passData.clearDepthFlag,
-                passData.clearStencilFlag,
+                passData.includeDepth,
+                passData.includeStencil,
                 passData.clearDepth,
                 passData.clearStencil);
         });

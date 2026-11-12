@@ -16,7 +16,7 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
     private const int MAX_ENTRY_POINT_COUNT = 8;
 
     private Handle<ComputeShader> _actualHandle;
-    private MemoryBlock _payload;
+    private AssetPayload _payload;
     private bool _bytecodeReady;
 
     internal override AssetState FailureState => _bytecodeReady ? AssetState.Ready : AssetState.Failed;
@@ -43,11 +43,7 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
 
     private void DiscardStagedPayload()
     {
-        if (_payload.IsCreated)
-        {
-            _payload.Dispose();
-            _payload = default;
-        }
+        _payload.Dispose();
     }
 
     public override void ReadAssetData(Span<byte> dst)
@@ -62,44 +58,30 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
         dst = Unsafe.BitCast<Handle<ComputeShader>, T>(_actualHandle);
     }
 
-    public Result OnLoadContent([Owner] Stream contentStream, long contentSize)
+    public Result OnLoadContent([Owner] ref AssetPayload payload)
     {
-        MemoryBlock stagedPayload = default;
         try
         {
-            stagedPayload = contentStream.ReadMemory(contentSize, AllocationHandle.Persistent);
-
-            var validation = ValidatePayload(stagedPayload, AssetId);
+            var validation = ValidatePayload(payload.Pointer, payload.Size, AssetId);
             if (validation.IsFailure)
             {
-                stagedPayload.Dispose();
+                payload.Dispose();
                 return validation;
             }
 
             DiscardStagedPayload();
-            _payload = stagedPayload;
-            stagedPayload = default;
+            _payload = payload;
             return Result.Success();
         }
         catch (Exception ex)
         {
-            if (stagedPayload.IsCreated)
-            {
-                stagedPayload.Dispose();
-            }
-
+            payload.Dispose();
             return Result.Failure($"Failed to stage compute shader asset {AssetId}: {ex.Message}");
-        }
-        finally
-        {
-            contentStream.Dispose();
         }
     }
 
-    private static Result ValidatePayload(MemoryBlock payloadBlock, Guid assetId)
+    private static Result ValidatePayload(byte* payload, long payloadSize, Guid assetId)
     {
-        var payload = (byte*)payloadBlock.GetUnsafePtr();
-        var payloadSize = (long)payloadBlock.Size;
         var header = ReadAt<ShaderContentHeader>(payload, 0, payloadSize);
         if (header.magic != ShaderContentHeader.MAGIC || header.version != ShaderContentHeader.VERSION ||
             header.shaderType != ShaderType.Compute || header.passCount != 1 ||
@@ -183,15 +165,15 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
 
     public Result CommitShaderBytecode(ShaderLibrary shaderLibrary)
     {
-        if (!_payload.IsCreated)
+        if (!_payload.IsValid)
         {
             return Result.Failure($"Compute shader asset {AssetId} has no staged payload.");
         }
 
         try
         {
-            var payload = (byte*)_payload.GetUnsafePtr();
-            var payloadSize = (long)_payload.Size;
+            var payload = _payload.Pointer;
+            var payloadSize = _payload.Size;
             var header = ReadAt<ShaderContentHeader>(payload, 0, payloadSize);
             var pass = ReadAt<ShaderContentHeader.PassHeader>(payload, header.nameOffset + header.nameSize, payloadSize);
             var name = System.Text.Encoding.UTF8.GetString(payload + header.nameOffset, (int)header.nameSize);

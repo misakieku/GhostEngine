@@ -1,4 +1,5 @@
 using Misaki.HighPerformance.LowLevel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Ghost.Core;
 
@@ -23,9 +24,6 @@ public readonly struct Result
 {
     private readonly string? _message;
     private readonly bool _isSuccess;
-#if ENABLE_RESULT_STACKTRACE
-    private readonly System.Diagnostics.StackTrace _stackTrace;
-#endif
 
     public readonly string? Message => _message;
     public readonly bool IsSuccess => _isSuccess;
@@ -154,6 +152,18 @@ public readonly struct Result<T>
         success = _isSuccess;
         value = _value;
         message = _message;
+    }
+
+    [UnscopedRef]
+    public ref readonly T GetValueRef()
+    {
+#if GHOST_SAFETY_CHECKS
+        if (IsFailure)
+        {
+            throw new InvalidOperationException($"Cannot access Value when Result is a failure. {_message}");
+        }
+#endif
+        return ref _value;
     }
 
     public override string ToString() => _isSuccess ? $"OK: {_value}" : $"Error: {_message}";

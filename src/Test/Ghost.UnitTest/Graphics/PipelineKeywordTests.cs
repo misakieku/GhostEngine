@@ -130,30 +130,30 @@ public class PipelineKeywordTests
                 var publishResult = library.PublishCompiledGeneration(shaderId, new ReadOnlySpan<CompiledPassData>(ref passData));
                 Assert.IsTrue(publishResult.IsSuccess);
 
-                // 1. Query with exact PCF keyword
+                // Query with exact PCF keyword
                 var hashPcf = library.GetCompiledHash(shaderId, 0, kwPcf.Mask).GetValueOrThrow();
                 var cachePcf = library.GetCompiledCache(shaderId, 0, kwPcf.Mask).GetValueOrThrow();
                 Assert.AreEqual(hashPcf, cachePcf.compiledHash);
 
-                // 2. Query with exact VSM keyword
+                // Query with exact VSM keyword
                 var hashVsm = library.GetCompiledHash(shaderId, 0, kwVsm.Mask).GetValueOrThrow();
                 var cacheVsm = library.GetCompiledCache(shaderId, 0, kwVsm.Mask).GetValueOrThrow();
                 Assert.AreEqual(hashVsm, cacheVsm.compiledHash);
                 Assert.AreNotEqual(hashPcf, hashVsm);
 
-                // 3. Query with exact RIS keyword
+                // Query with exact RIS keyword
                 var hashRis = library.GetCompiledHash(shaderId, 0, kwRis.Mask).GetValueOrThrow();
                 var cacheRis = library.GetCompiledCache(shaderId, 0, kwRis.Mask).GetValueOrThrow();
                 Assert.AreEqual(hashRis, cacheRis.compiledHash);
                 Assert.AreNotEqual(hashPcf, hashRis);
                 Assert.AreNotEqual(hashVsm, hashRis);
 
-                // 4. Query with unrelated keyword (FOG_HIGH):
+                // Query with unrelated keyword (FOG_HIGH):
                 // Supported mask filters it to Empty, which falls back to the default variant (index 0 / PCF)
                 var hashWithFog = library.GetCompiledHash(shaderId, 0, kwFog.Mask).GetValueOrThrow();
                 Assert.AreEqual(hashPcf, hashWithFog);
 
-                // 5. Query with combined (VSM | FOG_HIGH):
+                // Query with combined (VSM | FOG_HIGH):
                 // Supported mask filters out FOG_HIGH, leaving VSM, matching VSM variant
                 var hashVsmAndFog = library.GetCompiledHash(shaderId, 0, kwVsm.Mask | kwFog.Mask).GetValueOrThrow();
                 Assert.AreEqual(hashVsm, hashVsmAndFog);

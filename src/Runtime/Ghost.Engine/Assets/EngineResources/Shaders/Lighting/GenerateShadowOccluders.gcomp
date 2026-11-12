@@ -1,0 +1,131 @@
+compute "Internal/GenerateShadowOccluders"
+{
+    properties
+    {
+        uint cameraDepthTextureIndex;
+        uint directionalShadowViewsBuffer;
+        uint occluderUav0;
+        uint occluderUav1;
+        uint occluderUav2;
+        uint occluderUav3;
+        uint cameraWidth;
+        uint cameraHeight;
+        uint cascadeCount;
+        float4 cascadeSplits;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl";
+        "EngineResources/Shaders/Generated/GPULightData.hlsl";
+    }
+
+    hlsl
+    {
+        groupshared GPUShadowSamplingData gs_Cascades[4];
+
+        [numthreads(16, 16, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
+        {
+            if (groupIndex < g_Properties.cascadeCount && groupIndex < 4u)
+            {
+                gs_Cascades[groupIndex] = LoadDataAtOffset<GPUShadowSamplingData>(
+                    g_Properties.directionalShadowViewsBuffer,
+                    sizeof(GPUShadowViewData) * groupIndex + sizeof(GPUShadowCullingData));
+            }
+            GroupMemoryBarrierWithGroupSync();
+
+            uint2 pixelCoord = dispatchThreadId.xy;
+            if (pixelCoord.x >= g_Properties.cameraWidth || pixelCoord.y >= g_Properties.cameraHeight)
+            {
+                return;
+            }
+
+            Texture2D<float> depthTex = GET_TEXTURE2D(g_Properties.cameraDepthTextureIndex);
+            float depth = depthTex[pixelCoord];
+            if (depth <= 0.0f)
+            {
+                return;
+            }
+
+            // Reconstruct camera view-space depth in Reversed-Z
+            float n = g_ViewData.nearClip;
+            float f = g_ViewData.farClip;
+            float zView = (n * f) / ((f - n) * depth + n);
+
+            if (g_Properties.cascadeCount == 0u || zView > g_Properties.cascadeSplits[min(g_Properties.cascadeCount - 1u, 3u)])
+            {
+                return;
+            }
+
+            // Reconstruct Camera-Relative World Position
+            float m00 = g_ViewData.projectionMatrix[0][0];
+            float m11 = g_ViewData.projectionMatrix[1][1];
+            float2 ndc = float2(
+                ((float(pixelCoord.x) + 0.5f) * g_ViewData.screenSize.z) * 2.0f - 1.0f,
+                1.0f - ((float(pixelCoord.y) + 0.5f) * g_ViewData.screenSize.w) * 2.0f
+            );
+            float3 posVS = float3((ndc.x / m00) * zView, (ndc.y / m11) * zView, zView);
+            float3 positionRWS = TransformViewToWorld(posVS);
+
+            // Record furthest visible receiver depth (minimum Reversed-Z) per cascade texel
+            for (uint c = 0u; c < g_Properties.cascadeCount && c < 4u; ++c)
+            {
+                if (zView > g_Properties.cascadeSplits[c])
+                {
+                    continue;
+                }
+
+                GPUShadowSamplingData samplingData = gs_Cascades[c];
+
+                float4 lightClip = mul(samplingData.shadowViewProj, float4(positionRWS, 1.0f));
+                float2 lightUV = lightClip.xy * float2(0.5f, -0.5f) + 0.5f;
+
+                float uvBias = samplingData.normalBias * samplingData.shadowProjection.x * 0.5f;
+                float zBias = samplingData.normalBias * abs(samplingData.shadowProjection.z);
+
+                if (all(lightUV >= -uvBias) && all(lightUV <= 1.0f + uvBias) && lightClip.z >= -zBias && lightClip.z <= 1.0f + zBias)
+                {
+                    uint2 occluderCoord = clamp((uint2)(saturate(lightUV) * 64.0f), 0u, 63u);
+                    uint depthInt = asuint(saturate(lightClip.z - zBias));
+
+                    if (c == 0u && IS_VALID_TEXTURE(g_Properties.occluderUav0))
+                    {
+                        RWTexture2DArray<uint> tex0 = GET_TEXTURE2D_ARRAY(g_Properties.occluderUav0);
+                        if (depthInt < tex0[uint3(occluderCoord, 0)])
+                        {
+                            InterlockedMin(tex0[uint3(occluderCoord, 0)], depthInt);
+                        }
+                    }
+                    else if (c == 1u && IS_VALID_TEXTURE(g_Properties.occluderUav1))
+                    {
+                        RWTexture2DArray<uint> tex1 = GET_TEXTURE2D_ARRAY(g_Properties.occluderUav1);
+                        if (depthInt < tex1[uint3(occluderCoord, 0)])
+                        {
+                            InterlockedMin(tex1[uint3(occluderCoord, 0)], depthInt);
+                        }
+                    }
+                    else if (c == 2u && IS_VALID_TEXTURE(g_Properties.occluderUav2))
+                    {
+                        RWTexture2DArray<uint> tex2 = GET_TEXTURE2D_ARRAY(g_Properties.occluderUav2);
+                        if (depthInt < tex2[uint3(occluderCoord, 0)])
+                        {
+                            InterlockedMin(tex2[uint3(occluderCoord, 0)], depthInt);
+                        }
+                    }
+                    else if (c == 3u && IS_VALID_TEXTURE(g_Properties.occluderUav3))
+                    {
+                        RWTexture2DArray<uint> tex3 = GET_TEXTURE2D_ARRAY(g_Properties.occluderUav3);
+                        if (depthInt < tex3[uint3(occluderCoord, 0)])
+                        {
+                            InterlockedMin(tex3[uint3(occluderCoord, 0)], depthInt);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

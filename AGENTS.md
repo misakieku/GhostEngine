@@ -6,11 +6,11 @@
 
 ## Repository Overview
 
-GhostEngine is a C# game engine targeting .NET 10 / Windows, built around:
+GhostEngine is a C# game engine targeting .NET 11 / Windows, built around:
 
 - **ECS runtime** (`Ghost.Entities`, `Ghost.Core`) — high-performance, AOT-compatible
 - **Graphics** (`Ghost.Graphics`, `Ghost.Graphics.RHI`, `Ghost.Graphics.D3D12`) — D3D12 RHI
-- **Editor** (`Ghost.AssetForge`, `Ghost.AssetForge.Core`, `Ghost.DSL`) — WinUI 3 (WindowsAppSDK)
+- **Editor** (`Ghost.AssetForge.Core`, `Ghost.DSL`)
 - **Third-party bindings** (`Ghost.FMOD`, `Ghost.MeshOptimizer`, `Ghost.Nvtt`, `Ghost.Ufbx`, `Ghost.DXC`, `Ghost.StbI`)
 - **Tools** (`Ghost.NativeWrapperGen`, `Ghost.ShaderMetadataTool`, `Ghost.AssetForge.CLI`)
 
@@ -42,8 +42,6 @@ dotnet clean GhostEngine.slnx
 | `Debug`       | DEBUG, TRACE, GHOST_SAFETY_CHECKS | Default dev |
 | `Release`     |                                   | Optimized   |
 
-
-Editor projects require `net10.0-windows10.*` and Windows App SDK. They only build on Windows with the correct SDK. Use an `*_Editor` config to build them.
 
 **Ghost.Core** also defines `MHP_ENABLE_MIMALLOC;MHP_FASTMATH` (all configs) and `MHP_ENABLE_SAFETY_CHECKS` (Debug only).
 
@@ -113,8 +111,6 @@ dotnet run --project src/Test/Ghost.UnitTest/Ghost.UnitTest.csproj --filter "Cla
 dotnet run --project src/Test/Ghost.AssetBaker.Test/Ghost.AssetForge.Test.csproj -c Debug -p:Platform=x64
 ```
 
-`Ghost.UnitTest` targets `net10.0-windows10.0.22621.0` (Windows-only). Editor integration tests are `#if false`-guarded until asset service is fully wired.
-
 **You don't need to run the test if your changes are all high level consumer (passes in render graph, shader code, etc) that does not effect core infrastructure**
 
 ### Custom TestRunner — `Ghost.MicroTest`
@@ -132,6 +128,8 @@ This will be your c# playground.
 ### TestGame — AOT Entry Point
 
 `TestGame` is a `WinExe` with `PublishAot=true`, `<IsGameProject>true</IsGameProject>`, and `InvariantGlobalization=true`. It serves as a buildable entry point that exercises the full engine pipeline (ECS → graphics → asset baking).
+
+**Building this project will automatically incremental build modified assets and generate meta file for newly created assets.**
 
 ---
 
@@ -194,6 +192,7 @@ Use public fields only for data-container structs. Prefer private field + public
 - Prefer `ref struct` / `readonly ref struct` for stack-only types (`RefResult<T,E>`, `SystemAPI`)
 - Use `partial class` to split large classes by concern
 - Use the `field` keyword for auto-property backing fields when a dedicated private field is unnecessary
+- Prefer private over internal over public for access modifier
 
 ### Imports
 
@@ -263,7 +262,6 @@ src/
     Ghost.Graphics.RHI/         # Render hardware interface abstraction
     Ghost.Graphics.D3D12/       # D3D12 backend
   Editor/
-    Ghost.AssetForge/           # WinUI 3 shell (WinExe, net10.0-windows10.0.19041.0)
     Ghost.AssetForge.Core/      # Editor services, asset baking pipeline
     Ghost.DSL/                  # Shader DSL compiler (ANTLR4 grammar in Grammar/*.g4)
   ThirdParty/                   # Native binding wrappers
@@ -294,7 +292,7 @@ TestGame ──> Ghost.Engine ──> Ghost.Generator (analyzer)
                               │                    └─> Ghost.Graphics.D3D12 ──> Ghost.Core, Ghost.Graphics.RHI
                               └─> Ghost.FMOD
  Ghost.MicroTest ──> Ghost.DSL, Ghost.Core, Ghost.DXC, Ghost.Nvtt, Ghost.StbI, Ghost.Ufbx
- Ghost.AssetForge ──> Ghost.AssetForge.Core ──> Ghost.Core, Ghost.DSL, Ghost.DXC, Ghost.MeshOptimizer, Ghost.Nvtt, Ghost.StbI, Ghost.Ufbx
+ Ghost.AssetForge.CLI ──> Ghost.AssetForge.Core ──> Ghost.Core, Ghost.DSL, Ghost.DXC, Ghost.MeshOptimizer, Ghost.Nvtt, Ghost.StbI, Ghost.Ufbx
 ```
 
 ## Documents

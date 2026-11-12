@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Engine.Utilities;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
@@ -11,6 +12,11 @@ namespace Ghost.UnitTest.Graphics;
 [DoNotParallelize]
 public partial class RenderGraphTest
 {
+    private struct DepthPassData
+    {
+        public Identifier<RGTexture> target;
+    }
+
     private struct CullingPassData
     {
         public Identifier<RGBuffer> scene;
@@ -746,6 +752,291 @@ public partial class RenderGraphTest
     }
 
     [TestMethod]
+    public void TestUnsafeDepthTargetEmitsDepthStencilBarriers()
+    {
+        Identifier<RGTexture> depthTexture;
+
+        using (var builder = _renderGraph.AddUnsafeRenderPass<DepthPassData>("ClearDepthPass"))
+        {
+            builder.AllowPassCulling(false);
+            depthTexture = builder.CreateTexture(RGTextureDesc.RelativeDepth(1.0f), "SceneDepth");
+            builder.UseDepthTargetTexture(depthTexture, AccessFlags.WriteAll);
+            builder.SetPassData(new DepthPassData { target = depthTexture });
+            builder.SetRenderFunc<DepthPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        using (var builder = _renderGraph.AddUnsafeRenderPass<DepthPassData>("ReadDepthPass"))
+        {
+            builder.AllowPassCulling(false);
+            builder.UseDepthTargetTexture(depthTexture, AccessFlags.Read);
+            builder.SetPassData(new DepthPassData { target = depthTexture });
+            builder.SetRenderFunc<DepthPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        var exec = CompileAndExecute(new ViewportState
+        {
+            Size = new uint2(1920, 1080),
+            ActualSize = new uint2(1920, 1080),
+        }).GetValueOrThrow();
+
+        var hasDepthWriteBarrier = GetRecordedBarriers().Any(b => b.LayoutAfter == BarrierLayout.DepthStencilWrite);
+        var hasDepthReadBarrier = GetRecordedBarriers().Any(b => b.LayoutAfter == BarrierLayout.DepthStencilRead);
+
+        Assert.IsTrue(hasDepthWriteBarrier, "Must issue a DepthStencilWrite barrier for unsafe depth write.");
+        Assert.IsTrue(hasDepthReadBarrier, "Must issue a DepthStencilRead barrier for unsafe depth read.");
+    }
+
+    [TestMethod]
+    public void TestClearDepthStencilPassEmitsBarrier()
+    {
+        Identifier<RGTexture> depthTexture;
+        using (var builder = _renderGraph.AddRasterRenderPass<VBufferPassData>("InitPass"))
+        {
+            builder.AllowPassCulling(false);
+            depthTexture = builder.CreateTexture(RGTextureDesc.RelativeDepth(1.0f), "SceneDepth");
+            var color = builder.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8G8_UNorm), "Color");
+            builder.SetColorAttachment(color, 0, AccessFlags.WriteAll);
+            builder.SetPassData(new VBufferPassData());
+            builder.SetRenderFunc<VBufferPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        _renderGraph.AddClearDepthStencilPass(depthTexture, 1.0f, 0, includeDepth: true, includeStencil: false);
+
+        // Read depth in an unculled pass so ClearDepthStencilPass is not culled
+        using (var builder = _renderGraph.AddUnsafeRenderPass<DepthPassData>("ConsumerPass"))
+        {
+            builder.AllowPassCulling(false);
+            builder.UseDepthTargetTexture(depthTexture, AccessFlags.Read);
+            builder.SetPassData(new DepthPassData { target = depthTexture });
+            builder.SetRenderFunc<DepthPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        var exec = CompileAndExecute(new ViewportState
+        {
+            Size = new uint2(1920, 1080),
+            ActualSize = new uint2(1920, 1080),
+        }).GetValueOrThrow();
+
+        var hasDepthWriteBarrier = GetRecordedBarriers().Any(b => b.LayoutAfter == BarrierLayout.DepthStencilWrite);
+        Assert.IsTrue(hasDepthWriteBarrier, "ClearDepthStencilPass must emit a DepthStencilWrite barrier.");
+    }
+
+    [TestMethod]
+    public void TestSplitBarrierGeneration_EmitsSplitBeginAndSplitEndPair()
+    {
+        var backBufferDesc = new TextureDesc();
+        var backBuffer = _renderGraph.ImportTexture(_resourceAllocator.CreateTexture(in backBufferDesc));
+
+        Identifier<RGTexture> renderTexture;
+
+        // Pass 0: Render to renderTexture (RenderTarget layout)
+        using (var builder = _renderGraph.AddRasterRenderPass<VBufferPassData>("ProducerPass"))
+        {
+            renderTexture = builder.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8G8_UNorm), "RenderTexture");
+            builder.SetColorAttachment(renderTexture, 0, AccessFlags.WriteAll);
+            builder.SetPassData(new VBufferPassData());
+            builder.SetRenderFunc<VBufferPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        // Pass 1: Intervening pass that does not access renderTexture
+        using (var builder = _renderGraph.AddUnsafeRenderPass<UnusedPassData>("InterveningPass"))
+        {
+            builder.AllowPassCulling(false);
+            builder.SetPassData(new UnusedPassData());
+            builder.SetRenderFunc<UnusedPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        // Pass 2: Consumer pass that reads renderTexture as ShaderResource
+        using (var builder = _renderGraph.AddUnsafeRenderPass<FinalBlitPassData>("ConsumerPass"))
+        {
+            builder.SetPassData(new FinalBlitPassData
+            {
+                source = builder.UseTexture(renderTexture, AccessFlags.Read),
+                backBuffer = builder.UseRenderTargetTexture(backBuffer, AccessFlags.WriteAll)
+            });
+            builder.SetRenderFunc<FinalBlitPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        var execution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        var recordedBarriers = GetRecordedBarriers().ToList();
+
+        var splitBegin = recordedBarriers.FirstOrDefault(b => b.SyncAfter == BarrierSync.Split);
+        var splitEnd = recordedBarriers.FirstOrDefault(b => b.SyncBefore == BarrierSync.Split);
+
+        Assert.AreNotEqual(default, splitBegin, "SplitBegin barrier with SyncAfter == BarrierSync.Split must be emitted.");
+        Assert.AreNotEqual(default, splitEnd, "SplitEnd barrier with SyncBefore == BarrierSync.Split must be emitted.");
+
+        // D3D12 spec requirement: Layouts and accesses must match across the pair
+        Assert.AreEqual(BarrierLayout.RenderTarget, splitBegin.LayoutBefore);
+        Assert.AreEqual(BarrierLayout.ShaderResource, splitBegin.LayoutAfter);
+        Assert.AreEqual(BarrierLayout.RenderTarget, splitEnd.LayoutBefore);
+        Assert.AreEqual(BarrierLayout.ShaderResource, splitEnd.LayoutAfter);
+
+        Assert.AreEqual(splitBegin.AccessBefore, splitEnd.AccessBefore);
+        Assert.AreEqual(splitBegin.AccessAfter, splitEnd.AccessAfter);
+        Assert.AreEqual(splitBegin.Resource, splitEnd.Resource);
+
+        // Verify dump disassembly contains SplitBegin and SplitEnd
+        Assert.IsNotNull(execution.Dump);
+        Assert.IsTrue(execution.Dump.CommandStream.Any(line => line.Contains("SplitBegin")), "Dump must show SplitBegin barrier.");
+        Assert.IsTrue(execution.Dump.CommandStream.Any(line => line.Contains("SplitEnd")), "Dump must show SplitEnd barrier.");
+    }
+
+    [TestMethod]
+    public void TestSplitBarrierDisabledWithFlag_EmitsAtomicBarrierOnly()
+    {
+        var backBufferDesc = new TextureDesc();
+        var backBuffer = _renderGraph.ImportTexture(_resourceAllocator.CreateTexture(in backBufferDesc));
+
+        Identifier<RGTexture> renderTexture;
+
+        // Pass 0: Render to renderTexture
+        using (var builder = _renderGraph.AddRasterRenderPass<VBufferPassData>("ProducerPass"))
+        {
+            renderTexture = builder.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8G8_UNorm), "RenderTexture");
+            builder.SetColorAttachment(renderTexture, 0, AccessFlags.WriteAll);
+            builder.SetPassData(new VBufferPassData());
+            builder.SetRenderFunc<VBufferPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        // Pass 1: Intervening pass
+        using (var builder = _renderGraph.AddUnsafeRenderPass<UnusedPassData>("InterveningPass"))
+        {
+            builder.AllowPassCulling(false);
+            builder.SetPassData(new UnusedPassData());
+            builder.SetRenderFunc<UnusedPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        // Pass 2: Consumer pass
+        using (var builder = _renderGraph.AddUnsafeRenderPass<FinalBlitPassData>("ConsumerPass"))
+        {
+            builder.SetPassData(new FinalBlitPassData
+            {
+                source = builder.UseTexture(renderTexture, AccessFlags.Read),
+                backBuffer = builder.UseRenderTargetTexture(backBuffer, AccessFlags.WriteAll)
+            });
+            builder.SetRenderFunc<FinalBlitPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        var execution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.DisableSplitBarriers | RGFlags.GenerateDump).GetValueOrThrow();
+        var recordedBarriers = GetRecordedBarriers().ToList();
+
+        var hasSplitBarrier = recordedBarriers.Any(b => b.SyncAfter == BarrierSync.Split || b.SyncBefore == BarrierSync.Split);
+        Assert.IsFalse(hasSplitBarrier, "No split barriers should be emitted when RGFlags.DisableSplitBarriers is set.");
+
+        var atomicTransition = recordedBarriers.FirstOrDefault(b => b.LayoutBefore == BarrierLayout.RenderTarget && b.LayoutAfter == BarrierLayout.ShaderResource);
+        Assert.AreNotEqual(default, atomicTransition, "Standard atomic transition must be emitted instead.");
+    }
+
+    [TestMethod]
+    public void TestAdjacentPasses_DoNotEmitSplitBarriers()
+    {
+        var backBufferDesc = new TextureDesc();
+        var backBuffer = _renderGraph.ImportTexture(_resourceAllocator.CreateTexture(in backBufferDesc));
+
+        Identifier<RGTexture> renderTexture;
+
+        // Pass 0: Render to renderTexture
+        using (var builder = _renderGraph.AddRasterRenderPass<VBufferPassData>("ProducerPass"))
+        {
+            renderTexture = builder.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8G8_UNorm), "RenderTexture");
+            builder.SetColorAttachment(renderTexture, 0, AccessFlags.WriteAll);
+            builder.SetPassData(new VBufferPassData());
+            builder.SetRenderFunc<VBufferPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        // Pass 1: Immediate consumer pass (adjacent, distance = 1)
+        using (var builder = _renderGraph.AddUnsafeRenderPass<FinalBlitPassData>("ConsumerPass"))
+        {
+            builder.SetPassData(new FinalBlitPassData
+            {
+                source = builder.UseTexture(renderTexture, AccessFlags.Read),
+                backBuffer = builder.UseRenderTargetTexture(backBuffer, AccessFlags.WriteAll)
+            });
+            builder.SetRenderFunc<FinalBlitPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        var execution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080)).GetValueOrThrow();
+        var recordedBarriers = GetRecordedBarriers().ToList();
+
+        var hasSplitBarrier = recordedBarriers.Any(b => b.SyncAfter == BarrierSync.Split || b.SyncBefore == BarrierSync.Split);
+        Assert.IsFalse(hasSplitBarrier, "Adjacent passes with distance 1 must not emit split barriers.");
+
+        var atomicTransition = recordedBarriers.FirstOrDefault(b => b.LayoutBefore == BarrierLayout.RenderTarget && b.LayoutAfter == BarrierLayout.ShaderResource);
+        Assert.AreNotEqual(default, atomicTransition, "Standard atomic transition must be emitted for adjacent passes.");
+    }
+
+    [TestMethod]
+    public void TestSplitBarrier_WithMergedConsumerPasses_EmitsBeforeBeginNativePass()
+    {
+        var targetDesc = new TextureDesc
+        {
+            Width = 1920,
+            Height = 1080,
+            Format = TextureFormat.R8G8B8A8_UNorm,
+            Usage = TextureUsage.RenderTarget
+        };
+        var target = _resourceAllocator.CreateTexture(in targetDesc);
+        var importedTarget = _renderGraph.ImportTexture(target);
+
+        Identifier<RGTexture> renderTexture;
+
+        // Pass 0: Producer raster pass writes renderTexture
+        using (var builder = _renderGraph.AddRasterRenderPass<VBufferPassData>("ProducerPass"))
+        {
+            renderTexture = builder.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8G8_UNorm), "RenderTexture");
+            builder.SetColorAttachment(renderTexture, 0, AccessFlags.WriteAll);
+            builder.SetPassData(new VBufferPassData());
+            builder.SetRenderFunc<VBufferPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        // Pass 1: Intervening pass
+        using (var builder = _renderGraph.AddUnsafeRenderPass<UnusedPassData>("InterveningPass"))
+        {
+            builder.AllowPassCulling(false);
+            builder.SetPassData(new UnusedPassData());
+            builder.SetRenderFunc<UnusedPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        // Pass 2: Merged pass 0 reads renderTexture and writes importedTarget
+        using (var builder = _renderGraph.AddRasterRenderPass<FinalBlitPassData>("MergedPass0"))
+        {
+            builder.AllowPassCulling(false);
+            builder.SetColorAttachment(importedTarget, 0, AccessFlags.Write);
+            builder.UseTexture(renderTexture, AccessFlags.Read);
+            builder.SetPassData(new FinalBlitPassData());
+            builder.SetRenderFunc<FinalBlitPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        // Pass 3: Merged pass 1 also writes importedTarget
+        using (var builder = _renderGraph.AddRasterRenderPass<VBufferPassData>("MergedPass1"))
+        {
+            builder.AllowPassCulling(false);
+            builder.SetColorAttachment(importedTarget, 0, AccessFlags.Write);
+            builder.SetPassData(new VBufferPassData());
+            builder.SetRenderFunc<VBufferPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        var execution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        var recordedBarriers = GetRecordedBarriers().ToList();
+
+        var splitBegin = recordedBarriers.FirstOrDefault(b => b.SyncAfter == BarrierSync.Split);
+        var splitEnd = recordedBarriers.FirstOrDefault(b => b.SyncBefore == BarrierSync.Split);
+
+        Assert.AreNotEqual(default, splitBegin, "SplitBegin must be emitted before intervening pass.");
+        Assert.AreNotEqual(default, splitEnd, "SplitEnd must be emitted before merged native pass.");
+
+        Assert.AreEqual(BarrierLayout.RenderTarget, splitBegin.LayoutBefore);
+        Assert.AreEqual(BarrierLayout.ShaderResource, splitBegin.LayoutAfter);
+        Assert.AreEqual(BarrierLayout.RenderTarget, splitEnd.LayoutBefore);
+        Assert.AreEqual(BarrierLayout.ShaderResource, splitEnd.LayoutAfter);
+
+        Assert.IsNotNull(execution.Dump);
+        Assert.IsTrue(execution.Dump.CommandStream.Any(line => line.Contains("SplitBegin")));
+        Assert.IsTrue(execution.Dump.CommandStream.Any(line => line.Contains("SplitEnd")));
+    }
+
+    [TestMethod]
     public void TestComputeReadWriteEmitsSingleBarrier()
     {
         Identifier<RGBuffer> readWriteBuffer;
@@ -1313,9 +1604,9 @@ public partial class RenderGraphTest
             Assert.AreEqual(persistentSlot.AsResource(), f1CurrentBacking, "Backing resource must be the persistent slot handle.");
 
             // Verify barrier chaining:
-            // 1. Transition on the shared resource from Common to ShaderResource (for EarlyPass)
-            // 2. Transition from ShaderResource to UnorderedAccess (for BuildPass) - NO discard
-            // 3. Closing transition to Common
+            // Transition on the shared resource from Common to ShaderResource (for EarlyPass)
+            // Transition from ShaderResource to UnorderedAccess (for BuildPass) - NO discard
+            // Closing transition to Common
             var recordedBarriers = GetRecordedBarriers().Where(b => b.Resource == persistentSlot.AsResource()).ToList();
             Assert.HasCount(3, recordedBarriers, "Expected exactly 3 chained transitions (Common->SRV, SRV->UAV, UAV->Common) for in-place reused resource.");
 

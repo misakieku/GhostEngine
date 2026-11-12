@@ -46,11 +46,13 @@ internal static unsafe class RenderGraphHasher
     /// Computes a hash of the entire render graph structure.
     /// Used for cache invalidation - same hash means same compilation result.
     /// </summary>
-    public static ulong ComputeGraphHash(List<RenderGraphPass> passes, RenderGraphResourceRegistry resources)
+    public static ulong ComputeGraphHash(List<RenderGraphPass> passes, RenderGraphResourceRegistry resources, RGFlags flags)
     {
         using var scope = AllocationManager.CreateStackScope();
         using var writer = new BufferWriter(2048, scope.AllocationHandle);
         using var scratch = new UnsafeArray<int>(Math.Max(1, resources.ResourceCount), scope.AllocationHandle);
+
+        writer.Write((int)flags);
 
         // Hash resource definitions
         writer.Write(resources.ResourceCount);
@@ -101,6 +103,8 @@ internal static unsafe class RenderGraphHasher
 
             WriteResourceSet(&writer, pass.randomAccess, scratch.AsSpan());
             WriteResourceSet(&writer, pass.renderTargetWrites, scratch.AsSpan());
+            WriteResourceSet(&writer, pass.depthTargetWrites, scratch.AsSpan());
+            WriteResourceSet(&writer, pass.depthTargetReads, scratch.AsSpan());
 
             writer.Write(pass.GetRenderFuncHashCode());
         }

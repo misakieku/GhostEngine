@@ -27,11 +27,12 @@ internal static class AssetEntryFactory
         {
             AssetType.Texture => new TextureAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies, assetName),
             AssetType.Mesh => new MeshAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies, assetName),
-            AssetType.Material => throw new NotImplementedException(),
+            AssetType.Material => new MaterialAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies, assetName),
+            AssetType.EntityPrefab => new PrefabAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies, assetName),
             AssetType.Shader => new ShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName),
             AssetType.ComputeShader => new ComputeShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName),
             AssetType.WorkGraph => new WorkGraphAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName),
-            AssetType.Scene => new SceneAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies, assetName),
+            AssetType.Scene => throw new NotImplementedException(),
             AssetType.Audio => throw new NotImplementedException(),
             AssetType.Video => throw new NotImplementedException(),
             AssetType.Json => throw new NotImplementedException(),
@@ -173,6 +174,7 @@ internal abstract class AssetEntry : IAssetEntry
 public interface IAssetEntry
 {
     Guid AssetId { get; }
+    JobHandle LoadJobHandle { get; }
     AssetType AssetType { get; }
     ReadOnlySpan<Guid> Dependencies { get; }
     int RefCount { get; }
@@ -187,7 +189,7 @@ public interface IAssetEntry
 
 internal interface ILoadableAssetEntry : IAssetEntry
 {
-    Result OnLoadContent([Owner] Stream contentStream, long contentSize);
+    Result OnLoadContent([Owner] ref AssetPayload payload);
 }
 
 internal interface IProcessableAssetEntry : IAssetEntry

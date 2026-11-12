@@ -17,7 +17,7 @@ internal unsafe class ShaderAssetEntry : AssetEntry, ILoadableAssetEntry, IShade
     private const int MAX_ENTRY_POINT_COUNT = 8;
 
     private Handle<Shader> _actualHandle;
-    private MemoryBlock _payload;
+    private AssetPayload _payload;
 
     internal override AssetState FailureState
     {
@@ -49,11 +49,7 @@ internal unsafe class ShaderAssetEntry : AssetEntry, ILoadableAssetEntry, IShade
 
     private void DiscardStagedPayload()
     {
-        if (_payload.IsCreated)
-        {
-            _payload.Dispose();
-            _payload = default;
-        }
+        _payload.Dispose();
     }
 
     private static bool IsRangeValid(long offset, long size, long length)
@@ -89,51 +85,37 @@ internal unsafe class ShaderAssetEntry : AssetEntry, ILoadableAssetEntry, IShade
         dst = Unsafe.BitCast<Handle<Shader>, T>(_actualHandle);
     }
 
-    public Result OnLoadContent([Owner] Stream contentStream, long contentSize)
+    public Result OnLoadContent([Owner] ref AssetPayload payload)
     {
-        MemoryBlock stagedPayload = default;
         try
         {
-            stagedPayload = contentStream.ReadMemory(AllocationHandle.Persistent);
-
             if (!Manager.ShaderVariants.TryGetVariantIndex(AssetId, out var variantIndex))
             {
-                stagedPayload.Dispose();
+                payload.Dispose();
                 return Result.Failure($"Shader asset {AssetId} is missing from the runtime shader catalog.");
             }
 
             ref readonly var variant = ref Manager.ShaderVariants.GetVariant(variantIndex);
-            var validation = ValidatePayload(stagedPayload, AssetId, in variant);
+            var validation = ValidatePayload(payload.Pointer, payload.Size, AssetId, in variant);
             if (validation.IsFailure)
             {
-                stagedPayload.Dispose();
+                payload.Dispose();
                 return validation;
             }
 
             DiscardStagedPayload();
-            _payload = stagedPayload;
-            stagedPayload = default;
+            _payload = payload;
             return Result.Success();
         }
         catch (Exception ex)
         {
-            if (stagedPayload.IsCreated)
-            {
-                stagedPayload.Dispose();
-            }
-
+            payload.Dispose();
             return Result.Failure($"Failed to stage shader asset {AssetId}: {ex.Message}");
-        }
-        finally
-        {
-            contentStream.Dispose();
         }
     }
 
-    internal static Result ValidatePayload(MemoryBlock payloadBlock, Guid assetId, scoped in ShaderVariantRecord variant)
+    internal static Result ValidatePayload(byte* payload, long payloadSize, Guid assetId, scoped in ShaderVariantRecord variant)
     {
-        var payload = (byte*)payloadBlock.GetUnsafePtr();
-        var payloadSize = (long)payloadBlock.Size;
         var header = ReadAt<ShaderContentHeader>(payload, 0, payloadSize);
 
         if (header.magic != ShaderContentHeader.MAGIC || header.version != ShaderContentHeader.VERSION ||
@@ -277,15 +259,15 @@ internal unsafe class ShaderAssetEntry : AssetEntry, ILoadableAssetEntry, IShade
 
     public Result CommitShaderBytecode(ShaderLibrary shaderLibrary)
     {
-        if (!_payload.IsCreated)
+        if (!_payload.IsValid)
         {
             return Result.Failure($"Shader asset {AssetId} has no staged payload.");
         }
 
         try
         {
-            var payload = (byte*)_payload.GetUnsafePtr();
-            var payloadSize = (long)_payload.Size;
+            var payload = _payload.Pointer;
+            var payloadSize = _payload.Size;
             var header = ReadAt<ShaderContentHeader>(payload, 0, payloadSize);
             var passOffset = header.nameOffset + header.nameSize;
             var compiledPasses = new CompiledPassData[header.passCount];

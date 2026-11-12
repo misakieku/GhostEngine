@@ -54,7 +54,8 @@ struct ViewData
     float nearClip;
     float3 cameraDirection;
     float farClip;
-    float4 screenSize; // xy: size, zw: 1/size
+    float4 screenSize;  // xy: size, zw: 1/size
+    float4 scaleBias;   // For dynamic resolution and relative mode texture. xy: scale, zw: offset
     Frustum frustum;
 };
 

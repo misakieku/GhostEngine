@@ -100,6 +100,28 @@ public static class DSLShaderCompiler
 
         return sb.ToString();
     }
+
+    public static uint GetRawPropertyTypeSize(string type)
+    {
+        return type.Trim().ToLowerInvariant() switch
+        {
+            "float" or "int" or "uint" or "bool" => 4u,
+            "float2" or "int2" or "uint2" or "bool2" => 8u,
+            "float3" or "int3" or "uint3" or "bool3" => 12u,
+            "float4" or "int4" or "uint4" or "bool4" or "quaternion" => 16u,
+            "float2x2" => 16u,
+            "float3x3" => 36u,
+            "float4x3" => 48u,
+            "float3x4" => 48u,
+            "float4x4" or "matrix4x4" => 64u,
+            "int2x4" => 32u,
+            "texture2d" or "texture3d" or "texturecube" or "texture2darray" or "texturecubearray"
+                or "samplerstate" or "sampler" or "byte_address_buffer" or "struct_buffer" or "structured_buffer"
+                or "texture2dhandle" or "texture3dhandle" or "bufferhandle" => 4u,
+            _ => 4u
+        };
+    }
+
     public static uint GetPropertyTypeSize(string type)
     {
         return type.Trim().ToLowerInvariant() switch
@@ -121,7 +143,14 @@ public static class DSLShaderCompiler
         };
     }
 
-    private static int ComputeFieldOffset(string hlslType, ref int registerIndex, ref int byteOffsetInRegister)
+    public static int ComputeRawFieldOffset(string hlslType, ref int currentOffset)
+    {
+        var offset = currentOffset;
+        currentOffset += (int)GetRawPropertyTypeSize(hlslType);
+        return offset;
+    }
+
+    public static int ComputeFieldOffset(string hlslType, ref int registerIndex, ref int byteOffsetInRegister)
     {
         var typeSize = (int)GetPropertyTypeSize(hlslType);
 
@@ -224,6 +253,22 @@ public static class DSLShaderCompiler
         }
 
         return (uint)maxEndOffset;
+    }
+
+    public static uint CalculateRawPropertyBufferSize(IEnumerable<PropertySemantic>? properties)
+    {
+        if (properties == null)
+        {
+            return 0;
+        }
+
+        var totalSize = 0u;
+        foreach (var prop in properties)
+        {
+            totalSize += GetRawPropertyTypeSize(prop.type);
+        }
+
+        return totalSize;
     }
 
     internal static string BuildPropertiesStruct(string shaderName, IReadOnlyList<PropertySemantic> properties)

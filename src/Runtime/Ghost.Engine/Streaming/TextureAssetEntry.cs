@@ -18,8 +18,7 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
     private Handle<GPUTexture> _tempHandle;
 
     private TextureDesc _desc;
-    private Stream _contentStream = null!;
-    private long _contentSize;
+    private AssetPayload _payload;
     private uint _dataOffset;
 
     public TextureAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies, string assetName)
@@ -81,27 +80,36 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
         {
             ResourceDatabase.ReleaseResource(_tempHandle.AsResource());
         }
+        _payload.Dispose();
     }
 
-    public Result OnLoadContent([Owner] Stream contentStream, long contentSize)
+    public Result OnLoadContent([Owner] ref AssetPayload payload)
     {
         try
         {
-            var header = contentStream.Read<TextureContentHeader>();
+            if (payload.Size < sizeof(TextureContentHeader))
+            {
+                payload.Dispose();
+                return Result.Failure("Texture payload is too small to contain a header.");
+            }
+
+            var header = payload.Read<TextureContentHeader>(0);
 
             if (header.magic != TextureContentHeader.MAGIC)
             {
-                contentStream.Dispose();
+                payload.Dispose();
                 return Result.Failure($"Unexpected texture header {header.magic}.");
             }
 
             if (header.version != TextureContentHeader.VERSION)
             {
-                contentStream.Dispose();
+                payload.Dispose();
                 return Result.Failure($"Unsupported header version {header.version}.");
             }
 
-            if (DDSUtility.TryParseDdsHeader(contentStream, contentSize, out var ddsHeader, out var dxt10, out var dataOffset))
+            var ddsSliceLength = (int)Math.Min(0x7fffffffL, payload.Size - sizeof(TextureContentHeader));
+            var ddsSpan = payload.Slice(sizeof(TextureContentHeader), ddsSliceLength);
+            if (DDSUtility.TryParseDdsHeader(ddsSpan, out var ddsHeader, out var dxt10, out var dataOffset))
             {
                 _desc = TextureDesc.FromDDSHeader(ddsHeader, dxt10);
                 _desc.Usage = TextureUsage.ShaderResource;
@@ -122,33 +130,28 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
                 };
             }
 
-            _contentStream = contentStream;
-            _contentSize = contentSize;
+            _payload = payload;
 
             return Result.Success();
         }
         catch (Exception)
         {
-            contentStream.Dispose();
+            payload.Dispose();
             throw;
         }
     }
 
     public Result OnRecordUploadCommands(scoped in RenderContext context, ICommandBuffer copyCommandBuffer)
     {
-        var dataSize = _contentSize - _dataOffset - sizeof(TextureContentHeader);
-        if (_contentStream.CanSeek)
-        {
-            _contentStream.Position = sizeof(TextureContentHeader) + _dataOffset;
-        }
+        var dataSize = _payload.Size - _dataOffset - sizeof(TextureContentHeader);
+        var pData = _payload.Pointer + sizeof(TextureContentHeader) + _dataOffset;
 
-        using var memory = _contentStream.ReadMemory(dataSize, AllocationHandle.TempJob);
         var newHandle = ResourceUtility.CreateTexture(
             context.ResourceManager,
             context.ResourceDatabase,
             context.ResourceAllocator,
             copyCommandBuffer,
-            memory.GetUnsafePtr(),
+            pData,
             (nuint)dataSize,
             in _desc);
 
@@ -176,7 +179,7 @@ internal unsafe class TextureAssetEntry : AssetEntry, ILoadableAssetEntry, IUplo
         }
         finally
         {
-            _contentStream.Dispose();
+            _payload.Dispose();
         }
     }
 }

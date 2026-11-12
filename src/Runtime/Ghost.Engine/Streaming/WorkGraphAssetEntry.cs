@@ -18,7 +18,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
         public int size;
     }
 
-    private MemoryBlock _payload;
+    private AssetPayload _payload;
     private WorkGraphVariant[]? _variants;
     private KeywordMask128 _supportedMask;
     private ulong _shaderId;
@@ -66,13 +66,9 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
 
     private void DiscardStagedPayload()
     {
-        if (_payload.IsCreated)
-        {
-            _payload.Dispose();
-            _payload = default;
-            _variants = null;
-            _supportedMask = default;
-        }
+        _payload.Dispose();
+        _variants = null;
+        _supportedMask = default;
     }
 
     public override void ReadAssetData(Span<byte> dst)
@@ -95,30 +91,27 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
         }
     }
 
-    public Result OnLoadContent([Owner] Stream contentStream, long contentSize)
+    public Result OnLoadContent([Owner] ref AssetPayload payload)
     {
-        MemoryBlock stagedPayload = default;
         try
         {
-            stagedPayload = contentStream.ReadMemory(AllocationHandle.Persistent);
-
-            var validation = ValidatePayload(stagedPayload, AssetId);
+            var validation = ValidatePayload(payload.Pointer, payload.Size, AssetId);
             if (validation.IsFailure)
             {
-                stagedPayload.Dispose();
+                payload.Dispose();
                 return validation;
             }
 
             DiscardStagedPayload();
-            _payload = stagedPayload;
+            _payload = payload;
 
-            var payload = (byte*)_payload.GetUnsafePtr();
-            var payloadSize = (long)_payload.Size;
-            var header = ReadAt<ShaderContentHeader>(payload, 0, payloadSize);
+            var rawPayload = _payload.Pointer;
+            var payloadSize = _payload.Size;
+            var header = ReadAt<ShaderContentHeader>(rawPayload, 0, payloadSize);
             _shaderId = header.shaderId;
 
             var passOffset = header.nameOffset + header.nameSize;
-            var pass = ReadAt<ShaderContentHeader.PassHeader>(payload, passOffset, payloadSize);
+            var pass = ReadAt<ShaderContentHeader.PassHeader>(rawPayload, passOffset, payloadSize);
 
             var variantCount = pass.variantCount > 0 ? (int)pass.variantCount : 1;
             _variants = new WorkGraphVariant[variantCount];
@@ -126,7 +119,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
 
             if (pass.variantCount <= 1)
             {
-                var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(payload, pass.dataOffset, payloadSize);
+                var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(rawPayload, pass.dataOffset, payloadSize);
                 byte* ptr;
                 int size;
                 if (entry.bytecodeHash != 0 && Manager.TryGetPooledBytecode(entry.bytecodeHash, out var pooledCode))
@@ -136,7 +129,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
                 }
                 else
                 {
-                    ptr = payload + pass.dataOffset + entry.byteCodeOffset;
+                    ptr = rawPayload + pass.dataOffset + entry.byteCodeOffset;
                     size = (int)entry.byteCodeSize;
                 }
 
@@ -151,14 +144,14 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
             {
                 for (var v = 0; v < pass.variantCount; v++)
                 {
-                    var vh = ReadAt<ShaderContentHeader.VariantHeader>(payload, pass.dataOffset + (v * sizeof(ShaderContentHeader.VariantHeader)), payloadSize);
+                    var vh = ReadAt<ShaderContentHeader.VariantHeader>(rawPayload, pass.dataOffset + (v * sizeof(ShaderContentHeader.VariantHeader)), payloadSize);
                     var kwString = vh.keywordSize > 0
-                        ? System.Text.Encoding.UTF8.GetString(payload + vh.keywordOffset, (int)vh.keywordSize)
+                        ? System.Text.Encoding.UTF8.GetString(rawPayload + vh.keywordOffset, (int)vh.keywordSize)
                         : string.Empty;
                     var mask = PipelineKeywordRegistry.ParseMask(kwString);
                     _supportedMask |= mask;
 
-                    var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(payload, vh.dataOffset, payloadSize);
+                    var entry = ReadAt<ShaderContentHeader.EntryPointHeader>(rawPayload, vh.dataOffset, payloadSize);
                     byte* ptr;
                     int size;
                     if (entry.bytecodeHash != 0 && Manager.TryGetPooledBytecode(entry.bytecodeHash, out var pooledCode))
@@ -168,7 +161,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
                     }
                     else
                     {
-                        ptr = payload + vh.dataOffset + entry.byteCodeOffset;
+                        ptr = rawPayload + vh.dataOffset + entry.byteCodeOffset;
                         size = (int)entry.byteCodeSize;
                     }
 
@@ -185,23 +178,13 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
         }
         catch (Exception ex)
         {
-            if (stagedPayload.IsCreated)
-            {
-                stagedPayload.Dispose();
-            }
-
+            payload.Dispose();
             return Result.Failure($"Failed to stage work graph asset {AssetId}: {ex.Message}");
-        }
-        finally
-        {
-            contentStream.Dispose();
         }
     }
 
-    internal static Result ValidatePayload(MemoryBlock payloadBlock, Guid assetId)
+    internal static Result ValidatePayload(byte* payload, long payloadSize, Guid assetId)
     {
-        var payload = (byte*)payloadBlock.GetUnsafePtr();
-        var payloadSize = (long)payloadBlock.Size;
         var header = ReadAt<ShaderContentHeader>(payload, 0, payloadSize);
         if (header.magic != ShaderContentHeader.MAGIC || header.version != ShaderContentHeader.VERSION ||
             header.shaderType != ShaderType.WorkGraph || header.passCount != 1 ||
@@ -269,7 +252,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
 
     public Result CommitShaderBytecode(ShaderLibrary shaderLibrary)
     {
-        if (!_payload.IsCreated || _variants == null || _variants.Length == 0)
+        if (!_payload.IsValid || _variants == null || _variants.Length == 0)
         {
             return Result.Failure($"Work graph asset {AssetId} has no staged payload.");
         }

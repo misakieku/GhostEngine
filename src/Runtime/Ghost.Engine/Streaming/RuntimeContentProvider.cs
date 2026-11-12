@@ -1,21 +1,19 @@
 using Ghost.Core;
-using K4os.Compression.LZ4.Streams;
+using K4os.Compression.LZ4;
+using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Collections.Concurrent;
-using System.IO.MemoryMappedFiles;
-using ZstdSharp;
+using System.IO.Compression;
 
 namespace Ghost.Engine.Streaming;
 
-// TODO: Use memory-mapped files and random access.
 public class RuntimeContentProvider : IContentProvider
 {
     private readonly Manifest _manifest;
     private readonly Dictionary<Guid, AssetInfo> _guidToInfo;
     private readonly Dictionary<Guid, string> _guidToVirtualPath;
-    private readonly ConcurrentDictionary<string, MemoryMappedFile> _packFiles;
+    private readonly ConcurrentDictionary<string, PackFileMapping> _packFiles;
     private readonly string _packDirectory;
-    private readonly Lock _validatedPacksLock = new();
-    private readonly HashSet<string> _validatedPacks = new(StringComparer.Ordinal);
 
     public IReadOnlyList<ShaderCatalogEntry> ShaderCatalog => _manifest.Shaders;
 
@@ -24,7 +22,7 @@ public class RuntimeContentProvider : IContentProvider
         _manifest = Manifest.LoadFromDiskAsync(manifestPath).GetAwaiter().GetResult();
         _guidToInfo = new Dictionary<Guid, AssetInfo>(_manifest.Assets.Count);
         _guidToVirtualPath = new Dictionary<Guid, string>(_manifest.Assets.Count);
-        _packFiles = new ConcurrentDictionary<string, MemoryMappedFile>(StringComparer.Ordinal);
+        _packFiles = new ConcurrentDictionary<string, PackFileMapping>(StringComparer.Ordinal);
         _packDirectory = Path.GetDirectoryName(manifestPath) ?? string.Empty;
 
         foreach (var (path, location) in _manifest.Assets)
@@ -51,10 +49,7 @@ public class RuntimeContentProvider : IContentProvider
 
     public Guid[] GetDependencies(Guid guid)
     {
-        // TODO: The manifest does not currently record per-asset dependency IDs (DependencyIds),
-        // so dependencies cannot be resolved at runtime. Once the packing step writes them into
-        // each AssetInfo entry, return them here so AssetManager can pre-schedule dependencies.
-        return Array.Empty<Guid>();
+        return _guidToInfo.TryGetValue(guid, out var info) && info.Dependencies != null ? info.Dependencies : Array.Empty<Guid>();
     }
 
     public bool HasAsset(Guid guid)
@@ -62,7 +57,7 @@ public class RuntimeContentProvider : IContentProvider
         return _guidToInfo.ContainsKey(guid);
     }
 
-    public Result<AssetReadData> OpenReadAsync(Guid guid, CancellationToken token = default)
+    public unsafe Result<AssetPayload> OpenReadAsync(Guid guid, CancellationToken token = default)
     {
         if (!_guidToInfo.TryGetValue(guid, out var info))
         {
@@ -70,15 +65,10 @@ public class RuntimeContentProvider : IContentProvider
         }
 
         var packPath = ResolvePackPath(info.PackFileName);
-        if (!ValidatePackHeader(packPath))
+        var pack = GetOrOpenPackFile(packPath);
+        if (pack is null)
         {
-            return Result.Failure($"Pack file '{info.PackFileName}' is missing or has an invalid header (bad magic or unsupported format version).");
-        }
-
-        var packFile = GetOrOpenPackFile(packPath);
-        if (packFile is null)
-        {
-            return Result.Failure($"Pack file '{info.PackFileName}' could not be opened.");
+            return Result.Failure($"Pack file '{info.PackFileName}' could not be opened or mapped.");
         }
 
         if (info.Size <= 0)
@@ -86,27 +76,50 @@ public class RuntimeContentProvider : IContentProvider
             return Result.Failure($"Asset with GUID {guid} has an invalid size ({info.Size}) in the manifest.");
         }
 
-        // A memory-mapped view over exactly the packed payload slice. Multiple concurrent readers
-        // may create views over the same mapped file safely.
-        var viewStream = packFile.CreateViewStream(info.Offset, info.Size, MemoryMappedFileAccess.Read);
-
         var compression = info.Compression;
-        var decompressedStream = compression switch
+        switch (compression)
         {
-            CompressionMethod.None => viewStream,
-            CompressionMethod.Zstd => new DecompressionStream(viewStream, leaveOpen: false),
-            CompressionMethod.LZ4 => (Stream)LZ4Stream.Decode(viewStream, leaveOpen: false),
-            _ => throw new NotSupportedException($"Unsupported compression method: {compression}")
-        };
+            case CompressionMethod.None:
+                return AssetPayload.FromMappedMemory(pack.GetPointer(info.Offset), info.Size);
 
-        return new AssetReadData
-        {
-            assetId = info.AssetId,
-            assetType = info.AssetType,
-            stream = decompressedStream,
-            streamSize = info.Size,
-            contentSize = info.UncompressedSize
-        };
+            case CompressionMethod.LZ4:
+            {
+                var uncompressedSize = info.UncompressedSize > 0 ? info.UncompressedSize : info.Size;
+                var alignedSize = MemoryUtility.AlignUp((nuint)uncompressedSize, 16);
+                var memoryBlock = new MemoryBlock(alignedSize, 16, AllocationHandle.Persistent);
+                var srcPtr = pack.GetPointer(info.Offset);
+                var dstPtr = (byte*)memoryBlock.GetUnsafePtr();
+
+                var decodedBytes = LZ4Codec.Decode(srcPtr, (int)info.Size, dstPtr, (int)uncompressedSize);
+                if (decodedBytes < 0)
+                {
+                    memoryBlock.Dispose();
+                    return Result.Failure($"Failed to decompress LZ4 payload for asset {guid}.");
+                }
+
+                return AssetPayload.FromAllocatedMemory(memoryBlock, decodedBytes);
+            }
+
+            case CompressionMethod.Zstd:
+            {
+                var uncompressedSize = info.UncompressedSize > 0 ? info.UncompressedSize : info.Size;
+                var alignedSize = MemoryUtility.AlignUp((nuint)uncompressedSize, 16);
+                var memoryBlock = new MemoryBlock(alignedSize, 16, AllocationHandle.Persistent);
+                var srcSpan = pack.GetSpan(info.Offset, (int)info.Size);
+                var dstSpan = new Span<byte>(memoryBlock.GetUnsafePtr(), (int)uncompressedSize);
+
+                if (!ZstandardDecoder.TryDecompress(srcSpan, dstSpan, out var bytesWritten))
+                {
+                    memoryBlock.Dispose();
+                    return Result.Failure($"Failed to decompress Zstd payload for asset {guid}.");
+                }
+
+                return AssetPayload.FromAllocatedMemory(memoryBlock, bytesWritten);
+            }
+
+            default:
+                return Result.Failure($"Unsupported compression method: {compression}");
+        }
     }
 
     private string ResolvePackPath(string packFileName)
@@ -116,17 +129,19 @@ public class RuntimeContentProvider : IContentProvider
             : Path.Combine(_packDirectory, packFileName);
     }
 
-    private MemoryMappedFile? GetOrOpenPackFile(string packPath)
+    private PackFileMapping? GetOrOpenPackFile(string packPath)
     {
-        return _packFiles.GetOrAdd(packPath, static path =>
+        try
         {
-            return MemoryMappedFile.CreateFromFile(path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
-        });
+            return _packFiles.GetOrAdd(packPath, static path => new PackFileMapping(path));
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to open or map pack file '{packPath}': {ex.Message}");
+            return null;
+        }
     }
 
-    /// <summary>
-    /// Releases the cached memory-mapped pack file handles.
-    /// </summary>
     public void Dispose()
     {
         foreach (var packFile in _packFiles.Values)
@@ -136,60 +151,5 @@ public class RuntimeContentProvider : IContentProvider
 
         _packFiles.Clear();
         GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Validates the <see cref="PackFileHeader"/> of a pack file once per file.
-    /// </summary>
-    /// <remarks>
-    /// Each pack file is validated the first time it is opened; a <see cref="HashSet{T}"/>
-    /// of already-validated file names avoids re-reading the header on every asset open.
-    /// Only successfully validated files are recorded, so a missing/corrupt pack is
-    /// re-checked (and re-reported) on subsequent opens.
-    /// </remarks>
-    private bool ValidatePackHeader(string packFileName)
-    {
-        bool needsValidation;
-        lock (_validatedPacksLock)
-        {
-            needsValidation = !_validatedPacks.Contains(packFileName);
-        }
-
-        if (!needsValidation)
-        {
-            return true;
-        }
-
-        bool isValid;
-        try
-        {
-            using var fs = new FileStream(packFileName, FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (!PackFileHeader.TryReadFrom(fs, out var header)
-                || header.magic != PackFileHeader.MAGIC
-                || header.version != PackFileHeader.VERSION)
-            {
-                Logger.Error($"Pack file '{packFileName}' has an invalid header (magic 0x{header.magic:X8}, version {header.version}); it was not produced by this pipeline version.");
-                isValid = false;
-            }
-            else
-            {
-                isValid = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.Error($"Failed to validate pack file '{packFileName}': {ex.Message}");
-            isValid = false;
-        }
-
-        lock (_validatedPacksLock)
-        {
-            if (isValid)
-            {
-                _validatedPacks.Add(packFileName);
-            }
-        }
-
-        return isValid;
     }
 }

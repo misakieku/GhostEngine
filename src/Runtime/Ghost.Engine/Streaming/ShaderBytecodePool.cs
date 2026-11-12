@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
+using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.CompilerServices;
 
@@ -15,17 +16,17 @@ public sealed unsafe class ShaderBytecodePool : IDisposable
     public static readonly Guid POOL_ASSET_ID = ShaderBytecodePoolConstants.POOL_ASSET_ID;
     public const string POOL_ASSET_KEY = ShaderBytecodePoolConstants.POOL_ASSET_KEY;
 
-    private MemoryBlock _payload;
+    private AssetPayload _payload;
     private readonly Dictionary<ulong, (long offset, uint size)> _entries = new();
     private bool _disposed;
 
     public int Count => _entries.Count;
 
-    public ShaderBytecodePool(Stream stream)
+    public ShaderBytecodePool([Owner] ref AssetPayload payload)
     {
-        _payload = stream.ReadMemory(AllocationHandle.Persistent);
-        var ptr = (byte*)_payload.GetUnsafePtr();
-        var totalSize = (long)_payload.Size;
+        _payload = payload;
+        var ptr = _payload.Pointer;
+        var totalSize = _payload.Size;
 
         if (totalSize < 8)
         {
@@ -64,9 +65,9 @@ public sealed unsafe class ShaderBytecodePool : IDisposable
 
     public bool TryGetBytecode(ulong hash, out ShaderByteCode byteCode)
     {
-        if (_payload.IsCreated && _entries.TryGetValue(hash, out var info))
+        if (_payload.IsValid && _entries.TryGetValue(hash, out var info))
         {
-            var ptr = (byte*)_payload.GetUnsafePtr();
+            var ptr = _payload.Pointer;
             byteCode = new ShaderByteCode
             {
                 pCode = ptr + info.offset,
@@ -86,12 +87,7 @@ public sealed unsafe class ShaderBytecodePool : IDisposable
             return;
         }
 
-        if (_payload.IsCreated)
-        {
-            _payload.Dispose();
-            _payload = default;
-        }
-
+        _payload.Dispose();
         _entries.Clear();
         _disposed = true;
     }

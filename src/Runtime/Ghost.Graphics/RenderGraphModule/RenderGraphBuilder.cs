@@ -96,18 +96,17 @@ public interface IRenderGraphBuilder : IDisposable
     /// Registers the specified texture for use in the current render graph pass with the given access mode.
     /// </summary>
     /// <param name="texture">The identifier of the texture to be used in the render graph pass.</param>
-    /// <param name="accessMode">The access mode specifying how the texture will be read or written during the pass.</param>
-    /// <returns>An identifier for the texture.</returns>
-    Identifier<RGTexture> UseTexture(Identifier<RGTexture> texture, AccessFlags accessMode);
+    /// <param name="accessFlags">The access flags specifying how the texture will be read or written during the pass.</param>
+    /// <returns>An identifier for the texture. Invalid if the texture is invalid.</returns>
+    Identifier<RGTexture> UseTexture(Identifier<RGTexture> texture, AccessFlags accessFlags);
 
     /// <summary>
     /// Registers the specified buffer for use in the current render graph pass with the given access mode.
     /// </summary>
     /// <param name="buffer">The identifier of the buffer to be used in the render graph pass.</param>
-    /// <param name="accessMode">The access mode specifying how the buffer will be read or written during the pass.</param>
-    /// <param name="hint">Optional hint about how the buffer will be used.</param>
-    /// <returns>An identifier for the buffer.</returns>
-    Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags accessMode);
+    /// <param name="accessFlags">The access flags specifying how the buffer will be read or written during the pass.</param>
+    /// <returns>An identifier for the buffer. Invalid if the buffer is invalid.</returns>
+    Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags accessFlags);
 
     /// <summary>
     /// Extracts the actual texture associated with the given identifier for use in outside of the render graph execution context.
@@ -211,6 +210,14 @@ public interface IUnsafeRenderGraphBuilder : IRenderGraphBuilder
     /// <param name="flags">The access performed by the pass.</param>
     /// <returns>The declared texture.</returns>
     Identifier<RGTexture> UseRenderTargetTexture(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.Write);
+
+    /// <summary>
+    /// Declares that a texture will be used as a depth-stencil target by the unsafe pass.
+    /// </summary>
+    /// <param name="texture">The texture used as a depth target.</param>
+    /// <param name="flags">The access performed by the pass.</param>
+    /// <returns>The declared texture.</returns>
+    Identifier<RGTexture> UseDepthTargetTexture(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.ReadWrite);
 
     /// <summary>
     /// Binds a texture for random access operations within the current rendering pass.
@@ -395,12 +402,24 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
     public Identifier<RGTexture> UseTexture(Identifier<RGTexture> texture, AccessFlags flags)
     {
         ThrowIfDisposed();
+
+        if (texture.IsInvalid)
+        {
+            return Identifier<RGTexture>.Invalid;
+        }
+
         return UseResource(texture.AsResource(), flags, RGResourceType.Texture).AsTexture();
     }
 
     public Identifier<RGBuffer> UseBuffer(Identifier<RGBuffer> buffer, AccessFlags flags)
     {
         ThrowIfDisposed();
+
+        if (buffer.IsInvalid)
+        {
+            return Identifier<RGBuffer>.Invalid;
+        }
+
         return UseResource(buffer.AsResource(), flags, RGResourceType.Buffer).AsBuffer();
     }
 
@@ -454,6 +473,27 @@ internal class RenderGraphBuilder : IRasterRenderGraphBuilder, IComputeRenderGra
         ValidateDeclaration(resource, PassResourceUsageClass.ColorAttachment);
         UseResource(resource, flags, RGResourceType.Texture);
         _pass.renderTargetWrites.Add(resource);
+        return texture;
+    }
+
+    public Identifier<RGTexture> UseDepthTargetTexture(Identifier<RGTexture> texture, AccessFlags flags = AccessFlags.ReadWrite)
+    {
+        ThrowIfDisposed();
+
+        var isWrite = flags.HasFlag(AccessFlags.Write);
+        var usageClass = isWrite ? PassResourceUsageClass.DepthWrite : PassResourceUsageClass.DepthRead;
+        var resource = texture.AsResource();
+        ValidateDeclaration(resource, usageClass);
+        UseResource(resource, flags, RGResourceType.Texture);
+        if (isWrite)
+        {
+            _pass.depthTargetWrites.Add(resource);
+        }
+        else
+        {
+            _pass.depthTargetReads.Add(resource);
+        }
+
         return texture;
     }
 
