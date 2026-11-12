@@ -56,7 +56,8 @@ public class EditorPoCApp : Component
                 )
             ))
             .Padding(10)
-            .Background(isSelected ? "#004578" : "#252525")
+            .BorderBrush(isSelected ? "#0078D4" : "#40808080")
+            .BorderThickness(isSelected ? 2 : 1)
             .CornerRadius(6)
             .OnPointerPressed((_, _) =>
             {
@@ -77,7 +78,7 @@ public class EditorPoCApp : Component
                 TextBlock($"Sim: {(host.IsPaused ? "PAUSED" : "RUNNING @ 60 FPS")} | Frame: {host.FrameCount}"),
                 Button(host.IsPaused ? "Resume Sim" : "Pause Sim", () => host.IsPaused = !host.IsPaused),
                 Button("Step 1 Frame", () => host.StepSingleFrame())
-            )).Padding(12).Background("#1E1E1E").CornerRadius(8),
+            )).Padding(12).BorderBrush("#40808080").BorderThickness(1).CornerRadius(8),
 
             // ── MAIN SPLIT PANELS ────────────────────────────────────────
             HStack(12,
@@ -89,7 +90,7 @@ public class EditorPoCApp : Component
                     ),
                     VStack(6, entityButtons)
                 ))
-                .Padding(12).Background("#1E1E1E").CornerRadius(8).Width(320),
+                .Padding(12).BorderBrush("#40808080").BorderThickness(1).CornerRadius(8).Width(320),
 
                 // ── RIGHT: DYNAMIC COMPONENT INSPECTOR ───────────────────
                 Border(VStack(12,
@@ -100,15 +101,16 @@ public class EditorPoCApp : Component
                             HStack(8,
                                 TextBlock("Entity Name:").FontSize(13),
                                 TextBox(value: selectedEntity.Name, onChanged: newName => selectedEntity.Name = newName)
+                                    .OnLostFocus((_, _) => { /* auto-persisted on name edit */ })
                             ),
                             TextBlock($"GUID: {selectedEntity.EditorId} | Handle: Entity(ID={selectedEntity.EcsEntity.ID}, Gen={selectedEntity.EcsEntity.Generation})").FontSize(11)
                         )
-                    )).Padding(10).Background("#252525").CornerRadius(6),
+                    )).Padding(10).BorderBrush("#40808080").BorderThickness(1).CornerRadius(6),
 
                     // Components list
                     VStack(10, componentCards)
                 ))
-                .Padding(12).Background("#1E1E1E").CornerRadius(8)
+                .Padding(12).BorderBrush("#40808080").BorderThickness(1).CornerRadius(8)
             )
         ).Padding(12);
     }
@@ -143,33 +145,56 @@ public class EditorPoCApp : Component
         var livePos = posProp?.GetValue() is float3 p ? p : float3.zero;
         var liveScale = scaleProp?.GetValue() is float3 s ? s : new float3(1f);
 
+        Action commitPos = () =>
+        {
+            posProp?.SetValue(new float3((float)posX, (float)posY, (float)posZ));
+        };
+
+        Action commitScale = () =>
+        {
+            scaleProp?.SetValue(new float3((float)scaleX, (float)scaleY, (float)scaleZ));
+        };
+
         return Border(VStack(10,
-            TextBlock("LocalTransform (struct IComponentData)").FontSize(15),
+            HStack(8,
+                TextBlock("LocalTransform (struct IComponentData)").FontSize(15),
+                TextBlock("— Auto-saves on Enter or Lost Focus").FontSize(11).Foreground("#808080")
+            ),
 
             // Live Readout Bar
             Border(HStack(16,
                 TextBlock("Live Position:").FontSize(12),
-                TextBlock($"X: {livePos.x:F2}").FontSize(12).Foreground("#FF6B6B"),
-                TextBlock($"Y: {livePos.y:F2}").FontSize(12).Foreground("#51CF66"),
-                TextBlock($"Z: {livePos.z:F2}").FontSize(12).Foreground("#339AF0")
-            )).Padding(8).Background("#2A2A2A").CornerRadius(4),
+                TextBlock($"X: {livePos.x:F2}").FontSize(12).Foreground("#D83B01"),
+                TextBlock($"Y: {livePos.y:F2}").FontSize(12).Foreground("#107C41"),
+                TextBlock($"Z: {livePos.z:F2}").FontSize(12).Foreground("#0078D4")
+            )).Padding(8).BorderBrush("#40808080").BorderThickness(1).CornerRadius(4),
 
-            // Position Inputs
+            // Position Inputs (auto-commit on lost focus & enter)
             HStack(8,
-                TextBlock("Set Pos:").FontSize(12),
-                NumberBox(value: posX, onValueChanged: v => setPosX(v), header: "X"),
-                NumberBox(value: posY, onValueChanged: v => setPosY(v), header: "Y"),
-                NumberBox(value: posZ, onValueChanged: v => setPosZ(v), header: "Z"),
-                Button("Apply Pos", () => posProp?.SetValue(new float3((float)posX, (float)posY, (float)posZ)))
+                TextBlock("Pos:").FontSize(12),
+                NumberBox(value: posX, onValueChanged: v => { setPosX(v); }, header: "X")
+                    .OnLostFocus((_, _) => commitPos())
+                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitPos(); }),
+                NumberBox(value: posY, onValueChanged: v => { setPosY(v); }, header: "Y")
+                    .OnLostFocus((_, _) => commitPos())
+                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitPos(); }),
+                NumberBox(value: posZ, onValueChanged: v => { setPosZ(v); }, header: "Z")
+                    .OnLostFocus((_, _) => commitPos())
+                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitPos(); })
             ),
 
-            // Scale Inputs
+            // Scale Inputs (auto-commit on lost focus & enter)
             HStack(8,
-                TextBlock("Set Scale:").FontSize(12),
-                NumberBox(value: scaleX, onValueChanged: v => setScaleX(v), header: "X"),
-                NumberBox(value: scaleY, onValueChanged: v => setScaleY(v), header: "Y"),
-                NumberBox(value: scaleZ, onValueChanged: v => setScaleZ(v), header: "Z"),
-                Button("Apply Scale", () => scaleProp?.SetValue(new float3((float)scaleX, (float)scaleY, (float)scaleZ)))
+                TextBlock("Scale:").FontSize(12),
+                NumberBox(value: scaleX, onValueChanged: v => { setScaleX(v); }, header: "X")
+                    .OnLostFocus((_, _) => commitScale())
+                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitScale(); }),
+                NumberBox(value: scaleY, onValueChanged: v => { setScaleY(v); }, header: "Y")
+                    .OnLostFocus((_, _) => commitScale())
+                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitScale(); }),
+                NumberBox(value: scaleZ, onValueChanged: v => { setScaleZ(v); }, header: "Z")
+                    .OnLostFocus((_, _) => commitScale())
+                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitScale(); })
             ),
 
             // Presets
@@ -183,10 +208,22 @@ public class EditorPoCApp : Component
                     setScaleY(liveScale.y);
                     setScaleZ(liveScale.z);
                 }),
-                Button("Reset (0,0,0)", () => posProp?.SetValue(float3.zero)),
-                Button("Reset Scale (1,1,1)", () => scaleProp?.SetValue(new float3(1f)))
+                Button("Reset Pos (0,0,0)", () =>
+                {
+                    setPosX(0.0);
+                    setPosY(0.0);
+                    setPosZ(0.0);
+                    posProp?.SetValue(float3.zero);
+                }),
+                Button("Reset Scale (1,1,1)", () =>
+                {
+                    setScaleX(1.0);
+                    setScaleY(1.0);
+                    setScaleZ(1.0);
+                    scaleProp?.SetValue(new float3(1f));
+                })
             )
-        )).Padding(12).Background("#252525").CornerRadius(6);
+        )).Padding(12).BorderBrush("#40808080").BorderThickness(1).CornerRadius(6);
     }
 
     private static Element RenderCounterCard(ComponentNode comp, double inputVal, Action<double> setInputVal, double inputStep, Action<double> setInputStep)
@@ -198,32 +235,44 @@ public class EditorPoCApp : Component
         var currentVal = valProp?.GetValue() is int v ? v : 0;
         var currentAuto = autoProp?.GetValue() is bool a && a;
 
+        Action commitVal = () =>
+        {
+            valProp?.SetValue((int)inputVal);
+        };
+
+        Action commitStep = () =>
+        {
+            stepProp?.SetValue((int)inputStep);
+        };
+
         return Border(VStack(10,
-            TextBlock("CounterComponent (Worker DAG Simulation)").FontSize(15),
+            HStack(8,
+                TextBlock("CounterComponent (Worker DAG Simulation)").FontSize(15),
+                TextBlock("— Auto-saves on Enter or Lost Focus").FontSize(11).Foreground("#808080")
+            ),
 
             Border(HStack(12,
                 TextBlock("Live Worker Value:").FontSize(13),
-                TextBlock($"{currentVal}").FontSize(22).Foreground("#51CF66")
-            )).Padding(8).Background("#2A2A2A").CornerRadius(4),
+                TextBlock($"{currentVal}").FontSize(22).Foreground("#107C41")
+            )).Padding(8).BorderBrush("#40808080").BorderThickness(1).CornerRadius(4),
 
             HStack(8,
-                NumberBox(value: inputVal, onValueChanged: v => setInputVal(v), header: "Set Value"),
-                Button("Apply Value", () => valProp?.SetValue((int)inputVal))
-            ),
-
-            HStack(8,
-                NumberBox(value: inputStep, onValueChanged: v => setInputStep(v), header: "Step Size"),
-                Button("Apply Step", () => stepProp?.SetValue((int)inputStep))
+                NumberBox(value: inputVal, onValueChanged: v => { setInputVal(v); }, header: "Value")
+                    .OnLostFocus((_, _) => commitVal())
+                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitVal(); }),
+                NumberBox(value: inputStep, onValueChanged: v => { setInputStep(v); }, header: "Step Size")
+                    .OnLostFocus((_, _) => commitStep())
+                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitStep(); })
             ),
 
             ToggleSwitch(isOn: currentAuto, onIsOnChanged: on => autoProp?.SetValue(on), header: "Worker DAG Auto-Increment"),
 
             HStack(8,
-                Button("Set to 0", () => valProp?.SetValue(0)),
-                Button("Set to 100", () => valProp?.SetValue(100)),
-                Button("Stress (Set 9999)", () => valProp?.SetValue(9999))
+                Button("Set 0", () => { setInputVal(0); valProp?.SetValue(0); }),
+                Button("Set 100", () => { setInputVal(100); valProp?.SetValue(100); }),
+                Button("Stress 9999", () => { setInputVal(9999); valProp?.SetValue(9999); })
             )
-        )).Padding(12).Background("#252525").CornerRadius(6);
+        )).Padding(12).BorderBrush("#40808080").BorderThickness(1).CornerRadius(6);
     }
 
     private static Element RenderGenericCard(ComponentNode comp)
@@ -238,7 +287,7 @@ public class EditorPoCApp : Component
         return Border(VStack(6,
             TextBlock($"{comp.DisplayName} (Tag / Marker Component)").FontSize(14),
             VStack(4, propRows)
-        )).Padding(10).Background("#252525").CornerRadius(6);
+        )).Padding(10).BorderBrush("#40808080").BorderThickness(1).CornerRadius(6);
     }
 
     private static string GetEntityIcon(string name) => name switch
