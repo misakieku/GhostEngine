@@ -1,4 +1,5 @@
 using Ghost.Editor.PoC.Nodes;
+using Ghost.Editor.PoC.Services;
 
 namespace Ghost.Editor.PoC.Commands;
 
@@ -27,7 +28,14 @@ public sealed class ModifyPropertyCommand : IEditorCommand
 
     public void Undo()
     {
+        EditorSelection.Select(Property.ComponentNode.EntityNode);
         Property.SetValue(OldValue);
+    }
+
+    public void Redo()
+    {
+        EditorSelection.Select(Property.ComponentNode.EntityNode);
+        Property.SetValue(NewValue);
     }
 
     public bool CanMergeWith(IEditorCommand other)

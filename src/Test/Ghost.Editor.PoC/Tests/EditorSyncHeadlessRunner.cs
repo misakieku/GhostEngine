@@ -1,6 +1,7 @@
 using Ghost.Editor.PoC.Commands;
 using Ghost.Editor.PoC.Drawers;
 using Ghost.Editor.PoC.Ecs;
+using Ghost.Editor.PoC.Services;
 using Ghost.Engine.Components;
 using Misaki.HighPerformance.Mathematics;
 
@@ -220,11 +221,24 @@ public static class EditorSyncHeadlessRunner
             throw new Exception("After command, CanUndo should be true and CanRedo false");
         }
 
-        // 4. Undo the command
+        // 4. Change selection away to another entity (e.g. Main Camera)
+        var cameraNode = host.Entities.First(e => e.Name == "Main Camera");
+        EditorSelection.Select(cameraNode);
+        if (EditorSelection.ActiveEntity != cameraNode)
+        {
+            throw new Exception($"Expected camera to be selected, got {EditorSelection.ActiveEntity?.Name}");
+        }
+
+        // 5. Undo the command — should contextually restore selection back to Player!
         var undoSuccess = history.Undo();
         if (!undoSuccess)
         {
             throw new Exception("Undo() failed");
+        }
+
+        if (EditorSelection.ActiveEntity != playerNode)
+        {
+            throw new Exception($"Expected Undo to contextually restore selection to Player, got {EditorSelection.ActiveEntity?.Name}");
         }
 
         host.StepSingleFrame();
@@ -241,11 +255,19 @@ public static class EditorSyncHeadlessRunner
             throw new Exception("After Undo, CanUndo should be false and CanRedo true");
         }
 
-        // 5. Redo the command
+        // 6. Change selection away again
+        EditorSelection.Select(cameraNode);
+
+        // 7. Redo the command — should also contextually restore selection back to Player!
         var redoSuccess = history.Redo();
         if (!redoSuccess)
         {
             throw new Exception("Redo() failed");
+        }
+
+        if (EditorSelection.ActiveEntity != playerNode)
+        {
+            throw new Exception($"Expected Redo to contextually restore selection to Player, got {EditorSelection.ActiveEntity?.Name}");
         }
 
         host.StepSingleFrame();

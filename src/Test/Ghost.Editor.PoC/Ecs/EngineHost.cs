@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Editor.PoC.Nodes;
+using Ghost.Editor.PoC.Services;
 using Ghost.Editor.PoC.Sync;
 using Ghost.Engine.Components;
 using Ghost.Entities;
@@ -66,6 +67,8 @@ public sealed class EngineHost : IDisposable
         _bridge = new EditorSyncBridge();
         _subsystem = new EditorSubsystem(_bridge);
 
+        EditorSelection.SelectionChanged += OnSelectionChanged;
+
         SetupHardcodedEntities();
 
         // Select the first entity by default
@@ -131,14 +134,20 @@ public sealed class EngineHost : IDisposable
 
     public void SelectEntity(EntityNode? node)
     {
-        _selectedEntity = node;
-        if (node != null)
+        EditorSelection.Select(node);
+    }
+
+    private void OnSelectionChanged(object? target)
+    {
+        if (target is EntityNode node)
         {
+            _selectedEntity = node;
             var types = node.Components.Select(c => c.ComponentType);
             _subsystem.SetMonitored(node.EcsEntity, types);
         }
-        else
+        else if (target == null)
         {
+            _selectedEntity = null;
             _subsystem.SetMonitored(new Entity(Entity.INVALID_ID, 0), Array.Empty<Type>());
         }
     }
@@ -217,6 +226,7 @@ public sealed class EngineHost : IDisposable
         }
 
         _disposed = true;
+        EditorSelection.SelectionChanged -= OnSelectionChanged;
         _cts.Cancel();
         _stepSignal.Set();
         _engineThread.Join(2000);

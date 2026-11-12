@@ -2,6 +2,7 @@ using Ghost.Editor.PoC.Commands;
 using Ghost.Editor.PoC.Drawers;
 using Ghost.Editor.PoC.Ecs;
 using Ghost.Editor.PoC.Nodes;
+using Ghost.Editor.PoC.Services;
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
 using static Microsoft.UI.Reactor.Factories;
@@ -22,7 +23,7 @@ public class EditorPoCApp : Component
         var (historyVer, setHistoryVer) = UseState(0);
 
         // Selected entity tracking
-        var selectedEntity = host.SelectedEntity ?? host.Entities[0];
+        var selectedEntity = EditorSelection.ActiveEntity ?? host.SelectedEntity ?? host.Entities[0];
         var (selectedGuid, setSelectedGuid) = UseState(selectedEntity.EditorId);
 
         // Poll engine state at 20 Hz
@@ -45,6 +46,20 @@ public class EditorPoCApp : Component
             return () => s_history.HistoryChanged -= onHistoryChanged;
         }, Array.Empty<object>());
 
+        // Subscribe to EditorSelection changes (e.g. when Undo/Redo restores selection)
+        UseEffect(() =>
+        {
+            Action<object?> onSelectionChanged = target =>
+            {
+                if (target is EntityNode node)
+                {
+                    setSelectedGuid(node.EditorId);
+                }
+            };
+            EditorSelection.SelectionChanged += onSelectionChanged;
+            return () => EditorSelection.SelectionChanged -= onSelectionChanged;
+        }, Array.Empty<object>());
+
         var drawerContext = new DrawerContext(s_history, s_propertyDrawers);
 
         var entityButtons = host.Entities.Select(e =>
@@ -63,7 +78,7 @@ public class EditorPoCApp : Component
             .CornerRadius(6)
             .OnPointerPressed((_, _) =>
             {
-                host.SelectEntity(e);
+                EditorSelection.Select(e);
                 setSelectedGuid(e.EditorId);
             });
         }).ToArray();
