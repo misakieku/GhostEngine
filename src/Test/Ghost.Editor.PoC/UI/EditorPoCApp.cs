@@ -45,6 +45,44 @@ public class EditorPoCApp : Component
             return () => timer.Dispose();
         }, Array.Empty<object>());
 
+        // Sync inputs when selected entity changes
+        UseEffect(() =>
+        {
+            var transformComp = selectedEntity.Components.Find(c => c.ComponentType == typeof(LocalTransform));
+            if (transformComp != null)
+            {
+                var posProp = transformComp.Properties.Find(p => p.Name == "position");
+                var scaleProp = transformComp.Properties.Find(p => p.Name == "scale");
+                if (posProp?.GetValue() is float3 p)
+                {
+                    setPosX(p.x);
+                    setPosY(p.y);
+                    setPosZ(p.z);
+                }
+                if (scaleProp?.GetValue() is float3 s)
+                {
+                    setScaleX(s.x);
+                    setScaleY(s.y);
+                    setScaleZ(s.z);
+                }
+            }
+
+            var counterComp = selectedEntity.Components.Find(c => c.ComponentType == typeof(CounterComponent));
+            if (counterComp != null)
+            {
+                var valProp = counterComp.Properties.Find(p => p.Name == "Value");
+                var stepProp = counterComp.Properties.Find(p => p.Name == "Step");
+                if (valProp?.GetValue() is int v)
+                {
+                    setInputVal(v);
+                }
+                if (stepProp?.GetValue() is int st)
+                {
+                    setInputStep(st);
+                }
+            }
+        }, [selectedEntity.EditorId]);
+
         var entityButtons = host.Entities.Select(e =>
         {
             var isSelected = e.EditorId == selectedEntity.EditorId;
@@ -112,7 +150,7 @@ public class EditorPoCApp : Component
                 ))
                 .Padding(12).BorderBrush("#40808080").BorderThickness(1).CornerRadius(8)
             )
-        ).Padding(12);
+        ).Padding(12).IsTabStop(true);
     }
 
     private static Element RenderComponentCard(
@@ -145,16 +183,6 @@ public class EditorPoCApp : Component
         var livePos = posProp?.GetValue() is float3 p ? p : float3.zero;
         var liveScale = scaleProp?.GetValue() is float3 s ? s : new float3(1f);
 
-        Action commitPos = () =>
-        {
-            posProp?.SetValue(new float3((float)posX, (float)posY, (float)posZ));
-        };
-
-        Action commitScale = () =>
-        {
-            scaleProp?.SetValue(new float3((float)scaleX, (float)scaleY, (float)scaleZ));
-        };
-
         return Border(VStack(10,
             HStack(8,
                 TextBlock("LocalTransform (struct IComponentData)").FontSize(15),
@@ -172,29 +200,53 @@ public class EditorPoCApp : Component
             // Position Inputs (auto-commit on lost focus & enter)
             HStack(8,
                 TextBlock("Pos:").FontSize(12),
-                NumberBox(value: posX, onValueChanged: v => { setPosX(v); }, header: "X")
-                    .OnLostFocus((_, _) => commitPos())
-                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitPos(); }),
-                NumberBox(value: posY, onValueChanged: v => { setPosY(v); }, header: "Y")
-                    .OnLostFocus((_, _) => commitPos())
-                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitPos(); }),
-                NumberBox(value: posZ, onValueChanged: v => { setPosZ(v); }, header: "Z")
-                    .OnLostFocus((_, _) => commitPos())
-                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitPos(); })
+                NumberBox(value: posX, onValueChanged: v =>
+                {
+                    if (double.IsNaN(v)) return;
+                    setPosX(v);
+                    var cur = posProp?.GetValue() is float3 p ? p : float3.zero;
+                    posProp?.SetValue(new float3((float)v, cur.y, cur.z));
+                }, header: "X"),
+                NumberBox(value: posY, onValueChanged: v =>
+                {
+                    if (double.IsNaN(v)) return;
+                    setPosY(v);
+                    var cur = posProp?.GetValue() is float3 p ? p : float3.zero;
+                    posProp?.SetValue(new float3(cur.x, (float)v, cur.z));
+                }, header: "Y"),
+                NumberBox(value: posZ, onValueChanged: v =>
+                {
+                    if (double.IsNaN(v)) return;
+                    setPosZ(v);
+                    var cur = posProp?.GetValue() is float3 p ? p : float3.zero;
+                    posProp?.SetValue(new float3(cur.x, cur.y, (float)v));
+                }, header: "Z")
             ),
 
             // Scale Inputs (auto-commit on lost focus & enter)
             HStack(8,
                 TextBlock("Scale:").FontSize(12),
-                NumberBox(value: scaleX, onValueChanged: v => { setScaleX(v); }, header: "X")
-                    .OnLostFocus((_, _) => commitScale())
-                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitScale(); }),
-                NumberBox(value: scaleY, onValueChanged: v => { setScaleY(v); }, header: "Y")
-                    .OnLostFocus((_, _) => commitScale())
-                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitScale(); }),
-                NumberBox(value: scaleZ, onValueChanged: v => { setScaleZ(v); }, header: "Z")
-                    .OnLostFocus((_, _) => commitScale())
-                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitScale(); })
+                NumberBox(value: scaleX, onValueChanged: v =>
+                {
+                    if (double.IsNaN(v)) return;
+                    setScaleX(v);
+                    var cur = scaleProp?.GetValue() is float3 s ? s : new float3(1f);
+                    scaleProp?.SetValue(new float3((float)v, cur.y, cur.z));
+                }, header: "X"),
+                NumberBox(value: scaleY, onValueChanged: v =>
+                {
+                    if (double.IsNaN(v)) return;
+                    setScaleY(v);
+                    var cur = scaleProp?.GetValue() is float3 s ? s : new float3(1f);
+                    scaleProp?.SetValue(new float3(cur.x, (float)v, cur.z));
+                }, header: "Y"),
+                NumberBox(value: scaleZ, onValueChanged: v =>
+                {
+                    if (double.IsNaN(v)) return;
+                    setScaleZ(v);
+                    var cur = scaleProp?.GetValue() is float3 s ? s : new float3(1f);
+                    scaleProp?.SetValue(new float3(cur.x, cur.y, (float)v));
+                }, header: "Z")
             ),
 
             // Presets
@@ -235,16 +287,6 @@ public class EditorPoCApp : Component
         var currentVal = valProp?.GetValue() is int v ? v : 0;
         var currentAuto = autoProp?.GetValue() is bool a && a;
 
-        Action commitVal = () =>
-        {
-            valProp?.SetValue((int)inputVal);
-        };
-
-        Action commitStep = () =>
-        {
-            stepProp?.SetValue((int)inputStep);
-        };
-
         return Border(VStack(10,
             HStack(8,
                 TextBlock("CounterComponent (Worker DAG Simulation)").FontSize(15),
@@ -257,12 +299,18 @@ public class EditorPoCApp : Component
             )).Padding(8).BorderBrush("#40808080").BorderThickness(1).CornerRadius(4),
 
             HStack(8,
-                NumberBox(value: inputVal, onValueChanged: v => { setInputVal(v); }, header: "Value")
-                    .OnLostFocus((_, _) => commitVal())
-                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitVal(); }),
-                NumberBox(value: inputStep, onValueChanged: v => { setInputStep(v); }, header: "Step Size")
-                    .OnLostFocus((_, _) => commitStep())
-                    .OnKeyDown((_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) commitStep(); })
+                NumberBox(value: inputVal, onValueChanged: v =>
+                {
+                    if (double.IsNaN(v)) return;
+                    setInputVal(v);
+                    valProp?.SetValue((int)v);
+                }, header: "Value"),
+                NumberBox(value: inputStep, onValueChanged: v =>
+                {
+                    if (double.IsNaN(v)) return;
+                    setInputStep(v);
+                    stepProp?.SetValue((int)v);
+                }, header: "Step Size")
             ),
 
             ToggleSwitch(isOn: currentAuto, onIsOnChanged: on => autoProp?.SetValue(on), header: "Worker DAG Auto-Increment"),
