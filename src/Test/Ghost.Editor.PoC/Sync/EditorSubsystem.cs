@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Ghost.Entities;
+using Misaki.HighPerformance.Mathematics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -15,6 +16,18 @@ public sealed class EditorSubsystem
     public EditorSubsystem(EditorSyncBridge bridge)
     {
         _bridge = bridge;
+    }
+
+    public void SetMonitored(Entity entity, IEnumerable<Type> componentTypes)
+    {
+        lock (_monitoredComponents)
+        {
+            _monitoredComponents.Clear();
+            foreach (var t in componentTypes)
+            {
+                _monitoredComponents.Add((entity, t));
+            }
+        }
     }
 
     public void RegisterMonitored(Entity entity, Type componentType)
@@ -148,6 +161,14 @@ public sealed class EditorSubsystem
         {
             *(bool*)dest = Convert.ToBoolean(value);
         }
+        else if (type == typeof(float3))
+        {
+            *(float3*)dest = (float3)value;
+        }
+        else if (type == typeof(quaternion))
+        {
+            *(quaternion*)dest = (quaternion)value;
+        }
         else if (type == typeof(uint))
         {
             *(uint*)dest = Convert.ToUInt32(value);
@@ -191,6 +212,14 @@ public sealed class EditorSubsystem
         if (type == typeof(bool))
         {
             return *(bool*)src;
+        }
+        if (type == typeof(float3))
+        {
+            return *(float3*)src;
+        }
+        if (type == typeof(quaternion))
+        {
+            return *(quaternion*)src;
         }
         if (type == typeof(uint))
         {

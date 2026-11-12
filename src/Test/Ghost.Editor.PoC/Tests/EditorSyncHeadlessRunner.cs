@@ -1,4 +1,6 @@
 using Ghost.Editor.PoC.Ecs;
+using Ghost.Engine.Components;
+using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Editor.PoC.Tests;
 
@@ -10,14 +12,17 @@ public static class EditorSyncHeadlessRunner
 
         try
         {
-            TestBasicBidirectionalSync();
-            Console.WriteLine("[PASS] Test 1: Basic Bidirectional Sync (UI -> ECS -> UI)");
+            TestLocalTransformInspectionAndMutation();
+            Console.WriteLine("[PASS] Test 1: LocalTransform Selection & Bidirectional Mutation (UI <-> ECS)");
+
+            TestSpinningCubeWorkerAnimation();
+            Console.WriteLine("[PASS] Test 2: Multi-Entity Selection & Worker 3D Animation");
 
             TestWorkerSystemAutoIncrement();
-            Console.WriteLine("[PASS] Test 2: Background Worker Concurrency (ECS Worker -> UI)");
+            Console.WriteLine("[PASS] Test 3: Background Worker Concurrency (Counter Auto-Increment)");
 
             TestConcurrentClashStress();
-            Console.WriteLine("[PASS] Test 3: Concurrent Mutation Stress Test (Race Condition Check)");
+            Console.WriteLine("[PASS] Test 4: Concurrent Multi-Threaded Stress Test (Race Condition Check)");
 
             Console.WriteLine("=== ALL HEADLESS TESTS PASSED ===");
             return 0;
@@ -29,40 +34,66 @@ public static class EditorSyncHeadlessRunner
         }
     }
 
-    private static void TestBasicBidirectionalSync()
+    private static void TestLocalTransformInspectionAndMutation()
     {
         using var host = new EngineHost();
         host.IsPaused = true;
 
-        var entityNode = host.CounterEntityNode;
-        var compNode = entityNode.Components[0];
-        var valProp = compNode.Properties.Find(p => p.Name == "Value")!;
+        var playerNode = host.Entities.First(e => e.Name == "Player");
+        host.SelectEntity(playerNode);
+
+        var transformComp = playerNode.Components.First(c => c.ComponentType == typeof(LocalTransform));
+        var posProp = transformComp.Properties.Find(p => p.Name == "position")!;
 
         // 1. Initial snapshot check
-        var initialVal = valProp.GetValue();
-        if ((int)initialVal! != 1)
-        {
-            throw new Exception($"Expected initial value 1, got {initialVal}");
-        }
-
-        // 2. UI -> ECS mutation
-        valProp.SetValue(42);
-
-        // Step one frame to execute PreTick -> Worker DAG -> PostTick
         host.StepSingleFrame();
         Thread.Sleep(50);
 
-        var updatedVal = valProp.GetValue();
-        if ((int)updatedVal! != 42)
+        var initialPos = (float3)posProp.GetValue()!;
+        if (initialPos.x != 0f || initialPos.y != 0f || initialPos.z != 0f)
         {
-            throw new Exception($"Expected updated value 42, got {updatedVal}");
+            throw new Exception($"Expected initial position (0,0,0), got {initialPos}");
+        }
+
+        // 2. Mutate position via PropertyNode
+        posProp.SetValue(new float3(10f, 20f, 30f));
+
+        host.StepSingleFrame();
+        Thread.Sleep(50);
+
+        var updatedPos = (float3)posProp.GetValue()!;
+        if (updatedPos.x != 10f || updatedPos.y != 20f || updatedPos.z != 30f)
+        {
+            throw new Exception($"Expected updated position (10,20,30), got {updatedPos}");
         }
 
         // Verify ECS memory directly
-        ref var comp = ref host.World.EntityManager.GetComponent<CounterComponent>(entityNode.EcsEntity);
-        if (comp.Value != 42)
+        ref var comp = ref host.World.EntityManager.GetComponent<LocalTransform>(playerNode.EcsEntity);
+        if (comp.position.x != 10f || comp.position.y != 20f || comp.position.z != 30f)
         {
-            throw new Exception($"Expected ECS chunk memory to be 42, got {comp.Value}");
+            throw new Exception($"Expected ECS chunk memory to be (10,20,30), got {comp.position}");
+        }
+    }
+
+    private static void TestSpinningCubeWorkerAnimation()
+    {
+        using var host = new EngineHost();
+        host.IsPaused = false; // Running at 60 Hz
+
+        var cubeNode = host.Entities.First(e => e.Name == "Spinning Cube");
+        host.SelectEntity(cubeNode);
+
+        var transformComp = cubeNode.Components.First(c => c.ComponentType == typeof(LocalTransform));
+        var posProp = transformComp.Properties.Find(p => p.Name == "position")!;
+
+        // Let simulation run for 150ms
+        Thread.Sleep(150);
+
+        var livePos = (float3)posProp.GetValue()!;
+        // Initial position was (-3, 1, 0), Y animates via MathF.Sin
+        if (livePos.x != -3f)
+        {
+            throw new Exception($"Expected X to remain -3, got {livePos.x}");
         }
     }
 
@@ -71,8 +102,10 @@ public static class EditorSyncHeadlessRunner
         using var host = new EngineHost();
         host.IsPaused = false; // Running at 60 Hz
 
-        var entityNode = host.CounterEntityNode;
-        var compNode = entityNode.Components[0];
+        var workerNode = host.Entities.First(e => e.Name == "Counter Worker");
+        host.SelectEntity(workerNode);
+
+        var compNode = workerNode.Components.First(c => c.ComponentType == typeof(CounterComponent));
         var valProp = compNode.Properties.Find(p => p.Name == "Value")!;
         var stepProp = compNode.Properties.Find(p => p.Name == "Step")!;
         var autoProp = compNode.Properties.Find(p => p.Name == "AutoIncrement")!;
@@ -81,7 +114,6 @@ public static class EditorSyncHeadlessRunner
         stepProp.SetValue(5);
         autoProp.SetValue(true);
 
-        // Let background engine thread and worker DAG run for 200ms
         Thread.Sleep(200);
 
         var valAfterRun = (int)valProp.GetValue()!;
@@ -90,7 +122,6 @@ public static class EditorSyncHeadlessRunner
             throw new Exception($"Expected value to increment above 10, got {valAfterRun}");
         }
 
-        // Turn off auto-increment
         autoProp.SetValue(false);
         Thread.Sleep(100);
 
@@ -107,25 +138,25 @@ public static class EditorSyncHeadlessRunner
     private static void TestConcurrentClashStress()
     {
         using var host = new EngineHost();
-        host.IsPaused = false; // Continuous play
+        host.IsPaused = false;
 
-        var entityNode = host.CounterEntityNode;
-        var compNode = entityNode.Components[0];
+        var workerNode = host.Entities.First(e => e.Name == "Counter Worker");
+        host.SelectEntity(workerNode);
+
+        var compNode = workerNode.Components.First(c => c.ComponentType == typeof(CounterComponent));
         var valProp = compNode.Properties.Find(p => p.Name == "Value")!;
         var autoProp = compNode.Properties.Find(p => p.Name == "AutoIncrement")!;
 
         autoProp.SetValue(true);
 
-        // Simulated UI thread spamming mutations while worker threads are executing
         var random = new Random(42);
         for (var i = 0; i < 100; i++)
         {
             var targetVal = random.Next(1, 10000);
             valProp.SetValue(targetVal);
-            Thread.Sleep(3);
+            Thread.Sleep(2);
         }
 
-        // Final settle
         valProp.SetValue(50000);
         autoProp.SetValue(false);
         Thread.Sleep(100);

@@ -7,6 +7,7 @@ public sealed class PoCSystemGroup : SystemGroup
     public PoCSystemGroup()
     {
         AddSystem<CounterWorkerSystem>();
+        AddSystem<SpinningCubeSystem>();
         SortSystems();
     }
 }

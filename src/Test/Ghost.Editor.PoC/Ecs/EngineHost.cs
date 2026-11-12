@@ -1,9 +1,11 @@
 using Ghost.Core;
 using Ghost.Editor.PoC.Nodes;
 using Ghost.Editor.PoC.Sync;
+using Ghost.Engine.Components;
 using Ghost.Entities;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
+using Misaki.HighPerformance.Mathematics;
 using System.Diagnostics;
 
 namespace Ghost.Editor.PoC.Ecs;
@@ -16,8 +18,8 @@ public sealed class EngineHost : IDisposable
     private readonly EditorSyncBridge _bridge;
     private readonly EditorSubsystem _subsystem;
 
-    private readonly Entity _counterEntity;
-    private readonly EntityNode _counterEntityNode;
+    private readonly List<EntityNode> _entities = new();
+    private EntityNode? _selectedEntity;
 
     private readonly Thread _engineThread;
     private readonly CancellationTokenSource _cts = new();
@@ -29,7 +31,8 @@ public sealed class EngineHost : IDisposable
 
     public EditorSyncBridge Bridge => _bridge;
     public EditorSubsystem Subsystem => _subsystem;
-    public EntityNode CounterEntityNode => _counterEntityNode;
+    public IReadOnlyList<EntityNode> Entities => _entities;
+    public EntityNode? SelectedEntity => _selectedEntity;
     public World World => _world;
     public long FrameCount => Interlocked.Read(ref _frameCount);
 
@@ -63,20 +66,12 @@ public sealed class EngineHost : IDisposable
         _bridge = new EditorSyncBridge();
         _subsystem = new EditorSubsystem(_bridge);
 
-        _counterEntity = _world.EntityManager.CreateEntity();
-        _world.EntityManager.AddComponent(_counterEntity, new CounterComponent
-        {
-            Value = 1,
-            Step = 1,
-            AutoIncrement = false
-        });
+        SetupHardcodedEntities();
 
-        _subsystem.RegisterMonitored(_counterEntity, typeof(CounterComponent));
+        // Select the first entity by default
+        SelectEntity(_entities[0]);
 
-        _counterEntityNode = new EntityNode(Guid.NewGuid(), "CounterEntity", _counterEntity, _bridge);
-        _counterEntityNode.AddComponent(typeof(CounterComponent));
-
-        // Initial snapshot so UI has data immediately before first tick
+        // Initial snapshot
         _subsystem.PostTick(_world);
 
         _engineThread = new Thread(EngineLoop)
@@ -85,6 +80,67 @@ public sealed class EngineHost : IDisposable
             Name = "EngineSimulationThread"
         };
         _engineThread.Start();
+    }
+
+    private void SetupHardcodedEntities()
+    {
+        // 1. Player
+        var player = _world.EntityManager.CreateEntity();
+        _world.EntityManager.AddComponent(player, LocalTransform.FromPosition(new float3(0f, 0f, 0f)));
+        var playerNode = new EntityNode(Guid.NewGuid(), "Player", player, _bridge);
+        playerNode.AddComponent(typeof(LocalTransform));
+        _entities.Add(playerNode);
+
+        // 2. Main Camera
+        var camera = _world.EntityManager.CreateEntity();
+        _world.EntityManager.AddComponent(camera, LocalTransform.FromPosition(new float3(0f, 2f, -10f)));
+        var cameraNode = new EntityNode(Guid.NewGuid(), "Main Camera", camera, _bridge);
+        cameraNode.AddComponent(typeof(LocalTransform));
+        _entities.Add(cameraNode);
+
+        // 3. Directional Light
+        var light = _world.EntityManager.CreateEntity();
+        _world.EntityManager.AddComponent(light, LocalTransform.FromPosition(new float3(0f, 10f, 0f)));
+        var lightNode = new EntityNode(Guid.NewGuid(), "Directional Light", light, _bridge);
+        lightNode.AddComponent(typeof(LocalTransform));
+        _entities.Add(lightNode);
+
+        // 4. Counter Worker
+        var counter = _world.EntityManager.CreateEntity();
+        _world.EntityManager.AddComponent(counter, LocalTransform.FromPosition(new float3(2f, 0f, 0f)));
+        _world.EntityManager.AddComponent(counter, new CounterComponent
+        {
+            Value = 1,
+            Step = 1,
+            AutoIncrement = true
+        });
+        var counterNode = new EntityNode(Guid.NewGuid(), "Counter Worker", counter, _bridge);
+        counterNode.AddComponent(typeof(LocalTransform));
+        counterNode.AddComponent(typeof(CounterComponent));
+        _entities.Add(counterNode);
+
+        // 5. Spinning Cube
+        var cube = _world.EntityManager.CreateEntity();
+        _world.EntityManager.AddComponent(cube, LocalTransform.FromPosition(new float3(-3f, 1f, 0f)));
+        _world.EntityManager.AddComponent(cube, new SpinningTag());
+        var cubeNode = new EntityNode(Guid.NewGuid(), "Spinning Cube", cube, _bridge);
+        cubeNode.AddComponent(typeof(LocalTransform));
+        cubeNode.AddComponent(typeof(SpinningTag));
+        _entities.Add(cubeNode);
+    }
+
+    public void SelectEntity(EntityNode? node)
+    {
+        _selectedEntity = node;
+        if (node != null)
+        {
+            var types = node.Components.Select(c => c.ComponentType);
+            _subsystem.SetMonitored(node.EcsEntity, types);
+        }
+        else
+        {
+            _subsystem.SetMonitored(new Entity(Entity.INVALID_ID, 0), Array.Empty<Type>());
+        }
     }
 
     public void StepSingleFrame()
