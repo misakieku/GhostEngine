@@ -17,7 +17,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.UI.Reactor" Version="0.1.0-preview.16" />
+    <PackageReference Include="Microsoft.UI.Reactor" Version="0.1.0-preview.17" />
+    <PackageReference Include="Microsoft.UI.Reactor.Advanced" Version="0.1.0-preview.17" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2957" />
   </ItemGroup>
 

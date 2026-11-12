@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <RootNamespace>Ghost.Editor.Core</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Platforms>x86;x64;ARM64</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Runtime\Ghost.Core\Ghost.Core.csproj" />
+    <ProjectReference Include="..\..\Runtime\Ghost.Entities\Ghost.Entities.csproj" />
+    <ProjectReference Include="..\..\Runtime\Ghost.Engine\Ghost.Engine.csproj" />
+  </ItemGroup>
+
+</Project>
