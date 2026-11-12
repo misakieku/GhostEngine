@@ -3,9 +3,9 @@ using Ghost.Core;
 using Ghost.Core.Utilities;
 using K4os.Compression.LZ4.Streams;
 using System.Diagnostics.CodeAnalysis;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Text;
-using ZstdSharp;
 
 namespace Ghost.AssetForge.Core.Services;
 
@@ -735,12 +735,17 @@ public class PackService
         var compressStream = compression switch
         {
             CompressionMethod.None => dst,
-            CompressionMethod.Zstd => new CompressionStream(dst, leaveOpen: true),
+            CompressionMethod.Zstd => new ZstandardStream(dst, CompressionMode.Compress, true),
             CompressionMethod.LZ4 => LZ4Stream.Encode(dst, leaveOpen: true),
             _ => throw new ArgumentOutOfRangeException(nameof(compression), compression, null)
         };
 
         await src.CopyToAsync(compressStream, cancellationToken);
+
+        if (compression != CompressionMethod.None)
+        {
+            await compressStream.DisposeAsync();
+        }
 
         if (compression != CompressionMethod.None)
         {

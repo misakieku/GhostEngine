@@ -3,7 +3,7 @@ using K4os.Compression.LZ4;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Collections.Concurrent;
-using ZstdSharp;
+using System.IO.Compression;
 
 namespace Ghost.Engine.Streaming;
 
@@ -89,6 +89,7 @@ public class RuntimeContentProvider : IContentProvider
                 var memoryBlock = new MemoryBlock(alignedSize, 16, AllocationHandle.Persistent);
                 var srcPtr = pack.GetPointer(info.Offset);
                 var dstPtr = (byte*)memoryBlock.GetUnsafePtr();
+
                 var decodedBytes = LZ4Codec.Decode(srcPtr, (int)info.Size, dstPtr, (int)uncompressedSize);
                 if (decodedBytes < 0)
                 {
@@ -106,9 +107,14 @@ public class RuntimeContentProvider : IContentProvider
                 var memoryBlock = new MemoryBlock(alignedSize, 16, AllocationHandle.Persistent);
                 var srcSpan = pack.GetSpan(info.Offset, (int)info.Size);
                 var dstSpan = new Span<byte>(memoryBlock.GetUnsafePtr(), (int)uncompressedSize);
-                using var decompressor = new Decompressor();
-                var decompressedSize = decompressor.Unwrap(srcSpan, dstSpan);
-                return AssetPayload.FromAllocatedMemory(memoryBlock, decompressedSize);
+
+                if (!ZstandardDecoder.TryDecompress(srcSpan, dstSpan, out var bytesWritten))
+                {
+                    memoryBlock.Dispose();
+                    return Result.Failure($"Failed to decompress Zstd payload for asset {guid}.");
+                }
+
+                return AssetPayload.FromAllocatedMemory(memoryBlock, bytesWritten);
             }
 
             default:

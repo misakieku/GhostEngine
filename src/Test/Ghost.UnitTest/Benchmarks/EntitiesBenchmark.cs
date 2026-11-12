@@ -1,4 +1,4 @@
-//#define TEST_QUERY
+#define TEST_QUERY
 
 using BenchmarkDotNet.Attributes;
 using Ghost.Core;
