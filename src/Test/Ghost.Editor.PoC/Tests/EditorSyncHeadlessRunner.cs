@@ -1,3 +1,5 @@
+using Ghost.Editor.PoC.Commands;
+using Ghost.Editor.PoC.Drawers;
 using Ghost.Editor.PoC.Ecs;
 using Ghost.Engine.Components;
 using Misaki.HighPerformance.Mathematics;
@@ -23,6 +25,9 @@ public static class EditorSyncHeadlessRunner
 
             TestConcurrentClashStress();
             Console.WriteLine("[PASS] Test 4: Concurrent Multi-Threaded Stress Test (Race Condition Check)");
+
+            TestUndoRedoCommandHistory();
+            Console.WriteLine("[PASS] Test 5: CommandHistory Undo/Redo & Extensible Drawer Mutation");
 
             Console.WriteLine("=== ALL HEADLESS TESTS PASSED ===");
             return 0;
@@ -170,6 +175,86 @@ public static class EditorSyncHeadlessRunner
         if (host.FrameCount < 10)
         {
             throw new Exception($"Expected frame count to advance, got {host.FrameCount}");
+        }
+    }
+
+    private static void TestUndoRedoCommandHistory()
+    {
+        using var host = new EngineHost();
+        host.IsPaused = true;
+
+        var playerNode = host.Entities.First(e => e.Name == "Player");
+        host.SelectEntity(playerNode);
+
+        var transformComp = playerNode.Components.First(c => c.ComponentType == typeof(LocalTransform));
+        var posProp = transformComp.Properties.Find(p => p.Name == "position")!;
+
+        // 1. Initial snapshot check
+        host.StepSingleFrame();
+        Thread.Sleep(50);
+        var initialPos = (float3)posProp.GetValue()!;
+
+        // 2. Setup CommandHistory and DrawerContext
+        var history = new CommandHistory();
+        var registry = new PropertyDrawerRegistry();
+        var context = new DrawerContext(history, registry);
+
+        if (history.CanUndo || history.CanRedo)
+        {
+            throw new Exception("History should initially have CanUndo=false, CanRedo=false");
+        }
+
+        // 3. Execute mutation via DrawerContext
+        context.ModifyProperty(posProp, new float3(100f, 200f, 300f));
+        host.StepSingleFrame();
+        Thread.Sleep(50);
+
+        var mutatedPos = (float3)posProp.GetValue()!;
+        if (mutatedPos.x != 100f || mutatedPos.y != 200f || mutatedPos.z != 300f)
+        {
+            throw new Exception($"Expected mutated position (100,200,300), got {mutatedPos}");
+        }
+
+        if (!history.CanUndo || history.CanRedo)
+        {
+            throw new Exception("After command, CanUndo should be true and CanRedo false");
+        }
+
+        // 4. Undo the command
+        var undoSuccess = history.Undo();
+        if (!undoSuccess)
+        {
+            throw new Exception("Undo() failed");
+        }
+
+        host.StepSingleFrame();
+        Thread.Sleep(50);
+
+        var revertedPos = (float3)posProp.GetValue()!;
+        if (revertedPos.x != initialPos.x || revertedPos.y != initialPos.y || revertedPos.z != initialPos.z)
+        {
+            throw new Exception($"Expected position to revert to {initialPos}, got {revertedPos}");
+        }
+
+        if (history.CanUndo || !history.CanRedo)
+        {
+            throw new Exception("After Undo, CanUndo should be false and CanRedo true");
+        }
+
+        // 5. Redo the command
+        var redoSuccess = history.Redo();
+        if (!redoSuccess)
+        {
+            throw new Exception("Redo() failed");
+        }
+
+        host.StepSingleFrame();
+        Thread.Sleep(50);
+
+        var redonePos = (float3)posProp.GetValue()!;
+        if (redonePos.x != 100f || redonePos.y != 200f || redonePos.z != 300f)
+        {
+            throw new Exception($"Expected position to be redone to (100,200,300), got {redonePos}");
         }
     }
 }

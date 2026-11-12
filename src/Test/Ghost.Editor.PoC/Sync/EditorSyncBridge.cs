@@ -14,7 +14,7 @@ public readonly struct PendingPropertyMutation
 public sealed class EditorSyncBridge
 {
     private readonly ConcurrentQueue<PendingPropertyMutation> _pendingMutations = new();
-    private volatile Dictionary<(Entity Entity, Type ComponentType, string FieldName), object?> _latestSnapshot = new();
+    private Dictionary<(Entity Entity, Type ComponentType, string FieldName), object?> _latestSnapshot = new();
     private long _snapshotVersion = 0;
 
     public long SnapshotVersion => Volatile.Read(ref _snapshotVersion);
