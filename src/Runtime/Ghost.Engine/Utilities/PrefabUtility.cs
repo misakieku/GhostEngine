@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Engine.Components;
 using Ghost.Engine.Streaming;
-using Ghost.Engine.Utilities;
 using Ghost.Entities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.Services;
@@ -10,7 +9,7 @@ using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
 
-namespace Ghost.Engine;
+namespace Ghost.Engine.Utilities;
 
 public static unsafe class PrefabUtility
 {
@@ -142,7 +141,7 @@ public static unsafe class PrefabUtility
             }
         }
         Span<Identifier<IComponent>> compSpan = stackalloc Identifier<IComponent>[maxCompCount + 1];
-        void** ppv = stackalloc void*[maxCompCount];
+        var ppv = stackalloc void*[maxCompCount];
 
         for (var t = 0; t < templateEntityCount; t++)
         {
