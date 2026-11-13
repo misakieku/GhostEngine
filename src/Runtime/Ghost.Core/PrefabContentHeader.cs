@@ -11,10 +11,10 @@ public struct PrefabContentHeader
     public uint magic;
     public uint version;
     public int entityCount;
-    public int reserved0;
+    public int materialDependencyIndexCount;
     public int componentTypeCount;
     public int meshMaterialFixupCount;
-    public long reserved1;
+    public long materialDependencyIndicesOffset;
     public long componentTypesOffset;
     public long entitiesOffset;
     public long meshMaterialFixupsOffset;

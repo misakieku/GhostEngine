@@ -433,13 +433,14 @@ compute "Internal/MeshletCullGraph"
                     if (hasAlpha == 0u)
                     {
                         float dist = max(length(meshletWorldCenter), 0.001f);
-                        uint triangleCount = (meshlet.packedCounts >> 8u) & 0xFFu;
                         bool isSoftware = IsSoftwareMeshlet(
                             meshletWorldCenter,
                             meshletWorldRadius,
+                            meshlet.maxEdgeLength * maxScale,
+                            g_ViewData.cameraDirection,
+                            g_ViewData.nearClip,
                             g_ViewData.projectionMatrix[1][1],
                             g_ViewData.screenSize.y,
-                            triangleCount,
                             SW_MAX_EDGE_PIXELS);
                         uint depthBucket = DepthToBucket(dist, 0.1f, 1000.0f);
                         cullBin = isSoftware ? (NUM_DEPTH_BUCKETS + depthBucket) : depthBucket;

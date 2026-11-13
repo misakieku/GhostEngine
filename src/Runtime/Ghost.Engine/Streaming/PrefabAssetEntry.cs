@@ -3,6 +3,7 @@ using Ghost.Entities;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Ghost.Engine.Streaming;
@@ -13,6 +14,7 @@ internal sealed class LoadedPrefabData
     public Identifier<IComponent>[] ComponentTypes = Array.Empty<Identifier<IComponent>>();
     public LoadedPrefabEntity[] Entities = Array.Empty<LoadedPrefabEntity>();
     public PrefabMeshMaterialFixup[] MeshMaterialFixups = Array.Empty<PrefabMeshMaterialFixup>();
+    public int[] MaterialDependencyIndices = Array.Empty<int>();
 }
 
 internal struct LoadedPrefabEntity
@@ -129,6 +131,12 @@ internal unsafe class PrefabAssetEntry : AssetEntry, ILoadableAssetEntry
             {
                 var fixupOffset = header.meshMaterialFixupsOffset + i * sizeof(PrefabMeshMaterialFixup);
                 loadedData.MeshMaterialFixups[i] = payload.Read<PrefabMeshMaterialFixup>(fixupOffset);
+            }
+
+            if (header.materialDependencyIndexCount > 0)
+            {
+                loadedData.MaterialDependencyIndices = new int[header.materialDependencyIndexCount];
+                payload.Slice(header.materialDependencyIndicesOffset, header.materialDependencyIndexCount * sizeof(int)).CopyTo(MemoryMarshal.AsBytes(loadedData.MaterialDependencyIndices.AsSpan()));
             }
 
             _prefabData = loadedData;

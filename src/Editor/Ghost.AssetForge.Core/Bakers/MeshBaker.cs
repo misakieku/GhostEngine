@@ -73,11 +73,12 @@ public unsafe partial class MeshBaker : IAssetBaker
         var componentTypes = new List<string>();
         var entities = new List<SerializedEntityRecord>();
         var meshMaterialFixups = new List<PrefabMeshMaterialFixup>();
+        var materialDependencyIndices = new List<int>();
 
-        BuildPrefabEntities(modelScene, assetId, meshSettings, ctx, meshDependencies, dependencies, componentTypes, entities, meshMaterialFixups, bakedMaterials);
+        BuildPrefabEntities(modelScene, assetId, meshSettings, ctx, meshDependencies, dependencies, componentTypes, entities, meshMaterialFixups, materialDependencyIndices, bakedMaterials);
 
         // Step 3: Write EntityPrefab to primary dst
-        WritePrefabContent(dst, componentTypes, entities, meshMaterialFixups);
+        WritePrefabContent(dst, componentTypes, entities, meshMaterialFixups, materialDependencyIndices);
 
         return Task.CompletedTask;
     }
@@ -121,6 +122,7 @@ public unsafe partial class MeshBaker : IAssetBaker
         List<string> componentTypes,
         List<SerializedEntityRecord> entities,
         List<PrefabMeshMaterialFixup> meshMaterialFixups,
+        List<int> materialDependencyIndices,
         HashSet<Guid> bakedMaterials)
     {
         var localTransformType = GetComponentTypeIndex(componentTypes, PrefabComponentTypeNames.LOCAL_TRANSFORM);
@@ -222,7 +224,7 @@ public unsafe partial class MeshBaker : IAssetBaker
             if (node->mesh != null && modelScene.MeshPointerToIndex.TryGetValue((IntPtr)node->mesh, out var meshIdx))
             {
                 referencedMeshes.Add(meshIdx);
-                AddMeshComponents(node->mesh, i, meshIdx, assetId, meshSettings, ctx, meshDependencies, dependencies, bakedMaterials, meshInstanceType, record, meshMaterialFixups);
+                AddMeshComponents(node->mesh, i, meshIdx, assetId, meshSettings, ctx, meshDependencies, dependencies, bakedMaterials, meshInstanceType, record, meshMaterialFixups, materialDependencyIndices);
             }
 
             if (node->light != null)
@@ -262,7 +264,7 @@ public unsafe partial class MeshBaker : IAssetBaker
             var pMesh = scene != null && scene->meshes.count > (uint)m ? scene->meshes.data[m] : null;
             if (pMesh != null)
             {
-                AddMeshComponents(pMesh, childIndex, m, assetId, meshSettings, ctx, meshDependencies, dependencies, bakedMaterials, meshInstanceType, childRecord, meshMaterialFixups);
+                AddMeshComponents(pMesh, childIndex, m, assetId, meshSettings, ctx, meshDependencies, dependencies, bakedMaterials, meshInstanceType, childRecord, meshMaterialFixups, materialDependencyIndices);
             }
 
             if (entities.Count > 0 && entities[0].firstChildIndex < 0)
@@ -286,10 +288,11 @@ public unsafe partial class MeshBaker : IAssetBaker
         HashSet<Guid> bakedMaterials,
         int meshInstanceType,
         SerializedEntityRecord record,
-        List<PrefabMeshMaterialFixup> meshMaterialFixups)
+        List<PrefabMeshMaterialFixup> meshMaterialFixups,
+        List<int> materialDependencyIndices)
     {
         var matCount = pMesh->materials.count > 0 ? (int)pMesh->materials.count : 1;
-        var matStartDepIndex = dependencies.Count;
+        var matStartDepIndex = materialDependencyIndices.Count;
 
         for (var m = 0; m < matCount; m++)
         {
@@ -317,7 +320,7 @@ public unsafe partial class MeshBaker : IAssetBaker
                 }
             }
 
-            GetDependencyIndex(dependencies, matGuid, ctx);
+            materialDependencyIndices.Add(GetDependencyIndex(dependencies, matGuid, ctx));
         }
 
         meshMaterialFixups.Add(new PrefabMeshMaterialFixup
@@ -465,7 +468,7 @@ public unsafe partial class MeshBaker : IAssetBaker
             0.0f, 0.0f, 0.0f, 1.0f);
     }
 
-    private static void WritePrefabContent(Stream dst, List<string> componentTypes, List<SerializedEntityRecord> entities, List<PrefabMeshMaterialFixup> meshMaterialFixups)
+    private static void WritePrefabContent(Stream dst, List<string> componentTypes, List<SerializedEntityRecord> entities, List<PrefabMeshMaterialFixup> meshMaterialFixups, List<int> materialDependencyIndices)
     {
         var assetStartOffset = dst.Position;
         var header = new PrefabContentHeader
@@ -473,10 +476,9 @@ public unsafe partial class MeshBaker : IAssetBaker
             magic = PrefabContentHeader.MAGIC,
             version = PrefabContentHeader.VERSION,
             entityCount = entities.Count,
-            reserved0 = 0,
+            materialDependencyIndexCount = materialDependencyIndices.Count,
             componentTypeCount = componentTypes.Count,
-            meshMaterialFixupCount = meshMaterialFixups.Count,
-            reserved1 = 0
+            meshMaterialFixupCount = meshMaterialFixups.Count
         };
 
         var headerPlaceholder = new byte[Marshal.SizeOf<PrefabContentHeader>()];
@@ -521,6 +523,12 @@ public unsafe partial class MeshBaker : IAssetBaker
         if (meshMaterialFixups.Count > 0)
         {
             dst.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(meshMaterialFixups)));
+        }
+
+        header.materialDependencyIndicesOffset = dst.Position - assetStartOffset;
+        if (materialDependencyIndices.Count > 0)
+        {
+            dst.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(materialDependencyIndices)));
         }
 
         var endPos = dst.Position;

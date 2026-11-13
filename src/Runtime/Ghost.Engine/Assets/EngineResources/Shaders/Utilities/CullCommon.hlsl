@@ -456,20 +456,45 @@ bool EvaluateOrthoLODDetailSufficient(float objectError, float proj11, float scr
 
 #define SW_MAX_EDGE_PIXELS 32.0f
 
-// Evaluates whether a meshlet should be rasterized via software rasterizer based on projected triangle edge length
-bool IsSoftwareMeshlet(
-    float3 clusterCenterToView,
-    float clusterRadius,
-    float proj11,
-    float screenOrTileHeight,
-    uint triangleCount,
-    float maxEdgePixels)
+// Evaluates whether a meshlet should be rasterized via software rasterizer using worst-case projected edge length
+// (Matches UE5 Nanite GetProjectedEdgeScales + EdgeLength check, falling back to HW near the near plane)
+bool IsSoftwareMeshlet(float3 clusterCenterRWS, float clusterRadius, float maxWorldEdgeLength, float3 viewForward, float nearClip, float proj11, float screenHeight, float maxEdgePixels)
 {
-    float dist = max(length(clusterCenterToView), 0.001f);
-    float clusterRadiusPx = (clusterRadius * proj11 * screenOrTileHeight * 0.5f) / max(dist - clusterRadius, 0.001f);
-    // Approximate projected triangle edge length: cluster diameter / sqrt(triangleCount)
-    float projectedEdgePx = clusterRadiusPx * (2.0f * rsqrt(max((float)triangleCount, 1.0f)));
-    return (projectedEdgePx < maxEdgePixels);
+    float z = dot(viewForward, clusterCenterRWS);
+    if (z - clusterRadius <= nearClip)
+    {
+        return false;
+    }
+
+    float distSq = dot(clusterCenterRWS, clusterCenterRWS);
+    float x = sqrt(max(0.0f, distSq - z * z));
+    float distToTSq = distSq - clusterRadius * clusterRadius;
+    float distToT = sqrt(max(0.0f, distToTSq));
+    float ty = (-clusterRadius * x + distToT * z) * rcp(max(distSq, 1e-6f));
+
+    if (distToTSq < 0.0f || ty * distToT < nearClip)
+    {
+        float tx = x + sqrt(max(0.0f, clusterRadius * clusterRadius - (nearClip - z) * (nearClip - z)));
+        ty = nearClip * rsqrt(tx * tx + nearClip * nearClip);
+    }
+
+    float projectedEdgeScale = (z - clusterRadius) * ty;
+    float viewToPixels = proj11 * screenHeight * 0.5f;
+    float projectedMaxEdgePx = (maxWorldEdgeLength * viewToPixels) / max(projectedEdgeScale, 1e-6f);
+    return (projectedMaxEdgePx < maxEdgePixels);
+}
+
+// Radial overload for perspective shadow passes without a single view-forward vector
+bool IsSoftwareMeshlet(float3 clusterCenterToView, float clusterRadius, float maxWorldEdgeLength, float proj11, float screenOrTileHeight, float maxEdgePixels)
+{
+    float dist = length(clusterCenterToView);
+    if (dist <= clusterRadius + 0.001f)
+    {
+        return false;
+    }
+
+    float projectedMaxEdgePx = (maxWorldEdgeLength * proj11 * screenOrTileHeight * 0.5f) / (dist - clusterRadius);
+    return (projectedMaxEdgePx < maxEdgePixels);
 }
 
 #endif // GHOST_CULL_COMMON_HLSL

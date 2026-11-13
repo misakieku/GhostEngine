@@ -22,7 +22,7 @@ namespace TestGame;
 internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 {
     private World _world = null!;
-    private IAssetEntry _dragonPrefab = null!;
+    private IAssetEntry _prefab = null!;
     private IAssetEntry _skyAsset = null!;
     private Entity _globalVolumeEntity;
     private ExposureMode _exposureMode = ExposureMode.AutomaticHistogram;
@@ -31,7 +31,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
     {
         EnableRayTracing = true,
         MaxVisibleMeshletsOnScreen = 2_097_152,
-        MeshletLodErrorThreshold = 1.0f,
+        MeshletLodErrorThreshold = 2.0f,
         InstanceCullingThreshold = 2.0f,
         DebugMode = RenderPipelineDebugMode.None,
     };
@@ -98,7 +98,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         const float size = 5.0f;
         const float baseScale = 1.0f;
         const float lightSize = size * 1.0f;
-        const int lightCount = 5;
+        const int lightCount = 0;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -126,16 +126,18 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             new InputReceiver(InputProfileDatabase.FIRST_PERSON_CAMERA_PROFILE_ID, true),
             default(ActionState));
 
-        _dragonPrefab = engine.AssetManager.ResolveAsset("Meshes/dragon");
+        _prefab = engine.AssetManager.ResolveAsset("Meshes/NewSponza_Main_Yup_003");
 
-        for (var i = 0; i < entityCapacity; i++)
-        {
-            var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
-            var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2)));
-            var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
+        //for (var i = 0; i < entityCapacity; i++)
+        //{
+        //    var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
+        //    var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2)));
+        //    var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
 
-            PrefabUtility.Instantiate(_world, _dragonPrefab, position, rotation, scale);
-        }
+        //    PrefabUtility.Instantiate(_world, _dragonPrefab, position, rotation, scale);
+        //}
+
+        PrefabUtility.Instantiate(_world, _prefab);
 
         _world.EntityManager.CreateEntity(
             new DirectionalLight
@@ -151,7 +153,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 specularDimmer = 1.0f,
                 normalBias = 0.75f,
                 depthBias = 0.5f,
-                shadowLodErrorScale = 5.0f,
+                shadowLodErrorScale = 3.0f,
                 contactShadow = true,
             },
             new LocalToWorld
@@ -278,7 +280,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
     {
         World.Destroy(_world);
 
-        _dragonPrefab.Release();
+        _prefab.Release();
         _skyAsset.Release();
     }
 }

@@ -6,6 +6,10 @@ namespace Ghost.Engine.RenderPipeline;
 
 public interface IRenderPipelineSettings
 {
+    uint GetPagePoolSlotCount() => 2048;
+    uint MaxStreamingRequestsPerFrame => 16_384;
+    int MaxStreamingPagesPerFrame => 32;
+
     IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager, JobScheduler jobScheduler);
 }
 

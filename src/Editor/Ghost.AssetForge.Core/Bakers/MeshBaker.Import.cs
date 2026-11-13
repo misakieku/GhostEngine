@@ -473,6 +473,7 @@ internal static unsafe partial class MeshProcessor
             target_axes = ufbx_coordinate_axes.left_handed_y_up,
             handedness_conversion_axis = ufbx_mirror_axis.UFBX_MIRROR_AXIS_Z,
             space_conversion = ufbx_space_conversion.UFBX_SPACE_CONVERSION_MODIFY_GEOMETRY,
+            geometry_transform_handling = ufbx_geometry_transform_handling.UFBX_GEOMETRY_TRANSFORM_HANDLING_MODIFY_GEOMETRY,
         };
 
         var ext = Path.GetExtension(filePath);

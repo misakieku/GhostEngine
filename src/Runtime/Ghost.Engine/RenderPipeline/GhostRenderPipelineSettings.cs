@@ -47,6 +47,11 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
     public uint MaxStreamingRequestsPerFrame { get; init; } = 16_384;
 
     /// <summary>
+    /// Maximum number of 128KB meshlet pages uploaded per frame. Default is 32 (4 MB/frame).
+    /// </summary>
+    public int MaxStreamingPagesPerFrame { get; init; } = 32;
+
+    /// <summary>
     /// Enables or disables ray tracing support in the render pipeline. Default is false.
     /// </summary>
     public bool EnableRayTracing { get; init; } = false;
