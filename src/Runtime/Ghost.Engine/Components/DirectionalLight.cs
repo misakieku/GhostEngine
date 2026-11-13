@@ -16,7 +16,7 @@ public struct DirectionalLight : IComponentData
     public float3 color;
 
     /// <summary>
-    /// Direct linear intensity multiplier.
+    /// Illuminance in Lux (lm/m^2). Default sun daylight is ~100,000 lx.
     /// </summary>
     public float intensity;
 
@@ -88,7 +88,7 @@ public struct DirectionalLight : IComponentData
     public static DirectionalLight Default => new()
     {
         color = new float3(1.0f, 1.0f, 1.0f),
-        intensity = 1.0f,
+        intensity = 100_000.0f,
         sunDiskAngularDiameter = 0.00925f,
         lightingDimmer = 1.0f,
         diffuseDimmer = 1.0f,

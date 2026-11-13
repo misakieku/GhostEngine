@@ -28,4 +28,22 @@ public struct Camera : IComponentData
 
     public Handle<GPUTexture> colorTarget;
     public Handle<GPUTexture> depthTarget;
+
+    public static Camera Default => new()
+    {
+        nearClipPlane = 0.01f,
+        farClipPlane = 1000.0f,
+        sensorSize = new float2(36.0f, 24.0f),
+        gateFit = GateFit.Vertical,
+        iso = 100.0f,
+        shutterSpeed = 1.0f / 125.0f,
+        aperture = 5.6f,
+        focalLength = 35.0f,
+        focusDistance = 10.0f,
+        renderingLayerMask = RenderingLayerMask.All,
+        swapChainIndex = 0,
+        priority = 0,
+        colorTarget = Handle<GPUTexture>.Invalid,
+        depthTarget = Handle<GPUTexture>.Invalid,
+    };
 }

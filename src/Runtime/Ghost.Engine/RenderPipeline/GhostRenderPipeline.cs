@@ -410,6 +410,11 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
             renderGraph.Blackboard.Add(ref gbufferData);
 
+            // Exposure & Sky Preparation
+            var persistentViewStateBuffer = renderGraph.ImportBuffer(_gpuViewManager.PersistentViewStateBuffer, ResourceBarrierData.Common, ResourceBarrierData.Common);
+            var exposureHistoryValid = viewContext.isExposureInitialized;
+            var exposureMode = AddPrepareExposurePass(renderGraph, viewContext, in request, ghostPayload, persistentViewStateBuffer);
+
             // Shadow Passes
             if (_hardwareFeatures.useRayTracing && _settings.DirectLightingMode == DirectLightingMode.Stochastic)
             {
@@ -420,7 +425,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
                 var risHistory = viewContext.GetOrCreateResource<RisViewResource, RisViewResource.Desc>(in desc);
                 ref readonly var rtSettings = ref ghostPayload.GetViewVolumeData<RayTracingSettings>(request.viewId);
-                AddRisPasses(renderGraph, risHistory, depthTexture, tlasBuffer, viewPort.Size, (uint)frameNumber, request.viewId, in rtSettings);
+                AddRisPasses(renderGraph, risHistory, depthTexture, tlasBuffer, persistentViewStateBuffer, viewPort.Size, (uint)frameNumber, request.viewId, in rtSettings);
             }
             else // FPTL
             {
@@ -428,15 +433,21 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             }
 
             // Sky & Lighting
-            var persistentViewStateBuffer = renderGraph.ImportBuffer(_gpuViewManager.PersistentViewStateBuffer, ResourceBarrierData.Common, ResourceBarrierData.Common);
             var skyContext = PrepareSky(renderGraph, viewContext, in request, ghostPayload, persistentViewStateBuffer);
             var litColor = AddDeferredLightingPass(renderGraph, ghostPayload, in skyContext, historyHzb, hzbHistory.HzbMipCount, hzbHistory.HzbSize,
                     depthTexture, tlasBuffer, request.viewId, viewPort.Size);
 
-            AddSkyPass(renderGraph, in skyContext, litColor, depthTexture);
-            
-            // Post-Processing
-            var post = AddPostProcessPass(renderGraph, ghostPayload, viewPort.Size, request.viewId, litColor, depthTexture);
+            AddSkyPass(renderGraph, in skyContext, litColor, depthTexture, request.viewId);
+
+            // Auto Exposure & Post-Processing
+            if (exposureMode == ExposureMode.AutomaticHistogram)
+            {
+                AddAutoExposurePasses(renderGraph, ghostPayload, persistentViewStateBuffer, litColor, request.viewId, viewPort.Size, exposureHistoryValid);
+            }
+
+            viewContext.isExposureInitialized = true;
+
+            var post = AddPostProcessPass(renderGraph, ghostPayload, viewPort.Size, request.viewId, litColor, depthTexture, persistentViewStateBuffer);
 
             // Presentation
             renderGraph.AddBlitPass(post, colorTarget, _meshPipelineResource.blitShader, false);

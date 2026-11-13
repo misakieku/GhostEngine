@@ -28,6 +28,7 @@ internal class CameraRenderSystem : SystemBase
     protected override void OnUpdate(scoped in SystemUpdateAPI systemAPI)
     {
         var payload = (GhostRenderPayload)_renderEngine.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
+        payload.DeltaTime = systemAPI.Time.DeltaTime;
 
         ref var cameraQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_cameraQueryID);
 

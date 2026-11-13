@@ -5,6 +5,8 @@ compute "PostProcess/UberPost"
         Texture2D src;
         Texture2D dst;
 
+        uint persistentViewStateBufferSrv;
+        uint viewId;
         uint tonemapMode;
         bool agxPunchy;
     }
@@ -13,6 +15,7 @@ compute "PostProcess/UberPost"
     {
         "EngineResources/Shaders/Properties.hlsl";
         "EngineResources/Shaders/Utilities/Color.hlsl";
+        "EngineResources/Shaders/PostProcess/ExposureCommon.hlsl";
     }
 
     hlsl
@@ -31,6 +34,10 @@ compute "PostProcess/UberPost"
         {
             float2 positionNDC = GetPositionNDC(dispatchThreadId.xy, g_ViewData.screenSize.zw);
             float3 color = SampleTexture2DLevel<float3>(g_Properties.src, LINEAR_CLAMP_SAMPLER, positionNDC, 0);
+
+            float4 exposureState = LoadViewExposureState(g_Properties.persistentViewStateBufferSrv, g_Properties.viewId);
+            float exposureRatio = exposureState.x / max(exposureState.y, 1e-6f);
+            color *= exposureRatio;
 
             if (g_Properties.tonemapMode == TONEMAP_AGX)
             {

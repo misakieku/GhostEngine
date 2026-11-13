@@ -14,6 +14,8 @@ compute "Internal/RisDenoiserTemporal"
         uint renderWidth;
         uint renderHeight;
         uint historyValid;
+        uint persistentViewStateBufferSrv;
+        uint viewId;
     }
 
     includes
@@ -22,6 +24,7 @@ compute "Internal/RisDenoiserTemporal"
         "EngineResources/Shaders/Common.hlsl";
         "EngineResources/Shaders/MaterialPipeline/GBufferPacking.hlsl";
         "EngineResources/Shaders/Lighting/RisCommon.hlsl";
+        "EngineResources/Shaders/PostProcess/ExposureCommon.hlsl";
         "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl";
     }
 
@@ -250,8 +253,13 @@ compute "Internal/RisDenoiserTemporal"
                 if (validWeight > 1e-4f)
                 {
                     float invValidWeight = rcp(validWeight);
-                    float3 histDiff = accumHistDiff * invValidWeight;
-                    float3 histSpec = accumHistSpec * invValidWeight;
+                    float4 exposureState = LoadViewExposureState(g_Properties.persistentViewStateBufferSrv, g_Properties.viewId);
+                    float historyExposureScale = (exposureState.y > 0.0f && exposureState.z > 0.0f)
+                        ? clamp(exposureState.y / exposureState.z, 0.01f, 100.0f)
+                        : 1.0f;
+
+                    float3 histDiff = (accumHistDiff * invValidWeight) * historyExposureScale;
+                    float3 histSpec = (accumHistSpec * invValidWeight) * historyExposureScale;
                     float prevFrames = max(accumFrames * invValidWeight, 1.0f);
                     float prevRelVar = saturate(accumRelVar * invValidWeight);
 

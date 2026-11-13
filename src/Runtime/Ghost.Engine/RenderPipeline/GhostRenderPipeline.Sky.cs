@@ -70,7 +70,9 @@ internal unsafe partial class GhostRenderPipeline
         public Identifier<RGTexture> litColorTarget;
         public Identifier<RGTexture> depthTexture;
         public Identifier<RGTexture> skyboxTexture;
+        public Identifier<RGBuffer> persistentViewStateBuffer;
         public Handle<Shader> hdriSkyShader;
+        public uint viewId;
         public float4 skyboxTintAndIntensity;
         public float2 skyboxRotationSinCos;
     }
@@ -169,23 +171,23 @@ internal unsafe partial class GhostRenderPipeline
             true);
     }
 
-    private void AddSkyPass(RenderGraph renderGraph, in SkyContext skyContext, Identifier<RGTexture> litColorTarget, Identifier<RGTexture> depthTexture)
+    private void AddSkyPass(RenderGraph renderGraph, in SkyContext skyContext, Identifier<RGTexture> litColorTarget, Identifier<RGTexture> depthTexture, uint viewId)
     {
         switch (skyContext.skyType)
         {
             case SkyType.HDRI when skyContext.hasSky && skyContext.skyboxTexture.IsValid:
-                AddHDRISkyPass(renderGraph, litColorTarget, depthTexture, skyContext.skyboxTexture, skyContext.skyTintAndIntensity, skyContext.skyRotationSinCos);
+                AddHDRISkyPass(renderGraph, litColorTarget, depthTexture, skyContext.skyboxTexture, skyContext.persistentViewStateBuffer, viewId, skyContext.skyTintAndIntensity, skyContext.skyRotationSinCos);
                 break;
             case SkyType.None:
             default:
-                AddClearSkyPass(renderGraph, litColorTarget, depthTexture);
+                AddClearSkyPass(renderGraph, litColorTarget, depthTexture, skyContext.persistentViewStateBuffer, viewId);
                 break;
         }
     }
 
-    private void AddClearSkyPass(RenderGraph rg, Identifier<RGTexture> litColorTarget, Identifier<RGTexture> depthTexture)
+    private void AddClearSkyPass(RenderGraph rg, Identifier<RGTexture> litColorTarget, Identifier<RGTexture> depthTexture, Identifier<RGBuffer> persistentViewStateBuffer, uint viewId)
     {
-        AddHDRISkyPass(rg, litColorTarget, depthTexture, Identifier<RGTexture>.Invalid, float4.zero, new float2(0.0f, 1.0f));
+        AddHDRISkyPass(rg, litColorTarget, depthTexture, Identifier<RGTexture>.Invalid, persistentViewStateBuffer, viewId, float4.zero, new float2(0.0f, 1.0f));
     }
 
     private void AddConvolveSkyIrradiancePass(RenderGraph rg, Identifier<RGTexture> skyboxTexture, Identifier<RGBuffer> persistentViewStateBuffer, uint viewId, uint skyboxMipCount, uint skyboxWidth, float4 skyboxTintAndIntensity, float2 skyRotationSinCos)
@@ -232,20 +234,26 @@ internal unsafe partial class GhostRenderPipeline
         });
     }
 
-    private void AddHDRISkyPass(RenderGraph rg, Identifier<RGTexture> litColorTarget, Identifier<RGTexture> depthTexture, Identifier<RGTexture> skyboxTexture, float4 skyboxTintAndIntensity, float2 skyRotationSinCos)
+    private void AddHDRISkyPass(RenderGraph rg, Identifier<RGTexture> litColorTarget, Identifier<RGTexture> depthTexture, Identifier<RGTexture> skyboxTexture, Identifier<RGBuffer> persistentViewStateBuffer, uint viewId, float4 skyboxTintAndIntensity, float2 skyRotationSinCos)
     {
         using var builder = rg.AddRasterRenderPass<HDRISkyPassData>(skyboxTexture.IsValid ? "HDRISky" : "ClearSky");
 
         builder.SetColorAttachment(litColorTarget, 0, AccessFlags.Write);
         builder.UseTexture(depthTexture, AccessFlags.Read);
         builder.UseTexture(skyboxTexture, AccessFlags.Read);
+        if (persistentViewStateBuffer.IsValid)
+        {
+            builder.UseBuffer(persistentViewStateBuffer, AccessFlags.Read);
+        }
 
         builder.SetPassData(new HDRISkyPassData
         {
             litColorTarget = litColorTarget,
             depthTexture = depthTexture,
             skyboxTexture = skyboxTexture,
+            persistentViewStateBuffer = persistentViewStateBuffer,
             hdriSkyShader = _lightingPipelineResource.hdriSkyShader,
+            viewId = viewId,
             skyboxTintAndIntensity = skyboxTintAndIntensity,
             skyboxRotationSinCos = skyRotationSinCos
         });
@@ -257,6 +265,10 @@ internal unsafe partial class GhostRenderPipeline
                 return;
             }
 
+            var persistentViewStateSrv = passData.persistentViewStateBuffer.IsValid
+                ? rasterCtx.GetActualBindlessIndex(passData.persistentViewStateBuffer, BindlessAccess.ShaderResource)
+                : RHIUtility.INVALID_BINDLESS_INDEX;
+
             var props = new HiddenHDRISkyShaderProperties
             {
                 skyboxTexture = rasterCtx.GetActualBindlessIndex(passData.skyboxTexture, BindlessAccess.ShaderResource),
@@ -264,7 +276,9 @@ internal unsafe partial class GhostRenderPipeline
                 depthTexture = rasterCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource),
                 depthSampler = rasterCtx.ResourceManager.StaticSampler.GetSampler(StaticSamplerType.PointClamp),
                 skyboxTintAndIntensity = passData.skyboxTintAndIntensity,
-                skyboxRotationSinCos = passData.skyboxRotationSinCos
+                skyboxRotationSinCos = passData.skyboxRotationSinCos,
+                persistentViewStateBufferSrv = persistentViewStateSrv,
+                viewId = passData.viewId
             };
 
             rasterCtx.SetUserDataWithProperties(in props, target: DataTarget.Graphics);

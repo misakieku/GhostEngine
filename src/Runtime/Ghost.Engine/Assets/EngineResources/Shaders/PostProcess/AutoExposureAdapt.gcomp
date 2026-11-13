@@ -1,0 +1,106 @@
+compute "PostProcess/AutoExposureAdapt"
+{
+    properties
+    {
+        uint histogramSrv;
+        uint persistentViewStateUav;
+        uint viewId;
+        uint historyValid;
+        float deltaTime;
+        float minEV100;
+        float maxEV100;
+        float compensation;
+        float speedUp;
+        float speedDown;
+        float lowPercent;
+        float highPercent;
+        float histogramMinEV;
+        float histogramMaxEV;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/PostProcess/ExposureCommon.hlsl";
+    }
+
+    hlsl
+    {
+        #define HISTOGRAM_BINS 64u
+
+        groupshared uint s_bins[HISTOGRAM_BINS];
+
+        [numthreads(HISTOGRAM_BINS, 1, 1)]
+        void CSMain(uint groupIndex : SV_GroupIndex)
+        {
+            ByteAddressBuffer histBuf = GET_BUFFER(g_Properties.histogramSrv);
+            s_bins[groupIndex] = histBuf.Load(groupIndex * 4u);
+            GroupMemoryBarrierWithGroupSync();
+
+            if (groupIndex == 0u)
+            {
+                uint totalWeight = 0u;
+                for (uint i = 0u; i < HISTOGRAM_BINS; ++i)
+                {
+                    totalWeight += s_bins[i];
+                }
+
+                float avgLogLum = g_Properties.histogramMinEV;
+                if (totalWeight > 0u)
+                {
+                    float lowFrac = saturate(g_Properties.lowPercent);
+                    float highFrac = saturate(max(g_Properties.highPercent, lowFrac + 0.01f));
+                    float lowCount = float(totalWeight) * lowFrac;
+                    float highCount = float(totalWeight) * highFrac;
+
+                    float accumCount = 0.0f;
+                    float weightedSum = 0.0f;
+                    float weightTotal = 0.0f;
+                    float binSpan = (g_Properties.histogramMaxEV - g_Properties.histogramMinEV) / float(HISTOGRAM_BINS - 1u);
+
+                    for (uint b = 0u; b < HISTOGRAM_BINS; ++b)
+                    {
+                        float binCount = float(s_bins[b]);
+                        float binStart = accumCount;
+                        float binEnd = accumCount + binCount;
+                        accumCount = binEnd;
+
+                        float clampedStart = max(binStart, lowCount);
+                        float clampedEnd = min(binEnd, highCount);
+                        float overlap = max(0.0f, clampedEnd - clampedStart);
+                        if (overlap > 0.0f)
+                        {
+                            float binLogLum = g_Properties.histogramMinEV + float(b) * binSpan;
+                            weightedSum += binLogLum * overlap;
+                            weightTotal += overlap;
+                        }
+                    }
+
+                    if (weightTotal > 0.0f)
+                    {
+                        avgLogLum = weightedSum / weightTotal;
+                    }
+                }
+
+                // Target EV100 from average luminance (K = 12.5 => log2(L * 8) = log2(L) + 3) minus user EV compensation
+                float targetEV100 = clamp(avgLogLum + 3.0f - g_Properties.compensation, g_Properties.minEV100, g_Properties.maxEV100);
+
+                RWByteAddressBuffer uavBuf = GET_BUFFER(g_Properties.persistentViewStateUav);
+                uint offset = g_Properties.viewId * 256u + EYE_ADAPTATION_STATE_OFFSET;
+                float4 state = asfloat(uavBuf.Load4(offset));
+
+                float currentEV100 = isfinite(state.w) ? state.w : targetEV100;
+                float speed = (targetEV100 > currentEV100) ? g_Properties.speedUp : g_Properties.speedDown;
+                float adaptAlpha = 1.0f - exp(-max(g_Properties.deltaTime, 0.0f) * max(speed, 0.0f));
+                float adaptedEV100 = (g_Properties.historyValid == 0u) ? targetEV100 : lerp(currentEV100, targetEV100, adaptAlpha);
+                adaptedEV100 = clamp(adaptedEV100, g_Properties.minEV100, g_Properties.maxEV100);
+
+                state.x = EV100ToExposure(adaptedEV100);
+                state.w = adaptedEV100;
+                uavBuf.Store4(offset, asuint(state));
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}
