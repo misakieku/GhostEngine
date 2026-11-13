@@ -27,16 +27,16 @@ public sealed class ConsolePanel : Component
             var icon = isError ? "\uEA39" : (isWarn ? "\uE7BA" : "\uE946");
 
             return HStack(6,
-                TextBlock(icon).FontSize(11).Foreground(color).VAlign(VerticalAlignment.Center),
-                TextBlock(msg).FontSize(11).Foreground(GhostColors.TextPrimary).VAlign(VerticalAlignment.Center)
+                TextBlock(icon).FontFamily("Segoe Fluent Icons").FontSize(12).Foreground(color).VAlign(VerticalAlignment.Center),
+                TextBlock(msg).FontSize(12).Foreground(GhostColors.TextPrimary).VAlign(VerticalAlignment.Center)
             ).Padding(horizontal: 6, vertical: 2);
         }).ToArray();
 
         return Border(
             VStack(4,
                 HStack(8,
-                    Button("Clear", () => {}).Height(20).FontSize(10),
-                    TextBlock("5 Messages").FontSize(10).Foreground(GhostColors.TextTertiary).VAlign(VerticalAlignment.Center)
+                    Button("Clear", () => {}),
+                    TextBlock("5 Messages").FontSize(11).Foreground(GhostColors.TextTertiary).VAlign(VerticalAlignment.Center)
                 ).Padding(horizontal: 8, vertical: 4),
 
                 Border(Empty()).Height(1).Background(GhostColors.SubtleBorder),

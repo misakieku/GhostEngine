@@ -23,7 +23,7 @@ public sealed class StudioApp : Component
             Component<EditorTitleBar>().Grid(row: 0, column: 0),
             Component<StudioWorkspace>().Grid(row: 1, column: 0)
         )
-        .Background(GhostColors.RootBackground)
+        .Backdrop(BackdropKind.Mica)
         .OnKeyDown((_, e) =>
         {
             var isCtrl = (InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control) & CoreVirtualKeyStates.Down) == CoreVirtualKeyStates.Down;

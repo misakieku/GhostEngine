@@ -1,11 +1,9 @@
-using Ghost.Studio.DesignSystem;
 using Ghost.Studio.Panels.Console;
 using Ghost.Studio.Panels.Hierarchy;
 using Ghost.Studio.Panels.Inspector;
 using Ghost.Studio.Panels.Profiler;
 using Ghost.Studio.Panels.Project;
 using Ghost.Studio.Panels.Viewport;
-using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Reactor.Docking;
 using Microsoft.UI.Xaml.Controls;
@@ -19,32 +17,43 @@ public sealed class StudioWorkspace : Component
     {
         return new DockManager
         {
-            PersistenceId = "GhostEngineStudio_Workspace",
+            PersistenceId = "GhostEngineStudio_Workspace_v2",
             Layout = new DockSplit(
                 Orientation.Horizontal,
-                [
-                    new ToolWindow
-                    {
-                        Title = "Hierarchy",
-                        Key = "Hierarchy",
-                        Content = Component<HierarchyPanel>()
-                    },
+                new DockNode[]
+                {
+                    new DockTabGroup(
+                        new DockableContent[]
+                        {
+                            new ToolWindow
+                            {
+                                Title = "Hierarchy",
+                                Key = "Hierarchy",
+                                Content = Component<HierarchyPanel>()
+                            }
+                        },
+                        Width: 260,
+                        Role: DockGroupRole.ToolWindowStrip
+                    ),
                     new DockSplit(
                         Orientation.Vertical,
-                        [
+                        new DockNode[]
+                        {
                             new DockTabGroup(
-                                [
+                                new DockableContent[]
+                                {
                                     new Document
                                     {
                                         Title = "Scene",
                                         Key = "Scene",
                                         Content = Component<ViewportPanel>()
                                     }
-                                ],
+                                },
                                 Role: DockGroupRole.DocumentArea
                             ),
                             new DockTabGroup(
-                                [
+                                new DockableContent[]
+                                {
                                     new ToolWindow
                                     {
                                         Title = "Project",
@@ -63,18 +72,26 @@ public sealed class StudioWorkspace : Component
                                         Key = "Profiler",
                                         Content = Component<ProfilerPanel>()
                                     }
-                                ],
-                                CompactTabs: true
+                                },
+                                CompactTabs: true,
+                                Role: DockGroupRole.ToolWindowStrip
                             )
-                        ]
+                        }
                     ),
-                    new ToolWindow
-                    {
-                        Title = "Inspector",
-                        Key = "Inspector",
-                        Content = Component<InspectorPanel>()
-                    }
-                ]
+                    new DockTabGroup(
+                        new DockableContent[]
+                        {
+                            new ToolWindow
+                            {
+                                Title = "Inspector",
+                                Key = "Inspector",
+                                Content = Component<InspectorPanel>()
+                            }
+                        },
+                        Width: 340,
+                        Role: DockGroupRole.ToolWindowStrip
+                    )
+                }
             )
         };
     }

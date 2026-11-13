@@ -25,6 +25,8 @@ public sealed class ComponentDrawerRegistry
     {
         var registry = new ComponentDrawerRegistry();
         registry.Register<LocalTransform>(new TransformComponentDrawer());
+        registry.Register<Camera>(new CameraComponentDrawer());
+        registry.Register<MeshInstance>(new MeshInstanceDrawer());
         return registry;
     }
 }

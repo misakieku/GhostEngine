@@ -1,5 +1,8 @@
 using Ghost.Editor.Core.Commands;
+using Ghost.Editor.Core.Menus;
+using Ghost.Editor.Core.Selection;
 using Ghost.Studio.DesignSystem;
+using Ghost.Studio.Menus;
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
 using Microsoft.UI.Xaml;
@@ -12,14 +15,21 @@ public sealed class EditorTitleBar : Component
     public override Element Render()
     {
         var history = CommandHistory.Instance;
-        var (revision, setRevision) = UseState(0);
+        var selection = EditorSelection.Instance;
+        var (_, setRevision) = UseState(0);
         var (isPlaying, setIsPlaying) = UseState(false);
 
         UseEffect(() =>
         {
-            Action onHistoryChanged = () => setRevision(revision + 1);
-            history.HistoryChanged += onHistoryChanged;
-            return () => history.HistoryChanged -= onHistoryChanged;
+            var rev = 0;
+            Action onChanged = () => setRevision(++rev);
+            history.HistoryChanged += onChanged;
+            selection.SelectionChanged += onChanged;
+            return () =>
+            {
+                history.HistoryChanged -= onChanged;
+                selection.SelectionChanged -= onChanged;
+            };
         }, Array.Empty<object>());
 
         var undoText = history.CanUndo ? $"Undo ({history.NextUndoName})" : "Undo";
@@ -27,50 +37,49 @@ public sealed class EditorTitleBar : Component
 
         return Border(
             Grid(
-                columns: [GridSize.Auto, GridSize.Star(), GridSize.Auto],
-                rows: [GridSize.Star()],
+                columns: new GridSize[] { GridSize.Auto, GridSize.Star(), GridSize.Auto },
+                rows: new GridSize[] { GridSize.Auto },
 
-                HStack(10,
-                    TextBlock("\uE7C3").FontSize(14).Foreground(GhostColors.AccentPrimary).VAlign(VerticalAlignment.Center),
+                HStack(8,
+                    TextBlock("\uE7C3").FontFamily("Segoe Fluent Icons").FontSize(14).Foreground(GhostColors.AccentPrimary).VAlign(VerticalAlignment.Center),
                     TextBlock("GhostEngine Studio").FontSize(12).SemiBold().Foreground(GhostColors.TextPrimary).VAlign(VerticalAlignment.Center),
 
-                    Border(Empty()).Width(1).Height(14).Background(GhostColors.SubtleBorder).VAlign(VerticalAlignment.Center),
+                    Border(Empty()).Width(1).Height(16).Background(GhostColors.SubtleBorder).VAlign(VerticalAlignment.Center),
 
-                    HStack(4,
+                    HStack(2,
                         MenuBtn("File"),
                         MenuBtn("Edit"),
-                        MenuBtn("Entity"),
+                        Button("Entity", () => {}).SubtleButton().WithFlyout(EditorMenuBuilder.BuildFlyout("Entity", new MenuContext())),
                         MenuBtn("Window"),
                         MenuBtn("Help")
                     ),
 
-                    Border(Empty()).Width(1).Height(14).Background(GhostColors.SubtleBorder).VAlign(VerticalAlignment.Center),
+                    Border(Empty()).Width(1).Height(16).Background(GhostColors.SubtleBorder).VAlign(VerticalAlignment.Center),
 
-                    Button(undoText, () => history.Undo()).IsEnabled(history.CanUndo).Height(22).FontSize(10),
-                    Button(redoText, () => history.Redo()).IsEnabled(history.CanRedo).Height(22).FontSize(10)
+                    Button(undoText, () => history.Undo()).IsEnabled(history.CanUndo).SubtleButton(),
+                    Button(redoText, () => history.Redo()).IsEnabled(history.CanRedo).SubtleButton()
                 ).VAlign(VerticalAlignment.Center).Grid(row: 0, column: 0),
 
                 HStack(4,
-                    Button(isPlaying ? "\uE769" : "\uE768", () => setIsPlaying(!isPlaying))
-                        .Height(24).Width(32).FontSize(11)
-                        .Foreground(isPlaying ? GhostColors.StatusWarning : GhostColors.StatusSuccess),
-                    Button("\uE71A", () => setIsPlaying(false))
-                        .Height(24).Width(32).FontSize(11)
+                    Button(Icon(FontIcon(isPlaying ? "\uE769" : "\uE768", fontSize: 12)), () => setIsPlaying(!isPlaying))
+                        .Foreground(isPlaying ? GhostColors.StatusWarning : GhostColors.StatusSuccess)
+                        .AutomationName(isPlaying ? "Pause" : "Play"),
+                    Button(Icon(FontIcon("\uE71A", fontSize: 12)), () => setIsPlaying(false))
                         .Foreground(GhostColors.TextSecondary)
+                        .AutomationName("Stop")
                 ).HAlign(HorizontalAlignment.Center).VAlign(VerticalAlignment.Center).Grid(row: 0, column: 1),
 
                 HStack(8,
                     Border(
-                        TextBlock("FPS 60").FontSize(10).Foreground(GhostColors.StatusSuccess).VAlign(VerticalAlignment.Center)
-                    ).Background(GhostColors.CardBackground).Padding(horizontal: 6, vertical: 2).CornerRadius(3)
+                        TextBlock("FPS 60").FontSize(11).SemiBold().Foreground(GhostColors.StatusSuccess).VAlign(VerticalAlignment.Center)
+                    ).Background(GhostColors.CardBackground).WithBorder(GhostColors.CardBorder, 1).Padding(horizontal: 8, vertical: 3).CornerRadius(4)
                 ).HAlign(HorizontalAlignment.Right).VAlign(VerticalAlignment.Center).Grid(row: 0, column: 2)
             ).Padding(horizontal: 10, vertical: 4)
         )
-        .Height(36)
-        .Background(GhostColors.RootBackground)
+        .Background(GhostColors.PanelBackground)
         .WithBorder(GhostColors.SubtleBorder, 1);
     }
 
     private static Element MenuBtn(string text) =>
-        Button(text, () => {}).Height(22).FontSize(11).Foreground(GhostColors.TextSecondary);
+        Button(text, () => {}).SubtleButton();
 }

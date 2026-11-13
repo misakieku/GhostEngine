@@ -15,23 +15,29 @@ public sealed class Float3PropertyDrawer : PropertyDrawer
     {
         var current = property.Value is float3 f ? f : default;
 
-        return HStack(6,
-            TextBlock(property.Name).Foreground(GhostColors.TextSecondary).FontSize(11).VAlign(VerticalAlignment.Center).Width(70),
+        return Grid(
+            columns: [GridSize.Px(GhostLayout.PROPERTY_LABEL_WIDTH), GridSize.Auto, GridSize.Star(), GridSize.Auto, GridSize.Star(), GridSize.Auto, GridSize.Star()],
+            rows: [GridSize.Auto],
 
-            TextBlock("X").Foreground("#EF4444").FontSize(10).SemiBold().VAlign(VerticalAlignment.Center),
+            DrawPropertyLabel(property).Grid(row: 0, column: 0),
+
+            TextBlock("X").Foreground(GhostColors.StatusError).FontSize(11).SemiBold().VAlign(VerticalAlignment.Center).Margin(right: 4).Grid(row: 0, column: 1),
             NumberBox(current.x, v => context.ModifyProperty(property, current, new float3((float)v, current.y, current.z)))
                 .SpinButtons(Microsoft.UI.Xaml.Controls.NumberBoxSpinButtonPlacementMode.Hidden)
-                .Height(22).FontSize(11).Width(55),
+                .AutomationName($"{property.DisplayName} X")
+                .Margin(right: GhostLayout.CONTROL_GAP).Grid(row: 0, column: 2),
 
-            TextBlock("Y").Foreground("#10B981").FontSize(10).SemiBold().VAlign(VerticalAlignment.Center),
+            TextBlock("Y").Foreground(GhostColors.StatusSuccess).FontSize(11).SemiBold().VAlign(VerticalAlignment.Center).Margin(right: 4).Grid(row: 0, column: 3),
             NumberBox(current.y, v => context.ModifyProperty(property, current, new float3(current.x, (float)v, current.z)))
                 .SpinButtons(Microsoft.UI.Xaml.Controls.NumberBoxSpinButtonPlacementMode.Hidden)
-                .Height(22).FontSize(11).Width(55),
+                .AutomationName($"{property.DisplayName} Y")
+                .Margin(right: GhostLayout.CONTROL_GAP).Grid(row: 0, column: 4),
 
-            TextBlock("Z").Foreground("#3B82F6").FontSize(10).SemiBold().VAlign(VerticalAlignment.Center),
+            TextBlock("Z").Foreground(GhostColors.AccentPrimary).FontSize(11).SemiBold().VAlign(VerticalAlignment.Center).Margin(right: 4).Grid(row: 0, column: 5),
             NumberBox(current.z, v => context.ModifyProperty(property, current, new float3(current.x, current.y, (float)v)))
                 .SpinButtons(Microsoft.UI.Xaml.Controls.NumberBoxSpinButtonPlacementMode.Hidden)
-                .Height(22).FontSize(11).Width(55)
-        ).Margin(top: 2, bottom: 2);
+                .AutomationName($"{property.DisplayName} Z")
+                .Grid(row: 0, column: 6)
+        ).MinHeight(GhostLayout.ROW_MIN_HEIGHT);
     }
 }

@@ -12,10 +12,14 @@ public sealed class DefaultPropertyDrawer : PropertyDrawer
     public override Element Draw(PropertyNode property, DrawerContext context)
     {
         var valStr = property.Value?.ToString() ?? "null";
+        var valueText = TextBlock(valStr)
+            .Foreground(GhostColors.TextPrimary)
+            .FontSize(12)
+            .TextTrimming(TextTrimming.CharacterEllipsis)
+            .MaxLines(1)
+            .VAlign(VerticalAlignment.Center)
+            .ToolTip(valStr);
 
-        return HStack(8,
-            TextBlock(property.Name).Foreground(GhostColors.TextSecondary).FontSize(11).VAlign(VerticalAlignment.Center).Width(80),
-            TextBlock(valStr).Foreground(GhostColors.TextPrimary).FontSize(11).VAlign(VerticalAlignment.Center)
-        ).Margin(top: 2, bottom: 2);
+        return DrawLabeledRow(property, valueText);
     }
 }

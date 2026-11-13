@@ -21,11 +21,11 @@ public sealed class ViewportPanel : Component
 
                 Border(
                     VStack(8,
-                        TextBlock("\uE7C5").FontSize(32).Foreground(GhostColors.TextTertiary).HAlign(HorizontalAlignment.Center),
+                        TextBlock("\uE7C5").FontFamily("Segoe Fluent Icons").FontSize(32).Foreground(GhostColors.TextTertiary).HAlign(HorizontalAlignment.Center),
                         TextBlock("D3D12 Viewport").FontSize(14).SemiBold().Foreground(GhostColors.TextSecondary).HAlign(HorizontalAlignment.Center),
-                        TextBlock("Ready for SwapChainPanel Presentation").FontSize(11).Foreground(GhostColors.TextTertiary).HAlign(HorizontalAlignment.Center)
+                        TextBlock("Ready for SwapChainPanel Presentation").FontSize(12).Foreground(GhostColors.TextTertiary).HAlign(HorizontalAlignment.Center)
                     ).VAlign(VerticalAlignment.Center)
-                ).Background("#0B0C0E").Grid(row: 0, column: 0),
+                ).Background(GhostColors.RootBackground).Grid(row: 0, column: 0),
 
                 Border(
                     HStack(4,
@@ -34,12 +34,12 @@ public sealed class ViewportPanel : Component
                         ToolBtn("\uE7AD", "Rotate", gizmoMode, setGizmoMode),
                         ToolBtn("\uE740", "Scale", gizmoMode, setGizmoMode),
                         Border(Empty()).Width(1).Height(16).Background(GhostColors.SubtleBorder).Margin(horizontal: 4, vertical: 0),
-                        Button(coordSpace, () => setCoordSpace(coordSpace == "World" ? "Local" : "World")).Height(22).FontSize(10)
+                        Button(coordSpace, () => setCoordSpace(coordSpace == "World" ? "Local" : "World"))
                     ).Padding(4)
                 )
-                .Background("#E018191E")
+                .Background(GhostColors.OverlayBackground)
                 .CornerRadius(4)
-                .WithBorder(GhostColors.SubtleBorder, 1)
+                .WithBorder(GhostColors.OverlayBorder, 1)
                 .HAlign(HorizontalAlignment.Left)
                 .VAlign(VerticalAlignment.Top)
                 .Margin(8)
@@ -52,25 +52,24 @@ public sealed class ViewportPanel : Component
                             "Lit" => "Unlit",
                             "Unlit" => "Wireframe",
                             _ => "Lit"
-                        })).Height(22).FontSize(10)
+                        }))
                     ).Padding(4)
                 )
-                .Background("#E018191E")
+                .Background(GhostColors.OverlayBackground)
                 .CornerRadius(4)
-                .WithBorder(GhostColors.SubtleBorder, 1)
+                .WithBorder(GhostColors.OverlayBorder, 1)
                 .HAlign(HorizontalAlignment.Left)
                 .VAlign(VerticalAlignment.Bottom)
                 .Margin(8)
                 .Grid(row: 0, column: 0)
             )
-        ).Background(GhostColors.RootBackground);
+        ).Background(GhostColors.PanelBackground);
     }
 
     private static Element ToolBtn(string icon, string mode, string currentMode, Action<string> setMode)
     {
         var isActive = mode == currentMode;
-        return Button(icon, () => setMode(mode))
-            .Height(22).Width(26).FontSize(11)
-            .Foreground(isActive ? GhostColors.AccentPrimary : GhostColors.TextSecondary);
+        var btn = Button(Icon(FontIcon(icon, fontSize: 12)), () => setMode(mode)).AutomationName(mode);
+        return isActive ? btn.AccentButton() : btn.SubtleButton();
     }
 }

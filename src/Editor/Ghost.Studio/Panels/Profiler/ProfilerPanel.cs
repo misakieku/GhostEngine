@@ -11,7 +11,17 @@ public sealed class ProfilerPanel : Component
 {
     public override Element Render()
     {
-        var snapshot = EditorSyncBridge.Instance.LatestSnapshot;
+        var bridge = EditorSyncBridge.Instance;
+        var (_, setRevision) = UseState(0);
+        UseEffect(() =>
+        {
+            var rev = 0;
+            Action<SceneSnapshot> onSnapshot = _ => setRevision(++rev);
+            bridge.SnapshotPublished += onSnapshot;
+            return () => bridge.SnapshotPublished -= onSnapshot;
+        }, Array.Empty<object>());
+
+        var snapshot = bridge.LatestSnapshot;
         var fps = snapshot?.Fps ?? 60.0f;
         var frameTime = snapshot?.FrameTimeMs ?? 16.6f;
         var entityCount = snapshot?.EntityCount ?? 0;
@@ -30,16 +40,16 @@ public sealed class ProfilerPanel : Component
         ).Background(GhostColors.PanelBackground);
     }
 
-    private static Element StatCard(string title, string value, string color)
+    private static Element StatCard(string title, string value, ThemeRef color)
     {
         return Border(
             VStack(2,
-                TextBlock(title).FontSize(9).Foreground(GhostColors.TextTertiary),
-                TextBlock(value).FontSize(13).SemiBold().Foreground(color)
-            ).Padding(horizontal: 8, vertical: 4)
+                TextBlock(title).FontSize(10).Foreground(GhostColors.TextTertiary),
+                TextBlock(value).FontSize(14).SemiBold().Foreground(color)
+            ).Padding(horizontal: 10, vertical: 6)
         )
         .Background(GhostColors.CardBackground)
-        .WithBorder(GhostColors.SubtleBorder, 1)
+        .WithBorder(GhostColors.CardBorder, 1)
         .CornerRadius(4);
     }
 }

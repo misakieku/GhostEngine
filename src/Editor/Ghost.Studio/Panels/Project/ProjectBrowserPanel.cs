@@ -20,12 +20,12 @@ public sealed class ProjectBrowserPanel : Component
             var isSelected = folder == selectedFolder;
             return Border(
                 HStack(6,
-                    TextBlock("\uED25").FontSize(11).Foreground(isSelected ? GhostColors.AccentPrimary : GhostColors.TextSecondary),
-                    TextBlock(folder).FontSize(11).Foreground(isSelected ? "#FFFFFF" : GhostColors.TextPrimary)
-                ).Padding(horizontal: 8, vertical: 4)
+                    TextBlock("\uED25").FontFamily("Segoe Fluent Icons").FontSize(12).Foreground(isSelected ? GhostColors.TextOnAccent : GhostColors.TextSecondary).VAlign(VerticalAlignment.Center),
+                    TextBlock(folder).FontSize(12).Foreground(isSelected ? GhostColors.TextOnAccent : GhostColors.TextPrimary).VAlign(VerticalAlignment.Center)
+                ).Padding(horizontal: 8, vertical: 5)
             )
-            .Background(isSelected ? GhostColors.CardSelected : "Transparent")
-            .CornerRadius(3)
+            .Background(isSelected ? GhostColors.CardSelected : GhostColors.TransparentHitTarget)
+            .CornerRadius(4)
             .OnPointerPressed((_, _) => setSelectedFolder(folder));
         }).ToArray();
 
@@ -33,20 +33,20 @@ public sealed class ProjectBrowserPanel : Component
             Border(
                 VStack(4,
                     Border(
-                        TextBlock("\uE7C3").FontSize(24).Foreground(GhostColors.AccentPrimary).HAlign(HorizontalAlignment.Center).VAlign(VerticalAlignment.Center)
+                        TextBlock("\uE7C3").FontFamily("Segoe Fluent Icons").FontSize(24).Foreground(GhostColors.AccentPrimary).HAlign(HorizontalAlignment.Center).VAlign(VerticalAlignment.Center)
                     )
-                    .Background("#1A1C22")
+                    .Background(GhostColors.RootBackground)
                     .CornerRadius(3)
                     .Height(60),
 
-                    TextBlock(asset).FontSize(10).SemiBold().Foreground(GhostColors.TextPrimary).HAlign(HorizontalAlignment.Center)
+                    TextBlock(asset).FontSize(11).SemiBold().Foreground(GhostColors.TextPrimary).HAlign(HorizontalAlignment.Center)
                 ).Padding(6)
             )
             .Background(GhostColors.CardBackground)
-            .WithBorder(GhostColors.SubtleBorder, 1)
+            .WithBorder(GhostColors.CardBorder, 1)
             .CornerRadius(4)
-            .Width(90)
-            .Height(95)
+            .Width(96)
+            .MinHeight(95)
         ).ToArray();
 
         return Border(
