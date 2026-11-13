@@ -685,29 +685,26 @@ internal unsafe partial class GhostRenderPipeline
         }
 
         // RisScreenContactShadow (Evaluates screen contact shadow & compacts unresolved rays)
-        Identifier<RGTexture> risShadowMask;
-        Identifier<RGBuffer> unresolvedRaysBuffer;
-        Identifier<RGBuffer> counterBuffer;
+        var maxPixels = renderSize.x * renderSize.y;
+        var risShadowMask = rg.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8_UNorm, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource), "RisShadowMask");
+        var unresolvedRaysBuffer = rg.CreateBuffer(new BufferDesc
+        {
+            Size = maxPixels * 4u,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, "RisUnresolvedRays");
+        var counterBuffer = rg.CreateBuffer(new BufferDesc
+        {
+            Size = 4u,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, "RisRayCounter");
         Identifier<RGBuffer> indirectArgsBuffer;
+
+        rg.AddClearBufferPass(counterBuffer, _meshPipelineResource.clearBufferShader, 4, passName: "ClearRisRayCounter");
 
         using (var builder = rg.AddComputeRenderPass<RisScreenContactShadowPassData>("RisScreenContactShadow"))
         {
-            var maxPixels = renderSize.x * renderSize.y;
-
-            risShadowMask = rg.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8_UNorm, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource), "RisShadowMask");
-            unresolvedRaysBuffer = builder.CreateBuffer(new BufferDesc
-            {
-                Size = maxPixels * 4u,
-                Stride = 4,
-                Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-            }, "RisUnresolvedRays");
-            counterBuffer = builder.CreateBuffer(new BufferDesc
-            {
-                Size = 4u,
-                Stride = 4,
-                Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-            }, "RisRayCounter");
-
             builder.UseTexture(depthTexture, AccessFlags.Read);
             builder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
             builder.UseTexture(risLightSamples, AccessFlags.Read);
@@ -736,8 +733,6 @@ internal unsafe partial class GhostRenderPipeline
 
             builder.SetRenderFunc<RisScreenContactShadowPassData>(static (ref readonly passData, computeCtx) =>
             {
-                computeCtx.ClearBuffer(passData.counterBuffer, 4);
-
                 var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
                 var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
                 var samplesSrv = computeCtx.GetActualBindlessIndex(passData.risLightSamples, BindlessAccess.ShaderResource);

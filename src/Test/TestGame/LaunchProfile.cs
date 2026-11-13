@@ -205,7 +205,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         });
         volumeData.Set(new HDRISettings
         {
-            intensity = 10_000.0f,
+            intensity = 2_500.0f,
             tint = new float3(1.0f, 1.0f, 1.0f),
             texture = skyboxHandle,
         });

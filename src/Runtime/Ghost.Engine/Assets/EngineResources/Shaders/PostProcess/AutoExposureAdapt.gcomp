@@ -26,7 +26,7 @@ compute "PostProcess/AutoExposureAdapt"
 
     hlsl
     {
-        #define HISTOGRAM_BINS 64u
+        #define HISTOGRAM_BINS 128u
 
         groupshared uint s_bins[HISTOGRAM_BINS];
 

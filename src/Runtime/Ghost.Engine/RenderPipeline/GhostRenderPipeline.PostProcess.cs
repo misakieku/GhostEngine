@@ -11,7 +11,7 @@ namespace Ghost.Engine.RenderPipeline;
 
 internal partial class GhostRenderPipeline
 {
-    private const uint LUMINANCE_HISTOGRAM_BINS = 64u;
+    private const uint LUMINANCE_HISTOGRAM_BINS = 128u;
     private const uint LUMINANCE_HISTOGRAM_SIZE_BYTES = LUMINANCE_HISTOGRAM_BINS * 4u;
 
     private struct PrepareExposurePassData
@@ -23,6 +23,12 @@ internal partial class GhostRenderPipeline
         public uint historyValid;
         public float fixedEV100;
         public float initialEV100;
+    }
+
+    private struct ClearLuminanceHistogramPassData
+    {
+        public Handle<ComputeShader> shader;
+        public Identifier<RGBuffer> histogramBuffer;
     }
 
     private struct BuildLuminanceHistogramPassData
@@ -154,7 +160,7 @@ internal partial class GhostRenderPipeline
         var histogramMaxEV = math.max(histogramMinEV + 0.01f, exposureSettings.histogramMaxEV.GetValueOrDefault(defaults.histogramMaxEV!.Value));
 
         Identifier<RGBuffer> histogramBuffer;
-        using (var builder = renderGraph.AddComputeRenderPass<BuildLuminanceHistogramPassData>("BuildLuminanceHistogram"))
+        using (var builder = renderGraph.AddComputeRenderPass<ClearLuminanceHistogramPassData>("ClearLuminanceHistogram"))
         {
             var histDesc = new BufferDesc
             {
@@ -164,10 +170,36 @@ internal partial class GhostRenderPipeline
                 HeapType = HeapType.Default
             };
             histogramBuffer = builder.CreateBuffer(in histDesc, "LuminanceHistogram");
+            builder.UseBuffer(histogramBuffer, AccessFlags.Write);
 
+            builder.SetPassData(new ClearLuminanceHistogramPassData
+            {
+                shader = _postProcessPipelineResource.buildLuminanceHistogramShader,
+                histogramBuffer = histogramBuffer,
+            });
+
+            builder.SetRenderFunc<ClearLuminanceHistogramPassData>(static (ref readonly passData, ctx) =>
+            {
+                if (!passData.shader.IsValid)
+                {
+                    return;
+                }
+
+                ctx.SetActiveCompute(passData.shader, 1);
+                ctx.SetPassProperties(new PostProcessBuildLuminanceHistogramShaderProperties
+                {
+                    histogramUav = ctx.GetActualBindlessIndex(passData.histogramBuffer, BindlessAccess.UnorderedAccess),
+                });
+
+                ctx.DispatchCompute(1, 1, 1);
+            });
+        }
+
+        using (var builder = renderGraph.AddComputeRenderPass<BuildLuminanceHistogramPassData>("BuildLuminanceHistogram"))
+        {
             builder.UseTexture(hdrColor, AccessFlags.Read);
             builder.UseBuffer(persistentViewStateBuffer, AccessFlags.Read);
-            builder.UseBuffer(histogramBuffer, AccessFlags.Write);
+            builder.UseBuffer(histogramBuffer, AccessFlags.ReadWrite);
 
             builder.SetPassData(new BuildLuminanceHistogramPassData
             {
@@ -184,8 +216,6 @@ internal partial class GhostRenderPipeline
 
             builder.SetRenderFunc<BuildLuminanceHistogramPassData>(static (ref readonly passData, ctx) =>
             {
-                ctx.ClearBuffer(passData.histogramBuffer, LUMINANCE_HISTOGRAM_SIZE_BYTES);
-
                 if (!passData.shader.IsValid)
                 {
                     return;

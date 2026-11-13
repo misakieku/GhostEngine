@@ -39,6 +39,9 @@ internal partial class MeshPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/Blit")]
     public Handle<Shader> blitShader;
 
+    [ResolveAsset("EngineResources/Shaders/Utilities/ClearBuffer")]
+    public Handle<ComputeShader> clearBufferShader;
+
     public IWorkGraphProgram? cullWorkGraphProgram;
     public IWorkGraphProgram? shadowCullWorkGraphProgram;
     public IWorkGraphProgram? directionalShadowCullWorkGraphProgram;

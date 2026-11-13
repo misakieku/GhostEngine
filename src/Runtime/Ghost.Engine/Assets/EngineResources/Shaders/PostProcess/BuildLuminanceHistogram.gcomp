@@ -21,7 +21,7 @@ compute "PostProcess/BuildLuminanceHistogram"
 
     hlsl
     {
-        #define HISTOGRAM_BINS 64u
+        #define HISTOGRAM_BINS 128u
         #define METERING_CENTER_WEIGHTED 1u
 
         groupshared uint s_hist[HISTOGRAM_BINS];
@@ -74,7 +74,15 @@ compute "PostProcess/BuildLuminanceHistogram"
                 histBuf.InterlockedAdd(groupIndex * 4u, s_hist[groupIndex]);
             }
         }
+
+        [numthreads(HISTOGRAM_BINS, 1, 1)]
+        void CSClear(uint groupIndex : SV_GroupIndex)
+        {
+            RWByteAddressBuffer histBuf = GET_BUFFER(g_Properties.histogramUav);
+            histBuf.Store(groupIndex * 4u, 0u);
+        }
     }
 
     cs "hlsl_block" : "CSMain";
+    cs "hlsl_block" : "CSClear";
 }

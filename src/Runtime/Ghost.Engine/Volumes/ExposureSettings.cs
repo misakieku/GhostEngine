@@ -110,13 +110,13 @@ public partial struct ExposureSettings
         meteringMode = MeteringMode.CenterWeighted,
         fixedExposure = 0.0f,
         compensation = 0.0f,
-        minEV100 = -5.0f,
+        minEV100 = 0.0f,
         maxEV100 = 12.0f,
         speedUp = 3.0f,
         speedDown = 1.0f,
         lowPercent = 0.40f,
         highPercent = 0.90f,
-        histogramMinEV = -10.0f,
-        histogramMaxEV = 16.0f,
+        histogramMinEV = -12.0f,
+        histogramMaxEV = 22.0f,
     };
 }

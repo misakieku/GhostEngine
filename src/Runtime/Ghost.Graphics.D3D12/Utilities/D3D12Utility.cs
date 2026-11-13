@@ -1358,12 +1358,24 @@ internal static unsafe class D3D12Utility
 
             if (bufferDesc.Usage.HasFlag(BufferUsage.UnorderedAccess))
             {
-                resourceDescriptor.uav = originalGroup.uav.IsValid ? originalGroup.uav : descriptorAllocator.AllocateCbvSrvUav();
-                resourceDescriptor.uavCount = 1;
-                var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.uav);
-                var uavDesc = CreateBufferUavDesc(pResource, bufferDesc.Stride, bufferDesc.Usage);
+                // Allocate a Raw (R32_TYPELESS) alias UAV at subresource 1 for non-Raw buffers so generic compute utilities (e.g. ClearBuffer) can bind any UAV buffer as RWByteAddressBuffer.
+                var hasRawAlias = !bufferDesc.Usage.HasFlag(BufferUsage.Raw) && resourceDesc.Width >= 4 && (resourceDesc.Width & 3u) == 0;
+                var uavCount = (ushort)(hasRawAlias ? 2 : 1);
+                resourceDescriptor.uav = originalGroup.uav.IsValid && originalGroup.uavCount == uavCount
+                    ? originalGroup.uav
+                    : (uavCount > 1 ? descriptorAllocator.AllocateCbvSrvUavRange(uavCount) : descriptorAllocator.AllocateCbvSrvUav());
+                resourceDescriptor.uavCount = uavCount;
 
-                device.NativeObject.Get()->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
+                var primaryCpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.uav);
+                var primaryUavDesc = CreateBufferUavDesc(pResource, bufferDesc.Stride, bufferDesc.Usage);
+                device.NativeObject.Get()->CreateUnorderedAccessView(pResource, null, &primaryUavDesc, primaryCpuHandle);
+
+                if (hasRawAlias)
+                {
+                    var rawCpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.uav, 1);
+                    var rawUavDesc = CreateBufferUavDesc(pResource, 4, bufferDesc.Usage | BufferUsage.Raw);
+                    device.NativeObject.Get()->CreateUnorderedAccessView(pResource, null, &rawUavDesc, rawCpuHandle);
+                }
             }
         }
 
