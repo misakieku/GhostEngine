@@ -271,6 +271,182 @@ public unsafe class MaterialAndPrefabStreamingTests
     }
 
     [TestMethod]
+    public void Test_PrefabUtility_SharedMaterialDependencies_And_PreservesMeshInstanceFields()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var renderDevice = new MockingRenderDevice();
+        using var resourceDatabase = new MockingResourceDatabase();
+        using var pipelineLibrary = new MockingPipelineLibrary();
+        using var resourceAllocator = new MockingResourceAllocator(resourceDatabase);
+        using var shaderLibrary = new ShaderLibrary(null, pipelineLibrary, null);
+        using var resourceManager = new ResourceManager(renderDevice, resourceAllocator, resourceDatabase);
+        using var jobScheduler = new JobScheduler(new JobSchedulerDesc { ThreadCount = 2, ThreadPriority = ThreadPriority.Normal, DependencyChainCapacity = 1024 });
+
+        using var contentProvider = new MockingContentProvider();
+        var streamingProcessor = new ResourceStreamingProcessor();
+        using var assetManager = new AssetManager(resourceDatabase, resourceManager, contentProvider, streamingProcessor, jobScheduler, engine, shaderLibrary, 2);
+
+        var meshGuid1 = Guid.NewGuid();
+        var meshGuid2 = Guid.NewGuid();
+        var matGuid = Guid.NewGuid();
+
+        var meshDummy1 = default(Mesh);
+        meshDummy1.MeshDataBuffer = resourceDatabase.CreateEmpty(name: "Mesh1_Data").AsBuffer();
+        meshDummy1.MeshBuffer = resourceDatabase.CreateEmpty(name: "Mesh1_Buf").AsBuffer();
+        var meshHandle1 = assetManager.ResourceManager.RegisterMesh(ref meshDummy1);
+
+        var meshDummy2 = default(Mesh);
+        meshDummy2.MeshDataBuffer = resourceDatabase.CreateEmpty(name: "Mesh2_Data").AsBuffer();
+        meshDummy2.MeshBuffer = resourceDatabase.CreateEmpty(name: "Mesh2_Buf").AsBuffer();
+        var meshHandle2 = assetManager.ResourceManager.RegisterMesh(ref meshDummy2);
+
+        var shaderDesc = new GraphicsShaderDescriptor
+        {
+            Name = "SharedTestShader",
+            PropertyBufferSize = 96,
+            Passes = Array.Empty<PassDescriptor>()
+        };
+        var shaderHandle = assetManager.ResourceManager.CreateShader(shaderDesc);
+        var matHandle = assetManager.ResourceManager.CreateMaterial(shaderHandle, "SharedMat");
+
+        var meshEntry1 = new DummyMeshAssetEntry(assetManager, resourceDatabase, resourceManager, meshGuid1, meshHandle1, "Mesh1");
+        var meshEntry2 = new DummyMeshAssetEntry(assetManager, resourceDatabase, resourceManager, meshGuid2, meshHandle2, "Mesh2");
+        var matEntry = new DummyMaterialAssetEntry(assetManager, resourceDatabase, resourceManager, matGuid, matHandle, "SharedMat");
+        meshEntry1.AddRef();
+        meshEntry2.AddRef();
+        matEntry.AddRef();
+        assetManager.RegisterEntryForTesting(meshGuid1, meshEntry1);
+        assetManager.RegisterEntryForTesting(meshGuid2, meshEntry2);
+        assetManager.RegisterEntryForTesting(matGuid, matEntry);
+
+        var ms = new MemoryStream();
+        var materialDependencyIndices = new int[] { 2, 2 };
+        var header = new PrefabContentHeader
+        {
+            magic = PrefabContentHeader.MAGIC,
+            version = PrefabContentHeader.VERSION,
+            entityCount = 3,
+            materialDependencyIndexCount = materialDependencyIndices.Length,
+            componentTypeCount = 3,
+            meshMaterialFixupCount = 2
+        };
+
+        ms.Write(new byte[sizeof(PrefabContentHeader)]);
+
+        header.componentTypesOffset = ms.Position;
+        var typeNames = new string[]
+        {
+            typeof(LocalTransform).FullName!,
+            typeof(LocalToWorld).FullName!,
+            typeof(MeshInstance).FullName!
+        };
+        for (var t = 0; t < typeNames.Length; t++)
+        {
+            var utf8 = Encoding.UTF8.GetBytes(typeNames[t]);
+            var len = (ushort)utf8.Length;
+            ms.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref len, 1)));
+            ms.Write(utf8);
+        }
+
+        header.entitiesOffset = ms.Position;
+        var rootHeader = new PrefabEntityHeader { parentIndex = -1, firstChildIndex = 1, nextSiblingIndex = -1, componentCount = 2 };
+        ms.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref rootHeader, 1)));
+        var rc0 = new PrefabComponentHeader { componentTypeIndex = 0, dataSize = sizeof(LocalTransform) };
+        ms.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref rc0, 1)));
+        var rlt = new LocalTransform { position = float3.zero, rotation = quaternion.identity, scale = new float3(1.0f) };
+        ms.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref rlt, 1)));
+        var rc1 = new PrefabComponentHeader { componentTypeIndex = 1, dataSize = sizeof(LocalToWorld) };
+        ms.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref rc1, 1)));
+        var rltw = new LocalToWorld { matrix = float4x4.identity };
+        ms.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref rltw, 1)));
+
+        for (var e = 0; e < 2; e++)
+        {
+            var eHeader = new PrefabEntityHeader { parentIndex = 0, firstChildIndex = -1, nextSiblingIndex = e == 0 ? 2 : -1, componentCount = 3 };
+            ms.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref eHeader, 1)));
+            var c0 = new PrefabComponentHeader { componentTypeIndex = 0, dataSize = sizeof(LocalTransform) };
+            ms.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref c0, 1)));
+            var lt = new LocalTransform { position = new float3(e * 2.0f, 0.0f, 0.0f), rotation = quaternion.identity, scale = new float3(1.0f) };
+            ms.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref lt, 1)));
+            var c1 = new PrefabComponentHeader { componentTypeIndex = 1, dataSize = sizeof(LocalToWorld) };
+            ms.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref c1, 1)));
+            var ltw = new LocalToWorld { matrix = MathUtility.TRS(lt.position, quaternion.identity, new float3(1.0f)) };
+            ms.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref ltw, 1)));
+            var c2 = new PrefabComponentHeader { componentTypeIndex = 2, dataSize = sizeof(MeshInstance) };
+            ms.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref c2, 1)));
+            var mi = new MeshInstance
+            {
+                mesh = Handle<Mesh>.Invalid,
+                materialPalette = new Identifier<MaterialPalette>(-1),
+                renderingLayerMask = 0xCAFEBABEu,
+                shadowCastingMode = Ghost.Engine.ShadowCastingMode.On,
+                staticShadowCaster = true
+            };
+            ms.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref mi, 1)));
+        }
+
+        header.meshMaterialFixupsOffset = ms.Position;
+        var fixups = new PrefabMeshMaterialFixup[]
+        {
+            new() { entityIndex = 1, meshDependencyIndex = 0, materialCount = 1, materialDependencyStartIndex = 0 },
+            new() { entityIndex = 2, meshDependencyIndex = 1, materialCount = 1, materialDependencyStartIndex = 1 }
+        };
+        ms.Write(MemoryMarshal.AsBytes((Span<PrefabMeshMaterialFixup>)fixups));
+
+        header.materialDependencyIndicesOffset = ms.Position;
+        ms.Write(MemoryMarshal.AsBytes((Span<int>)materialDependencyIndices));
+
+        ms.Position = 0;
+        ms.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref header, 1)));
+
+        var prefabBytes = ms.ToArray();
+        var prefabGuid = Guid.NewGuid();
+        var prefabEntry = new PrefabAssetEntry(assetManager, resourceDatabase, assetManager.ResourceManager, prefabGuid, new[] { meshGuid1, meshGuid2, matGuid }, "SharedMatPrefab");
+        prefabEntry.AddRef();
+
+        fixed (byte* p = prefabBytes)
+        {
+            var payload = AssetPayload.FromMappedMemory(p, prefabBytes.Length);
+            var loadRes = prefabEntry.OnLoadContent(ref payload);
+            Assert.IsTrue(loadRes.IsSuccess, loadRes.Message);
+        }
+        prefabEntry.State = AssetState.Ready;
+
+        using var world = World.Create(jobScheduler, 100);
+        var spawnRes = PrefabUtility.Instantiate(world, prefabEntry);
+        Assert.IsTrue(spawnRes.IsSuccess, spawnRes.Message);
+
+        var rootEntity = spawnRes.Value;
+        var e0 = world.EntityManager.GetComponent<Hierarchy>(rootEntity).firstChild;
+        var e1 = world.EntityManager.GetComponent<Hierarchy>(e0).nextSibling;
+        Assert.IsTrue(e0.IsValid);
+        Assert.IsTrue(e1.IsValid);
+
+        ref readonly var mi0 = ref world.EntityManager.GetComponent<MeshInstance>(e0);
+        ref readonly var mi1 = ref world.EntityManager.GetComponent<MeshInstance>(e1);
+
+        Assert.AreEqual(meshHandle1, mi0.mesh);
+        Assert.AreEqual(meshHandle2, mi1.mesh);
+        Assert.IsTrue(mi0.materialPalette.IsValid);
+        Assert.AreNotEqual(new Identifier<MaterialPalette>(0), mi0.materialPalette);
+        Assert.AreEqual(mi0.materialPalette, mi1.materialPalette);
+        Assert.AreEqual((uint)0xCAFEBABEu, (uint)mi0.renderingLayerMask);
+        Assert.AreEqual(Ghost.Engine.ShadowCastingMode.On, mi0.shadowCastingMode);
+        Assert.IsTrue(mi0.staticShadowCaster);
+        Assert.AreEqual((uint)0xCAFEBABEu, (uint)mi1.renderingLayerMask);
+        Assert.AreEqual(Ghost.Engine.ShadowCastingMode.On, mi1.shadowCastingMode);
+        Assert.IsTrue(mi1.staticShadowCaster);
+
+        prefabEntry.Release();
+        meshEntry1.Release();
+        meshEntry2.Release();
+        matEntry.Release();
+        assetManager.RemoveEntry(meshGuid1);
+        assetManager.RemoveEntry(meshGuid2);
+        assetManager.RemoveEntry(matGuid);
+    }
+
+    [TestMethod]
     public void Test_PrefabUtility_Instantiate_WithParentEntity()
     {
         using var engine = new MockingGraphicsEngine();

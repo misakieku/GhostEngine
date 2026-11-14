@@ -548,11 +548,13 @@ internal unsafe partial class GhostRenderPipeline
         public Identifier<RGTexture> gbuffer2;
         public Identifier<RGTexture> gbuffer3;
         public Identifier<RGBuffer> tileShadingModelMaskBuffer;
+        public Identifier<RGBuffer> persistentViewStateBuffer;
         public Identifier<RGTexture> risLightSamples;
         public Identifier<RGTexture> risShadowMask;
         public Identifier<RGTexture> risResolvedDiffuse;
         public Identifier<RGTexture> risResolvedSpecular;
         public ShaderVariantRegistry variantRegistry;
+        public uint viewId;
         public uint tilesPerRow;
         public uint tilesY;
         public uint2 renderSize;
@@ -569,9 +571,11 @@ internal unsafe partial class GhostRenderPipeline
         public Identifier<RGTexture> historySpecular;
         public Identifier<RGTexture> outputDiffuse;
         public Identifier<RGTexture> outputSpecular;
+        public Identifier<RGBuffer> persistentViewStateBuffer;
         public Handle<ComputeShader> shader;
         public uint2 renderSize;
         public uint historyValid;
+        public uint viewId;
     }
 
     private struct RisDenoiserSpatialPassData
@@ -586,7 +590,7 @@ internal unsafe partial class GhostRenderPipeline
         public uint2 renderSize;
     }
 
-    private void AddRisPasses(RenderGraph rg, RisViewResource risResource, Identifier<RGTexture> depthTexture, Identifier<RGBuffer> tlasBuffer, uint2 renderSize, uint frameIndex, uint viewId, in RayTracingSettings rtSettings)
+    private void AddRisPasses(RenderGraph rg, RisViewResource risResource, Identifier<RGTexture> depthTexture, Identifier<RGBuffer> tlasBuffer, Identifier<RGBuffer> persistentViewStateBuffer, uint2 renderSize, uint frameIndex, uint viewId, in RayTracingSettings rtSettings)
     {
         ref readonly var gbufferData = ref rg.Blackboard.Get<GBufferPassData>();
         ref readonly var tile = ref rg.Blackboard.Get<TileClassificationData>();
@@ -681,29 +685,26 @@ internal unsafe partial class GhostRenderPipeline
         }
 
         // RisScreenContactShadow (Evaluates screen contact shadow & compacts unresolved rays)
-        Identifier<RGTexture> risShadowMask;
-        Identifier<RGBuffer> unresolvedRaysBuffer;
-        Identifier<RGBuffer> counterBuffer;
+        var maxPixels = renderSize.x * renderSize.y;
+        var risShadowMask = rg.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8_UNorm, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource), "RisShadowMask");
+        var unresolvedRaysBuffer = rg.CreateBuffer(new BufferDesc
+        {
+            Size = maxPixels * 4u,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, "RisUnresolvedRays");
+        var counterBuffer = rg.CreateBuffer(new BufferDesc
+        {
+            Size = 4u,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, "RisRayCounter");
         Identifier<RGBuffer> indirectArgsBuffer;
+
+        rg.AddClearBufferPass(counterBuffer, _meshPipelineResource.clearBufferShader, 4, passName: "ClearRisRayCounter");
 
         using (var builder = rg.AddComputeRenderPass<RisScreenContactShadowPassData>("RisScreenContactShadow"))
         {
-            var maxPixels = renderSize.x * renderSize.y;
-
-            risShadowMask = rg.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8_UNorm, usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource), "RisShadowMask");
-            unresolvedRaysBuffer = builder.CreateBuffer(new BufferDesc
-            {
-                Size = maxPixels * 4u,
-                Stride = 4,
-                Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-            }, "RisUnresolvedRays");
-            counterBuffer = builder.CreateBuffer(new BufferDesc
-            {
-                Size = 4u,
-                Stride = 4,
-                Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-            }, "RisRayCounter");
-
             builder.UseTexture(depthTexture, AccessFlags.Read);
             builder.UseTexture(gbuffer.GBuffer1, AccessFlags.Read);
             builder.UseTexture(risLightSamples, AccessFlags.Read);
@@ -732,8 +733,6 @@ internal unsafe partial class GhostRenderPipeline
 
             builder.SetRenderFunc<RisScreenContactShadowPassData>(static (ref readonly passData, computeCtx) =>
             {
-                computeCtx.ClearBuffer(passData.counterBuffer, 4);
-
                 var depthSrv = computeCtx.GetActualBindlessIndex(passData.depthTexture, BindlessAccess.ShaderResource);
                 var gb1Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer1, BindlessAccess.ShaderResource);
                 var samplesSrv = computeCtx.GetActualBindlessIndex(passData.risLightSamples, BindlessAccess.ShaderResource);
@@ -994,6 +993,7 @@ internal unsafe partial class GhostRenderPipeline
             builder.UseTexture(gbuffer.GBuffer2, AccessFlags.Read);
             builder.UseTexture(gbuffer.GBuffer3, AccessFlags.Read);
             builder.UseBuffer(tileShadingModelMaskBuffer, AccessFlags.Read);
+            builder.UseBuffer(persistentViewStateBuffer, AccessFlags.Read);
             builder.UseTexture(risLightSamples, AccessFlags.Read);
             builder.UseTexture(risShadowMask, AccessFlags.Read);
             builder.UseTexture(resolvedDiffuse, AccessFlags.Write);
@@ -1007,11 +1007,13 @@ internal unsafe partial class GhostRenderPipeline
                 gbuffer2 = gbuffer.GBuffer2,
                 gbuffer3 = gbuffer.GBuffer3,
                 tileShadingModelMaskBuffer = tileShadingModelMaskBuffer,
+                persistentViewStateBuffer = persistentViewStateBuffer,
                 risLightSamples = risLightSamples,
                 risShadowMask = risShadowMask,
                 risResolvedDiffuse = resolvedDiffuse,
                 risResolvedSpecular = resolvedSpecular,
                 variantRegistry = _assetManager.ShaderVariants,
+                viewId = viewId,
                 tilesPerRow = tilesX,
                 tilesY = tilesY,
                 renderSize = renderSize
@@ -1025,6 +1027,7 @@ internal unsafe partial class GhostRenderPipeline
                 var gb2Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer2, BindlessAccess.ShaderResource);
                 var gb3Srv = computeCtx.GetActualBindlessIndex(passData.gbuffer3, BindlessAccess.ShaderResource);
                 var maskBufferSrv = computeCtx.GetActualBindlessIndex(passData.tileShadingModelMaskBuffer, BindlessAccess.ShaderResource);
+                var persistentViewStateSrv = computeCtx.GetActualBindlessIndex(passData.persistentViewStateBuffer, BindlessAccess.ShaderResource);
                 var samplesSrv = computeCtx.GetActualBindlessIndex(passData.risLightSamples, BindlessAccess.ShaderResource);
                 var shadowSrv = computeCtx.GetActualBindlessIndex(passData.risShadowMask, BindlessAccess.ShaderResource);
                 var diffUav = computeCtx.GetActualBindlessIndex(passData.risResolvedDiffuse, BindlessAccess.UnorderedAccess);
@@ -1062,8 +1065,8 @@ internal unsafe partial class GhostRenderPipeline
                         tilesPerRow = passData.tilesPerRow,
                         shadingModelId = shadingModelId,
                         iblLutTextureSrv = RHIUtility.INVALID_BINDLESS_INDEX,
-                        persistentViewStateBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX,
-                        viewId = 0,
+                        persistentViewStateBufferSrv = persistentViewStateSrv,
+                        viewId = passData.viewId,
                         skyboxTextureSrv = RHIUtility.INVALID_BINDLESS_INDEX,
                         skyboxMipCount = 0,
                         _pad0 = 0,
@@ -1098,6 +1101,7 @@ internal unsafe partial class GhostRenderPipeline
             builder.UseTexture(resolvedSpecular, AccessFlags.Read);
             builder.UseTexture(historyDiffuse, AccessFlags.Read);
             builder.UseTexture(historySpecular, AccessFlags.Read);
+            builder.UseBuffer(persistentViewStateBuffer, AccessFlags.Read);
             builder.UseTexture(temporalDiffuse, AccessFlags.Write);
             builder.UseTexture(temporalSpecular, AccessFlags.Write);
 
@@ -1115,9 +1119,11 @@ internal unsafe partial class GhostRenderPipeline
                 historySpecular = historySpecular,
                 outputDiffuse = temporalDiffuse,
                 outputSpecular = temporalSpecular,
+                persistentViewStateBuffer = persistentViewStateBuffer,
                 shader = _lightingPipelineResource.risDenoiserTemporalShader,
                 renderSize = renderSize,
-                historyValid = risResource.HasHistory ? 1u : 0u
+                historyValid = risResource.HasHistory ? 1u : 0u,
+                viewId = viewId
             });
 
             builder.SetRenderFunc<RisDenoiserTemporalPassData>(static (ref readonly passData, computeCtx) =>
@@ -1129,6 +1135,7 @@ internal unsafe partial class GhostRenderPipeline
                 var curSpecSrv = computeCtx.GetActualBindlessIndex(passData.currentSpecular, BindlessAccess.ShaderResource);
                 var histDiffSrv = computeCtx.GetActualBindlessIndex(passData.historyDiffuse, BindlessAccess.ShaderResource);
                 var histSpecSrv = computeCtx.GetActualBindlessIndex(passData.historySpecular, BindlessAccess.ShaderResource);
+                var persistentViewStateSrv = computeCtx.GetActualBindlessIndex(passData.persistentViewStateBuffer, BindlessAccess.ShaderResource);
                 var outDiffUav = computeCtx.GetActualBindlessIndex(passData.outputDiffuse, BindlessAccess.UnorderedAccess);
                 var outSpecUav = computeCtx.GetActualBindlessIndex(passData.outputSpecular, BindlessAccess.UnorderedAccess);
 
@@ -1145,7 +1152,9 @@ internal unsafe partial class GhostRenderPipeline
                     outputSpecularUav = outSpecUav,
                     renderWidth = passData.renderSize.x,
                     renderHeight = passData.renderSize.y,
-                    historyValid = passData.historyValid
+                    historyValid = passData.historyValid,
+                    persistentViewStateBufferSrv = persistentViewStateSrv,
+                    viewId = passData.viewId
                 };
 
                 computeCtx.SetActiveCompute(passData.shader, 0);

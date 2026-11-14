@@ -8,6 +8,8 @@ shader "Hidden/HDRISky"
         SamplerState depthSampler;
         float4 skyboxTintAndIntensity; // xyz: tint, w: intensity
         float2 skyboxRotationSinCos;   // x: sin, y: cos
+        uint persistentViewStateBufferSrv;
+        uint viewId;
     }
 
     pass "SkyBaking"
@@ -26,6 +28,7 @@ shader "Hidden/HDRISky"
             "EngineResources/Shaders/Properties.hlsl";
             "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl";
             "EngineResources/Shaders/Lighting/SphericalHarmonics.hlsl";
+            "EngineResources/Shaders/PostProcess/ExposureCommon.hlsl";
         }
 
         hlsl
@@ -98,6 +101,7 @@ shader "Hidden/HDRISky"
             "EngineResources/Shaders/Properties.hlsl";
             "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl";
             "EngineResources/Shaders/Lighting/SphericalHarmonics.hlsl";
+            "EngineResources/Shaders/PostProcess/ExposureCommon.hlsl";
         }
 
         hlsl
@@ -154,7 +158,7 @@ shader "Hidden/HDRISky"
                 float3 dirVS = float3(ndc.x / g_ViewData.projectionMatrix[0][0], ndc.y / g_ViewData.projectionMatrix[1][1], 1.0f);
                 float3 dirWS = normalize(TransformViewToWorld(dirVS));
 
-                float exposure = 1.0f; // TODO: Apply camera exposure multiplier once exposure system is implemented
+                float exposure = GetViewPreExposure(g_Properties.persistentViewStateBufferSrv, g_Properties.viewId);
 
                 return RenderSky(dirWS, exposure);
             }

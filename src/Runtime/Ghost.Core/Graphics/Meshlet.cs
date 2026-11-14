@@ -17,7 +17,7 @@ public struct MaterialPartInfo
     public int indexCount;
 }
 
-[StructLayout(LayoutKind.Sequential, Size = 80)]
+[StructLayout(LayoutKind.Sequential, Size = 96)]
 public struct Meshlet
 {
     public SphereBounds boundingSphere;         // 16 bytes
@@ -32,6 +32,10 @@ public struct Meshlet
     public byte triangleCount;                  // 1 byte (max 124)
     public byte localMaterialIndex;             // 1 byte (mesh-local material slot)
     public byte lodLevel;                       // 1 byte (this meshlet's LOD level)
+    public float maxEdgeLength;                 // 4 bytes (maximum triangle edge length in object space)
+    private uint _padding0;
+    private uint _padding1;
+    private uint _padding2;
 }
 
 [StructLayout(LayoutKind.Sequential, Size = 64)]

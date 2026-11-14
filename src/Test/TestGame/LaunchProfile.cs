@@ -22,14 +22,16 @@ namespace TestGame;
 internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 {
     private World _world = null!;
-    private IAssetEntry _dragonPrefab = null!;
+    private IAssetEntry _prefab = null!;
     private IAssetEntry _skyAsset = null!;
+    private Entity _globalVolumeEntity;
+    private ExposureMode _exposureMode = ExposureMode.AutomaticHistogram;
 
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
         EnableRayTracing = true,
         MaxVisibleMeshletsOnScreen = 2_097_152,
-        MeshletLodErrorThreshold = 1.0f,
+        MeshletLodErrorThreshold = 2.0f,
         InstanceCullingThreshold = 2.0f,
         DebugMode = RenderPipelineDebugMode.None,
     };
@@ -96,7 +98,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         const float size = 5.0f;
         const float baseScale = 1.0f;
         const float lightSize = size * 1.0f;
-        const int lightCount = 5;
+        const int lightCount = 0;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -110,6 +112,9 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 farClipPlane = 1000.0f,
                 focalLength = 20.0f,
                 sensorSize = new float2(36.0f, 24.0f),
+                iso = 100.0f,
+                shutterSpeed = 1.0f / 125.0f,
+                aperture = 8.0f,
                 gateFit = GateFit.Vertical,
                 renderingLayerMask = RenderingLayerMask.All,
             },
@@ -121,23 +126,25 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             new InputReceiver(InputProfileDatabase.FIRST_PERSON_CAMERA_PROFILE_ID, true),
             default(ActionState));
 
-        _dragonPrefab = engine.AssetManager.ResolveAsset("Meshes/dragon");
+        _prefab = engine.AssetManager.ResolveAsset("Meshes/NewSponza_Main_Yup_003");
 
-        for (var i = 0; i < entityCapacity; i++)
-        {
-            var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
-            var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2)));
-            var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
+        //for (var i = 0; i < entityCapacity; i++)
+        //{
+        //    var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
+        //    var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2)));
+        //    var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
 
-            PrefabUtility.Instantiate(_world, _dragonPrefab, position, rotation, scale);
-        }
+        //    PrefabUtility.Instantiate(_world, _dragonPrefab, position, rotation, scale);
+        //}
+
+        PrefabUtility.Instantiate(_world, _prefab);
 
         _world.EntityManager.CreateEntity(
             new DirectionalLight
             {
                 color = new float3(1.0f, 0.95f, 0.85f),
                 sunDiskAngularDiameter = math.radians(0.53f),
-                intensity = 10.0f,
+                intensity = 100_000.0f,
                 castShadows = true,
                 shadowResolution = 2048,
                 lightingDimmer = 1.0f,
@@ -146,7 +153,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 specularDimmer = 1.0f,
                 normalBias = 0.75f,
                 depthBias = 0.5f,
-                shadowLodErrorScale = 5.0f,
+                shadowLodErrorScale = 3.0f,
                 contactShadow = true,
             },
             new LocalToWorld
@@ -164,10 +171,11 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 new PunctualLight
                 {
                     type = isSpot ? PunctualLightType.Spot : PunctualLightType.Point,
+                    unit = PunctualLightUnit.Lumen,
                     color = color,
                     shadowResolution = 256,
-                    intensity = 3.0f, // RandomFloat(0.5f, 1.0f),
-                    range = 15.0f, // RandomFloat(10.0f, 15.0f),
+                    intensity = 1500.0f,
+                    range = 15.0f,
                     innerSpotAngle = math.radians(15.0f),
                     outerSpotAngle = math.radians(40.0f),
                     nearPlane = 0.1f,
@@ -199,10 +207,11 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         });
         volumeData.Set(new HDRISettings
         {
-            intensity = 1.0f,
+            intensity = 2_500.0f,
             tint = new float3(1.0f, 1.0f, 1.0f),
             texture = skyboxHandle,
         });
+        volumeData.Set(ExposureSettings.Default);
         volumeData.Set(new ShadowSettings
         {
             shadowMode = ShadowMode.ShadowMap,
@@ -216,7 +225,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             distanceRayBias = 0.05f,
         });
 
-        _world.EntityManager.CreateEntity(
+        _globalVolumeEntity = _world.EntityManager.CreateEntity(
             new RenderVolume { renderingLayerMask = RenderingLayerMask.All, isGlobal = true, weight = 1.0f, priority = 1 },
             volumeData);
 
@@ -249,6 +258,21 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                     : DirectLightingMode.Standard;
                 Logger.Info($"[TestGame] Toggled DirectLightingMode: {_renderPipelineSettings.DirectLightingMode}");
             }
+            else if (e.key.key == SDL_Keycode.SDLK_F3)
+            {
+                _exposureMode = _exposureMode switch
+                {
+                    ExposureMode.AutomaticHistogram => ExposureMode.Fixed,
+                    ExposureMode.Fixed => ExposureMode.UsePhysicalCamera,
+                    _ => ExposureMode.AutomaticHistogram,
+                };
+                ref var volData = ref _world.EntityManager.GetComponent<RenderVolumeDataContainer>(_globalVolumeEntity);
+                var settings = ExposureSettings.Default;
+                settings.mode = _exposureMode;
+                settings.fixedExposure = 12.0f;
+                volData.Set(settings);
+                Logger.Info($"[TestGame] Toggled ExposureMode: {_exposureMode}");
+            }
         }
     }
 
@@ -256,7 +280,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
     {
         World.Destroy(_world);
 
-        _dragonPrefab.Release();
+        _prefab.Release();
         _skyAsset.Release();
     }
 }

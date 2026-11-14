@@ -450,19 +450,18 @@ compute "Internal/ShadowCullGraph"
                         uint hasAlpha = UnpackMaterialHasAlpha(packedMaterial);
                         if (hasAlpha == 0u)
                         {
-                            uint triangleCount = (meshlet.packedCounts >> 8u) & 0xFFu;
+                            float worldMaxEdge = meshlet.maxEdgeLength * maxScale;
 #if defined(SHADOWCULL_DIRECTIONAL)
-                            float clusterRadiusPx = meshletWorldRadius * shadowCull.lightPosRWSAndProj11.w * shadowCull.size.z * 0.5f;
-                            float projectedEdgePx = clusterRadiusPx * (2.0f * rsqrt(max((float)triangleCount, 1.0f)));
+                            float projectedEdgePx = worldMaxEdge * shadowCull.lightPosRWSAndProj11.w * shadowCull.size.z * 0.5f;
                             bool isSoftware = (projectedEdgePx < SW_MAX_EDGE_PIXELS);
                             cullBin = isSoftware ? 1u : 0u;
 #else
                             bool isSoftware = IsSoftwareMeshlet(
                                 meshletWorldCenter - shadowCull.lightPosRWSAndProj11.xyz,
                                 meshletWorldRadius,
+                                worldMaxEdge,
                                 shadowCull.lightPosRWSAndProj11.w,
                                 shadowCull.size.z,
-                                triangleCount,
                                 SW_MAX_EDGE_PIXELS);
                             cullBin = isSoftware ? 1u : 0u;
 #endif

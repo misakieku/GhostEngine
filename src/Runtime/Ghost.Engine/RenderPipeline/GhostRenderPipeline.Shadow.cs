@@ -460,7 +460,15 @@ internal unsafe partial class GhostRenderPipeline
         var counterBufferSize = CullCommon.GetCounterBufferSize(maxVariants);
 
         Identifier<RGBuffer> unbinnedMeshlets;
-        Identifier<RGBuffer> counterBuffer;
+        var counterBuffer = rg.CreateBuffer(new BufferDesc
+        {
+            Size = counterBufferSize,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, "ShadowCounterBuffer");
+
+        rg.AddClearBufferPass(counterBuffer, _meshPipelineResource.clearBufferShader, counterBufferSize, passName: "ClearShadowCounterBuffer");
+
         using (var builder = rg.AddComputeRenderPass<ShadowCullPassData>("MeshletCull_Shadow"))
         {
             // Work Graph Shadow Culling
@@ -470,13 +478,6 @@ internal unsafe partial class GhostRenderPipeline
                 Stride = entrySize,
                 Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
             }, "ShadowUnbinnedMeshlets");
-
-            counterBuffer = builder.CreateBuffer(new BufferDesc
-            {
-                Size = counterBufferSize,
-                Stride = 4,
-                Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-            }, "ShadowCounterBuffer");
 
             builder.AllowPassCulling(false);
             builder.UseBuffer(unbinnedMeshlets, AccessFlags.Write);
@@ -498,8 +499,6 @@ internal unsafe partial class GhostRenderPipeline
 
             builder.SetRenderFunc<ShadowCullPassData>(static (ref readonly passData, computeCtx) =>
             {
-                computeCtx.ClearBuffer(passData.counterBuffer, passData.counterBufferSize);
-
                 var visibleUav = computeCtx.GetActualBindlessIndex(passData.visibleMeshlets, BindlessAccess.UnorderedAccess);
                 var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
 
@@ -1115,7 +1114,15 @@ internal unsafe partial class GhostRenderPipeline
         var counterBufferSize = CullCommon.GetCounterBufferSize(maxVariants);
 
         Identifier<RGBuffer> unbinnedMeshlets;
-        Identifier<RGBuffer> counterBuffer;
+        var counterBuffer = rg.CreateBuffer(new BufferDesc
+        {
+            Size = counterBufferSize,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, "DirectionalShadowCounterBuffer");
+
+        rg.AddClearBufferPass(counterBuffer, _meshPipelineResource.clearBufferShader, counterBufferSize, passName: "ClearDirectionalShadowCounterBuffer");
+
         using (var builder = rg.AddComputeRenderPass<DirectionalShadowCullPassData>("MeshletCull_DirectionalShadow"))
         {
             unbinnedMeshlets = builder.CreateBuffer(new BufferDesc
@@ -1124,13 +1131,6 @@ internal unsafe partial class GhostRenderPipeline
                 Stride = entrySize,
                 Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
             }, "DirectionalShadowUnbinnedMeshlets");
-
-            counterBuffer = builder.CreateBuffer(new BufferDesc
-            {
-                Size = counterBufferSize,
-                Stride = 4,
-                Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-            }, "DirectionalShadowCounterBuffer");
 
             builder.AllowPassCulling(false);
             builder.UseBuffer(unbinnedMeshlets, AccessFlags.Write);
@@ -1157,8 +1157,6 @@ internal unsafe partial class GhostRenderPipeline
 
             builder.SetRenderFunc<DirectionalShadowCullPassData>(static (ref readonly passData, computeCtx) =>
             {
-                computeCtx.ClearBuffer(passData.counterBuffer, passData.counterBufferSize);
-
                 var visibleUav = computeCtx.GetActualBindlessIndex(passData.visibleMeshlets, BindlessAccess.UnorderedAccess);
                 var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);
                 var occluderHzbSrv = passData.occluderMap.IsValid

@@ -3,6 +3,7 @@ using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
+using Ghost.Engine.Utilities;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
@@ -174,6 +175,18 @@ internal unsafe partial class GhostRenderPipeline
             entrypointIndex = 0;
         }
 
+        var maxVariants = GetMaxCullVariants();
+        var counterBufferSize = CullCommon.GetCounterBufferSize(maxVariants);
+
+        counterBuffer = rg.CreateBuffer(new BufferDesc
+        {
+            Size = counterBufferSize,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
+        }, "CounterBuffer");
+
+        rg.AddClearBufferPass(counterBuffer, _meshPipelineResource.clearBufferShader, counterBufferSize, passName: "ClearMeshletCullCounter");
+
         using var builder = rg.AddComputeRenderPass<MeshletCullPass1Data>("MeshletCull_Pass1");
 
         // This pass carries the one-time backing memory initialization, so it must never be culled.
@@ -195,16 +208,6 @@ internal unsafe partial class GhostRenderPipeline
             Stride = 12,
             Usage = BufferUsage.Structured | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
         }, "OccludedInstances");
-
-        var maxVariants = GetMaxCullVariants();
-        var counterBufferSize = CullCommon.GetCounterBufferSize(maxVariants);
-
-        counterBuffer = builder.CreateBuffer(new BufferDesc
-        {
-            Size = counterBufferSize,
-            Stride = 4,
-            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource
-        }, "CounterBuffer");
 
         var streamingRequests = rg.ImportBuffer(_assetManager.MeshletStreamingManager.StreamingRequestsGpuBuffer, ResourceBarrierData.UnorderedAccess, ResourceBarrierData.UnorderedAccess);
         var streamingRequestsBitmask = rg.ImportBuffer(_assetManager.MeshletStreamingManager.StreamingRequestsBitmaskGpuBuffer, ResourceBarrierData.UnorderedAccess, ResourceBarrierData.UnorderedAccess);
@@ -256,8 +259,6 @@ internal unsafe partial class GhostRenderPipeline
         builder.SetPassData(passData);
         builder.SetRenderFunc<MeshletCullPass1Data>(static (ref readonly passData, computeCtx) =>
         {
-            computeCtx.ClearBuffer(passData.counterBuffer, passData.counterBufferSize);
-
             var visibleUav = computeCtx.GetActualBindlessIndex(passData.visibleMeshletsPass1, BindlessAccess.UnorderedAccess);
             var occludedUav = computeCtx.GetActualBindlessIndex(passData.occludedMeshlets, BindlessAccess.UnorderedAccess);
             var counterUav = computeCtx.GetActualBindlessIndex(passData.counterBuffer, BindlessAccess.UnorderedAccess);

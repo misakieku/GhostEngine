@@ -1,0 +1,66 @@
+compute "PostProcess/PrepareExposure"
+{
+    properties
+    {
+        uint persistentViewStateUav;
+        uint viewId;
+        uint mode;
+        uint historyValid;
+        float fixedEV100;
+        float initialEV100;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/PostProcess/ExposureCommon.hlsl";
+    }
+
+    hlsl
+    {
+        #define EXPOSURE_MODE_AUTO_HISTOGRAM 2u
+
+        [numthreads(1, 1, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            RWByteAddressBuffer uavBuf = GET_BUFFER(g_Properties.persistentViewStateUav);
+            uint offset = g_Properties.viewId * 256u + EYE_ADAPTATION_STATE_OFFSET;
+
+            if (g_Properties.mode != EXPOSURE_MODE_AUTO_HISTOGRAM)
+            {
+                float newExp = EV100ToExposure(g_Properties.fixedEV100);
+                float prevPre = newExp;
+                if (g_Properties.historyValid != 0u)
+                {
+                    float4 prevState = asfloat(uavBuf.Load4(offset));
+                    if (prevState.y > 0.0f && isfinite(prevState.y))
+                    {
+                        prevPre = prevState.y;
+                    }
+                }
+
+                uavBuf.Store4(offset, asuint(float4(newExp, newExp, prevPre, g_Properties.fixedEV100)));
+            }
+            else
+            {
+                if (g_Properties.historyValid == 0u)
+                {
+                    float initExp = EV100ToExposure(g_Properties.initialEV100);
+                    uavBuf.Store4(offset, asuint(float4(initExp, initExp, initExp, g_Properties.initialEV100)));
+                }
+                else
+                {
+                    float4 prevState = asfloat(uavBuf.Load4(offset));
+                    float fallbackExp = EV100ToExposure(g_Properties.initialEV100);
+                    float currPre = (prevState.x > 0.0f && isfinite(prevState.x)) ? prevState.x : fallbackExp;
+                    float prevPre = (prevState.y > 0.0f && isfinite(prevState.y)) ? prevState.y : currPre;
+                    float ev100 = isfinite(prevState.w) ? prevState.w : g_Properties.initialEV100;
+
+                    uavBuf.Store4(offset, asuint(float4(currPre, currPre, prevPre, ev100)));
+                }
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

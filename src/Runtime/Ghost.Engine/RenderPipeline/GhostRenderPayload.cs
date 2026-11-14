@@ -49,6 +49,8 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
     private uint _instanceCountBefore;
     private uint _instanceCount;
 
+    public float DeltaTime { get; internal set; }
+
     public ReadOnlySpan<RenderRequest> RenderRequests => _renderRequests;
     public UnsafeParallelQueue<PunctualLightRequest>.ParallelConsumer PunctualLights => _pPunctualLights->AsParallelConsumer();
 
@@ -324,6 +326,7 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
 
         _volumeDataBuffer.Clear();
         _viewComponentMasks.Clear();
+        DeltaTime = 0.0f;
 
         for (var i = 0; i < _viewsToRelease.Count; i++)
         {

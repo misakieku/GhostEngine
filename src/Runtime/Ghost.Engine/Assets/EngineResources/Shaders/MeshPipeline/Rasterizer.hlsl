@@ -233,10 +233,12 @@ void RasterizeTri_Scanline(RasterTriangle tri, TPixelWriter writer)
     int y = tri.minPixel.y;
     while (true)
     {
-        float3 crossX = float3(cy0, cy1, cy2) * invEdge012;
+        float3 cy012 = float3(cy0, cy1, cy2);
+        float3 crossX = cy012 * invEdge012;
 
         float3 minX = select(openEdge, crossX, 0.0);
-        float3 maxX = select(openEdge, tri.maxPixel.x - tri.minPixel.x, crossX);
+        bool3 noXLimit = or(openEdge, and(edge012 == 0, cy012 >= 0));
+        float3 maxX = select(noXLimit, tri.maxPixel.x - tri.minPixel.x, crossX);
 
         float x0 = ceil(max3(minX.x, minX.y, minX.z) - 1e-4f);
         float x1 = min3(maxX.x, maxX.y, maxX.z) + 1e-4f;
@@ -279,7 +281,6 @@ template<typename TPixelWriter>
 void RasterizeTri_Adaptive(RasterTriangle tri, TPixelWriter writer)
 {
     bool scanline = MESHLET_PIXEL_PROGRAMMABLE || WaveActiveAnyTrue(tri.maxPixel.x - tri.minPixel.x > 4);
-
     if (scanline)
     {
         RasterizeTri_Scanline(tri, writer);

@@ -6,6 +6,7 @@
 #include "EngineResources/Shaders/Lighting/LightEvaluation.hlsl"
 #include "EngineResources/Shaders/Lighting/ShadowSampling.hlsl"
 #include "EngineResources/Shaders/Material/Lit/Lit.hlsl"
+#include "EngineResources/Shaders/PostProcess/ExposureCommon.hlsl"
 #include "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl"
 
 template<typename T>
@@ -147,14 +148,31 @@ LightLoopOutput ExecuteLightLoop(ShadingContext ctx, BSDFData bsdf, T strategy, 
     }
 #endif
 
+    float preExposure = GetViewPreExposure(g_Properties.persistentViewStateBufferSrv, g_Properties.viewId);
+
     // Image-Based Lighting (Diffuse SH9 + Specular Split-Sum Cubemap)
     if (IS_VALID_TEXTURE(g_Properties.skyboxTextureSrv) || IS_VALID_BUFFER(g_Properties.persistentViewStateBufferSrv))
     {
         IndirectLighting ibl = strategy.EvaluateIndirectLighting(ctx, bsdf, preLightData, V);
+#if defined(_DIRECTLIGHTING_STOCHASTIC)
+        // RIS direct buffers are already pre-exposed in RisResolveShading
+        ibl.diffuse *= preExposure;
+        ibl.specularReflected *= preExposure;
+        ibl.specularTransmitted *= preExposure;
+#endif
         AccumulateIndirectLighting(totalLighting, ibl);
     }
 
+#if defined(_DIRECTLIGHTING_STOCHASTIC)
+    bsdf.emissive *= preExposure;
+#endif
+
     LightLoopOutput output = strategy.PostEvaluateBSDF(totalLighting, bsdf, preLightData, V);
+
+#if defined(_DIRECTLIGHTING_STANDARD)
+    output.diffuse *= preExposure;
+    output.specular *= preExposure;
+#endif
 
     return output;
 }

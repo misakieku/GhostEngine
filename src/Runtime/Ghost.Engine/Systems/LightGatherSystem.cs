@@ -16,6 +16,27 @@ internal class LightGatherSystem : ISystem
     {
         public GhostRenderPayload payload;
 
+        private static float ConvertPunctualIntensityToCandela(in PunctualLight light)
+        {
+            switch (light.unit)
+            {
+                case PunctualLightUnit.Candela:
+                    return light.intensity;
+                case PunctualLightUnit.Ev100:
+                    return 2.5f * math.exp2(light.intensity);
+                case PunctualLightUnit.Lumen:
+                default:
+                    if (light.type == PunctualLightType.Spot)
+                    {
+                        var outerAngle = math.clamp(math.max(light.innerSpotAngle, light.outerSpotAngle), 1e-4f, math.PI);
+                        var solidAngle = 2.0f * math.PI * (1.0f - math.cos(outerAngle));
+                        return light.intensity / math.max(solidAngle, 1e-4f);
+                    }
+
+                    return light.intensity / (4.0f * math.PI);
+            }
+        }
+
         public void Execute(ChunkView chunk, ref readonly JobExecutionContext ctx)
         {
             var lights = chunk.GetComponentData<PunctualLight>();
@@ -55,11 +76,13 @@ internal class LightGatherSystem : ISystem
                 var specularDimmer = math.saturate(light.specularDimmer);
                 var lightDimmer = diffuseDimmer * specularDimmer == 0 ? 0 : math.saturate(light.lightingDimmer);
 
+                var candela = ConvertPunctualIntensityToCandela(in light);
+
                 var gpuLight = new GPUPunctualLight
                 {
                     positionWS = posWS,
                     range = light.range,
-                    color = light.color * light.intensity,
+                    color = light.color * candela,
                     lightTypeAndShadowSize = flags,
                     directionWS = dirWS,
                     spotAngleScale = spotAngleScale,

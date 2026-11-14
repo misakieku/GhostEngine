@@ -194,11 +194,9 @@ public static unsafe class PrefabUtility
             var tSlice = spawned.AsSpan().Slice(fixup.entityIndex * count, count);
             if (tSlice.Length > 0 && world.EntityManager.HasComponent<MeshInstance>(tSlice[0]))
             {
-                var meshInstance = new MeshInstance
-                {
-                    mesh = resolvedMeshes[f],
-                    materialPalette = resolvedPalettes[f]
-                };
+                var meshInstance = world.EntityManager.GetComponent<MeshInstance>(tSlice[0]);
+                meshInstance.mesh = resolvedMeshes[f];
+                meshInstance.materialPalette = resolvedPalettes[f];
                 world.EntityManager.SetComponentsSequential(tSlice, in meshInstance);
             }
         }
@@ -302,7 +300,10 @@ public static unsafe class PrefabUtility
                 var matHandles = matBuffer.Slice(0, fixup.materialCount);
                 for (var m = 0; m < fixup.materialCount; m++)
                 {
-                    var depIdx = fixup.materialDependencyStartIndex + m;
+                    var indexSlot = fixup.materialDependencyStartIndex + m;
+                    var depIdx = data.MaterialDependencyIndices.Length > 0
+                        ? ((uint)indexSlot < (uint)data.MaterialDependencyIndices.Length ? data.MaterialDependencyIndices[indexSlot] : -1)
+                        : indexSlot;
                     var matHandle = Handle<Material>.Invalid;
                     if (depIdx >= 0 && depIdx < prefabEntry.Dependencies.Length)
                     {

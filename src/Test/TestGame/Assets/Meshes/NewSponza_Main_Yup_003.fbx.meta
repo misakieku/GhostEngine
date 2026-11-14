@@ -1,0 +1,27 @@
+{
+  "Id": "89026117-ac1c-4b91-a02d-92348c44ba64",
+  "Type": "EntityPrefab",
+  "SettingsType": "Ghost.AssetForge.Core.Bakers.MeshBakeSettings",
+  "Settings": {
+    "Version": 1,
+    "ObjectUpAxis": "PositiveY",
+    "ObjectForwardAxis": "NegativeZ",
+    "ObjectRightAxis": "PositiveX",
+    "UnitMeterScale": 1,
+    "NormalDataSource": "ComputedIfMissing",
+    "TangentDataSource": "ComputedIfMissing",
+    "SimplifyRatio": 0.5,
+    "SimplifyThreshold": 0.85,
+    "PartitionSize": 32,
+    "SimplifyErrorMergePrevious": 1,
+    "SimplifyErrorFactorSloppy": 2,
+    "SimplifyPermissive": true,
+    "SimplifyFallbackPermissive": false,
+    "SimplifyFallbackSloppy": true,
+    "OptimizeClusters": true,
+    "FlipUVs": true,
+    "FallbackPercentage": 0,
+    "FallbackRelativeError": 0.01,
+    "MaterialSlotRemap": {}
+  }
+}

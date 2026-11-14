@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Engine.RenderPipeline;
 using Ghost.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
@@ -129,12 +130,12 @@ public partial class AssetManager : IDisposable
     /// </summary>
     public MeshletStreamingManager MeshletStreamingManager => _meshletStreamingManager;
 
-    internal AssetManager(RenderEngine renderEngine, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler, uint frameBufferCount)
-        : this(renderEngine.GraphicsEngine.ResourceDatabase, renderEngine.ResourceManager, contentProvider, streamingProcessor, jobScheduler, renderEngine.GraphicsEngine, renderEngine.ShaderLibrary, frameBufferCount)
+    internal AssetManager(RenderEngine renderEngine, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler, uint frameBufferCount, IRenderPipelineSettings? pipelineSettings = null)
+        : this(renderEngine.GraphicsEngine.ResourceDatabase, renderEngine.ResourceManager, contentProvider, streamingProcessor, jobScheduler, renderEngine.GraphicsEngine, renderEngine.ShaderLibrary, frameBufferCount, pipelineSettings)
     {
     }
 
-    internal AssetManager(IResourceDatabase resourceDatabase, ResourceManager resourceManager, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler, IGraphicsEngine graphicsEngine, ShaderLibrary shaderLibrary, uint frameBufferCount)
+    internal AssetManager(IResourceDatabase resourceDatabase, ResourceManager resourceManager, IContentProvider contentProvider, ResourceStreamingProcessor streamingProcessor, JobScheduler jobScheduler, IGraphicsEngine graphicsEngine, ShaderLibrary shaderLibrary, uint frameBufferCount, IRenderPipelineSettings? pipelineSettings = null)
     {
         _resourceDatabase = resourceDatabase;
         _resourceManager = resourceManager;
@@ -145,7 +146,10 @@ public partial class AssetManager : IDisposable
         _shaderVariants = new ShaderVariantRegistry(graphicsEngine, graphicsEngine.PipelineLibrary,
             shaderLibrary, resourceManager, contentProvider.ShaderCatalog);
 
-        _meshletStreamingManager = new MeshletStreamingManager(graphicsEngine.ResourceAllocator, resourceDatabase, frameBufferCount);
+        var pagePoolSlots = pipelineSettings?.GetPagePoolSlotCount() ?? MeshletStreamingManager.DEFAULT_PAGE_POOL_SLOTS;
+        var maxRequestsPerFrame = pipelineSettings?.MaxStreamingRequestsPerFrame ?? MeshletStreamingManager.DEFAULT_MAX_REQUESTS_PER_FRAME;
+        var maxPagesPerFrame = pipelineSettings?.MaxStreamingPagesPerFrame ?? MeshletStreamingManager.DEFAULT_MAX_PAGES_PER_FRAME;
+        _meshletStreamingManager = new MeshletStreamingManager(graphicsEngine.ResourceAllocator, resourceDatabase, frameBufferCount, pagePoolSlots, maxRequestsPerFrame: maxRequestsPerFrame, maxPagesPerFrame: maxPagesPerFrame);
 
         if (contentProvider.HasAsset(ShaderBytecodePool.POOL_ASSET_ID))
         {

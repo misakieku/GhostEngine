@@ -37,10 +37,10 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
         }
     }
 
-    public const uint DEFAULT_PAGE_POOL_SLOTS = 1024; // 128 MB physical pool (1024 * 128KB)
-    public const uint DEFAULT_PAGE_TABLE_CAPACITY = 65536; // 65536 virtual pages
-    public const uint DEFAULT_MAX_REQUESTS_PER_FRAME = 1024; // Max page requests reported by GPU
-    public const int DEFAULT_MAX_PAGES_PER_FRAME = 8; // 1 MB per frame upload budget
+    internal const uint DEFAULT_PAGE_POOL_SLOTS = 2048; // 256 MB physical pool (2048 * 128KB)
+    internal const uint DEFAULT_PAGE_TABLE_CAPACITY = 65536; // 65536 virtual pages
+    internal const uint DEFAULT_MAX_REQUESTS_PER_FRAME = 16_384; // Max page requests reported by GPU
+    internal const int DEFAULT_MAX_PAGES_PER_FRAME = 32; // 4 MB per frame upload budget
 
     private readonly IResourceAllocator _resourceAllocator;
     private readonly IResourceDatabase _resourceDatabase;

@@ -39,6 +39,9 @@ internal partial class MeshPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/Blit")]
     public Handle<Shader> blitShader;
 
+    [ResolveAsset("EngineResources/Shaders/Utilities/ClearBuffer")]
+    public Handle<ComputeShader> clearBufferShader;
+
     public IWorkGraphProgram? cullWorkGraphProgram;
     public IWorkGraphProgram? shadowCullWorkGraphProgram;
     public IWorkGraphProgram? directionalShadowCullWorkGraphProgram;
@@ -173,6 +176,15 @@ internal partial class LightingPipelineResource : IPipelineResource
 
 internal partial class PostProcessPipelineResource : IPipelineResource
 {
+    [ResolveAsset("EngineResources/Shaders/PostProcess/PrepareExposure")]
+    public Handle<ComputeShader> prepareExposureShader;
+
+    [ResolveAsset("EngineResources/Shaders/PostProcess/BuildLuminanceHistogram")]
+    public Handle<ComputeShader> buildLuminanceHistogramShader;
+
+    [ResolveAsset("EngineResources/Shaders/PostProcess/AutoExposureAdapt")]
+    public Handle<ComputeShader> autoExposureAdaptShader;
+
     [ResolveAsset("EngineResources/Shaders/PostProcess/UberPost")]
     public Handle<ComputeShader> uberPostShader;
 }

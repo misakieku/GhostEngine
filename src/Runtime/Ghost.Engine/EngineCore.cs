@@ -95,7 +95,7 @@ public sealed partial class EngineCore : IDisposable
         _renderEngine = new RenderEngine(renderingDesc);
         _streamingProcessor = new ResourceStreamingProcessor();
 
-        _assetManager = new AssetManager(_renderEngine, _contentProvider, _streamingProcessor, _jobScheduler, renderingDesc.FrameBufferCount);
+        _assetManager = new AssetManager(_renderEngine, _contentProvider, _streamingProcessor, _jobScheduler, renderingDesc.FrameBufferCount, renderDesc.RenderPipelineSettings);
 
         var pipeline = renderDesc.RenderPipelineSettings.CreatePipeline(_renderEngine, _assetManager, _jobScheduler);
         _renderEngine.SetRenderPipeline(pipeline);

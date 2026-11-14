@@ -1,0 +1,35 @@
+compute "Utilities/ClearBuffer"
+{
+    properties
+    {
+        uint dstBufferUav;
+        uint dwordOffset;
+        uint dwordCount;
+        uint clearValue;
+        uint dispatchStride;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(64, 1, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            RWByteAddressBuffer dstBuffer = GET_BUFFER(g_Properties.dstBufferUav);
+            uint count = g_Properties.dwordCount;
+            uint baseByteOffset = g_Properties.dwordOffset * 4u;
+            uint stride = g_Properties.dispatchStride;
+
+            for (uint i = dispatchThreadId.x; i < count; i += stride)
+            {
+                dstBuffer.Store(baseByteOffset + i * 4u, g_Properties.clearValue);
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

@@ -14,6 +14,7 @@ cbuffer PassProperties : register(b3, space0)
 #include "EngineResources/Shaders/Lighting/RisCommon.hlsl"
 #include "EngineResources/Shaders/Generated/GPULightData.hlsl"
 #include "EngineResources/Shaders/Lighting/LightEvaluation.hlsl"
+#include "EngineResources/Shaders/PostProcess/ExposureCommon.hlsl"
 
 groupshared uint s_TileShadingModelMask;
 
@@ -112,6 +113,8 @@ void CSMain(
     shadingCtx.depth = depth;
     shadingCtx.linearDepth = zView;
 
+    float preExposure = GetViewPreExposure(g_Properties.persistentViewStateBufferSrv, g_Properties.viewId);
+
     if (IsRisDirectionalLight(sampleData.lightIndex))
     {
         uint dirIdx = GetRisRawLightIndex(sampleData.lightIndex);
@@ -120,7 +123,7 @@ void CSMain(
 
         if (dirLight.lightDimmer > 0.0f && strategy.IsNonZeroBSDF(V, L, bsdf))
         {
-            float3 lightRadiance = dirLight.color * (dirLight.lightDimmer * shadow * sampleData.weight);
+            float3 lightRadiance = dirLight.color * (dirLight.lightDimmer * shadow * sampleData.weight * preExposure);
             if (any(lightRadiance > 0.0f))
             {
                 if (dirLight.angularDiameter > 0.0f)
@@ -169,7 +172,7 @@ void CSMain(
                     attenuation *= spotAtten * spotAtten;
                 }
 
-                float3 lightRadiance = light.color * (attenuation * light.lightDimmer * shadow * sampleData.weight);
+                float3 lightRadiance = light.color * (attenuation * light.lightDimmer * shadow * sampleData.weight * preExposure);
                 if (any(lightRadiance > 0.0f))
                 {
                     strategy.ClampRoughness(bsdf, light.minRoughness);

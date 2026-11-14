@@ -1,0 +1,88 @@
+compute "PostProcess/BuildLuminanceHistogram"
+{
+    properties
+    {
+        Texture2D hdrColorSrv;
+        uint histogramUav;
+        uint persistentViewStateBufferSrv;
+        uint viewId;
+        uint renderWidth;
+        uint renderHeight;
+        uint meteringMode;
+        float histogramMinEV;
+        float histogramMaxEV;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/PostProcess/ExposureCommon.hlsl";
+    }
+
+    hlsl
+    {
+        #define HISTOGRAM_BINS 128u
+        #define METERING_CENTER_WEIGHTED 1u
+
+        groupshared uint s_hist[HISTOGRAM_BINS];
+
+        [numthreads(16, 16, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
+        {
+            if (groupIndex < HISTOGRAM_BINS)
+            {
+                s_hist[groupIndex] = 0u;
+            }
+            GroupMemoryBarrierWithGroupSync();
+
+            uint2 pixelCoord = dispatchThreadId.xy;
+            if (pixelCoord.x < g_Properties.renderWidth && pixelCoord.y < g_Properties.renderHeight)
+            {
+                Texture2D<float4> hdrTex = GET_TEXTURE2D(g_Properties.hdrColorSrv);
+                float3 color = hdrTex[pixelCoord].rgb;
+
+                if (!any(isnan(color)) && !any(isinf(color)))
+                {
+                    color = max(color, 0.0f);
+                    float preExposure = GetViewPreExposure(g_Properties.persistentViewStateBufferSrv, g_Properties.viewId);
+                    float3 sceneRadiance = color / preExposure;
+
+                    float lum = dot(sceneRadiance, float3(0.2126f, 0.7152f, 0.0722f));
+                    float logLum = log2(max(lum, 1e-5f));
+                    float evRange = max(g_Properties.histogramMaxEV - g_Properties.histogramMinEV, 1e-4f);
+                    float normalized = saturate((logLum - g_Properties.histogramMinEV) / evRange);
+                    uint bin = min((uint)(normalized * float(HISTOGRAM_BINS - 1u) + 0.5f), HISTOGRAM_BINS - 1u);
+
+                    uint weight = 1u;
+                    if (g_Properties.meteringMode == METERING_CENTER_WEIGHTED)
+                    {
+                        float2 uv = (float2(pixelCoord) + 0.5f) / float2(g_Properties.renderWidth, g_Properties.renderHeight);
+                        float2 d = (uv - 0.5f) * 2.0f;
+                        float distSq = dot(d, d);
+                        weight = max(1u, (uint)round(1.0f + 7.0f * exp(-distSq * 2.5f)));
+                    }
+
+                    InterlockedAdd(s_hist[bin], weight);
+                }
+            }
+
+            GroupMemoryBarrierWithGroupSync();
+
+            if (groupIndex < HISTOGRAM_BINS && s_hist[groupIndex] > 0u)
+            {
+                RWByteAddressBuffer histBuf = GET_BUFFER(g_Properties.histogramUav);
+                histBuf.InterlockedAdd(groupIndex * 4u, s_hist[groupIndex]);
+            }
+        }
+
+        [numthreads(HISTOGRAM_BINS, 1, 1)]
+        void CSClear(uint groupIndex : SV_GroupIndex)
+        {
+            RWByteAddressBuffer histBuf = GET_BUFFER(g_Properties.histogramUav);
+            histBuf.Store(groupIndex * 4u, 0u);
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+    cs "hlsl_block" : "CSClear";
+}

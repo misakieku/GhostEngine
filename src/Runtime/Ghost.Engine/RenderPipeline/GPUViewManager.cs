@@ -69,6 +69,7 @@ public sealed class GPUViewContext : IDisposable
     public float4x4 prevViewProjMatrix;
     public float3 prevCameraPosition;
     public ulong prevSkyHash;
+    public bool isExposureInitialized;
 
     public uint ViewId
     {
@@ -205,6 +206,7 @@ public sealed class GPUViewContext : IDisposable
         prevViewProjMatrix = default;
         prevCameraPosition = default;
         prevSkyHash = 0;
+        isExposureInitialized = false;
     }
 }
 

@@ -38,6 +38,10 @@ struct Meshlet
     float clusterError;
     float parentError;
     uint packedCounts; // byte vertexCount, byte triangleCount, byte localMaterialIndex, byte lodLevel
+    float maxEdgeLength;
+    uint _padding0;
+    uint _padding1;
+    uint _padding2;
 };
 
 struct MeshletGroup

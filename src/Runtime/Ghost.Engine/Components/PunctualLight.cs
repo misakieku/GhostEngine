@@ -14,6 +14,16 @@ public enum PunctualLightType : byte
 }
 
 /// <summary>
+/// Photometric unit used to author punctual light intensity.
+/// </summary>
+public enum PunctualLightUnit : byte
+{
+    Lumen = 0,
+    Candela = 1,
+    Ev100 = 2
+}
+
+/// <summary>
 /// Component representing a localized punctual light source (Point or Spot).
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
@@ -25,12 +35,17 @@ public struct PunctualLight : IComponentData
     public PunctualLightType type;
 
     /// <summary>
+    /// Unit of <see cref="intensity"/>.
+    /// </summary>
+    public PunctualLightUnit unit;
+
+    /// <summary>
     /// Linear RGB light color.
     /// </summary>
     public float3 color;
 
     /// <summary>
-    /// Direct linear intensity multiplier.
+    /// Light intensity in the unit specified by <see cref="unit"/> (default Lumen).
     /// </summary>
     public float intensity;
 
@@ -119,9 +134,12 @@ public struct PunctualLight : IComponentData
     /// </summary>
     public bool contactShadow;
 
-    public static PunctualLight CreatePoint(float3 color, float intensity, float range, uint shadowSize = 0) => new()
+    public static PunctualLight Default => CreatePoint(new float3(1.0f, 1.0f, 1.0f), 800.0f, 10.0f);
+
+    public static PunctualLight CreatePoint(float3 color, float intensity, float range, uint shadowSize = 0, PunctualLightUnit unit = PunctualLightUnit.Lumen) => new()
     {
         type = PunctualLightType.Point,
+        unit = unit,
         color = color,
         intensity = intensity,
         range = range,
@@ -142,9 +160,10 @@ public struct PunctualLight : IComponentData
         shadowLodErrorScale = 1.0f,
     };
 
-    public static PunctualLight CreateSpot(float3 color, float intensity, float range, float innerAngleRad, float outerAngleRad, uint shadowSize = 0) => new()
+    public static PunctualLight CreateSpot(float3 color, float intensity, float range, float innerAngleRad, float outerAngleRad, uint shadowSize = 0, PunctualLightUnit unit = PunctualLightUnit.Lumen) => new()
     {
         type = PunctualLightType.Spot,
+        unit = unit,
         color = color,
         intensity = intensity,
         range = range,

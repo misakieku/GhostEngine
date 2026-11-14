@@ -28,7 +28,7 @@ public interface IRenderGraphContext
 
     uint GetActualBindlessIndex(Identifier<RGTexture> texture, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.ALL_SUBRESOURCES);
     void GetActualBindlessIndices(Identifier<RGTexture> texture, ReadOnlySpan<uint> subResources, Span<uint> outIndices, BindlessAccess access = BindlessAccess.ShaderResource);
-    uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource);
+    uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.ALL_SUBRESOURCES);
 
     void SetUserData(uint userData0, uint userData1 = 0, uint userData2 = 0, uint userData3 = 0, DataTarget target = DataTarget.Graphics);
     void SetPassProperties<TProperty>(scoped in TProperty property)
@@ -40,7 +40,6 @@ public interface IRenderGraphContext
     bool TrySetActiveShaderPass(Handle<Shader> shader, PassSemantic semantic, PipelineState? pipelineOverride = null);
     void ExecuteIndirect(ICommandSignature commandSignature, uint maxCommandCount, Handle<GPUBuffer> argumentBuffer, ulong argumentOffset = 0, Handle<GPUBuffer> countBuffer = default, ulong countBufferOffset = 0);
 
-    void ClearBuffer(Identifier<RGBuffer> buffer, uint sizeInBytes, uint clearValue = 0, uint dstOffset = 0);
     void DiscardResource(Identifier<RGResource> resource, DiscardDesc? desc);
     void SetPipelineState(Key128<PipelineState> pipeline);
 }
@@ -211,14 +210,14 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource)
+    public uint GetActualBindlessIndex(Identifier<RGBuffer> buffer, BindlessAccess access = BindlessAccess.ShaderResource, uint subResource = IResourceDatabase.ALL_SUBRESOURCES)
     {
         if (buffer.IsInvalid)
         {
             return RHIUtility.INVALID_BINDLESS_INDEX;
         }
 
-        return _resourceDatabase.GetBindlessIndex(GetActualBuffer(buffer).AsResource(), access);
+        return _resourceDatabase.GetBindlessIndex(GetActualBuffer(buffer).AsResource(), access, subResource);
     }
 
     public void SetFrameData(Handle<GPUBuffer> frameBuffer)
@@ -716,39 +715,6 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
     public void BuildRaytracingAccelerationStructure(scoped in BuildAccelerationStructureDesc desc)
     {
         _commandBuffer.BuildRaytracingAccelerationStructure(in desc);
-    }
-
-    public void ClearBuffer(Identifier<RGBuffer> buffer, uint sizeInBytes, uint clearValue = 0, uint dstOffset = 0)
-    {
-        var desc = new BufferDesc
-        {
-            Size = sizeInBytes,
-            Stride = 4,
-            Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
-            HeapType = HeapType.Upload,
-        };
-
-        var tempBuffer = _resourceManager.CreateTransientUploadBuffer(desc, out var srcOffset);
-        var ptr = (byte*)_resourceDatabase.MapResource(tempBuffer.AsResource(), 0, null);
-        if (ptr != null)
-        {
-            var pDst = (uint*)(ptr + srcOffset);
-            if (clearValue == 0)
-            {
-                Unsafe.InitBlockUnaligned(pDst, 0, sizeInBytes);
-            }
-            else
-            {
-                var count = (int)(sizeInBytes / 4);
-                for (var i = 0; i < count; i++)
-                {
-                    pDst[i] = clearValue;
-                }
-            }
-
-            _resourceDatabase.UnmapResource(tempBuffer.AsResource(), 0, null);
-            _commandBuffer.CopyBuffer(GetActualBuffer(buffer), tempBuffer, dstOffset, srcOffset, sizeInBytes);
-        }
     }
 
     public void DiscardResource(Identifier<RGResource> resource, DiscardDesc? desc)
