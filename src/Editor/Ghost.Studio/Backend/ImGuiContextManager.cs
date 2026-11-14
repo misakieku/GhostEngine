@@ -137,6 +137,12 @@ internal sealed unsafe class ImGuiContextManager : IDisposable
 
         ImNodes.DestroyContext(_imnodesContext);
         ImPlot.DestroyContext(_implotContext);
+
+        // Clear external DLL GImGui pointers before freeing _imguiContext so CRT atexit destructors (e.g. ImGuizmo's static Context) do not dereference a freed ImGuiContext.
+        ImGuizmo.SetImGuiContext(default(ImGuiContextPtr));
+        ImNodes.SetImGuiContext(default(ImGuiContextPtr));
+        ImPlot.SetImGuiContext(default(ImGuiContextPtr));
+
         ImGui.DestroyContext(_imguiContext);
     }
 }

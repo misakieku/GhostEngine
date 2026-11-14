@@ -1,5 +1,6 @@
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
+using Ghost.Engine.Components;
 
 namespace Ghost.Editor.Core.Commands;
 
@@ -39,6 +40,31 @@ public sealed class AddComponentCommand : IEditorCommand
         list.Add(_component);
         _bridge.MutateSnapshot(current => new List<EntityNode>(current));
         _selection.Select(_entity);
+
+        _bridge.EnqueueWorldAction(world =>
+        {
+            var em = world.EntityManager;
+            var ecs = _entity.EcsEntity;
+            if (!ecs.IsValid || !em.Exists(ecs))
+            {
+                return;
+            }
+
+            ComponentReflectionAccessor.TryAddOrSet(em, ecs, _component.ComponentType, _component.LiveValue);
+            if (_component.ComponentType == typeof(LocalTransform) && !em.HasComponent<LocalToWorld>(ecs))
+            {
+                ComponentReflectionAccessor.TryAddOrSet(em, ecs, typeof(LocalToWorld), new LocalToWorld { matrix = LocalTransform.Identity.ToMatrix() });
+            }
+
+            if (_component.ComponentType == typeof(LocalTransform) || _component.ComponentType == typeof(LocalToWorld))
+            {
+                _bridge.DirtyTracker.MarkTransformDirty(ecs);
+            }
+            else if (_component.ComponentType == typeof(MeshInstance))
+            {
+                _bridge.DirtyTracker.MarkGpuInstanceDirty(ecs);
+            }
+        });
     }
 
     public void Undo()
@@ -48,6 +74,15 @@ public sealed class AddComponentCommand : IEditorCommand
         {
             _bridge.MutateSnapshot(current => new List<EntityNode>(current));
             _selection.Select(_entity);
+
+            _bridge.EnqueueWorldAction(world =>
+            {
+                var ecs = _entity.EcsEntity;
+                if (ecs.IsValid && world.EntityManager.Exists(ecs))
+                {
+                    ComponentReflectionAccessor.TryRemove(world.EntityManager, ecs, _component.ComponentType);
+                }
+            });
         }
     }
 

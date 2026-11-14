@@ -1,5 +1,8 @@
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
+using Ghost.Engine.Components;
+using Ghost.Engine.Utilities;
+using Ghost.Entities;
 
 namespace Ghost.Editor.Core.Commands;
 
@@ -64,6 +67,29 @@ public sealed class DeleteEntityCommand : IEditorCommand
         {
             _selection.Clear();
         }
+
+        _bridge.EnqueueWorldAction(world =>
+        {
+            var em = world.EntityManager;
+            for (var i = 0; i < _removedEntries.Count; i++)
+            {
+                var node = _removedEntries[i].Node;
+                if (node.EcsEntity.IsValid)
+                {
+                    _bridge.RemoveEntityMetadata(node.EcsEntity);
+                }
+            }
+
+            if (_target.EcsEntity.IsValid && em.Exists(_target.EcsEntity))
+            {
+                HierarchyUtility.DestroyEntityWithChildren(world, _target.EcsEntity);
+            }
+
+            for (var i = 0; i < _removedEntries.Count; i++)
+            {
+                _removedEntries[i].Node.EcsEntity = Entity.Invalid;
+            }
+        });
     }
 
     public void Undo()
@@ -92,6 +118,75 @@ public sealed class DeleteEntityCommand : IEditorCommand
         });
 
         _selection.Select(_target);
+
+        _bridge.EnqueueWorldAction(world =>
+        {
+            var em = world.EntityManager;
+            for (var i = 0; i < _removedEntries.Count; i++)
+            {
+                var node = _removedEntries[i].Node;
+                var recreated = em.CreateEntity();
+                node.EcsEntity = recreated;
+                _bridge.RegisterEntityMapping(recreated, node.Id);
+                _bridge.SetEntityName(recreated, node.Name);
+
+                var hasLocalTransform = false;
+                var hasLocalToWorld = false;
+                for (var c = 0; c < node.Components.Count; c++)
+                {
+                    var comp = node.Components[c];
+                    if (comp.ComponentType == typeof(LocalTransform))
+                    {
+                        hasLocalTransform = true;
+                    }
+                    else if (comp.ComponentType == typeof(LocalToWorld))
+                    {
+                        hasLocalToWorld = true;
+                    }
+
+                    ComponentReflectionAccessor.TryAddOrSet(em, recreated, comp.ComponentType, comp.LiveValue);
+                }
+
+                if (hasLocalTransform && !hasLocalToWorld)
+                {
+                    ComponentReflectionAccessor.TryAddOrSet(em, recreated, typeof(LocalToWorld), new LocalToWorld { matrix = LocalTransform.Identity.ToMatrix() });
+                }
+            }
+
+            for (var i = 0; i < _removedEntries.Count; i++)
+            {
+                var node = _removedEntries[i].Node;
+                if (!node.ParentId.HasValue)
+                {
+                    continue;
+                }
+
+                var parentEcs = _bridge.ResolveEcsEntity(node.ParentId.Value);
+                if (parentEcs.IsValid && em.Exists(parentEcs) && node.EcsEntity.IsValid)
+                {
+                    if (!em.HasComponent<Hierarchy>(node.EcsEntity))
+                    {
+                        em.AddComponent(node.EcsEntity, Hierarchy.Root);
+                    }
+
+                    if (!em.HasComponent<Hierarchy>(parentEcs))
+                    {
+                        em.AddComponent(parentEcs, Hierarchy.Root);
+                    }
+
+                    HierarchyUtility.SetParent(world, node.EcsEntity, parentEcs);
+                }
+            }
+
+            for (var i = 0; i < _removedEntries.Count; i++)
+            {
+                var ecs = _removedEntries[i].Node.EcsEntity;
+                if (ecs.IsValid && em.Exists(ecs) && (em.HasComponent<LocalTransform>(ecs) || em.HasComponent<LocalToWorld>(ecs)))
+                {
+                    _bridge.DirtyTracker.MarkTransformDirty(ecs);
+                }
+            }
+        });
     }
 
     public void Redo() => Execute();

@@ -1,5 +1,8 @@
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
+using Ghost.Engine.Components;
+using Ghost.Engine.Utilities;
+using Ghost.Entities;
 
 namespace Ghost.Editor.Core.Commands;
 
@@ -41,6 +44,7 @@ public sealed class ReparentEntityCommand : IEditorCommand
         _entity.ParentId = _newParentId;
         _bridge.MutateSnapshot(current => new List<EntityNode>(current));
         _selection.Select(_entity);
+        EnqueueReparentAction(_newParentId);
     }
 
     public void Undo()
@@ -48,9 +52,53 @@ public sealed class ReparentEntityCommand : IEditorCommand
         _entity.ParentId = _oldParentId;
         _bridge.MutateSnapshot(current => new List<EntityNode>(current));
         _selection.Select(_entity);
+        EnqueueReparentAction(_oldParentId);
     }
 
     public void Redo() => Execute();
+
+    private void EnqueueReparentAction(int? parentNodeId)
+    {
+        _bridge.EnqueueWorldAction(world =>
+        {
+            var em = world.EntityManager;
+            var child = _entity.EcsEntity;
+            if (!child.IsValid || !em.Exists(child))
+            {
+                return;
+            }
+
+            if (!parentNodeId.HasValue)
+            {
+                if (em.HasComponent<Hierarchy>(child))
+                {
+                    HierarchyUtility.RemoveParent(world, child);
+                    _bridge.DirtyTracker.MarkTransformDirty(child);
+                }
+
+                return;
+            }
+
+            var parentEcs = _bridge.ResolveEcsEntity(parentNodeId.Value);
+            if (!parentEcs.IsValid || !em.Exists(parentEcs))
+            {
+                return;
+            }
+
+            if (!em.HasComponent<Hierarchy>(child))
+            {
+                em.AddComponent(child, Hierarchy.Root);
+            }
+
+            if (!em.HasComponent<Hierarchy>(parentEcs))
+            {
+                em.AddComponent(parentEcs, Hierarchy.Root);
+            }
+
+            HierarchyUtility.SetParent(world, child, parentEcs);
+            _bridge.DirtyTracker.MarkTransformDirty(child);
+        });
+    }
 
     private static bool WouldCreateCycle(IReadOnlyList<EntityNode> entities, int entityId, int candidateParentId)
     {

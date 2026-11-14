@@ -39,6 +39,11 @@ public sealed class RenameEntityCommand : IEditorCommand
         }
 
         _target.Name = name;
+        if (_target.EcsEntity.IsValid)
+        {
+            _bridge.SetEntityName(_target.EcsEntity, name);
+        }
+
         _bridge.MutateSnapshot(entities =>
         {
             var next = new List<EntityNode>(entities.Count);

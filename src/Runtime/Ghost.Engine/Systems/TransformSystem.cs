@@ -1,9 +1,9 @@
 using Ghost.Core;
 using Ghost.Engine.Components;
 using Ghost.Engine.RenderPipeline;
+using Ghost.Engine.Utilities;
 using Ghost.Entities;
 using Misaki.HighPerformance.Mathematics;
-using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Systems;
 
@@ -81,51 +81,9 @@ public class TransformSystem : SystemBase
 
                 if (hierarchy.firstChild != Entity.Invalid)
                 {
-                    UpdateChildTransforms(em, hierarchy.firstChild, in ltw.matrix, 0);
+                    TransformUtility.UpdateChildTransforms(em, hierarchy.firstChild, in ltw.matrix, 0);
                 }
             }
-        }
-    }
-
-    private static void UpdateChildTransforms(EntityManager em, Entity firstChild, scoped in float4x4 parentMatrix, int depth)
-    {
-        if (depth > 256)
-        {
-            Logger.Warning("Hierarchy depth exceeded 256 or cyclic parent detected in TransformSystem.");
-            return;
-        }
-
-        var current = firstChild;
-        while (current != Entity.Invalid)
-        {
-            if (!em.Exists(current) || !em.HasComponent<Hierarchy>(current))
-            {
-                break;
-            }
-
-            ref readonly var h = ref em.GetComponent<Hierarchy>(current);
-            var nextSibling = h.nextSibling;
-            var childFirstChild = h.firstChild;
-
-            var childWorldMatrix = parentMatrix;
-            if (em.HasComponent<LocalTransform>(current))
-            {
-                ref readonly var local = ref em.GetComponent<LocalTransform>(current);
-                childWorldMatrix = math.mul(parentMatrix, local.ToMatrix());
-            }
-
-            if (em.HasComponent<LocalToWorld>(current))
-            {
-                ref var ltw = ref em.GetComponent<LocalToWorld>(current);
-                ltw.matrix = childWorldMatrix;
-            }
-
-            if (childFirstChild != Entity.Invalid)
-            {
-                UpdateChildTransforms(em, childFirstChild, in childWorldMatrix, depth + 1);
-            }
-
-            current = nextSibling;
         }
     }
 }

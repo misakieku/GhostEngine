@@ -1,5 +1,6 @@
+using Ghost.Editor.Core.Commands;
+using Ghost.Editor.Core.Menus;
 using Ghost.Editor.Core.Selection;
-using Ghost.Editor.Core.Sync;
 using Ghost.Engine.Systems;
 using Ghost.Entities;
 using Ghost.Studio.Backend;
@@ -8,25 +9,28 @@ using Ghost.Studio.UI;
 using Hexa.NET.ImGui;
 using Hexa.NET.ImGuizmo;
 using Hexa.NET.ImPlot;
-using System.Numerics;
 
 namespace Ghost.Studio.Systems;
 
 [UpdateAfter<EditorEcsSyncSystem>]
 [UpdateBefore<EditorCameraControllerSystem>]
-[UpdateBefore<RenderSystemGroup>]
+[UpdateBefore<EditorRenderSystemGroup>]
 internal sealed class EditorImGuiSystem : SystemBase
 {
     private readonly ImGuiContextManager _contextManager;
     private readonly ImGuiSdlInputBridge _inputBridge;
     private readonly ImGuiPostRenderCommand _postRenderCommand;
     private readonly SceneViewportTarget _viewportTarget;
-    private readonly SceneViewportPanel _sceneViewportPanel;
 
-    private bool _showSceneViewport = true;
-    private bool _showThemePreview = true;
-    private bool _showDemoWindow;
-    private bool _showPlotDemo;
+    private readonly StudioDockspace _dockspace = new();
+    private readonly MainMenuBar _mainMenuBar = new();
+    private readonly SceneViewportPanel _sceneViewportPanel;
+    private readonly HierarchyPanel _hierarchyPanel;
+    private readonly InspectorPanel _inspectorPanel = new();
+    private readonly ProjectPanel _projectPanel = new();
+    private readonly ConsolePanel _consolePanel = new();
+    private readonly ProfilerPanel _profilerPanel = new();
+    private readonly NodeGraphPanel _nodeGraphPanel = new();
 
     public EditorImGuiSystem(ImGuiContextManager contextManager, ImGuiSdlInputBridge inputBridge, ImGuiPostRenderCommand postRenderCommand, SceneViewportTarget viewportTarget, EditorViewportInputState viewportInputState)
     {
@@ -35,127 +39,126 @@ internal sealed class EditorImGuiSystem : SystemBase
         _postRenderCommand = postRenderCommand;
         _viewportTarget = viewportTarget;
         _sceneViewportPanel = new SceneViewportPanel(viewportTarget, viewportInputState);
+        _hierarchyPanel = new HierarchyPanel(viewportInputState);
     }
 
     protected override void OnUpdate(scoped in SystemUpdateAPI systemAPI)
     {
         _contextManager.MakeCurrent();
+        _dockspace.EnsureIniLoaded();
         _inputBridge.BeginFrame(systemAPI.Time.DeltaTime);
+
+        _profilerPanel.RecordSample(systemAPI.Time.DeltaTime);
 
         ImGui.NewFrame();
         ImGuizmo.BeginFrame();
 
-        DrawMainMenuBar();
+        HandleGlobalShortcuts();
 
-        ImGui.DockSpaceOverViewport(0, ImGui.GetMainViewport(), ImGuiDockNodeFlags.PassthruCentralNode);
+        _mainMenuBar.Draw(_contextManager, _dockspace, systemAPI.Time.DeltaTime);
+        _dockspace.BeginDockSpace();
 
         var renderedSceneTexture = false;
-        if (_showSceneViewport)
+        if (_dockspace.ShowSceneViewport)
         {
-            renderedSceneTexture = _sceneViewportPanel.Draw(_contextManager, systemAPI.World.EntityManager, ref _showSceneViewport);
+            renderedSceneTexture = _sceneViewportPanel.Draw(_contextManager, systemAPI.World.EntityManager, ref _dockspace.ShowSceneViewport);
         }
 
-        if (_showThemePreview)
+        if (_dockspace.ShowHierarchy)
         {
-            DrawDesignSystemPreview(systemAPI.Time.DeltaTime);
+            _hierarchyPanel.Draw(_contextManager, ref _dockspace.ShowHierarchy);
         }
 
-        if (_showDemoWindow)
+        if (_dockspace.ShowInspector)
         {
-            ImGui.ShowDemoWindow(ref _showDemoWindow);
+            _inspectorPanel.Draw(_contextManager, ref _dockspace.ShowInspector);
         }
 
-        if (_showPlotDemo)
+        if (_dockspace.ShowProject)
         {
-            ImPlot.ShowDemoWindow(ref _showPlotDemo);
+            _projectPanel.Draw(_contextManager, ref _dockspace.ShowProject);
+        }
+
+        if (_dockspace.ShowConsole)
+        {
+            _consolePanel.Draw(_contextManager, ref _dockspace.ShowConsole);
+        }
+
+        if (_dockspace.ShowProfiler)
+        {
+            _profilerPanel.Draw(_contextManager, ref _dockspace.ShowProfiler);
+        }
+
+        if (_dockspace.ShowNodeGraph)
+        {
+            _nodeGraphPanel.Draw(_contextManager, ref _dockspace.ShowNodeGraph);
+        }
+
+        if (_dockspace.ShowImGuiDemo)
+        {
+            ImGui.ShowDemoWindow(ref _dockspace.ShowImGuiDemo);
+        }
+
+        if (_dockspace.ShowImPlotDemo)
+        {
+            ImPlot.ShowDemoWindow(ref _dockspace.ShowImPlotDemo);
         }
 
         ImGui.Render();
+        _dockspace.SyncAutoSaveIni();
 
         var externalTex = renderedSceneTexture ? _viewportTarget.TextureHandle : default;
         var slot = _postRenderCommand.GetSnapshotSlot(systemAPI.Time.FrameIndex);
         slot.Capture(ImGui.GetDrawData(), externalTex);
     }
 
-    private void DrawMainMenuBar()
+    protected override void OnCleanup(scoped in SystemAPI systemAPI)
     {
-        if (!ImGui.BeginMainMenuBar())
-        {
-            return;
-        }
-
-        if (ImGui.BeginMenu("View"))
-        {
-            if (ImGui.BeginMenu("Theme"))
-            {
-                if (ImGui.MenuItem("Dark (Unity Default)", string.Empty, _contextManager.ThemePreset == EditorThemePreset.Dark))
-                {
-                    _contextManager.SetTheme(EditorThemePreset.Dark);
-                }
-
-                if (ImGui.MenuItem("Light", string.Empty, _contextManager.ThemePreset == EditorThemePreset.Light))
-                {
-                    _contextManager.SetTheme(EditorThemePreset.Light);
-                }
-
-                ImGui.EndMenu();
-            }
-
-            ImGui.EndMenu();
-        }
-
-        if (ImGui.BeginMenu("Windows"))
-        {
-            ImGui.MenuItem("Scene", string.Empty, ref _showSceneViewport);
-            ImGui.MenuItem("Scene Entities", string.Empty, ref _showThemePreview);
-            ImGui.Separator();
-            ImGui.MenuItem("Dear ImGui Demo", string.Empty, ref _showDemoWindow);
-            ImGui.MenuItem("ImPlot Demo", string.Empty, ref _showPlotDemo);
-            ImGui.EndMenu();
-        }
-
-        ImGui.EndMainMenuBar();
+        _dockspace.SaveLayout();
+        _hierarchyPanel.Dispose();
+        _consolePanel.Dispose();
     }
 
-    private void DrawDesignSystemPreview(float deltaTime)
+    private static void HandleGlobalShortcuts()
     {
-        ImGui.SetNextWindowPos(new Vector2(24.0f, 52.0f), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(320.0f, 420.0f), ImGuiCond.FirstUseEver);
-
-        if (!ImGui.Begin("Scene Entities", ref _showThemePreview))
+        var io = ImGui.GetIO();
+        if (io.WantTextInput)
         {
-            ImGui.End();
             return;
         }
 
-        ref readonly var tokens = ref _contextManager.Tokens;
-        var snapshot = EditorSyncBridge.Instance.LatestSnapshot;
-
-        ImGui.PushFont(_contextManager.HeadingFont, EditorTheme.FONT_SIZE_HEADING);
-        ImGui.TextUnformatted("Editor World Snapshot");
-        ImGui.PopFont();
-
-        ImGui.PushFont(_contextManager.MonospaceFont, EditorTheme.FONT_SIZE_MONO);
-        var fps = deltaTime > 0.00001f ? 1.0f / deltaTime : 0.0f;
-        ImGui.TextColored(tokens.TextSecondary, $"{deltaTime * 1000.0f:0.00} ms  |  {fps:0} FPS  |  DPI {_contextManager.DpiScale:0.00}x");
-        ImGui.PopFont();
-
-        ImGui.Separator();
-
-        if (snapshot != null)
+        if (io.KeyCtrl)
         {
-            var activeId = EditorSelection.Instance.ActiveEntity?.Id ?? -1;
-            for (var i = 0; i < snapshot.Entities.Count; i++)
+            if (ImGui.IsKeyPressed(ImGuiKey.Z))
             {
-                var entity = snapshot.Entities[i];
-                var selected = entity.Id == activeId;
-                if (ImGui.Selectable($"{entity.Name}##{entity.Id}", selected))
+                if (io.KeyShift)
                 {
-                    EditorSelection.Instance.Select(entity);
+                    CommandHistory.Instance.Redo();
                 }
+                else
+                {
+                    CommandHistory.Instance.Undo();
+                }
+
+                return;
+            }
+
+            if (ImGui.IsKeyPressed(ImGuiKey.Y))
+            {
+                CommandHistory.Instance.Redo();
+                return;
+            }
+
+            if (ImGui.IsKeyPressed(ImGuiKey.D) && EditorSelection.Instance.ActiveEntity != null)
+            {
+                EntityMenuActions.DuplicateEntity(new MenuContext(EditorSelection.Instance.ActiveEntity));
+                return;
             }
         }
 
-        ImGui.End();
+        if (ImGui.IsKeyPressed(ImGuiKey.Delete) && EditorSelection.Instance.ActiveEntity != null)
+        {
+            EntityMenuActions.DeleteEntity(new MenuContext(EditorSelection.Instance.ActiveEntity));
+        }
     }
 }

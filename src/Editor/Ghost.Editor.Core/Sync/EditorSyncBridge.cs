@@ -15,12 +15,17 @@ public sealed class EditorSyncBridge
 {
     private readonly ConcurrentQueue<PendingPropertyMutation> _pendingMutations = new();
     private readonly ConcurrentQueue<Action<World>> _pendingWorldActions = new();
+    private readonly Dictionary<Entity, string> _entityNames = new();
+    private readonly Dictionary<Entity, int> _entityNodeIds = new();
+    private readonly object _metadataLock = new();
     private readonly object _snapshotLock = new();
     private SceneSnapshot? _latestSnapshot;
     private long _snapshotVersion = 0;
     private int _nextEntityId = 1;
 
     public static EditorSyncBridge Instance { get; } = new();
+
+    public EditorDirtyTracker DirtyTracker { get; } = new();
 
     public long SnapshotVersion => Volatile.Read(ref _snapshotVersion);
 
@@ -31,6 +36,93 @@ public sealed class EditorSyncBridge
     public int AllocateEntityId()
     {
         return Interlocked.Increment(ref _nextEntityId);
+    }
+
+    public void SetEntityName(Entity entity, string name)
+    {
+        if (!entity.IsValid || string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        lock (_metadataLock)
+        {
+            _entityNames[entity] = name.Trim();
+        }
+    }
+
+    public bool TryGetEntityName(Entity entity, out string name)
+    {
+        if (!entity.IsValid)
+        {
+            name = string.Empty;
+            return false;
+        }
+
+        lock (_metadataLock)
+        {
+            return _entityNames.TryGetValue(entity, out name!);
+        }
+    }
+
+    public void RegisterEntityMapping(Entity entity, int nodeId)
+    {
+        if (!entity.IsValid)
+        {
+            return;
+        }
+
+        lock (_metadataLock)
+        {
+            _entityNodeIds[entity] = nodeId;
+        }
+    }
+
+    public bool TryGetMappedNodeId(Entity entity, out int nodeId)
+    {
+        if (!entity.IsValid)
+        {
+            nodeId = 0;
+            return false;
+        }
+
+        lock (_metadataLock)
+        {
+            return _entityNodeIds.TryGetValue(entity, out nodeId);
+        }
+    }
+
+    public void RemoveEntityMetadata(Entity entity)
+    {
+        if (!entity.IsValid)
+        {
+            return;
+        }
+
+        lock (_metadataLock)
+        {
+            _entityNames.Remove(entity);
+            _entityNodeIds.Remove(entity);
+        }
+    }
+
+    public Entity ResolveEcsEntity(int nodeId)
+    {
+        var snapshot = LatestSnapshot;
+        if (snapshot == null)
+        {
+            return Entity.Invalid;
+        }
+
+        for (var i = 0; i < snapshot.Entities.Count; i++)
+        {
+            if (snapshot.Entities[i].Id == nodeId)
+            {
+                return snapshot.Entities[i].EcsEntity;
+            }
+        }
+
+        return Entity.Invalid;
     }
 
     public void EnqueueMutation(Entity entity, Type componentType, string fieldName, object? value)

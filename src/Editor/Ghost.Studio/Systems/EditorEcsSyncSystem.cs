@@ -14,7 +14,7 @@ namespace Ghost.Studio.Systems;
 /// Synchronizes the Editor <see cref="World"/> with <see cref="EditorSyncBridge"/>, drains pending UI/undo mutations, and refreshes live Inspector values without per-frame structural rebuilds.
 /// </summary>
 [UpdateBefore<EditorImGuiSystem>]
-[UpdateBefore<RenderSystemGroup>]
+[UpdateBefore<EditorRenderSystemGroup>]
 internal sealed unsafe class EditorEcsSyncSystem : SystemBase
 {
     private interface IComponentAccessor
@@ -67,7 +67,9 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
         if (digest != _lastSignatureDigest)
         {
             _lastSignatureDigest = digest;
+            var activeEcs = EditorSelection.Instance.ActiveEntity?.EcsEntity ?? Entity.Invalid;
             _cachedEntities = BuildEntityGraph(world, em, ref query, bridge);
+            RestoreSelection(activeEcs);
         }
         else
         {
@@ -114,6 +116,15 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
             var boxed = accessor.Read(ptr);
             field.SetValue(boxed, mutation.Value);
             accessor.Write(ptr, boxed);
+
+            if (mutation.ComponentType == typeof(LocalTransform) || mutation.ComponentType == typeof(LocalToWorld))
+            {
+                bridge.DirtyTracker.MarkTransformDirty(mutation.Entity);
+            }
+            else if (mutation.ComponentType == typeof(MeshInstance))
+            {
+                bridge.DirtyTracker.MarkGpuInstanceDirty(mutation.Entity);
+            }
         }
     }
 
@@ -135,6 +146,13 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
                 {
                     hash.Add((int)location.archetypeID);
                 }
+
+                if (em.HasComponent<Hierarchy>(entity))
+                {
+                    var parent = em.GetComponent<Hierarchy>(entity).parent;
+                    hash.Add(parent.ID);
+                    hash.Add(parent.Generation);
+                }
             }
         }
 
@@ -155,11 +173,12 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
             for (var i = 0; i < chunk.EntityCount; i++)
             {
                 var entity = entities[i];
-                var nodeId = bridge.AllocateEntityId();
+                var nodeId = bridge.TryGetMappedNodeId(entity, out var existingId) ? existingId : bridge.AllocateEntityId();
+                bridge.RegisterEntityMapping(entity, nodeId);
                 _entityNodeIdLookup[entity] = nodeId;
 
                 var compList = new List<ComponentNode>();
-                var name = ResolveEntityDisplayName(em, entity, entityIndex);
+                var name = bridge.TryGetEntityName(entity, out var customName) ? customName : ResolveEntityDisplayName(em, entity, entityIndex);
                 var entityNode = new EntityNode(nodeId, name, compList)
                 {
                     EcsEntity = entity,
@@ -185,6 +204,23 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
         }
 
         return result;
+    }
+
+    private void RestoreSelection(Entity activeEcs)
+    {
+        if (!activeEcs.IsValid)
+        {
+            return;
+        }
+
+        for (var i = 0; i < _cachedEntities.Count; i++)
+        {
+            if (_cachedEntities[i].EcsEntity == activeEcs)
+            {
+                EditorSelection.Instance.Select(_cachedEntities[i]);
+                return;
+            }
+        }
     }
 
     private void PopulateComponentNodes(World world, EntityManager em, Entity entity, EntityNode entityNode, List<ComponentNode> dest, EditorSyncBridge bridge)

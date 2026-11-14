@@ -294,10 +294,11 @@ internal sealed unsafe class ImGuiPostRenderCommand : IRenderLoopCommand, IDispo
             };
 
             var span = pixelBytes.Slice((int)op.pixelDataOffset, (int)op.pixelDataSize);
-            var texHandle = ResourceUtility.CreateTexture(context.ResourceManager, context.ResourceDatabase, context.ResourceAllocator, commandBuffer, span, in texDesc, $"ImGuiTex_{op.textureKey & 0x7FFF_FFFFu}");
+            var texName = $"ImGuiTex_{op.textureKey & 0x7FFF_FFFFu}";
+            var texHandle = ResourceUtility.CreateTexture(context.ResourceManager, context.ResourceDatabase, context.ResourceAllocator, commandBuffer, span, in texDesc, texName,
+                BarrierSync.AllShading, BarrierAccess.ShaderResource, BarrierLayout.ShaderResource);
             if (!texHandle.IsInvalid)
             {
-                commandBuffer.Barrier(BarrierDesc.Texture(texHandle, BarrierSync.None, BarrierSync.AllShading, BarrierAccess.Common, BarrierAccess.ShaderResource, BarrierLayout.Common, BarrierLayout.ShaderResource));
                 _imguiTextures[op.textureKey] = texHandle;
                 _imguiBindlessIds[op.textureKey] = context.ResourceDatabase.GetBindlessIndex(texHandle.AsResource(), BindlessAccess.ShaderResource);
             }

@@ -13,7 +13,7 @@ namespace Ghost.Studio.Systems;
 /// Controls the <see cref="EditorCamera"/> singleton using Unity-style Scene View fly, orbit, pan, dolly, and frame navigation.
 /// </summary>
 [UpdateAfter<EditorImGuiSystem>]
-[UpdateBefore<RenderSystemGroup>]
+[UpdateBefore<EditorRenderSystemGroup>]
 internal sealed unsafe class EditorCameraControllerSystem : SystemBase
 {
     private const float LOOK_SENSITIVITY = 0.0032f;
@@ -41,13 +41,13 @@ internal sealed unsafe class EditorCameraControllerSystem : SystemBase
         var isAltDown = io.KeyAlt;
         var anyNavButton = isRightDown || isMiddleDown || (isLeftDown && isAltDown);
 
-        if (!_inputState.CanControlCamera)
+        if (!_inputState.CanControlCamera && !_inputState.FocusRequested)
         {
             _inputState.IsNavigating = false;
             return;
         }
 
-        if (_inputState.IsHovered && anyNavButton)
+        if (_inputState.IsHovered && anyNavButton && !_inputState.IsGizmoBlocking)
         {
             _inputState.IsNavigating = true;
         }
@@ -62,6 +62,14 @@ internal sealed unsafe class EditorCameraControllerSystem : SystemBase
         var right = math.mul(rotation, new float3(1.0f, 0.0f, 0.0f));
         var up = math.mul(rotation, new float3(0.0f, 1.0f, 0.0f));
         var forward = math.mul(rotation, new float3(0.0f, 0.0f, 1.0f));
+
+        if (_inputState.FocusRequested)
+        {
+            _inputState.FocusRequested = false;
+            TryFrameSelectedEntity(systemAPI.World.EntityManager, ref editorCam, in forward);
+            editorCam.localToWorld = MathUtility.TRS(editorCam.position, rotation, new float3(1.0f));
+            return;
+        }
 
         var delta = io.MouseDelta;
 

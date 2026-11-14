@@ -422,21 +422,24 @@ public static unsafe class PrefabUtility
             {
                 world.EntityManager.SetComponentsSequential(roots, in ltw);
             }
+
+            if (world.EntityManager.HasComponent<Hierarchy>(roots[0]))
+            {
+                for (var i = 0; i < count; i++)
+                {
+                    var firstChild = world.EntityManager.GetComponent<Hierarchy>(roots[i]).firstChild;
+                    if (firstChild != Entity.Invalid)
+                    {
+                        TransformUtility.UpdateChildTransforms(world.EntityManager, firstChild, in ltwMatrix, 0);
+                    }
+                }
+            }
         }
         else if (parentHasLtw)
         {
             for (var i = 0; i < count; i++)
             {
-                var r = roots[i];
-                if (world.EntityManager.HasComponent<LocalToWorld>(r))
-                {
-                    ref var ltw = ref world.EntityManager.GetComponent<LocalToWorld>(r);
-                    if (world.EntityManager.HasComponent<LocalTransform>(r))
-                    {
-                        ref readonly var lt = ref world.EntityManager.GetComponent<LocalTransform>(r);
-                        ltw.matrix = math.mul(parentMatrix, lt.ToMatrix());
-                    }
-                }
+                TransformUtility.UpdateEntityAndDescendants(world.EntityManager, roots[i]);
             }
         }
     }

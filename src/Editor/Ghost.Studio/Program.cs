@@ -130,17 +130,14 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
         _editorWorld = World.Create(engine.JobScheduler, 1024);
         _editorWorld.AddService(engine.RenderEngine);
         _editorWorld.AddService(engine.AssetManager);
+        _editorWorld.AddService(Ghost.Editor.Core.Sync.EditorSyncBridge.Instance.DirtyTracker);
 
         SeedStarterEditorScene(engine, _editorWorld);
 
         _editorWorld.SystemManager.AddSystem(new EditorEcsSyncSystem());
         _editorWorld.SystemManager.AddSystem(new EditorImGuiSystem(_contextManager!, _inputBridge!, _postRenderCommand!, _viewportTarget!, _viewportInputState!));
         _editorWorld.SystemManager.AddSystem(new EditorCameraControllerSystem(_viewportInputState!));
-
-        var renderGroup = new RenderSystemGroup();
-        renderGroup.AddSystem(new EditorCameraRenderSystem(_viewportTarget!));
-        renderGroup.SortSystems();
-        _editorWorld.SystemManager.AddSystem(renderGroup);
+        _editorWorld.SystemManager.AddSystem(new EditorRenderSystemGroup(_viewportTarget!));
     }
 
     private void SeedStarterEditorScene(EngineCore engine, World world)
@@ -156,12 +153,14 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
             Logger.Warning("Starter mesh 'Meshes/cube' was not found in BuiltInAssets.");
         }
 
+        var dirRot = quaternion.EulerXYZ(math.radians(new float3(48.0f, 215.0f, 0.0f)));
+        var dirPos = new float3(0.0f, 20.0f, 0.0f);
         world.EntityManager.CreateEntity(
             new DirectionalLight
             {
                 color = new float3(1.0f, 0.96f, 0.90f),
                 sunDiskAngularDiameter = math.radians(0.53f),
-                intensity = 12_000.0f,
+                intensity = 10_000.0f,
                 castShadows = true,
                 shadowResolution = 2048,
                 lightingDimmer = 1.0f,
@@ -173,11 +172,13 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
                 shadowLodErrorScale = 3.0f,
                 contactShadow = false,
             },
+            LocalTransform.FromPositionRotation(dirPos, dirRot),
             new LocalToWorld
             {
-                matrix = MathUtility.TRS(new float3(0.0f, 20.0f, 0.0f), quaternion.EulerXYZ(math.radians(new float3(48.0f, 215.0f, 0.0f))), float3.one),
+                matrix = MathUtility.TRS(dirPos, dirRot, float3.one),
             });
 
+        var pointPos = new float3(-3.5f, 3.0f, -3.5f);
         world.EntityManager.CreateEntity(
             new PunctualLight
             {
@@ -201,9 +202,10 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
                 specularDimmer = 1.0f,
                 shadowDimmer = 1.0f,
             },
+            LocalTransform.FromPosition(pointPos),
             new LocalToWorld
             {
-                matrix = MathUtility.TRS(new float3(-3.5f, 3.0f, -3.5f), quaternion.identity, float3.one),
+                matrix = MathUtility.TRS(pointPos, quaternion.identity, float3.one),
             });
 
         var exposure = ExposureSettings.Default;

@@ -37,6 +37,15 @@ public sealed class RemoveComponentCommand : IEditorCommand
         list.RemoveAt(idx);
         _bridge.MutateSnapshot(current => new List<EntityNode>(current));
         _selection.Select(_entity);
+
+        _bridge.EnqueueWorldAction(world =>
+        {
+            var ecs = _entity.EcsEntity;
+            if (ecs.IsValid && world.EntityManager.Exists(ecs))
+            {
+                ComponentReflectionAccessor.TryRemove(world.EntityManager, ecs, _component.ComponentType);
+            }
+        });
     }
 
     public void Undo()
@@ -53,6 +62,15 @@ public sealed class RemoveComponentCommand : IEditorCommand
             list.Insert(insertAt, _component);
             _bridge.MutateSnapshot(current => new List<EntityNode>(current));
             _selection.Select(_entity);
+
+            _bridge.EnqueueWorldAction(world =>
+            {
+                var ecs = _entity.EcsEntity;
+                if (ecs.IsValid && world.EntityManager.Exists(ecs))
+                {
+                    ComponentReflectionAccessor.TryAddOrSet(world.EntityManager, ecs, _component.ComponentType, _component.LiveValue);
+                }
+            });
         }
     }
 

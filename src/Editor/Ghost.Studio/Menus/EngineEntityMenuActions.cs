@@ -15,7 +15,7 @@ public static class EngineEntityMenuActions
     [EditorMenuItem("Entity", "Create/Camera", Priority = 11, Icon = "\uE722")]
     public static void CreateCamera(MenuContext ctx)
     {
-        var cmd = new CreateEntityCommand("Camera", ctx.TargetEntity?.Id, new Type[] { typeof(LocalTransform), typeof(Camera) }, ctx.Bridge, ctx.Selection);
+        var cmd = new CreateEntityCommand("Camera", ctx.TargetEntity?.Id, new Type[] { typeof(LocalTransform), typeof(LocalToWorld), typeof(Camera) }, ctx.Bridge, ctx.Selection);
         ctx.History.Execute(cmd);
     }
 
@@ -23,7 +23,7 @@ public static class EngineEntityMenuActions
     [EditorMenuItem("Entity", "Create/Mesh", Priority = 12, Icon = "\uE7C3")]
     public static void CreateMesh(MenuContext ctx)
     {
-        var cmd = new CreateEntityCommand("Mesh", ctx.TargetEntity?.Id, new Type[] { typeof(LocalTransform), typeof(MeshInstance) }, ctx.Bridge, ctx.Selection);
+        var cmd = new CreateEntityCommand("Mesh", ctx.TargetEntity?.Id, new Type[] { typeof(LocalTransform), typeof(LocalToWorld), typeof(MeshInstance) }, ctx.Bridge, ctx.Selection);
         ctx.History.Execute(cmd);
     }
 
@@ -31,7 +31,7 @@ public static class EngineEntityMenuActions
     [EditorMenuItem("Entity", "Create/Light/Directional Light", Priority = 13, Icon = "\uE706")]
     public static void CreateDirectionalLight(MenuContext ctx)
     {
-        var cmd = new CreateEntityCommand("Directional Light", ctx.TargetEntity?.Id, new Type[] { typeof(LocalTransform), typeof(DirectionalLight) }, ctx.Bridge, ctx.Selection);
+        var cmd = new CreateEntityCommand("Directional Light", ctx.TargetEntity?.Id, new Type[] { typeof(LocalTransform), typeof(LocalToWorld), typeof(DirectionalLight) }, ctx.Bridge, ctx.Selection);
         ctx.History.Execute(cmd);
     }
 
@@ -52,8 +52,9 @@ public static class EngineEntityMenuActions
     private static void CreateLightEntity(MenuContext ctx, string name, PunctualLight light)
     {
         var entity = new EntityNode(ctx.Bridge.AllocateEntityId(), name, new List<ComponentNode>(), ctx.TargetEntity?.Id);
-        var comps = new List<ComponentNode>(2);
+        var comps = new List<ComponentNode>(3);
         comps.Add(ComponentNodeFactory.CreateComponentNode(typeof(LocalTransform), entity, LocalTransform.Identity, ctx.Bridge));
+        comps.Add(ComponentNodeFactory.CreateComponentNode(typeof(LocalToWorld), entity, new LocalToWorld { matrix = LocalTransform.Identity.ToMatrix() }, ctx.Bridge));
         comps.Add(ComponentNodeFactory.CreateComponentNode(typeof(PunctualLight), entity, light, ctx.Bridge));
         entity.Components = comps;
         ctx.History.Execute(new CreateEntityCommand(entity, ctx.Bridge, ctx.Selection));

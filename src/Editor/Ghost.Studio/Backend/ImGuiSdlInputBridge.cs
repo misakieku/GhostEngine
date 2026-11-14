@@ -9,6 +9,8 @@ namespace Ghost.Studio.Backend;
 internal sealed unsafe class ImGuiSdlInputBridge : IInputHandler
 {
     private readonly ImGuiContextManager _contextManager;
+    private SDL_Window* _sdlWindow;
+    private bool _textInputActive;
     private int _windowWidth;
     private int _windowHeight;
 
@@ -26,6 +28,41 @@ internal sealed unsafe class ImGuiSdlInputBridge : IInputHandler
         io.DisplaySize = new Vector2(_windowWidth, _windowHeight);
         io.DisplayFramebufferScale = Vector2.One;
         io.DeltaTime = deltaTime > 0.0f ? deltaTime : (1.0f / 60.0f);
+
+        SyncTextInputState(io.WantTextInput);
+    }
+
+    private void SyncTextInputState(bool wantTextInput)
+    {
+        if (_sdlWindow == null || wantTextInput == _textInputActive)
+        {
+            return;
+        }
+
+        if (wantTextInput)
+        {
+            SDL3.SDL_StartTextInput(_sdlWindow);
+        }
+        else
+        {
+            SDL3.SDL_StopTextInput(_sdlWindow);
+        }
+
+        _textInputActive = wantTextInput;
+    }
+
+    private void CaptureWindow(SDL_WindowID windowId)
+    {
+        if (_sdlWindow != null || windowId == 0)
+        {
+            return;
+        }
+
+        var window = SDL3.SDL_GetWindowFromID(windowId);
+        if (window != null)
+        {
+            _sdlWindow = window;
+        }
     }
 
     public void ProcessEvent(SDL_Event e)
@@ -38,6 +75,7 @@ internal sealed unsafe class ImGuiSdlInputBridge : IInputHandler
             case SDL_EventType.SDL_EVENT_WINDOW_RESIZED:
             case SDL_EventType.SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
             {
+                CaptureWindow(e.window.windowID);
                 if (e.window.data1 > 0 && e.window.data2 > 0)
                 {
                     _windowWidth = e.window.data1;
@@ -48,7 +86,8 @@ internal sealed unsafe class ImGuiSdlInputBridge : IInputHandler
             case SDL_EventType.SDL_EVENT_WINDOW_SHOWN:
             case SDL_EventType.SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED:
             {
-                var window = SDL3.SDL_GetWindowFromID(e.window.windowID);
+                CaptureWindow(e.window.windowID);
+                var window = _sdlWindow != null ? _sdlWindow : SDL3.SDL_GetWindowFromID(e.window.windowID);
                 if (window != null)
                 {
                     var scale = SDL3.SDL_GetWindowDisplayScale(window);
@@ -77,6 +116,8 @@ internal sealed unsafe class ImGuiSdlInputBridge : IInputHandler
             case SDL_EventType.SDL_EVENT_MOUSE_BUTTON_DOWN:
             case SDL_EventType.SDL_EVENT_MOUSE_BUTTON_UP:
             {
+                CaptureWindow(e.button.windowID);
+                io.AddMousePosEvent(e.button.x, e.button.y);
                 var mouseButton = MapMouseButton(e.button.button);
                 if (mouseButton >= 0)
                 {
@@ -96,11 +137,13 @@ internal sealed unsafe class ImGuiSdlInputBridge : IInputHandler
             }
             case SDL_EventType.SDL_EVENT_WINDOW_FOCUS_GAINED:
             {
+                CaptureWindow(e.window.windowID);
                 io.AddFocusEvent(true);
                 break;
             }
             case SDL_EventType.SDL_EVENT_WINDOW_FOCUS_LOST:
             {
+                SyncTextInputState(false);
                 io.AddFocusEvent(false);
                 break;
             }
@@ -116,6 +159,7 @@ internal sealed unsafe class ImGuiSdlInputBridge : IInputHandler
             case SDL_EventType.SDL_EVENT_KEY_DOWN:
             case SDL_EventType.SDL_EVENT_KEY_UP:
             {
+                CaptureWindow(e.key.windowID);
                 UpdateModifierKeys(io, (SDL_Keymod)e.key.mod);
                 var imguiKey = MapScancodeToImGuiKey(e.key.scancode);
                 if (imguiKey != ImGuiKey.None)
