@@ -5,7 +5,7 @@ namespace Ghost.Studio.DesignSystem;
 public static class GhostColors
 {
     public static readonly ThemeRef RootBackground = Theme.SolidBackground;
-    public static readonly ThemeRef PanelBackground = Theme.Ref("SolidBackgroundFillColorTertiaryBrus");
+    public static readonly ThemeRef PanelBackground = Theme.Ref("SolidBackgroundFillColorTertiaryBrush");
     public static readonly ThemeRef CardBackground = Theme.CardBackground;
     public static readonly ThemeRef CardHeaderBackground = Theme.Ref("SubtleFillColorSecondaryBrush");
     public static readonly ThemeRef CardHover = Theme.ControlFillSecondary;

@@ -17,6 +17,19 @@ public static class EntityMenuActions
         ctx.History.Execute(cmd);
     }
 
+    [EditorMenuItem("Hierarchy", "Rename", Priority = 25, Icon = "\uE8AC", Shortcut = "F2", ValidateMethod = nameof(HasTargetEntity))]
+    [EditorMenuItem("Entity", "Rename", Priority = 25, Icon = "\uE8AC", Shortcut = "F2", ValidateMethod = nameof(HasEffectiveEntity))]
+    public static void RenameEntity(MenuContext ctx)
+    {
+        var target = ctx.EffectiveEntity;
+        if (target == null)
+        {
+            return;
+        }
+
+        ctx.Selection.RequestRename(target);
+    }
+
     [EditorMenuItem("Hierarchy", "Duplicate", Priority = 30, Shortcut = "Ctrl+D", ValidateMethod = nameof(HasTargetEntity))]
     [EditorMenuItem("Entity", "Duplicate", Priority = 30, Shortcut = "Ctrl+D", ValidateMethod = nameof(HasEffectiveEntity))]
     public static void DuplicateEntity(MenuContext ctx)

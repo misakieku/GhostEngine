@@ -37,7 +37,7 @@ public static class EditorMenuBuilder
                     var subItem = MenuSubItem(sub.Label, ConvertNodes(sub.Children));
                     if (!string.IsNullOrEmpty(sub.Icon))
                     {
-                        subItem = subItem with { IconElement = FontIcon(sub.Icon) };
+                        subItem = subItem with { IconElement = FontIcon(sub.Icon, fontSize: 12) };
                     }
 
                     result.Add(subItem);
@@ -48,7 +48,7 @@ public static class EditorMenuBuilder
                     var item = MenuItem(label, action.IsEnabled ? action.Execute : null);
                     if (!string.IsNullOrEmpty(action.Icon))
                     {
-                        item = item with { IconElement = FontIcon(action.Icon) };
+                        item = item with { IconElement = FontIcon(action.Icon, fontSize: 12) };
                     }
 
                     result.Add(item);

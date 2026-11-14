@@ -16,6 +16,19 @@ public sealed class EditorSelection
 
     public event Action? SelectionChanged;
 
+    public event Action<EntityNode>? RenameRequested;
+
+    public void RequestRename(EntityNode? entity)
+    {
+        if (entity == null)
+        {
+            return;
+        }
+
+        Select(entity);
+        RenameRequested?.Invoke(entity);
+    }
+
     public void Select(object? target)
     {
         if (target == null)

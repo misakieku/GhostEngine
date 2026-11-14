@@ -16,12 +16,9 @@ public sealed class StudioApp : Component
 {
     public override Element Render()
     {
-        return Grid(
-            columns: [GridSize.Star()],
-            rows: [GridSize.Auto, GridSize.Star()],
-
-            Component<EditorTitleBar>().Grid(row: 0, column: 0),
-            Component<StudioWorkspace>().Grid(row: 1, column: 0)
+        return FlexColumn(
+            Component<EditorTitleBar>().Flex(shrink: 0),
+            Component<StudioWorkspace>().Flex(grow: 1, basis: 0, minHeight: 0, minWidth: 0)
         )
         .Backdrop(BackdropKind.Mica)
         .OnKeyDown((_, e) =>

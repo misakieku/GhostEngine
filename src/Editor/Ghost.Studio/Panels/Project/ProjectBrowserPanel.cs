@@ -1,6 +1,7 @@
 using Ghost.Studio.DesignSystem;
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
+using Microsoft.UI.Reactor.Layout;
 using Microsoft.UI.Xaml;
 using static Microsoft.UI.Reactor.Factories;
 
@@ -50,30 +51,27 @@ public sealed class ProjectBrowserPanel : Component
         ).ToArray();
 
         return Border(
-            Grid(
-                columns: [GridSize.Px(140), GridSize.Px(1), GridSize.Star()],
-                rows: [GridSize.Star()],
-
+            FlexRow(
                 Border(
                     VStack(2,
                         TextBlock("Assets").FontSize(11).SemiBold().Foreground(GhostColors.TextSecondary).Margin(bottom: 4),
                         VStack(2, folderButtons)
                     ).Padding(6)
-                ).Background(GhostColors.PanelBackground).Grid(row: 0, column: 0),
+                ).Background(GhostColors.PanelBackground).Flex(basis: 170, shrink: 0),
 
-                Border(Empty()).Background(GhostColors.SubtleBorder).Grid(row: 0, column: 1),
+                Border(Empty()).Width(1).Background(GhostColors.SubtleBorder).Flex(shrink: 0),
 
                 Border(
-                    VStack(6,
+                    FlexColumn(
                         HStack(6,
                             TextBlock($"Assets > {selectedFolder}").FontSize(11).SemiBold().Foreground(GhostColors.TextSecondary)
-                        ).Padding(horizontal: 8, vertical: 4),
+                        ).Padding(horizontal: 8, vertical: 4).Flex(shrink: 0),
 
                         ScrollView(
-                            HStack(8, assetCards).Padding(8)
-                        )
+                            FlexRow(assetCards) with { Wrap = FlexWrap.Wrap, ColumnGap = 8, RowGap = 8, FlexPadding = new Thickness(8) }
+                        ).Flex(grow: 1, basis: 0, minHeight: 0, minWidth: 0)
                     )
-                ).Background(GhostColors.PanelBackground).Grid(row: 0, column: 2)
+                ).Background(GhostColors.PanelBackground).Flex(grow: 1, basis: 0, minWidth: 0)
             )
         ).Background(GhostColors.PanelBackground);
     }

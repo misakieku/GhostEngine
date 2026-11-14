@@ -3,6 +3,7 @@ using Ghost.Editor.Core.Sync;
 using Ghost.Studio.DesignSystem;
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
+using Microsoft.UI.Reactor.Layout;
 using Microsoft.UI.Xaml;
 using static Microsoft.UI.Reactor.Factories;
 
@@ -24,13 +25,15 @@ public abstract class ComponentDrawer
             : removeBtn;
 
         var headerSection = Border(
-            Grid(
-                columns: [GridSize.Auto, GridSize.Star(), GridSize.Auto],
-                rows: [GridSize.Auto],
-                TextBlock(iconGlyph).FontFamily("Segoe Fluent Icons").FontSize(12).Foreground(GhostColors.AccentPrimary).VAlign(VerticalAlignment.Center).Margin(right: GhostLayout.CONTROL_GAP).Grid(row: 0, column: 0),
-                TextBlock(title).FontSize(12).SemiBold().Foreground(GhostColors.TextPrimary).TextTrimming(TextTrimming.CharacterEllipsis).MaxLines(1).VAlign(VerticalAlignment.Center).Grid(row: 0, column: 1),
-                headerActions.VAlign(VerticalAlignment.Center).Margin(left: GhostLayout.CONTROL_GAP).Grid(row: 0, column: 2)
-            )
+            FlexRow(
+                TextBlock(iconGlyph).FontFamily("Segoe Fluent Icons").FontSize(12).Foreground(GhostColors.AccentPrimary).Flex(shrink: 0),
+                TextBlock(title).FontSize(12).SemiBold().Foreground(GhostColors.TextPrimary).TextTrimming(TextTrimming.CharacterEllipsis).MaxLines(1).Flex(grow: 1, basis: 0, minWidth: 0),
+                headerActions.Flex(shrink: 0)
+            ) with
+            {
+                AlignItems = FlexAlign.Center,
+                ColumnGap = GhostLayout.CONTROL_GAP
+            }
         )
         .Background(GhostColors.CardHeaderBackground)
         .Padding(horizontal: GhostLayout.CARD_HEADER_PADDING_H, vertical: GhostLayout.CARD_HEADER_PADDING_V);

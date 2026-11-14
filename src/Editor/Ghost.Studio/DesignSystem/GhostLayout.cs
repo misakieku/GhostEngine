@@ -16,5 +16,6 @@ public static class GhostLayout
     public const double ROW_MIN_HEIGHT = 28;
     public const double CONTROL_GAP = 6;
     public const double PROPERTY_LABEL_WIDTH = 112;
+    public const double PROPERTY_LEFT_PADDING = 2;
     public const double CORNER_RADIUS = 4;
 }

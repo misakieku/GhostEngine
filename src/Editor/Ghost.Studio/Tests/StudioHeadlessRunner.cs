@@ -137,13 +137,28 @@ public static class StudioHeadlessRunner
         Console.WriteLine("PASS");
         passCount++;
 
-        // Test 5: StudioWorkspace DockManager Layout Verification
-        Console.Write("[5/8] Testing StudioWorkspace DockManager hierarchy instantiation... ");
-        var workspace = new StudioWorkspace();
-        var dockManagerEl = workspace.Render();
-        if (dockManagerEl is not Microsoft.UI.Reactor.Docking.DockManager dm || dm.Layout == null)
+        // Test 5: StudioWorkspace Flex Layout & Layout State Clamping Verification
+        Console.Write("[5/8] Testing StudioWorkspace Flex layout & clamping... ");
+        var extremeLayout = new WorkspaceLayoutState
         {
-            throw new InvalidOperationException("Failed: StudioWorkspace did not produce valid DockManager element.");
+            LeftWidth = 10,
+            RightWidth = 5000,
+            BottomHeight = double.NaN,
+            BottomActiveTabKey = string.Empty
+        }.Clamped();
+
+        if (extremeLayout.LeftWidth != WorkspaceLayoutState.MIN_SIDE_WIDTH
+            || extremeLayout.RightWidth != WorkspaceLayoutState.MAX_SIDE_WIDTH
+            || extremeLayout.BottomHeight != WorkspaceLayoutState.DEFAULT_BOTTOM_HEIGHT
+            || extremeLayout.BottomActiveTabKey != "Project")
+        {
+            throw new InvalidOperationException("Failed: WorkspaceLayoutState.Clamped did not enforce bounds.");
+        }
+
+        var workspaceEl = StudioWorkspace.BuildWorkspaceElement(extremeLayout, _ => { }, () => { });
+        if (workspaceEl is not Microsoft.UI.Reactor.Core.BorderElement)
+        {
+            throw new InvalidOperationException("Failed: StudioWorkspace did not produce valid root element.");
         }
         Console.WriteLine("PASS");
         passCount++;
@@ -186,6 +201,33 @@ public static class StudioHeadlessRunner
         if (childObj.ParentId != parentObj.Id)
         {
             throw new InvalidOperationException("Failed: Undo of ReparentEntityCommand did not restore ParentId.");
+        }
+
+        // Rename Entity + Undo/Redo + RequestRename event
+        EntityNode? renamedTarget = null;
+        Action<EntityNode> onRenameRequested = e => renamedTarget = e;
+        cmdSelection.RenameRequested += onRenameRequested;
+        cmdSelection.RequestRename(parentObj);
+        cmdSelection.RenameRequested -= onRenameRequested;
+        if (!ReferenceEquals(renamedTarget, parentObj))
+        {
+            throw new InvalidOperationException("Failed: EditorSelection.RequestRename did not fire RenameRequested.");
+        }
+
+        cmdHistory.Execute(new RenameEntityCommand(parentObj, "  HeroRoot  ", cmdBridge, cmdSelection));
+        if (parentObj.Name != "HeroRoot")
+        {
+            throw new InvalidOperationException("Failed: RenameEntityCommand did not update entity name.");
+        }
+        cmdHistory.Undo();
+        if (parentObj.Name != "ParentObj")
+        {
+            throw new InvalidOperationException("Failed: Undo of RenameEntityCommand did not restore entity name.");
+        }
+        cmdHistory.Redo();
+        if (parentObj.Name != "HeroRoot")
+        {
+            throw new InvalidOperationException("Failed: Redo of RenameEntityCommand did not reapply entity name.");
         }
 
         // Add & Remove Component + Undo
@@ -247,11 +289,12 @@ public static class StudioHeadlessRunner
 
         var childCtx = new MenuContext(childObj, cmdBridge, cmdHistory, new EditorSelection());
         var childMenu = EditorMenuRegistry.Default.BuildMenu("Hierarchy", childCtx);
+        var renameChild = childMenu.OfType<MenuActionNode>().FirstOrDefault(a => a.Label == "Rename");
         var deleteChild = childMenu.OfType<MenuActionNode>().FirstOrDefault(a => a.Label == "Delete");
         var unparentChild = childMenu.OfType<MenuActionNode>().FirstOrDefault(a => a.Label == "Unparent");
-        if (deleteChild == null || !deleteChild.IsEnabled || unparentChild == null || !unparentChild.IsEnabled)
+        if (renameChild == null || !renameChild.IsEnabled || deleteChild == null || !deleteChild.IsEnabled || unparentChild == null || !unparentChild.IsEnabled)
         {
-            throw new InvalidOperationException("Failed: Delete/Unparent should be visible and enabled for child entity.");
+            throw new InvalidOperationException("Failed: Rename/Delete/Unparent should be visible and enabled for child entity.");
         }
         if (!childMenu.OfType<MenuSeparatorNode>().Any())
         {

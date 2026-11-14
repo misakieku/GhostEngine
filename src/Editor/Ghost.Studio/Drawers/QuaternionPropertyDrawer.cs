@@ -1,10 +1,7 @@
 using Ghost.Editor.Core.Sync;
 using Ghost.Studio.DesignSystem;
-using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
-using Microsoft.UI.Xaml;
 using Misaki.HighPerformance.Mathematics;
-using static Microsoft.UI.Reactor.Factories;
 
 namespace Ghost.Studio.Drawers;
 
@@ -18,30 +15,12 @@ public sealed class QuaternionPropertyDrawer : PropertyDrawer
         var current = property.Value is quaternion q ? q : quaternion.identity;
         var euler = ToEulerDegrees(current);
 
-        return Grid(
-            columns: [GridSize.Px(GhostLayout.PROPERTY_LABEL_WIDTH), GridSize.Auto, GridSize.Star(), GridSize.Auto, GridSize.Star(), GridSize.Auto, GridSize.Star()],
-            rows: [GridSize.Auto],
-
-            DrawPropertyLabel(property).Grid(row: 0, column: 0),
-
-            TextBlock("X").Foreground(GhostColors.StatusError).FontSize(11).SemiBold().VAlign(VerticalAlignment.Center).Margin(right: 4).Grid(row: 0, column: 1),
-            NumberBox(MathF.Round(euler.x, 2), v => context.ModifyProperty(property, current, FromEulerDegrees(new float3((float)v, euler.y, euler.z))))
-                .SpinButtons(Microsoft.UI.Xaml.Controls.NumberBoxSpinButtonPlacementMode.Hidden)
-                .AutomationName($"{property.DisplayName} X")
-                .Margin(right: GhostLayout.CONTROL_GAP).Grid(row: 0, column: 2),
-
-            TextBlock("Y").Foreground(GhostColors.StatusSuccess).FontSize(11).SemiBold().VAlign(VerticalAlignment.Center).Margin(right: 4).Grid(row: 0, column: 3),
-            NumberBox(MathF.Round(euler.y, 2), v => context.ModifyProperty(property, current, FromEulerDegrees(new float3(euler.x, (float)v, euler.z))))
-                .SpinButtons(Microsoft.UI.Xaml.Controls.NumberBoxSpinButtonPlacementMode.Hidden)
-                .AutomationName($"{property.DisplayName} Y")
-                .Margin(right: GhostLayout.CONTROL_GAP).Grid(row: 0, column: 4),
-
-            TextBlock("Z").Foreground(GhostColors.AccentPrimary).FontSize(11).SemiBold().VAlign(VerticalAlignment.Center).Margin(right: 4).Grid(row: 0, column: 5),
-            NumberBox(MathF.Round(euler.z, 2), v => context.ModifyProperty(property, current, FromEulerDegrees(new float3(euler.x, euler.y, (float)v))))
-                .SpinButtons(Microsoft.UI.Xaml.Controls.NumberBoxSpinButtonPlacementMode.Hidden)
-                .AutomationName($"{property.DisplayName} Z")
-                .Grid(row: 0, column: 6)
-        ).MinHeight(GhostLayout.ROW_MIN_HEIGHT);
+        return DrawAxisNumberRow(
+            property,
+            new AxisNumberSpec("X", GhostColors.StatusError, MathF.Round(euler.x, 2), v => context.ModifyProperty(property, current, FromEulerDegrees(new float3((float)v, euler.y, euler.z)))),
+            new AxisNumberSpec("Y", GhostColors.StatusSuccess, MathF.Round(euler.y, 2), v => context.ModifyProperty(property, current, FromEulerDegrees(new float3(euler.x, (float)v, euler.z)))),
+            new AxisNumberSpec("Z", GhostColors.AccentPrimary, MathF.Round(euler.z, 2), v => context.ModifyProperty(property, current, FromEulerDegrees(new float3(euler.x, euler.y, (float)v))))
+        );
     }
 
     private static float3 ToEulerDegrees(quaternion q)

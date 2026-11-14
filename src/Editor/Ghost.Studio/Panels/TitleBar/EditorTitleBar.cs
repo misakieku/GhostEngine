@@ -5,6 +5,7 @@ using Ghost.Studio.DesignSystem;
 using Ghost.Studio.Menus;
 using Microsoft.UI.Reactor;
 using Microsoft.UI.Reactor.Core;
+using Microsoft.UI.Reactor.Layout;
 using Microsoft.UI.Xaml;
 using static Microsoft.UI.Reactor.Factories;
 
@@ -36,10 +37,7 @@ public sealed class EditorTitleBar : Component
         var redoText = history.CanRedo ? $"Redo ({history.NextRedoName})" : "Redo";
 
         return Border(
-            Grid(
-                columns: new GridSize[] { GridSize.Auto, GridSize.Star(), GridSize.Auto },
-                rows: new GridSize[] { GridSize.Auto },
-
+            FlexRow(
                 HStack(8,
                     TextBlock("\uE7C3").FontFamily("Segoe Fluent Icons").FontSize(14).Foreground(GhostColors.AccentPrimary).VAlign(VerticalAlignment.Center),
                     TextBlock("GhostEngine Studio").FontSize(12).SemiBold().Foreground(GhostColors.TextPrimary).VAlign(VerticalAlignment.Center),
@@ -58,23 +56,30 @@ public sealed class EditorTitleBar : Component
 
                     Button(undoText, () => history.Undo()).IsEnabled(history.CanUndo).SubtleButton(),
                     Button(redoText, () => history.Redo()).IsEnabled(history.CanRedo).SubtleButton()
-                ).VAlign(VerticalAlignment.Center).Grid(row: 0, column: 0),
+                ).Flex(shrink: 0),
 
-                HStack(4,
-                    Button(Icon(FontIcon(isPlaying ? "\uE769" : "\uE768", fontSize: 12)), () => setIsPlaying(!isPlaying))
-                        .Foreground(isPlaying ? GhostColors.StatusWarning : GhostColors.StatusSuccess)
-                        .AutomationName(isPlaying ? "Pause" : "Play"),
-                    Button(Icon(FontIcon("\uE71A", fontSize: 12)), () => setIsPlaying(false))
-                        .Foreground(GhostColors.TextSecondary)
-                        .AutomationName("Stop")
-                ).HAlign(HorizontalAlignment.Center).VAlign(VerticalAlignment.Center).Grid(row: 0, column: 1),
-
-                HStack(8,
-                    Border(
-                        TextBlock("FPS 60").FontSize(11).SemiBold().Foreground(GhostColors.StatusSuccess).VAlign(VerticalAlignment.Center)
-                    ).Background(GhostColors.CardBackground).WithBorder(GhostColors.CardBorder, 1).Padding(horizontal: 8, vertical: 3).CornerRadius(4)
-                ).HAlign(HorizontalAlignment.Right).VAlign(VerticalAlignment.Center).Grid(row: 0, column: 2)
-            ).Padding(horizontal: 10, vertical: 4)
+                (FlexRow(
+                    HStack(4,
+                        Button(Icon(FontIcon(isPlaying ? "\uE769" : "\uE768", fontSize: 12)), () => setIsPlaying(!isPlaying))
+                            .Foreground(isPlaying ? GhostColors.StatusWarning : GhostColors.StatusSuccess)
+                            .AutomationName(isPlaying ? "Pause" : "Play")
+                            .CornerRadius(4),
+                        Button(Icon(FontIcon("\uE71A", fontSize: 12)), () => setIsPlaying(false))
+                            .Foreground(GhostColors.TextSecondary)
+                            .AutomationName("Stop")
+                            .CornerRadius(4)
+                    )
+                ) with
+                {
+                    JustifyContent = FlexJustify.Center,
+                    AlignItems = FlexAlign.Center
+                }).Flex(grow: 1, basis: 0, minWidth: 0)
+            ) with
+            {
+                AlignItems = FlexAlign.Center,
+                ColumnGap = 8,
+                FlexPadding = new Thickness(10, 4, 10, 4)
+            }
         )
         .Background(GhostColors.PanelBackground)
         .WithBorder(GhostColors.SubtleBorder, 1);

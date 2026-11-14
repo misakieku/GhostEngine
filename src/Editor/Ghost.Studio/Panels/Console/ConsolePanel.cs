@@ -33,17 +33,17 @@ public sealed class ConsolePanel : Component
         }).ToArray();
 
         return Border(
-            VStack(4,
+            FlexColumn(
                 HStack(8,
                     Button("Clear", () => {}),
                     TextBlock("5 Messages").FontSize(11).Foreground(GhostColors.TextTertiary).VAlign(VerticalAlignment.Center)
-                ).Padding(horizontal: 8, vertical: 4),
+                ).Padding(horizontal: 8, vertical: 4).Flex(shrink: 0),
 
-                Border(Empty()).Height(1).Background(GhostColors.SubtleBorder),
+                Border(Empty()).Height(1).Background(GhostColors.SubtleBorder).Flex(shrink: 0),
 
                 ScrollView(
                     VStack(2, logRows)
-                ).Padding(4)
+                ).Padding(4).Flex(grow: 1, basis: 0, minHeight: 0, minWidth: 0)
             )
         ).Background(GhostColors.PanelBackground);
     }

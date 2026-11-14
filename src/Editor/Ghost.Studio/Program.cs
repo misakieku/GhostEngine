@@ -1,10 +1,8 @@
-using Ghost.Core;
 using Ghost.Editor.Core.Sync;
 using Ghost.Engine.Components;
 using Ghost.Studio.DesignSystem;
 using Ghost.Studio.Tests;
 using Microsoft.UI.Reactor;
-using Microsoft.UI.Reactor.Docking.Native;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Studio;
@@ -22,9 +20,9 @@ internal static class Program
 
         ReactorApp.Run<StudioApp>("GhostEngine Studio", width: 1440, height: 900, configure: host =>
         {
-            DockingNativeInterop.Register(host.Reconciler);
             GhostDensity.ApplyCompactDensity();
         });
+
         return 0;
     }
 
