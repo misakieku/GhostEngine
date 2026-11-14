@@ -55,6 +55,16 @@ public struct GraphicsDesc
     {
         get; set;
     }
+
+    public IRenderLoopCommand[]? PreRenderLoopCommands
+    {
+        get; set;
+    }
+
+    public IRenderLoopCommand[]? PostRenderLoopCommands
+    {
+        get; set;
+    }
 }
 
 public sealed partial class EngineCore : IDisposable
@@ -105,6 +115,16 @@ public sealed partial class EngineCore : IDisposable
 
         _renderEngine.AddPreRenderLoopCommand(new MeshletStreamingPreCommand(_assetManager.MeshletStreamingManager), new StreamingCommand(_streamingProcessor));
         _renderEngine.AddPostRenderLoopCommand(new MeshletStreamingPostCommand(_assetManager.MeshletStreamingManager));
+
+        if (renderDesc.PreRenderLoopCommands is { Length: > 0 } preCommands)
+        {
+            _renderEngine.AddPreRenderLoopCommand(preCommands);
+        }
+
+        if (renderDesc.PostRenderLoopCommands is { Length: > 0 } postCommands)
+        {
+            _renderEngine.AddPostRenderLoopCommand(postCommands);
+        }
     }
 
     public void Start()

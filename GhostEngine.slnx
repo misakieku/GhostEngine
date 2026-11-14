@@ -1,5 +1,9 @@
 <Solution>
   <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Release" />
+    <BuildType Name="Debug_Editor" />
+    <BuildType Name="Release_Editor" />
     <Platform Name="ARM64" />
     <Platform Name="x64" />
     <Platform Name="x86" />
@@ -8,11 +12,7 @@
     <Project Path="src/Editor/Ghost.AssetForge.Core/Ghost.AssetForge.Core.csproj" Id="6b29990f-c553-4c08-88ea-bab42d86d83a" />
     <Project Path="src/Editor/Ghost.DSL/Ghost.DSL.csproj" />
     <Project Path="src/Editor/Ghost.Editor.Core/Ghost.Editor.Core.csproj" />
-    <Project Path="src/Editor/Ghost.Studio/Ghost.Studio.csproj">
-      <Platform Solution="*|ARM64" Project="ARM64" />
-      <Platform Solution="*|x64" Project="x64" />
-      <Platform Solution="*|x86" Project="x86" />
-    </Project>
+    <Project Path="src/Editor/Ghost.Studio/Ghost.Studio.csproj" />
   </Folder>
   <Folder Name="/Runtime/">
     <Project Path="src/Runtime/Ghost.Core/Ghost.Core.csproj" />

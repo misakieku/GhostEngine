@@ -4,8 +4,6 @@ using Ghost.Editor.Core.Menus;
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
 using Ghost.Engine.Components;
-using Ghost.Studio.Drawers;
-using Ghost.Studio.Workspace;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Studio.Tests;
@@ -112,53 +110,31 @@ public static class StudioHeadlessRunner
         Console.WriteLine("PASS");
         passCount++;
 
-        // Test 4: Extensible Drawer Registry & DrawerContext
-        Console.Write("[4/8] Testing PropertyDrawerRegistry & ComponentDrawerRegistry resolution... ");
-        var propRegistry = PropertyDrawerRegistry.Default;
-        var float3Drawer = propRegistry.GetDrawer(typeof(float3));
-        if (float3Drawer is not Float3PropertyDrawer)
-        {
-            throw new InvalidOperationException("Failed: float3 drawer resolution failed.");
-        }
-
-        var compRegistry = ComponentDrawerRegistry.Default;
-        var transformDrawer = compRegistry.GetDrawer(typeof(LocalTransform));
-        if (transformDrawer is not TransformComponentDrawer)
-        {
-            throw new InvalidOperationException("Failed: LocalTransform drawer resolution failed.");
-        }
-
-        var drawerContext = new DrawerContext(history, propRegistry);
-        drawerContext.ModifyProperty(testProp, 20, 100);
+        // Test 4: Property mutation callback & undo stack integration
+        Console.Write("[4/8] Testing PropertyNode mutation with CommandHistory... ");
+        testProp.OnChange(100);
         if (value != 100)
         {
-            throw new InvalidOperationException("Failed: DrawerContext.ModifyProperty execution failed.");
+            throw new InvalidOperationException("Failed: PropertyNode OnChange did not update backing value.");
         }
         Console.WriteLine("PASS");
         passCount++;
 
-        // Test 5: StudioWorkspace Flex Layout & Layout State Clamping Verification
-        Console.Write("[5/8] Testing StudioWorkspace Flex layout & clamping... ");
-        var extremeLayout = new WorkspaceLayoutState
+        // Test 5: EditorSelection clear & multi-selection
+        Console.Write("[5/8] Testing EditorSelection single & multi-select... ");
+        var sel = new EditorSelection();
+        var ent1 = new EntityNode(1, "Entity1", new List<ComponentNode>());
+        var ent2 = new EntityNode(2, "Entity2", new List<ComponentNode>());
+        sel.Select(ent1);
+        sel.ToggleSelection(ent2);
+        if (sel.SelectedObjects.Count != 2 || !sel.SelectedObjects.Contains(ent1) || !sel.SelectedObjects.Contains(ent2))
         {
-            LeftWidth = 10,
-            RightWidth = 5000,
-            BottomHeight = double.NaN,
-            BottomActiveTabKey = string.Empty
-        }.Clamped();
-
-        if (extremeLayout.LeftWidth != WorkspaceLayoutState.MIN_SIDE_WIDTH
-            || extremeLayout.RightWidth != WorkspaceLayoutState.MAX_SIDE_WIDTH
-            || extremeLayout.BottomHeight != WorkspaceLayoutState.DEFAULT_BOTTOM_HEIGHT
-            || extremeLayout.BottomActiveTabKey != "Project")
-        {
-            throw new InvalidOperationException("Failed: WorkspaceLayoutState.Clamped did not enforce bounds.");
+            throw new InvalidOperationException("Failed: EditorSelection multi-select state mismatch.");
         }
-
-        var workspaceEl = StudioWorkspace.BuildWorkspaceElement(extremeLayout, _ => { }, () => { });
-        if (workspaceEl is not Microsoft.UI.Reactor.Core.BorderElement)
+        sel.Clear();
+        if (sel.SelectedObjects.Count != 0)
         {
-            throw new InvalidOperationException("Failed: StudioWorkspace did not produce valid root element.");
+            throw new InvalidOperationException("Failed: EditorSelection Clear failed.");
         }
         Console.WriteLine("PASS");
         passCount++;
@@ -311,8 +287,8 @@ public static class StudioHeadlessRunner
         Console.WriteLine("PASS");
         passCount++;
 
-        // Test 8: ComponentNodeFactory Discovery & Phase 2 Drawers
-        Console.Write("[8/8] Testing ComponentNodeFactory discovery & Phase 2 drawers... ");
+        // Test 8: ComponentNodeFactory Discovery & PropertyNode reflection
+        Console.Write("[8/8] Testing ComponentNodeFactory discovery & HideEditor filtering... ");
         var discoveredTypes = ComponentNodeFactory.DiscoverComponentTypes();
         if (!discoveredTypes.Contains(typeof(LocalTransform)) || !discoveredTypes.Contains(typeof(Camera)) || !discoveredTypes.Contains(typeof(MeshInstance)) || !discoveredTypes.Contains(typeof(DirectionalLight)) || !discoveredTypes.Contains(typeof(PunctualLight)))
         {
@@ -322,19 +298,10 @@ public static class StudioHeadlessRunner
         {
             throw new InvalidOperationException("Failed: ComponentNodeFactory should exclude [HideEditor] Hierarchy component.");
         }
-
-        if (compRegistry.GetDrawer(typeof(Camera)) is not CameraComponentDrawer || compRegistry.GetDrawer(typeof(MeshInstance)) is not MeshInstanceDrawer)
+        var camNode = ComponentNodeFactory.CreateComponentNode(typeof(Camera), parentObj, new Camera(), cmdBridge);
+        if (camNode.Properties.Count == 0)
         {
-            throw new InvalidOperationException("Failed: CameraComponentDrawer or MeshInstanceDrawer resolution failed.");
-        }
-        var gateFitType = typeof(Camera).GetField(nameof(Camera.gateFit))!.FieldType;
-        if (propRegistry.GetDrawer(typeof(float2)) is not Float2PropertyDrawer || propRegistry.GetDrawer(typeof(quaternion)) is not QuaternionPropertyDrawer)
-        {
-            throw new InvalidOperationException("Failed: Float2 or Quaternion PropertyDrawer resolution failed.");
-        }
-        if (propRegistry.GetDrawer(typeof(uint)) is not UIntPropertyDrawer || propRegistry.GetDrawer(gateFitType) is not EnumPropertyDrawer)
-        {
-            throw new InvalidOperationException("Failed: UInt or Enum PropertyDrawer resolution failed.");
+            throw new InvalidOperationException("Failed: Camera component node has no discovered properties.");
         }
         Console.WriteLine("PASS");
         passCount++;

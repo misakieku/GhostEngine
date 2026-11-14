@@ -1,0 +1,115 @@
+shader "Editor/ImGui"
+{
+    properties
+    {
+        uint vertexBuffer;
+        uint indexBuffer;
+        uint textureId;
+        uint vertexByteOffset;
+        uint indexStartOffset;
+        uint triangleCount;
+        float scaleX;
+        float scaleY;
+        float translateX;
+        float translateY;
+        uint forceOpaqueAlpha;
+    }
+
+    pass "Forward"
+    {
+        pipeline
+        {
+            ztest = disabled;
+            zwrite = off;
+            cull = off;
+            blend = alpha;
+            color_mask = all;
+        }
+
+        includes
+        {
+            "EngineResources/Shaders/Properties.hlsl";
+        }
+
+        hlsl
+        {
+            struct PSInput
+            {
+                float4 position : SV_POSITION;
+                float2 uv : TEXCOORD0;
+                float4 color : COLOR0;
+            };
+
+            uint ReadIndex16(ByteAddressBuffer buf, uint indexOffset)
+            {
+                uint byteAddr = indexOffset * 2u;
+                uint word = buf.Load(byteAddr & ~3u);
+                return (byteAddr & 2u) != 0u ? (word >> 16) : (word & 0xFFFFu);
+            }
+
+            float4 UnpackColor(uint col)
+            {
+                return float4(
+                    (col & 0xFFu) / 255.0f,
+                    ((col >> 8) & 0xFFu) / 255.0f,
+                    ((col >> 16) & 0xFFu) / 255.0f,
+                    ((col >> 24) & 0xFFu) / 255.0f);
+            }
+
+            PSInput LoadImGuiVertex(ByteAddressBuffer vb, uint vertexIndex)
+            {
+                uint vByteOffset = g_Properties.vertexByteOffset + vertexIndex * 20u;
+                uint4 raw0 = vb.Load4(vByteOffset);
+                uint rawColor = vb.Load(vByteOffset + 16u);
+
+                float2 pos = asfloat(raw0.xy);
+                float2 uv = asfloat(raw0.zw);
+
+                PSInput output;
+                output.position = float4(pos.x * g_Properties.scaleX + g_Properties.translateX, pos.y * g_Properties.scaleY + g_Properties.translateY, 0.0f, 1.0f);
+                output.uv = uv;
+                output.color = UnpackColor(rawColor);
+                return output;
+            }
+
+            [numthreads(32, 1, 1)]
+            [outputtopology("triangle")]
+            void MSMain(uint3 gid : SV_GroupID, uint gtid : SV_GroupThreadID, out vertices PSInput verts[96], out indices uint3 tris[32])
+            {
+                uint groupBaseTri = gid.x * 32u;
+                uint activeTris = min(32u, g_Properties.triangleCount - groupBaseTri);
+                SetMeshOutputCounts(activeTris * 3u, activeTris);
+
+                if (gtid < activeTris)
+                {
+                    ByteAddressBuffer ib = GET_BUFFER(g_Properties.indexBuffer);
+                    ByteAddressBuffer vb = GET_BUFFER(g_Properties.vertexBuffer);
+
+                    uint baseIdxOffset = g_Properties.indexStartOffset + (groupBaseTri + gtid) * 3u;
+                    uint i0 = ReadIndex16(ib, baseIdxOffset + 0u);
+                    uint i1 = ReadIndex16(ib, baseIdxOffset + 1u);
+                    uint i2 = ReadIndex16(ib, baseIdxOffset + 2u);
+
+                    uint baseOutVert = gtid * 3u;
+                    verts[baseOutVert + 0u] = LoadImGuiVertex(vb, i0);
+                    verts[baseOutVert + 1u] = LoadImGuiVertex(vb, i1);
+                    verts[baseOutVert + 2u] = LoadImGuiVertex(vb, i2);
+                    tris[gtid] = uint3(baseOutVert + 0u, baseOutVert + 1u, baseOutVert + 2u);
+                }
+            }
+
+            float4 PSMain(PSInput input) : SV_TARGET
+            {
+                float4 texColor = SampleTexture2DLevel<float4>(g_Properties.textureId, LINEAR_CLAMP_SAMPLER, input.uv, 0.0f);
+                if (g_Properties.forceOpaqueAlpha != 0u)
+                {
+                    texColor.a = 1.0f;
+                }
+                return input.color * texColor;
+            }
+        }
+
+        ms "hlsl_block" : "MSMain";
+        ps "hlsl_block" : "PSMain";
+    }
+}

@@ -4,7 +4,7 @@
     <DefineConstants>$(DefineConstants);MHP_FASTMATH;MHP_ENABLE_MIMALLOC</DefineConstants>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+  <PropertyGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='Debug_Editor'">
     <DefineConstants>$(DefineConstants);MHP_ENABLE_SAFETY_CHECKS</DefineConstants>
   </PropertyGroup>
 

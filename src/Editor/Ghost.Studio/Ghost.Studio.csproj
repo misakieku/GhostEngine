@@ -1,27 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net11.0-windows10.0.22621.0</TargetFramework>
-    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <OutputType>Exe</OutputType>
     <RootNamespace>Ghost.Studio</RootNamespace>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Platforms>x86;x64;ARM64</Platforms>
-    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <UseWinUI>true</UseWinUI>
-    <WindowsPackageType>None</WindowsPackageType>
-    <EnableMsixTooling>false</EnableMsixTooling>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsGameProject>true</IsGameProject>
+    <GhostAssetDir>$(MSBuildProjectDirectory)\Assets</GhostAssetDir>
   </PropertyGroup>
 
+  <Target Name="SetStudioBuiltInAssetDir" BeforeTargets="ComputeGhostPaths">
+    <PropertyGroup>
+      <GhostAssetBuildDir>$(TargetDir)BuiltInAssets</GhostAssetBuildDir>
+    </PropertyGroup>
+  </Target>
+
   <ItemGroup>
-    <PackageReference Include="Microsoft.UI.Reactor" Version="0.1.0-preview.17" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2957" />
+    <PackageReference Include="Hexa.NET.ImGui" Version="2.2.9" />
+    <PackageReference Include="Hexa.NET.ImGuizmo" Version="2.2.9" />
+    <PackageReference Include="Hexa.NET.ImPlot" Version="2.2.9" />
+    <PackageReference Include="Hexa.NET.ImNodes" Version="2.2.9" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Ghost.AssetForge.Core\Ghost.AssetForge.Core.csproj" />
     <ProjectReference Include="..\Ghost.Editor.Core\Ghost.Editor.Core.csproj" />
     <ProjectReference Include="..\..\Runtime\Ghost.Core\Ghost.Core.csproj" />
     <ProjectReference Include="..\..\Runtime\Ghost.Entities\Ghost.Entities.csproj" />
@@ -29,6 +29,13 @@
     <ProjectReference Include="..\..\Runtime\Ghost.Graphics\Ghost.Graphics.csproj" />
     <ProjectReference Include="..\..\Runtime\Ghost.Graphics.RHI\Ghost.Graphics.RHI.csproj" />
     <ProjectReference Include="..\..\Runtime\Ghost.Graphics.D3D12\Ghost.Graphics.D3D12.csproj" />
+    <ProjectReference Include="..\..\Runtime\Ghost.Generator\Ghost.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\Fonts\**\*.ttf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Import Project="..\..\GhostEngine.targets" />
 
 </Project>

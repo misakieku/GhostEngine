@@ -346,7 +346,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         for (var requestIndex = 0; requestIndex < ghostPayload.RenderRequests.Length; requestIndex++)
         {
             ref readonly var request = ref ghostPayload.RenderRequests[requestIndex];
-            using var renderView = new RenderViewData(_renderEngine.SwapChainManager, ctx.ResourceDatabase, in request);
+            using var renderView = new RenderViewData(_renderEngine.SwapChainManager, ctx.ResourceDatabase, in request, ResourceBarrierData.Common);
 
             // TODO: Dynamic resolution. For now, we just use the render view's screen size as the viewport size.
             var viewPort = new ViewportState(renderView.ScreenSize.x, renderView.ScreenSize.y, renderView.ScreenSize.x, renderView.ScreenSize.y);
@@ -381,7 +381,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
             _meshPipelineResource.EnsureWorkGraphProgram(_renderEngine, _assetManager, viewKeywords);
 
-            var colorTarget = renderGraph.ImportTexture(renderView.ColorTexture, ResourceBarrierData.Present, ResourceBarrierData.Present);
+            var colorTarget = renderGraph.ImportTexture(renderView.ColorTexture, renderView.Barrier, renderView.Barrier);
             var hzbHistory = viewContext.GetOrCreateResource<HzbViewResource, HzbViewResource.Desc>(new HzbViewResource.Desc
             {
                 renderSize = viewPort.ActualSize
