@@ -44,7 +44,6 @@ public unsafe partial class MeshBaker : IAssetBaker
         // Step 1: Bake each mesh into a sub-asset
         var meshDependencies = new int[modelScene.Meshes.Count];
         var dependencies = new List<Guid>();
-        var bakedMaterials = new HashSet<Guid>();
 
         for (var i = 0; i < modelScene.Meshes.Count; i++)
         {
@@ -74,8 +73,10 @@ public unsafe partial class MeshBaker : IAssetBaker
         var entities = new List<SerializedEntityRecord>();
         var meshMaterialFixups = new List<PrefabMeshMaterialFixup>();
         var materialDependencyIndices = new List<int>();
+        var materialState = new MaterialResolutionState(src, modelScene.Scene, meshSettings, ctx);
 
-        BuildPrefabEntities(modelScene, assetId, meshSettings, ctx, meshDependencies, dependencies, componentTypes, entities, meshMaterialFixups, materialDependencyIndices, bakedMaterials);
+        BuildPrefabEntities(modelScene, assetId, meshSettings, ctx, meshDependencies, dependencies, componentTypes, entities, meshMaterialFixups, materialDependencyIndices, materialState);
+        ExtractRemainingEmbeddedTextures(materialState);
 
         // Step 3: Write EntityPrefab to primary dst
         WritePrefabContent(dst, componentTypes, entities, meshMaterialFixups, materialDependencyIndices);
@@ -112,18 +113,7 @@ public unsafe partial class MeshBaker : IAssetBaker
         return idx;
     }
 
-    private static void BuildPrefabEntities(
-        ParsedModelScene modelScene,
-        Guid assetId,
-        MeshBakeSettings meshSettings,
-        AssetBakerContext ctx,
-        int[] meshDependencies,
-        List<Guid> dependencies,
-        List<string> componentTypes,
-        List<SerializedEntityRecord> entities,
-        List<PrefabMeshMaterialFixup> meshMaterialFixups,
-        List<int> materialDependencyIndices,
-        HashSet<Guid> bakedMaterials)
+    private static void BuildPrefabEntities(ParsedModelScene modelScene, Guid assetId, MeshBakeSettings meshSettings, AssetBakerContext ctx, int[] meshDependencies, List<Guid> dependencies, List<string> componentTypes, List<SerializedEntityRecord> entities, List<PrefabMeshMaterialFixup> meshMaterialFixups, List<int> materialDependencyIndices, MaterialResolutionState materialState)
     {
         var localTransformType = GetComponentTypeIndex(componentTypes, PrefabComponentTypeNames.LOCAL_TRANSFORM);
         var localToWorldType = GetComponentTypeIndex(componentTypes, PrefabComponentTypeNames.LOCAL_TO_WORLD);
@@ -224,7 +214,7 @@ public unsafe partial class MeshBaker : IAssetBaker
             if (node->mesh != null && modelScene.MeshPointerToIndex.TryGetValue((IntPtr)node->mesh, out var meshIdx))
             {
                 referencedMeshes.Add(meshIdx);
-                AddMeshComponents(node->mesh, i, meshIdx, assetId, meshSettings, ctx, meshDependencies, dependencies, bakedMaterials, meshInstanceType, record, meshMaterialFixups, materialDependencyIndices);
+                AddMeshComponents(node->mesh, i, meshIdx, assetId, meshSettings, ctx, meshDependencies, dependencies, materialState, meshInstanceType, record, meshMaterialFixups, materialDependencyIndices);
             }
 
             if (node->light != null)
@@ -264,7 +254,7 @@ public unsafe partial class MeshBaker : IAssetBaker
             var pMesh = scene != null && scene->meshes.count > (uint)m ? scene->meshes.data[m] : null;
             if (pMesh != null)
             {
-                AddMeshComponents(pMesh, childIndex, m, assetId, meshSettings, ctx, meshDependencies, dependencies, bakedMaterials, meshInstanceType, childRecord, meshMaterialFixups, materialDependencyIndices);
+                AddMeshComponents(pMesh, childIndex, m, assetId, meshSettings, ctx, meshDependencies, dependencies, materialState, meshInstanceType, childRecord, meshMaterialFixups, materialDependencyIndices);
             }
 
             if (entities.Count > 0 && entities[0].firstChildIndex < 0)
@@ -276,20 +266,7 @@ public unsafe partial class MeshBaker : IAssetBaker
         }
     }
 
-    private static void AddMeshComponents(
-        ufbx_mesh* pMesh,
-        int entityIndex,
-        int meshIdx,
-        Guid assetId,
-        MeshBakeSettings meshSettings,
-        AssetBakerContext ctx,
-        int[] meshDependencies,
-        List<Guid> dependencies,
-        HashSet<Guid> bakedMaterials,
-        int meshInstanceType,
-        SerializedEntityRecord record,
-        List<PrefabMeshMaterialFixup> meshMaterialFixups,
-        List<int> materialDependencyIndices)
+    private static void AddMeshComponents(ufbx_mesh* pMesh, int entityIndex, int meshIdx, Guid assetId, MeshBakeSettings meshSettings, AssetBakerContext ctx, int[] meshDependencies, List<Guid> dependencies, MaterialResolutionState materialState, int meshInstanceType, SerializedEntityRecord record, List<PrefabMeshMaterialFixup> meshMaterialFixups, List<int> materialDependencyIndices)
     {
         var matCount = pMesh->materials.count > 0 ? (int)pMesh->materials.count : 1;
         var matStartDepIndex = materialDependencyIndices.Count;
@@ -310,14 +287,7 @@ public unsafe partial class MeshBaker : IAssetBaker
             }
             else
             {
-                var matSubPath = $"Materials/{matName}";
-                matGuid = GuidUtility.DeriveSubAssetGuid(assetId, matSubPath);
-
-                if (!bakedMaterials.Contains(matGuid))
-                {
-                    bakedMaterials.Add(matGuid);
-                    BakeSubAssetMaterial(pMat, matSubPath, ctx);
-                }
+                matGuid = ResolveOrBakeMaterial(pMat, matName, assetId, materialState);
             }
 
             materialDependencyIndices.Add(GetDependencyIndex(dependencies, matGuid, ctx));
@@ -341,67 +311,6 @@ public unsafe partial class MeshBaker : IAssetBaker
         };
 
         record.components.Add((meshInstanceType, StructToBytes(meshInstance)));
-    }
-
-    private static void BakeSubAssetMaterial(ufbx_material* pMat, string matSubPath, AssetBakerContext ctx)
-    {
-        var semantics = MaterialPropertyPacker.GetShaderSemantics(MaterialPropertyPacker.STANDARD_LIT_SHADER_GUID, ctx.AssetDirectories);
-        if (semantics == null)
-        {
-            throw new InvalidOperationException("Failed to resolve or parse StandardLit shader for sub-asset material baking.");
-        }
-
-        var (propBytes, matFixups) = MaterialPropertyPacker.Pack(
-            semantics,
-            jsonProperties: null,
-            jsonTextures: null,
-            valueFallback: name =>
-            {
-                if (pMat == null) return null;
-                return name switch
-                {
-                    "baseColor" => pMat->pbr.base_color.has_value
-                        ? new float3(pMat->pbr.base_color.value_vec3.x, pMat->pbr.base_color.value_vec3.y, pMat->pbr.base_color.value_vec3.z)
-                        : pMat->fbx.diffuse_color.has_value
-                            ? new float3(pMat->fbx.diffuse_color.value_vec3.x, pMat->fbx.diffuse_color.value_vec3.y, pMat->fbx.diffuse_color.value_vec3.z)
-                            : null,
-                    "roughness" => pMat->pbr.roughness.has_value ? (object)pMat->pbr.roughness.value_real : null,
-                    "metallic" => pMat->pbr.metalness.has_value ? (object)pMat->pbr.metalness.value_real : null,
-                    "emissionColor" => pMat->pbr.emission_color.has_value
-                        ? new float3(pMat->pbr.emission_color.value_vec3.x, pMat->pbr.emission_color.value_vec3.y, pMat->pbr.emission_color.value_vec3.z)
-                        : null,
-                    _ => null
-                };
-            });
-
-        var matDeps = new List<Guid>();
-        matDeps.Add(MaterialPropertyPacker.STANDARD_LIT_SHADER_GUID);
-        foreach (var fixup in matFixups)
-        {
-            if (fixup.textureGuid != Guid.Empty && !matDeps.Contains(fixup.textureGuid))
-            {
-                matDeps.Add(fixup.textureGuid);
-            }
-        }
-
-        using var matStream = ctx.AddSubAsset(matSubPath, AssetType.Material, CollectionsMarshal.AsSpan(matDeps));
-        var matHeader = new MaterialContentHeader
-        {
-            magic = MaterialContentHeader.MAGIC,
-            version = MaterialContentHeader.VERSION,
-            shaderId = MaterialPropertyPacker.STANDARD_LIT_SHADER_GUID,
-            propertyBufferSize = (uint)propBytes.Length,
-            textureFixupCount = (uint)matFixups.Count,
-            propertyBufferOffset = Marshal.SizeOf<MaterialContentHeader>(),
-            textureFixupOffset = Marshal.SizeOf<MaterialContentHeader>() + propBytes.Length
-        };
-
-        matStream.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref matHeader, 1)));
-        matStream.Write(propBytes);
-        if (matFixups.Count > 0)
-        {
-            matStream.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(matFixups)));
-        }
     }
 
     private static void AddLightComponent(ufbx_light* light, int dirLightType, int punctualLightType, SerializedEntityRecord record)

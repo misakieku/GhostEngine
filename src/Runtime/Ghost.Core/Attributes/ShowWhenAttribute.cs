@@ -1,4 +1,4 @@
-namespace Ghost.AssetForge.Core.Attributes;
+namespace Ghost.Core;
 
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class ShowWhenAttribute : Attribute

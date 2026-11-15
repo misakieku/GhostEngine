@@ -1,4 +1,4 @@
-namespace Ghost.AssetForge.Core.Attributes;
+namespace Ghost.Core;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 public class CustomEditorAttribute : Attribute

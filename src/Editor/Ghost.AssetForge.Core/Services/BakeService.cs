@@ -77,6 +77,31 @@ public class BakeService
         }
 
         var total = virtualPathToFile.Count;
+        return await ExecuteBakeTasksAsync(virtualPathToFile, total, config, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Bakes a targeted list of project-relative assets into the cache directory.
+    /// Assets whose extension has no registered baker are counted as skipped without failing.
+    /// </summary>
+    public async Task<BakeResult> BakeAssetsAsync(IReadOnlyList<(string relativePath, string sourceFile)> assets, BakeConfig config, CancellationToken cancellationToken = default)
+    {
+        if (assets.Count == 0)
+        {
+            return new BakeResult(0, 0, 0, 0, Array.Empty<string>());
+        }
+
+        var pairs = new List<KeyValuePair<string, string>>(assets.Count);
+        for (var i = 0; i < assets.Count; i++)
+        {
+            pairs.Add(new KeyValuePair<string, string>(assets[i].relativePath, assets[i].sourceFile));
+        }
+
+        return await ExecuteBakeTasksAsync(pairs, pairs.Count, config, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<BakeResult> ExecuteBakeTasksAsync(IEnumerable<KeyValuePair<string, string>> assets, int total, BakeConfig config, CancellationToken cancellationToken)
+    {
         var completed = 0;
         var succeeded = 0;
         var skipped = 0;
@@ -84,37 +109,83 @@ public class BakeService
         var failedAssets = new List<string>();
         var failedAssetsLock = new Lock();
 
-        OnProgress?.Invoke(0, total);
+        var processedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var currentWave = new List<KeyValuePair<string, string>>();
 
-        var tasks = new List<Task>();
-        foreach (var kvp in virtualPathToFile)
+        foreach (var kvp in assets)
         {
-            tasks.Add(Task.Run(async () =>
+            var normalizedRel = kvp.Key.Replace('\\', '/').TrimStart('/');
+            if (processedPaths.Add(normalizedRel))
             {
-                var outcome = await BakeSingleAssetAsync(kvp.Key, kvp.Value, config, cancellationToken).ConfigureAwait(false);
-                switch (outcome)
-                {
-                    case BakeOutcome.Succeeded:
-                        Interlocked.Increment(ref succeeded);
-                        break;
-                    case BakeOutcome.Skipped:
-                        Interlocked.Increment(ref skipped);
-                        break;
-                    case BakeOutcome.Failed:
-                        Interlocked.Increment(ref failed);
-                        lock (failedAssetsLock)
-                        {
-                            failedAssets.Add(kvp.Key);
-                        }
-                        break;
-                }
-
-                var current = Interlocked.Increment(ref completed);
-                OnProgress?.Invoke(current, total);
-            }, cancellationToken));
+                currentWave.Add(new KeyValuePair<string, string>(normalizedRel, kvp.Value));
+            }
         }
 
-        await Task.WhenAll(tasks).ConfigureAwait(false);
+        total = currentWave.Count;
+        OnProgress?.Invoke(0, total);
+
+        while (currentWave.Count > 0)
+        {
+            var waveEmitted = new List<EmittedAssetEntry>();
+            var waveEmittedLock = new Lock();
+            var tasks = new List<Task>(currentWave.Count);
+
+            foreach (var kvp in currentWave)
+            {
+                tasks.Add(Task.Run(async () =>
+                {
+                    var (outcome, emitted) = await BakeSingleAssetAsync(kvp.Key, kvp.Value, config, cancellationToken).ConfigureAwait(false);
+                    switch (outcome)
+                    {
+                        case BakeOutcome.Succeeded:
+                            Interlocked.Increment(ref succeeded);
+                            break;
+                        case BakeOutcome.Skipped:
+                            Interlocked.Increment(ref skipped);
+                            break;
+                        case BakeOutcome.Failed:
+                            Interlocked.Increment(ref failed);
+                            lock (failedAssetsLock)
+                            {
+                                failedAssets.Add(kvp.Key);
+                            }
+                            break;
+                    }
+
+                    if (emitted.Count > 0)
+                    {
+                        lock (waveEmittedLock)
+                        {
+                            waveEmitted.AddRange(emitted);
+                        }
+                    }
+
+                    var current = Interlocked.Increment(ref completed);
+                    OnProgress?.Invoke(current, Volatile.Read(ref total));
+                }, cancellationToken));
+            }
+
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+
+            var nextWave = new List<KeyValuePair<string, string>>();
+            for (var i = 0; i < waveEmitted.Count; i++)
+            {
+                var emitted = waveEmitted[i];
+                var normalizedRel = emitted.RelativePath.Replace('\\', '/').TrimStart('/');
+                if (processedPaths.Add(normalizedRel))
+                {
+                    nextWave.Add(new KeyValuePair<string, string>(normalizedRel, emitted.SourceFile));
+                }
+            }
+
+            if (nextWave.Count > 0)
+            {
+                Interlocked.Add(ref total, nextWave.Count);
+                OnProgress?.Invoke(Volatile.Read(ref completed), Volatile.Read(ref total));
+            }
+
+            currentWave = nextWave;
+        }
 
         Logger.Info("Baking complete.");
         return new BakeResult(total, succeeded, skipped, failed, failedAssets);
@@ -125,7 +196,7 @@ public class BakeService
         return BakeProjectAsync(new BakeConfig(), cancellationToken);
     }
 
-    private async Task<BakeOutcome> BakeSingleAssetAsync(string relativePath, string sourceFile, BakeConfig config, CancellationToken cancellationToken)
+    private async Task<(BakeOutcome Outcome, IReadOnlyList<EmittedAssetEntry> EmittedAssets)> BakeSingleAssetAsync(string relativePath, string sourceFile, BakeConfig config, CancellationToken cancellationToken)
     {
         var cacheDir = _context.CacheDirectory;
         var destPath = Path.Combine(cacheDir, relativePath);
@@ -152,7 +223,7 @@ public class BakeService
                 Logger.Warning($"No baker for {ext}. Skip.");
             }
 
-            return BakeOutcome.Skipped;
+            return (BakeOutcome.Skipped, Array.Empty<EmittedAssetEntry>());
         }
 
         var needsBake = true;
@@ -216,7 +287,7 @@ public class BakeService
         if (!needsBake)
         {
             Logger.Info($"Skipping {relativePath} (Up to date)");
-            return BakeOutcome.Skipped;
+            return (BakeOutcome.Skipped, Array.Empty<EmittedAssetEntry>());
         }
 
         var metadata = _context.LoadMetadata(metaFile);
@@ -251,14 +322,17 @@ public class BakeService
         if (metadata.Settings == null)
         {
             Logger.Error($"Missing settings in metadata for {sourceFile}. Skip.");
-            return BakeOutcome.Failed;
+            return (BakeOutcome.Failed, Array.Empty<EmittedAssetEntry>());
         }
 
         var ctx = new AssetBakerContext
         {
             AssetId = metadata.Id,
+            SourceFile = sourceFile,
+            RelativePath = relativePath,
             AssetDirectories = _context.AssetDirectories,
-            BakeConfig = config
+            BakeConfig = config,
+            BakerRegistry = _bakerRegistry
         };
 
         var tempCacheFile = cacheFile + ".tmp";
@@ -329,7 +403,7 @@ public class BakeService
                 await File.WriteAllLinesAsync(depsFile, ctx.Dependencies, cancellationToken).ConfigureAwait(false);
             }
 
-            return BakeOutcome.Succeeded;
+            return (BakeOutcome.Succeeded, ctx.EmittedAssets);
         }
         catch (OperationCanceledException)
         {
@@ -340,7 +414,7 @@ public class BakeService
         {
             CleanupFailedBake(cacheFile, tempCacheFile, subAssetCacheDir, depsFile, subAssetStreams);
             Logger.Error($"Failed to bake {relativePath}: {ex.Message}");
-            return BakeOutcome.Failed;
+            return (BakeOutcome.Failed, Array.Empty<EmittedAssetEntry>());
         }
     }
 

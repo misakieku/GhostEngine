@@ -8,10 +8,10 @@ public class BakerRegistry : IDisposable
 {
     private readonly List<IAssetBaker> _bakers = new();
     private readonly Dictionary<string, AssetType> _extToType = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, (Type type, int version)> _extToSettings = new();
-    private readonly Dictionary<string, int> _extToBaker = new();
+    private readonly Dictionary<string, (Type type, int version)> _extToSettings = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _extToBaker = new(StringComparer.OrdinalIgnoreCase);
 
-    public ISet<string> AllSupportedExtensions => new HashSet<string>(_extToBaker.Keys);
+    public ISet<string> AllSupportedExtensions => new HashSet<string>(_extToBaker.Keys, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Creates a registry that auto-discovers <see cref="IAssetBaker"/> implementations
@@ -108,6 +108,11 @@ public class BakerRegistry : IDisposable
         }
 
         return null;
+    }
+
+    public bool HasBaker(string ext)
+    {
+        return !string.IsNullOrEmpty(ext) && _extToBaker.ContainsKey(ext);
     }
 
     public IAssetBaker? GetBaker(string ext)

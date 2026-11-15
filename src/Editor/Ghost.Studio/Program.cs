@@ -1,3 +1,4 @@
+using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
 using Ghost.Engine;
 using Ghost.Engine.Components;
@@ -13,6 +14,7 @@ using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12;
 using Ghost.Graphics.RHI;
 using Ghost.Studio.Backend;
+using Ghost.Studio.Platform;
 using Ghost.Studio.Rendering;
 using Ghost.Studio.Systems;
 using Ghost.Studio.Tests;
@@ -28,6 +30,8 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
     private const uint FRAME_BUFFER_COUNT = 2;
     private const int INITIAL_WIDTH = 1600;
     private const int INITIAL_HEIGHT = 900;
+
+    private readonly ProjectService _projectService;
 
     private readonly GhostRenderPipelineSettings _renderPipelineSettings = new GhostRenderPipelineSettings
     {
@@ -47,8 +51,16 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
     private IAssetEntry? _cubePrefabEntry;
     private World? _editorWorld;
 
+    public StudioLaunchProfile(ProjectService projectService)
+    {
+        _projectService = projectService;
+    }
+
     public EngineDesc GetEngineDesc()
     {
+        var projectName = _projectService.CurrentProject?.Name;
+        var title = string.IsNullOrWhiteSpace(projectName) ? "GhostEngine Studio" : $"GhostEngine Studio - {projectName}";
+
         return new EngineDesc
         {
             AllocationManagerDesc = AllocationManagerDesc.Default,
@@ -56,7 +68,7 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
             {
                 Width = INITIAL_WIDTH,
                 Height = INITIAL_HEIGHT,
-                Title = "GhostEngine Studio",
+                Title = title,
             },
             JobSchedulerDesc = new JobSchedulerDesc
             {
@@ -135,7 +147,7 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
         SeedStarterEditorScene(engine, _editorWorld);
 
         _editorWorld.SystemManager.AddSystem(new EditorEcsSyncSystem());
-        _editorWorld.SystemManager.AddSystem(new EditorImGuiSystem(_contextManager!, _inputBridge!, _postRenderCommand!, _viewportTarget!, _viewportInputState!));
+        _editorWorld.SystemManager.AddSystem(new EditorImGuiSystem(_contextManager!, _inputBridge!, _postRenderCommand!, _viewportTarget!, _viewportInputState!, _projectService));
         _editorWorld.SystemManager.AddSystem(new EditorCameraControllerSystem(_viewportInputState!));
         _editorWorld.SystemManager.AddSystem(new EditorRenderSystemGroup(_viewportTarget!));
     }
@@ -256,6 +268,7 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
 
 internal static class Program
 {
+    [STAThread]
     private static int Main(string[] args)
     {
         if (args.Length > 0 && args[0] == "--headless-test")
@@ -264,7 +277,42 @@ internal static class Program
         }
 
         Logger.Impl.OnLogAdded += static log => Console.WriteLine($"[{log.Level}] {log.Message}");
-        EngineRunner.Run(new StudioLaunchProfile());
+
+        using var bakerRegistry = new BakerRegistry();
+        var projectService = new ProjectService(bakerRegistry);
+
+        var projectArg = ParseProjectArgument(args);
+        if (!string.IsNullOrWhiteSpace(projectArg))
+        {
+            projectService.OpenProject(projectArg);
+        }
+        else if (OperatingSystem.IsWindows())
+        {
+            if (!NativeProjectDialogs.PromptStartupProject(projectService))
+            {
+                return 0;
+            }
+        }
+
+        EngineRunner.Run(new StudioLaunchProfile(projectService));
         return 0;
+    }
+
+    private static string? ParseProjectArgument(string[] args)
+    {
+        for (var i = 0; i < args.Length; i++)
+        {
+            if ((args[i] == "--project" || args[i] == "-p") && i + 1 < args.Length)
+            {
+                return args[i + 1];
+            }
+
+            if (!args[i].StartsWith('-'))
+            {
+                return args[i];
+            }
+        }
+
+        return null;
     }
 }

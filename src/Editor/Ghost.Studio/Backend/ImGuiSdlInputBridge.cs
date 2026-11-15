@@ -9,10 +9,25 @@ namespace Ghost.Studio.Backend;
 internal sealed unsafe class ImGuiSdlInputBridge : IInputHandler
 {
     private readonly ImGuiContextManager _contextManager;
+    private readonly List<string> _pendingDropPaths = new();
+    private readonly Queue<string[]> _completedDropBatches = new();
     private SDL_Window* _sdlWindow;
     private bool _textInputActive;
+    private bool _dropBatchOpen;
     private int _windowWidth;
     private int _windowHeight;
+
+    public bool TryDequeueDroppedPaths(out string[] paths)
+    {
+        if (_completedDropBatches.Count > 0)
+        {
+            paths = _completedDropBatches.Dequeue();
+            return true;
+        }
+
+        paths = Array.Empty<string>();
+        return false;
+    }
 
     public ImGuiSdlInputBridge(ImGuiContextManager contextManager, int initialWidth, int initialHeight)
     {
@@ -165,6 +180,38 @@ internal sealed unsafe class ImGuiSdlInputBridge : IInputHandler
                 if (imguiKey != ImGuiKey.None)
                 {
                     io.AddKeyEvent(imguiKey, e.Type == SDL_EventType.SDL_EVENT_KEY_DOWN);
+                }
+                break;
+            }
+            case SDL_EventType.SDL_EVENT_DROP_BEGIN:
+            {
+                _pendingDropPaths.Clear();
+                _dropBatchOpen = true;
+                break;
+            }
+            case SDL_EventType.SDL_EVENT_DROP_FILE:
+            {
+                var droppedPath = Marshal.PtrToStringUTF8((nint)e.drop.data);
+                if (!string.IsNullOrEmpty(droppedPath))
+                {
+                    if (_dropBatchOpen)
+                    {
+                        _pendingDropPaths.Add(droppedPath);
+                    }
+                    else
+                    {
+                        _completedDropBatches.Enqueue(new[] { droppedPath });
+                    }
+                }
+                break;
+            }
+            case SDL_EventType.SDL_EVENT_DROP_COMPLETE:
+            {
+                _dropBatchOpen = false;
+                if (_pendingDropPaths.Count > 0)
+                {
+                    _completedDropBatches.Enqueue(_pendingDropPaths.ToArray());
+                    _pendingDropPaths.Clear();
                 }
                 break;
             }

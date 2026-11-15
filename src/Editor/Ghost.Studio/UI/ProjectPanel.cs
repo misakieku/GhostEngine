@@ -1,5 +1,7 @@
 using Ghost.Studio.Backend;
+using Ghost.Studio.Services;
 using Hexa.NET.ImGui;
+using System.Diagnostics;
 using System.Numerics;
 
 namespace Ghost.Studio.UI;
@@ -27,7 +29,7 @@ internal sealed class ProjectPanel
         }
     }
 
-    private readonly string _rootDirectory;
+    private string _rootDirectory;
     private readonly List<AssetEntryInfo> _currentItems = new();
     private readonly List<AssetEntryInfo> _filteredItems = new();
 
@@ -36,6 +38,9 @@ internal sealed class ProjectPanel
     private string _selectedPath = string.Empty;
     private bool _showMetaFiles;
     private bool _dirty = true;
+    private Func<string, bool>? _hasBaker;
+    private Action<string>? _onOpenImportSettings;
+    private Action<string>? _onReimportAsset;
 
     public ProjectPanel(string? rootDirectory = null)
     {
@@ -43,7 +48,29 @@ internal sealed class ProjectPanel
         _currentDirectory = _rootDirectory;
     }
 
-    public unsafe void Draw(ImGuiContextManager contextManager, ref bool isOpen)
+    public string CurrentDirectory => _currentDirectory;
+
+    public void BindAssetActions(Func<string, bool> hasBaker, Action<string> onOpenImportSettings, Action<string> onReimportAsset)
+    {
+        _hasBaker = hasBaker;
+        _onOpenImportSettings = onOpenImportSettings;
+        _onReimportAsset = onReimportAsset;
+    }
+
+    public void SetRootDirectory(string rootDirectory)
+    {
+        _rootDirectory = ResolveAssetRoot(rootDirectory);
+        _currentDirectory = _rootDirectory;
+        _selectedPath = string.Empty;
+        _dirty = true;
+    }
+
+    public void MarkDirty()
+    {
+        _dirty = true;
+    }
+
+    public unsafe void Draw(ImGuiContextManager contextManager, ref bool isOpen, in AssetImportService.ImportProgressSnapshot importProgress = default)
     {
         ImGui.SetNextWindowPos(new Vector2(8.0f, 560.0f), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(280.0f, 300.0f), ImGuiCond.FirstUseEver);
@@ -65,16 +92,18 @@ internal sealed class ProjectPanel
             _dirty = false;
         }
 
-        var availW = ImGui.GetContentRegionAvail().X;
-        var treeWidth = Math.Clamp(availW * 0.34f, 120.0f, 240.0f);
+        var avail = ImGui.GetContentRegionAvail();
+        var footerHeight = importProgress.IsImporting ? ImGui.GetFrameHeightWithSpacing() + 4.0f : 0.0f;
+        var contentHeight = MathF.Max(40.0f, avail.Y - footerHeight);
+        var treeWidth = Math.Clamp(avail.X * 0.34f, 120.0f, 240.0f);
 
-        ImGui.BeginChild("##ProjectFolderTree", new Vector2(treeWidth, 0.0f), ImGuiChildFlags.Borders);
+        ImGui.BeginChild("##ProjectFolderTree", new Vector2(treeWidth, contentHeight), ImGuiChildFlags.Borders);
         DrawFolderNode(_rootDirectory, "Assets");
         ImGui.EndChild();
 
         ImGui.SameLine();
 
-        ImGui.BeginChild("##ProjectAssetList", Vector2.Zero, ImGuiChildFlags.None);
+        ImGui.BeginChild("##ProjectAssetList", new Vector2(0.0f, contentHeight), ImGuiChildFlags.None);
         var rowHeight = ImGui.GetFrameHeight();
         var clipper = ImGui.ImGuiListClipper();
         clipper.Begin(_filteredItems.Count, rowHeight);
@@ -91,12 +120,21 @@ internal sealed class ProjectPanel
                 if (ImGui.Selectable($"{tag}  {item.Name}", selected, ImGuiSelectableFlags.AllowDoubleClick))
                 {
                     _selectedPath = item.FullPath;
-                    if (item.IsDirectory && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
+                    if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                     {
-                        _currentDirectory = item.FullPath;
-                        _dirty = true;
+                        if (item.IsDirectory)
+                        {
+                            _currentDirectory = item.FullPath;
+                            _dirty = true;
+                        }
+                        else if (_hasBaker?.Invoke(item.Extension) == true)
+                        {
+                            _onOpenImportSettings?.Invoke(item.FullPath);
+                        }
                     }
                 }
+
+                DrawItemContextMenu(in item);
                 ImGui.PopID();
             }
         }
@@ -104,9 +142,19 @@ internal sealed class ProjectPanel
         clipper.Destroy();
         if (_filteredItems.Count == 0)
         {
-            ImGui.TextColored(tokens.TextDisabled, "Empty folder");
+            ImGui.TextColored(tokens.TextDisabled, "Empty folder (drop files anywhere to import)");
         }
         ImGui.EndChild();
+
+        if (importProgress.IsImporting)
+        {
+            ImGui.Separator();
+            var fraction = importProgress.TotalFiles > 0 ? Math.Clamp((float)importProgress.CompletedFiles / importProgress.TotalFiles, 0.0f, 1.0f) : 0.0f;
+            var overlay = string.IsNullOrEmpty(importProgress.CurrentItemName)
+                ? $"Importing ({importProgress.CompletedFiles}/{importProgress.TotalFiles})..."
+                : importProgress.CurrentItemName;
+            ImGui.ProgressBar(fraction, new Vector2(-1.0f, 0.0f), overlay);
+        }
 
         ImGui.End();
     }
@@ -270,5 +318,80 @@ internal sealed class ProjectPanel
             ".JSON" or ".XML" => "[CFG]",
             _ => "[FIL]",
         };
+    }
+
+    private void DrawItemContextMenu(in AssetEntryInfo item)
+    {
+        if (!ImGui.BeginPopupContextItem())
+        {
+            return;
+        }
+
+        _selectedPath = item.FullPath;
+
+        if (item.IsDirectory)
+        {
+            if (ImGui.MenuItem("Open"))
+            {
+                _currentDirectory = item.FullPath;
+                _dirty = true;
+            }
+
+            if (ImGui.MenuItem("Refresh"))
+            {
+                _dirty = true;
+            }
+        }
+        else
+        {
+            var hasBaker = _hasBaker?.Invoke(item.Extension) ?? false;
+
+            if (ImGui.MenuItem("Import Settings...", string.Empty, false, hasBaker))
+            {
+                _onOpenImportSettings?.Invoke(item.FullPath);
+            }
+
+            if (!hasBaker && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            {
+                ImGui.SetTooltip($"No baker registered for '{item.Extension}'.");
+            }
+
+            if (ImGui.MenuItem("Reimport", string.Empty, false, hasBaker))
+            {
+                _onReimportAsset?.Invoke(item.FullPath);
+            }
+
+            if (!hasBaker && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            {
+                ImGui.SetTooltip($"No baker registered for '{item.Extension}'.");
+            }
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            ImGui.Separator();
+            if (ImGui.MenuItem("Show in Explorer"))
+            {
+                RevealInExplorer(item.FullPath);
+            }
+        }
+
+        ImGui.EndPopup();
+    }
+
+    private static void RevealInExplorer(string fullPath)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"/select,\"{fullPath}\"",
+                UseShellExecute = true,
+            });
+        }
+        catch
+        {
+        }
     }
 }

@@ -1,4 +1,4 @@
-namespace Ghost.AssetForge.Core.Attributes;
+namespace Ghost.Core;
 
 public class SliderAttribute : DrawerAttribute
 {

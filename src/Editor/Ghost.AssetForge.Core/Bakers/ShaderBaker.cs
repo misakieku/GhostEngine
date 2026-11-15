@@ -1,4 +1,3 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 using Ghost.AssetForge.Core.Models;
 using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
@@ -15,38 +14,33 @@ using System.Text;
 
 namespace Ghost.AssetForge.Core.Bakers;
 
-public partial class ShaderBakeSettings : ObservableObject, IBakeSettings
+public class ShaderBakeSettings : IBakeSettings
 {
     public const int VERSION = 1;
 
     public int Version { get; set; } = VERSION;
 
-    [ObservableProperty]
-    public partial CompilerOptimizeLevel OptimizeLevel
+    public CompilerOptimizeLevel OptimizeLevel
     {
         get; set;
     } = CompilerOptimizeLevel.O3;
 
-    [ObservableProperty]
-    public partial CompilerOption Options
+    public CompilerOption Options
     {
         get; set;
     } = CompilerOption.None;
 
-    [ObservableProperty]
-    public partial ShaderModel ShaderModel
+    public ShaderModel ShaderModel
     {
         get; set;
     } = ShaderModel.SM_6_6;
 
-    [ObservableProperty]
-    public partial string[] Defines
+    public string[] Defines
     {
         get; set;
     } = Array.Empty<string>();
 
-    [ObservableProperty]
-    public partial Dictionary<string, string[]> DefineGroups
+    public Dictionary<string, string[]> DefineGroups
     {
         get; set;
     } = new Dictionary<string, string[]>();

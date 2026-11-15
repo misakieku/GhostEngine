@@ -48,12 +48,11 @@ public static class MathUtility
             var scaleZ = math.length(matrix.c2.xyz);
             scale = new float3(scaleX, scaleY, scaleZ);
 
-            var rotationMatrix = new float3x3(
-                matrix.c0.x / scale.x, matrix.c0.y / scale.x, matrix.c0.z / scale.x,
-                matrix.c1.x / scale.y, matrix.c1.y / scale.y, matrix.c1.z / scale.y,
-                matrix.c2.x / scale.z, matrix.c2.y / scale.z, matrix.c2.z / scale.z
-            );
+            var col0 = scaleX > 1e-6f ? matrix.c0.xyz / scaleX : new float3(1.0f, 0.0f, 0.0f);
+            var col1 = scaleY > 1e-6f ? matrix.c1.xyz / scaleY : new float3(0.0f, 1.0f, 0.0f);
+            var col2 = scaleZ > 1e-6f ? matrix.c2.xyz / scaleZ : new float3(0.0f, 0.0f, 1.0f);
 
+            var rotationMatrix = new float3x3(col0, col1, col2);
             rotation = new quaternion(rotationMatrix);
         }
 

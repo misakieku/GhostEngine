@@ -98,7 +98,7 @@ public class AssetBakerTests
         _projectService.CreateProject(projectDir, "MyProject");
         _bakeService = new BakeService(_projectService.GetContext(), _bakerRegistry);
 
-        var assetDir = Path.Combine(projectDir, "Asset");
+        var assetDir = _projectService.AssetDirectories[0];
         var texDir = Path.Combine(assetDir, "Textures");
         Directory.CreateDirectory(texDir);
 

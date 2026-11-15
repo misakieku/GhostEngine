@@ -1,5 +1,3 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-using Ghost.AssetForge.Core.Attributes;
 using Ghost.Core;
 using Ghost.StbI;
 using Misaki.HighPerformance.Mathematics;
@@ -46,96 +44,73 @@ public enum MipmapFilter : uint
     MitchellNetravali
 }
 
-public partial class TextureBakeSettings : ObservableObject, IBakeSettings
+public class TextureBakeSettings : IBakeSettings
 {
-    public partial class BasicSettings : ObservableObject
+    public class BasicSettings
     {
-        [ObservableProperty]
-        public partial TextureType TextureType { get; set; } = TextureType.Default;
+        public TextureType TextureType { get; set; } = TextureType.Default;
 
-        [ObservableProperty]
-        public partial TextureShape TextureShape { get; set; } = TextureShape.Texture2D;
+        public TextureShape TextureShape { get; set; } = TextureShape.Texture2D;
 
-        [ObservableProperty]
         [ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
-        public partial int Columns { get; set; } = 1;
+        public int Columns { get; set; } = 1;
 
-        [ObservableProperty]
         [ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
-        public partial int Rows { get; set; } = 1;
+        public int Rows { get; set; } = 1;
 
-        [ObservableProperty]
         [ShowWhen(nameof(TextureShape), TextureShape.Texture3D)]
-        public partial int Depth { get; set; } = 1;
+        public int Depth { get; set; } = 1;
 
-        [ObservableProperty]
         [ShowWhen(nameof(TextureType), TextureType.Default)]
-        public partial bool IsSRGB { get; set; } = true;
+        public bool IsSRGB { get; set; } = true;
     }
 
-    public partial class AdvancedSettings : ObservableObject
+    public class AdvancedSettings
     {
-        [ObservableProperty]
-        public partial TextureSize MaxSize { get; set; } = TextureSize.Size2048;
+        public TextureSize MaxSize { get; set; } = TextureSize.Size2048;
 
-        [ObservableProperty]
-        public partial bool StretchToPowerOfTwo { get; set; } = true;
+        public bool StretchToPowerOfTwo { get; set; } = true;
 
-        [ObservableProperty]
-        public partial bool GenerateMipmaps { get; set; } = true;
+        public bool GenerateMipmaps { get; set; } = true;
 
-        [ObservableProperty]
         [ShowWhen(nameof(GenerateMipmaps), true)]
-        public partial uint MipmapLevelCount { get; set; } = 0; // 0 means generate full mipmap levels.
+        public uint MipmapLevelCount { get; set; } = 0; // 0 means generate full mipmap levels.
 
-        [ObservableProperty]
-        public partial bool PremultiplyAlpha { get; set; } = false;
+        public bool PremultiplyAlpha { get; set; } = false;
 
-        [ObservableProperty]
-        public partial MipmapFilter MipmapFilter { get; set; } = MipmapFilter.Kaiser;
+        public MipmapFilter MipmapFilter { get; set; } = MipmapFilter.Kaiser;
 
-        [ObservableProperty]
-        public partial TextureCompressionLevel CompressionLevel { get; set; } = TextureCompressionLevel.Normal;
+        public TextureCompressionLevel CompressionLevel { get; set; } = TextureCompressionLevel.Normal;
 
-        [ObservableProperty]
-        public partial bool UseBorderColor { get; set; } = false;
+        public bool UseBorderColor { get; set; } = false;
 
-        [ObservableProperty]
         [ShowWhen(nameof(UseBorderColor), true)]
-        public partial float4 BorderColor { get; set; } = new float4(0, 0, 0, 0);
+        public float4 BorderColor { get; set; } = new float4(0, 0, 0, 0);
 
-        [ObservableProperty]
-        public partial bool ZeroAlphaBorder { get; set; } = false;
+        public bool ZeroAlphaBorder { get; set; } = false;
 
-        [ObservableProperty]
-        public partial bool CutoutAlpha { get; set; } = false;
+        public bool CutoutAlpha { get; set; } = false;
 
-        [ObservableProperty]
         [ShowWhen(nameof(CutoutAlpha), true)]
         [Slider(0, 255)]
-        public partial byte CutoutAlphaThreshold { get; set; } = 127;
+        public byte CutoutAlphaThreshold { get; set; } = 127;
 
-        [ObservableProperty]
-        public partial bool ScaleAlphaForMipCoverage { get; set; } = false;
+        public bool ScaleAlphaForMipCoverage { get; set; } = false;
 
-        [ObservableProperty]
         [ShowWhen(nameof(ScaleAlphaForMipCoverage), true)]
         [Slider(0, 255)]
-        public partial byte ScaleAlphaForMipCoverageThreshold { get; set; } = 127;
+        public byte ScaleAlphaForMipCoverageThreshold { get; set; } = 127;
 
-        [ObservableProperty]
-        public partial int4 CustomChannelMapping { get; set; } = new int4(0, 1, 2, 3); // Default mapping: R=0, G=1, B=2, A=3
+        public int4 CustomChannelMapping { get; set; } = new int4(0, 1, 2, 3); // Default mapping: R=0, G=1, B=2, A=3
     }
 
     public const int VERSION = 1;
 
     public int Version { get; set; } = VERSION;
 
-    [ObservableProperty]
-    public partial BasicSettings Basic { get; set; } = new BasicSettings();
+    public BasicSettings Basic { get; set; } = new BasicSettings();
 
-    [ObservableProperty]
-    public partial AdvancedSettings Advanced { get; set; } = new AdvancedSettings();
+    public AdvancedSettings Advanced { get; set; } = new AdvancedSettings();
 }
 
 internal struct TextureInfo

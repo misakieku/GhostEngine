@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <RootNamespace>Ghost.Studio</RootNamespace>
     <IsGameProject>true</IsGameProject>
     <GhostAssetDir>$(MSBuildProjectDirectory)\Assets</GhostAssetDir>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <Target Name="SetStudioBuiltInAssetDir" BeforeTargets="ComputeGhostPaths">

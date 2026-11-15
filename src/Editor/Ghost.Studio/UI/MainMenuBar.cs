@@ -1,8 +1,10 @@
+using Ghost.AssetForge.Core.Services;
 using Ghost.Editor.Core.Commands;
 using Ghost.Editor.Core.Menus;
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
 using Ghost.Studio.Backend;
+using Ghost.Studio.Platform;
 using Hexa.NET.ImGui;
 
 namespace Ghost.Studio.UI;
@@ -12,7 +14,7 @@ namespace Ghost.Studio.UI;
 /// </summary>
 internal sealed class MainMenuBar
 {
-    public void Draw(ImGuiContextManager contextManager, StudioDockspace dockspace, float deltaTime)
+    public void Draw(ImGuiContextManager contextManager, StudioDockspace dockspace, ProjectService projectService, float deltaTime)
     {
         if (!ImGui.BeginMainMenuBar())
         {
@@ -23,6 +25,26 @@ internal sealed class MainMenuBar
 
         if (ImGui.BeginMenu("File"))
         {
+            if (OperatingSystem.IsWindows())
+            {
+                if (ImGui.MenuItem("New Project..."))
+                {
+                    NativeProjectDialogs.TryCreateProject(projectService);
+                }
+
+                if (ImGui.MenuItem("Open Project..."))
+                {
+                    NativeProjectDialogs.TryOpenProject(projectService);
+                }
+
+                if (ImGui.MenuItem("Save Project", "Ctrl+S", false, projectService.CurrentProject != null))
+                {
+                    projectService.SaveProject();
+                }
+
+                ImGui.Separator();
+            }
+
             if (ImGui.MenuItem("Save Layout"))
             {
                 dockspace.SaveLayout();

@@ -1,8 +1,11 @@
 using Ghost.AssetForge.Core.Bakers;
+using Ghost.AssetForge.Core.Models;
 using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json;
 
 namespace Ghost.AssetForge.Test;
 
@@ -603,6 +606,202 @@ dist + childNode.bounds.Radius, $"Parent bounding sphere does not enclose child 
         {
             mesh.Dispose();
         }
+    }
+
+    [TestMethod]
+    public void TestAssetBakerContext_ImportAsset_CreatesMetadataRespectsOverwriteAndGuardsTraversal()
+    {
+        var registry = new BakerRegistry();
+        var ctx = new AssetBakerContext
+        {
+            AssetDirectories = [_tempDir],
+            BakeConfig = new BakeConfig(),
+            BakerRegistry = registry
+        };
+
+        var initialBytes = Encoding.UTF8.GetBytes("""{ "Version": 1 }""");
+        var firstGuid = ctx.ImportAsset("Props/Crate/Materials/Wood.gmat", initialBytes, overwrite: false);
+        Assert.AreNotEqual(Guid.Empty, firstGuid);
+
+        var destPath = Path.Combine(_tempDir, "Props", "Crate", "Materials", "Wood.gmat");
+        var metaPath = destPath + ".meta";
+        Assert.IsTrue(File.Exists(destPath));
+        Assert.IsTrue(File.Exists(metaPath));
+        Assert.HasCount(1, ctx.EmittedAssets);
+        Assert.AreEqual("Props/Crate/Materials/Wood.gmat", ctx.EmittedAssets[0].RelativePath);
+
+        // overwrite: false must preserve existing content and keep the same GUID
+        var editedBytes = Encoding.UTF8.GetBytes("""{ "Version": 1, "Edited": true }""");
+        var secondGuid = ctx.ImportAsset("Props/Crate/Materials/Wood.gmat", editedBytes, overwrite: false);
+        Assert.AreEqual(firstGuid, secondGuid);
+        Assert.AreEqual("""{ "Version": 1 }""", File.ReadAllText(destPath));
+
+        // overwrite: true must replace file content while preserving .meta GUID
+        var thirdGuid = ctx.ImportAsset("Props/Crate/Materials/Wood.gmat", editedBytes, overwrite: true);
+        Assert.AreEqual(firstGuid, thirdGuid);
+        Assert.AreEqual("""{ "Version": 1, "Edited": true }""", File.ReadAllText(destPath));
+
+        // Traversal outside the project's primary asset directory must be rejected
+        var threw = false;
+        try
+        {
+            ctx.ImportAsset("../Outside.gmat", initialBytes);
+        }
+        catch (ArgumentException)
+        {
+            threw = true;
+        }
+        Assert.IsTrue(threw, "Expected ArgumentException when escaping outside AssetDirectories[^1].");
+    }
+
+    [TestMethod]
+    public async Task TestBakeService_ExtractMaterials_BakesEmittedGmatAndResolvesExternalTexture()
+    {
+        var assetsDir = Path.Combine(_tempDir, "Assets");
+        var cacheDir = Path.Combine(_tempDir, "Cache");
+        var buildDir = Path.Combine(_tempDir, "Build");
+        var modelsDir = Path.Combine(assetsDir, "Models");
+        var texDir = Path.Combine(modelsDir, "textures");
+        Directory.CreateDirectory(texDir);
+        Directory.CreateDirectory(cacheDir);
+        Directory.CreateDirectory(buildDir);
+
+        // Minimal valid 1x1 32-bit uncompressed TGA texture + pre-existing .meta
+        byte[] tga1x1 = [0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 32, 0, 255, 0, 0, 255];
+        var texPath = Path.Combine(texDir, "albedo.tga");
+        await File.WriteAllBytesAsync(texPath, tga1x1);
+        var expectedTexGuid = Guid.NewGuid();
+        var texMeta = new AssetMetadata { Id = expectedTexGuid, Type = AssetType.Texture, Settings = new TextureBakeSettings() };
+        await File.WriteAllTextAsync(texPath + ".meta", JsonSerializer.Serialize(texMeta, ProjectContext.JsonOptions));
+
+        var mtlPath = Path.Combine(modelsDir, "crate.mtl");
+        await File.WriteAllTextAsync(mtlPath, """
+            newmtl CrateMat
+            Kd 0.8 0.4 0.2
+            map_Kd textures/albedo.tga
+            """);
+
+        var objPath = Path.Combine(modelsDir, "Crate.obj");
+        await File.WriteAllTextAsync(objPath, """
+            mtllib crate.mtl
+            usemtl CrateMat
+            v 0.0 0.0 0.0
+            v 1.0 0.0 0.0
+            v 1.0 1.0 0.0
+            v 0.0 1.0 0.0
+            vn 0.0 0.0 1.0
+            vt 0.0 0.0
+            vt 1.0 0.0
+            vt 1.0 1.0
+            vt 0.0 1.0
+            f 1/1/1 2/2/1 3/3/1
+            f 1/1/1 3/3/1 4/4/1
+            """);
+
+        var meshMeta = new AssetMetadata
+        {
+            Id = Guid.NewGuid(),
+            Type = AssetType.EntityPrefab,
+            Settings = new MeshBakeSettings { ExtractMaterials = true }
+        };
+        await File.WriteAllTextAsync(objPath + ".meta", JsonSerializer.Serialize(meshMeta, ProjectContext.JsonOptions));
+
+        var project = new Project { Name = "WaveTest", RootPath = _tempDir };
+        var projectCtx = new ProjectContext(project, [assetsDir], cacheDir, buildDir);
+        var registry = new BakerRegistry();
+        var bakeService = new BakeService(projectCtx, registry);
+
+        var result = await bakeService.BakeAssetsAsync(new[] { ("Models/Crate.obj", objPath) }, new BakeConfig { ForceRebake = true });
+        Assert.AreEqual(3, result.Total);
+        Assert.AreEqual(3, result.Succeeded);
+        Assert.AreEqual(0, result.Failed);
+        Assert.IsTrue(File.Exists(Path.Combine(cacheDir, "Models", "textures", "albedo")), "Expected resolved external texture to be baked in follow-up wave.");
+
+        var extractedGmatPath = Path.Combine(modelsDir, "Crate_Extracted", "Materials", "CrateMat.gmat");
+        Assert.IsTrue(File.Exists(extractedGmatPath), "Expected extracted .gmat file under per-model Materials folder.");
+        Assert.IsTrue(File.Exists(extractedGmatPath + ".meta"));
+
+        var gmatDoc = JsonSerializer.Deserialize<MaterialAssetDocument>(await File.ReadAllTextAsync(extractedGmatPath));
+        Assert.IsNotNull(gmatDoc);
+        Assert.IsTrue(gmatDoc.Textures.TryGetValue("baseColorMap", out var mappedTexGuid));
+        Assert.AreEqual(expectedTexGuid, mappedTexGuid);
+
+        var gmatCachePath = Path.Combine(cacheDir, "Models", "Crate_Extracted", "Materials", "CrateMat");
+        Assert.IsTrue(File.Exists(gmatCachePath), "Expected extracted .gmat to be baked by MaterialBaker in follow-up wave.");
+
+        // Edit the extracted .gmat and verify rebake of Crate.obj preserves user changes (overwrite: false)
+        gmatDoc.Properties["roughness"] = JsonSerializer.SerializeToElement(0.15f);
+        await File.WriteAllTextAsync(extractedGmatPath, JsonSerializer.Serialize(gmatDoc));
+
+        var rebakeResult = await bakeService.BakeAssetsAsync(new[] { ("Models/Crate.obj", objPath) }, new BakeConfig { ForceRebake = true });
+        Assert.AreEqual(0, rebakeResult.Failed);
+
+        var afterRebakeDoc = JsonSerializer.Deserialize<MaterialAssetDocument>(await File.ReadAllTextAsync(extractedGmatPath));
+        Assert.IsNotNull(afterRebakeDoc);
+        Assert.AreEqual(0.15f, afterRebakeDoc.Properties["roughness"].GetSingle(), 1e-4f);
+    }
+
+    [TestMethod]
+    public async Task TestMeshBaker_EmbeddedSubAssetMaterialResolvesExternalTexture()
+    {
+        var assetsDir = Path.Combine(_tempDir, "Assets");
+        var modelsDir = Path.Combine(assetsDir, "Props");
+        var texDir = Path.Combine(modelsDir, "textures");
+        Directory.CreateDirectory(texDir);
+
+        byte[] tga1x1 = [0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 32, 0, 255, 0, 0, 255];
+        var texPath = Path.Combine(texDir, "albedo.tga");
+        await File.WriteAllBytesAsync(texPath, tga1x1);
+        var expectedTexGuid = Guid.NewGuid();
+        var texMeta = new AssetMetadata { Id = expectedTexGuid, Type = AssetType.Texture, Settings = new TextureBakeSettings() };
+        await File.WriteAllTextAsync(texPath + ".meta", JsonSerializer.Serialize(texMeta, ProjectContext.JsonOptions));
+
+        var mtlPath = Path.Combine(modelsDir, "crate.mtl");
+        await File.WriteAllTextAsync(mtlPath, """
+            newmtl CrateMat
+            map_Kd textures/albedo.tga
+            """);
+
+        var objPath = Path.Combine(modelsDir, "Crate.obj");
+        await File.WriteAllTextAsync(objPath, """
+            mtllib crate.mtl
+            usemtl CrateMat
+            v 0.0 0.0 0.0
+            v 1.0 0.0 0.0
+            v 1.0 1.0 0.0
+            v 0.0 1.0 0.0
+            vn 0.0 0.0 1.0
+            vt 0.0 0.0
+            vt 1.0 0.0
+            vt 1.0 1.0
+            vt 0.0 1.0
+            f 1/1/1 2/2/1 3/3/1
+            f 1/1/1 3/3/1 4/4/1
+            """);
+
+        var baker = new MeshBaker();
+        var settings = new MeshBakeSettings { ExtractMaterials = false };
+        var subStreams = new Dictionary<string, MemoryStream>();
+        var ctx = new AssetBakerContext
+        {
+            AssetId = Guid.NewGuid(),
+            SourceFile = objPath,
+            RelativePath = "Props/Crate.obj",
+            AssetDirectories = [assetsDir],
+            BakeConfig = new BakeConfig(),
+            SubAssetStreamFactory = subPath =>
+            {
+                var ms = new MemoryStream();
+                subStreams[subPath] = ms;
+                return ms;
+            }
+        };
+
+        using var outMs = new MemoryStream();
+        await baker.BakeAssetAsync(objPath, outMs, settings, ctx, CancellationToken.None);
+
+        Assert.IsFalse(File.Exists(Path.Combine(modelsDir, "Crate_Extracted", "Materials", "CrateMat.gmat")));
+        Assert.IsTrue(ctx.SubAssets.Any(s => s.SubPath == "Materials/CrateMat" && s.Type == AssetType.Material && s.Dependencies.Contains(expectedTexGuid)));
     }
 }
 
