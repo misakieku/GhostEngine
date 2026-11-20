@@ -5,6 +5,7 @@ shader "Hidden/Blit"
         Texture2D mainTex;
         SamplerState sampler_mainTex;
         bool linearToSRGB;
+        float ditherScale;
     }
 
     pass "Forward"
@@ -22,6 +23,7 @@ shader "Hidden/Blit"
         {
             "EngineResources/Shaders/Properties.hlsl";
             "EngineResources/Shaders/Utilities/Color.hlsl";
+            "EngineResources/Shaders/Utilities/Random.hlsl";
         }
 
         hlsl
@@ -57,6 +59,12 @@ shader "Hidden/Blit"
                 if (g_Properties.linearToSRGB)
                 {
                     color = LinearToSRGB(color);
+                }
+
+                if (g_Properties.ditherScale > 0.0f)
+                {
+                    float dither = (InterleavedGradientNoise(input.position.xy, 0) - 0.5f) * g_Properties.ditherScale;
+                    color.rgb = saturate(color.rgb + dither);
                 }
 
                 return color;

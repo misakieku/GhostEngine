@@ -122,7 +122,7 @@ internal sealed unsafe class ImGuiPostRenderCommand : IRenderLoopCommand, IDispo
             {
                 Span<BarrierDesc> enterBarriers = stackalloc BarrierDesc[2];
                 enterBarriers[0] = BarrierDesc.Texture(backBuffer, BarrierSync.None, BarrierSync.RenderTarget, BarrierAccess.NoAccess, BarrierAccess.RenderTarget, BarrierLayout.Present, BarrierLayout.RenderTarget);
-                enterBarriers[1] = BarrierDesc.Texture(externalTex, BarrierSync.None, BarrierSync.PixelShading, BarrierAccess.NoAccess, BarrierAccess.ShaderResource, BarrierLayout.Common, BarrierLayout.ShaderResource);
+                enterBarriers[1] = BarrierDesc.Texture(externalTex, BarrierSync.AllShading, BarrierSync.PixelShading, BarrierAccess.Common, BarrierAccess.ShaderResource, BarrierLayout.Common, BarrierLayout.ShaderResource);
                 commandBuffer.Barrier(enterBarriers);
             }
             else
@@ -229,7 +229,7 @@ internal sealed unsafe class ImGuiPostRenderCommand : IRenderLoopCommand, IDispo
             {
                 Span<BarrierDesc> exitBarriers = stackalloc BarrierDesc[2];
                 exitBarriers[0] = BarrierDesc.Texture(backBuffer, BarrierSync.RenderTarget, BarrierSync.None, BarrierAccess.RenderTarget, BarrierAccess.NoAccess, BarrierLayout.RenderTarget, BarrierLayout.Present);
-                exitBarriers[1] = BarrierDesc.Texture(externalTex, BarrierSync.PixelShading, BarrierSync.None, BarrierAccess.ShaderResource, BarrierAccess.NoAccess, BarrierLayout.ShaderResource, BarrierLayout.Common);
+                exitBarriers[1] = BarrierDesc.Texture(externalTex, BarrierSync.PixelShading, BarrierSync.AllShading, BarrierAccess.ShaderResource, BarrierAccess.Common, BarrierLayout.ShaderResource, BarrierLayout.Common);
                 commandBuffer.Barrier(exitBarriers);
             }
             else

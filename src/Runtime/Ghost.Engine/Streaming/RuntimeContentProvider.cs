@@ -17,6 +17,8 @@ public class RuntimeContentProvider : IContentProvider
 
     public IReadOnlyList<ShaderCatalogEntry> ShaderCatalog => _manifest.Shaders;
 
+    internal IReadOnlyDictionary<string, AssetInfo> Assets => _manifest.Assets;
+
     public RuntimeContentProvider(string manifestPath)
     {
         _manifest = Manifest.LoadFromDiskAsync(manifestPath).GetAwaiter().GetResult();

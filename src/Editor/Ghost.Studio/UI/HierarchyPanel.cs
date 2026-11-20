@@ -12,7 +12,7 @@ namespace Ghost.Studio.UI;
 /// <summary>
 /// Virtualized scene tree panel supporting search filtering, expand/collapse, drag-drop reparenting, F2 inline rename, and dynamic context menus.
 /// </summary>
-internal sealed class HierarchyPanel : IDisposable
+internal sealed class HierarchyPanel : EditorWindow
 {
     private readonly struct FlatRow
     {
@@ -30,8 +30,6 @@ internal sealed class HierarchyPanel : IDisposable
         }
     }
 
-    private const string DRAG_PAYLOAD_TYPE = "GHOST_HIERARCHY_ENTITY";
-
     private readonly EditorViewportInputState _viewportInput;
     private readonly List<FlatRow> _visibleRows = new();
     private readonly HashSet<int> _expandedIds = new();
@@ -46,22 +44,19 @@ internal sealed class HierarchyPanel : IDisposable
     private string _renameBuffer = string.Empty;
     private bool _focusRenameInput;
 
+    public override Vector2 DefaultPos => new(8.0f, 32.0f);
+
+    public override Vector2 DefaultSize => new(280.0f, 520.0f);
+
     public HierarchyPanel(EditorViewportInputState viewportInput)
+        : base("Hierarchy")
     {
         _viewportInput = viewportInput;
         EditorSelection.Instance.RenameRequested += OnRenameRequested;
     }
 
-    public unsafe void Draw(ImGuiContextManager contextManager, ref bool isOpen)
+    protected override unsafe void OnDraw(ImGuiContextManager contextManager)
     {
-        ImGui.SetNextWindowPos(new Vector2(8.0f, 32.0f), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(280.0f, 520.0f), ImGuiCond.FirstUseEver);
-
-        if (!ImGui.Begin("Hierarchy", ref isOpen))
-        {
-            ImGui.End();
-            return;
-        }
 
         ref readonly var tokens = ref contextManager.Tokens;
         var snapshot = EditorSyncBridge.Instance.LatestSnapshot;
@@ -112,7 +107,7 @@ internal sealed class HierarchyPanel : IDisposable
             ImGui.Dummy(new Vector2(MathF.Max(1.0f, remaining.X), remaining.Y));
             if (ImGui.BeginDragDropTarget())
             {
-                var payload = ImGui.AcceptDragDropPayload(DRAG_PAYLOAD_TYPE);
+                var payload = ImGui.AcceptDragDropPayload(EditorDragDrop.ENTITY_PAYLOAD);
                 if (!payload.IsNull && payload.Data != null)
                 {
                     var droppedId = *(int*)payload.Data;
@@ -135,14 +130,17 @@ internal sealed class HierarchyPanel : IDisposable
         }
 
         ImGui.EndChild();
-        ImGui.End();
     }
 
     private void DrawToolbar(in EditorColorTokens tokens)
     {
-        if (ImGui.Button("+##CreateEntityBtn"))
+        if (ImGui.Button($"{EditorIcons.ADD}##CreateEntityBtn"))
         {
             ImGui.OpenPopup("##HierarchyCreatePopup");
+        }
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Create Entity");
         }
 
         if (ImGui.BeginPopup("##HierarchyCreatePopup"))
@@ -162,40 +160,13 @@ internal sealed class HierarchyPanel : IDisposable
         var node = row.Node;
         ImGui.PushID(node.Id);
 
-        if (row.Depth > 0)
-        {
-            ImGui.Indent(row.Depth * indentWidth);
-        }
-
-        if (row.HasChildren)
-        {
-            var arrowLabel = row.IsExpanded ? "v##exp" : ">##exp";
-            ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
-            ImGui.PushStyleColor(ImGuiCol.Border, Vector4.Zero);
-            if (ImGui.SmallButton(arrowLabel))
-            {
-                if (row.IsExpanded)
-                {
-                    _expandedIds.Remove(node.Id);
-                }
-                else
-                {
-                    _expandedIds.Add(node.Id);
-                }
-
-                _rowsDirty = true;
-            }
-            ImGui.PopStyleColor(2);
-            ImGui.SameLine();
-        }
-        else
-        {
-            ImGui.Dummy(new Vector2(ImGui.GetFrameHeight() * 0.72f, ImGui.GetFrameHeight()));
-            ImGui.SameLine();
-        }
-
         if (_renamingEntityId == node.Id)
         {
+            if (ImGuiWidgets.DrawTreeIndentAndChevron(row.Depth, indentWidth, row.HasChildren, row.IsExpanded, in tokens))
+            {
+                ToggleExpand(node.Id, row.IsExpanded);
+            }
+
             if (_focusRenameInput)
             {
                 ImGui.SetKeyboardFocusHere();
@@ -216,8 +187,14 @@ internal sealed class HierarchyPanel : IDisposable
         else
         {
             var isSelected = EditorSelection.Instance.SelectedObjects.Contains(node) || ReferenceEquals(EditorSelection.Instance.ActiveEntity, node);
-            var selectableFlags = ImGuiSelectableFlags.AllowDoubleClick;
-            if (ImGui.Selectable(node.Name, isSelected, selectableFlags))
+            var rowResult = ImGuiWidgets.TreeRow("row", node.Name, row.Depth, indentWidth, row.HasChildren, row.IsExpanded, isSelected, EditorIcons.CUBE, tokens.TextSecondary, in tokens);
+
+            if (rowResult.ToggledExpand)
+            {
+                ToggleExpand(node.Id, row.IsExpanded);
+            }
+
+            if (rowResult.Clicked)
             {
                 if (ImGui.GetIO().KeyCtrl)
                 {
@@ -228,7 +205,7 @@ internal sealed class HierarchyPanel : IDisposable
                     EditorSelection.Instance.Select(node);
                 }
 
-                if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
+                if (rowResult.DoubleClicked)
                 {
                     _viewportInput.FocusRequested = true;
                 }
@@ -237,14 +214,14 @@ internal sealed class HierarchyPanel : IDisposable
             if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
             {
                 var id = node.Id;
-                ImGui.SetDragDropPayload(DRAG_PAYLOAD_TYPE, &id, sizeof(int));
-                ImGui.TextUnformatted(node.Name);
+                ImGui.SetDragDropPayload(EditorDragDrop.ENTITY_PAYLOAD, &id, sizeof(int));
+                ImGui.TextUnformatted($"{EditorIcons.CUBE}  {node.Name}");
                 ImGui.EndDragDropSource();
             }
 
             if (ImGui.BeginDragDropTarget())
             {
-                var payload = ImGui.AcceptDragDropPayload(DRAG_PAYLOAD_TYPE);
+                var payload = ImGui.AcceptDragDropPayload(EditorDragDrop.ENTITY_PAYLOAD);
                 if (!payload.IsNull && payload.Data != null)
                 {
                     var droppedId = *(int*)payload.Data;
@@ -277,12 +254,21 @@ internal sealed class HierarchyPanel : IDisposable
             }
         }
 
-        if (row.Depth > 0)
+        ImGui.PopID();
+    }
+
+    private void ToggleExpand(int entityId, bool isExpanded)
+    {
+        if (isExpanded)
         {
-            ImGui.Unindent(row.Depth * indentWidth);
+            _expandedIds.Remove(entityId);
+        }
+        else
+        {
+            _expandedIds.Add(entityId);
         }
 
-        ImGui.PopID();
+        _rowsDirty = true;
     }
 
     private void RebuildVisibleRows(SceneSnapshot? snapshot)
@@ -399,7 +385,7 @@ internal sealed class HierarchyPanel : IDisposable
         return null;
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
         EditorSelection.Instance.RenameRequested -= OnRenameRequested;
     }

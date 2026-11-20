@@ -15,6 +15,7 @@ compute "PostProcess/UberPost"
     {
         "EngineResources/Shaders/Properties.hlsl";
         "EngineResources/Shaders/Utilities/Color.hlsl";
+        "EngineResources/Shaders/Utilities/Random.hlsl";
         "EngineResources/Shaders/PostProcess/ExposureCommon.hlsl";
     }
 
@@ -44,8 +45,9 @@ compute "PostProcess/UberPost"
                 color = AgxToneMapping(color, g_Properties.agxPunchy);
             }
 
-            RWTexture2D<float3> dst = GET_TEXTURE2D(g_Properties.dst);
-            dst[dispatchThreadId.xy] = color;
+            float dither = (InterleavedGradientNoise(float2(dispatchThreadId.xy) + 0.5f, 0) - 0.5f) / 1023.0f;
+            RWTexture2D<float4> dst = GET_TEXTURE2D(g_Properties.dst);
+            dst[dispatchThreadId.xy] = float4(saturate(color + dither), 1.0f);
         }
     }
 

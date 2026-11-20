@@ -1,3 +1,4 @@
+using Ghost.Studio.Assets;
 using Ghost.Studio.Backend;
 using Ghost.Studio.Services;
 using Hexa.NET.ImGui;
@@ -9,7 +10,7 @@ namespace Ghost.Studio.UI;
 /// <summary>
 /// Displays the workspace asset directory tree and virtualized asset grid/list browser.
 /// </summary>
-internal sealed class ProjectPanel
+internal sealed class ProjectPanel : EditorWindow
 {
     private readonly struct AssetEntryInfo
     {
@@ -29,32 +30,68 @@ internal sealed class ProjectPanel
         }
     }
 
-    private string _rootDirectory;
+    private readonly AssetVisualRegistry _visualRegistry;
     private readonly List<AssetEntryInfo> _currentItems = new();
     private readonly List<AssetEntryInfo> _filteredItems = new();
+    private readonly HashSet<string> _expandedDirectories = new(StringComparer.OrdinalIgnoreCase);
 
+    private string _rootDirectory;
     private string _currentDirectory;
     private string _searchQuery = string.Empty;
     private string _selectedPath = string.Empty;
+    private AssetViewMode _viewMode = AssetViewMode.List;
     private bool _showMetaFiles;
     private bool _dirty = true;
     private Func<string, bool>? _hasBaker;
+    private Action<string>? _onOpenAsset;
     private Action<string>? _onOpenImportSettings;
     private Action<string>? _onReimportAsset;
 
-    public ProjectPanel(string? rootDirectory = null)
+    public AssetImportService.ImportProgressSnapshot CurrentImportProgress { get; set; }
+
+    public AssetVisualRegistry VisualRegistry => _visualRegistry;
+
+    public override Vector2 DefaultPos => new(8.0f, 560.0f);
+
+    public override Vector2 DefaultSize => new(280.0f, 300.0f);
+
+    public ProjectPanel(string? rootDirectory = null, AssetVisualRegistry? visualRegistry = null)
+        : base("Project")
     {
+        _visualRegistry = visualRegistry ?? AssetVisualRegistry.CreateDefault();
         _rootDirectory = ResolveAssetRoot(rootDirectory);
         _currentDirectory = _rootDirectory;
+        _expandedDirectories.Add(_rootDirectory);
     }
 
     public string CurrentDirectory => _currentDirectory;
 
-    public void BindAssetActions(Func<string, bool> hasBaker, Action<string> onOpenImportSettings, Action<string> onReimportAsset)
+    public void BindAssetActions(Func<string, bool> hasBaker, Action<string> onOpenAsset, Action<string> onOpenImportSettings, Action<string> onReimportAsset)
     {
         _hasBaker = hasBaker;
+        _onOpenAsset = onOpenAsset;
         _onOpenImportSettings = onOpenImportSettings;
         _onReimportAsset = onReimportAsset;
+    }
+
+    public void SelectAndRevealAsset(string fullPath)
+    {
+        if (string.IsNullOrWhiteSpace(fullPath))
+        {
+            return;
+        }
+
+        var canonical = Path.GetFullPath(fullPath);
+        var dir = Path.GetDirectoryName(canonical);
+        if (!string.IsNullOrEmpty(dir) && dir.StartsWith(_rootDirectory, StringComparison.OrdinalIgnoreCase) && Directory.Exists(dir))
+        {
+            _currentDirectory = dir;
+            ExpandDirectoryAncestors(dir);
+            _dirty = true;
+        }
+
+        _selectedPath = canonical;
+        RequestFocus();
     }
 
     public void SetRootDirectory(string rootDirectory)
@@ -62,6 +99,8 @@ internal sealed class ProjectPanel
         _rootDirectory = ResolveAssetRoot(rootDirectory);
         _currentDirectory = _rootDirectory;
         _selectedPath = string.Empty;
+        _expandedDirectories.Clear();
+        _expandedDirectories.Add(_rootDirectory);
         _dirty = true;
     }
 
@@ -70,18 +109,10 @@ internal sealed class ProjectPanel
         _dirty = true;
     }
 
-    public unsafe void Draw(ImGuiContextManager contextManager, ref bool isOpen, in AssetImportService.ImportProgressSnapshot importProgress = default)
+    protected override unsafe void OnDraw(ImGuiContextManager contextManager)
     {
-        ImGui.SetNextWindowPos(new Vector2(8.0f, 560.0f), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(280.0f, 300.0f), ImGuiCond.FirstUseEver);
-
-        if (!ImGui.Begin("Project", ref isOpen))
-        {
-            ImGui.End();
-            return;
-        }
-
         ref readonly var tokens = ref contextManager.Tokens;
+        var importProgress = CurrentImportProgress;
 
         DrawToolbar(in tokens);
         ImGui.Separator();
@@ -96,50 +127,16 @@ internal sealed class ProjectPanel
         var footerHeight = importProgress.IsImporting ? ImGui.GetFrameHeightWithSpacing() + 4.0f : 0.0f;
         var contentHeight = MathF.Max(40.0f, avail.Y - footerHeight);
         var treeWidth = Math.Clamp(avail.X * 0.34f, 120.0f, 240.0f);
+        var indentWidth = 14.0f * contextManager.DpiScale;
 
         ImGui.BeginChild("##ProjectFolderTree", new Vector2(treeWidth, contentHeight), ImGuiChildFlags.Borders);
-        DrawFolderNode(_rootDirectory, "Assets");
+        DrawFolderNode(_rootDirectory, "Assets", 0, indentWidth, in tokens);
         ImGui.EndChild();
 
         ImGui.SameLine();
 
         ImGui.BeginChild("##ProjectAssetList", new Vector2(0.0f, contentHeight), ImGuiChildFlags.None);
-        var rowHeight = ImGui.GetFrameHeight();
-        var clipper = ImGui.ImGuiListClipper();
-        clipper.Begin(_filteredItems.Count, rowHeight);
-
-        while (clipper.Step())
-        {
-            for (var i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
-            {
-                var item = _filteredItems[i];
-                var tag = item.IsDirectory ? "[DIR]" : GetExtensionTag(item.Extension);
-                var selected = string.Equals(_selectedPath, item.FullPath, StringComparison.OrdinalIgnoreCase);
-
-                ImGui.PushID(item.FullPath);
-                if (ImGui.Selectable($"{tag}  {item.Name}", selected, ImGuiSelectableFlags.AllowDoubleClick))
-                {
-                    _selectedPath = item.FullPath;
-                    if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
-                    {
-                        if (item.IsDirectory)
-                        {
-                            _currentDirectory = item.FullPath;
-                            _dirty = true;
-                        }
-                        else if (_hasBaker?.Invoke(item.Extension) == true)
-                        {
-                            _onOpenImportSettings?.Invoke(item.FullPath);
-                        }
-                    }
-                }
-
-                DrawItemContextMenu(in item);
-                ImGui.PopID();
-            }
-        }
-
-        clipper.Destroy();
+        DrawAssetItems(in tokens);
         if (_filteredItems.Count == 0)
         {
             ImGui.TextColored(tokens.TextDisabled, "Empty folder (drop files anywhere to import)");
@@ -155,15 +152,62 @@ internal sealed class ProjectPanel
                 : importProgress.CurrentItemName;
             ImGui.ProgressBar(fraction, new Vector2(-1.0f, 0.0f), overlay);
         }
+    }
 
-        ImGui.End();
+    private void DrawAssetItems(in EditorColorTokens tokens)
+    {
+        // _viewMode currently renders List view with Nerd Font icons; Grid view can switch here to use visual.PreviewTexture.
+        var rowHeight = ImGui.GetFrameHeight();
+        var clipper = ImGui.ImGuiListClipper();
+        clipper.Begin(_filteredItems.Count, rowHeight);
+
+        while (clipper.Step())
+        {
+            for (var i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
+            {
+                var item = _filteredItems[i];
+                var visual = _visualRegistry.Resolve(item.FullPath, item.Extension, item.IsDirectory, _viewMode, in tokens);
+                var selected = string.Equals(_selectedPath, item.FullPath, StringComparison.OrdinalIgnoreCase);
+
+                ImGui.PushID(item.FullPath);
+                if (ImGuiWidgets.IconSelectableRow("asset", item.Name, visual.IconGlyph, visual.IconColor, selected, in tokens, out var doubleClicked))
+                {
+                    _selectedPath = item.FullPath;
+                    if (doubleClicked)
+                    {
+                        if (item.IsDirectory)
+                        {
+                            _currentDirectory = item.FullPath;
+                            ExpandDirectoryAncestors(item.FullPath);
+                            _dirty = true;
+                        }
+                        else
+                        {
+                            _onOpenAsset?.Invoke(item.FullPath);
+                        }
+                    }
+                }
+
+                if (!item.IsDirectory && ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
+                {
+                    EditorDragDrop.SetStringPayload(EditorDragDrop.ASSET_PAYLOAD, item.FullPath);
+                    ImGui.TextUnformatted($"{visual.IconGlyph}  {item.Name}");
+                    ImGui.EndDragDropSource();
+                }
+
+                DrawItemContextMenu(in item);
+                ImGui.PopID();
+            }
+        }
+
+        clipper.Destroy();
     }
 
     private void DrawToolbar(in EditorColorTokens tokens)
     {
         var atRoot = string.Equals(_currentDirectory, _rootDirectory, StringComparison.OrdinalIgnoreCase);
         ImGui.BeginDisabled(atRoot);
-        if (ImGui.Button("Up"))
+        if (ImGui.Button($"{EditorIcons.ARROW_UP}##ProjectUpBtn"))
         {
             var parent = Directory.GetParent(_currentDirectory)?.FullName;
             if (!string.IsNullOrEmpty(parent) && parent.Length >= _rootDirectory.Length)
@@ -172,12 +216,20 @@ internal sealed class ProjectPanel
                 _dirty = true;
             }
         }
+        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+        {
+            ImGui.SetTooltip("Parent Folder");
+        }
         ImGui.EndDisabled();
 
         ImGui.SameLine();
-        if (ImGui.Button("Refresh"))
+        if (ImGui.Button($"{EditorIcons.REFRESH}##ProjectRefreshBtn"))
         {
             _dirty = true;
+        }
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Refresh");
         }
 
         ImGui.SameLine();
@@ -194,7 +246,7 @@ internal sealed class ProjectPanel
         }
     }
 
-    private void DrawFolderNode(string directoryPath, string label)
+    private void DrawFolderNode(string directoryPath, string label, int depth, float indentWidth, in EditorColorTokens tokens)
     {
         if (!Directory.Exists(directoryPath))
         {
@@ -202,38 +254,56 @@ internal sealed class ProjectPanel
         }
 
         var subDirs = Directory.GetDirectories(directoryPath);
-        var flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.SpanAvailWidth;
-        if (subDirs.Length == 0)
+        var hasChildren = subDirs.Length > 0;
+        var isExpanded = hasChildren && _expandedDirectories.Contains(directoryPath);
+        var isSelected = string.Equals(_currentDirectory, directoryPath, StringComparison.OrdinalIgnoreCase);
+        var visual = _visualRegistry.Resolve(directoryPath, string.Empty, true, AssetViewMode.List, in tokens, isExpanded);
+
+        ImGui.PushID(directoryPath);
+        var result = ImGuiWidgets.TreeRow("dir", label, depth, indentWidth, hasChildren, isExpanded, isSelected, visual.IconGlyph, visual.IconColor, in tokens);
+
+        if (result.ToggledExpand || (result.DoubleClicked && hasChildren))
         {
-            flags |= ImGuiTreeNodeFlags.Leaf;
+            if (isExpanded)
+            {
+                _expandedDirectories.Remove(directoryPath);
+            }
+            else
+            {
+                _expandedDirectories.Add(directoryPath);
+            }
         }
 
-        if (string.Equals(_currentDirectory, directoryPath, StringComparison.OrdinalIgnoreCase))
-        {
-            flags |= ImGuiTreeNodeFlags.Selected;
-        }
-
-        if (string.Equals(directoryPath, _rootDirectory, StringComparison.OrdinalIgnoreCase))
-        {
-            flags |= ImGuiTreeNodeFlags.DefaultOpen;
-        }
-
-        var opened = ImGui.TreeNodeEx($"{label}##{directoryPath}", flags);
-        if (ImGui.IsItemClicked() && !ImGui.IsItemToggledOpen())
+        if (result.Clicked)
         {
             _currentDirectory = directoryPath;
             _dirty = true;
         }
+        ImGui.PopID();
 
-        if (opened)
+        if (isExpanded)
         {
+            Array.Sort(subDirs, StringComparer.OrdinalIgnoreCase);
             for (var i = 0; i < subDirs.Length; i++)
             {
                 var sub = subDirs[i];
-                DrawFolderNode(sub, Path.GetFileName(sub));
+                DrawFolderNode(sub, Path.GetFileName(sub), depth + 1, indentWidth, in tokens);
+            }
+        }
+    }
+
+    private void ExpandDirectoryAncestors(string directoryPath)
+    {
+        var current = Path.GetFullPath(directoryPath);
+        while (!string.IsNullOrEmpty(current) && current.StartsWith(_rootDirectory, StringComparison.OrdinalIgnoreCase))
+        {
+            _expandedDirectories.Add(current);
+            if (string.Equals(current, _rootDirectory, StringComparison.OrdinalIgnoreCase))
+            {
+                break;
             }
 
-            ImGui.TreePop();
+            current = Directory.GetParent(current)?.FullName;
         }
     }
 
@@ -301,23 +371,6 @@ internal sealed class ProjectPanel
         }
 
         return Directory.Exists(builtIn) ? builtIn : AppContext.BaseDirectory;
-    }
-
-    private static string GetExtensionTag(string ext)
-    {
-        if (string.IsNullOrEmpty(ext))
-        {
-            return "[FIL]";
-        }
-
-        return ext.ToUpperInvariant() switch
-        {
-            ".GSHDR" or ".GCOMP" or ".GGRAPH" or ".HLSL" => "[SHD]",
-            ".OBJ" or ".FBX" or ".GLTF" or ".GLB" => "[MSH]",
-            ".PNG" or ".JPG" or ".TGA" or ".DDS" => "[TEX]",
-            ".JSON" or ".XML" => "[CFG]",
-            _ => "[FIL]",
-        };
     }
 
     private void DrawItemContextMenu(in AssetEntryInfo item)

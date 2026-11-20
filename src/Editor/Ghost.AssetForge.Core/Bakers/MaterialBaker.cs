@@ -20,7 +20,7 @@ public class MaterialBaker : IAssetBaker
             throw new InvalidOperationException($"Failed to resolve or parse shader for GUID '{shaderGuid}'.");
         }
 
-        var (propertyBytes, fixups) = MaterialPropertyPacker.Pack(semantics, doc.Properties, doc.Textures);
+        var (propertyBytes, fixups, samplerFixups) = MaterialPropertyPacker.Pack(semantics, doc.Properties, doc.Textures);
 
         ctx.AddAssetDependency(shaderGuid);
         foreach (var fixup in fixups)
@@ -31,6 +31,10 @@ public class MaterialBaker : IAssetBaker
             }
         }
 
+        var propertyBufferOffset = (uint)Marshal.SizeOf<MaterialContentHeader>();
+        var textureFixupOffset = propertyBufferOffset + (uint)propertyBytes.Length;
+        var samplerFixupOffset = textureFixupOffset + (uint)(fixups.Count * Marshal.SizeOf<MaterialTextureFixup>());
+
         var header = new MaterialContentHeader
         {
             magic = MaterialContentHeader.MAGIC,
@@ -38,8 +42,10 @@ public class MaterialBaker : IAssetBaker
             shaderId = shaderGuid,
             propertyBufferSize = (uint)propertyBytes.Length,
             textureFixupCount = (uint)fixups.Count,
-            propertyBufferOffset = (uint)Marshal.SizeOf<MaterialContentHeader>(),
-            textureFixupOffset = (uint)(Marshal.SizeOf<MaterialContentHeader>() + propertyBytes.Length)
+            samplerFixupCount = (uint)samplerFixups.Count,
+            propertyBufferOffset = propertyBufferOffset,
+            textureFixupOffset = textureFixupOffset,
+            samplerFixupOffset = samplerFixupOffset
         };
 
         var headerSpan = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref header, 1));
@@ -50,6 +56,12 @@ public class MaterialBaker : IAssetBaker
         {
             var fixupSpan = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(fixups));
             dst.Write(fixupSpan);
+        }
+
+        if (samplerFixups.Count > 0)
+        {
+            var samplerSpan = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(samplerFixups));
+            dst.Write(samplerSpan);
         }
     }
 }

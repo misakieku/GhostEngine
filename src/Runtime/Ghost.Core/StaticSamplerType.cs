@@ -1,6 +1,9 @@
-namespace Ghost.Graphics.Core;
+namespace Ghost.Core;
 
-public enum StaticSamplerType
+/// <summary>
+/// Built-in static sampler configurations registered in the global bindless sampler heap.
+/// </summary>
+public enum StaticSamplerType : uint
 {
     PointClamp,
     PointRepeat,

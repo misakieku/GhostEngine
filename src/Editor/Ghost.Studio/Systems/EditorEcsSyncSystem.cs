@@ -1,10 +1,13 @@
 using Ghost.Core;
+using Ghost.Editor.Core.Commands;
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
 using Ghost.Engine.Components;
 using Ghost.Engine.Editor;
+using Ghost.Engine.Streaming;
 using Ghost.Engine.Systems;
 using Ghost.Entities;
+using Ghost.Graphics;
 using Ghost.Studio.Rendering;
 using System.Reflection;
 
@@ -40,6 +43,7 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
     private readonly Dictionary<Type, IComponentAccessor> _accessors = new();
     private readonly List<PendingPropertyMutation> _pendingMutations = new();
     private readonly Dictionary<Entity, int> _entityNodeIdLookup = new();
+    private readonly Dictionary<Entity, EntityNode> _entityNodeCache = new();
 
     private Identifier<EntityQuery> _sceneEntitiesQueryID;
     private int _lastSignatureDigest = -1;
@@ -47,6 +51,17 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
 
     protected override void OnInitialize(scoped in SystemAPI systemAPI)
     {
+        var bridge = EditorSyncBridge.Instance;
+        if (systemAPI.World.TryGetService<AssetManager>(out var assetManager))
+        {
+            bridge.AssetManager = assetManager;
+        }
+
+        if (systemAPI.World.TryGetService<RenderEngine>(out var renderEngine))
+        {
+            bridge.ResourceManager = renderEngine.ResourceManager;
+        }
+
         _sceneEntitiesQueryID = QueryBuilder.New()
             .WithAbsent<EditorCamera>()
             .Build(systemAPI.World);
@@ -60,6 +75,7 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
 
         bridge.DrainWorldActions(world);
         ApplyPendingMutations(world, em, bridge);
+        PumpPendingPropertyResolutions();
 
         ref var query = ref world.ComponentManager.GetEntityQueryReference(_sceneEntitiesQueryID);
         var digest = ComputeStructuralDigest(em, ref query);
@@ -81,6 +97,35 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
         var fps = 1.0f / dt;
 
         bridge.PublishSnapshot(new SceneSnapshot(_cachedEntities, frameMs, fps));
+    }
+
+    protected override void OnCleanup(scoped in SystemAPI systemAPI)
+    {
+        for (var e = 0; e < _cachedEntities.Count; e++)
+        {
+            var components = _cachedEntities[e].Components;
+            for (var c = 0; c < components.Count; c++)
+            {
+                var props = components[c].Properties;
+                for (var p = 0; p < props.Count; p++)
+                {
+                    props[p].ReleaseResources();
+                }
+            }
+        }
+
+        var bridge = EditorSyncBridge.Instance;
+        bridge.ReleaseAllTrackedResources();
+        bridge.AssetManager = null;
+        bridge.ResourceManager = null;
+
+        _entityNodeCache.Clear();
+        _entityNodeIdLookup.Clear();
+        _pendingMutations.Clear();
+        _cachedEntities = Array.Empty<EntityNode>();
+
+        EditorSelection.Instance.Clear();
+        CommandHistory.Instance.Clear();
     }
 
     private void ApplyPendingMutations(World world, EntityManager em, EditorSyncBridge bridge)
@@ -164,6 +209,21 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
     {
         _entityNodeIdLookup.Clear();
 
+        var snapshotLookup = new Dictionary<Entity, EntityNode>(_entityNodeCache);
+        var latest = bridge.LatestSnapshot;
+        if (latest != null)
+        {
+            for (var i = 0; i < latest.Entities.Count; i++)
+            {
+                var snapNode = latest.Entities[i];
+                if (snapNode.EcsEntity.IsValid)
+                {
+                    snapshotLookup[snapNode.EcsEntity] = snapNode;
+                }
+            }
+        }
+
+        _entityNodeCache.Clear();
         var result = new List<EntityNode>();
         var entityIndex = 1;
 
@@ -173,18 +233,36 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
             for (var i = 0; i < chunk.EntityCount; i++)
             {
                 var entity = entities[i];
-                var nodeId = bridge.TryGetMappedNodeId(entity, out var existingId) ? existingId : bridge.AllocateEntityId();
+                var hasCached = snapshotLookup.TryGetValue(entity, out var existingNode) && existingNode != null;
+                var nodeId = hasCached ? existingNode!.Id : (bridge.TryGetMappedNodeId(entity, out var existingId) ? existingId : bridge.AllocateEntityId());
                 bridge.RegisterEntityMapping(entity, nodeId);
                 _entityNodeIdLookup[entity] = nodeId;
 
                 var compList = new List<ComponentNode>();
-                var name = bridge.TryGetEntityName(entity, out var customName) ? customName : ResolveEntityDisplayName(em, entity, entityIndex);
-                var entityNode = new EntityNode(nodeId, name, compList)
-                {
-                    EcsEntity = entity,
-                };
+                var name = bridge.TryGetEntityName(entity, out var customName)
+                    ? customName
+                    : (hasCached ? existingNode!.Name : ResolveEntityDisplayName(em, entity, entityIndex));
 
-                PopulateComponentNodes(world, em, entity, entityNode, compList, bridge);
+                EntityNode entityNode;
+                if (hasCached)
+                {
+                    entityNode = existingNode!;
+                    entityNode.Name = name;
+                    entityNode.ParentId = null;
+                    entityNode.EcsEntity = entity;
+                    PopulateComponentNodes(world, em, entity, entityNode, compList, bridge, existingNode!.Components);
+                    entityNode.Components = compList;
+                }
+                else
+                {
+                    entityNode = new EntityNode(nodeId, name, compList)
+                    {
+                        EcsEntity = entity,
+                    };
+                    PopulateComponentNodes(world, em, entity, entityNode, compList, bridge, null);
+                }
+
+                _entityNodeCache[entity] = entityNode;
                 result.Add(entityNode);
                 entityIndex++;
             }
@@ -223,7 +301,7 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
         }
     }
 
-    private void PopulateComponentNodes(World world, EntityManager em, Entity entity, EntityNode entityNode, List<ComponentNode> dest, EditorSyncBridge bridge)
+    private void PopulateComponentNodes(World world, EntityManager em, Entity entity, EntityNode entityNode, List<ComponentNode> dest, EditorSyncBridge bridge, IReadOnlyList<ComponentNode>? existingComponents)
     {
         if (!em.TryGetEntityLocation(entity, out var location))
         {
@@ -256,7 +334,31 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
 
             var accessor = GetOrCreateAccessor(compType);
             var initialValue = accessor.Read(ptr);
-            dest.Add(ComponentNodeFactory.CreateComponentNode(compType, entityNode, initialValue, bridge));
+
+            ComponentNode? reused = null;
+            if (existingComponents != null)
+            {
+                for (var c = 0; c < existingComponents.Count; c++)
+                {
+                    if (existingComponents[c].ComponentType == compType)
+                    {
+                        reused = existingComponents[c];
+                        break;
+                    }
+                }
+            }
+
+            if (reused != null)
+            {
+                reused.EntityNode = entityNode;
+                reused.LiveValue = initialValue;
+                RefreshComponentProperties(reused, initialValue);
+                dest.Add(reused);
+            }
+            else
+            {
+                dest.Add(ComponentNodeFactory.CreateComponentNode(compType, entityNode, initialValue, bridge));
+            }
         }
     }
 
@@ -280,14 +382,31 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
             var accessor = GetOrCreateAccessor(compNode.ComponentType);
             var boxed = accessor.Read(ptr);
             compNode.LiveValue = boxed;
+            RefreshComponentProperties(compNode, boxed);
+        }
+    }
 
-            for (var p = 0; p < compNode.Properties.Count; p++)
+    private static void RefreshComponentProperties(ComponentNode compNode, object boxed)
+    {
+        for (var p = 0; p < compNode.Properties.Count; p++)
+        {
+            var prop = compNode.Properties[p];
+            var field = compNode.ComponentType.GetField(prop.Name, BindingFlags.Public | BindingFlags.Instance);
+            prop.RefreshFromEcs(boxed, field);
+        }
+    }
+
+    private void PumpPendingPropertyResolutions()
+    {
+        for (var e = 0; e < _cachedEntities.Count; e++)
+        {
+            var components = _cachedEntities[e].Components;
+            for (var c = 0; c < components.Count; c++)
             {
-                var prop = compNode.Properties[p];
-                var field = compNode.ComponentType.GetField(prop.Name, BindingFlags.Public | BindingFlags.Instance);
-                if (field != null)
+                var props = components[c].Properties;
+                for (var p = 0; p < props.Count; p++)
                 {
-                    prop.Value = field.GetValue(boxed);
+                    props[p].TryCompletePendingResolution();
                 }
             }
         }

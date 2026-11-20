@@ -4,7 +4,7 @@ using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
 using System.Text.Json;
 
-namespace Ghost.AssetForge.Test;
+namespace Ghost.Editor.Test;
 
 [TestClass]
 [DoNotParallelize]

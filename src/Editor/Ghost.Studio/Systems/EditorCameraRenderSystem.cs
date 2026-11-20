@@ -40,7 +40,8 @@ internal sealed class EditorCameraRenderSystem : SystemBase
 
     protected override void OnUpdate(scoped in SystemUpdateAPI systemAPI)
     {
-        if (!_viewportTarget.EnsureTexture(_renderEngine))
+        var frameIndex = systemAPI.Time.FrameIndex;
+        if (!_viewportTarget.EnsureTexture(_renderEngine, frameIndex))
         {
             return;
         }
@@ -48,7 +49,7 @@ internal sealed class EditorCameraRenderSystem : SystemBase
         var em = systemAPI.World.EntityManager;
         ref var editorCam = ref em.GetOrCreateSingleton(EditorCamera.Default);
 
-        var payload = (GhostRenderPayload)_renderEngine.GetCurrentFramePayload(systemAPI.Time.FrameIndex);
+        var payload = (GhostRenderPayload)_renderEngine.GetCurrentFramePayload(frameIndex);
         payload.DeltaTime = systemAPI.Time.DeltaTime;
 
         if (editorCam.viewId == uint.MaxValue)
@@ -56,8 +57,9 @@ internal sealed class EditorCameraRenderSystem : SystemBase
             editorCam.viewId = payload.AllocateView();
         }
 
+        var targetHandle = _viewportTarget.GetTextureHandle(frameIndex);
         editorCam.camera.swapChainIndex = -1;
-        editorCam.camera.colorTarget = _viewportTarget.TextureHandle;
+        editorCam.camera.colorTarget = targetHandle;
         editorCam.camera.depthTarget = Handle<GPUTexture>.Invalid;
 
         ref var volumeQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_volumeQueryID);
@@ -83,7 +85,7 @@ internal sealed class EditorCameraRenderSystem : SystemBase
         {
             view = renderView,
             swapChainIndex = -1,
-            colorTarget = _viewportTarget.TextureHandle,
+            colorTarget = targetHandle,
             depthTarget = Handle<GPUTexture>.Invalid,
             viewId = editorCam.viewId,
         };

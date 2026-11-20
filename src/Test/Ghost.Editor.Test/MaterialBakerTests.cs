@@ -4,7 +4,7 @@ using Ghost.Core;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.InteropServices;
 
-namespace Ghost.AssetForge.Test;
+namespace Ghost.Editor.Test;
 
 [TestClass]
 [DoNotParallelize]
@@ -45,6 +45,7 @@ public class MaterialBakerTests
             "Shader": "dea05727-fa9e-41ac-b039-f2c0411a0e04",
             "Properties": {
                 "baseColor": [0.1, 0.2, 0.3],
+                "baseColorMap_sampler": "PointClamp",
                 "roughness": 0.4,
                 "metallic": 0.8
             },
@@ -74,8 +75,9 @@ public class MaterialBakerTests
         Assert.AreEqual(MaterialContentHeader.MAGIC, header.magic);
         Assert.AreEqual(MaterialContentHeader.VERSION, header.version);
         Assert.AreEqual(MaterialPropertyPacker.STANDARD_LIT_SHADER_GUID, header.shaderId);
-        Assert.AreEqual(80u, header.propertyBufferSize);
+        Assert.AreEqual(92u, header.propertyBufferSize);
         Assert.AreEqual(2u, header.textureFixupCount);
+        Assert.AreEqual(4u, header.samplerFixupCount);
 
         var propertyBytes = new byte[header.propertyBufferSize];
         outMs.ReadExactly(propertyBytes);
@@ -89,10 +91,10 @@ public class MaterialBakerTests
                 Assert.AreEqual(0.2f, bc.y, 1e-4f);
                 Assert.AreEqual(0.3f, bc.z, 1e-4f);
 
-                var roughness = *(float*)(p + 56); // roughness offset
+                var roughness = *(float*)(p + 64); // roughness offset
                 Assert.AreEqual(0.4f, roughness, 1e-4f);
 
-                var metallic = *(float*)(p + 60); // metallic offset
+                var metallic = *(float*)(p + 68); // metallic offset
                 Assert.AreEqual(0.8f, metallic, 1e-4f);
             }
         }
@@ -105,6 +107,15 @@ public class MaterialBakerTests
         Assert.AreEqual(baseColorGuid, fixups[0].textureGuid);
         Assert.AreEqual(44u, fixups[1].byteOffset); // normalMap offset
         Assert.AreEqual(normalGuid, fixups[1].textureGuid);
+
+        var samplerFixupBytes = new byte[header.samplerFixupCount * Marshal.SizeOf<MaterialSamplerFixup>()];
+        outMs.ReadExactly(samplerFixupBytes);
+        var samplerFixups = MemoryMarshal.Cast<byte, MaterialSamplerFixup>(samplerFixupBytes);
+
+        Assert.AreEqual(52u, samplerFixups[0].byteOffset); // baseColorMap_sampler offset
+        Assert.AreEqual(StaticSamplerType.PointClamp, samplerFixups[0].samplerType);
+        Assert.AreEqual(56u, samplerFixups[1].byteOffset); // normalMap_sampler offset
+        Assert.AreEqual(StaticSamplerType.TrilinearRepeat, samplerFixups[1].samplerType);
     }
 
     [TestMethod]
@@ -136,8 +147,9 @@ public class MaterialBakerTests
 
         Assert.AreEqual(MaterialContentHeader.MAGIC, header.magic);
         Assert.AreEqual(MaterialPropertyPacker.STANDARD_LIT_SHADER_GUID, header.shaderId);
-        Assert.AreEqual(80u, header.propertyBufferSize);
+        Assert.AreEqual(92u, header.propertyBufferSize);
         Assert.AreEqual(0u, header.textureFixupCount);
+        Assert.AreEqual(4u, header.samplerFixupCount);
 
         var propertyBytes = new byte[header.propertyBufferSize];
         outMs.ReadExactly(propertyBytes);
@@ -151,10 +163,10 @@ public class MaterialBakerTests
                 Assert.AreEqual(0.73f, bc.y, 1e-4f);
                 Assert.AreEqual(0.73f, bc.z, 1e-4f);
 
-                var roughness = *(float*)(p + 56);
+                var roughness = *(float*)(p + 64);
                 Assert.AreEqual(0.5f, roughness, 1e-4f);
 
-                var metallic = *(float*)(p + 60);
+                var metallic = *(float*)(p + 68);
                 Assert.AreEqual(0.0f, metallic, 1e-4f);
             }
         }
@@ -187,10 +199,11 @@ public class MaterialBakerTests
         var albedoGuid = Guid.NewGuid();
         var textures = new Dictionary<string, Guid> { ["albedoMap"] = albedoGuid };
 
-        var (buf, fixups) = MaterialPropertyPacker.Pack(semantics, jsonProperties: null, jsonTextures: textures);
+        var (buf, fixups, samplerFixups) = MaterialPropertyPacker.Pack(semantics, jsonProperties: null, jsonTextures: textures);
 
         Assert.IsNotNull(buf);
         Assert.HasCount(1, fixups);
+        Assert.IsEmpty(samplerFixups);
         Assert.AreEqual(albedoGuid, fixups[0].textureGuid);
 
         unsafe

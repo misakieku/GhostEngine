@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
+using Ghost.Engine.Streaming;
 using Ghost.Entities;
+using Ghost.Graphics.Services;
 
 namespace Ghost.Editor.Core.Sync;
 
@@ -17,8 +19,10 @@ public sealed class EditorSyncBridge
     private readonly ConcurrentQueue<Action<World>> _pendingWorldActions = new();
     private readonly Dictionary<Entity, string> _entityNames = new();
     private readonly Dictionary<Entity, int> _entityNodeIds = new();
+    private readonly List<PropertyNode> _trackedResourceNodes = new();
     private readonly object _metadataLock = new();
     private readonly object _snapshotLock = new();
+    private readonly object _resourceNodesLock = new();
     private SceneSnapshot? _latestSnapshot;
     private long _snapshotVersion = 0;
     private int _nextEntityId = 1;
@@ -26,6 +30,10 @@ public sealed class EditorSyncBridge
     public static EditorSyncBridge Instance { get; } = new();
 
     public EditorDirtyTracker DirtyTracker { get; } = new();
+
+    public AssetManager? AssetManager { get; set; }
+
+    public ResourceManager? ResourceManager { get; set; }
 
     public long SnapshotVersion => Volatile.Read(ref _snapshotVersion);
 
@@ -125,6 +133,73 @@ public sealed class EditorSyncBridge
         return Entity.Invalid;
     }
 
+    public EntityNode? FindEntityNode(int nodeId)
+    {
+        var snapshot = LatestSnapshot;
+        if (snapshot == null)
+        {
+            return null;
+        }
+
+        for (var i = 0; i < snapshot.Entities.Count; i++)
+        {
+            if (snapshot.Entities[i].Id == nodeId)
+            {
+                return snapshot.Entities[i];
+            }
+        }
+
+        return null;
+    }
+
+    public EntityNode? FindEntityNode(Guid editorGuid)
+    {
+        if (editorGuid == Guid.Empty)
+        {
+            return null;
+        }
+
+        var snapshot = LatestSnapshot;
+        if (snapshot == null)
+        {
+            return null;
+        }
+
+        for (var i = 0; i < snapshot.Entities.Count; i++)
+        {
+            if (snapshot.Entities[i].EditorGuid == editorGuid)
+            {
+                return snapshot.Entities[i];
+            }
+        }
+
+        return null;
+    }
+
+    public EntityNode? FindEntityNode(Entity ecsEntity)
+    {
+        if (!ecsEntity.IsValid)
+        {
+            return null;
+        }
+
+        var snapshot = LatestSnapshot;
+        if (snapshot == null)
+        {
+            return null;
+        }
+
+        for (var i = 0; i < snapshot.Entities.Count; i++)
+        {
+            if (snapshot.Entities[i].EcsEntity == ecsEntity)
+            {
+                return snapshot.Entities[i];
+            }
+        }
+
+        return null;
+    }
+
     public void EnqueueMutation(Entity entity, Type componentType, string fieldName, object? value)
     {
         _pendingMutations.Enqueue(new PendingPropertyMutation
@@ -155,6 +230,40 @@ public sealed class EditorSyncBridge
         while (_pendingWorldActions.TryDequeue(out var action))
         {
             action(world);
+        }
+    }
+
+    /// <summary>
+    /// Registers a property node that may hold streaming asset references so editor shutdown can release them deterministically.
+    /// </summary>
+    public void TrackResourceNode(PropertyNode node)
+    {
+        lock (_resourceNodesLock)
+        {
+            _trackedResourceNodes.Add(node);
+        }
+    }
+
+    /// <summary>
+    /// Releases all streaming asset references held by tracked property nodes and clears the tracking list.
+    /// </summary>
+    public void ReleaseAllTrackedResources()
+    {
+        PropertyNode[] snapshot;
+        lock (_resourceNodesLock)
+        {
+            if (_trackedResourceNodes.Count == 0)
+            {
+                return;
+            }
+
+            snapshot = _trackedResourceNodes.ToArray();
+            _trackedResourceNodes.Clear();
+        }
+
+        for (var i = 0; i < snapshot.Length; i++)
+        {
+            snapshot[i].ReleaseResources();
         }
     }
 

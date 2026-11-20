@@ -6,11 +6,14 @@ shader "Ghost/StandardLit" : "Lit"
         Texture2D baseColorMap;
         Texture2D normalMap;
         Texture2D ormMap;
-        Sampler sampler;
+        Sampler baseColorMap_sampler;
+        Sampler normalMap_sampler;
+        Sampler ormMap_sampler;
         float roughness = 0.5;
         float metallic;
         float3 emissionColor;
         Texture2D emissionMap;
+        Sampler emissionMap_sampler;
     }
 
     strategy "DEFERREDLIGHTING_STRATEGY" "StandardLitDeferredLighting" ("EngineResources/Shaders/Material/Lit/StandardLit.hlsl");
@@ -34,14 +37,14 @@ shader "Ghost/StandardLit" : "Lit"
                 surface.albedo = props.baseColor;
                 if (IS_VALID_TEXTURE(props.baseColorMap))
                 {
-                    surface.albedo *= SampleTexture2DGrad<float4>(props.baseColorMap, props.sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv).rgb;
+                    surface.albedo *= SampleTexture2DGrad<float4>(props.baseColorMap, props.baseColorMap_sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv).rgb;
                 }
 
                 ApplyDoubleSidedFlipOrMirror(ctx, props.doubleSidedConstants);
 
                 if (IS_VALID_TEXTURE(props.normalMap))
                 {
-                    float3 normalTS = SampleTexture2DGrad<float3>(props.normalMap, props.sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv);
+                    float3 normalTS = SampleTexture2DGrad<float3>(props.normalMap, props.normalMap_sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv);
                     surface.normalWS = TransformTangentToWorldDoubleSided(normalTS, ctx, props.doubleSidedConstants);
                 }
                 else
@@ -51,7 +54,7 @@ shader "Ghost/StandardLit" : "Lit"
 
                 if (IS_VALID_TEXTURE(props.ormMap))
                 {
-                    float3 orm = SampleTexture2DGrad<float3>(props.ormMap, props.sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv);
+                    float3 orm = SampleTexture2DGrad<float3>(props.ormMap, props.ormMap_sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv);
                     surface.occlusion = orm.r;
                     surface.roughness = orm.g;
                     surface.metallic = orm.b;
@@ -66,7 +69,7 @@ shader "Ghost/StandardLit" : "Lit"
                 surface.emissive = props.emissionColor;
                 if (IS_VALID_TEXTURE(props.emissionMap))
                 {
-                    surface.emissive *= SampleTexture2DGrad<float3>(props.emissionMap, props.sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv);
+                    surface.emissive *= SampleTexture2DGrad<float3>(props.emissionMap, props.emissionMap_sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv);
                 }
 
                 return surface;

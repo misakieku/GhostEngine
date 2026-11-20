@@ -6,6 +6,23 @@ using System.Numerics;
 namespace Ghost.Studio.UI;
 
 /// <summary>
+/// Interaction result returned by <see cref="ImGuiWidgets.TreeRow"/>.
+/// </summary>
+internal readonly struct TreeRowResult
+{
+    public readonly bool Clicked;
+    public readonly bool DoubleClicked;
+    public readonly bool ToggledExpand;
+
+    public TreeRowResult(bool clicked, bool doubleClicked, bool toggledExpand)
+    {
+        Clicked = clicked;
+        DoubleClicked = doubleClicked;
+        ToggledExpand = toggledExpand;
+    }
+}
+
+/// <summary>
 /// Shared ImGui helper widgets styled with <see cref="EditorColorTokens"/>.
 /// </summary>
 internal static class ImGuiWidgets
@@ -47,7 +64,7 @@ internal static class ImGuiWidgets
         {
             ImGui.SameLine();
             ImGui.PushStyleColor(ImGuiCol.Text, tokens.TextSecondary);
-            if (ImGui.Button($"X##{id}_clr", new Vector2(ImGui.GetFrameHeight(), ImGui.GetFrameHeight())))
+            if (ImGui.Button($"{EditorIcons.CLOSE}##{id}_clr", new Vector2(ImGui.GetFrameHeight(), ImGui.GetFrameHeight())))
             {
                 query = string.Empty;
                 changed = true;
@@ -56,6 +73,89 @@ internal static class ImGuiWidgets
         }
 
         return changed;
+    }
+
+    public static bool DrawTreeIndentAndChevron(int depth, float indentWidth, bool hasChildren, bool isExpanded, in EditorColorTokens tokens)
+    {
+        var rowHeight = ImGui.GetFrameHeight();
+        var chevronWidth = rowHeight * 0.85f;
+        var spacingX = ImGui.GetStyle().ItemSpacing.X;
+
+        if (depth > 0)
+        {
+            ImGui.Dummy(new Vector2(depth * indentWidth, rowHeight));
+            ImGui.SameLine(0.0f, 0.0f);
+        }
+
+        var toggled = false;
+        if (hasChildren)
+        {
+            if (ImGui.InvisibleButton("##exp", new Vector2(chevronWidth, rowHeight)))
+            {
+                toggled = true;
+            }
+
+            var min = ImGui.GetItemRectMin();
+            var max = ImGui.GetItemRectMax();
+            var hovered = ImGui.IsItemHovered();
+            var glyph = isExpanded ? EditorIcons.CHEVRON_DOWN : EditorIcons.CHEVRON_RIGHT;
+            var glyphSize = ImGui.CalcTextSize(glyph);
+            var glyphPos = new Vector2(min.X + (chevronWidth - glyphSize.X) * 0.5f, min.Y + (rowHeight - glyphSize.Y) * 0.5f);
+
+            var drawList = ImGui.GetWindowDrawList();
+            if (hovered)
+            {
+                drawList.AddRectFilled(min, max, ImGui.GetColorU32(tokens.ControlHovered), 3.0f);
+            }
+
+            var col = hovered ? tokens.TextPrimary : tokens.TextSecondary;
+            drawList.AddText(glyphPos, ImGui.GetColorU32(col), glyph);
+        }
+        else
+        {
+            ImGui.Dummy(new Vector2(chevronWidth, rowHeight));
+        }
+
+        ImGui.SameLine(0.0f, MathF.Min(spacingX, 4.0f));
+        return toggled;
+    }
+
+    public static TreeRowResult TreeRow(string rowId, string label, int depth, float indentWidth, bool hasChildren, bool isExpanded, bool isSelected, string? iconGlyph, Vector4 iconColor, in EditorColorTokens tokens)
+    {
+        var toggled = DrawTreeIndentAndChevron(depth, indentWidth, hasChildren, isExpanded, in tokens);
+        var clicked = IconSelectableRow(rowId, label, iconGlyph, iconColor, isSelected, in tokens, out var doubleClicked);
+        return new TreeRowResult(clicked, doubleClicked, toggled);
+    }
+
+    public static bool IconSelectableRow(string rowId, string label, string? iconGlyph, Vector4 iconColor, bool isSelected, in EditorColorTokens tokens, out bool doubleClicked)
+    {
+        var rowHeight = ImGui.GetFrameHeight();
+        var clicked = ImGui.Selectable($"##{rowId}", isSelected, ImGuiSelectableFlags.AllowDoubleClick, new Vector2(0.0f, rowHeight));
+        doubleClicked = clicked && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left);
+
+        var rowMin = ImGui.GetItemRectMin();
+        var rowMax = ImGui.GetItemRectMax();
+        var fontSize = ImGui.GetFontSize();
+        var textY = rowMin.Y + (rowHeight - fontSize) * 0.5f;
+        var cursorX = rowMin.X + 4.0f;
+
+        var drawList = ImGui.GetWindowDrawList();
+        drawList.PushClipRect(rowMin, rowMax, true);
+
+        if (!string.IsNullOrEmpty(iconGlyph))
+        {
+            var iconSlotWidth = MathF.Ceiling(fontSize * 1.15f);
+            var iconSize = ImGui.CalcTextSize(iconGlyph);
+            var iconX = cursorX + (iconSlotWidth - iconSize.X) * 0.5f;
+            var iconY = rowMin.Y + (rowHeight - iconSize.Y) * 0.5f;
+            drawList.AddText(new Vector2(iconX, iconY), ImGui.GetColorU32(iconColor), iconGlyph);
+            cursorX += iconSlotWidth + 6.0f;
+        }
+
+        drawList.AddText(new Vector2(cursorX, textY), ImGui.GetColorU32(tokens.TextPrimary), label);
+        drawList.PopClipRect();
+
+        return clicked;
     }
 
     public static void StatusBadge(string text, in Vector4 color)

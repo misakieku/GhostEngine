@@ -8,7 +8,7 @@ namespace Ghost.Studio.UI;
 /// <summary>
 /// Thread-safe, virtualized Console window subscribed to <see cref="Logger"/> with severity filtering and stack inspection.
 /// </summary>
-internal sealed class ConsolePanel : IDisposable
+internal sealed class ConsolePanel : EditorWindow
 {
     private readonly struct CollapsedEntry
     {
@@ -36,7 +36,12 @@ internal sealed class ConsolePanel : IDisposable
     private bool _dirty = true;
     private bool _scrollToBottomRequested;
 
+    public override Vector2 DefaultPos => new(300.0f, 640.0f);
+
+    public override Vector2 DefaultSize => new(640.0f, 220.0f);
+
     public ConsolePanel()
+        : base("Console")
     {
         lock (_lock)
         {
@@ -50,16 +55,8 @@ internal sealed class ConsolePanel : IDisposable
         Logger.Impl.OnLogsCleared += OnLogsCleared;
     }
 
-    public unsafe void Draw(ImGuiContextManager contextManager, ref bool isOpen)
+    protected override unsafe void OnDraw(ImGuiContextManager contextManager)
     {
-        ImGui.SetNextWindowPos(new Vector2(300.0f, 640.0f), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(640.0f, 220.0f), ImGuiCond.FirstUseEver);
-
-        if (!ImGui.Begin("Console", ref isOpen))
-        {
-            ImGui.End();
-            return;
-        }
 
         ref readonly var tokens = ref contextManager.Tokens;
 
@@ -129,8 +126,6 @@ internal sealed class ConsolePanel : IDisposable
             ImGui.PopFont();
             ImGui.EndChild();
         }
-
-        ImGui.End();
     }
 
     private void DrawToolbar(in EditorColorTokens tokens, int infoCount, int warnCount, int errCount)
@@ -291,7 +286,7 @@ internal sealed class ConsolePanel : IDisposable
         return newlineIdx >= 0 ? text[..newlineIdx] : text;
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
         Logger.Impl.OnLogAdded -= OnLogAdded;
         Logger.Impl.OnLogsCleared -= OnLogsCleared;

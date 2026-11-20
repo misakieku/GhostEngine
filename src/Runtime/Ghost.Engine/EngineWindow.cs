@@ -34,6 +34,11 @@ public struct WindowDesc
     {
         get; set;
     }
+
+    public bool VSync
+    {
+        get; set;
+    }
 }
 
 public unsafe class EngineWindow : IDisposable
@@ -113,7 +118,7 @@ public unsafe class EngineWindow : IDisposable
             Target = SwapChainTarget.FromWindowHandle(Handle)
         };
 
-        _swapChainManager.CreateSwapChain(swapChainDesc, false, out _swapChain, out _swapChainIndex);
+        _swapChainManager.CreateSwapChain(swapChainDesc, desc.VSync, out _swapChain, out _swapChainIndex);
 
         _isRunning = true;
     }

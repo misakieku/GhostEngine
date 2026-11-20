@@ -6,7 +6,7 @@ using Ghost.Core.Graphics;
 using Ghost.Core.Utilities;
 using System.Text;
 
-namespace Ghost.AssetForge.Test;
+namespace Ghost.Editor.Test;
 
 [TestClass]
 [DoNotParallelize]

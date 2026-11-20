@@ -10,6 +10,18 @@ internal sealed unsafe class ImGuiContextManager : IDisposable
 {
     public const uint IMGUI_MANAGED_TEX_BIT = 0x8000_0000u;
 
+    // Nerd Font Private Use Area ranges (BMP icons + Material Design SMP icons) pinned for ImFontAtlas lifetime.
+    private static readonly uint[] s_nerdIconRanges = GC.AllocateArray<uint>(5, pinned: true);
+
+    static ImGuiContextManager()
+    {
+        s_nerdIconRanges[0] = 0xE000u;
+        s_nerdIconRanges[1] = 0xF8FFu;
+        s_nerdIconRanges[2] = 0xF0000u;
+        s_nerdIconRanges[3] = 0xF2000u;
+        s_nerdIconRanges[4] = 0u;
+    }
+
     private readonly ImGuiContextPtr _imguiContext;
     private readonly ImPlotContextPtr _implotContext;
     private readonly ImNodesContextPtr _imnodesContext;
@@ -104,16 +116,42 @@ internal sealed unsafe class ImGuiContextManager : IDisposable
         io.Fonts.TexDesiredFormat = ImTextureFormat.Rgba32;
 
         var fontDir = Path.Combine(AppContext.BaseDirectory, "Resources", "Fonts");
+        var nerdFontPath = Path.Combine(fontDir, "JetBrainsMonoNerdFontMono-Regular.ttf");
+
         var regularPath = ResolveFirstExistingFont(Path.Combine(fontDir, "Inter-Regular.ttf"), @"C:\Windows\Fonts\segoeui.ttf");
         RegularFont = regularPath != null ? io.Fonts.AddFontFromFileTTF(regularPath, EditorTheme.FONT_SIZE_REGULAR) : io.Fonts.AddFontDefault();
+        MergeNerdIcons(io, nerdFontPath, EditorTheme.FONT_SIZE_REGULAR * 1.5f);
 
         var headingPath = ResolveFirstExistingFont(Path.Combine(fontDir, "Inter-SemiBold.ttf"), @"C:\Windows\Fonts\segoeuib.ttf");
         HeadingFont = headingPath != null ? io.Fonts.AddFontFromFileTTF(headingPath, EditorTheme.FONT_SIZE_HEADING) : RegularFont;
+        if (headingPath != null)
+        {
+            MergeNerdIcons(io, nerdFontPath, EditorTheme.FONT_SIZE_HEADING * 1.5f);
+        }
 
-        var monoPath = ResolveFirstExistingFont(Path.Combine(fontDir, "JetBrainsMono-Regular.ttf"), @"C:\Windows\Fonts\consola.ttf");
+        var monoPath = ResolveFirstExistingFont(nerdFontPath, @"C:\Windows\Fonts\consola.ttf");
         MonospaceFont = monoPath != null ? io.Fonts.AddFontFromFileTTF(monoPath, EditorTheme.FONT_SIZE_MONO) : RegularFont;
 
         io.FontDefault = RegularFont;
+    }
+
+    private static void MergeNerdIcons(ImGuiIOPtr io, string nerdFontPath, float sizePixels)
+    {
+        if (!File.Exists(nerdFontPath))
+        {
+            return;
+        }
+
+        var mergeConfig = ImGui.ImFontConfig();
+        mergeConfig.MergeMode = true;
+        mergeConfig.PixelSnapH = true;
+
+        fixed (uint* pRanges = s_nerdIconRanges)
+        {
+            io.Fonts.AddFontFromFileTTF(nerdFontPath, sizePixels, mergeConfig, pRanges);
+        }
+
+        mergeConfig.Destroy();
     }
 
     private static string? ResolveFirstExistingFont(string primaryPath, string fallbackPath)

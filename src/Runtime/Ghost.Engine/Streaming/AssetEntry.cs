@@ -51,13 +51,14 @@ internal abstract class AssetEntry : IAssetEntry
 
     private readonly Guid _assetId;
     private readonly AssetType _assetType;
-    private readonly Guid[] _dependencies;
     private readonly string _assetName;
 
+    private Guid[] _dependencies;
     private JobHandle _loadJobHandle;
     private JobHandle _combinedDependencyJobHandle;
     private int _refCount;
     private int _state;
+    private int _contentVersion;
 
     private int _pendingReimport;
 
@@ -72,6 +73,7 @@ internal abstract class AssetEntry : IAssetEntry
     public ReadOnlySpan<Guid> Dependencies => _dependencies;
     public int RefCount => Volatile.Read(ref _refCount);
     public string AssetName => _assetName;
+    public int ContentVersion => Volatile.Read(ref _contentVersion);
 
     internal virtual AssetState FailureState => AssetState.Failed;
 
@@ -114,6 +116,18 @@ internal abstract class AssetEntry : IAssetEntry
     internal void SetCombinedDependencyJobHandle(JobHandle handle)
     {
         _combinedDependencyJobHandle = handle;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void UpdateDependencies(Guid[] dependencies)
+    {
+        _dependencies = dependencies;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void IncrementContentVersion()
+    {
+        Interlocked.Increment(ref _contentVersion);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -178,6 +192,7 @@ public interface IAssetEntry
     AssetType AssetType { get; }
     ReadOnlySpan<Guid> Dependencies { get; }
     int RefCount { get; }
+    int ContentVersion { get; }
     AssetState State { get; set; }
 
     void AddRef();

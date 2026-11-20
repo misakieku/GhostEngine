@@ -7,7 +7,11 @@ namespace Ghost.AssetForge.Core.Models;
 [JsonSerializable(typeof(MaterialAssetDocument))]
 [JsonSerializable(typeof(float))]
 [JsonSerializable(typeof(float[]))]
-internal partial class MaterialAssetDocumentContext : JsonSerializerContext
+[JsonSerializable(typeof(int))]
+[JsonSerializable(typeof(uint))]
+[JsonSerializable(typeof(bool))]
+[JsonSerializable(typeof(string))]
+public partial class MaterialAssetDocumentContext : JsonSerializerContext
 {
 }
 

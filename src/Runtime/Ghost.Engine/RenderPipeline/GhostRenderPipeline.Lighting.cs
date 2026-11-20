@@ -248,6 +248,7 @@ internal unsafe partial class GhostRenderPipeline
         public Identifier<RGTexture> risResolvedDiffuse;
         public Identifier<RGTexture> risResolvedSpecular;
         public SkyContext skyContext;
+        public Identifier<RGBuffer> persistentViewStateBuffer;
         public uint viewId;
         public uint shadowViewsBufferSrv;
         public uint shadowIndicesBufferSrv;
@@ -270,8 +271,8 @@ internal unsafe partial class GhostRenderPipeline
         public float contactShadowTolerance;
     }
 
-    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph renderGraph, GhostRenderPayload payload, in SkyContext skyContext, Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize,
-        Identifier<RGTexture> depthTexture, Identifier<RGBuffer> tlasBuffer, uint viewId, uint2 renderSize)
+    private Identifier<RGTexture> AddDeferredLightingPass(RenderGraph renderGraph, GhostRenderPayload payload, in SkyContext skyContext, Identifier<RGBuffer> persistentViewStateBuffer,
+        Identifier<RGTexture> hzbTexture, uint hzbMipCount, uint2 hzbSize, Identifier<RGTexture> depthTexture, Identifier<RGBuffer> tlasBuffer, uint viewId, uint2 renderSize)
     {
         ref readonly var gbufferData = ref renderGraph.Blackboard.Get<GBufferPassData>();
         ref readonly var tile = ref renderGraph.Blackboard.Get<TileClassificationData>();
@@ -330,7 +331,7 @@ internal unsafe partial class GhostRenderPipeline
         builder.UseTexture(risResolvedSpecular, AccessFlags.Read);
         builder.UseTexture(skyContext.skyboxTexture, AccessFlags.Read);
         builder.UseTexture(skyContext.iblLutTexture, AccessFlags.Read);
-        builder.UseBuffer(skyContext.persistentViewStateBuffer, AccessFlags.Read);
+        builder.UseBuffer(persistentViewStateBuffer, AccessFlags.Read);
         builder.UseTexture(litColorTarget, AccessFlags.Write);
 
         builder.SetPassData(new DeferredLightingPassData
@@ -348,6 +349,7 @@ internal unsafe partial class GhostRenderPipeline
             risResolvedDiffuse = risResolvedDiffuse,
             risResolvedSpecular = risResolvedSpecular,
             skyContext = skyContext,
+            persistentViewStateBuffer = persistentViewStateBuffer,
             viewId = viewId,
             shadowViewsBufferSrv = shadowViewsBufferSrv,
             shadowIndicesBufferSrv = shadowIndicesBufferSrv,
@@ -387,7 +389,7 @@ internal unsafe partial class GhostRenderPipeline
             var tileShadingModelMaskSrv = computeCtx.GetActualBindlessIndex(passData.tileShadingModelMaskBuffer, BindlessAccess.ShaderResource);
             var skyboxSrv = computeCtx.GetActualBindlessIndex(passData.skyContext.skyboxTexture, BindlessAccess.ShaderResource);
             var iblLutSrv = computeCtx.GetActualBindlessIndex(passData.skyContext.iblLutTexture, BindlessAccess.ShaderResource);
-            var persistentViewStateSrv = computeCtx.GetActualBindlessIndex(passData.skyContext.persistentViewStateBuffer, BindlessAccess.ShaderResource);
+            var persistentViewStateSrv = computeCtx.GetActualBindlessIndex(passData.persistentViewStateBuffer, BindlessAccess.ShaderResource);
             var hzbSrv = computeCtx.GetActualBindlessIndex(passData.hzbTexture, BindlessAccess.ShaderResource);
             var risDiffSrv = computeCtx.GetActualBindlessIndex(passData.risResolvedDiffuse, BindlessAccess.ShaderResource);
             var risSpecSrv = computeCtx.GetActualBindlessIndex(passData.risResolvedSpecular, BindlessAccess.ShaderResource);

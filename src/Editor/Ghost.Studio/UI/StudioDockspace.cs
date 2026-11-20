@@ -13,13 +13,6 @@ internal sealed unsafe class StudioDockspace
     private bool _layoutInitialized;
     private bool _resetRequested;
 
-    public bool ShowSceneViewport = true;
-    public bool ShowHierarchy = true;
-    public bool ShowInspector = true;
-    public bool ShowProject = true;
-    public bool ShowConsole = true;
-    public bool ShowProfiler = true;
-    public bool ShowNodeGraph;
     public bool ShowImGuiDemo;
     public bool ShowImPlotDemo;
 
@@ -71,26 +64,28 @@ internal sealed unsafe class StudioDockspace
     {
         var viewport = ImGui.GetMainViewport();
         var dockspaceId = ImGui.GetID("GhostStudioDockSpace");
-        ImGui.DockSpaceOverViewport(dockspaceId, viewport, ImGuiDockNodeFlags.PassthruCentralNode);
 
         if (!_layoutInitialized || _resetRequested)
         {
             _resetRequested = false;
             _layoutInitialized = true;
-            BuildDefaultLayout(dockspaceId, viewport.Size);
+            BuildDefaultLayout(dockspaceId, viewport.WorkPos, viewport.WorkSize);
         }
+
+        ImGui.DockSpaceOverViewport(dockspaceId, viewport, ImGuiDockNodeFlags.PassthruCentralNode);
     }
 
-    private static void BuildDefaultLayout(uint dockspaceId, Vector2 viewportSize)
+    private static void BuildDefaultLayout(uint dockspaceId, Vector2 workPos, Vector2 workSize)
     {
-        if (viewportSize.X <= 1.0f || viewportSize.Y <= 1.0f)
+        if (workSize.X <= 1.0f || workSize.Y <= 1.0f)
         {
             return;
         }
 
         ImGuiP.DockBuilderRemoveNode(dockspaceId);
         ImGuiP.DockBuilderAddNode(dockspaceId, (ImGuiDockNodeFlags)(1 << 10) | ImGuiDockNodeFlags.PassthruCentralNode);
-        ImGuiP.DockBuilderSetNodeSize(dockspaceId, viewportSize);
+        ImGuiP.DockBuilderSetNodePos(dockspaceId, workPos);
+        ImGuiP.DockBuilderSetNodeSize(dockspaceId, workSize);
 
         var mainId = dockspaceId;
         var leftId = 0u;

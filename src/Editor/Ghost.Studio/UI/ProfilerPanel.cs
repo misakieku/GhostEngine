@@ -9,7 +9,7 @@ namespace Ghost.Studio.UI;
 /// <summary>
 /// Displays live engine telemetry KPIs and real-time <see cref="ImPlot"/> frame timing charts.
 /// </summary>
-internal sealed unsafe class ProfilerPanel
+internal sealed unsafe class ProfilerPanel : EditorWindow
 {
     private const int HISTORY_CAPACITY = 240;
 
@@ -20,7 +20,12 @@ internal sealed unsafe class ProfilerPanel
     private int _sampleCount;
     private bool _paused;
 
+    public override Vector2 DefaultPos => new(650.0f, 640.0f);
+
+    public override Vector2 DefaultSize => new(610.0f, 220.0f);
+
     public ProfilerPanel()
+        : base("Profiler")
     {
         for (var i = 0; i < HISTORY_CAPACITY; i++)
         {
@@ -44,16 +49,8 @@ internal sealed unsafe class ProfilerPanel
         }
     }
 
-    public void Draw(ImGuiContextManager contextManager, ref bool isOpen)
+    protected override void OnDraw(ImGuiContextManager contextManager)
     {
-        ImGui.SetNextWindowPos(new Vector2(650.0f, 640.0f), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(610.0f, 220.0f), ImGuiCond.FirstUseEver);
-
-        if (!ImGui.Begin("Profiler", ref isOpen))
-        {
-            ImGui.End();
-            return;
-        }
 
         ref readonly var tokens = ref contextManager.Tokens;
 
@@ -101,8 +98,6 @@ internal sealed unsafe class ProfilerPanel
 
             ImPlot.EndPlot();
         }
-
-        ImGui.End();
     }
 
     private void CopyOrderedSamples()

@@ -1,6 +1,6 @@
 using Ghost.ShaderMetadataTool;
 
-namespace Ghost.AssetForge.Test;
+namespace Ghost.Editor.Test;
 
 [TestClass]
 public class ShaderMetadataToolTests

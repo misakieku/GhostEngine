@@ -23,14 +23,12 @@ public sealed class ModifyPropertyCommand : IEditorCommand
 
     public void Execute()
     {
-        Property.Value = _newValue;
-        Property.OnChange(_newValue);
+        Property.ApplyValue(_newValue);
     }
 
     public void Undo()
     {
-        Property.Value = _oldValue;
-        Property.OnChange(_oldValue);
+        Property.ApplyValue(_oldValue);
         if (Property.ComponentNode?.EntityNode != null)
         {
             EditorSelection.Instance.Select(Property.ComponentNode.EntityNode);
@@ -39,8 +37,7 @@ public sealed class ModifyPropertyCommand : IEditorCommand
 
     public void Redo()
     {
-        Property.Value = _newValue;
-        Property.OnChange(_newValue);
+        Property.ApplyValue(_newValue);
         if (Property.ComponentNode?.EntityNode != null)
         {
             EditorSelection.Instance.Select(Property.ComponentNode.EntityNode);

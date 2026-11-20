@@ -56,12 +56,15 @@ public unsafe class MaterialAndPrefabStreamingTests
             shaderId = shaderGuid,
             propertyBufferSize = 96,
             textureFixupCount = 1,
+            samplerFixupCount = 1,
             propertyBufferOffset = sizeof(MaterialContentHeader),
-            textureFixupOffset = sizeof(MaterialContentHeader) + 96
+            textureFixupOffset = sizeof(MaterialContentHeader) + 96,
+            samplerFixupOffset = sizeof(MaterialContentHeader) + 96 + sizeof(MaterialTextureFixup)
         };
 
         var fixup = new MaterialTextureFixup { byteOffset = 16, textureGuid = texGuid };
-        var totalSize = sizeof(MaterialContentHeader) + 96 + sizeof(MaterialTextureFixup);
+        var samplerFixup = new MaterialSamplerFixup { byteOffset = 20, samplerType = StaticSamplerType.TrilinearRepeat };
+        var totalSize = sizeof(MaterialContentHeader) + 96 + sizeof(MaterialTextureFixup) + sizeof(MaterialSamplerFixup);
         var matBytes = new byte[totalSize];
 
         fixed (byte* p = matBytes)
@@ -69,13 +72,14 @@ public unsafe class MaterialAndPrefabStreamingTests
             *(MaterialContentHeader*)p = matHeader;
             *(float3*)(p + sizeof(MaterialContentHeader)) = new float3(1.0f, 0.5f, 0.25f);
             *(MaterialTextureFixup*)(p + sizeof(MaterialContentHeader) + 96) = fixup;
+            *(MaterialSamplerFixup*)(p + sizeof(MaterialContentHeader) + 96 + sizeof(MaterialTextureFixup)) = samplerFixup;
         }
 
         var matGuid = Guid.NewGuid();
         var entry = new MaterialAssetEntry(assetManager, resourceDatabase, assetManager.ResourceManager, matGuid, Array.Empty<Guid>(), "TestMaterial");
         entry.AddRef();
 
-        var dummyShaderEntry = new DummyShaderAssetEntry(assetManager, resourceDatabase, assetManager.ResourceManager, shaderGuid, shaderHandle, "DummyShader");
+        var dummyShaderEntry = new DummyShaderAssetEntry(assetManager, resourceDatabase, resourceManager, shaderGuid, shaderHandle, "DummyShader");
         assetManager.RegisterEntryForTesting(shaderGuid, dummyShaderEntry);
 
         fixed (byte* p = matBytes)
@@ -103,6 +107,7 @@ public unsafe class MaterialAndPrefabStreamingTests
             Assert.AreEqual(1.0f, baseColor.x);
             Assert.AreEqual(0.5f, baseColor.y);
             Assert.AreEqual(0.25f, baseColor.z);
+            Assert.AreEqual(resourceManager.StaticSampler.GetSampler(StaticSamplerType.TrilinearRepeat), *(uint*)(pRaw + 20));
         }
 
         entry.Release();
@@ -657,6 +662,218 @@ public unsafe class MaterialAndPrefabStreamingTests
         Assert.AreEqual(meshGuid, entry.AssetId);
 
         entry.Release();
+    }
+
+    [TestMethod]
+    public void Test_MaterialAssetEntry_ReimportUpdatesInPlaceAndMarksDirty()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var renderDevice = new MockingRenderDevice();
+        using var resourceDatabase = new MockingResourceDatabase();
+        using var pipelineLibrary = new MockingPipelineLibrary();
+        using var resourceAllocator = new MockingResourceAllocator(resourceDatabase);
+        using var shaderLibrary = new ShaderLibrary(null, pipelineLibrary, null);
+        using var resourceManager = new ResourceManager(renderDevice, resourceAllocator, resourceDatabase);
+        using var jobScheduler = new JobScheduler(new JobSchedulerDesc { ThreadCount = 2, ThreadPriority = ThreadPriority.Normal, DependencyChainCapacity = 1024 });
+
+        using var contentProvider = new MockingContentProvider();
+        var streamingProcessor = new ResourceStreamingProcessor();
+        using var assetManager = new AssetManager(resourceDatabase, resourceManager, contentProvider, streamingProcessor, jobScheduler, engine, shaderLibrary, 2);
+
+        var shaderDesc1 = new GraphicsShaderDescriptor { Name = "Shader1", PropertyBufferSize = 96, Passes = Array.Empty<PassDescriptor>() };
+        var shaderDesc2 = new GraphicsShaderDescriptor { Name = "Shader2", PropertyBufferSize = 64, Passes = Array.Empty<PassDescriptor>() };
+        var shaderHandle1 = resourceManager.CreateShader(shaderDesc1);
+        var shaderHandle2 = resourceManager.CreateShader(shaderDesc2);
+        var shaderGuid1 = Guid.NewGuid();
+        var shaderGuid2 = Guid.NewGuid();
+
+        assetManager.RegisterEntryForTesting(shaderGuid1, new DummyShaderAssetEntry(assetManager, resourceDatabase, resourceManager, shaderGuid1, shaderHandle1, "Shader1"));
+        assetManager.RegisterEntryForTesting(shaderGuid2, new DummyShaderAssetEntry(assetManager, resourceDatabase, resourceManager, shaderGuid2, shaderHandle2, "Shader2"));
+
+        var matGuid = Guid.NewGuid();
+        var entry = new MaterialAssetEntry(assetManager, resourceDatabase, resourceManager, matGuid, Array.Empty<Guid>(), "ReimportMat");
+        entry.AddRef();
+
+        byte[] BuildMatPayload(Guid shaderGuid, float3 color, int propSize)
+        {
+            var bytes = new byte[sizeof(MaterialContentHeader) + propSize];
+            fixed (byte* p = bytes)
+            {
+                *(MaterialContentHeader*)p = new MaterialContentHeader
+                {
+                    magic = MaterialContentHeader.MAGIC,
+                    version = MaterialContentHeader.VERSION,
+                    shaderId = shaderGuid,
+                    propertyBufferSize = (uint)propSize,
+                    textureFixupCount = 0,
+                    propertyBufferOffset = sizeof(MaterialContentHeader),
+                    textureFixupOffset = sizeof(MaterialContentHeader) + (uint)propSize
+                };
+                *(float3*)(p + sizeof(MaterialContentHeader)) = color;
+            }
+            return bytes;
+        }
+
+        var v1Bytes = BuildMatPayload(shaderGuid1, new float3(1.0f, 0.25f, 0.5f), 96);
+        fixed (byte* p = v1Bytes)
+        {
+            var payload = AssetPayload.FromMappedMemory(p, v1Bytes.Length);
+            Assert.IsTrue(entry.OnLoadContent(ref payload).IsSuccess);
+        }
+        entry.State = AssetState.Ready;
+
+        var originalHandle = entry.MaterialHandle;
+        var initialVersion = entry.ContentVersion;
+        Assert.IsTrue(originalHandle.IsValid);
+        var matRef = resourceManager.GetMaterialReference(originalHandle);
+        Assert.IsTrue(matRef.IsSuccess);
+        Assert.IsTrue(matRef.Value.IsDirty);
+        matRef.Value.ClearDirty();
+        Assert.IsFalse(resourceManager.GetMaterialReference(originalHandle).Value.IsDirty);
+
+        var v2Bytes = BuildMatPayload(shaderGuid1, new float3(0.2f, 0.8f, 0.4f), 96);
+        fixed (byte* p = v2Bytes)
+        {
+            var payload = AssetPayload.FromMappedMemory(p, v2Bytes.Length);
+            Assert.IsTrue(entry.OnLoadContent(ref payload).IsSuccess);
+        }
+
+        Assert.AreEqual(originalHandle, entry.MaterialHandle);
+        Assert.IsGreaterThan(initialVersion, entry.ContentVersion);
+        var updatedRef = resourceManager.GetMaterialReference(originalHandle);
+        Assert.IsTrue(updatedRef.IsSuccess);
+        Assert.IsTrue(updatedRef.Value.IsDirty);
+        fixed (byte* pRaw = updatedRef.Value.GetRawPropertyCache())
+        {
+            var color = *(float3*)pRaw;
+            Assert.AreEqual(0.2f, color.x);
+            Assert.AreEqual(0.8f, color.y);
+            Assert.AreEqual(0.4f, color.z);
+        }
+
+        var v3Bytes = BuildMatPayload(shaderGuid2, new float3(0.9f, 0.1f, 0.7f), 64);
+        fixed (byte* p = v3Bytes)
+        {
+            var payload = AssetPayload.FromMappedMemory(p, v3Bytes.Length);
+            Assert.IsTrue(entry.OnLoadContent(ref payload).IsSuccess);
+        }
+
+        Assert.AreNotEqual(originalHandle, entry.MaterialHandle);
+        Assert.IsFalse(resourceManager.HasMaterial(originalHandle));
+        Assert.IsTrue(resourceManager.HasMaterial(entry.MaterialHandle));
+        Assert.IsTrue(resourceManager.GetMaterialReference(entry.MaterialHandle).Value.IsDirty);
+
+        entry.Release();
+        assetManager.RemoveEntry(shaderGuid1);
+        assetManager.RemoveEntry(shaderGuid2);
+    }
+
+    [TestMethod]
+    public void Test_AssetManager_ReimportAsset_UpdatesMaterialAndDependencies()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var renderDevice = new MockingRenderDevice();
+        using var resourceDatabase = new MockingResourceDatabase();
+        using var pipelineLibrary = new MockingPipelineLibrary();
+        using var resourceAllocator = new MockingResourceAllocator(resourceDatabase);
+        using var shaderLibrary = new ShaderLibrary(null, pipelineLibrary, null);
+        using var resourceManager = new ResourceManager(renderDevice, resourceAllocator, resourceDatabase);
+        using var jobScheduler = new JobScheduler(new JobSchedulerDesc { ThreadCount = 2, ThreadPriority = ThreadPriority.Normal, DependencyChainCapacity = 1024 });
+
+        using var contentProvider = new MockingContentProvider();
+        var streamingProcessor = new ResourceStreamingProcessor();
+        using var assetManager = new AssetManager(resourceDatabase, resourceManager, contentProvider, streamingProcessor, jobScheduler, engine, shaderLibrary, 2);
+
+        var shaderDesc = new GraphicsShaderDescriptor { Name = "ReimportShader", PropertyBufferSize = 96, Passes = Array.Empty<PassDescriptor>() };
+        var shaderHandle = resourceManager.CreateShader(shaderDesc);
+        var shaderGuid = Guid.NewGuid();
+        var dummyShaderEntry = new DummyShaderAssetEntry(assetManager, resourceDatabase, resourceManager, shaderGuid, shaderHandle, "ReimportShader");
+        dummyShaderEntry.AddRef();
+        assetManager.RegisterEntryForTesting(shaderGuid, dummyShaderEntry);
+
+        var texGuid = Guid.NewGuid();
+        contentProvider.AddMockTexture(texGuid);
+
+        byte[] BuildMatBytes(float3 color, Guid textureGuid)
+        {
+            var fixupCount = textureGuid != Guid.Empty ? 1 : 0;
+            var bytes = new byte[sizeof(MaterialContentHeader) + 96 + fixupCount * sizeof(MaterialTextureFixup)];
+            fixed (byte* p = bytes)
+            {
+                *(MaterialContentHeader*)p = new MaterialContentHeader
+                {
+                    magic = MaterialContentHeader.MAGIC,
+                    version = MaterialContentHeader.VERSION,
+                    shaderId = shaderGuid,
+                    propertyBufferSize = 96,
+                    textureFixupCount = (uint)fixupCount,
+                    propertyBufferOffset = sizeof(MaterialContentHeader),
+                    textureFixupOffset = sizeof(MaterialContentHeader) + 96
+                };
+                *(float3*)(p + sizeof(MaterialContentHeader)) = color;
+                if (fixupCount == 1)
+                {
+                    *(MaterialTextureFixup*)(p + sizeof(MaterialContentHeader) + 96) = new MaterialTextureFixup { byteOffset = 16, textureGuid = textureGuid };
+                }
+            }
+            return bytes;
+        }
+
+        var matGuid = Guid.NewGuid();
+        contentProvider.AddMockAsset(matGuid, new MockingContentProvider.MockAssetData
+        {
+            type = AssetType.Material,
+            data = BuildMatBytes(new float3(0.1f, 0.2f, 0.3f), Guid.Empty),
+            dependencies = Array.Empty<Guid>()
+        });
+
+        Assert.IsTrue(assetManager.TryResolveAsset(matGuid, out var resolved));
+        jobScheduler.Wait(resolved.LoadJobHandle);
+        Assert.AreEqual(AssetState.Ready, resolved.State);
+
+        var matEntry = (MaterialAssetEntry)resolved;
+        var initialHandle = matEntry.MaterialHandle;
+        resourceManager.GetMaterialReference(initialHandle).Value.ClearDirty();
+
+        contentProvider.AddMockAsset(matGuid, new MockingContentProvider.MockAssetData
+        {
+            type = AssetType.Material,
+            data = BuildMatBytes(new float3(0.8f, 0.6f, 0.4f), texGuid),
+            dependencies = new[] { texGuid }
+        });
+
+        Assert.IsTrue(assetManager.TryResolveAsset(texGuid, out var texResolved));
+        jobScheduler.Wait(texResolved.LoadJobHandle);
+        texResolved.State = AssetState.Ready;
+
+        assetManager.ReimportAsset(matGuid);
+        jobScheduler.Wait(resolved.LoadJobHandle);
+        Assert.AreEqual(AssetState.Ready, resolved.State);
+
+        Assert.AreEqual(initialHandle, matEntry.MaterialHandle);
+        Assert.IsTrue(resourceManager.GetMaterialReference(initialHandle).Value.IsDirty);
+
+        var rawProps = resourceManager.GetMaterialReference(initialHandle).Value.GetRawPropertyCache();
+        fixed (byte* pRaw = rawProps)
+        {
+            var c = *(float3*)pRaw;
+            Assert.AreEqual(0.8f, c.x);
+            Assert.AreEqual(0.6f, c.y);
+            Assert.AreEqual(0.4f, c.z);
+
+            var expectedSrv = resourceDatabase.GetBindlessIndex(default(Handle<GPUTexture>).AsResource());
+            if (assetManager.TryGetEntry(texGuid, out var loadedTex))
+            {
+                var texHandle = default(Handle<GPUTexture>);
+                loadedTex.ReadAssetData(ref texHandle);
+                expectedSrv = resourceDatabase.GetBindlessIndex(texHandle.AsResource());
+            }
+            Assert.AreEqual(expectedSrv, *(uint*)(pRaw + 16));
+        }
+
+        texResolved.Release();
+        resolved.Release();
+        assetManager.RemoveEntry(shaderGuid);
     }
 
     private sealed class DummyShaderAssetEntry : AssetEntry

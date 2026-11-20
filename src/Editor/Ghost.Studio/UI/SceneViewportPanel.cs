@@ -4,6 +4,7 @@ using Ghost.Editor.Core.Sync;
 using Ghost.Engine.Components;
 using Ghost.Engine.Utilities;
 using Ghost.Entities;
+using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Studio.Backend;
 using Ghost.Studio.Rendering;
@@ -18,7 +19,7 @@ namespace Ghost.Studio.UI;
 /// <summary>
 /// Displays the offscreen Scene View render target, Transform gizmos (<see cref="ImGuizmo"/>), and ViewCube.
 /// </summary>
-internal sealed unsafe class SceneViewportPanel
+internal sealed unsafe class SceneViewportPanel : EditorWindow
 {
     private readonly SceneViewportTarget _viewportTarget;
     private readonly EditorViewportInputState _inputState;
@@ -33,30 +34,56 @@ internal sealed unsafe class SceneViewportPanel
     private PropertyNode? _dragScaleProp;
     private PropertyNode? _dragLtwMatrixProp;
 
+    public EntityManager? CurrentEntityManager { get; set; }
+
+    public RenderEngine? CurrentRenderEngine { get; set; }
+
+    public int CurrentFrameIndex { get; set; }
+
+    public bool RenderedSceneTexture { get; private set; }
+
+    public override Vector2 DefaultPos => new(300.0f, 32.0f);
+
+    public override Vector2 DefaultSize => new(960.0f, 600.0f);
+
+    public override ImGuiWindowFlags WindowFlags => ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
+
     public SceneViewportPanel(SceneViewportTarget viewportTarget, EditorViewportInputState inputState)
+        : base("Scene")
     {
         _viewportTarget = viewportTarget;
         _inputState = inputState;
     }
 
-    public bool Draw(ImGuiContextManager contextManager, EntityManager em, ref bool isOpen)
+    public void ResetFrameState()
     {
-        var usedViewportTexture = false;
+        RenderedSceneTexture = false;
+    }
 
-        ImGui.SetNextWindowPos(new Vector2(300.0f, 32.0f), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(960.0f, 600.0f), ImGuiCond.FirstUseEver);
-
+    protected override void OnBeforeBegin(ImGuiContextManager contextManager)
+    {
+        RenderedSceneTexture = false;
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
-        var visible = ImGui.Begin("Scene", ref isOpen, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
-        ImGui.PopStyleVar();
+    }
 
-        if (!visible)
+    protected override void OnAfterBegin(ImGuiContextManager contextManager)
+    {
+        ImGui.PopStyleVar();
+    }
+
+    protected override void OnCollapsed(ImGuiContextManager contextManager)
+    {
+        _inputState.IsHovered = false;
+        _inputState.IsFocused = false;
+        _inputState.IsGizmoBlocking = false;
+    }
+
+    protected override void OnDraw(ImGuiContextManager contextManager)
+    {
+        var em = CurrentEntityManager;
+        if (em == null)
         {
-            _inputState.IsHovered = false;
-            _inputState.IsFocused = false;
-            _inputState.IsGizmoBlocking = false;
-            ImGui.End();
-            return false;
+            return;
         }
 
         _inputState.IsHovered = ImGui.IsWindowHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem);
@@ -74,11 +101,17 @@ internal sealed unsafe class SceneViewportPanel
             _viewportTarget.RequestResize(width, height);
         }
 
-        if (_viewportTarget.IsReady && avail.X >= 1.0f && avail.Y >= 1.0f)
+        if (CurrentRenderEngine != null)
         {
-            var texRef = new ImTextureRef(null, new ImTextureID((ulong)_viewportTarget.BindlessSrvIndex));
-            ImGui.Image(texRef, avail);
-            usedViewportTexture = true;
+            _viewportTarget.EnsureTexture(CurrentRenderEngine, CurrentFrameIndex);
+        }
+
+        var displaySize = new Vector2(width, height);
+        if (_viewportTarget.IsReady(CurrentFrameIndex) && width >= 1 && height >= 1)
+        {
+            var texRef = new ImTextureRef(null, new ImTextureID((ulong)_viewportTarget.GetBindlessSrvIndex(CurrentFrameIndex)));
+            ImGui.Image(texRef, displaySize);
+            RenderedSceneTexture = true;
         }
         else
         {
@@ -93,25 +126,22 @@ internal sealed unsafe class SceneViewportPanel
         var isViewCubeHovered = false;
         var isGizmoInteracting = false;
 
-        if (avail.X >= 64.0f && avail.Y >= 64.0f)
+        if (width >= 64 && height >= 64)
         {
             ref var editorCam = ref em.GetOrCreateSingleton(EditorCamera.Default);
-            BuildCameraMatrices(in editorCam, avail.X, avail.Y, out var viewMtx, out var projMtx);
+            BuildCameraMatrices(in editorCam, displaySize.X, displaySize.Y, out var viewMtx, out var projMtx);
 
             ImGuizmo.SetOrthographic(false);
             ImGuizmo.SetDrawlist();
-            ImGuizmo.SetRect(cursorScreen.X, cursorScreen.Y, avail.X, avail.Y);
+            ImGuizmo.SetRect(cursorScreen.X, cursorScreen.Y, displaySize.X, displaySize.Y);
 
             isGizmoInteracting = DrawSelectedEntityGizmo(em, in viewMtx, in projMtx);
-            isViewCubeHovered = DrawViewCube(contextManager, ref editorCam, cursorScreen, avail);
+            isViewCubeHovered = DrawViewCube(contextManager, ref editorCam, cursorScreen, displaySize);
         }
 
         _inputState.IsGizmoBlocking = isToolbarHovered || isGizmoInteracting || isViewCubeHovered || ImGuizmo.IsUsing();
 
         DrawOverlayHud(contextManager, em, cursorScreen, avail);
-
-        ImGui.End();
-        return usedViewportTexture;
     }
 
     private void HandleToolShortcuts()
@@ -435,7 +465,7 @@ internal sealed unsafe class SceneViewportPanel
         var entityCount = EditorSyncBridge.Instance.LatestSnapshot?.EntityCount ?? 0;
 
         ImGui.PushFont(contextManager.MonospaceFont, EditorTheme.FONT_SIZE_MONO);
-        var label = $"{_viewportTarget.Width}x{_viewportTarget.Height}  |  Entities: {entityCount}  |  Speed: {cam.moveSpeed:0.0}  |  RMB+WASD Fly  Alt+LMB Orbit  MMB Pan  F Frame";
+        var label = $"{_viewportTarget.GetWidth(CurrentFrameIndex)}x{_viewportTarget.GetHeight(CurrentFrameIndex)}  |  Entities: {entityCount}  |  Speed: {cam.moveSpeed:0.0}  |  RMB+WASD Fly  Alt+LMB Orbit  MMB Pan  F Frame";
         var textSize = ImGui.CalcTextSize(label);
         var drawList = ImGui.GetWindowDrawList();
 

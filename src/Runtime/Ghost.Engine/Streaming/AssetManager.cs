@@ -226,7 +226,7 @@ public partial class AssetManager : IDisposable
         return entry;
     }
 
-    private void EnsureScheduled(AssetEntry entry)
+    private void EnsureScheduled(AssetEntry entry, bool resolveDependencies = true)
     {
         var previousState = Interlocked.CompareExchange(ref entry.StateValue, (int)AssetState.Scheduled, (int)AssetState.Unloaded);
         if (previousState != (int)AssetState.Unloaded)
@@ -248,7 +248,7 @@ public partial class AssetManager : IDisposable
         var dependency = entry.CombinedDependencyJobHandle;
 
         // If the entry has no dependencies and it's not a loadable asset, we can skip the job scheduling and directly mark the entry as loaded.
-        if ((dependency.IsValid || entry.Dependencies.Length == 0) && entry is not ILoadableAssetEntry)
+        if ((dependency.IsValid || entry.Dependencies.Length == 0 || !resolveDependencies) && entry is not ILoadableAssetEntry)
         {
             entry.State = AssetState.Loaded;
             if (!StreamingProcessor.EnqueueForProcess(entry))
@@ -260,7 +260,7 @@ public partial class AssetManager : IDisposable
         }
 
         // TODO: We are rescheduling the job for ervery dependencies even if it is already loaded. We should only schedule the job for the dependencies that are not loaded yet.
-        if (!dependency.IsValid && entry.Dependencies.Length > 0)
+        if (resolveDependencies && !dependency.IsValid && entry.Dependencies.Length > 0)
         {
             // Avoid stack overflow for deep dependency tree like a scene.
 
@@ -357,7 +357,10 @@ public partial class AssetManager : IDisposable
         return false;
     }
 
-    internal void ReimportAsset(Guid guid)
+    /// <summary>
+    /// Re-schedules a loaded asset entry to reload its baked content and reconcile updated dependencies.
+    /// </summary>
+    public void ReimportAsset(Guid guid)
     {
         if (!_entries.TryGetValue(guid, out var entry))
         {
@@ -366,19 +369,83 @@ public partial class AssetManager : IDisposable
 
         if (Interlocked.CompareExchange(ref entry.StateValue, (int)AssetState.Scheduled, (int)AssetState.Ready) == (int)AssetState.Ready)
         {
-            // Entry is in Ready state - the old texture is valid and will remain visible.
-            // Go directly to Scheduled -> Loading -> Loaded -> Uploading -> Ready again.
-            // The swap cycle in RecordTextureUpload/OnTextureUploadComplete handles the 
-            // v1 to v2 transition exactly like the fallback to v1 transition.
+            RefreshEntryDependenciesForReimport(entry);
+
+            // Entry is in Ready state - the old resource stays valid until reload finishes.
+            // Go directly to Scheduled -> Loading -> Loaded -> Uploading/Processing -> Ready again.
             // Request the re-schedule atomically: EnsureScheduled claims this request via
             // TryConsumePendingReimport, so no other thread can double-schedule the entry (BUG-08).
             entry.SetPendingReimport();
-            EnsureScheduled(entry);
+            EnsureScheduled(entry, resolveDependencies: false);
         }
         else
         {
             entry.SetPendingReimport();
         }
+    }
+
+    private void RefreshEntryDependenciesForReimport(AssetEntry entry)
+    {
+        var updatedDeps = _contentProvider.GetDependencies(entry.AssetId);
+        var oldDeps = entry.Dependencies;
+        var depsChanged = !oldDeps.SequenceEqual(updatedDeps);
+
+        using var scope = AllocationManager.CreateStackScope();
+        using var depHandles = new UnsafeList<JobHandle>(Math.Max(updatedDeps.Length, 1), scope.AllocationHandle);
+
+        for (var i = 0; i < updatedDeps.Length; i++)
+        {
+            var depGuid = updatedDeps[i];
+            if (depGuid == Guid.Empty)
+            {
+                continue;
+            }
+
+            AssetEntry? depEntry;
+            if (!ContainsGuid(oldDeps, depGuid))
+            {
+                depEntry = GetOrCreateEntry(depGuid);
+            }
+            else if (!_entries.TryGetValue(depGuid, out depEntry))
+            {
+                depEntry = GetOrCreateEntry(depGuid);
+            }
+
+            if (depEntry.State != AssetState.Ready && depEntry.LoadJobHandle.IsValid)
+            {
+                depHandles.Add(depEntry.LoadJobHandle);
+            }
+        }
+
+        if (depsChanged)
+        {
+            for (var i = 0; i < oldDeps.Length; i++)
+            {
+                var oldGuid = oldDeps[i];
+                if (oldGuid != Guid.Empty && !ContainsGuid(updatedDeps, oldGuid) && _entries.TryGetValue(oldGuid, out var oldEntry) && oldEntry.State == AssetState.Ready)
+                {
+                    oldEntry.Release();
+                }
+            }
+
+            entry.UpdateDependencies(updatedDeps);
+        }
+
+        var combined = depHandles.Count > 0 ? _jobScheduler.CombineDependencies(depHandles) : default;
+        entry.SetCombinedDependencyJobHandle(combined);
+    }
+
+    private static bool ContainsGuid(ReadOnlySpan<Guid> span, Guid target)
+    {
+        for (var i = 0; i < span.Length; i++)
+        {
+            if (span[i] == target)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

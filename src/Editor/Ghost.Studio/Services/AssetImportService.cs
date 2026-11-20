@@ -1,6 +1,7 @@
 using Ghost.AssetForge.Core.Models;
 using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
+using Ghost.Core.Utilities;
 using System.Threading.Channels;
 
 namespace Ghost.Studio.Services;
@@ -36,6 +37,10 @@ internal sealed class AssetImportService : IDisposable
     }
 
     public int ImportRevision => Volatile.Read(ref _importRevision);
+
+    public event Action? ProjectCacheUpdated;
+
+    public event Action<IReadOnlyList<Guid>>? ProjectAssetsBaked;
 
     public ImportProgressSnapshot GetProgress()
     {
@@ -137,8 +142,10 @@ internal sealed class AssetImportService : IDisposable
             }
         }
 
-        var result = await RunBakeTargetsAsync(baseContext, new[] { (relativePath, fullAssetPath) }, forceRebake, cancellationToken).ConfigureAwait(false);
+        var targets = new[] { (relativePath, fullAssetPath) };
+        var result = await RunBakeTargetsAsync(baseContext, targets, forceRebake, cancellationToken).ConfigureAwait(false);
         SetProgress(false, 0, 0, string.Empty);
+        NotifyBakedAssets(baseContext, targets, result);
         Interlocked.Increment(ref _importRevision);
 
         Logger.Info($"Reimport finished for '{relativePath}': {result.Succeeded} baked, {result.Skipped} skipped, {result.Failed} failed.");
@@ -208,6 +215,7 @@ internal sealed class AssetImportService : IDisposable
             bakedSucceeded = bakeResult.Succeeded;
             bakedSkipped = bakeResult.Skipped;
             bakedFailed = bakeResult.Failed;
+            NotifyBakedAssets(baseContext, bakeTargets, bakeResult);
             Interlocked.Increment(ref _importRevision);
         }
 
@@ -240,6 +248,49 @@ internal sealed class AssetImportService : IDisposable
         }
 
         return bakeResult;
+    }
+
+    private void NotifyBakedAssets(ProjectContext baseContext, IReadOnlyList<(string relativePath, string sourceFile)> targets, BakeResult bakeResult)
+    {
+        ProjectCacheUpdated?.Invoke();
+
+        if (bakeResult.Succeeded <= 0 || ProjectAssetsBaked == null)
+        {
+            return;
+        }
+
+        var bakedGuids = new List<Guid>(targets.Count);
+        for (var i = 0; i < targets.Count; i++)
+        {
+            var meta = _projectService.LoadMetadata(targets[i].sourceFile + ".meta");
+            if (meta == null || meta.Id == Guid.Empty)
+            {
+                continue;
+            }
+
+            bakedGuids.Add(meta.Id);
+
+            if (!string.IsNullOrWhiteSpace(baseContext.CacheDirectory))
+            {
+                var relDir = Path.GetDirectoryName(targets[i].relativePath)?.Replace('\\', '/') ?? string.Empty;
+                var stem = Path.GetFileNameWithoutExtension(targets[i].relativePath);
+                var extKey = string.IsNullOrEmpty(relDir) ? stem : $"{relDir}/{stem}";
+                var cacheFile = Path.Combine(baseContext.CacheDirectory, extKey.Replace('/', Path.DirectorySeparatorChar));
+                var subManifest = SubAssetManifest.Load(cacheFile + ".sub.json");
+                if (subManifest != null)
+                {
+                    for (var s = 0; s < subManifest.SubAssets.Count; s++)
+                    {
+                        bakedGuids.Add(GuidUtility.DeriveSubAssetGuid(meta.Id, subManifest.SubAssets[s].SubPath));
+                    }
+                }
+            }
+        }
+
+        if (bakedGuids.Count > 0)
+        {
+            ProjectAssetsBaked.Invoke(bakedGuids);
+        }
     }
 
     private void SetProgress(bool isImporting, int completed, int total, string currentItem)

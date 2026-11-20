@@ -1,6 +1,6 @@
 using Ghost.DSL.ShaderCompiler;
 
-namespace Ghost.AssetForge.Test;
+namespace Ghost.Editor.Test;
 
 [TestClass]
 public class DSLParserTest

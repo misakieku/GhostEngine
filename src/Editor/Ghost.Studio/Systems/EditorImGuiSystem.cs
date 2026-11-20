@@ -2,8 +2,12 @@ using Ghost.AssetForge.Core.Services;
 using Ghost.Editor.Core.Commands;
 using Ghost.Editor.Core.Menus;
 using Ghost.Editor.Core.Selection;
+using Ghost.Editor.Core.Sync;
+using Ghost.Engine.Streaming;
 using Ghost.Engine.Systems;
 using Ghost.Entities;
+using Ghost.Graphics;
+using Ghost.Studio.Assets;
 using Ghost.Studio.Backend;
 using Ghost.Studio.Rendering;
 using Ghost.Studio.Services;
@@ -24,13 +28,16 @@ internal sealed class EditorImGuiSystem : SystemBase
     private readonly ImGuiPostRenderCommand _postRenderCommand;
     private readonly SceneViewportTarget _viewportTarget;
     private readonly ProjectService _projectService;
+    private readonly EditorContentProvider? _contentProvider;
     private readonly AssetImportService _assetImportService;
+    private readonly EditorAssetCatalog _assetCatalog;
 
     private readonly StudioDockspace _dockspace = new();
     private readonly MainMenuBar _mainMenuBar = new();
+    private readonly EditorWindowManager _windowManager = new();
     private readonly SceneViewportPanel _sceneViewportPanel;
     private readonly HierarchyPanel _hierarchyPanel;
-    private readonly InspectorPanel _inspectorPanel = new();
+    private readonly InspectorPanel _inspectorPanel;
     private readonly ProjectPanel _projectPanel;
     private readonly AssetImportSettingsWindow _importSettingsWindow;
     private readonly ConsolePanel _consolePanel = new();
@@ -38,19 +45,41 @@ internal sealed class EditorImGuiSystem : SystemBase
     private readonly NodeGraphPanel _nodeGraphPanel = new();
     private int _lastObservedImportRevision;
 
-    public EditorImGuiSystem(ImGuiContextManager contextManager, ImGuiSdlInputBridge inputBridge, ImGuiPostRenderCommand postRenderCommand, SceneViewportTarget viewportTarget, EditorViewportInputState viewportInputState, ProjectService projectService)
+    public EditorImGuiSystem(ImGuiContextManager contextManager, ImGuiSdlInputBridge inputBridge, ImGuiPostRenderCommand postRenderCommand, SceneViewportTarget viewportTarget,
+        EditorViewportInputState viewportInputState, ProjectService projectService, EditorContentProvider? contentProvider = null)
     {
         _contextManager = contextManager;
         _inputBridge = inputBridge;
         _postRenderCommand = postRenderCommand;
         _viewportTarget = viewportTarget;
         _projectService = projectService;
+        _contentProvider = contentProvider;
         _assetImportService = new AssetImportService(projectService);
-        _importSettingsWindow = new AssetImportSettingsWindow(_projectService, _assetImportService);
+        _assetCatalog = new EditorAssetCatalog(projectService, contentProvider);
+        if (_contentProvider != null)
+        {
+            _assetImportService.ProjectCacheUpdated += _contentProvider.RefreshProjectIndex;
+        }
+
+        _assetImportService.ProjectAssetsBaked += HandleProjectAssetsBaked;
+        _importSettingsWindow = new AssetImportSettingsWindow(_projectService, _assetImportService, _assetCatalog);
         _sceneViewportPanel = new SceneViewportPanel(viewportTarget, viewportInputState);
         _hierarchyPanel = new HierarchyPanel(viewportInputState);
         _projectPanel = new ProjectPanel(_projectService.AssetDirectories.FirstOrDefault());
-        _projectPanel.BindAssetActions(_projectService.BakerRegistry.HasBaker, _importSettingsWindow.OpenForAsset, path => _assetImportService.EnqueueReimport(path, forceRebake: true));
+        _inspectorPanel = new InspectorPanel(_projectService, _assetCatalog, _projectPanel.SelectAndRevealAsset, path => _windowManager.OpenAsset(path));
+        _projectPanel.BindAssetActions(_projectService.BakerRegistry.HasBaker, path => _windowManager.OpenAsset(path), _importSettingsWindow.OpenForAsset,
+            path => _assetImportService.EnqueueReimport(path, forceRebake: true));
+
+        _windowManager.RegisterWindow(_sceneViewportPanel);
+        _windowManager.RegisterWindow(_hierarchyPanel);
+        _windowManager.RegisterWindow(_inspectorPanel);
+        _windowManager.RegisterWindow(_projectPanel);
+        _windowManager.RegisterWindow(_consolePanel);
+        _windowManager.RegisterWindow(_profilerPanel);
+        _windowManager.RegisterWindow(_nodeGraphPanel);
+        _windowManager.RegisterWindow(_importSettingsWindow);
+        _windowManager.RegisterAssetEditor(".gmat", path => new MaterialEditorWindow(path, _projectService, _assetImportService, _assetCatalog, _projectPanel.SelectAndRevealAsset));
+
         _projectService.OnProjectLoaded += HandleProjectLoaded;
     }
 
@@ -66,6 +95,7 @@ internal sealed class EditorImGuiSystem : SystemBase
         {
             _lastObservedImportRevision = importRevision;
             _projectPanel.MarkDirty();
+            _assetCatalog.MarkDirty();
         }
 
         _contextManager.MakeCurrent();
@@ -79,47 +109,15 @@ internal sealed class EditorImGuiSystem : SystemBase
 
         HandleGlobalShortcuts();
 
-        _mainMenuBar.Draw(_contextManager, _dockspace, _projectService, systemAPI.Time.DeltaTime);
+        _mainMenuBar.Draw(_contextManager, _dockspace, _windowManager, _projectService, systemAPI.Time.DeltaTime);
         _dockspace.BeginDockSpace();
 
-        var renderedSceneTexture = false;
-        if (_dockspace.ShowSceneViewport)
-        {
-            renderedSceneTexture = _sceneViewportPanel.Draw(_contextManager, systemAPI.World.EntityManager, ref _dockspace.ShowSceneViewport);
-        }
-
-        if (_dockspace.ShowHierarchy)
-        {
-            _hierarchyPanel.Draw(_contextManager, ref _dockspace.ShowHierarchy);
-        }
-
-        if (_dockspace.ShowInspector)
-        {
-            _inspectorPanel.Draw(_contextManager, ref _dockspace.ShowInspector);
-        }
-
-        if (_dockspace.ShowProject)
-        {
-            var importProgress = _assetImportService.GetProgress();
-            _projectPanel.Draw(_contextManager, ref _dockspace.ShowProject, in importProgress);
-        }
-
-        _importSettingsWindow.Draw(_contextManager);
-
-        if (_dockspace.ShowConsole)
-        {
-            _consolePanel.Draw(_contextManager, ref _dockspace.ShowConsole);
-        }
-
-        if (_dockspace.ShowProfiler)
-        {
-            _profilerPanel.Draw(_contextManager, ref _dockspace.ShowProfiler);
-        }
-
-        if (_dockspace.ShowNodeGraph)
-        {
-            _nodeGraphPanel.Draw(_contextManager, ref _dockspace.ShowNodeGraph);
-        }
+        _sceneViewportPanel.ResetFrameState();
+        _sceneViewportPanel.CurrentEntityManager = systemAPI.World.EntityManager;
+        _sceneViewportPanel.CurrentRenderEngine = systemAPI.World.TryGetService<RenderEngine>(out var renderEngine) ? renderEngine : null;
+        _sceneViewportPanel.CurrentFrameIndex = systemAPI.Time.FrameIndex;
+        _projectPanel.CurrentImportProgress = _assetImportService.GetProgress();
+        _windowManager.DrawAll(_contextManager);
 
         if (_dockspace.ShowImGuiDemo)
         {
@@ -134,7 +132,7 @@ internal sealed class EditorImGuiSystem : SystemBase
         ImGui.Render();
         _dockspace.SyncAutoSaveIni();
 
-        var externalTex = renderedSceneTexture ? _viewportTarget.TextureHandle : default;
+        var externalTex = _sceneViewportPanel.RenderedSceneTexture ? _viewportTarget.GetTextureHandle(systemAPI.Time.FrameIndex) : default;
         var slot = _postRenderCommand.GetSnapshotSlot(systemAPI.Time.FrameIndex);
         slot.Capture(ImGui.GetDrawData(), externalTex);
     }
@@ -142,10 +140,36 @@ internal sealed class EditorImGuiSystem : SystemBase
     protected override void OnCleanup(scoped in SystemAPI systemAPI)
     {
         _projectService.OnProjectLoaded -= HandleProjectLoaded;
+        _assetImportService.ProjectAssetsBaked -= HandleProjectAssetsBaked;
+        if (_contentProvider != null)
+        {
+            _assetImportService.ProjectCacheUpdated -= _contentProvider.RefreshProjectIndex;
+        }
         _assetImportService.Dispose();
         _dockspace.SaveLayout();
-        _hierarchyPanel.Dispose();
-        _consolePanel.Dispose();
+        _windowManager.Dispose();
+    }
+
+    private static void HandleProjectAssetsBaked(IReadOnlyList<Guid> bakedGuids)
+    {
+        if (bakedGuids.Count == 0)
+        {
+            return;
+        }
+
+        var guidsCopy = bakedGuids is Guid[] arr ? arr : bakedGuids.ToArray();
+        EditorSyncBridge.Instance.EnqueueWorldAction(world =>
+        {
+            if (!world.TryGetService<AssetManager>(out var assetManager))
+            {
+                return;
+            }
+
+            for (var i = 0; i < guidsCopy.Length; i++)
+            {
+                assetManager.ReimportAsset(guidsCopy[i]);
+            }
+        });
     }
 
     private void HandleProjectLoaded()

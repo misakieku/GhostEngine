@@ -120,7 +120,7 @@ public unsafe partial class MeshBaker
             throw new InvalidOperationException("Failed to resolve or parse StandardLit shader for sub-asset material baking.");
         }
 
-        var (propBytes, matFixups) = MaterialPropertyPacker.Pack(
+        var (propBytes, matFixups, samplerFixups) = MaterialPropertyPacker.Pack(
             semantics,
             jsonProperties: null,
             jsonTextures: null,
@@ -136,6 +136,10 @@ public unsafe partial class MeshBaker
             }
         }
 
+        var propertyBufferOffset = Marshal.SizeOf<MaterialContentHeader>();
+        var textureFixupOffset = propertyBufferOffset + propBytes.Length;
+        var samplerFixupOffset = textureFixupOffset + matFixups.Count * Marshal.SizeOf<MaterialTextureFixup>();
+
         using var matStream = ctx.AddSubAsset(matSubPath, AssetType.Material, CollectionsMarshal.AsSpan(matDeps));
         var matHeader = new MaterialContentHeader
         {
@@ -144,8 +148,10 @@ public unsafe partial class MeshBaker
             shaderId = MaterialPropertyPacker.STANDARD_LIT_SHADER_GUID,
             propertyBufferSize = (uint)propBytes.Length,
             textureFixupCount = (uint)matFixups.Count,
-            propertyBufferOffset = Marshal.SizeOf<MaterialContentHeader>(),
-            textureFixupOffset = Marshal.SizeOf<MaterialContentHeader>() + propBytes.Length
+            samplerFixupCount = (uint)samplerFixups.Count,
+            propertyBufferOffset = propertyBufferOffset,
+            textureFixupOffset = textureFixupOffset,
+            samplerFixupOffset = samplerFixupOffset
         };
 
         matStream.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref matHeader, 1)));
@@ -153,6 +159,11 @@ public unsafe partial class MeshBaker
         if (matFixups.Count > 0)
         {
             matStream.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(matFixups)));
+        }
+
+        if (samplerFixups.Count > 0)
+        {
+            matStream.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(samplerFixups)));
         }
     }
 

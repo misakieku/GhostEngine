@@ -17,25 +17,33 @@ namespace Ghost.Studio.UI;
 /// Unreal-style floating window for viewing and editing an asset's <see cref="IBakeSettings"/>
 /// stored in its <c>.meta</c> file, then applying and triggering an async reimport bake.
 /// </summary>
-internal sealed class AssetImportSettingsWindow
+internal sealed class AssetImportSettingsWindow : EditorWindow
 {
     private readonly ProjectService _projectService;
     private readonly AssetImportService _assetImportService;
+    private readonly EditorAssetCatalog _assetCatalog;
 
-    private bool _isOpen;
-    private bool _focusRequested;
     private string _assetFilePath = string.Empty;
     private string _displayRelativePath = string.Empty;
     private AssetMetadata? _editingMetadata;
     private string _baselineJson = string.Empty;
     private string _statusMessage = string.Empty;
     private string _newRemapSlotName = string.Empty;
-    private readonly Dictionary<string, string> _pendingGuidInputs = new(StringComparer.Ordinal);
 
-    public AssetImportSettingsWindow(ProjectService projectService, AssetImportService assetImportService)
+    public override bool ShowInWindowMenu => false;
+
+    public override bool ScaleDefaultSizeByDpi => true;
+
+    public override Vector2 DefaultSize => new(460.0f, 600.0f);
+
+    public override bool IsDirty => _editingMetadata != null && !string.Equals(_projectService.SerializeMetadata(_editingMetadata), _baselineJson, StringComparison.Ordinal);
+
+    public AssetImportSettingsWindow(ProjectService projectService, AssetImportService assetImportService, EditorAssetCatalog assetCatalog)
+        : base("Asset Import Settings", "Asset Import Settings", openByDefault: false)
     {
         _projectService = projectService;
         _assetImportService = assetImportService;
+        _assetCatalog = assetCatalog;
     }
 
     public void OpenForAsset(string assetFilePath)
@@ -66,35 +74,18 @@ internal sealed class AssetImportSettingsWindow
         _baselineJson = json;
         _statusMessage = string.Empty;
         _newRemapSlotName = string.Empty;
-        _pendingGuidInputs.Clear();
-        _isOpen = true;
-        _focusRequested = true;
+        RequestFocus();
     }
 
-    public void Draw(ImGuiContextManager contextManager)
+    protected override void OnDraw(ImGuiContextManager contextManager)
     {
-        if (!_isOpen || _editingMetadata == null)
+        if (_editingMetadata == null)
         {
-            return;
-        }
-
-        if (_focusRequested)
-        {
-            ImGui.SetNextWindowFocus();
-            _focusRequested = false;
-        }
-
-        ImGui.SetNextWindowSize(new Vector2(460.0f * contextManager.DpiScale, 600.0f * contextManager.DpiScale), ImGuiCond.FirstUseEver);
-
-        if (!ImGui.Begin("Asset Import Settings", ref _isOpen))
-        {
-            ImGui.End();
             return;
         }
 
         ref readonly var tokens = ref contextManager.Tokens;
-        var currentJson = _projectService.SerializeMetadata(_editingMetadata);
-        var isDirty = !string.Equals(currentJson, _baselineJson, StringComparison.Ordinal);
+        var isDirty = IsDirty;
 
         DrawHeader(contextManager, isDirty, in tokens);
         ImGui.Separator();
@@ -125,8 +116,6 @@ internal sealed class AssetImportSettingsWindow
 
         ImGui.Separator();
         DrawFooter(contextManager, isDirty, in tokens);
-
-        ImGui.End();
     }
 
     private void DrawHeader(ImGuiContextManager contextManager, bool isDirty, in EditorColorTokens tokens)
@@ -159,7 +148,6 @@ internal sealed class AssetImportSettingsWindow
             if (defaults != null)
             {
                 _editingMetadata = _editingMetadata! with { Settings = defaults };
-                _pendingGuidInputs.Clear();
                 _statusMessage = "Reset to baker defaults (not yet applied).";
             }
         }
@@ -172,7 +160,6 @@ internal sealed class AssetImportSettingsWindow
             if (reverted != null)
             {
                 _editingMetadata = reverted;
-                _pendingGuidInputs.Clear();
                 _statusMessage = "Reverted unsaved changes.";
             }
         }
@@ -559,7 +546,6 @@ internal sealed class AssetImportSettingsWindow
         if (ImGui.Button("+ Add##addDict"))
         {
             dict[trimmedSlot] = Guid.Empty;
-            _pendingGuidInputs[$"{propName}:{trimmedSlot}"] = string.Empty;
             _newRemapSlotName = string.Empty;
         }
         ImGui.EndDisabled();
@@ -574,31 +560,20 @@ internal sealed class AssetImportSettingsWindow
         var keys = new List<string>(dict.Keys);
         keys.Sort(StringComparer.OrdinalIgnoreCase);
 
+        var style = ImGui.GetStyle();
+        var delBtnWidth = ImGui.GetFrameHeight() + style.ItemSpacing.X;
+
         for (var i = 0; i < keys.Count; i++)
         {
             var key = keys[i];
-            var inputKey = $"{propName}:{key}";
-            if (!_pendingGuidInputs.TryGetValue(inputKey, out var text))
-            {
-                var existing = dict[key];
-                text = existing == Guid.Empty ? string.Empty : existing.ToString("D");
-            }
-
             ImGui.PushID(key);
             ImGui.AlignTextToFramePadding();
             ImGui.TextColored(tokens.TextPrimary, key);
-            ImGui.SetNextItemWidth(MathF.Max(80.0f, ImGui.GetContentRegionAvail().X - 28.0f));
-            if (ImGui.InputTextWithHint("##guid", "Material Asset GUID", ref text, 64))
+
+            if (EditorObjectPickers.DrawAssetField($"{propName}_{key}", dict[key], AssetType.Material, _assetCatalog, _projectService, in tokens,
+                out var nextGuid, reservedRightWidth: delBtnWidth))
             {
-                _pendingGuidInputs[inputKey] = text;
-                if (string.IsNullOrWhiteSpace(text))
-                {
-                    dict[key] = Guid.Empty;
-                }
-                else if (Guid.TryParse(text.Trim(), out var parsed))
-                {
-                    dict[key] = parsed;
-                }
+                dict[key] = nextGuid;
             }
 
             ImGui.SameLine();
@@ -612,7 +587,6 @@ internal sealed class AssetImportSettingsWindow
         if (keyToRemove != null)
         {
             dict.Remove(keyToRemove);
-            _pendingGuidInputs.Remove($"{propName}:{keyToRemove}");
         }
     }
 

@@ -1,6 +1,7 @@
 using System.Reflection;
 using Ghost.Core;
 using Ghost.Entities;
+using Ghost.Graphics.Services;
 
 namespace Ghost.Editor.Core.Sync;
 
@@ -121,39 +122,58 @@ public static class ComponentNodeFactory
                 continue;
             }
 
-            var isReadOnly = field.GetCustomAttribute<ReadOnlyInInspectorAttribute>() != null;
-            var displayName = field.GetCustomAttribute<InspectorNameAttribute>()?.Name;
-            var groupName = field.GetCustomAttribute<InspectorGroupAttribute>()?.GroupName;
             var fieldValue = liveValue != null ? field.GetValue(liveValue) : null;
-
-            var capturedField = field;
-            var propNode = new PropertyNode(
-                field.Name,
-                field.FieldType,
-                compNode,
-                fieldValue,
-                newValue =>
-                {
-                    if (compNode.LiveValue != null)
-                    {
-                        var boxed = compNode.LiveValue;
-                        capturedField.SetValue(boxed, newValue);
-                        compNode.LiveValue = boxed;
-                    }
-
-                    if (entityNode.EcsEntity.IsValid)
-                    {
-                        (bridge ?? EditorSyncBridge.Instance).EnqueueMutation(entityNode.EcsEntity, componentType, capturedField.Name, newValue);
-                    }
-                },
-                isReadOnly,
-                displayName,
-                groupName);
-
+            var propNode = CreatePropertyNode(field, compNode, entityNode, fieldValue, bridge ?? EditorSyncBridge.Instance);
             properties.Add(propNode);
         }
 
         return compNode;
+    }
+
+    private static PropertyNode CreatePropertyNode(FieldInfo field, ComponentNode compNode, EntityNode entityNode, object? fieldValue, EditorSyncBridge bridge, PropertyNode? template = null)
+    {
+        var isReadOnly = field.GetCustomAttribute<ReadOnlyInInspectorAttribute>() != null;
+        var displayName = field.GetCustomAttribute<InspectorNameAttribute>()?.Name;
+        var groupName = field.GetCustomAttribute<InspectorGroupAttribute>()?.GroupName;
+        var componentType = compNode.ComponentType;
+        var capturedField = field;
+
+        Action<object?> onChange = newValue =>
+        {
+            if (compNode.LiveValue != null)
+            {
+                var boxed = compNode.LiveValue;
+                capturedField.SetValue(boxed, newValue);
+                compNode.LiveValue = boxed;
+            }
+
+            if (entityNode.EcsEntity.IsValid)
+            {
+                bridge.EnqueueMutation(entityNode.EcsEntity, componentType, capturedField.Name, newValue);
+            }
+        };
+
+        var fieldType = field.FieldType;
+        if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(Handle<>))
+        {
+            var initialGuid = template is AssetPropertyNode assetTpl ? assetTpl.AssetGuid : default;
+            return new AssetPropertyNode(field.Name, fieldType, compNode, fieldValue, onChange, bridge, isReadOnly, displayName, groupName, initialGuid);
+        }
+
+        if (fieldType == typeof(Identifier<MaterialPalette>))
+        {
+            var initialGuids = template is MaterialPalettePropertyNode paletteTpl ? paletteTpl.MaterialGuids : null;
+            return new MaterialPalettePropertyNode(field.Name, fieldType, compNode, fieldValue, onChange, bridge, isReadOnly, displayName, groupName, initialGuids);
+        }
+
+        if (fieldType == typeof(Entity))
+        {
+            var targetGuid = template is EntityRefPropertyNode entTpl ? entTpl.TargetEditorGuid : default;
+            var targetId = template is EntityRefPropertyNode entTplId ? entTplId.TargetNodeId : 0;
+            return new EntityRefPropertyNode(field.Name, fieldType, compNode, fieldValue, onChange, bridge, isReadOnly, displayName, groupName, targetGuid, targetId);
+        }
+
+        return new ValuePropertyNode(field.Name, fieldType, compNode, fieldValue, onChange, isReadOnly, displayName, groupName);
     }
 
     /// <summary>
@@ -161,34 +181,47 @@ public static class ComponentNodeFactory
     /// </summary>
     public static EntityNode CloneEntityNode(EntityNode source, int newId, string newName, int? newParentId, EditorSyncBridge? bridge = null)
     {
+        var resolvedBridge = bridge ?? EditorSyncBridge.Instance;
         var clonedComponents = new List<ComponentNode>(source.Components.Count);
         var clone = new EntityNode(newId, newName, clonedComponents, newParentId);
 
         for (var i = 0; i < source.Components.Count; i++)
         {
             var srcComp = source.Components[i];
+            var clonedProps = new List<PropertyNode>(srcComp.Properties.Count);
+            var clonedComp = new ComponentNode(srcComp.TypeName, srcComp.ComponentType, clone, clonedProps, srcComp.LiveValue);
+
             if (srcComp.LiveValue != null)
             {
-                clonedComponents.Add(CreateComponentNode(srcComp.ComponentType, clone, srcComp.LiveValue, bridge));
-                continue;
-            }
+                var fields = srcComp.ComponentType.GetFields(BindingFlags.Public | BindingFlags.Instance);
+                for (var f = 0; f < fields.Length; f++)
+                {
+                    var field = fields[f];
+                    if (field.GetCustomAttribute<HideInInspectorAttribute>() != null || HasHideEditorAttribute(field))
+                    {
+                        continue;
+                    }
 
-            var clonedProps = new List<PropertyNode>(srcComp.Properties.Count);
-            var clonedComp = new ComponentNode(srcComp.TypeName, srcComp.ComponentType, clone, clonedProps);
-            for (var p = 0; p < srcComp.Properties.Count; p++)
+                    PropertyNode? srcTemplate = null;
+                    for (var p = 0; p < srcComp.Properties.Count; p++)
+                    {
+                        if (string.Equals(srcComp.Properties[p].Name, field.Name, StringComparison.Ordinal))
+                        {
+                            srcTemplate = srcComp.Properties[p];
+                            break;
+                        }
+                    }
+
+                    var fieldValue = field.GetValue(srcComp.LiveValue);
+                    clonedProps.Add(CreatePropertyNode(field, clonedComp, clone, fieldValue, resolvedBridge, srcTemplate));
+                }
+            }
+            else
             {
-                var srcProp = srcComp.Properties[p];
-                var capturedProp = srcProp;
-                var clonedProp = new PropertyNode(
-                    srcProp.Name,
-                    srcProp.PropertyType,
-                    clonedComp,
-                    srcProp.Value,
-                    val => capturedProp.OnChange(val),
-                    srcProp.IsReadOnly,
-                    srcProp.DisplayName,
-                    srcProp.GroupName);
-                clonedProps.Add(clonedProp);
+                for (var p = 0; p < srcComp.Properties.Count; p++)
+                {
+                    clonedProps.Add(srcComp.Properties[p].Clone(clonedComp));
+                }
             }
 
             clonedComponents.Add(clonedComp);

@@ -14,7 +14,7 @@ namespace Ghost.Studio.UI;
 /// </summary>
 internal sealed class MainMenuBar
 {
-    public void Draw(ImGuiContextManager contextManager, StudioDockspace dockspace, ProjectService projectService, float deltaTime)
+    public void Draw(ImGuiContextManager contextManager, StudioDockspace dockspace, EditorWindowManager windowManager, ProjectService projectService, float deltaTime)
     {
         if (!ImGui.BeginMainMenuBar())
         {
@@ -129,13 +129,15 @@ internal sealed class MainMenuBar
 
         if (ImGui.BeginMenu("Window"))
         {
-            ImGui.MenuItem("Scene", string.Empty, ref dockspace.ShowSceneViewport);
-            ImGui.MenuItem("Hierarchy", string.Empty, ref dockspace.ShowHierarchy);
-            ImGui.MenuItem("Inspector", string.Empty, ref dockspace.ShowInspector);
-            ImGui.MenuItem("Project", string.Empty, ref dockspace.ShowProject);
-            ImGui.MenuItem("Console", string.Empty, ref dockspace.ShowConsole);
-            ImGui.MenuItem("Profiler", string.Empty, ref dockspace.ShowProfiler);
-            ImGui.MenuItem("Node Graph", string.Empty, ref dockspace.ShowNodeGraph);
+            var windows = windowManager.RegisteredWindows;
+            for (var i = 0; i < windows.Count; i++)
+            {
+                var win = windows[i];
+                if (win.ShowInWindowMenu)
+                {
+                    ImGui.MenuItem(win.Title, string.Empty, ref win.IsOpen);
+                }
+            }
             ImGui.Separator();
             if (ImGui.MenuItem("Reset Default Layout"))
             {

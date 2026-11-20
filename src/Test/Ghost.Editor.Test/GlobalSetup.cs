@@ -1,6 +1,6 @@
 using Misaki.HighPerformance.LowLevel.Buffer;
 
-namespace Ghost.AssetForge.Test;
+namespace Ghost.Editor.Test;
 
 [TestClass]
 public static class GlobalSetup

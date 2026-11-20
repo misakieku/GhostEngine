@@ -1,7 +1,10 @@
+using Ghost.AssetForge.Core.Services;
+using Ghost.Core;
 using Ghost.Editor.Core.Commands;
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
 using Ghost.Studio.Backend;
+using Ghost.Studio.Services;
 using Hexa.NET.ImGui;
 using Misaki.HighPerformance.Mathematics;
 using System.Numerics;
@@ -11,8 +14,13 @@ namespace Ghost.Studio.UI;
 /// <summary>
 /// Renders component property grids and component lifecycle controls for the active <see cref="EntityNode"/>.
 /// </summary>
-internal sealed class InspectorPanel
+internal sealed class InspectorPanel : EditorWindow
 {
+    private readonly ProjectService _projectService;
+    private readonly EditorAssetCatalog _assetCatalog;
+    private readonly Action<string>? _onPingAsset;
+    private readonly Action<string>? _onOpenAsset;
+
     private readonly Dictionary<PropertyNode, Vector3> _eulerCache = new();
     private PropertyNode? _activeEditProperty;
     private object? _editStartValue;
@@ -20,17 +28,21 @@ internal sealed class InspectorPanel
     private string _headerNameBuffer = string.Empty;
     private string _addComponentSearch = string.Empty;
 
-    public void Draw(ImGuiContextManager contextManager, ref bool isOpen)
+    public override Vector2 DefaultPos => new(1270.0f, 32.0f);
+
+    public override Vector2 DefaultSize => new(322.0f, 820.0f);
+
+    public InspectorPanel(ProjectService projectService, EditorAssetCatalog assetCatalog, Action<string>? onPingAsset = null, Action<string>? onOpenAsset = null)
+        : base("Inspector")
     {
-        ImGui.SetNextWindowPos(new Vector2(1270.0f, 32.0f), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(322.0f, 820.0f), ImGuiCond.FirstUseEver);
+        _projectService = projectService;
+        _assetCatalog = assetCatalog;
+        _onPingAsset = onPingAsset;
+        _onOpenAsset = onOpenAsset;
+    }
 
-        if (!ImGui.Begin("Inspector", ref isOpen))
-        {
-            ImGui.End();
-            return;
-        }
-
+    protected override void OnDraw(ImGuiContextManager contextManager)
+    {
         ref readonly var tokens = ref contextManager.Tokens;
         var selection = EditorSelection.Instance;
         var entity = selection.ActiveEntity;
@@ -38,7 +50,6 @@ internal sealed class InspectorPanel
         if (entity == null)
         {
             ImGui.TextColored(tokens.TextDisabled, "Select an entity to inspect its properties.");
-            ImGui.End();
             return;
         }
 
@@ -59,8 +70,6 @@ internal sealed class InspectorPanel
 
         ImGui.Separator();
         DrawAddComponentFooter(entity, in tokens);
-
-        ImGui.End();
     }
 
     private void DrawEntityHeader(ImGuiContextManager contextManager, EntityNode entity, in EditorColorTokens tokens)
@@ -170,6 +179,24 @@ internal sealed class InspectorPanel
 
     private void DrawEditableProperty(ImGuiContextManager contextManager, PropertyNode prop, in EditorColorTokens tokens)
     {
+        if (prop is AssetPropertyNode assetProp)
+        {
+            DrawAssetProperty(assetProp, in tokens);
+            return;
+        }
+
+        if (prop is MaterialPalettePropertyNode paletteProp)
+        {
+            DrawMaterialPaletteProperty(paletteProp, in tokens);
+            return;
+        }
+
+        if (prop is EntityRefPropertyNode entityProp)
+        {
+            DrawEntityRefProperty(entityProp, in tokens);
+            return;
+        }
+
         var type = prop.PropertyType;
         var val = prop.Value;
 
@@ -331,8 +358,7 @@ internal sealed class InspectorPanel
 
         if (itemEdited && nextValue != null)
         {
-            prop.Value = nextValue;
-            prop.OnChange(nextValue);
+            prop.ApplyValue(nextValue);
         }
 
         if (ImGui.IsItemDeactivatedAfterEdit() && ReferenceEquals(_activeEditProperty, prop))
@@ -345,6 +371,108 @@ internal sealed class InspectorPanel
             {
                 CommandHistory.Instance.Execute(new ModifyPropertyCommand(prop, startVal, prop.Value));
             }
+        }
+    }
+
+    private void DrawAssetProperty(AssetPropertyNode assetProp, in EditorColorTokens tokens)
+    {
+        var filterType = assetProp.ExpectedAssetType;
+        if (EditorObjectPickers.DrawAssetField(assetProp.Name, assetProp.AssetGuid, filterType, _assetCatalog, _projectService, in tokens,
+            out var nextGuid, entry => PingAssetEntry(entry)))
+        {
+            if (nextGuid != assetProp.AssetGuid)
+            {
+                CommandHistory.Instance.Execute(new ModifyPropertyCommand(assetProp, assetProp.AssetGuid, nextGuid));
+            }
+        }
+    }
+
+    private void DrawMaterialPaletteProperty(MaterialPalettePropertyNode paletteProp, in EditorColorTokens tokens)
+    {
+        var guids = paletteProp.MaterialGuids;
+        ImGui.AlignTextToFramePadding();
+        ImGui.TextColored(tokens.TextSecondary, $"{guids.Count} slot(s)");
+        ImGui.SameLine();
+        if (ImGui.SmallButton("+ Slot##addMatSlot"))
+        {
+            var next = new Guid[guids.Count + 1];
+            for (var i = 0; i < guids.Count; i++)
+            {
+                next[i] = guids[i];
+            }
+
+            CommandHistory.Instance.Execute(new ModifyPropertyCommand(paletteProp, guids.ToArray(), next));
+            return;
+        }
+
+        var style = ImGui.GetStyle();
+        var editBtnW = ImGui.CalcTextSize("Edit").X + style.FramePadding.X * 2.0f;
+        var delBtnW = ImGui.GetFrameHeight();
+
+        for (var i = 0; i < guids.Count; i++)
+        {
+            ImGui.PushID(i);
+            var currentGuid = guids[i];
+            var hasDiskPath = currentGuid != Guid.Empty && _assetCatalog.TryGetByGuid(currentGuid, out var entry) && !string.IsNullOrEmpty(entry.FullSourcePath);
+            var reservedRight = editBtnW + delBtnW + style.ItemSpacing.X * 2.0f;
+
+            var changed = EditorObjectPickers.DrawAssetField($"slot_{i}", currentGuid, AssetType.Material, _assetCatalog, _projectService, in tokens,
+                out var nextGuid, e => PingAssetEntry(e), reservedRightWidth: reservedRight);
+
+            if (changed && nextGuid != currentGuid)
+            {
+                var updated = guids.ToArray();
+                updated[i] = nextGuid;
+                CommandHistory.Instance.Execute(new ModifyPropertyCommand(paletteProp, guids.ToArray(), updated));
+            }
+
+            ImGui.SameLine();
+            ImGui.BeginDisabled(!hasDiskPath);
+            if (ImGui.Button($"Edit##editSlot_{i}") && hasDiskPath && _assetCatalog.TryGetByGuid(currentGuid, out var openEntry))
+            {
+                _onOpenAsset?.Invoke(openEntry.FullSourcePath);
+            }
+            ImGui.EndDisabled();
+
+            ImGui.SameLine();
+            if (ImGui.Button($"X##delSlot_{i}", new Vector2(delBtnW, delBtnW)))
+            {
+                var shrunk = new Guid[guids.Count - 1];
+                var writeIdx = 0;
+                for (var s = 0; s < guids.Count; s++)
+                {
+                    if (s != i)
+                    {
+                        shrunk[writeIdx++] = guids[s];
+                    }
+                }
+
+                CommandHistory.Instance.Execute(new ModifyPropertyCommand(paletteProp, guids.ToArray(), shrunk));
+                ImGui.PopID();
+                return;
+            }
+
+            ImGui.PopID();
+        }
+    }
+
+    private void DrawEntityRefProperty(EntityRefPropertyNode entityProp, in EditorColorTokens tokens)
+    {
+        var snapshot = EditorSyncBridge.Instance.LatestSnapshot;
+        if (EditorObjectPickers.DrawEntityField(entityProp.Name, entityProp.TargetNodeId, snapshot, in tokens, out var nextNodeId, node => EditorSelection.Instance.Select(node)))
+        {
+            if (nextNodeId != entityProp.TargetNodeId)
+            {
+                CommandHistory.Instance.Execute(new ModifyPropertyCommand(entityProp, entityProp.TargetNodeId, nextNodeId));
+            }
+        }
+    }
+
+    private void PingAssetEntry(EditorAssetCatalog.Entry entry)
+    {
+        if (!string.IsNullOrEmpty(entry.FullSourcePath))
+        {
+            _onPingAsset?.Invoke(entry.FullSourcePath);
         }
     }
 

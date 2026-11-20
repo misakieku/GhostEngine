@@ -302,7 +302,7 @@ internal partial class GhostRenderPipeline
         Identifier<RGTexture> intermediate;
         using (var builder = renderGraph.AddComputeRenderPass<UberPostPassData>("Uber Post"))
         {
-            intermediate = builder.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R11G11B10_Float, usage: TextureUsage.ShaderResource | TextureUsage.UnorderedAccess));
+            intermediate = builder.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R10G10B10A2_UNorm, usage: TextureUsage.ShaderResource | TextureUsage.UnorderedAccess));
 
             builder.UseTexture(color, AccessFlags.Read);
             builder.UseBuffer(persistentViewStateBuffer, AccessFlags.Read);

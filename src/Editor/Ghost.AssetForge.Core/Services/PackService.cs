@@ -42,10 +42,10 @@ public class PackService
         return Encoding.UTF8.GetString(bytes);
     }
 
-    private static ShaderCatalogEntry ReadShaderCatalogEntry(string cacheFile, Guid assetId)
+    public static ShaderCatalogEntry ReadShaderCatalogEntry(string cacheFile, Guid assetId, int headerOffset = CacheFileHeader.SIZE)
     {
         using var stream = new FileStream(cacheFile, FileMode.Open, FileAccess.Read, FileShare.Read);
-        var assetStart = CacheFileHeader.SIZE;
+        var assetStart = (long)headerOffset;
         stream.Position = assetStart;
 
         var header = stream.Read<ShaderContentHeader>();
@@ -635,7 +635,7 @@ public class PackService
                         var subGuid = GuidUtility.DeriveSubAssetGuid(metadata.Id, sub.SubPath);
                         if (sub.Type == AssetType.Shader)
                         {
-                            manifest.Shaders.Add(ReadShaderCatalogEntry(subCachePath, subGuid));
+                            manifest.Shaders.Add(ReadShaderCatalogEntry(subCachePath, subGuid, 0));
                         }
 
                         var subDeps = sub.Dependencies != null && sub.Dependencies.Count > 0 ? sub.Dependencies.ToArray() : Array.Empty<Guid>();

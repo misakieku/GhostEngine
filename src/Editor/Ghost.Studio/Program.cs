@@ -5,7 +5,6 @@ using Ghost.Engine.Components;
 using Ghost.Engine.Input;
 using Ghost.Engine.RenderPipeline;
 using Ghost.Engine.Streaming;
-using Ghost.Engine.Systems;
 using Ghost.Engine.Utilities;
 using Ghost.Engine.Volumes;
 using Ghost.Entities;
@@ -13,6 +12,7 @@ using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.D3D12;
 using Ghost.Graphics.RHI;
+using Ghost.Studio.Assets;
 using Ghost.Studio.Backend;
 using Ghost.Studio.Platform;
 using Ghost.Studio.Rendering;
@@ -47,6 +47,7 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
     private ImGuiPostRenderCommand? _postRenderCommand;
     private SceneViewportTarget? _viewportTarget;
     private EditorViewportInputState? _viewportInputState;
+    private EditorContentProvider? _contentProvider;
     private IAssetEntry? _imguiShaderEntry;
     private IAssetEntry? _cubePrefabEntry;
     private World? _editorWorld;
@@ -69,6 +70,7 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
                 Width = INITIAL_WIDTH,
                 Height = INITIAL_HEIGHT,
                 Title = title,
+                VSync = true,
             },
             JobSchedulerDesc = new JobSchedulerDesc
             {
@@ -107,7 +109,7 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
 
         _inputBridge = new ImGuiSdlInputBridge(_contextManager, INITIAL_WIDTH, INITIAL_HEIGHT);
         _postRenderCommand = new ImGuiPostRenderCommand(FRAME_BUFFER_COUNT);
-        _viewportTarget = new SceneViewportTarget();
+        _viewportTarget = new SceneViewportTarget((int)FRAME_BUFFER_COUNT);
         _viewportInputState = new EditorViewportInputState();
 
         return new GraphicsDesc
@@ -121,7 +123,8 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
 
     public IContentProvider GetContentProvider()
     {
-        return new RuntimeContentProvider("BuiltInAssets/manifest.json");
+        _contentProvider = new EditorContentProvider(_projectService, "BuiltInAssets/manifest.json");
+        return _contentProvider;
     }
 
     public void OnEngineInitialized(EngineCore engine)
@@ -147,7 +150,7 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
         SeedStarterEditorScene(engine, _editorWorld);
 
         _editorWorld.SystemManager.AddSystem(new EditorEcsSyncSystem());
-        _editorWorld.SystemManager.AddSystem(new EditorImGuiSystem(_contextManager!, _inputBridge!, _postRenderCommand!, _viewportTarget!, _viewportInputState!, _projectService));
+        _editorWorld.SystemManager.AddSystem(new EditorImGuiSystem(_contextManager!, _inputBridge!, _postRenderCommand!, _viewportTarget!, _viewportInputState!, _projectService, _contentProvider));
         _editorWorld.SystemManager.AddSystem(new EditorCameraControllerSystem(_viewportInputState!));
         _editorWorld.SystemManager.AddSystem(new EditorRenderSystemGroup(_viewportTarget!));
     }

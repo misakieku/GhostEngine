@@ -44,9 +44,15 @@
           Inputs="$(GhostAssetDir)\**\*.*;$(GhostEngineAssetDir)\**\*.*"
           Outputs="$(GhostAssetBuildDir)\manifest.json">
 
+    <PropertyGroup>
+      <LocalAssetForgeCli>$(MSBuildThisFileDirectory)Tools\Ghost.AssetForge.CLI\bin\Release\Publish\Ghost.AssetForge.CLI.exe</LocalAssetForgeCli>
+      <AssetForgeCliCmd Condition="Exists('$(LocalAssetForgeCli)')">&quot;$(LocalAssetForgeCli)&quot;</AssetForgeCliCmd>
+      <AssetForgeCliCmd Condition="!Exists('$(LocalAssetForgeCli)')">Ghost.AssetForge.CLI</AssetForgeCliCmd>
+    </PropertyGroup>
+
     <Message Importance="High" Text="Baking and Packing Assets..." />
 
-    <Exec Command="Ghost.AssetForge.CLI bake --force-shader-debug true --asset-dir &quot;$(GhostEngineAssetDir);$(GhostAssetDir)&quot; --cache-dir &quot;$(GhostAssetCacheDir)&quot; --build-dir &quot;$(GhostAssetBuildDir)&quot;" />
+    <Exec Command="$(AssetForgeCliCmd) bake --force-shader-debug true --asset-dir &quot;$(GhostEngineAssetDir);$(GhostAssetDir)&quot; --cache-dir &quot;$(GhostAssetCacheDir)&quot; --build-dir &quot;$(GhostAssetBuildDir)&quot;" />
   </Target>
 
   <!-- Clean asset cache on Clean -->
@@ -55,5 +61,6 @@
         DependsOnTargets="ComputeGhostPaths">
     <Message Importance="High" Text="Cleaning Ghost Asset Cache and Output..." />
     <RemoveDir Directories="$(GhostAssetCacheDir)" Condition="Exists('$(GhostAssetCacheDir)')" />
+    <RemoveDir Directories="$(GhostAssetBuildDir)" Condition="Exists('$(GhostAssetBuildDir)')" />
   </Target>
 </Project>

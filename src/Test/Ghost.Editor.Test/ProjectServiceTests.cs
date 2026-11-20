@@ -1,6 +1,6 @@
 using Ghost.AssetForge.Core.Services;
 
-namespace Ghost.AssetForge.Test;
+namespace Ghost.Editor.Test;
 
 [TestClass]
 public class ProjectServiceTests

@@ -4,7 +4,7 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Misaki.HighPerformance.LowLevel.Buffer;
 
-namespace Ghost.AssetForge.Test;
+namespace Ghost.Editor.Test;
 
 [TestClass]
 public class WorkGraphCompilerTests

@@ -1,10 +1,22 @@
+using Ghost.AssetForge.Core.Bakers;
+using Ghost.AssetForge.Core.Models;
+using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
 using Ghost.Editor.Core.Commands;
 using Ghost.Editor.Core.Menus;
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
 using Ghost.Engine.Components;
+using Ghost.Studio.Assets;
+using Ghost.Studio.Backend;
+using Ghost.Studio.Rendering;
+using Ghost.Studio.Services;
+using Ghost.Studio.UI;
+using Hexa.NET.ImGui;
+using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
+using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Studio.Tests;
 
@@ -17,7 +29,7 @@ public static class StudioHeadlessRunner
         Console.WriteLine("==================================================================");
 
         var passCount = 0;
-        var totalCount = 8;
+        var totalCount = 13;
 
         // Test 1: EditorSyncBridge Snapshot Publishing & Mutation Enqueuing
         Console.Write("[1/8] Testing EditorSyncBridge snapshot publishing & mutation queue... ");
@@ -31,7 +43,7 @@ public static class StudioHeadlessRunner
             throw new InvalidOperationException("Failed: Mutation was not queued or drained correctly.");
         }
 
-        var propNode = new PropertyNode("position", typeof(float3), null!, new float3(1, 2, 3), _ => {});
+        var propNode = new ValuePropertyNode("position", typeof(float3), null!, new float3(1, 2, 3), _ => {});
         var compNode = new ComponentNode("LocalTransform", typeof(LocalTransform), null!, new PropertyNode[] { propNode });
         var entityNode = new EntityNode(42, "PlayerCharacter", new ComponentNode[] { compNode });
         var snapshot = new SceneSnapshot(new EntityNode[] { entityNode }, frameTimeMs: 8.3f, fps: 120.0f);
@@ -71,7 +83,7 @@ public static class StudioHeadlessRunner
         Console.Write("[3/8] Testing CommandHistory undo, redo & compound commands... ");
         var history = new CommandHistory(50);
         var value = 10;
-        var testProp = new PropertyNode("testVal", typeof(int), null!, value, v => value = (int)v!);
+        var testProp = new ValuePropertyNode("testVal", typeof(int), null!, value, v => value = (int)v!);
 
         var cmd1 = new ModifyPropertyCommand(testProp, 10, 20);
         history.Execute(cmd1);
@@ -306,9 +318,399 @@ public static class StudioHeadlessRunner
         Console.WriteLine("PASS");
         passCount++;
 
+        // Test 9: EditorContentProvider & EditorAssetCatalog layered resolution
+        Console.Write("[9/12] Testing EditorContentProvider & EditorAssetCatalog project cache resolution... ");
+        TestEditorContentProviderAndCatalog();
+        Console.WriteLine("PASS");
+        passCount++;
+
+        // Test 10: Polymorphic PropertyNode hierarchy, serialization values, & undo/redo
+        Console.Write("[10/12] Testing polymorphic PropertyNode hierarchy & authoring GUID preservation... ");
+        TestPolymorphicPropertyNodes();
+        Console.WriteLine("PASS");
+        passCount++;
+
+        // Test 11: EditorWindowManager multi-tab & double-click routing
+        Console.Write("[11/12] Testing EditorWindowManager multi-tab dispatch & no-op unregistered files... ");
+        TestEditorWindowManager();
+        Console.WriteLine("PASS");
+        passCount++;
+
+        // Test 12: MaterialEditorWindow load, shader semantics, save & rebake
+        Console.Write("[12/13] Testing MaterialEditorWindow .gmat load, semantics & save... ");
+        TestMaterialEditorWindow();
+        Console.WriteLine("PASS");
+        passCount++;
+
+        // Test 13: StudioDockspace default layout docks all built-in windows on first launch
+        Console.Write("[13/13] Testing StudioDockspace default layout initial docking... ");
+        TestDefaultDockspaceLayout();
+        Console.WriteLine("PASS");
+        passCount++;
+
         Console.WriteLine("------------------------------------------------------------------");
         Console.WriteLine($" ALL {passCount}/{totalCount} STUDIO HEADLESS TESTS PASSED CLEANLY!");
         Console.WriteLine("==================================================================");
         return 0;
+    }
+
+    private static void TestEditorContentProviderAndCatalog()
+    {
+        AllocationManager.Initialize();
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"GhostStudioTest_{Guid.NewGuid():N}");
+        try
+        {
+            using var bakerRegistry = new BakerRegistry();
+            var projectService = new ProjectService(bakerRegistry);
+            projectService.CreateProject(tempRoot, "TestProj");
+
+            var matDir = Path.Combine(projectService.AssetDirectories[0], "Materials");
+            Directory.CreateDirectory(matDir);
+            var gmatPath = Path.Combine(matDir, "Brick.gmat");
+            File.WriteAllText(gmatPath, """{ "Version": 1, "Properties": { "roughness": 0.35 } }""");
+
+            var meta = projectService.GetOrCreateMetadata(gmatPath) ?? throw new InvalidOperationException("Failed to create .gmat metadata.");
+            projectService.SaveMetadata(gmatPath + ".meta", meta);
+
+            var bakeService = new BakeService(projectService.GetContext(), bakerRegistry);
+            var bakeResult = bakeService.BakeProjectAsync(new BakeConfig { ForceRebake = true }).GetAwaiter().GetResult();
+            if (bakeResult.Failed != 0 || bakeResult.Succeeded == 0)
+            {
+                throw new InvalidOperationException($"BakeProjectAsync failed: Succeeded={bakeResult.Succeeded}, Failed={bakeResult.Failed}");
+            }
+
+            var builtInManifest = Path.Combine(AppContext.BaseDirectory, "BuiltInAssets", "manifest.json");
+            using var provider = new EditorContentProvider(projectService, builtInManifest);
+            if (!provider.HasAsset(meta.Id) || provider.GetAssetType(meta.Id) != AssetType.Material)
+            {
+                throw new InvalidOperationException("EditorContentProvider did not resolve baked project .gmat.");
+            }
+
+            if (provider.VirtualPathToGuid("Materials/Brick") != meta.Id || provider.VirtualPathFromGuid(meta.Id) != "Materials/Brick")
+            {
+                throw new InvalidOperationException("EditorContentProvider virtual path mapping mismatch.");
+            }
+
+            var openRes = provider.OpenReadAsync(meta.Id);
+            if (openRes.IsFailure || !openRes.Value.IsValid)
+            {
+                throw new InvalidOperationException($"EditorContentProvider.OpenReadAsync failed: {openRes.Message}");
+            }
+
+            using (var payload = openRes.Value)
+            {
+                var header = payload.Read<MaterialContentHeader>(0);
+                if (header.magic != MaterialContentHeader.MAGIC || header.version != MaterialContentHeader.VERSION)
+                {
+                    throw new InvalidOperationException($"Invalid MaterialContentHeader: magic=0x{header.magic:X8}, version={header.version}");
+                }
+            }
+
+            var cubeMatGuid = provider.VirtualPathToGuid("Meshes/cube#Materials/Material_0");
+            var cubeMatOpen = provider.OpenReadAsync(cubeMatGuid);
+            if (cubeMatOpen.IsFailure || !cubeMatOpen.Value.IsValid)
+            {
+                throw new InvalidOperationException("Failed to open built-in Meshes/cube#Materials/Material_0 payload.");
+            }
+            using (var cubeMatPayload = cubeMatOpen.Value)
+            {
+                var cubeHeader = cubeMatPayload.Read<MaterialContentHeader>(0);
+                if (cubeHeader.magic != MaterialContentHeader.MAGIC || cubeHeader.version != MaterialContentHeader.VERSION)
+                {
+                    throw new InvalidOperationException($"Built-in Meshes/cube#Materials/Material_0 has stale version {cubeHeader.version} (expected {MaterialContentHeader.VERSION}).");
+                }
+            }
+
+            var catalog = new EditorAssetCatalog(projectService, provider);
+            if (!catalog.TryGetByGuid(meta.Id, out var catEntry) || catEntry.AssetType != AssetType.Material || catEntry.IsBuiltIn)
+            {
+                throw new InvalidOperationException("EditorAssetCatalog failed to index project .gmat.");
+            }
+
+            var shaders = new List<EditorAssetCatalog.Entry>();
+            catalog.GetAssets(AssetType.Shader, shaders);
+            if (shaders.Count == 0)
+            {
+                throw new InvalidOperationException("EditorAssetCatalog did not index built-in shaders from manifest.");
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+
+            AllocationManager.Dispose();
+        }
+    }
+
+    private static void TestPolymorphicPropertyNodes()
+    {
+        var bridge = new EditorSyncBridge();
+        var history = new CommandHistory();
+
+        var meshEntity = new EntityNode(10, "MeshObj", Array.Empty<ComponentNode>());
+        var targetEntity = new EntityNode(11, "TargetObj", Array.Empty<ComponentNode>())
+        {
+            EcsEntity = new Ghost.Entities.Entity(99, 1)
+        };
+        bridge.PublishSnapshot(new SceneSnapshot(new[] { meshEntity, targetEntity }, 16.6f, 60.0f));
+
+        var meshComp = ComponentNodeFactory.CreateComponentNode(typeof(MeshInstance), meshEntity, new MeshInstance(), bridge);
+        meshEntity.Components = new[] { meshComp };
+
+        var meshProp = meshComp.Properties.OfType<AssetPropertyNode>().FirstOrDefault(p => p.Name == nameof(MeshInstance.mesh))
+            ?? throw new InvalidOperationException("MeshInstance.mesh did not produce AssetPropertyNode.");
+        var paletteProp = meshComp.Properties.OfType<MaterialPalettePropertyNode>().FirstOrDefault(p => p.Name == nameof(MeshInstance.materialPalette))
+            ?? throw new InvalidOperationException("MeshInstance.materialPalette did not produce MaterialPalettePropertyNode.");
+
+        var guidA = Guid.NewGuid();
+        var guidB = Guid.NewGuid();
+        history.Execute(new ModifyPropertyCommand(meshProp, meshProp.AssetGuid, guidA));
+        if (meshProp.AssetGuid != guidA || !Equals(meshProp.GetSerializableValue(), guidA))
+        {
+            throw new InvalidOperationException("AssetPropertyNode failed to store authoring Guid.");
+        }
+
+        meshProp.RefreshFromEcs(new MeshInstance(), typeof(MeshInstance).GetField(nameof(MeshInstance.mesh)));
+        if (meshProp.AssetGuid != guidA)
+        {
+            throw new InvalidOperationException("AssetPropertyNode authoring Guid was clobbered by RefreshFromEcs.");
+        }
+
+        history.Undo();
+        if (meshProp.AssetGuid != Guid.Empty)
+        {
+            throw new InvalidOperationException("AssetPropertyNode undo failed.");
+        }
+        history.Redo();
+
+        history.Execute(new ModifyPropertyCommand(paletteProp, paletteProp.MaterialGuids.ToArray(), new[] { guidA, guidB }));
+        if (paletteProp.MaterialGuids.Count != 2 || paletteProp.MaterialGuids[1] != guidB)
+        {
+            throw new InvalidOperationException("MaterialPalettePropertyNode failed to store material slot GUIDs.");
+        }
+
+        var camEntity = new EntityNode(12, "HierarchyEntity", Array.Empty<ComponentNode>());
+        var hierComp = ComponentNodeFactory.CreateComponentNode(typeof(Hierarchy), camEntity, Hierarchy.Root, bridge);
+        var parentProp = hierComp.Properties.OfType<EntityRefPropertyNode>().FirstOrDefault(p => p.Name == nameof(Hierarchy.parent))
+            ?? throw new InvalidOperationException("Hierarchy.parent did not produce EntityRefPropertyNode.");
+        parentProp.ApplyValue(targetEntity.Id);
+        if (parentProp.TargetEditorGuid != targetEntity.EditorGuid || !Equals(parentProp.Value, targetEntity.EcsEntity))
+        {
+            throw new InvalidOperationException("EntityRefPropertyNode failed to resolve target entity.");
+        }
+
+        var cloned = ComponentNodeFactory.CloneEntityNode(meshEntity, 20, "MeshObj_Copy", null, bridge);
+        var clonedMeshProp = cloned.Components[0].Properties.OfType<AssetPropertyNode>().First();
+        if (clonedMeshProp.AssetGuid != guidA)
+        {
+            throw new InvalidOperationException("CloneEntityNode did not preserve AssetPropertyNode authoring Guid.");
+        }
+    }
+
+    private sealed class DummyAssetEditorWindow : AssetEditorWindow
+    {
+        public DummyAssetEditorWindow(string assetPath, ProjectService projectService)
+            : base(assetPath, projectService, "Dummy")
+        {
+        }
+
+        protected override void OnDrawAssetEditor(ImGuiContextManager contextManager)
+        {
+        }
+
+        public override bool Save() => true;
+    }
+
+    private static void TestEditorWindowManager()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"GhostWinMgrTest_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempRoot);
+        try
+        {
+            using var bakerRegistry = new BakerRegistry();
+            var projectService = new ProjectService(bakerRegistry);
+            projectService.CreateProject(tempRoot, "WinMgrProj");
+
+            var assetDir = projectService.AssetDirectories[0];
+            var objPath = Path.Combine(assetDir, "mesh.obj");
+            var mat1Path = Path.Combine(assetDir, "mat1.gmat");
+            var mat2Path = Path.Combine(assetDir, "mat2.gmat");
+            File.WriteAllText(objPath, "# empty");
+            File.WriteAllText(mat1Path, "{}");
+            File.WriteAllText(mat2Path, "{}");
+
+            using var mgr = new EditorWindowManager();
+            mgr.RegisterAssetEditor(".gmat", path => new DummyAssetEditorWindow(path, projectService));
+
+            if (mgr.OpenAsset(objPath) || mgr.AssetWindows.Count != 0)
+            {
+                throw new InvalidOperationException("Unregistered extension (.obj) should be a no-op on OpenAsset.");
+            }
+
+            if (!mgr.OpenAsset(mat1Path) || !mgr.OpenAsset(mat2Path) || mgr.AssetWindows.Count != 2)
+            {
+                throw new InvalidOperationException("OpenAsset should open distinct tabs for mat1 and mat2.");
+            }
+
+            if (!mgr.OpenAsset(mat1Path) || mgr.AssetWindows.Count != 2)
+            {
+                throw new InvalidOperationException("Re-opening an already open asset should focus existing tab without duplicating.");
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    private static void TestMaterialEditorWindow()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"GhostMatEditorTest_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempRoot);
+        try
+        {
+            using var bakerRegistry = new BakerRegistry();
+            var projectService = new ProjectService(bakerRegistry);
+            projectService.CreateProject(tempRoot, "MatEditorProj");
+
+            var assetDir = projectService.AssetDirectories[0];
+            var gmatPath = Path.Combine(assetDir, "Hero.gmat");
+            File.WriteAllText(gmatPath, """
+            {
+              "Version": 1,
+              "Properties": {
+                "roughness": 0.25,
+                "baseColor": [0.9, 0.2, 0.1]
+              }
+            }
+            """);
+
+            var meta = projectService.GetOrCreateMetadata(gmatPath) ?? throw new InvalidOperationException("Failed to create .gmat metadata.");
+            projectService.SaveMetadata(gmatPath + ".meta", meta);
+
+            using var importService = new AssetImportService(projectService);
+            var bakedSignal = new ManualResetEventSlim(false);
+            IReadOnlyList<Guid>? bakedGuids = null;
+            importService.ProjectAssetsBaked += guids =>
+            {
+                bakedGuids = guids;
+                bakedSignal.Set();
+            };
+
+            var catalog = new EditorAssetCatalog(projectService);
+            using var mgr = new EditorWindowManager();
+            mgr.RegisterAssetEditor(".gmat", path => new MaterialEditorWindow(path, projectService, importService, catalog));
+
+            if (!mgr.OpenAsset(gmatPath) || mgr.AssetWindows.Count != 1 || mgr.AssetWindows[0] is not MaterialEditorWindow matWin)
+            {
+                throw new InvalidOperationException("EditorWindowManager did not open MaterialEditorWindow for .gmat.");
+            }
+
+            if (matWin.IsDirty || !matWin.Save())
+            {
+                throw new InvalidOperationException("MaterialEditorWindow initial dirty/save check failed.");
+            }
+
+            if (!bakedSignal.Wait(TimeSpan.FromSeconds(10)) || bakedGuids == null || !bakedGuids.Contains(meta.Id))
+            {
+                throw new InvalidOperationException("MaterialEditorWindow.Save did not queue live reimport and emit baked asset GUID.");
+            }
+
+            var trackedBridge = new EditorSyncBridge();
+            var trackedEntity = new EntityNode(10, "Tracked", Array.Empty<ComponentNode>());
+            var trackedMeshProp = new AssetPropertyNode("mesh", typeof(Handle<Ghost.Graphics.Core.Mesh>), new ComponentNode("MeshInstance", typeof(MeshInstance), trackedEntity, Array.Empty<PropertyNode>()), null, static _ => { }, trackedBridge);
+            var trackedPaletteProp = new MaterialPalettePropertyNode("materialPalette", typeof(Identifier<Ghost.Graphics.Services.MaterialPalette>), new ComponentNode("MeshInstance", typeof(MeshInstance), trackedEntity, Array.Empty<PropertyNode>()), null, static _ => { }, trackedBridge);
+            trackedBridge.ReleaseAllTrackedResources();
+
+            var semantics = MaterialPropertyPacker.GetShaderSemantics(Guid.Empty, projectService.AssetDirectories)
+                ?? throw new InvalidOperationException("StandardLit semantics failed to resolve.");
+            var expanded = MaterialPropertyPacker.CollectAllProperties(semantics);
+            if (!expanded.Any(p => p.name == "roughness") || !expanded.Any(p => p.name == "baseColorMap"))
+            {
+                throw new InvalidOperationException("StandardLit expanded properties missing expected roughness/baseColorMap fields.");
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    private static unsafe void TestDefaultDockspaceLayout()
+    {
+        var iniPath = Path.Combine(AppContext.BaseDirectory, "imgui.ini");
+        var hadIni = File.Exists(iniPath);
+        string? backupIni = hadIni ? File.ReadAllText(iniPath) : null;
+        if (hadIni)
+        {
+            File.Delete(iniPath);
+        }
+
+        try
+        {
+            using var ctx = new ImGuiContextManager();
+            var io = ImGui.GetIO();
+            io.DisplaySize = new Vector2(1600.0f, 900.0f);
+            io.DeltaTime = 1.0f / 60.0f;
+
+            var dockspace = new StudioDockspace();
+            using var mgr = new EditorWindowManager();
+            using var bakerRegistry = new BakerRegistry();
+            var projectService = new ProjectService(bakerRegistry);
+            var catalog = new EditorAssetCatalog(projectService);
+            var hier = new HierarchyPanel(new EditorViewportInputState());
+            var insp = new InspectorPanel(projectService, catalog);
+            var proj = new ProjectPanel();
+            var cons = new ConsolePanel();
+            var prof = new ProfilerPanel();
+            mgr.RegisterWindow(hier);
+            mgr.RegisterWindow(insp);
+            mgr.RegisterWindow(proj);
+            mgr.RegisterWindow(cons);
+            mgr.RegisterWindow(prof);
+
+            ImGui.NewFrame();
+            dockspace.EnsureIniLoaded();
+            dockspace.BeginDockSpace();
+            mgr.DrawAll(ctx);
+            ImGui.Render();
+
+            if (hier.LastDockId == 0 || insp.LastDockId == 0 || proj.LastDockId == 0 || cons.LastDockId == 0 || prof.LastDockId == 0)
+            {
+                throw new InvalidOperationException($"Default layout failed to dock windows on frame 1: hier={hier.LastDockId}, insp={insp.LastDockId}, proj={proj.LastDockId}, cons={cons.LastDockId}, prof={prof.LastDockId}");
+            }
+
+            dockspace.RequestResetLayout();
+            ImGui.NewFrame();
+            dockspace.BeginDockSpace();
+            mgr.DrawAll(ctx);
+            ImGui.Render();
+
+            if (hier.LastDockId == 0 || insp.LastDockId == 0 || proj.LastDockId == 0 || cons.LastDockId == 0 || prof.LastDockId == 0)
+            {
+                throw new InvalidOperationException("Reset Default Layout failed to keep windows docked.");
+            }
+        }
+        finally
+        {
+            if (File.Exists(iniPath))
+            {
+                File.Delete(iniPath);
+            }
+
+            if (hadIni && backupIni != null)
+            {
+                File.WriteAllText(iniPath, backupIni);
+            }
+        }
     }
 }

@@ -15,29 +15,29 @@ internal enum EditorThemePreset : byte
 /// </summary>
 internal readonly struct EditorColorTokens
 {
-    public readonly Vector4 Canvas;
-    public readonly Vector4 Panel;
-    public readonly Vector4 PanelElevated;
-    public readonly Vector4 HeaderBar;
-    public readonly Vector4 Recessed;
-    public readonly Vector4 Control;
-    public readonly Vector4 ControlHovered;
-    public readonly Vector4 ControlActive;
-    public readonly Vector4 Border;
-    public readonly Vector4 BorderSubtle;
-    public readonly Vector4 TextPrimary;
-    public readonly Vector4 TextSecondary;
-    public readonly Vector4 TextDisabled;
-    public readonly Vector4 Accent;
-    public readonly Vector4 AccentHovered;
-    public readonly Vector4 AccentActive;
-    public readonly Vector4 AccentSubtle;
-    public readonly Vector4 SemanticError;
-    public readonly Vector4 SemanticWarning;
-    public readonly Vector4 SemanticSuccess;
-    public readonly Vector4 PlayModeTint;
-    public readonly Vector4 TableRowAlt;
-    public readonly Vector4 ModalDim;
+    public readonly Vector4 Canvas { get; init; }
+    public readonly Vector4 Panel { get; init; }
+    public readonly Vector4 PanelElevated { get; init; }
+    public readonly Vector4 HeaderBar { get; init; }
+    public readonly Vector4 Recessed { get; init; }
+    public readonly Vector4 Control { get; init; }
+    public readonly Vector4 ControlHovered { get; init; }
+    public readonly Vector4 ControlActive { get; init; }
+    public readonly Vector4 Border { get; init; }
+    public readonly Vector4 BorderSubtle { get; init; }
+    public readonly Vector4 TextPrimary { get; init; }
+    public readonly Vector4 TextSecondary { get; init; }
+    public readonly Vector4 TextDisabled { get; init; }
+    public readonly Vector4 Accent { get; init; }
+    public readonly Vector4 AccentHovered { get; init; }
+    public readonly Vector4 AccentActive { get; init; }
+    public readonly Vector4 AccentSubtle { get; init; }
+    public readonly Vector4 SemanticError { get; init; }
+    public readonly Vector4 SemanticWarning { get; init; }
+    public readonly Vector4 SemanticSuccess { get; init; }
+    public readonly Vector4 PlayModeTint { get; init; }
+    public readonly Vector4 TableRowAlt { get; init; }
+    public readonly Vector4 ModalDim { get; init; }
 
     public EditorColorTokens(Vector4 canvas, Vector4 panel, Vector4 panelElevated, Vector4 headerBar, Vector4 recessed, Vector4 control, Vector4 controlHovered, Vector4 controlActive, Vector4 border, Vector4 borderSubtle, Vector4 textPrimary, Vector4 textSecondary, Vector4 textDisabled, Vector4 accent, Vector4 accentHovered, Vector4 accentActive, Vector4 accentSubtle, Vector4 semanticError, Vector4 semanticWarning, Vector4 semanticSuccess, Vector4 playModeTint, Vector4 tableRowAlt, Vector4 modalDim)
     {
@@ -135,9 +135,9 @@ internal readonly struct EditorColorTokens
 /// </summary>
 internal static class EditorTheme
 {
-    public const float FONT_SIZE_REGULAR = 13.5f;
-    public const float FONT_SIZE_HEADING = 14.5f;
-    public const float FONT_SIZE_MONO = 13.0f;
+    public const float FONT_SIZE_REGULAR = 14.0f;
+    public const float FONT_SIZE_HEADING = 15.0f;
+    public const float FONT_SIZE_MONO = 13.5f;
 
     public static EditorColorTokens GetTokens(EditorThemePreset preset)
     {
@@ -318,4 +318,44 @@ internal static class EditorTheme
     {
         return new Vector4(color.X, color.Y, color.Z, alpha);
     }
+}
+
+/// <summary>
+/// Named Nerd Font glyph constants (verified against the bundled JetBrainsMonoNerdFontMono font) for editor chrome and asset icons.
+/// </summary>
+internal static class EditorIcons
+{
+    // Tree & Navigation
+    public const string CHEVRON_DOWN = "\uEAB4";
+    public const string CHEVRON_RIGHT = "\uEAB6";
+    public const string ARROW_UP = "\uEAA1";
+    public const string REFRESH = "\uEB37";
+    public const string ADD = "\uEA60";
+    public const string SEARCH = "\uEA6D";
+    public const string CLOSE = "\uEA76";
+    public const string SETTINGS = "\uEB51";
+    public const string LAYERS = "\uEBD2";
+
+    // Scene & Hierarchy
+    public const string ENTITY = "\uEA91";
+    public const string CUBE = "\uF1B2";
+
+    // Folders & Assets
+    public const string FOLDER = "\uEA83";
+    public const string FOLDER_OPEN = "\uEAF7";
+    public const string FILE = "\uEA7B";
+    public const string ASSET_MESH = "\uF1B2";
+    public const string ASSET_MATERIAL = "\uEFCC";
+    public const string ASSET_TEXTURE = "\uE60D";
+    public const string ASSET_SHADER = "\uEAE9";
+    public const string ASSET_AUDIO = "\uEC1B";
+    public const string ASSET_CONFIG = "\uEB0F";
+    public const string ASSET_META = "\uE615";
+
+    // Severity & Playback
+    public const string INFO = "\uEA74";
+    public const string WARNING = "\uEA6C";
+    public const string ERROR = "\uEA87";
+    public const string PLAY = "\uEB2C";
+    public const string PAUSE = "\uEAD1";
 }

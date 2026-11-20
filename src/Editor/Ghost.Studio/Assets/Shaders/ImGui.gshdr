@@ -29,6 +29,7 @@ shader "Editor/ImGui"
         includes
         {
             "EngineResources/Shaders/Properties.hlsl";
+            "EngineResources/Shaders/Utilities/Random.hlsl";
         }
 
         hlsl
@@ -103,6 +104,8 @@ shader "Editor/ImGui"
                 float4 texColor = SampleTexture2DLevel<float4>(g_Properties.textureId, LINEAR_CLAMP_SAMPLER, input.uv, 0.0f);
                 if (g_Properties.forceOpaqueAlpha != 0u)
                 {
+                    float dither = (InterleavedGradientNoise(input.position.xy, 0) - 0.5f) / 255.0f;
+                    texColor.rgb = saturate(texColor.rgb + dither);
                     texColor.a = 1.0f;
                 }
                 return input.color * texColor;

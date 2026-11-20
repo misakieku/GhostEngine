@@ -3,7 +3,7 @@ using Ghost.Core.Graphics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Ghost.AssetForge.Test;
+namespace Ghost.Editor.Test;
 
 [TestClass]
 public class ShaderFormatTests

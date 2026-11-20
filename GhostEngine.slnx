@@ -24,7 +24,7 @@
     <Project Path="src/Runtime/Ghost.Graphics/Ghost.Graphics.csproj" />
   </Folder>
   <Folder Name="/Test/">
-    <Project Path="src/Test/Ghost.AssetBaker.Test/Ghost.AssetForge.Test.csproj">
+    <Project Path="src/Test/Ghost.Editor.Test/Ghost.Editor.Test.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
       <Platform Solution="*|x86" Project="x86" />
