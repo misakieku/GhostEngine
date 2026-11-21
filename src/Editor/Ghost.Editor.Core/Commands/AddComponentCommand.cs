@@ -50,7 +50,7 @@ public sealed class AddComponentCommand : IEditorCommand
                 return;
             }
 
-            ComponentReflectionAccessor.TryAddOrSet(em, ecs, _component.ComponentType, _component.LiveValue);
+            ComponentReflectionAccessor.TryAddOrSet(em, ecs, _component);
             if (_component.ComponentType == typeof(LocalTransform) && !em.HasComponent<LocalToWorld>(ecs))
             {
                 ComponentReflectionAccessor.TryAddOrSet(em, ecs, typeof(LocalToWorld), new LocalToWorld { matrix = LocalTransform.Identity.ToMatrix() });

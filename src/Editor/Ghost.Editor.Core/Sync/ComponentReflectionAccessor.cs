@@ -1,3 +1,4 @@
+using Ghost.Engine.Components;
 using Ghost.Entities;
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -46,6 +47,36 @@ public static unsafe class ComponentReflectionAccessor
 
     private static readonly ConcurrentDictionary<Type, IAccessor?> s_accessors = new();
 
+    public static bool TryAddOrSet(EntityManager em, Entity entity, ComponentNode componentNode)
+    {
+        if (!entity.IsValid || !em.Exists(entity))
+        {
+            return false;
+        }
+
+        if (componentNode.ComponentType == typeof(RenderVolumeDataContainer))
+        {
+            var volumeProp = FindVolumeOverridesProperty(componentNode);
+            if (em.HasComponent<RenderVolumeDataContainer>(entity))
+            {
+                ref var existing = ref em.GetComponent<RenderVolumeDataContainer>(entity);
+                existing.Dispose();
+                existing = RenderVolumeDataContainer.Create();
+                volumeProp?.WriteToContainer(ref existing);
+            }
+            else
+            {
+                var container = RenderVolumeDataContainer.Create();
+                volumeProp?.WriteToContainer(ref container);
+                em.AddComponent(entity, in container);
+            }
+
+            return true;
+        }
+
+        return TryAddOrSet(em, entity, componentNode.ComponentType, componentNode.LiveValue);
+    }
+
     public static bool TryAddOrSet(EntityManager em, Entity entity, Type componentType, object? value)
     {
         if (!entity.IsValid || !em.Exists(entity) || value == null)
@@ -76,8 +107,26 @@ public static unsafe class ComponentReflectionAccessor
             return false;
         }
 
+        if (componentType == typeof(RenderVolumeDataContainer))
+        {
+            em.GetComponent<RenderVolumeDataContainer>(entity).Dispose();
+        }
+
         em.RemoveComponent(entity, compId);
         return true;
+    }
+
+    private static VolumeOverridesPropertyNode? FindVolumeOverridesProperty(ComponentNode componentNode)
+    {
+        for (var i = 0; i < componentNode.Properties.Count; i++)
+        {
+            if (componentNode.Properties[i] is VolumeOverridesPropertyNode volumeProp)
+            {
+                return volumeProp;
+            }
+        }
+
+        return null;
     }
 
     public static bool TryRead(World world, EntityManager em, Entity entity, Type componentType, out object? value)

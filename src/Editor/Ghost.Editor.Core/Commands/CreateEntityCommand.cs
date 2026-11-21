@@ -88,7 +88,7 @@ public sealed class CreateEntityCommand : IEditorCommand
                     hasLocalToWorld = true;
                 }
 
-                ComponentReflectionAccessor.TryAddOrSet(em, created, comp.ComponentType, comp.LiveValue);
+                ComponentReflectionAccessor.TryAddOrSet(em, created, comp);
             }
 
             if (hasLocalTransform && !hasLocalToWorld)

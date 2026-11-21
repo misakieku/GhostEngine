@@ -68,7 +68,7 @@ public sealed class RemoveComponentCommand : IEditorCommand
                 var ecs = _entity.EcsEntity;
                 if (ecs.IsValid && world.EntityManager.Exists(ecs))
                 {
-                    ComponentReflectionAccessor.TryAddOrSet(world.EntityManager, ecs, _component.ComponentType, _component.LiveValue);
+                    ComponentReflectionAccessor.TryAddOrSet(world.EntityManager, ecs, _component);
                 }
             });
         }

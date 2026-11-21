@@ -315,7 +315,8 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
         {
             var compId = new Identifier<IComponent>(compIdx);
             var info = ComponentRegistry.GetComponentInfo(compId);
-            if (info.IsShared || info.IsCleanup)
+            var isVolumeContainer = compIdx == ComponentTypeID<RenderVolumeDataContainer>.Value.Value;
+            if (info.IsShared || (info.IsCleanup && !isVolumeContainer))
             {
                 continue;
             }
@@ -332,9 +333,6 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
                 continue;
             }
 
-            var accessor = GetOrCreateAccessor(compType);
-            var initialValue = accessor.Read(ptr);
-
             ComponentNode? reused = null;
             if (existingComponents != null)
             {
@@ -347,6 +345,27 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
                     }
                 }
             }
+
+            if (isVolumeContainer)
+            {
+                var pContainer = (RenderVolumeDataContainer*)ptr;
+                if (reused != null && reused.Properties.Count > 0 && reused.Properties[0] is VolumeOverridesPropertyNode volumeProp)
+                {
+                    reused.EntityNode = entityNode;
+                    reused.LiveValue = null;
+                    volumeProp.RefreshFromContainer(in *pContainer);
+                    dest.Add(reused);
+                }
+                else
+                {
+                    dest.Add(ComponentNodeFactory.CreateVolumeComponentNode(entityNode, in *pContainer, bridge));
+                }
+
+                continue;
+            }
+
+            var accessor = GetOrCreateAccessor(compType);
+            var initialValue = accessor.Read(ptr);
 
             if (reused != null)
             {
@@ -376,6 +395,16 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
             var compId = ComponentRegistry.GetComponentID(compNode.ComponentType);
             if (compId.IsInvalid || !TryGetComponentDataPtr(world, em, active.EcsEntity, compId, out var ptr))
             {
+                continue;
+            }
+
+            if (compNode.ComponentType == typeof(RenderVolumeDataContainer))
+            {
+                if (compNode.Properties.Count > 0 && compNode.Properties[0] is VolumeOverridesPropertyNode volumeProp)
+                {
+                    volumeProp.RefreshFromContainer(in *(RenderVolumeDataContainer*)ptr);
+                }
+
                 continue;
             }
 

@@ -175,14 +175,14 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
             {
                 color = new float3(1.0f, 0.96f, 0.90f),
                 sunDiskAngularDiameter = math.radians(0.53f),
-                intensity = 10_000.0f,
+                intensity = 100_000.0f,
                 castShadows = true,
                 shadowResolution = 2048,
                 lightingDimmer = 1.0f,
                 shadowDimmer = 1.0f,
                 diffuseDimmer = 1.0f,
                 specularDimmer = 1.0f,
-                normalBias = 0.75f,
+                normalBias = 1.0f,
                 depthBias = 0.5f,
                 shadowLodErrorScale = 3.0f,
                 contactShadow = false,
@@ -223,16 +223,12 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
                 matrix = MathUtility.TRS(pointPos, quaternion.identity, float3.one),
             });
 
-        var exposure = ExposureSettings.Default;
-        exposure.mode = ExposureMode.Fixed;
-        exposure.fixedExposure = 13.5f;
-
         var volumeData = new RenderVolumeDataContainer(32);
         volumeData.Set(new EnvironmentSettings
         {
             skyType = SkyType.None,
         });
-        volumeData.Set(exposure);
+        volumeData.Set(ExposureSettings.Default);
         volumeData.Set(new ShadowSettings
         {
             shadowMode = ShadowMode.ShadowMap,

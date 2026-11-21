@@ -2,6 +2,7 @@ using Ghost.Editor.Core.Commands;
 using Ghost.Editor.Core.Menus;
 using Ghost.Editor.Core.Sync;
 using Ghost.Engine.Components;
+using Ghost.Graphics.Core;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Studio.Menus;
@@ -47,6 +48,18 @@ public static class EngineEntityMenuActions
     public static void CreateSpotLight(MenuContext ctx)
     {
         CreateLightEntity(ctx, "Spot Light", PunctualLight.CreateSpot(new float3(1f, 1f, 1f), 8.0f, 15.0f, 0.35f, 0.7f));
+    }
+
+    [EditorMenuItem("Hierarchy", "Create/Volume/Global Volume", Priority = 16, Icon = "\uEBD2")]
+    [EditorMenuItem("Entity", "Create/Volume/Global Volume", Priority = 16, Icon = "\uEBD2")]
+    public static void CreateGlobalVolume(MenuContext ctx)
+    {
+        var entity = new EntityNode(ctx.Bridge.AllocateEntityId(), "Global Volume", new List<ComponentNode>(), ctx.TargetEntity?.Id);
+        var comps = new List<ComponentNode>(2);
+        comps.Add(ComponentNodeFactory.CreateComponentNode(typeof(RenderVolume), entity, RenderVolume.DefaultGlobal, ctx.Bridge));
+        comps.Add(ComponentNodeFactory.CreateVolumeComponentNode(entity, default, ctx.Bridge));
+        entity.Components = comps;
+        ctx.History.Execute(new CreateEntityCommand(entity, ctx.Bridge, ctx.Selection));
     }
 
     private static void CreateLightEntity(MenuContext ctx, string name, PunctualLight light)

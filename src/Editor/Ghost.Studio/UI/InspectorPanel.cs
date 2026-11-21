@@ -3,6 +3,7 @@ using Ghost.Core;
 using Ghost.Editor.Core.Commands;
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
+using Ghost.Engine.Components;
 using Ghost.Studio.Backend;
 using Ghost.Studio.Services;
 using Hexa.NET.ImGui;
@@ -14,7 +15,7 @@ namespace Ghost.Studio.UI;
 /// <summary>
 /// Renders component property grids and component lifecycle controls for the active <see cref="EntityNode"/>.
 /// </summary>
-internal sealed class InspectorPanel : EditorWindow
+internal sealed partial class InspectorPanel : EditorWindow
 {
     private readonly ProjectService _projectService;
     private readonly EditorAssetCatalog _assetCatalog;
@@ -125,6 +126,13 @@ internal sealed class InspectorPanel : EditorWindow
 
         if (open)
         {
+            if (component.Properties.Count == 1 && component.Properties[0] is VolumeOverridesPropertyNode volumeProp)
+            {
+                DrawVolumeOverridesSection(contextManager, entity, volumeProp, in tokens);
+                ImGui.PopID();
+                return;
+            }
+
             var tableFlags = ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.SizingStretchSame | ImGuiTableFlags.PadOuterX;
             if (ImGui.BeginTable("##PropsTable", 2, tableFlags))
             {
@@ -197,118 +205,177 @@ internal sealed class InspectorPanel : EditorWindow
             return;
         }
 
-        var type = prop.PropertyType;
-        var val = prop.Value;
+        if (!DrawScalarOrVectorWidget(contextManager, prop, prop.PropertyType, prop.Value, prop.Name, in tokens, out var nextValue, out var isDiscrete))
+        {
+            DrawReadOnlyValue(contextManager, prop.Value, in tokens);
+            return;
+        }
+
+        if (isDiscrete)
+        {
+            if (nextValue != null && !Equals(nextValue, prop.Value))
+            {
+                CommandHistory.Instance.Execute(new ModifyPropertyCommand(prop, prop.Value, nextValue));
+            }
+
+            return;
+        }
+
+        TrackContinuousEdit(prop, prop.Value, nextValue, !Equals(nextValue, prop.Value));
+    }
+
+    private bool DrawScalarOrVectorWidget(ImGuiContextManager contextManager, PropertyNode? eulerKey, Type type, object? val, string propName, in EditorColorTokens tokens, out object? nextValue, out bool isDiscrete)
+    {
+        nextValue = val;
+        isDiscrete = false;
 
         if (type == typeof(bool) && val is bool bVal)
         {
             var current = bVal;
             if (ImGui.Checkbox("##val", ref current))
             {
-                CommandHistory.Instance.Execute(new ModifyPropertyCommand(prop, bVal, current));
+                nextValue = current;
+                isDiscrete = true;
             }
 
-            return;
+            return true;
         }
 
         if (type == typeof(int) && val is int iVal)
         {
             var current = iVal;
-            var edited = ImGui.DragInt("##val", ref current, 1.0f);
-            TrackContinuousEdit(prop, iVal, current, edited);
-            return;
+            if (ImGui.DragInt("##val", ref current, 1.0f))
+            {
+                nextValue = current;
+            }
+
+            return true;
         }
 
         if (type == typeof(uint) && val is uint uVal)
         {
             var current = (int)Math.Min(int.MaxValue, uVal);
-            var edited = ImGui.DragInt("##val", ref current, 1.0f, 0, int.MaxValue);
-            TrackContinuousEdit(prop, uVal, (uint)Math.Max(0, current), edited);
-            return;
+            if (ImGui.DragInt("##val", ref current, 1.0f, 0, int.MaxValue))
+            {
+                nextValue = (uint)Math.Max(0, current);
+            }
+
+            return true;
         }
 
         if (type == typeof(float) && val is float fVal)
         {
             var current = fVal;
-            var edited = ImGui.DragFloat("##val", ref current, 0.05f);
-            TrackContinuousEdit(prop, fVal, current, edited);
-            return;
+            if (ImGui.DragFloat("##val", ref current, 0.05f))
+            {
+                nextValue = current;
+            }
+
+            return true;
         }
 
         if (type == typeof(float2) && val is float2 f2Val)
         {
             var vec = new Vector2(f2Val.x, f2Val.y);
-            var edited = ImGui.DragFloat2("##val", ref vec, 0.05f);
-            TrackContinuousEdit(prop, f2Val, new float2(vec.X, vec.Y), edited);
-            return;
+            if (ImGui.DragFloat2("##val", ref vec, 0.05f))
+            {
+                nextValue = new float2(vec.X, vec.Y);
+            }
+
+            return true;
         }
 
         if (type == typeof(Vector2) && val is Vector2 v2Val)
         {
             var vec = v2Val;
-            var edited = ImGui.DragFloat2("##val", ref vec, 0.05f);
-            TrackContinuousEdit(prop, v2Val, vec, edited);
-            return;
+            if (ImGui.DragFloat2("##val", ref vec, 0.05f))
+            {
+                nextValue = vec;
+            }
+
+            return true;
         }
 
         if (type == typeof(float3) && val is float3 f3Val)
         {
             var vec = new Vector3(f3Val.x, f3Val.y, f3Val.z);
-            var edited = IsColorProperty(prop.Name)
+            var edited = IsColorProperty(propName)
                 ? ImGui.ColorEdit3("##val", ref vec, ImGuiColorEditFlags.Float)
                 : ImGui.DragFloat3("##val", ref vec, 0.05f);
-            TrackContinuousEdit(prop, f3Val, new float3(vec.X, vec.Y, vec.Z), edited);
-            return;
+            if (edited)
+            {
+                nextValue = new float3(vec.X, vec.Y, vec.Z);
+            }
+
+            return true;
         }
 
         if (type == typeof(Vector3) && val is Vector3 v3Val)
         {
             var vec = v3Val;
-            var edited = IsColorProperty(prop.Name)
+            var edited = IsColorProperty(propName)
                 ? ImGui.ColorEdit3("##val", ref vec, ImGuiColorEditFlags.Float)
                 : ImGui.DragFloat3("##val", ref vec, 0.05f);
-            TrackContinuousEdit(prop, v3Val, vec, edited);
-            return;
+            if (edited)
+            {
+                nextValue = vec;
+            }
+
+            return true;
         }
 
         if (type == typeof(float4) && val is float4 f4Val)
         {
             var vec = new Vector4(f4Val.x, f4Val.y, f4Val.z, f4Val.w);
-            var edited = IsColorProperty(prop.Name)
+            var edited = IsColorProperty(propName)
                 ? ImGui.ColorEdit4("##val", ref vec, ImGuiColorEditFlags.Float)
                 : ImGui.DragFloat4("##val", ref vec, 0.05f);
-            TrackContinuousEdit(prop, f4Val, new float4(vec.X, vec.Y, vec.Z, vec.W), edited);
-            return;
+            if (edited)
+            {
+                nextValue = new float4(vec.X, vec.Y, vec.Z, vec.W);
+            }
+
+            return true;
         }
 
         if (type == typeof(Vector4) && val is Vector4 v4Val)
         {
             var vec = v4Val;
-            var edited = IsColorProperty(prop.Name)
+            var edited = IsColorProperty(propName)
                 ? ImGui.ColorEdit4("##val", ref vec, ImGuiColorEditFlags.Float)
                 : ImGui.DragFloat4("##val", ref vec, 0.05f);
-            TrackContinuousEdit(prop, v4Val, vec, edited);
-            return;
+            if (edited)
+            {
+                nextValue = vec;
+            }
+
+            return true;
         }
 
         if (type == typeof(quaternion) && val is quaternion qVal)
         {
-            var isEditingThis = ReferenceEquals(_activeEditProperty, prop);
-            if (!isEditingThis || !_eulerCache.TryGetValue(prop, out var eulerDeg))
+            var isEditingThis = eulerKey != null && ReferenceEquals(_activeEditProperty, eulerKey);
+            Vector3 eulerDeg;
+            if (eulerKey == null || !isEditingThis || !_eulerCache.TryGetValue(eulerKey, out eulerDeg))
             {
                 eulerDeg = QuaternionToEulerDegrees(qVal);
-                _eulerCache[prop] = eulerDeg;
+                if (eulerKey != null)
+                {
+                    _eulerCache[eulerKey] = eulerDeg;
+                }
             }
 
-            var edited = ImGui.DragFloat3("##val", ref eulerDeg, 0.5f);
-            if (edited)
+            if (ImGui.DragFloat3("##val", ref eulerDeg, 0.5f))
             {
-                _eulerCache[prop] = eulerDeg;
+                if (eulerKey != null)
+                {
+                    _eulerCache[eulerKey] = eulerDeg;
+                }
+
+                nextValue = quaternion.EulerXYZ(math.radians(new float3(eulerDeg.X, eulerDeg.Y, eulerDeg.Z)));
             }
 
-            var newQuat = quaternion.EulerXYZ(math.radians(new float3(eulerDeg.X, eulerDeg.Y, eulerDeg.Z)));
-            TrackContinuousEdit(prop, qVal, newQuat, edited);
-            return;
+            return true;
         }
 
         if (type.IsEnum && val != null)
@@ -327,25 +394,25 @@ internal sealed class InspectorPanel : EditorWindow
 
             if (ImGui.Combo("##val", ref currentIdx, names, names.Length))
             {
-                var nextEnum = values.GetValue(currentIdx);
-                if (nextEnum != null && !Equals(nextEnum, val))
-                {
-                    CommandHistory.Instance.Execute(new ModifyPropertyCommand(prop, val, nextEnum));
-                }
+                nextValue = values.GetValue(currentIdx);
+                isDiscrete = true;
             }
 
-            return;
+            return true;
         }
 
         if (type == typeof(string))
         {
             var str = val as string ?? string.Empty;
-            var edited = ImGui.InputText("##val", ref str, 256);
-            TrackContinuousEdit(prop, val, str, edited);
-            return;
+            if (ImGui.InputText("##val", ref str, 256))
+            {
+                nextValue = str;
+            }
+
+            return true;
         }
 
-        DrawReadOnlyValue(contextManager, val, in tokens);
+        return false;
     }
 
     private void TrackContinuousEdit(PropertyNode prop, object? currentBackingValue, object? nextValue, bool itemEdited)
@@ -508,6 +575,14 @@ internal sealed class InspectorPanel : EditorWindow
 
             if (HasComponentType(entity, compType))
             {
+                continue;
+            }
+
+            if (compType == typeof(RenderVolumeDataContainer) && !HasComponentType(entity, typeof(RenderVolume)))
+            {
+                ImGui.BeginDisabled();
+                ImGui.Selectable($"{compType.Name} (Requires RenderVolume)");
+                ImGui.EndDisabled();
                 continue;
             }
 

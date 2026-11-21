@@ -144,7 +144,7 @@ public sealed class DeleteEntityCommand : IEditorCommand
                         hasLocalToWorld = true;
                     }
 
-                    ComponentReflectionAccessor.TryAddOrSet(em, recreated, comp.ComponentType, comp.LiveValue);
+                    ComponentReflectionAccessor.TryAddOrSet(em, recreated, comp);
                 }
 
                 if (hasLocalTransform && !hasLocalToWorld)

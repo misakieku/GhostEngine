@@ -1,5 +1,6 @@
 using System.Reflection;
 using Ghost.Core;
+using Ghost.Engine.Components;
 using Ghost.Entities;
 using Ghost.Graphics.Services;
 
@@ -63,7 +64,7 @@ public static class ComponentNodeFactory
                         continue;
                     }
 
-                    if (!typeof(IComponentData).IsAssignableFrom(t) && !typeof(ISharedComponent).IsAssignableFrom(t))
+                    if (!typeof(IComponentData).IsAssignableFrom(t) && !typeof(ISharedComponent).IsAssignableFrom(t) && t != typeof(RenderVolumeDataContainer))
                     {
                         continue;
                     }
@@ -105,10 +106,32 @@ public static class ComponentNodeFactory
     }
 
     /// <summary>
+    /// Builds a <see cref="ComponentNode"/> and its managed <see cref="VolumeOverridesPropertyNode"/> for a <see cref="RenderVolumeDataContainer"/>.
+    /// </summary>
+    public static ComponentNode CreateVolumeComponentNode(EntityNode entityNode, in RenderVolumeDataContainer container, EditorSyncBridge? bridge = null)
+    {
+        var properties = new List<PropertyNode>(1);
+        var compNode = new ComponentNode(nameof(RenderVolumeDataContainer), typeof(RenderVolumeDataContainer), entityNode, properties, null);
+        var volumeProp = new VolumeOverridesPropertyNode(compNode, bridge ?? EditorSyncBridge.Instance);
+        if (container.IsCreated)
+        {
+            volumeProp.RefreshFromContainer(in container);
+        }
+
+        properties.Add(volumeProp);
+        return compNode;
+    }
+
+    /// <summary>
     /// Builds a <see cref="ComponentNode"/> and its reflected <see cref="PropertyNode"/> children for <paramref name="entityNode"/>.
     /// </summary>
     public static ComponentNode CreateComponentNode(Type componentType, EntityNode entityNode, object? initialValue = null, EditorSyncBridge? bridge = null)
     {
+        if (componentType == typeof(RenderVolumeDataContainer))
+        {
+            return CreateVolumeComponentNode(entityNode, default, bridge);
+        }
+
         var liveValue = initialValue ?? CreateDefaultValue(componentType);
         var properties = new List<PropertyNode>();
         var compNode = new ComponentNode(componentType.Name, componentType, entityNode, properties, liveValue);
