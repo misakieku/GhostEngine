@@ -42,7 +42,14 @@ internal static class AssetEntryFactory
     }
 }
 
-// TODO: Progress report
+public readonly struct AssetLoadProgress
+{
+    public int ReadyCount { get; init; }
+    public int LoadedCount { get; init; }
+    public int TotalCount { get; init; }
+    public float Progress { get; init; }
+}
+
 internal abstract class AssetEntry : IAssetEntry
 {
     private readonly AssetManager _assetManager;
@@ -54,6 +61,7 @@ internal abstract class AssetEntry : IAssetEntry
     private readonly string _assetName;
 
     private Guid[] _dependencies;
+    private Guid[]? _transitiveDependencies;
     private JobHandle _loadJobHandle;
     private JobHandle _combinedDependencyJobHandle;
     private int _refCount;
@@ -61,6 +69,7 @@ internal abstract class AssetEntry : IAssetEntry
     private int _contentVersion;
 
     private int _pendingReimport;
+    private bool _isReimporting;
 
     protected ResourceManager ResourceManager => _resourceManager;
     protected IResourceDatabase ResourceDatabase => _resourceDatabase;
@@ -122,6 +131,80 @@ internal abstract class AssetEntry : IAssetEntry
     internal void UpdateDependencies(Guid[] dependencies)
     {
         _dependencies = dependencies;
+        Volatile.Write(ref _transitiveDependencies, null);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void SetTransitiveDependencies(Guid[] transitiveDependencies)
+    {
+        Volatile.Write(ref _transitiveDependencies, transitiveDependencies);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool MarkReimporting()
+    {
+        _isReimporting = true;
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool ConsumeReimporting()
+    {
+        var value = _isReimporting;
+        _isReimporting = false;
+        return value;
+    }
+
+    public AssetLoadProgress GetLoadProgress()
+    {
+        var deps = Volatile.Read(ref _transitiveDependencies);
+        if (deps == null)
+        {
+            deps = _assetManager.CollectUniqueTransitiveDependencies(_assetId);
+            Volatile.Write(ref _transitiveDependencies, deps);
+        }
+
+        var totalCount = 1 + deps.Length;
+        var readyCount = 0;
+        var loadedCount = 0;
+        var weightSum = AccumulateStateProgress(State, ref readyCount, ref loadedCount);
+
+        for (var i = 0; i < deps.Length; i++)
+        {
+            if (_assetManager.TryGetEntry(deps[i], out var depEntry))
+            {
+                weightSum += AccumulateStateProgress(depEntry.State, ref readyCount, ref loadedCount);
+            }
+        }
+
+        var progress = readyCount == totalCount ? 1.0f : MathF.Min(0.999f, weightSum / totalCount);
+        return new AssetLoadProgress
+        {
+            ReadyCount = readyCount,
+            LoadedCount = loadedCount,
+            TotalCount = totalCount,
+            Progress = progress
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float AccumulateStateProgress(AssetState state, ref int readyCount, ref int loadedCount)
+    {
+        switch (state)
+        {
+            case AssetState.Ready:
+                readyCount++;
+                loadedCount++;
+                return 1.0f;
+            case AssetState.Loaded:
+            case AssetState.Processing:
+                loadedCount++;
+                return 0.60f;
+            case AssetState.Loading:
+                return 0.25f;
+            default:
+                return 0.0f;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -197,6 +280,7 @@ public interface IAssetEntry
 
     void AddRef();
     int Release();
+    AssetLoadProgress GetLoadProgress();
     void ReadAssetData(Span<byte> dst);
     void ReadAssetData<T>(ref T dst)
         where T : struct;
