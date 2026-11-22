@@ -4,6 +4,7 @@ using Ghost.Graphics.Services;
 
 namespace Ghost.Engine.Components;
 
+[TransientComponent]
 public struct GPUInstanceRef : IComponentData
 {
     public uint gpuInstanceIndex;
