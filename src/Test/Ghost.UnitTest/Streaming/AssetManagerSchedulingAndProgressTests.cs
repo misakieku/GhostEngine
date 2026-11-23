@@ -221,4 +221,48 @@ public unsafe class AssetManagerSchedulingAndProgressTests
         processor.MaxUploadsPerFrame = 32;
         Assert.AreEqual(32, processor.MaxUploadsPerFrame);
     }
+
+    [TestMethod]
+    public void Test_ReleaseWhileDependencyIsLoaded_DefersUnloadUntilTerminalState()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var renderDevice = new MockingRenderDevice();
+        using var resourceDatabase = new MockingResourceDatabase();
+        using var pipelineLibrary = new MockingPipelineLibrary();
+        using var resourceAllocator = new MockingResourceAllocator(resourceDatabase);
+        using var shaderLibrary = new ShaderLibrary(null, pipelineLibrary, null);
+        using var resourceManager = new ResourceManager(renderDevice, resourceAllocator, resourceDatabase);
+        using var jobScheduler = new JobScheduler(new JobSchedulerDesc { ThreadCount = 2, ThreadPriority = ThreadPriority.Normal, DependencyChainCapacity = 1024 });
+
+        using var contentProvider = new MockingContentProvider();
+        var streamingProcessor = new ResourceStreamingProcessor();
+        using var assetManager = new AssetManager(resourceDatabase, resourceManager, contentProvider, streamingProcessor, jobScheduler, engine, shaderLibrary, 2);
+
+        var texGuid = Guid.NewGuid();
+        var rootGuid = Guid.NewGuid();
+
+        contentProvider.AddMockTexture(texGuid);
+        contentProvider.AddMockAsset(rootGuid, new MockingContentProvider.MockAssetData
+        {
+            type = AssetType.EntityPrefab,
+            data = BuildEmptyPrefabPayload(),
+            dependencies = new[] { texGuid }
+        });
+
+        Assert.IsTrue(assetManager.TryResolveAsset(rootGuid, out var rootEntry));
+        jobScheduler.Wait(rootEntry.LoadJobHandle);
+
+        Assert.IsTrue(assetManager.TryGetEntry(texGuid, out var texEntry));
+        Assert.AreEqual(AssetState.Ready, rootEntry.State);
+        Assert.AreEqual(AssetState.Loaded, texEntry.State);
+
+        // Releasing root while tex is still in AssetState.Loaded must defer unloading tex until tex reaches Ready/Failed.
+        Assert.AreEqual(0, rootEntry.Release());
+        Assert.IsFalse(assetManager.TryGetEntry(rootGuid, out _));
+        Assert.IsTrue(assetManager.TryGetEntry(texGuid, out _));
+        Assert.AreEqual(0, texEntry.RefCount);
+
+        texEntry.State = AssetState.Ready;
+        Assert.IsFalse(assetManager.TryGetEntry(texGuid, out _));
+    }
 }

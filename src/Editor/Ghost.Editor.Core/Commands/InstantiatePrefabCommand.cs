@@ -79,10 +79,7 @@ public sealed class InstantiatePrefabCommand : IEditorCommand
             }
             finally
             {
-                if (prefabAsset.State == AssetState.Ready)
-                {
-                    prefabAsset.Release();
-                }
+                prefabAsset.Release();
             }
         });
     }

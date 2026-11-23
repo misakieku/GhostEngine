@@ -367,4 +367,28 @@ public unsafe class SceneSerializerTests
         em.RemoveComponent<GPUInstanceRef>(oldEntity);
         Assert.IsFalse(em.Exists(oldEntity));
     }
+
+    [TestMethod]
+    public void SceneSerializer_UnloadCurrentScene_ReleasesSceneRetainedPrefabAssets()
+    {
+        using var scheduler = new JobScheduler(new JobSchedulerDesc { ThreadCount = 1, ThreadPriority = ThreadPriority.Normal, DependencyChainCapacity = 64 });
+        using var world = World.Create(scheduler, 64);
+        var bridge = new EditorSyncBridge();
+
+        var prefabGuid = Guid.NewGuid();
+        var bytes = BuildTestPrefabPayload(new float3(0.0f), new float3(0.0f, 1.0f, 0.0f));
+        var entry = CreateLoadedPrefabEntry(prefabGuid, "Meshes/Crate", bytes);
+
+        entry.AddRef();
+        bridge.RetainSceneAsset(entry);
+        Assert.AreEqual(2, entry.RefCount);
+
+        // Simulating the caller releasing its temporary lookup ref while the scene keeps owning it.
+        Assert.AreEqual(1, entry.Release());
+        Assert.IsNotNull(entry.PrefabData);
+
+        SceneSerializer.UnloadCurrentScene(world, bridge);
+        Assert.AreEqual(0, entry.RefCount);
+        Assert.IsNull(entry.PrefabData);
+    }
 }

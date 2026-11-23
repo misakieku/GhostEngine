@@ -199,6 +199,34 @@ public partial class AssetManager : IDisposable
         return _entries.TryRemove(guid, out var _);
     }
 
+    internal bool TryUnloadIfZero(AssetEntry entry)
+    {
+        lock (_scheduleLock)
+        {
+            if (entry.RefCount != 0 || entry.State is not (AssetState.Ready or AssetState.Failed) || !entry.TryMarkUnloaded())
+            {
+                return false;
+            }
+
+            _entries.TryRemove(entry.AssetId, out _);
+            return true;
+        }
+    }
+
+    internal bool TryForceUnloadZeroRefOnDispose(AssetEntry entry)
+    {
+        lock (_scheduleLock)
+        {
+            if (entry.RefCount != 0 || !entry.TryMarkUnloaded())
+            {
+                return false;
+            }
+
+            _entries.TryRemove(entry.AssetId, out _);
+            return true;
+        }
+    }
+
     private readonly struct ScheduleFrame(AssetEntry entry, bool childrenVisited)
     {
         public readonly AssetEntry Entry = entry;
@@ -583,6 +611,29 @@ public partial class AssetManager : IDisposable
 
     public void Dispose()
     {
+        foreach (var kvp in _entries)
+        {
+            var handle = kvp.Value.LoadJobHandle;
+            if (handle.IsValid)
+            {
+                _jobScheduler.Wait(handle);
+            }
+        }
+
+        bool drainedAny;
+        do
+        {
+            drainedAny = false;
+            foreach (var kvp in _entries)
+            {
+                if (kvp.Value.RefCount == 0 && kvp.Value.TryForceUnloadOnDispose())
+                {
+                    drainedAny = true;
+                }
+            }
+        }
+        while (drainedAny);
+
         Logger.DebugAssert(_entries.IsEmpty, $"There are still {_entries.Count} assets in the manager. Make sure to release all assets before disposing the manager.");
 
         _entries.Clear();

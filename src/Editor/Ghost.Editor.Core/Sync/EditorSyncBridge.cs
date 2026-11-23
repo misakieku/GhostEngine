@@ -22,6 +22,8 @@ public sealed class EditorSyncBridge
     private readonly Dictionary<Entity, Guid> _entityGuids = new();
     private readonly Dictionary<Entity, PrefabLinkInfo> _prefabLinks = new();
     private readonly Dictionary<Entity, (Guid MeshGuid, Guid[] MaterialGuids)> _initialMeshAuthoring = new();
+    private readonly Dictionary<ushort, (string Name, string? Path)> _registeredScenes = new() { [0] = ("Untitled", null) };
+    private readonly List<IAssetEntry> _sceneRetainedAssets = new();
     private readonly List<PropertyNode> _trackedResourceNodes = new();
     private readonly object _metadataLock = new();
     private readonly object _snapshotLock = new();
@@ -224,6 +226,52 @@ public sealed class EditorSyncBridge
         return false;
     }
 
+    public void RegisterScene(ushort sceneId, string? scenePath, string? nameOverride = null)
+    {
+        var displayName = !string.IsNullOrWhiteSpace(nameOverride)
+            ? nameOverride.Trim()
+            : (!string.IsNullOrWhiteSpace(scenePath) ? Path.GetFileNameWithoutExtension(scenePath) : "Untitled");
+
+        lock (_metadataLock)
+        {
+            _registeredScenes[sceneId] = (displayName, scenePath);
+        }
+    }
+
+    public IReadOnlyList<SceneNode> GetSceneNodeSnapshots(IReadOnlyList<EntityNode> entities)
+    {
+        KeyValuePair<ushort, (string Name, string? Path)>[] entries;
+        lock (_metadataLock)
+        {
+            if (_registeredScenes.Count == 0)
+            {
+                _registeredScenes[0] = ("Untitled", ActiveScenePath);
+            }
+
+            entries = _registeredScenes.OrderBy(static kvp => kvp.Key).ToArray();
+        }
+
+        var result = new SceneNode[entries.Length];
+        for (var i = 0; i < entries.Length; i++)
+        {
+            var sceneId = entries[i].Key;
+            var info = entries[i].Value;
+            var count = 0;
+            for (var e = 0; e < entities.Count; e++)
+            {
+                if (entities[e].SceneId == sceneId)
+                {
+                    count++;
+                }
+            }
+
+            var isDirty = HasUnsavedSceneChanges && sceneId == ActiveSceneId;
+            result[i] = new SceneNode(-(sceneId + 1), info.Name, sceneId, info.Path, isDirty, count);
+        }
+
+        return result;
+    }
+
     public void ClearSceneMetadata()
     {
         lock (_metadataLock)
@@ -233,6 +281,8 @@ public sealed class EditorSyncBridge
             _entityGuids.Clear();
             _prefabLinks.Clear();
             _initialMeshAuthoring.Clear();
+            _registeredScenes.Clear();
+            _registeredScenes[0] = ("Untitled", ActiveScenePath);
         }
     }
 
@@ -347,6 +397,41 @@ public sealed class EditorSyncBridge
         }
     }
 
+    /// <summary>
+    /// Binds an asset reference to the currently open editor scene so it stays alive until the scene is unloaded.
+    /// </summary>
+    public void RetainSceneAsset(IAssetEntry entry)
+    {
+        entry.AddRef();
+        lock (_metadataLock)
+        {
+            _sceneRetainedAssets.Add(entry);
+        }
+    }
+
+    /// <summary>
+    /// Releases all asset references retained by the currently open editor scene.
+    /// </summary>
+    public void ReleaseSceneAssets()
+    {
+        IAssetEntry[] snapshot;
+        lock (_metadataLock)
+        {
+            if (_sceneRetainedAssets.Count == 0)
+            {
+                return;
+            }
+
+            snapshot = _sceneRetainedAssets.ToArray();
+            _sceneRetainedAssets.Clear();
+        }
+
+        for (var i = 0; i < snapshot.Length; i++)
+        {
+            snapshot[i].Release();
+        }
+    }
+
     public void DrainWorldActions(World world)
     {
         while (_pendingWorldActions.TryDequeue(out var action))
@@ -430,7 +515,8 @@ public sealed class EditorSyncBridge
             var current = LatestSnapshot;
             var currentEntities = current?.Entities ?? Array.Empty<EntityNode>();
             var nextEntities = mutator(currentEntities);
-            updated = new SceneSnapshot(nextEntities, current?.FrameTimeMs ?? 16.6f, current?.Fps ?? 60.0f);
+            var scenes = GetSceneNodeSnapshots(nextEntities);
+            updated = new SceneSnapshot(scenes, nextEntities, current?.FrameTimeMs ?? 16.6f, current?.Fps ?? 60.0f);
             PublishSnapshot(updated);
         }
 

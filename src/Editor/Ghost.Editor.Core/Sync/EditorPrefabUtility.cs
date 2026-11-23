@@ -83,6 +83,11 @@ public static class EditorPrefabUtility
             spawnedNodes.Add(new SpawnedPrefabNode(e, link, editorGuid, nodeName));
         }
 
+        if (spawnedNodes.Count > 0 && (prefabAsset is not AssetEntry entry || entry.Manager != null))
+        {
+            bridge.RetainSceneAsset(prefabAsset);
+        }
+
         return spawnedNodes.Count > 0;
     }
 

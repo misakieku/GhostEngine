@@ -92,6 +92,7 @@ internal sealed class EditorSceneSession
         CurrentScenePath = targetPath;
         _bridge.ActiveScenePath = targetPath;
         _bridge.HasUnsavedSceneChanges = false;
+        _bridge.RegisterScene(_bridge.ActiveSceneId, targetPath);
 
         if (_projectService.CurrentProject != null)
         {

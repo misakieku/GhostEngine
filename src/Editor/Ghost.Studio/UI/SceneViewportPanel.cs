@@ -1,3 +1,5 @@
+using Ghost.AssetForge.Core.Models;
+using Ghost.Core;
 using Ghost.Editor.Core.Commands;
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
@@ -8,6 +10,7 @@ using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Studio.Backend;
 using Ghost.Studio.Rendering;
+using Ghost.Studio.Services;
 using Hexa.NET.ImGui;
 using Hexa.NET.ImGuizmo;
 using Misaki.HighPerformance.Mathematics;
@@ -23,6 +26,8 @@ internal sealed unsafe class SceneViewportPanel : EditorWindow
 {
     private readonly SceneViewportTarget _viewportTarget;
     private readonly EditorViewportInputState _inputState;
+    private readonly EditorAssetCatalog? _assetCatalog;
+    private readonly Action<string>? _onOpenSceneAdditive;
 
     private bool _wasDraggingGizmo;
     private Entity _dragEntity = Entity.Invalid;
@@ -48,11 +53,13 @@ internal sealed unsafe class SceneViewportPanel : EditorWindow
 
     public override ImGuiWindowFlags WindowFlags => ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
 
-    public SceneViewportPanel(SceneViewportTarget viewportTarget, EditorViewportInputState inputState)
+    public SceneViewportPanel(SceneViewportTarget viewportTarget, EditorViewportInputState inputState, EditorAssetCatalog? assetCatalog = null, Action<string>? onOpenSceneAdditive = null)
         : base("Scene")
     {
         _viewportTarget = viewportTarget;
         _inputState = inputState;
+        _assetCatalog = assetCatalog;
+        _onOpenSceneAdditive = onOpenSceneAdditive;
     }
 
     public void ResetFrameState()
@@ -111,6 +118,7 @@ internal sealed unsafe class SceneViewportPanel : EditorWindow
         {
             var texRef = new ImTextureRef(null, new ImTextureID((ulong)_viewportTarget.GetBindlessSrvIndex(CurrentFrameIndex)));
             ImGui.Image(texRef, displaySize);
+            HandleViewportAssetDrop(em, cursorScreen, displaySize);
             RenderedSceneTexture = true;
         }
         else
@@ -142,6 +150,75 @@ internal sealed unsafe class SceneViewportPanel : EditorWindow
         _inputState.IsGizmoBlocking = isToolbarHovered || isGizmoInteracting || isViewCubeHovered || ImGuizmo.IsUsing();
 
         DrawOverlayHud(contextManager, em, cursorScreen, avail);
+    }
+
+    private void HandleViewportAssetDrop(EntityManager em, Vector2 viewportOrigin, Vector2 viewportSize)
+    {
+        if (!ImGui.BeginDragDropTarget())
+        {
+            return;
+        }
+
+        if (EditorDragDrop.TryAcceptStringPayload(EditorDragDrop.ASSET_PAYLOAD, out var droppedPath))
+        {
+            if (_assetCatalog != null && _assetCatalog.TryGetBySourcePath(droppedPath, out var entry))
+            {
+                if (entry.AssetType == AssetType.EntityPrefab)
+                {
+                    var dropPos = ComputeViewportDropPosition(em, viewportOrigin, viewportSize);
+                    var displayName = Path.GetFileNameWithoutExtension(entry.DisplayName);
+                    CommandHistory.Instance.Execute(new InstantiatePrefabCommand(entry.Guid, displayName, dropPos, quaternion.identity, float3.one, null));
+                }
+                else if (entry.AssetType == AssetType.Scene)
+                {
+                    _onOpenSceneAdditive?.Invoke(droppedPath);
+                }
+            }
+            else if (string.Equals(Path.GetExtension(droppedPath), SceneAssetDocument.EXTENSION, StringComparison.OrdinalIgnoreCase))
+            {
+                _onOpenSceneAdditive?.Invoke(droppedPath);
+            }
+        }
+
+        ImGui.EndDragDropTarget();
+    }
+
+    private float3 ComputeViewportDropPosition(EntityManager em, Vector2 viewportOrigin, Vector2 viewportSize)
+    {
+        ref var editorCam = ref em.GetOrCreateSingleton(EditorCamera.Default);
+        BuildCameraMatrices(in editorCam, viewportSize.X, viewportSize.Y, out _, out var proj);
+
+        var mouse = ImGui.GetMousePos();
+        var u = (mouse.X - viewportOrigin.X) / MathF.Max(1.0f, viewportSize.X);
+        var v = (mouse.Y - viewportOrigin.Y) / MathF.Max(1.0f, viewportSize.Y);
+        var ndcX = u * 2.0f - 1.0f;
+        var ndcY = 1.0f - v * 2.0f;
+
+        var viewDir = new float3(ndcX / proj.c0.x, ndcY / proj.c1.y, 1.0f);
+        var rayOrigin = editorCam.localToWorld.c3.xyz;
+        var worldDir = math.mul(editorCam.localToWorld, new float4(viewDir, 0.0f)).xyz;
+        var rayDir = math.normalizesafe(worldDir, new float3(0.0f, 0.0f, 1.0f));
+
+        float3 hitPos;
+        if (MathF.Abs(rayDir.y) > 1e-4f)
+        {
+            var t = -rayOrigin.y / rayDir.y;
+            hitPos = t > 0.25f && t < 150.0f ? rayOrigin + rayDir * t : rayOrigin + rayDir * 6.0f;
+        }
+        else
+        {
+            hitPos = rayOrigin + rayDir * 6.0f;
+        }
+
+        if (_inputState.SnapEnabled && _inputState.TranslateSnap > 0.0f)
+        {
+            var snap = _inputState.TranslateSnap;
+            hitPos.x = MathF.Round(hitPos.x / snap) * snap;
+            hitPos.y = MathF.Round(hitPos.y / snap) * snap;
+            hitPos.z = MathF.Round(hitPos.z / snap) * snap;
+        }
+
+        return hitPos;
     }
 
     private void HandleToolShortcuts()

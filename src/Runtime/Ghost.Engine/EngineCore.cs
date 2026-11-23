@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Engine.Core;
 using Ghost.Engine.Input;
 using Ghost.Engine.RenderPipeline;
 using Ghost.Engine.Streaming;
@@ -187,6 +188,7 @@ public sealed partial class EngineCore : IDisposable
 
         foreach (var world in World.GetWorldEnumerator())
         {
+            SceneManager.DestroyAllScenesInWorld(world);
             world.SystemManager.CleanupAll();
         }
     }

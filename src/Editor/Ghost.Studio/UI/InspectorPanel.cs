@@ -21,6 +21,7 @@ internal sealed partial class InspectorPanel : EditorWindow
     private readonly EditorAssetCatalog _assetCatalog;
     private readonly Action<string>? _onPingAsset;
     private readonly Action<string>? _onOpenAsset;
+    private readonly Action<SceneNode>? _onSaveScene;
 
     private readonly Dictionary<PropertyNode, Vector3> _eulerCache = new();
     private PropertyNode? _activeEditProperty;
@@ -33,24 +34,32 @@ internal sealed partial class InspectorPanel : EditorWindow
 
     public override Vector2 DefaultSize => new(322.0f, 820.0f);
 
-    public InspectorPanel(ProjectService projectService, EditorAssetCatalog assetCatalog, Action<string>? onPingAsset = null, Action<string>? onOpenAsset = null)
+    public InspectorPanel(ProjectService projectService, EditorAssetCatalog assetCatalog, Action<string>? onPingAsset = null, Action<string>? onOpenAsset = null, Action<SceneNode>? onSaveScene = null)
         : base("Inspector")
     {
         _projectService = projectService;
         _assetCatalog = assetCatalog;
         _onPingAsset = onPingAsset;
         _onOpenAsset = onOpenAsset;
+        _onSaveScene = onSaveScene;
     }
 
     protected override void OnDraw(ImGuiContextManager contextManager)
     {
         ref readonly var tokens = ref contextManager.Tokens;
         var selection = EditorSelection.Instance;
+
+        if (selection.ActiveObject is SceneNode sceneNode)
+        {
+            DrawSceneInspector(contextManager, sceneNode, in tokens);
+            return;
+        }
+
         var entity = selection.ActiveEntity;
 
         if (entity == null)
         {
-            ImGui.TextColored(tokens.TextDisabled, "Select an entity to inspect its properties.");
+            ImGui.TextColored(tokens.TextDisabled, "Select an entity or scene to inspect its properties.");
             return;
         }
 
@@ -71,6 +80,95 @@ internal sealed partial class InspectorPanel : EditorWindow
 
         ImGui.Separator();
         DrawAddComponentFooter(entity, in tokens);
+    }
+
+    private void DrawSceneInspector(ImGuiContextManager contextManager, SceneNode sceneNode, in EditorColorTokens tokens)
+    {
+        ImGui.PushFont(contextManager.HeadingFont, EditorTheme.FONT_SIZE_HEADING);
+        ImGui.TextColored(tokens.SemanticWarning, EditorIcons.SCENE);
+        ImGui.SameLine();
+        ImGui.TextUnformatted(sceneNode.IsDirty ? $"{sceneNode.Name}*" : sceneNode.Name);
+        ImGui.PopFont();
+
+        ImGui.SameLine();
+        ImGui.PushFont(contextManager.MonospaceFont, EditorTheme.FONT_SIZE_MONO);
+        ImGui.TextColored(tokens.TextSecondary, $"#Scene {sceneNode.SceneId}");
+        ImGui.PopFont();
+
+        ImGui.Separator();
+
+        var hasFile = !string.IsNullOrEmpty(sceneNode.ScenePath) && File.Exists(sceneNode.ScenePath);
+        ImGui.AlignTextToFramePadding();
+        ImGui.TextColored(tokens.TextSecondary, "Asset");
+        ImGui.SameLine(62.0f * contextManager.DpiScale);
+
+        if (hasFile)
+        {
+            var relLabel = _projectService.CurrentProject != null
+                ? MakeProjectRelativeAssetPath(sceneNode.ScenePath!)
+                : Path.GetFileName(sceneNode.ScenePath!);
+            ImGui.TextUnformatted(relLabel);
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip(sceneNode.ScenePath!);
+            }
+
+            if (_onPingAsset != null)
+            {
+                ImGui.SameLine();
+                if (ImGui.SmallButton("Select##SceneSelectAsset"))
+                {
+                    _onPingAsset.Invoke(sceneNode.ScenePath!);
+                }
+            }
+        }
+        else
+        {
+            ImGui.TextColored(tokens.TextDisabled, "Unsaved Scene");
+        }
+
+        ImGui.TextColored(tokens.TextSecondary, $"Entities: {sceneNode.SceneEntityCount}");
+        ImGui.SameLine();
+        ImGuiWidgets.StatusBadge(sceneNode.IsDirty ? "Modified" : "Clean", sceneNode.IsDirty ? tokens.SemanticWarning : tokens.SemanticSuccess);
+
+        ImGui.Spacing();
+        if (_onSaveScene != null && sceneNode.SceneId == EditorSyncBridge.Instance.ActiveSceneId)
+        {
+            if (ImGui.Button(hasFile ? "Save Scene" : "Save Scene As..."))
+            {
+                _onSaveScene.Invoke(sceneNode);
+            }
+        }
+
+        if (hasFile && _projectService.CurrentProject != null)
+        {
+            var relDefault = MakeProjectRelativeAssetPath(sceneNode.ScenePath!);
+            var isCurrentDefault = string.Equals(_projectService.CurrentProject.DefaultScene, relDefault, StringComparison.OrdinalIgnoreCase);
+
+            ImGui.SameLine();
+            ImGui.BeginDisabled(isCurrentDefault);
+            if (ImGui.Button(isCurrentDefault ? "Default Project Scene" : "Set as Default Scene"))
+            {
+                _projectService.SetDefaultScene(relDefault);
+                _projectService.SaveProject();
+            }
+            ImGui.EndDisabled();
+        }
+    }
+
+    private string MakeProjectRelativeAssetPath(string fullPath)
+    {
+        var dirs = _projectService.AssetDirectories;
+        for (var i = 0; i < dirs.Count; i++)
+        {
+            var dirFull = Path.GetFullPath(dirs[i]);
+            if (fullPath.StartsWith(dirFull, StringComparison.OrdinalIgnoreCase))
+            {
+                return Path.GetRelativePath(dirFull, fullPath).Replace('\\', '/');
+            }
+        }
+
+        return Path.GetFileName(fullPath);
     }
 
     private void DrawEntityHeader(ImGuiContextManager contextManager, EntityNode entity, in EditorColorTokens tokens)

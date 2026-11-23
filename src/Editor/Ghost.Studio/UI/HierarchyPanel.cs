@@ -1,8 +1,10 @@
+using Ghost.AssetForge.Core.Models;
 using Ghost.Core;
 using Ghost.Editor.Core.Commands;
 using Ghost.Editor.Core.Menus;
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
+using Ghost.Studio.Assets;
 using Ghost.Studio.Backend;
 using Ghost.Studio.Rendering;
 using Ghost.Studio.Services;
@@ -20,12 +22,12 @@ internal sealed class HierarchyPanel : EditorWindow
 {
     private readonly struct FlatRow
     {
-        public readonly EntityNode Node;
+        public readonly HierarchyNode Node;
         public readonly int Depth;
         public readonly bool HasChildren;
         public readonly bool IsExpanded;
 
-        public FlatRow(EntityNode node, int depth, bool hasChildren, bool isExpanded)
+        public FlatRow(HierarchyNode node, int depth, bool hasChildren, bool isExpanded)
         {
             Node = node;
             Depth = depth;
@@ -37,9 +39,11 @@ internal sealed class HierarchyPanel : EditorWindow
     private readonly EditorViewportInputState _viewportInput;
     private readonly EditorAssetCatalog? _assetCatalog;
     private readonly Action<string>? _onSelectAssetInProject;
+    private readonly Action<string>? _onOpenSceneAdditive;
     private readonly List<FlatRow> _visibleRows = new();
     private readonly HashSet<int> _expandedIds = new();
-    private readonly Dictionary<int, List<EntityNode>> _childrenMap = new();
+    private readonly HashSet<int> _seenSceneIds = new();
+    private readonly Dictionary<int, List<HierarchyNode>> _childrenMap = new();
 
     private string _searchQuery = string.Empty;
     private long _builtSnapshotVersion = -1;
@@ -54,12 +58,13 @@ internal sealed class HierarchyPanel : EditorWindow
 
     public override Vector2 DefaultSize => new(280.0f, 520.0f);
 
-    public HierarchyPanel(EditorViewportInputState viewportInput, EditorAssetCatalog? assetCatalog = null, Action<string>? onSelectAssetInProject = null)
+    public HierarchyPanel(EditorViewportInputState viewportInput, EditorAssetCatalog? assetCatalog = null, Action<string>? onSelectAssetInProject = null, Action<string>? onOpenSceneAdditive = null)
         : base("Hierarchy")
     {
         _viewportInput = viewportInput;
         _assetCatalog = assetCatalog;
         _onSelectAssetInProject = onSelectAssetInProject;
+        _onOpenSceneAdditive = onOpenSceneAdditive;
         EditorSelection.Instance.RenameRequested += OnRenameRequested;
     }
 
@@ -113,22 +118,7 @@ internal sealed class HierarchyPanel : EditorWindow
         if (remaining.Y > 4.0f)
         {
             ImGui.Dummy(new Vector2(MathF.Max(1.0f, remaining.X), remaining.Y));
-            if (ImGui.BeginDragDropTarget())
-            {
-                var payload = ImGui.AcceptDragDropPayload(EditorDragDrop.ENTITY_PAYLOAD);
-                if (!payload.IsNull && payload.Data != null)
-                {
-                    var droppedId = *(int*)payload.Data;
-                    var droppedNode = FindEntityById(snapshot, droppedId);
-                    if (droppedNode != null && droppedNode.ParentId.HasValue)
-                    {
-                        CommandHistory.Instance.Execute(new ReparentEntityCommand(droppedNode, null));
-                    }
-                }
-
-                TryAcceptPrefabDrop(null);
-                ImGui.EndDragDropTarget();
-            }
+            AcceptRootDropTarget(snapshot);
         }
 
         if (ImGui.BeginPopupContextWindow("##HierarchyBgContext", ImGuiPopupFlags.MouseButtonRight | ImGuiPopupFlags.NoOpenOverItems))
@@ -139,6 +129,31 @@ internal sealed class HierarchyPanel : EditorWindow
         }
 
         ImGui.EndChild();
+
+        // Child window item itself also acts as root drop target when tree rows fill the scroll view.
+        AcceptRootDropTarget(snapshot);
+    }
+
+    private unsafe void AcceptRootDropTarget(SceneSnapshot? snapshot)
+    {
+        if (!ImGui.BeginDragDropTarget())
+        {
+            return;
+        }
+
+        var payload = ImGui.AcceptDragDropPayload(EditorDragDrop.ENTITY_PAYLOAD);
+        if (!payload.IsNull && payload.Data != null)
+        {
+            var droppedId = *(int*)payload.Data;
+            var droppedNode = FindEntityById(snapshot, droppedId);
+            if (droppedNode != null && droppedNode.ParentId.HasValue)
+            {
+                CommandHistory.Instance.Execute(new ReparentEntityCommand(droppedNode, null));
+            }
+        }
+
+        TryAcceptPrefabDrop(null);
+        ImGui.EndDragDropTarget();
     }
 
     private void DrawToolbar(in EditorColorTokens tokens)
@@ -169,7 +184,7 @@ internal sealed class HierarchyPanel : EditorWindow
         var node = row.Node;
         ImGui.PushID(node.Id);
 
-        if (_renamingEntityId == node.Id)
+        if (_renamingEntityId == node.Id && node is EntityNode renameTarget)
         {
             if (ImGuiWidgets.DrawTreeIndentAndChevron(row.Depth, indentWidth, row.HasChildren, row.IsExpanded, in tokens))
             {
@@ -190,16 +205,15 @@ internal sealed class HierarchyPanel : EditorWindow
             }
             else if (submitted || (!ImGui.IsItemActive() && !ImGui.IsItemFocused() && ImGui.IsMouseClicked(ImGuiMouseButton.Left)))
             {
-                CommitRename(node);
+                CommitRename(renameTarget);
             }
         }
         else
         {
-            var isSelected = EditorSelection.Instance.SelectedObjects.Contains(node) || ReferenceEquals(EditorSelection.Instance.ActiveEntity, node);
-            var isPrefabLinked = node.PrefabLink != null;
-            var iconColor = isPrefabLinked ? tokens.AccentHovered : tokens.TextSecondary;
-            var labelColor = isPrefabLinked ? tokens.AccentHovered : (Vector4?)null;
-            var rowResult = ImGuiWidgets.TreeRow("row", node.Name, row.Depth, indentWidth, row.HasChildren, row.IsExpanded, isSelected, EditorIcons.CUBE, iconColor, in tokens, labelColor);
+            var isSelected = EditorSelection.Instance.SelectedObjects.Contains(node) || ReferenceEquals(EditorSelection.Instance.ActiveObject, node);
+            var visual = HierarchyVisualRegistry.Default.Resolve(node, in tokens);
+            var displayLabel = node is SceneNode sceneNode && sceneNode.IsDirty ? $"{sceneNode.Name}*" : node.Name;
+            var rowResult = ImGuiWidgets.TreeRow("row", displayLabel, row.Depth, indentWidth, row.HasChildren, row.IsExpanded, isSelected, visual.IconGlyph, visual.IconColor, in tokens, visual.LabelColor);
 
             if (rowResult.ToggledExpand)
             {
@@ -208,7 +222,7 @@ internal sealed class HierarchyPanel : EditorWindow
 
             if (rowResult.Clicked)
             {
-                if (ImGui.GetIO().KeyCtrl)
+                if (ImGui.GetIO().KeyCtrl && node is EntityNode)
                 {
                     EditorSelection.Instance.ToggleSelection(node);
                 }
@@ -219,79 +233,126 @@ internal sealed class HierarchyPanel : EditorWindow
 
                 if (rowResult.DoubleClicked)
                 {
-                    _viewportInput.FocusRequested = true;
-                }
-            }
-
-            if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
-            {
-                var id = node.Id;
-                ImGui.SetDragDropPayload(EditorDragDrop.ENTITY_PAYLOAD, &id, sizeof(int));
-                ImGui.TextUnformatted($"{EditorIcons.CUBE}  {node.Name}");
-                ImGui.EndDragDropSource();
-            }
-
-            if (ImGui.BeginDragDropTarget())
-            {
-                var payload = ImGui.AcceptDragDropPayload(EditorDragDrop.ENTITY_PAYLOAD);
-                if (!payload.IsNull && payload.Data != null)
-                {
-                    var droppedId = *(int*)payload.Data;
-                    if (droppedId != node.Id)
+                    if (node is EntityNode)
                     {
-                        var snapshot = EditorSyncBridge.Instance.LatestSnapshot;
-                        var droppedNode = FindEntityById(snapshot, droppedId);
-                        if (droppedNode != null)
-                        {
-                            _expandedIds.Add(node.Id);
-                            _rowsDirty = true;
-                            CommandHistory.Instance.Execute(new ReparentEntityCommand(droppedNode, node.Id));
-                        }
+                        _viewportInput.FocusRequested = true;
+                    }
+                    else if (row.HasChildren)
+                    {
+                        ToggleExpand(node.Id, row.IsExpanded);
                     }
                 }
-
-                if (TryAcceptPrefabDrop(node.Id))
-                {
-                    _expandedIds.Add(node.Id);
-                    _rowsDirty = true;
-                }
-
-                ImGui.EndDragDropTarget();
             }
 
-            if (ImGui.BeginPopupContextItem("##EntityContextMenu"))
+            if (node is EntityNode entityNode)
             {
-                if (!isSelected)
+                if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
                 {
-                    EditorSelection.Instance.Select(node);
+                    var id = entityNode.Id;
+                    ImGui.SetDragDropPayload(EditorDragDrop.ENTITY_PAYLOAD, &id, sizeof(int));
+                    ImGui.TextUnformatted($"{visual.IconGlyph}  {entityNode.Name}");
+                    ImGui.EndDragDropSource();
                 }
 
-                var menu = EditorMenuRegistry.Default.BuildMenu("Hierarchy", new MenuContext(node));
-                ImGuiMenuBuilder.DrawNodes(menu);
-
-                if (node.PrefabLink != null)
+                if (ImGui.BeginDragDropTarget())
                 {
-                    ImGui.Separator();
-                    if (ImGui.BeginMenu("Prefab"))
+                    var payload = ImGui.AcceptDragDropPayload(EditorDragDrop.ENTITY_PAYLOAD);
+                    if (!payload.IsNull && payload.Data != null)
                     {
-                        if (ImGui.MenuItem("Select Prefab Asset", string.Empty, false, _assetCatalog != null && _onSelectAssetInProject != null))
+                        var droppedId = *(int*)payload.Data;
+                        if (droppedId != entityNode.Id)
                         {
-                            if (_assetCatalog != null && _assetCatalog.TryGetByGuid(node.PrefabLink.PrefabAssetGuid, out var entry) && !string.IsNullOrEmpty(entry.FullSourcePath))
+                            var snapshot = EditorSyncBridge.Instance.LatestSnapshot;
+                            var droppedNode = FindEntityById(snapshot, droppedId);
+                            if (droppedNode != null)
                             {
-                                _onSelectAssetInProject?.Invoke(entry.FullSourcePath);
+                                _expandedIds.Add(entityNode.Id);
+                                _rowsDirty = true;
+                                CommandHistory.Instance.Execute(new ReparentEntityCommand(droppedNode, entityNode.Id));
                             }
                         }
-
-                        if (ImGui.MenuItem("Unpack Prefab"))
-                        {
-                            CommandHistory.Instance.Execute(new UnpackPrefabCommand(node.PrefabLink.InstanceGuid));
-                        }
-
-                        ImGui.EndMenu();
                     }
+
+                    if (TryAcceptPrefabDrop(entityNode.Id))
+                    {
+                        _expandedIds.Add(entityNode.Id);
+                        _rowsDirty = true;
+                    }
+
+                    ImGui.EndDragDropTarget();
                 }
 
-                ImGui.EndPopup();
+                if (ImGui.BeginPopupContextItem("##EntityContextMenu"))
+                {
+                    if (!isSelected)
+                    {
+                        EditorSelection.Instance.Select(entityNode);
+                    }
+
+                    var menu = EditorMenuRegistry.Default.BuildMenu("Hierarchy", new MenuContext(entityNode));
+                    ImGuiMenuBuilder.DrawNodes(menu);
+
+                    if (entityNode.PrefabLink != null)
+                    {
+                        ImGui.Separator();
+                        if (ImGui.BeginMenu("Prefab"))
+                        {
+                            if (ImGui.MenuItem("Select Prefab Asset", string.Empty, false, _assetCatalog != null && _onSelectAssetInProject != null))
+                            {
+                                if (_assetCatalog != null && _assetCatalog.TryGetByGuid(entityNode.PrefabLink.PrefabAssetGuid, out var entry) && !string.IsNullOrEmpty(entry.FullSourcePath))
+                                {
+                                    _onSelectAssetInProject?.Invoke(entry.FullSourcePath);
+                                }
+                            }
+
+                            if (ImGui.MenuItem("Unpack Prefab"))
+                            {
+                                CommandHistory.Instance.Execute(new UnpackPrefabCommand(entityNode.PrefabLink.InstanceGuid));
+                            }
+
+                            ImGui.EndMenu();
+                        }
+                    }
+
+                    ImGui.EndPopup();
+                }
+            }
+            else if (node is SceneNode)
+            {
+                if (ImGui.BeginDragDropTarget())
+                {
+                    var payload = ImGui.AcceptDragDropPayload(EditorDragDrop.ENTITY_PAYLOAD);
+                    if (!payload.IsNull && payload.Data != null)
+                    {
+                        var droppedId = *(int*)payload.Data;
+                        var snapshot = EditorSyncBridge.Instance.LatestSnapshot;
+                        var droppedNode = FindEntityById(snapshot, droppedId);
+                        if (droppedNode != null && droppedNode.ParentId.HasValue)
+                        {
+                            CommandHistory.Instance.Execute(new ReparentEntityCommand(droppedNode, null));
+                        }
+                    }
+
+                    if (TryAcceptPrefabDrop(null))
+                    {
+                        _expandedIds.Add(node.Id);
+                        _rowsDirty = true;
+                    }
+
+                    ImGui.EndDragDropTarget();
+                }
+
+                if (ImGui.BeginPopupContextItem("##SceneContextMenu"))
+                {
+                    if (!isSelected)
+                    {
+                        EditorSelection.Instance.Select(node);
+                    }
+
+                    var menu = EditorMenuRegistry.Default.BuildMenu("Hierarchy", new MenuContext(null));
+                    ImGuiMenuBuilder.DrawNodes(menu);
+                    ImGui.EndPopup();
+                }
             }
         }
 
@@ -300,19 +361,36 @@ internal sealed class HierarchyPanel : EditorWindow
 
     private bool TryAcceptPrefabDrop(int? parentNodeId)
     {
-        if (_assetCatalog == null || !EditorDragDrop.TryAcceptStringPayload(EditorDragDrop.ASSET_PAYLOAD, out var droppedPath))
+        if (!EditorDragDrop.TryAcceptStringPayload(EditorDragDrop.ASSET_PAYLOAD, out var droppedPath))
         {
             return false;
         }
 
-        if (!_assetCatalog.TryGetBySourcePath(droppedPath, out var entry) || entry.AssetType != AssetType.EntityPrefab)
+        if (_assetCatalog != null && _assetCatalog.TryGetBySourcePath(droppedPath, out var entry))
         {
+            if (entry.AssetType == AssetType.EntityPrefab)
+            {
+                var cmd = new InstantiatePrefabCommand(entry.Guid, Path.GetFileNameWithoutExtension(entry.DisplayName), float3.zero, quaternion.identity, float3.one, parentNodeId);
+                CommandHistory.Instance.Execute(cmd);
+                return true;
+            }
+
+            if (entry.AssetType == AssetType.Scene && _onOpenSceneAdditive != null)
+            {
+                _onOpenSceneAdditive.Invoke(droppedPath);
+                return true;
+            }
+
             return false;
         }
 
-        var cmd = new InstantiatePrefabCommand(entry.Guid, Path.GetFileNameWithoutExtension(entry.DisplayName), float3.zero, quaternion.identity, float3.one, parentNodeId);
-        CommandHistory.Instance.Execute(cmd);
-        return true;
+        if (_onOpenSceneAdditive != null && string.Equals(Path.GetExtension(droppedPath), SceneAssetDocument.EXTENSION, StringComparison.OrdinalIgnoreCase))
+        {
+            _onOpenSceneAdditive.Invoke(droppedPath);
+            return true;
+        }
+
+        return false;
     }
 
     private void ToggleExpand(int entityId, bool isExpanded)
@@ -334,14 +412,23 @@ internal sealed class HierarchyPanel : EditorWindow
         _visibleRows.Clear();
         _childrenMap.Clear();
 
-        if (snapshot == null || snapshot.Entities.Count == 0)
+        if (snapshot == null)
         {
             return;
         }
 
+        var scenes = snapshot.Scenes;
         var entities = snapshot.Entities;
         if (!string.IsNullOrWhiteSpace(_searchQuery))
         {
+            for (var i = 0; i < scenes.Count; i++)
+            {
+                if (scenes[i].Name.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
+                {
+                    _visibleRows.Add(new FlatRow(scenes[i], 0, false, false));
+                }
+            }
+
             for (var i = 0; i < entities.Count; i++)
             {
                 var entity = entities[i];
@@ -360,19 +447,37 @@ internal sealed class HierarchyPanel : EditorWindow
             validIds.Add(entities[i].Id);
         }
 
-        var roots = new List<EntityNode>();
+        var sceneById = new Dictionary<ushort, SceneNode>(scenes.Count);
+        for (var i = 0; i < scenes.Count; i++)
+        {
+            var scene = scenes[i];
+            sceneById[scene.SceneId] = scene;
+            if (_seenSceneIds.Add(scene.Id))
+            {
+                _expandedIds.Add(scene.Id);
+            }
+        }
+
+        var roots = new List<HierarchyNode>();
+        for (var i = 0; i < scenes.Count; i++)
+        {
+            roots.Add(scenes[i]);
+        }
+
         for (var i = 0; i < entities.Count; i++)
         {
             var e = entities[i];
             if (e.ParentId.HasValue && validIds.Contains(e.ParentId.Value))
             {
-                if (!_childrenMap.TryGetValue(e.ParentId.Value, out var list))
-                {
-                    list = new List<EntityNode>();
-                    _childrenMap[e.ParentId.Value] = list;
-                }
-
-                list.Add(e);
+                AddChild(e.ParentId.Value, e);
+            }
+            else if (sceneById.TryGetValue(e.SceneId, out var ownerScene))
+            {
+                AddChild(ownerScene.Id, e);
+            }
+            else if (scenes.Count > 0)
+            {
+                AddChild(scenes[0].Id, e);
             }
             else
             {
@@ -386,7 +491,18 @@ internal sealed class HierarchyPanel : EditorWindow
         }
     }
 
-    private void AppendNodeRecursive(EntityNode node, int depth)
+    private void AddChild(int parentId, HierarchyNode child)
+    {
+        if (!_childrenMap.TryGetValue(parentId, out var list))
+        {
+            list = new List<HierarchyNode>();
+            _childrenMap[parentId] = list;
+        }
+
+        list.Add(child);
+    }
+
+    private void AppendNodeRecursive(HierarchyNode node, int depth)
     {
         var hasChildren = _childrenMap.TryGetValue(node.Id, out var children) && children.Count > 0;
         var expanded = hasChildren && _expandedIds.Contains(node.Id);

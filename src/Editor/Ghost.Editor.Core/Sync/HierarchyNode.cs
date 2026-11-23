@@ -11,22 +11,63 @@ namespace Ghost.Editor.Core.Sync;
 /// </summary>
 public sealed record PrefabLinkInfo(Guid InstanceGuid, Guid PrefabAssetGuid, int TemplateEntityIndex);
 
-public sealed class EntityNode
+/// <summary>
+/// Shared base type for nodes displayed in the editor Scene Hierarchy tree.
+/// </summary>
+public abstract class HierarchyNode
 {
     public int Id { get; }
-    public Guid EditorGuid { get; set; } = Guid.NewGuid();
     public string Name { get; set; }
     public int? ParentId { get; set; }
+
+    public virtual bool CanRename => false;
+    public virtual bool CanReparent => false;
+    public virtual bool CanDelete => false;
+
+    protected HierarchyNode(int id, string name, int? parentId = null)
+    {
+        Id = id;
+        Name = name;
+        ParentId = parentId;
+    }
+}
+
+/// <summary>
+/// Represents a loaded editor scene root entry in the Scene Hierarchy and Inspector.
+/// </summary>
+public sealed class SceneNode : HierarchyNode
+{
+    public ushort SceneId { get; }
+    public string? ScenePath { get; set; }
+    public bool IsDirty { get; set; }
+    public int SceneEntityCount { get; set; }
+
+    public SceneNode(int id, string name, ushort sceneId, string? scenePath = null, bool isDirty = false, int entityCount = 0)
+        : base(id, name, null)
+    {
+        SceneId = sceneId;
+        ScenePath = scenePath;
+        IsDirty = isDirty;
+        SceneEntityCount = entityCount;
+    }
+}
+
+public sealed class EntityNode : HierarchyNode
+{
+    public Guid EditorGuid { get; set; } = Guid.NewGuid();
+    public ushort SceneId { get; set; }
     public Entity EcsEntity { get; set; } = Entity.Invalid;
     public PrefabLinkInfo? PrefabLink { get; set; }
     public IReadOnlyList<ComponentNode> Components { get; set; }
 
+    public override bool CanRename => true;
+    public override bool CanReparent => true;
+    public override bool CanDelete => true;
+
     public EntityNode(int id, string name, IReadOnlyList<ComponentNode> components, int? parentId = null)
+        : base(id, name, parentId)
     {
-        Id = id;
-        Name = name;
         Components = components;
-        ParentId = parentId;
     }
 }
 

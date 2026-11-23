@@ -234,4 +234,37 @@ public class EditorCoreWorkflowTests
         var camNode = ComponentNodeFactory.CreateComponentNode(typeof(Camera), parentObj, new Camera(), bridge);
         Assert.IsNotEmpty(camNode.Properties);
     }
+
+    [TestMethod]
+    public void SceneNode_SharesHierarchyNodeBaseAndSelectsInEditorSelection()
+    {
+        var bridge = new EditorSyncBridge();
+        bridge.RegisterScene(0, @"C:\Proj\Assets\Main.gscene");
+        bridge.RegisterScene(1, @"C:\Proj\Assets\Lighting.gscene");
+        bridge.HasUnsavedSceneChanges = true;
+        bridge.ActiveSceneId = 0;
+
+        var entityA = new EntityNode(1, "PropA", Array.Empty<ComponentNode>()) { SceneId = 0 };
+        var entityB = new EntityNode(2, "PropB", Array.Empty<ComponentNode>()) { SceneId = 1 };
+        var entityC = new EntityNode(3, "PropC", Array.Empty<ComponentNode>()) { SceneId = 1 };
+
+        Assert.IsInstanceOfType<HierarchyNode>(entityA);
+        Assert.IsTrue(entityA.CanRename);
+
+        var scenes = bridge.GetSceneNodeSnapshots(new[] { entityA, entityB, entityC });
+        Assert.HasCount(2, scenes);
+        Assert.IsInstanceOfType<HierarchyNode>(scenes[0]);
+        Assert.IsFalse(scenes[0].CanRename);
+        Assert.AreEqual("Main", scenes[0].Name);
+        Assert.IsTrue(scenes[0].IsDirty);
+        Assert.AreEqual(1, scenes[0].SceneEntityCount);
+        Assert.AreEqual("Lighting", scenes[1].Name);
+        Assert.IsFalse(scenes[1].IsDirty);
+        Assert.AreEqual(2, scenes[1].SceneEntityCount);
+
+        var selection = new EditorSelection();
+        selection.Select(scenes[0]);
+        Assert.AreSame(scenes[0], selection.ActiveObject);
+        Assert.IsNull(selection.ActiveEntity);
+    }
 }

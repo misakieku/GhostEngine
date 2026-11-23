@@ -1,5 +1,8 @@
 using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
+using Ghost.Editor.Core.Commands;
+using Ghost.Editor.Core.Selection;
+using Ghost.Editor.Core.Serialization;
 using Ghost.Editor.Core.Sync;
 using Ghost.Engine;
 using Ghost.Engine.Components;
@@ -49,7 +52,6 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
     private EditorViewportInputState? _viewportInputState;
     private EditorContentProvider? _contentProvider;
     private IAssetEntry? _imguiShaderEntry;
-    private IAssetEntry? _cubePrefabEntry;
     private World? _editorWorld;
 
     public StudioLaunchProfile(ProjectService projectService)
@@ -153,100 +155,13 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
         var sceneSession = new Services.EditorSceneSession(_projectService, assetCatalog);
         if (!sceneSession.TryLoadDefaultSceneOnStartup(_editorWorld))
         {
-            SeedStarterEditorScene(engine, _editorWorld);
+            EditorSyncBridge.Instance.RegisterScene(0, null);
         }
 
         _editorWorld.SystemManager.AddSystem(new EditorEcsSyncSystem());
         _editorWorld.SystemManager.AddSystem(new EditorImGuiSystem(_contextManager!, _inputBridge!, _postRenderCommand!, _viewportTarget!, _viewportInputState!, _projectService, _contentProvider, assetCatalog, sceneSession));
         _editorWorld.SystemManager.AddSystem(new EditorCameraControllerSystem(_viewportInputState!));
         _editorWorld.SystemManager.AddSystem(new EditorRenderSystemGroup(_viewportTarget!));
-    }
-
-    private void SeedStarterEditorScene(EngineCore engine, World world)
-    {
-        if (engine.AssetManager.TryResolveAsset("Meshes/cube", out var cubeEntry))
-        {
-            _cubePrefabEntry = cubeEntry;
-            var bridge = Ghost.Editor.Core.Sync.EditorSyncBridge.Instance;
-            EditorPrefabUtility.TrySpawnLinkedPrefab(world, cubeEntry, bridge, new float3(0.0f, 0.8f, 0.0f), quaternion.identity, new float3(0.8f), out _, new PrefabSpawnOptions { RootName = "Cube" });
-            EditorPrefabUtility.TrySpawnLinkedPrefab(world, cubeEntry, bridge, new float3(0.0f, -0.15f, 0.0f), quaternion.identity, new float3(6.0f, 0.15f, 6.0f), out _, new PrefabSpawnOptions { RootName = "Ground" });
-        }
-        else
-        {
-            Logger.Warning("Starter mesh 'Meshes/cube' was not found in BuiltInAssets.");
-        }
-
-        var dirRot = quaternion.EulerXYZ(math.radians(new float3(48.0f, 215.0f, 0.0f)));
-        var dirPos = new float3(0.0f, 20.0f, 0.0f);
-        var dirEntity = world.EntityManager.CreateEntity(
-            new DirectionalLight
-            {
-                color = new float3(1.0f, 0.96f, 0.90f),
-                sunDiskAngularDiameter = math.radians(0.53f),
-                intensity = 100_000.0f,
-                castShadows = true,
-                shadowResolution = 2048,
-                lightingDimmer = 1.0f,
-                shadowDimmer = 1.0f,
-                diffuseDimmer = 1.0f,
-                specularDimmer = 1.0f,
-                normalBias = 1.0f,
-                depthBias = 0.5f,
-                shadowLodErrorScale = 3.0f,
-                contactShadow = false,
-            },
-            LocalTransform.FromPositionRotation(dirPos, dirRot),
-            new LocalToWorld
-            {
-                matrix = MathUtility.TRS(dirPos, dirRot, float3.one),
-            });
-        world.EntityManager.AddSharedComponent(dirEntity, new SceneID { value = 0 });
-
-        var pointPos = new float3(-3.5f, 3.0f, -3.5f);
-        var pointEntity = world.EntityManager.CreateEntity(
-            new PunctualLight
-            {
-                type = PunctualLightType.Point,
-                unit = PunctualLightUnit.Lumen,
-                color = new float3(0.45f, 0.70f, 1.0f),
-                shadowResolution = 0,
-                intensity = 3000.0f,
-                range = 20.0f,
-                innerSpotAngle = math.radians(15.0f),
-                outerSpotAngle = math.radians(40.0f),
-                nearPlane = 0.1f,
-                normalBias = 0.75f,
-                depthBias = 0.5f,
-                shadowLodErrorScale = 3.0f,
-                fadeDistance = 1000.0f,
-                shadowFadeDistance = 1000.0f,
-                sourceRadius = 0.15f,
-                lightingDimmer = 1.0f,
-                diffuseDimmer = 1.0f,
-                specularDimmer = 1.0f,
-                shadowDimmer = 1.0f,
-            },
-            LocalTransform.FromPosition(pointPos),
-            new LocalToWorld
-            {
-                matrix = MathUtility.TRS(pointPos, quaternion.identity, float3.one),
-            });
-        world.EntityManager.AddSharedComponent(pointEntity, new SceneID { value = 0 });
-
-        var volumeData = new RenderVolumeDataContainer(32);
-        volumeData.Set(new EnvironmentSettings
-        {
-            skyType = SkyType.None,
-        });
-        volumeData.Set(ExposureSettings.Default);
-        volumeData.Set(new ShadowSettings
-        {
-            shadowMode = ShadowMode.ShadowMap,
-            maxDistance = 50.0f,
-        });
-
-        var volumeEntity = world.EntityManager.CreateEntity(new RenderVolume { renderingLayerMask = RenderingLayerMask.All, isGlobal = true, weight = 1.0f, priority = 1 }, volumeData);
-        world.EntityManager.AddSharedComponent(volumeEntity, new SceneID { value = 0 });
     }
 
     public void ProcessEvent(SDL_Event e)
@@ -256,8 +171,10 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
 
     public void OnEngineShutdown(EngineCore engine)
     {
-        _cubePrefabEntry?.Release();
-        _cubePrefabEntry = null;
+        if (_editorWorld != null)
+        {
+            SceneSerializer.UnloadCurrentScene(_editorWorld, EditorSyncBridge.Instance, EditorSelection.Instance, CommandHistory.Instance);
+        }
 
         _imguiShaderEntry?.Release();
         _imguiShaderEntry = null;

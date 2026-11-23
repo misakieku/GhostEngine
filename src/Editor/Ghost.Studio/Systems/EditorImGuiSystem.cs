@@ -66,10 +66,10 @@ internal sealed class EditorImGuiSystem : SystemBase
 
         _assetImportService.ProjectAssetsBaked += HandleProjectAssetsBaked;
         _importSettingsWindow = new AssetImportSettingsWindow(_projectService, _assetImportService, _assetCatalog);
-        _sceneViewportPanel = new SceneViewportPanel(viewportTarget, viewportInputState);
+        _sceneViewportPanel = new SceneViewportPanel(viewportTarget, viewportInputState, _assetCatalog, path => _sceneSession.OpenScene(path, Ghost.Engine.SceneLoadingType.Additive));
         _projectPanel = new ProjectPanel(_projectService.AssetDirectories.FirstOrDefault());
-        _hierarchyPanel = new HierarchyPanel(viewportInputState, _assetCatalog, _projectPanel.SelectAndRevealAsset);
-        _inspectorPanel = new InspectorPanel(_projectService, _assetCatalog, _projectPanel.SelectAndRevealAsset, HandleOpenAsset);
+        _hierarchyPanel = new HierarchyPanel(viewportInputState, _assetCatalog, _projectPanel.SelectAndRevealAsset, path => _sceneSession.OpenScene(path, Ghost.Engine.SceneLoadingType.Additive));
+        _inspectorPanel = new InspectorPanel(_projectService, _assetCatalog, _projectPanel.SelectAndRevealAsset, HandleOpenAsset, _ => MainMenuBar.SaveSceneWithFallbackDialog(_sceneSession, _projectService, forceDialog: false, RefreshAfterSceneWrite));
         _projectPanel.BindAssetActions(_projectService.BakerRegistry.HasBaker, HandleOpenAsset, _importSettingsWindow.OpenForAsset,
             path => _assetImportService.EnqueueReimport(path, forceRebake: true), HandleCreateScene);
 

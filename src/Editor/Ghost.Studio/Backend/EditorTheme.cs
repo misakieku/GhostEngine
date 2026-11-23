@@ -339,6 +339,9 @@ internal static class EditorIcons
     // Scene & Hierarchy
     public const string ENTITY = "\uEA91";
     public const string CUBE = "\uF1B2";
+    public const string CAMERA = "\uE722";
+    public const string LIGHT = "\uE706";
+    public const string SCENE = "\uEBD2";
 
     // Folders & Assets
     public const string FOLDER = "\uEA83";

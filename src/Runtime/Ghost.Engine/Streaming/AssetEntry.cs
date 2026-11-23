@@ -69,6 +69,8 @@ internal abstract class AssetEntry : IAssetEntry
     private int _contentVersion;
 
     private int _pendingReimport;
+    private int _pendingDeferredRelease;
+    private int _unloaded;
     private bool _isReimporting;
 
     protected ResourceManager ResourceManager => _resourceManager;
@@ -93,6 +95,14 @@ internal abstract class AssetEntry : IAssetEntry
         set
         {
             Volatile.Write(ref _state, (int)value);
+            if (value is AssetState.Ready or AssetState.Failed)
+            {
+                if (Interlocked.Exchange(ref _pendingDeferredRelease, 0) == 1 && TryCompleteUnload())
+                {
+                    return;
+                }
+            }
+
             if (Volatile.Read(ref _state) == (int)AssetState.Ready)
             {
                 if (Interlocked.Exchange(ref _pendingReimport, 0) == 1)
@@ -255,9 +265,16 @@ internal abstract class AssetEntry : IAssetEntry
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool TryMarkUnloaded()
+    {
+        return Interlocked.CompareExchange(ref _unloaded, 1, 0) == 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddRef()
     {
         Interlocked.Increment(ref _refCount);
+        Volatile.Write(ref _pendingDeferredRelease, 0);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -268,20 +285,54 @@ internal abstract class AssetEntry : IAssetEntry
 
         if (newRefCount == 0)
         {
-            Logger.DebugAssert(State is AssetState.Ready or AssetState.Failed);
-            _assetManager.RemoveEntry(_assetId);
-            OnReleaseResource();
-
-            foreach (var dep in _dependencies)
+            if (State is AssetState.Ready or AssetState.Failed)
             {
-                if (_assetManager.TryGetEntry(dep, out var entry))
+                TryCompleteUnload();
+            }
+            else
+            {
+                // Defer teardown until loading/streaming reaches a terminal state instead of asserting mid-flight.
+                Volatile.Write(ref _pendingDeferredRelease, 1);
+                if (State is AssetState.Ready or AssetState.Failed && Interlocked.Exchange(ref _pendingDeferredRelease, 0) == 1)
                 {
-                    entry.Release();
+                    TryCompleteUnload();
                 }
             }
         }
 
         return newRefCount;
+    }
+
+    private bool TryCompleteUnload() => TryUnloadInternal(requireTerminalState: true);
+
+    internal bool TryForceUnloadOnDispose() => TryUnloadInternal(requireTerminalState: false);
+
+    private bool TryUnloadInternal(bool requireTerminalState)
+    {
+        if (_assetManager != null)
+        {
+            var claimed = requireTerminalState ? _assetManager.TryUnloadIfZero(this) : _assetManager.TryForceUnloadZeroRefOnDispose(this);
+            if (!claimed)
+            {
+                return false;
+            }
+        }
+        else if (Volatile.Read(ref _refCount) != 0 || !TryMarkUnloaded())
+        {
+            return false;
+        }
+
+        OnReleaseResource();
+
+        foreach (var dep in _dependencies)
+        {
+            if (_assetManager != null && _assetManager.TryGetEntry(dep, out var entry))
+            {
+                entry.Release();
+            }
+        }
+
+        return true;
     }
 
     public abstract void ReadAssetData(Span<byte> dst);

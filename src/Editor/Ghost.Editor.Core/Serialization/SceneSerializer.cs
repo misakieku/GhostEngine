@@ -138,7 +138,19 @@ public static unsafe class SceneSerializer
             return Result.Failure($"Failed to deserialize scene file '{filePath}'.");
         }
 
-        return LoadFromDocument(world, bridge, doc, mode, assetResolver, selection, history);
+        var fullPath = Path.GetFullPath(filePath);
+        var res = LoadFromDocument(world, bridge, doc, mode, assetResolver, selection, history);
+        if (res.IsSuccess)
+        {
+            bridge.RegisterScene(bridge.ActiveSceneId, fullPath);
+            var snap = bridge.LatestSnapshot;
+            if (snap != null)
+            {
+                bridge.PublishSnapshot(new SceneSnapshot(bridge.GetSceneNodeSnapshots(snap.Entities), snap.Entities, snap.FrameTimeMs, snap.Fps));
+            }
+        }
+
+        return res;
     }
 
     /// <summary>
@@ -153,12 +165,7 @@ public static unsafe class SceneSerializer
 
         if (mode == SceneLoadingType.Single)
         {
-            selection?.Clear();
-            history?.Clear();
-            DestroyAllSceneEntities(world, bridge);
-            bridge.ReleaseAllTrackedResources();
-            bridge.ClearSceneMetadata();
-            bridge.ActiveSceneId = 0;
+            UnloadCurrentScene(world, bridge, selection, history);
         }
         else
         {
@@ -166,6 +173,9 @@ public static unsafe class SceneSerializer
         }
 
         var sceneId = bridge.ActiveSceneId;
+        var scenePath = mode == SceneLoadingType.Single ? bridge.ActiveScenePath : null;
+        bridge.RegisterScene(sceneId, scenePath);
+
         var existingNodes = mode == SceneLoadingType.Additive && bridge.LatestSnapshot != null
             ? new List<EntityNode>(bridge.LatestSnapshot.Entities)
             : new List<EntityNode>();
@@ -204,6 +214,7 @@ public static unsafe class SceneSerializer
             var entityNode = new EntityNode(nodeId, name, compNodes)
             {
                 EditorGuid = entityGuid,
+                SceneId = sceneId,
                 EcsEntity = entity
             };
 
@@ -278,6 +289,7 @@ public static unsafe class SceneSerializer
                     var entityNode = new EntityNode(nodeId, sn.Name, compNodes)
                     {
                         EditorGuid = sn.EditorGuid,
+                        SceneId = sceneId,
                         PrefabLink = sn.Link,
                         EcsEntity = sn.Entity
                     };
@@ -300,7 +312,7 @@ public static unsafe class SceneSerializer
             }
             finally
             {
-                if (releaseAfterSpawn && prefabEntry.State == AssetState.Ready)
+                if (releaseAfterSpawn)
                 {
                     prefabEntry.Release();
                 }
@@ -348,7 +360,7 @@ public static unsafe class SceneSerializer
             }
         }
 
-        bridge.PublishSnapshot(new SceneSnapshot(loadedNodes));
+        bridge.PublishSnapshot(new SceneSnapshot(bridge.GetSceneNodeSnapshots(loadedNodes), loadedNodes));
 
         // Second pass binds EntityRefPropertyNode targets now that LatestSnapshot contains every loaded EntityGuid.
         for (var i = 0; i < pendingEntityRefs.Count; i++)
@@ -389,6 +401,20 @@ public static unsafe class SceneSerializer
         }
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Unloads all entities, scene-retained assets, and tracked UI resources belonging to the active editor scene.
+    /// </summary>
+    public static void UnloadCurrentScene(World world, EditorSyncBridge bridge, EditorSelection? selection = null, CommandHistory? history = null)
+    {
+        selection?.Clear();
+        history?.Clear();
+        DestroyAllSceneEntities(world, bridge);
+        bridge.ReleaseAllTrackedResources();
+        bridge.ReleaseSceneAssets();
+        bridge.ClearSceneMetadata();
+        bridge.ActiveSceneId = 0;
     }
 
     private static void DestroyAllSceneEntities(World world, EditorSyncBridge bridge)

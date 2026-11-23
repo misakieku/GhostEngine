@@ -96,7 +96,7 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
         var frameMs = systemAPI.Time.DeltaTime * 1000.0f;
         var fps = 1.0f / dt;
 
-        bridge.PublishSnapshot(new SceneSnapshot(_cachedEntities, frameMs, fps));
+        bridge.PublishSnapshot(new SceneSnapshot(bridge.GetSceneNodeSnapshots(_cachedEntities), _cachedEntities, frameMs, fps));
     }
 
     protected override void OnCleanup(scoped in SystemAPI systemAPI)
@@ -254,10 +254,12 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
                     : (hasCached ? existingNode!.Name : ResolveEntityDisplayName(em, entity, entityIndex));
 
                 EntityNode entityNode;
+                var sceneId = em.HasComponent<SceneID>(entity) ? em.GetSharedComponent<SceneID>(entity).value : bridge.ActiveSceneId;
                 if (hasCached)
                 {
                     entityNode = existingNode!;
                     entityNode.Name = name;
+                    entityNode.SceneId = sceneId;
                     entityNode.ParentId = null;
                     entityNode.EcsEntity = entity;
                     entityNode.PrefabLink = bridge.TryGetPrefabLink(entity, out var link) ? link : null;
@@ -268,6 +270,7 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
                 {
                     entityNode = new EntityNode(nodeId, name, compList)
                     {
+                        SceneId = sceneId,
                         EcsEntity = entity,
                         PrefabLink = bridge.TryGetPrefabLink(entity, out var link) ? link : null,
                     };
