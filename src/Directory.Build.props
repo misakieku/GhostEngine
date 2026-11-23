@@ -4,6 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WarningAsErrors>nullable</WarningAsErrors>
     <Configurations>Debug;Release;Debug_Editor;Release_Editor</Configurations>
   </PropertyGroup>
 
