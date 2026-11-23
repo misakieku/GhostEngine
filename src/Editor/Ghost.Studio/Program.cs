@@ -1,5 +1,6 @@
 using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
+using Ghost.Editor.Core.Sync;
 using Ghost.Engine;
 using Ghost.Engine.Components;
 using Ghost.Engine.Input;
@@ -145,12 +146,19 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
         _editorWorld = World.Create(engine.JobScheduler, 1024);
         _editorWorld.AddService(engine.RenderEngine);
         _editorWorld.AddService(engine.AssetManager);
-        _editorWorld.AddService(Ghost.Editor.Core.Sync.EditorSyncBridge.Instance.DirtyTracker);
+        _editorWorld.AddService(EditorSyncBridge.Instance.DirtyTracker);
+        EditorSyncBridge.Instance.AssetManager = engine.AssetManager;
+        EditorSyncBridge.Instance.ResourceManager = engine.RenderEngine.ResourceManager;
 
-        SeedStarterEditorScene(engine, _editorWorld);
+        var assetCatalog = new Services.EditorAssetCatalog(_projectService, _contentProvider);
+        var sceneSession = new Services.EditorSceneSession(_projectService, assetCatalog);
+        if (!sceneSession.TryLoadDefaultSceneOnStartup(_editorWorld))
+        {
+            SeedStarterEditorScene(engine, _editorWorld);
+        }
 
         _editorWorld.SystemManager.AddSystem(new EditorEcsSyncSystem());
-        _editorWorld.SystemManager.AddSystem(new EditorImGuiSystem(_contextManager!, _inputBridge!, _postRenderCommand!, _viewportTarget!, _viewportInputState!, _projectService, _contentProvider));
+        _editorWorld.SystemManager.AddSystem(new EditorImGuiSystem(_contextManager!, _inputBridge!, _postRenderCommand!, _viewportTarget!, _viewportInputState!, _projectService, _contentProvider, assetCatalog, sceneSession));
         _editorWorld.SystemManager.AddSystem(new EditorCameraControllerSystem(_viewportInputState!));
         _editorWorld.SystemManager.AddSystem(new EditorRenderSystemGroup(_viewportTarget!));
     }
@@ -160,8 +168,9 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
         if (engine.AssetManager.TryResolveAsset("Meshes/cube", out var cubeEntry))
         {
             _cubePrefabEntry = cubeEntry;
-            PrefabUtility.Instantiate(world, cubeEntry, new float3(0.0f, 0.8f, 0.0f), quaternion.identity, new float3(0.8f));
-            PrefabUtility.Instantiate(world, cubeEntry, new float3(0.0f, -0.15f, 0.0f), quaternion.identity, new float3(6.0f, 0.15f, 6.0f));
+            var bridge = Ghost.Editor.Core.Sync.EditorSyncBridge.Instance;
+            EditorPrefabUtility.TrySpawnLinkedPrefab(world, cubeEntry, bridge, new float3(0.0f, 0.8f, 0.0f), quaternion.identity, new float3(0.8f), out _, new PrefabSpawnOptions { RootName = "Cube" });
+            EditorPrefabUtility.TrySpawnLinkedPrefab(world, cubeEntry, bridge, new float3(0.0f, -0.15f, 0.0f), quaternion.identity, new float3(6.0f, 0.15f, 6.0f), out _, new PrefabSpawnOptions { RootName = "Ground" });
         }
         else
         {
@@ -170,7 +179,7 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
 
         var dirRot = quaternion.EulerXYZ(math.radians(new float3(48.0f, 215.0f, 0.0f)));
         var dirPos = new float3(0.0f, 20.0f, 0.0f);
-        world.EntityManager.CreateEntity(
+        var dirEntity = world.EntityManager.CreateEntity(
             new DirectionalLight
             {
                 color = new float3(1.0f, 0.96f, 0.90f),
@@ -192,9 +201,10 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
             {
                 matrix = MathUtility.TRS(dirPos, dirRot, float3.one),
             });
+        world.EntityManager.AddSharedComponent(dirEntity, new SceneID { value = 0 });
 
         var pointPos = new float3(-3.5f, 3.0f, -3.5f);
-        world.EntityManager.CreateEntity(
+        var pointEntity = world.EntityManager.CreateEntity(
             new PunctualLight
             {
                 type = PunctualLightType.Point,
@@ -222,6 +232,7 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
             {
                 matrix = MathUtility.TRS(pointPos, quaternion.identity, float3.one),
             });
+        world.EntityManager.AddSharedComponent(pointEntity, new SceneID { value = 0 });
 
         var volumeData = new RenderVolumeDataContainer(32);
         volumeData.Set(new EnvironmentSettings
@@ -235,7 +246,8 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
             maxDistance = 50.0f,
         });
 
-        world.EntityManager.CreateEntity(new RenderVolume { renderingLayerMask = RenderingLayerMask.All, isGlobal = true, weight = 1.0f, priority = 1 }, volumeData);
+        var volumeEntity = world.EntityManager.CreateEntity(new RenderVolume { renderingLayerMask = RenderingLayerMask.All, isGlobal = true, weight = 1.0f, priority = 1 }, volumeData);
+        world.EntityManager.AddSharedComponent(volumeEntity, new SceneID { value = 0 });
     }
 
     public void ProcessEvent(SDL_Event e)

@@ -4,6 +4,7 @@
     <ProjectReference Include="..\..\Runtime\Ghost.Core\Ghost.Core.csproj" />
     <ProjectReference Include="..\..\Runtime\Ghost.Entities\Ghost.Entities.csproj" />
     <ProjectReference Include="..\..\Runtime\Ghost.Engine\Ghost.Engine.csproj" />
+    <ProjectReference Include="..\Ghost.AssetForge.Core\Ghost.AssetForge.Core.csproj" />
   </ItemGroup>
 
 </Project>

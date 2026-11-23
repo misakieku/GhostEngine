@@ -32,6 +32,13 @@ internal static unsafe class NativeProjectDialogs
     private const int IDYES = 6;
     private const int IDNO = 7;
 
+    public enum UnsavedPromptResult
+    {
+        Save,
+        Discard,
+        Cancel
+    }
+
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct TASKDIALOG_BUTTON
     {
@@ -284,6 +291,76 @@ internal static unsafe class NativeProjectDialogs
 
             return GetSaveFileNameW(&ofn) ? new string(fileBuffer) : null;
         }
+    }
+
+    public static string? ShowOpenSceneFileDialog(string? initialDirectory = null, nint hwndOwner = 0)
+    {
+        const int bufferLength = 1024;
+        var fileBuffer = stackalloc char[bufferLength];
+        fileBuffer[0] = '\0';
+
+        fixed (char* pFilter = "Ghost Scene (*.gscene)\0*.gscene\0All Files (*.*)\0*.*\0\0")
+        fixed (char* pTitle = "Open Scene")
+        fixed (char* pDefExt = "gscene")
+        fixed (char* pInitDir = string.IsNullOrWhiteSpace(initialDirectory) ? null : initialDirectory)
+        {
+            var ofn = new OPENFILENAMEW
+            {
+                lStructSize = (uint)sizeof(OPENFILENAMEW),
+                hwndOwner = hwndOwner,
+                lpstrFilter = pFilter,
+                nFilterIndex = 1,
+                lpstrFile = fileBuffer,
+                nMaxFile = bufferLength,
+                lpstrInitialDir = pInitDir,
+                lpstrTitle = pTitle,
+                lpstrDefExt = pDefExt,
+                Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR,
+            };
+
+            return GetOpenFileNameW(&ofn) ? new string(fileBuffer) : null;
+        }
+    }
+
+    public static string? ShowSaveSceneFileDialog(string? initialDirectory = null, string defaultFileName = "NewScene.gscene", nint hwndOwner = 0)
+    {
+        const int bufferLength = 1024;
+        var fileBuffer = stackalloc char[bufferLength];
+        defaultFileName.AsSpan().CopyTo(new Span<char>(fileBuffer, bufferLength));
+        fileBuffer[defaultFileName.Length] = '\0';
+
+        fixed (char* pFilter = "Ghost Scene (*.gscene)\0*.gscene\0\0")
+        fixed (char* pTitle = "Save Scene As")
+        fixed (char* pDefExt = "gscene")
+        fixed (char* pInitDir = string.IsNullOrWhiteSpace(initialDirectory) ? null : initialDirectory)
+        {
+            var ofn = new OPENFILENAMEW
+            {
+                lStructSize = (uint)sizeof(OPENFILENAMEW),
+                hwndOwner = hwndOwner,
+                lpstrFilter = pFilter,
+                nFilterIndex = 1,
+                lpstrFile = fileBuffer,
+                nMaxFile = bufferLength,
+                lpstrInitialDir = pInitDir,
+                lpstrTitle = pTitle,
+                lpstrDefExt = pDefExt,
+                Flags = OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR,
+            };
+
+            return GetSaveFileNameW(&ofn) ? new string(fileBuffer) : null;
+        }
+    }
+
+    public static UnsavedPromptResult PromptSaveDirtyScene(string sceneDisplayName, nint hwndOwner = 0)
+    {
+        var res = MessageBoxW(hwndOwner, $"Save changes to '{sceneDisplayName}' before continuing?", "Unsaved Scene Changes", MB_YESNOCANCEL | MB_ICONQUESTION);
+        return res switch
+        {
+            IDYES => UnsavedPromptResult.Save,
+            IDNO => UnsavedPromptResult.Discard,
+            _ => UnsavedPromptResult.Cancel,
+        };
     }
 
     private static void ShowError(nint hwndOwner, string title, string message)

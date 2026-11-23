@@ -126,9 +126,15 @@ public sealed class DeleteEntityCommand : IEditorCommand
             {
                 var node = _removedEntries[i].Node;
                 var recreated = em.CreateEntity();
+                em.AddSharedComponent(recreated, new SceneID { value = _bridge.ActiveSceneId });
                 node.EcsEntity = recreated;
                 _bridge.RegisterEntityMapping(recreated, node.Id);
+                _bridge.RegisterEntityGuid(recreated, node.EditorGuid);
                 _bridge.SetEntityName(recreated, node.Name);
+                if (node.PrefabLink != null)
+                {
+                    _bridge.SetPrefabLink(recreated, node.PrefabLink);
+                }
 
                 var hasLocalTransform = false;
                 var hasLocalToWorld = false;

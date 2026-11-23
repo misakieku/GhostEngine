@@ -1,8 +1,10 @@
+using Ghost.AssetForge.Core.Models;
 using Ghost.AssetForge.Core.Services;
 using Ghost.Editor.Core.Commands;
 using Ghost.Editor.Core.Menus;
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
+using Ghost.Engine;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Systems;
 using Ghost.Entities;
@@ -31,6 +33,7 @@ internal sealed class EditorImGuiSystem : SystemBase
     private readonly EditorContentProvider? _contentProvider;
     private readonly AssetImportService _assetImportService;
     private readonly EditorAssetCatalog _assetCatalog;
+    private readonly EditorSceneSession _sceneSession;
 
     private readonly StudioDockspace _dockspace = new();
     private readonly MainMenuBar _mainMenuBar = new();
@@ -45,8 +48,7 @@ internal sealed class EditorImGuiSystem : SystemBase
     private readonly NodeGraphPanel _nodeGraphPanel = new();
     private int _lastObservedImportRevision;
 
-    public EditorImGuiSystem(ImGuiContextManager contextManager, ImGuiSdlInputBridge inputBridge, ImGuiPostRenderCommand postRenderCommand, SceneViewportTarget viewportTarget,
-        EditorViewportInputState viewportInputState, ProjectService projectService, EditorContentProvider? contentProvider = null)
+    public EditorImGuiSystem(ImGuiContextManager contextManager, ImGuiSdlInputBridge inputBridge, ImGuiPostRenderCommand postRenderCommand, SceneViewportTarget viewportTarget, EditorViewportInputState viewportInputState, ProjectService projectService, EditorContentProvider? contentProvider = null, EditorAssetCatalog? sharedCatalog = null, EditorSceneSession? sharedSceneSession = null)
     {
         _contextManager = contextManager;
         _inputBridge = inputBridge;
@@ -55,7 +57,8 @@ internal sealed class EditorImGuiSystem : SystemBase
         _projectService = projectService;
         _contentProvider = contentProvider;
         _assetImportService = new AssetImportService(projectService);
-        _assetCatalog = new EditorAssetCatalog(projectService, contentProvider);
+        _assetCatalog = sharedCatalog ?? new EditorAssetCatalog(projectService, contentProvider);
+        _sceneSession = sharedSceneSession ?? new EditorSceneSession(projectService, _assetCatalog);
         if (_contentProvider != null)
         {
             _assetImportService.ProjectCacheUpdated += _contentProvider.RefreshProjectIndex;
@@ -64,11 +67,11 @@ internal sealed class EditorImGuiSystem : SystemBase
         _assetImportService.ProjectAssetsBaked += HandleProjectAssetsBaked;
         _importSettingsWindow = new AssetImportSettingsWindow(_projectService, _assetImportService, _assetCatalog);
         _sceneViewportPanel = new SceneViewportPanel(viewportTarget, viewportInputState);
-        _hierarchyPanel = new HierarchyPanel(viewportInputState);
         _projectPanel = new ProjectPanel(_projectService.AssetDirectories.FirstOrDefault());
-        _inspectorPanel = new InspectorPanel(_projectService, _assetCatalog, _projectPanel.SelectAndRevealAsset, path => _windowManager.OpenAsset(path));
-        _projectPanel.BindAssetActions(_projectService.BakerRegistry.HasBaker, path => _windowManager.OpenAsset(path), _importSettingsWindow.OpenForAsset,
-            path => _assetImportService.EnqueueReimport(path, forceRebake: true));
+        _hierarchyPanel = new HierarchyPanel(viewportInputState, _assetCatalog, _projectPanel.SelectAndRevealAsset);
+        _inspectorPanel = new InspectorPanel(_projectService, _assetCatalog, _projectPanel.SelectAndRevealAsset, HandleOpenAsset);
+        _projectPanel.BindAssetActions(_projectService.BakerRegistry.HasBaker, HandleOpenAsset, _importSettingsWindow.OpenForAsset,
+            path => _assetImportService.EnqueueReimport(path, forceRebake: true), HandleCreateScene);
 
         _windowManager.RegisterWindow(_sceneViewportPanel);
         _windowManager.RegisterWindow(_hierarchyPanel);
@@ -81,6 +84,7 @@ internal sealed class EditorImGuiSystem : SystemBase
         _windowManager.RegisterAssetEditor(".gmat", path => new MaterialEditorWindow(path, _projectService, _assetImportService, _assetCatalog, _projectPanel.SelectAndRevealAsset));
 
         _projectService.OnProjectLoaded += HandleProjectLoaded;
+        CommandHistory.Instance.HistoryChanged += HandleCommandHistoryChanged;
     }
 
     protected override void OnUpdate(scoped in SystemUpdateAPI systemAPI)
@@ -109,7 +113,7 @@ internal sealed class EditorImGuiSystem : SystemBase
 
         HandleGlobalShortcuts();
 
-        _mainMenuBar.Draw(_contextManager, _dockspace, _windowManager, _projectService, systemAPI.Time.DeltaTime);
+        _mainMenuBar.Draw(_contextManager, _dockspace, _windowManager, _projectService, systemAPI.Time.DeltaTime, _sceneSession, RefreshAfterSceneWrite);
         _dockspace.BeginDockSpace();
 
         _sceneViewportPanel.ResetFrameState();
@@ -139,6 +143,7 @@ internal sealed class EditorImGuiSystem : SystemBase
 
     protected override void OnCleanup(scoped in SystemAPI systemAPI)
     {
+        CommandHistory.Instance.HistoryChanged -= HandleCommandHistoryChanged;
         _projectService.OnProjectLoaded -= HandleProjectLoaded;
         _assetImportService.ProjectAssetsBaked -= HandleProjectAssetsBaked;
         if (_contentProvider != null)
@@ -181,7 +186,39 @@ internal sealed class EditorImGuiSystem : SystemBase
         }
     }
 
-    private static void HandleGlobalShortcuts()
+    private void HandleOpenAsset(string fullPath)
+    {
+        if (fullPath.EndsWith(SceneAssetDocument.EXTENSION, StringComparison.OrdinalIgnoreCase))
+        {
+            if (MainMenuBar.ConfirmDiscardOrSaveDirtyScene(_sceneSession, _projectService, RefreshAfterSceneWrite))
+            {
+                _sceneSession.OpenScene(fullPath, SceneLoadingType.Single);
+            }
+
+            return;
+        }
+
+        _windowManager.OpenAsset(fullPath);
+    }
+
+    private void HandleCreateScene(string targetDirectory)
+    {
+        var created = _sceneSession.CreateEmptySceneAsset(targetDirectory);
+        _projectPanel.SelectAndRevealAsset(created);
+    }
+
+    private void RefreshAfterSceneWrite()
+    {
+        _projectPanel.MarkDirty();
+        _assetCatalog.MarkDirty();
+    }
+
+    private static void HandleCommandHistoryChanged()
+    {
+        EditorSyncBridge.Instance.HasUnsavedSceneChanges = true;
+    }
+
+    private void HandleGlobalShortcuts()
     {
         var io = ImGui.GetIO();
         if (io.WantTextInput)
@@ -191,6 +228,20 @@ internal sealed class EditorImGuiSystem : SystemBase
 
         if (io.KeyCtrl)
         {
+            if (ImGui.IsKeyPressed(ImGuiKey.S))
+            {
+                if (io.KeyShift)
+                {
+                    _projectService.SaveProject();
+                }
+                else
+                {
+                    MainMenuBar.SaveSceneWithFallbackDialog(_sceneSession, _projectService, forceDialog: false, RefreshAfterSceneWrite);
+                }
+
+                return;
+            }
+
             if (ImGui.IsKeyPressed(ImGuiKey.Z))
             {
                 if (io.KeyShift)

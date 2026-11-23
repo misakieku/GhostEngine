@@ -250,6 +250,7 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
                     entityNode.Name = name;
                     entityNode.ParentId = null;
                     entityNode.EcsEntity = entity;
+                    entityNode.PrefabLink = bridge.TryGetPrefabLink(entity, out var link) ? link : null;
                     PopulateComponentNodes(world, em, entity, entityNode, compList, bridge, existingNode!.Components);
                     entityNode.Components = compList;
                 }
@@ -258,8 +259,19 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
                     entityNode = new EntityNode(nodeId, name, compList)
                     {
                         EcsEntity = entity,
+                        PrefabLink = bridge.TryGetPrefabLink(entity, out var link) ? link : null,
                     };
+                    if (bridge.TryGetEntityGuid(entity, out var savedGuid))
+                    {
+                        entityNode.EditorGuid = savedGuid;
+                    }
+                    else
+                    {
+                        bridge.RegisterEntityGuid(entity, entityNode.EditorGuid);
+                    }
+
                     PopulateComponentNodes(world, em, entity, entityNode, compList, bridge, null);
+                    ApplyInitialMeshAuthoringIfPresent(bridge, entity, compList);
                 }
 
                 _entityNodeCache[entity] = entityNode;
@@ -282,6 +294,35 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
         }
 
         return result;
+    }
+
+    private static void ApplyInitialMeshAuthoringIfPresent(EditorSyncBridge bridge, Entity entity, IReadOnlyList<ComponentNode> components)
+    {
+        if (!bridge.TryConsumeInitialMeshAuthoring(entity, out var meshGuid, out var materialGuids))
+        {
+            return;
+        }
+
+        for (var i = 0; i < components.Count; i++)
+        {
+            var comp = components[i];
+            if (comp.ComponentType != typeof(MeshInstance))
+            {
+                continue;
+            }
+
+            if (meshGuid != Guid.Empty && comp.FindProperty(nameof(MeshInstance.mesh)) is AssetPropertyNode meshProp && meshProp.AssetGuid == Guid.Empty)
+            {
+                meshProp.ApplyValue(meshGuid);
+            }
+
+            if (materialGuids.Length > 0 && comp.FindProperty(nameof(MeshInstance.materialPalette)) is MaterialPalettePropertyNode paletteProp && paletteProp.MaterialGuids.Count == 0)
+            {
+                paletteProp.ApplyValue(materialGuids);
+            }
+
+            break;
+        }
     }
 
     private void RestoreSelection(Entity activeEcs)

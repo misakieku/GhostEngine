@@ -1,8 +1,10 @@
+using System.Reflection;
+using System.Text.Json;
+using Ghost.AssetForge.Core.Models;
 using Ghost.Core;
 using Ghost.Engine.Streaming;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.Services;
-using System.Reflection;
 
 namespace Ghost.Editor.Core.Sync;
 
@@ -77,6 +79,19 @@ public sealed class MaterialPalettePropertyNode : PropertyNode
     public override object? GetSerializableValue()
     {
         return _materialGuids.ToArray();
+    }
+
+    public override JsonElement SerializeToJson(JsonSerializerOptions options)
+    {
+        return SceneJsonTokens.CreatePaletteRef(_materialGuids);
+    }
+
+    public override void DeserializeFromJson(JsonElement element, JsonSerializerOptions options)
+    {
+        if (SceneJsonTokens.TryGetPaletteRef(element, out var guids))
+        {
+            ApplyValue(guids);
+        }
     }
 
     public override bool TryCompletePendingResolution()

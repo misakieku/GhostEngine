@@ -70,6 +70,7 @@ internal sealed class AssetVisualRegistry
     {
         var registry = new AssetVisualRegistry();
         registry.RegisterExtension(".gmat", EditorIcons.ASSET_MATERIAL, static t => EditorColorTokens.FromRgba(0xD4, 0x8A, 0xE8), "Material");
+        registry.RegisterExtension(".gscene", EditorIcons.LAYERS, static t => t.SemanticWarning, "Scene");
 
         registry.RegisterExtensions(new[] { ".gshdr", ".gcomp", ".ggraph", ".hlsl" }, EditorIcons.ASSET_SHADER, static t => t.AccentHovered, "Shader");
         registry.RegisterExtensions(new[] { ".obj", ".fbx", ".gltf", ".glb" }, EditorIcons.ASSET_MESH, static t => EditorColorTokens.FromRgba(0x6C, 0xB8, 0xFF), "Mesh");

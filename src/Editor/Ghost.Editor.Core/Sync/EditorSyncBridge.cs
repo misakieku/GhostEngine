@@ -19,6 +19,9 @@ public sealed class EditorSyncBridge
     private readonly ConcurrentQueue<Action<World>> _pendingWorldActions = new();
     private readonly Dictionary<Entity, string> _entityNames = new();
     private readonly Dictionary<Entity, int> _entityNodeIds = new();
+    private readonly Dictionary<Entity, Guid> _entityGuids = new();
+    private readonly Dictionary<Entity, PrefabLinkInfo> _prefabLinks = new();
+    private readonly Dictionary<Entity, (Guid MeshGuid, Guid[] MaterialGuids)> _initialMeshAuthoring = new();
     private readonly List<PropertyNode> _trackedResourceNodes = new();
     private readonly object _metadataLock = new();
     private readonly object _snapshotLock = new();
@@ -28,6 +31,12 @@ public sealed class EditorSyncBridge
     private int _nextEntityId = 1;
 
     public static EditorSyncBridge Instance { get; } = new();
+
+    public ushort ActiveSceneId { get; set; } = 0;
+
+    public string? ActiveScenePath { get; set; }
+
+    public bool HasUnsavedSceneChanges { get; set; }
 
     public EditorDirtyTracker DirtyTracker { get; } = new();
 
@@ -111,6 +120,119 @@ public sealed class EditorSyncBridge
         {
             _entityNames.Remove(entity);
             _entityNodeIds.Remove(entity);
+            _entityGuids.Remove(entity);
+            _prefabLinks.Remove(entity);
+            _initialMeshAuthoring.Remove(entity);
+        }
+    }
+
+    public void RegisterEntityGuid(Entity entity, Guid editorGuid)
+    {
+        if (!entity.IsValid || editorGuid == Guid.Empty)
+        {
+            return;
+        }
+
+        lock (_metadataLock)
+        {
+            _entityGuids[entity] = editorGuid;
+        }
+    }
+
+    public bool TryGetEntityGuid(Entity entity, out Guid editorGuid)
+    {
+        if (!entity.IsValid)
+        {
+            editorGuid = Guid.Empty;
+            return false;
+        }
+
+        lock (_metadataLock)
+        {
+            return _entityGuids.TryGetValue(entity, out editorGuid);
+        }
+    }
+
+    public void SetPrefabLink(Entity entity, PrefabLinkInfo? link)
+    {
+        if (!entity.IsValid)
+        {
+            return;
+        }
+
+        lock (_metadataLock)
+        {
+            if (link == null)
+            {
+                _prefabLinks.Remove(entity);
+            }
+            else
+            {
+                _prefabLinks[entity] = link;
+            }
+        }
+    }
+
+    public bool TryGetPrefabLink(Entity entity, out PrefabLinkInfo link)
+    {
+        if (!entity.IsValid)
+        {
+            link = null!;
+            return false;
+        }
+
+        lock (_metadataLock)
+        {
+            return _prefabLinks.TryGetValue(entity, out link!);
+        }
+    }
+
+    public void SetInitialMeshAuthoring(Entity entity, Guid meshGuid, Guid[] materialGuids)
+    {
+        if (!entity.IsValid)
+        {
+            return;
+        }
+
+        lock (_metadataLock)
+        {
+            _initialMeshAuthoring[entity] = (meshGuid, materialGuids);
+        }
+    }
+
+    public bool TryConsumeInitialMeshAuthoring(Entity entity, out Guid meshGuid, out Guid[] materialGuids)
+    {
+        if (!entity.IsValid)
+        {
+            meshGuid = Guid.Empty;
+            materialGuids = Array.Empty<Guid>();
+            return false;
+        }
+
+        lock (_metadataLock)
+        {
+            if (_initialMeshAuthoring.Remove(entity, out var authoring))
+            {
+                meshGuid = authoring.MeshGuid;
+                materialGuids = authoring.MaterialGuids;
+                return true;
+            }
+        }
+
+        meshGuid = Guid.Empty;
+        materialGuids = Array.Empty<Guid>();
+        return false;
+    }
+
+    public void ClearSceneMetadata()
+    {
+        lock (_metadataLock)
+        {
+            _entityNames.Clear();
+            _entityNodeIds.Clear();
+            _entityGuids.Clear();
+            _prefabLinks.Clear();
+            _initialMeshAuthoring.Clear();
         }
     }
 

@@ -225,6 +225,24 @@ public static unsafe class ComponentReflectionAccessor
         return true;
     }
 
+    public static bool TryBoxFromPointer(Type componentType, void* ptr, out object? value)
+    {
+        value = null;
+        if (ptr == null)
+        {
+            return false;
+        }
+
+        var accessor = GetOrCreate(componentType);
+        if (accessor == null)
+        {
+            return false;
+        }
+
+        value = accessor.Read(ptr);
+        return true;
+    }
+
     private static IAccessor? GetOrCreate(Type componentType)
     {
         return s_accessors.GetOrAdd(componentType, static type =>

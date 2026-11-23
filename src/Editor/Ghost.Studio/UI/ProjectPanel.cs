@@ -46,6 +46,7 @@ internal sealed class ProjectPanel : EditorWindow
     private Action<string>? _onOpenAsset;
     private Action<string>? _onOpenImportSettings;
     private Action<string>? _onReimportAsset;
+    private Action<string>? _onCreateScene;
 
     public AssetImportService.ImportProgressSnapshot CurrentImportProgress { get; set; }
 
@@ -66,12 +67,13 @@ internal sealed class ProjectPanel : EditorWindow
 
     public string CurrentDirectory => _currentDirectory;
 
-    public void BindAssetActions(Func<string, bool> hasBaker, Action<string> onOpenAsset, Action<string> onOpenImportSettings, Action<string> onReimportAsset)
+    public void BindAssetActions(Func<string, bool> hasBaker, Action<string> onOpenAsset, Action<string> onOpenImportSettings, Action<string> onReimportAsset, Action<string>? onCreateScene = null)
     {
         _hasBaker = hasBaker;
         _onOpenAsset = onOpenAsset;
         _onOpenImportSettings = onOpenImportSettings;
         _onReimportAsset = onReimportAsset;
+        _onCreateScene = onCreateScene;
     }
 
     public void SelectAndRevealAsset(string fullPath)
@@ -140,6 +142,22 @@ internal sealed class ProjectPanel : EditorWindow
         if (_filteredItems.Count == 0)
         {
             ImGui.TextColored(tokens.TextDisabled, "Empty folder (drop files anywhere to import)");
+        }
+
+        if (_onCreateScene != null && ImGui.BeginPopupContextWindow("##ProjectBgContext", ImGuiPopupFlags.MouseButtonRight | ImGuiPopupFlags.NoOpenOverItems))
+        {
+            if (ImGui.BeginMenu("Create"))
+            {
+                if (ImGui.MenuItem("Scene"))
+                {
+                    _onCreateScene.Invoke(_currentDirectory);
+                    _dirty = true;
+                }
+
+                ImGui.EndMenu();
+            }
+
+            ImGui.EndPopup();
         }
         ImGui.EndChild();
 

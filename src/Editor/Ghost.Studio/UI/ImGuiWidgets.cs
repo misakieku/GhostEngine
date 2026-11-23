@@ -120,14 +120,14 @@ internal static class ImGuiWidgets
         return toggled;
     }
 
-    public static TreeRowResult TreeRow(string rowId, string label, int depth, float indentWidth, bool hasChildren, bool isExpanded, bool isSelected, string? iconGlyph, Vector4 iconColor, in EditorColorTokens tokens)
+    public static TreeRowResult TreeRow(string rowId, string label, int depth, float indentWidth, bool hasChildren, bool isExpanded, bool isSelected, string? iconGlyph, Vector4 iconColor, in EditorColorTokens tokens, Vector4? labelColor = null)
     {
         var toggled = DrawTreeIndentAndChevron(depth, indentWidth, hasChildren, isExpanded, in tokens);
-        var clicked = IconSelectableRow(rowId, label, iconGlyph, iconColor, isSelected, in tokens, out var doubleClicked);
+        var clicked = IconSelectableRow(rowId, label, iconGlyph, iconColor, isSelected, in tokens, out var doubleClicked, labelColor);
         return new TreeRowResult(clicked, doubleClicked, toggled);
     }
 
-    public static bool IconSelectableRow(string rowId, string label, string? iconGlyph, Vector4 iconColor, bool isSelected, in EditorColorTokens tokens, out bool doubleClicked)
+    public static bool IconSelectableRow(string rowId, string label, string? iconGlyph, Vector4 iconColor, bool isSelected, in EditorColorTokens tokens, out bool doubleClicked, Vector4? labelColor = null)
     {
         var rowHeight = ImGui.GetFrameHeight();
         var clicked = ImGui.Selectable($"##{rowId}", isSelected, ImGuiSelectableFlags.AllowDoubleClick, new Vector2(0.0f, rowHeight));
@@ -152,7 +152,7 @@ internal static class ImGuiWidgets
             cursorX += iconSlotWidth + 6.0f;
         }
 
-        drawList.AddText(new Vector2(cursorX, textY), ImGui.GetColorU32(tokens.TextPrimary), label);
+        drawList.AddText(new Vector2(cursorX, textY), ImGui.GetColorU32(labelColor ?? tokens.TextPrimary), label);
         drawList.PopClipRect();
 
         return clicked;

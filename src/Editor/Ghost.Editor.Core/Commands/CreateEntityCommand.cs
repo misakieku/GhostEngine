@@ -70,9 +70,15 @@ public sealed class CreateEntityCommand : IEditorCommand
         {
             var em = world.EntityManager;
             var created = em.CreateEntity();
+            em.AddSharedComponent(created, new SceneID { value = _bridge.ActiveSceneId });
             _entity.EcsEntity = created;
             _bridge.RegisterEntityMapping(created, _entity.Id);
+            _bridge.RegisterEntityGuid(created, _entity.EditorGuid);
             _bridge.SetEntityName(created, _entity.Name);
+            if (_entity.PrefabLink != null)
+            {
+                _bridge.SetPrefabLink(created, _entity.PrefabLink);
+            }
 
             var hasLocalTransform = false;
             var hasLocalToWorld = false;

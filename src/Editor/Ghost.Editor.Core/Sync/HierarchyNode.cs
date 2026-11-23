@@ -1,7 +1,15 @@
-using Ghost.Entities;
 using System.Reflection;
+using System.Text.Json;
+using Ghost.AssetForge.Core.Models;
+using Ghost.Entities;
 
 namespace Ghost.Editor.Core.Sync;
+
+/// <summary>
+/// Editor-only authoring link tying a scene <see cref="EntityNode"/> back to its source prefab instance and template entity index.
+/// Never attached as a runtime ECS component.
+/// </summary>
+public sealed record PrefabLinkInfo(Guid InstanceGuid, Guid PrefabAssetGuid, int TemplateEntityIndex);
 
 public sealed class EntityNode
 {
@@ -10,6 +18,7 @@ public sealed class EntityNode
     public string Name { get; set; }
     public int? ParentId { get; set; }
     public Entity EcsEntity { get; set; } = Entity.Invalid;
+    public PrefabLinkInfo? PrefabLink { get; set; }
     public IReadOnlyList<ComponentNode> Components { get; set; }
 
     public EntityNode(int id, string name, IReadOnlyList<ComponentNode> components, int? parentId = null)
@@ -36,6 +45,42 @@ public sealed class ComponentNode
         EntityNode = entityNode;
         Properties = properties;
         LiveValue = liveValue;
+    }
+
+    public PropertyNode? FindProperty(string propertyName)
+    {
+        for (var i = 0; i < Properties.Count; i++)
+        {
+            if (string.Equals(Properties[i].Name, propertyName, StringComparison.Ordinal))
+            {
+                return Properties[i];
+            }
+        }
+
+        return null;
+    }
+
+    public SceneComponentRecord SerializeToRecord(JsonSerializerOptions options)
+    {
+        var record = new SceneComponentRecord
+        {
+            Type = ComponentType.FullName ?? ComponentType.Name
+        };
+
+        for (var i = 0; i < Properties.Count; i++)
+        {
+            Properties[i].WriteToComponentRecord(record, options);
+        }
+
+        return record;
+    }
+
+    public void DeserializeFromRecord(SceneComponentRecord record, JsonSerializerOptions options)
+    {
+        for (var i = 0; i < Properties.Count; i++)
+        {
+            Properties[i].ReadFromComponentRecord(record, options);
+        }
     }
 }
 
@@ -82,6 +127,57 @@ public abstract class PropertyNode
     /// Returns the authoring value to persist during scene serialization (never ephemeral runtime handles).
     /// </summary>
     public abstract object? GetSerializableValue();
+
+    /// <summary>
+    /// Serializes this node's authoring value into a <see cref="JsonElement"/> without exposing runtime handles.
+    /// </summary>
+    public virtual JsonElement SerializeToJson(JsonSerializerOptions options)
+    {
+        var value = GetSerializableValue();
+        return value == null ? default : JsonSerializer.SerializeToElement(value, PropertyType, options);
+    }
+
+    /// <summary>
+    /// Deserializes a <see cref="JsonElement"/> payload and applies it to this property node.
+    /// </summary>
+    public virtual void DeserializeFromJson(JsonElement element, JsonSerializerOptions options)
+    {
+        if (element.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
+        {
+            return;
+        }
+
+        var value = element.Deserialize(PropertyType, options);
+        ApplyValue(value);
+    }
+
+    /// <summary>
+    /// Writes this property node's serialized state into a <see cref="SceneComponentRecord"/>.
+    /// </summary>
+    public virtual void WriteToComponentRecord(SceneComponentRecord record, JsonSerializerOptions options)
+    {
+        var elem = SerializeToJson(options);
+        if (elem.ValueKind != JsonValueKind.Undefined)
+        {
+            record.Fields[Name] = elem;
+        }
+    }
+
+    /// <summary>
+    /// Reads this property node's serialized state from a <see cref="SceneComponentRecord"/>.
+    /// </summary>
+    public virtual void ReadFromComponentRecord(SceneComponentRecord record, JsonSerializerOptions options)
+    {
+        if (record.Fields.TryGetValue(Name, out var elem))
+        {
+            DeserializeFromJson(elem, options);
+        }
+    }
+
+    /// <summary>
+    /// Gets whether this property must be re-bound after all entities in a loaded scene snapshot are registered.
+    /// </summary>
+    public virtual bool RequiresPostSnapshotBind => false;
 
     /// <summary>
     /// Completes any deferred async asset resolution once underlying streaming entries become ready.

@@ -5,14 +5,18 @@ using Ghost.Core;
 using Ghost.Editor.Core.Commands;
 using Ghost.Editor.Core.Menus;
 using Ghost.Editor.Core.Selection;
+using Ghost.Editor.Core.Serialization;
 using Ghost.Editor.Core.Sync;
+using Ghost.Engine;
 using Ghost.Engine.Components;
+using Ghost.Entities;
 using Ghost.Studio.Assets;
 using Ghost.Studio.Backend;
 using Ghost.Studio.Rendering;
 using Ghost.Studio.Services;
 using Ghost.Studio.UI;
 using Hexa.NET.ImGui;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
 using System.Numerics;
@@ -29,7 +33,7 @@ public static class StudioHeadlessRunner
         Console.WriteLine("==================================================================");
 
         var passCount = 0;
-        var totalCount = 13;
+        var totalCount = 14;
 
         // Test 1: EditorSyncBridge Snapshot Publishing & Mutation Enqueuing
         Console.Write("[1/8] Testing EditorSyncBridge snapshot publishing & mutation queue... ");
@@ -343,8 +347,14 @@ public static class StudioHeadlessRunner
         passCount++;
 
         // Test 13: StudioDockspace default layout docks all built-in windows on first launch
-        Console.Write("[13/13] Testing StudioDockspace default layout initial docking... ");
+        Console.Write("[13/14] Testing StudioDockspace default layout initial docking... ");
         TestDefaultDockspaceLayout();
+        Console.WriteLine("PASS");
+        passCount++;
+
+        // Test 14: EditorSceneSession create, save, open, DefaultScene boot & UnpackPrefabCommand
+        Console.Write("[14/14] Testing EditorSceneSession save/open, DefaultScene & UnpackPrefabCommand... ");
+        TestSceneSessionAndPrefabUnpack();
         Console.WriteLine("PASS");
         passCount++;
 
@@ -711,6 +721,85 @@ public static class StudioHeadlessRunner
             {
                 File.WriteAllText(iniPath, backupIni);
             }
+        }
+    }
+
+    private static void TestSceneSessionAndPrefabUnpack()
+    {
+        AllocationManager.Initialize();
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"GhostStudioSceneTest_{Guid.NewGuid():N}");
+        try
+        {
+            using var bakerRegistry = new BakerRegistry();
+            var projectService = new ProjectService(bakerRegistry);
+            projectService.CreateProject(tempRoot, "SceneProj");
+
+            var scenesDir = Path.Combine(projectService.AssetDirectories[0], "Scenes");
+            var catalog = new EditorAssetCatalog(projectService);
+            var bridge = new EditorSyncBridge();
+            var session = new EditorSceneSession(projectService, catalog, bridge);
+
+            var createdScenePath = session.CreateEmptySceneAsset(scenesDir, "Main");
+            if (!File.Exists(createdScenePath) || !File.Exists(createdScenePath + ".meta"))
+            {
+                throw new InvalidOperationException("CreateEmptySceneAsset did not create both .gscene and .meta.");
+            }
+
+            var visualRegistry = AssetVisualRegistry.CreateDefault();
+            var tokens = EditorColorTokens.CreateDark();
+            var sceneVisual = visualRegistry.Resolve(createdScenePath, SceneAssetDocument.EXTENSION, false, AssetViewMode.List, in tokens);
+            if (sceneVisual.IconGlyph != EditorIcons.LAYERS)
+            {
+                throw new InvalidOperationException("AssetVisualRegistry did not resolve .gscene icon.");
+            }
+
+            using (var scheduler = new JobScheduler(new JobSchedulerDesc { ThreadCount = 1, ThreadPriority = ThreadPriority.Normal, DependencyChainCapacity = 64 }))
+            using (var world = World.Create(scheduler, 64))
+            {
+                var doc = new SceneAssetDocument
+                {
+                    Entities = new List<SceneEntityRecord>
+                    {
+                        new() { Guid = Guid.NewGuid(), Name = "BootMarker" }
+                    }
+                };
+                SceneSerializer.WriteDocumentToFile(createdScenePath, doc);
+
+                projectService.SetDefaultScene("Scenes/Main.gscene");
+                if (!session.TryLoadDefaultSceneOnStartup(world) || bridge.LatestSnapshot?.Entities.Count != 1 || bridge.LatestSnapshot.Entities[0].Name != "BootMarker")
+                {
+                    throw new InvalidOperationException("TryLoadDefaultSceneOnStartup failed to load configured DefaultScene.");
+                }
+
+                // Verify UnpackPrefabCommand + Undo toggles PrefabLink cleanly
+                var instanceGuid = Guid.NewGuid();
+                var prefabNode = bridge.LatestSnapshot.Entities[0];
+                prefabNode.PrefabLink = new PrefabLinkInfo(instanceGuid, Guid.NewGuid(), 0);
+
+                var history = new CommandHistory();
+                history.Execute(new UnpackPrefabCommand(instanceGuid, bridge));
+                bridge.DrainWorldActions(world);
+                if (prefabNode.PrefabLink != null)
+                {
+                    throw new InvalidOperationException("UnpackPrefabCommand did not clear PrefabLink.");
+                }
+
+                history.Undo();
+                bridge.DrainWorldActions(world);
+                if (prefabNode.PrefabLink == null || prefabNode.PrefabLink.InstanceGuid != instanceGuid)
+                {
+                    throw new InvalidOperationException("Undo of UnpackPrefabCommand did not restore PrefabLink.");
+                }
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+
+            AllocationManager.Dispose();
         }
     }
 }

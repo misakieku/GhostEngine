@@ -31,6 +31,16 @@ public class ProjectService
 
     public event Action? OnProjectLoaded;
 
+    public void SetDefaultScene(string defaultScene)
+    {
+        if (CurrentProject == null)
+        {
+            return;
+        }
+
+        CurrentProject = CurrentProject with { DefaultScene = defaultScene ?? string.Empty };
+    }
+
     public void InitializeFromArgs(IEnumerable<string> assetDirs, string cacheDir, string buildDir)
     {
         AssetDirectories = assetDirs.ToArray();

@@ -68,6 +68,7 @@ public static class VolumeTypeRegistry
     private static IReadOnlyList<IVolumeOverrideAccessor> s_accessors = Array.Empty<IVolumeOverrideAccessor>();
     private static readonly Dictionary<Type, IVolumeOverrideAccessor> s_byType = new();
     private static readonly Dictionary<ushort, IVolumeOverrideAccessor> s_byTypeId = new();
+    private static readonly Dictionary<string, IVolumeOverrideAccessor> s_byFullName = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Discovers and caches all editor-visible <see cref="IVolumeComponent{T}"/> settings structs.
@@ -105,6 +106,30 @@ public static class VolumeTypeRegistry
         lock (s_lock)
         {
             if (s_byTypeId.TryGetValue(typeId, out accessor!))
+            {
+                return true;
+            }
+        }
+
+        accessor = null!;
+        return false;
+    }
+
+    /// <summary>
+    /// Looks up a cached volume accessor by settings struct full type name.
+    /// </summary>
+    public static bool TryGetAccessor(string typeFullName, out IVolumeOverrideAccessor accessor)
+    {
+        if (string.IsNullOrEmpty(typeFullName))
+        {
+            accessor = null!;
+            return false;
+        }
+
+        EnsureDiscovered();
+        lock (s_lock)
+        {
+            if (s_byFullName.TryGetValue(typeFullName, out accessor!))
             {
                 return true;
             }
@@ -161,6 +186,7 @@ public static class VolumeTypeRegistry
             var list = new List<IVolumeOverrideAccessor>();
             s_byType.Clear();
             s_byTypeId.Clear();
+            s_byFullName.Clear();
 
             for (var i = 0; i < assemblies.Length; i++)
             {
@@ -207,6 +233,10 @@ public static class VolumeTypeRegistry
                     list.Add(accessor);
                     s_byType[t] = accessor;
                     s_byTypeId[accessor.TypeId] = accessor;
+                    if (!string.IsNullOrEmpty(t.FullName))
+                    {
+                        s_byFullName[t.FullName] = accessor;
+                    }
                 }
             }
 

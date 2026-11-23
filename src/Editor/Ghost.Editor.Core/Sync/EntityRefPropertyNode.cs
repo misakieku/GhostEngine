@@ -1,5 +1,7 @@
-using Ghost.Entities;
 using System.Reflection;
+using System.Text.Json;
+using Ghost.AssetForge.Core.Models;
+using Ghost.Entities;
 
 namespace Ghost.Editor.Core.Sync;
 
@@ -27,6 +29,8 @@ public sealed class EntityRefPropertyNode : PropertyNode
             SyncIdentityFromEntity(ecs);
         }
     }
+
+    public override bool RequiresPostSnapshotBind => true;
 
     public override void ApplyValue(object? newValue)
     {
@@ -108,6 +112,19 @@ public sealed class EntityRefPropertyNode : PropertyNode
     public override object? GetSerializableValue()
     {
         return TargetEditorGuid;
+    }
+
+    public override JsonElement SerializeToJson(JsonSerializerOptions options)
+    {
+        return SceneJsonTokens.CreateEntityRef(TargetEditorGuid);
+    }
+
+    public override void DeserializeFromJson(JsonElement element, JsonSerializerOptions options)
+    {
+        if (SceneJsonTokens.TryGetEntityRef(element, out var guid))
+        {
+            ApplyValue(guid);
+        }
     }
 
     public override PropertyNode Clone(ComponentNode targetComponent)

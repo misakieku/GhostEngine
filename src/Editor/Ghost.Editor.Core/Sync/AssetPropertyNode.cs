@@ -1,8 +1,10 @@
+using System.Reflection;
+using System.Text.Json;
+using Ghost.AssetForge.Core.Models;
 using Ghost.Core;
 using Ghost.Engine.Streaming;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
-using System.Reflection;
 
 namespace Ghost.Editor.Core.Sync;
 
@@ -97,6 +99,19 @@ public sealed class AssetPropertyNode : PropertyNode
     public override object? GetSerializableValue()
     {
         return AssetGuid;
+    }
+
+    public override JsonElement SerializeToJson(JsonSerializerOptions options)
+    {
+        return SceneJsonTokens.CreateAssetRef(AssetGuid);
+    }
+
+    public override void DeserializeFromJson(JsonElement element, JsonSerializerOptions options)
+    {
+        if (SceneJsonTokens.TryGetAssetRef(element, out var guid))
+        {
+            ApplyValue(guid);
+        }
     }
 
     public override bool TryCompletePendingResolution()

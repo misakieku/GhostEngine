@@ -3,8 +3,10 @@ using Ghost.Editor.Core.Commands;
 using Ghost.Editor.Core.Menus;
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
+using Ghost.Engine;
 using Ghost.Studio.Backend;
 using Ghost.Studio.Platform;
+using Ghost.Studio.Services;
 using Hexa.NET.ImGui;
 
 namespace Ghost.Studio.UI;
@@ -14,7 +16,7 @@ namespace Ghost.Studio.UI;
 /// </summary>
 internal sealed class MainMenuBar
 {
-    public void Draw(ImGuiContextManager contextManager, StudioDockspace dockspace, EditorWindowManager windowManager, ProjectService projectService, float deltaTime)
+    public void Draw(ImGuiContextManager contextManager, StudioDockspace dockspace, EditorWindowManager windowManager, ProjectService projectService, float deltaTime, EditorSceneSession? sceneSession = null, Action? onSceneSaved = null)
     {
         if (!ImGui.BeginMainMenuBar())
         {
@@ -27,6 +29,52 @@ internal sealed class MainMenuBar
         {
             if (OperatingSystem.IsWindows())
             {
+                if (sceneSession != null)
+                {
+                    if (ImGui.MenuItem("New Scene"))
+                    {
+                        if (ConfirmDiscardOrSaveDirtyScene(sceneSession, projectService, onSceneSaved))
+                        {
+                            sceneSession.NewScene();
+                        }
+                    }
+
+                    if (ImGui.MenuItem("Open Scene..."))
+                    {
+                        if (ConfirmDiscardOrSaveDirtyScene(sceneSession, projectService, onSceneSaved))
+                        {
+                            var initialDir = projectService.AssetDirectories.FirstOrDefault();
+                            var selected = NativeProjectDialogs.ShowOpenSceneFileDialog(initialDir);
+                            if (!string.IsNullOrEmpty(selected))
+                            {
+                                sceneSession.OpenScene(selected, SceneLoadingType.Single);
+                            }
+                        }
+                    }
+
+                    if (ImGui.MenuItem("Open Scene Additive..."))
+                    {
+                        var initialDir = projectService.AssetDirectories.FirstOrDefault();
+                        var selected = NativeProjectDialogs.ShowOpenSceneFileDialog(initialDir);
+                        if (!string.IsNullOrEmpty(selected))
+                        {
+                            sceneSession.OpenScene(selected, SceneLoadingType.Additive);
+                        }
+                    }
+
+                    if (ImGui.MenuItem("Save Scene", "Ctrl+S"))
+                    {
+                        SaveSceneWithFallbackDialog(sceneSession, projectService, forceDialog: false, onSceneSaved);
+                    }
+
+                    if (ImGui.MenuItem("Save Scene As..."))
+                    {
+                        SaveSceneWithFallbackDialog(sceneSession, projectService, forceDialog: true, onSceneSaved);
+                    }
+
+                    ImGui.Separator();
+                }
+
                 if (ImGui.MenuItem("New Project..."))
                 {
                     NativeProjectDialogs.TryCreateProject(projectService);
@@ -37,7 +85,7 @@ internal sealed class MainMenuBar
                     NativeProjectDialogs.TryOpenProject(projectService);
                 }
 
-                if (ImGui.MenuItem("Save Project", "Ctrl+S", false, projectService.CurrentProject != null))
+                if (ImGui.MenuItem("Save Project", "Ctrl+Shift+S", false, projectService.CurrentProject != null))
                 {
                     projectService.SaveProject();
                 }
@@ -150,17 +198,73 @@ internal sealed class MainMenuBar
             ImGui.EndMenu();
         }
 
-        DrawRightStatusStrip(contextManager, deltaTime);
+        DrawRightStatusStrip(contextManager, deltaTime, sceneSession);
 
         ImGui.EndMainMenuBar();
     }
 
-    private static void DrawRightStatusStrip(ImGuiContextManager contextManager, float deltaTime)
+    internal static bool ConfirmDiscardOrSaveDirtyScene(EditorSceneSession sceneSession, ProjectService projectService, Action? onSceneSaved)
+    {
+        if (!sceneSession.IsDirty || !OperatingSystem.IsWindows())
+        {
+            return true;
+        }
+
+        var choice = NativeProjectDialogs.PromptSaveDirtyScene(sceneSession.CurrentSceneDisplayName);
+        return choice switch
+        {
+            NativeProjectDialogs.UnsavedPromptResult.Save => SaveSceneWithFallbackDialog(sceneSession, projectService, forceDialog: false, onSceneSaved),
+            NativeProjectDialogs.UnsavedPromptResult.Discard => true,
+            _ => false,
+        };
+    }
+
+    internal static bool SaveSceneWithFallbackDialog(EditorSceneSession sceneSession, ProjectService projectService, bool forceDialog, Action? onSceneSaved)
+    {
+        if (!forceDialog && !string.IsNullOrWhiteSpace(sceneSession.CurrentScenePath))
+        {
+            var ok = sceneSession.SaveScene();
+            if (ok)
+            {
+                onSceneSaved?.Invoke();
+            }
+
+            return ok;
+        }
+
+        if (!OperatingSystem.IsWindows())
+        {
+            return false;
+        }
+
+        var initialDir = !string.IsNullOrWhiteSpace(sceneSession.CurrentScenePath)
+            ? Path.GetDirectoryName(sceneSession.CurrentScenePath)
+            : projectService.AssetDirectories.FirstOrDefault();
+        var defaultFile = !string.IsNullOrWhiteSpace(sceneSession.CurrentScenePath)
+            ? Path.GetFileName(sceneSession.CurrentScenePath)
+            : "Main.gscene";
+        var savePath = NativeProjectDialogs.ShowSaveSceneFileDialog(initialDir, defaultFile);
+        if (string.IsNullOrEmpty(savePath))
+        {
+            return false;
+        }
+
+        var saved = sceneSession.SaveScene(savePath);
+        if (saved)
+        {
+            onSceneSaved?.Invoke();
+        }
+
+        return saved;
+    }
+
+    private static void DrawRightStatusStrip(ImGuiContextManager contextManager, float deltaTime, EditorSceneSession? sceneSession)
     {
         ref readonly var tokens = ref contextManager.Tokens;
         var fps = deltaTime > 0.00001f ? 1.0f / deltaTime : 0.0f;
         var entityCount = EditorSyncBridge.Instance.LatestSnapshot?.EntityCount ?? 0;
-        var text = $"{fps:0} FPS ({deltaTime * 1000.0f:0.00} ms)  |  Entities: {entityCount}  |  DPI {contextManager.DpiScale:0.00}x";
+        var sceneLabel = sceneSession != null ? $"{sceneSession.CurrentSceneDisplayName}{(sceneSession.IsDirty ? "*" : string.Empty)}  |  " : string.Empty;
+        var text = $"{sceneLabel}{fps:0} FPS ({deltaTime * 1000.0f:0.00} ms)  |  Entities: {entityCount}  |  DPI {contextManager.DpiScale:0.00}x";
 
         ImGui.PushFont(contextManager.MonospaceFont, EditorTheme.FONT_SIZE_MONO);
         var textWidth = ImGui.CalcTextSize(text).X;

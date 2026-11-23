@@ -1,8 +1,10 @@
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
+using Ghost.AssetForge.Core.Models;
 using Ghost.Core;
 using Ghost.Engine.Components;
 using Ghost.Entities;
-using System.Reflection;
-using System.Text;
 
 namespace Ghost.Editor.Core.Sync;
 
@@ -347,6 +349,21 @@ public sealed unsafe class VolumeOverridesPropertyNode : PropertyNode
 
     public override void ApplyValue(object? newValue)
     {
+        if (newValue is not IReadOnlyList<(Type Type, object Value, Dictionary<string, Guid>? AssetGuids)> snapshot)
+        {
+            return;
+        }
+
+        for (var i = _overrides.Count - 1; i >= 0; i--)
+        {
+            RemoveOverride(_overrides[i].SettingsType);
+        }
+
+        for (var i = 0; i < snapshot.Count; i++)
+        {
+            var (type, val, assetGuids) = snapshot[i];
+            SetOverride(type, val, null, false, assetGuids);
+        }
     }
 
     public override void RefreshFromEcs(object boxedComponent, FieldInfo? field)
@@ -363,6 +380,83 @@ public sealed unsafe class VolumeOverridesPropertyNode : PropertyNode
         }
 
         return snapshot;
+    }
+
+    public List<SceneVolumeOverrideRecord> SerializeOverrides(JsonSerializerOptions options)
+    {
+        var result = new List<SceneVolumeOverrideRecord>(_overrides.Count);
+        for (var i = 0; i < _overrides.Count; i++)
+        {
+            var ovr = _overrides[i];
+            var record = new SceneVolumeOverrideRecord
+            {
+                Type = ovr.SettingsType.FullName ?? ovr.SettingsType.Name
+            };
+
+            for (var f = 0; f < ovr._fields.Count; f++)
+            {
+                var field = ovr._fields[f];
+                if (!field.IsOverridden)
+                {
+                    continue;
+                }
+
+                var elem = field.ValueNode.SerializeToJson(options);
+                if (elem.ValueKind != JsonValueKind.Undefined)
+                {
+                    record.Fields[field.Name] = elem;
+                }
+            }
+
+            result.Add(record);
+        }
+
+        return result;
+    }
+
+    public void ApplySerializedOverrides(IReadOnlyList<SceneVolumeOverrideRecord>? records, JsonSerializerOptions options)
+    {
+        for (var i = _overrides.Count - 1; i >= 0; i--)
+        {
+            RemoveOverride(_overrides[i].SettingsType);
+        }
+
+        if (records == null)
+        {
+            return;
+        }
+
+        for (var i = 0; i < records.Count; i++)
+        {
+            var rec = records[i];
+            if (!VolumeTypeRegistry.TryGetAccessor(rec.Type, out var accessor))
+            {
+                continue;
+            }
+
+            var entry = SetOverride(accessor.SettingsType, null, null, false);
+            foreach (var kvp in rec.Fields)
+            {
+                var field = entry.FindField(kvp.Key);
+                if (field == null)
+                {
+                    continue;
+                }
+
+                field.IsOverridden = true;
+                field.ValueNode.DeserializeFromJson(kvp.Value, options);
+            }
+        }
+    }
+
+    public override void WriteToComponentRecord(SceneComponentRecord record, JsonSerializerOptions options)
+    {
+        record.VolumeOverrides = SerializeOverrides(options);
+    }
+
+    public override void ReadFromComponentRecord(SceneComponentRecord record, JsonSerializerOptions options)
+    {
+        ApplySerializedOverrides(record.VolumeOverrides, options);
     }
 
     public override bool TryCompletePendingResolution()
