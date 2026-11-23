@@ -29,6 +29,7 @@ internal unsafe class PrefabAssetEntry : AssetEntry, ILoadableAssetEntry
     private LoadedPrefabData? _prefabData;
 
     internal LoadedPrefabData? PrefabData => _prefabData;
+    internal bool IsReadyWithData => State == AssetState.Ready && _prefabData != null;
     internal new ResourceManager ResourceManager => base.ResourceManager;
 
     public PrefabAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies, string assetName)

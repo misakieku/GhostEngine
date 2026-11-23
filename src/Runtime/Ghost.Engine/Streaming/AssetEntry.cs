@@ -32,7 +32,7 @@ internal static class AssetEntryFactory
             AssetType.Shader => new ShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName),
             AssetType.ComputeShader => new ComputeShaderAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName),
             AssetType.WorkGraph => new WorkGraphAssetEntry(manager, resourceDatabase, resourceManager, assetId, assetType, dependencies, assetName),
-            AssetType.Scene => throw new NotImplementedException(),
+            AssetType.Scene => new SceneAssetEntry(manager, resourceDatabase, resourceManager, assetId, dependencies, assetName),
             AssetType.Audio => throw new NotImplementedException(),
             AssetType.Video => throw new NotImplementedException(),
             AssetType.Json => throw new NotImplementedException(),
@@ -187,6 +187,31 @@ internal abstract class AssetEntry : IAssetEntry
         };
     }
 
+    internal bool HasFailedAssetInGraph()
+    {
+        if (State == AssetState.Failed)
+        {
+            return true;
+        }
+
+        var deps = Volatile.Read(ref _transitiveDependencies);
+        if (deps == null)
+        {
+            deps = _assetManager.CollectUniqueTransitiveDependencies(_assetId);
+            Volatile.Write(ref _transitiveDependencies, deps);
+        }
+
+        for (var i = 0; i < deps.Length; i++)
+        {
+            if (_assetManager.TryGetEntry(deps[i], out var depEntry) && depEntry.State == AssetState.Failed)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float AccumulateStateProgress(AssetState state, ref int readyCount, ref int loadedCount)
     {
@@ -243,7 +268,7 @@ internal abstract class AssetEntry : IAssetEntry
 
         if (newRefCount == 0)
         {
-            Logger.DebugAssert(State == AssetState.Ready);
+            Logger.DebugAssert(State is AssetState.Ready or AssetState.Failed);
             _assetManager.RemoveEntry(_assetId);
             OnReleaseResource();
 

@@ -137,6 +137,11 @@ public sealed partial class EngineCore : IDisposable
         foreach (var world in World.GetWorldEnumerator())
         {
             world.AddService(_inputManager);
+            if (!world.HasService<AssetManager>())
+            {
+                world.AddService(_assetManager);
+            }
+
             world.SystemManager.InitializeAll();
         }
     }

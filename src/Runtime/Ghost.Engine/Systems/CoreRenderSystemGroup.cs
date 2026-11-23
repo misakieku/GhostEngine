@@ -12,6 +12,7 @@ public class CoreRenderSystemGroup : SystemGroup
     {
         if (includeSimulationChangeSystems)
         {
+            AddSystem<SceneStreamingSystem>();
             AddSystem<TransformSystem>();
             AddSystem<UpdateGPUInstanceSystem>();
         }
