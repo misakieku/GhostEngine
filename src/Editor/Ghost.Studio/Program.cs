@@ -18,7 +18,6 @@ using Ghost.Studio.Backend;
 using Ghost.Studio.Platform;
 using Ghost.Studio.Rendering;
 using Ghost.Studio.Systems;
-using Ghost.Studio.Tests;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.Mathematics;
@@ -282,11 +281,6 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length > 0 && args[0] == "--headless-test")
-        {
-            return StudioHeadlessRunner.Run();
-        }
-
         Logger.Impl.OnLogAdded += static log => Console.WriteLine($"[{log.Level}] {log.Message}");
 
         using var bakerRegistry = new BakerRegistry();
