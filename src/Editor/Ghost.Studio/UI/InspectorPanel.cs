@@ -106,6 +106,67 @@ internal sealed partial class InspectorPanel : EditorWindow
         var idText = entity.EcsEntity.IsValid ? $"#{entity.EcsEntity.ID}" : $"#{entity.Id}";
         ImGui.TextColored(tokens.TextSecondary, idText);
         ImGui.PopFont();
+
+        if (entity.PrefabLink != null)
+        {
+            DrawPrefabLinkRow(contextManager, entity.PrefabLink, in tokens);
+        }
+    }
+
+    private void DrawPrefabLinkRow(ImGuiContextManager contextManager, PrefabLinkInfo prefabLink, in EditorColorTokens tokens)
+    {
+        var prefabGuid = prefabLink.PrefabAssetGuid;
+        EditorAssetCatalog.Entry entry = default;
+        var hasEntry = prefabGuid != Guid.Empty && _assetCatalog.TryGetByGuid(prefabGuid, out entry);
+        var hasSourcePath = hasEntry && !string.IsNullOrEmpty(entry.FullSourcePath);
+
+        string displayLabel;
+        string tooltipText;
+        if (hasEntry)
+        {
+            displayLabel = $"[PFB] {entry.DisplayName}";
+            tooltipText = $"{entry.VirtualPath}\nPrefab GUID: {prefabGuid:D}\nInstance GUID: {prefabLink.InstanceGuid:D} (Node #{prefabLink.TemplateEntityIndex})";
+        }
+        else
+        {
+            var shortGuid = prefabGuid.ToString("D")[..8];
+            displayLabel = $"[PFB] {shortGuid}...";
+            tooltipText = $"Missing or unresolved Prefab GUID: {prefabGuid:D}\nInstance GUID: {prefabLink.InstanceGuid:D} (Node #{prefabLink.TemplateEntityIndex})";
+        }
+
+        var style = ImGui.GetStyle();
+        var labelWidth = 54.0f * contextManager.DpiScale;
+        var selectText = "Select";
+        var selectWidth = hasSourcePath ? ImGui.CalcTextSize(selectText).X + style.FramePadding.X * 2.0f + style.ItemSpacing.X : 0.0f;
+        var availX = ImGui.GetContentRegionAvail().X;
+        var pillWidth = MathF.Max(60.0f, availX - labelWidth - selectWidth - style.ItemSpacing.X);
+
+        ImGui.AlignTextToFramePadding();
+        ImGui.TextColored(tokens.TextSecondary, "Prefab");
+        ImGui.SameLine(ImGui.GetCursorPosX() + labelWidth);
+
+        ImGui.PushStyleColor(ImGuiCol.Text, hasEntry ? tokens.Accent : tokens.TextSecondary);
+        var pillClicked = ImGui.Button($"{displayLabel}##PrefabLinkPill", new Vector2(pillWidth, 0.0f));
+        ImGui.PopStyleColor();
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip(tooltipText);
+        }
+
+        if (pillClicked && hasSourcePath)
+        {
+            _onPingAsset?.Invoke(entry.FullSourcePath);
+        }
+
+        if (hasSourcePath)
+        {
+            ImGui.SameLine();
+            if (ImGui.Button($"{selectText}##SelectPrefabAsset"))
+            {
+                _onPingAsset?.Invoke(entry.FullSourcePath);
+            }
+        }
     }
 
     private void DrawComponentCard(ImGuiContextManager contextManager, EntityNode entity, ComponentNode component, in EditorColorTokens tokens)

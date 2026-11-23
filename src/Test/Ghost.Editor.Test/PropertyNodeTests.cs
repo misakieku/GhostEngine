@@ -124,4 +124,59 @@ public class PropertyNodeTests
 
         em.GetComponent<RenderVolumeDataContainer>(ecsEntity).Dispose();
     }
+
+    [TestMethod]
+    public void VolumeOverridesPropertyNode_RetainsNullableAssetOverride_AcrossRefreshAndSerialization()
+    {
+        using var scheduler = new JobScheduler(new JobSchedulerDesc { ThreadCount = 1, ThreadPriority = ThreadPriority.Normal, DependencyChainCapacity = 64 });
+        using var world = World.Create(scheduler, 16);
+        var em = world.EntityManager;
+
+        var container = RenderVolumeDataContainer.Create();
+        var ecsEntity = em.CreateEntity(RenderVolume.DefaultGlobal, container);
+
+        var bridge = new EditorSyncBridge();
+        var history = new CommandHistory();
+        var entityNode = new EntityNode(1, "Global Volume", Array.Empty<ComponentNode>())
+        {
+            EcsEntity = ecsEntity
+        };
+
+        var volCompNode = ComponentNodeFactory.CreateVolumeComponentNode(entityNode, in em.GetComponent<RenderVolumeDataContainer>(ecsEntity), bridge);
+        entityNode.Components = new List<ComponentNode> { volCompNode };
+        var volumeProp = (VolumeOverridesPropertyNode)volCompNode.Properties[0];
+
+        history.Execute(new AddVolumeOverrideCommand(volumeProp, typeof(HDRISettings)));
+        var hdriEntry = volumeProp.FindOverride(typeof(HDRISettings))!;
+        var textureField = hdriEntry.FindField(nameof(HDRISettings.texture))!;
+        var texGuid = Guid.NewGuid();
+
+        history.Execute(new ModifyVolumeFieldCommand(volumeProp, typeof(HDRISettings), nameof(HDRISettings.texture), false, Guid.Empty, true, texGuid));
+        bridge.DrainWorldActions(world);
+
+        volumeProp.RefreshFromContainer(in em.GetComponent<RenderVolumeDataContainer>(ecsEntity));
+        Assert.IsTrue(textureField.IsOverridden);
+        Assert.AreEqual(texGuid, ((AssetPropertyNode)textureField.ValueNode).AssetGuid);
+        Assert.IsTrue(em.GetComponent<RenderVolumeDataContainer>(ecsEntity).TryGet<HDRISettings>(out var liveHdri));
+        Assert.IsTrue(liveHdri.texture.HasValue);
+
+        var record = volCompNode.SerializeToRecord(Ghost.Editor.Core.Serialization.SceneJsonOptions.Default);
+        var entity2 = em.CreateEntity(RenderVolume.DefaultGlobal, RenderVolumeDataContainer.Create());
+        var entityNode2 = new EntityNode(2, "Global Volume 2", Array.Empty<ComponentNode>())
+        {
+            EcsEntity = entity2
+        };
+        var volCompNode2 = ComponentNodeFactory.CreateVolumeComponentNode(entityNode2, in em.GetComponent<RenderVolumeDataContainer>(entity2), bridge);
+        volCompNode2.DeserializeFromRecord(record, Ghost.Editor.Core.Serialization.SceneJsonOptions.Default);
+        bridge.DrainWorldActions(world);
+
+        var volumeProp2 = (VolumeOverridesPropertyNode)volCompNode2.Properties[0];
+        volumeProp2.RefreshFromContainer(in em.GetComponent<RenderVolumeDataContainer>(entity2));
+        var texField2 = volumeProp2.FindOverride(typeof(HDRISettings))!.FindField(nameof(HDRISettings.texture))!;
+        Assert.IsTrue(texField2.IsOverridden);
+        Assert.AreEqual(texGuid, ((AssetPropertyNode)texField2.ValueNode).AssetGuid);
+
+        em.GetComponent<RenderVolumeDataContainer>(ecsEntity).Dispose();
+        em.GetComponent<RenderVolumeDataContainer>(entity2).Dispose();
+    }
 }

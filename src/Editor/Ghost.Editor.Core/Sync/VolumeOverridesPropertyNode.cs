@@ -238,24 +238,16 @@ public sealed unsafe class VolumeOverridesPropertyNode : PropertyNode
             if (value is Guid guid && guid != assetNode.AssetGuid)
             {
                 assetNode.ApplyValue(guid);
-                if (!field.IsOverridden)
-                {
-                    UpdateBoxedFieldFromNode(entry, field);
-                    PushOverrideToEcs(entry);
-                }
-
+                UpdateBoxedFieldFromNode(entry, field);
+                PushOverrideToEcs(entry);
                 return;
             }
 
             if (value is not Guid && value != null && assetNode.PropertyType.IsInstanceOfType(value))
             {
                 assetNode.ApplyValue(value);
-                if (!field.IsOverridden)
-                {
-                    UpdateBoxedFieldFromNode(entry, field);
-                    PushOverrideToEcs(entry);
-                }
-
+                UpdateBoxedFieldFromNode(entry, field);
+                PushOverrideToEcs(entry);
                 return;
             }
 
@@ -445,7 +437,10 @@ public sealed unsafe class VolumeOverridesPropertyNode : PropertyNode
 
                 field.IsOverridden = true;
                 field.ValueNode.DeserializeFromJson(kvp.Value, options);
+                UpdateBoxedFieldFromNode(entry, field);
             }
+
+            PushOverrideToEcs(entry);
         }
     }
 
@@ -573,7 +568,8 @@ public sealed unsafe class VolumeOverridesPropertyNode : PropertyNode
             {
                 var field = entry._fields[i];
                 var rawVal = field.Field.GetValue(boxedValue);
-                field.IsOverridden = !field.IsNullable || rawVal != null;
+                var keepPendingAssetOverride = field.ValueNode is AssetPropertyNode assetNode && (assetNode.IsPendingLoad || assetNode.AssetGuid != Guid.Empty);
+                field.IsOverridden = !field.IsNullable || rawVal != null || (field.IsOverridden && keepPendingAssetOverride);
                 if (field.IsOverridden && rawVal != null)
                 {
                     field.ValueNode.Value = rawVal;

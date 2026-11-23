@@ -197,6 +197,17 @@ public sealed unsafe class GhostRenderPayload : IRenderPayload
         }
     }
 
+    internal bool TryRemoveGpuInstanceSlot(uint instanceId, out uint lastInstanceId)
+    {
+        lastInstanceId = _renderPipeline.GPUScene.RemoveInstance(instanceId);
+        return lastInstanceId != uint.MaxValue;
+    }
+
+    internal void EnqueueRemoveSwap(uint instanceId, uint swapWithInstanceId)
+    {
+        _removeRequestProducer.Enqueue(new RemoveInstanceRequest { instanceId = instanceId, swapWithInstanceId = swapWithInstanceId });
+    }
+
     public void BeginRecord()
     {
         _instanceCountBefore = _renderPipeline.GPUScene.InstanceCount;

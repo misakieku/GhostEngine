@@ -178,7 +178,10 @@ public unsafe class SceneSerializerTests
             Assert.IsTrue(em.Exists(persistentEntity));
             Assert.AreEqual(new float3(99.0f, 88.0f, 77.0f), em.GetComponent<LocalTransform>(persistentEntity).position);
 
-            // Previous SceneID entities were destroyed
+            // Previous SceneID entities were destroyed (parentEcs stays in cleanup archetype only for RemoveGPUInstanceSystem)
+            Assert.IsFalse(em.HasComponent<LocalTransform>(parentEcs));
+            Assert.IsTrue(em.HasComponent<GPUInstanceRef>(parentEcs));
+            em.RemoveComponent<GPUInstanceRef>(parentEcs);
             Assert.IsFalse(em.Exists(parentEcs));
             Assert.IsFalse(em.Exists(childAEcs));
             Assert.IsFalse(em.Exists(volumeEcs));
@@ -341,5 +344,27 @@ public unsafe class SceneSerializerTests
         Assert.HasCount(2, bridge.LatestSnapshot!.Entities);
         Assert.IsTrue(bridge.LatestSnapshot.Entities.Any(e => e.Name == "SceneA_Entity"));
         Assert.IsTrue(bridge.LatestSnapshot.Entities.Any(e => e.Name == "SceneB_Entity"));
+    }
+
+    [TestMethod]
+    public void SceneSerializer_SingleLoad_PreservesGpuInstanceRefAsCleanupComponent()
+    {
+        using var scheduler = new JobScheduler(new JobSchedulerDesc { ThreadCount = 1, ThreadPriority = ThreadPriority.Normal, DependencyChainCapacity = 64 });
+        using var world = World.Create(scheduler, 64);
+        var em = world.EntityManager;
+        var bridge = new EditorSyncBridge();
+
+        var oldEntity = em.CreateEntity(LocalTransform.Identity, new MeshInstance(), new GPUInstanceRef { gpuInstanceIndex = 0 });
+        em.AddSharedComponent(oldEntity, new SceneID { value = 0 });
+
+        Assert.IsTrue(SceneSerializer.LoadFromDocument(world, bridge, new SceneAssetDocument(), SceneLoadingType.Single).IsSuccess);
+
+        Assert.IsTrue(em.Exists(oldEntity));
+        Assert.IsFalse(em.HasComponent<MeshInstance>(oldEntity));
+        Assert.IsFalse(em.HasComponent<SceneID>(oldEntity));
+        Assert.IsTrue(em.HasComponent<GPUInstanceRef>(oldEntity));
+
+        em.RemoveComponent<GPUInstanceRef>(oldEntity);
+        Assert.IsFalse(em.Exists(oldEntity));
     }
 }

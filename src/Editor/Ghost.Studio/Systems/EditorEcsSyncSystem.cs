@@ -78,7 +78,7 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
         PumpPendingPropertyResolutions();
 
         ref var query = ref world.ComponentManager.GetEntityQueryReference(_sceneEntitiesQueryID);
-        var digest = ComputeStructuralDigest(em, ref query);
+        var digest = ComputeStructuralDigest(world, em, ref query);
 
         if (digest != _lastSignatureDigest)
         {
@@ -173,7 +173,7 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
         }
     }
 
-    private int ComputeStructuralDigest(EntityManager em, ref EntityQuery query)
+    private int ComputeStructuralDigest(World world, EntityManager em, ref EntityQuery query)
     {
         var hash = new HashCode();
         var count = 0;
@@ -181,10 +181,15 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
         foreach (var chunk in query.GetChunkIterator())
         {
             var entities = chunk.GetEntities();
-            count += chunk.EntityCount;
             for (var i = 0; i < chunk.EntityCount; i++)
             {
                 var entity = entities[i];
+                if (IsCleanupOnlyEntity(world, em, entity))
+                {
+                    continue;
+                }
+
+                count++;
                 hash.Add(entity.ID);
                 hash.Add(entity.Generation);
                 if (em.TryGetEntityLocation(entity, out var location))
@@ -233,6 +238,11 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
             for (var i = 0; i < chunk.EntityCount; i++)
             {
                 var entity = entities[i];
+                if (IsCleanupOnlyEntity(world, em, entity))
+                {
+                    continue;
+                }
+
                 var hasCached = snapshotLookup.TryGetValue(entity, out var existingNode) && existingNode != null;
                 var nodeId = hasCached ? existingNode!.Id : (bridge.TryGetMappedNodeId(entity, out var existingId) ? existingId : bridge.AllocateEntityId());
                 bridge.RegisterEntityMapping(entity, nodeId);
@@ -316,13 +326,48 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
                 meshProp.ApplyValue(meshGuid);
             }
 
-            if (materialGuids.Length > 0 && comp.FindProperty(nameof(MeshInstance.materialPalette)) is MaterialPalettePropertyNode paletteProp && paletteProp.MaterialGuids.Count == 0)
+            if (materialGuids.Length > 0 && comp.FindProperty(nameof(MeshInstance.materialPalette)) is MaterialPalettePropertyNode paletteProp && AllGuidsEmpty(paletteProp.MaterialGuids))
             {
                 paletteProp.ApplyValue(materialGuids);
             }
 
             break;
         }
+    }
+
+    private static bool AllGuidsEmpty(IReadOnlyList<Guid> guids)
+    {
+        for (var i = 0; i < guids.Count; i++)
+        {
+            if (guids[i] != Guid.Empty)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsCleanupOnlyEntity(World world, EntityManager em, Entity entity)
+    {
+        if (!em.TryGetEntityLocation(entity, out var location))
+        {
+            return false;
+        }
+
+        ref var archetype = ref world.ComponentManager.GetArchetypeReference(location.archetypeID);
+        var it = archetype._signature.GetIterator();
+        var hasAnyComponent = false;
+        while (it.Next(out var compIdx))
+        {
+            hasAnyComponent = true;
+            if (!ComponentRegistry.GetComponentInfo(new Identifier<IComponent>(compIdx)).IsCleanup)
+            {
+                return false;
+            }
+        }
+
+        return hasAnyComponent;
     }
 
     private void RestoreSelection(Entity activeEcs)
