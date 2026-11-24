@@ -28,10 +28,15 @@ struct SharedShadowMeshletState
 {
     float4x4 worldViewProj;
     float4 tileOffsetScale;
+    float3 worldBoundsMin;
+    float positionQuantStep;
     uint pageBufferIndex;
     uint pageBase;
     uint vertexOffset;
     uint triangleOffset;
+    uint packedQuantOrigin0;
+    uint packedQuantOrigin1;
+    uint packedFormat;
     uint vertexCount;
     uint triangleCount;
     uint materialBufferIndex;
@@ -94,10 +99,15 @@ void MSMain(
 
         s_ShadowMeshlet.worldViewProj = worldViewProj;
         s_ShadowMeshlet.tileOffsetScale = shadowCull.tileOffsetScale;
+        s_ShadowMeshlet.worldBoundsMin = meshData.worldBoundsMin;
+        s_ShadowMeshlet.positionQuantStep = meshData.positionQuantStep;
         s_ShadowMeshlet.pageBufferIndex = pageBufferIndex;
         s_ShadowMeshlet.pageBase = pageBase;
         s_ShadowMeshlet.vertexOffset = meshlet.vertexOffset;
         s_ShadowMeshlet.triangleOffset = meshlet.triangleOffset;
+        s_ShadowMeshlet.packedQuantOrigin0 = meshlet.packedQuantOrigin0;
+        s_ShadowMeshlet.packedQuantOrigin1 = meshlet.packedQuantOrigin1;
+        s_ShadowMeshlet.packedFormat = meshlet.packedFormat;
         s_ShadowMeshlet.vertexCount = vertexCount;
         s_ShadowMeshlet.triangleCount = triangleCount;
         s_ShadowMeshlet.materialBufferIndex = materialBufferIndex;
@@ -111,8 +121,7 @@ void MSMain(
     if (groupThreadID < s_ShadowMeshlet.vertexCount)
     {
         ByteAddressBuffer pageBuffer = GET_BUFFER(s_ShadowMeshlet.pageBufferIndex);
-        uint vOffset = s_ShadowMeshlet.pageBase + s_ShadowMeshlet.vertexOffset + groupThreadID * PACKED_VERTEX_STRIDE;
-        float3 pos = asfloat(pageBuffer.Load3(vOffset));
+        float3 pos = UnpackMeshletPosition(pageBuffer, s_ShadowMeshlet.pageBase, s_ShadowMeshlet.vertexOffset, s_ShadowMeshlet.packedQuantOrigin0, s_ShadowMeshlet.packedQuantOrigin1, s_ShadowMeshlet.packedFormat, s_ShadowMeshlet.worldBoundsMin, s_ShadowMeshlet.positionQuantStep, groupThreadID);
 
         float4 origClipPos = mul(s_ShadowMeshlet.worldViewProj, float4(pos, 1.0f));
 
@@ -131,7 +140,7 @@ void MSMain(
         outVerts[groupThreadID].position = clipPos;
 
 #if SHADOW_PIXEL_STAGE
-        outVerts[groupThreadID].uv = UnpackHalf2(pageBuffer.Load(vOffset + 16u));
+        outVerts[groupThreadID].uv = LoadMeshletUVOnly(pageBuffer, s_ShadowMeshlet.pageBase, s_ShadowMeshlet.packedFormat, groupThreadID);
         outVerts[groupThreadID].materialBufferIndex = s_ShadowMeshlet.materialBufferIndex;
 #endif
     }
@@ -142,8 +151,7 @@ void MSMain(
     for (uint primId = groupThreadID; primId < s_ShadowMeshlet.triangleCount; primId += SHADOW_MS_THREADS)
     {
         ByteAddressBuffer pageBuffer = GET_BUFFER(s_ShadowMeshlet.pageBufferIndex);
-        uint packedIndices = pageBuffer.Load(s_ShadowMeshlet.pageBase + s_ShadowMeshlet.triangleOffset + primId * PACKED_TRIANGLE_STRIDE);
-        uint3 indices = uint3(packedIndices & 0xFF, (packedIndices >> 8) & 0xFF, (packedIndices >> 16) & 0xFF);
+        uint3 indices = UnpackMeshletTriangleIndices(pageBuffer, s_ShadowMeshlet.pageBase, s_ShadowMeshlet.triangleOffset, primId);
 
         float4 v0 = g_VertexPositions[indices.x];
         float4 v1 = g_VertexPositions[indices.y];

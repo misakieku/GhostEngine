@@ -6,6 +6,7 @@ using Ghost.Ufbx;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -537,16 +538,46 @@ public unsafe partial class MeshBaker : IAssetBaker
         dst.Position = endPos;
     }
 
+    private static long WriteCompressedBytes(Stream stream, ReadOnlySpan<byte> src, PageCompressionMethod method, int quality, ref byte[] scratch, out PageCompressionMethod actualMethod)
+    {
+        if (method == PageCompressionMethod.Zstd && src.Length > 0)
+        {
+            var maxLen = (int)ZstandardEncoder.GetMaxCompressedLength(src.Length);
+            if (scratch.Length < maxLen)
+            {
+                scratch = new byte[maxLen];
+            }
+
+            if (ZstandardEncoder.TryCompress(src, scratch, out var written, quality, ZstandardCompressionOptions.DefaultWindowLog2) && written < src.Length)
+            {
+                actualMethod = PageCompressionMethod.Zstd;
+                stream.Write(scratch.AsSpan(0, written));
+                return written;
+            }
+        }
+
+        actualMethod = PageCompressionMethod.None;
+        if (!src.IsEmpty)
+        {
+            stream.Write(src);
+        }
+        return src.Length;
+    }
+
     private static void WriteMeshContent(Stream stream, ParsedMesh mesh, MeshletMeshData* meshletData, MeshBakeSettings settings)
     {
         var assetStartOffset = stream.Position;
 
-        // Bundle meshlets, local packed vertices, and micro-triangles into 128KB pages
-        using var packedPages = PagePacker.PackPages(meshletData, AllocationHandle.Persistent);
+        // Bundle meshlets, quantized positions, attributes, and 18-bit micro-triangles into 128KB pages
+        using var packedPages = PagePacker.PackPages(meshletData, mesh.boundingBox, settings.PositionQuantizationBits, AllocationHandle.Persistent);
 
         var pageDirectory = packedPages.pageDirectory;
         var pageBuffers = packedPages.pageBuffers;
         var reorderedMeshlets = packedPages.reorderedMeshlets;
+
+        var compression = settings.PageCompression;
+        var quality = Math.Clamp(settings.PageCompressionQuality, ZstandardCompressionOptions.MinQuality, ZstandardCompressionOptions.MaxQuality);
+        var scratch = new byte[(int)ZstandardEncoder.GetMaxCompressedLength(MeshletPageConstants.PAGE_SIZE)];
 
         var header = new MeshContentHeader
         {
@@ -564,25 +595,42 @@ public unsafe partial class MeshBaker : IAssetBaker
             boundsMax = mesh.boundingBox.Max,
             boundingSphereCenter = (mesh.boundingBox.Min + mesh.boundingBox.Max) * 0.5f,
             boundingSphereRadius = Misaki.HighPerformance.Mathematics.math.length(mesh.boundingBox.Max - (mesh.boundingBox.Min + mesh.boundingBox.Max) * 0.5f),
+            metadataCompression = compression,
+            positionQuantStep = packedPages.positionQuantStep,
         };
 
         // Write header placeholder
         stream.Write(header);
 
         // Hierarchy DAG nodes
+        var hierarchyBytes = MemoryMarshal.AsBytes(meshletData->hierarchyNodes.AsSpan());
         header.hierarchyOffset = stream.Position - assetStartOffset;
-        stream.Write(meshletData->hierarchyNodes.AsSpan());
-        header.hierarchySize = stream.Position - assetStartOffset - header.hierarchyOffset;
+        header.hierarchyUncompressedSize = hierarchyBytes.Length;
+        header.hierarchySize = WriteCompressedBytes(stream, hierarchyBytes, compression, quality, ref scratch, out var hierarchyMethod);
+        if (hierarchyMethod == PageCompressionMethod.Zstd)
+        {
+            header.metadataCompressionMask |= MeshContentHeader.METADATA_MASK_HIERARCHY;
+        }
 
         // Meshlet Groups
+        var groupBytes = MemoryMarshal.AsBytes(meshletData->groups.AsSpan());
         header.groupOffset = stream.Position - assetStartOffset;
-        stream.Write(meshletData->groups.AsSpan());
-        header.groupSize = stream.Position - assetStartOffset - header.groupOffset;
+        header.groupUncompressedSize = groupBytes.Length;
+        header.groupSize = WriteCompressedBytes(stream, groupBytes, compression, quality, ref scratch, out var groupMethod);
+        if (groupMethod == PageCompressionMethod.Zstd)
+        {
+            header.metadataCompressionMask |= MeshContentHeader.METADATA_MASK_GROUP;
+        }
 
         // Reordered Meshlets table
+        var meshletBytes = MemoryMarshal.AsBytes(reorderedMeshlets.AsSpan());
         header.meshletOffset = stream.Position - assetStartOffset;
-        stream.Write(reorderedMeshlets.AsSpan());
-        header.meshletSize = stream.Position - assetStartOffset - header.meshletOffset;
+        header.meshletUncompressedSize = meshletBytes.Length;
+        header.meshletSize = WriteCompressedBytes(stream, meshletBytes, compression, quality, ref scratch, out var meshletMethod);
+        if (meshletMethod == PageCompressionMethod.Zstd)
+        {
+            header.metadataCompressionMask |= MeshContentHeader.METADATA_MASK_MESHLET;
+        }
 
         // Page Directory Table placeholder
         var pageDirStartPos = stream.Position;
@@ -590,15 +638,16 @@ public unsafe partial class MeshBaker : IAssetBaker
         stream.Write(pageDirectory.AsSpan());
         header.pageDirectorySize = stream.Position - assetStartOffset - header.pageDirectoryOffset;
 
-        // Root Page 0 (uncompressed payload)
+        // Root Page 0
         if (pageBuffers.Length > 0 && pageDirectory[0].isRootPage != 0)
         {
-            header.rootPageOffset = stream.Position - assetStartOffset;
-            stream.Write(pageBuffers[0]);
-            header.rootPageSize = stream.Position - assetStartOffset - header.rootPageOffset;
-
             ref var p0 = ref pageDirectory[0];
-            p0.fileOffset = (ulong)header.rootPageOffset;
+            p0.fileOffset = (ulong)(stream.Position - assetStartOffset);
+            p0.uncompressedSize = (uint)pageBuffers[0].Length;
+            p0.compressedSize = (uint)WriteCompressedBytes(stream, pageBuffers[0], compression, quality, ref scratch, out p0.compressionMethod);
+
+            header.rootPageOffset = (long)p0.fileOffset;
+            header.rootPageSize = p0.compressedSize;
         }
 
         // Bulk Pages 1..N
@@ -609,9 +658,8 @@ public unsafe partial class MeshBaker : IAssetBaker
             {
                 ref var dirEntry = ref pageDirectory[p];
                 dirEntry.fileOffset = (ulong)(stream.Position - assetStartOffset);
-                stream.Write(pageBuffers[p]);
-                dirEntry.compressedSize = (uint)pageBuffers[p].Length;
                 dirEntry.uncompressedSize = (uint)pageBuffers[p].Length;
+                dirEntry.compressedSize = (uint)WriteCompressedBytes(stream, pageBuffers[p], compression, quality, ref scratch, out dirEntry.compressionMethod);
             }
             header.bulkPagesSize = stream.Position - assetStartOffset - header.bulkPagesOffset;
         }
@@ -626,13 +674,26 @@ public unsafe partial class MeshBaker : IAssetBaker
         header.rayTracingProxyOffset = stream.Position - assetStartOffset;
         header.rayTracingProxyVertexCount = proxyMesh.positions.Count;
         header.rayTracingProxyIndexCount = proxyMesh.indices.Count;
-        stream.Write(proxyMesh.positions.AsSpan());
-        stream.Write(proxyMesh.indices.AsSpan());
-        header.rayTracingProxySize = stream.Position - assetStartOffset - header.rayTracingProxyOffset;
+        var proxyPosBytes = MemoryMarshal.AsBytes(proxyMesh.positions.AsSpan());
+        var proxyIdxBytes = MemoryMarshal.AsBytes(proxyMesh.indices.AsSpan());
+        var proxyUncompressedBytes = proxyPosBytes.Length + proxyIdxBytes.Length;
+        header.rayTracingProxyUncompressedSize = proxyUncompressedBytes;
+
+        if (proxyUncompressedBytes > 0)
+        {
+            var combinedProxy = new byte[proxyUncompressedBytes];
+            proxyPosBytes.CopyTo(combinedProxy);
+            proxyIdxBytes.CopyTo(combinedProxy.AsSpan(proxyPosBytes.Length));
+            header.rayTracingProxySize = WriteCompressedBytes(stream, combinedProxy, compression, quality, ref scratch, out var proxyMethod);
+            if (proxyMethod == PageCompressionMethod.Zstd)
+            {
+                header.metadataCompressionMask |= MeshContentHeader.METADATA_MASK_RAYTRACING_PROXY;
+            }
+        }
 
         var endOfAsset = stream.Position;
 
-        // Backpatch Page Directory with real file offsets
+        // Backpatch Page Directory with real file offsets and compressed sizes
         stream.Position = pageDirStartPos;
         stream.Write(pageDirectory.AsSpan());
 

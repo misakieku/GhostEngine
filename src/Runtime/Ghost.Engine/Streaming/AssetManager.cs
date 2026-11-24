@@ -149,7 +149,7 @@ public partial class AssetManager : IDisposable
         var pagePoolSlots = pipelineSettings?.GetPagePoolSlotCount() ?? MeshletStreamingManager.DEFAULT_PAGE_POOL_SLOTS;
         var maxRequestsPerFrame = pipelineSettings?.MaxStreamingRequestsPerFrame ?? MeshletStreamingManager.DEFAULT_MAX_REQUESTS_PER_FRAME;
         var maxPagesPerFrame = pipelineSettings?.MaxStreamingPagesPerFrame ?? MeshletStreamingManager.DEFAULT_MAX_PAGES_PER_FRAME;
-        _meshletStreamingManager = new MeshletStreamingManager(graphicsEngine.ResourceAllocator, resourceDatabase, frameBufferCount, pagePoolSlots, maxRequestsPerFrame: maxRequestsPerFrame, maxPagesPerFrame: maxPagesPerFrame);
+        _meshletStreamingManager = new MeshletStreamingManager(graphicsEngine.ResourceAllocator, resourceDatabase, frameBufferCount, pagePoolSlots, maxRequestsPerFrame: maxRequestsPerFrame, maxPagesPerFrame: maxPagesPerFrame, jobScheduler: jobScheduler);
 
         if (contentProvider.HasAsset(ShaderBytecodePool.POOL_ASSET_ID))
         {

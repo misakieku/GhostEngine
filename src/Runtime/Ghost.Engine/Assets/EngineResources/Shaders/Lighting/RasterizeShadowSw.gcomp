@@ -39,6 +39,11 @@ compute "Internal/RasterizeShadowSw"
             uint pageBase = 0u;
             uint vertexOffset = 0u;
             uint triangleOffset = 0u;
+            uint packedQuantOrigin0 = 0u;
+            uint packedQuantOrigin1 = 0u;
+            uint packedFormat = 0u;
+            float3 worldBoundsMin = 0.0f;
+            float positionQuantStep = 0.0f;
             uint packedCounts = 0u;
             uint flags = 0u;
 
@@ -79,6 +84,11 @@ compute "Internal/RasterizeShadowSw"
                 GetMeshletPageBufferAndBase(meshData, meshlet.pageIndex, pageBufferIndex, pageBase);
                 vertexOffset = meshlet.vertexOffset;
                 triangleOffset = meshlet.triangleOffset;
+                packedQuantOrigin0 = meshlet.packedQuantOrigin0;
+                packedQuantOrigin1 = meshlet.packedQuantOrigin1;
+                packedFormat = meshlet.packedFormat;
+                worldBoundsMin = meshData.worldBoundsMin;
+                positionQuantStep = meshData.positionQuantStep;
                 packedCounts = meshlet.packedCounts;
                 flags = (reverseWinding ? 1u : 0u) | (backfaceCull ? 2u : 0u);
             }
@@ -93,6 +103,11 @@ compute "Internal/RasterizeShadowSw"
             pageBase = WaveReadLaneFirst(pageBase);
             vertexOffset = WaveReadLaneFirst(vertexOffset);
             triangleOffset = WaveReadLaneFirst(triangleOffset);
+            packedQuantOrigin0 = WaveReadLaneFirst(packedQuantOrigin0);
+            packedQuantOrigin1 = WaveReadLaneFirst(packedQuantOrigin1);
+            packedFormat = WaveReadLaneFirst(packedFormat);
+            worldBoundsMin = WaveReadLaneFirst(worldBoundsMin);
+            positionQuantStep = WaveReadLaneFirst(positionQuantStep);
             packedCounts = WaveReadLaneFirst(packedCounts);
             flags = WaveReadLaneFirst(flags);
 
@@ -113,8 +128,7 @@ compute "Internal/RasterizeShadowSw"
             if (groupThreadID < vertexCount)
             {
                 ByteAddressBuffer pageBuffer = GET_BUFFER(pageBufferIndex);
-                uint vOffset = pageBase + vertexOffset + groupThreadID * PACKED_VERTEX_STRIDE;
-                float3 pos = asfloat(pageBuffer.Load3(vOffset));
+                float3 pos = UnpackMeshletPosition(pageBuffer, pageBase, vertexOffset, packedQuantOrigin0, packedQuantOrigin1, packedFormat, worldBoundsMin, positionQuantStep, groupThreadID);
 
                 float4 origClipPos = mul(worldViewProj, float4(pos, 1.0f));
 
@@ -137,8 +151,7 @@ compute "Internal/RasterizeShadowSw"
 
             for (uint primId = groupThreadID; primId < triangleCount; primId += SW_RASTER_THREADS)
             {
-                uint packedIndices = pageBuffer.Load(pageBase + triangleOffset + primId * PACKED_TRIANGLE_STRIDE);
-                uint3 indices = uint3(packedIndices & 0xFFu, (packedIndices >> 8u) & 0xFFu, (packedIndices >> 16u) & 0xFFu);
+                uint3 indices = UnpackMeshletTriangleIndices(pageBuffer, pageBase, triangleOffset, primId);
 
                 float4 v0 = s_VertexPositions[indices.x];
                 float4 v1 = s_VertexPositions[indices.y];

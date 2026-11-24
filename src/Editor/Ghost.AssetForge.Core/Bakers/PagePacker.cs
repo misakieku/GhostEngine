@@ -2,6 +2,7 @@ using Ghost.Core.Graphics;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
+using Misaki.HighPerformance.Mathematics.Geometry;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -15,6 +16,7 @@ public struct PackedMeshPages : IDisposable
     public UnsafeList<Meshlet> reorderedMeshlets;
     public UnsafeList<PageDirectoryEntry> pageDirectory;
     public byte[][] pageBuffers;
+    public float positionQuantStep;
 
     public void Dispose()
     {
@@ -24,15 +26,38 @@ public struct PackedMeshPages : IDisposable
 }
 
 /// <summary>
-/// Bundles cluster meshlets, local packed vertices, and micro-triangles into 128KB self-contained pages.
+/// Bundles cluster meshlets, quantized local positions, compact attributes, and 18-bit micro-triangles into 128KB self-contained pages.
 /// </summary>
 public static unsafe class PagePacker
 {
-    public static PackedMeshPages PackPages(MeshletMeshData* meshletData, AllocationHandle handle)
+    private struct MeshletEncodingInfo
+    {
+        public uint minX;
+        public uint minY;
+        public uint minZ;
+        public int bitsX;
+        public int bitsY;
+        public int bitsZ;
+        public bool hasVertexColor;
+        public int posByteSize;
+        public int attrByteSize;
+        public int triByteSize;
+
+        public readonly int TotalBytes => posByteSize + attrByteSize + triByteSize;
+    }
+
+    public static PackedMeshPages PackPages(MeshletMeshData* meshletData, AABB meshBounds, int positionQuantBits, AllocationHandle handle)
     {
         var totalMeshletCount = meshletData->meshlets.Count;
         var groupCount = meshletData->groups.Count;
         var levelCount = meshletData->lodLevelCount;
+
+        var clampedBits = Math.Clamp(positionQuantBits, 16, PackedVertex.MAX_POSITION_QUANT_BITS);
+        var maxGrid = (1u << clampedBits) - 1u;
+        var quantStep = PackedVertex.ComputePositionQuantStep(meshBounds.Min, meshBounds.Max, clampedBits);
+
+        using var encodingInfos = new UnsafeArray<MeshletEncodingInfo>(Math.Max(1, totalMeshletCount), handle);
+        PrecomputeMeshletEncodingInfos(meshletData, meshBounds.Min, quantStep, maxGrid, encodingInfos.AsSpan());
 
         var reorderedMeshlets = new UnsafeList<Meshlet>(totalMeshletCount, handle);
         var pageDirectory = new UnsafeList<PageDirectoryEntry>(16, handle);
@@ -48,7 +73,7 @@ public static unsafe class PagePacker
             {
                 if (meshletData->groups[g].lodLevel == (uint)l)
                 {
-                    lodBytes += EstimateGroupBytes(meshletData->groups[g], meshletData);
+                    lodBytes += EstimateGroupBytes(meshletData->groups[g], encodingInfos.AsReadOnly());
                 }
             }
 
@@ -90,22 +115,25 @@ public static unsafe class PagePacker
             bulkGroupIndices.Clear();
         }
 
-        // --- Pack Page 0: Root Page (Pinned coarsest LOD) ---
+        // Pack Page 0: Root Page (Pinned coarsest LOD)
         PackSinglePage(
             pageIndex: 0,
             isRootPage: true,
             groupIndices: rootGroupIndices.AsSpan(),
             predominantLod: (byte)rootLod,
             meshletData: meshletData,
+            encodingInfos: encodingInfos.AsReadOnly(),
+            boundsMin: meshBounds.Min,
+            quantStep: quantStep,
+            maxGrid: maxGrid,
             reorderedMeshlets: ref reorderedMeshlets,
             pageDirectory: ref pageDirectory,
             pageBuffers: pageBuffers,
             handle: handle);
 
-        // --- Pack Bulk Pages 1..N (Streamable fine LODs) ---
+        // Pack Bulk Pages 1..N (Streamable fine LODs)
         if (bulkGroupIndices.Count > 0)
         {
-            // Pack groups into 128KB pages
             var currentGroupBatch = new List<int>();
             var currentBatchEstimatedBytes = sizeof(PageHeader);
             var batchLod = (byte)meshletData->groups[bulkGroupIndices[0]].lodLevel;
@@ -115,7 +143,7 @@ public static unsafe class PagePacker
                 var gIdx = bulkGroupIndices[i];
                 ref readonly var grp = ref meshletData->groups[gIdx];
 
-                var groupBytes = EstimateGroupBytes(grp, meshletData);
+                var groupBytes = EstimateGroupBytes(grp, encodingInfos.AsReadOnly());
 
                 // If adding this group exceeds 128 KB, emit the current page batch
                 if (currentGroupBatch.Count > 0 && (currentBatchEstimatedBytes + groupBytes > MeshletPageConstants.PAGE_SIZE))
@@ -126,6 +154,10 @@ public static unsafe class PagePacker
                         groupIndices: CollectionsMarshal.AsSpan(currentGroupBatch),
                         predominantLod: batchLod,
                         meshletData: meshletData,
+                        encodingInfos: encodingInfos.AsReadOnly(),
+                        boundsMin: meshBounds.Min,
+                        quantStep: quantStep,
+                        maxGrid: maxGrid,
                         reorderedMeshlets: ref reorderedMeshlets,
                         pageDirectory: ref pageDirectory,
                         pageBuffers: pageBuffers,
@@ -148,6 +180,10 @@ public static unsafe class PagePacker
                     groupIndices: CollectionsMarshal.AsSpan(currentGroupBatch),
                     predominantLod: batchLod,
                     meshletData: meshletData,
+                    encodingInfos: encodingInfos.AsReadOnly(),
+                    boundsMin: meshBounds.Min,
+                    quantStep: quantStep,
+                    maxGrid: maxGrid,
                     reorderedMeshlets: ref reorderedMeshlets,
                     pageDirectory: ref pageDirectory,
                     pageBuffers: pageBuffers,
@@ -234,39 +270,113 @@ public static unsafe class PagePacker
             reorderedMeshlets = reorderedMeshlets,
             pageDirectory = pageDirectory,
             pageBuffers = pageBuffers.ToArray(),
+            positionQuantStep = quantStep,
         };
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int EstimateGroupBytes(in MeshletGroup grp, MeshletMeshData* meshletData)
+    private static void PrecomputeMeshletEncodingInfos(MeshletMeshData* meshletData, float3 boundsMin, float quantStep, uint maxGrid, Span<MeshletEncodingInfo> infos)
     {
-        var bytes = (int)grp.meshletCount * sizeof(Meshlet);
+        for (var m = 0; m < meshletData->meshlets.Count; m++)
+        {
+            ref readonly var ml = ref meshletData->meshlets[m];
+            var minX = uint.MaxValue;
+            var minY = uint.MaxValue;
+            var minZ = uint.MaxValue;
+            var maxX = 0u;
+            var maxY = 0u;
+            var maxZ = 0u;
+            var hasColor = false;
+
+            for (var v = 0; v < ml.vertexCount; v++)
+            {
+                ref readonly var vert = ref meshletData->meshletVertices[(int)ml.vertexOffset + v];
+                PackedVertex.QuantizePosition(vert.position, boundsMin, quantStep, maxGrid, out var qx, out var qy, out var qz);
+                if (qx < minX) minX = qx;
+                if (qy < minY) minY = qy;
+                if (qz < minZ) minZ = qz;
+                if (qx > maxX) maxX = qx;
+                if (qy > maxY) maxY = qy;
+                if (qz > maxZ) maxZ = qz;
+
+                if (vert.color.r != 255 || vert.color.g != 255 || vert.color.b != 255 || vert.color.a != 255)
+                {
+                    hasColor = true;
+                }
+            }
+
+            if (ml.vertexCount == 0)
+            {
+                minX = 0;
+                minY = 0;
+                minZ = 0;
+            }
+
+            var bitsX = PackedVertex.BitWidth(maxX - minX);
+            var bitsY = PackedVertex.BitWidth(maxY - minY);
+            var bitsZ = PackedVertex.BitWidth(maxZ - minZ);
+            var totalPosBits = ml.vertexCount * (bitsX + bitsY + bitsZ);
+            var posWords = totalPosBits > 0 ? ((totalPosBits + 31) >> 5) : 0;
+            var attrStride = hasColor ? 12 : 8;
+            var triBits = ml.triangleCount * 18;
+            var triWords = triBits > 0 ? ((triBits + 31) >> 5) : 0;
+
+            infos[m] = new MeshletEncodingInfo
+            {
+                minX = minX,
+                minY = minY,
+                minZ = minZ,
+                bitsX = bitsX,
+                bitsY = bitsY,
+                bitsZ = bitsZ,
+                hasVertexColor = hasColor,
+                posByteSize = posWords * 4,
+                attrByteSize = ml.vertexCount * attrStride,
+                triByteSize = triWords * 4,
+            };
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int EstimateGroupBytes(in MeshletGroup grp, ReadOnlyView<MeshletEncodingInfo> encodingInfos)
+    {
+        var bytes = 0;
         for (var m = 0; m < (int)grp.meshletCount; m++)
         {
-            ref readonly var ml = ref meshletData->meshlets[(int)grp.meshletStartIndex + m];
-            bytes += ml.vertexCount * sizeof(PackedVertex);
-            bytes += ml.triangleCount * sizeof(uint);
+            bytes += encodingInfos[(int)grp.meshletStartIndex + m].TotalBytes;
         }
         return bytes;
     }
 
-    private static void PackSinglePage(
-        uint pageIndex,
-        bool isRootPage,
-        ReadOnlySpan<int> groupIndices,
-        byte predominantLod,
-        MeshletMeshData* meshletData,
-        ref UnsafeList<Meshlet> reorderedMeshlets,
-        ref UnsafeList<PageDirectoryEntry> pageDirectory,
-        List<byte[]> pageBuffers,
-        AllocationHandle handle)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void WriteBits(uint* pDst, int bitOffset, uint value, int bitCount)
+    {
+        if (bitCount <= 0)
+        {
+            return;
+        }
+
+        var wordIndex = bitOffset >> 5;
+        var bitInWord = bitOffset & 31;
+        var masked = value & ((1u << bitCount) - 1u);
+        pDst[wordIndex] |= masked << bitInWord;
+        if (bitInWord + bitCount > 32)
+        {
+            pDst[wordIndex + 1] |= masked >> (32 - bitInWord);
+        }
+    }
+
+    private static void PackSinglePage(uint pageIndex, bool isRootPage, ReadOnlySpan<int> groupIndices, byte predominantLod, MeshletMeshData* meshletData, ReadOnlyView<MeshletEncodingInfo> encodingInfos, float3 boundsMin, float quantStep, uint maxGrid, ref UnsafeList<Meshlet> reorderedMeshlets, ref UnsafeList<PageDirectoryEntry> pageDirectory, List<byte[]> pageBuffers, AllocationHandle handle)
     {
         var pageMeshletGlobalStart = (uint)reorderedMeshlets.Count;
 
-        // Temporary buffers for the page components
         using var pageMeshlets = new UnsafeList<Meshlet>(64, handle);
-        using var pageVertices = new UnsafeList<PackedVertex>(2048, handle);
-        using var pageTriangles = new UnsafeList<uint>(4096, handle);
+        using var pageOrigMeshletIndices = new UnsafeList<int>(64, handle);
+
+        var totalPosBytes = 0u;
+        var totalAttrBytes = 0u;
+        var totalTriBytes = 0u;
+        var totalVertexCount = 0u;
+        var totalTriangleCount = 0u;
 
         for (var i = 0; i < groupIndices.Length; i++)
         {
@@ -276,122 +386,133 @@ public static unsafe class PagePacker
             var origMeshletStart = (int)grp.meshletStartIndex;
             var origMeshletCount = (int)grp.meshletCount;
 
-            // Update group's page index and new global meshlet start index
             grp.pageIndex = pageIndex;
             grp.meshletStartIndex = pageMeshletGlobalStart + (uint)pageMeshlets.Count;
 
             for (var m = 0; m < origMeshletCount; m++)
             {
-                ref readonly var srcMl = ref meshletData->meshlets[origMeshletStart + m];
+                var origIdx = origMeshletStart + m;
+                ref readonly var srcMl = ref meshletData->meshlets[origIdx];
+                ref readonly var info = ref encodingInfos[origIdx];
 
-                var localVertStart = (uint)pageVertices.Count;
-                var localTriStart = (uint)pageTriangles.Count;
-
-                // Copy vertices into page vertex stream
-                for (var v = 0; v < srcMl.vertexCount; v++)
-                {
-                    pageVertices.Add(meshletData->meshletVertices[(int)srcMl.vertexOffset + v]);
-                }
-
-                // Copy micro-triangles into page triangle stream
-                for (var t = 0; t < srcMl.triangleCount; t++)
-                {
-                    pageTriangles.Add(meshletData->meshletTriangles[(int)srcMl.triangleOffset + t]);
-                }
-
-                // Create meshlet copy with local offsets to be patched below
                 var dstMl = srcMl;
                 dstMl.pageIndex = pageIndex;
-                dstMl.vertexOffset = localVertStart;      // temporarily hold local vertex start
-                dstMl.triangleOffset = localTriStart;    // temporarily hold local triangle start
+                dstMl.vertexOffset = totalPosBytes;
+                dstMl.triangleOffset = totalTriBytes;
+                PackedVertex.PackQuantOrigin(info.minX, info.minY, info.minZ, out dstMl.packedQuantOrigin0, out dstMl.packedQuantOrigin1);
+                dstMl.packedFormat = PackedVertex.PackMeshletFormat(info.bitsX, info.bitsY, info.bitsZ, info.hasVertexColor, totalAttrBytes);
 
                 pageMeshlets.Add(dstMl);
+                pageOrigMeshletIndices.Add(origIdx);
+
+                totalPosBytes += (uint)info.posByteSize;
+                totalAttrBytes += (uint)info.attrByteSize;
+                totalTriBytes += (uint)info.triByteSize;
+                totalVertexCount += srcMl.vertexCount;
+                totalTriangleCount += srcMl.triangleCount;
             }
         }
 
-        // Layout inside page:
-        // [0 .. 32)                       : PageHeader (32 bytes)
-        // [32 .. vertOffset)              : Meshlet[]
-        // [vertOffset .. triOffset)       : PackedVertex[]
-        // [triOffset .. totalBytes)       : uint[] micro-triangles
+        // Layout inside page (all sections 4-byte aligned):
+        // [0 .. 32)                  : PageHeader (32 bytes)
+        // [posOffset .. attrOffset)  : Quantized position bitstreams
+        // [attrOffset .. triOffset)  : PackedAttribute (+ optional Color32) streams
+        // [triOffset .. totalBytes)  : 18-bit (6+6+6) triangle index bitstreams
         var headerSize = (uint)sizeof(PageHeader);
-        var meshletsSize = (uint)(pageMeshlets.Count * sizeof(Meshlet));
-        var vertOffset = headerSize + meshletsSize;
-        var verticesSize = (uint)(pageVertices.Count * sizeof(PackedVertex));
-        var triOffset = vertOffset + verticesSize;
-        var trianglesSize = (uint)(pageTriangles.Count * sizeof(uint));
-        var totalPayloadBytes = triOffset + trianglesSize;
+        var posOffset = headerSize;
+        var attrOffset = posOffset + totalPosBytes;
+        var triOffset = attrOffset + totalAttrBytes;
+        var totalPayloadBytes = triOffset + totalTriBytes;
 
-        // Patch each meshlet with byte offsets from page start
+        // Patch meshlets with final page-relative byte offsets
         for (var m = 0; m < pageMeshlets.Count; m++)
         {
             ref var ml = ref pageMeshlets[m];
-            var localVertStart = ml.vertexOffset;
-            var localTriStart = ml.triangleOffset;
+            ref readonly var info = ref encodingInfos[pageOrigMeshletIndices[m]];
+            var relAttrOffset = (ml.packedFormat >> 16) << 2;
 
-            ml.vertexOffset = vertOffset + localVertStart * (uint)sizeof(PackedVertex);
-            ml.triangleOffset = triOffset + localTriStart * sizeof(uint);
+            ml.vertexOffset = posOffset + ml.vertexOffset;
+            ml.triangleOffset = triOffset + ml.triangleOffset;
+            ml.packedFormat = PackedVertex.PackMeshletFormat(info.bitsX, info.bitsY, info.bitsZ, info.hasVertexColor, attrOffset + relAttrOffset);
 
-            // Add to the global reordered meshlet array
             reorderedMeshlets.Add(ml);
         }
 
-        // Create page buffer
         var pageBuffer = new byte[totalPayloadBytes];
         fixed (byte* pDst = pageBuffer)
         {
-            // Write PageHeader
             var pHeader = (PageHeader*)pDst;
             pHeader->magic = PageHeader.MAGIC;
             pHeader->meshletCount = (ushort)pageMeshlets.Count;
-            pHeader->vertexCount = (ushort)pageVertices.Count;
-            pHeader->triangleCount = (uint)pageTriangles.Count;
-            pHeader->meshletOffset = headerSize;
-            pHeader->vertexOffset = vertOffset;
+            pHeader->vertexCount = (ushort)totalVertexCount;
+            pHeader->triangleCount = totalTriangleCount;
+            pHeader->meshletOffset = 0;
+            pHeader->vertexOffset = posOffset;
             pHeader->triangleOffset = triOffset;
             pHeader->pageIndex = pageIndex;
-            pHeader->reserved = 0;
+            pHeader->reserved = attrOffset;
 
-            // Write Meshlets
-            if (pageMeshlets.Count > 0)
+            for (var m = 0; m < pageMeshlets.Count; m++)
             {
-                fixed (Meshlet* pMl = pageMeshlets.AsSpan())
+                var origIdx = pageOrigMeshletIndices[m];
+                ref readonly var srcMl = ref meshletData->meshlets[origIdx];
+                ref readonly var dstMl = ref pageMeshlets[m];
+                ref readonly var info = ref encodingInfos[origIdx];
+
+                var pPosDst = (uint*)(pDst + dstMl.vertexOffset);
+                var attrByteOffset = (dstMl.packedFormat >> 16) << 2;
+                var pAttrDst = pDst + attrByteOffset;
+                var pTriDst = (uint*)(pDst + dstMl.triangleOffset);
+
+                var totalPosBits = info.bitsX + info.bitsY + info.bitsZ;
+                var attrStride = info.hasVertexColor ? 12 : 8;
+
+                for (var v = 0; v < srcMl.vertexCount; v++)
                 {
-                    Buffer.MemoryCopy(pMl, pDst + headerSize, meshletsSize, meshletsSize);
+                    ref readonly var vert = ref meshletData->meshletVertices[(int)srcMl.vertexOffset + v];
+
+                    if (totalPosBits > 0)
+                    {
+                        PackedVertex.QuantizePosition(vert.position, boundsMin, quantStep, maxGrid, out var qx, out var qy, out var qz);
+                        var baseBit = v * totalPosBits;
+                        WriteBits(pPosDst, baseBit, qx - info.minX, info.bitsX);
+                        WriteBits(pPosDst, baseBit + info.bitsX, qy - info.minY, info.bitsY);
+                        WriteBits(pPosDst, baseBit + info.bitsX + info.bitsY, qz - info.minZ, info.bitsZ);
+                    }
+
+                    var pAttr = (PackedAttribute*)(pAttrDst + v * attrStride);
+                    pAttr->packedNormal = vert.packedNormal;
+                    pAttr->uv = vert.uv;
+                    if (info.hasVertexColor)
+                    {
+                        *(Color32*)(pAttrDst + v * attrStride + sizeof(PackedAttribute)) = vert.color;
+                    }
                 }
-            }
 
-            // Write PackedVertices
-            if (pageVertices.Count > 0)
-            {
-                fixed (PackedVertex* pVerts = pageVertices.AsSpan())
+                for (var t = 0; t < srcMl.triangleCount; t++)
                 {
-                    Buffer.MemoryCopy(pVerts, pDst + vertOffset, verticesSize, verticesSize);
-                }
-            }
-
-            // Write Micro-triangles
-            if (pageTriangles.Count > 0)
-            {
-                fixed (uint* pTris = pageTriangles.AsSpan())
-                {
-                    Buffer.MemoryCopy(pTris, pDst + triOffset, trianglesSize, trianglesSize);
+                    var packedTri = meshletData->meshletTriangles[(int)srcMl.triangleOffset + t];
+                    var i0 = packedTri & 0xFFu;
+                    var i1 = (packedTri >> 8) & 0xFFu;
+                    var i2 = (packedTri >> 16) & 0xFFu;
+                    WriteBits(pTriDst, t * 18, i0 | (i1 << 6) | (i2 << 12), 18);
                 }
             }
         }
 
-        // Create directory entry
         var dirEntry = new PageDirectoryEntry
         {
-            fileOffset = 0, // patched when writing to file
+            fileOffset = 0,
             compressedSize = totalPayloadBytes,
             uncompressedSize = totalPayloadBytes,
             meshletStartIndex = pageMeshletGlobalStart,
             meshletCount = (ushort)pageMeshlets.Count,
             lodLevel = predominantLod,
             isRootPage = (byte)(isRootPage ? 1 : 0),
+            compressionMethod = PageCompressionMethod.None,
             reserved0 = 0,
             reserved1 = 0,
+            reserved2 = 0,
         };
 
         pageDirectory.Add(dirEntry);

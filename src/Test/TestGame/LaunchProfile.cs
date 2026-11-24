@@ -153,7 +153,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 specularDimmer = 1.0f,
                 normalBias = 0.75f,
                 depthBias = 0.5f,
-                shadowLodErrorScale = 3.0f,
+                shadowLodErrorScale = 1.0f,
                 contactShadow = true,
             },
             new LocalToWorld
@@ -211,7 +211,11 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             tint = new float3(1.0f, 1.0f, 1.0f),
             texture = skyboxHandle,
         });
-        volumeData.Set(ExposureSettings.Default);
+        volumeData.Set(new ExposureSettings
+        {
+            mode = ExposureMode.Fixed,
+            fixedExposure = 13.0f,
+        });
         volumeData.Set(new ShadowSettings
         {
             shadowMode = ShadowMode.ShadowMap,

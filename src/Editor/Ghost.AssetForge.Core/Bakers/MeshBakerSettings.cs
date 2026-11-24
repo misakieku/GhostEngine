@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using Ghost.Core.Graphics;
 
 namespace Ghost.AssetForge.Core.Bakers;
 
@@ -21,7 +22,7 @@ public enum VertexDataSource
 
 public partial class MeshBakeSettings : ObservableObject, IBakeSettings
 {
-    public const int VERSION = 1;
+    public const int VERSION = 3;
 
     public int Version { get; set; } = VERSION;
 
@@ -78,6 +79,15 @@ public partial class MeshBakeSettings : ObservableObject, IBakeSettings
 
     [ObservableProperty]
     public partial float FallbackRelativeError { get; set; } = 0.01f;
+
+    [ObservableProperty]
+    public partial PageCompressionMethod PageCompression { get; set; } = PageCompressionMethod.Zstd;
+
+    [ObservableProperty]
+    public partial int PageCompressionQuality { get; set; } = 3;
+
+    [ObservableProperty]
+    public partial int PositionQuantizationBits { get; set; } = 21;
 
     [ObservableProperty]
     public partial Dictionary<string, Guid> MaterialSlotRemap { get; set; } = new(StringComparer.OrdinalIgnoreCase);

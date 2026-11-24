@@ -30,7 +30,16 @@ public struct PageHeader
 }
 
 /// <summary>
-/// Directory entry stored in .gmsh v3 assets describing the location and payload size of each 128KB page.
+/// Compression algorithm applied to a meshlet page or static mesh metadata section on disk.
+/// </summary>
+public enum PageCompressionMethod : byte
+{
+    None = 0,
+    Zstd = 1
+}
+
+/// <summary>
+/// Directory entry stored in .gmsh v5 assets describing the location and payload size of each 128KB page.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Size = 32)]
 public struct PageDirectoryEntry
@@ -42,6 +51,8 @@ public struct PageDirectoryEntry
     public ushort meshletCount;         // 2 bytes (number of meshlets in this page)
     public byte lodLevel;               // 1 byte (predominant LOD level)
     public byte isRootPage;             // 1 byte (1 if Root Page 0, 0 for bulk streaming pages)
-    public uint reserved0;              // 4 bytes
-    public uint reserved1;              // 4 bytes
+    public PageCompressionMethod compressionMethod; // 1 byte
+    public byte reserved0;              // 1 byte
+    public ushort reserved1;            // 2 bytes
+    public uint reserved2;              // 4 bytes
 }
