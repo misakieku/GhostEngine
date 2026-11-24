@@ -37,7 +37,7 @@ public unsafe partial struct MeshOptApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.meshopt_generateVertexRemapCustom(uint*, uint*, nuint, float*, nuint, nuint, delegate* unmanaged[Cdecl]<void*, uint, uint, int>, void*)" />
+    /// From: <see cref="Api.meshopt_generateVertexRemapCustom(uint*, uint*, nuint, float*, nuint, nuint, delegate* unmanaged[Cdecl]{void*, uint, uint, int}, void*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static nuint GenerateVertexRemapCustom(uint* destination, uint* indices, nuint index_count, float* vertex_positions, nuint vertex_count, nuint vertex_positions_stride, delegate* unmanaged[Cdecl]<void*, uint, uint, int> callback, void* context)
@@ -1170,7 +1170,7 @@ public unsafe partial struct MeshOptApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.meshopt_setAllocator(delegate* unmanaged[Cdecl]<nuint, void*>, delegate* unmanaged[Cdecl]<void*, void>)" />
+    /// From: <see cref="Api.meshopt_setAllocator(delegate* unmanaged[Cdecl]{nuint, void*}, delegate* unmanaged[Cdecl]{void*, void})" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void SetAllocator(delegate* unmanaged[Cdecl]<nuint, void*> allocate, delegate* unmanaged[Cdecl]<void*, void> deallocate)
