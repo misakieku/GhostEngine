@@ -17,8 +17,7 @@ public unsafe partial struct IDxcPixType : IDxcPixType.Interface, INativeGuid
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixType*, Guid*, void**, int>)(lpVtbl[0]))((IDxcPixType*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcPixType : IDxcPixType.Interface, INativeGuid
     /// <include file='IDxcPixType.xml' path='doc/member[@name="IDxcPixType.GetName"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetName([NativeTypeName("BSTR *")] char** Name)
+        public HRESULT GetName([NativeTypeName("BSTR *")] char** Name)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixType*, char**, int>)(lpVtbl[3]))((IDxcPixType*)Unsafe.AsPointer(ref this), Name);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcPixType : IDxcPixType.Interface, INativeGuid
     /// <include file='IDxcPixType.xml' path='doc/member[@name="IDxcPixType.GetSizeInBits"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetSizeInBits([NativeTypeName("DWORD *")] uint* GetSizeInBits)
+        public HRESULT GetSizeInBits([NativeTypeName("DWORD *")] uint* GetSizeInBits)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixType*, uint*, int>)(lpVtbl[4]))((IDxcPixType*)Unsafe.AsPointer(ref this), GetSizeInBits);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcPixType : IDxcPixType.Interface, INativeGuid
     /// <include file='IDxcPixType.xml' path='doc/member[@name="IDxcPixType.UnAlias"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int UnAlias(IDxcPixType** ppBaseType)
+        public HRESULT UnAlias(IDxcPixType** ppBaseType)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixType*, IDxcPixType**, int>)(lpVtbl[5]))((IDxcPixType*)Unsafe.AsPointer(ref this), ppBaseType);
     }
@@ -71,16 +67,13 @@ public unsafe partial struct IDxcPixType : IDxcPixType.Interface, INativeGuid
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetName([NativeTypeName("BSTR *")] char** Name);
+                HRESULT GetName([NativeTypeName("BSTR *")] char** Name);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetSizeInBits([NativeTypeName("DWORD *")] uint* GetSizeInBits);
+                HRESULT GetSizeInBits([NativeTypeName("DWORD *")] uint* GetSizeInBits);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int UnAlias(IDxcPixType** ppBaseType);
+                HRESULT UnAlias(IDxcPixType** ppBaseType);
     }
 
     public partial struct Vtbl<TSelf>

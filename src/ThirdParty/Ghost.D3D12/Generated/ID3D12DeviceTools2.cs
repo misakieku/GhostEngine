@@ -15,8 +15,7 @@ public unsafe partial struct ID3D12DeviceTools2 : ID3D12DeviceTools2.Interface, 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceTools2*, Guid*, void**, int>)(lpVtbl[0]))((ID3D12DeviceTools2*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -46,8 +45,7 @@ public unsafe partial struct ID3D12DeviceTools2 : ID3D12DeviceTools2.Interface, 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetApplicationSpecificDriverState([NativeTypeName("ID3DBlob **")] ID3D10Blob** ppBlob)
+    public HRESULT GetApplicationSpecificDriverState([NativeTypeName("ID3DBlob **")] ID3D10Blob** ppBlob)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceTools2*, ID3D10Blob**, int>)(lpVtbl[4]))((ID3D12DeviceTools2*)Unsafe.AsPointer(ref this), ppBlob);
     }
@@ -61,8 +59,7 @@ public unsafe partial struct ID3D12DeviceTools2 : ID3D12DeviceTools2.Interface, 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int SetUserDefinedAnnotationMode(D3D12_USER_DEFINED_ANNOTATION_MODE mode)
+    public HRESULT SetUserDefinedAnnotationMode(D3D12_USER_DEFINED_ANNOTATION_MODE mode)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceTools2*, D3D12_USER_DEFINED_ANNOTATION_MODE, int>)(lpVtbl[6]))((ID3D12DeviceTools2*)Unsafe.AsPointer(ref this), mode);
     }
@@ -77,8 +74,7 @@ public unsafe partial struct ID3D12DeviceTools2 : ID3D12DeviceTools2.Interface, 
     public interface Interface : ID3D12DeviceTools1.Interface
     {
         [VtblIndex(6)]
-        [return: NativeTypeName("HRESULT")]
-        int SetUserDefinedAnnotationMode(D3D12_USER_DEFINED_ANNOTATION_MODE mode);
+        HRESULT SetUserDefinedAnnotationMode(D3D12_USER_DEFINED_ANNOTATION_MODE mode);
 
         [VtblIndex(7)]
         D3D12_USER_DEFINED_ANNOTATION_MODE GetUserDefinedAnnotationMode();

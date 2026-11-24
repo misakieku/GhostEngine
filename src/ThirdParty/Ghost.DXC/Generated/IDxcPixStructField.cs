@@ -17,8 +17,7 @@ public unsafe partial struct IDxcPixStructField : IDxcPixStructField.Interface, 
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixStructField*, Guid*, void**, int>)(lpVtbl[0]))((IDxcPixStructField*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcPixStructField : IDxcPixStructField.Interface, 
     /// <include file='IDxcPixStructField.xml' path='doc/member[@name="IDxcPixStructField.GetName"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetName([NativeTypeName("BSTR *")] char** Name)
+        public HRESULT GetName([NativeTypeName("BSTR *")] char** Name)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixStructField*, char**, int>)(lpVtbl[3]))((IDxcPixStructField*)Unsafe.AsPointer(ref this), Name);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcPixStructField : IDxcPixStructField.Interface, 
     /// <include file='IDxcPixStructField.xml' path='doc/member[@name="IDxcPixStructField.GetType"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetType(IDxcPixType** ppType)
+        public HRESULT GetType(IDxcPixType** ppType)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixStructField*, IDxcPixType**, int>)(lpVtbl[4]))((IDxcPixStructField*)Unsafe.AsPointer(ref this), ppType);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcPixStructField : IDxcPixStructField.Interface, 
     /// <include file='IDxcPixStructField.xml' path='doc/member[@name="IDxcPixStructField.GetOffsetInBits"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetOffsetInBits([NativeTypeName("DWORD *")] uint* pOffsetInBits)
+        public HRESULT GetOffsetInBits([NativeTypeName("DWORD *")] uint* pOffsetInBits)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixStructField*, uint*, int>)(lpVtbl[5]))((IDxcPixStructField*)Unsafe.AsPointer(ref this), pOffsetInBits);
     }
@@ -71,8 +67,7 @@ public unsafe partial struct IDxcPixStructField : IDxcPixStructField.Interface, 
     /// <include file='IDxcPixStructField.xml' path='doc/member[@name="IDxcPixStructField.GetFieldSizeInBits"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetFieldSizeInBits([NativeTypeName("DWORD *")] uint* pFieldSizeInBits)
+        public HRESULT GetFieldSizeInBits([NativeTypeName("DWORD *")] uint* pFieldSizeInBits)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixStructField*, uint*, int>)(lpVtbl[6]))((IDxcPixStructField*)Unsafe.AsPointer(ref this), pFieldSizeInBits);
     }
@@ -80,20 +75,16 @@ public unsafe partial struct IDxcPixStructField : IDxcPixStructField.Interface, 
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetName([NativeTypeName("BSTR *")] char** Name);
+                HRESULT GetName([NativeTypeName("BSTR *")] char** Name);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetType(IDxcPixType** ppType);
+                HRESULT GetType(IDxcPixType** ppType);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetOffsetInBits([NativeTypeName("DWORD *")] uint* pOffsetInBits);
+                HRESULT GetOffsetInBits([NativeTypeName("DWORD *")] uint* pOffsetInBits);
 
         [VtblIndex(6)]
-        [return: NativeTypeName("HRESULT")]
-        int GetFieldSizeInBits([NativeTypeName("DWORD *")] uint* pFieldSizeInBits);
+                HRESULT GetFieldSizeInBits([NativeTypeName("DWORD *")] uint* pFieldSizeInBits);
     }
 
     public partial struct Vtbl<TSelf>

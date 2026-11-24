@@ -15,8 +15,7 @@ public unsafe partial struct ID3D12DebugCommandList3 : ID3D12DebugCommandList3.I
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DebugCommandList3*, Guid*, void**, int>)(lpVtbl[0]))((ID3D12DebugCommandList3*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -47,8 +46,7 @@ public unsafe partial struct ID3D12DebugCommandList3 : ID3D12DebugCommandList3.I
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int SetFeatureMask(D3D12_DEBUG_FEATURE Mask)
+    public HRESULT SetFeatureMask(D3D12_DEBUG_FEATURE Mask)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DebugCommandList3*, D3D12_DEBUG_FEATURE, int>)(lpVtbl[4]))((ID3D12DebugCommandList3*)Unsafe.AsPointer(ref this), Mask);
     }
@@ -62,16 +60,14 @@ public unsafe partial struct ID3D12DebugCommandList3 : ID3D12DebugCommandList3.I
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int SetDebugParameter(D3D12_DEBUG_COMMAND_LIST_PARAMETER_TYPE Type, [NativeTypeName("const void *")] void* pData, uint DataSize)
+    public HRESULT SetDebugParameter(D3D12_DEBUG_COMMAND_LIST_PARAMETER_TYPE Type, [NativeTypeName("const void *")] void* pData, uint DataSize)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DebugCommandList3*, D3D12_DEBUG_COMMAND_LIST_PARAMETER_TYPE, void*, uint, int>)(lpVtbl[6]))((ID3D12DebugCommandList3*)Unsafe.AsPointer(ref this), Type, pData, DataSize);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(7)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetDebugParameter(D3D12_DEBUG_COMMAND_LIST_PARAMETER_TYPE Type, void* pData, uint DataSize)
+    public HRESULT GetDebugParameter(D3D12_DEBUG_COMMAND_LIST_PARAMETER_TYPE Type, void* pData, uint DataSize)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DebugCommandList3*, D3D12_DEBUG_COMMAND_LIST_PARAMETER_TYPE, void*, uint, int>)(lpVtbl[7]))((ID3D12DebugCommandList3*)Unsafe.AsPointer(ref this), Type, pData, DataSize);
     }

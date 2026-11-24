@@ -29,8 +29,7 @@ public unsafe partial struct IUnknown : IUnknown.Interface, INativeGuid
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IUnknown*, Guid*, void**, int>)(lpVtbl[0]))((IUnknown*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -54,8 +53,7 @@ public unsafe partial struct IUnknown : IUnknown.Interface, INativeGuid
     public interface Interface : INativeGuid
     {
         [VtblIndex(0)]
-        [return: NativeTypeName("HRESULT")]
-        int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject);
+        HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject);
 
         [VtblIndex(1)]
         [return: NativeTypeName("ULONG")]

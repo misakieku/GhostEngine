@@ -15,8 +15,7 @@ public unsafe partial struct IDXGIFactoryMedia : IDXGIFactoryMedia.Interface, IN
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIFactoryMedia*, Guid*, void**, int>)(lpVtbl[0]))((IDXGIFactoryMedia*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -39,16 +38,14 @@ public unsafe partial struct IDXGIFactoryMedia : IDXGIFactoryMedia.Interface, IN
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int CreateSwapChainForCompositionSurfaceHandle(IUnknown* pDevice, [NativeTypeName("HANDLE")] void* hSurface, [NativeTypeName("const DXGI_SWAP_CHAIN_DESC1 *")] DXGI_SWAP_CHAIN_DESC1* pDesc, IDXGIOutput* pRestrictToOutput, IDXGISwapChain1** ppSwapChain)
+    public HRESULT CreateSwapChainForCompositionSurfaceHandle(IUnknown* pDevice, [NativeTypeName("HANDLE")] void* hSurface, [NativeTypeName("const DXGI_SWAP_CHAIN_DESC1 *")] DXGI_SWAP_CHAIN_DESC1* pDesc, IDXGIOutput* pRestrictToOutput, IDXGISwapChain1** ppSwapChain)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIFactoryMedia*, IUnknown*, void*, DXGI_SWAP_CHAIN_DESC1*, IDXGIOutput*, IDXGISwapChain1**, int>)(lpVtbl[3]))((IDXGIFactoryMedia*)Unsafe.AsPointer(ref this), pDevice, hSurface, pDesc, pRestrictToOutput, ppSwapChain);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int CreateDecodeSwapChainForCompositionSurfaceHandle(IUnknown* pDevice, [NativeTypeName("HANDLE")] void* hSurface, DXGI_DECODE_SWAP_CHAIN_DESC* pDesc, IDXGIResource* pYuvDecodeBuffers, IDXGIOutput* pRestrictToOutput, IDXGIDecodeSwapChain** ppSwapChain)
+    public HRESULT CreateDecodeSwapChainForCompositionSurfaceHandle(IUnknown* pDevice, [NativeTypeName("HANDLE")] void* hSurface, DXGI_DECODE_SWAP_CHAIN_DESC* pDesc, IDXGIResource* pYuvDecodeBuffers, IDXGIOutput* pRestrictToOutput, IDXGIDecodeSwapChain** ppSwapChain)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIFactoryMedia*, IUnknown*, void*, DXGI_DECODE_SWAP_CHAIN_DESC*, IDXGIResource*, IDXGIOutput*, IDXGIDecodeSwapChain**, int>)(lpVtbl[4]))((IDXGIFactoryMedia*)Unsafe.AsPointer(ref this), pDevice, hSurface, pDesc, pYuvDecodeBuffers, pRestrictToOutput, ppSwapChain);
     }
@@ -56,11 +53,9 @@ public unsafe partial struct IDXGIFactoryMedia : IDXGIFactoryMedia.Interface, IN
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int CreateSwapChainForCompositionSurfaceHandle(IUnknown* pDevice, [NativeTypeName("HANDLE")] void* hSurface, [NativeTypeName("const DXGI_SWAP_CHAIN_DESC1 *")] DXGI_SWAP_CHAIN_DESC1* pDesc, IDXGIOutput* pRestrictToOutput, IDXGISwapChain1** ppSwapChain);
+        HRESULT CreateSwapChainForCompositionSurfaceHandle(IUnknown* pDevice, [NativeTypeName("HANDLE")] void* hSurface, [NativeTypeName("const DXGI_SWAP_CHAIN_DESC1 *")] DXGI_SWAP_CHAIN_DESC1* pDesc, IDXGIOutput* pRestrictToOutput, IDXGISwapChain1** ppSwapChain);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int CreateDecodeSwapChainForCompositionSurfaceHandle(IUnknown* pDevice, [NativeTypeName("HANDLE")] void* hSurface, DXGI_DECODE_SWAP_CHAIN_DESC* pDesc, IDXGIResource* pYuvDecodeBuffers, IDXGIOutput* pRestrictToOutput, IDXGIDecodeSwapChain** ppSwapChain);
+        HRESULT CreateDecodeSwapChainForCompositionSurfaceHandle(IUnknown* pDevice, [NativeTypeName("HANDLE")] void* hSurface, DXGI_DECODE_SWAP_CHAIN_DESC* pDesc, IDXGIResource* pYuvDecodeBuffers, IDXGIOutput* pRestrictToOutput, IDXGIDecodeSwapChain** ppSwapChain);
     }
 }

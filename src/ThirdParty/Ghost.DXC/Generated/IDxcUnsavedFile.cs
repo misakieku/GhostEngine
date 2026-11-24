@@ -17,8 +17,7 @@ public unsafe partial struct IDxcUnsavedFile : IDxcUnsavedFile.Interface, INativ
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcUnsavedFile*, Guid*, void**, int>)(lpVtbl[0]))((IDxcUnsavedFile*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcUnsavedFile : IDxcUnsavedFile.Interface, INativ
     /// <include file='IDxcUnsavedFile.xml' path='doc/member[@name="IDxcUnsavedFile.GetFileName"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetFileName([NativeTypeName("LPSTR *")] sbyte** pFileName)
+        public HRESULT GetFileName([NativeTypeName("LPSTR *")] sbyte** pFileName)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcUnsavedFile*, sbyte**, int>)(lpVtbl[3]))((IDxcUnsavedFile*)Unsafe.AsPointer(ref this), pFileName);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcUnsavedFile : IDxcUnsavedFile.Interface, INativ
     /// <include file='IDxcUnsavedFile.xml' path='doc/member[@name="IDxcUnsavedFile.GetContents"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetContents([NativeTypeName("LPSTR *")] sbyte** pContents)
+        public HRESULT GetContents([NativeTypeName("LPSTR *")] sbyte** pContents)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcUnsavedFile*, sbyte**, int>)(lpVtbl[4]))((IDxcUnsavedFile*)Unsafe.AsPointer(ref this), pContents);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcUnsavedFile : IDxcUnsavedFile.Interface, INativ
     /// <include file='IDxcUnsavedFile.xml' path='doc/member[@name="IDxcUnsavedFile.GetLength"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetLength([NativeTypeName("unsigned int *")] uint* pLength)
+        public HRESULT GetLength([NativeTypeName("unsigned int *")] uint* pLength)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcUnsavedFile*, uint*, int>)(lpVtbl[5]))((IDxcUnsavedFile*)Unsafe.AsPointer(ref this), pLength);
     }
@@ -71,16 +67,13 @@ public unsafe partial struct IDxcUnsavedFile : IDxcUnsavedFile.Interface, INativ
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetFileName([NativeTypeName("LPSTR *")] sbyte** pFileName);
+                HRESULT GetFileName([NativeTypeName("LPSTR *")] sbyte** pFileName);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetContents([NativeTypeName("LPSTR *")] sbyte** pContents);
+                HRESULT GetContents([NativeTypeName("LPSTR *")] sbyte** pContents);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetLength([NativeTypeName("unsigned int *")] uint* pLength);
+                HRESULT GetLength([NativeTypeName("unsigned int *")] uint* pLength);
     }
 
     public partial struct Vtbl<TSelf>

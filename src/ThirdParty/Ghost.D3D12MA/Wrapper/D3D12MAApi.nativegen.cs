@@ -10,7 +10,7 @@ public unsafe partial struct D3D12MAApi
     /// From: <see cref="Api.D3D12MA_CreateAllocator(D3D12MA_ALLOCATOR_DESC*, D3D12MA_Allocator**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int CreateAllocator(D3D12MA_ALLOCATOR_DESC* pDesc, D3D12MA_Allocator** ppAllocator)
+    public static HRESULT CreateAllocator(D3D12MA_ALLOCATOR_DESC* pDesc, D3D12MA_Allocator** ppAllocator)
     {
         return Api.D3D12MA_CreateAllocator(
             pDesc,
@@ -21,7 +21,7 @@ public unsafe partial struct D3D12MAApi
     /// From: <see cref="Api.D3D12MA_CreateVirtualBlock(D3D12MA_VIRTUAL_BLOCK_DESC*, D3D12MA_VirtualBlock**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int CreateVirtualBlock(D3D12MA_VIRTUAL_BLOCK_DESC* pDesc, D3D12MA_VirtualBlock** ppVirtualBlock)
+    public static HRESULT CreateVirtualBlock(D3D12MA_VIRTUAL_BLOCK_DESC* pDesc, D3D12MA_VirtualBlock** ppVirtualBlock)
     {
         return Api.D3D12MA_CreateVirtualBlock(
             pDesc,

@@ -15,8 +15,7 @@ public unsafe partial struct ID3D12Tools2 : ID3D12Tools2.Interface, INativeGuid
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12Tools2*, Guid*, void**, int>)(lpVtbl[0]))((ID3D12Tools2*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -54,8 +53,7 @@ public unsafe partial struct ID3D12Tools2 : ID3D12Tools2.Interface, INativeGuid
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int ReserveGPUVARangesAtCreate(D3D12_GPU_VIRTUAL_ADDRESS_RANGE* pRanges, uint uiNumRanges)
+    public HRESULT ReserveGPUVARangesAtCreate(D3D12_GPU_VIRTUAL_ADDRESS_RANGE* pRanges, uint uiNumRanges)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12Tools2*, D3D12_GPU_VIRTUAL_ADDRESS_RANGE*, uint, int>)(lpVtbl[5]))((ID3D12Tools2*)Unsafe.AsPointer(ref this), pRanges, uiNumRanges);
     }
@@ -69,8 +67,7 @@ public unsafe partial struct ID3D12Tools2 : ID3D12Tools2.Interface, INativeGuid
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(7)]
-    [return: NativeTypeName("HRESULT")]
-    public int SetApplicationSpecificDriverState(IUnknown* pAdapter, [NativeTypeName("ID3DBlob *")] ID3D10Blob* pBlob)
+    public HRESULT SetApplicationSpecificDriverState(IUnknown* pAdapter, [NativeTypeName("ID3DBlob *")] ID3D10Blob* pBlob)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12Tools2*, IUnknown*, ID3D10Blob*, int>)(lpVtbl[7]))((ID3D12Tools2*)Unsafe.AsPointer(ref this), pAdapter, pBlob);
     }
@@ -78,7 +75,6 @@ public unsafe partial struct ID3D12Tools2 : ID3D12Tools2.Interface, INativeGuid
     public interface Interface : ID3D12Tools1.Interface
     {
         [VtblIndex(7)]
-        [return: NativeTypeName("HRESULT")]
-        int SetApplicationSpecificDriverState(IUnknown* pAdapter, [NativeTypeName("ID3DBlob *")] ID3D10Blob* pBlob);
+        HRESULT SetApplicationSpecificDriverState(IUnknown* pAdapter, [NativeTypeName("ID3DBlob *")] ID3D10Blob* pBlob);
     }
 }

@@ -17,8 +17,7 @@ public unsafe partial struct IDxcSourceLocation : IDxcSourceLocation.Interface, 
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcSourceLocation*, Guid*, void**, int>)(lpVtbl[0]))((IDxcSourceLocation*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcSourceLocation : IDxcSourceLocation.Interface, 
     /// <include file='IDxcSourceLocation.xml' path='doc/member[@name="IDxcSourceLocation.IsEqualTo"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int IsEqualTo(IDxcSourceLocation* other, [NativeTypeName("BOOL *")] int* pResult)
+        public HRESULT IsEqualTo(IDxcSourceLocation* other, [NativeTypeName("BOOL *")] int* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcSourceLocation*, IDxcSourceLocation*, int*, int>)(lpVtbl[3]))((IDxcSourceLocation*)Unsafe.AsPointer(ref this), other, pResult);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcSourceLocation : IDxcSourceLocation.Interface, 
     /// <include file='IDxcSourceLocation.xml' path='doc/member[@name="IDxcSourceLocation.GetSpellingLocation"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetSpellingLocation(IDxcFile** pFile, [NativeTypeName("unsigned int *")] uint* pLine, [NativeTypeName("unsigned int *")] uint* pCol, [NativeTypeName("unsigned int *")] uint* pOffset)
+        public HRESULT GetSpellingLocation(IDxcFile** pFile, [NativeTypeName("unsigned int *")] uint* pLine, [NativeTypeName("unsigned int *")] uint* pCol, [NativeTypeName("unsigned int *")] uint* pOffset)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcSourceLocation*, IDxcFile**, uint*, uint*, uint*, int>)(lpVtbl[4]))((IDxcSourceLocation*)Unsafe.AsPointer(ref this), pFile, pLine, pCol, pOffset);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcSourceLocation : IDxcSourceLocation.Interface, 
     /// <include file='IDxcSourceLocation.xml' path='doc/member[@name="IDxcSourceLocation.IsNull"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int IsNull([NativeTypeName("BOOL *")] int* pResult)
+        public HRESULT IsNull([NativeTypeName("BOOL *")] int* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcSourceLocation*, int*, int>)(lpVtbl[5]))((IDxcSourceLocation*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -71,8 +67,7 @@ public unsafe partial struct IDxcSourceLocation : IDxcSourceLocation.Interface, 
     /// <include file='IDxcSourceLocation.xml' path='doc/member[@name="IDxcSourceLocation.GetPresumedLocation"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetPresumedLocation([NativeTypeName("LPSTR *")] sbyte** pFilename, [NativeTypeName("unsigned int *")] uint* pLine, [NativeTypeName("unsigned int *")] uint* pCol)
+        public HRESULT GetPresumedLocation([NativeTypeName("LPSTR *")] sbyte** pFilename, [NativeTypeName("unsigned int *")] uint* pLine, [NativeTypeName("unsigned int *")] uint* pCol)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcSourceLocation*, sbyte**, uint*, uint*, int>)(lpVtbl[6]))((IDxcSourceLocation*)Unsafe.AsPointer(ref this), pFilename, pLine, pCol);
     }
@@ -80,20 +75,16 @@ public unsafe partial struct IDxcSourceLocation : IDxcSourceLocation.Interface, 
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int IsEqualTo(IDxcSourceLocation* other, [NativeTypeName("BOOL *")] int* pResult);
+                HRESULT IsEqualTo(IDxcSourceLocation* other, [NativeTypeName("BOOL *")] int* pResult);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetSpellingLocation(IDxcFile** pFile, [NativeTypeName("unsigned int *")] uint* pLine, [NativeTypeName("unsigned int *")] uint* pCol, [NativeTypeName("unsigned int *")] uint* pOffset);
+                HRESULT GetSpellingLocation(IDxcFile** pFile, [NativeTypeName("unsigned int *")] uint* pLine, [NativeTypeName("unsigned int *")] uint* pCol, [NativeTypeName("unsigned int *")] uint* pOffset);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int IsNull([NativeTypeName("BOOL *")] int* pResult);
+                HRESULT IsNull([NativeTypeName("BOOL *")] int* pResult);
 
         [VtblIndex(6)]
-        [return: NativeTypeName("HRESULT")]
-        int GetPresumedLocation([NativeTypeName("LPSTR *")] sbyte** pFilename, [NativeTypeName("unsigned int *")] uint* pLine, [NativeTypeName("unsigned int *")] uint* pCol);
+                HRESULT GetPresumedLocation([NativeTypeName("LPSTR *")] sbyte** pFilename, [NativeTypeName("unsigned int *")] uint* pLine, [NativeTypeName("unsigned int *")] uint* pCol);
     }
 
     public partial struct Vtbl<TSelf>

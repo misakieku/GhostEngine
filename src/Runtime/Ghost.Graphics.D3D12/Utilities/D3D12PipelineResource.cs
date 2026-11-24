@@ -1,9 +1,8 @@
 using Ghost.Core.Graphics;
 using System.Runtime.CompilerServices;
-using TerraFX.Interop.DirectX;
 
-using static TerraFX.Interop.DirectX.D3D12_INPUT_CLASSIFICATION;
-using static TerraFX.Interop.DirectX.DXGI_FORMAT;
+using static Ghost.D3D12.D3D12_INPUT_CLASSIFICATION;
+using static Ghost.DXGI.DXGI_FORMAT;
 
 namespace Ghost.Graphics.D3D12.Utilities;
 

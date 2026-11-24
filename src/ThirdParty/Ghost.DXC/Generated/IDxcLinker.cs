@@ -17,8 +17,7 @@ public unsafe partial struct IDxcLinker : IDxcLinker.Interface, INativeGuid
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcLinker*, Guid*, void**, int>)(lpVtbl[0]))((IDxcLinker*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcLinker : IDxcLinker.Interface, INativeGuid
     /// <include file='IDxcLinker.xml' path='doc/member[@name="IDxcLinker.RegisterLibrary"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int RegisterLibrary([NativeTypeName("LPCWSTR")] char* pLibName, IDxcBlob* pLib)
+        public HRESULT RegisterLibrary([NativeTypeName("LPCWSTR")] char* pLibName, IDxcBlob* pLib)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcLinker*, char*, IDxcBlob*, int>)(lpVtbl[3]))((IDxcLinker*)Unsafe.AsPointer(ref this), pLibName, pLib);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcLinker : IDxcLinker.Interface, INativeGuid
     /// <include file='IDxcLinker.xml' path='doc/member[@name="IDxcLinker.Link"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int Link([NativeTypeName("LPCWSTR")] char* pEntryName, [NativeTypeName("LPCWSTR")] char* pTargetProfile, [NativeTypeName("const LPCWSTR *")] char** pLibNames, [NativeTypeName("UINT32")] uint libCount, [NativeTypeName("const LPCWSTR *")] char** pArguments, [NativeTypeName("UINT32")] uint argCount, IDxcOperationResult** ppResult)
+        public HRESULT Link([NativeTypeName("LPCWSTR")] char* pEntryName, [NativeTypeName("LPCWSTR")] char* pTargetProfile, [NativeTypeName("const LPCWSTR *")] char** pLibNames, [NativeTypeName("UINT32")] uint libCount, [NativeTypeName("const LPCWSTR *")] char** pArguments, [NativeTypeName("UINT32")] uint argCount, IDxcOperationResult** ppResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcLinker*, char*, char*, char**, uint, char**, uint, IDxcOperationResult**, int>)(lpVtbl[4]))((IDxcLinker*)Unsafe.AsPointer(ref this), pEntryName, pTargetProfile, pLibNames, libCount, pArguments, argCount, ppResult);
     }
@@ -62,12 +59,10 @@ public unsafe partial struct IDxcLinker : IDxcLinker.Interface, INativeGuid
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int RegisterLibrary([NativeTypeName("LPCWSTR")] char* pLibName, IDxcBlob* pLib);
+                HRESULT RegisterLibrary([NativeTypeName("LPCWSTR")] char* pLibName, IDxcBlob* pLib);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int Link([NativeTypeName("LPCWSTR")] char* pEntryName, [NativeTypeName("LPCWSTR")] char* pTargetProfile, [NativeTypeName("const LPCWSTR *")] char** pLibNames, [NativeTypeName("UINT32")] uint libCount, [NativeTypeName("const LPCWSTR *")] char** pArguments, [NativeTypeName("UINT32")] uint argCount, IDxcOperationResult** ppResult);
+                HRESULT Link([NativeTypeName("LPCWSTR")] char* pEntryName, [NativeTypeName("LPCWSTR")] char* pTargetProfile, [NativeTypeName("const LPCWSTR *")] char** pLibNames, [NativeTypeName("UINT32")] uint libCount, [NativeTypeName("const LPCWSTR *")] char** pArguments, [NativeTypeName("UINT32")] uint argCount, IDxcOperationResult** ppResult);
     }
 
     public partial struct Vtbl<TSelf>

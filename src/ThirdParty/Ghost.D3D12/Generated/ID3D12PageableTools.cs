@@ -15,8 +15,7 @@ public unsafe partial struct ID3D12PageableTools : ID3D12PageableTools.Interface
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12PageableTools*, Guid*, void**, int>)(lpVtbl[0]))((ID3D12PageableTools*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -39,8 +38,7 @@ public unsafe partial struct ID3D12PageableTools : ID3D12PageableTools.Interface
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetAllocation(D3D12_GPU_VIRTUAL_ADDRESS_RANGE* pAllocation)
+    public HRESULT GetAllocation(D3D12_GPU_VIRTUAL_ADDRESS_RANGE* pAllocation)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12PageableTools*, D3D12_GPU_VIRTUAL_ADDRESS_RANGE*, int>)(lpVtbl[3]))((ID3D12PageableTools*)Unsafe.AsPointer(ref this), pAllocation);
     }
@@ -48,7 +46,6 @@ public unsafe partial struct ID3D12PageableTools : ID3D12PageableTools.Interface
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetAllocation(D3D12_GPU_VIRTUAL_ADDRESS_RANGE* pAllocation);
+        HRESULT GetAllocation(D3D12_GPU_VIRTUAL_ADDRESS_RANGE* pAllocation);
     }
 }

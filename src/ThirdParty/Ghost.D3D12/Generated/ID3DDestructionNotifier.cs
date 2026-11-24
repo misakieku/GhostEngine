@@ -15,8 +15,7 @@ public unsafe partial struct ID3DDestructionNotifier : ID3DDestructionNotifier.I
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3DDestructionNotifier*, Guid*, void**, int>)(lpVtbl[0]))((ID3DDestructionNotifier*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -39,16 +38,14 @@ public unsafe partial struct ID3DDestructionNotifier : ID3DDestructionNotifier.I
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int RegisterDestructionCallback([NativeTypeName("PFN_DESTRUCTION_CALLBACK")] delegate* unmanaged[Stdcall]<void*, void> callbackFn, void* pData, uint* pCallbackID)
+    public HRESULT RegisterDestructionCallback([NativeTypeName("PFN_DESTRUCTION_CALLBACK")] delegate* unmanaged[Stdcall]<void*, void> callbackFn, void* pData, uint* pCallbackID)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3DDestructionNotifier*, delegate* unmanaged[Stdcall]<void*, void>, void*, uint*, int>)(lpVtbl[3]))((ID3DDestructionNotifier*)Unsafe.AsPointer(ref this), callbackFn, pData, pCallbackID);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int UnregisterDestructionCallback(uint callbackID)
+    public HRESULT UnregisterDestructionCallback(uint callbackID)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3DDestructionNotifier*, uint, int>)(lpVtbl[4]))((ID3DDestructionNotifier*)Unsafe.AsPointer(ref this), callbackID);
     }
@@ -56,11 +53,9 @@ public unsafe partial struct ID3DDestructionNotifier : ID3DDestructionNotifier.I
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int RegisterDestructionCallback([NativeTypeName("PFN_DESTRUCTION_CALLBACK")] delegate* unmanaged[Stdcall]<void*, void> callbackFn, void* pData, uint* pCallbackID);
+        HRESULT RegisterDestructionCallback([NativeTypeName("PFN_DESTRUCTION_CALLBACK")] delegate* unmanaged[Stdcall]<void*, void> callbackFn, void* pData, uint* pCallbackID);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int UnregisterDestructionCallback(uint callbackID);
+        HRESULT UnregisterDestructionCallback(uint callbackID);
     }
 }

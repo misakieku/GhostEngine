@@ -15,8 +15,7 @@ public unsafe partial struct ID3D12DeviceDumpFile : ID3D12DeviceDumpFile.Interfa
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceDumpFile*, Guid*, void**, int>)(lpVtbl[0]))((ID3D12DeviceDumpFile*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -39,8 +38,7 @@ public unsafe partial struct ID3D12DeviceDumpFile : ID3D12DeviceDumpFile.Interfa
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int ConfigureDumpFile(D3D12_DUMP_FILE_DRIVER_OPTIONS driverOptions)
+    public HRESULT ConfigureDumpFile(D3D12_DUMP_FILE_DRIVER_OPTIONS driverOptions)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceDumpFile*, D3D12_DUMP_FILE_DRIVER_OPTIONS, int>)(lpVtbl[3]))((ID3D12DeviceDumpFile*)Unsafe.AsPointer(ref this), driverOptions);
     }
@@ -54,8 +52,7 @@ public unsafe partial struct ID3D12DeviceDumpFile : ID3D12DeviceDumpFile.Interfa
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int AddBlobToDumpFile(void* pBlob, uint sizeBytes, [NativeTypeName("UINT64")] ulong metadata)
+    public HRESULT AddBlobToDumpFile(void* pBlob, uint sizeBytes, [NativeTypeName("UINT64")] ulong metadata)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceDumpFile*, void*, uint, ulong, int>)(lpVtbl[5]))((ID3D12DeviceDumpFile*)Unsafe.AsPointer(ref this), pBlob, sizeBytes, metadata);
     }
@@ -77,15 +74,13 @@ public unsafe partial struct ID3D12DeviceDumpFile : ID3D12DeviceDumpFile.Interfa
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int ConfigureDumpFile(D3D12_DUMP_FILE_DRIVER_OPTIONS driverOptions);
+        HRESULT ConfigureDumpFile(D3D12_DUMP_FILE_DRIVER_OPTIONS driverOptions);
 
         [VtblIndex(4)]
         void SetDumpFileCallbacks([NativeTypeName("D3D12_DUMPFILEBEGINCALLBACK")] delegate* unmanaged[Cdecl]<ulong, uint> pBeginCallback, [NativeTypeName("D3D12_DUMPFILEENDCALLBACK")] delegate* unmanaged[Cdecl]<char*, void> pEndCallback);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int AddBlobToDumpFile(void* pBlob, uint sizeBytes, [NativeTypeName("UINT64")] ulong metadata);
+        HRESULT AddBlobToDumpFile(void* pBlob, uint sizeBytes, [NativeTypeName("UINT64")] ulong metadata);
 
         [VtblIndex(6)]
         void RetainDumpFile([NativeTypeName("BOOL")] int retain);

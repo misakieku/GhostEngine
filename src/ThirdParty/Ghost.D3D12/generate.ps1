@@ -59,10 +59,13 @@ disable-runtime-marshalling
 enum-operators=false
 file-scoped-namespaces
 guid-member
+macro-bindings
 marker-interfaces
 vtbl-index-attribute
 --define-macro
 INITGUID
+--exclude
+IID_ID3DBlob
 --library-path
 d3d12
 --namespace
@@ -74,6 +77,8 @@ tagRECT=RECT
 _LUID=LUID
 _SECURITY_ATTRIBUTES=SECURITY_ATTRIBUTES
 HWND__*=HWND
+--with-transparent-struct
+HRESULT=int
 --include-directory
 $d3d12Include
 --include-directory

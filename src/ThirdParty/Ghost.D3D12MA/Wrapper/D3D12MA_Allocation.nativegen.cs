@@ -10,7 +10,7 @@ public unsafe partial struct D3D12MA_Allocation
     /// From: <see cref="Api.D3D12MA_Allocation_QueryInterface(D3D12MA_Allocation*, Guid*, void**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int QueryInterface(Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface(Guid* riid, void** ppvObject)
     {
         return Api.D3D12MA_Allocation_QueryInterface(
             (D3D12MA_Allocation*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),

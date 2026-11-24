@@ -15,8 +15,7 @@ public unsafe partial struct IDXGIResource1 : IDXGIResource1.Interface, INativeG
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIResource1*, Guid*, void**, int>)(lpVtbl[0]))((IDXGIResource1*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -39,88 +38,77 @@ public unsafe partial struct IDXGIResource1 : IDXGIResource1.Interface, INativeG
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int SetPrivateData([NativeTypeName("const GUID &")] Guid* Name, uint DataSize, [NativeTypeName("const void *")] void* pData)
+    public HRESULT SetPrivateData([NativeTypeName("const GUID &")] Guid* Name, uint DataSize, [NativeTypeName("const void *")] void* pData)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIResource1*, Guid*, uint, void*, int>)(lpVtbl[3]))((IDXGIResource1*)Unsafe.AsPointer(ref this), Name, DataSize, pData);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int SetPrivateDataInterface([NativeTypeName("const GUID &")] Guid* Name, [NativeTypeName("const IUnknown *")] IUnknown* pUnknown)
+    public HRESULT SetPrivateDataInterface([NativeTypeName("const GUID &")] Guid* Name, [NativeTypeName("const IUnknown *")] IUnknown* pUnknown)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIResource1*, Guid*, IUnknown*, int>)(lpVtbl[4]))((IDXGIResource1*)Unsafe.AsPointer(ref this), Name, pUnknown);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetPrivateData([NativeTypeName("const GUID &")] Guid* Name, uint* pDataSize, void* pData)
+    public HRESULT GetPrivateData([NativeTypeName("const GUID &")] Guid* Name, uint* pDataSize, void* pData)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIResource1*, Guid*, uint*, void*, int>)(lpVtbl[5]))((IDXGIResource1*)Unsafe.AsPointer(ref this), Name, pDataSize, pData);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetParent([NativeTypeName("const IID &")] Guid* riid, void** ppParent)
+    public HRESULT GetParent([NativeTypeName("const IID &")] Guid* riid, void** ppParent)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIResource1*, Guid*, void**, int>)(lpVtbl[6]))((IDXGIResource1*)Unsafe.AsPointer(ref this), riid, ppParent);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(7)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetDevice([NativeTypeName("const IID &")] Guid* riid, void** ppDevice)
+    public HRESULT GetDevice([NativeTypeName("const IID &")] Guid* riid, void** ppDevice)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIResource1*, Guid*, void**, int>)(lpVtbl[7]))((IDXGIResource1*)Unsafe.AsPointer(ref this), riid, ppDevice);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(8)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetSharedHandle([NativeTypeName("HANDLE *")] void** pSharedHandle)
+    public HRESULT GetSharedHandle([NativeTypeName("HANDLE *")] void** pSharedHandle)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIResource1*, void**, int>)(lpVtbl[8]))((IDXGIResource1*)Unsafe.AsPointer(ref this), pSharedHandle);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(9)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetUsage([NativeTypeName("DXGI_USAGE *")] uint* pUsage)
+    public HRESULT GetUsage([NativeTypeName("DXGI_USAGE *")] uint* pUsage)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIResource1*, uint*, int>)(lpVtbl[9]))((IDXGIResource1*)Unsafe.AsPointer(ref this), pUsage);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(10)]
-    [return: NativeTypeName("HRESULT")]
-    public int SetEvictionPriority(uint EvictionPriority)
+    public HRESULT SetEvictionPriority(uint EvictionPriority)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIResource1*, uint, int>)(lpVtbl[10]))((IDXGIResource1*)Unsafe.AsPointer(ref this), EvictionPriority);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(11)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetEvictionPriority(uint* pEvictionPriority)
+    public HRESULT GetEvictionPriority(uint* pEvictionPriority)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIResource1*, uint*, int>)(lpVtbl[11]))((IDXGIResource1*)Unsafe.AsPointer(ref this), pEvictionPriority);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(12)]
-    [return: NativeTypeName("HRESULT")]
-    public int CreateSubresourceSurface(uint index, IDXGISurface2** ppSurface)
+    public HRESULT CreateSubresourceSurface(uint index, IDXGISurface2** ppSurface)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIResource1*, uint, IDXGISurface2**, int>)(lpVtbl[12]))((IDXGIResource1*)Unsafe.AsPointer(ref this), index, ppSurface);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(13)]
-    [return: NativeTypeName("HRESULT")]
-    public int CreateSharedHandle([NativeTypeName("const SECURITY_ATTRIBUTES *")] SECURITY_ATTRIBUTES* pAttributes, [NativeTypeName("DWORD")] uint dwAccess, [NativeTypeName("LPCWSTR")] char* lpName, [NativeTypeName("HANDLE *")] void** pHandle)
+    public HRESULT CreateSharedHandle([NativeTypeName("const SECURITY_ATTRIBUTES *")] SECURITY_ATTRIBUTES* pAttributes, [NativeTypeName("DWORD")] uint dwAccess, [NativeTypeName("LPCWSTR")] char* lpName, [NativeTypeName("HANDLE *")] void** pHandle)
     {
         return ((delegate* unmanaged[MemberFunction]<IDXGIResource1*, SECURITY_ATTRIBUTES*, uint, char*, void**, int>)(lpVtbl[13]))((IDXGIResource1*)Unsafe.AsPointer(ref this), pAttributes, dwAccess, lpName, pHandle);
     }
@@ -128,11 +116,9 @@ public unsafe partial struct IDXGIResource1 : IDXGIResource1.Interface, INativeG
     public interface Interface : IDXGIResource.Interface
     {
         [VtblIndex(12)]
-        [return: NativeTypeName("HRESULT")]
-        int CreateSubresourceSurface(uint index, IDXGISurface2** ppSurface);
+        HRESULT CreateSubresourceSurface(uint index, IDXGISurface2** ppSurface);
 
         [VtblIndex(13)]
-        [return: NativeTypeName("HRESULT")]
-        int CreateSharedHandle([NativeTypeName("const SECURITY_ATTRIBUTES *")] SECURITY_ATTRIBUTES* pAttributes, [NativeTypeName("DWORD")] uint dwAccess, [NativeTypeName("LPCWSTR")] char* lpName, [NativeTypeName("HANDLE *")] void** pHandle);
+        HRESULT CreateSharedHandle([NativeTypeName("const SECURITY_ATTRIBUTES *")] SECURITY_ATTRIBUTES* pAttributes, [NativeTypeName("DWORD")] uint dwAccess, [NativeTypeName("LPCWSTR")] char* lpName, [NativeTypeName("HANDLE *")] void** pHandle);
     }
 }

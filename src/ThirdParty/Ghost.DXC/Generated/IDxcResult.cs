@@ -17,8 +17,7 @@ public unsafe partial struct IDxcResult : IDxcResult.Interface, INativeGuid
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcResult*, Guid*, void**, int>)(lpVtbl[0]))((IDxcResult*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcResult : IDxcResult.Interface, INativeGuid
     /// <inheritdoc cref="IDxcOperationResult.GetStatus" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetStatus([NativeTypeName("HRESULT *")] int* pStatus)
+        public HRESULT GetStatus([NativeTypeName("HRESULT *")] int* pStatus)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcResult*, int*, int>)(lpVtbl[3]))((IDxcResult*)Unsafe.AsPointer(ref this), pStatus);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcResult : IDxcResult.Interface, INativeGuid
     /// <inheritdoc cref="IDxcOperationResult.GetResult" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetResult(IDxcBlob** ppResult)
+        public HRESULT GetResult(IDxcBlob** ppResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcResult*, IDxcBlob**, int>)(lpVtbl[4]))((IDxcResult*)Unsafe.AsPointer(ref this), ppResult);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcResult : IDxcResult.Interface, INativeGuid
     /// <inheritdoc cref="IDxcOperationResult.GetErrorBuffer" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetErrorBuffer(IDxcBlobEncoding** ppErrors)
+        public HRESULT GetErrorBuffer(IDxcBlobEncoding** ppErrors)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcResult*, IDxcBlobEncoding**, int>)(lpVtbl[5]))((IDxcResult*)Unsafe.AsPointer(ref this), ppErrors);
     }
@@ -80,8 +76,7 @@ public unsafe partial struct IDxcResult : IDxcResult.Interface, INativeGuid
     /// <include file='IDxcResult.xml' path='doc/member[@name="IDxcResult.GetOutput"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(7)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetOutput(DXC_OUT_KIND dxcOutKind, [NativeTypeName("const IID &")] Guid* iid, void** ppvObject, IDxcBlobWide** ppOutputName)
+        public HRESULT GetOutput(DXC_OUT_KIND dxcOutKind, [NativeTypeName("const IID &")] Guid* iid, void** ppvObject, IDxcBlobWide** ppOutputName)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcResult*, DXC_OUT_KIND, Guid*, void**, IDxcBlobWide**, int>)(lpVtbl[7]))((IDxcResult*)Unsafe.AsPointer(ref this), dxcOutKind, iid, ppvObject, ppOutputName);
     }
@@ -118,8 +113,7 @@ public unsafe partial struct IDxcResult : IDxcResult.Interface, INativeGuid
         int HasOutput(DXC_OUT_KIND dxcOutKind);
 
         [VtblIndex(7)]
-        [return: NativeTypeName("HRESULT")]
-        int GetOutput(DXC_OUT_KIND dxcOutKind, [NativeTypeName("const IID &")] Guid* iid, void** ppvObject, IDxcBlobWide** ppOutputName);
+                HRESULT GetOutput(DXC_OUT_KIND dxcOutKind, [NativeTypeName("const IID &")] Guid* iid, void** ppvObject, IDxcBlobWide** ppOutputName);
 
         [VtblIndex(8)]
         [return: NativeTypeName("UINT32")]

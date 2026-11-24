@@ -15,8 +15,7 @@ public unsafe partial struct ID3D12VirtualizationGuestDevice : ID3D12Virtualizat
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12VirtualizationGuestDevice*, Guid*, void**, int>)(lpVtbl[0]))((ID3D12VirtualizationGuestDevice*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -39,16 +38,14 @@ public unsafe partial struct ID3D12VirtualizationGuestDevice : ID3D12Virtualizat
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int ShareWithHost(ID3D12DeviceChild* pObject, [NativeTypeName("HANDLE *")] void** pHandle)
+    public HRESULT ShareWithHost(ID3D12DeviceChild* pObject, [NativeTypeName("HANDLE *")] void** pHandle)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12VirtualizationGuestDevice*, ID3D12DeviceChild*, void**, int>)(lpVtbl[3]))((ID3D12VirtualizationGuestDevice*)Unsafe.AsPointer(ref this), pObject, pHandle);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int CreateFenceFd(ID3D12Fence* pFence, [NativeTypeName("UINT64")] ulong FenceValue, int* pFenceFd)
+    public HRESULT CreateFenceFd(ID3D12Fence* pFence, [NativeTypeName("UINT64")] ulong FenceValue, int* pFenceFd)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12VirtualizationGuestDevice*, ID3D12Fence*, ulong, int*, int>)(lpVtbl[4]))((ID3D12VirtualizationGuestDevice*)Unsafe.AsPointer(ref this), pFence, FenceValue, pFenceFd);
     }
@@ -56,11 +53,9 @@ public unsafe partial struct ID3D12VirtualizationGuestDevice : ID3D12Virtualizat
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int ShareWithHost(ID3D12DeviceChild* pObject, [NativeTypeName("HANDLE *")] void** pHandle);
+        HRESULT ShareWithHost(ID3D12DeviceChild* pObject, [NativeTypeName("HANDLE *")] void** pHandle);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int CreateFenceFd(ID3D12Fence* pFence, [NativeTypeName("UINT64")] ulong FenceValue, int* pFenceFd);
+        HRESULT CreateFenceFd(ID3D12Fence* pFence, [NativeTypeName("UINT64")] ulong FenceValue, int* pFenceFd);
     }
 }

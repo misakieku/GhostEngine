@@ -15,8 +15,7 @@ public unsafe partial struct ID3D12AsyncCommandsFallback : ID3D12AsyncCommandsFa
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12AsyncCommandsFallback*, Guid*, void**, int>)(lpVtbl[0]))((ID3D12AsyncCommandsFallback*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -39,8 +38,7 @@ public unsafe partial struct ID3D12AsyncCommandsFallback : ID3D12AsyncCommandsFa
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int SetFallbackLayerEnabled([NativeTypeName("BOOL")] int Enable)
+    public HRESULT SetFallbackLayerEnabled([NativeTypeName("BOOL")] int Enable)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12AsyncCommandsFallback*, int, int>)(lpVtbl[3]))((ID3D12AsyncCommandsFallback*)Unsafe.AsPointer(ref this), Enable);
     }
@@ -56,8 +54,7 @@ public unsafe partial struct ID3D12AsyncCommandsFallback : ID3D12AsyncCommandsFa
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int SetFallbackLayerEnabled([NativeTypeName("BOOL")] int Enable);
+        HRESULT SetFallbackLayerEnabled([NativeTypeName("BOOL")] int Enable);
 
         [VtblIndex(4)]
         [return: NativeTypeName("BOOL")]

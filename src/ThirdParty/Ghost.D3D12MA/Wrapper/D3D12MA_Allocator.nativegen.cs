@@ -10,7 +10,7 @@ public unsafe partial struct D3D12MA_Allocator
     /// From: <see cref="Api.D3D12MA_Allocator_QueryInterface(D3D12MA_Allocator*, Guid*, void**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int QueryInterface(Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface(Guid* riid, void** ppvObject)
     {
         return Api.D3D12MA_Allocator_QueryInterface(
             (D3D12MA_Allocator*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -96,7 +96,7 @@ public unsafe partial struct D3D12MA_Allocator
     /// From: <see cref="Api.D3D12MA_Allocator_CreateResource(D3D12MA_Allocator*, D3D12MA_ALLOCATION_DESC*, D3D12_RESOURCE_DESC*, D3D12_RESOURCE_STATES, D3D12_CLEAR_VALUE*, D3D12MA_Allocation**, Guid*, void**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int CreateResource(D3D12MA_ALLOCATION_DESC* pAllocDesc, D3D12_RESOURCE_DESC* pResourceDesc, D3D12_RESOURCE_STATES InitialResourceState, D3D12_CLEAR_VALUE* pOptimizedClearValue, D3D12MA_Allocation** ppAllocation, Guid* riidResource, void** ppvResource)
+    public HRESULT CreateResource(D3D12MA_ALLOCATION_DESC* pAllocDesc, D3D12_RESOURCE_DESC* pResourceDesc, D3D12_RESOURCE_STATES InitialResourceState, D3D12_CLEAR_VALUE* pOptimizedClearValue, D3D12MA_Allocation** ppAllocation, Guid* riidResource, void** ppvResource)
     {
         return Api.D3D12MA_Allocator_CreateResource(
             (D3D12MA_Allocator*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -113,7 +113,7 @@ public unsafe partial struct D3D12MA_Allocator
     /// From: <see cref="Api.D3D12MA_Allocator_CreateResource2(D3D12MA_Allocator*, D3D12MA_ALLOCATION_DESC*, D3D12_RESOURCE_DESC1*, D3D12_RESOURCE_STATES, D3D12_CLEAR_VALUE*, D3D12MA_Allocation**, Guid*, void**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int CreateResource2(D3D12MA_ALLOCATION_DESC* pAllocDesc, D3D12_RESOURCE_DESC1* pResourceDesc, D3D12_RESOURCE_STATES InitialResourceState, D3D12_CLEAR_VALUE* pOptimizedClearValue, D3D12MA_Allocation** ppAllocation, Guid* riidResource, void** ppvResource)
+    public HRESULT CreateResource2(D3D12MA_ALLOCATION_DESC* pAllocDesc, D3D12_RESOURCE_DESC1* pResourceDesc, D3D12_RESOURCE_STATES InitialResourceState, D3D12_CLEAR_VALUE* pOptimizedClearValue, D3D12MA_Allocation** ppAllocation, Guid* riidResource, void** ppvResource)
     {
         return Api.D3D12MA_Allocator_CreateResource2(
             (D3D12MA_Allocator*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -130,7 +130,7 @@ public unsafe partial struct D3D12MA_Allocator
     /// From: <see cref="Api.D3D12MA_Allocator_CreateResource3(D3D12MA_Allocator*, D3D12MA_ALLOCATION_DESC*, D3D12_RESOURCE_DESC1*, D3D12_BARRIER_LAYOUT, D3D12_CLEAR_VALUE*, uint, DXGI_FORMAT*, D3D12MA_Allocation**, Guid*, void**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int CreateResource3(D3D12MA_ALLOCATION_DESC* pAllocDesc, D3D12_RESOURCE_DESC1* pResourceDesc, D3D12_BARRIER_LAYOUT InitialLayout, D3D12_CLEAR_VALUE* pOptimizedClearValue, uint NumCastableFormats, DXGI_FORMAT* pCastableFormats, D3D12MA_Allocation** ppAllocation, Guid* riidResource, void** ppvResource)
+    public HRESULT CreateResource3(D3D12MA_ALLOCATION_DESC* pAllocDesc, D3D12_RESOURCE_DESC1* pResourceDesc, D3D12_BARRIER_LAYOUT InitialLayout, D3D12_CLEAR_VALUE* pOptimizedClearValue, uint NumCastableFormats, DXGI_FORMAT* pCastableFormats, D3D12MA_Allocation** ppAllocation, Guid* riidResource, void** ppvResource)
     {
         return Api.D3D12MA_Allocator_CreateResource3(
             (D3D12MA_Allocator*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -149,7 +149,7 @@ public unsafe partial struct D3D12MA_Allocator
     /// From: <see cref="Api.D3D12MA_Allocator_CreateResource4(D3D12MA_Allocator*, D3D12MA_ALLOCATION_DESC*, D3D12_RESOURCE_DESC2*, D3D12_BARRIER_LAYOUT, D3D12_CLEAR_VALUE*, uint, DXGI_FORMAT*, D3D12MA_Allocation**, Guid*, void**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int CreateResource4(D3D12MA_ALLOCATION_DESC* pAllocDesc, D3D12_RESOURCE_DESC2* pResourceDesc, D3D12_BARRIER_LAYOUT InitialLayout, D3D12_CLEAR_VALUE* pOptimizedClearValue, uint NumCastableFormats, DXGI_FORMAT* pCastableFormats, D3D12MA_Allocation** ppAllocation, Guid* riidResource, void** ppvResource)
+    public HRESULT CreateResource4(D3D12MA_ALLOCATION_DESC* pAllocDesc, D3D12_RESOURCE_DESC2* pResourceDesc, D3D12_BARRIER_LAYOUT InitialLayout, D3D12_CLEAR_VALUE* pOptimizedClearValue, uint NumCastableFormats, DXGI_FORMAT* pCastableFormats, D3D12MA_Allocation** ppAllocation, Guid* riidResource, void** ppvResource)
     {
         return Api.D3D12MA_Allocator_CreateResource4(
             (D3D12MA_Allocator*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -168,7 +168,7 @@ public unsafe partial struct D3D12MA_Allocator
     /// From: <see cref="Api.D3D12MA_Allocator_AllocateMemory(D3D12MA_Allocator*, D3D12MA_ALLOCATION_DESC*, D3D12_RESOURCE_ALLOCATION_INFO*, D3D12MA_Allocation**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int AllocateMemory(D3D12MA_ALLOCATION_DESC* pAllocDesc, D3D12_RESOURCE_ALLOCATION_INFO* pAllocInfo, D3D12MA_Allocation** ppAllocation)
+    public HRESULT AllocateMemory(D3D12MA_ALLOCATION_DESC* pAllocDesc, D3D12_RESOURCE_ALLOCATION_INFO* pAllocInfo, D3D12MA_Allocation** ppAllocation)
     {
         return Api.D3D12MA_Allocator_AllocateMemory(
             (D3D12MA_Allocator*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -181,7 +181,7 @@ public unsafe partial struct D3D12MA_Allocator
     /// From: <see cref="Api.D3D12MA_Allocator_CreateAliasingResource(D3D12MA_Allocator*, D3D12MA_Allocation*, ulong, D3D12_RESOURCE_DESC*, D3D12_RESOURCE_STATES, D3D12_CLEAR_VALUE*, Guid*, void**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int CreateAliasingResource(D3D12MA_Allocation* pAllocation, ulong AllocationLocalOffset, D3D12_RESOURCE_DESC* pResourceDesc, D3D12_RESOURCE_STATES InitialResourceState, D3D12_CLEAR_VALUE* pOptimizedClearValue, Guid* riidResource, void** ppvResource)
+    public HRESULT CreateAliasingResource(D3D12MA_Allocation* pAllocation, ulong AllocationLocalOffset, D3D12_RESOURCE_DESC* pResourceDesc, D3D12_RESOURCE_STATES InitialResourceState, D3D12_CLEAR_VALUE* pOptimizedClearValue, Guid* riidResource, void** ppvResource)
     {
         return Api.D3D12MA_Allocator_CreateAliasingResource(
             (D3D12MA_Allocator*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -198,7 +198,7 @@ public unsafe partial struct D3D12MA_Allocator
     /// From: <see cref="Api.D3D12MA_Allocator_CreateAliasingResource1(D3D12MA_Allocator*, D3D12MA_Allocation*, ulong, D3D12_RESOURCE_DESC1*, D3D12_RESOURCE_STATES, D3D12_CLEAR_VALUE*, Guid*, void**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int CreateAliasingResource1(D3D12MA_Allocation* pAllocation, ulong AllocationLocalOffset, D3D12_RESOURCE_DESC1* pResourceDesc, D3D12_RESOURCE_STATES InitialResourceState, D3D12_CLEAR_VALUE* pOptimizedClearValue, Guid* riidResource, void** ppvResource)
+    public HRESULT CreateAliasingResource1(D3D12MA_Allocation* pAllocation, ulong AllocationLocalOffset, D3D12_RESOURCE_DESC1* pResourceDesc, D3D12_RESOURCE_STATES InitialResourceState, D3D12_CLEAR_VALUE* pOptimizedClearValue, Guid* riidResource, void** ppvResource)
     {
         return Api.D3D12MA_Allocator_CreateAliasingResource1(
             (D3D12MA_Allocator*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -215,7 +215,7 @@ public unsafe partial struct D3D12MA_Allocator
     /// From: <see cref="Api.D3D12MA_Allocator_CreateAliasingResource2(D3D12MA_Allocator*, D3D12MA_Allocation*, ulong, D3D12_RESOURCE_DESC1*, D3D12_BARRIER_LAYOUT, D3D12_CLEAR_VALUE*, uint, DXGI_FORMAT*, Guid*, void**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int CreateAliasingResource2(D3D12MA_Allocation* pAllocation, ulong AllocationLocalOffset, D3D12_RESOURCE_DESC1* pResourceDesc, D3D12_BARRIER_LAYOUT InitialLayout, D3D12_CLEAR_VALUE* pOptimizedClearValue, uint NumCastableFormats, DXGI_FORMAT* pCastableFormats, Guid* riidResource, void** ppvResource)
+    public HRESULT CreateAliasingResource2(D3D12MA_Allocation* pAllocation, ulong AllocationLocalOffset, D3D12_RESOURCE_DESC1* pResourceDesc, D3D12_BARRIER_LAYOUT InitialLayout, D3D12_CLEAR_VALUE* pOptimizedClearValue, uint NumCastableFormats, DXGI_FORMAT* pCastableFormats, Guid* riidResource, void** ppvResource)
     {
         return Api.D3D12MA_Allocator_CreateAliasingResource2(
             (D3D12MA_Allocator*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -234,7 +234,7 @@ public unsafe partial struct D3D12MA_Allocator
     /// From: <see cref="Api.D3D12MA_Allocator_CreateAliasingResource3(D3D12MA_Allocator*, D3D12MA_Allocation*, ulong, D3D12_RESOURCE_DESC2*, D3D12_BARRIER_LAYOUT, D3D12_CLEAR_VALUE*, uint, DXGI_FORMAT*, Guid*, void**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int CreateAliasingResource3(D3D12MA_Allocation* pAllocation, ulong AllocationLocalOffset, D3D12_RESOURCE_DESC2* pResourceDesc, D3D12_BARRIER_LAYOUT InitialLayout, D3D12_CLEAR_VALUE* pOptimizedClearValue, uint NumCastableFormats, DXGI_FORMAT* pCastableFormats, Guid* riidResource, void** ppvResource)
+    public HRESULT CreateAliasingResource3(D3D12MA_Allocation* pAllocation, ulong AllocationLocalOffset, D3D12_RESOURCE_DESC2* pResourceDesc, D3D12_BARRIER_LAYOUT InitialLayout, D3D12_CLEAR_VALUE* pOptimizedClearValue, uint NumCastableFormats, DXGI_FORMAT* pCastableFormats, Guid* riidResource, void** ppvResource)
     {
         return Api.D3D12MA_Allocator_CreateAliasingResource3(
             (D3D12MA_Allocator*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -253,7 +253,7 @@ public unsafe partial struct D3D12MA_Allocator
     /// From: <see cref="Api.D3D12MA_Allocator_CreatePool(D3D12MA_Allocator*, D3D12MA_POOL_DESC*, D3D12MA_Pool**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int CreatePool(D3D12MA_POOL_DESC* pPoolDesc, D3D12MA_Pool** ppPool)
+    public HRESULT CreatePool(D3D12MA_POOL_DESC* pPoolDesc, D3D12MA_Pool** ppPool)
     {
         return Api.D3D12MA_Allocator_CreatePool(
             (D3D12MA_Allocator*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),

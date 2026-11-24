@@ -17,8 +17,7 @@ public unsafe partial struct IDxcPixDxilDebugInfoFactory : IDxcPixDxilDebugInfoF
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilDebugInfoFactory*, Guid*, void**, int>)(lpVtbl[0]))((IDxcPixDxilDebugInfoFactory*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcPixDxilDebugInfoFactory : IDxcPixDxilDebugInfoF
     /// <include file='IDxcPixDxilDebugInfoFactory.xml' path='doc/member[@name="IDxcPixDxilDebugInfoFactory.NewDxcPixDxilDebugInfo"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int NewDxcPixDxilDebugInfo(IDxcPixDxilDebugInfo** ppDxilDebugInfo)
+        public HRESULT NewDxcPixDxilDebugInfo(IDxcPixDxilDebugInfo** ppDxilDebugInfo)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilDebugInfoFactory*, IDxcPixDxilDebugInfo**, int>)(lpVtbl[3]))((IDxcPixDxilDebugInfoFactory*)Unsafe.AsPointer(ref this), ppDxilDebugInfo);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcPixDxilDebugInfoFactory : IDxcPixDxilDebugInfoF
     /// <include file='IDxcPixDxilDebugInfoFactory.xml' path='doc/member[@name="IDxcPixDxilDebugInfoFactory.NewDxcPixCompilationInfo"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int NewDxcPixCompilationInfo(IDxcPixCompilationInfo** ppCompilationInfo)
+        public HRESULT NewDxcPixCompilationInfo(IDxcPixCompilationInfo** ppCompilationInfo)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilDebugInfoFactory*, IDxcPixCompilationInfo**, int>)(lpVtbl[4]))((IDxcPixDxilDebugInfoFactory*)Unsafe.AsPointer(ref this), ppCompilationInfo);
     }
@@ -62,12 +59,10 @@ public unsafe partial struct IDxcPixDxilDebugInfoFactory : IDxcPixDxilDebugInfoF
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int NewDxcPixDxilDebugInfo(IDxcPixDxilDebugInfo** ppDxilDebugInfo);
+                HRESULT NewDxcPixDxilDebugInfo(IDxcPixDxilDebugInfo** ppDxilDebugInfo);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int NewDxcPixCompilationInfo(IDxcPixCompilationInfo** ppCompilationInfo);
+                HRESULT NewDxcPixCompilationInfo(IDxcPixCompilationInfo** ppCompilationInfo);
     }
 
     public partial struct Vtbl<TSelf>

@@ -10,7 +10,7 @@ public unsafe partial struct D3D12MA_VirtualBlock
     /// From: <see cref="Api.D3D12MA_VirtualBlock_QueryInterface(D3D12MA_VirtualBlock*, Guid*, void**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int QueryInterface(Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface(Guid* riid, void** ppvObject)
     {
         return Api.D3D12MA_VirtualBlock_QueryInterface(
             (D3D12MA_VirtualBlock*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -61,7 +61,7 @@ public unsafe partial struct D3D12MA_VirtualBlock
     /// From: <see cref="Api.D3D12MA_VirtualBlock_Allocate(D3D12MA_VirtualBlock*, D3D12MA_VIRTUAL_ALLOCATION_DESC*, D3D12MA_VirtualAllocation*, ulong*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int Allocate(D3D12MA_VIRTUAL_ALLOCATION_DESC* pDesc, D3D12MA_VirtualAllocation* pAllocation, ulong* pOffset)
+    public HRESULT Allocate(D3D12MA_VIRTUAL_ALLOCATION_DESC* pDesc, D3D12MA_VirtualAllocation* pAllocation, ulong* pOffset)
     {
         return Api.D3D12MA_VirtualBlock_Allocate(
             (D3D12MA_VirtualBlock*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),

@@ -17,8 +17,7 @@ public unsafe partial struct IDxcVersionInfo : IDxcVersionInfo.Interface, INativ
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcVersionInfo*, Guid*, void**, int>)(lpVtbl[0]))((IDxcVersionInfo*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcVersionInfo : IDxcVersionInfo.Interface, INativ
     /// <include file='IDxcVersionInfo.xml' path='doc/member[@name="IDxcVersionInfo.GetVersion"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetVersion([NativeTypeName("UINT32 *")] uint* pMajor, [NativeTypeName("UINT32 *")] uint* pMinor)
+        public HRESULT GetVersion([NativeTypeName("UINT32 *")] uint* pMajor, [NativeTypeName("UINT32 *")] uint* pMinor)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcVersionInfo*, uint*, uint*, int>)(lpVtbl[3]))((IDxcVersionInfo*)Unsafe.AsPointer(ref this), pMajor, pMinor);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcVersionInfo : IDxcVersionInfo.Interface, INativ
     /// <include file='IDxcVersionInfo.xml' path='doc/member[@name="IDxcVersionInfo.GetFlags"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetFlags([NativeTypeName("UINT32 *")] uint* pFlags)
+        public HRESULT GetFlags([NativeTypeName("UINT32 *")] uint* pFlags)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcVersionInfo*, uint*, int>)(lpVtbl[4]))((IDxcVersionInfo*)Unsafe.AsPointer(ref this), pFlags);
     }
@@ -62,12 +59,10 @@ public unsafe partial struct IDxcVersionInfo : IDxcVersionInfo.Interface, INativ
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetVersion([NativeTypeName("UINT32 *")] uint* pMajor, [NativeTypeName("UINT32 *")] uint* pMinor);
+                HRESULT GetVersion([NativeTypeName("UINT32 *")] uint* pMajor, [NativeTypeName("UINT32 *")] uint* pMinor);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetFlags([NativeTypeName("UINT32 *")] uint* pFlags);
+                HRESULT GetFlags([NativeTypeName("UINT32 *")] uint* pFlags);
     }
 
     public partial struct Vtbl<TSelf>

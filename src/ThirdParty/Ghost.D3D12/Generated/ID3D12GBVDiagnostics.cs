@@ -15,8 +15,7 @@ public unsafe partial struct ID3D12GBVDiagnostics : ID3D12GBVDiagnostics.Interfa
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12GBVDiagnostics*, Guid*, void**, int>)(lpVtbl[0]))((ID3D12GBVDiagnostics*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -39,32 +38,28 @@ public unsafe partial struct ID3D12GBVDiagnostics : ID3D12GBVDiagnostics.Interfa
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetGBVEntireSubresourceStatesData(ID3D12Resource* pResource, int* pData, uint DataSize)
+    public HRESULT GetGBVEntireSubresourceStatesData(ID3D12Resource* pResource, int* pData, uint DataSize)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12GBVDiagnostics*, ID3D12Resource*, int*, uint, int>)(lpVtbl[3]))((ID3D12GBVDiagnostics*)Unsafe.AsPointer(ref this), pResource, pData, DataSize);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetGBVSubresourceState(ID3D12Resource* pResource, uint Subresource, int* pData)
+    public HRESULT GetGBVSubresourceState(ID3D12Resource* pResource, uint Subresource, int* pData)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12GBVDiagnostics*, ID3D12Resource*, uint, int*, int>)(lpVtbl[4]))((ID3D12GBVDiagnostics*)Unsafe.AsPointer(ref this), pResource, Subresource, pData);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetGBVResourceUniformState(ID3D12Resource* pResource, int* pData)
+    public HRESULT GetGBVResourceUniformState(ID3D12Resource* pResource, int* pData)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12GBVDiagnostics*, ID3D12Resource*, int*, int>)(lpVtbl[5]))((ID3D12GBVDiagnostics*)Unsafe.AsPointer(ref this), pResource, pData);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetGBVResourceInfo(ID3D12Resource* pResource, D3D12_RESOURCE_DESC* pResourceDesc, [NativeTypeName("UINT32 *")] uint* pResourceHash, [NativeTypeName("UINT32 *")] uint* pSubresourceStatesByteOffset)
+    public HRESULT GetGBVResourceInfo(ID3D12Resource* pResource, D3D12_RESOURCE_DESC* pResourceDesc, [NativeTypeName("UINT32 *")] uint* pResourceHash, [NativeTypeName("UINT32 *")] uint* pSubresourceStatesByteOffset)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12GBVDiagnostics*, ID3D12Resource*, D3D12_RESOURCE_DESC*, uint*, uint*, int>)(lpVtbl[6]))((ID3D12GBVDiagnostics*)Unsafe.AsPointer(ref this), pResource, pResourceDesc, pResourceHash, pSubresourceStatesByteOffset);
     }
@@ -86,20 +81,16 @@ public unsafe partial struct ID3D12GBVDiagnostics : ID3D12GBVDiagnostics.Interfa
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetGBVEntireSubresourceStatesData(ID3D12Resource* pResource, int* pData, uint DataSize);
+        HRESULT GetGBVEntireSubresourceStatesData(ID3D12Resource* pResource, int* pData, uint DataSize);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetGBVSubresourceState(ID3D12Resource* pResource, uint Subresource, int* pData);
+        HRESULT GetGBVSubresourceState(ID3D12Resource* pResource, uint Subresource, int* pData);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetGBVResourceUniformState(ID3D12Resource* pResource, int* pData);
+        HRESULT GetGBVResourceUniformState(ID3D12Resource* pResource, int* pData);
 
         [VtblIndex(6)]
-        [return: NativeTypeName("HRESULT")]
-        int GetGBVResourceInfo(ID3D12Resource* pResource, D3D12_RESOURCE_DESC* pResourceDesc, [NativeTypeName("UINT32 *")] uint* pResourceHash, [NativeTypeName("UINT32 *")] uint* pSubresourceStatesByteOffset);
+        HRESULT GetGBVResourceInfo(ID3D12Resource* pResource, D3D12_RESOURCE_DESC* pResourceDesc, [NativeTypeName("UINT32 *")] uint* pResourceHash, [NativeTypeName("UINT32 *")] uint* pSubresourceStatesByteOffset);
 
         [VtblIndex(7)]
         void GBVReserved0();

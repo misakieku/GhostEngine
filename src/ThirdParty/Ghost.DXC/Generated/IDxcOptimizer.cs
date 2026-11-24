@@ -17,8 +17,7 @@ public unsafe partial struct IDxcOptimizer : IDxcOptimizer.Interface, INativeGui
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcOptimizer*, Guid*, void**, int>)(lpVtbl[0]))((IDxcOptimizer*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcOptimizer : IDxcOptimizer.Interface, INativeGui
     /// <include file='IDxcOptimizer.xml' path='doc/member[@name="IDxcOptimizer.GetAvailablePassCount"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetAvailablePassCount([NativeTypeName("UINT32 *")] uint* pCount)
+        public HRESULT GetAvailablePassCount([NativeTypeName("UINT32 *")] uint* pCount)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcOptimizer*, uint*, int>)(lpVtbl[3]))((IDxcOptimizer*)Unsafe.AsPointer(ref this), pCount);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcOptimizer : IDxcOptimizer.Interface, INativeGui
     /// <include file='IDxcOptimizer.xml' path='doc/member[@name="IDxcOptimizer.GetAvailablePass"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetAvailablePass([NativeTypeName("UINT32")] uint index, IDxcOptimizerPass** ppResult)
+        public HRESULT GetAvailablePass([NativeTypeName("UINT32")] uint index, IDxcOptimizerPass** ppResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcOptimizer*, uint, IDxcOptimizerPass**, int>)(lpVtbl[4]))((IDxcOptimizer*)Unsafe.AsPointer(ref this), index, ppResult);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcOptimizer : IDxcOptimizer.Interface, INativeGui
     /// <include file='IDxcOptimizer.xml' path='doc/member[@name="IDxcOptimizer.RunOptimizer"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int RunOptimizer(IDxcBlob* pBlob, [NativeTypeName("LPCWSTR *")] char** ppOptions, [NativeTypeName("UINT32")] uint optionCount, IDxcBlob** pOutputModule, IDxcBlobEncoding** ppOutputText)
+        public HRESULT RunOptimizer(IDxcBlob* pBlob, [NativeTypeName("LPCWSTR *")] char** ppOptions, [NativeTypeName("UINT32")] uint optionCount, IDxcBlob** pOutputModule, IDxcBlobEncoding** ppOutputText)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcOptimizer*, IDxcBlob*, char**, uint, IDxcBlob**, IDxcBlobEncoding**, int>)(lpVtbl[5]))((IDxcOptimizer*)Unsafe.AsPointer(ref this), pBlob, ppOptions, optionCount, pOutputModule, ppOutputText);
     }
@@ -71,16 +67,13 @@ public unsafe partial struct IDxcOptimizer : IDxcOptimizer.Interface, INativeGui
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetAvailablePassCount([NativeTypeName("UINT32 *")] uint* pCount);
+                HRESULT GetAvailablePassCount([NativeTypeName("UINT32 *")] uint* pCount);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetAvailablePass([NativeTypeName("UINT32")] uint index, IDxcOptimizerPass** ppResult);
+                HRESULT GetAvailablePass([NativeTypeName("UINT32")] uint index, IDxcOptimizerPass** ppResult);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int RunOptimizer(IDxcBlob* pBlob, [NativeTypeName("LPCWSTR *")] char** ppOptions, [NativeTypeName("UINT32")] uint optionCount, IDxcBlob** pOutputModule, IDxcBlobEncoding** ppOutputText);
+                HRESULT RunOptimizer(IDxcBlob* pBlob, [NativeTypeName("LPCWSTR *")] char** ppOptions, [NativeTypeName("UINT32")] uint optionCount, IDxcBlob** pOutputModule, IDxcBlobEncoding** ppOutputText);
     }
 
     public partial struct Vtbl<TSelf>

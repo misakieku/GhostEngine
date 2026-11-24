@@ -15,8 +15,7 @@ public unsafe partial struct ID3D12DeviceStatistics : ID3D12DeviceStatistics.Int
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceStatistics*, Guid*, void**, int>)(lpVtbl[0]))((ID3D12DeviceStatistics*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -39,8 +38,7 @@ public unsafe partial struct ID3D12DeviceStatistics : ID3D12DeviceStatistics.Int
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetStateObjectStatistics(D3D12_STATE_OBJECT_STATISTICS* pStatistics)
+    public HRESULT GetStateObjectStatistics(D3D12_STATE_OBJECT_STATISTICS* pStatistics)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceStatistics*, D3D12_STATE_OBJECT_STATISTICS*, int>)(lpVtbl[3]))((ID3D12DeviceStatistics*)Unsafe.AsPointer(ref this), pStatistics);
     }
@@ -48,7 +46,6 @@ public unsafe partial struct ID3D12DeviceStatistics : ID3D12DeviceStatistics.Int
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetStateObjectStatistics(D3D12_STATE_OBJECT_STATISTICS* pStatistics);
+        HRESULT GetStateObjectStatistics(D3D12_STATE_OBJECT_STATISTICS* pStatistics);
     }
 }

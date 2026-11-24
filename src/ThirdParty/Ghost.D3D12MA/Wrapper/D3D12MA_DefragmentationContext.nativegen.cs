@@ -10,7 +10,7 @@ public unsafe partial struct D3D12MA_DefragmentationContext
     /// From: <see cref="Api.D3D12MA_DefragmentationContext_QueryInterface(D3D12MA_DefragmentationContext*, Guid*, void**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int QueryInterface(Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface(Guid* riid, void** ppvObject)
     {
         return Api.D3D12MA_DefragmentationContext_QueryInterface(
             (D3D12MA_DefragmentationContext*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -40,7 +40,7 @@ public unsafe partial struct D3D12MA_DefragmentationContext
     /// From: <see cref="Api.D3D12MA_DefragmentationContext_BeginPass(D3D12MA_DefragmentationContext*, D3D12MA_DEFRAGMENTATION_PASS_MOVE_INFO*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int BeginPass(D3D12MA_DEFRAGMENTATION_PASS_MOVE_INFO* pPassInfo)
+    public HRESULT BeginPass(D3D12MA_DEFRAGMENTATION_PASS_MOVE_INFO* pPassInfo)
     {
         return Api.D3D12MA_DefragmentationContext_BeginPass(
             (D3D12MA_DefragmentationContext*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -51,7 +51,7 @@ public unsafe partial struct D3D12MA_DefragmentationContext
     /// From: <see cref="Api.D3D12MA_DefragmentationContext_EndPass(D3D12MA_DefragmentationContext*, D3D12MA_DEFRAGMENTATION_PASS_MOVE_INFO*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int EndPass(D3D12MA_DEFRAGMENTATION_PASS_MOVE_INFO* pPassInfo)
+    public HRESULT EndPass(D3D12MA_DEFRAGMENTATION_PASS_MOVE_INFO* pPassInfo)
     {
         return Api.D3D12MA_DefragmentationContext_EndPass(
             (D3D12MA_DefragmentationContext*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),

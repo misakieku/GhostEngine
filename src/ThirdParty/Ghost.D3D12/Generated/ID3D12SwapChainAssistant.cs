@@ -15,8 +15,7 @@ public unsafe partial struct ID3D12SwapChainAssistant : ID3D12SwapChainAssistant
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12SwapChainAssistant*, Guid*, void**, int>)(lpVtbl[0]))((ID3D12SwapChainAssistant*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -46,24 +45,21 @@ public unsafe partial struct ID3D12SwapChainAssistant : ID3D12SwapChainAssistant
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetSwapChainObject([NativeTypeName("const IID &")] Guid* riid, void** ppv)
+    public HRESULT GetSwapChainObject([NativeTypeName("const IID &")] Guid* riid, void** ppv)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12SwapChainAssistant*, Guid*, void**, int>)(lpVtbl[4]))((ID3D12SwapChainAssistant*)Unsafe.AsPointer(ref this), riid, ppv);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetCurrentResourceAndCommandQueue([NativeTypeName("const IID &")] Guid* riidResource, void** ppvResource, [NativeTypeName("const IID &")] Guid* riidQueue, void** ppvQueue)
+    public HRESULT GetCurrentResourceAndCommandQueue([NativeTypeName("const IID &")] Guid* riidResource, void** ppvResource, [NativeTypeName("const IID &")] Guid* riidQueue, void** ppvQueue)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12SwapChainAssistant*, Guid*, void**, Guid*, void**, int>)(lpVtbl[5]))((ID3D12SwapChainAssistant*)Unsafe.AsPointer(ref this), riidResource, ppvResource, riidQueue, ppvQueue);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int InsertImplicitSync()
+    public HRESULT InsertImplicitSync()
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12SwapChainAssistant*, int>)(lpVtbl[6]))((ID3D12SwapChainAssistant*)Unsafe.AsPointer(ref this));
     }
@@ -74,15 +70,12 @@ public unsafe partial struct ID3D12SwapChainAssistant : ID3D12SwapChainAssistant
         LUID GetLUID();
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetSwapChainObject([NativeTypeName("const IID &")] Guid* riid, void** ppv);
+        HRESULT GetSwapChainObject([NativeTypeName("const IID &")] Guid* riid, void** ppv);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetCurrentResourceAndCommandQueue([NativeTypeName("const IID &")] Guid* riidResource, void** ppvResource, [NativeTypeName("const IID &")] Guid* riidQueue, void** ppvQueue);
+        HRESULT GetCurrentResourceAndCommandQueue([NativeTypeName("const IID &")] Guid* riidResource, void** ppvResource, [NativeTypeName("const IID &")] Guid* riidQueue, void** ppvQueue);
 
         [VtblIndex(6)]
-        [return: NativeTypeName("HRESULT")]
-        int InsertImplicitSync();
+        HRESULT InsertImplicitSync();
     }
 }

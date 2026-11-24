@@ -17,8 +17,7 @@ public unsafe partial struct IDxcContainerReflection : IDxcContainerReflection.I
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcContainerReflection*, Guid*, void**, int>)(lpVtbl[0]))((IDxcContainerReflection*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcContainerReflection : IDxcContainerReflection.I
     /// <include file='IDxcContainerReflection.xml' path='doc/member[@name="IDxcContainerReflection.Load"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int Load(IDxcBlob* pContainer)
+        public HRESULT Load(IDxcBlob* pContainer)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcContainerReflection*, IDxcBlob*, int>)(lpVtbl[3]))((IDxcContainerReflection*)Unsafe.AsPointer(ref this), pContainer);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcContainerReflection : IDxcContainerReflection.I
     /// <include file='IDxcContainerReflection.xml' path='doc/member[@name="IDxcContainerReflection.GetPartCount"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetPartCount([NativeTypeName("UINT32 *")] uint* pResult)
+        public HRESULT GetPartCount([NativeTypeName("UINT32 *")] uint* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcContainerReflection*, uint*, int>)(lpVtbl[4]))((IDxcContainerReflection*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcContainerReflection : IDxcContainerReflection.I
     /// <include file='IDxcContainerReflection.xml' path='doc/member[@name="IDxcContainerReflection.GetPartKind"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetPartKind([NativeTypeName("UINT32")] uint idx, [NativeTypeName("UINT32 *")] uint* pResult)
+        public HRESULT GetPartKind([NativeTypeName("UINT32")] uint idx, [NativeTypeName("UINT32 *")] uint* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcContainerReflection*, uint, uint*, int>)(lpVtbl[5]))((IDxcContainerReflection*)Unsafe.AsPointer(ref this), idx, pResult);
     }
@@ -71,8 +67,7 @@ public unsafe partial struct IDxcContainerReflection : IDxcContainerReflection.I
     /// <include file='IDxcContainerReflection.xml' path='doc/member[@name="IDxcContainerReflection.GetPartContent"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetPartContent([NativeTypeName("UINT32")] uint idx, IDxcBlob** ppResult)
+        public HRESULT GetPartContent([NativeTypeName("UINT32")] uint idx, IDxcBlob** ppResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcContainerReflection*, uint, IDxcBlob**, int>)(lpVtbl[6]))((IDxcContainerReflection*)Unsafe.AsPointer(ref this), idx, ppResult);
     }
@@ -80,8 +75,7 @@ public unsafe partial struct IDxcContainerReflection : IDxcContainerReflection.I
     /// <include file='IDxcContainerReflection.xml' path='doc/member[@name="IDxcContainerReflection.FindFirstPartKind"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(7)]
-    [return: NativeTypeName("HRESULT")]
-    public int FindFirstPartKind([NativeTypeName("UINT32")] uint kind, [NativeTypeName("UINT32 *")] uint* pResult)
+        public HRESULT FindFirstPartKind([NativeTypeName("UINT32")] uint kind, [NativeTypeName("UINT32 *")] uint* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcContainerReflection*, uint, uint*, int>)(lpVtbl[7]))((IDxcContainerReflection*)Unsafe.AsPointer(ref this), kind, pResult);
     }
@@ -89,8 +83,7 @@ public unsafe partial struct IDxcContainerReflection : IDxcContainerReflection.I
     /// <include file='IDxcContainerReflection.xml' path='doc/member[@name="IDxcContainerReflection.GetPartReflection"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(8)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetPartReflection([NativeTypeName("UINT32")] uint idx, [NativeTypeName("const IID &")] Guid* iid, void** ppvObject)
+        public HRESULT GetPartReflection([NativeTypeName("UINT32")] uint idx, [NativeTypeName("const IID &")] Guid* iid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcContainerReflection*, uint, Guid*, void**, int>)(lpVtbl[8]))((IDxcContainerReflection*)Unsafe.AsPointer(ref this), idx, iid, ppvObject);
     }
@@ -98,28 +91,22 @@ public unsafe partial struct IDxcContainerReflection : IDxcContainerReflection.I
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int Load(IDxcBlob* pContainer);
+                HRESULT Load(IDxcBlob* pContainer);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetPartCount([NativeTypeName("UINT32 *")] uint* pResult);
+                HRESULT GetPartCount([NativeTypeName("UINT32 *")] uint* pResult);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetPartKind([NativeTypeName("UINT32")] uint idx, [NativeTypeName("UINT32 *")] uint* pResult);
+                HRESULT GetPartKind([NativeTypeName("UINT32")] uint idx, [NativeTypeName("UINT32 *")] uint* pResult);
 
         [VtblIndex(6)]
-        [return: NativeTypeName("HRESULT")]
-        int GetPartContent([NativeTypeName("UINT32")] uint idx, IDxcBlob** ppResult);
+                HRESULT GetPartContent([NativeTypeName("UINT32")] uint idx, IDxcBlob** ppResult);
 
         [VtblIndex(7)]
-        [return: NativeTypeName("HRESULT")]
-        int FindFirstPartKind([NativeTypeName("UINT32")] uint kind, [NativeTypeName("UINT32 *")] uint* pResult);
+                HRESULT FindFirstPartKind([NativeTypeName("UINT32")] uint kind, [NativeTypeName("UINT32 *")] uint* pResult);
 
         [VtblIndex(8)]
-        [return: NativeTypeName("HRESULT")]
-        int GetPartReflection([NativeTypeName("UINT32")] uint idx, [NativeTypeName("const IID &")] Guid* iid, void** ppvObject);
+                HRESULT GetPartReflection([NativeTypeName("UINT32")] uint idx, [NativeTypeName("const IID &")] Guid* iid, void** ppvObject);
     }
 
     public partial struct Vtbl<TSelf>

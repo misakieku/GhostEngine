@@ -15,8 +15,7 @@ public unsafe partial struct ID3D12StateObjectDatabaseFactory : ID3D12StateObjec
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12StateObjectDatabaseFactory*, Guid*, void**, int>)(lpVtbl[0]))((ID3D12StateObjectDatabaseFactory*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -39,8 +38,7 @@ public unsafe partial struct ID3D12StateObjectDatabaseFactory : ID3D12StateObjec
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int CreateStateObjectDatabaseFromFile([NativeTypeName("LPCWSTR")] char* pDatabaseFile, D3D12_STATE_OBJECT_DATABASE_FLAGS flags, [NativeTypeName("const IID &")] Guid* riid, void** ppvStateObjectDatabase)
+    public HRESULT CreateStateObjectDatabaseFromFile([NativeTypeName("LPCWSTR")] char* pDatabaseFile, D3D12_STATE_OBJECT_DATABASE_FLAGS flags, [NativeTypeName("const IID &")] Guid* riid, void** ppvStateObjectDatabase)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12StateObjectDatabaseFactory*, char*, D3D12_STATE_OBJECT_DATABASE_FLAGS, Guid*, void**, int>)(lpVtbl[3]))((ID3D12StateObjectDatabaseFactory*)Unsafe.AsPointer(ref this), pDatabaseFile, flags, riid, ppvStateObjectDatabase);
     }
@@ -48,7 +46,6 @@ public unsafe partial struct ID3D12StateObjectDatabaseFactory : ID3D12StateObjec
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int CreateStateObjectDatabaseFromFile([NativeTypeName("LPCWSTR")] char* pDatabaseFile, D3D12_STATE_OBJECT_DATABASE_FLAGS flags, [NativeTypeName("const IID &")] Guid* riid, void** ppvStateObjectDatabase);
+        HRESULT CreateStateObjectDatabaseFromFile([NativeTypeName("LPCWSTR")] char* pDatabaseFile, D3D12_STATE_OBJECT_DATABASE_FLAGS flags, [NativeTypeName("const IID &")] Guid* riid, void** ppvStateObjectDatabase);
     }
 }

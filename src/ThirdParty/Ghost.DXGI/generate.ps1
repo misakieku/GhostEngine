@@ -73,6 +73,8 @@ HWND__*=HWND
 HMONITOR__*=HMONITOR
 HDC__*=HDC
 HINSTANCE__*=HMODULE
+--with-transparent-struct
+HRESULT=int
 --include-directory
 $sdkInclude\shared
 --include-directory

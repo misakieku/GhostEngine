@@ -6,12 +6,10 @@ namespace Ghost.DXGI;
 public static unsafe partial class DXGI
 {
     [DllImport("dxgi", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
-    [return: NativeTypeName("HRESULT")]
-    public static extern int CreateDXGIFactory([NativeTypeName("const IID &")] Guid* riid, void** ppFactory);
+    public static extern HRESULT CreateDXGIFactory([NativeTypeName("const IID &")] Guid* riid, void** ppFactory);
 
     [DllImport("dxgi", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
-    [return: NativeTypeName("HRESULT")]
-    public static extern int CreateDXGIFactory1([NativeTypeName("const IID &")] Guid* riid, void** ppFactory);
+    public static extern HRESULT CreateDXGIFactory1([NativeTypeName("const IID &")] Guid* riid, void** ppFactory);
 
     [NativeTypeName("const GUID")]
     public static readonly Guid IID_IDXGIObject = new Guid(0xaec22fb8, 0x76f3, 0x4639, 0x9b, 0xe0, 0x28, 0xeb, 0x43, 0xa6, 0x7a, 0x2e);
@@ -83,12 +81,10 @@ public static unsafe partial class DXGI
     public static readonly Guid IID_IDXGIOutput1 = new Guid(0x00cddea8, 0x939b, 0x4b83, 0xa3, 0x40, 0xa6, 0x85, 0x22, 0x66, 0x66, 0xcc);
 
     [DllImport("dxgi", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
-    [return: NativeTypeName("HRESULT")]
-    public static extern int CreateDXGIFactory2(uint Flags, [NativeTypeName("const IID &")] Guid* riid, void** ppFactory);
+    public static extern HRESULT CreateDXGIFactory2(uint Flags, [NativeTypeName("const IID &")] Guid* riid, void** ppFactory);
 
     [DllImport("dxgi", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
-    [return: NativeTypeName("HRESULT")]
-    public static extern int DXGIGetDebugInterface1(uint Flags, [NativeTypeName("const IID &")] Guid* riid, void** pDebug);
+    public static extern HRESULT DXGIGetDebugInterface1(uint Flags, [NativeTypeName("const IID &")] Guid* riid, void** pDebug);
 
     [NativeTypeName("const GUID")]
     public static readonly Guid IID_IDXGIDevice3 = new Guid(0x6007896c, 0x3244, 0x4afd, 0xbf, 0x18, 0xa6, 0xd3, 0xbe, 0xda, 0x50, 0x23);
@@ -139,12 +135,10 @@ public static unsafe partial class DXGI
     public static readonly Guid IID_IDXGIFactory5 = new Guid(0x7632e1f5, 0xee65, 0x4dca, 0x87, 0xfd, 0x84, 0xcd, 0x75, 0xf8, 0x83, 0x8d);
 
     [DllImport("dxgi", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
-    [return: NativeTypeName("HRESULT")]
-    public static extern int DXGIDeclareAdapterRemovalSupport();
+    public static extern HRESULT DXGIDeclareAdapterRemovalSupport();
 
     [DllImport("dxgi", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
-    [return: NativeTypeName("HRESULT")]
-    public static extern int DXGIDisableVBlankVirtualization();
+    public static extern HRESULT DXGIDisableVBlankVirtualization();
 
     [NativeTypeName("const GUID")]
     public static readonly Guid IID_IDXGIAdapter4 = new Guid(0x3c8d99d1, 0x4fbf, 0x4181, 0xa8, 0x2c, 0xaf, 0x66, 0xbf, 0x7b, 0xd2, 0x4e);
@@ -171,8 +165,7 @@ public static unsafe partial class DXGI
     public static readonly Guid DXGI_DEBUG_APP = new Guid(0x6cd6e01, 0x4219, 0x4ebd, 0x87, 0x9, 0x27, 0xed, 0x23, 0x36, 0xc, 0x62);
 
     [DllImport("dxgidebug", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
-    [return: NativeTypeName("HRESULT")]
-    public static extern int DXGIGetDebugInterface([NativeTypeName("const IID &")] Guid* riid, void** ppDebug);
+    public static extern HRESULT DXGIGetDebugInterface([NativeTypeName("const IID &")] Guid* riid, void** ppDebug);
 
     [NativeTypeName("const GUID")]
     public static readonly Guid IID_IDXGIInfoQueue = new Guid(0xD67441C7, 0x672A, 0x476f, 0x9E, 0x82, 0xCD, 0x55, 0xB4, 0x49, 0x49, 0xCE);

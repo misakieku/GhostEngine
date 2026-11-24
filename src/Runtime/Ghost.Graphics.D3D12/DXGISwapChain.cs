@@ -5,9 +5,7 @@ using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static TerraFX.Aliases.DXGI_Alias;
+using static Ghost.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -59,7 +57,7 @@ internal unsafe class DXGISwapChain : ISwapChain
             SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
             AlphaMode = DXGI_ALPHA_MODE_IGNORE,
             Flags = (uint)(DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT),
-            Stereo = false,
+            Stereo = FALSE,
         };
 
         IDXGISwapChain1* pTempSwapChain = default;
@@ -83,7 +81,7 @@ internal unsafe class DXGISwapChain : ISwapChain
             case SwapChainTargetType.WindowHandle:
                 var swapChainFullscreenDesc = new DXGI_SWAP_CHAIN_FULLSCREEN_DESC
                 {
-                    Windowed = true,
+                    Windowed = TRUE,
                 };
 
                 ThrowIfFailed(pFactory->CreateSwapChainForHwnd(
@@ -191,7 +189,7 @@ internal unsafe class DXGISwapChain : ISwapChain
         Logger.DebugAssert(!_disposed);
         if (_frameLatencyWaitableObject.Value != null)
         {
-            var result = WaitForSingleObjectEx(_frameLatencyWaitableObject, timeoutMs, true);
+            var result = WaitForSingleObjectEx(_frameLatencyWaitableObject, timeoutMs, TRUE);
             if (result == 0xFFFFFFFFu)
             {
                 var error = GetLastError();
@@ -272,7 +270,7 @@ internal unsafe class DXGISwapChain : ISwapChain
 
         if (_frameLatencyWaitableObject.Value != null)
         {
-            CloseHandle(_frameLatencyWaitableObject);
+            _ = CloseHandle(_frameLatencyWaitableObject);
             _frameLatencyWaitableObject = default;
         }
 

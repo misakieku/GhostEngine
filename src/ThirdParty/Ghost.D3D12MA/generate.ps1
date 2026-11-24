@@ -86,6 +86,8 @@ d3d12ma
 Ghost.D3D12MA
 --method-class-name
 Api
+--with-transparent-struct
+HRESULT=int
 --include-directory
 $d3d12Include
 --include-directory

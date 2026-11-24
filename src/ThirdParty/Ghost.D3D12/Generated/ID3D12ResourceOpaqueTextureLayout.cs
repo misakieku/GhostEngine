@@ -15,8 +15,7 @@ public unsafe partial struct ID3D12ResourceOpaqueTextureLayout : ID3D12ResourceO
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12ResourceOpaqueTextureLayout*, Guid*, void**, int>)(lpVtbl[0]))((ID3D12ResourceOpaqueTextureLayout*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -39,8 +38,7 @@ public unsafe partial struct ID3D12ResourceOpaqueTextureLayout : ID3D12ResourceO
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetOpaqueTextureRowMajorLayoutInfo(uint FirstSubresource, uint NumSubresources, D3D12_OPAQUE_TEXTURE_ROW_MAJOR_LAYOUT_INFO* pLayoutInfo)
+    public HRESULT GetOpaqueTextureRowMajorLayoutInfo(uint FirstSubresource, uint NumSubresources, D3D12_OPAQUE_TEXTURE_ROW_MAJOR_LAYOUT_INFO* pLayoutInfo)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12ResourceOpaqueTextureLayout*, uint, uint, D3D12_OPAQUE_TEXTURE_ROW_MAJOR_LAYOUT_INFO*, int>)(lpVtbl[3]))((ID3D12ResourceOpaqueTextureLayout*)Unsafe.AsPointer(ref this), FirstSubresource, NumSubresources, pLayoutInfo);
     }
@@ -48,7 +46,6 @@ public unsafe partial struct ID3D12ResourceOpaqueTextureLayout : ID3D12ResourceO
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetOpaqueTextureRowMajorLayoutInfo(uint FirstSubresource, uint NumSubresources, D3D12_OPAQUE_TEXTURE_ROW_MAJOR_LAYOUT_INFO* pLayoutInfo);
+        HRESULT GetOpaqueTextureRowMajorLayoutInfo(uint FirstSubresource, uint NumSubresources, D3D12_OPAQUE_TEXTURE_ROW_MAJOR_LAYOUT_INFO* pLayoutInfo);
     }
 }

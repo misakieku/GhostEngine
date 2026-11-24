@@ -17,8 +17,7 @@ public unsafe partial struct IDxcVersionInfo3 : IDxcVersionInfo3.Interface, INat
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcVersionInfo3*, Guid*, void**, int>)(lpVtbl[0]))((IDxcVersionInfo3*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcVersionInfo3 : IDxcVersionInfo3.Interface, INat
     /// <include file='IDxcVersionInfo3.xml' path='doc/member[@name="IDxcVersionInfo3.GetCustomVersionString"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetCustomVersionString([NativeTypeName("char **")] sbyte** pVersionString)
+        public HRESULT GetCustomVersionString([NativeTypeName("char **")] sbyte** pVersionString)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcVersionInfo3*, sbyte**, int>)(lpVtbl[3]))((IDxcVersionInfo3*)Unsafe.AsPointer(ref this), pVersionString);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcVersionInfo3 : IDxcVersionInfo3.Interface, INat
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetCustomVersionString([NativeTypeName("char **")] sbyte** pVersionString);
+                HRESULT GetCustomVersionString([NativeTypeName("char **")] sbyte** pVersionString);
     }
 
     public partial struct Vtbl<TSelf>

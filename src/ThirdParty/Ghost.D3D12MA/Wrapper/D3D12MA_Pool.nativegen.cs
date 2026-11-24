@@ -10,7 +10,7 @@ public unsafe partial struct D3D12MA_Pool
     /// From: <see cref="Api.D3D12MA_Pool_QueryInterface(D3D12MA_Pool*, Guid*, void**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int QueryInterface(Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface(Guid* riid, void** ppvObject)
     {
         return Api.D3D12MA_Pool_QueryInterface(
             (D3D12MA_Pool*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),
@@ -93,7 +93,7 @@ public unsafe partial struct D3D12MA_Pool
     /// From: <see cref="Api.D3D12MA_Pool_BeginDefragmentation(D3D12MA_Pool*, D3D12MA_DEFRAGMENTATION_DESC*, D3D12MA_DefragmentationContext**)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int BeginDefragmentation(D3D12MA_DEFRAGMENTATION_DESC* pDesc, D3D12MA_DefragmentationContext** ppContext)
+    public HRESULT BeginDefragmentation(D3D12MA_DEFRAGMENTATION_DESC* pDesc, D3D12MA_DefragmentationContext** ppContext)
     {
         return Api.D3D12MA_Pool_BeginDefragmentation(
             (D3D12MA_Pool*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this),

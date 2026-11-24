@@ -15,8 +15,7 @@ public unsafe partial struct ID3D12DeviceFactory : ID3D12DeviceFactory.Interface
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceFactory*, Guid*, void**, int>)(lpVtbl[0]))((ID3D12DeviceFactory*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -39,24 +38,21 @@ public unsafe partial struct ID3D12DeviceFactory : ID3D12DeviceFactory.Interface
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int InitializeFromGlobalState()
+    public HRESULT InitializeFromGlobalState()
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceFactory*, int>)(lpVtbl[3]))((ID3D12DeviceFactory*)Unsafe.AsPointer(ref this));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int ApplyToGlobalState()
+    public HRESULT ApplyToGlobalState()
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceFactory*, int>)(lpVtbl[4]))((ID3D12DeviceFactory*)Unsafe.AsPointer(ref this));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int SetFlags(D3D12_DEVICE_FACTORY_FLAGS flags)
+    public HRESULT SetFlags(D3D12_DEVICE_FACTORY_FLAGS flags)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceFactory*, D3D12_DEVICE_FACTORY_FLAGS, int>)(lpVtbl[5]))((ID3D12DeviceFactory*)Unsafe.AsPointer(ref this), flags);
     }
@@ -70,24 +66,21 @@ public unsafe partial struct ID3D12DeviceFactory : ID3D12DeviceFactory.Interface
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(7)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetConfigurationInterface([NativeTypeName("const IID &")] Guid* clsid, [NativeTypeName("const IID &")] Guid* iid, void** ppv)
+    public HRESULT GetConfigurationInterface([NativeTypeName("const IID &")] Guid* clsid, [NativeTypeName("const IID &")] Guid* iid, void** ppv)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceFactory*, Guid*, Guid*, void**, int>)(lpVtbl[7]))((ID3D12DeviceFactory*)Unsafe.AsPointer(ref this), clsid, iid, ppv);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(8)]
-    [return: NativeTypeName("HRESULT")]
-    public int EnableExperimentalFeatures(uint NumFeatures, [NativeTypeName("const IID *")] Guid* pIIDs, void* pConfigurationStructs, uint* pConfigurationStructSizes)
+    public HRESULT EnableExperimentalFeatures(uint NumFeatures, [NativeTypeName("const IID *")] Guid* pIIDs, void* pConfigurationStructs, uint* pConfigurationStructSizes)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceFactory*, uint, Guid*, void*, uint*, int>)(lpVtbl[8]))((ID3D12DeviceFactory*)Unsafe.AsPointer(ref this), NumFeatures, pIIDs, pConfigurationStructs, pConfigurationStructSizes);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(9)]
-    [return: NativeTypeName("HRESULT")]
-    public int CreateDevice(IUnknown* adapter, D3D_FEATURE_LEVEL FeatureLevel, [NativeTypeName("const IID &")] Guid* riid, void** ppvDevice)
+    public HRESULT CreateDevice(IUnknown* adapter, D3D_FEATURE_LEVEL FeatureLevel, [NativeTypeName("const IID &")] Guid* riid, void** ppvDevice)
     {
         return ((delegate* unmanaged[MemberFunction]<ID3D12DeviceFactory*, IUnknown*, D3D_FEATURE_LEVEL, Guid*, void**, int>)(lpVtbl[9]))((ID3D12DeviceFactory*)Unsafe.AsPointer(ref this), adapter, FeatureLevel, riid, ppvDevice);
     }
@@ -95,30 +88,24 @@ public unsafe partial struct ID3D12DeviceFactory : ID3D12DeviceFactory.Interface
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int InitializeFromGlobalState();
+        HRESULT InitializeFromGlobalState();
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int ApplyToGlobalState();
+        HRESULT ApplyToGlobalState();
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int SetFlags(D3D12_DEVICE_FACTORY_FLAGS flags);
+        HRESULT SetFlags(D3D12_DEVICE_FACTORY_FLAGS flags);
 
         [VtblIndex(6)]
         D3D12_DEVICE_FACTORY_FLAGS GetFlags();
 
         [VtblIndex(7)]
-        [return: NativeTypeName("HRESULT")]
-        int GetConfigurationInterface([NativeTypeName("const IID &")] Guid* clsid, [NativeTypeName("const IID &")] Guid* iid, void** ppv);
+        HRESULT GetConfigurationInterface([NativeTypeName("const IID &")] Guid* clsid, [NativeTypeName("const IID &")] Guid* iid, void** ppv);
 
         [VtblIndex(8)]
-        [return: NativeTypeName("HRESULT")]
-        int EnableExperimentalFeatures(uint NumFeatures, [NativeTypeName("const IID *")] Guid* pIIDs, void* pConfigurationStructs, uint* pConfigurationStructSizes);
+        HRESULT EnableExperimentalFeatures(uint NumFeatures, [NativeTypeName("const IID *")] Guid* pIIDs, void* pConfigurationStructs, uint* pConfigurationStructSizes);
 
         [VtblIndex(9)]
-        [return: NativeTypeName("HRESULT")]
-        int CreateDevice(IUnknown* adapter, D3D_FEATURE_LEVEL FeatureLevel, [NativeTypeName("const IID &")] Guid* riid, void** ppvDevice);
+        HRESULT CreateDevice(IUnknown* adapter, D3D_FEATURE_LEVEL FeatureLevel, [NativeTypeName("const IID &")] Guid* riid, void** ppvDevice);
     }
 }

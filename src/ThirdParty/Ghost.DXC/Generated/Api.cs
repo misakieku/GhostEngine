@@ -8,13 +8,11 @@ public static unsafe partial class Api
 {
     /// <include file='Api.xml' path='doc/member[@name="Api.DxcCreateInstance"]/*' />
     [DllImport("dxcompiler", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
-    [return: NativeTypeName("HRESULT")]
-    public static extern int DxcCreateInstance([NativeTypeName("const IID &")] Guid* rclsid, [NativeTypeName("const IID &")] Guid* riid, [NativeTypeName("LPVOID *")] void** ppv);
+        public static extern HRESULT DxcCreateInstance([NativeTypeName("const IID &")] Guid* rclsid, [NativeTypeName("const IID &")] Guid* riid, [NativeTypeName("LPVOID *")] void** ppv);
 
     /// <include file='Api.xml' path='doc/member[@name="Api.DxcCreateInstance2"]/*' />
     [DllImport("dxcompiler", CallingConvention = CallingConvention.StdCall, ExactSpelling = true)]
-    [return: NativeTypeName("HRESULT")]
-    public static extern int DxcCreateInstance2(IMalloc* pMalloc, [NativeTypeName("const IID &")] Guid* rclsid, [NativeTypeName("const IID &")] Guid* riid, [NativeTypeName("LPVOID *")] void** ppv);
+        public static extern HRESULT DxcCreateInstance2(IMalloc* pMalloc, [NativeTypeName("const IID &")] Guid* rclsid, [NativeTypeName("const IID &")] Guid* riid, [NativeTypeName("LPVOID *")] void** ppv);
 
     [NativeTypeName("const UINT32")]
     public const uint DxcValidatorFlags_Default = 0;
