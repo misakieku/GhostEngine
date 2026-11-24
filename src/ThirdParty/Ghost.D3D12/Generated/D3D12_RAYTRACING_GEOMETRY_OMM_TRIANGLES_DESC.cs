@@ -1,0 +1,10 @@
+namespace Ghost.D3D12;
+
+public unsafe partial struct D3D12_RAYTRACING_GEOMETRY_OMM_TRIANGLES_DESC
+{
+    [NativeTypeName("const D3D12_RAYTRACING_GEOMETRY_TRIANGLES_DESC *")]
+    public D3D12_RAYTRACING_GEOMETRY_TRIANGLES_DESC* pTriangles;
+
+    [NativeTypeName("const D3D12_RAYTRACING_GEOMETRY_OMM_LINKAGE_DESC *")]
+    public D3D12_RAYTRACING_GEOMETRY_OMM_LINKAGE_DESC* pOmmLinkage;
+}

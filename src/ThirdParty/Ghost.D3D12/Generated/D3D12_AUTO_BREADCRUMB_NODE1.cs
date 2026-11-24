@@ -1,0 +1,35 @@
+namespace Ghost.D3D12;
+
+public unsafe partial struct D3D12_AUTO_BREADCRUMB_NODE1
+{
+    [NativeTypeName("const char *")]
+    public sbyte* pCommandListDebugNameA;
+
+    [NativeTypeName("const wchar_t *")]
+    public char* pCommandListDebugNameW;
+
+    [NativeTypeName("const char *")]
+    public sbyte* pCommandQueueDebugNameA;
+
+    [NativeTypeName("const wchar_t *")]
+    public char* pCommandQueueDebugNameW;
+
+    public ID3D12GraphicsCommandList* pCommandList;
+
+    public ID3D12CommandQueue* pCommandQueue;
+
+    public uint BreadcrumbCount;
+
+    [NativeTypeName("const UINT *")]
+    public uint* pLastBreadcrumbValue;
+
+    [NativeTypeName("const D3D12_AUTO_BREADCRUMB_OP *")]
+    public D3D12_AUTO_BREADCRUMB_OP* pCommandHistory;
+
+    [NativeTypeName("const struct D3D12_AUTO_BREADCRUMB_NODE1 *")]
+    public D3D12_AUTO_BREADCRUMB_NODE1* pNext;
+
+    public uint BreadcrumbContextsCount;
+
+    public D3D12_DRED_BREADCRUMB_CONTEXT* pBreadcrumbContexts;
+}

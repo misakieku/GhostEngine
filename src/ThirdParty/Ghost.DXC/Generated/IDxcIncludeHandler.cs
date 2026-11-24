@@ -17,8 +17,7 @@ public unsafe partial struct IDxcIncludeHandler : IDxcIncludeHandler.Interface, 
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcIncludeHandler*, Guid*, void**, int>)(lpVtbl[0]))((IDxcIncludeHandler*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcIncludeHandler : IDxcIncludeHandler.Interface, 
     /// <include file='IDxcIncludeHandler.xml' path='doc/member[@name="IDxcIncludeHandler.LoadSource"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int LoadSource([NativeTypeName("LPCWSTR")] char* pFilename, IDxcBlob** ppIncludeSource)
+        public HRESULT LoadSource([NativeTypeName("LPCWSTR")] char* pFilename, IDxcBlob** ppIncludeSource)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcIncludeHandler*, char*, IDxcBlob**, int>)(lpVtbl[3]))((IDxcIncludeHandler*)Unsafe.AsPointer(ref this), pFilename, ppIncludeSource);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcIncludeHandler : IDxcIncludeHandler.Interface, 
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int LoadSource([NativeTypeName("LPCWSTR")] char* pFilename, IDxcBlob** ppIncludeSource);
+                HRESULT LoadSource([NativeTypeName("LPCWSTR")] char* pFilename, IDxcBlob** ppIncludeSource);
     }
 
     public partial struct Vtbl<TSelf>

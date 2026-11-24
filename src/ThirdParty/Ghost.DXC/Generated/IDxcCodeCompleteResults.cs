@@ -17,8 +17,7 @@ public unsafe partial struct IDxcCodeCompleteResults : IDxcCodeCompleteResults.I
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcCodeCompleteResults*, Guid*, void**, int>)(lpVtbl[0]))((IDxcCodeCompleteResults*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcCodeCompleteResults : IDxcCodeCompleteResults.I
     /// <include file='IDxcCodeCompleteResults.xml' path='doc/member[@name="IDxcCodeCompleteResults.GetNumResults"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetNumResults([NativeTypeName("unsigned int *")] uint* pResult)
+        public HRESULT GetNumResults([NativeTypeName("unsigned int *")] uint* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcCodeCompleteResults*, uint*, int>)(lpVtbl[3]))((IDxcCodeCompleteResults*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcCodeCompleteResults : IDxcCodeCompleteResults.I
     /// <include file='IDxcCodeCompleteResults.xml' path='doc/member[@name="IDxcCodeCompleteResults.GetResultAt"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetResultAt([NativeTypeName("unsigned int")] uint index, IDxcCompletionResult** pResult)
+        public HRESULT GetResultAt([NativeTypeName("unsigned int")] uint index, IDxcCompletionResult** pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcCodeCompleteResults*, uint, IDxcCompletionResult**, int>)(lpVtbl[4]))((IDxcCodeCompleteResults*)Unsafe.AsPointer(ref this), index, pResult);
     }
@@ -62,12 +59,10 @@ public unsafe partial struct IDxcCodeCompleteResults : IDxcCodeCompleteResults.I
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetNumResults([NativeTypeName("unsigned int *")] uint* pResult);
+                HRESULT GetNumResults([NativeTypeName("unsigned int *")] uint* pResult);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetResultAt([NativeTypeName("unsigned int")] uint index, IDxcCompletionResult** pResult);
+                HRESULT GetResultAt([NativeTypeName("unsigned int")] uint index, IDxcCompletionResult** pResult);
     }
 
     public partial struct Vtbl<TSelf>

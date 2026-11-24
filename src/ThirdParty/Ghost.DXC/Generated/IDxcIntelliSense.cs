@@ -17,8 +17,7 @@ public unsafe partial struct IDxcIntelliSense : IDxcIntelliSense.Interface, INat
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcIntelliSense*, Guid*, void**, int>)(lpVtbl[0]))((IDxcIntelliSense*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcIntelliSense : IDxcIntelliSense.Interface, INat
     /// <include file='IDxcIntelliSense.xml' path='doc/member[@name="IDxcIntelliSense.CreateIndex"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int CreateIndex(IDxcIndex** index)
+        public HRESULT CreateIndex(IDxcIndex** index)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcIntelliSense*, IDxcIndex**, int>)(lpVtbl[3]))((IDxcIntelliSense*)Unsafe.AsPointer(ref this), index);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcIntelliSense : IDxcIntelliSense.Interface, INat
     /// <include file='IDxcIntelliSense.xml' path='doc/member[@name="IDxcIntelliSense.GetNullLocation"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetNullLocation(IDxcSourceLocation** location)
+        public HRESULT GetNullLocation(IDxcSourceLocation** location)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcIntelliSense*, IDxcSourceLocation**, int>)(lpVtbl[4]))((IDxcIntelliSense*)Unsafe.AsPointer(ref this), location);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcIntelliSense : IDxcIntelliSense.Interface, INat
     /// <include file='IDxcIntelliSense.xml' path='doc/member[@name="IDxcIntelliSense.GetNullRange"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetNullRange(IDxcSourceRange** location)
+        public HRESULT GetNullRange(IDxcSourceRange** location)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcIntelliSense*, IDxcSourceRange**, int>)(lpVtbl[5]))((IDxcIntelliSense*)Unsafe.AsPointer(ref this), location);
     }
@@ -71,8 +67,7 @@ public unsafe partial struct IDxcIntelliSense : IDxcIntelliSense.Interface, INat
     /// <include file='IDxcIntelliSense.xml' path='doc/member[@name="IDxcIntelliSense.GetRange"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetRange(IDxcSourceLocation* start, IDxcSourceLocation* end, IDxcSourceRange** location)
+        public HRESULT GetRange(IDxcSourceLocation* start, IDxcSourceLocation* end, IDxcSourceRange** location)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcIntelliSense*, IDxcSourceLocation*, IDxcSourceLocation*, IDxcSourceRange**, int>)(lpVtbl[6]))((IDxcIntelliSense*)Unsafe.AsPointer(ref this), start, end, location);
     }
@@ -80,8 +75,7 @@ public unsafe partial struct IDxcIntelliSense : IDxcIntelliSense.Interface, INat
     /// <include file='IDxcIntelliSense.xml' path='doc/member[@name="IDxcIntelliSense.GetDefaultDiagnosticDisplayOptions"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(7)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetDefaultDiagnosticDisplayOptions(DxcDiagnosticDisplayOptions* pValue)
+        public HRESULT GetDefaultDiagnosticDisplayOptions(DxcDiagnosticDisplayOptions* pValue)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcIntelliSense*, DxcDiagnosticDisplayOptions*, int>)(lpVtbl[7]))((IDxcIntelliSense*)Unsafe.AsPointer(ref this), pValue);
     }
@@ -89,8 +83,7 @@ public unsafe partial struct IDxcIntelliSense : IDxcIntelliSense.Interface, INat
     /// <include file='IDxcIntelliSense.xml' path='doc/member[@name="IDxcIntelliSense.GetDefaultEditingTUOptions"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(8)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetDefaultEditingTUOptions(DxcTranslationUnitFlags* pValue)
+        public HRESULT GetDefaultEditingTUOptions(DxcTranslationUnitFlags* pValue)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcIntelliSense*, DxcTranslationUnitFlags*, int>)(lpVtbl[8]))((IDxcIntelliSense*)Unsafe.AsPointer(ref this), pValue);
     }
@@ -98,8 +91,7 @@ public unsafe partial struct IDxcIntelliSense : IDxcIntelliSense.Interface, INat
     /// <include file='IDxcIntelliSense.xml' path='doc/member[@name="IDxcIntelliSense.CreateUnsavedFile"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(9)]
-    [return: NativeTypeName("HRESULT")]
-    public int CreateUnsavedFile([NativeTypeName("LPCSTR")] sbyte* fileName, [NativeTypeName("LPCSTR")] sbyte* contents, [NativeTypeName("unsigned int")] uint contentLength, IDxcUnsavedFile** pResult)
+        public HRESULT CreateUnsavedFile([NativeTypeName("LPCSTR")] sbyte* fileName, [NativeTypeName("LPCSTR")] sbyte* contents, [NativeTypeName("unsigned int")] uint contentLength, IDxcUnsavedFile** pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcIntelliSense*, sbyte*, sbyte*, uint, IDxcUnsavedFile**, int>)(lpVtbl[9]))((IDxcIntelliSense*)Unsafe.AsPointer(ref this), fileName, contents, contentLength, pResult);
     }
@@ -107,32 +99,25 @@ public unsafe partial struct IDxcIntelliSense : IDxcIntelliSense.Interface, INat
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int CreateIndex(IDxcIndex** index);
+                HRESULT CreateIndex(IDxcIndex** index);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetNullLocation(IDxcSourceLocation** location);
+                HRESULT GetNullLocation(IDxcSourceLocation** location);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetNullRange(IDxcSourceRange** location);
+                HRESULT GetNullRange(IDxcSourceRange** location);
 
         [VtblIndex(6)]
-        [return: NativeTypeName("HRESULT")]
-        int GetRange(IDxcSourceLocation* start, IDxcSourceLocation* end, IDxcSourceRange** location);
+                HRESULT GetRange(IDxcSourceLocation* start, IDxcSourceLocation* end, IDxcSourceRange** location);
 
         [VtblIndex(7)]
-        [return: NativeTypeName("HRESULT")]
-        int GetDefaultDiagnosticDisplayOptions(DxcDiagnosticDisplayOptions* pValue);
+                HRESULT GetDefaultDiagnosticDisplayOptions(DxcDiagnosticDisplayOptions* pValue);
 
         [VtblIndex(8)]
-        [return: NativeTypeName("HRESULT")]
-        int GetDefaultEditingTUOptions(DxcTranslationUnitFlags* pValue);
+                HRESULT GetDefaultEditingTUOptions(DxcTranslationUnitFlags* pValue);
 
         [VtblIndex(9)]
-        [return: NativeTypeName("HRESULT")]
-        int CreateUnsavedFile([NativeTypeName("LPCSTR")] sbyte* fileName, [NativeTypeName("LPCSTR")] sbyte* contents, [NativeTypeName("unsigned int")] uint contentLength, IDxcUnsavedFile** pResult);
+                HRESULT CreateUnsavedFile([NativeTypeName("LPCSTR")] sbyte* fileName, [NativeTypeName("LPCSTR")] sbyte* contents, [NativeTypeName("unsigned int")] uint contentLength, IDxcUnsavedFile** pResult);
     }
 
     public partial struct Vtbl<TSelf>

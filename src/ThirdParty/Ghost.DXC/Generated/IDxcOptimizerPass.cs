@@ -17,8 +17,7 @@ public unsafe partial struct IDxcOptimizerPass : IDxcOptimizerPass.Interface, IN
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcOptimizerPass*, Guid*, void**, int>)(lpVtbl[0]))((IDxcOptimizerPass*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcOptimizerPass : IDxcOptimizerPass.Interface, IN
     /// <include file='IDxcOptimizerPass.xml' path='doc/member[@name="IDxcOptimizerPass.GetOptionName"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetOptionName([NativeTypeName("LPWSTR *")] char** ppResult)
+        public HRESULT GetOptionName([NativeTypeName("LPWSTR *")] char** ppResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcOptimizerPass*, char**, int>)(lpVtbl[3]))((IDxcOptimizerPass*)Unsafe.AsPointer(ref this), ppResult);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcOptimizerPass : IDxcOptimizerPass.Interface, IN
     /// <include file='IDxcOptimizerPass.xml' path='doc/member[@name="IDxcOptimizerPass.GetDescription"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetDescription([NativeTypeName("LPWSTR *")] char** ppResult)
+        public HRESULT GetDescription([NativeTypeName("LPWSTR *")] char** ppResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcOptimizerPass*, char**, int>)(lpVtbl[4]))((IDxcOptimizerPass*)Unsafe.AsPointer(ref this), ppResult);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcOptimizerPass : IDxcOptimizerPass.Interface, IN
     /// <include file='IDxcOptimizerPass.xml' path='doc/member[@name="IDxcOptimizerPass.GetOptionArgCount"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetOptionArgCount([NativeTypeName("UINT32 *")] uint* pCount)
+        public HRESULT GetOptionArgCount([NativeTypeName("UINT32 *")] uint* pCount)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcOptimizerPass*, uint*, int>)(lpVtbl[5]))((IDxcOptimizerPass*)Unsafe.AsPointer(ref this), pCount);
     }
@@ -71,8 +67,7 @@ public unsafe partial struct IDxcOptimizerPass : IDxcOptimizerPass.Interface, IN
     /// <include file='IDxcOptimizerPass.xml' path='doc/member[@name="IDxcOptimizerPass.GetOptionArgName"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetOptionArgName([NativeTypeName("UINT32")] uint argIndex, [NativeTypeName("LPWSTR *")] char** ppResult)
+        public HRESULT GetOptionArgName([NativeTypeName("UINT32")] uint argIndex, [NativeTypeName("LPWSTR *")] char** ppResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcOptimizerPass*, uint, char**, int>)(lpVtbl[6]))((IDxcOptimizerPass*)Unsafe.AsPointer(ref this), argIndex, ppResult);
     }
@@ -80,8 +75,7 @@ public unsafe partial struct IDxcOptimizerPass : IDxcOptimizerPass.Interface, IN
     /// <include file='IDxcOptimizerPass.xml' path='doc/member[@name="IDxcOptimizerPass.GetOptionArgDescription"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(7)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetOptionArgDescription([NativeTypeName("UINT32")] uint argIndex, [NativeTypeName("LPWSTR *")] char** ppResult)
+        public HRESULT GetOptionArgDescription([NativeTypeName("UINT32")] uint argIndex, [NativeTypeName("LPWSTR *")] char** ppResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcOptimizerPass*, uint, char**, int>)(lpVtbl[7]))((IDxcOptimizerPass*)Unsafe.AsPointer(ref this), argIndex, ppResult);
     }
@@ -89,24 +83,19 @@ public unsafe partial struct IDxcOptimizerPass : IDxcOptimizerPass.Interface, IN
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetOptionName([NativeTypeName("LPWSTR *")] char** ppResult);
+                HRESULT GetOptionName([NativeTypeName("LPWSTR *")] char** ppResult);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetDescription([NativeTypeName("LPWSTR *")] char** ppResult);
+                HRESULT GetDescription([NativeTypeName("LPWSTR *")] char** ppResult);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetOptionArgCount([NativeTypeName("UINT32 *")] uint* pCount);
+                HRESULT GetOptionArgCount([NativeTypeName("UINT32 *")] uint* pCount);
 
         [VtblIndex(6)]
-        [return: NativeTypeName("HRESULT")]
-        int GetOptionArgName([NativeTypeName("UINT32")] uint argIndex, [NativeTypeName("LPWSTR *")] char** ppResult);
+                HRESULT GetOptionArgName([NativeTypeName("UINT32")] uint argIndex, [NativeTypeName("LPWSTR *")] char** ppResult);
 
         [VtblIndex(7)]
-        [return: NativeTypeName("HRESULT")]
-        int GetOptionArgDescription([NativeTypeName("UINT32")] uint argIndex, [NativeTypeName("LPWSTR *")] char** ppResult);
+                HRESULT GetOptionArgDescription([NativeTypeName("UINT32")] uint argIndex, [NativeTypeName("LPWSTR *")] char** ppResult);
     }
 
     public partial struct Vtbl<TSelf>

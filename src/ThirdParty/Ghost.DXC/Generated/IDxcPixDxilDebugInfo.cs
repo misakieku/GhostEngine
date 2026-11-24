@@ -17,8 +17,7 @@ public unsafe partial struct IDxcPixDxilDebugInfo : IDxcPixDxilDebugInfo.Interfa
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilDebugInfo*, Guid*, void**, int>)(lpVtbl[0]))((IDxcPixDxilDebugInfo*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcPixDxilDebugInfo : IDxcPixDxilDebugInfo.Interfa
     /// <include file='IDxcPixDxilDebugInfo.xml' path='doc/member[@name="IDxcPixDxilDebugInfo.GetLiveVariablesAt"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetLiveVariablesAt([NativeTypeName("DWORD")] uint InstructionOffset, IDxcPixDxilLiveVariables** ppLiveVariables)
+        public HRESULT GetLiveVariablesAt([NativeTypeName("DWORD")] uint InstructionOffset, IDxcPixDxilLiveVariables** ppLiveVariables)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilDebugInfo*, uint, IDxcPixDxilLiveVariables**, int>)(lpVtbl[3]))((IDxcPixDxilDebugInfo*)Unsafe.AsPointer(ref this), InstructionOffset, ppLiveVariables);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcPixDxilDebugInfo : IDxcPixDxilDebugInfo.Interfa
     /// <include file='IDxcPixDxilDebugInfo.xml' path='doc/member[@name="IDxcPixDxilDebugInfo.IsVariableInRegister"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int IsVariableInRegister([NativeTypeName("DWORD")] uint InstructionOffset, [NativeTypeName("const wchar_t *")] char* VariableName)
+        public HRESULT IsVariableInRegister([NativeTypeName("DWORD")] uint InstructionOffset, [NativeTypeName("const wchar_t *")] char* VariableName)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilDebugInfo*, uint, char*, int>)(lpVtbl[4]))((IDxcPixDxilDebugInfo*)Unsafe.AsPointer(ref this), InstructionOffset, VariableName);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcPixDxilDebugInfo : IDxcPixDxilDebugInfo.Interfa
     /// <include file='IDxcPixDxilDebugInfo.xml' path='doc/member[@name="IDxcPixDxilDebugInfo.GetFunctionName"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetFunctionName([NativeTypeName("DWORD")] uint InstructionOffset, [NativeTypeName("BSTR *")] char** ppFunctionName)
+        public HRESULT GetFunctionName([NativeTypeName("DWORD")] uint InstructionOffset, [NativeTypeName("BSTR *")] char** ppFunctionName)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilDebugInfo*, uint, char**, int>)(lpVtbl[5]))((IDxcPixDxilDebugInfo*)Unsafe.AsPointer(ref this), InstructionOffset, ppFunctionName);
     }
@@ -71,8 +67,7 @@ public unsafe partial struct IDxcPixDxilDebugInfo : IDxcPixDxilDebugInfo.Interfa
     /// <include file='IDxcPixDxilDebugInfo.xml' path='doc/member[@name="IDxcPixDxilDebugInfo.GetStackDepth"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetStackDepth([NativeTypeName("DWORD")] uint InstructionOffset, [NativeTypeName("DWORD *")] uint* StackDepth)
+        public HRESULT GetStackDepth([NativeTypeName("DWORD")] uint InstructionOffset, [NativeTypeName("DWORD *")] uint* StackDepth)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilDebugInfo*, uint, uint*, int>)(lpVtbl[6]))((IDxcPixDxilDebugInfo*)Unsafe.AsPointer(ref this), InstructionOffset, StackDepth);
     }
@@ -80,8 +75,7 @@ public unsafe partial struct IDxcPixDxilDebugInfo : IDxcPixDxilDebugInfo.Interfa
     /// <include file='IDxcPixDxilDebugInfo.xml' path='doc/member[@name="IDxcPixDxilDebugInfo.InstructionOffsetsFromSourceLocation"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(7)]
-    [return: NativeTypeName("HRESULT")]
-    public int InstructionOffsetsFromSourceLocation([NativeTypeName("const wchar_t *")] char* FileName, [NativeTypeName("DWORD")] uint SourceLine, [NativeTypeName("DWORD")] uint SourceColumn, IDxcPixDxilInstructionOffsets** ppOffsets)
+        public HRESULT InstructionOffsetsFromSourceLocation([NativeTypeName("const wchar_t *")] char* FileName, [NativeTypeName("DWORD")] uint SourceLine, [NativeTypeName("DWORD")] uint SourceColumn, IDxcPixDxilInstructionOffsets** ppOffsets)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilDebugInfo*, char*, uint, uint, IDxcPixDxilInstructionOffsets**, int>)(lpVtbl[7]))((IDxcPixDxilDebugInfo*)Unsafe.AsPointer(ref this), FileName, SourceLine, SourceColumn, ppOffsets);
     }
@@ -89,8 +83,7 @@ public unsafe partial struct IDxcPixDxilDebugInfo : IDxcPixDxilDebugInfo.Interfa
     /// <include file='IDxcPixDxilDebugInfo.xml' path='doc/member[@name="IDxcPixDxilDebugInfo.SourceLocationsFromInstructionOffset"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(8)]
-    [return: NativeTypeName("HRESULT")]
-    public int SourceLocationsFromInstructionOffset([NativeTypeName("DWORD")] uint InstructionOffset, IDxcPixDxilSourceLocations** ppSourceLocations)
+        public HRESULT SourceLocationsFromInstructionOffset([NativeTypeName("DWORD")] uint InstructionOffset, IDxcPixDxilSourceLocations** ppSourceLocations)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilDebugInfo*, uint, IDxcPixDxilSourceLocations**, int>)(lpVtbl[8]))((IDxcPixDxilDebugInfo*)Unsafe.AsPointer(ref this), InstructionOffset, ppSourceLocations);
     }
@@ -98,28 +91,22 @@ public unsafe partial struct IDxcPixDxilDebugInfo : IDxcPixDxilDebugInfo.Interfa
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetLiveVariablesAt([NativeTypeName("DWORD")] uint InstructionOffset, IDxcPixDxilLiveVariables** ppLiveVariables);
+                HRESULT GetLiveVariablesAt([NativeTypeName("DWORD")] uint InstructionOffset, IDxcPixDxilLiveVariables** ppLiveVariables);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int IsVariableInRegister([NativeTypeName("DWORD")] uint InstructionOffset, [NativeTypeName("const wchar_t *")] char* VariableName);
+                HRESULT IsVariableInRegister([NativeTypeName("DWORD")] uint InstructionOffset, [NativeTypeName("const wchar_t *")] char* VariableName);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetFunctionName([NativeTypeName("DWORD")] uint InstructionOffset, [NativeTypeName("BSTR *")] char** ppFunctionName);
+                HRESULT GetFunctionName([NativeTypeName("DWORD")] uint InstructionOffset, [NativeTypeName("BSTR *")] char** ppFunctionName);
 
         [VtblIndex(6)]
-        [return: NativeTypeName("HRESULT")]
-        int GetStackDepth([NativeTypeName("DWORD")] uint InstructionOffset, [NativeTypeName("DWORD *")] uint* StackDepth);
+                HRESULT GetStackDepth([NativeTypeName("DWORD")] uint InstructionOffset, [NativeTypeName("DWORD *")] uint* StackDepth);
 
         [VtblIndex(7)]
-        [return: NativeTypeName("HRESULT")]
-        int InstructionOffsetsFromSourceLocation([NativeTypeName("const wchar_t *")] char* FileName, [NativeTypeName("DWORD")] uint SourceLine, [NativeTypeName("DWORD")] uint SourceColumn, IDxcPixDxilInstructionOffsets** ppOffsets);
+                HRESULT InstructionOffsetsFromSourceLocation([NativeTypeName("const wchar_t *")] char* FileName, [NativeTypeName("DWORD")] uint SourceLine, [NativeTypeName("DWORD")] uint SourceColumn, IDxcPixDxilInstructionOffsets** ppOffsets);
 
         [VtblIndex(8)]
-        [return: NativeTypeName("HRESULT")]
-        int SourceLocationsFromInstructionOffset([NativeTypeName("DWORD")] uint InstructionOffset, IDxcPixDxilSourceLocations** ppSourceLocations);
+                HRESULT SourceLocationsFromInstructionOffset([NativeTypeName("DWORD")] uint InstructionOffset, IDxcPixDxilSourceLocations** ppSourceLocations);
     }
 
     public partial struct Vtbl<TSelf>

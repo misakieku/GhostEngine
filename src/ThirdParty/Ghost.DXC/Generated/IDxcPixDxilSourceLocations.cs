@@ -17,8 +17,7 @@ public unsafe partial struct IDxcPixDxilSourceLocations : IDxcPixDxilSourceLocat
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilSourceLocations*, Guid*, void**, int>)(lpVtbl[0]))((IDxcPixDxilSourceLocations*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -71,8 +70,7 @@ public unsafe partial struct IDxcPixDxilSourceLocations : IDxcPixDxilSourceLocat
     /// <include file='IDxcPixDxilSourceLocations.xml' path='doc/member[@name="IDxcPixDxilSourceLocations.GetFileNameByIndex"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetFileNameByIndex([NativeTypeName("DWORD")] uint Index, [NativeTypeName("BSTR *")] char** Name)
+        public HRESULT GetFileNameByIndex([NativeTypeName("DWORD")] uint Index, [NativeTypeName("BSTR *")] char** Name)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilSourceLocations*, uint, char**, int>)(lpVtbl[6]))((IDxcPixDxilSourceLocations*)Unsafe.AsPointer(ref this), Index, Name);
     }
@@ -92,8 +90,7 @@ public unsafe partial struct IDxcPixDxilSourceLocations : IDxcPixDxilSourceLocat
         uint GetColumnByIndex([NativeTypeName("DWORD")] uint Index);
 
         [VtblIndex(6)]
-        [return: NativeTypeName("HRESULT")]
-        int GetFileNameByIndex([NativeTypeName("DWORD")] uint Index, [NativeTypeName("BSTR *")] char** Name);
+                HRESULT GetFileNameByIndex([NativeTypeName("DWORD")] uint Index, [NativeTypeName("BSTR *")] char** Name);
     }
 
     public partial struct Vtbl<TSelf>

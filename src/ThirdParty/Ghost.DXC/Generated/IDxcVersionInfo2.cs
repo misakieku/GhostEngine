@@ -17,8 +17,7 @@ public unsafe partial struct IDxcVersionInfo2 : IDxcVersionInfo2.Interface, INat
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcVersionInfo2*, Guid*, void**, int>)(lpVtbl[0]))((IDxcVersionInfo2*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcVersionInfo2 : IDxcVersionInfo2.Interface, INat
     /// <inheritdoc cref="IDxcVersionInfo.GetVersion" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetVersion([NativeTypeName("UINT32 *")] uint* pMajor, [NativeTypeName("UINT32 *")] uint* pMinor)
+        public HRESULT GetVersion([NativeTypeName("UINT32 *")] uint* pMajor, [NativeTypeName("UINT32 *")] uint* pMinor)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcVersionInfo2*, uint*, uint*, int>)(lpVtbl[3]))((IDxcVersionInfo2*)Unsafe.AsPointer(ref this), pMajor, pMinor);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcVersionInfo2 : IDxcVersionInfo2.Interface, INat
     /// <inheritdoc cref="IDxcVersionInfo.GetFlags" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetFlags([NativeTypeName("UINT32 *")] uint* pFlags)
+        public HRESULT GetFlags([NativeTypeName("UINT32 *")] uint* pFlags)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcVersionInfo2*, uint*, int>)(lpVtbl[4]))((IDxcVersionInfo2*)Unsafe.AsPointer(ref this), pFlags);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcVersionInfo2 : IDxcVersionInfo2.Interface, INat
     /// <include file='IDxcVersionInfo2.xml' path='doc/member[@name="IDxcVersionInfo2.GetCommitInfo"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetCommitInfo([NativeTypeName("UINT32 *")] uint* pCommitCount, [NativeTypeName("char **")] sbyte** pCommitHash)
+        public HRESULT GetCommitInfo([NativeTypeName("UINT32 *")] uint* pCommitCount, [NativeTypeName("char **")] sbyte** pCommitHash)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcVersionInfo2*, uint*, sbyte**, int>)(lpVtbl[5]))((IDxcVersionInfo2*)Unsafe.AsPointer(ref this), pCommitCount, pCommitHash);
     }
@@ -71,8 +67,7 @@ public unsafe partial struct IDxcVersionInfo2 : IDxcVersionInfo2.Interface, INat
     public interface Interface : IDxcVersionInfo.Interface
     {
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetCommitInfo([NativeTypeName("UINT32 *")] uint* pCommitCount, [NativeTypeName("char **")] sbyte** pCommitHash);
+                HRESULT GetCommitInfo([NativeTypeName("UINT32 *")] uint* pCommitCount, [NativeTypeName("char **")] sbyte** pCommitHash);
     }
 
     public partial struct Vtbl<TSelf>

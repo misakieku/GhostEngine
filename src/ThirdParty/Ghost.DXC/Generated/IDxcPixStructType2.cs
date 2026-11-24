@@ -17,8 +17,7 @@ public unsafe partial struct IDxcPixStructType2 : IDxcPixStructType2.Interface, 
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixStructType2*, Guid*, void**, int>)(lpVtbl[0]))((IDxcPixStructType2*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcPixStructType2 : IDxcPixStructType2.Interface, 
     /// <inheritdoc cref="IDxcPixType.GetName" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetName([NativeTypeName("BSTR *")] char** Name)
+        public HRESULT GetName([NativeTypeName("BSTR *")] char** Name)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixStructType2*, char**, int>)(lpVtbl[3]))((IDxcPixStructType2*)Unsafe.AsPointer(ref this), Name);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcPixStructType2 : IDxcPixStructType2.Interface, 
     /// <inheritdoc cref="IDxcPixType.GetSizeInBits" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetSizeInBits([NativeTypeName("DWORD *")] uint* GetSizeInBits)
+        public HRESULT GetSizeInBits([NativeTypeName("DWORD *")] uint* GetSizeInBits)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixStructType2*, uint*, int>)(lpVtbl[4]))((IDxcPixStructType2*)Unsafe.AsPointer(ref this), GetSizeInBits);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcPixStructType2 : IDxcPixStructType2.Interface, 
     /// <inheritdoc cref="IDxcPixType.UnAlias" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int UnAlias(IDxcPixType** ppBaseType)
+        public HRESULT UnAlias(IDxcPixType** ppBaseType)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixStructType2*, IDxcPixType**, int>)(lpVtbl[5]))((IDxcPixStructType2*)Unsafe.AsPointer(ref this), ppBaseType);
     }
@@ -71,8 +67,7 @@ public unsafe partial struct IDxcPixStructType2 : IDxcPixStructType2.Interface, 
     /// <inheritdoc cref="IDxcPixStructType.GetNumFields" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetNumFields([NativeTypeName("DWORD *")] uint* ppNumFields)
+        public HRESULT GetNumFields([NativeTypeName("DWORD *")] uint* ppNumFields)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixStructType2*, uint*, int>)(lpVtbl[6]))((IDxcPixStructType2*)Unsafe.AsPointer(ref this), ppNumFields);
     }
@@ -80,8 +75,7 @@ public unsafe partial struct IDxcPixStructType2 : IDxcPixStructType2.Interface, 
     /// <inheritdoc cref="IDxcPixStructType.GetFieldByIndex" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(7)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetFieldByIndex([NativeTypeName("DWORD")] uint dwIndex, IDxcPixStructField** ppField)
+        public HRESULT GetFieldByIndex([NativeTypeName("DWORD")] uint dwIndex, IDxcPixStructField** ppField)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixStructType2*, uint, IDxcPixStructField**, int>)(lpVtbl[7]))((IDxcPixStructType2*)Unsafe.AsPointer(ref this), dwIndex, ppField);
     }
@@ -89,8 +83,7 @@ public unsafe partial struct IDxcPixStructType2 : IDxcPixStructType2.Interface, 
     /// <inheritdoc cref="IDxcPixStructType.GetFieldByName" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(8)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetFieldByName([NativeTypeName("LPCWSTR")] char* lpName, IDxcPixStructField** ppField)
+        public HRESULT GetFieldByName([NativeTypeName("LPCWSTR")] char* lpName, IDxcPixStructField** ppField)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixStructType2*, char*, IDxcPixStructField**, int>)(lpVtbl[8]))((IDxcPixStructType2*)Unsafe.AsPointer(ref this), lpName, ppField);
     }
@@ -98,8 +91,7 @@ public unsafe partial struct IDxcPixStructType2 : IDxcPixStructType2.Interface, 
     /// <include file='IDxcPixStructType2.xml' path='doc/member[@name="IDxcPixStructType2.GetBaseType"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(9)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetBaseType(IDxcPixType** ppType)
+        public HRESULT GetBaseType(IDxcPixType** ppType)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixStructType2*, IDxcPixType**, int>)(lpVtbl[9]))((IDxcPixStructType2*)Unsafe.AsPointer(ref this), ppType);
     }
@@ -107,8 +99,7 @@ public unsafe partial struct IDxcPixStructType2 : IDxcPixStructType2.Interface, 
     public interface Interface : IDxcPixStructType.Interface
     {
         [VtblIndex(9)]
-        [return: NativeTypeName("HRESULT")]
-        int GetBaseType(IDxcPixType** ppType);
+                HRESULT GetBaseType(IDxcPixType** ppType);
     }
 
     public partial struct Vtbl<TSelf>

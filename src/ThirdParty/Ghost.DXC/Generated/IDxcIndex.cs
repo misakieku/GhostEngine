@@ -17,8 +17,7 @@ public unsafe partial struct IDxcIndex : IDxcIndex.Interface, INativeGuid
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcIndex*, Guid*, void**, int>)(lpVtbl[0]))((IDxcIndex*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcIndex : IDxcIndex.Interface, INativeGuid
     /// <include file='IDxcIndex.xml' path='doc/member[@name="IDxcIndex.SetGlobalOptions"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int SetGlobalOptions(DxcGlobalOptions options)
+        public HRESULT SetGlobalOptions(DxcGlobalOptions options)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcIndex*, DxcGlobalOptions, int>)(lpVtbl[3]))((IDxcIndex*)Unsafe.AsPointer(ref this), options);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcIndex : IDxcIndex.Interface, INativeGuid
     /// <include file='IDxcIndex.xml' path='doc/member[@name="IDxcIndex.GetGlobalOptions"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetGlobalOptions(DxcGlobalOptions* options)
+        public HRESULT GetGlobalOptions(DxcGlobalOptions* options)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcIndex*, DxcGlobalOptions*, int>)(lpVtbl[4]))((IDxcIndex*)Unsafe.AsPointer(ref this), options);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcIndex : IDxcIndex.Interface, INativeGuid
     /// <include file='IDxcIndex.xml' path='doc/member[@name="IDxcIndex.ParseTranslationUnit"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int ParseTranslationUnit([NativeTypeName("const char *")] sbyte* source_filename, [NativeTypeName("const char *const *")] sbyte** command_line_args, int num_command_line_args, IDxcUnsavedFile** unsaved_files, [NativeTypeName("unsigned int")] uint num_unsaved_files, DxcTranslationUnitFlags options, IDxcTranslationUnit** pTranslationUnit)
+        public HRESULT ParseTranslationUnit([NativeTypeName("const char *")] sbyte* source_filename, [NativeTypeName("const char *const *")] sbyte** command_line_args, int num_command_line_args, IDxcUnsavedFile** unsaved_files, [NativeTypeName("unsigned int")] uint num_unsaved_files, DxcTranslationUnitFlags options, IDxcTranslationUnit** pTranslationUnit)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcIndex*, sbyte*, sbyte**, int, IDxcUnsavedFile**, uint, DxcTranslationUnitFlags, IDxcTranslationUnit**, int>)(lpVtbl[5]))((IDxcIndex*)Unsafe.AsPointer(ref this), source_filename, command_line_args, num_command_line_args, unsaved_files, num_unsaved_files, options, pTranslationUnit);
     }
@@ -71,16 +67,13 @@ public unsafe partial struct IDxcIndex : IDxcIndex.Interface, INativeGuid
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int SetGlobalOptions(DxcGlobalOptions options);
+                HRESULT SetGlobalOptions(DxcGlobalOptions options);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetGlobalOptions(DxcGlobalOptions* options);
+                HRESULT GetGlobalOptions(DxcGlobalOptions* options);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int ParseTranslationUnit([NativeTypeName("const char *")] sbyte* source_filename, [NativeTypeName("const char *const *")] sbyte** command_line_args, int num_command_line_args, IDxcUnsavedFile** unsaved_files, [NativeTypeName("unsigned int")] uint num_unsaved_files, DxcTranslationUnitFlags options, IDxcTranslationUnit** pTranslationUnit);
+                HRESULT ParseTranslationUnit([NativeTypeName("const char *")] sbyte* source_filename, [NativeTypeName("const char *const *")] sbyte** command_line_args, int num_command_line_args, IDxcUnsavedFile** unsaved_files, [NativeTypeName("unsigned int")] uint num_unsaved_files, DxcTranslationUnitFlags options, IDxcTranslationUnit** pTranslationUnit);
     }
 
     public partial struct Vtbl<TSelf>

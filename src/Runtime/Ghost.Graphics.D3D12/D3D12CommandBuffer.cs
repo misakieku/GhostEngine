@@ -6,12 +6,10 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
 
-using static TerraFX.Aliases.D3D_Alias;
-using static TerraFX.Aliases.D3D12_Alias;
-using static TerraFX.Aliases.DXGI_Alias;
+using static Ghost.Aliases.D3D_Alias;
+using static Ghost.Aliases.D3D12_Alias;
+using static Ghost.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 

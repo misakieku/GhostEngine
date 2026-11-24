@@ -6,9 +6,8 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using TerraFX.Interop.DirectX;
-using static TerraFX.Aliases.D3D12_Alias;
-using static TerraFX.Aliases.DXGI_Alias;
+using static Ghost.Aliases.D3D12_Alias;
+using static Ghost.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 

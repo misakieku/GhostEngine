@@ -17,8 +17,7 @@ public unsafe partial struct IDxcPixDxilLiveVariables : IDxcPixDxilLiveVariables
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilLiveVariables*, Guid*, void**, int>)(lpVtbl[0]))((IDxcPixDxilLiveVariables*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcPixDxilLiveVariables : IDxcPixDxilLiveVariables
     /// <include file='IDxcPixDxilLiveVariables.xml' path='doc/member[@name="IDxcPixDxilLiveVariables.GetCount"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetCount([NativeTypeName("DWORD *")] uint* dwSize)
+        public HRESULT GetCount([NativeTypeName("DWORD *")] uint* dwSize)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilLiveVariables*, uint*, int>)(lpVtbl[3]))((IDxcPixDxilLiveVariables*)Unsafe.AsPointer(ref this), dwSize);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcPixDxilLiveVariables : IDxcPixDxilLiveVariables
     /// <include file='IDxcPixDxilLiveVariables.xml' path='doc/member[@name="IDxcPixDxilLiveVariables.GetVariableByIndex"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetVariableByIndex([NativeTypeName("DWORD")] uint Index, IDxcPixVariable** ppVariable)
+        public HRESULT GetVariableByIndex([NativeTypeName("DWORD")] uint Index, IDxcPixVariable** ppVariable)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilLiveVariables*, uint, IDxcPixVariable**, int>)(lpVtbl[4]))((IDxcPixDxilLiveVariables*)Unsafe.AsPointer(ref this), Index, ppVariable);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcPixDxilLiveVariables : IDxcPixDxilLiveVariables
     /// <include file='IDxcPixDxilLiveVariables.xml' path='doc/member[@name="IDxcPixDxilLiveVariables.GetVariableByName"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetVariableByName([NativeTypeName("LPCWSTR")] char* Name, IDxcPixVariable** ppVariable)
+        public HRESULT GetVariableByName([NativeTypeName("LPCWSTR")] char* Name, IDxcPixVariable** ppVariable)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilLiveVariables*, char*, IDxcPixVariable**, int>)(lpVtbl[5]))((IDxcPixDxilLiveVariables*)Unsafe.AsPointer(ref this), Name, ppVariable);
     }
@@ -71,16 +67,13 @@ public unsafe partial struct IDxcPixDxilLiveVariables : IDxcPixDxilLiveVariables
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetCount([NativeTypeName("DWORD *")] uint* dwSize);
+                HRESULT GetCount([NativeTypeName("DWORD *")] uint* dwSize);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetVariableByIndex([NativeTypeName("DWORD")] uint Index, IDxcPixVariable** ppVariable);
+                HRESULT GetVariableByIndex([NativeTypeName("DWORD")] uint Index, IDxcPixVariable** ppVariable);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetVariableByName([NativeTypeName("LPCWSTR")] char* Name, IDxcPixVariable** ppVariable);
+                HRESULT GetVariableByName([NativeTypeName("LPCWSTR")] char* Name, IDxcPixVariable** ppVariable);
     }
 
     public partial struct Vtbl<TSelf>

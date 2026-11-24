@@ -17,8 +17,7 @@ public unsafe partial struct IDxcType : IDxcType.Interface, INativeGuid
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcType*, Guid*, void**, int>)(lpVtbl[0]))((IDxcType*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcType : IDxcType.Interface, INativeGuid
     /// <include file='IDxcType.xml' path='doc/member[@name="IDxcType.GetSpelling"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetSpelling([NativeTypeName("LPSTR *")] sbyte** pResult)
+        public HRESULT GetSpelling([NativeTypeName("LPSTR *")] sbyte** pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcType*, sbyte**, int>)(lpVtbl[3]))((IDxcType*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcType : IDxcType.Interface, INativeGuid
     /// <include file='IDxcType.xml' path='doc/member[@name="IDxcType.IsEqualTo"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int IsEqualTo(IDxcType* other, [NativeTypeName("BOOL *")] int* pResult)
+        public HRESULT IsEqualTo(IDxcType* other, [NativeTypeName("BOOL *")] int* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcType*, IDxcType*, int*, int>)(lpVtbl[4]))((IDxcType*)Unsafe.AsPointer(ref this), other, pResult);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcType : IDxcType.Interface, INativeGuid
     /// <include file='IDxcType.xml' path='doc/member[@name="IDxcType.GetKind"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetKind(DxcTypeKind* pResult)
+        public HRESULT GetKind(DxcTypeKind* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcType*, DxcTypeKind*, int>)(lpVtbl[5]))((IDxcType*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -71,16 +67,13 @@ public unsafe partial struct IDxcType : IDxcType.Interface, INativeGuid
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetSpelling([NativeTypeName("LPSTR *")] sbyte** pResult);
+                HRESULT GetSpelling([NativeTypeName("LPSTR *")] sbyte** pResult);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int IsEqualTo(IDxcType* other, [NativeTypeName("BOOL *")] int* pResult);
+                HRESULT IsEqualTo(IDxcType* other, [NativeTypeName("BOOL *")] int* pResult);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetKind(DxcTypeKind* pResult);
+                HRESULT GetKind(DxcTypeKind* pResult);
     }
 
     public partial struct Vtbl<TSelf>

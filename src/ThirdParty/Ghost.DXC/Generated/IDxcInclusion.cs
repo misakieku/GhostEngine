@@ -17,8 +17,7 @@ public unsafe partial struct IDxcInclusion : IDxcInclusion.Interface, INativeGui
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcInclusion*, Guid*, void**, int>)(lpVtbl[0]))((IDxcInclusion*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcInclusion : IDxcInclusion.Interface, INativeGui
     /// <include file='IDxcInclusion.xml' path='doc/member[@name="IDxcInclusion.GetIncludedFile"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetIncludedFile(IDxcFile** pResult)
+        public HRESULT GetIncludedFile(IDxcFile** pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcInclusion*, IDxcFile**, int>)(lpVtbl[3]))((IDxcInclusion*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcInclusion : IDxcInclusion.Interface, INativeGui
     /// <include file='IDxcInclusion.xml' path='doc/member[@name="IDxcInclusion.GetStackLength"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetStackLength([NativeTypeName("unsigned int *")] uint* pResult)
+        public HRESULT GetStackLength([NativeTypeName("unsigned int *")] uint* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcInclusion*, uint*, int>)(lpVtbl[4]))((IDxcInclusion*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcInclusion : IDxcInclusion.Interface, INativeGui
     /// <include file='IDxcInclusion.xml' path='doc/member[@name="IDxcInclusion.GetStackItem"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetStackItem([NativeTypeName("unsigned int")] uint index, IDxcSourceLocation** pResult)
+        public HRESULT GetStackItem([NativeTypeName("unsigned int")] uint index, IDxcSourceLocation** pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcInclusion*, uint, IDxcSourceLocation**, int>)(lpVtbl[5]))((IDxcInclusion*)Unsafe.AsPointer(ref this), index, pResult);
     }
@@ -71,16 +67,13 @@ public unsafe partial struct IDxcInclusion : IDxcInclusion.Interface, INativeGui
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetIncludedFile(IDxcFile** pResult);
+                HRESULT GetIncludedFile(IDxcFile** pResult);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetStackLength([NativeTypeName("unsigned int *")] uint* pResult);
+                HRESULT GetStackLength([NativeTypeName("unsigned int *")] uint* pResult);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetStackItem([NativeTypeName("unsigned int")] uint index, IDxcSourceLocation** pResult);
+                HRESULT GetStackItem([NativeTypeName("unsigned int")] uint index, IDxcSourceLocation** pResult);
     }
 
     public partial struct Vtbl<TSelf>

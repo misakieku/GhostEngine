@@ -17,8 +17,7 @@ public unsafe partial struct IDxcPixDxilInstructionOffsets : IDxcPixDxilInstruct
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixDxilInstructionOffsets*, Guid*, void**, int>)(lpVtbl[0]))((IDxcPixDxilInstructionOffsets*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }

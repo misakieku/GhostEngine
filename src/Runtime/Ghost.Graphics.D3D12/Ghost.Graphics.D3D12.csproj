@@ -1,13 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.26100.6" />
-    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Version="3.1.0.1" />
-  </ItemGroup>
-  
-  <ItemGroup>
     <ProjectReference Include="..\Ghost.Core\Ghost.Core.csproj" />
     <ProjectReference Include="..\Ghost.Graphics.RHI\Ghost.Graphics.RHI.csproj" />
+    <ProjectReference Include="..\..\ThirdParty\Ghost.Win32\Ghost.Win32.csproj" />
+    <ProjectReference Include="..\..\ThirdParty\Ghost.DXGI\Ghost.DXGI.csproj" />
+    <ProjectReference Include="..\..\ThirdParty\Ghost.D3D12\Ghost.D3D12.csproj" />
+    <ProjectReference Include="..\..\ThirdParty\Ghost.D3D12MA\Ghost.D3D12MA.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,8 +1,7 @@
 using Ghost.Core;
 using System.Runtime.CompilerServices;
-using TerraFX.Interop.DirectX;
 
-using static TerraFX.Aliases.D3D12_Alias;
+using static Ghost.Aliases.D3D12_Alias;
 
 namespace Ghost.Graphics.D3D12;
 

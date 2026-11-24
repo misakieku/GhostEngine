@@ -17,8 +17,7 @@ public unsafe partial struct IDxcSourceRange : IDxcSourceRange.Interface, INativ
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcSourceRange*, Guid*, void**, int>)(lpVtbl[0]))((IDxcSourceRange*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcSourceRange : IDxcSourceRange.Interface, INativ
     /// <include file='IDxcSourceRange.xml' path='doc/member[@name="IDxcSourceRange.IsNull"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int IsNull([NativeTypeName("BOOL *")] int* pValue)
+        public HRESULT IsNull([NativeTypeName("BOOL *")] int* pValue)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcSourceRange*, int*, int>)(lpVtbl[3]))((IDxcSourceRange*)Unsafe.AsPointer(ref this), pValue);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcSourceRange : IDxcSourceRange.Interface, INativ
     /// <include file='IDxcSourceRange.xml' path='doc/member[@name="IDxcSourceRange.GetStart"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetStart(IDxcSourceLocation** pValue)
+        public HRESULT GetStart(IDxcSourceLocation** pValue)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcSourceRange*, IDxcSourceLocation**, int>)(lpVtbl[4]))((IDxcSourceRange*)Unsafe.AsPointer(ref this), pValue);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcSourceRange : IDxcSourceRange.Interface, INativ
     /// <include file='IDxcSourceRange.xml' path='doc/member[@name="IDxcSourceRange.GetEnd"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetEnd(IDxcSourceLocation** pValue)
+        public HRESULT GetEnd(IDxcSourceLocation** pValue)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcSourceRange*, IDxcSourceLocation**, int>)(lpVtbl[5]))((IDxcSourceRange*)Unsafe.AsPointer(ref this), pValue);
     }
@@ -71,8 +67,7 @@ public unsafe partial struct IDxcSourceRange : IDxcSourceRange.Interface, INativ
     /// <include file='IDxcSourceRange.xml' path='doc/member[@name="IDxcSourceRange.GetOffsets"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetOffsets([NativeTypeName("unsigned int *")] uint* startOffset, [NativeTypeName("unsigned int *")] uint* endOffset)
+        public HRESULT GetOffsets([NativeTypeName("unsigned int *")] uint* startOffset, [NativeTypeName("unsigned int *")] uint* endOffset)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcSourceRange*, uint*, uint*, int>)(lpVtbl[6]))((IDxcSourceRange*)Unsafe.AsPointer(ref this), startOffset, endOffset);
     }
@@ -80,20 +75,16 @@ public unsafe partial struct IDxcSourceRange : IDxcSourceRange.Interface, INativ
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int IsNull([NativeTypeName("BOOL *")] int* pValue);
+                HRESULT IsNull([NativeTypeName("BOOL *")] int* pValue);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetStart(IDxcSourceLocation** pValue);
+                HRESULT GetStart(IDxcSourceLocation** pValue);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetEnd(IDxcSourceLocation** pValue);
+                HRESULT GetEnd(IDxcSourceLocation** pValue);
 
         [VtblIndex(6)]
-        [return: NativeTypeName("HRESULT")]
-        int GetOffsets([NativeTypeName("unsigned int *")] uint* startOffset, [NativeTypeName("unsigned int *")] uint* endOffset);
+                HRESULT GetOffsets([NativeTypeName("unsigned int *")] uint* startOffset, [NativeTypeName("unsigned int *")] uint* endOffset);
     }
 
     public partial struct Vtbl<TSelf>

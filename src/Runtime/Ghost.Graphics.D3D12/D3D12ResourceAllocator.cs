@@ -4,12 +4,9 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
 
-using static TerraFX.Aliases.D3D12_Alias;
-using static TerraFX.Aliases.D3D12MA_Alias;
-using static TerraFX.Interop.DirectX.D3D12MemAlloc;
+using static Ghost.Aliases.D3D12_Alias;
+using static Ghost.Aliases.D3D12MA_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -63,7 +60,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         };
 
         D3D12MA_Allocator* pAllocator = default;
-        ThrowIfFailed(D3D12MA_CreateAllocator(&desc, &pAllocator));
+        ThrowIfFailed(CreateAllocator(&desc, &pAllocator));
         _d3d12MA.Attach(pAllocator);
 
         _device = device;
@@ -97,7 +94,7 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
             var result = _resourceDatabase.GetResourceRecord(options.Heap);
             if (result.IsFailure)
             {
-                return E.E_NOTFOUND;
+                return E_NOTFOUND;
             }
 
             // TODO: Expose this as a parameter.
@@ -115,9 +112,9 @@ internal sealed unsafe partial class D3D12ResourceAllocator : IResourceAllocator
         }
         else
         {
-            Logger.DebugAssert(*riid == __uuidof<D3D12MA_Allocation>());
+            Logger.DebugAssert(*riid == *__uuidof<D3D12MA_Allocation>());
 
-            var iid_null = IID.IID_NULL;
+            var iid_null = IID_NULL;
             hr = _d3d12MA.Get()->CreateResource3(pAllocationDesc, pResourceDesc, initialLayout, null, numCapatableFormats, pCastableFormats, (D3D12MA_Allocation**)ppv, &iid_null, null);
         }
 

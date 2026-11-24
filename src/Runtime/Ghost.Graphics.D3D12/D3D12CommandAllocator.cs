@@ -1,6 +1,5 @@
 using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
-using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.D3D12;
 
