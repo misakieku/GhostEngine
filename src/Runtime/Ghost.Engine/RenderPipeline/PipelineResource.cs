@@ -124,6 +124,9 @@ internal partial class LightingPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/Lighting/ClearShadowAtlas")]
     public Handle<ComputeShader> clearShadowAtlasShader;
 
+    [ResolveAsset("EngineResources/Shaders/Lighting/ClearShadowAtlasRects")]
+    public Handle<ComputeShader> clearShadowAtlasRectsShader;
+
     [ResolveAsset("EngineResources/Shaders/Lighting/ClearShadowOccluders")]
     public Handle<ComputeShader> clearShadowOccludersShader;
 

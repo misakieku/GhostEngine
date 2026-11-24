@@ -1,0 +1,39 @@
+compute "Internal/ClearShadowAtlasRects"
+{
+    properties
+    {
+        uint shadowAtlasIndex;
+        uint dirtyRectsBuffer;
+        uint rectCount;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(16, 16, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            uint rectIndex = dispatchThreadId.z;
+            if (rectIndex >= g_Properties.rectCount)
+            {
+                return;
+            }
+
+            StructuredBuffer<uint4> dirtyRects = GET_BUFFER(g_Properties.dirtyRectsBuffer);
+            uint4 rect = dirtyRects[rectIndex];
+            if (dispatchThreadId.x >= rect.z || dispatchThreadId.y >= rect.w)
+            {
+                return;
+            }
+
+            RWTexture2D<uint> shadowAtlas = GET_TEXTURE2D(g_Properties.shadowAtlasIndex);
+            shadowAtlas[rect.xy + dispatchThreadId.xy] = 0u;
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

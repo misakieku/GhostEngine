@@ -102,6 +102,15 @@ internal unsafe partial class GhostRenderPipeline
         public uint atlasResolution;
     }
 
+    private struct ClearShadowAtlasRectsPassData
+    {
+        public Identifier<RGTexture> shadowAtlas;
+        public Handle<ComputeShader> shader;
+        public uint dirtyRectsBufferSrv;
+        public uint rectCount;
+        public uint maxTileSize;
+    }
+
     private struct SoftwareShadowRasterPassData
     {
         public Identifier<RGTexture> shadowAtlas;
@@ -127,113 +136,147 @@ internal unsafe partial class GhostRenderPipeline
         public ShaderVariantRegistry variantRegistry;
     }
 
-    private struct PerViewShadowSetupJob : IJobParallelFor
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void GetPointFaceOrientation(int face, out float3 dir, out float3 up)
     {
-        public ReadOnlyView<PunctualLightRequest> lights;
-        public UnsafeArray<int> shadowIndices;
-        public Frustum frustum;
-        public ShadowAtlasRegionAllocator* allocator;
-        public float meshletLodErrorThreshold;
-        public float viewHeight;
-        public float3 cameraPosition;
-
-        public UnsafeList<GPUShadowViewData>.ParallelWriter shadowViewsWriter;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void GetPointFaceOrientation(int face, out float3 dir, out float3 up)
+        switch (face)
         {
-            switch (face)
-            {
-                case 0: dir = new float3(1, 0, 0); up = new float3(0, 1, 0); break;
-                case 1: dir = new float3(-1, 0, 0); up = new float3(0, 1, 0); break;
-                case 2: dir = new float3(0, 1, 0); up = new float3(0, 0, -1); break;
-                case 3: dir = new float3(0, -1, 0); up = new float3(0, 0, 1); break;
-                case 4: dir = new float3(0, 0, 1); up = new float3(0, 1, 0); break;
-                default: dir = new float3(0, 0, -1); up = new float3(0, 1, 0); break;
-            }
+            case 0: dir = new float3(1, 0, 0); up = new float3(0, 1, 0); break;
+            case 1: dir = new float3(-1, 0, 0); up = new float3(0, 1, 0); break;
+            case 2: dir = new float3(0, 1, 0); up = new float3(0, 0, -1); break;
+            case 3: dir = new float3(0, -1, 0); up = new float3(0, 0, 1); break;
+            case 4: dir = new float3(0, 0, 1); up = new float3(0, 1, 0); break;
+            default: dir = new float3(0, 0, -1); up = new float3(0, 1, 0); break;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float4x4 CreatePerspectiveReversedZ(float fovRadians, float aspect, float nearClip, float farClip)
+    {
+        var m11 = 1.0f / math.tan(fovRadians * 0.5f);
+        var m00 = m11 / aspect;
+        var m22 = nearClip / (nearClip - farClip);
+        var m23 = farClip * nearClip / (farClip - nearClip);
+
+        return new float4x4(
+            m00, 0.0f, 0.0f, 0.0f,
+            0.0f, m11, 0.0f, 0.0f,
+            0.0f, 0.0f, m22, m23,
+            0.0f, 0.0f, 1.0f, 0.0f);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float GetNonDirectionalSoftness(float softnessScale, float viewHeight, float shapeRadius)
+    {
+        // This derivation has been fitted with quartic regression checking against raytracing reference and with a resolution of 512
+        var x = shapeRadius * softnessScale;
+        var x2 = x * x;
+        var softness = 0.02403461f + 3.452916f * x - 1.362672f * x2 + 0.6700115f * x2 * x + 0.2159474f * x2 * x2;
+        softness /= 100.0f;
+
+        softness *= viewHeight / 512;  // Make it resolution independent whereas the baseline is 512
+
+        return softness;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float GetSlopeBasedBias(float softness)
+    {
+        // Shadow may select a different meshlet LOD than the main camera, so we need to increase the bias for softer shadows to avoid self-shadowing artifacts.
+        const float maxBaseBias = 18.0f;
+        var baseBias = 5.0f;
+        return math.lerp(baseBias, maxBaseBias, math.min(1.0f, (softness * 100) / 5));
+    }
+
+    private struct PunctualShadowSetupResult
+    {
+        public uint shadowViewsBufferSrv;
+        public uint shadowViewCount;
+        public uint shadowIndicesBufferSrv;
+        public uint dirtyShadowViewsBufferSrv;
+        public uint dirtyShadowViewCount;
+        public uint dirtyRectsBufferSrv;
+        public uint maxDirtyTileSize;
+    }
+
+    private PunctualShadowSetupResult ExecutePerViewShadowSetup(ResourceContext ctx, in Frustum viewFrustum, float viewHeight, ReadOnlyView<PunctualLightRequest> lights, float3 cameraPosition, List<ShadowCacheKey> outDirtyKeys)
+    {
+        var result = new PunctualShadowSetupResult
+        {
+            shadowViewsBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX,
+            shadowIndicesBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX,
+            dirtyShadowViewsBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX,
+            dirtyRectsBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX,
+        };
+        outDirtyKeys.Clear();
+
+        var lightCount = lights.Length;
+        if (lightCount == 0)
+        {
+            return result;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float4x4 CreatePerspectiveReversedZ(float fovRadians, float aspect, float nearClip, float farClip)
+        using var stackScope = AllocationManager.CreateStackScope();
+        using var shadowIndices = new UnsafeArray<int>(lightCount, stackScope.AllocationHandle);
+        shadowIndices.AsSpan().Fill(-1);
+
+        using var allShadowViews = new UnsafeList<GPUShadowViewData>(Math.Max(16, lightCount * 6), AllocationHandle.TempRender);
+        using var dirtyShadowViews = new UnsafeList<GPUShadowViewData>(Math.Max(16, lightCount * 6), AllocationHandle.TempRender);
+        using var dirtyRects = new UnsafeList<uint4>(Math.Max(16, lightCount * 6), AllocationHandle.TempRender);
+
+        Span<ShadowAtlasRegion> faceRegions = stackalloc ShadowAtlasRegion[6];
+        Span<bool> faceDirty = stackalloc bool[6];
+        var atlasSize = _punctualShadowCache.AtlasSize;
+
+        for (var i = 0; i < lightCount; i++)
         {
-            var m11 = 1.0f / math.tan(fovRadians * 0.5f);
-            var m00 = m11 / aspect;
-            var m22 = nearClip / (nearClip - farClip);
-            var m23 = farClip * nearClip / (farClip - nearClip);
-
-            return new float4x4(
-                m00, 0.0f, 0.0f, 0.0f,
-                0.0f, m11, 0.0f, 0.0f,
-                0.0f, 0.0f, m22, m23,
-                0.0f, 0.0f, 1.0f, 0.0f);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float GetNonDirectionalSoftness(float softnessScale, float viewHeight, float shapeRadius)
-        {
-            // This derivation has been fitted with quartic regression checking against raytracing reference and with a resolution of 512
-            var x = shapeRadius * softnessScale;
-            var x2 = x * x;
-            var softness = 0.02403461f + 3.452916f * x - 1.362672f * x2 + 0.6700115f * x2 * x + 0.2159474f * x2 * x2;
-            softness /= 100.0f;
-
-            softness *= viewHeight / 512;  // Make it resolution independent whereas the baseline is 512
-
-            return softness;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float GetSlopeBasedBias(float softness)
-        {
-            // Shadow may select a different meshlet LOD than the main camera, so we need to increase the bias for softer shadows to avoid self-shadowing artifacts.
-            const float maxBaseBias = 18.0f;
-            var baseBias = 5.0f;
-            return math.lerp(baseBias, maxBaseBias, math.min(1.0f, (softness * 100) / 5));
-        }
-
-        public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
-        {
-            ref readonly var request = ref lights[loopIndex];
+            ref readonly var request = ref lights[i];
             ref readonly var light = ref request.light;
             ref readonly var shadowData = ref request.shadowData;
 
             var lightPosRWS = light.positionWS - cameraPosition;
+            var lightDist = math.length(lightPosRWS);
 
-            if (light.shadowDimmer <= 0.0f || shadowData.fadeDistance < math.length(lightPosRWS))
+            if (light.shadowDimmer <= 0.0f || (shadowData.fadeDistance > 0.0f && shadowData.fadeDistance < lightDist))
             {
-                return;
+                continue;
             }
 
-            if (!MathUtility.SphereIntersectFrustum(lightPosRWS, light.range, frustum.planes))
+            if (!MathUtility.SphereIntersectFrustum(lightPosRWS, light.range, viewFrustum.planes))
             {
-                return;
+                continue;
             }
 
             var shadowSize = (light.lightTypeAndShadowSize >> 4) & 0xFFFFu;
             if (shadowSize == 0)
             {
-                return;
+                continue;
             }
 
             Logger.DebugAssert(shadowSize >= 32);
 
-            var size = new float4(allocator->AtlasSize, 1.0f / allocator->AtlasSize, shadowSize, 1.0f / shadowSize);
+            var shadowFade = 1.0f;
+            if (shadowData.fadeDistance > 0.0f)
+            {
+                var fadeStart = shadowData.fadeDistance * 0.85f;
+                if (lightDist > fadeStart)
+                {
+                    shadowFade = math.saturate((shadowData.fadeDistance - lightDist) / Math.Max(shadowData.fadeDistance - fadeStart, 0.001f));
+                }
+            }
+
+            var size = new float4(atlasSize, 1.0f / atlasSize, shadowSize, 1.0f / shadowSize);
             var nearPlane = shadowData.nearPlane > 0.0f ? shadowData.nearPlane : 0.05f;
             var farPlane = light.range;
             var lightType = light.lightTypeAndShadowSize & 0xFu;
-            var lodErrorThreshold = meshletLodErrorThreshold * (viewHeight / shadowSize) * (shadowData.lodErrorScale > 0 ? shadowData.lodErrorScale : 1.0f);
+            var lodErrorScale = shadowData.lodErrorScale > 0 ? shadowData.lodErrorScale : 1.0f;
+            var lodErrorThreshold = _settings.MeshletLodErrorThreshold * lodErrorScale;
 
-            // TODO: Expose softnessScale?
             var softness = GetNonDirectionalSoftness(1.0f, viewHeight, light.size.x);
             var basis = GetSlopeBasedBias(softness);
 
-            if (lightType == (uint)GPULightType.Spot) // Spot
+            if (lightType == (uint)GPULightType.Spot)
             {
-                if (!allocator->Allocate(shadowSize, out var region))
-                {
-                    return;
-                }
-
                 var cosOuter = (light.spotAngleScale > 0.0001f)
                     ? math.clamp(-light.spotAngleOffset / light.spotAngleScale, -1.0f, 1.0f)
                     : 0.7071f;
@@ -241,12 +284,35 @@ internal unsafe partial class GhostRenderPipeline
                 var fov = math.clamp(outerAngle * 2.0f, 0.01f, math.radians(175.0f));
 
                 var up = math.abs(light.directionWS.y) > 0.99f ? new float3(0.0f, 0.0f, 1.0f) : new float3(0.0f, 1.0f, 0.0f);
-                var viewMat = CreateLookAtMatrix(lightPosRWS, light.directionWS, up);
                 var projMat = CreatePerspectiveReversedZ(fov, 1.0f, nearPlane, farPlane);
-                var shadowViewProj = math.mul(projMat, viewMat);
+
+                var worldViewMat = CreateLookAtMatrix(light.positionWS, light.directionWS, up);
+                var worldViewProj = math.mul(projMat, worldViewMat);
+                var worldFrustum = Frustum.Create(worldViewProj, light.positionWS, light.directionWS, nearPlane, farPlane);
+
+                var query = new ShadowViewCacheQuery
+                {
+                    entityKey = request.entityKey,
+                    faceIndex = 0u,
+                    positionWS = light.positionWS,
+                    directionWS = light.directionWS,
+                    range = farPlane,
+                    fovOrAngle = fov,
+                    nearPlane = nearPlane,
+                    shadowSize = shadowSize,
+                    lodErrorScale = lodErrorScale,
+                    worldFrustum = worldFrustum,
+                };
+
+                if (!_punctualShadowCache.TryAcquireView(in query, out var region, out var isDirty))
+                {
+                    continue;
+                }
+
+                var rwsViewMat = CreateLookAtMatrix(lightPosRWS, light.directionWS, up);
+                var shadowViewProj = math.mul(projMat, rwsViewMat);
                 var shadowFrustum = Frustum.Create(shadowViewProj, lightPosRWS, light.directionWS, nearPlane, farPlane);
                 var pro = new float4(projMat[0][0], projMat[1][1], projMat[2][2], projMat[3][2]);
-
                 var worldTexelSize = 2.0f / projMat[0][0] / shadowSize * 1.4142135623731f;
 
                 var svData = new GPUShadowViewData
@@ -267,37 +333,74 @@ internal unsafe partial class GhostRenderPipeline
                         normalBias = shadowData.normalBias * worldTexelSize,
                         slopeBias = basis * shadowData.depthBias * worldTexelSize,
                         worldTexelSize = worldTexelSize,
+                        shadowFade = shadowFade,
                     }
                 };
 
-                var slot = shadowViewsWriter.AddNoResize(svData);
-                shadowIndices[loopIndex] = slot;
-            }
-            else if (lightType == (uint)GPULightType.Point) // Point
-            {
-                Span<ShadowAtlasRegion> faceRegions = stackalloc ShadowAtlasRegion[6];
-                if (!allocator->AllocatePointLightBlock(shadowSize, faceRegions))
-                {
-                    return;
-                }
+                shadowIndices[i] = allShadowViews.Count;
+                allShadowViews.Add(svData);
 
+                if (isDirty)
+                {
+                    dirtyShadowViews.Add(svData);
+                    dirtyRects.Add(new uint4(region.x, region.y, region.width, region.height));
+                    result.maxDirtyTileSize = Math.Max(result.maxDirtyTileSize, Math.Max(region.width, region.height));
+                    outDirtyKeys.Add(new ShadowCacheKey(request.entityKey, 0u));
+                }
+            }
+            else if (lightType == (uint)GPULightType.Point)
+            {
                 const float guardPixels = 4.0f;
-                // We bias the fov here because point light use cubemap for shadow, and we need to give it room for filtering.
-                var fov = 2.0f * math.atan(shadowSize / (shadowSize - 2.0f * guardPixels)); // 1.570796f; // 90 degrees in radians
+                var fov = 2.0f * math.atan(shadowSize / (shadowSize - 2.0f * guardPixels));
                 var projMat = CreatePerspectiveReversedZ(fov, 1.0f, nearPlane, farPlane);
                 var pro = new float4(projMat[0][0], projMat[1][1], projMat[2][2], projMat[3][2]);
-
                 var worldTexelSize = 2.0f / projMat[0][0] / shadowSize * 1.4142135623731f;
 
-                Span<GPUShadowViewData> faceViews = stackalloc GPUShadowViewData[6];
+                var allAcquired = true;
+
                 for (var f = 0; f < 6; f++)
                 {
                     GetPointFaceOrientation(f, out var dir, out var up);
-                    var viewMat = CreateLookAtMatrix(lightPosRWS, dir, up);
-                    var shadowViewProj = math.mul(projMat, viewMat);
+                    var worldViewMat = CreateLookAtMatrix(light.positionWS, dir, up);
+                    var worldFrustum = Frustum.Create(math.mul(projMat, worldViewMat), light.positionWS, dir, nearPlane, farPlane);
+
+                    var query = new ShadowViewCacheQuery
+                    {
+                        entityKey = request.entityKey,
+                        faceIndex = (uint)f,
+                        positionWS = light.positionWS,
+                        directionWS = dir,
+                        range = farPlane,
+                        fovOrAngle = fov,
+                        nearPlane = nearPlane,
+                        shadowSize = shadowSize,
+                        lodErrorScale = lodErrorScale,
+                        worldFrustum = worldFrustum,
+                    };
+
+                    if (!_punctualShadowCache.TryAcquireView(in query, out faceRegions[f], out faceDirty[f]))
+                    {
+                        _punctualShadowCache.ReleaseLightFaces(request.entityKey, (uint)f);
+                        allAcquired = false;
+                        break;
+                    }
+                }
+
+                if (!allAcquired)
+                {
+                    continue;
+                }
+
+                shadowIndices[i] = allShadowViews.Count;
+
+                for (var f = 0; f < 6; f++)
+                {
+                    GetPointFaceOrientation(f, out var dir, out var up);
+                    var rwsViewMat = CreateLookAtMatrix(lightPosRWS, dir, up);
+                    var shadowViewProj = math.mul(projMat, rwsViewMat);
                     var shadowFrustum = Frustum.Create(shadowViewProj, lightPosRWS, dir, nearPlane, farPlane);
 
-                    faceViews[f] = new GPUShadowViewData
+                    var svData = new GPUShadowViewData
                     {
                         cullingData = new GPUShadowCullingData
                         {
@@ -315,64 +418,27 @@ internal unsafe partial class GhostRenderPipeline
                             normalBias = shadowData.normalBias * worldTexelSize,
                             slopeBias = basis * shadowData.depthBias * worldTexelSize,
                             worldTexelSize = worldTexelSize,
+                            shadowFade = shadowFade,
                         }
                     };
-                }
 
-                var baseSlot = shadowViewsWriter.AddRangeNoResize(faceViews, 6);
-                shadowIndices[loopIndex] = baseSlot;
+                    allShadowViews.Add(svData);
+
+                    if (faceDirty[f])
+                    {
+                        dirtyShadowViews.Add(svData);
+                        dirtyRects.Add(new uint4(faceRegions[f].x, faceRegions[f].y, faceRegions[f].width, faceRegions[f].height));
+                        result.maxDirtyTileSize = Math.Max(result.maxDirtyTileSize, Math.Max(faceRegions[f].width, faceRegions[f].height));
+                        outDirtyKeys.Add(new ShadowCacheKey(request.entityKey, (uint)f));
+                    }
+                }
             }
         }
-    }
 
-    private void ExecutePerViewShadowSetup(ResourceContext ctx, in Frustum viewFrustum, float viewHeight, ReadOnlyView<PunctualLightRequest> lights, float3 cameraPosition,
-        out uint shadowViewsBufferSrv, out uint shadowViewCount, out uint shadowIndicesBufferSrv)
-    {
-        shadowViewsBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
-        shadowViewCount = 0;
-        shadowIndicesBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
-
-        var lightCount = lights.Length;
-        if (lightCount == 0)
+        result.shadowViewCount = (uint)allShadowViews.Count;
+        if (result.shadowViewCount > 0)
         {
-            return;
-        }
-
-        using var stackScope = AllocationManager.CreateStackScope();
-
-        // Create a temporary array to hold the lights and their shadow data for processing.
-        // TODO: Anyway to avoid this copy?
-        using var shadowIndices = new UnsafeArray<int>(lightCount, stackScope.AllocationHandle);
-        shadowIndices.AsSpan().Fill(-1);
-
-        using var shadowViews = new UnsafeList<GPUShadowViewData>(Math.Max(16, lightCount * 6), AllocationHandle.TempRender);
-        using var atlasAllocator = new ShadowAtlasRegionAllocator(_settings.ShadowAtlasResolution, AllocationHandle.TempRender);
-        var job = new PerViewShadowSetupJob
-        {
-            lights = lights,
-            frustum = viewFrustum,
-            allocator = &atlasAllocator,
-            shadowViewsWriter = shadowViews.AsParallelWriter(),
-            shadowIndices = shadowIndices,
-            meshletLodErrorThreshold = _settings.MeshletLodErrorThreshold,
-            viewHeight = viewHeight,
-            cameraPosition = cameraPosition
-        };
-
-        if (lightCount <= 64)
-        {
-            _jobScheduler.RunParallelFor(ref job, lightCount);
-        }
-        else
-        {
-            var handle = _jobScheduler.ScheduleParallelFor(in job, lightCount, 64, JobPriority.Normal);
-            _jobScheduler.Wait(handle);
-        }
-
-        shadowViewCount = (uint)shadowViews.Count;
-        if (shadowViewCount > 0)
-        {
-            var bufSize = shadowViewCount * (nuint)sizeof(GPUShadowViewData);
+            var bufSize = result.shadowViewCount * (nuint)sizeof(GPUShadowViewData);
             var desc = new BufferDesc
             {
                 Size = bufSize,
@@ -383,9 +449,9 @@ internal unsafe partial class GhostRenderPipeline
 
             var svBuffer = ctx.ResourceManager.CreateTransientBuffer(in desc, "ShadowViewsBuffer");
             var pData = (GPUShadowViewData*)ctx.ResourceDatabase.MapResource(svBuffer.AsResource(), 0, null);
-            MemoryUtility.MemCpy(pData, shadowViews.GetUnsafePtr(), bufSize);
+            MemoryUtility.MemCpy(pData, allShadowViews.GetUnsafePtr(), bufSize);
             ctx.ResourceDatabase.UnmapResource(svBuffer.AsResource(), 0, null);
-            shadowViewsBufferSrv = ctx.ResourceDatabase.GetBindlessIndex(svBuffer.AsResource());
+            result.shadowViewsBufferSrv = ctx.ResourceDatabase.GetBindlessIndex(svBuffer.AsResource());
 
             var indicesBufSize = (nuint)(lightCount * sizeof(int));
             var indicesDesc = new BufferDesc
@@ -400,8 +466,44 @@ internal unsafe partial class GhostRenderPipeline
             var pIndicesData = (int*)ctx.ResourceDatabase.MapResource(indicesBuffer.AsResource(), 0, null);
             MemoryUtility.MemCpy(pIndicesData, shadowIndices.GetUnsafePtr(), indicesBufSize);
             ctx.ResourceDatabase.UnmapResource(indicesBuffer.AsResource(), 0, null);
-            shadowIndicesBufferSrv = ctx.ResourceDatabase.GetBindlessIndex(indicesBuffer.AsResource());
+            result.shadowIndicesBufferSrv = ctx.ResourceDatabase.GetBindlessIndex(indicesBuffer.AsResource());
         }
+
+        result.dirtyShadowViewCount = (uint)dirtyShadowViews.Count;
+        if (result.dirtyShadowViewCount > 0)
+        {
+            var dirtyBufSize = result.dirtyShadowViewCount * (nuint)sizeof(GPUShadowViewData);
+            var dirtyDesc = new BufferDesc
+            {
+                Size = dirtyBufSize,
+                Stride = (uint)sizeof(GPUShadowViewData),
+                Usage = BufferUsage.Raw | BufferUsage.ShaderResource,
+                HeapType = HeapType.Upload
+            };
+
+            var dirtySvBuffer = ctx.ResourceManager.CreateTransientBuffer(in dirtyDesc, "DirtyShadowViewsBuffer");
+            var pDirtyData = (GPUShadowViewData*)ctx.ResourceDatabase.MapResource(dirtySvBuffer.AsResource(), 0, null);
+            MemoryUtility.MemCpy(pDirtyData, dirtyShadowViews.GetUnsafePtr(), dirtyBufSize);
+            ctx.ResourceDatabase.UnmapResource(dirtySvBuffer.AsResource(), 0, null);
+            result.dirtyShadowViewsBufferSrv = ctx.ResourceDatabase.GetBindlessIndex(dirtySvBuffer.AsResource());
+
+            var rectsBufSize = result.dirtyShadowViewCount * (nuint)sizeof(uint4);
+            var rectsDesc = new BufferDesc
+            {
+                Size = rectsBufSize,
+                Stride = (uint)sizeof(uint4),
+                Usage = BufferUsage.Structured | BufferUsage.ShaderResource,
+                HeapType = HeapType.Upload
+            };
+
+            var rectsBuffer = ctx.ResourceManager.CreateTransientBuffer(in rectsDesc, "DirtyShadowRectsBuffer");
+            var pRectsData = (uint4*)ctx.ResourceDatabase.MapResource(rectsBuffer.AsResource(), 0, null);
+            MemoryUtility.MemCpy(pRectsData, dirtyRects.GetUnsafePtr(), rectsBufSize);
+            ctx.ResourceDatabase.UnmapResource(rectsBuffer.AsResource(), 0, null);
+            result.dirtyRectsBufferSrv = ctx.ResourceDatabase.GetBindlessIndex(rectsBuffer.AsResource());
+        }
+
+        return result;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -433,18 +535,25 @@ internal unsafe partial class GhostRenderPipeline
             0.0f, 0.0f, 0.0f, 1.0f);
     }
 
-    private Identifier<RGTexture> AddPunctualShadowAtlasPass(RenderGraph rg, uint instanceCount, uint shadowViewsBufferSrv, uint shadowViewCount)
+    private Identifier<RGTexture> AddPunctualShadowAtlasPass(RenderGraph rg, uint instanceCount, in PunctualShadowSetupResult setup)
     {
-        if (shadowViewCount == 0 || instanceCount == 0)
+        if (!_punctualShadowCache.AtlasTexture.IsValid)
         {
             return Identifier<RGTexture>.Invalid;
+        }
+
+        var shadowAtlas = rg.ImportTexture(_punctualShadowCache.AtlasTexture, ResourceBarrierData.ShaderResource, ResourceBarrierData.ShaderResource);
+
+        if (setup.dirtyShadowViewCount == 0 || instanceCount == 0)
+        {
+            return shadowAtlas;
         }
 
         _meshPipelineResource.EnsureWorkGraphProgram(_renderEngine);
         var shadowProgram = _meshPipelineResource.shadowCullWorkGraphProgram;
         if (shadowProgram == null)
         {
-            return Identifier<RGTexture>.Invalid;
+            return shadowAtlas;
         }
 
         var entrypointIndex = shadowProgram.GetEntrypointIndex("InstanceCullNode");
@@ -471,7 +580,7 @@ internal unsafe partial class GhostRenderPipeline
 
         using (var builder = rg.AddComputeRenderPass<ShadowCullPassData>("MeshletCull_Shadow"))
         {
-            // Work Graph Shadow Culling
+            // Work Graph Shadow Culling (dirty views only)
             unbinnedMeshlets = builder.CreateBuffer(new BufferDesc
             {
                 Size = visibleBufferSize,
@@ -489,8 +598,8 @@ internal unsafe partial class GhostRenderPipeline
                 visibleMeshlets = unbinnedMeshlets,
                 counterBuffer = counterBuffer,
                 instanceCount = instanceCount,
-                shadowViewCount = shadowViewCount,
-                shadowViewsBufferSrv = shadowViewsBufferSrv,
+                shadowViewCount = setup.dirtyShadowViewCount,
+                shadowViewsBufferSrv = setup.dirtyShadowViewsBufferSrv,
                 entrypointIndex = entrypointIndex,
                 maxVisibleMeshlets = _settings.MaxVisibleMeshletsOnScreen,
                 counterBufferSize = counterBufferSize,
@@ -652,41 +761,33 @@ internal unsafe partial class GhostRenderPipeline
             });
         }
 
-        // Create and Clear Shadow Atlas UAV
-        Identifier<RGTexture> shadowAtlas;
-        using (var builder = rg.AddComputeRenderPass<ClearShadowAtlasPassData>("ClearShadowAtlas"))
+        // Clear only dirty shadow atlas rects
+        using (var builder = rg.AddComputeRenderPass<ClearShadowAtlasRectsPassData>("ClearShadowAtlasRects"))
         {
-            var shadowAtlasDesc = RGTextureDesc.Absolute(
-                _settings.ShadowAtlasResolution,
-                _settings.ShadowAtlasResolution,
-                TextureFormat.R32_Typeless,
-                clearAtFirstUse: false,
-                usage: TextureUsage.UnorderedAccess | TextureUsage.ShaderResource,
-                typelessViewFormat: new TypelessFormatDesc { Srv = TextureFormat.R32_Float, Uav = TextureFormat.R32_UInt });
-
-            shadowAtlas = builder.CreateTexture(in shadowAtlasDesc, "PunctualShadowAtlas");
-
             builder.UseTexture(shadowAtlas, AccessFlags.Write);
-            builder.SetPassData(new ClearShadowAtlasPassData
+            builder.SetPassData(new ClearShadowAtlasRectsPassData
             {
                 shadowAtlas = shadowAtlas,
-                shader = _lightingPipelineResource.clearShadowAtlasShader,
-                atlasResolution = _settings.ShadowAtlasResolution
+                shader = _lightingPipelineResource.clearShadowAtlasRectsShader,
+                dirtyRectsBufferSrv = setup.dirtyRectsBufferSrv,
+                rectCount = setup.dirtyShadowViewCount,
+                maxTileSize = setup.maxDirtyTileSize,
             });
 
-            builder.SetRenderFunc<ClearShadowAtlasPassData>(static (ref readonly passData, computeCtx) =>
+            builder.SetRenderFunc<ClearShadowAtlasRectsPassData>(static (ref readonly passData, computeCtx) =>
             {
                 var shadowAtlasUav = computeCtx.ResourceDatabase.GetBindlessIndex(computeCtx.GetActualTexture(passData.shadowAtlas).AsResource(), BindlessAccess.UnorderedAccess);
-                var props = new InternalClearShadowAtlasShaderProperties
+                var props = new InternalClearShadowAtlasRectsShaderProperties
                 {
                     shadowAtlasIndex = shadowAtlasUav,
-                    atlasResolution = passData.atlasResolution
+                    dirtyRectsBuffer = passData.dirtyRectsBufferSrv,
+                    rectCount = passData.rectCount,
                 };
 
                 computeCtx.SetActiveCompute(passData.shader, 0);
                 computeCtx.SetUserDataWithProperties(in props);
-                var threadGroups = Math.Max(1u, (passData.atlasResolution + 15u) / 16u);
-                computeCtx.DispatchCompute(threadGroups, threadGroups, 1);
+                var threadGroups = Math.Max(1u, (passData.maxTileSize + 15u) / 16u);
+                computeCtx.DispatchCompute(threadGroups, threadGroups, passData.rectCount);
             });
         }
 
@@ -705,8 +806,8 @@ internal unsafe partial class GhostRenderPipeline
                 binOffsetsBuffer = binOffsets,
                 indirectArgs = indirectArgs,
                 commandSignature = _dispatchMeshCommandSignature,
-                shadowViewsBufferSrv = shadowViewsBufferSrv,
-                atlasResolution = _settings.ShadowAtlasResolution,
+                shadowViewsBufferSrv = setup.dirtyShadowViewsBufferSrv,
+                atlasResolution = _punctualShadowCache.AtlasSize,
                 variantRegistry = _assetManager.ShaderVariants,
             });
 
@@ -779,8 +880,8 @@ internal unsafe partial class GhostRenderPipeline
                 indirectArgs = indirectArgs,
                 shader = _lightingPipelineResource.rasterizeShadowSwShader,
                 commandSignature = _dispatchCommandSignature,
-                shadowViewsBufferSrv = shadowViewsBufferSrv,
-                atlasResolution = _settings.ShadowAtlasResolution,
+                shadowViewsBufferSrv = setup.dirtyShadowViewsBufferSrv,
+                atlasResolution = _punctualShadowCache.AtlasSize,
                 swIndirectOffset = CullCommon.INDIRECT_OFFSET_PASS1_VARIANTS + 16u
             });
 
@@ -1463,21 +1564,30 @@ internal unsafe partial class GhostRenderPipeline
         return directionalAtlas;
     }
 
-    private void AddShadowPasses(
-        RenderGraph renderGraph, scoped in ResourceContext ctx, in RenderRequest request, in Frustum frustum,
-        in float4x4 projMatrix, GhostRenderPayload ghostPayload, ReadOnlyView<PunctualLightRequest> lights,
-        in ShadowSettings shadowSettings, Identifier<RGTexture> depthTexture, uint2 renderSize)
+    private readonly List<ShadowCacheKey> _dirtyShadowKeysScratch = new();
+
+    private void AddShadowPasses(RenderGraph renderGraph, scoped in ResourceContext ctx, in RenderRequest request, in Frustum frustum, in float4x4 projMatrix, GhostRenderPayload ghostPayload, ReadOnlyView<PunctualLightRequest> lights, in ShadowSettings shadowSettings, Identifier<RGTexture> depthTexture, uint2 renderSize)
     {
         var shadowAtlas = Identifier<RGTexture>.Invalid;
         var shadowViewsBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
         var shadowIndicesBufferSrv = RHIUtility.INVALID_BINDLESS_INDEX;
 
-        ExecutePerViewShadowSetup(ctx, in frustum, renderSize.y, lights, request.view.localToWorld.c3.xyz,
-            out shadowViewsBufferSrv, out var shadowViewCount, out shadowIndicesBufferSrv);
-
         if (shadowSettings.shadowMode == ShadowMode.ShadowMap)
         {
-            shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, shadowViewsBufferSrv, shadowViewCount);
+            var setup = ExecutePerViewShadowSetup(ctx, in frustum, renderSize.y, lights, request.view.localToWorld.c3.xyz, _dirtyShadowKeysScratch);
+            shadowViewsBufferSrv = setup.shadowViewsBufferSrv;
+            shadowIndicesBufferSrv = setup.shadowIndicesBufferSrv;
+
+            shadowAtlas = AddPunctualShadowAtlasPass(renderGraph, ghostPayload.InstanceCount, in setup);
+
+            if (setup.dirtyShadowViewCount > 0 && ghostPayload.InstanceCount > 0)
+            {
+                for (var k = 0; k < _dirtyShadowKeysScratch.Count; k++)
+                {
+                    var key = _dirtyShadowKeysScratch[k];
+                    _punctualShadowCache.MarkRendered(key.EntityKey, key.FaceIndex);
+                }
+            }
         }
 
         var directionalShadowAtlas = Identifier<RGTexture>.Invalid;

@@ -76,6 +76,8 @@ internal partial class GhostRenderPipeline
                 };
 
                 _rayTracingManager.OnInstanceUpdated(addRequest.instanceId, in addRequest.localToWorld, addRequest.meshInstance.mesh);
+                var localBounds = mesh.Get().BoundingBox;
+                _punctualShadowCache.OnInstanceUpdated(addRequest.instanceId, in addRequest.localToWorld, addRequest.meshInstance.mesh, in localBounds, addRequest.meshInstance.shadowCastingMode);
 
                 i++;
             }
@@ -115,6 +117,7 @@ internal partial class GhostRenderPipeline
                 };
 
                 _rayTracingManager.OnInstanceRemoved(removeRequest.instanceId, removeRequest.swapWithInstanceId);
+                _punctualShadowCache.OnInstanceRemoved(removeRequest.instanceId, removeRequest.swapWithInstanceId);
 
                 i++;
             }

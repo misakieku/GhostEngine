@@ -26,6 +26,8 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
     private PageDirectoryEntry[] _pageDirectory = null!;
     private uint _globalPageTableOffset;
 
+    internal Handle<Mesh> MeshHandle => _actualHandle;
+
     public MeshAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies, string assetName)
         : base(manager, resourceDatabase, resourceManager, assetId, AssetType.Mesh, dependencies, assetName)
     {

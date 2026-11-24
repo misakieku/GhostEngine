@@ -20,15 +20,18 @@ Solution file: `GhostEngine.slnx`
 
 ## Build &amp; Config
 
+> [!IMPORTANT]
+> When running `dotnet build`, always use `-v q --nologo /clp:WarningsOnly` instead of `/clp:ErrorsOnly`. `/clp:WarningsOnly` prints **both warnings and errors** without noisy build logs, ensuring built-in and custom analyzer diagnostics (performance, memory safety such as `CA2014`, etc.) are not hidden. Add `--no-incremental` if you need to re-surface analyzer warnings on already-built targets.
+
 ```shell
-# Build entire solution (x64, Debug_Editor)
-dotnet build GhostEngine.slnx -c Debug -p:Platform=x64
+# Build entire solution showing warnings and errors (x64, Debug)
+dotnet build GhostEngine.slnx -c Debug -p:Platform=x64 -v q --nologo /clp:WarningsOnly
 
-# Build entire solution (Release_Editor)
-dotnet build GhostEngine.slnx -c Release -p:Platform=x64
+# Build entire solution (Release)
+dotnet build GhostEngine.slnx -c Release -p:Platform=x64 -v q --nologo /clp:WarningsOnly
 
-# Build a single project (uses Debug/Release; Editor configs handled by Directory.Build.props)
-dotnet build src/Runtime/Ghost.Entities/Ghost.Entities.csproj -c Release
+# Build a single project (use --no-incremental to re-check analyzer warnings on cached outputs)
+dotnet build src/Runtime/Ghost.Entities/Ghost.Entities.csproj -c Release -v q --nologo /clp:WarningsOnly --no-incremental
 
 # Clean
 dotnet clean GhostEngine.slnx

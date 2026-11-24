@@ -10,6 +10,7 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.RenderPipeline;
 
@@ -46,6 +47,8 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
     private readonly GPUScene _gpuScene;
     private readonly GPUViewManager _gpuViewManager;
     private readonly RayTracingManager _rayTracingManager;
+    private readonly PunctualShadowCache _punctualShadowCache;
+    private readonly List<Handle<Graphics.Core.Mesh>> _streamedMeshesScratch = new();
 
     private HardwareFeatureSettings _hardwareFeatures;
 
@@ -74,6 +77,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         _gpuScene = new GPUScene(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, settings.MaxVisibleMeshletsOnScreen / 64);
         _gpuViewManager = new GPUViewManager(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, renderEngine.GraphicsEngine.PipelineLibrary, renderEngine.ResourceManager, renderEngine.ShaderLibrary);
         _rayTracingManager = new RayTracingManager(renderEngine.GraphicsEngine.Device, renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, renderEngine.ResourceManager, jobScheduler);
+        _punctualShadowCache = new PunctualShadowCache(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, settings.ShadowAtlasResolution);
 
         _gpuSceneResource.Resolve();
         _meshPipelineResource.Resolve();
@@ -156,6 +160,13 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
         // Update GPU scene instance buffer once per frame prelude
         UpdateGPUScene(ctx, commandBuffer, ghostPayload);
+
+        _streamedMeshesScratch.Clear();
+        _assetManager.MeshletStreamingManager.ConsumeUploadedMeshes(_streamedMeshesScratch);
+        if (_streamedMeshesScratch.Count > 0)
+        {
+            _punctualShadowCache.OnMeshesStreamed(ctx.ResourceManager, CollectionsMarshal.AsSpan(_streamedMeshesScratch));
+        }
 
         if (_hardwareFeatures.useRayTracing)
         {
@@ -343,6 +354,8 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             punctualLightsSrv, punctualLightCount, directionalLightSrv, directionalLightCount, primaryDirectionalLightIndex,
             _assetManager.MeshletStreamingManager.PagePoolSrvIndex, _assetManager.MeshletStreamingManager.PageTableSrvIndex);
 
+        _punctualShadowCache.BeginFrame(frameNumber);
+
         for (var requestIndex = 0; requestIndex < ghostPayload.RenderRequests.Length; requestIndex++)
         {
             ref readonly var request = ref ghostPayload.RenderRequests[requestIndex];
@@ -487,5 +500,6 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         _gpuScene.Dispose();
         _gpuViewManager.Dispose();
         _rayTracingManager.Dispose();
+        _punctualShadowCache.Dispose();
     }
 }

@@ -39,11 +39,14 @@ internal class LightGatherSystem : ISystem
 
         public void Execute(ChunkView chunk, ref readonly JobExecutionContext ctx)
         {
+            var entities = chunk.GetEntities();
             var lights = chunk.GetComponentData<PunctualLight>();
             var transforms = chunk.GetComponentData<LocalToWorld>();
 
             for (var i = 0; i < chunk.EntityCount; i++)
             {
+                var entity = entities[i];
+                var entityKey = ((ulong)(uint)entity.ID) | ((ulong)(uint)entity.Generation << 32);
                 ref readonly var light = ref lights[i];
                 ref readonly var transform = ref transforms[i];
 
@@ -107,7 +110,7 @@ internal class LightGatherSystem : ISystem
                     depthBias = light.depthBias,
                 };
 
-                payload.AddPunctualLight(new PunctualLightRequest { light = gpuLight, shadowData = shadowData });
+                payload.AddPunctualLight(new PunctualLightRequest { entityKey = entityKey, light = gpuLight, shadowData = shadowData });
             }
         }
     }

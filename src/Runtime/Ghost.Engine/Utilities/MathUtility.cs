@@ -1,5 +1,6 @@
 using Ghost.Core;
 using Misaki.HighPerformance.Mathematics;
+using Misaki.HighPerformance.Mathematics.Geometry;
 using Misaki.HighPerformance.Utilities;
 using System.Runtime.CompilerServices;
 
@@ -96,5 +97,51 @@ public static class MathUtility
         }
 
         return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AABB TransformAABB(in AABB localBounds, in float4x4 matrix)
+    {
+        var center = (localBounds.Min + localBounds.Max) * 0.5f;
+        var extents = (localBounds.Max - localBounds.Min) * 0.5f;
+
+        var worldCenter = math.mul(matrix, new float4(center, 1.0f)).xyz;
+        var worldExtents = new float3(
+            math.abs(matrix.c0.x) * extents.x + math.abs(matrix.c1.x) * extents.y + math.abs(matrix.c2.x) * extents.z,
+            math.abs(matrix.c0.y) * extents.x + math.abs(matrix.c1.y) * extents.y + math.abs(matrix.c2.y) * extents.z,
+            math.abs(matrix.c0.z) * extents.x + math.abs(matrix.c1.z) * extents.y + math.abs(matrix.c2.z) * extents.z
+        );
+
+        return new AABB(worldCenter - worldExtents, worldCenter + worldExtents);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool AABBIntersectFrustum(in AABB bounds, ReadOnlySpan<float4> planes)
+    {
+        Logger.DebugAssert(planes.Length == 6, "Frustum planes must contain exactly 6 planes.");
+
+        for (var i = 0; i < 6; ++i)
+        {
+            ref readonly var plane = ref planes.GetElementUnsafe(i);
+            var p = new float3(
+                plane.x >= 0.0f ? bounds.Max.x : bounds.Min.x,
+                plane.y >= 0.0f ? bounds.Max.y : bounds.Min.y,
+                plane.z >= 0.0f ? bounds.Max.z : bounds.Min.z
+            );
+
+            if (math.dot(plane.xyz, p) + plane.w < 0.0f)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool SphereIntersectsAABB(float3 center, float radius, in AABB bounds)
+    {
+        var closest = math.clamp(center, bounds.Min, bounds.Max);
+        return math.lengthsq(center - closest) <= radius * radius;
     }
 }

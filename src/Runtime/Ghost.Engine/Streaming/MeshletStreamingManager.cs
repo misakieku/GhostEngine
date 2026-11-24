@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.Jobs;
@@ -31,6 +32,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
     private struct PendingRootUpload : IDisposable
     {
         public uint physicalSlot;
+        public Handle<Mesh> meshHandle;
         public UnsafeArray<byte> data;
 
         public void Dispose()
@@ -43,6 +45,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
     {
         public uint globalPageID;
         public uint physicalSlot;
+        public Handle<Mesh> meshHandle;
         public byte* pSrc;
         public int compressedSize;
         public int uncompressedSize;
@@ -108,6 +111,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
     private ulong _currentFrame;
     private UnsafeArray<byte> _pageStagingBuffer;
     private UnsafeArray<PageDecodeTask> _decodeTasks;
+    private readonly List<Handle<Mesh>> _uploadedMeshesThisFrame = new();
     private bool _pagePoolInShaderResource;
     private bool _streamingRequestsInUav;
     private bool _streamingRequestsBitmaskInUav;
@@ -227,6 +231,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
                 _pendingRootUploads.Add(new PendingRootUpload
                 {
                     physicalSlot = rootSlot,
+                    meshHandle = mesh.MeshHandle,
                     data = copy
                 });
             }
@@ -337,6 +342,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
                 ref var rootUpload = ref _pendingRootUploads[i];
                 var dstOffset = rootUpload.physicalSlot * MeshletPageConstants.PAGE_SIZE;
                 UploadBufferRange(context.ResourceManager, context.ResourceDatabase, commandBuffer, _pagePool.Buffer, rootUpload.data.AsSpan(), dstOffset);
+                RecordUploadedMesh(rootUpload.meshHandle);
 
                 rootUpload.Dispose();
             }
@@ -378,6 +384,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
             {
                 globalPageID = pageID,
                 physicalSlot = slot,
+                meshHandle = mesh.MeshHandle,
                 pSrc = pSrc,
                 compressedSize = compressedSize,
                 uncompressedSize = uncompressedSize,
@@ -470,6 +477,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
                     _slotInfos[task.physicalSlot].isPinned = false;
 
                     _pageTable.SetPageResidency(task.globalPageID, task.physicalSlot);
+                    RecordUploadedMesh(task.meshHandle);
                     pagesUploaded++;
                 }
             }
@@ -608,6 +616,35 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
         }
 
         cmd.CopyBuffer(buffer, uploadHandle, byteOffset, srcOffset, sizeInBytes);
+    }
+
+    private void RecordUploadedMesh(Handle<Mesh> meshHandle)
+    {
+        if (!meshHandle.IsValid)
+        {
+            return;
+        }
+
+        for (var i = 0; i < _uploadedMeshesThisFrame.Count; i++)
+        {
+            if (_uploadedMeshesThisFrame[i] == meshHandle)
+            {
+                return;
+            }
+        }
+
+        _uploadedMeshesThisFrame.Add(meshHandle);
+    }
+
+    internal void ConsumeUploadedMeshes(List<Handle<Mesh>> dst)
+    {
+        if (_uploadedMeshesThisFrame.Count == 0)
+        {
+            return;
+        }
+
+        dst.AddRange(_uploadedMeshesThisFrame);
+        _uploadedMeshesThisFrame.Clear();
     }
 
     private bool TryResolvePage(uint globalPageID, out MeshAssetEntry mesh, out uint localPageIndex)
