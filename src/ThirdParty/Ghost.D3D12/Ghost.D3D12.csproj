@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Direct3D.D3D12" Version="1.620.2" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ghost.DXGI\Ghost.DXGI.csproj" />
+    <ProjectReference Include="..\Ghost.Win32\Ghost.Win32.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Ghost.DXGI" />
+    <Using Include="Ghost.Win32" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="$(PkgMicrosoft_Direct3D_D3D12)\build\native\bin\x64\D3D12Core.dll" Link="D3D12\D3D12Core.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(PkgMicrosoft_Direct3D_D3D12)\build\native\bin\x64\d3d12SDKLayers.dll" Link="D3D12\d3d12SDKLayers.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,8 @@
+namespace Ghost.D3D12;
+
+public enum D3D12_TRI_STATE
+{
+    D3D12_TRI_STATE_UNKNOWN = -1,
+    D3D12_TRI_STATE_FALSE = 0,
+    D3D12_TRI_STATE_TRUE = 1,
+}

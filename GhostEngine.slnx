@@ -29,12 +29,16 @@
     <Project Path="src/Test/TestGame/TestGame.csproj" Id="5d84a4f7-a5a2-4814-bdc1-abdec70c3b1b" />
   </Folder>
   <Folder Name="/ThirdParty/">
+    <Project Path="src/ThirdParty/Ghost.D3D12/Ghost.D3D12.csproj" />
+    <Project Path="src/ThirdParty/Ghost.D3D12MA/Ghost.D3D12MA.csproj" />
     <Project Path="src/ThirdParty/Ghost.DXC/Ghost.DXC.csproj" />
+    <Project Path="src/ThirdParty/Ghost.DXGI/Ghost.DXGI.csproj" />
     <Project Path="src/ThirdParty/Ghost.FMOD/Ghost.FMOD.csproj" />
     <Project Path="src/ThirdParty/Ghost.MeshOptimizer/Ghost.MeshOptimizer.csproj" />
     <Project Path="src/ThirdParty/Ghost.Nvtt/Ghost.Nvtt.csproj" />
     <Project Path="src/ThirdParty/Ghost.StbI/Ghost.StbI.csproj" Id="969a1d70-31ee-49e9-9449-ab96a47cb925" />
     <Project Path="src/ThirdParty/Ghost.Ufbx/Ghost.Ufbx.csproj" Id="c4bd647c-6d77-49d8-ba81-6ed4946474d1" />
+    <Project Path="src/ThirdParty/Ghost.Win32/Ghost.Win32.csproj" />
   </Folder>
   <Folder Name="/Tools/">
     <Project Path="src/Tools/Ghost.AssetForge.CLI/Ghost.AssetForge.CLI.csproj" />

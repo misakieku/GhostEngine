@@ -1,8 +1,9 @@
 using Ghost.DXC;
 using Ghost.MicroTest.Core;
+using Ghost.Win32;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using static Ghost.DXC.UUID;
+using static Ghost.Win32.UUID;
 
 namespace Ghost.MicroTest;
 

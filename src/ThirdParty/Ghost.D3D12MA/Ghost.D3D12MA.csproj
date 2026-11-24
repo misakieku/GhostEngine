@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ghost.D3D12\Ghost.D3D12.csproj" />
+    <ProjectReference Include="..\Ghost.DXGI\Ghost.DXGI.csproj" />
+    <ProjectReference Include="..\Ghost.Win32\Ghost.Win32.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Ghost.D3D12" />
+    <Using Include="Ghost.DXGI" />
+    <Using Include="Ghost.Win32" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="runtimes\win-x64\native\d3d12ma.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>
