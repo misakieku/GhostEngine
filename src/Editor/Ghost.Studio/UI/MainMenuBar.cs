@@ -16,7 +16,7 @@ namespace Ghost.Studio.UI;
 /// </summary>
 internal sealed class MainMenuBar
 {
-    public void Draw(ImGuiContextManager contextManager, StudioDockspace dockspace, EditorWindowManager windowManager, ProjectService projectService, float deltaTime, EditorSceneSession? sceneSession = null, Action? onSceneSaved = null)
+    public void Draw(ImGuiContextManager contextManager, StudioDockspace dockspace, EditorWindowManager windowManager, ProjectService projectService, float deltaTime, EditorSceneSession? sceneSession = null, Action? onSceneSaved = null, Action? requestExit = null, nint hwndOwner = 0)
     {
         if (!ImGui.BeginMainMenuBar())
         {
@@ -33,7 +33,7 @@ internal sealed class MainMenuBar
                 {
                     if (ImGui.MenuItem("New Scene"))
                     {
-                        if (ConfirmDiscardOrSaveDirtyScene(sceneSession, projectService, onSceneSaved))
+                        if (ConfirmDiscardOrSaveDirtyScenes(sceneSession, projectService, onSceneSaved, hwndOwner))
                         {
                             sceneSession.NewScene();
                         }
@@ -41,10 +41,10 @@ internal sealed class MainMenuBar
 
                     if (ImGui.MenuItem("Open Scene..."))
                     {
-                        if (ConfirmDiscardOrSaveDirtyScene(sceneSession, projectService, onSceneSaved))
+                        if (ConfirmDiscardOrSaveDirtyScenes(sceneSession, projectService, onSceneSaved, hwndOwner))
                         {
                             var initialDir = projectService.AssetDirectories.FirstOrDefault();
-                            var selected = NativeProjectDialogs.ShowOpenSceneFileDialog(initialDir);
+                            var selected = NativeProjectDialogs.ShowOpenSceneFileDialog(initialDir, hwndOwner);
                             if (!string.IsNullOrEmpty(selected))
                             {
                                 sceneSession.OpenScene(selected, SceneLoadingType.Single);
@@ -55,7 +55,7 @@ internal sealed class MainMenuBar
                     if (ImGui.MenuItem("Open Scene Additive..."))
                     {
                         var initialDir = projectService.AssetDirectories.FirstOrDefault();
-                        var selected = NativeProjectDialogs.ShowOpenSceneFileDialog(initialDir);
+                        var selected = NativeProjectDialogs.ShowOpenSceneFileDialog(initialDir, hwndOwner);
                         if (!string.IsNullOrEmpty(selected))
                         {
                             sceneSession.OpenScene(selected, SceneLoadingType.Additive);
@@ -64,12 +64,12 @@ internal sealed class MainMenuBar
 
                     if (ImGui.MenuItem("Save Scene", "Ctrl+S"))
                     {
-                        SaveSceneWithFallbackDialog(sceneSession, projectService, forceDialog: false, onSceneSaved);
+                        SaveSceneWithFallbackDialog(sceneSession, projectService, EditorSyncBridge.Instance.ActiveSceneId, forceDialog: false, onSceneSaved, hwndOwner);
                     }
 
                     if (ImGui.MenuItem("Save Scene As..."))
                     {
-                        SaveSceneWithFallbackDialog(sceneSession, projectService, forceDialog: true, onSceneSaved);
+                        SaveSceneWithFallbackDialog(sceneSession, projectService, EditorSyncBridge.Instance.ActiveSceneId, forceDialog: true, onSceneSaved, hwndOwner);
                     }
 
                     ImGui.Separator();
@@ -77,12 +77,18 @@ internal sealed class MainMenuBar
 
                 if (ImGui.MenuItem("New Project..."))
                 {
-                    NativeProjectDialogs.TryCreateProject(projectService);
+                    if (ConfirmDiscardOrSaveAllDirty(sceneSession, projectService, windowManager, onSceneSaved, hwndOwner))
+                    {
+                        NativeProjectDialogs.TryCreateProject(projectService, hwndOwner);
+                    }
                 }
 
                 if (ImGui.MenuItem("Open Project..."))
                 {
-                    NativeProjectDialogs.TryOpenProject(projectService);
+                    if (ConfirmDiscardOrSaveAllDirty(sceneSession, projectService, windowManager, onSceneSaved, hwndOwner))
+                    {
+                        NativeProjectDialogs.TryOpenProject(projectService, hwndOwner);
+                    }
                 }
 
                 if (ImGui.MenuItem("Save Project", "Ctrl+Shift+S", false, projectService.CurrentProject != null))
@@ -107,7 +113,7 @@ internal sealed class MainMenuBar
 
             if (ImGui.MenuItem("Exit", "Alt+F4"))
             {
-                Environment.Exit(0);
+                requestExit?.Invoke();
             }
 
             ImGui.EndMenu();
@@ -203,27 +209,82 @@ internal sealed class MainMenuBar
         ImGui.EndMainMenuBar();
     }
 
-    internal static bool ConfirmDiscardOrSaveDirtyScene(EditorSceneSession sceneSession, ProjectService projectService, Action? onSceneSaved)
+    internal static bool ConfirmDiscardOrSaveAllDirty(EditorSceneSession? sceneSession, ProjectService projectService, EditorWindowManager? windowManager, Action? onSceneSaved, nint hwndOwner = 0)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return true;
+        }
+
+        if (windowManager != null)
+        {
+            var dirtyAssets = new List<AssetEditorWindow>();
+            windowManager.CollectDirtyAssetWindows(dirtyAssets);
+            for (var i = 0; i < dirtyAssets.Count; i++)
+            {
+                var assetWin = dirtyAssets[i];
+                var choice = NativeProjectDialogs.PromptSaveDirtyAsset(assetWin.Title, hwndOwner);
+                if (choice == NativeProjectDialogs.UnsavedPromptResult.Cancel)
+                {
+                    return false;
+                }
+
+                if (choice == NativeProjectDialogs.UnsavedPromptResult.Save && !assetWin.Save())
+                {
+                    return false;
+                }
+            }
+        }
+
+        return sceneSession == null || ConfirmDiscardOrSaveDirtyScenes(sceneSession, projectService, onSceneSaved, hwndOwner);
+    }
+
+    internal static bool ConfirmDiscardOrSaveDirtyScenes(EditorSceneSession sceneSession, ProjectService projectService, Action? onSceneSaved, nint hwndOwner = 0)
     {
         if (!sceneSession.IsDirty || !OperatingSystem.IsWindows())
         {
             return true;
         }
 
-        var choice = NativeProjectDialogs.PromptSaveDirtyScene(sceneSession.CurrentSceneDisplayName);
+        var dirtyScenes = new List<SceneNode>();
+        sceneSession.GetDirtyScenes(dirtyScenes);
+        for (var i = 0; i < dirtyScenes.Count; i++)
+        {
+            var scene = dirtyScenes[i];
+            if (!ConfirmDiscardOrSaveDirtyScene(sceneSession, projectService, scene.SceneId, scene.Name, onSceneSaved, hwndOwner))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    internal static bool ConfirmDiscardOrSaveDirtyScene(EditorSceneSession sceneSession, ProjectService projectService, ushort sceneId, string sceneDisplayName, Action? onSceneSaved, nint hwndOwner = 0)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return true;
+        }
+
+        var choice = NativeProjectDialogs.PromptSaveDirtyScene(sceneDisplayName, hwndOwner);
         return choice switch
         {
-            NativeProjectDialogs.UnsavedPromptResult.Save => SaveSceneWithFallbackDialog(sceneSession, projectService, forceDialog: false, onSceneSaved),
+            NativeProjectDialogs.UnsavedPromptResult.Save => SaveSceneWithFallbackDialog(sceneSession, projectService, sceneId, forceDialog: false, onSceneSaved, hwndOwner),
             NativeProjectDialogs.UnsavedPromptResult.Discard => true,
             _ => false,
         };
     }
 
-    internal static bool SaveSceneWithFallbackDialog(EditorSceneSession sceneSession, ProjectService projectService, bool forceDialog, Action? onSceneSaved)
+    internal static bool SaveSceneWithFallbackDialog(EditorSceneSession sceneSession, ProjectService projectService, bool forceDialog, Action? onSceneSaved, nint hwndOwner = 0)
+        => SaveSceneWithFallbackDialog(sceneSession, projectService, EditorSyncBridge.Instance.ActiveSceneId, forceDialog, onSceneSaved, hwndOwner);
+
+    internal static bool SaveSceneWithFallbackDialog(EditorSceneSession sceneSession, ProjectService projectService, ushort sceneId, bool forceDialog, Action? onSceneSaved, nint hwndOwner = 0)
     {
-        if (!forceDialog && !string.IsNullOrWhiteSpace(sceneSession.CurrentScenePath))
+        var existingPath = sceneSession.GetScenePath(sceneId);
+        if (!forceDialog && !string.IsNullOrWhiteSpace(existingPath))
         {
-            var ok = sceneSession.SaveScene();
+            var ok = sceneSession.SaveScene(sceneId);
             if (ok)
             {
                 onSceneSaved?.Invoke();
@@ -237,19 +298,19 @@ internal sealed class MainMenuBar
             return false;
         }
 
-        var initialDir = !string.IsNullOrWhiteSpace(sceneSession.CurrentScenePath)
-            ? Path.GetDirectoryName(sceneSession.CurrentScenePath)
+        var initialDir = !string.IsNullOrWhiteSpace(existingPath)
+            ? Path.GetDirectoryName(existingPath)
             : projectService.AssetDirectories.FirstOrDefault();
-        var defaultFile = !string.IsNullOrWhiteSpace(sceneSession.CurrentScenePath)
-            ? Path.GetFileName(sceneSession.CurrentScenePath)
+        var defaultFile = !string.IsNullOrWhiteSpace(existingPath)
+            ? Path.GetFileName(existingPath)
             : "Main.gscene";
-        var savePath = NativeProjectDialogs.ShowSaveSceneFileDialog(initialDir, defaultFile);
+        var savePath = NativeProjectDialogs.ShowSaveSceneFileDialog(initialDir, defaultFile, hwndOwner);
         if (string.IsNullOrEmpty(savePath))
         {
             return false;
         }
 
-        var saved = sceneSession.SaveScene(savePath);
+        var saved = sceneSession.SaveScene(sceneId, savePath);
         if (saved)
         {
             onSceneSaved?.Invoke();

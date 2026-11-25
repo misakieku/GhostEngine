@@ -34,6 +34,9 @@ internal sealed class EditorImGuiSystem : SystemBase
     private readonly AssetImportService _assetImportService;
     private readonly EditorAssetCatalog _assetCatalog;
     private readonly EditorSceneSession _sceneSession;
+    private readonly Action? _requestExit;
+    private readonly Action<string?>? _updateWindowTitle;
+    private readonly Func<nint>? _getWindowHandle;
 
     private readonly StudioDockspace _dockspace = new();
     private readonly MainMenuBar _mainMenuBar = new();
@@ -48,7 +51,7 @@ internal sealed class EditorImGuiSystem : SystemBase
     private readonly NodeGraphPanel _nodeGraphPanel = new();
     private int _lastObservedImportRevision;
 
-    public EditorImGuiSystem(ImGuiContextManager contextManager, ImGuiSdlInputBridge inputBridge, ImGuiPostRenderCommand postRenderCommand, SceneViewportTarget viewportTarget, EditorViewportInputState viewportInputState, ProjectService projectService, EditorContentProvider? contentProvider = null, EditorAssetCatalog? sharedCatalog = null, EditorSceneSession? sharedSceneSession = null)
+    public EditorImGuiSystem(ImGuiContextManager contextManager, ImGuiSdlInputBridge inputBridge, ImGuiPostRenderCommand postRenderCommand, SceneViewportTarget viewportTarget, EditorViewportInputState viewportInputState, ProjectService projectService, EditorContentProvider? contentProvider = null, EditorAssetCatalog? sharedCatalog = null, EditorSceneSession? sharedSceneSession = null, Action? requestExit = null, Action<string?>? updateWindowTitle = null, Func<nint>? getWindowHandle = null)
     {
         _contextManager = contextManager;
         _inputBridge = inputBridge;
@@ -56,6 +59,9 @@ internal sealed class EditorImGuiSystem : SystemBase
         _viewportTarget = viewportTarget;
         _projectService = projectService;
         _contentProvider = contentProvider;
+        _requestExit = requestExit;
+        _updateWindowTitle = updateWindowTitle;
+        _getWindowHandle = getWindowHandle;
         _assetImportService = new AssetImportService(projectService);
         _assetCatalog = sharedCatalog ?? new EditorAssetCatalog(projectService, contentProvider);
         _sceneSession = sharedSceneSession ?? new EditorSceneSession(projectService, _assetCatalog);
@@ -66,10 +72,18 @@ internal sealed class EditorImGuiSystem : SystemBase
 
         _assetImportService.ProjectAssetsBaked += HandleProjectAssetsBaked;
         _importSettingsWindow = new AssetImportSettingsWindow(_projectService, _assetImportService, _assetCatalog);
-        _sceneViewportPanel = new SceneViewportPanel(viewportTarget, viewportInputState, _assetCatalog, path => _sceneSession.OpenScene(path, Ghost.Engine.SceneLoadingType.Additive));
+        _sceneViewportPanel = new SceneViewportPanel(viewportTarget, viewportInputState, _assetCatalog, path => _sceneSession.OpenScene(path, SceneLoadingType.Additive));
         _projectPanel = new ProjectPanel(_projectService.AssetDirectories.FirstOrDefault());
-        _hierarchyPanel = new HierarchyPanel(viewportInputState, _assetCatalog, _projectPanel.SelectAndRevealAsset, path => _sceneSession.OpenScene(path, Ghost.Engine.SceneLoadingType.Additive));
-        _inspectorPanel = new InspectorPanel(_projectService, _assetCatalog, _projectPanel.SelectAndRevealAsset, HandleOpenAsset, _ => MainMenuBar.SaveSceneWithFallbackDialog(_sceneSession, _projectService, forceDialog: false, RefreshAfterSceneWrite));
+        _hierarchyPanel = new HierarchyPanel(viewportInputState, _assetCatalog, _projectPanel.SelectAndRevealAsset,
+            path => _sceneSession.OpenScene(path, SceneLoadingType.Additive),
+            scene => _sceneSession.SetActiveScene(scene.SceneId),
+            (scene, saveAs) => MainMenuBar.SaveSceneWithFallbackDialog(_sceneSession, _projectService, scene.SceneId, saveAs, RefreshAfterSceneWrite, GetWindowHandle()),
+            HandleUnloadScene);
+        _inspectorPanel = new InspectorPanel(_projectService, _assetCatalog, _projectPanel.SelectAndRevealAsset, HandleOpenAsset,
+            scene => MainMenuBar.SaveSceneWithFallbackDialog(_sceneSession, _projectService, scene.SceneId, forceDialog: false, RefreshAfterSceneWrite, GetWindowHandle()),
+            scene => MainMenuBar.SaveSceneWithFallbackDialog(_sceneSession, _projectService, scene.SceneId, forceDialog: true, RefreshAfterSceneWrite, GetWindowHandle()),
+            scene => _sceneSession.SetActiveScene(scene.SceneId),
+            HandleUnloadScene);
         _projectPanel.BindAssetActions(_projectService.BakerRegistry.HasBaker, HandleOpenAsset, _importSettingsWindow.OpenForAsset,
             path => _assetImportService.EnqueueReimport(path, forceRebake: true), HandleCreateScene);
 
@@ -84,7 +98,18 @@ internal sealed class EditorImGuiSystem : SystemBase
         _windowManager.RegisterAssetEditor(".gmat", path => new MaterialEditorWindow(path, _projectService, _assetImportService, _assetCatalog, _projectPanel.SelectAndRevealAsset));
 
         _projectService.OnProjectLoaded += HandleProjectLoaded;
-        CommandHistory.Instance.HistoryChanged += HandleCommandHistoryChanged;
+        CommandHistory.Instance.CommandApplied += HandleCommandApplied;
+    }
+
+    public bool ConfirmCloseRequested()
+    {
+        if (!MainMenuBar.ConfirmDiscardOrSaveAllDirty(_sceneSession, _projectService, _windowManager, RefreshAfterSceneWrite, GetWindowHandle()))
+        {
+            return false;
+        }
+
+        _importSettingsWindow.ClearAndClose();
+        return true;
     }
 
     protected override void OnUpdate(scoped in SystemUpdateAPI systemAPI)
@@ -113,7 +138,7 @@ internal sealed class EditorImGuiSystem : SystemBase
 
         HandleGlobalShortcuts();
 
-        _mainMenuBar.Draw(_contextManager, _dockspace, _windowManager, _projectService, systemAPI.Time.DeltaTime, _sceneSession, RefreshAfterSceneWrite);
+        _mainMenuBar.Draw(_contextManager, _dockspace, _windowManager, _projectService, systemAPI.Time.DeltaTime, _sceneSession, RefreshAfterSceneWrite, RequestExitWithConfirm, GetWindowHandle());
         _dockspace.BeginDockSpace();
 
         _sceneViewportPanel.ResetFrameState();
@@ -143,7 +168,7 @@ internal sealed class EditorImGuiSystem : SystemBase
 
     protected override void OnCleanup(scoped in SystemAPI systemAPI)
     {
-        CommandHistory.Instance.HistoryChanged -= HandleCommandHistoryChanged;
+        CommandHistory.Instance.CommandApplied -= HandleCommandApplied;
         _projectService.OnProjectLoaded -= HandleProjectLoaded;
         _assetImportService.ProjectAssetsBaked -= HandleProjectAssetsBaked;
         if (_contentProvider != null)
@@ -179,18 +204,25 @@ internal sealed class EditorImGuiSystem : SystemBase
 
     private void HandleProjectLoaded()
     {
+        _windowManager.CloseAllAssetWindows();
+        _importSettingsWindow.ClearAndClose();
+
         var primaryAssetDir = _projectService.AssetDirectories.FirstOrDefault();
         if (!string.IsNullOrEmpty(primaryAssetDir))
         {
             _projectPanel.SetRootDirectory(primaryAssetDir);
         }
+
+        _assetCatalog.MarkDirty();
+        _updateWindowTitle?.Invoke(_projectService.CurrentProject?.Name);
+        EditorSyncBridge.Instance.EnqueueWorldAction(world => _sceneSession.HandleProjectSwitched(world));
     }
 
     private void HandleOpenAsset(string fullPath)
     {
         if (fullPath.EndsWith(SceneAssetDocument.EXTENSION, StringComparison.OrdinalIgnoreCase))
         {
-            if (MainMenuBar.ConfirmDiscardOrSaveDirtyScene(_sceneSession, _projectService, RefreshAfterSceneWrite))
+            if (MainMenuBar.ConfirmDiscardOrSaveDirtyScenes(_sceneSession, _projectService, RefreshAfterSceneWrite, GetWindowHandle()))
             {
                 _sceneSession.OpenScene(fullPath, SceneLoadingType.Single);
             }
@@ -200,6 +232,26 @@ internal sealed class EditorImGuiSystem : SystemBase
 
         _windowManager.OpenAsset(fullPath);
     }
+
+    private void HandleUnloadScene(SceneNode sceneNode)
+    {
+        if (sceneNode.IsDirty && !MainMenuBar.ConfirmDiscardOrSaveDirtyScene(_sceneSession, _projectService, sceneNode.SceneId, sceneNode.Name, RefreshAfterSceneWrite, GetWindowHandle()))
+        {
+            return;
+        }
+
+        _sceneSession.UnloadScene(sceneNode.SceneId);
+    }
+
+    private void RequestExitWithConfirm()
+    {
+        if (ConfirmCloseRequested())
+        {
+            _requestExit?.Invoke();
+        }
+    }
+
+    private nint GetWindowHandle() => _getWindowHandle?.Invoke() ?? 0;
 
     private void HandleCreateScene(string targetDirectory)
     {
@@ -213,9 +265,11 @@ internal sealed class EditorImGuiSystem : SystemBase
         _assetCatalog.MarkDirty();
     }
 
-    private static void HandleCommandHistoryChanged()
+    private static void HandleCommandApplied(IEditorCommand command)
     {
-        EditorSyncBridge.Instance.HasUnsavedSceneChanges = true;
+        var bridge = EditorSyncBridge.Instance;
+        var targetSceneId = command.TargetSceneId ?? bridge.ActiveSceneId;
+        bridge.SetSceneDirty(targetSceneId, true);
     }
 
     private void HandleGlobalShortcuts()
@@ -236,7 +290,7 @@ internal sealed class EditorImGuiSystem : SystemBase
                 }
                 else
                 {
-                    MainMenuBar.SaveSceneWithFallbackDialog(_sceneSession, _projectService, forceDialog: false, RefreshAfterSceneWrite);
+                    MainMenuBar.SaveSceneWithFallbackDialog(_sceneSession, _projectService, EditorSyncBridge.Instance.ActiveSceneId, forceDialog: false, RefreshAfterSceneWrite, GetWindowHandle());
                 }
 
                 return;

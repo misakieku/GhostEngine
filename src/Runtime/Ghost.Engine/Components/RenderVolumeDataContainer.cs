@@ -133,6 +133,15 @@ public unsafe struct RenderVolumeDataContainer : ICleanupComponent, IDisposable
     }
 
     /// <summary>
+    /// Removes a volume component setting by runtime type ID if present.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Remove(ushort typeId)
+    {
+        return _storage.Remove(typeId);
+    }
+
+    /// <summary>
     /// Releases unmanaged buffer allocations.
     /// </summary>
     public void Dispose()

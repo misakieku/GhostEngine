@@ -44,6 +44,7 @@ public sealed class SceneBaker : IAssetBaker
         private readonly List<SceneAddedComponentHeader> _addedComponents = new();
         private readonly List<SceneRemovedComponentHeader> _removedComponents = new();
         private readonly List<ScenePropertyOverrideHeader> _propertyOverrides = new();
+        private readonly List<ScenePrefabVolumeOverrideHeader> _prefabVolumeOverrides = new();
         private readonly List<byte> _dataBlob = new();
 
         public SceneBinaryBuilder(AssetBakerContext ctx, SceneAssetDocument doc)
@@ -164,6 +165,39 @@ public sealed class SceneBaker : IAssetBaker
                 }
                 var propCount = _propertyOverrides.Count - propStart;
 
+                var volOverrideStart = _prefabVolumeOverrides.Count;
+                if (prefab.VolumeOverrides != null)
+                {
+                    for (var v = 0; v < prefab.VolumeOverrides.Count; v++)
+                    {
+                        var vol = prefab.VolumeOverrides[v];
+                        var templateIndex = ResolvePrefabTemplateIndex(prefab, vol.TargetGuid);
+                        if (templateIndex < 0)
+                        {
+                            continue;
+                        }
+
+                        var volFieldStart = _fields.Count;
+                        if (!vol.Removed)
+                        {
+                            foreach (var kvp in vol.Fields)
+                            {
+                                _fields.Add(EncodeField(kvp.Key, kvp.Value));
+                            }
+                        }
+
+                        _prefabVolumeOverrides.Add(new ScenePrefabVolumeOverrideHeader
+                        {
+                            templateEntityIndex = templateIndex,
+                            volumeTypeNameIndex = InternString(vol.VolumeType),
+                            removed = vol.Removed ? (byte)1 : (byte)0,
+                            fieldStartIndex = volFieldStart,
+                            fieldCount = _fields.Count - volFieldStart
+                        });
+                    }
+                }
+                var volOverrideCount = _prefabVolumeOverrides.Count - volOverrideStart;
+
                 _prefabInstances.Add(new ScenePrefabSpawnHeader
                 {
                     prefabDependencyIndex = prefabDepIndex,
@@ -176,7 +210,9 @@ public sealed class SceneBaker : IAssetBaker
                     removedComponentStartIndex = removedStart,
                     removedComponentCount = removedCount,
                     propertyOverrideStartIndex = propStart,
-                    propertyOverrideCount = propCount
+                    propertyOverrideCount = propCount,
+                    volumeOverrideStartIndex = volOverrideStart,
+                    volumeOverrideCount = volOverrideCount
                 });
             }
         }
@@ -219,6 +255,9 @@ public sealed class SceneBaker : IAssetBaker
             var propertyOverridesOffset = offset;
             offset += (long)_propertyOverrides.Count * Marshal.SizeOf<ScenePropertyOverrideHeader>();
 
+            var prefabVolumeOverridesOffset = offset;
+            offset += (long)_prefabVolumeOverrides.Count * Marshal.SizeOf<ScenePrefabVolumeOverrideHeader>();
+
             var dataBlobOffset = offset;
 
             var header = new SceneContentHeader
@@ -236,6 +275,7 @@ public sealed class SceneBaker : IAssetBaker
                 addedComponentCount = _addedComponents.Count,
                 removedComponentCount = _removedComponents.Count,
                 propertyOverrideCount = _propertyOverrides.Count,
+                prefabVolumeOverrideCount = _prefabVolumeOverrides.Count,
                 dataBlobSize = _dataBlob.Count,
                 stringsOffset = stringsOffset,
                 entitiesOffset = entitiesOffset,
@@ -248,6 +288,7 @@ public sealed class SceneBaker : IAssetBaker
                 addedComponentsOffset = addedComponentsOffset,
                 removedComponentsOffset = removedComponentsOffset,
                 propertyOverridesOffset = propertyOverridesOffset,
+                prefabVolumeOverridesOffset = prefabVolumeOverridesOffset,
                 dataBlobOffset = dataBlobOffset
             };
 
@@ -263,6 +304,7 @@ public sealed class SceneBaker : IAssetBaker
             WriteList(dst, _addedComponents);
             WriteList(dst, _removedComponents);
             WriteList(dst, _propertyOverrides);
+            WriteList(dst, _prefabVolumeOverrides);
             if (_dataBlob.Count > 0)
             {
                 dst.Write(CollectionsMarshal.AsSpan(_dataBlob));

@@ -14,6 +14,8 @@ public sealed class RenameEntityCommand : IEditorCommand
     private readonly string _oldName;
     private readonly string _newName;
 
+    public ushort? TargetSceneId => _target.SceneId;
+
     public string Name => $"Rename {_oldName} to {_newName}";
 
     public RenameEntityCommand(EntityNode target, string newName, EditorSyncBridge? bridge = null, EditorSelection? selection = null)

@@ -18,6 +18,8 @@ public sealed class CreateEntityCommand : IEditorCommand
 
     public EntityNode CreatedEntity => _entity;
 
+    public ushort? TargetSceneId => _entity.SceneId;
+
     public string Name => $"Create {_entity.Name}";
 
     public CreateEntityCommand(string name, int? parentId = null, IReadOnlyList<Type>? componentTypes = null, EditorSyncBridge? bridge = null, EditorSelection? selection = null)
@@ -27,7 +29,10 @@ public sealed class CreateEntityCommand : IEditorCommand
 
         var id = _bridge.AllocateEntityId();
         var components = new List<ComponentNode>();
-        _entity = new EntityNode(id, name, components, parentId);
+        _entity = new EntityNode(id, name, components, parentId)
+        {
+            SceneId = _bridge.ActiveSceneId
+        };
 
         if (componentTypes != null)
         {
@@ -70,7 +75,7 @@ public sealed class CreateEntityCommand : IEditorCommand
         {
             var em = world.EntityManager;
             var created = em.CreateEntity();
-            em.AddSharedComponent(created, new SceneID { value = _bridge.ActiveSceneId });
+            em.AddSharedComponent(created, new SceneID { value = _entity.SceneId });
             _entity.EcsEntity = created;
             _bridge.RegisterEntityMapping(created, _entity.Id);
             _bridge.RegisterEntityGuid(created, _entity.EditorGuid);

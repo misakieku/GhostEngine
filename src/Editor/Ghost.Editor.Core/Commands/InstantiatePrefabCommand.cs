@@ -27,9 +27,13 @@ public sealed class InstantiatePrefabCommand : IEditorCommand
     private Entity _spawnedRoot = Entity.Invalid;
     private object? _previousSelection;
 
+    public ushort? TargetSceneId => _targetSceneId;
+
     public string Name => $"Instantiate {_displayName}";
 
-    public InstantiatePrefabCommand(Guid prefabAssetGuid, string displayName, float3 position, quaternion rotation, float3 scale, int? parentNodeId = null, EditorSyncBridge? bridge = null, EditorSelection? selection = null)
+    private readonly ushort _targetSceneId;
+
+    public InstantiatePrefabCommand(Guid prefabAssetGuid, string displayName, float3 position, quaternion rotation, float3 scale, int? parentNodeId = null, EditorSyncBridge? bridge = null, EditorSelection? selection = null, ushort? targetSceneId = null)
     {
         _prefabAssetGuid = prefabAssetGuid;
         _displayName = string.IsNullOrWhiteSpace(displayName) ? "Prefab" : displayName;
@@ -39,6 +43,7 @@ public sealed class InstantiatePrefabCommand : IEditorCommand
         _parentNodeId = parentNodeId;
         _bridge = bridge ?? EditorSyncBridge.Instance;
         _selection = selection ?? EditorSelection.Instance;
+        _targetSceneId = targetSceneId ?? _bridge.ActiveSceneId;
     }
 
     public void Execute()
@@ -61,7 +66,8 @@ public sealed class InstantiatePrefabCommand : IEditorCommand
                     ApplyTransform = true,
                     InstanceGuidOverride = _instanceGuid,
                     NodeGuidOverrides = _allocatedNodeGuids.Count > 0 ? _allocatedNodeGuids : null,
-                    RootName = _displayName
+                    RootName = _displayName,
+                    TargetSceneId = _targetSceneId
                 };
 
                 if (!EditorPrefabUtility.TrySpawnLinkedPrefab(world, prefabAsset, _bridge, _position, _rotation, _scale, out var spawned, opts))
@@ -75,7 +81,7 @@ public sealed class InstantiatePrefabCommand : IEditorCommand
                     _allocatedNodeGuids[spawned[i].Link.TemplateEntityIndex] = spawned[i].EditorGuid;
                 }
 
-                _bridge.HasUnsavedSceneChanges = true;
+                _bridge.SetSceneDirty(_targetSceneId, true);
             }
             finally
             {
@@ -96,7 +102,7 @@ public sealed class InstantiatePrefabCommand : IEditorCommand
             }
 
             _spawnedRoot = Entity.Invalid;
-            _bridge.HasUnsavedSceneChanges = true;
+            _bridge.SetSceneDirty(_targetSceneId, true);
         });
 
         _selection.Select(_previousSelection);

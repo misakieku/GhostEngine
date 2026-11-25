@@ -20,11 +20,11 @@ internal sealed class EditorSceneSession
     private readonly EditorAssetCatalog _assetCatalog;
     private readonly EditorSyncBridge _bridge;
 
-    public string? CurrentScenePath { get; private set; }
+    public string? CurrentScenePath => _bridge.TryGetScenePath(_bridge.ActiveSceneId, out var path) ? path : _bridge.ActiveScenePath;
 
-    public bool IsDirty => _bridge.HasUnsavedSceneChanges;
+    public bool IsDirty => _bridge.AnySceneDirty;
 
-    public string CurrentSceneDisplayName => string.IsNullOrWhiteSpace(CurrentScenePath) ? "Untitled" : Path.GetFileNameWithoutExtension(CurrentScenePath);
+    public string CurrentSceneDisplayName => GetSceneDisplayName(_bridge.ActiveSceneId);
 
     public EditorSceneSession(ProjectService projectService, EditorAssetCatalog assetCatalog, EditorSyncBridge? bridge = null)
     {
@@ -33,10 +33,33 @@ internal sealed class EditorSceneSession
         _bridge = bridge ?? EditorSyncBridge.Instance;
     }
 
+    public string? GetScenePath(ushort sceneId)
+    {
+        return _bridge.TryGetScenePath(sceneId, out var path) ? path : null;
+    }
+
+    public string GetSceneDisplayName(ushort sceneId)
+    {
+        var path = GetScenePath(sceneId);
+        return string.IsNullOrWhiteSpace(path) ? "Untitled" : Path.GetFileNameWithoutExtension(path);
+    }
+
+    public void GetDirtyScenes(List<SceneNode> destination)
+    {
+        destination.Clear();
+        var scenes = _bridge.LatestSnapshot?.Scenes ?? _bridge.GetSceneNodeSnapshots(Array.Empty<EntityNode>());
+        for (var i = 0; i < scenes.Count; i++)
+        {
+            if (scenes[i].IsDirty)
+            {
+                destination.Add(scenes[i]);
+            }
+        }
+    }
+
     public void NewScene()
     {
         var blank = new SceneAssetDocument();
-        CurrentScenePath = null;
         _bridge.ActiveScenePath = null;
         _bridge.EnqueueWorldAction(world =>
         {
@@ -55,7 +78,6 @@ internal sealed class EditorSceneSession
         var fullPath = Path.GetFullPath(filePath);
         if (mode == SceneLoadingType.Single)
         {
-            CurrentScenePath = fullPath;
             _bridge.ActiveScenePath = fullPath;
         }
 
@@ -69,9 +91,41 @@ internal sealed class EditorSceneSession
         });
     }
 
-    public bool SaveScene(string? pathOverride = null)
+    public void SetActiveScene(ushort sceneId)
     {
-        var targetPath = !string.IsNullOrWhiteSpace(pathOverride) ? Path.GetFullPath(pathOverride) : CurrentScenePath;
+        _bridge.ActiveSceneId = sceneId;
+        _bridge.ActiveScenePath = GetScenePath(sceneId);
+        var snap = _bridge.LatestSnapshot;
+        if (snap != null)
+        {
+            _bridge.PublishSnapshot(new SceneSnapshot(_bridge.GetSceneNodeSnapshots(snap.Entities), snap.Entities, snap.FrameTimeMs, snap.Fps));
+        }
+    }
+
+    public void UnloadScene(ushort sceneId)
+    {
+        _bridge.EnqueueWorldAction(world =>
+        {
+            SceneSerializer.UnloadScene(world, _bridge, sceneId, EditorSelection.Instance, CommandHistory.Instance);
+        });
+    }
+
+    public void HandleProjectSwitched(World world)
+    {
+        _bridge.ActiveScenePath = null;
+        SceneSerializer.UnloadCurrentScene(world, _bridge, EditorSelection.Instance, CommandHistory.Instance);
+        if (!TryLoadDefaultSceneOnStartup(world))
+        {
+            _bridge.RegisterScene(0, null, isDirty: false);
+            _bridge.PublishSnapshot(new SceneSnapshot(_bridge.GetSceneNodeSnapshots(Array.Empty<EntityNode>()), Array.Empty<EntityNode>()));
+        }
+    }
+
+    public bool SaveScene(string? pathOverride = null) => SaveScene(_bridge.ActiveSceneId, pathOverride);
+
+    public bool SaveScene(ushort sceneId, string? pathOverride = null)
+    {
+        var targetPath = !string.IsNullOrWhiteSpace(pathOverride) ? Path.GetFullPath(pathOverride) : GetScenePath(sceneId);
         if (string.IsNullOrWhiteSpace(targetPath))
         {
             return false;
@@ -88,11 +142,14 @@ internal sealed class EditorSceneSession
             return false;
         }
 
-        SceneSerializer.SaveToFile(targetPath, snapshot, _bridge);
-        CurrentScenePath = targetPath;
-        _bridge.ActiveScenePath = targetPath;
-        _bridge.HasUnsavedSceneChanges = false;
-        _bridge.RegisterScene(_bridge.ActiveSceneId, targetPath);
+        SceneSerializer.SaveToFile(targetPath, snapshot, _bridge, sceneIdFilter: sceneId);
+        _bridge.RegisterScene(sceneId, targetPath, isDirty: false);
+        if (sceneId == _bridge.ActiveSceneId)
+        {
+            _bridge.ActiveScenePath = targetPath;
+        }
+
+        _bridge.PublishSnapshot(new SceneSnapshot(_bridge.GetSceneNodeSnapshots(snapshot.Entities), snapshot.Entities, snapshot.FrameTimeMs, snapshot.Fps));
 
         if (_projectService.CurrentProject != null)
         {
@@ -161,9 +218,8 @@ internal sealed class EditorSceneSession
             return false;
         }
 
-        CurrentScenePath = resolved;
         _bridge.ActiveScenePath = resolved;
-        _bridge.HasUnsavedSceneChanges = false;
+        _bridge.SetSceneDirty(_bridge.ActiveSceneId, false);
         return true;
     }
 

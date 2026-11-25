@@ -53,6 +53,9 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
     private EditorContentProvider? _contentProvider;
     private IAssetEntry? _imguiShaderEntry;
     private World? _editorWorld;
+    private EditorImGuiSystem? _imguiSystem;
+    private EngineWindow? _engineWindow;
+    private bool _closePromptActive;
 
     public StudioLaunchProfile(ProjectService projectService)
     {
@@ -159,9 +162,42 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
         }
 
         _editorWorld.SystemManager.AddSystem(new EditorEcsSyncSystem());
-        _editorWorld.SystemManager.AddSystem(new EditorImGuiSystem(_contextManager!, _inputBridge!, _postRenderCommand!, _viewportTarget!, _viewportInputState!, _projectService, _contentProvider, assetCatalog, sceneSession));
+        _imguiSystem = new EditorImGuiSystem(_contextManager!, _inputBridge!, _postRenderCommand!, _viewportTarget!, _viewportInputState!, _projectService, _contentProvider, assetCatalog, sceneSession,
+            requestExit: () => _engineWindow?.RequestClose(),
+            updateWindowTitle: UpdateWindowTitle,
+            getWindowHandle: () => _engineWindow?.Handle ?? 0);
+        _editorWorld.SystemManager.AddSystem(_imguiSystem);
         _editorWorld.SystemManager.AddSystem(new EditorCameraControllerSystem(_viewportInputState!));
         _editorWorld.SystemManager.AddSystem(new EditorRenderSystemGroup(_viewportTarget!));
+    }
+
+    public void OnWindowCreated(EngineWindow window)
+    {
+        _engineWindow = window;
+    }
+
+    public bool OnCloseRequested()
+    {
+        if (_closePromptActive)
+        {
+            return false;
+        }
+
+        _closePromptActive = true;
+        try
+        {
+            return _imguiSystem == null || _imguiSystem.ConfirmCloseRequested();
+        }
+        finally
+        {
+            _closePromptActive = false;
+        }
+    }
+
+    private void UpdateWindowTitle(string? projectName)
+    {
+        var title = string.IsNullOrWhiteSpace(projectName) ? "GhostEngine Studio" : $"GhostEngine Studio - {projectName}";
+        _engineWindow?.SetTitle(title);
     }
 
     public void ProcessEvent(SDL_Event e)
@@ -184,6 +220,8 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
 
         _editorWorld?.Dispose();
         _editorWorld = null;
+        _imguiSystem = null;
+        _engineWindow = null;
 
         _postRenderCommand?.Dispose();
         _postRenderCommand = null;

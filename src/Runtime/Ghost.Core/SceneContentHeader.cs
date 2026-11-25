@@ -44,7 +44,7 @@ public struct SceneEntityTarget : IEquatable<SceneEntityTarget>
 public struct SceneContentHeader
 {
     public const uint MAGIC = 0x4E435347; // 'GSCN'
-    public const uint VERSION = 1;
+    public const uint VERSION = 2;
 
     public uint magic;
     public uint version;
@@ -60,6 +60,7 @@ public struct SceneContentHeader
     public int addedComponentCount;
     public int removedComponentCount;
     public int propertyOverrideCount;
+    public int prefabVolumeOverrideCount;
     public int dataBlobSize;
 
     public long stringsOffset;
@@ -73,6 +74,7 @@ public struct SceneContentHeader
     public long addedComponentsOffset;
     public long removedComponentsOffset;
     public long propertyOverridesOffset;
+    public long prefabVolumeOverridesOffset;
     public long dataBlobOffset;
 }
 
@@ -100,6 +102,8 @@ public struct ScenePrefabSpawnHeader
     public int removedComponentCount;
     public int propertyOverrideStartIndex;
     public int propertyOverrideCount;
+    public int volumeOverrideStartIndex;
+    public int volumeOverrideCount;
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
@@ -161,4 +165,16 @@ public struct ScenePropertyOverrideHeader
     public int templateEntityIndex;
     public int componentTypeNameIndex;
     public SceneFieldRecord field;
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
+public struct ScenePrefabVolumeOverrideHeader
+{
+    public int templateEntityIndex;
+    public int volumeTypeNameIndex;
+    public byte removed;
+    public byte reserved0;
+    public ushort reserved1;
+    public int fieldStartIndex;
+    public int fieldCount;
 }

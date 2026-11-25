@@ -2,6 +2,7 @@ using Ghost.AssetForge.Core.Bakers;
 using Ghost.AssetForge.Core.Models;
 using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
+using Ghost.Engine.Volumes;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -321,6 +322,76 @@ public class SceneBakerTests
         File.SetLastWriteTimeUtc(scenePath, DateTime.UtcNow.AddSeconds(4));
         var badBake = await bakeService.BakeProjectAsync(new BakeConfig());
         Assert.AreEqual(1, badBake.Failed);
+    }
+
+    [TestMethod]
+    public async Task BakeScene_EncodesPrefabVolumeOverridesAndNullReset()
+    {
+        var prefabGuid = Guid.NewGuid();
+        var nodeGuid = Guid.NewGuid();
+        var doc = new SceneAssetDocument
+        {
+            PrefabInstances = new List<ScenePrefabInstanceRecord>
+            {
+                new()
+                {
+                    InstanceGuid = Guid.NewGuid(),
+                    PrefabGuid = prefabGuid,
+                    NodeGuids = new Dictionary<int, Guid> { [0] = nodeGuid },
+                    VolumeOverrides = new List<ScenePrefabVolumeOverrideRecord>
+                    {
+                        new()
+                        {
+                            TargetGuid = nodeGuid,
+                            VolumeType = typeof(BloomSettings).FullName!,
+                            Fields = new Dictionary<string, JsonElement>
+                            {
+                                [nameof(BloomSettings.threshold)] = JsonSerializer.SerializeToElement(0.75f),
+                                [nameof(BloomSettings.intensity)] = JsonSerializer.SerializeToElement<object?>(null)
+                            }
+                        },
+                        new()
+                        {
+                            TargetGuid = nodeGuid,
+                            VolumeType = typeof(ExposureSettings).FullName!,
+                            Removed = true
+                        }
+                    }
+                }
+            }
+        };
+
+        var gscenePath = Path.Combine(_tempDir, "PrefabVol.gscene");
+        await File.WriteAllTextAsync(gscenePath, JsonSerializer.Serialize(doc, SceneAssetDocumentContext.Default.SceneAssetDocument));
+
+        var ctx = new AssetBakerContext
+        {
+            AssetId = Guid.NewGuid(),
+            SourceFile = gscenePath,
+            RelativePath = "PrefabVol.gscene",
+            AssetDirectories = new[] { _tempDir },
+            BakeConfig = new BakeConfig()
+        };
+        using var dst = new MemoryStream();
+        var baker = new SceneBaker();
+        await baker.BakeAssetAsync(gscenePath, dst, new SceneBakeSettings(), ctx, CancellationToken.None);
+
+        var bytes = dst.ToArray();
+        var header = MemoryMarshal.Read<SceneContentHeader>(bytes);
+        Assert.AreEqual(SceneContentHeader.VERSION, header.version);
+        Assert.AreEqual(2, header.prefabVolumeOverrideCount);
+
+        var prefabs = MemoryMarshal.Cast<byte, ScenePrefabSpawnHeader>(bytes.AsSpan((int)header.prefabInstancesOffset, header.prefabInstanceCount * Marshal.SizeOf<ScenePrefabSpawnHeader>()));
+        Assert.AreEqual(2, prefabs[0].volumeOverrideCount);
+
+        var volOverrides = MemoryMarshal.Cast<byte, ScenePrefabVolumeOverrideHeader>(bytes.AsSpan((int)header.prefabVolumeOverridesOffset, header.prefabVolumeOverrideCount * Marshal.SizeOf<ScenePrefabVolumeOverrideHeader>()));
+        Assert.AreEqual((byte)0, volOverrides[0].removed);
+        Assert.AreEqual(2, volOverrides[0].fieldCount);
+        Assert.AreEqual((byte)1, volOverrides[1].removed);
+
+        var fields = MemoryMarshal.Cast<byte, SceneFieldRecord>(bytes.AsSpan((int)header.fieldsOffset, header.fieldCount * Marshal.SizeOf<SceneFieldRecord>()));
+        var intensityField = FindField(fields, nameof(BloomSettings.intensity));
+        Assert.AreEqual(SceneFieldValueKind.None, intensityField.kind);
     }
 
     private static string[] ReadStrings(byte[] payload, in SceneContentHeader header)

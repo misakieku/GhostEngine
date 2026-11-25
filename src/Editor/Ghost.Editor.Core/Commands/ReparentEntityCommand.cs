@@ -17,6 +17,8 @@ public sealed class ReparentEntityCommand : IEditorCommand
     private readonly int? _oldParentId;
     private readonly int? _newParentId;
 
+    public ushort? TargetSceneId => _entity.SceneId;
+
     public string Name => _newParentId.HasValue ? $"Reparent {_entity.Name}" : $"Unparent {_entity.Name}";
 
     public ReparentEntityCommand(EntityNode entity, int? newParentId, EditorSyncBridge? bridge = null, EditorSelection? selection = null)

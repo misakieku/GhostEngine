@@ -77,6 +77,17 @@ internal sealed class AssetImportSettingsWindow : EditorWindow
         RequestFocus();
     }
 
+    public void ClearAndClose()
+    {
+        _assetFilePath = string.Empty;
+        _displayRelativePath = string.Empty;
+        _editingMetadata = null;
+        _baselineJson = string.Empty;
+        _statusMessage = string.Empty;
+        _newRemapSlotName = string.Empty;
+        IsOpen = false;
+    }
+
     protected override void OnDraw(ImGuiContextManager contextManager)
     {
         if (_editingMetadata == null)

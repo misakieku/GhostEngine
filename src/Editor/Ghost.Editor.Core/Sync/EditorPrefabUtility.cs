@@ -17,6 +17,7 @@ public sealed class PrefabSpawnOptions
     public IReadOnlyDictionary<int, Guid>? NodeGuidOverrides { get; init; }
     public IReadOnlyDictionary<int, string>? NameOverrides { get; init; }
     public string? RootName { get; init; }
+    public ushort? TargetSceneId { get; init; }
 }
 
 /// <summary>
@@ -51,6 +52,7 @@ public static class EditorPrefabUtility
         var nameOverrides = options?.NameOverrides;
 
         var em = world.EntityManager;
+        var targetSceneId = options?.TargetSceneId ?? bridge.ActiveSceneId;
         for (var t = 0; t < count; t++)
         {
             var e = spawned[t];
@@ -59,7 +61,7 @@ public static class EditorPrefabUtility
                 continue;
             }
 
-            em.AddSharedComponent(e, new SceneID { value = bridge.ActiveSceneId });
+            em.AddSharedComponent(e, new SceneID { value = targetSceneId });
 
             var editorGuid = nodeGuidOverrides != null && nodeGuidOverrides.TryGetValue(t, out var mappedGuid) && mappedGuid != Guid.Empty
                 ? mappedGuid

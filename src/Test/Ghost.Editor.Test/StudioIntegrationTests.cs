@@ -359,4 +359,67 @@ public class StudioIntegrationTests
             }
         }
     }
+
+    [TestMethod]
+    public void EditorWindowManager_ProjectSwitchClosesAssetTabsAndReloadsDefaultScene()
+    {
+        var tempRootA = Path.Combine(Path.GetTempPath(), $"GhostStudioSwitchA_{Guid.NewGuid():N}");
+        var tempRootB = Path.Combine(Path.GetTempPath(), $"GhostStudioSwitchB_{Guid.NewGuid():N}");
+        try
+        {
+            using var bakerRegistry = new BakerRegistry();
+            var projectService = new ProjectService(bakerRegistry);
+            projectService.CreateProject(tempRootA, "ProjA");
+
+            var matPath = Path.Combine(projectService.AssetDirectories[0], "MatA.gmat");
+            File.WriteAllText(matPath, "{}");
+
+            using var mgr = new EditorWindowManager();
+            mgr.RegisterAssetEditor(".gmat", path => new DummyAssetEditorWindow(path, projectService));
+            Assert.IsTrue(mgr.OpenAsset(matPath));
+            Assert.HasCount(1, mgr.AssetWindows);
+
+            var catalog = new EditorAssetCatalog(projectService);
+            var bridge = new EditorSyncBridge();
+            var session = new EditorSceneSession(projectService, catalog, bridge);
+
+            using var scheduler = new JobScheduler(new JobSchedulerDesc { ThreadCount = 1, ThreadPriority = ThreadPriority.Normal, DependencyChainCapacity = 64 });
+            using var world = World.Create(scheduler, 64);
+
+            // Switch to Project B with its own DefaultScene
+            projectService.CreateProject(tempRootB, "ProjB");
+            var sceneBPath = Path.Combine(projectService.AssetDirectories[0], "Scenes", "StartB.gscene");
+            Directory.CreateDirectory(Path.GetDirectoryName(sceneBPath)!);
+            var docB = new SceneAssetDocument
+            {
+                Entities = new List<SceneEntityRecord>
+                {
+                    new() { Guid = Guid.NewGuid(), Name = "StartBEntity" }
+                }
+            };
+            SceneSerializer.WriteDocumentToFile(sceneBPath, docB);
+            projectService.SetDefaultScene("Scenes/StartB.gscene");
+
+            mgr.CloseAllAssetWindows();
+            Assert.IsEmpty(mgr.AssetWindows);
+
+            session.HandleProjectSwitched(world);
+            Assert.IsNotNull(bridge.LatestSnapshot);
+            Assert.HasCount(1, bridge.LatestSnapshot.Entities);
+            Assert.AreEqual("StartBEntity", bridge.LatestSnapshot.Entities[0].Name);
+            Assert.IsFalse(bridge.AnySceneDirty);
+        }
+        finally
+        {
+            if (Directory.Exists(tempRootA))
+            {
+                Directory.Delete(tempRootA, recursive: true);
+            }
+
+            if (Directory.Exists(tempRootB))
+            {
+                Directory.Delete(tempRootB, recursive: true);
+            }
+        }
+    }
 }

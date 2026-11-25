@@ -709,6 +709,10 @@ internal sealed unsafe class PendingSceneLoad : ISceneReferenceResolver
                 ComponentRegistry.TryApplySerializedField(compId, pComp, ovr.field.fieldNameHash, in reader);
             }
         }
+
+        ApplyPrefabVolumeOverrides(em, entity, data, in spawn, templateIndex, includeEntityRefs: true);
+
+        ApplyPrefabVolumeOverrides(em, entity, data, in spawn, templateIndex, includeEntityRefs: false);
     }
 
     private void WireStandaloneEntity(LoadedSceneData data, int index)
@@ -808,6 +812,8 @@ internal sealed unsafe class PendingSceneLoad : ISceneReferenceResolver
             }
         }
 
+        ApplyPrefabVolumeOverrides(em, entity, data, in spawn, templateIndex, includeEntityRefs: true);
+
         var prefabData = _prefabEntries[prefabIndex].PrefabData!;
         ref readonly var baseHeader = ref prefabData.Entities[templateIndex].Header;
         if (templateIndex == 0)
@@ -891,6 +897,83 @@ internal sealed unsafe class PendingSceneLoad : ISceneReferenceResolver
 
             var reader = new SceneFieldReader(in fieldRec, data.DataBlob, data.MaterialDependencyIndices, this);
             ComponentRegistry.TryApplySerializedField(compId, pComp, fieldRec.fieldNameHash, in reader);
+        }
+    }
+
+    private void ApplyPrefabVolumeOverrides(EntityManager em, Entity entity, LoadedSceneData data, in ScenePrefabSpawnHeader spawn, int templateIndex, bool includeEntityRefs)
+    {
+        if (spawn.volumeOverrideCount <= 0)
+        {
+            return;
+        }
+
+        var rvdcId = ComponentTypeID<RenderVolumeDataContainer>.Value;
+        for (var v = 0; v < spawn.volumeOverrideCount; v++)
+        {
+            ref readonly var volOvr = ref data.PrefabVolumeOverrides[spawn.volumeOverrideStartIndex + v];
+            if (volOvr.templateEntityIndex != templateIndex || (uint)volOvr.volumeTypeNameIndex >= (uint)data.StringVolumeTypeIDs.Length)
+            {
+                continue;
+            }
+
+            var volTypeId = data.StringVolumeTypeIDs[volOvr.volumeTypeNameIndex];
+            if (volTypeId == ushort.MaxValue)
+            {
+                continue;
+            }
+
+            if (volOvr.removed != 0)
+            {
+                if (!includeEntityRefs && em.HasComponent<RenderVolumeDataContainer>(entity))
+                {
+                    var pContainer = (RenderVolumeDataContainer*)em.GetComponent(entity, rvdcId);
+                    if (pContainer != null && pContainer->IsCreated)
+                    {
+                        pContainer->Remove(volTypeId);
+                    }
+                }
+
+                continue;
+            }
+
+            if (!em.HasComponent<RenderVolumeDataContainer>(entity))
+            {
+                if (includeEntityRefs)
+                {
+                    continue;
+                }
+
+                var created = RenderVolumeDataContainer.Create();
+                em.AddComponent(entity, in created);
+            }
+
+            var ptr = (RenderVolumeDataContainer*)em.GetComponent(entity, rvdcId);
+            if (ptr == null)
+            {
+                continue;
+            }
+
+            if (!ptr->IsCreated)
+            {
+                *ptr = RenderVolumeDataContainer.Create();
+            }
+
+            if (!ptr->TryGetOrAddDefault(volTypeId, out var volPtr))
+            {
+                continue;
+            }
+
+            for (var f = 0; f < volOvr.fieldCount; f++)
+            {
+                ref readonly var fieldRec = ref data.Fields[volOvr.fieldStartIndex + f];
+                if ((fieldRec.kind == SceneFieldValueKind.EntityRef) != includeEntityRefs)
+                {
+                    continue;
+                }
+
+                var reader = new SceneFieldReader(in fieldRec, data.DataBlob, data.MaterialDependencyIndices, this);
+                VolumeRegistry.TryApplySerializedField(volTypeId, volPtr, fieldRec.fieldNameHash, in reader);
+            }
         }
     }
 

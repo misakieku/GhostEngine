@@ -38,6 +38,18 @@ public interface IEngineLaunchProfile
     /// </summary>
     /// <param name="engine">The engine to shut down.</param>
     void OnEngineShutdown(EngineCore engine);
+
+    /// <summary>
+    /// Called after the main <see cref="EngineWindow"/> has been created.
+    /// </summary>
+    void OnWindowCreated(EngineWindow window)
+    {
+    }
+
+    /// <summary>
+    /// Called when the user attempts to close the main window. Return <c>false</c> to cancel closing.
+    /// </summary>
+    bool OnCloseRequested() => true;
 }
 
 public static class EngineRunner
@@ -75,14 +87,23 @@ public static class EngineRunner
             {
                 var userHandler = profile is IInputHandler inputHandler ? inputHandler : null;
                 using var window = new EngineWindow(engineCore.RenderEngine, engineDesc.WindowDesc);
+                window.CloseRequested += profile.OnCloseRequested;
+                profile.OnWindowCreated(window);
                 window.AttachToInputManager(engineCore.InputManager);
 
                 engineCore.Start();
 
-                while (window.IsRunning)
+                try
                 {
-                    window.PollEvents(engineCore.InputManager, userHandler);
-                    engineCore.Tick();
+                    while (window.IsRunning)
+                    {
+                        window.PollEvents(engineCore.InputManager, userHandler);
+                        engineCore.Tick();
+                    }
+                }
+                finally
+                {
+                    window.CloseRequested -= profile.OnCloseRequested;
                 }
 
                 engineCore.Stop();

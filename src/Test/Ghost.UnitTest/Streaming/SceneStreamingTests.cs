@@ -80,6 +80,7 @@ public unsafe class SceneStreamingTests
         private readonly List<SceneAddedComponentHeader> _addedComponents = new();
         private readonly List<SceneRemovedComponentHeader> _removedComponents = new();
         private readonly List<ScenePropertyOverrideHeader> _propertyOverrides = new();
+        private readonly List<ScenePrefabVolumeOverrideHeader> _prefabVolumeOverrides = new();
         private readonly List<byte> _dataBlob = new();
 
         public int Intern(string s)
@@ -176,6 +177,20 @@ public unsafe class SceneStreamingTests
             };
         }
 
+        public ScenePrefabVolumeOverrideHeader BuildPrefabVolumeOverride(int templateEntityIndex, string volumeType, bool removed, params SceneFieldRecord[] fields)
+        {
+            var start = _fields.Count;
+            _fields.AddRange(fields);
+            return new ScenePrefabVolumeOverrideHeader
+            {
+                templateEntityIndex = templateEntityIndex,
+                volumeTypeNameIndex = Intern(volumeType),
+                removed = removed ? (byte)1 : (byte)0,
+                fieldStartIndex = start,
+                fieldCount = fields.Length
+            };
+        }
+
         public SceneComponentHeader AddComponent(string typeName, ReadOnlySpan<SceneFieldRecord> fields, ReadOnlySpan<(string VolType, SceneFieldRecord[] VolFields)> volumes = default)
         {
             var fStart = _fields.Count;
@@ -225,12 +240,7 @@ public unsafe class SceneStreamingTests
             return idx;
         }
 
-        public void AddPrefabInstance(
-            int depIndex,
-            SceneEntityTarget parentTarget,
-            SceneAddedComponentHeader[]? added = null,
-            SceneRemovedComponentHeader[]? removed = null,
-            ScenePropertyOverrideHeader[]? overrides = null)
+        public void AddPrefabInstance(int depIndex, SceneEntityTarget parentTarget, SceneAddedComponentHeader[]? added = null, SceneRemovedComponentHeader[]? removed = null, ScenePropertyOverrideHeader[]? overrides = null, ScenePrefabVolumeOverrideHeader[]? volumeOverrides = null)
         {
             var aStart = _addedComponents.Count;
             if (added != null)
@@ -250,6 +260,12 @@ public unsafe class SceneStreamingTests
                 _propertyOverrides.AddRange(overrides);
             }
 
+            var vStart = _prefabVolumeOverrides.Count;
+            if (volumeOverrides != null)
+            {
+                _prefabVolumeOverrides.AddRange(volumeOverrides);
+            }
+
             _prefabs.Add(new ScenePrefabSpawnHeader
             {
                 prefabDependencyIndex = depIndex,
@@ -259,7 +275,9 @@ public unsafe class SceneStreamingTests
                 removedComponentStartIndex = rStart,
                 removedComponentCount = removed?.Length ?? 0,
                 propertyOverrideStartIndex = pStart,
-                propertyOverrideCount = overrides?.Length ?? 0
+                propertyOverrideCount = overrides?.Length ?? 0,
+                volumeOverrideStartIndex = vStart,
+                volumeOverrideCount = volumeOverrides?.Length ?? 0
             });
         }
 
@@ -287,6 +305,7 @@ public unsafe class SceneStreamingTests
             var addOff = offset; offset += (long)_addedComponents.Count * sizeof(SceneAddedComponentHeader);
             var remOff = offset; offset += (long)_removedComponents.Count * sizeof(SceneRemovedComponentHeader);
             var ovrOff = offset; offset += (long)_propertyOverrides.Count * sizeof(ScenePropertyOverrideHeader);
+            var pvOff = offset; offset += (long)_prefabVolumeOverrides.Count * sizeof(ScenePrefabVolumeOverrideHeader);
             var blobOff = offset;
 
             var header = new SceneContentHeader
@@ -304,6 +323,7 @@ public unsafe class SceneStreamingTests
                 addedComponentCount = _addedComponents.Count,
                 removedComponentCount = _removedComponents.Count,
                 propertyOverrideCount = _propertyOverrides.Count,
+                prefabVolumeOverrideCount = _prefabVolumeOverrides.Count,
                 dataBlobSize = _dataBlob.Count,
                 stringsOffset = strOff,
                 entitiesOffset = entOff,
@@ -316,6 +336,7 @@ public unsafe class SceneStreamingTests
                 addedComponentsOffset = addOff,
                 removedComponentsOffset = remOff,
                 propertyOverridesOffset = ovrOff,
+                prefabVolumeOverridesOffset = pvOff,
                 dataBlobOffset = blobOff
             };
 
@@ -332,6 +353,7 @@ public unsafe class SceneStreamingTests
             WriteList(dst, _addedComponents);
             WriteList(dst, _removedComponents);
             WriteList(dst, _propertyOverrides);
+            WriteList(dst, _prefabVolumeOverrides);
             if (_dataBlob.Count > 0)
             {
                 dst.Write(CollectionsMarshal.AsSpan(_dataBlob));
@@ -741,6 +763,91 @@ public unsafe class SceneStreamingTests
         Assert.AreEqual(SceneLoadStatus.Failed, op.Status);
         Assert.IsFalse(string.IsNullOrEmpty(op.ErrorMessage));
         Assert.IsFalse(rig.AssetManager.TryGetEntry(badGuid, out _));
+    }
+
+    [TestMethod]
+    public void SceneManager_PrefabVolumeOverrides_AppliesAndClearsNullableFields()
+    {
+        using var rig = new TestRig();
+        using var world = World.Create(rig.JobScheduler, 64);
+
+        var meshGuid = Guid.NewGuid();
+        rig.ContentProvider.AddMockMesh(meshGuid);
+
+        var prefabGuid = Guid.NewGuid();
+        var prefabBytes = BuildTwoNodePrefabBytes(meshGuid, out _);
+        rig.ContentProvider.AddMockAsset(prefabGuid, new MockingContentProvider.MockAssetData
+        {
+            type = AssetType.EntityPrefab,
+            data = prefabBytes,
+            dependencies = new[] { meshGuid }
+        });
+
+        var sceneGuid = Guid.NewGuid();
+        var sb = new ScenePayloadBuilder();
+
+        var addedVol = sb.AddComponent(
+            typeof(RenderVolumeDataContainer).FullName!,
+            ReadOnlySpan<SceneFieldRecord>.Empty,
+            new[]
+            {
+                (typeof(ExposureSettings).FullName!, new[] { sb.DoubleField("fixedExposure", 11.5) }),
+                (typeof(HDRISettings).FullName!, new[] { sb.DoubleField("exposure", 2.0) })
+            });
+
+        var volOvrBloom = sb.BuildPrefabVolumeOverride(0, typeof(BloomSettings).FullName!, removed: false, sb.DoubleField("threshold", 0.85));
+        var volOvrClearExp = sb.BuildPrefabVolumeOverride(0, typeof(ExposureSettings).FullName!, removed: false, new SceneFieldRecord
+        {
+            fieldNameHash = CacheFileHeader.Fnv1a("fixedExposure"),
+            kind = SceneFieldValueKind.None,
+            payloadOffset = -1,
+            entityTarget = SceneEntityTarget.Invalid
+        });
+        var volOvrRemoveHdri = sb.BuildPrefabVolumeOverride(0, typeof(HDRISettings).FullName!, removed: true);
+
+        sb.AddPrefabInstance(
+            depIndex: 0,
+            parentTarget: SceneEntityTarget.Invalid,
+            added: new[] { new SceneAddedComponentHeader { templateEntityIndex = 0, component = addedVol } },
+            volumeOverrides: new[] { volOvrBloom, volOvrClearExp, volOvrRemoveHdri });
+
+        rig.ContentProvider.AddMockAsset(sceneGuid, new MockingContentProvider.MockAssetData
+        {
+            type = AssetType.Scene,
+            data = sb.BuildBytes(),
+            dependencies = new[] { prefabGuid }
+        });
+
+        var op = SceneManager.LoadSceneAsync(world, rig.AssetManager, sceneGuid, SceneLoadingType.Single).GetValueOrThrow();
+        WaitUntilLoadJobsDone(rig, sceneGuid);
+        Assert.IsTrue(rig.AssetManager.TryGetEntry(meshGuid, out var meshEntry));
+        meshEntry.State = AssetState.Ready;
+        SceneManager.MaterializePendingScenes(world, SceneMaterializeBudget.Unlimited);
+        Assert.IsTrue(op.IsMaterialized);
+        Assert.AreEqual(SceneLoadStatus.Completed, op.Status);
+
+        var em = world.EntityManager;
+        var qId = QueryBuilder.New().WithAll<RenderVolumeDataContainer>().Build(world);
+        ref var query = ref world.ComponentManager.GetEntityQueryReference(qId);
+        var found = false;
+        foreach (var chunk in query.GetChunkIterator())
+        {
+            var entities = chunk.GetEntities();
+            for (var i = 0; i < entities.Length; i++)
+            {
+                found = true;
+                ref var container = ref em.GetComponent<RenderVolumeDataContainer>(entities[i]);
+                Assert.IsTrue(container.TryGet<BloomSettings>(out var bloom));
+                Assert.AreEqual(0.85f, bloom.threshold);
+                Assert.IsTrue(container.TryGet<ExposureSettings>(out var exp));
+                Assert.IsNull(exp.fixedExposure);
+                Assert.IsFalse(container.Has<HDRISettings>());
+            }
+        }
+
+        Assert.IsTrue(found);
+        SceneManager.UnloadScene(op.Scene, world);
+        world.SystemManager.CleanupAll();
     }
 
     private static void WaitUntilLoadJobsDone(TestRig rig, Guid assetGuid)

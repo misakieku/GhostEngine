@@ -11,6 +11,8 @@ public sealed class ModifyPropertyCommand : IEditorCommand
 
     public PropertyNode Property { get; }
 
+    public ushort? TargetSceneId => Property.ComponentNode?.EntityNode?.SceneId;
+
     public string Name => $"Set {(Property.ComponentNode != null ? Property.ComponentNode.TypeName + "." : "")}{Property.Name}";
 
     public ModifyPropertyCommand(PropertyNode property, object? oldValue, object? newValue)

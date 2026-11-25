@@ -13,6 +13,8 @@ public sealed class UnpackPrefabCommand : IEditorCommand
     private readonly EditorSyncBridge _bridge;
     private readonly List<(EntityNode Node, PrefabLinkInfo Link)> _unpackedNodes = new();
 
+    public ushort? TargetSceneId => _unpackedNodes.Count > 0 ? _unpackedNodes[0].Node.SceneId : null;
+
     public string Name => "Unpack Prefab";
 
     public UnpackPrefabCommand(Guid instanceGuid, EditorSyncBridge? bridge = null)
@@ -48,9 +50,9 @@ public sealed class UnpackPrefabCommand : IEditorCommand
                 {
                     _bridge.SetPrefabLink(e, null);
                 }
-            }
 
-            _bridge.HasUnsavedSceneChanges = true;
+                _bridge.SetSceneDirty(snapshotCopy[i].Node.SceneId, true);
+            }
         });
     }
 
@@ -71,9 +73,9 @@ public sealed class UnpackPrefabCommand : IEditorCommand
                 {
                     _bridge.SetPrefabLink(node.EcsEntity, link);
                 }
-            }
 
-            _bridge.HasUnsavedSceneChanges = true;
+                _bridge.SetSceneDirty(node.SceneId, true);
+            }
         });
     }
 

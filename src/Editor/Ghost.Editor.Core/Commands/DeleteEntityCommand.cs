@@ -16,6 +16,8 @@ public sealed class DeleteEntityCommand : IEditorCommand
     private readonly EntityNode _target;
     private readonly List<(int Index, EntityNode Node)> _removedEntries = new();
 
+    public ushort? TargetSceneId => _target.SceneId;
+
     public string Name => $"Delete {_target.Name}";
 
     public DeleteEntityCommand(EntityNode target, EditorSyncBridge? bridge = null, EditorSelection? selection = null)
@@ -126,7 +128,7 @@ public sealed class DeleteEntityCommand : IEditorCommand
             {
                 var node = _removedEntries[i].Node;
                 var recreated = em.CreateEntity();
-                em.AddSharedComponent(recreated, new SceneID { value = _bridge.ActiveSceneId });
+                em.AddSharedComponent(recreated, new SceneID { value = node.SceneId });
                 node.EcsEntity = recreated;
                 _bridge.RegisterEntityMapping(recreated, node.Id);
                 _bridge.RegisterEntityGuid(recreated, node.EditorGuid);

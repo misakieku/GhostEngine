@@ -15,6 +15,8 @@ public sealed class AddVolumeOverrideCommand : IEditorCommand
     private readonly IReadOnlyDictionary<string, Guid>? _assetGuids;
     private int _insertedIndex = -1;
 
+    public ushort? TargetSceneId => _node.ComponentNode?.EntityNode?.SceneId;
+
     public string Name => $"Add {_displayName} Override";
 
     public AddVolumeOverrideCommand(VolumeOverridesPropertyNode node, Type settingsType, object? initialValue = null, IReadOnlyDictionary<string, Guid>? assetGuids = null)
@@ -68,6 +70,8 @@ public sealed class RemoveVolumeOverrideCommand : IEditorCommand
     private Dictionary<string, Guid>? _removedAssetGuids;
     private int _removedIndex = -1;
     private bool _wasExpanded;
+
+    public ushort? TargetSceneId => _node.ComponentNode?.EntityNode?.SceneId;
 
     public string Name => $"Remove {_displayName} Override";
 
@@ -129,6 +133,8 @@ public sealed class SetVolumeOverrideBoxedCommand : IEditorCommand
     private readonly object _newBoxedValue;
     private readonly string _actionLabel;
 
+    public ushort? TargetSceneId => _node.ComponentNode?.EntityNode?.SceneId;
+
     public string Name => _actionLabel;
 
     public SetVolumeOverrideBoxedCommand(VolumeOverridesPropertyNode node, Type settingsType, object oldBoxedValue, object newBoxedValue, string actionLabel)
@@ -176,6 +182,8 @@ public sealed class ModifyVolumeFieldCommand : IEditorCommand
     private bool _newOverridden;
     private object? _newValue;
     private DateTime _timestamp;
+
+    public ushort? TargetSceneId => _node.ComponentNode?.EntityNode?.SceneId;
 
     public string Name => $"Set {_settingsType.Name}.{_fieldName}";
 

@@ -14,6 +14,8 @@ public sealed class RemoveComponentCommand : IEditorCommand
     private readonly ComponentNode _component;
     private int _removedIndex = -1;
 
+    public ushort? TargetSceneId => _entity.SceneId;
+
     public string Name => $"Remove {_component.TypeName}";
 
     public RemoveComponentCommand(EntityNode entity, ComponentNode component, EditorSyncBridge? bridge = null, EditorSelection? selection = null)

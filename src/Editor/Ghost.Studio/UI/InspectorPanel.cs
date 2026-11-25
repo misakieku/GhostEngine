@@ -22,6 +22,9 @@ internal sealed partial class InspectorPanel : EditorWindow
     private readonly Action<string>? _onPingAsset;
     private readonly Action<string>? _onOpenAsset;
     private readonly Action<SceneNode>? _onSaveScene;
+    private readonly Action<SceneNode>? _onSaveSceneAs;
+    private readonly Action<SceneNode>? _onSetActiveScene;
+    private readonly Action<SceneNode>? _onUnloadScene;
 
     private readonly Dictionary<PropertyNode, Vector3> _eulerCache = new();
     private PropertyNode? _activeEditProperty;
@@ -34,7 +37,7 @@ internal sealed partial class InspectorPanel : EditorWindow
 
     public override Vector2 DefaultSize => new(322.0f, 820.0f);
 
-    public InspectorPanel(ProjectService projectService, EditorAssetCatalog assetCatalog, Action<string>? onPingAsset = null, Action<string>? onOpenAsset = null, Action<SceneNode>? onSaveScene = null)
+    public InspectorPanel(ProjectService projectService, EditorAssetCatalog assetCatalog, Action<string>? onPingAsset = null, Action<string>? onOpenAsset = null, Action<SceneNode>? onSaveScene = null, Action<SceneNode>? onSaveSceneAs = null, Action<SceneNode>? onSetActiveScene = null, Action<SceneNode>? onUnloadScene = null)
         : base("Inspector")
     {
         _projectService = projectService;
@@ -42,6 +45,9 @@ internal sealed partial class InspectorPanel : EditorWindow
         _onPingAsset = onPingAsset;
         _onOpenAsset = onOpenAsset;
         _onSaveScene = onSaveScene;
+        _onSaveSceneAs = onSaveSceneAs;
+        _onSetActiveScene = onSetActiveScene;
+        _onUnloadScene = onUnloadScene;
     }
 
     protected override void OnDraw(ImGuiContextManager contextManager)
@@ -130,13 +136,45 @@ internal sealed partial class InspectorPanel : EditorWindow
         ImGui.TextColored(tokens.TextSecondary, $"Entities: {sceneNode.SceneEntityCount}");
         ImGui.SameLine();
         ImGuiWidgets.StatusBadge(sceneNode.IsDirty ? "Modified" : "Clean", sceneNode.IsDirty ? tokens.SemanticWarning : tokens.SemanticSuccess);
+        if (sceneNode.SceneId == EditorSyncBridge.Instance.ActiveSceneId)
+        {
+            ImGui.SameLine();
+            ImGuiWidgets.StatusBadge("Active", tokens.Accent);
+        }
 
         ImGui.Spacing();
-        if (_onSaveScene != null && sceneNode.SceneId == EditorSyncBridge.Instance.ActiveSceneId)
+        if (_onSaveScene != null)
         {
             if (ImGui.Button(hasFile ? "Save Scene" : "Save Scene As..."))
             {
                 _onSaveScene.Invoke(sceneNode);
+            }
+        }
+
+        if (_onSaveSceneAs != null && hasFile)
+        {
+            ImGui.SameLine();
+            if (ImGui.Button("Save As...##SceneSaveAs"))
+            {
+                _onSaveSceneAs.Invoke(sceneNode);
+            }
+        }
+
+        if (_onSetActiveScene != null && sceneNode.SceneId != EditorSyncBridge.Instance.ActiveSceneId)
+        {
+            ImGui.SameLine();
+            if (ImGui.Button("Set Active##SceneSetActive"))
+            {
+                _onSetActiveScene.Invoke(sceneNode);
+            }
+        }
+
+        if (_onUnloadScene != null)
+        {
+            ImGui.SameLine();
+            if (ImGui.Button("Unload##SceneUnload"))
+            {
+                _onUnloadScene.Invoke(sceneNode);
             }
         }
 
@@ -145,7 +183,7 @@ internal sealed partial class InspectorPanel : EditorWindow
             var relDefault = MakeProjectRelativeAssetPath(sceneNode.ScenePath!);
             var isCurrentDefault = string.Equals(_projectService.CurrentProject.DefaultScene, relDefault, StringComparison.OrdinalIgnoreCase);
 
-            ImGui.SameLine();
+            ImGui.Spacing();
             ImGui.BeginDisabled(isCurrentDefault);
             if (ImGui.Button(isCurrentDefault ? "Default Project Scene" : "Set as Default Scene"))
             {

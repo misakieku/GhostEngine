@@ -28,10 +28,25 @@ public static unsafe class SceneSerializer
     /// Captures the current editor <paramref name="snapshot"/> as a <see cref="SceneAssetDocument"/>,
     /// storing standalone entities explicitly and prefab-linked groups by reference with sparse overrides.
     /// </summary>
-    public static SceneAssetDocument SaveToDocument(SceneSnapshot snapshot, EditorSyncBridge bridge, IReadOnlyDictionary<Guid, IAssetEntry>? prefabLookup = null)
+    public static SceneAssetDocument SaveToDocument(SceneSnapshot snapshot, EditorSyncBridge bridge, IReadOnlyDictionary<Guid, IAssetEntry>? prefabLookup = null, ushort? sceneIdFilter = null)
     {
         var doc = new SceneAssetDocument();
-        var ordered = OrderEntitiesForSerialization(snapshot.Entities);
+        IReadOnlyList<EntityNode> sourceEntities = snapshot.Entities;
+        if (sceneIdFilter.HasValue)
+        {
+            var filtered = new List<EntityNode>(snapshot.Entities.Count);
+            for (var i = 0; i < snapshot.Entities.Count; i++)
+            {
+                if (snapshot.Entities[i].SceneId == sceneIdFilter.Value)
+                {
+                    filtered.Add(snapshot.Entities[i]);
+                }
+            }
+
+            sourceEntities = filtered;
+        }
+
+        var ordered = OrderEntitiesForSerialization(sourceEntities);
         var byId = new Dictionary<int, EntityNode>(ordered.Count);
         for (var i = 0; i < ordered.Count; i++)
         {
@@ -112,9 +127,9 @@ public static unsafe class SceneSerializer
         File.Move(tempPath, fullPath, overwrite: true);
     }
 
-    public static SceneAssetDocument SaveToFile(string filePath, SceneSnapshot snapshot, EditorSyncBridge bridge, IReadOnlyDictionary<Guid, IAssetEntry>? prefabLookup = null)
+    public static SceneAssetDocument SaveToFile(string filePath, SceneSnapshot snapshot, EditorSyncBridge bridge, IReadOnlyDictionary<Guid, IAssetEntry>? prefabLookup = null, ushort? sceneIdFilter = null)
     {
-        var doc = SaveToDocument(snapshot, bridge, prefabLookup);
+        var doc = SaveToDocument(snapshot, bridge, prefabLookup, sceneIdFilter);
         WriteDocumentToFile(filePath, doc);
         return doc;
     }
@@ -142,7 +157,9 @@ public static unsafe class SceneSerializer
         var res = LoadFromDocument(world, bridge, doc, mode, assetResolver, selection, history);
         if (res.IsSuccess)
         {
-            bridge.RegisterScene(bridge.ActiveSceneId, fullPath);
+            var loadedSceneId = bridge.ActiveSceneId;
+            bridge.ActiveScenePath = fullPath;
+            bridge.RegisterScene(loadedSceneId, fullPath, isDirty: false);
             var snap = bridge.LatestSnapshot;
             if (snap != null)
             {
@@ -169,12 +186,12 @@ public static unsafe class SceneSerializer
         }
         else
         {
-            bridge.ActiveSceneId = unchecked((ushort)(bridge.ActiveSceneId + 1));
+            bridge.ActiveSceneId = bridge.AllocateSceneId();
         }
 
         var sceneId = bridge.ActiveSceneId;
         var scenePath = mode == SceneLoadingType.Single ? bridge.ActiveScenePath : null;
-        bridge.RegisterScene(sceneId, scenePath);
+        bridge.RegisterScene(sceneId, scenePath, isDirty: false);
 
         var existingNodes = mode == SceneLoadingType.Additive && bridge.LatestSnapshot != null
             ? new List<EntityNode>(bridge.LatestSnapshot.Entities)
@@ -397,10 +414,146 @@ public static unsafe class SceneSerializer
 
         if (mode == SceneLoadingType.Single)
         {
-            bridge.HasUnsavedSceneChanges = false;
+            bridge.SetSceneDirty(sceneId, false);
         }
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Unloads a specific loaded scene by <paramref name="sceneId"/>. If it is the sole loaded scene, resets into a blank Untitled scene.
+    /// </summary>
+    public static void UnloadScene(World world, EditorSyncBridge bridge, ushort sceneId, EditorSelection? selection = null, CommandHistory? history = null)
+    {
+        var registered = bridge.GetRegisteredSceneIds();
+        var hasOtherScenes = false;
+        ushort fallbackSceneId = 0;
+        for (var i = 0; i < registered.Count; i++)
+        {
+            if (registered[i] != sceneId)
+            {
+                if (!hasOtherScenes)
+                {
+                    fallbackSceneId = registered[i];
+                    hasOtherScenes = true;
+                }
+            }
+        }
+
+        if (!hasOtherScenes)
+        {
+            bridge.ActiveScenePath = null;
+            UnloadCurrentScene(world, bridge, selection, history);
+            bridge.PublishSnapshot(new SceneSnapshot(bridge.GetSceneNodeSnapshots(Array.Empty<EntityNode>()), Array.Empty<EntityNode>()));
+            return;
+        }
+
+        var em = world.EntityManager;
+        var queryId = new QueryBuilder().WithAll<SceneID>().Build(world);
+        ref var query = ref world.ComponentManager.GetEntityQueryReference(queryId);
+        var toDestroy = new List<Entity>();
+
+        foreach (var chunk in query.GetChunkIterator())
+        {
+            var entities = chunk.GetEntities();
+            for (var i = 0; i < entities.Length; i++)
+            {
+                var entity = entities[i];
+                if (em.HasComponent<SceneID>(entity) && em.GetSharedComponent<SceneID>(entity).value == sceneId)
+                {
+                    toDestroy.Add(entity);
+                }
+            }
+        }
+
+        for (var i = 0; i < toDestroy.Count; i++)
+        {
+            var entity = toDestroy[i];
+            if (!em.Exists(entity))
+            {
+                continue;
+            }
+
+            if (em.HasComponent<Hierarchy>(entity))
+            {
+                var hier = em.GetComponent<Hierarchy>(entity);
+                if (hier.parent.IsValid && em.Exists(hier.parent))
+                {
+                    HierarchyUtility.RemoveParent(world, entity);
+                }
+
+                var child = hier.firstChild;
+                while (child.IsValid && em.Exists(child))
+                {
+                    var next = em.HasComponent<Hierarchy>(child) ? em.GetComponent<Hierarchy>(child).nextSibling : Entity.Invalid;
+                    if (!em.HasComponent<SceneID>(child) || em.GetSharedComponent<SceneID>(child).value != sceneId)
+                    {
+                        HierarchyUtility.RemoveParent(world, child);
+                    }
+
+                    child = next;
+                }
+            }
+
+            if (em.HasComponent<RenderVolumeDataContainer>(entity))
+            {
+                em.GetComponent<RenderVolumeDataContainer>(entity).Dispose();
+                em.RemoveComponent<RenderVolumeDataContainer>(entity);
+            }
+
+            bridge.RemoveEntityMetadata(entity);
+            em.DestroyEntity(entity);
+        }
+
+        bridge.UnregisterScene(sceneId);
+        history?.Clear();
+
+        if (selection != null)
+        {
+            if (selection.ActiveObject is SceneNode sn && sn.SceneId == sceneId)
+            {
+                selection.Clear();
+            }
+            else if (selection.ActiveEntity != null && selection.ActiveEntity.SceneId == sceneId)
+            {
+                selection.Clear();
+            }
+        }
+
+        if (bridge.ActiveSceneId == sceneId)
+        {
+            bridge.ActiveSceneId = fallbackSceneId;
+            bridge.ActiveScenePath = bridge.TryGetScenePath(fallbackSceneId, out var fallbackPath) ? fallbackPath : null;
+        }
+
+        var current = bridge.LatestSnapshot;
+        var remainingEntities = new List<EntityNode>();
+        var removedIds = new HashSet<int>();
+        if (current != null)
+        {
+            for (var i = 0; i < current.Entities.Count; i++)
+            {
+                if (current.Entities[i].SceneId == sceneId)
+                {
+                    removedIds.Add(current.Entities[i].Id);
+                }
+                else
+                {
+                    remainingEntities.Add(current.Entities[i]);
+                }
+            }
+
+            for (var i = 0; i < remainingEntities.Count; i++)
+            {
+                var e = remainingEntities[i];
+                if (e.ParentId.HasValue && removedIds.Contains(e.ParentId.Value))
+                {
+                    e.ParentId = null;
+                }
+            }
+        }
+
+        bridge.PublishSnapshot(new SceneSnapshot(bridge.GetSceneNodeSnapshots(remainingEntities), remainingEntities, current?.FrameTimeMs ?? 16.6f, current?.Fps ?? 60.0f));
     }
 
     /// <summary>
@@ -547,6 +700,12 @@ public static unsafe class SceneSerializer
                             Fields = liveKvp.Value.Fields,
                             VolumeOverrides = liveKvp.Value.VolumeOverrides
                         });
+                        continue;
+                    }
+
+                    if (liveKvp.Key == typeof(RenderVolumeDataContainer).FullName)
+                    {
+                        AppendVolumeOverrideDiffs(record, node.EditorGuid, baseRec.VolumeOverrides, liveKvp.Value.VolumeOverrides, jsonOptions);
                         continue;
                     }
 
@@ -822,6 +981,192 @@ public static unsafe class SceneSerializer
                 prop.DeserializeFromJson(ovr.Value, jsonOptions);
                 ComponentReflectionAccessor.TryAddOrSet(em, node.EcsEntity, compNode);
             }
+        }
+
+        if (prefabRec.VolumeOverrides != null)
+        {
+            ApplyPrefabVolumeInstanceOverrides(em, prefabRec.VolumeOverrides, spawnedByGuid, bridge, jsonOptions, pendingPropertyOverrides);
+        }
+    }
+
+    private static void AppendVolumeOverrideDiffs(ScenePrefabInstanceRecord record, Guid targetGuid, List<SceneVolumeOverrideRecord>? baseOverrides, List<SceneVolumeOverrideRecord>? liveOverrides, JsonSerializerOptions jsonOptions)
+    {
+        var baseByType = new Dictionary<string, SceneVolumeOverrideRecord>(StringComparer.Ordinal);
+        if (baseOverrides != null)
+        {
+            for (var i = 0; i < baseOverrides.Count; i++)
+            {
+                baseByType[baseOverrides[i].Type] = baseOverrides[i];
+            }
+        }
+
+        var liveByType = new Dictionary<string, SceneVolumeOverrideRecord>(StringComparer.Ordinal);
+        if (liveOverrides != null)
+        {
+            for (var i = 0; i < liveOverrides.Count; i++)
+            {
+                liveByType[liveOverrides[i].Type] = liveOverrides[i];
+            }
+        }
+
+        foreach (var baseKvp in baseByType)
+        {
+            if (!liveByType.ContainsKey(baseKvp.Key))
+            {
+                record.VolumeOverrides ??= new List<ScenePrefabVolumeOverrideRecord>();
+                record.VolumeOverrides.Add(new ScenePrefabVolumeOverrideRecord
+                {
+                    TargetGuid = targetGuid,
+                    VolumeType = baseKvp.Key,
+                    Removed = true
+                });
+            }
+        }
+
+        foreach (var liveKvp in liveByType)
+        {
+            if (!baseByType.TryGetValue(liveKvp.Key, out var baseVol))
+            {
+                record.VolumeOverrides ??= new List<ScenePrefabVolumeOverrideRecord>();
+                record.VolumeOverrides.Add(new ScenePrefabVolumeOverrideRecord
+                {
+                    TargetGuid = targetGuid,
+                    VolumeType = liveKvp.Key,
+                    Fields = new Dictionary<string, JsonElement>(liveKvp.Value.Fields, StringComparer.Ordinal)
+                });
+                continue;
+            }
+
+            Dictionary<string, JsonElement>? diffFields = null;
+            foreach (var liveField in liveKvp.Value.Fields)
+            {
+                if (!baseVol.Fields.TryGetValue(liveField.Key, out var baseElem) || !SceneJsonOptions.JsonElementsEqual(liveField.Value, baseElem))
+                {
+                    diffFields ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+                    diffFields[liveField.Key] = liveField.Value;
+                }
+            }
+
+            foreach (var baseFieldKey in baseVol.Fields.Keys)
+            {
+                if (!liveKvp.Value.Fields.ContainsKey(baseFieldKey))
+                {
+                    diffFields ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+                    diffFields[baseFieldKey] = JsonSerializer.SerializeToElement<object?>(null, jsonOptions);
+                }
+            }
+
+            if (diffFields != null && diffFields.Count > 0)
+            {
+                record.VolumeOverrides ??= new List<ScenePrefabVolumeOverrideRecord>();
+                record.VolumeOverrides.Add(new ScenePrefabVolumeOverrideRecord
+                {
+                    TargetGuid = targetGuid,
+                    VolumeType = liveKvp.Key,
+                    Fields = diffFields
+                });
+            }
+        }
+    }
+
+    private static void ApplyPrefabVolumeInstanceOverrides(EntityManager em, List<ScenePrefabVolumeOverrideRecord> volumeOverrides, Dictionary<Guid, EntityNode> spawnedByGuid, EditorSyncBridge bridge, JsonSerializerOptions jsonOptions, List<(PropertyNode, JsonElement)> pendingPropertyOverrides)
+    {
+        var touchedNodes = new HashSet<(EntityNode Node, ComponentNode Comp)>();
+
+        for (var i = 0; i < volumeOverrides.Count; i++)
+        {
+            var volOvr = volumeOverrides[i];
+            if (!spawnedByGuid.TryGetValue(volOvr.TargetGuid, out var node))
+            {
+                continue;
+            }
+
+            if (!VolumeTypeRegistry.TryGetAccessor(volOvr.VolumeType, out var accessor))
+            {
+                continue;
+            }
+
+            ComponentNode? rvdcNode = null;
+            VolumeOverridesPropertyNode? volumeProp = null;
+            for (var c = 0; c < node.Components.Count; c++)
+            {
+                if (node.Components[c].ComponentType == typeof(RenderVolumeDataContainer) && node.Components[c].Properties.Count > 0 && node.Components[c].Properties[0] is VolumeOverridesPropertyNode vp)
+                {
+                    rvdcNode = node.Components[c];
+                    volumeProp = vp;
+                    break;
+                }
+            }
+
+            if (volOvr.Removed)
+            {
+                if (volumeProp != null && rvdcNode != null && volumeProp.RemoveOverride(accessor.SettingsType))
+                {
+                    touchedNodes.Add((node, rvdcNode));
+                }
+
+                continue;
+            }
+
+            if (volumeProp == null || rvdcNode == null)
+            {
+                rvdcNode = ComponentNodeFactory.CreateVolumeComponentNode(node, default, bridge);
+                if (node.Components is List<ComponentNode> mutable)
+                {
+                    mutable.Add(rvdcNode);
+                }
+                else
+                {
+                    var next = new List<ComponentNode>(node.Components);
+                    next.Add(rvdcNode);
+                    node.Components = next;
+                }
+
+                volumeProp = (VolumeOverridesPropertyNode)rvdcNode.Properties[0];
+            }
+
+            if (!volumeProp.HasOverride(accessor.SettingsType))
+            {
+                volumeProp.SetOverride(accessor.SettingsType, null, null, false);
+            }
+
+            var entry = volumeProp.FindOverride(accessor.SettingsType);
+            if (entry == null)
+            {
+                continue;
+            }
+
+            foreach (var fieldKvp in volOvr.Fields)
+            {
+                var field = entry.FindField(fieldKvp.Key);
+                if (field == null)
+                {
+                    continue;
+                }
+
+                if (fieldKvp.Value.ValueKind == JsonValueKind.Null)
+                {
+                    volumeProp.SetFieldState(accessor.SettingsType, field.Name, false, field.DefaultFieldValue);
+                    continue;
+                }
+
+                if (field.ValueNode.RequiresPostSnapshotBind)
+                {
+                    pendingPropertyOverrides.Add((field.ValueNode, fieldKvp.Value));
+                    continue;
+                }
+
+                field.ValueNode.DeserializeFromJson(fieldKvp.Value, jsonOptions);
+                var valToApply = field.ValueNode is AssetPropertyNode assetNode ? assetNode.AssetGuid : field.ValueNode.Value;
+                volumeProp.SetFieldState(accessor.SettingsType, field.Name, true, valToApply);
+            }
+
+            touchedNodes.Add((node, rvdcNode));
+        }
+
+        foreach (var (node, comp) in touchedNodes)
+        {
+            ComponentReflectionAccessor.TryAddOrSet(em, node.EcsEntity, comp);
         }
     }
 

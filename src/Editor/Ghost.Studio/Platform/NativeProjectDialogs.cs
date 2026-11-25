@@ -354,7 +354,18 @@ internal static unsafe class NativeProjectDialogs
 
     public static UnsavedPromptResult PromptSaveDirtyScene(string sceneDisplayName, nint hwndOwner = 0)
     {
-        var res = MessageBoxW(hwndOwner, $"Save changes to '{sceneDisplayName}' before continuing?", "Unsaved Scene Changes", MB_YESNOCANCEL | MB_ICONQUESTION);
+        var res = MessageBoxW(hwndOwner, $"Save changes to scene '{sceneDisplayName}' before continuing?", "Unsaved Scene Changes", MB_YESNOCANCEL | MB_ICONQUESTION);
+        return res switch
+        {
+            IDYES => UnsavedPromptResult.Save,
+            IDNO => UnsavedPromptResult.Discard,
+            _ => UnsavedPromptResult.Cancel,
+        };
+    }
+
+    public static UnsavedPromptResult PromptSaveDirtyAsset(string assetDisplayName, nint hwndOwner = 0)
+    {
+        var res = MessageBoxW(hwndOwner, $"Save changes to '{assetDisplayName}' before continuing?", "Unsaved Asset Changes", MB_YESNOCANCEL | MB_ICONQUESTION);
         return res switch
         {
             IDYES => UnsavedPromptResult.Save,

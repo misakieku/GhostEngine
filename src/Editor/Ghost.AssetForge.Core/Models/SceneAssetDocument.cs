@@ -104,6 +104,22 @@ public sealed class ScenePrefabInstanceRecord
     public List<SceneAddedComponentRecord>? AddedComponents { get; set; }
 
     public List<SceneRemovedComponentRecord>? RemovedComponents { get; set; }
+
+    public List<ScenePrefabVolumeOverrideRecord>? VolumeOverrides { get; set; }
+}
+
+/// <summary>
+/// Sparse volume-setting override targeting a <c>RenderVolumeDataContainer</c> on a specific node inside a prefab instance.
+/// </summary>
+public sealed class ScenePrefabVolumeOverrideRecord
+{
+    public Guid TargetGuid { get; set; }
+
+    public string VolumeType { get; set; } = string.Empty;
+
+    public bool Removed { get; set; }
+
+    public Dictionary<string, JsonElement> Fields { get; set; } = new(StringComparer.Ordinal);
 }
 
 /// <summary>

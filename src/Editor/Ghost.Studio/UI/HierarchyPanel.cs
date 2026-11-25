@@ -40,6 +40,9 @@ internal sealed class HierarchyPanel : EditorWindow
     private readonly EditorAssetCatalog? _assetCatalog;
     private readonly Action<string>? _onSelectAssetInProject;
     private readonly Action<string>? _onOpenSceneAdditive;
+    private readonly Action<SceneNode>? _onSetActiveScene;
+    private readonly Action<SceneNode, bool>? _onSaveScene;
+    private readonly Action<SceneNode>? _onUnloadScene;
     private readonly List<FlatRow> _visibleRows = new();
     private readonly HashSet<int> _expandedIds = new();
     private readonly HashSet<int> _seenSceneIds = new();
@@ -49,6 +52,7 @@ internal sealed class HierarchyPanel : EditorWindow
     private long _builtSnapshotVersion = -1;
     private string _builtSearchQuery = string.Empty;
     private bool _rowsDirty = true;
+    private int _sceneCount = 1;
 
     private int _renamingEntityId = -1;
     private string _renameBuffer = string.Empty;
@@ -58,13 +62,16 @@ internal sealed class HierarchyPanel : EditorWindow
 
     public override Vector2 DefaultSize => new(280.0f, 520.0f);
 
-    public HierarchyPanel(EditorViewportInputState viewportInput, EditorAssetCatalog? assetCatalog = null, Action<string>? onSelectAssetInProject = null, Action<string>? onOpenSceneAdditive = null)
+    public HierarchyPanel(EditorViewportInputState viewportInput, EditorAssetCatalog? assetCatalog = null, Action<string>? onSelectAssetInProject = null, Action<string>? onOpenSceneAdditive = null, Action<SceneNode>? onSetActiveScene = null, Action<SceneNode, bool>? onSaveScene = null, Action<SceneNode>? onUnloadScene = null)
         : base("Hierarchy")
     {
         _viewportInput = viewportInput;
         _assetCatalog = assetCatalog;
         _onSelectAssetInProject = onSelectAssetInProject;
         _onOpenSceneAdditive = onOpenSceneAdditive;
+        _onSetActiveScene = onSetActiveScene;
+        _onSaveScene = onSaveScene;
+        _onUnloadScene = onUnloadScene;
         EditorSelection.Instance.RenameRequested += OnRenameRequested;
     }
 
@@ -212,7 +219,9 @@ internal sealed class HierarchyPanel : EditorWindow
         {
             var isSelected = EditorSelection.Instance.SelectedObjects.Contains(node) || ReferenceEquals(EditorSelection.Instance.ActiveObject, node);
             var visual = HierarchyVisualRegistry.Default.Resolve(node, in tokens);
-            var displayLabel = node is SceneNode sceneNode && sceneNode.IsDirty ? $"{sceneNode.Name}*" : node.Name;
+            var displayLabel = node is SceneNode sceneNode
+                ? $"{sceneNode.Name}{(sceneNode.IsDirty ? "*" : string.Empty)}{(_sceneCount > 1 && sceneNode.SceneId == EditorSyncBridge.Instance.ActiveSceneId ? " (Active)" : string.Empty)}"
+                : node.Name;
             var rowResult = ImGuiWidgets.TreeRow("row", displayLabel, row.Depth, indentWidth, row.HasChildren, row.IsExpanded, isSelected, visual.IconGlyph, visual.IconColor, in tokens, visual.LabelColor);
 
             if (rowResult.ToggledExpand)
@@ -317,7 +326,7 @@ internal sealed class HierarchyPanel : EditorWindow
                     ImGui.EndPopup();
                 }
             }
-            else if (node is SceneNode)
+            else if (node is SceneNode targetSceneNode)
             {
                 if (ImGui.BeginDragDropTarget())
                 {
@@ -333,7 +342,7 @@ internal sealed class HierarchyPanel : EditorWindow
                         }
                     }
 
-                    if (TryAcceptPrefabDrop(null))
+                    if (TryAcceptPrefabDrop(null, targetSceneNode.SceneId))
                     {
                         _expandedIds.Add(node.Id);
                         _rowsDirty = true;
@@ -349,6 +358,37 @@ internal sealed class HierarchyPanel : EditorWindow
                         EditorSelection.Instance.Select(node);
                     }
 
+                    if (_onSetActiveScene != null)
+                    {
+                        var isAlreadyActive = targetSceneNode.SceneId == EditorSyncBridge.Instance.ActiveSceneId;
+                        if (ImGui.MenuItem("Set Active Scene", string.Empty, false, !isAlreadyActive))
+                        {
+                            _onSetActiveScene.Invoke(targetSceneNode);
+                        }
+                    }
+
+                    if (_onSaveScene != null)
+                    {
+                        if (ImGui.MenuItem("Save Scene"))
+                        {
+                            _onSaveScene.Invoke(targetSceneNode, false);
+                        }
+
+                        if (ImGui.MenuItem("Save Scene As..."))
+                        {
+                            _onSaveScene.Invoke(targetSceneNode, true);
+                        }
+                    }
+
+                    if (_onUnloadScene != null)
+                    {
+                        if (ImGui.MenuItem("Unload Scene"))
+                        {
+                            _onUnloadScene.Invoke(targetSceneNode);
+                        }
+                    }
+
+                    ImGui.Separator();
                     var menu = EditorMenuRegistry.Default.BuildMenu("Hierarchy", new MenuContext(null));
                     ImGuiMenuBuilder.DrawNodes(menu);
                     ImGui.EndPopup();
@@ -359,7 +399,7 @@ internal sealed class HierarchyPanel : EditorWindow
         ImGui.PopID();
     }
 
-    private bool TryAcceptPrefabDrop(int? parentNodeId)
+    private bool TryAcceptPrefabDrop(int? parentNodeId, ushort? targetSceneId = null)
     {
         if (!EditorDragDrop.TryAcceptStringPayload(EditorDragDrop.ASSET_PAYLOAD, out var droppedPath))
         {
@@ -370,7 +410,7 @@ internal sealed class HierarchyPanel : EditorWindow
         {
             if (entry.AssetType == AssetType.EntityPrefab)
             {
-                var cmd = new InstantiatePrefabCommand(entry.Guid, Path.GetFileNameWithoutExtension(entry.DisplayName), float3.zero, quaternion.identity, float3.one, parentNodeId);
+                var cmd = new InstantiatePrefabCommand(entry.Guid, Path.GetFileNameWithoutExtension(entry.DisplayName), float3.zero, quaternion.identity, float3.one, parentNodeId, targetSceneId: targetSceneId);
                 CommandHistory.Instance.Execute(cmd);
                 return true;
             }
@@ -419,6 +459,7 @@ internal sealed class HierarchyPanel : EditorWindow
 
         var scenes = snapshot.Scenes;
         var entities = snapshot.Entities;
+        _sceneCount = scenes.Count;
         if (!string.IsNullOrWhiteSpace(_searchQuery))
         {
             for (var i = 0; i < scenes.Count; i++)

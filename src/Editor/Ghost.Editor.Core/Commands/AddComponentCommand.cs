@@ -16,6 +16,8 @@ public sealed class AddComponentCommand : IEditorCommand
 
     public ComponentNode AddedComponent => _component;
 
+    public ushort? TargetSceneId => _entity.SceneId;
+
     public string Name => $"Add {_component.TypeName}";
 
     public AddComponentCommand(EntityNode entity, Type componentType, EditorSyncBridge? bridge = null, EditorSelection? selection = null)

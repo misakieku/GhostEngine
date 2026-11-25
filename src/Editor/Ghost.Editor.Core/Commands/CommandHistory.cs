@@ -19,6 +19,8 @@ public sealed class CommandHistory
 
     public event Action? HistoryChanged;
 
+    public event Action<IEditorCommand>? CommandApplied;
+
     public CommandHistory(int maxCapacity = 100)
     {
         _maxCapacity = maxCapacity;
@@ -30,6 +32,7 @@ public sealed class CommandHistory
         {
             _undoStack[^1].MergeWith(command);
             command.Execute();
+            CommandApplied?.Invoke(command);
             HistoryChanged?.Invoke();
             return;
         }
@@ -43,6 +46,7 @@ public sealed class CommandHistory
             _undoStack.RemoveAt(0);
         }
 
+        CommandApplied?.Invoke(command);
         HistoryChanged?.Invoke();
     }
 
@@ -58,6 +62,7 @@ public sealed class CommandHistory
         cmd.Undo();
         _redoStack.Add(cmd);
 
+        CommandApplied?.Invoke(cmd);
         HistoryChanged?.Invoke();
     }
 
@@ -73,6 +78,7 @@ public sealed class CommandHistory
         cmd.Redo();
         _undoStack.Add(cmd);
 
+        CommandApplied?.Invoke(cmd);
         HistoryChanged?.Invoke();
     }
 

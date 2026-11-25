@@ -4,6 +4,8 @@
     <GhostEngineAssetDir>$(MSBuildThisFileDirectory)Runtime/Ghost.Engine/Assets</GhostEngineAssetDir>
     <GhostAssetDir Condition="'$(GhostAssetDir)' == '' and Exists('$(MSBuildProjectDirectory)\Assets')">$(MSBuildProjectDirectory)\Assets</GhostAssetDir>
     <GhostAssetDir Condition="'$(GhostAssetDir)' == ''">$(MSBuildProjectDirectory)\Assets</GhostAssetDir>
+    <LocalAssetForgeCli>$(MSBuildThisFileDirectory)Tools\Ghost.AssetForge.CLI\bin\Release\Publish\Ghost.AssetForge.CLI.exe</LocalAssetForgeCli>
+    <LocalAssetForgeCliInput Condition="Exists('$(LocalAssetForgeCli)')">;$(LocalAssetForgeCli)</LocalAssetForgeCliInput>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsGameProject)' == 'true'">
@@ -41,11 +43,10 @@
           DependsOnTargets="ComputeGhostPaths"
           AfterTargets="Build"
           Condition="'$(IsGameProject)' == 'true'"
-          Inputs="$(GhostAssetDir)\**\*.*;$(GhostEngineAssetDir)\**\*.*"
+          Inputs="$(GhostAssetDir)\**\*.*;$(GhostEngineAssetDir)\**\*.*$(LocalAssetForgeCliInput)"
           Outputs="$(GhostAssetBuildDir)\manifest.json">
 
     <PropertyGroup>
-      <LocalAssetForgeCli>$(MSBuildThisFileDirectory)Tools\Ghost.AssetForge.CLI\bin\Release\Publish\Ghost.AssetForge.CLI.exe</LocalAssetForgeCli>
       <AssetForgeCliCmd Condition="Exists('$(LocalAssetForgeCli)')">&quot;$(LocalAssetForgeCli)&quot;</AssetForgeCliCmd>
       <AssetForgeCliCmd Condition="!Exists('$(LocalAssetForgeCli)')">Ghost.AssetForge.CLI</AssetForgeCliCmd>
     </PropertyGroup>

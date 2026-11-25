@@ -25,6 +25,7 @@ internal sealed class LoadedSceneData
     public SceneAddedComponentHeader[] AddedComponents = Array.Empty<SceneAddedComponentHeader>();
     public SceneRemovedComponentHeader[] RemovedComponents = Array.Empty<SceneRemovedComponentHeader>();
     public ScenePropertyOverrideHeader[] PropertyOverrides = Array.Empty<ScenePropertyOverrideHeader>();
+    public ScenePrefabVolumeOverrideHeader[] PrefabVolumeOverrides = Array.Empty<ScenePrefabVolumeOverrideHeader>();
     public byte[] DataBlob = Array.Empty<byte>();
 }
 
@@ -102,6 +103,7 @@ internal sealed unsafe class SceneAssetEntry : AssetEntry, ILoadableAssetEntry
                 AddedComponents = ReadArray<SceneAddedComponentHeader>(ref payload, header.addedComponentsOffset, header.addedComponentCount),
                 RemovedComponents = ReadArray<SceneRemovedComponentHeader>(ref payload, header.removedComponentsOffset, header.removedComponentCount),
                 PropertyOverrides = ReadArray<ScenePropertyOverrideHeader>(ref payload, header.propertyOverridesOffset, header.propertyOverrideCount),
+                PrefabVolumeOverrides = ReadArray<ScenePrefabVolumeOverrideHeader>(ref payload, header.prefabVolumeOverridesOffset, header.prefabVolumeOverrideCount),
                 DataBlob = header.dataBlobSize > 0 ? payload.Slice(header.dataBlobOffset, header.dataBlobSize).ToArray() : Array.Empty<byte>()
             };
 
@@ -155,6 +157,7 @@ internal sealed unsafe class SceneAssetEntry : AssetEntry, ILoadableAssetEntry
             && CheckRange<SceneAddedComponentHeader>(header.addedComponentsOffset, header.addedComponentCount, payloadSize)
             && CheckRange<SceneRemovedComponentHeader>(header.removedComponentsOffset, header.removedComponentCount, payloadSize)
             && CheckRange<ScenePropertyOverrideHeader>(header.propertyOverridesOffset, header.propertyOverrideCount, payloadSize)
+            && CheckRange<ScenePrefabVolumeOverrideHeader>(header.prefabVolumeOverridesOffset, header.prefabVolumeOverrideCount, payloadSize)
             && CheckByteRange(header.dataBlobOffset, header.dataBlobSize, payloadSize);
     }
 

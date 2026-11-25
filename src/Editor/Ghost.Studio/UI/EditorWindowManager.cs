@@ -120,6 +120,29 @@ internal sealed unsafe class EditorWindowManager : IDisposable
         }
     }
 
+    public void CollectDirtyAssetWindows(List<AssetEditorWindow> destination)
+    {
+        destination.Clear();
+        for (var i = 0; i < _assetWindows.Count; i++)
+        {
+            var win = _assetWindows[i];
+            if (win.IsOpen && win.IsDirty)
+            {
+                destination.Add(win);
+            }
+        }
+    }
+
+    public void CloseAllAssetWindows()
+    {
+        for (var i = 0; i < _assetWindows.Count; i++)
+        {
+            _assetWindows[i].IsOpen = false;
+            _assetWindows[i].Dispose();
+        }
+        _assetWindows.Clear();
+    }
+
     public void Dispose()
     {
         for (var i = 0; i < _assetWindows.Count; i++)

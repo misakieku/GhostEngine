@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 using Ghost.AssetForge.Core.Models;
 using Ghost.AssetForge.Core.Services;
 using Ghost.Core;
@@ -390,5 +391,130 @@ public unsafe class SceneSerializerTests
         SceneSerializer.UnloadCurrentScene(world, bridge);
         Assert.AreEqual(0, entry.RefCount);
         Assert.IsNull(entry.PrefabData);
+    }
+
+    [TestMethod]
+    public void SceneSerializer_SaveWithSceneFilter_AndUnloadScene_IsolateAdditiveScenes()
+    {
+        using var scheduler = new JobScheduler(new JobSchedulerDesc { ThreadCount = 1, ThreadPriority = ThreadPriority.Normal, DependencyChainCapacity = 64 });
+        using var world = World.Create(scheduler, 64);
+        var bridge = new EditorSyncBridge();
+
+        var docA = new SceneAssetDocument
+        {
+            Entities = new List<SceneEntityRecord>
+            {
+                new() { Guid = Guid.NewGuid(), Name = "SceneA_Entity" }
+            }
+        };
+        var docB = new SceneAssetDocument
+        {
+            Entities = new List<SceneEntityRecord>
+            {
+                new() { Guid = Guid.NewGuid(), Name = "SceneB_Entity" }
+            }
+        };
+
+        Assert.IsTrue(SceneSerializer.LoadFromDocument(world, bridge, docA, SceneLoadingType.Single).IsSuccess);
+        var sceneAId = bridge.ActiveSceneId;
+        Assert.IsTrue(SceneSerializer.LoadFromDocument(world, bridge, docB, SceneLoadingType.Additive).IsSuccess);
+        var sceneBId = bridge.ActiveSceneId;
+        Assert.AreNotEqual(sceneAId, sceneBId);
+
+        var snap = bridge.LatestSnapshot!;
+        var savedA = SceneSerializer.SaveToDocument(snap, bridge, sceneIdFilter: sceneAId);
+        Assert.HasCount(1, savedA.Entities);
+        Assert.AreEqual("SceneA_Entity", savedA.Entities[0].Name);
+
+        var savedB = SceneSerializer.SaveToDocument(snap, bridge, sceneIdFilter: sceneBId);
+        Assert.HasCount(1, savedB.Entities);
+        Assert.AreEqual("SceneB_Entity", savedB.Entities[0].Name);
+
+        SceneSerializer.UnloadScene(world, bridge, sceneBId);
+        snap = bridge.LatestSnapshot!;
+        Assert.HasCount(1, snap.Scenes);
+        Assert.AreEqual(sceneAId, snap.Scenes[0].SceneId);
+        Assert.HasCount(1, snap.Entities);
+        Assert.AreEqual("SceneA_Entity", snap.Entities[0].Name);
+
+        // Unloading the sole remaining scene resets cleanly into a blank Untitled scene.
+        SceneSerializer.UnloadScene(world, bridge, sceneAId);
+        snap = bridge.LatestSnapshot!;
+        Assert.HasCount(1, snap.Scenes);
+        Assert.AreEqual((ushort)0, snap.Scenes[0].SceneId);
+        Assert.AreEqual("Untitled", snap.Scenes[0].Name);
+        Assert.IsEmpty(snap.Entities);
+    }
+
+    [TestMethod]
+    public void SceneSerializer_PrefabVolumeOverrides_RoundTripSparsely()
+    {
+        using var scheduler = new JobScheduler(new JobSchedulerDesc { ThreadCount = 1, ThreadPriority = ThreadPriority.Normal, DependencyChainCapacity = 64 });
+        using var world = World.Create(scheduler, 64);
+        var em = world.EntityManager;
+        var bridge = new EditorSyncBridge();
+
+        var prefabGuid = Guid.NewGuid();
+        var bytes = BuildTestPrefabPayload(new float3(0.0f), new float3(0.0f, 1.0f, 0.0f));
+        var prefabEntry = CreateLoadedPrefabEntry(prefabGuid, "Meshes/VolPrefab", bytes);
+
+        Assert.IsTrue(EditorPrefabUtility.TrySpawnLinkedPrefab(world, prefabEntry, bridge, float3.zero, quaternion.identity, float3.one, out var spawned, new PrefabSpawnOptions { ApplyTransform = false, RootName = "VolRoot" }));
+        var rootEcs = spawned[0].Entity;
+
+        var rootNode = new EntityNode(bridge.AllocateEntityId(), "VolRoot", Array.Empty<ComponentNode>())
+        {
+            EditorGuid = spawned[0].EditorGuid,
+            EcsEntity = rootEcs,
+            PrefabLink = spawned[0].Link
+        };
+        var lt = ComponentNodeFactory.CreateComponentNode(typeof(LocalTransform), rootNode, em.GetComponent<LocalTransform>(rootEcs), bridge);
+        var ltw = ComponentNodeFactory.CreateComponentNode(typeof(LocalToWorld), rootNode, em.GetComponent<LocalToWorld>(rootEcs), bridge);
+        var rvdc = ComponentNodeFactory.CreateVolumeComponentNode(rootNode, default, bridge);
+        var volProp = (VolumeOverridesPropertyNode)rvdc.Properties[0];
+        volProp.SetOverride(typeof(ExposureSettings));
+        volProp.SetFieldState(typeof(ExposureSettings), nameof(ExposureSettings.fixedExposure), true, 9.5f);
+        ComponentReflectionAccessor.TryAddOrSet(em, rootEcs, rvdc);
+        rootNode.Components = new[] { lt, ltw, rvdc };
+
+        var doc = SceneSerializer.SaveToDocument(new SceneSnapshot(new[] { rootNode }), bridge, new Dictionary<Guid, IAssetEntry> { [prefabGuid] = prefabEntry });
+        Assert.HasCount(1, doc.PrefabInstances);
+        Assert.IsNotNull(doc.PrefabInstances[0].AddedComponents);
+        Assert.IsTrue(doc.PrefabInstances[0].AddedComponents!.Any(a => a.Component == typeof(RenderVolumeDataContainer).FullName && a.VolumeOverrides != null && a.VolumeOverrides.Count == 1));
+
+        // Also verify sparse VolumeOverrides field application directly on a prefab instance record.
+        doc.PrefabInstances[0].VolumeOverrides = new List<ScenePrefabVolumeOverrideRecord>
+        {
+            new()
+            {
+                TargetGuid = rootNode.EditorGuid,
+                VolumeType = typeof(BloomSettings).FullName!,
+                Fields = new Dictionary<string, JsonElement>
+                {
+                    [nameof(BloomSettings.threshold)] = JsonSerializer.SerializeToElement(0.42f, SceneJsonOptions.Default)
+                }
+            },
+            new()
+            {
+                TargetGuid = rootNode.EditorGuid,
+                VolumeType = typeof(ExposureSettings).FullName!,
+                Fields = new Dictionary<string, JsonElement>
+                {
+                    [nameof(ExposureSettings.fixedExposure)] = JsonSerializer.SerializeToElement<object?>(null, SceneJsonOptions.Default)
+                }
+            }
+        };
+
+        var loadRes = SceneSerializer.LoadFromDocument(world, bridge, doc, SceneLoadingType.Single, guid => guid == prefabGuid ? prefabEntry : null);
+        Assert.IsTrue(loadRes.IsSuccess, loadRes.Message);
+
+        var rRoot = bridge.LatestSnapshot!.Entities.Single(e => e.PrefabLink?.TemplateEntityIndex == 0);
+        Assert.IsTrue(em.HasComponent<RenderVolumeDataContainer>(rRoot.EcsEntity));
+        ref readonly var container = ref em.GetComponent<RenderVolumeDataContainer>(rRoot.EcsEntity);
+        Assert.IsTrue(container.TryGet<BloomSettings>(out var bloom));
+        Assert.AreEqual(0.42f, bloom.threshold);
+        Assert.IsTrue(container.TryGet<ExposureSettings>(out var exp));
+        Assert.IsNull(exp.fixedExposure);
+
+        SceneSerializer.UnloadCurrentScene(world, bridge);
     }
 }

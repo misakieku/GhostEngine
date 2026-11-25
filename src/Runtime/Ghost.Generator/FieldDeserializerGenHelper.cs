@@ -110,14 +110,29 @@ namespace Ghost.Generator
         private static string? BuildFieldAssignmentCode(IFieldSymbol field, string readerVar, string targetVar)
         {
             var targetType = field.Type;
+            var isNullable = false;
             if (targetType is INamedTypeSymbol nullableNamed
                 && nullableNamed.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T
                 && nullableNamed.TypeArguments.Length == 1)
             {
                 targetType = nullableNamed.TypeArguments[0];
+                isNullable = true;
             }
 
             var targetMember = $"{targetVar}.{field.Name}";
+            var assignCode = BuildNonNullAssignmentCode(targetType, readerVar, targetMember);
+            if (assignCode == null)
+            {
+                return null;
+            }
+
+            return isNullable
+                ? $"if ({readerVar}.Kind == global::Ghost.Core.SceneFieldValueKind.None) {{ {targetMember} = null; }} else {{ {assignCode} }}"
+                : assignCode;
+        }
+
+        private static string? BuildNonNullAssignmentCode(ITypeSymbol targetType, string readerVar, string targetMember)
+        {
 
             switch (targetType.SpecialType)
             {

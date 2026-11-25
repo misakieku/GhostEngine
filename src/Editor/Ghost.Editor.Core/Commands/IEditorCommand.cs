@@ -4,6 +4,8 @@ public interface IEditorCommand
 {
     string Name { get; }
 
+    ushort? TargetSceneId => null;
+
     void Execute();
 
     void Undo();

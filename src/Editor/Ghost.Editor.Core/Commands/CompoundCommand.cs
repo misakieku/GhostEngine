@@ -6,6 +6,8 @@ public sealed class CompoundCommand : IEditorCommand
 
     public string Name { get; }
 
+    public ushort? TargetSceneId => _commands.Count > 0 ? _commands[0].TargetSceneId : null;
+
     public CompoundCommand(string name, IReadOnlyList<IEditorCommand> commands)
     {
         Name = name;

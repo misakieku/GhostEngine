@@ -22,7 +22,7 @@ public sealed class EditorSyncBridge
     private readonly Dictionary<Entity, Guid> _entityGuids = new();
     private readonly Dictionary<Entity, PrefabLinkInfo> _prefabLinks = new();
     private readonly Dictionary<Entity, (Guid MeshGuid, Guid[] MaterialGuids)> _initialMeshAuthoring = new();
-    private readonly Dictionary<ushort, (string Name, string? Path)> _registeredScenes = new() { [0] = ("Untitled", null) };
+    private readonly Dictionary<ushort, (string Name, string? Path, bool IsDirty)> _registeredScenes = new() { [0] = ("Untitled", null, false) };
     private readonly List<IAssetEntry> _sceneRetainedAssets = new();
     private readonly List<PropertyNode> _trackedResourceNodes = new();
     private readonly object _metadataLock = new();
@@ -38,7 +38,30 @@ public sealed class EditorSyncBridge
 
     public string? ActiveScenePath { get; set; }
 
-    public bool HasUnsavedSceneChanges { get; set; }
+    public bool HasUnsavedSceneChanges
+    {
+        get => AnySceneDirty;
+        set => SetSceneDirty(ActiveSceneId, value);
+    }
+
+    public bool AnySceneDirty
+    {
+        get
+        {
+            lock (_metadataLock)
+            {
+                foreach (var entry in _registeredScenes.Values)
+                {
+                    if (entry.IsDirty)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+    }
 
     public EditorDirtyTracker DirtyTracker { get; } = new();
 
@@ -226,7 +249,7 @@ public sealed class EditorSyncBridge
         return false;
     }
 
-    public void RegisterScene(ushort sceneId, string? scenePath, string? nameOverride = null)
+    public void RegisterScene(ushort sceneId, string? scenePath, string? nameOverride = null, bool? isDirty = null)
     {
         var displayName = !string.IsNullOrWhiteSpace(nameOverride)
             ? nameOverride.Trim()
@@ -234,18 +257,88 @@ public sealed class EditorSyncBridge
 
         lock (_metadataLock)
         {
-            _registeredScenes[sceneId] = (displayName, scenePath);
+            var resolvedDirty = isDirty ?? (_registeredScenes.TryGetValue(sceneId, out var existing) && existing.IsDirty);
+            _registeredScenes[sceneId] = (displayName, scenePath, resolvedDirty);
+        }
+    }
+
+    public void SetSceneDirty(ushort sceneId, bool isDirty)
+    {
+        lock (_metadataLock)
+        {
+            if (_registeredScenes.TryGetValue(sceneId, out var existing))
+            {
+                _registeredScenes[sceneId] = (existing.Name, existing.Path, isDirty);
+            }
+            else if (sceneId == 0)
+            {
+                var displayName = !string.IsNullOrWhiteSpace(ActiveScenePath) ? Path.GetFileNameWithoutExtension(ActiveScenePath) : "Untitled";
+                _registeredScenes[0] = (displayName, ActiveScenePath, isDirty);
+            }
+        }
+    }
+
+    public bool IsSceneDirty(ushort sceneId)
+    {
+        lock (_metadataLock)
+        {
+            return _registeredScenes.TryGetValue(sceneId, out var existing) && existing.IsDirty;
+        }
+    }
+
+    public bool TryGetScenePath(ushort sceneId, out string? scenePath)
+    {
+        lock (_metadataLock)
+        {
+            if (_registeredScenes.TryGetValue(sceneId, out var existing))
+            {
+                scenePath = existing.Path;
+                return true;
+            }
+        }
+
+        scenePath = null;
+        return false;
+    }
+
+    public ushort AllocateSceneId()
+    {
+        lock (_metadataLock)
+        {
+            var candidate = unchecked((ushort)(ActiveSceneId + 1));
+            while (_registeredScenes.ContainsKey(candidate))
+            {
+                candidate = unchecked((ushort)(candidate + 1));
+            }
+
+            return candidate;
+        }
+    }
+
+    public bool UnregisterScene(ushort sceneId)
+    {
+        lock (_metadataLock)
+        {
+            return _registeredScenes.Remove(sceneId);
+        }
+    }
+
+    public IReadOnlyList<ushort> GetRegisteredSceneIds()
+    {
+        lock (_metadataLock)
+        {
+            return _registeredScenes.Keys.OrderBy(static k => k).ToArray();
         }
     }
 
     public IReadOnlyList<SceneNode> GetSceneNodeSnapshots(IReadOnlyList<EntityNode> entities)
     {
-        KeyValuePair<ushort, (string Name, string? Path)>[] entries;
+        KeyValuePair<ushort, (string Name, string? Path, bool IsDirty)>[] entries;
         lock (_metadataLock)
         {
             if (_registeredScenes.Count == 0)
             {
-                _registeredScenes[0] = ("Untitled", ActiveScenePath);
+                _registeredScenes[0] = ("Untitled", ActiveScenePath, false);
             }
 
             entries = _registeredScenes.OrderBy(static kvp => kvp.Key).ToArray();
@@ -265,8 +358,7 @@ public sealed class EditorSyncBridge
                 }
             }
 
-            var isDirty = HasUnsavedSceneChanges && sceneId == ActiveSceneId;
-            result[i] = new SceneNode(-(sceneId + 1), info.Name, sceneId, info.Path, isDirty, count);
+            result[i] = new SceneNode(-(sceneId + 1), info.Name, sceneId, info.Path, info.IsDirty, count);
         }
 
         return result;
@@ -282,7 +374,7 @@ public sealed class EditorSyncBridge
             _prefabLinks.Clear();
             _initialMeshAuthoring.Clear();
             _registeredScenes.Clear();
-            _registeredScenes[0] = ("Untitled", ActiveScenePath);
+            _registeredScenes[0] = ("Untitled", ActiveScenePath, false);
         }
     }
 
