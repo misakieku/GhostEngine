@@ -176,42 +176,6 @@ internal sealed class RenderGraphCompilationCache : IDisposable
         return ref _cached;
     }
 
-    public ref readonly CachedCompilation UpdateResizedAliasing(ref AliasingPlan aliasingPlan, ViewportState viewport, AllocationHandle allocationHandle)
-    {
-        var aliasedLogicalResourceCount = 0;
-        for (var i = 0; i < aliasingPlan.placedResources.Count; i++)
-        {
-            aliasedLogicalResourceCount += aliasingPlan.placedResources[i].aliasedLogicalResources.Count;
-        }
-
-        if (_cached.placedResources.Length != aliasingPlan.placedResources.Count)
-        {
-            if (_cached.placedResources.IsCreated) _cached.placedResources.Dispose();
-            _cached.placedResources = new UnsafeArray<PlacedResourceData>(aliasingPlan.placedResources.Count, allocationHandle);
-        }
-
-        if (_cached.aliasedLogicalResources.Length != aliasedLogicalResourceCount)
-        {
-            if (_cached.aliasedLogicalResources.IsCreated) _cached.aliasedLogicalResources.Dispose();
-            _cached.aliasedLogicalResources = new UnsafeArray<int>(aliasedLogicalResourceCount, allocationHandle);
-        }
-
-        if (aliasingPlan.logicalToPlaced.IsCreated && _cached.logicalToPlaced.Length != aliasingPlan.logicalToPlaced.Length)
-        {
-            if (_cached.logicalToPlaced.IsCreated) _cached.logicalToPlaced.Dispose();
-            _cached.logicalToPlaced = new UnsafeArray<int>(aliasingPlan.logicalToPlaced.Length, allocationHandle);
-            if (_cached.logicalToPlaced.Length > 0)
-            {
-                _cached.logicalToPlaced.AsSpan().Fill(-1);
-            }
-        }
-
-        _cached.totalHeapSize = aliasingPlan.totalHeapSize;
-        _cached.viewport = viewport;
-        aliasingPlan.StoreToCache(ref _cached.logicalToPlaced, ref _cached.placedResources, ref _cached.aliasedLogicalResources);
-        return ref _cached;
-    }
-
     public void Invalidate()
     {
         _hasCachedData = false;

@@ -142,7 +142,8 @@ internal unsafe partial class RenderGraphCompiler
         ReadOnlySpan<int> handoffAcquireHeads,
         ReadOnlySpan<int> splitBeginHeads,
         ReadOnlySpan<SplitBarrierPlan> splitPlans,
-        Span<ActiveSplitPlan> activeSplitPlans)
+        Span<ActiveSplitPlan> activeSplitPlans,
+        Span<bool> aliasingFlushed)
     {
         var startPos = writer.Position;
 
@@ -150,7 +151,19 @@ internal unsafe partial class RenderGraphCompiler
         writer.Write(RGExecutionOpType.IssueBarriers);
         writer.Write(0); // Count placeholder
 
-        var count = WriteQueueHandoffBarriers(ref writer, handoffs, handoffAcquireHeads, scheduleIndex, release: false);
+        var count = EmitSameCommandBufferAliasingFlushes(
+            usages,
+            scheduleIndex,
+            effectiveQueue,
+            commandBufferId,
+            ref writer,
+            ref aliasingPlan,
+            resourceOrdering,
+            resourceStates,
+            handoffs,
+            handoffAcquireHeads,
+            aliasingFlushed);
+        count += WriteQueueHandoffBarriers(ref writer, handoffs, handoffAcquireHeads, scheduleIndex, release: false);
         count += EmitSplitBeginBarriers(scheduleIndex, splitBeginHeads, splitPlans, activeSplitPlans, resourceStates, effectiveQueue, commandBufferId, ref writer);
         count += EmitImplicitTransitions(
             usages,
@@ -163,7 +176,8 @@ internal unsafe partial class RenderGraphCompiler
             resourceStates,
             handoffs,
             handoffAcquireHeads,
-            activeSplitPlans);
+            activeSplitPlans,
+            aliasingFlushed);
 
         if (count > 0)
         {
@@ -195,7 +209,8 @@ internal unsafe partial class RenderGraphCompiler
         ReadOnlySpan<int> handoffAcquireHeads,
         ReadOnlySpan<int> splitBeginHeads,
         ReadOnlySpan<SplitBarrierPlan> splitPlans,
-        Span<ActiveSplitPlan> activeSplitPlans)
+        Span<ActiveSplitPlan> activeSplitPlans,
+        Span<bool> aliasingFlushed)
     {
         var startPos = writer.Position;
 
@@ -208,11 +223,11 @@ internal unsafe partial class RenderGraphCompiler
         for (var i = 0; i < passCount; i++)
         {
             var mergedScheduleIndex = startScheduleIndex + i;
-            count += WriteQueueHandoffBarriers(ref writer, handoffs, handoffAcquireHeads, mergedScheduleIndex, release: false);
-
             ref readonly var usageRange = ref usageRanges[mergedScheduleIndex];
-            count += EmitImplicitTransitions(
-                allUsages.Slice(usageRange.start, usageRange.count),
+            var usages = allUsages.Slice(usageRange.start, usageRange.count);
+
+            count += EmitSameCommandBufferAliasingFlushes(
+                usages,
                 mergedScheduleIndex,
                 effectiveQueues[mergedScheduleIndex],
                 commandBufferId,
@@ -222,7 +237,21 @@ internal unsafe partial class RenderGraphCompiler
                 resourceStates,
                 handoffs,
                 handoffAcquireHeads,
-                activeSplitPlans);
+                aliasingFlushed);
+            count += WriteQueueHandoffBarriers(ref writer, handoffs, handoffAcquireHeads, mergedScheduleIndex, release: false);
+            count += EmitImplicitTransitions(
+                usages,
+                mergedScheduleIndex,
+                effectiveQueues[mergedScheduleIndex],
+                commandBufferId,
+                ref writer,
+                ref aliasingPlan,
+                resourceOrdering,
+                resourceStates,
+                handoffs,
+                handoffAcquireHeads,
+                activeSplitPlans,
+                aliasingFlushed);
         }
 
         if (count > 0)
@@ -240,7 +269,36 @@ internal unsafe partial class RenderGraphCompiler
         return count;
     }
 
-    private bool TryGetAliasingPredecessor(int scheduleIndex, Identifier<RGResource> resourceId, ref AliasingPlan aliasingPlan, RenderGraphResourceOrdering resourceOrdering, out Identifier<RGResource> predecessor)
+    private static bool IsDominatedAliasingPredecessor(int candidateLogicalIndex, int successorLogicalIndex, ReadOnlySpan<int> aliasedLogicalResources,
+        ref AliasingPlan aliasingPlan, RenderGraphResourceOrdering resourceOrdering)
+    {
+        for (var i = 0; i < aliasedLogicalResources.Length; i++)
+        {
+            var otherLogicalIndex = aliasedLogicalResources[i];
+            if (otherLogicalIndex == successorLogicalIndex
+                || otherLogicalIndex == candidateLogicalIndex
+                || !resourceOrdering.AllUsesHappenBefore(otherLogicalIndex, successorLogicalIndex)
+                || !resourceOrdering.AllUsesHappenBefore(candidateLogicalIndex, otherLogicalIndex))
+            {
+                continue;
+            }
+
+            var otherPlacedIdx = aliasingPlan.GetPlacedResourceIndex(otherLogicalIndex);
+            if (otherPlacedIdx >= 0)
+            {
+                var otherPlaced = aliasingPlan.GetPlacedResource(otherPlacedIdx);
+                if (otherPlaced.IsSuccess && otherPlaced.Value.aliasedLogicalResources.Contains(candidateLogicalIndex))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryGetMostRecentAliasingPredecessor(int scheduleIndex, Identifier<RGResource> resourceId, ref AliasingPlan aliasingPlan,
+        RenderGraphResourceOrdering resourceOrdering, out Identifier<RGResource> predecessor)
     {
         predecessor = Identifier<RGResource>.Invalid;
         ref readonly var resource = ref _resourceRegistry.GetResource(resourceId);
@@ -279,6 +337,75 @@ internal unsafe partial class RenderGraphCompiler
         }
 
         return predecessor.IsValid;
+    }
+
+    private int EmitSameCommandBufferAliasingFlushes(ReadOnlySpan<ResolvedPassResourceUsage> usages, int scheduleIndex, CommandQueueType effectiveQueue, int commandBufferId,
+        ref BufferWriter writer, ref AliasingPlan aliasingPlan, RenderGraphResourceOrdering resourceOrdering, ReadOnlySpan<CompiledResourceState> resourceStates,
+        ReadOnlySpan<QueueHandoff> handoffs, ReadOnlySpan<int> handoffAcquireHeads, Span<bool> aliasingFlushed)
+    {
+        var count = 0;
+        for (var usageIndex = 0; usageIndex < usages.Length; usageIndex++)
+        {
+            ref readonly var usage = ref usages[usageIndex];
+            ref readonly var res = ref _resourceRegistry.GetResource(usage.resource);
+            if (res.isImported && !res.isAllocated)
+            {
+                continue;
+            }
+
+            if (res.isImported || res.inPlacePredecessor.IsValid || !resourceOrdering.IsFirstUse(usage.resource.Value, scheduleIndex))
+            {
+                continue;
+            }
+
+            var placedIndex = aliasingPlan.GetPlacedResourceIndex(usage.resource.Value);
+            if (placedIndex < 0)
+            {
+                continue;
+            }
+
+            var placed = aliasingPlan.GetPlacedResource(placedIndex);
+            if (placed.IsFailure || placed.Value.aliasedLogicalResources.Count <= 1)
+            {
+                continue;
+            }
+
+            var hasQueueAcquire = HasQueueAcquire(handoffs, handoffAcquireHeads, scheduleIndex, usage.resource);
+            var members = placed.Value.aliasedLogicalResources.AsSpan();
+            for (var i = 0; i < members.Length; i++)
+            {
+                var otherLogicalIndex = members[i];
+                if (otherLogicalIndex == usage.resource.Value
+                    || aliasingFlushed[otherLogicalIndex]
+                    || !resourceOrdering.AllUsesHappenBefore(otherLogicalIndex, usage.resource.Value)
+                    || IsDominatedAliasingPredecessor(otherLogicalIndex, usage.resource.Value, members, ref aliasingPlan, resourceOrdering))
+                {
+                    continue;
+                }
+
+                ref readonly var predState = ref resourceStates[otherLogicalIndex];
+                if (!predState.isValid || predState.commandBufferId != commandBufferId)
+                {
+                    continue;
+                }
+
+                // Flush same-CB writer predecessors, or same-CB read predecessors when a QueueAcquire follows.
+                if (predState.writes || hasQueueAcquire)
+                {
+                    count += AddTransition(
+                        new Identifier<RGResource>(otherLogicalIndex),
+                        predState.state,
+                        new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierSync.All),
+                        Identifier<RGResource>.Invalid,
+                        BarrierFlags.ExplicitSource | BarrierFlags.AliasingFlush | BarrierFlags.Force,
+                        effectiveQueue,
+                        ref writer);
+                    aliasingFlushed[otherLogicalIndex] = true;
+                }
+            }
+        }
+
+        return count;
     }
 
     private static void ApplyUsage(
@@ -557,7 +684,8 @@ internal unsafe partial class RenderGraphCompiler
         Span<CompiledResourceState> resourceStates,
         ReadOnlySpan<QueueHandoff> handoffs,
         ReadOnlySpan<int> handoffAcquireHeads,
-        Span<ActiveSplitPlan> activeSplitPlans)
+        Span<ActiveSplitPlan> activeSplitPlans,
+        ReadOnlySpan<bool> aliasingFlushed)
     {
         var count = 0;
         for (var usageIndex = 0; usageIndex < usages.Length; usageIndex++)
@@ -611,29 +739,28 @@ internal unsafe partial class RenderGraphCompiler
             }
 
             var flags = BarrierFlags.None;
-            var hasAliasingPredecessor = TryGetAliasingPredecessor(scheduleIndex, usage.resource, ref aliasingPlan, resourceOrdering, out var aliasingPredecessor);
+            var hasAliasingPredecessor = TryGetMostRecentAliasingPredecessor(scheduleIndex, usage.resource, ref aliasingPlan, resourceOrdering, out var aliasingPredecessor);
             var aliasingSourceSync = BarrierSync.None;
             if (hasAliasingPredecessor)
             {
                 flags = BarrierFlags.FirstUsage | BarrierFlags.Discard;
-                ref readonly var predState = ref resourceStates[aliasingPredecessor.Value];
-                if (predState.isValid && predState.commandBufferId == commandBufferId)
+                var placed = aliasingPlan.GetPlacedResource(aliasingPlan.GetPlacedResourceIndex(usage.resource.Value));
+                var members = placed.Value.aliasedLogicalResources.AsSpan();
+                for (var i = 0; i < members.Length; i++)
                 {
-                    if (predState.writes)
+                    var otherLogicalIndex = members[i];
+                    if (otherLogicalIndex == usage.resource.Value
+                        || aliasingFlushed[otherLogicalIndex]
+                        || !resourceOrdering.AllUsesHappenBefore(otherLogicalIndex, usage.resource.Value)
+                        || IsDominatedAliasingPredecessor(otherLogicalIndex, usage.resource.Value, members, ref aliasingPlan, resourceOrdering))
                     {
-                        // Flush predecessor writes in a separate barrier call before successor DISCARD.
-                        count += AddTransition(
-                            aliasingPredecessor,
-                            predState.state,
-                            new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierSync.All),
-                            Identifier<RGResource>.Invalid,
-                            BarrierFlags.ExplicitSource | BarrierFlags.AliasingFlush | BarrierFlags.Force,
-                            effectiveQueue,
-                            ref writer);
+                        continue;
                     }
-                    else
+
+                    ref readonly var predState = ref resourceStates[otherLogicalIndex];
+                    if (predState.isValid && predState.commandBufferId == commandBufferId && !predState.writes)
                     {
-                        aliasingSourceSync = predState.state.sync;
+                        aliasingSourceSync |= predState.state.sync;
                     }
                 }
             }

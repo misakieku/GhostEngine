@@ -98,53 +98,9 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         // Try to restore from cache
         if (_compilationCache.TryGetCached(graphHash, flags, out var cached))
         {
-            // Check if view state changed
+            // Check if view state grew beyond the cached resolution
             var scale = viewport.CalculateScale(cached.viewport);
-            if (math.any(scale > float2.one))
-            {
-                // View state changed - re-resolve sizes and recreate GPU resources
-                _resourceRegistry.ResolveTextureSizes(in viewport);
-
-                var resizedPlan = RenderGraphAliasingBuilder.ResizeCachedSlots(
-                    _resourceRegistry,
-                    _resourceAllocator,
-                    cached.logicalToPlaced,
-                    cached.placedResources,
-                    cached.aliasedLogicalResources,
-                    allocationHandle);
-                try
-                {
-                    error = _resourceRegistry.AllocateBackingResources(ref resizedPlan, _compilationCache);
-                    if (error != Error.None)
-                    {
-                        return error;
-                    }
-
-                    ref readonly var updated = ref _compilationCache.UpdateResizedAliasing(ref resizedPlan, viewport, allocationHandle);
-
-                    return new CompiledGraph
-                    {
-                        scale = float2.one,
-                        placedResources = updated.placedResources,
-                        aliasedLogicalResources = updated.aliasedLogicalResources,
-                        logicalToPlaced = updated.logicalToPlaced,
-                        totalHeapSize = updated.totalHeapSize,
-                        graphHash = graphHash,
-                        passes = passes,
-                        compiledPasses = updated.compiledPassIndices,
-                        nativePasses = updated.nativePasses,
-                        commandStream = updated.commandBytes,
-                        resourceFirstUseScheduleIndices = updated.resourceFirstUseScheduleIndices,
-                        resourceLastUseScheduleIndices = updated.resourceLastUseScheduleIndices,
-                        cacheHit = true
-                    };
-                }
-                finally
-                {
-                    resizedPlan.Dispose();
-                }
-            }
-            else
+            if (!math.any(scale > float2.one))
             {
                 // Perfect cache hit - restore everything without allocating an AliasingPlan
                 RestorePassCulledFlags(cached, passes);
@@ -1143,6 +1099,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         using var splitBeginHeads = new UnsafeArray<int>(compiledPasses.Length, scope.AllocationHandle);
         splitBeginHeads.AsSpan().Fill(-1);
         using var activeSplitPlans = new UnsafeArray<ActiveSplitPlan>(_resourceRegistry.ResourceCount, scope.AllocationHandle, AllocationOption.Clear);
+        using var aliasingFlushed = new UnsafeArray<bool>(_resourceRegistry.ResourceCount, scope.AllocationHandle, AllocationOption.Clear);
 
         if (!flags.HasFlag(RGFlags.DisableSplitBarriers))
         {
@@ -1214,7 +1171,8 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     handoffAcquireHeads.AsSpan(),
                     splitBeginHeads.AsSpan(),
                     splitPlans.AsSpan(),
-                    activeSplitPlans.AsSpan());
+                    activeSplitPlans.AsSpan(),
+                    aliasingFlushed.AsSpan());
 
                 // Begin Native Render Pass
                 writer.Write(RGExecutionOpType.BeginNativePass);
@@ -1250,7 +1208,8 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     handoffAcquireHeads.AsSpan(),
                     splitBeginHeads.AsSpan(),
                     splitPlans.AsSpan(),
-                    activeSplitPlans.AsSpan());
+                    activeSplitPlans.AsSpan(),
+                    aliasingFlushed.AsSpan());
 
                 writer.Write(RGExecutionOpType.ExecutePass);
                 writer.Write(logicalPassIndex);

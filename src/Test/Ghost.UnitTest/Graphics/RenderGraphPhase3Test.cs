@@ -267,26 +267,265 @@ public partial class RenderGraphTest
     }
 
     [TestMethod]
-    public void TestPhase3_ViewportGrowthPreservesAliasGroupsAndCommandBytes()
+    public void TestPhase3_ViewportGrowthRecompilesAndCachesAtNewResolution()
     {
         SetupTestRenderPipeline();
         var firstExecution = CompileAndExecute(new ViewportState(960, 540, 960, 540), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(firstExecution.Dump);
+        Assert.IsFalse(firstExecution.Dump.IsCacheHit);
 
         _renderGraph.Reset();
         SetupTestRenderPipeline();
         var grownExecution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(grownExecution.Dump);
-        Assert.IsTrue(grownExecution.Dump.IsCacheHit);
-        Assert.IsTrue(firstExecution.Dump.CommandStream.SequenceEqual(grownExecution.Dump.CommandStream));
+        Assert.IsFalse(grownExecution.Dump.IsCacheHit, "Growing beyond cached viewport must recompile to recompute 2D aliasing intervals.");
+        Assert.IsGreaterThan(firstExecution.Dump.TotalHeapSize, grownExecution.Dump.TotalHeapSize);
 
-        foreach (var firstResource in firstExecution.Dump.Resources)
+        _renderGraph.Reset();
+        SetupTestRenderPipeline();
+        var secondAtNewResolution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
+        Assert.IsNotNull(secondAtNewResolution.Dump);
+        Assert.IsTrue(secondAtNewResolution.Dump.IsCacheHit);
+        Assert.IsTrue(grownExecution.Dump.CommandStream.SequenceEqual(secondAtNewResolution.Dump.CommandStream));
+    }
+
+    [TestMethod]
+    public void TestPhase3_SubRangeAliasing_BigFitsTwoConcurrentSmallResourcesAndFlushesOnce()
+    {
+        const ulong size64Mb = 64UL * 1024 * 1024;
+        const ulong size32Mb = 32UL * 1024 * 1024;
+
+        Identifier<RGBuffer> big;
+        Identifier<RGBuffer> chain;
+        using (var builder = _renderGraph.AddComputeRenderPass<CullingPassData>("BigWriter"))
         {
-            var grownResource = grownExecution.Dump.Resources.Single(
-                resource => resource.LogicalResourceId == firstResource.LogicalResourceId);
-            Assert.IsTrue(firstResource.AliasedWithResources.SequenceEqual(grownResource.AliasedWithResources));
-            Assert.AreEqual(firstResource.ScheduledFirstUseIndex, grownResource.ScheduledFirstUseIndex);
-            Assert.AreEqual(firstResource.ScheduledLastUseIndex, grownResource.ScheduledLastUseIndex);
+            builder.AllowPassCulling(false);
+            big = builder.CreateBuffer(new BufferDesc { Size = size64Mb }, "Big64MB");
+            chain = builder.CreateBuffer(new BufferDesc { Size = 256 }, "BigChain");
+            builder.UseBuffer(big, AccessFlags.WriteAll);
+            builder.UseBuffer(chain, AccessFlags.WriteAll);
+            builder.SetPassData(new CullingPassData());
+            builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
         }
+
+        Identifier<RGBuffer> smallA;
+        Identifier<RGBuffer> smallB;
+        using (var builder = _renderGraph.AddComputeRenderPass<CullingPassData>("SmallConcurrentPass"))
+        {
+            builder.AllowPassCulling(false);
+            builder.UseBuffer(chain, AccessFlags.Read);
+            smallA = builder.CreateBuffer(new BufferDesc { Size = size32Mb }, "SmallA32MB");
+            smallB = builder.CreateBuffer(new BufferDesc { Size = size32Mb }, "SmallB32MB");
+            builder.UseBuffer(smallA, AccessFlags.WriteAll);
+            builder.UseBuffer(smallB, AccessFlags.WriteAll);
+            builder.SetPassData(new CullingPassData());
+            builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        var dump = CompilePlannerDump();
+        var bigRes = dump.Resources.Single(r => r.LogicalResourceId == big.Value);
+        var smallARes = dump.Resources.Single(r => r.LogicalResourceId == smallA.Value);
+        var smallBRes = dump.Resources.Single(r => r.LogicalResourceId == smallB.Value);
+
+        Assert.AreEqual(size64Mb + 65536UL, dump.TotalHeapSize);
+        Assert.AreEqual(0UL, bigRes.HeapOffset);
+        Assert.AreEqual(0UL, smallARes.HeapOffset);
+        Assert.AreEqual(size32Mb, smallBRes.HeapOffset);
+        Assert.Contains(smallA.Value, bigRes.AliasedWithResources);
+        Assert.Contains(smallB.Value, bigRes.AliasedWithResources);
+        Assert.DoesNotContain(smallB.Value, smallARes.AliasedWithResources);
+        Assert.HasCount(2, dump.MemoryBlocks.Where(b => !b.IsFree).ToList());
+        Assert.AreEqual(size64Mb, dump.MemoryBlocks[0].Size);
+        Assert.IsFalse(dump.MemoryBlocks[0].IsFree);
+        Assert.Contains(big.Value, dump.MemoryBlocks[0].AliasedLogicalResources);
+        Assert.Contains(smallA.Value, dump.MemoryBlocks[0].AliasedLogicalResources);
+        Assert.Contains(smallB.Value, dump.MemoryBlocks[0].AliasedLogicalResources);
+
+        var bigFlushes = dump.CommandStream
+            .Where(line => line.Contains("AliasingFlush:", StringComparison.Ordinal) && line.Contains($"[Buffer #{big.Value}]", StringComparison.Ordinal))
+            .ToList();
+        Assert.HasCount(1, bigFlushes, "Big64MB must only be flushed once when two concurrent 32MB resources reuse its range.");
+    }
+
+    [TestMethod]
+    public void TestPhase3_SubRangeAliasing_TwoSmallPredecessorsFlushBeforeBigSuccessor()
+    {
+        const ulong size64Mb = 64UL * 1024 * 1024;
+        const ulong size32Mb = 32UL * 1024 * 1024;
+
+        Identifier<RGBuffer> smallA;
+        Identifier<RGBuffer> smallB;
+        Identifier<RGBuffer> chain;
+        using (var builder = _renderGraph.AddComputeRenderPass<CullingPassData>("SmallWritersA"))
+        {
+            builder.AllowPassCulling(false);
+            smallA = builder.CreateBuffer(new BufferDesc { Size = size32Mb }, "SubPredA");
+            smallB = builder.CreateBuffer(new BufferDesc { Size = size32Mb }, "SubPredB");
+            chain = builder.CreateBuffer(new BufferDesc { Size = 256 }, "SubPredChain");
+            builder.UseBuffer(smallA, AccessFlags.WriteAll);
+            builder.UseBuffer(smallB, AccessFlags.WriteAll);
+            builder.UseBuffer(chain, AccessFlags.WriteAll);
+            builder.SetPassData(new CullingPassData());
+            builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        using (var builder = _renderGraph.AddComputeRenderPass<CullingPassData>("SmallReaders"))
+        {
+            builder.AllowPassCulling(false);
+            builder.UseBuffer(smallA, AccessFlags.Read);
+            builder.UseBuffer(smallB, AccessFlags.Read);
+            builder.UseBuffer(chain, AccessFlags.ReadWrite);
+            builder.SetPassData(new CullingPassData());
+            builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        Identifier<RGBuffer> big;
+        using (var builder = _renderGraph.AddComputeRenderPass<CullingPassData>("BigSuccessorPass"))
+        {
+            builder.AllowPassCulling(false);
+            builder.UseBuffer(chain, AccessFlags.Read);
+            big = builder.CreateBuffer(new BufferDesc { Size = size64Mb }, "SubSuccBig");
+            builder.UseBuffer(big, AccessFlags.WriteAll);
+            builder.SetPassData(new CullingPassData());
+            builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        var dump = CompilePlannerDump();
+        var resA = dump.Resources.Single(r => r.LogicalResourceId == smallA.Value);
+        var resB = dump.Resources.Single(r => r.LogicalResourceId == smallB.Value);
+        var resBig = dump.Resources.Single(r => r.LogicalResourceId == big.Value);
+
+        Assert.AreEqual(size64Mb + 65536UL, dump.TotalHeapSize);
+        Assert.AreEqual(0UL, resBig.HeapOffset);
+        Assert.AreEqual(0UL, resA.HeapOffset);
+        Assert.AreEqual(size32Mb, resB.HeapOffset);
+        Assert.Contains(smallA.Value, resBig.AliasedWithResources);
+        Assert.Contains(smallB.Value, resBig.AliasedWithResources);
+
+        var bigAliasingLines = dump.CommandStream
+            .Where(line => line.Contains("Aliasing:", StringComparison.Ordinal) && line.Contains($"[Buffer #{big.Value}]", StringComparison.Ordinal))
+            .ToList();
+        Assert.HasCount(1, bigAliasingLines);
+    }
+
+    [TestMethod]
+    public void TestPhase3_SubRangeAliasing_MixedWriteAndReadPredecessorsFlushWriterBeforeDiscard()
+    {
+        const ulong size64Mb = 64UL * 1024 * 1024;
+        const ulong size32Mb = 32UL * 1024 * 1024;
+
+        Identifier<RGBuffer> writeOnly32;
+        Identifier<RGBuffer> readOnly32;
+        Identifier<RGBuffer> chain;
+        using (var builder = _renderGraph.AddComputeRenderPass<CullingPassData>("PredWriteOnly"))
+        {
+            builder.AllowPassCulling(false);
+            writeOnly32 = builder.CreateBuffer(new BufferDesc { Size = size32Mb }, "WriteOnly32");
+            readOnly32 = builder.CreateBuffer(new BufferDesc { Size = size32Mb }, "ReadOnly32");
+            chain = builder.CreateBuffer(new BufferDesc { Size = 256 }, "Chain0");
+            builder.UseBuffer(writeOnly32, AccessFlags.WriteAll);
+            builder.UseBuffer(readOnly32, AccessFlags.WriteAll);
+            builder.UseBuffer(chain, AccessFlags.WriteAll);
+            builder.SetPassData(new CullingPassData());
+            builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        using (var builder = _renderGraph.AddComputeRenderPass<CullingPassData>("PredReadOnly"))
+        {
+            builder.AllowPassCulling(false);
+            builder.UseBuffer(readOnly32, AccessFlags.Read);
+            builder.UseBuffer(chain, AccessFlags.ReadWrite);
+            builder.SetPassData(new CullingPassData());
+            builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        Identifier<RGBuffer> big64;
+        using (var builder = _renderGraph.AddComputeRenderPass<CullingPassData>("SuccBig64"))
+        {
+            builder.AllowPassCulling(false);
+            builder.UseBuffer(chain, AccessFlags.Read);
+            big64 = builder.CreateBuffer(new BufferDesc { Size = size64Mb }, "SuccBig64");
+            builder.UseBuffer(big64, AccessFlags.WriteAll);
+            builder.SetPassData(new CullingPassData());
+            builder.SetRenderFunc<CullingPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        var dump = CompilePlannerDump();
+        var writeRes = dump.Resources.Single(r => r.LogicalResourceId == writeOnly32.Value);
+        var readRes = dump.Resources.Single(r => r.LogicalResourceId == readOnly32.Value);
+        var bigRes = dump.Resources.Single(r => r.LogicalResourceId == big64.Value);
+
+        Assert.AreNotEqual(writeRes.HeapOffset, readRes.HeapOffset);
+        Assert.Contains(writeOnly32.Value, bigRes.AliasedWithResources);
+        Assert.Contains(readOnly32.Value, bigRes.AliasedWithResources);
+        Assert.IsTrue(dump.CommandStream.Any(line =>
+            line.Contains("AliasingFlush:", StringComparison.Ordinal)
+            && line.Contains($"[Buffer #{writeOnly32.Value}]", StringComparison.Ordinal)),
+            "WriteOnly32 must be flushed before SuccBig64 even though ReadOnly32 had a later last-use index.");
+    }
+
+    [TestMethod]
+    public void TestPhase3_SubRangeAliasing_CrossQueueAndSameQueuePredecessorsBothSynchronizeBeforeBig()
+    {
+        const ulong size64Mb = 64UL * 1024 * 1024;
+        const ulong size32Mb = 32UL * 1024 * 1024;
+
+        Identifier<RGBuffer> gfxSmall;
+        using (var builder = _renderGraph.AddRasterRenderPass<AsyncPlannerPassData>("GfxProducerAndSmall"))
+        {
+            builder.AllowPassCulling(false);
+            gfxSmall = builder.CreateBuffer(new BufferDesc { Size = size32Mb }, "GfxSmall32");
+            builder.UseRandomAccessBuffer(gfxSmall);
+            var rt = builder.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8G8B8A8_UNorm), "GfxSmallTarget");
+            builder.SetColorAttachment(rt, 0, AccessFlags.WriteAll);
+            builder.SetPassData(new AsyncPlannerPassData { firstBuffer = gfxSmall, target = rt });
+            builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        Identifier<RGBuffer> computeSmall;
+        Identifier<RGBuffer> computeSignal;
+        using (var builder = _renderGraph.AddComputeRenderPass<AsyncPlannerPassData>("AsyncComputeSmall"))
+        {
+            builder.AllowPassCulling(false);
+            builder.EnableAsyncCompute(true);
+            computeSmall = builder.CreateBuffer(new BufferDesc { Size = size32Mb }, "ComputeSmall32");
+            computeSignal = builder.CreateBuffer(new BufferDesc { Size = 256 }, "ComputeSignal");
+            builder.UseBuffer(computeSmall, AccessFlags.WriteAll);
+            builder.UseBuffer(computeSignal, AccessFlags.WriteAll);
+            builder.SetPassData(new AsyncPlannerPassData { firstBuffer = computeSmall, secondBuffer = computeSignal });
+            builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => ctx.DispatchCompute(1, 1, 1));
+        }
+
+        // Independent raster work gives AsyncComputeSmall an overlap window on Compute.
+        AddPlannerRasterPass("MixedAliasIndependent");
+
+        Identifier<RGBuffer> big;
+        using (var builder = _renderGraph.AddRasterRenderPass<AsyncPlannerPassData>("MixedAliasJoinBig"))
+        {
+            builder.AllowPassCulling(false);
+            builder.UseBuffer(computeSignal, AccessFlags.Read);
+            big = builder.CreateBuffer(new BufferDesc { Size = size64Mb }, "MixedJoinBig64");
+            builder.UseRandomAccessBuffer(big);
+            var rt = builder.CreateTexture(RGTextureDesc.Relative(1.0f, TextureFormat.R8G8B8A8_UNorm), "MixedJoinTarget");
+            builder.SetColorAttachment(rt, 0, AccessFlags.WriteAll);
+            builder.SetPassData(new AsyncPlannerPassData { firstBuffer = computeSignal, secondBuffer = big, target = rt });
+            builder.SetRenderFunc<AsyncPlannerPassData>(static (ref readonly data, ctx) => { });
+        }
+
+        var dump = CompilePlannerDump();
+        var gfxRes = dump.Resources.Single(r => r.LogicalResourceId == gfxSmall.Value);
+        var computeRes = dump.Resources.Single(r => r.LogicalResourceId == computeSmall.Value);
+        var bigRes = dump.Resources.Single(r => r.LogicalResourceId == big.Value);
+
+        Assert.AreEqual(CommandQueueType.Compute, dump.Passes.Single(p => p.Name == "AsyncComputeSmall").EffectiveQueue);
+        Assert.AreNotEqual(gfxRes.HeapOffset, computeRes.HeapOffset);
+        Assert.Contains(gfxSmall.Value, bigRes.AliasedWithResources);
+        Assert.Contains(computeSmall.Value, bigRes.AliasedWithResources);
+        Assert.IsTrue(dump.CommandStream.Any(line =>
+            line.Contains("QueueRelease:", StringComparison.Ordinal)
+            && line.Contains($"[Buffer #{computeSmall.Value}]", StringComparison.Ordinal)));
+        Assert.IsTrue(dump.CommandStream.Any(line =>
+            line.Contains("QueueAcquire:", StringComparison.Ordinal)
+            && line.Contains($"[Buffer #{big.Value}]", StringComparison.Ordinal)));
     }
 }

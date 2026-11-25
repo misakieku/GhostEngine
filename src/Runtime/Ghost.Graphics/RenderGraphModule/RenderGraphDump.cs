@@ -472,52 +472,81 @@ public sealed class RenderGraphDump
         var reader = new SpanReader(graph.commandStream.AsSpan());
         dump.CommandStream.AddRange(DisassembleCommandStream(resourceRegistry, passes, ref reader, graph.nativePasses, effectiveQueues, syncBoundariesBefore, syncBoundariesAfter));
 
-        // Collect Memory Placement Blocks (Heap Blocks)
-        var uniqueBlocks = graph.placedResources.AsSpan().ToArray()
-            .GroupBy(p => p.heapOffset)
-            .OrderBy(g => g.Key);
+        // Collect Memory Placement Blocks (Heap Blocks), merging overlapping sub-range allocations
+        var sortedPlaced = graph.placedResources.AsSpan().ToArray()
+            .OrderBy(p => p.heapOffset)
+            .ThenByDescending(p => p.sizeInBytes);
 
         var currentOffset = 0UL;
-        foreach (var group in uniqueBlocks)
+        var hasOpenBlock = false;
+        var blockOffset = 0UL;
+        var blockEnd = 0UL;
+        var blockLogicalIds = new List<int>();
+
+        void FlushOpenBlock()
         {
-            if (group.Key > currentOffset)
+            if (!hasOpenBlock)
+            {
+                return;
+            }
+
+            if (blockOffset > currentOffset)
             {
                 dump.MemoryBlocks.Add(new HeapBlockDumpInfo
                 {
                     Offset = currentOffset,
-                    Size = group.Key - currentOffset,
+                    Size = blockOffset - currentOffset,
                     IsFree = true,
                     AliasedLogicalResources = new List<int>()
                 });
             }
 
-            var maxBlockSize = 0UL;
-            var allLogicalIds = new List<int>();
-
-            foreach (var placed in group)
-            {
-                maxBlockSize = Math.Max(maxBlockSize, placed.sizeInBytes);
-                var aliasEnd = placed.aliasedLogicalResourceOffset + placed.aliasedLogicalResourceCount;
-                for (var aliasIdx = placed.aliasedLogicalResourceOffset; aliasIdx < aliasEnd; aliasIdx++)
-                {
-                    var id = graph.aliasedLogicalResources[aliasIdx];
-                    if (!allLogicalIds.Contains(id))
-                    {
-                        allLogicalIds.Add(id);
-                    }
-                }
-            }
-
             dump.MemoryBlocks.Add(new HeapBlockDumpInfo
             {
-                Offset = group.Key,
-                Size = maxBlockSize,
+                Offset = blockOffset,
+                Size = blockEnd - blockOffset,
                 IsFree = false,
-                AliasedLogicalResources = allLogicalIds
+                AliasedLogicalResources = blockLogicalIds
             });
 
-            currentOffset = Math.Max(currentOffset, group.Key + maxBlockSize);
+            currentOffset = Math.Max(currentOffset, blockEnd);
+            blockLogicalIds = new List<int>();
+            hasOpenBlock = false;
         }
+
+        foreach (var placed in sortedPlaced)
+        {
+            var placedEnd = placed.heapOffset + placed.sizeInBytes;
+            if (!hasOpenBlock)
+            {
+                hasOpenBlock = true;
+                blockOffset = placed.heapOffset;
+                blockEnd = placedEnd;
+            }
+            else if (placed.heapOffset >= blockEnd)
+            {
+                FlushOpenBlock();
+                hasOpenBlock = true;
+                blockOffset = placed.heapOffset;
+                blockEnd = placedEnd;
+            }
+            else
+            {
+                blockEnd = Math.Max(blockEnd, placedEnd);
+            }
+
+            var aliasEnd = placed.aliasedLogicalResourceOffset + placed.aliasedLogicalResourceCount;
+            for (var aliasIdx = placed.aliasedLogicalResourceOffset; aliasIdx < aliasEnd; aliasIdx++)
+            {
+                var id = graph.aliasedLogicalResources[aliasIdx];
+                if (!blockLogicalIds.Contains(id))
+                {
+                    blockLogicalIds.Add(id);
+                }
+            }
+        }
+
+        FlushOpenBlock();
 
         if (currentOffset < dump.TotalHeapSize)
         {

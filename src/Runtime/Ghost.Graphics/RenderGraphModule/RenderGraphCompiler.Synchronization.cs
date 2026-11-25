@@ -66,6 +66,8 @@ internal unsafe partial class RenderGraphCompiler
         public int acquireScheduleIndex;
         public int nextReleaseIndex;
         public int nextAcquireIndex;
+        public bool emitRelease;
+        public bool emitAcquire;
     }
 
     private UnsafeList<ResolvedPassResourceUsage> BuildPassResourceUsagePlan(List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, Span<PassResourceUsageRange> usageRanges, AllocationHandle allocationHandle)
@@ -235,38 +237,63 @@ internal unsafe partial class RenderGraphCompiler
                     continue;
                 }
 
-                if (!TryGetAliasingPredecessor(scheduleIndex, usage.resource, ref aliasingPlan, resourceOrdering, out var predecessor))
+                ref readonly var res = ref _resourceRegistry.GetResource(usage.resource);
+                if (res.isImported || res.inPlacePredecessor.IsValid || !resourceOrdering.IsFirstUse(usage.resource.Value, scheduleIndex))
+                {
+                    continue;
+                }
+
+                var placedIndex = aliasingPlan.GetPlacedResourceIndex(usage.resource.Value);
+                if (placedIndex < 0)
+                {
+                    continue;
+                }
+
+                var placed = aliasingPlan.GetPlacedResource(placedIndex);
+                if (placed.IsFailure || placed.Value.aliasedLogicalResources.Count <= 1)
                 {
                     continue;
                 }
 
                 var destinationQueueIndex = (int)effectiveQueues[scheduleIndex];
-                var predecessorUseOffset = predecessor.Value * trackedQueueCount;
-                for (var sourceQueueIndex = 0; sourceQueueIndex < trackedQueueCount; sourceQueueIndex++)
+                var members = placed.Value.aliasedLogicalResources.AsSpan();
+                for (var memberIdx = 0; memberIdx < members.Length; memberIdx++)
                 {
-                    if (sourceQueueIndex == destinationQueueIndex)
+                    var otherLogicalIndex = members[memberIdx];
+                    if (otherLogicalIndex == usage.resource.Value
+                        || !resourceOrdering.AllUsesHappenBefore(otherLogicalIndex, usage.resource.Value)
+                        || IsDominatedAliasingPredecessor(otherLogicalIndex, usage.resource.Value, members, ref aliasingPlan, resourceOrdering))
                     {
                         continue;
                     }
 
-                    ref var predecessorUse = ref lastUses[predecessorUseOffset + sourceQueueIndex];
-                    if (!predecessorUse.isValid
-                        || predecessorUse.commandBufferId == commandBufferIds[scheduleIndex])
+                    var predecessor = new Identifier<RGResource>(otherLogicalIndex);
+                    var predecessorUseOffset = otherLogicalIndex * trackedQueueCount;
+                    for (var sourceQueueIndex = 0; sourceQueueIndex < trackedQueueCount; sourceQueueIndex++)
                     {
-                        continue;
-                    }
+                        if (sourceQueueIndex == destinationQueueIndex)
+                        {
+                            continue;
+                        }
 
-                    AddQueueHandoff(
-                        in predecessorUse,
-                        usage.resource,
-                        usage.resourceType,
-                        usage.targetState,
-                        effectiveQueues[scheduleIndex],
-                        scheduleIndex,
-                        commandBufferIds,
-                        ref handoffs,
-                        predecessor);
-                    predecessorUse.isValid = false;
+                        ref readonly var predecessorUse = ref lastUses[predecessorUseOffset + sourceQueueIndex];
+                        if (!predecessorUse.isValid
+                            || predecessorUse.commandBufferId == commandBufferIds[scheduleIndex])
+                        {
+                            continue;
+                        }
+
+                        AddQueueHandoff(
+                            in predecessorUse,
+                            usage.resource,
+                            usage.resourceType,
+                            usage.targetState,
+                            effectiveQueues[scheduleIndex],
+                            scheduleIndex,
+                            commandBufferIds,
+                            ref handoffs,
+                            predecessor);
+                    }
                 }
             }
         }
@@ -275,11 +302,25 @@ internal unsafe partial class RenderGraphCompiler
         for (var i = handoffs.Count - 1; i >= 0; i--)
         {
             ref var handoff = ref handoffs[i];
-            handoff.nextReleaseIndex = releaseHeads[handoff.releaseBoundaryIndex];
-            releaseHeads[handoff.releaseBoundaryIndex] = i;
+            if (handoff.emitRelease)
+            {
+                handoff.nextReleaseIndex = releaseHeads[handoff.releaseBoundaryIndex];
+                releaseHeads[handoff.releaseBoundaryIndex] = i;
+            }
+            else
+            {
+                handoff.nextReleaseIndex = -1;
+            }
 
-            handoff.nextAcquireIndex = acquireHeads[handoff.acquireScheduleIndex];
-            acquireHeads[handoff.acquireScheduleIndex] = i;
+            if (handoff.emitAcquire)
+            {
+                handoff.nextAcquireIndex = acquireHeads[handoff.acquireScheduleIndex];
+                acquireHeads[handoff.acquireScheduleIndex] = i;
+            }
+            else
+            {
+                handoff.nextAcquireIndex = -1;
+            }
         }
 
         return handoffs;
@@ -302,6 +343,8 @@ internal unsafe partial class RenderGraphCompiler
             commandBufferIds);
         Logger.DebugAssert(releaseBoundaryIndex >= 0);
 
+        var emitRelease = true;
+        var emitAcquire = true;
         for (var handoffIndex = 0; handoffIndex < handoffs.Count; handoffIndex++)
         {
             ref var existing = ref handoffs[handoffIndex];
@@ -314,6 +357,20 @@ internal unsafe partial class RenderGraphCompiler
                 existing.targetState.access |= targetState.access;
                 existing.targetState.sync |= targetState.sync;
                 return;
+            }
+
+            if (existing.emitRelease
+                && existing.sourceResource == sourceUse.resource
+                && existing.releaseBoundaryIndex == releaseBoundaryIndex)
+            {
+                emitRelease = false;
+            }
+
+            if (existing.emitAcquire
+                && existing.destinationResource == destinationResource
+                && existing.acquireScheduleIndex == acquireScheduleIndex)
+            {
+                emitAcquire = false;
             }
         }
 
@@ -333,7 +390,9 @@ internal unsafe partial class RenderGraphCompiler
             sourceQueue = sourceUse.queue,
             destinationQueue = destinationQueue,
             releaseBoundaryIndex = releaseBoundaryIndex,
-            acquireScheduleIndex = acquireScheduleIndex
+            acquireScheduleIndex = acquireScheduleIndex,
+            emitRelease = emitRelease,
+            emitAcquire = emitAcquire
         });
     }
 
