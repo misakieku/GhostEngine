@@ -469,6 +469,8 @@ internal static unsafe partial class MeshProcessor
         var error = new ufbx_error();
         var loadOpts = new ufbx_load_opts
         {
+            load_external_files = true,
+            ignore_missing_external_files = true,
             target_unit_meters = settings.UnitMeterScale,
             target_axes = ufbx_coordinate_axes.left_handed_y_up,
             handedness_conversion_axis = ufbx_mirror_axis.UFBX_MIRROR_AXIS_Z,

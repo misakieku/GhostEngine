@@ -70,8 +70,6 @@ public unsafe class RenderVolumeSystem : SystemBase
         ref var cameraQuery = ref systemAPI.World.ComponentManager.GetEntityQueryReference(_cameraQueryID);
         var em = systemAPI.World.EntityManager;
 
-        using var scope = AllocationManager.CreateStackScope();
-
         foreach (var cameraChunk in cameraQuery.GetChunkIterator())
         {
             var cameras = cameraChunk.GetComponentData<Camera>();
@@ -85,37 +83,44 @@ public unsafe class RenderVolumeSystem : SystemBase
                 ref readonly var viewRef = ref viewRefs[c];
 
                 var camPos = cameraLtw.matrix.c3.xyz;
-                var camLayer = camera.renderingLayerMask;
-                var viewId = viewRef.viewId;
-
-                var activeVolumes = new UnsafeList<ActiveVolume>(16, scope.AllocationHandle);
-                try
-                {
-                    GatherActiveVolumes(em, ref volumeQuery, in camPos, camLayer, ref activeVolumes);
-
-                    if (activeVolumes.Count == 0)
-                    {
-                        continue;
-                    }
-
-                    activeVolumes.AsSpan().Sort();
-
-                    var activeTypes = new UnsafeList<ushort>(16, scope.AllocationHandle);
-                    try
-                    {
-                        GatherActiveComponentTypes(em, activeVolumes.AsSpan(), ref activeTypes);
-                        BlendActiveVolumesToPayload(em, viewId, activeVolumes.AsSpan(), activeTypes.AsSpan(), payload);
-                    }
-                    finally
-                    {
-                        activeTypes.Dispose();
-                    }
-                }
-                finally
-                {
-                    activeVolumes.Dispose();
-                }
+                EvaluateVolumesForView(em, ref volumeQuery, in camPos, camera.renderingLayerMask, viewRef.viewId, payload);
             }
+        }
+    }
+
+    internal static void EvaluateVolumesForView(EntityManager em, ref EntityQuery volumeQuery, in float3 camPos, RenderingLayerMask camLayer, uint viewId, GhostRenderPayload payload)
+    {
+        if (!volumeQuery.HasMatchingEntity())
+        {
+            return;
+        }
+
+        using var scope = AllocationManager.CreateStackScope();
+        var activeVolumes = new UnsafeList<ActiveVolume>(16, scope.AllocationHandle);
+        try
+        {
+            GatherActiveVolumes(em, ref volumeQuery, in camPos, camLayer, ref activeVolumes);
+            if (activeVolumes.Count == 0)
+            {
+                return;
+            }
+
+            activeVolumes.AsSpan().Sort();
+
+            var activeTypes = new UnsafeList<ushort>(16, scope.AllocationHandle);
+            try
+            {
+                GatherActiveComponentTypes(em, activeVolumes.AsSpan(), ref activeTypes);
+                BlendActiveVolumesToPayload(em, viewId, activeVolumes.AsSpan(), activeTypes.AsSpan(), payload);
+            }
+            finally
+            {
+                activeTypes.Dispose();
+            }
+        }
+        finally
+        {
+            activeVolumes.Dispose();
         }
     }
 

@@ -359,7 +359,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         for (var requestIndex = 0; requestIndex < ghostPayload.RenderRequests.Length; requestIndex++)
         {
             ref readonly var request = ref ghostPayload.RenderRequests[requestIndex];
-            using var renderView = new RenderViewData(_renderEngine.SwapChainManager, ctx.ResourceDatabase, in request);
+            using var renderView = new RenderViewData(_renderEngine.SwapChainManager, ctx.ResourceDatabase, in request, new ResourceBarrierData(BarrierLayout.Common, BarrierAccess.Common, BarrierSync.AllShading));
 
             // TODO: Dynamic resolution. For now, we just use the render view's screen size as the viewport size.
             var viewPort = new ViewportState(renderView.ScreenSize.x, renderView.ScreenSize.y, renderView.ScreenSize.x, renderView.ScreenSize.y);
@@ -394,7 +394,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
             _meshPipelineResource.EnsureWorkGraphProgram(_renderEngine, _assetManager, viewKeywords);
 
-            var colorTarget = renderGraph.ImportTexture(renderView.ColorTexture, ResourceBarrierData.Present, ResourceBarrierData.Present);
+            var colorTarget = renderGraph.ImportTexture(renderView.ColorTexture, renderView.Barrier, renderView.Barrier);
             var hzbHistory = viewContext.GetOrCreateResource<HzbViewResource, HzbViewResource.Desc>(new HzbViewResource.Desc
             {
                 renderSize = viewPort.ActualSize
@@ -447,7 +447,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
             // Sky & Lighting
             var skyContext = PrepareSky(renderGraph, viewContext, in request, ghostPayload, persistentViewStateBuffer);
-            var litColor = AddDeferredLightingPass(renderGraph, ghostPayload, in skyContext, historyHzb, hzbHistory.HzbMipCount, hzbHistory.HzbSize,
+            var litColor = AddDeferredLightingPass(renderGraph, ghostPayload, in skyContext, persistentViewStateBuffer, historyHzb, hzbHistory.HzbMipCount, hzbHistory.HzbSize,
                     depthTexture, tlasBuffer, request.viewId, viewPort.Size);
 
             AddSkyPass(renderGraph, in skyContext, litColor, depthTexture, request.viewId);
@@ -463,7 +463,8 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
             var post = AddPostProcessPass(renderGraph, ghostPayload, viewPort.Size, request.viewId, litColor, depthTexture, persistentViewStateBuffer);
 
             // Presentation
-            renderGraph.AddBlitPass(post, colorTarget, _meshPipelineResource.blitShader, false);
+            var blitDitherScale = request.swapChainIndex >= 0 ? 1.0f / 255.0f : 0.0f;
+            renderGraph.AddBlitPass(post, colorTarget, _meshPipelineResource.blitShader, false, blitDitherScale);
 
             var result = renderGraph.CompileAndExecute(executionContext, viewPort, RGFlags.Default);
             if (result.IsFailure)

@@ -24,7 +24,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
 
     private MeshContentHeader _header;
     private PageDirectoryEntry[] _pageDirectory = null!;
-    private uint _globalPageTableOffset;
+    private uint _globalPageTableOffset = uint.MaxValue;
 
     internal Handle<Mesh> MeshHandle => _actualHandle;
 
@@ -41,7 +41,11 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
 
     protected override void OnReleaseResource()
     {
-        Manager.MeshletStreamingManager.UnregisterMesh(_globalPageTableOffset);
+        if (_globalPageTableOffset != uint.MaxValue)
+        {
+            Manager.MeshletStreamingManager.UnregisterMesh(_globalPageTableOffset);
+            _globalPageTableOffset = uint.MaxValue;
+        }
 
         ResourceManager.ReleaseMesh(_actualHandle);
         if (_tempHandle.IsValid)

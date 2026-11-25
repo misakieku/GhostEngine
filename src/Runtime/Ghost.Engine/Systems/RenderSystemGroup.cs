@@ -2,22 +2,14 @@ using Ghost.Entities;
 
 namespace Ghost.Engine.Systems;
 
-public class RenderSystemGroup : SystemGroup
+public class RenderSystemGroup : CoreRenderSystemGroup
 {
-    public RenderSystemGroup()
+    public RenderSystemGroup() : base(false)
     {
-        AddSystem<TransformSystem>();
-        AddSystem<RenderVolumeCleanupSystem>();
         AddSystem<RenderVolumeSystem>();
         AddSystem<CameraRenderSystem>();
         AddSystem<AddGPUViewSystem>();
         AddSystem<RemoveGPUViewSystem>();
-
-        AddSystem<RemoveGPUInstanceSystem>();
-        AddSystem<UpdateGPUInstanceSystem>();
-        AddSystem<AddGPUInstanceSystem>();
-
-        AddSystem<LightGatherSystem>();
 
         SortSystems();
     }

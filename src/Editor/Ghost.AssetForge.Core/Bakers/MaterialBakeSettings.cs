@@ -1,8 +1,6 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-
 namespace Ghost.AssetForge.Core.Bakers;
 
-public partial class MaterialBakeSettings : ObservableObject, IBakeSettings
+public partial class MaterialBakeSettings : IBakeSettings
 {
     public const int VERSION = 1;
 

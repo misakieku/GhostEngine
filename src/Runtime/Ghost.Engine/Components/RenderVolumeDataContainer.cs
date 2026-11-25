@@ -98,6 +98,15 @@ public unsafe struct RenderVolumeDataContainer : ICleanupComponent, IDisposable
     }
 
     /// <summary>
+    /// Ensures a default-initialized entry of the registered volume component <paramref name="typeId"/> exists in this container and returns its pointer.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryGetOrAddDefault(ushort typeId, out void* ptr)
+    {
+        return VolumeRegistry.TryGetOrAddDefault(typeId, ref _storage, out ptr);
+    }
+
+    /// <summary>
     /// Attempts to retrieve a reference to the component data stored in this container.
     /// </summary>
     /// <typeparam name="T">The volume component type.</typeparam>
@@ -121,6 +130,15 @@ public unsafe struct RenderVolumeDataContainer : ICleanupComponent, IDisposable
         where T : unmanaged, IVolumeComponent<T>
     {
         return _storage.Remove(VolumeBlenderTrampoline<T>.TypeId);
+    }
+
+    /// <summary>
+    /// Removes a volume component setting by runtime type ID if present.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Remove(ushort typeId)
+    {
+        return _storage.Remove(typeId);
     }
 
     /// <summary>

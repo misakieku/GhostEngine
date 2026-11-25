@@ -39,7 +39,7 @@ internal enum ComponentFlags
     Buffer = 1 << 3,
 }
 
-internal readonly struct ComponentInfo
+internal readonly unsafe struct ComponentInfo
 {
     public Identifier<IComponent> ID
     {
@@ -62,6 +62,11 @@ internal readonly struct ComponentInfo
     }
 
     public int InlineBufferCapacity
+    {
+        get; init;
+    }
+
+    public delegate*<void*, uint, in SceneFieldReader, void> FieldApplier
     {
         get; init;
     }
@@ -184,6 +189,56 @@ public static class ComponentRegistry
         }
 
         return Identifier<IComponent>.Invalid;
+    }
+
+    /// <summary>
+    /// Registers an AOT compile-time generated field deserializer function pointer for component <typeparamref name="T"/>.
+    /// </summary>
+    public static unsafe void RegisterFieldApplier<T>(delegate*<void*, uint, in SceneFieldReader, void> fieldApplier)
+        where T : unmanaged, IComponent
+    {
+        var id = GetOrRegisterComponentID<T>();
+        s_registeredComponents[id] = s_registeredComponents[id] with { FieldApplier = fieldApplier };
+    }
+
+    /// <summary>
+    /// Checks whether a serialized field applier is registered for <paramref name="componentId"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe bool HasFieldApplier(Identifier<IComponent> componentId)
+    {
+        return !componentId.IsInvalid && (uint)componentId.Value < (uint)s_registeredComponents.Count && s_registeredComponents[componentId].FieldApplier != null;
+    }
+
+    /// <summary>
+    /// Invokes the AOT-generated field applier for <paramref name="componentId"/> to write a single baked field into <paramref name="componentPtr"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe bool TryApplySerializedField(Identifier<IComponent> componentId, void* componentPtr, uint fieldNameHash, in SceneFieldReader reader)
+    {
+        if (componentId.IsInvalid || (uint)componentId.Value >= (uint)s_registeredComponents.Count)
+        {
+            return false;
+        }
+
+        var applier = s_registeredComponents[componentId].FieldApplier;
+        if (applier == null)
+        {
+            return false;
+        }
+
+        applier(componentPtr, fieldNameHash, in reader);
+        return true;
+    }
+
+    /// <summary>
+    /// Resolves an <see cref="Entity"/> reference stored in <paramref name="reader"/> using the active scene reference resolver.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Entity ResolveEntity(in SceneFieldReader reader)
+    {
+        reader.ResolveEntityRaw(out var id, out var generation);
+        return generation != 0 ? new Entity(id, generation) : Entity.Invalid;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

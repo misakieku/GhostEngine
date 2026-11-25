@@ -34,6 +34,11 @@ public struct WindowDesc
     {
         get; set;
     }
+
+    public bool VSync
+    {
+        get; set;
+    }
 }
 
 public unsafe class EngineWindow : IDisposable
@@ -53,7 +58,22 @@ public unsafe class EngineWindow : IDisposable
     public int SwapChainIndex => _swapChainIndex;
     public bool IsRunning => _isRunning;
 
+    public event Func<bool>? CloseRequested;
+
     internal SDL_Window* WindowHandle => _window;
+
+    public void RequestClose()
+    {
+        _isRunning = false;
+    }
+
+    public void SetTitle(string title)
+    {
+        if (_window != null && !string.IsNullOrEmpty(title))
+        {
+            SDL_SetWindowTitle(_window, title);
+        }
+    }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -113,7 +133,7 @@ public unsafe class EngineWindow : IDisposable
             Target = SwapChainTarget.FromWindowHandle(Handle)
         };
 
-        _swapChainManager.CreateSwapChain(swapChainDesc, false, out _swapChain, out _swapChainIndex);
+        _swapChainManager.CreateSwapChain(swapChainDesc, desc.VSync, out _swapChain, out _swapChainIndex);
 
         _isRunning = true;
     }
@@ -135,7 +155,10 @@ public unsafe class EngineWindow : IDisposable
             switch (e.Type)
             {
                 case SDL_EventType.SDL_EVENT_QUIT:
-                    _isRunning = false;
+                    if (CloseRequested == null || CloseRequested.Invoke())
+                    {
+                        _isRunning = false;
+                    }
                     break;
                 case SDL_EventType.SDL_EVENT_WINDOW_RESIZED:
                     var resizeEvent = e.window;

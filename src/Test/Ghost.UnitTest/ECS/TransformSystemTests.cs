@@ -1,6 +1,7 @@
 using Ghost.Core;
 using Ghost.Engine.Components;
 using Ghost.Engine.Systems;
+using Ghost.Engine.Utilities;
 using Ghost.Entities;
 using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.Mathematics;
@@ -114,5 +115,27 @@ public class TransformSystemTests
         Assert.AreEqual(2.0f, grandchildLtw.matrix.c3.z, 1e-4f);
 
         system.Cleanup(in api);
+    }
+
+    [TestMethod]
+    public void TestMathUtility_TRS_GetTRS_RoundTrip()
+    {
+        var pos = new float3(3.5f, -2.0f, 8.25f);
+        var rot = quaternion.EulerXYZ(math.radians(new float3(25.0f, 65.0f, -15.0f)));
+        var scale = new float3(1.5f, 2.0f, 0.75f);
+
+        var matrix = float4x4.TRS(pos, rot, scale);
+        matrix.GetTRS(out var outPos, out var outRot, out var outScale);
+
+        Assert.AreEqual(pos.x, outPos.x, 1e-4f);
+        Assert.AreEqual(pos.y, outPos.y, 1e-4f);
+        Assert.AreEqual(pos.z, outPos.z, 1e-4f);
+
+        Assert.AreEqual(scale.x, outScale.x, 1e-4f);
+        Assert.AreEqual(scale.y, outScale.y, 1e-4f);
+        Assert.AreEqual(scale.z, outScale.z, 1e-4f);
+
+        var dot = math.abs(math.dot(rot, outRot));
+        Assert.IsTrue(dot > 0.9999f, $"Rotation mismatch: expected {rot}, got {outRot} (|dot|={dot})");
     }
 }

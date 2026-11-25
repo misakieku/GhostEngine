@@ -11,7 +11,7 @@ namespace Ghost.Engine.Streaming;
 
 internal class ResourceStreamingProcessor
 {
-    private const int MAX_UPLOADS_PER_FRAME = 8;
+    public const int DEFAULT_MAX_UPLOADS_PER_FRAME = 8;
 
     private readonly ConcurrentQueue<IProcessableAssetEntry> _pendingProcess;
     private readonly ConcurrentQueue<IUploadableAssetEntry> _pendingUpload;
@@ -20,13 +20,15 @@ internal class ResourceStreamingProcessor
     private readonly List<IUploadableAssetEntry> _recordedUploads;
     private SubmissionHandle _pendingCopySubmission;
 
+    public int MaxUploadsPerFrame { get; set; } = DEFAULT_MAX_UPLOADS_PER_FRAME;
+
     public ResourceStreamingProcessor()
     {
         _pendingProcess = new ConcurrentQueue<IProcessableAssetEntry>();
         _pendingUpload = new ConcurrentQueue<IUploadableAssetEntry>();
         _pendingShaderCommit = new ConcurrentQueue<IShaderCommitableAssetEntry>();
         _pendingFinalize = new ConcurrentQueue<IUploadableAssetEntry>();
-        _recordedUploads = new List<IUploadableAssetEntry>(MAX_UPLOADS_PER_FRAME);
+        _recordedUploads = new List<IUploadableAssetEntry>(DEFAULT_MAX_UPLOADS_PER_FRAME);
     }
 
     public bool EnqueueForProcess(AssetEntry entry)
@@ -133,7 +135,8 @@ internal class ResourceStreamingProcessor
         {
             copyCommandBuffer.Begin(context.CopyCommandAllocator);
 
-            while (_recordedUploads.Count < MAX_UPLOADS_PER_FRAME && _pendingUpload.TryDequeue(out var entry))
+            var maxUploads = Math.Max(1, MaxUploadsPerFrame);
+            while (_recordedUploads.Count < maxUploads && _pendingUpload.TryDequeue(out var entry))
             {
                 if (entry.State != AssetState.Loaded)
                 {

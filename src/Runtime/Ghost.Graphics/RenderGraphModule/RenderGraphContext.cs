@@ -331,89 +331,17 @@ internal sealed unsafe class RenderGraphContext : IUnsafeRenderContext, IDisposa
 
     private bool TryResolveGraphicsPipeline(scoped in ShaderPass pass, ulong shaderId, int passIndex, PipelineState pipelineOption, out Key128<PipelineState> pipelineKey)
     {
-        pipelineKey = default;
-        const ShaderStageMask requiredStages = ShaderStageMask.Mesh;
-        if ((pass.StageMask & ShaderStageMask.Compute) != 0 ||
-            (pass.StageMask & requiredStages) != requiredStages)
+        var resolveDesc = new GraphicsPipelineResolveDesc
         {
-            Logger.Warning($"Shader pass 0x{pass.Key.Value:X16} does not contain a valid graphics stage topology.");
-            return false;
-        }
-
-        var (compiledHash, error) = _shaderLibrary.GetCompiledHash(shaderId, passIndex, _activeKeywords);
-        if (error.IsFailure)
-        {
-            return false;
-        }
-
-        var passAttachmentHash = new PassAttachmentHash(_rtvFormats, _dsvFormat);
-        pipelineKey = RHIUtility.CreateGraphicsPipelineKey(pass.Key.Value, compiledHash, pipelineOption, passAttachmentHash);
-        if (_pipelineLibrary.HasPipelineStateObject(pipelineKey))
-        {
-            return true;
-        }
-
-        var compiledCacheResult = _shaderLibrary.GetCompiledCache(shaderId, passIndex, _activeKeywords);
-        if (compiledCacheResult.IsFailure)
-        {
-            Logger.Warning($"Failed to load compiled shader cache for graphics pipeline {pipelineKey}. Skipping draw call.");
-            pipelineKey = default;
-            return false;
-        }
-
-        var cache = compiledCacheResult.Value;
-        Logger.DebugAssert(cache.compiledHash == compiledHash);
-        ShaderLibrary.ParseCacheData(cache.byteCode, out _, out var byteCodeOffsets, out var byteCodes);
-
-        var hasAmplification = (pass.StageMask & ShaderStageMask.Amplification) != 0;
-        var hasPixel = (pass.StageMask & ShaderStageMask.Pixel) != 0;
-        var expectedByteCodeCount = (hasAmplification ? 1 : 0) + 1 + (hasPixel ? 1 : 0);
-        if (byteCodeOffsets.Length != expectedByteCodeCount)
-        {
-            Logger.Warning($"Shader pass 0x{pass.Key.Value:X16} has {byteCodeOffsets.Length} bytecode entries, expected {expectedByteCodeCount}. Skipping draw call.");
-            pipelineKey = default;
-            return false;
-        }
-
-        var byteCodeIndex = 0;
-        var asByteCode = ReadOnlySpan<byte>.Empty;
-        if (hasAmplification)
-        {
-            asByteCode = byteCodes.Slice((int)byteCodeOffsets[0], (int)(byteCodeOffsets[1] - byteCodeOffsets[0]));
-            byteCodeIndex++;
-        }
-
-        var msStart = (int)byteCodeOffsets[byteCodeIndex];
-        var msByteCode = byteCodes.Slice(msStart, hasPixel ? (int)(byteCodeOffsets[byteCodeIndex + 1] - byteCodeOffsets[byteCodeIndex]) : byteCodes.Length - msStart);
-        byteCodeIndex++;
-
-        var psByteCode = ReadOnlySpan<byte>.Empty;
-        if (hasPixel)
-        {
-            psByteCode = byteCodes.Slice((int)byteCodeOffsets[byteCodeIndex]);
-        }
-
-        var psoDesc = new GraphicsPSODesc
-        {
-            CompiledHash = compiledHash,
-            PassId = pass.Key.Value,
+            ShaderId = shaderId,
+            PassIndex = passIndex,
             PipelineOption = pipelineOption,
             RtvFormats = _rtvFormats.AsSpan(0, _rtvCount),
             DsvFormat = _dsvFormat,
-            AsCode = asByteCode,
-            MsCode = msByteCode,
-            PsCode = psByteCode,
+            ActiveKeywords = _activeKeywords,
         };
 
-        var createResult = _pipelineLibrary.CreateGraphicsPipeline(in psoDesc);
-        if (createResult.IsFailure)
-        {
-            Logger.Warning($"Failed to create graphics pipeline {pipelineKey}: {createResult.Message}");
-            pipelineKey = default;
-            return false;
-        }
-
-        return true;
+        return RenderContext.TryResolveGraphicsPipeline(_shaderLibrary, _pipelineLibrary, in pass, in resolveDesc, out pipelineKey);
     }
 
     private bool TryResolveComputePipeline(ulong passId, ulong shaderId, int entryIndex, out Key128<PipelineState> pipelineKey)

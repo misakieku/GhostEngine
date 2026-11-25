@@ -93,19 +93,73 @@ public static unsafe class PrefabUtility
         return InstantiateCore(world, prefabAsset, position, rotation, scale, parent, applyTransform: true, count);
     }
 
+    internal static int GetTemplateEntityCount(World world, IAssetEntry prefabAsset)
+    {
+        return ValidateAndEnsureReady(world, prefabAsset, out _, out var data).IsSuccess ? data.Entities.Length : 0;
+    }
+
+    internal static bool TryGetTemplateEntityFixupGuids(IAssetEntry prefabAsset, int templateEntityIndex, out Guid meshGuid, out Guid[] materialGuids)
+    {
+        meshGuid = Guid.Empty;
+        materialGuids = Array.Empty<Guid>();
+
+        if (prefabAsset is not PrefabAssetEntry entry || entry.PrefabData == null)
+        {
+            return false;
+        }
+
+        var data = entry.PrefabData;
+        var deps = entry.Dependencies;
+        for (var f = 0; f < data.MeshMaterialFixups.Length; f++)
+        {
+            ref readonly var fixup = ref data.MeshMaterialFixups[f];
+            if (fixup.entityIndex != templateEntityIndex)
+            {
+                continue;
+            }
+
+            if (fixup.meshDependencyIndex >= 0 && fixup.meshDependencyIndex < deps.Length)
+            {
+                meshGuid = deps[fixup.meshDependencyIndex];
+            }
+
+            if (fixup.materialCount > 0)
+            {
+                materialGuids = new Guid[fixup.materialCount];
+                for (var m = 0; m < fixup.materialCount; m++)
+                {
+                    var indexSlot = fixup.materialDependencyStartIndex + m;
+                    var depIdx = data.MaterialDependencyIndices.Length > 0
+                        ? ((uint)indexSlot < (uint)data.MaterialDependencyIndices.Length ? data.MaterialDependencyIndices[indexSlot] : -1)
+                        : indexSlot;
+                    materialGuids[m] = depIdx >= 0 && depIdx < deps.Length ? deps[depIdx] : Guid.Empty;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    internal static Result InstantiateAll(World world, IAssetEntry prefabAsset, Span<Entity> outAllEntities, float3 position, quaternion rotation, float3 scale, Entity parent = default, bool applyTransform = true)
+    {
+        return InstantiateCoreInternal(world, prefabAsset, position, rotation, scale, parent, applyTransform, 1, default, outAllEntities);
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Result InstantiateCore(World world, IAssetEntry prefabAsset, float3 position, quaternion rotation, float3 scale, Entity parent, bool applyTransform, int count)
     {
-        return InstantiateCoreInternal(world, prefabAsset, position, rotation, scale, parent, applyTransform, count, default);
+        return InstantiateCoreInternal(world, prefabAsset, position, rotation, scale, parent, applyTransform, count, default, default);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Result InstantiateCore(World world, IAssetEntry prefabAsset, float3 position, quaternion rotation, float3 scale, Entity parent, bool applyTransform, int count, Span<Entity> outRoots)
     {
-        return InstantiateCoreInternal(world, prefabAsset, position, rotation, scale, parent, applyTransform, count, outRoots);
+        return InstantiateCoreInternal(world, prefabAsset, position, rotation, scale, parent, applyTransform, count, outRoots, default);
     }
 
-    private static Result InstantiateCoreInternal(World world, IAssetEntry prefabAsset, float3 position, quaternion rotation, float3 scale, Entity parent, bool applyTransform, int count, Span<Entity> outRoots)
+    private static Result InstantiateCoreInternal(World world, IAssetEntry prefabAsset, float3 position, quaternion rotation, float3 scale, Entity parent, bool applyTransform, int count, Span<Entity> outRoots, Span<Entity> outAllEntities)
     {
         if (count <= 0)
         {
@@ -211,11 +265,17 @@ public static unsafe class PrefabUtility
         var roots = spawned.AsSpan().Slice(0, count);
         ApplyTransforms(world, roots, position, rotation, scale, parent, applyTransform);
 
-        // 6. Copy output roots directly to caller's span if requested
+        // 6. Copy output roots or full entity slice directly to caller's span if requested
         if (!outRoots.IsEmpty)
         {
             var copyLen = Math.Min(outRoots.Length, count);
             roots.Slice(0, copyLen).CopyTo(outRoots);
+        }
+
+        if (!outAllEntities.IsEmpty)
+        {
+            var copyLen = Math.Min(outAllEntities.Length, spawned.Length);
+            spawned.AsSpan().Slice(0, copyLen).CopyTo(outAllEntities);
         }
 
         return Result.Success();
@@ -422,21 +482,24 @@ public static unsafe class PrefabUtility
             {
                 world.EntityManager.SetComponentsSequential(roots, in ltw);
             }
+
+            if (world.EntityManager.HasComponent<Hierarchy>(roots[0]))
+            {
+                for (var i = 0; i < count; i++)
+                {
+                    var firstChild = world.EntityManager.GetComponent<Hierarchy>(roots[i]).firstChild;
+                    if (firstChild != Entity.Invalid)
+                    {
+                        TransformUtility.UpdateChildTransforms(world.EntityManager, firstChild, in ltwMatrix, 0);
+                    }
+                }
+            }
         }
         else if (parentHasLtw)
         {
             for (var i = 0; i < count; i++)
             {
-                var r = roots[i];
-                if (world.EntityManager.HasComponent<LocalToWorld>(r))
-                {
-                    ref var ltw = ref world.EntityManager.GetComponent<LocalToWorld>(r);
-                    if (world.EntityManager.HasComponent<LocalTransform>(r))
-                    {
-                        ref readonly var lt = ref world.EntityManager.GetComponent<LocalTransform>(r);
-                        ltw.matrix = math.mul(parentMatrix, lt.ToMatrix());
-                    }
-                }
+                TransformUtility.UpdateEntityAndDescendants(world.EntityManager, roots[i]);
             }
         }
     }

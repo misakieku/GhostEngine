@@ -1,3 +1,4 @@
+using Ghost.Core;
 using Ghost.Entities;
 using Misaki.HighPerformance.LowLevel.Utilities;
 using System.Runtime.CompilerServices;
@@ -14,6 +15,8 @@ public unsafe struct VolumeBlenderRegistration
     public int offset;
     public delegate*<void*, void*, float, void> pBlendFunc;
     public delegate*<void*, void> pResetFunc;
+    public delegate*<void*, uint, in SceneFieldReader, void> pApplyFieldFunc;
+    public delegate*<ref UnmanagedTypeMap, void*> pGetOrAddDefaultFunc;
 }
 
 /// <summary>
@@ -31,10 +34,10 @@ public static unsafe class VolumeRegistry
     public static int BytesPerView => s_bytesPerView;
 
     /// <summary>
-    /// Registers a volume component type into the central registry.
+    /// Registers a volume component type into the central registry alongside optional AOT serialization callbacks.
     /// </summary>
     /// <typeparam name="T">The volume component type.</typeparam>
-    public static void Register<T>()
+    public static void Register<T>(delegate*<void*, uint, in SceneFieldReader, void> pApplyFieldFunc = null, delegate*<ref UnmanagedTypeMap, void*> pGetOrAddDefaultFunc = null)
         where T : unmanaged, IVolumeComponent<T>
     {
         var id = ComponentTypeID<T>.Value.Value;
@@ -47,6 +50,16 @@ public static unsafe class VolumeRegistry
 
             if (s_blenders[id].pBlendFunc != null)
             {
+                if (pApplyFieldFunc != null)
+                {
+                    s_blenders[id].pApplyFieldFunc = pApplyFieldFunc;
+                }
+
+                if (pGetOrAddDefaultFunc != null)
+                {
+                    s_blenders[id].pGetOrAddDefaultFunc = pGetOrAddDefaultFunc;
+                }
+
                 return;
             }
 
@@ -60,7 +73,9 @@ public static unsafe class VolumeRegistry
                 size = sizeof(T),
                 offset = offset,
                 pBlendFunc = VolumeBlenderTrampoline<T>.pBlendFunc,
-                pResetFunc = VolumeBlenderTrampoline<T>.pResetFunc
+                pResetFunc = VolumeBlenderTrampoline<T>.pResetFunc,
+                pApplyFieldFunc = pApplyFieldFunc,
+                pGetOrAddDefaultFunc = pGetOrAddDefaultFunc
             };
         }
     }
@@ -100,6 +115,53 @@ public static unsafe class VolumeRegistry
         }
 
         registration = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Attempts to retrieve the blender registration for a registered volume component full type name.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGetBlenderByName(string fullName, out VolumeBlenderRegistration registration)
+    {
+        var compId = ComponentRegistry.GetComponentIDByName(fullName);
+        if (compId.IsInvalid)
+        {
+            registration = default;
+            return false;
+        }
+
+        return TryGetBlender((ushort)compId.Value, out registration);
+    }
+
+    /// <summary>
+    /// Ensures a default-initialized entry of volume component <paramref name="typeId"/> exists in <paramref name="storage"/> and returns its pointer.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGetOrAddDefault(ushort typeId, ref UnmanagedTypeMap storage, out void* ptr)
+    {
+        if (typeId < s_blenders.Length && s_blenders[typeId].pGetOrAddDefaultFunc != null)
+        {
+            ptr = s_blenders[typeId].pGetOrAddDefaultFunc(ref storage);
+            return ptr != null;
+        }
+
+        ptr = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Applies a single baked field override to the unmanaged volume struct at <paramref name="componentPtr"/> using AOT-generated code.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryApplySerializedField(ushort typeId, void* componentPtr, uint fieldNameHash, in SceneFieldReader reader)
+    {
+        if (typeId < s_blenders.Length && s_blenders[typeId].pApplyFieldFunc != null && componentPtr != null)
+        {
+            s_blenders[typeId].pApplyFieldFunc(componentPtr, fieldNameHash, in reader);
+            return true;
+        }
+
         return false;
     }
 }

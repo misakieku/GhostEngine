@@ -77,12 +77,14 @@ public readonly ref struct RenderViewData : IDisposable
 
     private readonly Handle<GPUTexture> _colorTexture;
     private readonly uint2 _screenSize;
+    private readonly ResourceBarrierData _barrier;
 
     public readonly ref readonly RenderRequest Request => ref _request;
     public readonly Handle<GPUTexture> ColorTexture => _colorTexture;
     public readonly uint2 ScreenSize => _screenSize;
+    public readonly ResourceBarrierData Barrier => _barrier;
 
-    public RenderViewData(SwapChainManager swapChainManager, IResourceDatabase resourceDatabase, ref readonly RenderRequest request)
+    public RenderViewData(SwapChainManager swapChainManager, IResourceDatabase resourceDatabase, ref readonly RenderRequest request, ResourceBarrierData colorTargetBarrier)
     {
         _request = ref request;
         _swapChainManager = swapChainManager;
@@ -90,11 +92,15 @@ public readonly ref struct RenderViewData : IDisposable
         if (request.swapChainIndex < 0)
         {
             _colorTexture = request.colorTarget;
+            _barrier = colorTargetBarrier;
+
             Logger.DebugAssert(_colorTexture.IsValid, "Invalid color target texture.");
+
         }
         else if (swapChainManager.TryGetSwapChain(request.swapChainIndex, out var swapChain))
         {
             _colorTexture = swapChain.GetCurrentBackBuffer();
+            _barrier = ResourceBarrierData.Present;
         }
         else
         {

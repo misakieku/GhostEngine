@@ -187,7 +187,8 @@ public static unsafe class ResourceUtility
         }
     }
 
-    public static Error UploadTexture(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUTexture> texture, void* pData, nuint sizeInBytes)
+    public static Error UploadTexture(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUTexture> texture, void* pData, nuint sizeInBytes,
+        BarrierSync finalSync = BarrierSync.None, BarrierAccess finalAccess = BarrierAccess.Common, BarrierLayout finalLayout = BarrierLayout.Common)
     {
         var (resourceDesc, error) = resourceDatabase.GetResourceDescription(texture.AsResource());
         if (error.IsFailure)
@@ -246,32 +247,39 @@ public static unsafe class ResourceUtility
             return Error.InvalidArgument;
         }
 
-        var layoutDest = cmd.Type == CommandBufferType.Copy ? BarrierLayout.Common : BarrierLayout.CopyDest;
+        var isCopyQueue = cmd.Type == CommandBufferType.Copy;
+        var layoutDest = isCopyQueue ? BarrierLayout.Common : BarrierLayout.CopyDest;
+        var resolvedFinalSync = isCopyQueue ? BarrierSync.None : finalSync;
+        var resolvedFinalAccess = isCopyQueue ? BarrierAccess.Common : finalAccess;
+        var resolvedFinalLayout = isCopyQueue ? BarrierLayout.Common : finalLayout;
 
         cmd.Barrier(BarrierDesc.Texture(texture, BarrierSync.None, BarrierSync.Copy, BarrierAccess.NoAccess, BarrierAccess.CopyDest, BarrierLayout.Undefined, layoutDest));
         cmd.UpdateSubResources(texture.AsResource(), uploadHandle.AsResource(), subresources);
-        cmd.Barrier(BarrierDesc.Texture(texture, BarrierSync.Copy, BarrierSync.None, BarrierAccess.CopyDest, BarrierAccess.Common, layoutDest, BarrierLayout.Common));
+        cmd.Barrier(BarrierDesc.Texture(texture, BarrierSync.Copy, resolvedFinalSync, BarrierAccess.CopyDest, resolvedFinalAccess, layoutDest, resolvedFinalLayout));
 
         return Error.None;
     }
 
-    public static Error UploadTexture<T>(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUTexture> texture, ReadOnlySpan<T> data)
+    public static Error UploadTexture<T>(ResourceManager resourceManager, IResourceDatabase resourceDatabase, ICommandBuffer cmd, Handle<GPUTexture> texture, ReadOnlySpan<T> data,
+        BarrierSync finalSync = BarrierSync.None, BarrierAccess finalAccess = BarrierAccess.Common, BarrierLayout finalLayout = BarrierLayout.Common)
         where T : unmanaged
     {
         fixed (T* pData = data)
         {
-            return UploadTexture(resourceManager, resourceDatabase, cmd, texture, pData, (nuint)(data.Length * sizeof(T)));
+            return UploadTexture(resourceManager, resourceDatabase, cmd, texture, pData, (nuint)(data.Length * sizeof(T)), finalSync, finalAccess, finalLayout);
         }
     }
 
-    public static Handle<GPUTexture> CreateTexture(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, void* pData, nuint sizeInBytes, scoped in TextureDesc desc, string? name = null)
+    public static Handle<GPUTexture> CreateTexture(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, void* pData,
+        nuint sizeInBytes, scoped in TextureDesc desc, string? name = null, BarrierSync finalSync = BarrierSync.None, BarrierAccess finalAccess = BarrierAccess.Common,
+        BarrierLayout finalLayout = BarrierLayout.Common)
     {
         var error = Error.UnknownError;
 
         var textureHandle = resourceAllocator.CreateTexture(in desc, name);
         if (!textureHandle.IsInvalid)
         {
-            error = UploadTexture(resourceManager, resourceDatabase, cmd, textureHandle, pData, sizeInBytes);
+            error = UploadTexture(resourceManager, resourceDatabase, cmd, textureHandle, pData, sizeInBytes, finalSync, finalAccess, finalLayout);
         }
 
         if (error.IsSuccess)
@@ -283,12 +291,14 @@ public static unsafe class ResourceUtility
         return Handle<GPUTexture>.Invalid;
     }
 
-    public static Handle<GPUTexture> CreateTexture<T>(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, ReadOnlySpan<T> data, scoped in TextureDesc desc, string? name = null)
+    public static Handle<GPUTexture> CreateTexture<T>(ResourceManager resourceManager, IResourceDatabase resourceDatabase, IResourceAllocator resourceAllocator, ICommandBuffer cmd, ReadOnlySpan<T> data,
+        scoped in TextureDesc desc, string? name = null, BarrierSync finalSync = BarrierSync.None, BarrierAccess finalAccess = BarrierAccess.Common,
+        BarrierLayout finalLayout = BarrierLayout.Common)
         where T : unmanaged
     {
         fixed (T* pData = data)
         {
-            return CreateTexture(resourceManager, resourceDatabase, resourceAllocator, cmd, pData, (nuint)(data.Length * sizeof(T)), in desc, name);
+            return CreateTexture(resourceManager, resourceDatabase, resourceAllocator, cmd, pData, (nuint)(data.Length * sizeof(T)), in desc, name, finalSync, finalAccess, finalLayout);
         }
     }
 }

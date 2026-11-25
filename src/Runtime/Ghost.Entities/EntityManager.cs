@@ -59,6 +59,12 @@ public unsafe partial class EntityManager : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool TryGetEntityLocation(Entity entity, out EntityLocation location)
+    {
+        return _entityLocations.TryGetElementAt(entity.ID, entity.Generation, out location);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal Error UpdateEntityLocation(Entity entity, Identifier<Archetype> newArchetypeID, int newChunkIndex, int newRowIndex)
     {
         ref var location = ref _entityLocations.GetElementReferenceAt(entity.ID, entity.Generation, out var exist);

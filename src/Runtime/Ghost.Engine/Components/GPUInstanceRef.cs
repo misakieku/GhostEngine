@@ -4,7 +4,8 @@ using Ghost.Graphics.Services;
 
 namespace Ghost.Engine.Components;
 
-public struct GPUInstanceRef : IComponentData
+[TransientComponent]
+public struct GPUInstanceRef : ICleanupComponent
 {
     public uint gpuInstanceIndex;
     public Identifier<MaterialPalette> materialPalette;

@@ -50,6 +50,7 @@ public static class RenderGraphUtility
         public Identifier<RGTexture> srcBuffer;
         public Handle<Shader> blitShader;
         public bool gammaCorrection;
+        public float ditherScale;
     }
 
     /// <summary>
@@ -142,7 +143,8 @@ public static class RenderGraphUtility
     /// <param name="dst">The destination texture.</param>
     /// <param name="blitShader">The blit shader to use.</param>
     /// <param name="gammaCorrection">Whether to apply gamma correction.</param>
-    public static void AddBlitPass(this RenderGraph rg, Identifier<RGTexture> src, Identifier<RGTexture> dst, Handle<Shader> blitShader, bool gammaCorrection = false)
+    /// <param name="ditherScale">Scale of spatial dithering applied to color channels (for example <c>1f / 255f</c> for 8-bit targets).</param>
+    public static void AddBlitPass(this RenderGraph rg, Identifier<RGTexture> src, Identifier<RGTexture> dst, Handle<Shader> blitShader, bool gammaCorrection = false, float ditherScale = 0.0f)
     {
         if (blitShader.IsInvalid)
         {
@@ -157,7 +159,8 @@ public static class RenderGraphUtility
         {
             srcBuffer = src,
             blitShader = blitShader,
-            gammaCorrection = gammaCorrection
+            gammaCorrection = gammaCorrection,
+            ditherScale = ditherScale
         });
 
         builder.SetRenderFunc<BlitPassData>(static (ref readonly passData, renderCtx) =>
@@ -171,7 +174,8 @@ public static class RenderGraphUtility
             {
                 mainTex = renderCtx.GetActualBindlessIndex(passData.srcBuffer),
                 sampler_mainTex = renderCtx.ResourceManager.StaticSampler.GetSampler(StaticSamplerType.LinearClamp),
-                linearToSRGB = passData.gammaCorrection ? 1u : 0u
+                linearToSRGB = passData.gammaCorrection ? 1u : 0u,
+                ditherScale = passData.ditherScale
             };
 
             renderCtx.SetUserDataWithProperties(property, target: DataTarget.Graphics);

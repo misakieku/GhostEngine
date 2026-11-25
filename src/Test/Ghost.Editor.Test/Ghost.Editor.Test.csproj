@@ -1,0 +1,33 @@
+<Project Sdk="MSTest.Sdk/4.0.2">
+  <PropertyGroup>
+    <Platforms>x64;ARM64;X86</Platforms>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Editor\Ghost.AssetForge.Core\Ghost.AssetForge.Core.csproj" />
+    <ProjectReference Include="..\..\Editor\Ghost.Editor.Core\Ghost.Editor.Core.csproj" />
+    <ProjectReference Include="..\..\Editor\Ghost.Studio\Ghost.Studio.csproj" />
+    <ProjectReference Include="..\..\Tools\Ghost.ShaderTool\Ghost.ShaderTool.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="Microsoft.Testing.Extensions.TrxReport" Version="2.5.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="MSTest.TestAdapter" Version="4.5.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="MSTest.TestFramework" Version="4.5.3" />
+  </ItemGroup>
+
+  <Target Name="CopyStudioBuiltInAssets" AfterTargets="Build">
+    <PropertyGroup>
+      <StudioBuiltInAssetsDir>$(MSBuildThisFileDirectory)..\..\Editor\Ghost.Studio\$(OutDir)BuiltInAssets</StudioBuiltInAssetsDir>
+    </PropertyGroup>
+    <ItemGroup Condition="Exists('$(StudioBuiltInAssetsDir)')">
+      <_StudioBuiltInAssetFiles Include="$(StudioBuiltInAssetsDir)\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_StudioBuiltInAssetFiles)" DestinationFiles="@(_StudioBuiltInAssetFiles->'$(TargetDir)BuiltInAssets\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="Exists('$(StudioBuiltInAssetsDir)')" />
+  </Target>
+</Project>

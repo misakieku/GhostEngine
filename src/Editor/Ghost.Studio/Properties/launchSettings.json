@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Ghost.Studio": {
+      "commandName": "Project",
+      "debugEngines": "managed"
+    }
+  }
+}

@@ -224,6 +224,7 @@ public sealed class RenderEngine : IDisposable
                     ResourceDatabase = _graphicsEngine.ResourceDatabase,
                     ResourceAllocator = _graphicsEngine.ResourceAllocator,
                     PipelineLibrary = _graphicsEngine.PipelineLibrary,
+                    SwapChainManager = _swapChainManager,
                     FrameBufferCount = _frameResources.Length,
                     ShaderLibrary = _shaderLibrary,
                     FrameIndex = frameIndex,

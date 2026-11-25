@@ -168,25 +168,43 @@ internal partial class GhostRenderPipeline
             return; // No updates needed
         }
 
-        var property = new InternalUpdateGPUSceneShaderProperties
+        var sceneBufferBindless = ctx.ResourceDatabase.GetBindlessIndex(_gpuScene.SceneBuffer.AsResource(), BindlessAccess.UnorderedAccess);
+        var updateBufferBindless = updateBuffer.IsValid ? ctx.ResourceDatabase.GetBindlessIndex(updateBuffer.AsResource()) : 0;
+        var removeBufferBindless = removeBuffer.IsValid ? ctx.ResourceDatabase.GetBindlessIndex(removeBuffer.AsResource()) : 0;
+
+        // Apply swaps before updates so moved or reused slots cannot be overwritten out of order within the same dispatch.
+        if (removeCount > 0)
         {
-            gpuSceneBuffer = ctx.ResourceDatabase.GetBindlessIndex(_gpuScene.SceneBuffer.AsResource(), BindlessAccess.UnorderedAccess),
-            updateBuffer = updateBuffer.IsValid ? ctx.ResourceDatabase.GetBindlessIndex(updateBuffer.AsResource()) : 0,
-            updateCount = (uint)updateCount,
-            removeBuffer = removeBuffer.IsValid ? ctx.ResourceDatabase.GetBindlessIndex(removeBuffer.AsResource()) : 0,
-            removeCount = (uint)removeCount
-        };
+            var removeProperty = new InternalUpdateGPUSceneShaderProperties
+            {
+                gpuSceneBuffer = sceneBufferBindless,
+                updateBuffer = 0,
+                updateCount = 0,
+                removeBuffer = removeBufferBindless,
+                removeCount = (uint)removeCount
+            };
 
-        var maxCount = Math.Max(updateCount, removeCount);
-        var threadGroups = new uint3((uint)Math.Ceiling(maxCount / 64.0), 1, 1);
+            var removeGroups = new uint3((uint)Math.Ceiling(removeCount / 64.0), 1, 1);
+            ctx.DispatchCompute(commandBuffer, _gpuSceneResource.updateGPUSceneShader, 0, in removeProperty, removeGroups);
 
-        ctx.DispatchCompute(commandBuffer, _gpuSceneResource.updateGPUSceneShader, 0, in property, threadGroups);
+            commandBuffer.Barrier(BarrierDesc.Buffer(_gpuScene.SceneBuffer, BarrierSync.ComputeShading, updateCount > 0 ? BarrierSync.ComputeShading : BarrierSync.AllShading, BarrierAccess.UnorderedAccess, updateCount > 0 ? BarrierAccess.UnorderedAccess : BarrierAccess.ShaderResource));
+        }
 
-        commandBuffer.Barrier(BarrierDesc.Buffer(
-            _gpuScene.SceneBuffer,
-            BarrierSync.ComputeShading,
-            BarrierSync.AllShading,
-            BarrierAccess.UnorderedAccess,
-            BarrierAccess.ShaderResource));
+        if (updateCount > 0)
+        {
+            var updateProperty = new InternalUpdateGPUSceneShaderProperties
+            {
+                gpuSceneBuffer = sceneBufferBindless,
+                updateBuffer = updateBufferBindless,
+                updateCount = (uint)updateCount,
+                removeBuffer = 0,
+                removeCount = 0
+            };
+
+            var updateGroups = new uint3((uint)Math.Ceiling(updateCount / 64.0), 1, 1);
+            ctx.DispatchCompute(commandBuffer, _gpuSceneResource.updateGPUSceneShader, 0, in updateProperty, updateGroups);
+
+            commandBuffer.Barrier(BarrierDesc.Buffer(_gpuScene.SceneBuffer, BarrierSync.ComputeShading, BarrierSync.AllShading, BarrierAccess.UnorderedAccess, BarrierAccess.ShaderResource));
+        }
     }
 }

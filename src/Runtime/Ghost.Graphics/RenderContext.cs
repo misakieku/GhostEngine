@@ -1,4 +1,5 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
@@ -7,6 +8,16 @@ using Misaki.HighPerformance.Mathematics;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics;
+
+internal readonly ref struct GraphicsPipelineResolveDesc
+{
+    public ulong ShaderId { get; init; }
+    public int PassIndex { get; init; }
+    public PipelineState PipelineOption { get; init; }
+    public ReadOnlySpan<TextureFormat> RtvFormats { get; init; }
+    public TextureFormat DsvFormat { get; init; }
+    public KeywordMask128 ActiveKeywords { get; init; }
+}
 
 public readonly struct ResourceContext
 {
@@ -75,6 +86,11 @@ public readonly unsafe struct RenderContext
     }
 
     public required IPipelineLibrary PipelineLibrary
+    {
+        get; init;
+    }
+
+    public required SwapChainManager SwapChainManager
     {
         get; init;
     }
@@ -230,7 +246,12 @@ public readonly unsafe struct RenderContext
         }
 
         commandBuffer.SetPipelineState(pipelineKey);
+        SetPassProperties(commandBuffer, in property);
+        commandBuffer.DispatchCompute(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
+    }
 
+    public void SetPassProperties<T>(ICommandBuffer commandBuffer, scoped in T property) where T : unmanaged
+    {
         var propertySpan = MemoryMarshal.AsBytes(new ReadOnlySpan<T>(in property));
         var propertyBufferDesc = new BufferDesc
         {
@@ -240,9 +261,8 @@ public readonly unsafe struct RenderContext
             HeapType = HeapType.Upload,
         };
 
-        var properyBuffer = ResourceManager.CreateTransientUploadBuffer(in propertyBufferDesc, 256, out var offset);
-
-        var mappedData = ResourceDatabase.MapResource(properyBuffer.AsResource(), 0, null);
+        var propertyBuffer = ResourceManager.CreateTransientUploadBuffer(in propertyBufferDesc, 256, out var offset);
+        var mappedData = ResourceDatabase.MapResource(propertyBuffer.AsResource(), 0, null);
         Logger.DebugAssert(mappedData != null, "Failed to map property buffer.");
 
         fixed (byte* pData = propertySpan)
@@ -250,10 +270,134 @@ public readonly unsafe struct RenderContext
             MemoryUtility.MemCpy((byte*)mappedData + offset, pData, (nuint)propertySpan.Length);
         }
 
-        error = ResourceDatabase.UnmapResource(properyBuffer.AsResource(), 0, null);
+        var error = ResourceDatabase.UnmapResource(propertyBuffer.AsResource(), 0, null);
         Logger.DebugAssert(error.IsSuccess, $"Failed to unmap property buffer: {error}.");
 
-        commandBuffer.SetConstantBufferView(RootSignatureLayout.PASS_PROPERTIES_CBV_SLOT, properyBuffer, offset);
-        commandBuffer.DispatchCompute(threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
+        commandBuffer.SetConstantBufferView(RootSignatureLayout.PASS_PROPERTIES_CBV_SLOT, propertyBuffer, offset);
+    }
+
+    public bool TrySetActiveGraphicsShaderPass(ICommandBuffer commandBuffer, Handle<Shader> shaderHandle, int passIndex, ReadOnlySpan<TextureFormat> rtvFormats, TextureFormat dsvFormat = TextureFormat.Unknown, KeywordMask128 activeKeywords = default)
+    {
+        if (passIndex < 0)
+        {
+            return false;
+        }
+
+        var shaderResult = ResourceManager.GetShaderReference(shaderHandle);
+        if (shaderResult.IsFailure)
+        {
+            return false;
+        }
+
+        ref readonly var shader = ref shaderResult.Value;
+        if ((uint)passIndex >= (uint)shader.PassCount)
+        {
+            return false;
+        }
+
+        ref readonly var pass = ref shader.GetPassReference(passIndex);
+        var resolveDesc = new GraphicsPipelineResolveDesc
+        {
+            ShaderId = shader.UniqueID,
+            PassIndex = passIndex,
+            PipelineOption = pass.DefaultState,
+            RtvFormats = rtvFormats,
+            DsvFormat = dsvFormat,
+            ActiveKeywords = activeKeywords,
+        };
+
+        if (!TryResolveGraphicsPipeline(ShaderLibrary, PipelineLibrary, in pass, in resolveDesc, out var pipelineKey))
+        {
+            return false;
+        }
+
+        commandBuffer.SetPipelineState(pipelineKey);
+        return true;
+    }
+
+    internal static bool TryResolveGraphicsPipeline(ShaderLibrary shaderLibrary, IPipelineLibrary pipelineLibrary, scoped in ShaderPass pass, scoped in GraphicsPipelineResolveDesc desc, out Key128<PipelineState> pipelineKey)
+    {
+        pipelineKey = default;
+        const ShaderStageMask requiredStages = ShaderStageMask.Mesh;
+        if ((pass.StageMask & ShaderStageMask.Compute) != 0 || (pass.StageMask & requiredStages) != requiredStages)
+        {
+            Logger.Warning($"Shader pass 0x{pass.Key.Value:X16} does not contain a valid graphics stage topology.");
+            return false;
+        }
+
+        var (compiledHash, error) = shaderLibrary.GetCompiledHash(desc.ShaderId, desc.PassIndex, desc.ActiveKeywords);
+        if (error.IsFailure)
+        {
+            return false;
+        }
+
+        var passAttachmentHash = new PassAttachmentHash(desc.RtvFormats, desc.DsvFormat);
+        pipelineKey = RHIUtility.CreateGraphicsPipelineKey(pass.Key.Value, compiledHash, desc.PipelineOption, passAttachmentHash);
+        if (pipelineLibrary.HasPipelineStateObject(pipelineKey))
+        {
+            return true;
+        }
+
+        var compiledCacheResult = shaderLibrary.GetCompiledCache(desc.ShaderId, desc.PassIndex, desc.ActiveKeywords);
+        if (compiledCacheResult.IsFailure)
+        {
+            Logger.Warning($"Failed to load compiled shader cache for graphics pipeline {pipelineKey}. Skipping draw call.");
+            pipelineKey = default;
+            return false;
+        }
+
+        var cache = compiledCacheResult.Value;
+        Logger.DebugAssert(cache.compiledHash == compiledHash);
+        ShaderLibrary.ParseCacheData(cache.byteCode, out _, out var byteCodeOffsets, out var byteCodes);
+
+        var hasAmplification = (pass.StageMask & ShaderStageMask.Amplification) != 0;
+        var hasPixel = (pass.StageMask & ShaderStageMask.Pixel) != 0;
+        var expectedByteCodeCount = (hasAmplification ? 1 : 0) + 1 + (hasPixel ? 1 : 0);
+        if (byteCodeOffsets.Length != expectedByteCodeCount)
+        {
+            Logger.Warning($"Shader pass 0x{pass.Key.Value:X16} has {byteCodeOffsets.Length} bytecode entries, expected {expectedByteCodeCount}. Skipping draw call.");
+            pipelineKey = default;
+            return false;
+        }
+
+        var byteCodeIndex = 0;
+        var asByteCode = ReadOnlySpan<byte>.Empty;
+        if (hasAmplification)
+        {
+            asByteCode = byteCodes.Slice((int)byteCodeOffsets[0], (int)(byteCodeOffsets[1] - byteCodeOffsets[0]));
+            byteCodeIndex++;
+        }
+
+        var msStart = (int)byteCodeOffsets[byteCodeIndex];
+        var msByteCode = byteCodes.Slice(msStart, hasPixel ? (int)(byteCodeOffsets[byteCodeIndex + 1] - byteCodeOffsets[byteCodeIndex]) : byteCodes.Length - msStart);
+        byteCodeIndex++;
+
+        var psByteCode = ReadOnlySpan<byte>.Empty;
+        if (hasPixel)
+        {
+            psByteCode = byteCodes.Slice((int)byteCodeOffsets[byteCodeIndex]);
+        }
+
+        var psoDesc = new GraphicsPSODesc
+        {
+            CompiledHash = compiledHash,
+            PassId = pass.Key.Value,
+            PipelineOption = desc.PipelineOption,
+            RtvFormats = desc.RtvFormats,
+            DsvFormat = desc.DsvFormat,
+            AsCode = asByteCode,
+            MsCode = msByteCode,
+            PsCode = psByteCode,
+        };
+
+        var createResult = pipelineLibrary.CreateGraphicsPipeline(in psoDesc);
+        if (createResult.IsFailure)
+        {
+            Logger.Warning($"Failed to create graphics pipeline {pipelineKey}: {createResult.Message}");
+            pipelineKey = default;
+            return false;
+        }
+
+        return true;
     }
 }

@@ -11,6 +11,7 @@ namespace Ghost.AssetForge.Core.Bakers;
 public static partial class MaterialPropertyPacker
 {
     public static readonly Guid STANDARD_LIT_SHADER_GUID = Guid.Parse("dea05727-fa9e-41ac-b039-f2c0411a0e04");
+    public const StaticSamplerType DEFAULT_SAMPLER_TYPE = StaticSamplerType.TrilinearRepeat;
 
     private const string STANDARD_LIT_SOURCE = """
 shader "Ghost/StandardLit" : "Lit"
@@ -21,11 +22,14 @@ shader "Ghost/StandardLit" : "Lit"
         Texture2D baseColorMap;
         Texture2D normalMap;
         Texture2D ormMap;
-        Sampler sampler;
+        Sampler baseColorMap_sampler;
+        Sampler normalMap_sampler;
+        Sampler ormMap_sampler;
         float roughness = 0.5;
         float metallic;
         float3 emissionColor;
         Texture2D emissionMap;
+        Sampler emissionMap_sampler;
     }
 }
 """;
@@ -112,8 +116,7 @@ shader "Ghost/StandardLit" : "Lit"
         return null;
     }
 
-    public static (byte[] propertyBuffer, List<MaterialTextureFixup> fixups) Pack(GraphicsShaderSemantics semantics, IDictionary<string, JsonElement>? jsonProperties = null,
-        IDictionary<string, Guid>? jsonTextures = null, Func<string, object?>? valueFallback = null, Func<string, Guid?>? textureFallback = null)
+    public static List<PropertySemantic> CollectAllProperties(GraphicsShaderSemantics semantics)
     {
         var isTemplateShader = !string.IsNullOrEmpty(semantics.templateName);
         var allProperties = new List<PropertySemantic>();
@@ -143,12 +146,22 @@ shader "Ghost/StandardLit" : "Lit"
             }
         }
 
+        return allProperties;
+    }
+
+    public static (byte[] propertyBuffer, List<MaterialTextureFixup> textureFixups, List<MaterialSamplerFixup> samplerFixups) Pack(GraphicsShaderSemantics semantics,
+        IDictionary<string, JsonElement>? jsonProperties = null, IDictionary<string, Guid>? jsonTextures = null, Func<string, object?>? valueFallback = null, Func<string, Guid?>? textureFallback = null)
+    {
+        var isTemplateShader = !string.IsNullOrEmpty(semantics.templateName);
+        var allProperties = CollectAllProperties(semantics);
+
         var totalBufferSize = isTemplateShader
             ? (int)DSLShaderCompiler.CalculateRawPropertyBufferSize(allProperties)
             : (int)DSLShaderCompiler.CalculatePropertyBufferSize(allProperties);
 
         var buffer = new byte[totalBufferSize];
         var fixups = new List<MaterialTextureFixup>();
+        var samplerFixups = new List<MaterialSamplerFixup>();
 
         var registerIndex = 0;
         var byteOffsetInRegister = 0;
@@ -184,6 +197,17 @@ shader "Ghost/StandardLit" : "Lit"
                 continue;
             }
 
+            if (IsSamplerType(prop.type))
+            {
+                var samplerType = ResolveSamplerType(prop, jsonProperties, valueFallback);
+                samplerFixups.Add(new MaterialSamplerFixup
+                {
+                    byteOffset = (uint)offset,
+                    samplerType = samplerType
+                });
+                continue;
+            }
+
             object? val = null;
             if (jsonProperties != null && jsonProperties.TryGetValue(prop.name, out var jsonElem))
             {
@@ -205,7 +229,7 @@ shader "Ghost/StandardLit" : "Lit"
             }
         }
 
-        return (buffer, fixups);
+        return (buffer, fixups, samplerFixups);
     }
 
     public static bool IsTextureType(string type)
@@ -220,7 +244,75 @@ shader "Ghost/StandardLit" : "Lit"
             || span.Equals("texture3dhandle", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static object? ParseJsonElement(string hlslType, JsonElement elem)
+    public static bool IsSamplerType(string type)
+    {
+        var span = type.AsSpan().Trim();
+        return span.Equals("sampler", StringComparison.OrdinalIgnoreCase)
+            || span.Equals("samplerstate", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static StaticSamplerType ResolveSamplerType(PropertySemantic prop, IDictionary<string, JsonElement>? jsonProperties, Func<string, object?>? valueFallback = null)
+    {
+        if (jsonProperties != null && jsonProperties.TryGetValue(prop.name, out var jsonElem) && ParseSamplerJsonElement(jsonElem) is { } parsed)
+        {
+            return parsed;
+        }
+
+        if (valueFallback != null && valueFallback(prop.name) is StaticSamplerType fallbackSampler && IsValidSamplerType(fallbackSampler))
+        {
+            return fallbackSampler;
+        }
+
+        if (!string.IsNullOrWhiteSpace(prop.defaultValue) && ParseSamplerString(prop.defaultValue) is { } defaultSampler)
+        {
+            return defaultSampler;
+        }
+
+        return DEFAULT_SAMPLER_TYPE;
+    }
+
+    public static StaticSamplerType? ParseSamplerJsonElement(JsonElement elem)
+    {
+        if (elem.ValueKind == JsonValueKind.String)
+        {
+            return ParseSamplerString(elem.GetString());
+        }
+
+        if (elem.ValueKind == JsonValueKind.Number && elem.TryGetUInt32(out var numeric) && IsValidSamplerType((StaticSamplerType)numeric))
+        {
+            return (StaticSamplerType)numeric;
+        }
+
+        return null;
+    }
+
+    public static StaticSamplerType? ParseSamplerString(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return null;
+        }
+
+        var trimmed = raw.Trim();
+        if (Enum.TryParse<StaticSamplerType>(trimmed, ignoreCase: true, out var parsed) && IsValidSamplerType(parsed))
+        {
+            return parsed;
+        }
+
+        if (uint.TryParse(trimmed, CultureInfo.InvariantCulture, out var numeric) && IsValidSamplerType((StaticSamplerType)numeric))
+        {
+            return (StaticSamplerType)numeric;
+        }
+
+        return null;
+    }
+
+    private static bool IsValidSamplerType(StaticSamplerType samplerType)
+    {
+        return (uint)samplerType < (uint)StaticSamplerType.Count;
+    }
+
+    public static object? ParseJsonElement(string hlslType, JsonElement elem)
     {
         var span = hlslType.AsSpan().Trim();
         if (span.Equals("float", StringComparison.OrdinalIgnoreCase)) return elem.GetSingle();
@@ -240,7 +332,7 @@ shader "Ghost/StandardLit" : "Lit"
         return null;
     }
 
-    private static object? ParseDefaultValueString(string hlslType, string defaultValue)
+    public static object? ParseDefaultValueString(string hlslType, string defaultValue)
     {
         var clean = defaultValue.AsSpan().Trim();
         var typeSpan = hlslType.AsSpan().Trim();
