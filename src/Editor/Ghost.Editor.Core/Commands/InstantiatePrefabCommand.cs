@@ -1,5 +1,7 @@
 using Ghost.Editor.Core.Selection;
+using Ghost.Editor.Core.Serialization;
 using Ghost.Editor.Core.Sync;
+using Ghost.Engine.Components;
 using Ghost.Engine.Utilities;
 using Ghost.Entities;
 using Misaki.HighPerformance.Mathematics;
@@ -22,6 +24,7 @@ public sealed class InstantiatePrefabCommand : IEditorCommand
     private readonly EditorSelection _selection;
     private readonly Guid _instanceGuid = Guid.NewGuid();
     private readonly Dictionary<int, Guid> _allocatedNodeGuids = new();
+    private readonly List<EntityNode> _spawnedEntityNodes = new();
 
     private Entity _spawnedRoot = Entity.Invalid;
     private object? _previousSelection;
@@ -48,62 +51,94 @@ public sealed class InstantiatePrefabCommand : IEditorCommand
     public void Execute()
     {
         _previousSelection = _selection.ActiveObject;
-        _bridge.EnqueueWorldAction(world =>
+        _spawnedEntityNodes.Clear();
+
+        var world = _bridge.World;
+        var assetManager = _bridge.AssetManager;
+        if (world == null || assetManager == null || !assetManager.TryResolveAsset(_prefabAssetGuid, out var prefabAsset))
         {
-            var assetManager = _bridge.AssetManager;
-            if (assetManager == null || !assetManager.TryResolveAsset(_prefabAssetGuid, out var prefabAsset))
+            return;
+        }
+
+        try
+        {
+            var parentEcs = _parentNodeId.HasValue ? _bridge.ResolveEcsEntity(_parentNodeId.Value) : Entity.Invalid;
+            var opts = new PrefabSpawnOptions
+            {
+                Parent = parentEcs,
+                ApplyTransform = true,
+                InstanceGuidOverride = _instanceGuid,
+                NodeGuidOverrides = _allocatedNodeGuids.Count > 0 ? _allocatedNodeGuids : null,
+                RootName = _displayName,
+                TargetSceneId = _targetSceneId
+            };
+
+            if (!EditorPrefabUtility.TrySpawnLinkedPrefab(world, prefabAsset, _bridge, _position, _rotation, _scale, out var spawned, opts))
             {
                 return;
             }
 
-            try
+            _spawnedRoot = spawned[0].Entity;
+            for (var i = 0; i < spawned.Count; i++)
             {
-                var parentEcs = _parentNodeId.HasValue ? _bridge.ResolveEcsEntity(_parentNodeId.Value) : Entity.Invalid;
-                var opts = new PrefabSpawnOptions
-                {
-                    Parent = parentEcs,
-                    ApplyTransform = true,
-                    InstanceGuidOverride = _instanceGuid,
-                    NodeGuidOverrides = _allocatedNodeGuids.Count > 0 ? _allocatedNodeGuids : null,
-                    RootName = _displayName,
-                    TargetSceneId = _targetSceneId
-                };
-
-                if (!EditorPrefabUtility.TrySpawnLinkedPrefab(world, prefabAsset, _bridge, _position, _rotation, _scale, out var spawned, opts))
-                {
-                    return;
-                }
-
-                _spawnedRoot = spawned[0].Entity;
-                for (var i = 0; i < spawned.Count; i++)
-                {
-                    _allocatedNodeGuids[spawned[i].Link.TemplateEntityIndex] = spawned[i].EditorGuid;
-                }
-
-                _bridge.SetSceneDirty(_targetSceneId, true);
+                _allocatedNodeGuids[spawned[i].Link.TemplateEntityIndex] = spawned[i].EditorGuid;
             }
-            finally
+
+            var createdNodes = SceneSerializer.CreatePrefabEntityNodes(world, prefabAsset, spawned, _targetSceneId, _bridge);
+            _spawnedEntityNodes.AddRange(createdNodes);
+            _bridge.MutateEntities(entities => entities.AddRange(createdNodes));
+
+            var em = world.EntityManager;
+            for (var i = 0; i < createdNodes.Count; i++)
             {
-                prefabAsset.Release();
+                var ecs = createdNodes[i].EcsEntity;
+                if (em.HasComponent<LocalTransform>(ecs) || em.HasComponent<LocalToWorld>(ecs))
+                {
+                    _bridge.DirtyTracker.MarkTransformDirty(ecs);
+                }
             }
-        });
+
+            if (createdNodes.Count > 0)
+            {
+                _selection.Select(createdNodes[0]);
+            }
+
+            _bridge.SetSceneDirty(_targetSceneId, true);
+        }
+        finally
+        {
+            prefabAsset.Release();
+        }
     }
 
     public void Undo()
     {
-        var rootToDestroy = _spawnedRoot;
-        _bridge.EnqueueWorldAction(world =>
+        var world = _bridge.World;
+        if (world != null && _spawnedRoot.IsValid && world.EntityManager.Exists(_spawnedRoot))
         {
-            if (rootToDestroy.IsValid && world.EntityManager.Exists(rootToDestroy))
+            ClearSubtreeMetadata(world, _spawnedRoot);
+            HierarchyUtility.DestroyEntityWithChildren(world, _spawnedRoot);
+        }
+
+        _spawnedRoot = Entity.Invalid;
+
+        if (_spawnedEntityNodes.Count > 0)
+        {
+            var removedSet = new HashSet<EntityNode>(_spawnedEntityNodes);
+            _bridge.MutateEntities(entities =>
             {
-                ClearSubtreeMetadata(world, rootToDestroy);
-                HierarchyUtility.DestroyEntityWithChildren(world, rootToDestroy);
-            }
+                for (var i = entities.Count - 1; i >= 0; i--)
+                {
+                    if (removedSet.Contains(entities[i]))
+                    {
+                        entities.RemoveAt(i);
+                    }
+                }
+            });
+            _spawnedEntityNodes.Clear();
+        }
 
-            _spawnedRoot = Entity.Invalid;
-            _bridge.SetSceneDirty(_targetSceneId, true);
-        });
-
+        _bridge.SetSceneDirty(_targetSceneId, true);
         _selection.Select(_previousSelection);
     }
 
@@ -116,13 +151,13 @@ public sealed class InstantiatePrefabCommand : IEditorCommand
             return;
         }
 
-        if (world.EntityManager.HasComponent<Ghost.Engine.Components.Hierarchy>(entity))
+        if (world.EntityManager.HasComponent<Hierarchy>(entity))
         {
-            var child = world.EntityManager.GetComponent<Ghost.Engine.Components.Hierarchy>(entity).firstChild;
+            var child = world.EntityManager.GetComponent<Hierarchy>(entity).firstChild;
             while (child.IsValid && world.EntityManager.Exists(child))
             {
-                var next = world.EntityManager.HasComponent<Ghost.Engine.Components.Hierarchy>(child)
-                    ? world.EntityManager.GetComponent<Ghost.Engine.Components.Hierarchy>(child).nextSibling
+                var next = world.EntityManager.HasComponent<Hierarchy>(child)
+                    ? world.EntityManager.GetComponent<Hierarchy>(child).nextSibling
                     : Entity.Invalid;
                 ClearSubtreeMetadata(world, child);
                 child = next;

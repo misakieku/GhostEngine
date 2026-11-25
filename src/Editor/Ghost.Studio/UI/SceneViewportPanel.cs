@@ -376,14 +376,45 @@ internal sealed unsafe class SceneViewportPanel : EditorWindow
                 lt.scale = newScale;
                 if (hasLtw)
                 {
-                    em.GetComponent<LocalToWorld>(entity).matrix = nextWorldMtx;
+                    ref var ltw = ref em.GetComponent<LocalToWorld>(entity);
+                    ltw.matrix = nextWorldMtx;
+                    if (_dragLtwMatrixProp != null)
+                    {
+                        _dragLtwMatrixProp.Value = nextWorldMtx;
+                        _dragLtwMatrixProp.ComponentNode.LiveValue = ltw;
+                    }
+                }
+
+                if (_dragPosProp != null)
+                {
+                    _dragPosProp.Value = newPos;
+                    _dragPosProp.ComponentNode.LiveValue = lt;
+                }
+
+                if (_dragRotProp != null)
+                {
+                    _dragRotProp.Value = newRot;
+                    _dragRotProp.ComponentNode.LiveValue = lt;
+                }
+
+                if (_dragScaleProp != null)
+                {
+                    _dragScaleProp.Value = newScale;
+                    _dragScaleProp.ComponentNode.LiveValue = lt;
                 }
 
                 EditorSyncBridge.Instance.DirtyTracker.MarkTransformDirty(entity);
             }
             else if (hasLtw)
             {
-                em.GetComponent<LocalToWorld>(entity).matrix = nextWorldMtx;
+                ref var ltw = ref em.GetComponent<LocalToWorld>(entity);
+                ltw.matrix = nextWorldMtx;
+                if (_dragLtwMatrixProp != null)
+                {
+                    _dragLtwMatrixProp.Value = nextWorldMtx;
+                    _dragLtwMatrixProp.ComponentNode.LiveValue = ltw;
+                }
+
                 EditorSyncBridge.Instance.DirtyTracker.MarkTransformDirty(entity);
             }
         }
@@ -539,7 +570,7 @@ internal sealed unsafe class SceneViewportPanel : EditorWindow
         var pad = 8.0f * dpi;
 
         ref var cam = ref em.GetOrCreateSingleton(EditorCamera.Default);
-        var entityCount = EditorSyncBridge.Instance.LatestSnapshot?.EntityCount ?? 0;
+        var entityCount = EditorSyncBridge.Instance.EntityCount;
 
         ImGui.PushFont(contextManager.MonospaceFont, EditorTheme.FONT_SIZE_MONO);
         var label = $"{_viewportTarget.GetWidth(CurrentFrameIndex)}x{_viewportTarget.GetHeight(CurrentFrameIndex)}  |  Entities: {entityCount}  |  Speed: {cam.moveSpeed:0.0}  |  RMB+WASD Fly  Alt+LMB Orbit  MMB Pan  F Frame";

@@ -183,7 +183,7 @@ internal static unsafe class EditorObjectPickers
         return changed;
     }
 
-    public static bool DrawEntityField(string id, int currentNodeId, SceneSnapshot? snapshot, in EditorColorTokens tokens,
+    public static bool DrawEntityField(string id, int currentNodeId, IReadOnlyList<EntityNode> entities, in EditorColorTokens tokens,
         out int nextNodeId, Action<EntityNode>? onSelectEntity = null, float reservedRightWidth = 0.0f)
     {
         nextNodeId = currentNodeId;
@@ -191,13 +191,13 @@ internal static unsafe class EditorObjectPickers
 
         ImGui.PushID(id);
         EntityNode? resolvedNode = null;
-        if (currentNodeId > 0 && snapshot != null)
+        if (currentNodeId > 0)
         {
-            for (var i = 0; i < snapshot.Entities.Count; i++)
+            for (var i = 0; i < entities.Count; i++)
             {
-                if (snapshot.Entities[i].Id == currentNodeId)
+                if (entities[i].Id == currentNodeId)
                 {
-                    resolvedNode = snapshot.Entities[i];
+                    resolvedNode = entities[i];
                     break;
                 }
             }
@@ -266,22 +266,19 @@ internal static unsafe class EditorObjectPickers
             }
 
             ImGui.BeginChild("##EntityPickList", new Vector2(260.0f, 220.0f), ImGuiChildFlags.None);
-            if (snapshot != null)
+            for (var i = 0; i < entities.Count; i++)
             {
-                for (var i = 0; i < snapshot.Entities.Count; i++)
+                var node = entities[i];
+                if (!string.IsNullOrWhiteSpace(s_entitySearchQuery) && !node.Name.Contains(s_entitySearchQuery, StringComparison.OrdinalIgnoreCase))
                 {
-                    var node = snapshot.Entities[i];
-                    if (!string.IsNullOrWhiteSpace(s_entitySearchQuery) && !node.Name.Contains(s_entitySearchQuery, StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    if (ImGui.Selectable($"{node.Name} (#{node.Id})", node.Id == currentNodeId))
-                    {
-                        nextNodeId = node.Id;
-                        changed = true;
-                        ImGui.CloseCurrentPopup();
-                    }
+                if (ImGui.Selectable($"{node.Name} (#{node.Id})", node.Id == currentNodeId))
+                {
+                    nextNodeId = node.Id;
+                    changed = true;
+                    ImGui.CloseCurrentPopup();
                 }
             }
             ImGui.EndChild();

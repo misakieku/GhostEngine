@@ -146,14 +146,14 @@ public static class ComponentNodeFactory
             }
 
             var fieldValue = liveValue != null ? field.GetValue(liveValue) : null;
-            var propNode = CreatePropertyNode(field, compNode, entityNode, fieldValue, bridge ?? EditorSyncBridge.Instance);
+            var propNode = CreatePropertyNode(field, compNode, fieldValue, bridge ?? EditorSyncBridge.Instance);
             properties.Add(propNode);
         }
 
         return compNode;
     }
 
-    private static PropertyNode CreatePropertyNode(FieldInfo field, ComponentNode compNode, EntityNode entityNode, object? fieldValue, EditorSyncBridge bridge, PropertyNode? template = null)
+    private static PropertyNode CreatePropertyNode(FieldInfo field, ComponentNode compNode, object? fieldValue, EditorSyncBridge bridge, PropertyNode? template = null)
     {
         var isReadOnly = field.GetCustomAttribute<ReadOnlyInInspectorAttribute>() != null;
         var displayName = field.GetCustomAttribute<InspectorNameAttribute>()?.Name;
@@ -168,11 +168,21 @@ public static class ComponentNodeFactory
                 var boxed = compNode.LiveValue;
                 capturedField.SetValue(boxed, newValue);
                 compNode.LiveValue = boxed;
-            }
 
-            if (entityNode.EcsEntity.IsValid)
-            {
-                bridge.EnqueueMutation(entityNode.EcsEntity, componentType, capturedField.Name, newValue);
+                var ownerEntity = compNode.EntityNode;
+                var world = bridge.World;
+                if (world != null && ownerEntity != null && ownerEntity.EcsEntity.IsValid && world.EntityManager.Exists(ownerEntity.EcsEntity))
+                {
+                    ComponentReflectionAccessor.TryAddOrSet(world.EntityManager, ownerEntity.EcsEntity, componentType, boxed);
+                    if (componentType == typeof(LocalTransform) || componentType == typeof(LocalToWorld))
+                    {
+                        bridge.DirtyTracker.MarkTransformDirty(ownerEntity.EcsEntity);
+                    }
+                    else if (componentType == typeof(MeshInstance))
+                    {
+                        bridge.DirtyTracker.MarkGpuInstanceDirty(ownerEntity.EcsEntity);
+                    }
+                }
             }
         };
 
@@ -236,7 +246,7 @@ public static class ComponentNodeFactory
                     }
 
                     var fieldValue = field.GetValue(srcComp.LiveValue);
-                    clonedProps.Add(CreatePropertyNode(field, clonedComp, clone, fieldValue, resolvedBridge, srcTemplate));
+                    clonedProps.Add(CreatePropertyNode(field, clonedComp, fieldValue, resolvedBridge, srcTemplate));
                 }
             }
             else

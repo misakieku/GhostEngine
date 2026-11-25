@@ -323,7 +323,7 @@ internal sealed class MainMenuBar
     {
         ref readonly var tokens = ref contextManager.Tokens;
         var fps = deltaTime > 0.00001f ? 1.0f / deltaTime : 0.0f;
-        var entityCount = EditorSyncBridge.Instance.LatestSnapshot?.EntityCount ?? 0;
+        var entityCount = EditorSyncBridge.Instance.EntityCount;
         var sceneLabel = sceneSession != null ? $"{sceneSession.CurrentSceneDisplayName}{(sceneSession.IsDirty ? "*" : string.Empty)}  |  " : string.Empty;
         var text = $"{sceneLabel}{fps:0} FPS ({deltaTime * 1000.0f:0.00} ms)  |  Entities: {entityCount}  |  DPI {contextManager.DpiScale:0.00}x";
 

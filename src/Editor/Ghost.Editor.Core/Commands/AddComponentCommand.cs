@@ -40,33 +40,36 @@ public sealed class AddComponentCommand : IEditorCommand
         }
 
         list.Add(_component);
-        _bridge.MutateSnapshot(current => new List<EntityNode>(current));
+        _bridge.BumpRevision();
         _selection.Select(_entity);
 
-        _bridge.EnqueueWorldAction(world =>
+        var world = _bridge.World;
+        if (world == null)
         {
-            var em = world.EntityManager;
-            var ecs = _entity.EcsEntity;
-            if (!ecs.IsValid || !em.Exists(ecs))
-            {
-                return;
-            }
+            return;
+        }
 
-            ComponentReflectionAccessor.TryAddOrSet(em, ecs, _component);
-            if (_component.ComponentType == typeof(LocalTransform) && !em.HasComponent<LocalToWorld>(ecs))
-            {
-                ComponentReflectionAccessor.TryAddOrSet(em, ecs, typeof(LocalToWorld), new LocalToWorld { matrix = LocalTransform.Identity.ToMatrix() });
-            }
+        var em = world.EntityManager;
+        var ecs = _entity.EcsEntity;
+        if (!ecs.IsValid || !em.Exists(ecs))
+        {
+            return;
+        }
 
-            if (_component.ComponentType == typeof(LocalTransform) || _component.ComponentType == typeof(LocalToWorld))
-            {
-                _bridge.DirtyTracker.MarkTransformDirty(ecs);
-            }
-            else if (_component.ComponentType == typeof(MeshInstance))
-            {
-                _bridge.DirtyTracker.MarkGpuInstanceDirty(ecs);
-            }
-        });
+        ComponentReflectionAccessor.TryAddOrSet(em, ecs, _component);
+        if (_component.ComponentType == typeof(LocalTransform) && !em.HasComponent<LocalToWorld>(ecs))
+        {
+            ComponentReflectionAccessor.TryAddOrSet(em, ecs, typeof(LocalToWorld), new LocalToWorld { matrix = LocalTransform.Identity.ToMatrix() });
+        }
+
+        if (_component.ComponentType == typeof(LocalTransform) || _component.ComponentType == typeof(LocalToWorld))
+        {
+            _bridge.DirtyTracker.MarkTransformDirty(ecs);
+        }
+        else if (_component.ComponentType == typeof(MeshInstance))
+        {
+            _bridge.DirtyTracker.MarkGpuInstanceDirty(ecs);
+        }
     }
 
     public void Undo()
@@ -74,17 +77,15 @@ public sealed class AddComponentCommand : IEditorCommand
         var list = EnsureMutableList();
         if (list.Remove(_component))
         {
-            _bridge.MutateSnapshot(current => new List<EntityNode>(current));
+            _bridge.BumpRevision();
             _selection.Select(_entity);
 
-            _bridge.EnqueueWorldAction(world =>
+            var world = _bridge.World;
+            var ecs = _entity.EcsEntity;
+            if (world != null && ecs.IsValid && world.EntityManager.Exists(ecs))
             {
-                var ecs = _entity.EcsEntity;
-                if (ecs.IsValid && world.EntityManager.Exists(ecs))
-                {
-                    ComponentReflectionAccessor.TryRemove(world.EntityManager, ecs, _component.ComponentType);
-                }
-            });
+                ComponentReflectionAccessor.TryRemove(world.EntityManager, ecs, _component.ComponentType);
+            }
         }
     }
 

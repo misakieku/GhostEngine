@@ -465,10 +465,18 @@ internal sealed class MaterialEditorWindow : AssetEditorWindow
         ImGui.SameLine();
         if (ImGui.Button("Save & Reimport"))
         {
-            if (!_isDirty || Save())
+            if (_isDirty)
+            {
+                Save();
+                if (!_isDirty)
+                {
+                    StatusMessage = "Saved and queued async reimport...";
+                }
+            }
+            else
             {
                 _assetImportService.EnqueueReimport(AssetPath, forceRebake: true);
-                StatusMessage = "Saved and queued async reimport...";
+                StatusMessage = "Queued async reimport...";
             }
         }
 

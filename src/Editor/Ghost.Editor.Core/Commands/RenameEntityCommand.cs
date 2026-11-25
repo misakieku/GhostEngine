@@ -4,7 +4,7 @@ using Ghost.Editor.Core.Sync;
 namespace Ghost.Editor.Core.Commands;
 
 /// <summary>
-/// Undoable command that renames an <see cref="EntityNode"/> and republishes the scene snapshot.
+/// Undoable command that renames an <see cref="EntityNode"/>.
 /// </summary>
 public sealed class RenameEntityCommand : IEditorCommand
 {
@@ -46,17 +46,7 @@ public sealed class RenameEntityCommand : IEditorCommand
             _bridge.SetEntityName(_target.EcsEntity, name);
         }
 
-        _bridge.MutateSnapshot(entities =>
-        {
-            var next = new List<EntityNode>(entities.Count);
-            for (var i = 0; i < entities.Count; i++)
-            {
-                next.Add(entities[i]);
-            }
-
-            return next;
-        });
-
+        _bridge.BumpRevision();
         _selection.Select(_target);
     }
 }

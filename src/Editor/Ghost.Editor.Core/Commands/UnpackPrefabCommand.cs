@@ -25,57 +25,43 @@ public sealed class UnpackPrefabCommand : IEditorCommand
     public void Execute()
     {
         _unpackedNodes.Clear();
-        var snapshot = _bridge.LatestSnapshot;
-        if (snapshot != null)
+        var world = _bridge.World;
+        var entities = _bridge.Entities;
+        for (var i = 0; i < entities.Count; i++)
         {
-            for (var i = 0; i < snapshot.Entities.Count; i++)
+            var node = entities[i];
+            if (node.PrefabLink != null && node.PrefabLink.InstanceGuid == _instanceGuid)
             {
-                var node = snapshot.Entities[i];
-                if (node.PrefabLink != null && node.PrefabLink.InstanceGuid == _instanceGuid)
+                _unpackedNodes.Add((node, node.PrefabLink));
+                node.PrefabLink = null;
+                if (world != null && node.EcsEntity.IsValid && world.EntityManager.Exists(node.EcsEntity))
                 {
-                    _unpackedNodes.Add((node, node.PrefabLink));
-                    node.PrefabLink = null;
-                }
-            }
-        }
-
-        var snapshotCopy = _unpackedNodes.ToArray();
-        _bridge.EnqueueWorldAction(world =>
-        {
-            for (var i = 0; i < snapshotCopy.Length; i++)
-            {
-                var e = snapshotCopy[i].Node.EcsEntity;
-                if (e.IsValid && world.EntityManager.Exists(e))
-                {
-                    _bridge.SetPrefabLink(e, null);
-                }
-
-                _bridge.SetSceneDirty(snapshotCopy[i].Node.SceneId, true);
-            }
-        });
-    }
-
-    public void Undo()
-    {
-        var snapshotCopy = _unpackedNodes.ToArray();
-        for (var i = 0; i < snapshotCopy.Length; i++)
-        {
-            snapshotCopy[i].Node.PrefabLink = snapshotCopy[i].Link;
-        }
-
-        _bridge.EnqueueWorldAction(world =>
-        {
-            for (var i = 0; i < snapshotCopy.Length; i++)
-            {
-                var (node, link) = snapshotCopy[i];
-                if (node.EcsEntity.IsValid && world.EntityManager.Exists(node.EcsEntity))
-                {
-                    _bridge.SetPrefabLink(node.EcsEntity, link);
+                    _bridge.SetPrefabLink(node.EcsEntity, null);
                 }
 
                 _bridge.SetSceneDirty(node.SceneId, true);
             }
-        });
+        }
+
+        _bridge.BumpRevision();
+    }
+
+    public void Undo()
+    {
+        var world = _bridge.World;
+        for (var i = 0; i < _unpackedNodes.Count; i++)
+        {
+            var (node, link) = _unpackedNodes[i];
+            node.PrefabLink = link;
+            if (world != null && node.EcsEntity.IsValid && world.EntityManager.Exists(node.EcsEntity))
+            {
+                _bridge.SetPrefabLink(node.EcsEntity, link);
+            }
+
+            _bridge.SetSceneDirty(node.SceneId, true);
+        }
+
+        _bridge.BumpRevision();
     }
 
     public void Redo() => Execute();

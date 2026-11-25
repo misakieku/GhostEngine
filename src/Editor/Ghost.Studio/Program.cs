@@ -146,6 +146,7 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
         _editorWorld.AddService(engine.RenderEngine);
         _editorWorld.AddService(engine.AssetManager);
         _editorWorld.AddService(EditorSyncBridge.Instance.DirtyTracker);
+        EditorSyncBridge.Instance.World = _editorWorld;
         EditorSyncBridge.Instance.AssetManager = engine.AssetManager;
         EditorSyncBridge.Instance.ResourceManager = engine.RenderEngine.ResourceManager;
 
@@ -156,7 +157,6 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
             EditorSyncBridge.Instance.RegisterScene(0, null);
         }
 
-        _editorWorld.SystemManager.AddSystem(new EditorEcsSyncSystem());
         _imguiSystem = new EditorImGuiSystem(_contextManager!, _inputBridge!, _postRenderCommand!, _viewportTarget!, _viewportInputState!, _projectService, _contentProvider, assetCatalog, sceneSession,
             requestExit: () => _engineWindow?.RequestClose(),
             updateWindowTitle: UpdateWindowTitle,
@@ -206,6 +206,13 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
         {
             SceneSerializer.UnloadCurrentScene(_editorWorld, EditorSyncBridge.Instance, EditorSelection.Instance, CommandHistory.Instance);
         }
+
+        EditorSyncBridge.Instance.ReleaseAllTrackedResources();
+        EditorSyncBridge.Instance.World = null;
+        EditorSyncBridge.Instance.AssetManager = null;
+        EditorSyncBridge.Instance.ResourceManager = null;
+        EditorSelection.Instance.Clear();
+        CommandHistory.Instance.Clear();
 
         _imguiShaderEntry?.Release();
         _imguiShaderEntry = null;

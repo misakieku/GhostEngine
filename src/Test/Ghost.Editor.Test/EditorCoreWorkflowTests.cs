@@ -14,29 +14,29 @@ namespace Ghost.Editor.Test;
 public class EditorCoreWorkflowTests
 {
     [TestMethod]
-    public void EditorSyncBridge_QueuesMutationsAndPublishesSnapshots()
+    public void EditorSyncBridge_ManagesEntitiesAndMainThreadActions()
     {
         using var scheduler = new JobScheduler(new JobSchedulerDesc { ThreadCount = 1, ThreadPriority = ThreadPriority.Normal, DependencyChainCapacity = 64 });
         using var world = World.Create(scheduler, 16);
-        var entity = world.EntityManager.CreateEntity();
+        var entity = world.EntityManager.CreateEntity(LocalTransform.Identity);
 
-        var bridge = new EditorSyncBridge();
-        bridge.EnqueueMutation(entity, typeof(LocalTransform), "position", new float3(1, 2, 3));
-
-        var mutations = new List<PendingPropertyMutation>();
-        bridge.DrainMutations(mutations);
-        Assert.HasCount(1, mutations);
-        Assert.AreEqual(entity, mutations[0].Entity);
-
+        var bridge = new EditorSyncBridge { World = world };
         var propNode = new ValuePropertyNode("position", typeof(float3), null!, new float3(1, 2, 3), _ => { });
         var compNode = new ComponentNode("LocalTransform", typeof(LocalTransform), null!, new PropertyNode[] { propNode });
-        var entityNode = new EntityNode(42, "PlayerCharacter", new ComponentNode[] { compNode });
-        var snapshot = new SceneSnapshot(new EntityNode[] { entityNode }, frameTimeMs: 8.3f, fps: 120.0f);
-        bridge.PublishSnapshot(snapshot);
+        var entityNode = new EntityNode(42, "PlayerCharacter", new ComponentNode[] { compNode }) { EcsEntity = entity };
+        bridge.SetEntities(new[] { entityNode });
 
-        Assert.IsNotNull(bridge.LatestSnapshot);
-        Assert.HasCount(1, bridge.LatestSnapshot.Entities);
-        Assert.AreEqual(120.0f, bridge.LatestSnapshot.Fps);
+        Assert.AreEqual(1, bridge.EntityCount);
+        Assert.AreSame(entityNode, bridge.FindEntityNode(42));
+
+        var executed = false;
+        bridge.EnqueueMainThreadAction(w =>
+        {
+            Assert.AreSame(world, w);
+            executed = true;
+        });
+        bridge.DrainMainThreadActions(world);
+        Assert.IsTrue(executed);
     }
 
     [TestMethod]
@@ -117,7 +117,6 @@ public class EditorCoreWorkflowTests
         var bridge = new EditorSyncBridge();
         var selection = new EditorSelection();
         var history = new CommandHistory();
-        bridge.PublishSnapshot(new SceneSnapshot(Array.Empty<EntityNode>(), 16.6f, 60.0f));
 
         var createRoot = new CreateEntityCommand("ParentObj", null, new Type[] { typeof(LocalTransform) }, bridge, selection);
         history.Execute(createRoot);
@@ -127,8 +126,7 @@ public class EditorCoreWorkflowTests
         history.Execute(createChild);
         var childObj = createChild.CreatedEntity;
 
-        Assert.IsNotNull(bridge.LatestSnapshot);
-        Assert.HasCount(2, bridge.LatestSnapshot.Entities);
+        Assert.AreEqual(2, bridge.EntityCount);
         Assert.AreEqual(parentObj.Id, childObj.ParentId);
 
         // Reparenting parentObj under childObj must be blocked to prevent hierarchy cycles.
@@ -164,9 +162,9 @@ public class EditorCoreWorkflowTests
         Assert.IsTrue(parentObj.Components.Any(c => c.ComponentType == typeof(Camera)));
 
         history.Execute(new DeleteEntityCommand(parentObj, bridge, selection));
-        Assert.IsEmpty(bridge.LatestSnapshot.Entities);
+        Assert.IsEmpty(bridge.Entities);
         history.Undo();
-        Assert.HasCount(2, bridge.LatestSnapshot.Entities);
+        Assert.HasCount(2, bridge.Entities);
     }
 
     [TestMethod]
@@ -175,7 +173,6 @@ public class EditorCoreWorkflowTests
         var bridge = new EditorSyncBridge();
         var selection = new EditorSelection();
         var history = new CommandHistory();
-        bridge.PublishSnapshot(new SceneSnapshot(Array.Empty<EntityNode>(), 16.6f, 60.0f));
 
         var createRoot = new CreateEntityCommand("ParentObj", null, new Type[] { typeof(LocalTransform) }, bridge, selection);
         history.Execute(createRoot);
@@ -251,7 +248,7 @@ public class EditorCoreWorkflowTests
         Assert.IsInstanceOfType<HierarchyNode>(entityA);
         Assert.IsTrue(entityA.CanRename);
 
-        var scenes = bridge.GetSceneNodeSnapshots(new[] { entityA, entityB, entityC });
+        var scenes = bridge.GetSceneNodes(new[] { entityA, entityB, entityC });
         Assert.HasCount(2, scenes);
         Assert.IsInstanceOfType<HierarchyNode>(scenes[0]);
         Assert.IsFalse(scenes[0].CanRename);
@@ -266,5 +263,53 @@ public class EditorCoreWorkflowTests
         selection.Select(scenes[0]);
         Assert.AreSame(scenes[0], selection.ActiveObject);
         Assert.IsNull(selection.ActiveEntity);
+    }
+
+    [TestMethod]
+    public void ModifyPropertyAndRemoveComponent_UndoRedo_UpdatesEcsAndMarksDirtyTracker()
+    {
+        using var scheduler = new JobScheduler(new JobSchedulerDesc { ThreadCount = 1, ThreadPriority = ThreadPriority.Normal, DependencyChainCapacity = 64 });
+        using var world = World.Create(scheduler, 16);
+        var em = world.EntityManager;
+        var entity = em.CreateEntity(LocalTransform.Identity, new LocalToWorld { matrix = float4x4.identity });
+
+        var bridge = new EditorSyncBridge { World = world };
+        var selection = new EditorSelection();
+        var history = new CommandHistory(50);
+
+        var placeholderNode = new EntityNode(0, "Placeholder", Array.Empty<ComponentNode>());
+        var ltComp = ComponentNodeFactory.CreateComponentNode(typeof(LocalTransform), placeholderNode, LocalTransform.Identity, bridge);
+        var realEntityNode = new EntityNode(10, "Cube", new List<ComponentNode> { ltComp }) { EcsEntity = entity };
+        ltComp.EntityNode = realEntityNode;
+        bridge.SetEntities(new[] { realEntityNode });
+
+        var posProp = ltComp.FindProperty(nameof(LocalTransform.position))!;
+        var dirtyTransforms = new List<Entity>();
+
+        history.Execute(new ModifyPropertyCommand(posProp, float3.zero, new float3(5.0f, 2.0f, -1.0f)));
+        bridge.DirtyTracker.DrainTransforms(dirtyTransforms);
+        Assert.Contains(entity, dirtyTransforms);
+        Assert.AreEqual(new float3(5.0f, 2.0f, -1.0f), em.GetComponent<LocalTransform>(entity).position);
+
+        dirtyTransforms.Clear();
+        history.Undo();
+        bridge.DirtyTracker.DrainTransforms(dirtyTransforms);
+        Assert.Contains(entity, dirtyTransforms);
+        Assert.AreEqual(float3.zero, em.GetComponent<LocalTransform>(entity).position);
+
+        dirtyTransforms.Clear();
+        history.Redo();
+        bridge.DirtyTracker.DrainTransforms(dirtyTransforms);
+        Assert.Contains(entity, dirtyTransforms);
+        Assert.AreEqual(new float3(5.0f, 2.0f, -1.0f), em.GetComponent<LocalTransform>(entity).position);
+
+        dirtyTransforms.Clear();
+        history.Execute(new RemoveComponentCommand(realEntityNode, ltComp, bridge, selection));
+        Assert.IsFalse(em.HasComponent<LocalTransform>(entity));
+
+        history.Undo();
+        bridge.DirtyTracker.DrainTransforms(dirtyTransforms);
+        Assert.IsTrue(em.HasComponent<LocalTransform>(entity));
+        Assert.Contains(entity, dirtyTransforms);
     }
 }

@@ -46,7 +46,7 @@ internal sealed class EditorSceneSession
     public void GetDirtyScenes(List<SceneNode> destination)
     {
         destination.Clear();
-        var scenes = _bridge.LatestSnapshot?.Scenes ?? _bridge.GetSceneNodeSnapshots(Array.Empty<EntityNode>());
+        var scenes = _bridge.GetSceneNodes();
         for (var i = 0; i < scenes.Count; i++)
         {
             if (scenes[i].IsDirty)
@@ -58,12 +58,15 @@ internal sealed class EditorSceneSession
 
     public void NewScene()
     {
+        var world = _bridge.World;
+        if (world == null)
+        {
+            return;
+        }
+
         var blank = new SceneAssetDocument();
         _bridge.ActiveScenePath = null;
-        _bridge.EnqueueWorldAction(world =>
-        {
-            SceneSerializer.LoadFromDocument(world, _bridge, blank, SceneLoadingType.Single, null, EditorSelection.Instance, CommandHistory.Instance);
-        });
+        SceneSerializer.LoadFromDocument(world, _bridge, blank, SceneLoadingType.Single, null, EditorSelection.Instance, CommandHistory.Instance);
     }
 
     public void OpenScene(string filePath, SceneLoadingType mode = SceneLoadingType.Single)
@@ -74,39 +77,41 @@ internal sealed class EditorSceneSession
             return;
         }
 
+        var world = _bridge.World;
+        if (world == null)
+        {
+            return;
+        }
+
         var fullPath = Path.GetFullPath(filePath);
         if (mode == SceneLoadingType.Single)
         {
             _bridge.ActiveScenePath = fullPath;
         }
 
-        _bridge.EnqueueWorldAction(world =>
+        var res = SceneSerializer.LoadFromFile(world, _bridge, fullPath, mode, null, EditorSelection.Instance, CommandHistory.Instance);
+        if (res.IsFailure)
         {
-            var res = SceneSerializer.LoadFromFile(world, _bridge, fullPath, mode, null, EditorSelection.Instance, CommandHistory.Instance);
-            if (res.IsFailure)
-            {
-                Logger.Error($"Failed to open scene '{fullPath}': {res.Message}");
-            }
-        });
+            Logger.Error($"Failed to open scene '{fullPath}': {res.Message}");
+        }
     }
 
     public void SetActiveScene(ushort sceneId)
     {
         _bridge.ActiveSceneId = sceneId;
         _bridge.ActiveScenePath = GetScenePath(sceneId);
-        var snap = _bridge.LatestSnapshot;
-        if (snap != null)
-        {
-            _bridge.PublishSnapshot(new SceneSnapshot(_bridge.GetSceneNodeSnapshots(snap.Entities), snap.Entities, snap.FrameTimeMs, snap.Fps));
-        }
+        _bridge.BumpRevision();
     }
 
     public void UnloadScene(ushort sceneId)
     {
-        _bridge.EnqueueWorldAction(world =>
+        var world = _bridge.World;
+        if (world == null)
         {
-            SceneSerializer.UnloadScene(world, _bridge, sceneId, EditorSelection.Instance, CommandHistory.Instance);
-        });
+            return;
+        }
+
+        SceneSerializer.UnloadScene(world, _bridge, sceneId, EditorSelection.Instance, CommandHistory.Instance);
     }
 
     public void HandleProjectSwitched(World world)
@@ -116,7 +121,6 @@ internal sealed class EditorSceneSession
         if (!TryLoadDefaultSceneOnStartup(world))
         {
             _bridge.RegisterScene(0, null, isDirty: false);
-            _bridge.PublishSnapshot(new SceneSnapshot(_bridge.GetSceneNodeSnapshots(Array.Empty<EntityNode>()), Array.Empty<EntityNode>()));
         }
     }
 
@@ -135,20 +139,12 @@ internal sealed class EditorSceneSession
             targetPath += SceneAssetDocument.EXTENSION;
         }
 
-        var snapshot = _bridge.LatestSnapshot;
-        if (snapshot == null)
-        {
-            return false;
-        }
-
-        SceneSerializer.SaveToFile(targetPath, snapshot, _bridge, sceneIdFilter: sceneId);
+        SceneSerializer.SaveToFile(targetPath, _bridge.Entities, _bridge, sceneIdFilter: sceneId);
         _bridge.RegisterScene(sceneId, targetPath, isDirty: false);
         if (sceneId == _bridge.ActiveSceneId)
         {
             _bridge.ActiveScenePath = targetPath;
         }
-
-        _bridge.PublishSnapshot(new SceneSnapshot(_bridge.GetSceneNodeSnapshots(snapshot.Entities), snapshot.Entities, snapshot.FrameTimeMs, snapshot.Fps));
 
         if (_projectService.CurrentProject != null)
         {

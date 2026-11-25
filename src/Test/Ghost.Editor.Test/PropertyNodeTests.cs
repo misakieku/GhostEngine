@@ -18,7 +18,7 @@ public class PropertyNodeTests
         using var world = World.Create(scheduler, 16);
         var targetEcs = world.EntityManager.CreateEntity();
 
-        var bridge = new EditorSyncBridge();
+        var bridge = new EditorSyncBridge { World = world };
         var history = new CommandHistory();
 
         var meshEntity = new EntityNode(1, "Mesh", Array.Empty<ComponentNode>());
@@ -26,7 +26,7 @@ public class PropertyNodeTests
         {
             EcsEntity = targetEcs
         };
-        bridge.PublishSnapshot(new SceneSnapshot(new[] { meshEntity, targetEntity }, 16.6f, 60.0f));
+        bridge.SetEntities(new[] { meshEntity, targetEntity });
 
         var comp = ComponentNodeFactory.CreateComponentNode(typeof(MeshInstance), meshEntity, new MeshInstance(), bridge);
         meshEntity.Components = new[] { comp };
@@ -76,7 +76,7 @@ public class PropertyNodeTests
         var container = RenderVolumeDataContainer.Create();
         var ecsEntity = em.CreateEntity(RenderVolume.DefaultGlobal, container);
 
-        var bridge = new EditorSyncBridge();
+        var bridge = new EditorSyncBridge { World = world };
         var history = new CommandHistory();
         var entityNode = new EntityNode(1, "Global Volume", Array.Empty<ComponentNode>())
         {
@@ -93,31 +93,25 @@ public class PropertyNodeTests
         Assert.IsTrue(bloomEntry.IsExpanded);
         Assert.IsFalse(bloomEntry.FindField(nameof(BloomSettings.intensity))!.IsOverridden);
 
-        bridge.DrainWorldActions(world);
         Assert.IsTrue(em.GetComponent<RenderVolumeDataContainer>(ecsEntity).TryGet<BloomSettings>(out var liveBloom));
         Assert.IsFalse(liveBloom.intensity.HasValue);
 
         history.Execute(new ModifyVolumeFieldCommand(volumeProp, typeof(BloomSettings), nameof(BloomSettings.intensity), false, BloomSettings.Default.intensity, true, 2.5f));
-        bridge.DrainWorldActions(world);
         Assert.IsTrue(em.GetComponent<RenderVolumeDataContainer>(ecsEntity).TryGet<BloomSettings>(out liveBloom));
         Assert.AreEqual(2.5f, liveBloom.intensity);
 
         history.Undo();
-        bridge.DrainWorldActions(world);
         Assert.IsTrue(em.GetComponent<RenderVolumeDataContainer>(ecsEntity).TryGet<BloomSettings>(out liveBloom));
         Assert.IsFalse(liveBloom.intensity.HasValue);
 
         history.Redo();
-        bridge.DrainWorldActions(world);
         Assert.IsTrue(em.GetComponent<RenderVolumeDataContainer>(ecsEntity).TryGet<BloomSettings>(out liveBloom));
         Assert.AreEqual(2.5f, liveBloom.intensity);
 
         history.Execute(new RemoveComponentCommand(entityNode, volCompNode, bridge));
-        bridge.DrainWorldActions(world);
         Assert.IsFalse(em.HasComponent<RenderVolumeDataContainer>(ecsEntity));
 
         history.Undo();
-        bridge.DrainWorldActions(world);
         Assert.IsTrue(em.HasComponent<RenderVolumeDataContainer>(ecsEntity));
         Assert.IsTrue(em.GetComponent<RenderVolumeDataContainer>(ecsEntity).TryGet<BloomSettings>(out var restoredBloom));
         Assert.AreEqual(2.5f, restoredBloom.intensity);
@@ -135,7 +129,7 @@ public class PropertyNodeTests
         var container = RenderVolumeDataContainer.Create();
         var ecsEntity = em.CreateEntity(RenderVolume.DefaultGlobal, container);
 
-        var bridge = new EditorSyncBridge();
+        var bridge = new EditorSyncBridge { World = world };
         var history = new CommandHistory();
         var entityNode = new EntityNode(1, "Global Volume", Array.Empty<ComponentNode>())
         {
@@ -152,7 +146,6 @@ public class PropertyNodeTests
         var texGuid = Guid.NewGuid();
 
         history.Execute(new ModifyVolumeFieldCommand(volumeProp, typeof(HDRISettings), nameof(HDRISettings.texture), false, Guid.Empty, true, texGuid));
-        bridge.DrainWorldActions(world);
 
         volumeProp.RefreshFromContainer(in em.GetComponent<RenderVolumeDataContainer>(ecsEntity));
         Assert.IsTrue(textureField.IsOverridden);
@@ -168,7 +161,6 @@ public class PropertyNodeTests
         };
         var volCompNode2 = ComponentNodeFactory.CreateVolumeComponentNode(entityNode2, in em.GetComponent<RenderVolumeDataContainer>(entity2), bridge);
         volCompNode2.DeserializeFromRecord(record, Ghost.Editor.Core.Serialization.SceneJsonOptions.Default);
-        bridge.DrainWorldActions(world);
 
         var volumeProp2 = (VolumeOverridesPropertyNode)volCompNode2.Properties[0];
         volumeProp2.RefreshFromContainer(in em.GetComponent<RenderVolumeDataContainer>(entity2));

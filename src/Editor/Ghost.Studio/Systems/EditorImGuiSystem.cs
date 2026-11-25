@@ -19,7 +19,6 @@ using Hexa.NET.ImPlot;
 
 namespace Ghost.Studio.Systems;
 
-[UpdateAfter<EditorEcsSyncSystem>]
 [UpdateBefore<EditorCameraControllerSystem>]
 [UpdateBefore<EditorRenderSystemGroup>]
 internal sealed class EditorImGuiSystem : SystemBase
@@ -111,6 +110,11 @@ internal sealed class EditorImGuiSystem : SystemBase
 
     protected override void OnUpdate(scoped in SystemUpdateAPI systemAPI)
     {
+        var bridge = EditorSyncBridge.Instance;
+        bridge.World ??= systemAPI.World;
+        bridge.DrainMainThreadActions(systemAPI.World);
+        bridge.PumpPendingPropertyResolutions();
+
         while (_inputBridge.TryDequeueDroppedPaths(out var droppedPaths))
         {
             _assetImportService.EnqueueImport(droppedPaths, _projectPanel.CurrentDirectory);
@@ -185,7 +189,7 @@ internal sealed class EditorImGuiSystem : SystemBase
         }
 
         var guidsCopy = bakedGuids is Guid[] arr ? arr : bakedGuids.ToArray();
-        EditorSyncBridge.Instance.EnqueueWorldAction(world =>
+        EditorSyncBridge.Instance.EnqueueMainThreadAction(world =>
         {
             if (!world.TryGetService<AssetManager>(out var assetManager))
             {
@@ -212,7 +216,14 @@ internal sealed class EditorImGuiSystem : SystemBase
 
         _assetCatalog.MarkDirty();
         _updateWindowTitle?.Invoke(_projectService.CurrentProject?.Name);
-        EditorSyncBridge.Instance.EnqueueWorldAction(world => _sceneSession.HandleProjectSwitched(world));
+        if (EditorSyncBridge.Instance.World is { } world)
+        {
+            _sceneSession.HandleProjectSwitched(world);
+        }
+        else
+        {
+            EditorSyncBridge.Instance.EnqueueMainThreadAction(w => _sceneSession.HandleProjectSwitched(w));
+        }
     }
 
     private void HandleOpenAsset(string fullPath)

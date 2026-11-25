@@ -49,7 +49,7 @@ internal sealed class HierarchyPanel : EditorWindow
     private readonly Dictionary<int, List<HierarchyNode>> _childrenMap = new();
 
     private string _searchQuery = string.Empty;
-    private long _builtSnapshotVersion = -1;
+    private long _builtRevision = -1;
     private string _builtSearchQuery = string.Empty;
     private bool _rowsDirty = true;
     private int _sceneCount = 1;
@@ -79,16 +79,16 @@ internal sealed class HierarchyPanel : EditorWindow
     {
 
         ref readonly var tokens = ref contextManager.Tokens;
-        var snapshot = EditorSyncBridge.Instance.LatestSnapshot;
+        var bridge = EditorSyncBridge.Instance;
 
         DrawToolbar(in tokens);
         ImGui.Separator();
 
-        var version = EditorSyncBridge.Instance.SnapshotVersion;
-        if (_rowsDirty || _builtSnapshotVersion != version || !string.Equals(_builtSearchQuery, _searchQuery, StringComparison.Ordinal))
+        var revision = bridge.Revision;
+        if (_rowsDirty || _builtRevision != revision || !string.Equals(_builtSearchQuery, _searchQuery, StringComparison.Ordinal))
         {
-            RebuildVisibleRows(snapshot);
-            _builtSnapshotVersion = version;
+            RebuildVisibleRows(bridge);
+            _builtRevision = revision;
             _builtSearchQuery = _searchQuery;
             _rowsDirty = false;
         }
@@ -125,7 +125,7 @@ internal sealed class HierarchyPanel : EditorWindow
         if (remaining.Y > 4.0f)
         {
             ImGui.Dummy(new Vector2(MathF.Max(1.0f, remaining.X), remaining.Y));
-            AcceptRootDropTarget(snapshot);
+            AcceptRootDropTarget(bridge);
         }
 
         if (ImGui.BeginPopupContextWindow("##HierarchyBgContext", ImGuiPopupFlags.MouseButtonRight | ImGuiPopupFlags.NoOpenOverItems))
@@ -138,10 +138,10 @@ internal sealed class HierarchyPanel : EditorWindow
         ImGui.EndChild();
 
         // Child window item itself also acts as root drop target when tree rows fill the scroll view.
-        AcceptRootDropTarget(snapshot);
+        AcceptRootDropTarget(bridge);
     }
 
-    private unsafe void AcceptRootDropTarget(SceneSnapshot? snapshot)
+    private unsafe void AcceptRootDropTarget(EditorSyncBridge bridge)
     {
         if (!ImGui.BeginDragDropTarget())
         {
@@ -152,7 +152,7 @@ internal sealed class HierarchyPanel : EditorWindow
         if (!payload.IsNull && payload.Data != null)
         {
             var droppedId = *(int*)payload.Data;
-            var droppedNode = FindEntityById(snapshot, droppedId);
+            var droppedNode = bridge.FindEntityNode(droppedId);
             if (droppedNode != null && droppedNode.ParentId.HasValue)
             {
                 CommandHistory.Instance.Execute(new ReparentEntityCommand(droppedNode, null));
@@ -271,8 +271,7 @@ internal sealed class HierarchyPanel : EditorWindow
                         var droppedId = *(int*)payload.Data;
                         if (droppedId != entityNode.Id)
                         {
-                            var snapshot = EditorSyncBridge.Instance.LatestSnapshot;
-                            var droppedNode = FindEntityById(snapshot, droppedId);
+                            var droppedNode = EditorSyncBridge.Instance.FindEntityNode(droppedId);
                             if (droppedNode != null)
                             {
                                 _expandedIds.Add(entityNode.Id);
@@ -334,8 +333,7 @@ internal sealed class HierarchyPanel : EditorWindow
                     if (!payload.IsNull && payload.Data != null)
                     {
                         var droppedId = *(int*)payload.Data;
-                        var snapshot = EditorSyncBridge.Instance.LatestSnapshot;
-                        var droppedNode = FindEntityById(snapshot, droppedId);
+                        var droppedNode = EditorSyncBridge.Instance.FindEntityNode(droppedId);
                         if (droppedNode != null && droppedNode.ParentId.HasValue)
                         {
                             CommandHistory.Instance.Execute(new ReparentEntityCommand(droppedNode, null));
@@ -447,18 +445,13 @@ internal sealed class HierarchyPanel : EditorWindow
         _rowsDirty = true;
     }
 
-    private void RebuildVisibleRows(SceneSnapshot? snapshot)
+    private void RebuildVisibleRows(EditorSyncBridge bridge)
     {
         _visibleRows.Clear();
         _childrenMap.Clear();
 
-        if (snapshot == null)
-        {
-            return;
-        }
-
-        var scenes = snapshot.Scenes;
-        var entities = snapshot.Entities;
+        var scenes = bridge.GetSceneNodes();
+        var entities = bridge.Entities;
         _sceneCount = scenes.Count;
         if (!string.IsNullOrWhiteSpace(_searchQuery))
         {
@@ -580,24 +573,6 @@ internal sealed class HierarchyPanel : EditorWindow
         {
             CommandHistory.Instance.Execute(new RenameEntityCommand(entity, trimmed));
         }
-    }
-
-    private static EntityNode? FindEntityById(SceneSnapshot? snapshot, int id)
-    {
-        if (snapshot == null)
-        {
-            return null;
-        }
-
-        for (var i = 0; i < snapshot.Entities.Count; i++)
-        {
-            if (snapshot.Entities[i].Id == id)
-            {
-                return snapshot.Entities[i];
-            }
-        }
-
-        return null;
     }
 
     public override void Dispose()

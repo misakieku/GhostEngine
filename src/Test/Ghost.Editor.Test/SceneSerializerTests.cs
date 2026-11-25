@@ -158,12 +158,12 @@ public unsafe class SceneSerializerTests
             volumeOverridesProp.SetFieldState(typeof(HDRISettings), nameof(HDRISettings.texture), true, skyboxGuid);
             volNode.Components = new[] { volComp, volDataComp };
 
-            var snapshot = new SceneSnapshot(new[] { parentNode, childANode, childBNode, volNode });
-            bridge.PublishSnapshot(snapshot);
+            var entities = new[] { parentNode, childANode, childBNode, volNode };
+            bridge.SetEntities(entities);
             childBRef.FindProperty(nameof(TestTargetRefComponent.target))!.ApplyValue(childANode.EditorGuid);
             childBNode.Components = new[] { childBLt, childBRef };
 
-            var savedDoc = SceneSerializer.SaveToFile(scenePath, snapshot, bridge);
+            var savedDoc = SceneSerializer.SaveToFile(scenePath, entities, bridge);
             Assert.HasCount(4, savedDoc.Entities);
             Assert.IsFalse(savedDoc.Entities[0].Components.Any(c => c.Type == typeof(GPUInstanceRef).FullName));
             Assert.IsTrue(savedDoc.Entities[0].Components.Any(c => c.Type == typeof(LocalToWorld).FullName));
@@ -184,14 +184,13 @@ public unsafe class SceneSerializerTests
             Assert.IsFalse(em.Exists(childAEcs));
             Assert.IsFalse(em.Exists(volumeEcs));
 
-            var reloaded = bridge.LatestSnapshot;
-            Assert.IsNotNull(reloaded);
-            Assert.HasCount(4, reloaded.Entities);
+            var reloaded = bridge.Entities;
+            Assert.HasCount(4, reloaded);
 
-            var rParent = reloaded.Entities.Single(e => e.Name == "ParentRoot");
-            var rChildA = reloaded.Entities.Single(e => e.Name == "ChildA");
-            var rChildB = reloaded.Entities.Single(e => e.Name == "ChildB");
-            var rVol = reloaded.Entities.Single(e => e.Name == "Global Volume");
+            var rParent = reloaded.Single(e => e.Name == "ParentRoot");
+            var rChildA = reloaded.Single(e => e.Name == "ChildA");
+            var rChildB = reloaded.Single(e => e.Name == "ChildB");
+            var rVol = reloaded.Single(e => e.Name == "Global Volume");
 
             Assert.AreEqual(parentNode.EditorGuid, rParent.EditorGuid);
             Assert.AreEqual(childANode.EditorGuid, rChildA.EditorGuid);
@@ -279,8 +278,7 @@ public unsafe class SceneSerializerTests
         var childLtw = ComponentNodeFactory.CreateComponentNode(typeof(LocalToWorld), childNode, em.GetComponent<LocalToWorld>(childEcs), bridge);
         childNode.Components = new[] { childLt, childLtw };
 
-        var snapshot = new SceneSnapshot(new[] { rootNode, childNode });
-        var doc = SceneSerializer.SaveToDocument(snapshot, bridge, new Dictionary<Guid, IAssetEntry> { [prefabGuid] = prefabV1 });
+        var doc = SceneSerializer.SaveToDocument(new[] { rootNode, childNode }, bridge, new Dictionary<Guid, IAssetEntry> { [prefabGuid] = prefabV1 });
 
         Assert.IsEmpty(doc.Entities);
         Assert.HasCount(1, doc.PrefabInstances);
@@ -301,10 +299,10 @@ public unsafe class SceneSerializerTests
         var loadRes = SceneSerializer.LoadFromDocument(world, bridge, doc, SceneLoadingType.Single, guid => guid == prefabGuid ? prefabV2 : null);
         Assert.IsTrue(loadRes.IsSuccess, loadRes.Message);
 
-        var reloaded = bridge.LatestSnapshot!;
-        Assert.HasCount(2, reloaded.Entities);
-        var rRoot = reloaded.Entities.Single(e => e.PrefabLink?.TemplateEntityIndex == 0);
-        var rChild = reloaded.Entities.Single(e => e.PrefabLink?.TemplateEntityIndex == 1);
+        var reloaded = bridge.Entities;
+        Assert.HasCount(2, reloaded);
+        var rRoot = reloaded.Single(e => e.PrefabLink?.TemplateEntityIndex == 0);
+        var rChild = reloaded.Single(e => e.PrefabLink?.TemplateEntityIndex == 1);
 
         Assert.AreEqual("HeroVehicle", rRoot.Name);
         Assert.AreEqual(new float3(5.0f, 0.0f, 0.0f), em.GetComponent<LocalTransform>(rRoot.EcsEntity).position);
@@ -336,12 +334,12 @@ public unsafe class SceneSerializerTests
         };
 
         Assert.IsTrue(SceneSerializer.LoadFromDocument(world, bridge, docA, SceneLoadingType.Single).IsSuccess);
-        Assert.HasCount(1, bridge.LatestSnapshot!.Entities);
+        Assert.AreEqual(1, bridge.EntityCount);
 
         Assert.IsTrue(SceneSerializer.LoadFromDocument(world, bridge, docB, SceneLoadingType.Additive).IsSuccess);
-        Assert.HasCount(2, bridge.LatestSnapshot!.Entities);
-        Assert.IsTrue(bridge.LatestSnapshot.Entities.Any(e => e.Name == "SceneA_Entity"));
-        Assert.IsTrue(bridge.LatestSnapshot.Entities.Any(e => e.Name == "SceneB_Entity"));
+        Assert.AreEqual(2, bridge.EntityCount);
+        Assert.IsTrue(bridge.Entities.Any(e => e.Name == "SceneA_Entity"));
+        Assert.IsTrue(bridge.Entities.Any(e => e.Name == "SceneB_Entity"));
     }
 
     [TestMethod]
@@ -418,29 +416,28 @@ public unsafe class SceneSerializerTests
         var sceneBId = bridge.ActiveSceneId;
         Assert.AreNotEqual(sceneAId, sceneBId);
 
-        var snap = bridge.LatestSnapshot!;
-        var savedA = SceneSerializer.SaveToDocument(snap, bridge, sceneIdFilter: sceneAId);
+        var savedA = SceneSerializer.SaveToDocument(bridge.Entities, bridge, sceneIdFilter: sceneAId);
         Assert.HasCount(1, savedA.Entities);
         Assert.AreEqual("SceneA_Entity", savedA.Entities[0].Name);
 
-        var savedB = SceneSerializer.SaveToDocument(snap, bridge, sceneIdFilter: sceneBId);
+        var savedB = SceneSerializer.SaveToDocument(bridge.Entities, bridge, sceneIdFilter: sceneBId);
         Assert.HasCount(1, savedB.Entities);
         Assert.AreEqual("SceneB_Entity", savedB.Entities[0].Name);
 
         SceneSerializer.UnloadScene(world, bridge, sceneBId);
-        snap = bridge.LatestSnapshot!;
-        Assert.HasCount(1, snap.Scenes);
-        Assert.AreEqual(sceneAId, snap.Scenes[0].SceneId);
-        Assert.HasCount(1, snap.Entities);
-        Assert.AreEqual("SceneA_Entity", snap.Entities[0].Name);
+        var scenes = bridge.GetSceneNodes();
+        Assert.HasCount(1, scenes);
+        Assert.AreEqual(sceneAId, scenes[0].SceneId);
+        Assert.AreEqual(1, bridge.EntityCount);
+        Assert.AreEqual("SceneA_Entity", bridge.Entities[0].Name);
 
         // Unloading the sole remaining scene resets cleanly into a blank Untitled scene.
         SceneSerializer.UnloadScene(world, bridge, sceneAId);
-        snap = bridge.LatestSnapshot!;
-        Assert.HasCount(1, snap.Scenes);
-        Assert.AreEqual((ushort)0, snap.Scenes[0].SceneId);
-        Assert.AreEqual("Untitled", snap.Scenes[0].Name);
-        Assert.IsEmpty(snap.Entities);
+        scenes = bridge.GetSceneNodes();
+        Assert.HasCount(1, scenes);
+        Assert.AreEqual((ushort)0, scenes[0].SceneId);
+        Assert.AreEqual("Untitled", scenes[0].Name);
+        Assert.IsEmpty(bridge.Entities);
     }
 
     [TestMethod]
@@ -473,7 +470,7 @@ public unsafe class SceneSerializerTests
         ComponentReflectionAccessor.TryAddOrSet(em, rootEcs, rvdc);
         rootNode.Components = new[] { lt, ltw, rvdc };
 
-        var doc = SceneSerializer.SaveToDocument(new SceneSnapshot(new[] { rootNode }), bridge, new Dictionary<Guid, IAssetEntry> { [prefabGuid] = prefabEntry });
+        var doc = SceneSerializer.SaveToDocument(new[] { rootNode }, bridge, new Dictionary<Guid, IAssetEntry> { [prefabGuid] = prefabEntry });
         Assert.HasCount(1, doc.PrefabInstances);
         Assert.IsNotNull(doc.PrefabInstances[0].AddedComponents);
         Assert.IsTrue(doc.PrefabInstances[0].AddedComponents!.Any(a => a.Component == typeof(RenderVolumeDataContainer).FullName && a.VolumeOverrides != null && a.VolumeOverrides.Count == 1));
@@ -504,7 +501,7 @@ public unsafe class SceneSerializerTests
         var loadRes = SceneSerializer.LoadFromDocument(world, bridge, doc, SceneLoadingType.Single, guid => guid == prefabGuid ? prefabEntry : null);
         Assert.IsTrue(loadRes.IsSuccess, loadRes.Message);
 
-        var rRoot = bridge.LatestSnapshot!.Entities.Single(e => e.PrefabLink?.TemplateEntityIndex == 0);
+        var rRoot = bridge.Entities.Single(e => e.PrefabLink?.TemplateEntityIndex == 0);
         Assert.IsTrue(em.HasComponent<RenderVolumeDataContainer>(rRoot.EcsEntity));
         ref readonly var container = ref em.GetComponent<RenderVolumeDataContainer>(rRoot.EcsEntity);
         Assert.IsTrue(container.TryGet<BloomSettings>(out var bloom));

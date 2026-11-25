@@ -70,7 +70,7 @@ internal sealed unsafe class ProfilerPanel : EditorWindow
         ComputeStats(out var avgMs, out var minMs, out var maxMs);
         var fps = avgMs > 0.001f ? 1000.0f / avgMs : 0.0f;
         var managedMb = GC.GetTotalMemory(false) / (1024.0f * 1024.0f);
-        var entityCount = EditorSyncBridge.Instance.LatestSnapshot?.EntityCount ?? 0;
+        var entityCount = EditorSyncBridge.Instance.EntityCount;
 
         ImGui.SameLine();
         ImGui.PushFont(contextManager.MonospaceFont, EditorTheme.FONT_SIZE_MONO);

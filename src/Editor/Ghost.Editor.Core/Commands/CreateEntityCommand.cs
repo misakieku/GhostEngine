@@ -7,7 +7,7 @@ using Ghost.Entities;
 namespace Ghost.Editor.Core.Commands;
 
 /// <summary>
-/// Undoable command that creates a new entity in the editor scene snapshot.
+/// Undoable command that creates a new entity in the editor scene and world.
 /// </summary>
 public sealed class CreateEntityCommand : IEditorCommand
 {
@@ -53,90 +53,79 @@ public sealed class CreateEntityCommand : IEditorCommand
     public void Execute()
     {
         _previousSelection = _selection.ActiveObject;
-        _bridge.MutateSnapshot(entities =>
-        {
-            var next = new List<EntityNode>(entities.Count + 1);
-            for (var i = 0; i < entities.Count; i++)
-            {
-                next.Add(entities[i]);
-            }
-
-            if (!next.Contains(_entity))
-            {
-                next.Add(_entity);
-            }
-
-            return next;
-        });
-
+        _bridge.AddEntityNode(_entity);
         _selection.Select(_entity);
 
-        _bridge.EnqueueWorldAction(world =>
+        var world = _bridge.World;
+        if (world == null)
         {
-            var em = world.EntityManager;
-            var created = em.CreateEntity();
-            em.AddSharedComponent(created, new SceneID { value = _entity.SceneId });
-            _entity.EcsEntity = created;
-            _bridge.RegisterEntityMapping(created, _entity.Id);
-            _bridge.RegisterEntityGuid(created, _entity.EditorGuid);
-            _bridge.SetEntityName(created, _entity.Name);
-            if (_entity.PrefabLink != null)
+            return;
+        }
+
+        var em = world.EntityManager;
+        var created = em.CreateEntity();
+        em.AddSharedComponent(created, new SceneID { value = _entity.SceneId });
+        _entity.EcsEntity = created;
+        _bridge.RegisterEntityMapping(created, _entity.Id);
+        _bridge.RegisterEntityGuid(created, _entity.EditorGuid);
+        _bridge.SetEntityName(created, _entity.Name);
+        if (_entity.PrefabLink != null)
+        {
+            _bridge.SetPrefabLink(created, _entity.PrefabLink);
+        }
+
+        var hasLocalTransform = false;
+        var hasLocalToWorld = false;
+        for (var i = 0; i < _entity.Components.Count; i++)
+        {
+            var comp = _entity.Components[i];
+            if (comp.ComponentType == typeof(LocalTransform))
             {
-                _bridge.SetPrefabLink(created, _entity.PrefabLink);
+                hasLocalTransform = true;
+            }
+            else if (comp.ComponentType == typeof(LocalToWorld))
+            {
+                hasLocalToWorld = true;
             }
 
-            var hasLocalTransform = false;
-            var hasLocalToWorld = false;
-            for (var i = 0; i < _entity.Components.Count; i++)
+            ComponentReflectionAccessor.TryAddOrSet(em, created, comp);
+        }
+
+        if (hasLocalTransform && !hasLocalToWorld)
+        {
+            var ltw = new LocalToWorld { matrix = LocalTransform.Identity.ToMatrix() };
+            ComponentReflectionAccessor.TryAddOrSet(em, created, typeof(LocalToWorld), ltw);
+        }
+
+        if (_entity.ParentId.HasValue)
+        {
+            var parentEcs = _bridge.ResolveEcsEntity(_entity.ParentId.Value);
+            if (parentEcs.IsValid && em.Exists(parentEcs))
             {
-                var comp = _entity.Components[i];
-                if (comp.ComponentType == typeof(LocalTransform))
+                if (!em.HasComponent<Hierarchy>(created))
                 {
-                    hasLocalTransform = true;
+                    em.AddComponent(created, Hierarchy.Root);
                 }
-                else if (comp.ComponentType == typeof(LocalToWorld))
+
+                if (!em.HasComponent<Hierarchy>(parentEcs))
                 {
-                    hasLocalToWorld = true;
+                    em.AddComponent(parentEcs, Hierarchy.Root);
                 }
 
-                ComponentReflectionAccessor.TryAddOrSet(em, created, comp);
+                HierarchyUtility.SetParent(world, created, parentEcs);
             }
+        }
 
-            if (hasLocalTransform && !hasLocalToWorld)
-            {
-                var ltw = new LocalToWorld { matrix = LocalTransform.Identity.ToMatrix() };
-                ComponentReflectionAccessor.TryAddOrSet(em, created, typeof(LocalToWorld), ltw);
-            }
-
-            if (_entity.ParentId.HasValue)
-            {
-                var parentEcs = _bridge.ResolveEcsEntity(_entity.ParentId.Value);
-                if (parentEcs.IsValid && em.Exists(parentEcs))
-                {
-                    if (!em.HasComponent<Hierarchy>(created))
-                    {
-                        em.AddComponent(created, Hierarchy.Root);
-                    }
-
-                    if (!em.HasComponent<Hierarchy>(parentEcs))
-                    {
-                        em.AddComponent(parentEcs, Hierarchy.Root);
-                    }
-
-                    HierarchyUtility.SetParent(world, created, parentEcs);
-                }
-            }
-
-            if (hasLocalTransform || hasLocalToWorld)
-            {
-                _bridge.DirtyTracker.MarkTransformDirty(created);
-            }
-        });
+        if (hasLocalTransform || hasLocalToWorld)
+        {
+            _bridge.DirtyTracker.MarkTransformDirty(created);
+        }
     }
 
     public void Undo()
     {
-        _bridge.EnqueueWorldAction(world =>
+        var world = _bridge.World;
+        if (world != null)
         {
             var target = _entity.EcsEntity;
             if (target.IsValid && world.EntityManager.Exists(target))
@@ -146,20 +135,17 @@ public sealed class CreateEntityCommand : IEditorCommand
             }
 
             _entity.EcsEntity = Entity.Invalid;
-        });
+        }
 
-        _bridge.MutateSnapshot(entities =>
+        _bridge.MutateEntities(entities =>
         {
-            var next = new List<EntityNode>(entities.Count);
-            for (var i = 0; i < entities.Count; i++)
+            for (var i = entities.Count - 1; i >= 0; i--)
             {
-                if (!ReferenceEquals(entities[i], _entity) && entities[i].Id != _entity.Id)
+                if (ReferenceEquals(entities[i], _entity) || entities[i].Id == _entity.Id)
                 {
-                    next.Add(entities[i]);
+                    entities.RemoveAt(i);
                 }
             }
-
-            return next;
         });
 
         if (ReferenceEquals(_selection.ActiveEntity, _entity))

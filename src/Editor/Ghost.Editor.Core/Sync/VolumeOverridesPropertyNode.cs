@@ -289,21 +289,13 @@ public sealed unsafe class VolumeOverridesPropertyNode : PropertyNode
         ReleaseEntryResources(entry);
 
         var entity = ComponentNode.EntityNode.EcsEntity;
-        if (entity.IsValid)
+        var world = _bridge.World;
+        if (world != null && entity.IsValid && world.EntityManager.Exists(entity))
         {
-            var accessor = entry.Accessor;
-            _bridge.EnqueueWorldAction(world =>
+            if (TryGetContainerPtr(world, entity, out var pContainer))
             {
-                if (!world.EntityManager.Exists(entity))
-                {
-                    return;
-                }
-
-                if (TryGetContainerPtr(world, entity, out var pContainer))
-                {
-                    accessor.Remove(ref *pContainer);
-                }
-            });
+                entry.Accessor.Remove(ref *pContainer);
+            }
         }
 
         return true;
@@ -604,31 +596,27 @@ public sealed unsafe class VolumeOverridesPropertyNode : PropertyNode
     private void PushOverrideToEcs(VolumeOverrideEntry entry)
     {
         var entity = ComponentNode?.EntityNode.EcsEntity ?? Entity.Invalid;
-        if (!entity.IsValid)
+        var world = _bridge.World;
+        if (world == null || !entity.IsValid)
         {
             return;
         }
 
-        var accessor = entry.Accessor;
-        var boxedSnapshot = entry.BoxedValue;
-        _bridge.EnqueueWorldAction(world =>
+        var em = world.EntityManager;
+        if (!em.Exists(entity))
         {
-            var em = world.EntityManager;
-            if (!em.Exists(entity))
-            {
-                return;
-            }
+            return;
+        }
 
-            if (!TryGetContainerPtr(world, entity, out var pContainer))
-            {
-                var created = RenderVolumeDataContainer.Create();
-                accessor.Write(ref created, boxedSnapshot);
-                em.AddComponent(entity, in created);
-                return;
-            }
+        if (!TryGetContainerPtr(world, entity, out var pContainer))
+        {
+            var created = RenderVolumeDataContainer.Create();
+            entry.Accessor.Write(ref created, entry.BoxedValue);
+            em.AddComponent(entity, in created);
+            return;
+        }
 
-            accessor.Write(ref *pContainer, boxedSnapshot);
-        });
+        entry.Accessor.Write(ref *pContainer, entry.BoxedValue);
     }
 
     private bool MatchesOrder(ReadOnlySpan<VolumeDataEntry> entries)

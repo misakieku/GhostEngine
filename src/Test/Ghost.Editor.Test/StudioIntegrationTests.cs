@@ -321,6 +321,7 @@ public class StudioIntegrationTests
 
             using var scheduler = new JobScheduler(new JobSchedulerDesc { ThreadCount = 1, ThreadPriority = ThreadPriority.Normal, DependencyChainCapacity = 64 });
             using var world = World.Create(scheduler, 64);
+            bridge.World = world;
 
             var doc = new SceneAssetDocument
             {
@@ -333,21 +334,18 @@ public class StudioIntegrationTests
 
             projectService.SetDefaultScene("Scenes/Main.gscene");
             Assert.IsTrue(session.TryLoadDefaultSceneOnStartup(world));
-            Assert.IsNotNull(bridge.LatestSnapshot);
-            Assert.HasCount(1, bridge.LatestSnapshot.Entities);
-            Assert.AreEqual("BootMarker", bridge.LatestSnapshot.Entities[0].Name);
+            Assert.AreEqual(1, bridge.EntityCount);
+            Assert.AreEqual("BootMarker", bridge.Entities[0].Name);
 
             var instanceGuid = Guid.NewGuid();
-            var prefabNode = bridge.LatestSnapshot.Entities[0];
+            var prefabNode = bridge.Entities[0];
             prefabNode.PrefabLink = new PrefabLinkInfo(instanceGuid, Guid.NewGuid(), 0);
 
             var history = new CommandHistory();
             history.Execute(new UnpackPrefabCommand(instanceGuid, bridge));
-            bridge.DrainWorldActions(world);
             Assert.IsNull(prefabNode.PrefabLink);
 
             history.Undo();
-            bridge.DrainWorldActions(world);
             Assert.IsNotNull(prefabNode.PrefabLink);
             Assert.AreEqual(instanceGuid, prefabNode.PrefabLink.InstanceGuid);
         }
@@ -404,9 +402,8 @@ public class StudioIntegrationTests
             Assert.IsEmpty(mgr.AssetWindows);
 
             session.HandleProjectSwitched(world);
-            Assert.IsNotNull(bridge.LatestSnapshot);
-            Assert.HasCount(1, bridge.LatestSnapshot.Entities);
-            Assert.AreEqual("StartBEntity", bridge.LatestSnapshot.Entities[0].Name);
+            Assert.AreEqual(1, bridge.EntityCount);
+            Assert.AreEqual("StartBEntity", bridge.Entities[0].Name);
             Assert.IsFalse(bridge.AnySceneDirty);
         }
         finally

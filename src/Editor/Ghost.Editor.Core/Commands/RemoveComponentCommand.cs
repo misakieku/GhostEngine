@@ -1,5 +1,6 @@
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
+using Ghost.Engine.Components;
 
 namespace Ghost.Editor.Core.Commands;
 
@@ -37,17 +38,15 @@ public sealed class RemoveComponentCommand : IEditorCommand
 
         _removedIndex = idx;
         list.RemoveAt(idx);
-        _bridge.MutateSnapshot(current => new List<EntityNode>(current));
+        _bridge.BumpRevision();
         _selection.Select(_entity);
 
-        _bridge.EnqueueWorldAction(world =>
+        var world = _bridge.World;
+        var ecs = _entity.EcsEntity;
+        if (world != null && ecs.IsValid && world.EntityManager.Exists(ecs))
         {
-            var ecs = _entity.EcsEntity;
-            if (ecs.IsValid && world.EntityManager.Exists(ecs))
-            {
-                ComponentReflectionAccessor.TryRemove(world.EntityManager, ecs, _component.ComponentType);
-            }
-        });
+            ComponentReflectionAccessor.TryRemove(world.EntityManager, ecs, _component.ComponentType);
+        }
     }
 
     public void Undo()
@@ -62,17 +61,24 @@ public sealed class RemoveComponentCommand : IEditorCommand
         {
             var insertAt = Math.Clamp(_removedIndex, 0, list.Count);
             list.Insert(insertAt, _component);
-            _bridge.MutateSnapshot(current => new List<EntityNode>(current));
+            _bridge.BumpRevision();
             _selection.Select(_entity);
 
-            _bridge.EnqueueWorldAction(world =>
+            var world = _bridge.World;
+            var ecs = _entity.EcsEntity;
+            if (world != null && ecs.IsValid && world.EntityManager.Exists(ecs))
             {
-                var ecs = _entity.EcsEntity;
-                if (ecs.IsValid && world.EntityManager.Exists(ecs))
+                var em = world.EntityManager;
+                ComponentReflectionAccessor.TryAddOrSet(em, ecs, _component);
+                if (_component.ComponentType == typeof(LocalTransform) || _component.ComponentType == typeof(LocalToWorld))
                 {
-                    ComponentReflectionAccessor.TryAddOrSet(world.EntityManager, ecs, _component);
+                    _bridge.DirtyTracker.MarkTransformDirty(ecs);
                 }
-            });
+                else if (_component.ComponentType == typeof(MeshInstance))
+                {
+                    _bridge.DirtyTracker.MarkGpuInstanceDirty(ecs);
+                }
+            }
         }
     }
 

@@ -36,69 +36,72 @@ public sealed class ReparentEntityCommand : IEditorCommand
             return;
         }
 
-        var entities = _bridge.LatestSnapshot?.Entities ?? Array.Empty<EntityNode>();
+        var entities = _bridge.Entities;
         if (_newParentId.HasValue && WouldCreateCycle(entities, _entity.Id, _newParentId.Value))
         {
             return;
         }
 
         _entity.ParentId = _newParentId;
-        _bridge.MutateSnapshot(current => new List<EntityNode>(current));
+        _bridge.BumpRevision();
         _selection.Select(_entity);
-        EnqueueReparentAction(_newParentId);
+        ApplyReparentInWorld(_newParentId);
     }
 
     public void Undo()
     {
         _entity.ParentId = _oldParentId;
-        _bridge.MutateSnapshot(current => new List<EntityNode>(current));
+        _bridge.BumpRevision();
         _selection.Select(_entity);
-        EnqueueReparentAction(_oldParentId);
+        ApplyReparentInWorld(_oldParentId);
     }
 
     public void Redo() => Execute();
 
-    private void EnqueueReparentAction(int? parentNodeId)
+    private void ApplyReparentInWorld(int? parentNodeId)
     {
-        _bridge.EnqueueWorldAction(world =>
+        var world = _bridge.World;
+        if (world == null)
         {
-            var em = world.EntityManager;
-            var child = _entity.EcsEntity;
-            if (!child.IsValid || !em.Exists(child))
+            return;
+        }
+
+        var em = world.EntityManager;
+        var child = _entity.EcsEntity;
+        if (!child.IsValid || !em.Exists(child))
+        {
+            return;
+        }
+
+        if (!parentNodeId.HasValue)
+        {
+            if (em.HasComponent<Hierarchy>(child))
             {
-                return;
+                HierarchyUtility.RemoveParent(world, child);
+                _bridge.DirtyTracker.MarkTransformDirty(child);
             }
 
-            if (!parentNodeId.HasValue)
-            {
-                if (em.HasComponent<Hierarchy>(child))
-                {
-                    HierarchyUtility.RemoveParent(world, child);
-                    _bridge.DirtyTracker.MarkTransformDirty(child);
-                }
+            return;
+        }
 
-                return;
-            }
+        var parentEcs = _bridge.ResolveEcsEntity(parentNodeId.Value);
+        if (!parentEcs.IsValid || !em.Exists(parentEcs))
+        {
+            return;
+        }
 
-            var parentEcs = _bridge.ResolveEcsEntity(parentNodeId.Value);
-            if (!parentEcs.IsValid || !em.Exists(parentEcs))
-            {
-                return;
-            }
+        if (!em.HasComponent<Hierarchy>(child))
+        {
+            em.AddComponent(child, Hierarchy.Root);
+        }
 
-            if (!em.HasComponent<Hierarchy>(child))
-            {
-                em.AddComponent(child, Hierarchy.Root);
-            }
+        if (!em.HasComponent<Hierarchy>(parentEcs))
+        {
+            em.AddComponent(parentEcs, Hierarchy.Root);
+        }
 
-            if (!em.HasComponent<Hierarchy>(parentEcs))
-            {
-                em.AddComponent(parentEcs, Hierarchy.Root);
-            }
-
-            HierarchyUtility.SetParent(world, child, parentEcs);
-            _bridge.DirtyTracker.MarkTransformDirty(child);
-        });
+        HierarchyUtility.SetParent(world, child, parentEcs);
+        _bridge.DirtyTracker.MarkTransformDirty(child);
     }
 
     private static bool WouldCreateCycle(IReadOnlyList<EntityNode> entities, int entityId, int candidateParentId)

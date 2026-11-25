@@ -5,18 +5,13 @@ using System.Collections.Concurrent;
 
 namespace Ghost.Editor.Core.Sync;
 
-public readonly struct PendingPropertyMutation
-{
-    public required Entity Entity { get; init; }
-    public required Type ComponentType { get; init; }
-    public required string FieldName { get; init; }
-    public required object? Value { get; init; }
-}
-
+/// <summary>
+/// Central editor authoring state and main-thread dispatch bridge for the active editor <see cref="World"/>.
+/// Holds editor-only entity/scene metadata, live authoring node hierarchies, dirty tracking, and asset retention.
+/// </summary>
 public sealed class EditorSyncBridge
 {
-    private readonly ConcurrentQueue<PendingPropertyMutation> _pendingMutations = new();
-    private readonly ConcurrentQueue<Action<World>> _pendingWorldActions = new();
+    private readonly ConcurrentQueue<Action<World>> _pendingMainThreadActions = new();
     private readonly Dictionary<Entity, string> _entityNames = new();
     private readonly Dictionary<Entity, int> _entityNodeIds = new();
     private readonly Dictionary<Entity, Guid> _entityGuids = new();
@@ -25,14 +20,15 @@ public sealed class EditorSyncBridge
     private readonly Dictionary<ushort, (string Name, string? Path, bool IsDirty)> _registeredScenes = new() { [0] = ("Untitled", null, false) };
     private readonly List<IAssetEntry> _sceneRetainedAssets = new();
     private readonly List<PropertyNode> _trackedResourceNodes = new();
-    private readonly object _metadataLock = new();
-    private readonly object _snapshotLock = new();
+    private readonly List<EntityNode> _entities = new();
     private readonly object _resourceNodesLock = new();
-    private SceneSnapshot? _latestSnapshot;
-    private long _snapshotVersion = 0;
+
+    private long _revision;
     private int _nextEntityId = 1;
 
     public static EditorSyncBridge Instance { get; } = new();
+
+    public World? World { get; set; }
 
     public ushort ActiveSceneId { get; set; } = 0;
 
@@ -48,14 +44,11 @@ public sealed class EditorSyncBridge
     {
         get
         {
-            lock (_metadataLock)
+            foreach (var entry in _registeredScenes.Values)
             {
-                foreach (var entry in _registeredScenes.Values)
+                if (entry.IsDirty)
                 {
-                    if (entry.IsDirty)
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
 
@@ -69,11 +62,16 @@ public sealed class EditorSyncBridge
 
     public ResourceManager? ResourceManager { get; set; }
 
-    public long SnapshotVersion => Volatile.Read(ref _snapshotVersion);
+    public IReadOnlyList<EntityNode> Entities => _entities;
 
-    public SceneSnapshot? LatestSnapshot => Volatile.Read(ref _latestSnapshot);
+    public int EntityCount => _entities.Count;
 
-    public event Action<SceneSnapshot>? SnapshotPublished;
+    public long Revision => _revision;
+
+    public void BumpRevision()
+    {
+        _revision++;
+    }
 
     public int AllocateEntityId()
     {
@@ -87,10 +85,7 @@ public sealed class EditorSyncBridge
             return;
         }
 
-        lock (_metadataLock)
-        {
-            _entityNames[entity] = name.Trim();
-        }
+        _entityNames[entity] = name.Trim();
     }
 
     public bool TryGetEntityName(Entity entity, out string name)
@@ -101,10 +96,7 @@ public sealed class EditorSyncBridge
             return false;
         }
 
-        lock (_metadataLock)
-        {
-            return _entityNames.TryGetValue(entity, out name!);
-        }
+        return _entityNames.TryGetValue(entity, out name!);
     }
 
     public void RegisterEntityMapping(Entity entity, int nodeId)
@@ -114,10 +106,7 @@ public sealed class EditorSyncBridge
             return;
         }
 
-        lock (_metadataLock)
-        {
-            _entityNodeIds[entity] = nodeId;
-        }
+        _entityNodeIds[entity] = nodeId;
     }
 
     public bool TryGetMappedNodeId(Entity entity, out int nodeId)
@@ -128,10 +117,7 @@ public sealed class EditorSyncBridge
             return false;
         }
 
-        lock (_metadataLock)
-        {
-            return _entityNodeIds.TryGetValue(entity, out nodeId);
-        }
+        return _entityNodeIds.TryGetValue(entity, out nodeId);
     }
 
     public void RemoveEntityMetadata(Entity entity)
@@ -141,14 +127,11 @@ public sealed class EditorSyncBridge
             return;
         }
 
-        lock (_metadataLock)
-        {
-            _entityNames.Remove(entity);
-            _entityNodeIds.Remove(entity);
-            _entityGuids.Remove(entity);
-            _prefabLinks.Remove(entity);
-            _initialMeshAuthoring.Remove(entity);
-        }
+        _entityNames.Remove(entity);
+        _entityNodeIds.Remove(entity);
+        _entityGuids.Remove(entity);
+        _prefabLinks.Remove(entity);
+        _initialMeshAuthoring.Remove(entity);
     }
 
     public void RegisterEntityGuid(Entity entity, Guid editorGuid)
@@ -158,10 +141,7 @@ public sealed class EditorSyncBridge
             return;
         }
 
-        lock (_metadataLock)
-        {
-            _entityGuids[entity] = editorGuid;
-        }
+        _entityGuids[entity] = editorGuid;
     }
 
     public bool TryGetEntityGuid(Entity entity, out Guid editorGuid)
@@ -172,10 +152,7 @@ public sealed class EditorSyncBridge
             return false;
         }
 
-        lock (_metadataLock)
-        {
-            return _entityGuids.TryGetValue(entity, out editorGuid);
-        }
+        return _entityGuids.TryGetValue(entity, out editorGuid);
     }
 
     public void SetPrefabLink(Entity entity, PrefabLinkInfo? link)
@@ -185,16 +162,13 @@ public sealed class EditorSyncBridge
             return;
         }
 
-        lock (_metadataLock)
+        if (link == null)
         {
-            if (link == null)
-            {
-                _prefabLinks.Remove(entity);
-            }
-            else
-            {
-                _prefabLinks[entity] = link;
-            }
+            _prefabLinks.Remove(entity);
+        }
+        else
+        {
+            _prefabLinks[entity] = link;
         }
     }
 
@@ -206,10 +180,7 @@ public sealed class EditorSyncBridge
             return false;
         }
 
-        lock (_metadataLock)
-        {
-            return _prefabLinks.TryGetValue(entity, out link!);
-        }
+        return _prefabLinks.TryGetValue(entity, out link!);
     }
 
     public void SetInitialMeshAuthoring(Entity entity, Guid meshGuid, Guid[] materialGuids)
@@ -219,10 +190,7 @@ public sealed class EditorSyncBridge
             return;
         }
 
-        lock (_metadataLock)
-        {
-            _initialMeshAuthoring[entity] = (meshGuid, materialGuids);
-        }
+        _initialMeshAuthoring[entity] = (meshGuid, materialGuids);
     }
 
     public bool TryConsumeInitialMeshAuthoring(Entity entity, out Guid meshGuid, out Guid[] materialGuids)
@@ -234,14 +202,11 @@ public sealed class EditorSyncBridge
             return false;
         }
 
-        lock (_metadataLock)
+        if (_initialMeshAuthoring.Remove(entity, out var authoring))
         {
-            if (_initialMeshAuthoring.Remove(entity, out var authoring))
-            {
-                meshGuid = authoring.MeshGuid;
-                materialGuids = authoring.MaterialGuids;
-                return true;
-            }
+            meshGuid = authoring.MeshGuid;
+            materialGuids = authoring.MaterialGuids;
+            return true;
         }
 
         meshGuid = Guid.Empty;
@@ -255,46 +220,42 @@ public sealed class EditorSyncBridge
             ? nameOverride.Trim()
             : (!string.IsNullOrWhiteSpace(scenePath) ? Path.GetFileNameWithoutExtension(scenePath) : "Untitled");
 
-        lock (_metadataLock)
-        {
-            var resolvedDirty = isDirty ?? (_registeredScenes.TryGetValue(sceneId, out var existing) && existing.IsDirty);
-            _registeredScenes[sceneId] = (displayName, scenePath, resolvedDirty);
-        }
+        var resolvedDirty = isDirty ?? (_registeredScenes.TryGetValue(sceneId, out var existing) && existing.IsDirty);
+        _registeredScenes[sceneId] = (displayName, scenePath, resolvedDirty);
+        _revision++;
     }
 
     public void SetSceneDirty(ushort sceneId, bool isDirty)
     {
-        lock (_metadataLock)
+        if (_registeredScenes.TryGetValue(sceneId, out var existing))
         {
-            if (_registeredScenes.TryGetValue(sceneId, out var existing))
+            if (existing.IsDirty == isDirty)
             {
-                _registeredScenes[sceneId] = (existing.Name, existing.Path, isDirty);
+                return;
             }
-            else if (sceneId == 0)
-            {
-                var displayName = !string.IsNullOrWhiteSpace(ActiveScenePath) ? Path.GetFileNameWithoutExtension(ActiveScenePath) : "Untitled";
-                _registeredScenes[0] = (displayName, ActiveScenePath, isDirty);
-            }
+
+            _registeredScenes[sceneId] = (existing.Name, existing.Path, isDirty);
+            _revision++;
+        }
+        else if (sceneId == 0)
+        {
+            var displayName = !string.IsNullOrWhiteSpace(ActiveScenePath) ? Path.GetFileNameWithoutExtension(ActiveScenePath) : "Untitled";
+            _registeredScenes[0] = (displayName, ActiveScenePath, isDirty);
+            _revision++;
         }
     }
 
     public bool IsSceneDirty(ushort sceneId)
     {
-        lock (_metadataLock)
-        {
-            return _registeredScenes.TryGetValue(sceneId, out var existing) && existing.IsDirty;
-        }
+        return _registeredScenes.TryGetValue(sceneId, out var existing) && existing.IsDirty;
     }
 
     public bool TryGetScenePath(ushort sceneId, out string? scenePath)
     {
-        lock (_metadataLock)
+        if (_registeredScenes.TryGetValue(sceneId, out var existing))
         {
-            if (_registeredScenes.TryGetValue(sceneId, out var existing))
-            {
-                scenePath = existing.Path;
-                return true;
-            }
+            scenePath = existing.Path;
+            return true;
         }
 
         scenePath = null;
@@ -303,47 +264,41 @@ public sealed class EditorSyncBridge
 
     public ushort AllocateSceneId()
     {
-        lock (_metadataLock)
+        var candidate = unchecked((ushort)(ActiveSceneId + 1));
+        while (_registeredScenes.ContainsKey(candidate))
         {
-            var candidate = unchecked((ushort)(ActiveSceneId + 1));
-            while (_registeredScenes.ContainsKey(candidate))
-            {
-                candidate = unchecked((ushort)(candidate + 1));
-            }
-
-            return candidate;
+            candidate = unchecked((ushort)(candidate + 1));
         }
+
+        return candidate;
     }
 
     public bool UnregisterScene(ushort sceneId)
     {
-        lock (_metadataLock)
+        if (_registeredScenes.Remove(sceneId))
         {
-            return _registeredScenes.Remove(sceneId);
+            _revision++;
+            return true;
         }
+
+        return false;
     }
 
     public IReadOnlyList<ushort> GetRegisteredSceneIds()
     {
-        lock (_metadataLock)
-        {
-            return _registeredScenes.Keys.OrderBy(static k => k).ToArray();
-        }
+        return _registeredScenes.Keys.OrderBy(static k => k).ToArray();
     }
 
-    public IReadOnlyList<SceneNode> GetSceneNodeSnapshots(IReadOnlyList<EntityNode> entities)
-    {
-        KeyValuePair<ushort, (string Name, string? Path, bool IsDirty)>[] entries;
-        lock (_metadataLock)
-        {
-            if (_registeredScenes.Count == 0)
-            {
-                _registeredScenes[0] = ("Untitled", ActiveScenePath, false);
-            }
+    public IReadOnlyList<SceneNode> GetSceneNodes() => GetSceneNodes(_entities);
 
-            entries = _registeredScenes.OrderBy(static kvp => kvp.Key).ToArray();
+    public IReadOnlyList<SceneNode> GetSceneNodes(IReadOnlyList<EntityNode> entities)
+    {
+        if (_registeredScenes.Count == 0)
+        {
+            _registeredScenes[0] = ("Untitled", ActiveScenePath, false);
         }
 
+        var entries = _registeredScenes.OrderBy(static kvp => kvp.Key).ToArray();
         var result = new SceneNode[entries.Length];
         for (var i = 0; i < entries.Length; i++)
         {
@@ -366,31 +321,68 @@ public sealed class EditorSyncBridge
 
     public void ClearSceneMetadata()
     {
-        lock (_metadataLock)
+        _entityNames.Clear();
+        _entityNodeIds.Clear();
+        _entityGuids.Clear();
+        _prefabLinks.Clear();
+        _initialMeshAuthoring.Clear();
+        _registeredScenes.Clear();
+        _registeredScenes[0] = ("Untitled", ActiveScenePath, false);
+        _entities.Clear();
+        _revision++;
+    }
+
+    public void SetEntities(IReadOnlyList<EntityNode> entities)
+    {
+        _entities.Clear();
+        var maxId = 0;
+        for (var i = 0; i < entities.Count; i++)
         {
-            _entityNames.Clear();
-            _entityNodeIds.Clear();
-            _entityGuids.Clear();
-            _prefabLinks.Clear();
-            _initialMeshAuthoring.Clear();
-            _registeredScenes.Clear();
-            _registeredScenes[0] = ("Untitled", ActiveScenePath, false);
+            var node = entities[i];
+            _entities.Add(node);
+            if (node.Id > maxId)
+            {
+                maxId = node.Id;
+            }
         }
+
+        AdvanceNextEntityId(maxId);
+        _revision++;
+    }
+
+    public void AddEntityNode(EntityNode node)
+    {
+        if (!_entities.Contains(node))
+        {
+            _entities.Add(node);
+            AdvanceNextEntityId(node.Id);
+            _revision++;
+        }
+    }
+
+    public void MutateEntities(Action<List<EntityNode>> mutator)
+    {
+        mutator(_entities);
+        var maxId = 0;
+        for (var i = 0; i < _entities.Count; i++)
+        {
+            if (_entities[i].Id > maxId)
+            {
+                maxId = _entities[i].Id;
+            }
+        }
+
+        AdvanceNextEntityId(maxId);
+        _revision++;
     }
 
     public Entity ResolveEcsEntity(int nodeId)
     {
-        var snapshot = LatestSnapshot;
-        if (snapshot == null)
+        for (var i = 0; i < _entities.Count; i++)
         {
-            return Entity.Invalid;
-        }
-
-        for (var i = 0; i < snapshot.Entities.Count; i++)
-        {
-            if (snapshot.Entities[i].Id == nodeId)
+            if (_entities[i].Id == nodeId)
             {
-                return snapshot.Entities[i].EcsEntity;
+                return _entities[i].EcsEntity;
             }
         }
 
@@ -399,17 +391,11 @@ public sealed class EditorSyncBridge
 
     public EntityNode? FindEntityNode(int nodeId)
     {
-        var snapshot = LatestSnapshot;
-        if (snapshot == null)
+        for (var i = 0; i < _entities.Count; i++)
         {
-            return null;
-        }
-
-        for (var i = 0; i < snapshot.Entities.Count; i++)
-        {
-            if (snapshot.Entities[i].Id == nodeId)
+            if (_entities[i].Id == nodeId)
             {
-                return snapshot.Entities[i];
+                return _entities[i];
             }
         }
 
@@ -423,17 +409,11 @@ public sealed class EditorSyncBridge
             return null;
         }
 
-        var snapshot = LatestSnapshot;
-        if (snapshot == null)
+        for (var i = 0; i < _entities.Count; i++)
         {
-            return null;
-        }
-
-        for (var i = 0; i < snapshot.Entities.Count; i++)
-        {
-            if (snapshot.Entities[i].EditorGuid == editorGuid)
+            if (_entities[i].EditorGuid == editorGuid)
             {
-                return snapshot.Entities[i];
+                return _entities[i];
             }
         }
 
@@ -447,45 +427,52 @@ public sealed class EditorSyncBridge
             return null;
         }
 
-        var snapshot = LatestSnapshot;
-        if (snapshot == null)
+        for (var i = 0; i < _entities.Count; i++)
         {
-            return null;
-        }
-
-        for (var i = 0; i < snapshot.Entities.Count; i++)
-        {
-            if (snapshot.Entities[i].EcsEntity == ecsEntity)
+            if (_entities[i].EcsEntity == ecsEntity)
             {
-                return snapshot.Entities[i];
+                return _entities[i];
             }
         }
 
         return null;
     }
 
-    public void EnqueueMutation(Entity entity, Type componentType, string fieldName, object? value)
+    /// <summary>
+    /// Queues an action from a background thread (such as async asset baking) to execute on the main editor thread.
+    /// </summary>
+    public void EnqueueMainThreadAction(Action<World> action)
     {
-        _pendingMutations.Enqueue(new PendingPropertyMutation
-        {
-            Entity = entity,
-            ComponentType = componentType,
-            FieldName = fieldName,
-            Value = value
-        });
+        _pendingMainThreadActions.Enqueue(action);
     }
 
-    public void EnqueueWorldAction(Action<World> action)
+    /// <summary>
+    /// Drains and executes all queued background-thread actions against <paramref name="world"/> on the main thread.
+    /// </summary>
+    public void DrainMainThreadActions(World world)
     {
-        _pendingWorldActions.Enqueue(action);
+        while (_pendingMainThreadActions.TryDequeue(out var action))
+        {
+            action(world);
+        }
     }
 
-    public void DrainMutations(List<PendingPropertyMutation> destination)
+    /// <summary>
+    /// Completes any pending async asset handle resolutions on tracked property nodes.
+    /// </summary>
+    public void PumpPendingPropertyResolutions()
     {
-        destination.Clear();
-        while (_pendingMutations.TryDequeue(out var mutation))
+        for (var e = 0; e < _entities.Count; e++)
         {
-            destination.Add(mutation);
+            var components = _entities[e].Components;
+            for (var c = 0; c < components.Count; c++)
+            {
+                var props = components[c].Properties;
+                for (var p = 0; p < props.Count; p++)
+                {
+                    props[p].TryCompletePendingResolution();
+                }
+            }
         }
     }
 
@@ -495,10 +482,7 @@ public sealed class EditorSyncBridge
     public void RetainSceneAsset(IAssetEntry entry)
     {
         entry.AddRef();
-        lock (_metadataLock)
-        {
-            _sceneRetainedAssets.Add(entry);
-        }
+        _sceneRetainedAssets.Add(entry);
     }
 
     /// <summary>
@@ -506,30 +490,17 @@ public sealed class EditorSyncBridge
     /// </summary>
     public void ReleaseSceneAssets()
     {
-        IAssetEntry[] snapshot;
-        lock (_metadataLock)
+        if (_sceneRetainedAssets.Count == 0)
         {
-            if (_sceneRetainedAssets.Count == 0)
-            {
-                return;
-            }
-
-            snapshot = _sceneRetainedAssets.ToArray();
-            _sceneRetainedAssets.Clear();
+            return;
         }
 
-        for (var i = 0; i < snapshot.Length; i++)
+        for (var i = 0; i < _sceneRetainedAssets.Count; i++)
         {
-            snapshot[i].Release();
+            _sceneRetainedAssets[i].Release();
         }
-    }
 
-    public void DrainWorldActions(World world)
-    {
-        while (_pendingWorldActions.TryDequeue(out var action))
-        {
-            action(world);
-        }
+        _sceneRetainedAssets.Clear();
     }
 
     /// <summary>
@@ -566,17 +537,8 @@ public sealed class EditorSyncBridge
         }
     }
 
-    public void PublishSnapshot(SceneSnapshot snapshot)
+    private void AdvanceNextEntityId(int maxId)
     {
-        var maxId = 0;
-        for (var i = 0; i < snapshot.Entities.Count; i++)
-        {
-            if (snapshot.Entities[i].Id > maxId)
-            {
-                maxId = snapshot.Entities[i].Id;
-            }
-        }
-
         while (true)
         {
             var current = Volatile.Read(ref _nextEntityId);
@@ -590,28 +552,5 @@ public sealed class EditorSyncBridge
                 break;
             }
         }
-
-        Volatile.Write(ref _latestSnapshot, snapshot);
-        Interlocked.Increment(ref _snapshotVersion);
-        SnapshotPublished?.Invoke(snapshot);
-    }
-
-    /// <summary>
-    /// Atomically transforms the current snapshot entity list and publishes a new <see cref="SceneSnapshot"/>.
-    /// </summary>
-    public SceneSnapshot MutateSnapshot(Func<IReadOnlyList<EntityNode>, List<EntityNode>> mutator)
-    {
-        SceneSnapshot updated;
-        lock (_snapshotLock)
-        {
-            var current = LatestSnapshot;
-            var currentEntities = current?.Entities ?? Array.Empty<EntityNode>();
-            var nextEntities = mutator(currentEntities);
-            var scenes = GetSceneNodeSnapshots(nextEntities);
-            updated = new SceneSnapshot(scenes, nextEntities, current?.FrameTimeMs ?? 16.6f, current?.Fps ?? 60.0f);
-            PublishSnapshot(updated);
-        }
-
-        return updated;
     }
 }

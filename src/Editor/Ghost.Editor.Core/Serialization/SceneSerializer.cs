@@ -15,7 +15,7 @@ using System.Text.Json;
 namespace Ghost.Editor.Core.Serialization;
 
 /// <summary>
-/// Serializes and deserializes editor authoring node hierarchies (<see cref="SceneSnapshot"/>) to and from
+/// Serializes and deserializes editor authoring node hierarchies (<see cref="EntityNode"/>) to and from
 /// <see cref="SceneAssetDocument"/> (<c>.gscene</c>) JSON files without reading runtime GPU/ECS handles directly.
 /// </summary>
 public static unsafe class SceneSerializer
@@ -25,21 +25,21 @@ public static unsafe class SceneSerializer
     private static int s_cachedAssemblyCount = -1;
 
     /// <summary>
-    /// Captures the current editor <paramref name="snapshot"/> as a <see cref="SceneAssetDocument"/>,
+    /// Captures the current editor <paramref name="entities"/> as a <see cref="SceneAssetDocument"/>,
     /// storing standalone entities explicitly and prefab-linked groups by reference with sparse overrides.
     /// </summary>
-    public static SceneAssetDocument SaveToDocument(SceneSnapshot snapshot, EditorSyncBridge bridge, IReadOnlyDictionary<Guid, IAssetEntry>? prefabLookup = null, ushort? sceneIdFilter = null)
+    public static SceneAssetDocument SaveToDocument(IReadOnlyList<EntityNode> entities, EditorSyncBridge bridge, IReadOnlyDictionary<Guid, IAssetEntry>? prefabLookup = null, ushort? sceneIdFilter = null)
     {
         var doc = new SceneAssetDocument();
-        var sourceEntities = snapshot.Entities;
+        var sourceEntities = entities;
         if (sceneIdFilter.HasValue)
         {
-            var filtered = new List<EntityNode>(snapshot.Entities.Count);
-            for (var i = 0; i < snapshot.Entities.Count; i++)
+            var filtered = new List<EntityNode>(entities.Count);
+            for (var i = 0; i < entities.Count; i++)
             {
-                if (snapshot.Entities[i].SceneId == sceneIdFilter.Value)
+                if (entities[i].SceneId == sceneIdFilter.Value)
                 {
-                    filtered.Add(snapshot.Entities[i]);
+                    filtered.Add(entities[i]);
                 }
             }
 
@@ -127,9 +127,9 @@ public static unsafe class SceneSerializer
         File.Move(tempPath, fullPath, overwrite: true);
     }
 
-    public static SceneAssetDocument SaveToFile(string filePath, SceneSnapshot snapshot, EditorSyncBridge bridge, IReadOnlyDictionary<Guid, IAssetEntry>? prefabLookup = null, ushort? sceneIdFilter = null)
+    public static SceneAssetDocument SaveToFile(string filePath, IReadOnlyList<EntityNode> entities, EditorSyncBridge bridge, IReadOnlyDictionary<Guid, IAssetEntry>? prefabLookup = null, ushort? sceneIdFilter = null)
     {
-        var doc = SaveToDocument(snapshot, bridge, prefabLookup, sceneIdFilter);
+        var doc = SaveToDocument(entities, bridge, prefabLookup, sceneIdFilter);
         WriteDocumentToFile(filePath, doc);
         return doc;
     }
@@ -160,18 +160,13 @@ public static unsafe class SceneSerializer
             var loadedSceneId = bridge.ActiveSceneId;
             bridge.ActiveScenePath = fullPath;
             bridge.RegisterScene(loadedSceneId, fullPath, isDirty: false);
-            var snap = bridge.LatestSnapshot;
-            if (snap != null)
-            {
-                bridge.PublishSnapshot(new SceneSnapshot(bridge.GetSceneNodeSnapshots(snap.Entities), snap.Entities, snap.FrameTimeMs, snap.Fps));
-            }
         }
 
         return res;
     }
 
     /// <summary>
-    /// Materializes a <see cref="SceneAssetDocument"/> into <paramref name="world"/> and publishes an updated <see cref="SceneSnapshot"/>.
+    /// Materializes a <see cref="SceneAssetDocument"/> into <paramref name="world"/> and updates <see cref="EditorSyncBridge.Entities"/>.
     /// When <paramref name="mode"/> is <see cref="SceneLoadingType.Single"/>, clears only entities tagged with <see cref="SceneID"/>
     /// so persistent non-scene entities (such as <c>EditorCamera</c>) remain intact.
     /// </summary>
@@ -193,8 +188,8 @@ public static unsafe class SceneSerializer
         var scenePath = mode == SceneLoadingType.Single ? bridge.ActiveScenePath : null;
         bridge.RegisterScene(sceneId, scenePath, isDirty: false);
 
-        var existingNodes = mode == SceneLoadingType.Additive && bridge.LatestSnapshot != null
-            ? new List<EntityNode>(bridge.LatestSnapshot.Entities)
+        var existingNodes = mode == SceneLoadingType.Additive
+            ? new List<EntityNode>(bridge.Entities)
             : new List<EntityNode>();
 
         var loadedNodes = new List<EntityNode>(existingNodes.Count + doc.Entities.Count);
@@ -289,34 +284,13 @@ public static unsafe class SceneSerializer
                     continue;
                 }
 
-                var spawnedByGuid = new Dictionary<Guid, EntityNode>(spawnedNodes.Count);
-                for (var s = 0; s < spawnedNodes.Count; s++)
+                var createdNodes = CreatePrefabEntityNodes(world, prefabEntry, spawnedNodes, sceneId, bridge, resolveHierarchyParents: false);
+                var spawnedByGuid = new Dictionary<Guid, EntityNode>(createdNodes.Count);
+                for (var s = 0; s < createdNodes.Count; s++)
                 {
-                    var sn = spawnedNodes[s];
-                    var nodeId = bridge.AllocateEntityId();
-                    bridge.RegisterEntityMapping(sn.Entity, nodeId);
-
-                    var compNodes = BuildComponentNodesFromEcs(world, em, sn.Entity, prefabEntry, sn.Link.TemplateEntityIndex, bridge, out var nodeTemplatePlaceholder);
-                    nodeTemplatePlaceholder.Name = sn.Name;
-                    nodeTemplatePlaceholder.EditorGuid = sn.EditorGuid;
-                    nodeTemplatePlaceholder.PrefabLink = sn.Link;
-                    nodeTemplatePlaceholder.EcsEntity = sn.Entity;
-
-                    // Rebind EntityNode with allocated nodeId so Snapshot Id matches bridge mapping cleanly.
-                    var entityNode = new EntityNode(nodeId, sn.Name, compNodes)
-                    {
-                        EditorGuid = sn.EditorGuid,
-                        SceneId = sceneId,
-                        PrefabLink = sn.Link,
-                        EcsEntity = sn.Entity
-                    };
-                    for (var c = 0; c < compNodes.Count; c++)
-                    {
-                        compNodes[c].EntityNode = entityNode;
-                    }
-
-                    guidToEntity[sn.EditorGuid] = sn.Entity;
-                    spawnedByGuid[sn.EditorGuid] = entityNode;
+                    var entityNode = createdNodes[s];
+                    guidToEntity[entityNode.EditorGuid] = entityNode.EcsEntity;
+                    spawnedByGuid[entityNode.EditorGuid] = entityNode;
                     loadedNodes.Add(entityNode);
                 }
 
@@ -377,9 +351,9 @@ public static unsafe class SceneSerializer
             }
         }
 
-        bridge.PublishSnapshot(new SceneSnapshot(bridge.GetSceneNodeSnapshots(loadedNodes), loadedNodes));
+        bridge.SetEntities(loadedNodes);
 
-        // Second pass binds EntityRefPropertyNode targets now that LatestSnapshot contains every loaded EntityGuid.
+        // Second pass binds EntityRefPropertyNode targets now that bridge.Entities contains every loaded EntityGuid.
         for (var i = 0; i < pendingEntityRefs.Count; i++)
         {
             var (compNode, compRec) = pendingEntityRefs[i];
@@ -444,7 +418,6 @@ public static unsafe class SceneSerializer
         {
             bridge.ActiveScenePath = null;
             UnloadCurrentScene(world, bridge, selection, history);
-            bridge.PublishSnapshot(new SceneSnapshot(bridge.GetSceneNodeSnapshots(Array.Empty<EntityNode>()), Array.Empty<EntityNode>()));
             return;
         }
 
@@ -526,34 +499,31 @@ public static unsafe class SceneSerializer
             bridge.ActiveScenePath = bridge.TryGetScenePath(fallbackSceneId, out var fallbackPath) ? fallbackPath : null;
         }
 
-        var current = bridge.LatestSnapshot;
-        var remainingEntities = new List<EntityNode>();
+        var currentEntities = bridge.Entities;
+        var remainingEntities = new List<EntityNode>(currentEntities.Count);
         var removedIds = new HashSet<int>();
-        if (current != null)
+        for (var i = 0; i < currentEntities.Count; i++)
         {
-            for (var i = 0; i < current.Entities.Count; i++)
+            if (currentEntities[i].SceneId == sceneId)
             {
-                if (current.Entities[i].SceneId == sceneId)
-                {
-                    removedIds.Add(current.Entities[i].Id);
-                }
-                else
-                {
-                    remainingEntities.Add(current.Entities[i]);
-                }
+                removedIds.Add(currentEntities[i].Id);
             }
-
-            for (var i = 0; i < remainingEntities.Count; i++)
+            else
             {
-                var e = remainingEntities[i];
-                if (e.ParentId.HasValue && removedIds.Contains(e.ParentId.Value))
-                {
-                    e.ParentId = null;
-                }
+                remainingEntities.Add(currentEntities[i]);
             }
         }
 
-        bridge.PublishSnapshot(new SceneSnapshot(bridge.GetSceneNodeSnapshots(remainingEntities), remainingEntities, current?.FrameTimeMs ?? 16.6f, current?.Fps ?? 60.0f));
+        for (var i = 0; i < remainingEntities.Count; i++)
+        {
+            var e = remainingEntities[i];
+            if (e.ParentId.HasValue && removedIds.Contains(e.ParentId.Value))
+            {
+                e.ParentId = null;
+            }
+        }
+
+        bridge.SetEntities(remainingEntities);
     }
 
     /// <summary>
@@ -801,13 +771,74 @@ public static unsafe class SceneSerializer
         return result;
     }
 
-    private static List<ComponentNode> BuildComponentNodesFromEcs(World world, EntityManager em, Entity entity, IAssetEntry prefabEntry, int templateIndex, EditorSyncBridge bridge, out EntityNode placeholderNode)
+    /// <summary>
+    /// Creates editor <see cref="EntityNode"/> hierarchies for a newly instantiated prefab's spawned ECS entities.
+    /// </summary>
+    public static List<EntityNode> CreatePrefabEntityNodes(World world, IAssetEntry prefabEntry, IReadOnlyList<EditorPrefabUtility.SpawnedPrefabNode> spawnedNodes, ushort sceneId, EditorSyncBridge bridge, bool resolveHierarchyParents = true)
     {
-        var compList = new List<ComponentNode>();
-        placeholderNode = new EntityNode(0, string.Empty, compList);
+        var em = world.EntityManager;
+        var createdNodes = new List<EntityNode>(spawnedNodes.Count);
+        var ecsToNodeId = new Dictionary<Entity, int>(spawnedNodes.Count);
+
+        for (var s = 0; s < spawnedNodes.Count; s++)
+        {
+            var sn = spawnedNodes[s];
+            var nodeId = bridge.AllocateEntityId();
+            bridge.RegisterEntityMapping(sn.Entity, nodeId);
+
+            var compNodes = new List<ComponentNode>();
+            var entityNode = new EntityNode(nodeId, sn.Name, compNodes)
+            {
+                EditorGuid = sn.EditorGuid,
+                SceneId = sceneId,
+                PrefabLink = sn.Link,
+                EcsEntity = sn.Entity
+            };
+            PopulateComponentNodesFromEcs(world, em, sn.Entity, prefabEntry, sn.Link.TemplateEntityIndex, bridge, entityNode, compNodes);
+
+            ecsToNodeId[sn.Entity] = nodeId;
+            createdNodes.Add(entityNode);
+        }
+
+        if (resolveHierarchyParents)
+        {
+            for (var i = 0; i < createdNodes.Count; i++)
+            {
+                var node = createdNodes[i];
+                if (!em.HasComponent<Hierarchy>(node.EcsEntity))
+                {
+                    continue;
+                }
+
+                var parentEcs = em.GetComponent<Hierarchy>(node.EcsEntity).parent;
+                if (!parentEcs.IsValid)
+                {
+                    continue;
+                }
+
+                if (ecsToNodeId.TryGetValue(parentEcs, out var localParentId))
+                {
+                    node.ParentId = localParentId;
+                }
+                else
+                {
+                    var existingParent = bridge.FindEntityNode(parentEcs);
+                    if (existingParent != null)
+                    {
+                        node.ParentId = existingParent.Id;
+                    }
+                }
+            }
+        }
+
+        return createdNodes;
+    }
+
+    private static void PopulateComponentNodesFromEcs(World world, EntityManager em, Entity entity, IAssetEntry prefabEntry, int templateIndex, EditorSyncBridge bridge, EntityNode entityNode, List<ComponentNode> compList)
+    {
         if (!em.TryGetEntityLocation(entity, out var location))
         {
-            return compList;
+            return;
         }
 
         var hasMeshFixup = PrefabUtility.TryGetTemplateEntityFixupGuids(prefabEntry, templateIndex, out var baseMeshGuid, out var baseMatGuids);
@@ -837,12 +868,12 @@ public static unsafe class SceneSerializer
 
             if (isVolumeContainer)
             {
-                compList.Add(ComponentNodeFactory.CreateVolumeComponentNode(placeholderNode, in *(RenderVolumeDataContainer*)ptr, bridge));
+                compList.Add(ComponentNodeFactory.CreateVolumeComponentNode(entityNode, in *(RenderVolumeDataContainer*)ptr, bridge));
                 continue;
             }
 
             ComponentReflectionAccessor.TryBoxFromPointer(compType, ptr, out var initialValue);
-            var compNode = ComponentNodeFactory.CreateComponentNode(compType, placeholderNode, initialValue, bridge);
+            var compNode = ComponentNodeFactory.CreateComponentNode(compType, entityNode, initialValue, bridge);
 
             if (hasMeshFixup && compType == typeof(MeshInstance))
             {
@@ -860,8 +891,6 @@ public static unsafe class SceneSerializer
 
             compList.Add(compNode);
         }
-
-        return compList;
     }
 
     private static void ApplyPrefabInstanceOverrides(EntityManager em, ScenePrefabInstanceRecord prefabRec, Dictionary<Guid, EntityNode> spawnedByGuid, EditorSyncBridge bridge, JsonSerializerOptions jsonOptions, List<(ComponentNode, SceneComponentRecord)> pendingEntityRefs, List<(PropertyNode, JsonElement)> pendingPropertyOverrides)
