@@ -26,7 +26,7 @@ internal sealed partial class D3D12ResourceAllocator
 
     private static D3D12MA_ALLOCATION_FLAGS GetAllocationFlags(ResourceAllocationFlags flags)
     {
-        D3D12MA_ALLOCATION_FLAGS d3d12maFlags = D3D12MA_ALLOCATION_FLAG_NONE;
+        var d3d12maFlags = D3D12MA_ALLOCATION_FLAG_NONE;
         if (flags.HasFlag(ResourceAllocationFlags.Committed))
         {
             d3d12maFlags |= D3D12MA_ALLOCATION_FLAG_COMMITTED;

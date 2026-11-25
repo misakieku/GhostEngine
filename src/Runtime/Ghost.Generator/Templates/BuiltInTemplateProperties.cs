@@ -1,5 +1,3 @@
-using System;
-
 namespace Ghost.Generator.Templates
 {
     public sealed class TemplatePropertyDef

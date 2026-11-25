@@ -525,7 +525,7 @@ public unsafe partial class MeshBaker
         }
 
         var invalidChars = Path.GetInvalidFileNameChars();
-        Span<char> buffer = name.Length <= 256 ? stackalloc char[name.Length] : new char[name.Length];
+        var buffer = name.Length <= 256 ? stackalloc char[name.Length] : new char[name.Length];
 
         for (var i = 0; i < name.Length; i++)
         {

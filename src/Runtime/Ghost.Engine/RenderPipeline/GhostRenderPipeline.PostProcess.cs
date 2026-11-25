@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Volumes;
-using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;

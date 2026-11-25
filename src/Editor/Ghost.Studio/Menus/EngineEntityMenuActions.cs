@@ -2,7 +2,6 @@ using Ghost.Editor.Core.Commands;
 using Ghost.Editor.Core.Menus;
 using Ghost.Editor.Core.Sync;
 using Ghost.Engine.Components;
-using Ghost.Graphics.Core;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Studio.Menus;

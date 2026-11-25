@@ -73,7 +73,7 @@ public sealed class NamingConventions
         }
 
         var counter = 0;
-        Span<char> nameSpan = name.Length <= 256 ? stackalloc char[name.Length] : new char[name.Length];
+        var nameSpan = name.Length <= 256 ? stackalloc char[name.Length] : new char[name.Length];
 
         for (var i = 0; i < name.Length; i++)
         {
@@ -113,7 +113,7 @@ public sealed class NamingConventions
 
         var counter = 0;
         var maxLen = name.Length * 2;
-        Span<char> nameSpan = maxLen <= 512 ? stackalloc char[maxLen] : new char[maxLen];
+        var nameSpan = maxLen <= 512 ? stackalloc char[maxLen] : new char[maxLen];
 
         for (var i = 0; i < name.Length; i++)
         {

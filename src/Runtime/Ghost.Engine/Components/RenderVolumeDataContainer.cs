@@ -116,7 +116,7 @@ public unsafe struct RenderVolumeDataContainer : ICleanupComponent, IDisposable
     public readonly ref T GetRef<T>(out bool exists)
         where T : unmanaged, IVolumeComponent<T>
     {
-        exists = TryGetPtr(VolumeBlenderTrampoline<T>.TypeId, out void* ptr);
+        exists = TryGetPtr(VolumeBlenderTrampoline<T>.TypeId, out var ptr);
         return ref Unsafe.AsRef<T>(ptr);
     }
 

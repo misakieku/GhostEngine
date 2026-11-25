@@ -3,7 +3,6 @@ using Ghost.Engine.Components;
 using Ghost.Engine.RenderPipeline;
 using Ghost.Engine.Utilities;
 using Ghost.Entities;
-using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Engine.Systems;
 

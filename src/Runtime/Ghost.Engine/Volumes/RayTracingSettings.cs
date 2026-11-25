@@ -1,5 +1,4 @@
 using Ghost.Core;
-using Ghost.Graphics.Core;
 using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.Engine.Volumes;

@@ -5,7 +5,6 @@ using Ghost.Editor.Core.Sync;
 using Ghost.Engine.Components;
 using Ghost.Engine.Editor;
 using Ghost.Engine.Streaming;
-using Ghost.Engine.Systems;
 using Ghost.Entities;
 using Ghost.Graphics;
 using Ghost.Studio.Rendering;
@@ -194,7 +193,7 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
                 hash.Add(entity.Generation);
                 if (em.TryGetEntityLocation(entity, out var location))
                 {
-                    hash.Add((int)location.archetypeID);
+                    hash.Add(location.archetypeID);
                 }
 
                 if (em.HasComponent<Hierarchy>(entity))

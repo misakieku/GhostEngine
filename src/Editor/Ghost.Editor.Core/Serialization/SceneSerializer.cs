@@ -1,5 +1,3 @@
-using System.Reflection;
-using System.Text.Json;
 using Ghost.AssetForge.Core.Models;
 using Ghost.Core;
 using Ghost.Editor.Core.Commands;
@@ -11,6 +9,8 @@ using Ghost.Engine.Streaming;
 using Ghost.Engine.Utilities;
 using Ghost.Entities;
 using Misaki.HighPerformance.Mathematics;
+using System.Reflection;
+using System.Text.Json;
 
 namespace Ghost.Editor.Core.Serialization;
 
@@ -31,7 +31,7 @@ public static unsafe class SceneSerializer
     public static SceneAssetDocument SaveToDocument(SceneSnapshot snapshot, EditorSyncBridge bridge, IReadOnlyDictionary<Guid, IAssetEntry>? prefabLookup = null, ushort? sceneIdFilter = null)
     {
         var doc = new SceneAssetDocument();
-        IReadOnlyList<EntityNode> sourceEntities = snapshot.Entities;
+        var sourceEntities = snapshot.Entities;
         if (sceneIdFilter.HasValue)
         {
             var filtered = new List<EntityNode>(snapshot.Entities.Count);

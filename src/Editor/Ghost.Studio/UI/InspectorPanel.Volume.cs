@@ -151,7 +151,7 @@ internal sealed partial class InspectorPanel
             if (ImGui.Checkbox("##ovr", ref isOverridden))
             {
                 var capturedVal = field.ValueNode is AssetPropertyNode assetNode
-                    ? (object)assetNode.AssetGuid
+                    ? assetNode.AssetGuid
                     : (field.ValueNode.Value ?? field.DefaultFieldValue);
                 CommandHistory.Instance.Execute(new ModifyVolumeFieldCommand(volumeProp, entry.SettingsType, field.Name, field.IsOverridden, capturedVal, isOverridden, capturedVal));
             }

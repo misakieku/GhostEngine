@@ -1,8 +1,4 @@
 // Auto-generated enum aliases
-using Ghost.D3D12;
-using Ghost.D3D12MA;
-using Ghost.DXGI;
-
 namespace Ghost.Aliases;
 
 public static partial class D3D_Alias

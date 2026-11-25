@@ -402,7 +402,7 @@ namespace Ghost.FMOD.Studio
             settings.cbsize = Marshal.SizeOf<ADVANCEDSETTINGS>();
             return FMOD_Studio_System_SetAdvancedSettings(handle, ref settings);
         }
-        public RESULT setAdvancedSettings(ADVANCEDSETTINGS settings, string encryptionKey)
+        public readonly RESULT setAdvancedSettings(ADVANCEDSETTINGS settings, string encryptionKey)
         {
             using var encoder = StringHelper.GetFreeHelper();
             var userKey = settings.encryptionkey;
@@ -531,7 +531,7 @@ namespace Ghost.FMOD.Studio
             Marshal.FreeHGlobal(stringMem);
             return result;
         }
-        public RESULT getParameterByID(PARAMETER_ID id, out float value)
+        public readonly RESULT getParameterByID(PARAMETER_ID id, out float value)
         {
             return getParameterByID(id, out value, out var finalValue);
         }
@@ -552,7 +552,7 @@ namespace Ghost.FMOD.Studio
         {
             return FMOD_Studio_System_SetParametersByIDs(handle, ids, values, count, ignoreseekspeed);
         }
-        public RESULT getParameterByName(string name, out float value)
+        public readonly RESULT getParameterByName(string name, out float value)
         {
             return getParameterByName(name, out value, out var finalValue);
         }
@@ -916,7 +916,7 @@ namespace Ghost.FMOD.Studio
             handle = IntPtr.Zero;
         }
 
-        public bool isValid()
+        public readonly bool isValid()
         {
             return hasHandle() && FMOD_Studio_System_IsValid(handle);
         }
@@ -1249,7 +1249,7 @@ namespace Ghost.FMOD.Studio
             handle = IntPtr.Zero;
         }
 
-        public bool isValid()
+        public readonly bool isValid()
         {
             return hasHandle() && FMOD_Studio_EventDescription_IsValid(handle);
         }
@@ -1367,7 +1367,7 @@ namespace Ghost.FMOD.Studio
         {
             return FMOD_Studio_EventInstance_IsVirtual(handle, out virtualstate);
         }
-        public RESULT getParameterByID(PARAMETER_ID id, out float value)
+        public readonly RESULT getParameterByID(PARAMETER_ID id, out float value)
         {
             return getParameterByID(id, out value, out var finalvalue);
         }
@@ -1388,7 +1388,7 @@ namespace Ghost.FMOD.Studio
         {
             return FMOD_Studio_EventInstance_SetParametersByIDs(handle, ids, values, count, ignoreseekspeed);
         }
-        public RESULT getParameterByName(string name, out float value)
+        public readonly RESULT getParameterByName(string name, out float value)
         {
             return getParameterByName(name, out value, out var finalValue);
         }
@@ -1534,7 +1534,7 @@ namespace Ghost.FMOD.Studio
             handle = IntPtr.Zero;
         }
 
-        public bool isValid()
+        public readonly bool isValid()
         {
             return hasHandle() && FMOD_Studio_EventInstance_IsValid(handle);
         }
@@ -1571,7 +1571,7 @@ namespace Ghost.FMOD.Studio
             return result;
 
         }
-        public RESULT getVolume(out float volume)
+        public readonly RESULT getVolume(out float volume)
         {
             return getVolume(out volume, out var finalVolume);
         }
@@ -1686,7 +1686,7 @@ namespace Ghost.FMOD.Studio
             handle = IntPtr.Zero;
         }
 
-        public bool isValid()
+        public readonly bool isValid()
         {
             return hasHandle() && FMOD_Studio_Bus_IsValid(handle);
         }
@@ -1722,7 +1722,7 @@ namespace Ghost.FMOD.Studio
             Marshal.FreeHGlobal(stringMem);
             return result;
         }
-        public RESULT getVolume(out float volume)
+        public readonly RESULT getVolume(out float volume)
         {
             return getVolume(out volume, out var finalVolume);
         }
@@ -1765,7 +1765,7 @@ namespace Ghost.FMOD.Studio
             handle = IntPtr.Zero;
         }
 
-        public bool isValid()
+        public readonly bool isValid()
         {
             return hasHandle() && FMOD_Studio_VCA_IsValid(handle);
         }
@@ -2031,7 +2031,7 @@ namespace Ghost.FMOD.Studio
             handle = IntPtr.Zero;
         }
 
-        public bool isValid()
+        public readonly bool isValid()
         {
             return hasHandle() && FMOD_Studio_Bank_IsValid(handle);
         }
@@ -2216,7 +2216,7 @@ namespace Ghost.FMOD.Studio
             handle = IntPtr.Zero;
         }
 
-        public bool isValid()
+        public readonly bool isValid()
         {
             return hasHandle() && FMOD_Studio_CommandReplay_IsValid(handle);
         }

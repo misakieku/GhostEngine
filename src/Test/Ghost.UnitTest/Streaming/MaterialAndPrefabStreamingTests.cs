@@ -1,11 +1,9 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Engine.Components;
-using Ghost.Engine.RenderPipeline;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Utilities;
 using Ghost.Entities;
-using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
@@ -435,10 +433,10 @@ public unsafe class MaterialAndPrefabStreamingTests
         Assert.IsTrue(mi0.materialPalette.IsValid);
         Assert.AreNotEqual(new Identifier<MaterialPalette>(0), mi0.materialPalette);
         Assert.AreEqual(mi0.materialPalette, mi1.materialPalette);
-        Assert.AreEqual((uint)0xCAFEBABEu, (uint)mi0.renderingLayerMask);
+        Assert.AreEqual(0xCAFEBABEu, (uint)mi0.renderingLayerMask);
         Assert.AreEqual(Ghost.Engine.ShadowCastingMode.On, mi0.shadowCastingMode);
         Assert.IsTrue(mi0.staticShadowCaster);
-        Assert.AreEqual((uint)0xCAFEBABEu, (uint)mi1.renderingLayerMask);
+        Assert.AreEqual(0xCAFEBABEu, (uint)mi1.renderingLayerMask);
         Assert.AreEqual(Ghost.Engine.ShadowCastingMode.On, mi1.shadowCastingMode);
         Assert.IsTrue(mi1.staticShadowCaster);
 

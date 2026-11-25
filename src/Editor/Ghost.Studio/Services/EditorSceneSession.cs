@@ -7,7 +7,6 @@ using Ghost.Editor.Core.Serialization;
 using Ghost.Editor.Core.Sync;
 using Ghost.Engine;
 using Ghost.Entities;
-using Ghost.Studio.UI;
 
 namespace Ghost.Studio.Services;
 

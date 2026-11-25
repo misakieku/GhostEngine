@@ -228,7 +228,7 @@ public class StudioIntegrationTests
     {
         var iniPath = Path.Combine(AppContext.BaseDirectory, "imgui.ini");
         var hadIni = File.Exists(iniPath);
-        string? backupIni = hadIni ? File.ReadAllText(iniPath) : null;
+        var backupIni = hadIni ? File.ReadAllText(iniPath) : null;
         if (hadIni)
         {
             File.Delete(iniPath);

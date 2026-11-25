@@ -1,6 +1,5 @@
 using Ghost.Studio.Backend;
 using Hexa.NET.ImGui;
-using System.Numerics;
 
 namespace Ghost.Studio.UI;
 

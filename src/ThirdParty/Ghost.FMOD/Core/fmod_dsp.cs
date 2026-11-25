@@ -323,7 +323,7 @@ namespace Ghost.FMOD.Core
             }
         }
 
-        public void getSpectrum(ref float[][] buffer)
+        public readonly void getSpectrum(ref float[][] buffer)
         {
             var bufferLength = Math.Min(buffer.Length, numchannels);
             for (var i = 0; i < bufferLength; ++i)

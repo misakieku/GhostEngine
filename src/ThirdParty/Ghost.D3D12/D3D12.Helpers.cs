@@ -79,7 +79,7 @@ public static unsafe partial class D3D12
             var destData = new D3D12_MEMCPY_DEST
             {
                 pData = pData + pLayouts[i].Offset,
-                RowPitch = (nuint)pLayouts[i].Footprint.RowPitch,
+                RowPitch = pLayouts[i].Footprint.RowPitch,
                 SlicePitch = (nuint)pLayouts[i].Footprint.RowPitch * pNumRows[i]
             };
 

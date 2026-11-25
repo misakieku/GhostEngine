@@ -6,7 +6,6 @@ using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
 using Ghost.Engine;
 using Ghost.Engine.Streaming;
-using Ghost.Engine.Systems;
 using Ghost.Entities;
 using Ghost.Graphics;
 using Ghost.Studio.Assets;

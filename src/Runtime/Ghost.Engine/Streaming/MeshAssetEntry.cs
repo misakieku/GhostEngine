@@ -1,6 +1,5 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
-using Ghost.Core.Utilities;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
@@ -148,7 +147,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
             for (var p = 0; p < _pageDirectory.Length; p++)
             {
                 ref readonly var dir = ref _pageDirectory[p];
-                if (!ValidateRange((long)dir.fileOffset, (long)dir.compressedSize, contentSize) ||
+                if (!ValidateRange((long)dir.fileOffset, dir.compressedSize, contentSize) ||
                     dir.uncompressedSize > MeshletPageConstants.PAGE_SIZE)
                 {
                     _payload = default;

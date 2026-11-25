@@ -895,7 +895,7 @@ internal static unsafe class D3D12Utility
             ViewDimension = isAccelerationStructure ? D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE : D3D12_SRV_DIMENSION_BUFFER,
             Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
         };
-        
+
         if (isAccelerationStructure)
         {
             srvDesc.RaytracingAccelerationStructure.Location = pResource->GetGPUVirtualAddress();

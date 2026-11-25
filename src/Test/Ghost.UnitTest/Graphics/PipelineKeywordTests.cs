@@ -2,8 +2,6 @@ using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
-using Misaki.HighPerformance.LowLevel.Buffer;
-using System.Text;
 
 namespace Ghost.UnitTest.Graphics;
 
@@ -97,7 +95,7 @@ public class PipelineKeywordTests
         var parsedEmpty = PipelineKeywordRegistry.ParseMask(string.Empty);
         Assert.AreEqual(KeywordMask128.Empty, parsedEmpty);
 
-        var parsedNull = PipelineKeywordRegistry.ParseMask((string?)null);
+        var parsedNull = PipelineKeywordRegistry.ParseMask(null);
         Assert.AreEqual(KeywordMask128.Empty, parsedNull);
     }
 

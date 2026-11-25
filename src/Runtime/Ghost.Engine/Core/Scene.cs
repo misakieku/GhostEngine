@@ -8,7 +8,6 @@ using Ghost.Graphics.Core;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
-using Misaki.HighPerformance.Mathematics;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -595,7 +594,7 @@ internal sealed unsafe class PendingSceneLoad : ISceneReferenceResolver
         var rvdcId = ComponentTypeID<RenderVolumeDataContainer>.Value;
 
         var maxComps = baseEntity.ComponentIDs.Length + spawn.addedComponentCount + 2;
-        Span<Identifier<IComponent>> compSpan = maxComps <= 64 ? stackalloc Identifier<IComponent>[maxComps] : new Identifier<IComponent>[maxComps];
+        var compSpan = maxComps <= 64 ? stackalloc Identifier<IComponent>[maxComps] : new Identifier<IComponent>[maxComps];
         var compCount = 0;
         AddUniqueComponent(compSpan, ref compCount, sceneIdComp);
 
@@ -1058,7 +1057,7 @@ internal sealed unsafe class PendingSceneLoad : ISceneReferenceResolver
             }
         }
 
-        Span<Handle<Material>> matBuffer = maxMatCount <= 32 ? stackalloc Handle<Material>[maxMatCount] : new Handle<Material>[maxMatCount];
+        var matBuffer = maxMatCount <= 32 ? stackalloc Handle<Material>[maxMatCount] : new Handle<Material>[maxMatCount];
 
         for (var f = 0; f < fixups.Length; f++)
         {
@@ -1212,7 +1211,7 @@ internal sealed unsafe class PendingSceneLoad : ISceneReferenceResolver
         }
 
         var deps = _sceneEntry.Dependencies;
-        Span<Handle<Material>> matHandles = materialDependencyIndices.Length <= 32
+        var matHandles = materialDependencyIndices.Length <= 32
             ? stackalloc Handle<Material>[materialDependencyIndices.Length]
             : new Handle<Material>[materialDependencyIndices.Length];
 

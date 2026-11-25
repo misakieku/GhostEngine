@@ -3,7 +3,6 @@ using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Ghost.Engine.RenderPipeline;
 

@@ -2,7 +2,6 @@ using Ghost.Core;
 using Ghost.Engine.Components;
 using Ghost.Engine.RenderPipeline;
 using Ghost.Engine.Systems;
-using Ghost.Engine.Volumes;
 using Ghost.Entities;
 using Ghost.Graphics;
 using Ghost.Graphics.Core;

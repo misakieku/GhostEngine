@@ -57,7 +57,7 @@ public partial struct ShadowSettings
 }
 
 [VolumeComponent]
-public partial struct ContactShadowSettings: IVolumeComponent<ContactShadowSettings>
+public partial struct ContactShadowSettings : IVolumeComponent<ContactShadowSettings>
 {
     /// <summary>
     /// Specifies whether contact shadows are enabled.

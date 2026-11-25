@@ -14,7 +14,7 @@ internal static unsafe class EditorDragDrop
     public static void SetStringPayload(string payloadType, string value)
     {
         var byteCount = Encoding.UTF8.GetByteCount(value);
-        Span<byte> buffer = byteCount <= 1024 ? stackalloc byte[byteCount] : new byte[byteCount];
+        var buffer = byteCount <= 1024 ? stackalloc byte[byteCount] : new byte[byteCount];
         Encoding.UTF8.GetBytes(value, buffer);
         fixed (byte* ptr = buffer)
         {

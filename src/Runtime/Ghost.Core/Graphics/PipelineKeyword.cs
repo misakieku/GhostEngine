@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-
 namespace Ghost.Core.Graphics;
 
 public readonly struct PipelineKeyword : IEquatable<PipelineKeyword>

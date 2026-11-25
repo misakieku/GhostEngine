@@ -175,7 +175,7 @@ internal sealed unsafe class ImGuiSdlInputBridge : IInputHandler
             case SDL_EventType.SDL_EVENT_KEY_UP:
             {
                 CaptureWindow(e.key.windowID);
-                UpdateModifierKeys(io, (SDL_Keymod)e.key.mod);
+                UpdateModifierKeys(io, e.key.mod);
                 var imguiKey = MapScancodeToImGuiKey(e.key.scancode);
                 if (imguiKey != ImGuiKey.None)
                 {

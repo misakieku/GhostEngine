@@ -165,7 +165,7 @@ public class SystemDAGTests
 
     private struct AddChunkJob : IJobChunk
     {
-        public void Execute(ChunkView chunk, ref readonly JobExecutionContext ctx)
+        public readonly void Execute(ChunkView chunk, ref readonly JobExecutionContext ctx)
         {
             var data = chunk.GetComponentData<TestData>();
             for (var i = 0; i < chunk.EntityCount; i++)

@@ -1,6 +1,5 @@
 using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
-using Ghost.Engine.Streaming;
 using Ghost.Engine.Utilities;
 using Ghost.Entities;
 using Misaki.HighPerformance.Mathematics;

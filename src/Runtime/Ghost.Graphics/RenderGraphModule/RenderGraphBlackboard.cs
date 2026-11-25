@@ -37,7 +37,7 @@ public sealed class RenderGraphBlackboard
             }
 
             Unsafe.CopyBlockUnaligned(ref _dataBuffer[offset], in Unsafe.As<T, byte>(ref data), (uint)size);
-            
+
             _currentOffset += size;
             _dataOffset[type] = offset;
         }

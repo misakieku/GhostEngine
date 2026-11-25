@@ -557,7 +557,7 @@ public sealed class SceneBaker : IAssetBaker
             {
                 AlignDataBlob(sizeof(long));
                 var offset = _dataBlob.Count;
-                Span<long> values = len <= 32 ? stackalloc long[len] : new long[len];
+                var values = len <= 32 ? stackalloc long[len] : new long[len];
                 for (var i = 0; i < len; i++)
                 {
                     values[i] = array[i].GetInt64();
@@ -581,7 +581,7 @@ public sealed class SceneBaker : IAssetBaker
 
             AlignDataBlob(sizeof(float));
             var floatOffset = _dataBlob.Count;
-            Span<float> floatValues = len <= 32 ? stackalloc float[len] : new float[len];
+            var floatValues = len <= 32 ? stackalloc float[len] : new float[len];
             for (var i = 0; i < len; i++)
             {
                 floatValues[i] = array[i].GetSingle();

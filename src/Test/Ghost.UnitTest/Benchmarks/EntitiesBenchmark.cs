@@ -117,7 +117,7 @@ public class EntitiesBenchmark
 #if TEST_QUERY
         _world.EntityManager.CreateEntities(_entities, new VelocityComponent { delta = new float3(1, 2, 3) }, new LocalToWorld { matrix = float4x4.identity });
 
-        CreateGameObjects_Core(COUNT / 2, COUNT/ 2, _gameObjects);
+        CreateGameObjects_Core(COUNT / 2, COUNT / 2, _gameObjects);
 
         _query = QueryBuilder.New()
             .WithAllRW<LocalToWorld>()

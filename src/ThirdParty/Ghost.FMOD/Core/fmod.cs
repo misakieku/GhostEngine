@@ -1395,7 +1395,7 @@ namespace Ghost.FMOD.Core
         }
 
         // System information functions.
-        public RESULT getVersion(out uint version)
+        public readonly RESULT getVersion(out uint version)
         {
             return getVersion(out version, out var buildnumber);
         }
@@ -1438,7 +1438,7 @@ namespace Ghost.FMOD.Core
         {
             return FMOD5_System_CreateSound(handle, name_or_data, mode, ref exinfo, out sound.handle);
         }
-        public RESULT createSound(string name, MODE mode, out Sound sound)
+        public readonly RESULT createSound(string name, MODE mode, out Sound sound)
         {
             var exinfo = new CREATESOUNDEXINFO();
             exinfo.cbsize = Marshal.SizeOf<CREATESOUNDEXINFO>();
@@ -1458,7 +1458,7 @@ namespace Ghost.FMOD.Core
         {
             return FMOD5_System_CreateStream(handle, name_or_data, mode, ref exinfo, out sound.handle);
         }
-        public RESULT createStream(string name, MODE mode, out Sound sound)
+        public readonly RESULT createStream(string name, MODE mode, out Sound sound)
         {
             var exinfo = new CREATESOUNDEXINFO();
             exinfo.cbsize = Marshal.SizeOf<CREATESOUNDEXINFO>();

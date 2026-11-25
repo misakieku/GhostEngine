@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RenderGraphModule;
 using Ghost.Graphics.RHI;
-using Misaki.HighPerformance.Mathematics;
 
 namespace Ghost.UnitTest.Graphics;
 

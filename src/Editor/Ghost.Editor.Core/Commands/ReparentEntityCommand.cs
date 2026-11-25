@@ -2,7 +2,6 @@ using Ghost.Editor.Core.Selection;
 using Ghost.Editor.Core.Sync;
 using Ghost.Engine.Components;
 using Ghost.Engine.Utilities;
-using Ghost.Entities;
 
 namespace Ghost.Editor.Core.Commands;
 

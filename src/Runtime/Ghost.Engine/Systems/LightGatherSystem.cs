@@ -46,7 +46,7 @@ internal class LightGatherSystem : ISystem
             for (var i = 0; i < chunk.EntityCount; i++)
             {
                 var entity = entities[i];
-                var entityKey = ((ulong)(uint)entity.ID) | ((ulong)(uint)entity.Generation << 32);
+                var entityKey = (uint)entity.ID | ((ulong)(uint)entity.Generation << 32);
                 ref readonly var light = ref lights[i];
                 ref readonly var transform = ref transforms[i];
 

@@ -1,10 +1,8 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
-using Ghost.Core.Utilities;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.CompilerServices;
 
 namespace Ghost.Engine.Streaming;
@@ -113,7 +111,7 @@ internal unsafe class WorkGraphAssetEntry : AssetEntry, ILoadableAssetEntry, ISh
             var passOffset = header.nameOffset + header.nameSize;
             var pass = ReadAt<ShaderContentHeader.PassHeader>(rawPayload, passOffset, payloadSize);
 
-            var variantCount = pass.variantCount > 0 ? (int)pass.variantCount : 1;
+            var variantCount = pass.variantCount > 0 ? pass.variantCount : 1;
             _variants = new WorkGraphVariant[variantCount];
             _supportedMask = KeywordMask128.Empty;
 

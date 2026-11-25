@@ -162,7 +162,7 @@ public sealed class RenderEngine : IDisposable
     {
         _isRunning = false;
         _shutdownCts.Cancel();
-        
+
         Logger.Fatal($"Render failed: {result.Message}");
     }
 

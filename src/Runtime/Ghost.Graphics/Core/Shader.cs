@@ -84,7 +84,7 @@ public unsafe partial struct Shader : IResourceReleasable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int GetPassIndex(Identifier<ShaderPass> passID)
+    public readonly int GetPassIndex(Identifier<ShaderPass> passID)
     {
         if (_passIDToLocal.TryGetValue(passID.Value, out var index))
         {
@@ -95,7 +95,7 @@ public unsafe partial struct Shader : IResourceReleasable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int GetPassIndex(string passName)
+    public readonly int GetPassIndex(string passName)
     {
         if (_passIDToLocal.TryGetValue(GetPassID(passName), out var index))
         {
@@ -112,7 +112,7 @@ public unsafe partial struct Shader : IResourceReleasable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Result<ShaderPass, Error> TryGetPass(Identifier<ShaderPass> passID, out int passIndex)
+    public readonly Result<ShaderPass, Error> TryGetPass(Identifier<ShaderPass> passID, out int passIndex)
     {
         if (!_passIDToLocal.TryGetValue(passID.Value, out var index))
         {
@@ -157,7 +157,7 @@ public unsafe partial struct ComputeShader : IResourceReleasable
         return _entryHashes[entryIndex];
     }
 
-    public void ReleaseResource(IResourceDatabase database)
+    public readonly void ReleaseResource(IResourceDatabase database)
     {
     }
 }

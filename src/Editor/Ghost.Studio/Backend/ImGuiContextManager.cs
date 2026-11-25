@@ -2,7 +2,6 @@ using Hexa.NET.ImGui;
 using Hexa.NET.ImGuizmo;
 using Hexa.NET.ImNodes;
 using Hexa.NET.ImPlot;
-using System.Numerics;
 
 namespace Ghost.Studio.Backend;
 

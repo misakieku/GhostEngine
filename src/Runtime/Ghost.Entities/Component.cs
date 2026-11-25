@@ -124,7 +124,7 @@ public static class ComponentRegistry
         {
             return existingID;
         }
-        
+
         var flags = ComponentFlags.Default;
         if (typeof(IEnableableComponent).IsAssignableFrom(type))
         {
@@ -749,7 +749,7 @@ public ref struct ComponentSetView : IEquatable<ComponentSetView>
         return ComponentHashCode ^ (SharedDataHashCode >> 16);
     }
 
-    public override bool Equals(object? obj)
+    public override readonly bool Equals(object? obj)
     {
         return false;
     }

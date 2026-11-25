@@ -41,7 +41,7 @@ internal struct RenderGraphBitMatrix : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ClearRow(int row)
+    public readonly void ClearRow(int row)
     {
         if (WordCount > 0)
         {
@@ -50,7 +50,7 @@ internal struct RenderGraphBitMatrix : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Clear()
+    public readonly void Clear()
     {
         if (_words.IsCreated)
         {
@@ -59,7 +59,7 @@ internal struct RenderGraphBitMatrix : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Span<ulong> GetRow(int row)
+    public readonly Span<ulong> GetRow(int row)
     {
         return WordCount > 0 ? _words.AsSpan().Slice(row * WordCount, WordCount) : Span<ulong>.Empty;
     }

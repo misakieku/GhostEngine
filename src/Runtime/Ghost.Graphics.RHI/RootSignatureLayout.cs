@@ -304,7 +304,7 @@ public struct Frustum
         var min = new float3(float.MaxValue);
         var max = new float3(float.MinValue);
 
-        for (int i = 0; i < 8; i++)
+        for (var i = 0; i < 8; i++)
         {
             var delta = corners[i].xyz - origin;
 

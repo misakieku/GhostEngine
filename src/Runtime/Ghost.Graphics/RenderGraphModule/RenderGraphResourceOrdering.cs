@@ -139,7 +139,7 @@ internal struct RenderGraphResourceOrdering : IDisposable
         lastUse = Math.Max(lastUse, scheduleIndex);
     }
 
-    private void BuildAfterAllUsesMasks(in RenderGraphBitMatrix reachability)
+    private readonly void BuildAfterAllUsesMasks(in RenderGraphBitMatrix reachability)
     {
         var afterAllUsesSpan = _afterAllUsesMasks.AsSpan();
         var tailBits = PassCount & 63;

@@ -1,5 +1,4 @@
 using Ghost.Editor.Core.Sync;
-using Ghost.Entities;
 
 namespace Ghost.Editor.Core.Commands;
 

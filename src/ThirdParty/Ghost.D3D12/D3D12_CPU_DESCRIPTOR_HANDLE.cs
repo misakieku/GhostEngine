@@ -4,7 +4,7 @@ public partial struct D3D12_CPU_DESCRIPTOR_HANDLE
 {
     public D3D12_CPU_DESCRIPTOR_HANDLE Offset(int offsetInDescriptors, uint descriptorIncrementSize)
     {
-        ptr = unchecked((nuint)((long)ptr + (long)offsetInDescriptors * descriptorIncrementSize));
+        ptr = unchecked((nuint)((long)ptr + offsetInDescriptors * descriptorIncrementSize));
         return this;
     }
 }

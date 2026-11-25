@@ -1,11 +1,9 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
-using Ghost.Core.Utilities;
 using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
 using Misaki.HighPerformance.LowLevel;
-using Misaki.HighPerformance.LowLevel.Buffer;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -190,7 +188,7 @@ internal unsafe class ComputeShaderAssetEntry : AssetEntry, ILoadableAssetEntry,
             csRef = new ComputeShader(descriptor);
 
             var entryCount = (int)pass.entryPointCount;
-            var variantCount = pass.variantCount > 0 ? (int)pass.variantCount : 1;
+            var variantCount = pass.variantCount > 0 ? pass.variantCount : 1;
             var compiledVariantsPerEntry = new CompiledVariantData[entryCount][];
             for (var entryIndex = 0; entryIndex < entryCount; entryIndex++)
             {

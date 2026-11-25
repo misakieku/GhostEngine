@@ -285,7 +285,7 @@ public class ProjectService
             return Path.GetFullPath(envRoot);
         }
 
-        string?[] searchRoots = new[]
+        var searchRoots = new[]
         {
             AppContext.BaseDirectory,
             Directory.GetCurrentDirectory(),

@@ -1,6 +1,5 @@
 using Ghost.Editor.Core.Sync;
 using Ghost.Engine.Components;
-using Ghost.Graphics.Core;
 using Ghost.Studio.Backend;
 using System.Numerics;
 

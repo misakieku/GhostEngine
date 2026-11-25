@@ -1,4 +1,3 @@
-using Ghost.Core;
 using Ghost.MicroTest;
 using Ghost.MicroTest.Core;
 

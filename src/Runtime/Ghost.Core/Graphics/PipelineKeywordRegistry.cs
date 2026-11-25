@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
 
 namespace Ghost.Core.Graphics;
 
@@ -57,7 +56,7 @@ public static class PipelineKeywordRegistry
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string? GetKeywordName(int id)
     {
-        if ((uint)id < (uint)MAX_KEYWORD_COUNT)
+        if ((uint)id < MAX_KEYWORD_COUNT)
         {
             return s_idToName[id];
         }
