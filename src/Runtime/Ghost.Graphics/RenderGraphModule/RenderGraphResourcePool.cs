@@ -70,7 +70,7 @@ internal sealed class RenderGraphObjectPool
     }
 }
 
-internal record struct RenderGraphResource : IDisposable
+internal record struct RenderGraphResource
 {
     public int index;
     public RGResourceType type;
@@ -91,8 +91,12 @@ internal record struct RenderGraphResource : IDisposable
     public ResourceBarrierData finalBarrierState;
     public int firstUsePass;
     public int lastUsePass;
-    public UnsafeHashSet<int> producerPasses;
-    public UnsafeHashSet<int> consumerPasses;
+    public int producerHead;
+    public int producerTail;
+    public int lastProducerPass;
+    public int consumerHead;
+    public int consumerTail;
+    public int lastConsumerPass;
     public int refCount;
 
     public Handle<GPUResource> backingResource;
@@ -119,32 +123,84 @@ internal record struct RenderGraphResource : IDisposable
         }
     }
 
-    public RenderGraphResource(AllocationHandle allocationHandle)
+    public RenderGraphResource()
     {
         firstUsePass = -1;
         lastUsePass = -1;
-        producerPasses = new UnsafeHashSet<int>(4, allocationHandle);
-        consumerPasses = new UnsafeHashSet<int>(4, allocationHandle);
+        producerHead = -1;
+        producerTail = -1;
+        lastProducerPass = -1;
+        consumerHead = -1;
+        consumerTail = -1;
+        lastConsumerPass = -1;
         backingResource = Handle<GPUResource>.Invalid;
         inPlacePredecessor = Identifier<RGResource>.Invalid;
         inPlaceSuccessor = Identifier<RGResource>.Invalid;
         isAllocated = true;
     }
-
-    public void Dispose()
-    {
-        consumerPasses.Dispose();
-        producerPasses.Dispose();
-    }
 }
 
 internal sealed class RenderGraphResourceRegistry : IDisposable
 {
+    internal struct PassLinkNode
+    {
+        public int passIndex;
+        public int next;
+    }
+
+    internal readonly struct PassLinkEnumerable
+    {
+        private readonly UnsafeList<PassLinkNode> _nodes;
+        private readonly int _head;
+
+        public PassLinkEnumerable(UnsafeList<PassLinkNode> nodes, int head)
+        {
+            _nodes = nodes;
+            _head = head;
+        }
+
+        public Enumerator GetEnumerator() => new(_nodes, _head);
+
+        public struct Enumerator
+        {
+            private readonly UnsafeList<PassLinkNode> _nodes;
+            private int _next;
+
+            public int Current
+            {
+                get; private set;
+            }
+
+            public Enumerator(UnsafeList<PassLinkNode> nodes, int head)
+            {
+                _nodes = nodes;
+                _next = head;
+                Current = -1;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool MoveNext()
+            {
+                if (_next < 0)
+                {
+                    return false;
+                }
+
+                var node = _nodes[_next];
+                Current = node.passIndex;
+                _next = node.next;
+                return true;
+            }
+        }
+    }
+
     private readonly IResourceDatabase _database;
     private readonly IResourceAllocator _allocator;
     private readonly ResourceManager _resourceManager;
 
     private UnsafeList<RenderGraphResource> _resources;
+    private UnsafeList<PassLinkNode> _producerNodes;
+    private UnsafeList<PassLinkNode> _consumerNodes;
     private UnsafeList<Handle<GPUResource>> _allocatedBackingResources;
 #if GHOST_SAFETY_CHECKS
     private readonly Dictionary<int, string> _resourceName;
@@ -161,6 +217,8 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         _resourceManager = resourceManager;
 
         _resources = new UnsafeList<RenderGraphResource>(64, AllocationHandle.Persistent);
+        _producerNodes = new UnsafeList<PassLinkNode>(128, AllocationHandle.Persistent);
+        _consumerNodes = new UnsafeList<PassLinkNode>(256, AllocationHandle.Persistent);
         _allocatedBackingResources = new UnsafeList<Handle<GPUResource>>(32, AllocationHandle.Persistent);
 #if GHOST_SAFETY_CHECKS
         _resourceName = new Dictionary<int, string>(64);
@@ -183,7 +241,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         bool clearAtFirstUse = false, bool discardAtLastUse = false,
         ResourceBarrierData? initialBarrierState = null, ResourceBarrierData? finalBarrierState = null)
     {
-        var resource = new RenderGraphResource(AllocationHandle.TempRender)
+        var resource = new RenderGraphResource
         {
             type = RGResourceType.Texture,
             index = _resources.Count,
@@ -221,7 +279,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
     public Identifier<RGTexture> CreateTexture(scoped in RGTextureDesc desc, string? name)
     {
-        var resource = new RenderGraphResource(AllocationHandle.TempRender)
+        var resource = new RenderGraphResource
         {
             type = RGResourceType.Texture,
             index = _resources.Count,
@@ -236,7 +294,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
     public Identifier<RGBuffer> ImportBuffer(scoped in BufferDesc desc, Handle<GPUBuffer> buffer, string? name, ResourceBarrierData? initialBarrierState = null, ResourceBarrierData? finalBarrierState = null)
     {
-        var resource = new RenderGraphResource(AllocationHandle.TempRender)
+        var resource = new RenderGraphResource
         {
             type = RGResourceType.Buffer,
             index = _resources.Count,
@@ -257,7 +315,7 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
     public Identifier<RGBuffer> CreateBuffer(scoped in BufferDesc desc, string? name)
     {
-        var resource = new RenderGraphResource(AllocationHandle.TempRender)
+        var resource = new RenderGraphResource
         {
             type = RGResourceType.Buffer,
             index = _resources.Count,
@@ -310,24 +368,72 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         return ref _resources[index];
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AppendPassLink(ref UnsafeList<PassLinkNode> nodes, ref int head, ref int tail, ref int lastPass, ref int firstUsePass, ref int lastUsePass, int passIndex)
+    {
+        if (lastPass == passIndex)
+        {
+            return;
+        }
+
+        if (passIndex < lastPass)
+        {
+            var cursor = head;
+            while (cursor >= 0)
+            {
+                if (nodes[cursor].passIndex == passIndex)
+                {
+                    return;
+                }
+
+                cursor = nodes[cursor].next;
+            }
+        }
+        else
+        {
+            lastPass = passIndex;
+        }
+
+        var nodeIdx = nodes.Count;
+        nodes.Add(new PassLinkNode { passIndex = passIndex, next = -1 });
+        if (head < 0)
+        {
+            head = nodeIdx;
+        }
+        else
+        {
+            var prev = nodes[tail];
+            prev.next = nodeIdx;
+            nodes[tail] = prev;
+        }
+
+        tail = nodeIdx;
+        firstUsePass = firstUsePass < 0 ? passIndex : Math.Min(firstUsePass, passIndex);
+        lastUsePass = Math.Max(lastUsePass, passIndex);
+    }
+
     public void SetProducer(Identifier<RGResource> resourceID, int passIndex)
     {
         ref var resource = ref GetResource(resourceID);
-        if (resource.producerPasses.Add(passIndex))
-        {
-            resource.firstUsePass = resource.firstUsePass < 0 ? passIndex : Math.Min(resource.firstUsePass, passIndex);
-            resource.lastUsePass = Math.Max(resource.lastUsePass, passIndex);
-        }
+        AppendPassLink(ref _producerNodes, ref resource.producerHead, ref resource.producerTail, ref resource.lastProducerPass, ref resource.firstUsePass, ref resource.lastUsePass, passIndex);
     }
 
     public void AddConsumer(Identifier<RGResource> resourceID, int passIndex)
     {
         ref var resource = ref GetResource(resourceID);
-        if (resource.consumerPasses.Add(passIndex))
-        {
-            resource.firstUsePass = resource.firstUsePass < 0 ? passIndex : Math.Min(resource.firstUsePass, passIndex);
-            resource.lastUsePass = Math.Max(resource.lastUsePass, passIndex);
-        }
+        AppendPassLink(ref _consumerNodes, ref resource.consumerHead, ref resource.consumerTail, ref resource.lastConsumerPass, ref resource.firstUsePass, ref resource.lastUsePass, passIndex);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public PassLinkEnumerable GetProducerPasses(int resourceIndex)
+    {
+        return new PassLinkEnumerable(_producerNodes, _resources[resourceIndex].producerHead);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public PassLinkEnumerable GetConsumerPasses(int resourceIndex)
+    {
+        return new PassLinkEnumerable(_consumerNodes, _resources[resourceIndex].consumerHead);
     }
 
     /// <summary>
@@ -591,12 +697,9 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
 
     public void Reset()
     {
-        foreach (ref var res in _resources)
-        {
-            res.Dispose();
-        }
-
         _resources.Clear();
+        _producerNodes.Clear();
+        _consumerNodes.Clear();
 #if GHOST_SAFETY_CHECKS
         _resourceName.Clear();
 #endif
@@ -614,11 +717,8 @@ internal sealed class RenderGraphResourceRegistry : IDisposable
         }
         _allocatedBackingResources.Dispose();
 
-        foreach (ref var res in _resources)
-        {
-            res.Dispose();
-        }
-
+        _producerNodes.Dispose();
+        _consumerNodes.Dispose();
         _resources.Dispose();
 
         if (_resourceHeap.IsValid)

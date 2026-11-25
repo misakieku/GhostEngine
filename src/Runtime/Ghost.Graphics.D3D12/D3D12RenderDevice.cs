@@ -3,11 +3,9 @@ using Ghost.Graphics.D3D12.Utilities;
 using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using System.Runtime.InteropServices;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static TerraFX.Aliases.D3D_Alias;
-using static TerraFX.Aliases.D3D12_Alias;
-using static TerraFX.Aliases.DXGI_Alias;
+using static Ghost.Aliases.D3D_Alias;
+using static Ghost.Aliases.D3D12_Alias;
+using static Ghost.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -194,11 +192,11 @@ internal unsafe class D3D12RenderDevice : D3D12Object<ID3D12Device14>, IRenderDe
             for (ulong i = 0; i < msgCount; i++)
             {
                 nuint msgLength = 0;
-                pInfoQueue->GetMessage(i, null, &msgLength);
+                pInfoQueue->GetMessageA(i, null, &msgLength);
                 if (msgLength > 0)
                 {
                     var pMsg = (D3D12_MESSAGE*)NativeMemory.Alloc(msgLength);
-                    pInfoQueue->GetMessage(i, pMsg, &msgLength);
+                    pInfoQueue->GetMessageA(i, pMsg, &msgLength);
                     var msgStr = Marshal.PtrToStringAnsi((nint)pMsg->pDescription);
                     Console.WriteLine($"[D3D12 InfoQueue {pMsg->Severity} {pMsg->Category}] {msgStr}");
                     NativeMemory.Free(pMsg);

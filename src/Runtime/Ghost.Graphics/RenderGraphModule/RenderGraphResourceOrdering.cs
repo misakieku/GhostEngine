@@ -1,5 +1,6 @@
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
+using System.Numerics;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
@@ -39,7 +40,7 @@ internal struct RenderGraphResourceOrdering : IDisposable
         }
     }
 
-    public static RenderGraphResourceOrdering Build(RenderGraphResourceRegistry registry, ReadOnlySpan<int> scheduleIndexByPassIndex, ReadOnlySpan<byte> reachability, int passCount, AllocationHandle allocationHandle)
+    public static RenderGraphResourceOrdering Build(RenderGraphResourceRegistry registry, ReadOnlySpan<int> scheduleIndexByPassIndex, in RenderGraphBitMatrix reachability, int passCount, AllocationHandle allocationHandle)
     {
         var ordering = new RenderGraphResourceOrdering(registry.ResourceCount, passCount, allocationHandle);
         if (ordering.ResourceCount == 0 || passCount == 0)
@@ -49,19 +50,18 @@ internal struct RenderGraphResourceOrdering : IDisposable
 
         for (var resourceIndex = 0; resourceIndex < ordering.ResourceCount; resourceIndex++)
         {
-            ref readonly var resource = ref registry.GetResourceByIndex(resourceIndex);
-            foreach (var producerPassIndex in resource.producerPasses)
+            foreach (var producerPassIndex in registry.GetProducerPasses(resourceIndex))
             {
                 ordering.AddUse(resourceIndex, scheduleIndexByPassIndex[producerPassIndex]);
             }
 
-            foreach (var consumerPassIndex in resource.consumerPasses)
+            foreach (var consumerPassIndex in registry.GetConsumerPasses(resourceIndex))
             {
                 ordering.AddUse(resourceIndex, scheduleIndexByPassIndex[consumerPassIndex]);
             }
         }
 
-        ordering.BuildAfterAllUsesMasks(reachability);
+        ordering.BuildAfterAllUsesMasks(in reachability);
         return ordering;
     }
 
@@ -139,8 +139,12 @@ internal struct RenderGraphResourceOrdering : IDisposable
         lastUse = Math.Max(lastUse, scheduleIndex);
     }
 
-    private void BuildAfterAllUsesMasks(ReadOnlySpan<byte> reachability)
+    private void BuildAfterAllUsesMasks(in RenderGraphBitMatrix reachability)
     {
+        var afterAllUsesSpan = _afterAllUsesMasks.AsSpan();
+        var tailBits = PassCount & 63;
+        var lastWordMask = tailBits != 0 ? (1UL << tailBits) - 1UL : ulong.MaxValue;
+
         for (var resourceIndex = 0; resourceIndex < ResourceCount; resourceIndex++)
         {
             if (!HasUses(resourceIndex))
@@ -149,23 +153,22 @@ internal struct RenderGraphResourceOrdering : IDisposable
             }
 
             var resourceOffset = resourceIndex * WordCount;
-            for (var destination = 0; destination < PassCount; destination++)
+            var afterRow = afterAllUsesSpan.Slice(resourceOffset, WordCount);
+            for (var w = 0; w < WordCount - 1; w++)
             {
-                var happensAfterAllUses = true;
-                for (var source = 0; source < PassCount; source++)
-                {
-                    var sourceMask = _useMasks[resourceOffset + (source >> 6)];
-                    if ((sourceMask & (1UL << (source & 63))) != 0
-                        && reachability[(source * PassCount) + destination] == 0)
-                    {
-                        happensAfterAllUses = false;
-                        break;
-                    }
-                }
+                afterRow[w] = ulong.MaxValue;
+            }
+            afterRow[WordCount - 1] = lastWordMask;
 
-                if (happensAfterAllUses)
+            for (var w = 0; w < WordCount; w++)
+            {
+                var useWord = _useMasks[resourceOffset + w];
+                while (useWord != 0)
                 {
-                    _afterAllUsesMasks[resourceOffset + (destination >> 6)] |= 1UL << (destination & 63);
+                    var bit = BitOperations.TrailingZeroCount(useWord);
+                    useWord &= useWord - 1;
+                    var source = (w << 6) + bit;
+                    reachability.AndRowInto(afterRow, source);
                 }
             }
         }

@@ -1,0 +1,8 @@
+namespace Ghost.D3D12;
+
+public partial struct D3D12_CACHE_TYPED_CONST_VALUE
+{
+    public D3D12_CACHE_VALUE_TYPE Type;
+
+    public D3D12_CACHE_CONST_VALUE Value;
+}

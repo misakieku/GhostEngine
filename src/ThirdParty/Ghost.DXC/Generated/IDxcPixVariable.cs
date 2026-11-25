@@ -17,8 +17,7 @@ public unsafe partial struct IDxcPixVariable : IDxcPixVariable.Interface, INativ
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixVariable*, Guid*, void**, int>)(lpVtbl[0]))((IDxcPixVariable*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcPixVariable : IDxcPixVariable.Interface, INativ
     /// <include file='IDxcPixVariable.xml' path='doc/member[@name="IDxcPixVariable.GetName"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetName([NativeTypeName("BSTR *")] char** Name)
+        public HRESULT GetName([NativeTypeName("BSTR *")] char** Name)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixVariable*, char**, int>)(lpVtbl[3]))((IDxcPixVariable*)Unsafe.AsPointer(ref this), Name);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcPixVariable : IDxcPixVariable.Interface, INativ
     /// <include file='IDxcPixVariable.xml' path='doc/member[@name="IDxcPixVariable.GetType"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetType(IDxcPixType** ppType)
+        public HRESULT GetType(IDxcPixType** ppType)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixVariable*, IDxcPixType**, int>)(lpVtbl[4]))((IDxcPixVariable*)Unsafe.AsPointer(ref this), ppType);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcPixVariable : IDxcPixVariable.Interface, INativ
     /// <include file='IDxcPixVariable.xml' path='doc/member[@name="IDxcPixVariable.GetStorage"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetStorage(IDxcPixDxilStorage** ppStorage)
+        public HRESULT GetStorage(IDxcPixDxilStorage** ppStorage)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcPixVariable*, IDxcPixDxilStorage**, int>)(lpVtbl[5]))((IDxcPixVariable*)Unsafe.AsPointer(ref this), ppStorage);
     }
@@ -71,16 +67,13 @@ public unsafe partial struct IDxcPixVariable : IDxcPixVariable.Interface, INativ
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetName([NativeTypeName("BSTR *")] char** Name);
+                HRESULT GetName([NativeTypeName("BSTR *")] char** Name);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetType(IDxcPixType** ppType);
+                HRESULT GetType(IDxcPixType** ppType);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetStorage(IDxcPixDxilStorage** ppStorage);
+                HRESULT GetStorage(IDxcPixDxilStorage** ppStorage);
     }
 
     public partial struct Vtbl<TSelf>

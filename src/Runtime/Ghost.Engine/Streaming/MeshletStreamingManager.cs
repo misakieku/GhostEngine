@@ -1,11 +1,14 @@
 using Ghost.Core;
 using Ghost.Core.Graphics;
 using Ghost.Graphics;
+using Ghost.Graphics.Core;
 using Ghost.Graphics.RHI;
 using Ghost.Graphics.Services;
+using Misaki.HighPerformance.Jobs;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.LowLevel.Utilities;
+using System.IO.Compression;
 using System.Runtime.InteropServices;
 
 namespace Ghost.Engine.Streaming;
@@ -29,11 +32,55 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
     private struct PendingRootUpload : IDisposable
     {
         public uint physicalSlot;
+        public Handle<Mesh> meshHandle;
         public UnsafeArray<byte> data;
 
         public void Dispose()
         {
             data.Dispose();
+        }
+    }
+
+    private struct PageDecodeTask
+    {
+        public uint globalPageID;
+        public uint physicalSlot;
+        public Handle<Mesh> meshHandle;
+        public byte* pSrc;
+        public int compressedSize;
+        public int uncompressedSize;
+        public PageCompressionMethod compressionMethod;
+        public int bytesDecoded;
+    }
+
+    private struct PageDecodeJob : IJobParallelFor
+    {
+        public PageDecodeTask* tasks;
+        public byte* pStagingBase;
+
+        public void Execute(int loopIndex, ref readonly JobExecutionContext ctx)
+        {
+            ref var task = ref tasks[loopIndex];
+            var dstPtr = pStagingBase + loopIndex * MeshletPageConstants.PAGE_SIZE;
+            var srcSpan = new ReadOnlySpan<byte>(task.pSrc, task.compressedSize);
+            var dstSpan = new Span<byte>(dstPtr, task.uncompressedSize);
+
+            if (task.compressionMethod == PageCompressionMethod.None)
+            {
+                srcSpan.CopyTo(dstSpan);
+                task.bytesDecoded = task.uncompressedSize;
+                return;
+            }
+
+            if (task.compressionMethod == PageCompressionMethod.Zstd &&
+                ZstandardDecoder.TryDecompress(srcSpan, dstSpan, out var bytesWritten) &&
+                bytesWritten == task.uncompressedSize)
+            {
+                task.bytesDecoded = bytesWritten;
+                return;
+            }
+
+            task.bytesDecoded = 0;
         }
     }
 
@@ -44,6 +91,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
 
     private readonly IResourceAllocator _resourceAllocator;
     private readonly IResourceDatabase _resourceDatabase;
+    private readonly JobScheduler? _jobScheduler;
     private readonly GPUPagePool _pagePool;
     private readonly GPUPageTable _pageTable;
     private readonly Handle<GPUBuffer> _streamingRequestsGpuBuffer;
@@ -62,6 +110,8 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
 
     private ulong _currentFrame;
     private UnsafeArray<byte> _pageStagingBuffer;
+    private UnsafeArray<PageDecodeTask> _decodeTasks;
+    private readonly List<Handle<Mesh>> _uploadedMeshesThisFrame = new();
     private bool _pagePoolInShaderResource;
     private bool _streamingRequestsInUav;
     private bool _streamingRequestsBitmaskInUav;
@@ -76,12 +126,11 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
     public uint MaxStreamingRequestsPerFrame => _maxRequestsPerFrame;
     public int PendingRequestCount => _requestQueue.Count;
 
-    internal MeshletStreamingManager(IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, uint frameBufferCount,
-        uint pagePoolSlots = DEFAULT_PAGE_POOL_SLOTS, uint pageTableCapacity = DEFAULT_PAGE_TABLE_CAPACITY,
-        uint maxRequestsPerFrame = DEFAULT_MAX_REQUESTS_PER_FRAME, int maxPagesPerFrame = DEFAULT_MAX_PAGES_PER_FRAME)
+    internal MeshletStreamingManager(IResourceAllocator resourceAllocator, IResourceDatabase resourceDatabase, uint frameBufferCount, uint pagePoolSlots = DEFAULT_PAGE_POOL_SLOTS, uint pageTableCapacity = DEFAULT_PAGE_TABLE_CAPACITY, uint maxRequestsPerFrame = DEFAULT_MAX_REQUESTS_PER_FRAME, int maxPagesPerFrame = DEFAULT_MAX_PAGES_PER_FRAME, JobScheduler? jobScheduler = null)
     {
         _resourceAllocator = resourceAllocator;
         _resourceDatabase = resourceDatabase;
+        _jobScheduler = jobScheduler;
         _maxRequestsPerFrame = Math.Max(64u, maxRequestsPerFrame);
         _maxPagesPerFrame = Math.Max(1, maxPagesPerFrame);
 
@@ -144,7 +193,8 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
         _queuedRequests = new UnsafeHashSet<uint>((int)_maxRequestsPerFrame, AllocationHandle.Persistent);
         _pendingRootUploads = new UnsafeList<PendingRootUpload>(16, AllocationHandle.Persistent);
 
-        _pageStagingBuffer = new UnsafeArray<byte>(MeshletPageConstants.PAGE_SIZE, AllocationHandle.Persistent);
+        _pageStagingBuffer = new UnsafeArray<byte>(_maxPagesPerFrame * MeshletPageConstants.PAGE_SIZE, AllocationHandle.Persistent);
+        _decodeTasks = new UnsafeArray<PageDecodeTask>(_maxPagesPerFrame, AllocationHandle.Persistent);
     }
 
     internal uint RegisterMesh(MeshAssetEntry mesh, uint pageCount, ReadOnlySpan<byte> rootPage0Data)
@@ -181,6 +231,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
                 _pendingRootUploads.Add(new PendingRootUpload
                 {
                     physicalSlot = rootSlot,
+                    meshHandle = mesh.MeshHandle,
                     data = copy
                 });
             }
@@ -291,6 +342,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
                 ref var rootUpload = ref _pendingRootUploads[i];
                 var dstOffset = rootUpload.physicalSlot * MeshletPageConstants.PAGE_SIZE;
                 UploadBufferRange(context.ResourceManager, context.ResourceDatabase, commandBuffer, _pagePool.Buffer, rootUpload.data.AsSpan(), dstOffset);
+                RecordUploadedMesh(rootUpload.meshHandle);
 
                 rootUpload.Dispose();
             }
@@ -298,9 +350,9 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
             _pendingRootUploads.Clear();
         }
 
-        // Process streaming page requests up to frame budget
-        var pagesUploaded = 0;
-        while (_requestQueue.Count > 0 && pagesUploaded < _maxPagesPerFrame)
+        // Collect streaming page requests up to frame budget
+        var taskCount = 0;
+        while (_requestQueue.Count > 0 && taskCount < _maxPagesPerFrame)
         {
             var pageID = _requestQueue.Dequeue();
             _queuedRequests.Remove(pageID);
@@ -316,6 +368,11 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
                 continue;
             }
 
+            if (!mesh.TryGetPageReadDesc(localPageIndex, out var pSrc, out var compressedSize, out var uncompressedSize, out var compressionMethod))
+            {
+                continue;
+            }
+
             // Allocate or LRU-evict a physical slot
             if (!TryAllocateOrEvictSlot(pageID, out var slot))
             {
@@ -323,19 +380,116 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
                 break;
             }
 
-            // Read 128KB page from mesh asset
-            var bytesRead = mesh.ReadPage(localPageIndex, _pageStagingBuffer.AsSpan());
-            if (bytesRead > 0)
+            _decodeTasks[taskCount++] = new PageDecodeTask
             {
-                var dstOffset = slot * MeshletPageConstants.PAGE_SIZE;
-                UploadBufferRange(context.ResourceManager, context.ResourceDatabase, commandBuffer, _pagePool.Buffer, _pageStagingBuffer.AsSpan(0, bytesRead), dstOffset);
+                globalPageID = pageID,
+                physicalSlot = slot,
+                meshHandle = mesh.MeshHandle,
+                pSrc = pSrc,
+                compressedSize = compressedSize,
+                uncompressedSize = uncompressedSize,
+                compressionMethod = compressionMethod,
+                bytesDecoded = 0,
+            };
+        }
 
-                _slotInfos[slot].globalPageID = pageID;
-                _slotInfos[slot].lastUsedFrame = _currentFrame;
-                _slotInfos[slot].isPinned = false;
+        // Decode queued pages in parallel across worker threads and upload in a single transient buffer batch
+        var pagesUploaded = 0;
+        if (taskCount > 0)
+        {
+            var pTasks = (PageDecodeTask*)_decodeTasks.GetUnsafePtr();
+            var pStagingBase = (byte*)_pageStagingBuffer.GetUnsafePtr();
+            var decodeJob = new PageDecodeJob
+            {
+                tasks = pTasks,
+                pStagingBase = pStagingBase,
+            };
 
-                _pageTable.SetPageResidency(pageID, slot);
-                pagesUploaded++;
+            if (taskCount > 1 && _jobScheduler != null)
+            {
+                var decodeHandle = _jobScheduler.ScheduleParallelFor(ref decodeJob, taskCount, 1, JobPriority.High);
+                _jobScheduler.Wait(decodeHandle);
+            }
+            else
+            {
+                JobExecutionContext ctx = default;
+                for (var i = 0; i < taskCount; i++)
+                {
+                    decodeJob.Execute(i, in ctx);
+                }
+            }
+
+            ulong totalUploadBytes = 0;
+            for (var i = 0; i < taskCount; i++)
+            {
+                if (pTasks[i].bytesDecoded > 0)
+                {
+                    totalUploadBytes += (ulong)pTasks[i].bytesDecoded;
+                }
+            }
+
+            if (totalUploadBytes > 0)
+            {
+                var uploadDesc = new BufferDesc
+                {
+                    Size = totalUploadBytes,
+                    Usage = BufferUsage.Upload,
+                    HeapType = HeapType.Upload,
+                };
+
+                var uploadHandle = context.ResourceManager.CreateTransientUploadBuffer(uploadDesc, out var baseUploadOffset);
+                var mappedPtr = (byte*)context.ResourceDatabase.MapResource(uploadHandle.AsResource(), 0, null);
+
+                var currentUploadOffset = 0u;
+                for (var i = 0; i < taskCount; i++)
+                {
+                    ref readonly var task = ref pTasks[i];
+                    if (task.bytesDecoded <= 0)
+                    {
+                        _slotInfos[task.physicalSlot].globalPageID = GPUPageTable.PAGE_NOT_RESIDENT;
+                        _slotInfos[task.physicalSlot].isPinned = false;
+                        _pagePool.FreeSlot(task.physicalSlot);
+                        continue;
+                    }
+
+                    var srcPtr = pStagingBase + i * MeshletPageConstants.PAGE_SIZE;
+                    MemoryUtility.MemCpy(mappedPtr + baseUploadOffset + currentUploadOffset, srcPtr, (nuint)task.bytesDecoded);
+                    currentUploadOffset += (uint)task.bytesDecoded;
+                }
+
+                context.ResourceDatabase.UnmapResource(uploadHandle.AsResource(), 0, null);
+
+                currentUploadOffset = 0u;
+                for (var i = 0; i < taskCount; i++)
+                {
+                    ref readonly var task = ref pTasks[i];
+                    if (task.bytesDecoded <= 0)
+                    {
+                        continue;
+                    }
+
+                    var dstOffset = task.physicalSlot * (ulong)MeshletPageConstants.PAGE_SIZE;
+                    commandBuffer.CopyBuffer(_pagePool.Buffer, uploadHandle, dstOffset, baseUploadOffset + currentUploadOffset, (ulong)task.bytesDecoded);
+                    currentUploadOffset += (uint)task.bytesDecoded;
+
+                    _slotInfos[task.physicalSlot].globalPageID = task.globalPageID;
+                    _slotInfos[task.physicalSlot].lastUsedFrame = _currentFrame;
+                    _slotInfos[task.physicalSlot].isPinned = false;
+
+                    _pageTable.SetPageResidency(task.globalPageID, task.physicalSlot);
+                    RecordUploadedMesh(task.meshHandle);
+                    pagesUploaded++;
+                }
+            }
+            else
+            {
+                for (var i = 0; i < taskCount; i++)
+                {
+                    ref readonly var task = ref pTasks[i];
+                    _slotInfos[task.physicalSlot].globalPageID = GPUPageTable.PAGE_NOT_RESIDENT;
+                    _slotInfos[task.physicalSlot].isPinned = false;
+                    _pagePool.FreeSlot(task.physicalSlot);
+                }
             }
         }
 
@@ -464,6 +618,35 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
         cmd.CopyBuffer(buffer, uploadHandle, byteOffset, srcOffset, sizeInBytes);
     }
 
+    private void RecordUploadedMesh(Handle<Mesh> meshHandle)
+    {
+        if (!meshHandle.IsValid)
+        {
+            return;
+        }
+
+        for (var i = 0; i < _uploadedMeshesThisFrame.Count; i++)
+        {
+            if (_uploadedMeshesThisFrame[i] == meshHandle)
+            {
+                return;
+            }
+        }
+
+        _uploadedMeshesThisFrame.Add(meshHandle);
+    }
+
+    internal void ConsumeUploadedMeshes(List<Handle<Mesh>> dst)
+    {
+        if (_uploadedMeshesThisFrame.Count == 0)
+        {
+            return;
+        }
+
+        dst.AddRange(_uploadedMeshesThisFrame);
+        _uploadedMeshesThisFrame.Clear();
+    }
+
     private bool TryResolvePage(uint globalPageID, out MeshAssetEntry mesh, out uint localPageIndex)
     {
         lock (_registeredMeshes)
@@ -566,6 +749,7 @@ public sealed unsafe class MeshletStreamingManager : IDisposable
         _queuedRequests.Dispose();
         _pendingRootUploads.Dispose();
         _pageStagingBuffer.Dispose();
+        _decodeTasks.Dispose();
         _zeroBitmaskBuffer.Dispose();
         _streamingRequestsReadbackBuffers.Dispose();
     }

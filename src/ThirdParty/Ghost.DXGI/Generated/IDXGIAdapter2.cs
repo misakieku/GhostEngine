@@ -1,0 +1,107 @@
+using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using static Ghost.DXGI.DXGI;
+
+namespace Ghost.DXGI;
+
+[Guid("0AA1AE0A-FA0E-4B84-8644-E05FF8E5ACB5")]
+[NativeTypeName("struct IDXGIAdapter2 : IDXGIAdapter1")]
+public unsafe partial struct IDXGIAdapter2 : IDXGIAdapter2.Interface, INativeGuid
+{
+    static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(in IID_IDXGIAdapter2);
+
+    public void** lpVtbl;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(0)]
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    {
+        return ((delegate* unmanaged[MemberFunction]<IDXGIAdapter2*, Guid*, void**, int>)(lpVtbl[0]))((IDXGIAdapter2*)Unsafe.AsPointer(ref this), riid, ppvObject);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(1)]
+    [return: NativeTypeName("ULONG")]
+    public uint AddRef()
+    {
+        return ((delegate* unmanaged[MemberFunction]<IDXGIAdapter2*, uint>)(lpVtbl[1]))((IDXGIAdapter2*)Unsafe.AsPointer(ref this));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(2)]
+    [return: NativeTypeName("ULONG")]
+    public uint Release()
+    {
+        return ((delegate* unmanaged[MemberFunction]<IDXGIAdapter2*, uint>)(lpVtbl[2]))((IDXGIAdapter2*)Unsafe.AsPointer(ref this));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(3)]
+    public HRESULT SetPrivateData([NativeTypeName("const GUID &")] Guid* Name, uint DataSize, [NativeTypeName("const void *")] void* pData)
+    {
+        return ((delegate* unmanaged[MemberFunction]<IDXGIAdapter2*, Guid*, uint, void*, int>)(lpVtbl[3]))((IDXGIAdapter2*)Unsafe.AsPointer(ref this), Name, DataSize, pData);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(4)]
+    public HRESULT SetPrivateDataInterface([NativeTypeName("const GUID &")] Guid* Name, [NativeTypeName("const IUnknown *")] IUnknown* pUnknown)
+    {
+        return ((delegate* unmanaged[MemberFunction]<IDXGIAdapter2*, Guid*, IUnknown*, int>)(lpVtbl[4]))((IDXGIAdapter2*)Unsafe.AsPointer(ref this), Name, pUnknown);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(5)]
+    public HRESULT GetPrivateData([NativeTypeName("const GUID &")] Guid* Name, uint* pDataSize, void* pData)
+    {
+        return ((delegate* unmanaged[MemberFunction]<IDXGIAdapter2*, Guid*, uint*, void*, int>)(lpVtbl[5]))((IDXGIAdapter2*)Unsafe.AsPointer(ref this), Name, pDataSize, pData);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(6)]
+    public HRESULT GetParent([NativeTypeName("const IID &")] Guid* riid, void** ppParent)
+    {
+        return ((delegate* unmanaged[MemberFunction]<IDXGIAdapter2*, Guid*, void**, int>)(lpVtbl[6]))((IDXGIAdapter2*)Unsafe.AsPointer(ref this), riid, ppParent);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(7)]
+    public HRESULT EnumOutputs(uint Output, IDXGIOutput** ppOutput)
+    {
+        return ((delegate* unmanaged[MemberFunction]<IDXGIAdapter2*, uint, IDXGIOutput**, int>)(lpVtbl[7]))((IDXGIAdapter2*)Unsafe.AsPointer(ref this), Output, ppOutput);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(8)]
+    public HRESULT GetDesc(DXGI_ADAPTER_DESC* pDesc)
+    {
+        return ((delegate* unmanaged[MemberFunction]<IDXGIAdapter2*, DXGI_ADAPTER_DESC*, int>)(lpVtbl[8]))((IDXGIAdapter2*)Unsafe.AsPointer(ref this), pDesc);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(9)]
+    public HRESULT CheckInterfaceSupport([NativeTypeName("const GUID &")] Guid* InterfaceName, LARGE_INTEGER* pUMDVersion)
+    {
+        return ((delegate* unmanaged[MemberFunction]<IDXGIAdapter2*, Guid*, LARGE_INTEGER*, int>)(lpVtbl[9]))((IDXGIAdapter2*)Unsafe.AsPointer(ref this), InterfaceName, pUMDVersion);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(10)]
+    public HRESULT GetDesc1(DXGI_ADAPTER_DESC1* pDesc)
+    {
+        return ((delegate* unmanaged[MemberFunction]<IDXGIAdapter2*, DXGI_ADAPTER_DESC1*, int>)(lpVtbl[10]))((IDXGIAdapter2*)Unsafe.AsPointer(ref this), pDesc);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(11)]
+    public HRESULT GetDesc2(DXGI_ADAPTER_DESC2* pDesc)
+    {
+        return ((delegate* unmanaged[MemberFunction]<IDXGIAdapter2*, DXGI_ADAPTER_DESC2*, int>)(lpVtbl[11]))((IDXGIAdapter2*)Unsafe.AsPointer(ref this), pDesc);
+    }
+
+    public interface Interface : IDXGIAdapter1.Interface
+    {
+        [VtblIndex(11)]
+        HRESULT GetDesc2(DXGI_ADAPTER_DESC2* pDesc);
+    }
+}

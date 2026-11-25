@@ -4,10 +4,8 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static TerraFX.Aliases.D3D12_Alias;
-using static TerraFX.Aliases.DXGI_Alias;
+using static Ghost.Aliases.D3D12_Alias;
+using static Ghost.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12.Utilities;
 
@@ -36,12 +34,6 @@ internal static unsafe class D3D12Utility
             iid = this.iid;
             ppv = this.ppv;
         }
-    }
-
-    public static Guid* IID_NULL
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID.IID_NULL));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -703,13 +695,13 @@ internal static unsafe class D3D12Utility
     {
         var blendDesc = new D3D12_BLEND_DESC
         {
-            AlphaToCoverageEnable = false,
-            IndependentBlendEnable = false
+            AlphaToCoverageEnable = FALSE,
+            IndependentBlendEnable = FALSE
         };
 
         for (var i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
         {
-            blendDesc.RenderTarget[i].BlendEnable = srcBlend != D3D12_BLEND_ONE || destBlend != D3D12_BLEND_ZERO;
+            blendDesc.RenderTarget[i].BlendEnable = (srcBlend != D3D12_BLEND_ONE || destBlend != D3D12_BLEND_ZERO) ? TRUE : FALSE;
             blendDesc.RenderTarget[i].LogicOp = D3D12_LOGIC_OP_NOOP;
             blendDesc.RenderTarget[i].SrcBlend = srcBlend;
             blendDesc.RenderTarget[i].DestBlend = destBlend;
@@ -749,10 +741,10 @@ internal static unsafe class D3D12Utility
     {
         return new D3D12_DEPTH_STENCIL_DESC
         {
-            DepthEnable = depthEnable,
+            DepthEnable = depthEnable ? TRUE : FALSE,
             DepthWriteMask = depthWriteEnable ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO,
             DepthFunc = depthFunc,
-            StencilEnable = stencilEnable,
+            StencilEnable = stencilEnable ? TRUE : FALSE,
             StencilReadMask = stencilReadMask,
             StencilWriteMask = stencilWriteMask,
             FrontFace = D3D12_DEPTH_STENCILOP_DESC_CREATE(frontStencilFailOp, frontStencilDepthFailOp, frontStencilPassOp, frontStencilFunc),

@@ -59,7 +59,7 @@ public unsafe partial struct NvttOutputOptions : System.IDisposable
     }
 
     /// <summary>
-    /// From: <see cref="Api.nvttSetOutputOptionsOutputHandler(NvttOutputOptions*, delegate* unmanaged[Cdecl]<int, int, int, int, int, int, void>, delegate* unmanaged[Cdecl]<void*, int, NvttBoolean>, IntPtr)" />
+    /// From: <see cref="Api.nvttSetOutputOptionsOutputHandler(NvttOutputOptions*, delegate* unmanaged[Cdecl]{int, int, int, int, int, int, void}, delegate* unmanaged[Cdecl]{void*, int, NvttBoolean}, IntPtr)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetOutputHandler(delegate* unmanaged[Cdecl]<int, int, int, int, int, int, void> beginImageHandler, delegate* unmanaged[Cdecl]<void*, int, NvttBoolean> outputHandler, IntPtr endImageHandler)
@@ -72,7 +72,7 @@ public unsafe partial struct NvttOutputOptions : System.IDisposable
     }
 
     /// <summary>
-    /// From: <see cref="Api.nvttSetOutputOptionsErrorHandler(NvttOutputOptions*, delegate* unmanaged[Cdecl]<NvttError, void>)" />
+    /// From: <see cref="Api.nvttSetOutputOptionsErrorHandler(NvttOutputOptions*, delegate* unmanaged[Cdecl]{NvttError, void})" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetErrorHandler(delegate* unmanaged[Cdecl]<NvttError, void> errorHandler)

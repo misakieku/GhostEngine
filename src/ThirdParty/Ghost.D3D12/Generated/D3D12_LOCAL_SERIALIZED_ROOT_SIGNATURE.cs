@@ -1,0 +1,6 @@
+namespace Ghost.D3D12;
+
+public partial struct D3D12_LOCAL_SERIALIZED_ROOT_SIGNATURE
+{
+    public D3D12_SERIALIZED_ROOT_SIGNATURE_DESC Desc;
+}

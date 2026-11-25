@@ -6,11 +6,9 @@ using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Runtime.InteropServices;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
 
-using static TerraFX.Aliases.D3D_Alias;
-using static TerraFX.Aliases.D3D12_Alias;
+using static Ghost.Aliases.D3D_Alias;
+using static Ghost.Aliases.D3D12_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -207,7 +205,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
 
         var hr = pNativeObject->LoadPipeline(pKeyStr, pStreamDesc, __uuidof(pPipelineState), (void**)&pPipelineState);
 
-        if (hr == E.E_INVALIDARG)
+        if (hr == E_INVALIDARG)
         {
             // Pipeline not found in the library, create a new one.
             ThrowIfFailed(_device.NativeObject.Get()->CreatePipelineState(pStreamDesc, __uuidof(pPipelineState), (void**)&pPipelineState));

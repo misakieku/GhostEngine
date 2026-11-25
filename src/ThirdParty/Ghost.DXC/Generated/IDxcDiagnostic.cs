@@ -17,8 +17,7 @@ public unsafe partial struct IDxcDiagnostic : IDxcDiagnostic.Interface, INativeG
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcDiagnostic*, Guid*, void**, int>)(lpVtbl[0]))((IDxcDiagnostic*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcDiagnostic : IDxcDiagnostic.Interface, INativeG
     /// <include file='IDxcDiagnostic.xml' path='doc/member[@name="IDxcDiagnostic.FormatDiagnostic"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int FormatDiagnostic(DxcDiagnosticDisplayOptions options, [NativeTypeName("LPSTR *")] sbyte** pResult)
+        public HRESULT FormatDiagnostic(DxcDiagnosticDisplayOptions options, [NativeTypeName("LPSTR *")] sbyte** pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcDiagnostic*, DxcDiagnosticDisplayOptions, sbyte**, int>)(lpVtbl[3]))((IDxcDiagnostic*)Unsafe.AsPointer(ref this), options, pResult);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcDiagnostic : IDxcDiagnostic.Interface, INativeG
     /// <include file='IDxcDiagnostic.xml' path='doc/member[@name="IDxcDiagnostic.GetSeverity"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetSeverity(DxcDiagnosticSeverity* pResult)
+        public HRESULT GetSeverity(DxcDiagnosticSeverity* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcDiagnostic*, DxcDiagnosticSeverity*, int>)(lpVtbl[4]))((IDxcDiagnostic*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcDiagnostic : IDxcDiagnostic.Interface, INativeG
     /// <include file='IDxcDiagnostic.xml' path='doc/member[@name="IDxcDiagnostic.GetLocation"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetLocation(IDxcSourceLocation** pResult)
+        public HRESULT GetLocation(IDxcSourceLocation** pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcDiagnostic*, IDxcSourceLocation**, int>)(lpVtbl[5]))((IDxcDiagnostic*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -71,8 +67,7 @@ public unsafe partial struct IDxcDiagnostic : IDxcDiagnostic.Interface, INativeG
     /// <include file='IDxcDiagnostic.xml' path='doc/member[@name="IDxcDiagnostic.GetSpelling"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetSpelling([NativeTypeName("LPSTR *")] sbyte** pResult)
+        public HRESULT GetSpelling([NativeTypeName("LPSTR *")] sbyte** pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcDiagnostic*, sbyte**, int>)(lpVtbl[6]))((IDxcDiagnostic*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -80,8 +75,7 @@ public unsafe partial struct IDxcDiagnostic : IDxcDiagnostic.Interface, INativeG
     /// <include file='IDxcDiagnostic.xml' path='doc/member[@name="IDxcDiagnostic.GetCategoryText"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(7)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetCategoryText([NativeTypeName("LPSTR *")] sbyte** pResult)
+        public HRESULT GetCategoryText([NativeTypeName("LPSTR *")] sbyte** pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcDiagnostic*, sbyte**, int>)(lpVtbl[7]))((IDxcDiagnostic*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -89,8 +83,7 @@ public unsafe partial struct IDxcDiagnostic : IDxcDiagnostic.Interface, INativeG
     /// <include file='IDxcDiagnostic.xml' path='doc/member[@name="IDxcDiagnostic.GetNumRanges"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(8)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetNumRanges([NativeTypeName("unsigned int *")] uint* pResult)
+        public HRESULT GetNumRanges([NativeTypeName("unsigned int *")] uint* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcDiagnostic*, uint*, int>)(lpVtbl[8]))((IDxcDiagnostic*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -98,8 +91,7 @@ public unsafe partial struct IDxcDiagnostic : IDxcDiagnostic.Interface, INativeG
     /// <include file='IDxcDiagnostic.xml' path='doc/member[@name="IDxcDiagnostic.GetRangeAt"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(9)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetRangeAt([NativeTypeName("unsigned int")] uint index, IDxcSourceRange** pResult)
+        public HRESULT GetRangeAt([NativeTypeName("unsigned int")] uint index, IDxcSourceRange** pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcDiagnostic*, uint, IDxcSourceRange**, int>)(lpVtbl[9]))((IDxcDiagnostic*)Unsafe.AsPointer(ref this), index, pResult);
     }
@@ -107,8 +99,7 @@ public unsafe partial struct IDxcDiagnostic : IDxcDiagnostic.Interface, INativeG
     /// <include file='IDxcDiagnostic.xml' path='doc/member[@name="IDxcDiagnostic.GetNumFixIts"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(10)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetNumFixIts([NativeTypeName("unsigned int *")] uint* pResult)
+        public HRESULT GetNumFixIts([NativeTypeName("unsigned int *")] uint* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcDiagnostic*, uint*, int>)(lpVtbl[10]))((IDxcDiagnostic*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -116,8 +107,7 @@ public unsafe partial struct IDxcDiagnostic : IDxcDiagnostic.Interface, INativeG
     /// <include file='IDxcDiagnostic.xml' path='doc/member[@name="IDxcDiagnostic.GetFixItAt"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(11)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetFixItAt([NativeTypeName("unsigned int")] uint index, IDxcSourceRange** pReplacementRange, [NativeTypeName("LPSTR *")] sbyte** pText)
+        public HRESULT GetFixItAt([NativeTypeName("unsigned int")] uint index, IDxcSourceRange** pReplacementRange, [NativeTypeName("LPSTR *")] sbyte** pText)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcDiagnostic*, uint, IDxcSourceRange**, sbyte**, int>)(lpVtbl[11]))((IDxcDiagnostic*)Unsafe.AsPointer(ref this), index, pReplacementRange, pText);
     }
@@ -125,40 +115,31 @@ public unsafe partial struct IDxcDiagnostic : IDxcDiagnostic.Interface, INativeG
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int FormatDiagnostic(DxcDiagnosticDisplayOptions options, [NativeTypeName("LPSTR *")] sbyte** pResult);
+                HRESULT FormatDiagnostic(DxcDiagnosticDisplayOptions options, [NativeTypeName("LPSTR *")] sbyte** pResult);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetSeverity(DxcDiagnosticSeverity* pResult);
+                HRESULT GetSeverity(DxcDiagnosticSeverity* pResult);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetLocation(IDxcSourceLocation** pResult);
+                HRESULT GetLocation(IDxcSourceLocation** pResult);
 
         [VtblIndex(6)]
-        [return: NativeTypeName("HRESULT")]
-        int GetSpelling([NativeTypeName("LPSTR *")] sbyte** pResult);
+                HRESULT GetSpelling([NativeTypeName("LPSTR *")] sbyte** pResult);
 
         [VtblIndex(7)]
-        [return: NativeTypeName("HRESULT")]
-        int GetCategoryText([NativeTypeName("LPSTR *")] sbyte** pResult);
+                HRESULT GetCategoryText([NativeTypeName("LPSTR *")] sbyte** pResult);
 
         [VtblIndex(8)]
-        [return: NativeTypeName("HRESULT")]
-        int GetNumRanges([NativeTypeName("unsigned int *")] uint* pResult);
+                HRESULT GetNumRanges([NativeTypeName("unsigned int *")] uint* pResult);
 
         [VtblIndex(9)]
-        [return: NativeTypeName("HRESULT")]
-        int GetRangeAt([NativeTypeName("unsigned int")] uint index, IDxcSourceRange** pResult);
+                HRESULT GetRangeAt([NativeTypeName("unsigned int")] uint index, IDxcSourceRange** pResult);
 
         [VtblIndex(10)]
-        [return: NativeTypeName("HRESULT")]
-        int GetNumFixIts([NativeTypeName("unsigned int *")] uint* pResult);
+                HRESULT GetNumFixIts([NativeTypeName("unsigned int *")] uint* pResult);
 
         [VtblIndex(11)]
-        [return: NativeTypeName("HRESULT")]
-        int GetFixItAt([NativeTypeName("unsigned int")] uint index, IDxcSourceRange** pReplacementRange, [NativeTypeName("LPSTR *")] sbyte** pText);
+                HRESULT GetFixItAt([NativeTypeName("unsigned int")] uint index, IDxcSourceRange** pReplacementRange, [NativeTypeName("LPSTR *")] sbyte** pText);
     }
 
     public partial struct Vtbl<TSelf>

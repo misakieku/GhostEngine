@@ -17,8 +17,7 @@ public unsafe partial struct IDxcToken : IDxcToken.Interface, INativeGuid
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcToken*, Guid*, void**, int>)(lpVtbl[0]))((IDxcToken*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcToken : IDxcToken.Interface, INativeGuid
     /// <include file='IDxcToken.xml' path='doc/member[@name="IDxcToken.GetKind"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetKind(DxcTokenKind* pValue)
+        public HRESULT GetKind(DxcTokenKind* pValue)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcToken*, DxcTokenKind*, int>)(lpVtbl[3]))((IDxcToken*)Unsafe.AsPointer(ref this), pValue);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcToken : IDxcToken.Interface, INativeGuid
     /// <include file='IDxcToken.xml' path='doc/member[@name="IDxcToken.GetLocation"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetLocation(IDxcSourceLocation** pValue)
+        public HRESULT GetLocation(IDxcSourceLocation** pValue)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcToken*, IDxcSourceLocation**, int>)(lpVtbl[4]))((IDxcToken*)Unsafe.AsPointer(ref this), pValue);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcToken : IDxcToken.Interface, INativeGuid
     /// <include file='IDxcToken.xml' path='doc/member[@name="IDxcToken.GetExtent"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetExtent(IDxcSourceRange** pValue)
+        public HRESULT GetExtent(IDxcSourceRange** pValue)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcToken*, IDxcSourceRange**, int>)(lpVtbl[5]))((IDxcToken*)Unsafe.AsPointer(ref this), pValue);
     }
@@ -71,8 +67,7 @@ public unsafe partial struct IDxcToken : IDxcToken.Interface, INativeGuid
     /// <include file='IDxcToken.xml' path='doc/member[@name="IDxcToken.GetSpelling"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetSpelling([NativeTypeName("LPSTR *")] sbyte** pValue)
+        public HRESULT GetSpelling([NativeTypeName("LPSTR *")] sbyte** pValue)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcToken*, sbyte**, int>)(lpVtbl[6]))((IDxcToken*)Unsafe.AsPointer(ref this), pValue);
     }
@@ -80,20 +75,16 @@ public unsafe partial struct IDxcToken : IDxcToken.Interface, INativeGuid
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetKind(DxcTokenKind* pValue);
+                HRESULT GetKind(DxcTokenKind* pValue);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetLocation(IDxcSourceLocation** pValue);
+                HRESULT GetLocation(IDxcSourceLocation** pValue);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int GetExtent(IDxcSourceRange** pValue);
+                HRESULT GetExtent(IDxcSourceRange** pValue);
 
         [VtblIndex(6)]
-        [return: NativeTypeName("HRESULT")]
-        int GetSpelling([NativeTypeName("LPSTR *")] sbyte** pValue);
+                HRESULT GetSpelling([NativeTypeName("LPSTR *")] sbyte** pValue);
     }
 
     public partial struct Vtbl<TSelf>

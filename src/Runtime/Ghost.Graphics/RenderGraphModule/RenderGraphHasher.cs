@@ -2,26 +2,104 @@ using Ghost.Core.Utilities;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.IO.Hashing;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
 internal static unsafe class RenderGraphHasher
 {
-    private static void WriteResourceSet(BufferWriter* writer, RenderGraphResourceSet resources, Span<int> scratch)
-    {
-        writer->Write(resources.Count);
+    private const int STACK_BUFFER_SIZE = 4096;
 
-        var resourceCount = 0;
-        foreach (var resource in resources)
+    [ThreadStatic]
+    private static XxHash64? t_hasher;
+
+    private ref struct StackHashWriter
+    {
+        private readonly XxHash64 _hasher;
+        private readonly Span<byte> _buffer;
+        private int _position;
+
+        public StackHashWriter(XxHash64 hasher, Span<byte> buffer)
         {
-            scratch[resourceCount++] = resource.Value;
+            _hasher = hasher;
+            _buffer = buffer;
+            _position = 0;
         }
 
-        var resourceIds = scratch[..resourceCount];
-        resourceIds.Sort();
-        for (var resourceIndex = 0; resourceIndex < resourceIds.Length; resourceIndex++)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Write<T>(T value) where T : unmanaged
         {
-            writer->Write(resourceIds[resourceIndex]);
+            var size = sizeof(T);
+            if (_position + size > _buffer.Length)
+            {
+                Flush();
+            }
+
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref MemoryMarshal.GetReference(_buffer), _position), value);
+            _position += size;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Flush()
+        {
+            if (_position > 0)
+            {
+                _hasher.Append(_buffer.Slice(0, _position));
+                _position = 0;
+            }
+        }
+    }
+
+    private static void WriteResourceSet(ref StackHashWriter writer, RenderGraphResourceSet resources)
+    {
+        var count = resources.Count;
+        writer.Write(count);
+        if (count == 0)
+        {
+            return;
+        }
+
+        if (count == 1)
+        {
+            foreach (var resource in resources)
+            {
+                writer.Write(resource.Value);
+            }
+            return;
+        }
+
+        if (count <= 16)
+        {
+            Span<int> stackIds = stackalloc int[16];
+            var i = 0;
+            foreach (var resource in resources)
+            {
+                stackIds[i++] = resource.Value;
+            }
+
+            var slice = stackIds[..count];
+            slice.Sort();
+            for (var resourceIndex = 0; resourceIndex < count; resourceIndex++)
+            {
+                writer.Write(slice[resourceIndex]);
+            }
+            return;
+        }
+
+        using var scope = AllocationManager.CreateStackScope();
+        using var heapIds = new UnsafeArray<int>(count, scope.AllocationHandle);
+        var idx = 0;
+        foreach (var resource in resources)
+        {
+            heapIds[idx++] = resource.Value;
+        }
+
+        var span = heapIds.AsSpan();
+        span.Sort();
+        for (var resourceIndex = 0; resourceIndex < count; resourceIndex++)
+        {
+            writer.Write(span[resourceIndex]);
         }
     }
 
@@ -48,9 +126,11 @@ internal static unsafe class RenderGraphHasher
     /// </summary>
     public static ulong ComputeGraphHash(List<RenderGraphPass> passes, RenderGraphResourceRegistry resources, RGFlags flags)
     {
-        using var scope = AllocationManager.CreateStackScope();
-        using var writer = new BufferWriter(2048, scope.AllocationHandle);
-        using var scratch = new UnsafeArray<int>(Math.Max(1, resources.ResourceCount), scope.AllocationHandle);
+        var hasher = t_hasher ??= new XxHash64();
+        hasher.Reset();
+
+        Span<byte> stackBuffer = stackalloc byte[STACK_BUFFER_SIZE];
+        var writer = new StackHashWriter(hasher, stackBuffer);
 
         writer.Write((int)flags);
 
@@ -59,7 +139,7 @@ internal static unsafe class RenderGraphHasher
         for (var i = 0; i < resources.ResourceCount; i++)
         {
             ref readonly var resource = ref resources.Resources[i];
-            ComputeResourceHash(&writer, in resource);
+            ComputeResourceHash(ref writer, in resource);
         }
 
         // Hash pass count
@@ -92,24 +172,21 @@ internal static unsafe class RenderGraphHasher
 
             for (var j = 0; j < (int)RGResourceType.Count; j++)
             {
-                var readList = pass.resourceReads[j];
-                var writeList = pass.resourceWrites[j];
-                var createList = pass.resourceCreates[j];
-
-                WriteResourceSet(&writer, readList, scratch.AsSpan());
-                WriteResourceSet(&writer, writeList, scratch.AsSpan());
-                WriteResourceSet(&writer, createList, scratch.AsSpan());
+                WriteResourceSet(ref writer, pass.resourceReads[j]);
+                WriteResourceSet(ref writer, pass.resourceWrites[j]);
+                WriteResourceSet(ref writer, pass.resourceCreates[j]);
             }
 
-            WriteResourceSet(&writer, pass.randomAccess, scratch.AsSpan());
-            WriteResourceSet(&writer, pass.renderTargetWrites, scratch.AsSpan());
-            WriteResourceSet(&writer, pass.depthTargetWrites, scratch.AsSpan());
-            WriteResourceSet(&writer, pass.depthTargetReads, scratch.AsSpan());
+            WriteResourceSet(ref writer, pass.randomAccess);
+            WriteResourceSet(ref writer, pass.renderTargetWrites);
+            WriteResourceSet(ref writer, pass.depthTargetWrites);
+            WriteResourceSet(ref writer, pass.depthTargetReads);
 
             writer.Write(pass.GetRenderFuncHashCode());
         }
 
-        return XxHash64.HashToUInt64(writer.AsSpan());
+        writer.Flush();
+        return hasher.GetCurrentHashAsUInt64();
     }
 
     /// <summary>
@@ -118,69 +195,69 @@ internal static unsafe class RenderGraphHasher
     /// For transient textures, hashes the descriptor respecting size mode (Absolute vs Relative).
     /// For transient buffers, hashes Size, Stride, Usage, HeapType.
     /// </summary>
-    private static void ComputeResourceHash(BufferWriter* writer, scoped ref readonly RenderGraphResource resource)
+    private static void ComputeResourceHash(ref StackHashWriter writer, scoped ref readonly RenderGraphResource resource)
     {
-        writer->Write(resource.type);
-        writer->Write(resource.isImported);
-        writer->Write(resource.isAllocated);
-        writer->Write(resource.isExtracted);
+        writer.Write(resource.type);
+        writer.Write(resource.isImported);
+        writer.Write(resource.isAllocated);
+        writer.Write(resource.isExtracted);
 
         if (resource.isExtracted)
         {
-            writer->Write(resource.extractionTarget.GetHashCode());
-            writer->Write((byte)resource.extractionFlags);
+            writer.Write(resource.extractionTarget.GetHashCode());
+            writer.Write((byte)resource.extractionFlags);
         }
 
-        writer->Write(resource.hasInitialBarrierState);
+        writer.Write(resource.hasInitialBarrierState);
         if (resource.hasInitialBarrierState)
         {
-            writer->Write(resource.initialBarrierState);
+            writer.Write(resource.initialBarrierState);
         }
 
-        writer->Write(resource.hasFinalBarrierState);
+        writer.Write(resource.hasFinalBarrierState);
         if (resource.hasFinalBarrierState)
         {
-            writer->Write(resource.finalBarrierState);
+            writer.Write(resource.finalBarrierState);
         }
 
         if (resource.type == RGResourceType.Texture)
         {
             var desc = resource.rgTextureDesc;
-            writer->Write(desc.format);
+            writer.Write(desc.format);
 
             // Hash the resolved size for aliasable resources. Non-aliasable resources never break the graph topology no matter what their size is, so we don't need to hash it.
             if (resource.CanBeAliased)
             {
-                writer->Write(desc.sizeMode);
+                writer.Write(desc.sizeMode);
                 if (desc.sizeMode == RGTextureSizeMode.Absolute)
                 {
-                    writer->Write(desc.width);
-                    writer->Write(desc.height);
+                    writer.Write(desc.width);
+                    writer.Write(desc.height);
                 }
                 else
                 {
-                    writer->Write(desc.scaleX);
-                    writer->Write(desc.scaleY);
+                    writer.Write(desc.scaleX);
+                    writer.Write(desc.scaleY);
                 }
             }
 
-            writer->Write(desc.dimension);
-            writer->Write(desc.mipLevels);
-            writer->Write(desc.slice);
-            writer->Write(desc.usage);
-            writer->Write(desc.clearAtFirstUse);
-            writer->Write(desc.discardAtLastUse);
-            writer->Write(desc.clearColor);
-            writer->Write(desc.clearDepth);
-            writer->Write(desc.clearStencil);
+            writer.Write(desc.dimension);
+            writer.Write(desc.mipLevels);
+            writer.Write(desc.slice);
+            writer.Write(desc.usage);
+            writer.Write(desc.clearAtFirstUse);
+            writer.Write(desc.discardAtLastUse);
+            writer.Write(desc.clearColor);
+            writer.Write(desc.clearDepth);
+            writer.Write(desc.clearStencil);
         }
         else if (resource.type == RGResourceType.Buffer)
         {
             var desc = resource.bufferDesc;
-            writer->Write(desc.Size);
-            writer->Write(desc.Stride);
-            writer->Write(desc.Usage);
-            writer->Write(desc.HeapType);
+            writer.Write(desc.Size);
+            writer.Write(desc.Stride);
+            writer.Write(desc.Usage);
+            writer.Write(desc.HeapType);
         }
     }
 }

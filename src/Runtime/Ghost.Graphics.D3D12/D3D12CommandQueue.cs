@@ -1,7 +1,6 @@
 using Ghost.Core;
 using Ghost.Graphics.RHI;
 using System.Diagnostics;
-using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -92,6 +91,11 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
 
             ppCommandLists[currentIndex] = (ID3D12CommandList*)d3d12CommandBuffer.NativeObject.Get();
             currentIndex++;
+        }
+
+        if (currentIndex == 0)
+        {
+            return;
         }
 
         pNativeObject->ExecuteCommandLists(currentIndex, ppCommandLists);

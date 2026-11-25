@@ -61,10 +61,15 @@ void VisibilityWritePixelAtomic(TEXTURE2D visBufferIndex, uint2 pixelCoord, floa
 struct SharedMeshletState
 {
     float4x4 worldViewProj;
+    float3 worldBoundsMin;
+    float positionQuantStep;
     uint pageBufferIndex;
     uint pageBase;
     uint vertexOffset;
     uint triangleOffset;
+    uint packedQuantOrigin0;
+    uint packedQuantOrigin1;
+    uint packedFormat;
     uint vertexCount;
     uint triangleCount;
     uint visibleMeshletIndex;
@@ -126,10 +131,15 @@ void MSMain(
         GetMeshletPageBufferAndBase(meshData, meshlet.pageIndex, pageBufferIndex, pageBase);
 
         s_Meshlet.worldViewProj = worldViewProj;
+        s_Meshlet.worldBoundsMin = meshData.worldBoundsMin;
+        s_Meshlet.positionQuantStep = meshData.positionQuantStep;
         s_Meshlet.pageBufferIndex = pageBufferIndex;
         s_Meshlet.pageBase = pageBase;
         s_Meshlet.vertexOffset = meshlet.vertexOffset;
         s_Meshlet.triangleOffset = meshlet.triangleOffset;
+        s_Meshlet.packedQuantOrigin0 = meshlet.packedQuantOrigin0;
+        s_Meshlet.packedQuantOrigin1 = meshlet.packedQuantOrigin1;
+        s_Meshlet.packedFormat = meshlet.packedFormat;
         s_Meshlet.vertexCount = vertexCount;
         s_Meshlet.triangleCount = triangleCount;
         s_Meshlet.visibleMeshletIndex = (binnedSlot & 0x7FFFFFu) | passBit;
@@ -146,10 +156,9 @@ void MSMain(
     if (groupThreadID < s_Meshlet.vertexCount)
     {
         ByteAddressBuffer pageBuffer = GET_BUFFER(s_Meshlet.pageBufferIndex);
-        uint vOffset = s_Meshlet.pageBase + s_Meshlet.vertexOffset + groupThreadID * PACKED_VERTEX_STRIDE;
 
-        float3 pos = asfloat(pageBuffer.Load3(vOffset));
-        float2 uv = UnpackHalf2(pageBuffer.Load(vOffset + 16u));
+        float3 pos = UnpackMeshletPosition(pageBuffer, s_Meshlet.pageBase, s_Meshlet.vertexOffset, s_Meshlet.packedQuantOrigin0, s_Meshlet.packedQuantOrigin1, s_Meshlet.packedFormat, s_Meshlet.worldBoundsMin, s_Meshlet.positionQuantStep, groupThreadID);
+        float2 uv = LoadMeshletUVOnly(pageBuffer, s_Meshlet.pageBase, s_Meshlet.packedFormat, groupThreadID);
 
         float4 clipPos = mul(s_Meshlet.worldViewProj, float4(pos, 1.0f));
 
@@ -169,8 +178,7 @@ void MSMain(
     for (uint primId = groupThreadID; primId < s_Meshlet.triangleCount; primId += VISIBILITY_MS_THREADS)
     {
         ByteAddressBuffer pageBuffer = GET_BUFFER(s_Meshlet.pageBufferIndex);
-        uint packedIndices = pageBuffer.Load(s_Meshlet.pageBase + s_Meshlet.triangleOffset + primId * PACKED_TRIANGLE_STRIDE);
-        uint3 indices = uint3(packedIndices & 0xFF, (packedIndices >> 8) & 0xFF, (packedIndices >> 16) & 0xFF);
+        uint3 indices = UnpackMeshletTriangleIndices(pageBuffer, s_Meshlet.pageBase, s_Meshlet.triangleOffset, primId);
 
         float4 v0 = g_VertexPositions[indices.x];
         float4 v1 = g_VertexPositions[indices.y];

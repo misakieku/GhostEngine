@@ -17,8 +17,7 @@ public unsafe partial struct IDxcContainerBuilder : IDxcContainerBuilder.Interfa
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcContainerBuilder*, Guid*, void**, int>)(lpVtbl[0]))((IDxcContainerBuilder*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcContainerBuilder : IDxcContainerBuilder.Interfa
     /// <include file='IDxcContainerBuilder.xml' path='doc/member[@name="IDxcContainerBuilder.Load"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int Load(IDxcBlob* pDxilContainerHeader)
+        public HRESULT Load(IDxcBlob* pDxilContainerHeader)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcContainerBuilder*, IDxcBlob*, int>)(lpVtbl[3]))((IDxcContainerBuilder*)Unsafe.AsPointer(ref this), pDxilContainerHeader);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcContainerBuilder : IDxcContainerBuilder.Interfa
     /// <include file='IDxcContainerBuilder.xml' path='doc/member[@name="IDxcContainerBuilder.AddPart"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int AddPart([NativeTypeName("UINT32")] uint fourCC, IDxcBlob* pSource)
+        public HRESULT AddPart([NativeTypeName("UINT32")] uint fourCC, IDxcBlob* pSource)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcContainerBuilder*, uint, IDxcBlob*, int>)(lpVtbl[4]))((IDxcContainerBuilder*)Unsafe.AsPointer(ref this), fourCC, pSource);
     }
@@ -62,8 +59,7 @@ public unsafe partial struct IDxcContainerBuilder : IDxcContainerBuilder.Interfa
     /// <include file='IDxcContainerBuilder.xml' path='doc/member[@name="IDxcContainerBuilder.RemovePart"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-    [return: NativeTypeName("HRESULT")]
-    public int RemovePart([NativeTypeName("UINT32")] uint fourCC)
+        public HRESULT RemovePart([NativeTypeName("UINT32")] uint fourCC)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcContainerBuilder*, uint, int>)(lpVtbl[5]))((IDxcContainerBuilder*)Unsafe.AsPointer(ref this), fourCC);
     }
@@ -71,8 +67,7 @@ public unsafe partial struct IDxcContainerBuilder : IDxcContainerBuilder.Interfa
     /// <include file='IDxcContainerBuilder.xml' path='doc/member[@name="IDxcContainerBuilder.SerializeContainer"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(6)]
-    [return: NativeTypeName("HRESULT")]
-    public int SerializeContainer(IDxcOperationResult** ppResult)
+        public HRESULT SerializeContainer(IDxcOperationResult** ppResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcContainerBuilder*, IDxcOperationResult**, int>)(lpVtbl[6]))((IDxcContainerBuilder*)Unsafe.AsPointer(ref this), ppResult);
     }
@@ -80,20 +75,16 @@ public unsafe partial struct IDxcContainerBuilder : IDxcContainerBuilder.Interfa
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int Load(IDxcBlob* pDxilContainerHeader);
+                HRESULT Load(IDxcBlob* pDxilContainerHeader);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int AddPart([NativeTypeName("UINT32")] uint fourCC, IDxcBlob* pSource);
+                HRESULT AddPart([NativeTypeName("UINT32")] uint fourCC, IDxcBlob* pSource);
 
         [VtblIndex(5)]
-        [return: NativeTypeName("HRESULT")]
-        int RemovePart([NativeTypeName("UINT32")] uint fourCC);
+                HRESULT RemovePart([NativeTypeName("UINT32")] uint fourCC);
 
         [VtblIndex(6)]
-        [return: NativeTypeName("HRESULT")]
-        int SerializeContainer(IDxcOperationResult** ppResult);
+                HRESULT SerializeContainer(IDxcOperationResult** ppResult);
     }
 
     public partial struct Vtbl<TSelf>

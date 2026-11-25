@@ -4,12 +4,16 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel.Buffer;
 using Misaki.HighPerformance.LowLevel.Collections;
 using Misaki.HighPerformance.Mathematics;
+using System.Numerics;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
-internal struct CompiledGraph : IDisposable
+internal struct CompiledGraph
 {
-    public required AliasingPlan plan;
+    public required ReadOnlyView<PlacedResourceData> placedResources;
+    public required ReadOnlyView<int> aliasedLogicalResources;
+    public required ReadOnlyView<int> logicalToPlaced;
+    public required ulong totalHeapSize;
     public required float2 scale;
     public required ulong graphHash;
     public required IReadOnlyList<RenderGraphPass> passes;
@@ -19,11 +23,6 @@ internal struct CompiledGraph : IDisposable
     public required ReadOnlyView<int> resourceFirstUseScheduleIndices;
     public required ReadOnlyView<int> resourceLastUseScheduleIndices;
     public required bool cacheHit;
-
-    public void Dispose()
-    {
-        plan.Dispose();
-    }
 }
 
 /// <summary>
@@ -95,7 +94,6 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 #endif
 
         Error error;
-        AliasingPlan aliasingPlan;
 
         // Try to restore from cache
         if (_compilationCache.TryGetCached(graphHash, flags, out var cached))
@@ -107,44 +105,57 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 // View state changed - re-resolve sizes and recreate GPU resources
                 _resourceRegistry.ResolveTextureSizes(in viewport);
 
-                aliasingPlan = RenderGraphAliasingBuilder.ResizeCachedSlots(
+                var resizedPlan = RenderGraphAliasingBuilder.ResizeCachedSlots(
                     _resourceRegistry,
                     _resourceAllocator,
-                    cached.logicalToPhysical,
+                    cached.logicalToPlaced,
                     cached.placedResources,
                     cached.aliasedLogicalResources,
                     allocationHandle);
-                error = _resourceRegistry.AllocateBackingResources(ref aliasingPlan, _compilationCache);
-                if (error != Error.None)
+                try
                 {
-                    return error;
+                    error = _resourceRegistry.AllocateBackingResources(ref resizedPlan, _compilationCache);
+                    if (error != Error.None)
+                    {
+                        return error;
+                    }
+
+                    ref readonly var updated = ref _compilationCache.UpdateResizedAliasing(ref resizedPlan, viewport, allocationHandle);
+
+                    return new CompiledGraph
+                    {
+                        scale = float2.one,
+                        placedResources = updated.placedResources,
+                        aliasedLogicalResources = updated.aliasedLogicalResources,
+                        logicalToPlaced = updated.logicalToPlaced,
+                        totalHeapSize = updated.totalHeapSize,
+                        graphHash = graphHash,
+                        passes = passes,
+                        compiledPasses = updated.compiledPassIndices,
+                        nativePasses = updated.nativePasses,
+                        commandStream = updated.commandBytes,
+                        resourceFirstUseScheduleIndices = updated.resourceFirstUseScheduleIndices,
+                        resourceLastUseScheduleIndices = updated.resourceLastUseScheduleIndices,
+                        cacheHit = true
+                    };
                 }
-
-                cached.viewport = viewport;
-
-                return new CompiledGraph
+                finally
                 {
-                    scale = float2.one,
-                    plan = aliasingPlan,
-                    graphHash = graphHash,
-                    passes = passes,
-                    compiledPasses = cached.compiledPassIndices,
-                    nativePasses = cached.nativePasses,
-                    commandStream = cached.commandBytes,
-                    resourceFirstUseScheduleIndices = cached.resourceFirstUseScheduleIndices,
-                    resourceLastUseScheduleIndices = cached.resourceLastUseScheduleIndices,
-                    cacheHit = true
-                };
+                    resizedPlan.Dispose();
+                }
             }
             else
             {
-                // Perfect cache hit - restore everything
-                aliasingPlan = RestoreFromCache(cached, passes, allocationHandle);
+                // Perfect cache hit - restore everything without allocating an AliasingPlan
+                RestorePassCulledFlags(cached, passes);
                 _resourceRegistry.RestoreBackingResources(cached.backingResources);
                 return new CompiledGraph
                 {
                     scale = scale,
-                    plan = aliasingPlan,
+                    placedResources = cached.placedResources,
+                    aliasedLogicalResources = cached.aliasedLogicalResources,
+                    logicalToPlaced = cached.logicalToPlaced,
+                    totalHeapSize = cached.totalHeapSize,
                     graphHash = graphHash,
                     passes = passes,
                     compiledPasses = cached.compiledPassIndices,
@@ -193,84 +204,95 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             using var syncBoundaries = new UnsafeArray<SyncBoundary>(compiledPassCount, schedulingScope.AllocationHandle);
             using var scheduleIndexByPassIndex = new UnsafeArray<int>(passes.Count, schedulingScope.AllocationHandle);
             using var commandBufferIds = new UnsafeArray<int>(compiledPassCount, schedulingScope.AllocationHandle);
-            using var reachability = new UnsafeArray<byte>(compiledPassCount * compiledPassCount, schedulingScope.AllocationHandle);
+            var reachability = new RenderGraphBitMatrix(compiledPassCount, compiledPassCount, schedulingScope.AllocationHandle);
 
-            BuildPassReachability(compiledPasses, nodes, scheduleIndexByPassIndex, reachability);
-            BuildDependencyWindowSchedule(passes, compiledPasses, effectiveQueues, syncBoundaries, reachability);
-            FinalizeScheduleReachability(effectiveQueues, syncBoundaries, commandBufferIds, reachability);
+            BuildPassReachability(compiledPasses, nodes, scheduleIndexByPassIndex, ref reachability);
+            BuildDependencyWindowSchedule(passes, compiledPasses, effectiveQueues, syncBoundaries, in reachability);
+            FinalizeScheduleReachability(effectiveQueues, syncBoundaries, commandBufferIds, ref reachability);
 
-            using var resourceOrdering = RenderGraphResourceOrdering.Build(_resourceRegistry, scheduleIndexByPassIndex, reachability, compiledPassCount, schedulingScope.AllocationHandle);
+            using var resourceOrdering = RenderGraphResourceOrdering.Build(_resourceRegistry, scheduleIndexByPassIndex, in reachability, compiledPassCount, schedulingScope.AllocationHandle);
 
-            aliasingPlan = RenderGraphAliasingBuilder.Build(_resourceRegistry, _resourceAllocator, resourceOrdering, flags.HasFlag(RGFlags.DisableAliasing), allocationHandle);
-            error = _resourceRegistry.AllocateBackingResources(ref aliasingPlan, _compilationCache, in resourceOrdering);
-
-            if (error != Error.None)
-            {
-                return error;
-            }
-
-            var nativePasses = RenderGraphNativePassBuilder.BuildNativeRenderPasses(
-                _resourceRegistry,
-                passes,
-                compiledPasses,
-                syncBoundaries,
-                scheduleIndexByPassIndex,
-                ref aliasingPlan,
-                resourceOrdering,
-                allocationHandle);
-            var commandWriter = new BufferWriter(1024 * 1024, allocationHandle);
-
+            var aliasingPlan = RenderGraphAliasingBuilder.Build(_resourceRegistry, _resourceAllocator, resourceOrdering, flags.HasFlag(RGFlags.DisableAliasing), allocationHandle, effectiveQueues);
             try
             {
-                BuildExecutionCommands(
-                    ref commandWriter,
-                    passes,
-                    compiledPasses,
-                    nativePasses,
-                    ref aliasingPlan,
-                    resourceOrdering,
-                    effectiveQueues,
-                    syncBoundaries,
-                    commandBufferIds,
-                    reachability,
-                    flags);
+                error = _resourceRegistry.AllocateBackingResources(ref aliasingPlan, _compilationCache, in resourceOrdering);
 
-                ref readonly var cacheData = ref _compilationCache.SetCached(
+                if (error != Error.None)
+                {
+                    return error;
+                }
+
+                var nativePasses = RenderGraphNativePassBuilder.BuildNativeRenderPasses(
                     _resourceRegistry,
-                    graphHash,
-                    flags,
-                    viewport,
                     passes,
                     compiledPasses,
-                    nativePasses,
-                    commandWriter.AsSpan(),
+                    syncBoundaries,
+                    scheduleIndexByPassIndex,
                     ref aliasingPlan,
                     resourceOrdering,
                     allocationHandle);
+                var commandWriter = new BufferWriter(Math.Max(4096, compiledPassCount * 256), allocationHandle);
 
-                return new CompiledGraph
+                try
                 {
-                    scale = float2.one,
-                    plan = aliasingPlan,
-                    graphHash = graphHash,
-                    passes = passes,
-                    compiledPasses = cacheData.compiledPassIndices,
-                    nativePasses = cacheData.nativePasses,
-                    commandStream = cacheData.commandBytes,
-                    resourceFirstUseScheduleIndices = cacheData.resourceFirstUseScheduleIndices,
-                    resourceLastUseScheduleIndices = cacheData.resourceLastUseScheduleIndices,
-                    cacheHit = false
-                };
+                    BuildExecutionCommands(
+                        ref commandWriter,
+                        passes,
+                        compiledPasses,
+                        nativePasses,
+                        ref aliasingPlan,
+                        resourceOrdering,
+                        effectiveQueues,
+                        syncBoundaries,
+                        commandBufferIds,
+                        in reachability,
+                        flags);
+
+                    ref readonly var cacheData = ref _compilationCache.SetCached(
+                        _resourceRegistry,
+                        graphHash,
+                        flags,
+                        viewport,
+                        passes,
+                        compiledPasses,
+                        nativePasses,
+                        commandWriter.AsSpan(),
+                        ref aliasingPlan,
+                        resourceOrdering,
+                        allocationHandle);
+
+                    return new CompiledGraph
+                    {
+                        scale = float2.one,
+                        placedResources = cacheData.placedResources,
+                        aliasedLogicalResources = cacheData.aliasedLogicalResources,
+                        logicalToPlaced = cacheData.logicalToPlaced,
+                        totalHeapSize = cacheData.totalHeapSize,
+                        graphHash = graphHash,
+                        passes = passes,
+                        compiledPasses = cacheData.compiledPassIndices,
+                        nativePasses = cacheData.nativePasses,
+                        commandStream = cacheData.commandBytes,
+                        resourceFirstUseScheduleIndices = cacheData.resourceFirstUseScheduleIndices,
+                        resourceLastUseScheduleIndices = cacheData.resourceLastUseScheduleIndices,
+                        cacheHit = false
+                    };
+                }
+                finally
+                {
+                    for (var i = 0; i < nativePasses.Count; i++)
+                    {
+                        nativePasses[i].Dispose();
+                    }
+
+                    nativePasses.Dispose();
+                    commandWriter.Dispose();
+                }
             }
             finally
             {
-                for (var i = 0; i < nativePasses.Count; i++)
-                {
-                    nativePasses[i].Dispose();
-                }
-
-                nativePasses.Dispose();
-                commandWriter.Dispose();
+                aliasingPlan.Dispose();
+                reachability.Dispose();
             }
         }
         finally
@@ -360,8 +382,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 
     private void UncullProducer(Identifier<RGResource> resource, List<RenderGraphPass> passes)
     {
-        ref readonly var res = ref _resourceRegistry.GetResource(resource);
-        foreach (var producerIdx in res.producerPasses)
+        foreach (var producerIdx in _resourceRegistry.GetProducerPasses(resource.Value))
         {
             var producer = passes[producerIdx];
             if (producer.culled)
@@ -374,34 +395,25 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 
     private static UnsafeArray<PassDependencyNode> BuildDAG(List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, RenderGraphResourceRegistry resources, AllocationHandle allocationHandle)
     {
-        void AddEdge(int passA, int passB, Span<PassDependencyNode> nodes)
+        var passCount = compiledPasses.Length;
+        var resourceCount = resources.ResourceCount;
+
+        using var lastWriter = new UnsafeArray<int>(resourceCount, allocationHandle);
+        lastWriter.AsSpan().Fill(-1);
+
+        var lastReaders = new RenderGraphBitMatrix(resourceCount, passCount, allocationHandle);
+        var edgeMatrix = new RenderGraphBitMatrix(passCount, passCount, allocationHandle);
+
+        static void AddEdge(int passA, int passB, Span<PassDependencyNode> nodes, ref RenderGraphBitMatrix edgeMatrix)
         {
-            if (passA == passB)
+            if (passA == passB || edgeMatrix.Get(passA, passB))
             {
                 return;
             }
 
-            ref var nodeA = ref nodes[passA];
-            if (!nodeA.dependents.Contains(passB))
-            {
-                nodeA.dependents.Add(passB);
-                nodes[passB].inDegree++;
-            }
-        }
-
-        var passCount = compiledPasses.Length;
-        var resourceCount = resources.ResourceCount;
-
-        // Track last access per resource. These use the caller-owned scheduling scope so
-        // returning from BuildDAG cannot rewind and invalidate the graph allocations.
-        using var lastWriter = new UnsafeArray<int>(resourceCount, allocationHandle);
-        lastWriter.AsSpan().Fill(-1);
-
-        // Track readers since last write per resource
-        using var lastReaders = new UnsafeList<UnsafeList<int>>(resourceCount, allocationHandle);
-        for (var i = 0; i < resourceCount; i++)
-        {
-            lastReaders.Add(new UnsafeList<int>(4, allocationHandle));
+            edgeMatrix.Set(passA, passB);
+            nodes[passA].dependents.Add(passB);
+            nodes[passB].inDegree++;
         }
 
         // Initialize nodes in the original compiled-pass index space.
@@ -419,7 +431,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             var pass = passes[compiledPasses[i]];
 
             // Process READS (RAW Dependencies)
-            void ProcessRead(Identifier<RGResource> resId, Span<PassDependencyNode> nodes, Span<int> lastWriter)
+            void ProcessRead(Identifier<RGResource> resId, Span<PassDependencyNode> nodes, Span<int> lastWriter, ref RenderGraphBitMatrix lastReaders, ref RenderGraphBitMatrix edgeMatrix)
             {
                 if (resId.IsInvalid)
                 {
@@ -427,22 +439,17 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 }
 
                 var resIdx = resId.Value;
-                // RAW: Depend on previous writer
                 var writer = lastWriter[resIdx];
                 if (writer >= 0)
                 {
-                    AddEdge(writer, i, nodes);
+                    AddEdge(writer, i, nodes, ref edgeMatrix);
                 }
 
-                // Track this pass as a reader
-                if (!lastReaders[resIdx].AsSpan().Contains(i))
-                {
-                    lastReaders[resIdx].Add(i);
-                }
+                lastReaders.Set(resIdx, i);
             }
 
             // Process WRITES (WAR & WAW Dependencies)
-            void ProcessWrite(Identifier<RGResource> resId, Span<PassDependencyNode> nodes, Span<int> lastWriter)
+            void ProcessWrite(Identifier<RGResource> resId, Span<PassDependencyNode> nodes, Span<int> lastWriter, ref RenderGraphBitMatrix lastReaders, ref RenderGraphBitMatrix edgeMatrix)
             {
                 if (resId.IsInvalid)
                 {
@@ -450,23 +457,25 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 }
 
                 var resIdx = resId.Value;
-
-                // WAW: Depend on previous writer
                 var writer = lastWriter[resIdx];
                 if (writer >= 0)
                 {
-                    AddEdge(writer, i, nodes);
+                    AddEdge(writer, i, nodes, ref edgeMatrix);
                 }
 
-                // WAR: Depend on all readers since last write
-                ref var readers = ref lastReaders[resIdx];
-                for (var r = 0; r < readers.Count; r++)
+                var readerRow = lastReaders.GetReadOnlyRow(resIdx);
+                for (var w = 0; w < readerRow.Length; w++)
                 {
-                    AddEdge(readers[r], i, nodes);
+                    var word = readerRow[w];
+                    while (word != 0)
+                    {
+                        var bit = BitOperations.TrailingZeroCount(word);
+                        word &= word - 1;
+                        AddEdge((w << 6) + bit, i, nodes, ref edgeMatrix);
+                    }
                 }
 
-                // Reset readers and update last writer
-                readers.Clear();
+                lastReaders.ClearRow(resIdx);
                 lastWriter[resIdx] = i;
             }
 
@@ -475,17 +484,17 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             {
                 foreach (var res in pass.resourceCreates[t])
                 {
-                    ProcessWrite(res, nodes, lastWriter);
+                    ProcessWrite(res, nodes, lastWriter, ref lastReaders, ref edgeMatrix);
                 }
 
                 foreach (var res in pass.resourceReads[t])
                 {
-                    ProcessRead(res, nodes, lastWriter);
+                    ProcessRead(res, nodes, lastWriter, ref lastReaders, ref edgeMatrix);
                 }
 
                 foreach (var res in pass.resourceWrites[t])
                 {
-                    ProcessWrite(res, nodes, lastWriter);
+                    ProcessWrite(res, nodes, lastWriter, ref lastReaders, ref edgeMatrix);
                 }
             }
 
@@ -499,12 +508,12 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 #pragma warning disable MHP002 // Defensive copy detected
                     if (access.accessFlags.HasFlag(AccessFlags.Read))
                     {
-                        ProcessRead(res, nodes, lastWriter);
+                        ProcessRead(res, nodes, lastWriter, ref lastReaders, ref edgeMatrix);
                     }
 
                     if (access.accessFlags.HasFlag(AccessFlags.Write))
                     {
-                        ProcessWrite(res, nodes, lastWriter);
+                        ProcessWrite(res, nodes, lastWriter, ref lastReaders, ref edgeMatrix);
                     }
 #pragma warning restore MHP002 // Defensive copy detected
                 }
@@ -517,12 +526,12 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 #pragma warning disable MHP002 // Defensive copy detected
                 if (pass.depthAccess.accessFlags.HasFlag(AccessFlags.Read))
                 {
-                    ProcessRead(res, nodes, lastWriter);
+                    ProcessRead(res, nodes, lastWriter, ref lastReaders, ref edgeMatrix);
                 }
 
                 if (pass.depthAccess.accessFlags.HasFlag(AccessFlags.Write))
                 {
-                    ProcessWrite(res, nodes, lastWriter);
+                    ProcessWrite(res, nodes, lastWriter, ref lastReaders, ref edgeMatrix);
                 }
 #pragma warning restore MHP002 // Defensive copy detected
             }
@@ -530,51 +539,48 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             // UAVs (Random Access is both READ and WRITE)
             foreach (var uav in pass.randomAccess)
             {
-                ProcessRead(uav, nodes, lastWriter);
-                ProcessWrite(uav, nodes, lastWriter);
+                ProcessRead(uav, nodes, lastWriter, ref lastReaders, ref edgeMatrix);
+                ProcessWrite(uav, nodes, lastWriter, ref lastReaders, ref edgeMatrix);
             }
 
             if (pass.hasSideEffects)
             {
                 if (lastSideEffect >= 0)
                 {
-                    AddEdge(lastSideEffect, i, nodes);
+                    AddEdge(lastSideEffect, i, nodes, ref edgeMatrix);
                 }
 
                 lastSideEffect = i;
             }
         }
 
-        for (var i = 0; i < lastReaders.Count; i++)
-        {
-            lastReaders[i].Dispose();
-        }
-
+        edgeMatrix.Dispose();
+        lastReaders.Dispose();
         return nodes;
     }
 
-    private static int SelectBestCandidatePass(ReadOnlySpan<int> readyPassIndices, RenderGraphPass? lastScheduledPass, List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses)
+    private static int SelectBestCandidatePass(ReadOnlySpan<int> readyPassIndices, RenderGraphPass? lastScheduledPass, int lastScheduledDagIndex, List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, in RenderGraphBitMatrix passResourceMasks)
     {
         var bestIndex = 0;
         var maxScore = float.MinValue;
         for (var i = 0; i < readyPassIndices.Length; i++)
         {
-            var candidate = passes[compiledPasses[readyPassIndices[i]]];
+            var candidateDagIndex = readyPassIndices[i];
+            var candidate = passes[compiledPasses[candidateDagIndex]];
             var score = 0.0f;
             if (lastScheduledPass != null)
             {
                 // Grouping Rule 1: Maximize Native Pass Merging
-                // If previous pass was Raster, strongly prefer a ready Raster pass with matching attachments
                 if (lastScheduledPass.type == RenderPassType.Raster && candidate.type == RenderPassType.Raster)
                 {
                     if (AttachmentsMatch(lastScheduledPass, candidate))
                     {
-                        score += 1000.0f; // Top priority: merge into native render pass!
+                        score += 1000.0f;
                     }
                 }
+
                 // Grouping Rule 2: Memory Locality (Shorten Lifetimes)
-                // Prefer passes that consume or produce resources touched by lastScheduledPass
-                if (SharesResources(lastScheduledPass, candidate))
+                if (passResourceMasks.IntersectsRow(lastScheduledDagIndex, candidateDagIndex))
                 {
                     score += 100.0f;
                 }
@@ -587,7 +593,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             }
 
             // Grouping Rule 4: Tie-breaker - preserve original submission order
-            score -= readyPassIndices[i] * 0.01f;
+            score -= candidateDagIndex * 0.01f;
             if (score > maxScore)
             {
                 maxScore = score;
@@ -616,18 +622,24 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         return passA.depthAccess.id == passB.depthAccess.id;
     }
 
-    private static bool SharesResources(RenderGraphPass passA, RenderGraphPass passB)
+    private static void BuildPassResourceMasks(List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, int resourceCount, ref RenderGraphBitMatrix passResourceMasks)
     {
-        for (var t = 0; t < (int)RGResourceType.Count; t++)
+        if (resourceCount <= 0)
         {
-            var readsB = passB.resourceReads[t];
-            foreach (var readA in passA.resourceReads[t])
-            {
-                if (readsB.Contains(readA)) return true;
-            }
+            return;
         }
 
-        return false;
+        for (var dagIndex = 0; dagIndex < compiledPasses.Length; dagIndex++)
+        {
+            var pass = passes[compiledPasses[dagIndex]];
+            for (var t = 0; t < (int)RGResourceType.Count; t++)
+            {
+                foreach (var res in pass.resourceReads[t])
+                {
+                    if (res.IsValid) passResourceMasks.Set(dagIndex, res.Value);
+                }
+            }
+        }
     }
 
     private void ReorderPasses(List<RenderGraphPass> passes, ReadOnlySpan<PassDependencyNode> dependencyNodes, UnsafeList<int>* pCompiledPasses)
@@ -640,6 +652,8 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 
         using var scope = AllocationManager.CreateStackScope();
         using var remainingInDegrees = new UnsafeArray<int>(passCount, scope.AllocationHandle);
+        var passResourceMasks = new RenderGraphBitMatrix(passCount, _resourceRegistry.ResourceCount, scope.AllocationHandle);
+        BuildPassResourceMasks(passes, pCompiledPasses->AsSpan(), _resourceRegistry.ResourceCount, ref passResourceMasks);
 
         // Initialize Ready List (Passes with 0 incoming dependencies)
         using var readyList = new UnsafeList<int>(passCount, scope.AllocationHandle);
@@ -654,18 +668,19 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 
         using var reorderedIndices = new UnsafeList<int>(passCount, scope.AllocationHandle);
         RenderGraphPass? lastScheduledPass = null;
+        var lastScheduledDagIndex = -1;
 
         // Kahn's Topological Sort with Grouping Heuristics
         while (readyList.Count > 0)
         {
-            // Select best candidate pass from readyList based on grouping rules
-            var bestReadyIdx = SelectBestCandidatePass(readyList.AsSpan(), lastScheduledPass, passes, pCompiledPasses->AsSpan());
+            var bestReadyIdx = SelectBestCandidatePass(readyList.AsSpan(), lastScheduledPass, lastScheduledDagIndex, passes, pCompiledPasses->AsSpan(), in passResourceMasks);
             var chosenPassIndex = readyList[bestReadyIdx];
             readyList.RemoveAtSwapBack(bestReadyIdx);
 
             var chosenPass = (*pCompiledPasses)[chosenPassIndex];
             reorderedIndices.Add(chosenPass);
             lastScheduledPass = passes[chosenPass];
+            lastScheduledDagIndex = chosenPassIndex;
 
             // Decrement the scratch in-degree for all downstream dependent passes.
             ref readonly var chosenNode = ref dependencyNodes[chosenPassIndex];
@@ -682,11 +697,12 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 
         Logger.DebugAssert(reorderedIndices.Count == pCompiledPasses->Count);
 
+        passResourceMasks.Dispose();
         pCompiledPasses->Clear();
         pCompiledPasses->AddRange(reorderedIndices);
     }
 
-    private static void BuildPassReachability(ReadOnlySpan<int> compiledPasses, ReadOnlySpan<PassDependencyNode> dependencyNodes, Span<int> scheduleIndexByPassIndex, Span<byte> reachability)
+    private static void BuildPassReachability(ReadOnlySpan<int> compiledPasses, ReadOnlySpan<PassDependencyNode> dependencyNodes, Span<int> scheduleIndexByPassIndex, ref RenderGraphBitMatrix reachability)
     {
         scheduleIndexByPassIndex.Fill(-1);
         reachability.Clear();
@@ -721,22 +737,13 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 var dependentPassIndex = dependencyNodes[sourceNode.dependents[edgeIndex]].passIndex;
                 var dependent = scheduleIndexByPassIndex[dependentPassIndex];
                 Logger.DebugAssert(dependent > source);
-                reachability[(source * passCount) + dependent] = 1;
-
-                var dependentRow = dependent * passCount;
-                var sourceRow = source * passCount;
-                for (var destination = dependent + 1; destination < passCount; destination++)
-                {
-                    if (reachability[dependentRow + destination] != 0)
-                    {
-                        reachability[sourceRow + destination] = 1;
-                    }
-                }
+                reachability.Set(source, dependent);
+                reachability.OrRow(source, dependent, dependent >> 6);
             }
         }
     }
 
-    private static void BuildDependencyWindowSchedule(List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, Span<CommandQueueType> effectiveQueues, Span<SyncBoundary> syncBoundaries, ReadOnlySpan<byte> reachability)
+    private static void BuildDependencyWindowSchedule(List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, Span<CommandQueueType> effectiveQueues, Span<SyncBoundary> syncBoundaries, in RenderGraphBitMatrix reachability)
     {
         effectiveQueues.Clear();
         syncBoundaries.Clear();
@@ -763,7 +770,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 continue;
             }
 
-            var joinIndex = FindFirstDependent(candidateIndex, passCount, reachability);
+            var joinIndex = FindFirstDependent(candidateIndex, in reachability);
             if (joinIndex < 0)
             {
                 continue;
@@ -775,7 +782,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 var nextIndex = groupEndIndex + 1;
                 var nextCandidate = passes[compiledPasses[nextIndex]];
                 if (!IsAsyncComputeCandidate(nextCandidate)
-                    || FindFirstDependent(nextIndex, passCount, reachability) != joinIndex)
+                    || FindFirstDependent(nextIndex, in reachability) != joinIndex)
                 {
                     break;
                 }
@@ -811,20 +818,17 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             }
 
             var hasGraphicsProducer = false;
-            for (var producerIndex = 0; producerIndex < candidateIndex && !hasGraphicsProducer; producerIndex++)
+            for (var producerIndex = 0; producerIndex < candidateIndex; producerIndex++)
             {
                 if (effectiveQueues[producerIndex] == CommandQueueType.Compute)
                 {
                     continue;
                 }
 
-                for (var computeIndex = candidateIndex; computeIndex <= groupEndIndex; computeIndex++)
+                if (reachability.IntersectsRange(producerIndex, candidateIndex, groupEndIndex))
                 {
-                    if (reachability[(producerIndex * passCount) + computeIndex] != 0)
-                    {
-                        hasGraphicsProducer = true;
-                        break;
-                    }
+                    hasGraphicsProducer = true;
+                    break;
                 }
             }
 
@@ -864,13 +868,16 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         }
     }
 
-    private static void FinalizeScheduleReachability(ReadOnlySpan<CommandQueueType> effectiveQueues, ReadOnlySpan<SyncBoundary> syncBoundaries, Span<int> commandBufferIds, Span<byte> reachability)
+    private static void FinalizeScheduleReachability(ReadOnlySpan<CommandQueueType> effectiveQueues, ReadOnlySpan<SyncBoundary> syncBoundaries, Span<int> commandBufferIds, ref RenderGraphBitMatrix reachability)
     {
         var passCount = effectiveQueues.Length;
         if (passCount == 0)
         {
             return;
         }
+
+        using var scope = AllocationManager.CreateStackScope();
+        using var queueMasks = new RenderGraphBitMatrix(2, passCount, scope.AllocationHandle);
 
         var currentCommandBufferId = 0;
         for (var passIndex = 0; passIndex < passCount; passIndex++)
@@ -882,18 +889,21 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             }
 
             commandBufferIds[passIndex] = currentCommandBufferId;
+            queueMasks.Set((int)effectiveQueues[passIndex], passIndex);
         }
 
-        for (var source = 0; source < passCount; source++)
+        var wordCount = reachability.WordCount;
+        for (var source = 0; source < passCount - 1; source++)
         {
-            var sourceCommandBufferId = commandBufferIds[source];
-            for (var destination = source + 1; destination < passCount; destination++)
+            var queueRow = queueMasks.GetReadOnlyRow((int)effectiveQueues[source]);
+            var sourceRow = reachability.GetRow(source);
+            var startCol = source + 1;
+            var startWord = startCol >> 6;
+            var firstMask = ~0UL << (startCol & 63);
+            sourceRow[startWord] |= queueRow[startWord] & firstMask;
+            for (var w = startWord + 1; w < wordCount; w++)
             {
-                if (sourceCommandBufferId == commandBufferIds[destination]
-                    || effectiveQueues[source] == effectiveQueues[destination])
-                {
-                    reachability[(source * passCount) + destination] = 1;
-                }
+                sourceRow[w] |= queueRow[w];
             }
         }
 
@@ -909,7 +919,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             {
                 if (commandBufferIds[source] == boundary.producerCommandBufferId)
                 {
-                    reachability[(source * passCount) + destination] = 1;
+                    reachability.Set(source, destination);
                 }
             }
         }
@@ -918,21 +928,28 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         // command-buffer ordering without introducing a second graph representation.
         for (var source = passCount - 1; source >= 0; source--)
         {
-            var sourceRow = source * passCount;
-            for (var intermediate = source + 1; intermediate < passCount; intermediate++)
+            var startCol = source + 1;
+            if (startCol >= passCount)
             {
-                if (reachability[sourceRow + intermediate] == 0)
+                continue;
+            }
+
+            var minWord = startCol >> 6;
+            var firstMask = ~0UL << (startCol & 63);
+            for (var w = minWord; w < wordCount; w++)
+            {
+                var bits = reachability.GetReadOnlyRow(source)[w];
+                if (w == minWord)
                 {
-                    continue;
+                    bits &= firstMask;
                 }
 
-                var intermediateRow = intermediate * passCount;
-                for (var destination = intermediate + 1; destination < passCount; destination++)
+                while (bits != 0)
                 {
-                    if (reachability[intermediateRow + destination] != 0)
-                    {
-                        reachability[sourceRow + destination] = 1;
-                    }
+                    var bit = BitOperations.TrailingZeroCount(bits);
+                    bits &= bits - 1;
+                    var intermediate = (w << 6) + bit;
+                    reachability.OrRow(source, intermediate, w);
                 }
             }
         }
@@ -950,33 +967,17 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             && pass.depthTargetReads.Count == 0;
     }
 
-    private static int FindFirstDependent(int sourceIndex, int passCount, ReadOnlySpan<byte> reachability)
+    private static int FindFirstDependent(int sourceIndex, in RenderGraphBitMatrix reachability)
     {
-        var sourceRow = sourceIndex * passCount;
-        for (var destinationIndex = sourceIndex + 1; destinationIndex < passCount; destinationIndex++)
-        {
-            if (reachability[sourceRow + destinationIndex] != 0)
-            {
-                return destinationIndex;
-            }
-        }
-
-        return -1;
+        return reachability.FindFirstSetBitAfter(sourceIndex, sourceIndex);
     }
 
-    private static AliasingPlan RestoreFromCache(CachedCompilation cached, List<RenderGraphPass> passes, AllocationHandle allocationHandle)
+    private static void RestorePassCulledFlags(CachedCompilation cached, List<RenderGraphPass> passes)
     {
         for (var i = 0; i < passes.Count && i < cached.passCulledFlags.Count; i++)
         {
             passes[i].culled = cached.passCulledFlags[i];
         }
-
-        return RenderGraphAliasingBuilder.RestoreFromCache(
-            cached.logicalToPhysical,
-            cached.placedResources,
-            cached.aliasedLogicalResources,
-            cached.totalHeapSize,
-            allocationHandle);
     }
 
     private void BuildExecutionCommands(
@@ -989,7 +990,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         ReadOnlySpan<CommandQueueType> effectiveQueues,
         ReadOnlySpan<SyncBoundary> syncBoundaries,
         ReadOnlySpan<int> commandBufferIds,
-        ReadOnlySpan<byte> reachability,
+        in RenderGraphBitMatrix reachability,
         RGFlags flags)
     {
         using var scope = AllocationManager.CreateStackScope();
@@ -1015,14 +1016,18 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             compiledPasses,
             usageRanges.AsSpan(),
             scope.AllocationHandle);
+        using var handoffReleaseHeads = new UnsafeArray<int>(compiledPasses.Length, scope.AllocationHandle);
+        using var handoffAcquireHeads = new UnsafeArray<int>(compiledPasses.Length, scope.AllocationHandle);
         using var handoffs = BuildQueueHandoffs(
             usageRecords.AsSpan(),
             usageRanges.AsSpan(),
             effectiveQueues,
             commandBufferIds,
-            reachability,
+            in reachability,
             ref aliasingPlan,
             resourceOrdering,
+            handoffReleaseHeads.AsSpan(),
+            handoffAcquireHeads.AsSpan(),
             scope.AllocationHandle);
 
         using var splitPlans = new UnsafeList<SplitBarrierPlan>(_resourceRegistry.ResourceCount, scope.AllocationHandle);
@@ -1054,7 +1059,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             ref readonly var boundary = ref syncBoundaries[idx];
             if (boundary.isValid)
             {
-                EmitQueueReleaseBarriers(ref writer, handoffs.AsSpan(), idx);
+                EmitQueueReleaseBarriers(ref writer, handoffs.AsSpan(), handoffReleaseHeads.AsSpan(), idx);
                 if (boundary.nextCommandBufferId != commandBufferId + 1)
                 {
                     throw new InvalidOperationException("Render-graph sync boundaries must assign contiguous relative command-buffer IDs.");
@@ -1091,11 +1096,13 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     idx,
                     nativePass.mergedPassIndices.Count,
                     effectiveQueues,
+                    commandBufferId,
                     ref writer,
                     ref aliasingPlan,
                     resourceOrdering,
                     resourceStates.AsSpan(),
                     handoffs.AsSpan(),
+                    handoffAcquireHeads.AsSpan(),
                     splitBeginHeads.AsSpan(),
                     splitPlans.AsSpan(),
                     activeSplitPlans.AsSpan());
@@ -1125,11 +1132,13 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                     usageRecords.AsSpan().Slice(usageRange.start, usageRange.count),
                     idx,
                     effectiveQueues[idx],
+                    commandBufferId,
                     ref writer,
                     ref aliasingPlan,
                     resourceOrdering,
                     resourceStates.AsSpan(),
                     handoffs.AsSpan(),
+                    handoffAcquireHeads.AsSpan(),
                     splitBeginHeads.AsSpan(),
                     splitPlans.AsSpan(),
                     activeSplitPlans.AsSpan());

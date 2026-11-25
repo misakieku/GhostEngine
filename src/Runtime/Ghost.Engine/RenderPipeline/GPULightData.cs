@@ -85,7 +85,7 @@ public struct GPUShadowSamplingData
     public float worldTexelSize;            // World space size of a texel in the shadow map
     public float normalBias;                // Normal bias for this shadow view
     public float slopeBias;                 // Slope based depth bias for this shadow view
-    public float padding;
+    public float shadowFade;                // Distance fade attenuation [0..1]
 }
 
 [GenerateHLSL(PackingRules.Exact, "EngineResources/Shaders/Generated/GPULightData.hlsl")]
@@ -107,6 +107,7 @@ public struct ShadowData
 
 public struct PunctualLightRequest
 {
+    public ulong entityKey;
     public GPUPunctualLight light;
     public ShadowData shadowData;
 }

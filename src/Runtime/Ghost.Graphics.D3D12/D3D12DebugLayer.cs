@@ -1,8 +1,7 @@
 using Ghost.Graphics.D3D12.Utilities;
 using Misaki.HighPerformance.LowLevel;
-using TerraFX.Interop.DirectX;
 
-using static TerraFX.Aliases.DXGI_Alias;
+using static Ghost.Aliases.DXGI_Alias;
 
 namespace Ghost.Graphics.D3D12;
 
@@ -24,8 +23,8 @@ internal unsafe class D3D12DebugLayer
 
         IDXGIInfoQueue* pDxgiInfoQueue = default;
         ThrowIfFailed(DXGIGetDebugInterface1(0u, __uuidof(pDxgiInfoQueue), (void**)&pDxgiInfoQueue));
-        ThrowIfFailed(pDxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true));
-        ThrowIfFailed(pDxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true));
+        ThrowIfFailed(pDxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, TRUE));
+        ThrowIfFailed(pDxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, TRUE));
 
         _d3d12Debug.Attach(pDebug);
         _dxgiDebug.Attach(pDxgiDebug);

@@ -192,6 +192,7 @@ ShadowType GetPunctualShadowAttenuation(float3 positionRWS, float3 N, float3 L, 
                 Texture2D<float> shadowAtlasTex = GET_TEXTURE2D(shadowAtlas);
 
                 shadow = SampleShadow_PCF5x5(shadowAtlasTex, GET_SAMPLER(LINEAR_CLAMP_GE_SAMPLER), shadowCull.tileOffsetScale, atlasUV, receiverDepth, shadowCull.size.x, shadowCull.size.y);
+                shadow = lerp(1.0f, shadow, shadowCull.shadowFade);
             }
         }
     }

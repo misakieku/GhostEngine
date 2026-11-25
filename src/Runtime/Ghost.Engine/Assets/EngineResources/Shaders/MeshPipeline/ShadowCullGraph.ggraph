@@ -244,8 +244,8 @@ compute "Internal/ShadowCullGraph"
                     node.error * maxScale,
                     worldCenter,
                     worldRadius,
-                    GetCameraPositionWS(),
-                    g_ViewData.projectionMatrix[1][1],
+                    shadowCull.lightPosRWSAndProj11.xyz,
+                    shadowCull.lightPosRWSAndProj11.w,
                     shadowCull.size.z,
                     shadowCull.lodErrorThreshold);
 #endif
@@ -408,8 +408,8 @@ compute "Internal/ShadowCullGraph"
                     meshlet.parentError * maxScale,
                     meshletParentWorldCenter,
                     meshletParentWorldRadius,
-                    GetCameraPositionWS(),
-                    g_ViewData.projectionMatrix[1][1],
+                    shadowCull.lightPosRWSAndProj11.xyz,
+                    shadowCull.lightPosRWSAndProj11.w,
                     shadowCull.size.z,
                     shadowCull.lodErrorThreshold);
 
@@ -419,8 +419,8 @@ compute "Internal/ShadowCullGraph"
                     meshlet.clusterError * maxScale,
                     meshletWorldCenter,
                     meshletWorldRadius,
-                    GetCameraPositionWS(),
-                    g_ViewData.projectionMatrix[1][1],
+                    shadowCull.lightPosRWSAndProj11.xyz,
+                    shadowCull.lightPosRWSAndProj11.w,
                     shadowCull.size.z,
                     shadowCull.lodErrorThreshold);
 #endif

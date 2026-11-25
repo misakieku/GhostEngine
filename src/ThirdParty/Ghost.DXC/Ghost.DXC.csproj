@@ -1,6 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Ghost.Win32\Ghost.Win32.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Ghost.Win32" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="runtimes\win-x64\native\dxcompiler.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

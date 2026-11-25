@@ -364,4 +364,5 @@ public struct MeshData
     public uint meshletGroupCount;
     public uint lodLevelCount;
     public uint materialSlotCount;     // number of material slots baked into this mesh's meshlets
+    public float positionQuantStep;    // uniform object-space grid step for cluster-local quantized positions
 };

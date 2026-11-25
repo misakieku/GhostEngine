@@ -131,14 +131,13 @@ public class RenderEnginePhase6Test
         Assert.IsFalse(MockingCommandQueue.GlobalRecordedOps.Any(op => op.OpType == QueueOpType.Wait));
         Assert.IsTrue(MockingCommandQueue.GlobalRecordedOps.All(op => op.QueueType == CommandQueueType.Graphics));
 
-        // Three rounds of Submit + Signal
+        // Three Graphics command buffers with no cross-queue waits batch into 1 Submit + 1 Signal
         var ops = MockingCommandQueue.GlobalRecordedOps.ToList();
-        Assert.HasCount(6, ops);
-        for (var i = 0; i < 3; i++)
-        {
-            Assert.AreEqual(QueueOpType.Submit, ops[i * 2].OpType);
-            Assert.AreEqual(QueueOpType.Signal, ops[i * 2 + 1].OpType);
-        }
+        Assert.HasCount(2, ops);
+        Assert.AreEqual(QueueOpType.Submit, ops[0].OpType);
+        Assert.AreEqual(3, ops[0].BatchSize);
+        Assert.AreEqual(QueueOpType.Signal, ops[1].OpType);
+        Assert.AreEqual(3UL, ops[1].Value);
     }
 
     /// <summary>
@@ -285,7 +284,10 @@ public class RenderEnginePhase6Test
 
         Assert.IsTrue(completion.IsValid);
         Assert.IsFalse(MockingCommandQueue.GlobalRecordedOps.Any(op => op.OpType == QueueOpType.Wait));
-        Assert.HasCount(4, MockingCommandQueue.GlobalRecordedOps); // 2 × (Submit + Signal)
+        Assert.HasCount(2, MockingCommandQueue.GlobalRecordedOps); // 1 batched Submit (2 CBs) + 1 Signal
+        Assert.AreEqual(QueueOpType.Submit, MockingCommandQueue.GlobalRecordedOps[0].OpType);
+        Assert.AreEqual(2, MockingCommandQueue.GlobalRecordedOps[0].BatchSize);
+        Assert.AreEqual(QueueOpType.Signal, MockingCommandQueue.GlobalRecordedOps[1].OpType);
     }
 }
 #endif

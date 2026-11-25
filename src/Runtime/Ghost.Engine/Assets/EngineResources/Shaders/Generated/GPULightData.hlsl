@@ -58,7 +58,7 @@ struct GPUShadowSamplingData
     float worldTexelSize;
     float normalBias;
     float slopeBias;
-    float padding;
+    float shadowFade;
 };
 
 struct GPUShadowViewData

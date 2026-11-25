@@ -4,8 +4,6 @@
 #include "EngineResources/Shaders/Common.hlsl"
 
 #define MESHLET_PAGE_SIZE 131072u
-#define PACKED_VERTEX_STRIDE 24u
-#define PACKED_TRIANGLE_STRIDE 4u
 
 struct MeshData
 {
@@ -24,6 +22,7 @@ struct MeshData
     uint meshletGroupCount;
     uint lodLevelCount;
     uint materialSlotCount;
+    float positionQuantStep;
 };
 
 struct Meshlet
@@ -39,9 +38,9 @@ struct Meshlet
     float parentError;
     uint packedCounts; // byte vertexCount, byte triangleCount, byte localMaterialIndex, byte lodLevel
     float maxEdgeLength;
-    uint _padding0;
-    uint _padding1;
-    uint _padding2;
+    uint packedQuantOrigin0;
+    uint packedQuantOrigin1;
+    uint packedFormat;
 };
 
 struct MeshletGroup
@@ -121,14 +120,70 @@ void GetMeshletPageBufferAndBase(in MeshData meshData, uint pageIndex, out BYTE_
     pageBase = meshData.meshletVerticesBufferOffset;
 }
 
-// Triangle Packed Indices
-uint LoadPackedIndices(uint triangleID, MeshData meshData, Meshlet meshlet)
+// Bitstream & Cluster Quantization Helpers
+uint ExtractBitStream(ByteAddressBuffer buf, uint byteBase, uint bitOffset, uint bitCount)
 {
-    BYTE_ADDRESS_BUFFER pageBufferIndex;
-    uint pageBase;
-    GetMeshletPageBufferAndBase(meshData, meshlet.pageIndex, pageBufferIndex, pageBase);
-    ByteAddressBuffer pageBuffer = GET_BUFFER(pageBufferIndex);
-    return pageBuffer.Load<uint>(pageBase + meshlet.triangleOffset + triangleID * PACKED_TRIANGLE_STRIDE);
+    if (bitCount == 0u)
+    {
+        return 0u;
+    }
+
+    uint wordIndex = bitOffset >> 5u;
+    uint bitInWord = bitOffset & 31u;
+    uint wordAddr = byteBase + wordIndex * 4u;
+    uint val = buf.Load(wordAddr) >> bitInWord;
+    if (bitInWord + bitCount > 32u)
+    {
+        val |= buf.Load(wordAddr + 4u) << (32u - bitInWord);
+    }
+    return val & ((1u << bitCount) - 1u);
+}
+
+uint3 UnpackMeshletQuantOrigin(uint packed0, uint packed1)
+{
+    uint minX = packed0 & 0x1FFFFFu;
+    uint minY = (packed0 >> 21u) | ((packed1 & 0x3FFu) << 11u);
+    uint minZ = (packed1 >> 10u) & 0x1FFFFFu;
+    return uint3(minX, minY, minZ);
+}
+
+uint GetMeshletAttributeBase(uint pageBase, uint packedFormat)
+{
+    return pageBase + (((packedFormat >> 16u) & 0x7FFFu) << 2u);
+}
+
+bool HasMeshletVertexColor(uint packedFormat)
+{
+    return (packedFormat & (1u << 15u)) != 0u;
+}
+
+float3 UnpackMeshletPosition(ByteAddressBuffer pageBuffer, uint pageBase, uint vertexOffset, uint packedQuantOrigin0, uint packedQuantOrigin1, uint packedFormat, float3 worldBoundsMin, float positionQuantStep, uint localVertexIndex)
+{
+    uint bitsX = packedFormat & 0x1Fu;
+    uint bitsY = (packedFormat >> 5u) & 0x1Fu;
+    uint bitsZ = (packedFormat >> 10u) & 0x1Fu;
+    uint totalBits = bitsX + bitsY + bitsZ;
+
+    uint3 qOrigin = UnpackMeshletQuantOrigin(packedQuantOrigin0, packedQuantOrigin1);
+    uint3 qDelta = uint3(0u, 0u, 0u);
+    if (totalBits > 0u)
+    {
+        uint posByteBase = pageBase + vertexOffset;
+        uint bitOffset = localVertexIndex * totalBits;
+        qDelta.x = ExtractBitStream(pageBuffer, posByteBase, bitOffset, bitsX);
+        qDelta.y = ExtractBitStream(pageBuffer, posByteBase, bitOffset + bitsX, bitsY);
+        qDelta.z = ExtractBitStream(pageBuffer, posByteBase, bitOffset + bitsX + bitsY, bitsZ);
+    }
+
+    uint3 qPos = qOrigin + qDelta;
+    return worldBoundsMin + (float3)qPos * positionQuantStep;
+}
+
+uint3 UnpackMeshletTriangleIndices(ByteAddressBuffer pageBuffer, uint pageBase, uint triangleOffset, uint localTriangleIndex)
+{
+    uint triByteBase = pageBase + triangleOffset;
+    uint packed18 = ExtractBitStream(pageBuffer, triByteBase, localTriangleIndex * 18u, 18u);
+    return uint3(packed18 & 0x3Fu, (packed18 >> 6u) & 0x3Fu, (packed18 >> 12u) & 0x3Fu);
 }
 
 // Packed Vertex and Unpacking Helpers
@@ -178,16 +233,17 @@ PackedVertex LoadMeshletPackedVertex(uint localVertexIndex, MeshData meshData, M
     uint pageBase;
     GetMeshletPageBufferAndBase(meshData, meshlet.pageIndex, pageBufferIndex, pageBase);
     ByteAddressBuffer pageBuffer = GET_BUFFER(pageBufferIndex);
-    uint vOffset = pageBase + meshlet.vertexOffset + localVertexIndex * PACKED_VERTEX_STRIDE;
 
-    uint4 raw0 = pageBuffer.Load4(vOffset);
-    uint2 raw1 = pageBuffer.Load2(vOffset + 16u);
+    bool hasColor = HasMeshletVertexColor(meshlet.packedFormat);
+    uint attrStride = hasColor ? 12u : 8u;
+    uint attrOffset = GetMeshletAttributeBase(pageBase, meshlet.packedFormat) + localVertexIndex * attrStride;
+    uint2 rawAttr = pageBuffer.Load2(attrOffset);
 
     PackedVertex v;
-    v.position = asfloat(raw0.xyz);
-    v.normal = UnpackOctahedralNormal(raw0.w);
-    v.uv = UnpackHalf2(raw1.x);
-    v.color = UnpackRGBA8(raw1.y);
+    v.position = UnpackMeshletPosition(pageBuffer, pageBase, meshlet.vertexOffset, meshlet.packedQuantOrigin0, meshlet.packedQuantOrigin1, meshlet.packedFormat, meshData.worldBoundsMin, meshData.positionQuantStep, localVertexIndex);
+    v.normal = UnpackOctahedralNormal(rawAttr.x);
+    v.uv = UnpackHalf2(rawAttr.y);
+    v.color = hasColor ? UnpackRGBA8(pageBuffer.Load(attrOffset + 8u)) : float4(1.0f, 1.0f, 1.0f, 1.0f);
     return v;
 }
 
@@ -197,8 +253,16 @@ float3 LoadMeshletPositionOnly(MeshData meshData, Meshlet meshlet, uint localVer
     uint pageBase;
     GetMeshletPageBufferAndBase(meshData, meshlet.pageIndex, pageBufferIndex, pageBase);
     ByteAddressBuffer pageBuffer = GET_BUFFER(pageBufferIndex);
-    uint vOffset = pageBase + meshlet.vertexOffset + localVertexIndex * PACKED_VERTEX_STRIDE;
-    return asfloat(pageBuffer.Load3(vOffset));
+    return UnpackMeshletPosition(pageBuffer, pageBase, meshlet.vertexOffset, meshlet.packedQuantOrigin0, meshlet.packedQuantOrigin1, meshlet.packedFormat, meshData.worldBoundsMin, meshData.positionQuantStep, localVertexIndex);
+}
+
+float2 LoadMeshletUVOnly(ByteAddressBuffer pageBuffer, uint pageBase, uint packedFormat, uint localVertexIndex)
+{
+    bool hasColor = HasMeshletVertexColor(packedFormat);
+    uint attrStride = hasColor ? 12u : 8u;
+    uint attrBase = GetMeshletAttributeBase(pageBase, packedFormat);
+    uint packedUV = pageBuffer.Load(attrBase + localVertexIndex * attrStride + 4u);
+    return UnpackHalf2(packedUV);
 }
 
 float2 LoadMeshletUVOnly(MeshData meshData, Meshlet meshlet, uint localVertexIndex)
@@ -207,9 +271,7 @@ float2 LoadMeshletUVOnly(MeshData meshData, Meshlet meshlet, uint localVertexInd
     uint pageBase;
     GetMeshletPageBufferAndBase(meshData, meshlet.pageIndex, pageBufferIndex, pageBase);
     ByteAddressBuffer pageBuffer = GET_BUFFER(pageBufferIndex);
-    uint vOffset = pageBase + meshlet.vertexOffset + localVertexIndex * PACKED_VERTEX_STRIDE;
-    uint packedUV = pageBuffer.Load(vOffset + 16u);
-    return UnpackHalf2(packedUV);
+    return LoadMeshletUVOnly(pageBuffer, pageBase, meshlet.packedFormat, localVertexIndex);
 }
 
 uint LoadMeshletTriangle(MeshData meshData, Meshlet meshlet, uint localTriangleIndex)
@@ -218,30 +280,13 @@ uint LoadMeshletTriangle(MeshData meshData, Meshlet meshlet, uint localTriangleI
     uint pageBase;
     GetMeshletPageBufferAndBase(meshData, meshlet.pageIndex, pageBufferIndex, pageBase);
     ByteAddressBuffer pageBuffer = GET_BUFFER(pageBufferIndex);
-    uint tOffset = pageBase + meshlet.triangleOffset + localTriangleIndex * PACKED_TRIANGLE_STRIDE;
-    return pageBuffer.Load(tOffset);
+    uint3 idx = UnpackMeshletTriangleIndices(pageBuffer, pageBase, meshlet.triangleOffset, localTriangleIndex);
+    return idx.x | (idx.y << 8u) | (idx.z << 16u);
 }
 
-float3 LoadMeshletPositionOnly(ByteAddressBuffer rawBuffer, uint meshletVerticesBufferOffset, uint pageIndex, uint vertexOffset, uint localVertexIndex)
+uint LoadPackedIndices(uint triangleID, MeshData meshData, Meshlet meshlet)
 {
-    uint pageBase = meshletVerticesBufferOffset + pageIndex * MESHLET_PAGE_SIZE;
-    uint vOffset = pageBase + vertexOffset + localVertexIndex * PACKED_VERTEX_STRIDE;
-    return asfloat(rawBuffer.Load3(vOffset));
-}
-
-float2 LoadMeshletUVOnly(ByteAddressBuffer rawBuffer, uint meshletVerticesBufferOffset, uint pageIndex, uint vertexOffset, uint localVertexIndex)
-{
-    uint pageBase = meshletVerticesBufferOffset + pageIndex * MESHLET_PAGE_SIZE;
-    uint vOffset = pageBase + vertexOffset + localVertexIndex * PACKED_VERTEX_STRIDE;
-    uint packedUV = rawBuffer.Load(vOffset + 16u);
-    return UnpackHalf2(packedUV);
-}
-
-uint LoadMeshletTriangle(ByteAddressBuffer rawBuffer, uint meshletVerticesBufferOffset, uint pageIndex, uint triangleOffset, uint localTriangleIndex)
-{
-    uint pageBase = meshletVerticesBufferOffset + pageIndex * MESHLET_PAGE_SIZE;
-    uint tOffset = pageBase + triangleOffset + localTriangleIndex * PACKED_TRIANGLE_STRIDE;
-    return rawBuffer.Load(tOffset);
+    return LoadMeshletTriangle(meshData, meshlet, triangleID);
 }
 
 // Christian Schüler's implicit tangent derivation

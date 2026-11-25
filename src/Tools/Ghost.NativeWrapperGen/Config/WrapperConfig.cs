@@ -1,4 +1,3 @@
-using Ghost.NativeWrapperGen.Transform;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -112,16 +111,36 @@ public sealed class ActionApplyConfig
 {
     /// <summary>"INSTANCE_METHOD", "STATIC_METHOD", or "INHERITANCE".</summary>
     public required string Type { get; init; }
-    /// <summary>
-    /// Optional per-apply-step options. Accessed dynamically:
-    ///   opts.removeFirstParam  — bool   [INSTANCE_METHOD] skip first param from public signature
-    ///   opts.passAs            — string [INSTANCE_METHOD] self-pointer expression ($TSelf substituted)
-    ///   opts.name.set          — string [INSTANCE/STATIC] fixed method name
-    ///   opts.name.remove       — array  [INSTANCE/STATIC] removal token list
-    ///   opts.baseType          — array  [INHERITANCE] list of base type strings
-    /// </summary>
-    [JsonConverter(typeof(DynamicJsonConverter))]
-    public dynamic? Opts { get; init; }
+    /// <summary>Optional per-apply-step options.</summary>
+    public ApplyOptsConfig? Opts { get; init; }
+}
+
+/// <summary>
+/// Strongly-typed options for an <see cref="ActionApplyConfig"/> step.
+/// </summary>
+public sealed class ApplyOptsConfig
+{
+    /// <summary>If true, skip the first native parameter from the public signature [INSTANCE_METHOD].</summary>
+    public bool? RemoveFirstParam { get; init; }
+    /// <summary>Self-pointer expression passed as the first native argument ($TSelf substituted) [INSTANCE_METHOD].</summary>
+    public string? PassAs { get; init; }
+    /// <summary>Method naming overrides [INSTANCE_METHOD / STATIC_METHOD].</summary>
+    public NameOptsConfig? Name { get; init; }
+    /// <summary>List of base type / interface names to add to the partial struct [INHERITANCE].</summary>
+    public List<string>? BaseType { get; init; }
+}
+
+/// <summary>
+/// Options controlling how a native function name is transformed into a C# method name.
+/// </summary>
+public sealed class NameOptsConfig
+{
+    /// <summary>Fixed method name override.</summary>
+    public string? Set { get; init; }
+    /// <summary>Ordered list of prefix/token removals (e.g. "PREFIX", "$TBare").</summary>
+    public List<string>? Remove { get; init; }
+    /// <summary>Target casing style (e.g. "PascalCase", "ALL_CAPS").</summary>
+    public string? Style { get; init; }
 }
 
 /// <summary>

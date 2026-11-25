@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-using static Ghost.DXC.UUID;
+using static Ghost.Win32.UUID;
 
 namespace Ghost.AssetForge.Core.Services;
 

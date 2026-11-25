@@ -4,9 +4,8 @@ using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.LowLevel.Collections;
 using System.Diagnostics;
 using System.Numerics;
-using TerraFX.Interop.DirectX;
 
-using static TerraFX.Aliases.D3D12_Alias;
+using static Ghost.Aliases.D3D12_Alias;
 
 namespace Ghost.Graphics.D3D12;
 

@@ -1,6 +1,7 @@
 using Ghost.Core;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using Ghost.MicroTest;
+using Ghost.MicroTest.Core;
 
-// TestRunner.Run<GGXMipTest>();
+TestRunner.Run<DXCBindingTest>();
+TestRunner.Run<D3D12BindingTest>();
 Console.WriteLine("Ghost.MicroTest");

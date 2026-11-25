@@ -334,6 +334,177 @@ public class FrameSchedulerTest
         engine.ReturnPooledCommandBuffer(commandBuffer);
     }
 
+    [TestMethod]
+    public void TestFlushPendingFollowedByCrossBatchDependencyDoesNotFalseCycle()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var scheduler = new FrameScheduler(engine);
+        using var copyAllocator = engine.CreateCommandAllocator(CommandBufferType.Copy);
+        using var graphicsAllocator = engine.CreateCommandAllocator(CommandBufferType.Graphics);
+
+        var copyHandle = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Copy, copyAllocator));
+        scheduler.FlushPending();
+        MockingCommandQueue.GlobalRecordedOps.Clear();
+
+        var graphicsHandle = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator));
+        scheduler.AddDependency(copyHandle, graphicsHandle);
+
+        var completion = scheduler.Flush();
+
+        Assert.AreEqual(1UL, completion.FrameNumber);
+        Assert.HasCount(3, MockingCommandQueue.GlobalRecordedOps);
+        Assert.AreEqual(QueueOpType.Wait, MockingCommandQueue.GlobalRecordedOps[0].OpType);
+        Assert.AreEqual(CommandQueueType.Graphics, MockingCommandQueue.GlobalRecordedOps[0].QueueType);
+        Assert.AreEqual(copyHandle.FenceValue, MockingCommandQueue.GlobalRecordedOps[0].Value);
+        Assert.AreEqual(QueueOpType.Submit, MockingCommandQueue.GlobalRecordedOps[1].OpType);
+        Assert.AreEqual(QueueOpType.Signal, MockingCommandQueue.GlobalRecordedOps[2].OpType);
+    }
+
+    [TestMethod]
+    public void TestFlushPendingFollowedByTransitionToNextBatch()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var scheduler = new FrameScheduler(engine);
+        using var copyAllocator = engine.CreateCommandAllocator(CommandBufferType.Copy);
+        using var graphicsAllocator = engine.CreateCommandAllocator(CommandBufferType.Graphics);
+
+        var copyHandle = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Copy, copyAllocator));
+        scheduler.Transition(CommandQueueType.Copy, CommandQueueType.Graphics);
+        scheduler.FlushPending();
+        MockingCommandQueue.GlobalRecordedOps.Clear();
+
+        scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator));
+        scheduler.Flush();
+
+        Assert.HasCount(3, MockingCommandQueue.GlobalRecordedOps);
+        Assert.AreEqual(QueueOpType.Wait, MockingCommandQueue.GlobalRecordedOps[0].OpType);
+        Assert.AreEqual(CommandQueueType.Graphics, MockingCommandQueue.GlobalRecordedOps[0].QueueType);
+        Assert.AreEqual(copyHandle.FenceValue, MockingCommandQueue.GlobalRecordedOps[0].Value);
+    }
+
+    [TestMethod]
+    public void TestRepeatedCrossQueueWaitIsSuppressedAcrossFlushes()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var scheduler = new FrameScheduler(engine);
+        using var copyAllocator = engine.CreateCommandAllocator(CommandBufferType.Copy);
+        using var graphicsAllocator = engine.CreateCommandAllocator(CommandBufferType.Graphics);
+
+        var copyHandle = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Copy, copyAllocator));
+        var gfx0 = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator));
+        scheduler.AddDependency(copyHandle, gfx0);
+        scheduler.FlushPending();
+
+        var gfx1 = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator));
+        scheduler.AddDependency(copyHandle, gfx1);
+        scheduler.Flush();
+
+        var waits = MockingCommandQueue.GlobalRecordedOps.Where(op => op.OpType == QueueOpType.Wait).ToArray();
+        Assert.HasCount(1, waits, "Destination queue must not re-wait on a fence value already waited on in an earlier batch.");
+    }
+
+    [TestMethod]
+    public void TestUnresolvedTransitionWithNoPendingSubmissionsThrowsOnFlush()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var scheduler = new FrameScheduler(engine);
+        using var copyAllocator = engine.CreateCommandAllocator(CommandBufferType.Copy);
+
+        scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Copy, copyAllocator));
+        scheduler.FlushPending();
+        scheduler.Transition(CommandQueueType.Copy, CommandQueueType.Graphics);
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => scheduler.Flush());
+        scheduler.Flush();
+    }
+
+    [TestMethod]
+    public void TestWaitIdleDoesNotIncrementSubmittedFrame()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var scheduler = new FrameScheduler(engine);
+        using var graphicsAllocator = engine.CreateCommandAllocator(CommandBufferType.Graphics);
+
+        scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator));
+        scheduler.WaitIdle();
+
+        Assert.AreEqual(0UL, scheduler.SubmittedFrame);
+        Assert.AreEqual(1, engine.ReturnedCommandBufferCount);
+    }
+
+    [TestMethod]
+    public void TestConsecutiveSameQueueSubmissionsBatchIntoSingleSubmitAndSignal()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var scheduler = new FrameScheduler(engine);
+        using var graphicsAllocator = engine.CreateCommandAllocator(CommandBufferType.Graphics);
+
+        var cb0 = CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator);
+        var cb1 = CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator);
+        var cb2 = CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator);
+
+        var h0 = scheduler.Submit(cb0);
+        var h1 = scheduler.Submit(cb1);
+        var h2 = scheduler.Submit(cb2);
+        scheduler.Flush();
+
+        Assert.HasCount(2, MockingCommandQueue.GlobalRecordedOps);
+        var submitOp = MockingCommandQueue.GlobalRecordedOps[0];
+        var signalOp = MockingCommandQueue.GlobalRecordedOps[1];
+        Assert.AreEqual(QueueOpType.Submit, submitOp.OpType);
+        Assert.AreEqual(3, submitOp.BatchSize);
+        Assert.IsNotNull(submitOp.BatchCommandBufferIds);
+        Assert.IsTrue(new ulong[] { (ulong)((MockingCommandBuffer)cb0).InstanceId, (ulong)((MockingCommandBuffer)cb1).InstanceId, (ulong)((MockingCommandBuffer)cb2).InstanceId }.SequenceEqual(submitOp.BatchCommandBufferIds));
+        Assert.AreEqual(QueueOpType.Signal, signalOp.OpType);
+        Assert.AreEqual(3UL, signalOp.Value);
+        Assert.IsTrue(scheduler.IsComplete(h0));
+        Assert.IsTrue(scheduler.IsComplete(h1));
+        Assert.IsTrue(scheduler.IsComplete(h2));
+    }
+
+    [TestMethod]
+    public void TestCrossQueueDependencySplitsSameQueueBatch()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var scheduler = new FrameScheduler(engine);
+        using var graphicsAllocator = engine.CreateCommandAllocator(CommandBufferType.Graphics);
+        using var computeAllocator = engine.CreateCommandAllocator(CommandBufferType.Compute);
+
+        var gfx0 = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator));
+        var gfx1 = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator));
+        var comp0 = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Compute, computeAllocator));
+        var gfx2 = scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator));
+
+        scheduler.AddDependency(gfx0, comp0);
+        scheduler.AddDependency(comp0, gfx2);
+        scheduler.Flush();
+
+        var ops = MockingCommandQueue.GlobalRecordedOps;
+        var gfx0SignalIdx = ops.FindIndex(op => op.QueueType == CommandQueueType.Graphics && op.OpType == QueueOpType.Signal && op.Value == gfx0.FenceValue);
+        var compWaitIdx = ops.FindIndex(op => op.QueueType == CommandQueueType.Compute && op.OpType == QueueOpType.Wait && op.Value == gfx0.FenceValue);
+        var gfx2WaitIdx = ops.FindIndex(op => op.QueueType == CommandQueueType.Graphics && op.OpType == QueueOpType.Wait && op.Value == comp0.FenceValue);
+
+        Assert.IsGreaterThanOrEqualTo(0, gfx0SignalIdx, "gfx0 must be signaled before comp0 waits on it.");
+        Assert.IsLessThan(compWaitIdx, gfx0SignalIdx);
+        Assert.IsLessThan(gfx2WaitIdx, compWaitIdx);
+    }
+
+    [TestMethod]
+    public void TestFreshSchedulerHasInvalidHandlesOnUnusedQueues()
+    {
+        using var engine = new MockingGraphicsEngine();
+        using var scheduler = new FrameScheduler(engine);
+        using var graphicsAllocator = engine.CreateCommandAllocator(CommandBufferType.Graphics);
+
+        scheduler.Submit(CreateExecutableCommandBuffer(engine, CommandBufferType.Graphics, graphicsAllocator));
+        var completion = scheduler.Flush();
+
+        Assert.IsTrue(completion.GraphicsSubmission.IsValid);
+        Assert.IsFalse(completion.ComputeSubmission.IsValid);
+        Assert.IsFalse(completion.CopySubmission.IsValid);
+        scheduler.WaitForFrame(in completion);
+    }
+
     private static ICommandBuffer CreateExecutableCommandBuffer(
         MockingGraphicsEngine engine,
         CommandBufferType type,

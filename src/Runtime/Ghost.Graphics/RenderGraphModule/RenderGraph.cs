@@ -317,7 +317,7 @@ public sealed class RenderGraph : IDisposable
             return result.Error;
         }
 
-        using var graph = result.Value;
+        var graph = result.Value;
         _context.RelativeScale = graph.scale;
 
         var error = _executor.Execute(executionContext, _context, graph, flags, out var graphicsSubmission, out var computeSubmission);

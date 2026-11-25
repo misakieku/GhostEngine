@@ -1,0 +1,47 @@
+{
+  "libraryName": "d3d12ma",
+  "nativeNamespace": "Ghost.D3D12MA",
+  "outputNamespace": "Ghost.D3D12MA",
+  "nativeTypePrefix": "D3D12MA_",
+  "skipTypes": [
+    "NativeAnnotationAttribute",
+    "NativeTypeNameAttribute"
+  ],
+  "skipFunctions": [],
+  "actions": [
+    {
+      "filter": "EXTERN_API",
+      "conditions": [ "SELF_PTR", "!NAME_CONDITION(D3D12MA_CreateAllocator)", "!NAME_CONDITION(D3D12MA_CreateVirtualBlock)" ],
+      "targetType": "FIRST_PARAM_TYPE",
+      "apply": {
+        "type": "INSTANCE_METHOD",
+        "opts": {
+          "removeFirstParam": true,
+          "passAs": "($TSelf*)System.Runtime.CompilerServices.Unsafe.AsPointer(ref this)",
+          "name": {
+            "remove": [
+              "PREFIX",
+              "$TBare"
+            ],
+            "style": "PascalCase"
+          }
+        }
+      }
+    },
+    {
+      "filter": "EXTERN_API",
+      "targetType": "D3D12MAApi",
+      "apply": {
+        "type": "STATIC_METHOD",
+        "opts": {
+          "name": {
+            "remove": [
+              "PREFIX"
+            ],
+            "style": "PascalCase"
+          }
+        }
+      }
+    }
+  ]
+}

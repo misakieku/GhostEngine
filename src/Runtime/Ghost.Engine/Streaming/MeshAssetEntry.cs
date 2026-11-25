@@ -9,6 +9,7 @@ using Ghost.Graphics.Utilities;
 using Misaki.HighPerformance.LowLevel;
 using Misaki.HighPerformance.Mathematics;
 using Misaki.HighPerformance.Mathematics.Geometry;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -24,6 +25,8 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
     private MeshContentHeader _header;
     private PageDirectoryEntry[] _pageDirectory = null!;
     private uint _globalPageTableOffset = uint.MaxValue;
+
+    internal Handle<Mesh> MeshHandle => _actualHandle;
 
     public MeshAssetEntry(AssetManager manager, IResourceDatabase resourceDatabase, ResourceManager resourceManager, Guid assetId, Guid[] dependencies, string assetName)
         : base(manager, resourceDatabase, resourceManager, assetId, AssetType.Mesh, dependencies, assetName)
@@ -129,11 +132,30 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
                 return Result.Failure("Mesh content contains an invalid ray tracing proxy range.");
             }
 
+            if (header.hierarchyUncompressedSize < 0 || header.groupUncompressedSize < 0 ||
+                header.meshletUncompressedSize < 0 || header.rayTracingProxyUncompressedSize < 0)
+            {
+                payload.Dispose();
+                return Result.Failure("Mesh content contains invalid uncompressed section sizes.");
+            }
+
             _payload = payload;
             _header = header;
 
             _pageDirectory = new PageDirectoryEntry[_header.pageCount];
             _payload.Slice(_header.pageDirectoryOffset, (int)_header.pageDirectorySize).CopyTo(MemoryMarshal.AsBytes(_pageDirectory.AsSpan()));
+
+            for (var p = 0; p < _pageDirectory.Length; p++)
+            {
+                ref readonly var dir = ref _pageDirectory[p];
+                if (!ValidateRange((long)dir.fileOffset, (long)dir.compressedSize, contentSize) ||
+                    dir.uncompressedSize > MeshletPageConstants.PAGE_SIZE)
+                {
+                    _payload = default;
+                    payload.Dispose();
+                    return Result.Failure($"Mesh content contains an invalid page directory entry at index {p}.");
+                }
+            }
 
             return Result.Success();
         }
@@ -144,37 +166,108 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         }
     }
 
-    public int ReadPage(uint pageIndex, Span<byte> dst)
+    internal bool TryGetPageReadDesc(uint pageIndex, out byte* pSrc, out int compressedSize, out int uncompressedSize, out PageCompressionMethod compressionMethod)
     {
         if (!_payload.IsValid || _pageDirectory == null || pageIndex >= (uint)_pageDirectory.Length)
         {
-            return 0;
+            pSrc = null;
+            compressedSize = 0;
+            uncompressedSize = 0;
+            compressionMethod = PageCompressionMethod.None;
+            return false;
         }
 
         ref readonly var dir = ref _pageDirectory[pageIndex];
-        var bytesToRead = (int)dir.uncompressedSize;
-        if (bytesToRead <= 0 || dst.Length < bytesToRead)
+        if (dir.uncompressedSize == 0 || dir.compressedSize == 0)
+        {
+            pSrc = null;
+            compressedSize = 0;
+            uncompressedSize = 0;
+            compressionMethod = PageCompressionMethod.None;
+            return false;
+        }
+
+        pSrc = _payload.Pointer + (long)dir.fileOffset;
+        compressedSize = (int)dir.compressedSize;
+        uncompressedSize = (int)dir.uncompressedSize;
+        compressionMethod = dir.compressionMethod;
+        return true;
+    }
+
+    public int ReadPage(uint pageIndex, Span<byte> dst)
+    {
+        if (!TryGetPageReadDesc(pageIndex, out var pSrc, out var compressedSize, out var uncompressedSize, out var compressionMethod))
         {
             return 0;
         }
 
-        _payload.Read((long)dir.fileOffset, dst[..bytesToRead]);
-        return bytesToRead;
+        if (dst.Length < uncompressedSize)
+        {
+            return 0;
+        }
+
+        var srcSpan = new ReadOnlySpan<byte>(pSrc, compressedSize);
+        if (compressionMethod == PageCompressionMethod.None)
+        {
+            srcSpan.CopyTo(dst);
+            return uncompressedSize;
+        }
+
+        if (compressionMethod == PageCompressionMethod.Zstd)
+        {
+            if (ZstandardDecoder.TryDecompress(srcSpan, dst[..uncompressedSize], out var bytesWritten) && bytesWritten == uncompressedSize)
+            {
+                return bytesWritten;
+            }
+
+            Logger.Error($"Failed to Zstd-decompress page {pageIndex} for mesh '{AssetName}'.");
+            return 0;
+        }
+
+        Logger.Error($"Unsupported page compression method {compressionMethod} for mesh '{AssetName}'.");
+        return 0;
+    }
+
+    private Result DecompressSection(long offset, long compressedSize, long uncompressedSize, bool isCompressed, Span<byte> dst)
+    {
+        if (uncompressedSize <= 0)
+        {
+            return Result.Success();
+        }
+
+        if (dst.Length < uncompressedSize)
+        {
+            return Result.Failure("Destination buffer is smaller than uncompressed mesh section size.");
+        }
+
+        var srcSpan = _payload.Slice(offset, (int)compressedSize);
+        if (!isCompressed)
+        {
+            srcSpan.CopyTo(dst);
+            return Result.Success();
+        }
+
+        if (!ZstandardDecoder.TryDecompress(srcSpan, dst[..(int)uncompressedSize], out var bytesWritten) || bytesWritten != uncompressedSize)
+        {
+            return Result.Failure($"Failed to Zstd-decompress mesh section for '{AssetName}'.");
+        }
+
+        return Result.Success();
     }
 
     public Result OnRecordUploadCommands(scoped in RenderContext context, ICommandBuffer copyCommandBuffer)
     {
-        var hierarchyBytes = (uint)_header.hierarchySize;
-        var groupBytes = (uint)_header.groupSize;
-        var meshletBytes = (uint)_header.meshletSize;
+        var hierarchyBytes = (uint)_header.hierarchyUncompressedSize;
+        var groupBytes = (uint)_header.groupUncompressedSize;
+        var meshletBytes = (uint)_header.meshletUncompressedSize;
         var metaBytes = hierarchyBytes + groupBytes + meshletBytes;
         var alignedMetaBytes = (metaBytes + 15u) & ~15u;
 
         var pageBufferBase = alignedMetaBytes;
-        var rootPageBytes = (uint)_header.rootPageSize;
+        var rootPageBytes = _pageDirectory.Length > 0 ? _pageDirectory[0].uncompressedSize : 0u;
         var rootEndOffset = pageBufferBase + (ulong)rootPageBytes;
 
-        var proxyBytes = (uint)_header.rayTracingProxySize;
+        var proxyBytes = (uint)_header.rayTracingProxyUncompressedSize;
         var proxyBaseOffset = (rootEndOffset + 15u) & ~15u;
         var totalGpuBufferSize = proxyBytes > 0 ? (proxyBaseOffset + proxyBytes) : rootEndOffset;
 
@@ -190,14 +283,41 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
         var pStaging = (byte*)NativeMemory.AllocZeroed((nuint)totalGpuBufferSize);
         try
         {
-            _payload.Slice(_header.hierarchyOffset, (int)hierarchyBytes).CopyTo(new Span<byte>(pStaging, (int)hierarchyBytes));
-            _payload.Slice(_header.groupOffset, (int)groupBytes).CopyTo(new Span<byte>(pStaging + hierarchyBytes, (int)groupBytes));
-            _payload.Slice(_header.meshletOffset, (int)meshletBytes).CopyTo(new Span<byte>(pStaging + hierarchyBytes + groupBytes, (int)meshletBytes));
-            _payload.Slice(_header.rootPageOffset, (int)rootPageBytes).CopyTo(new Span<byte>(pStaging + pageBufferBase, (int)rootPageBytes));
-            
+            var mask = _header.metadataCompressionMask;
+            var res = DecompressSection(_header.hierarchyOffset, _header.hierarchySize, hierarchyBytes, (mask & MeshContentHeader.METADATA_MASK_HIERARCHY) != 0, new Span<byte>(pStaging, (int)hierarchyBytes));
+            if (res.IsFailure)
+            {
+                return res;
+            }
+
+            res = DecompressSection(_header.groupOffset, _header.groupSize, groupBytes, (mask & MeshContentHeader.METADATA_MASK_GROUP) != 0, new Span<byte>(pStaging + hierarchyBytes, (int)groupBytes));
+            if (res.IsFailure)
+            {
+                return res;
+            }
+
+            res = DecompressSection(_header.meshletOffset, _header.meshletSize, meshletBytes, (mask & MeshContentHeader.METADATA_MASK_MESHLET) != 0, new Span<byte>(pStaging + hierarchyBytes + groupBytes, (int)meshletBytes));
+            if (res.IsFailure)
+            {
+                return res;
+            }
+
+            if (rootPageBytes > 0)
+            {
+                var rootRead = ReadPage(0, new Span<byte>(pStaging + pageBufferBase, (int)rootPageBytes));
+                if (rootRead != (int)rootPageBytes)
+                {
+                    return Result.Failure($"Failed to decode Root Page 0 for mesh '{AssetName}'.");
+                }
+            }
+
             if (proxyBytes > 0)
             {
-                _payload.Slice(_header.rayTracingProxyOffset, (int)proxyBytes).CopyTo(new Span<byte>(pStaging + proxyBaseOffset, (int)proxyBytes));
+                res = DecompressSection(_header.rayTracingProxyOffset, _header.rayTracingProxySize, proxyBytes, (mask & MeshContentHeader.METADATA_MASK_RAYTRACING_PROXY) != 0, new Span<byte>(pStaging + proxyBaseOffset, (int)proxyBytes));
+                if (res.IsFailure)
+                {
+                    return res;
+                }
             }
 
             var streamingManager = Manager.MeshletStreamingManager;
@@ -236,6 +356,7 @@ internal unsafe class MeshAssetEntry : AssetEntry, ILoadableAssetEntry, IUploada
                 meshletGroupCount = (uint)_header.meshletGroupCount,
                 lodLevelCount = (uint)_header.lodLevelCount,
                 materialSlotCount = (uint)_header.materialSlotCount,
+                positionQuantStep = _header.positionQuantStep,
             };
 
             var meshDataBufferDesc = new BufferDesc

@@ -14,7 +14,11 @@
     <ProjectReference Include="..\..\Runtime\Ghost.Core\Ghost.Core.csproj" />
     <ProjectReference Include="..\..\Runtime\Ghost.Graphics\Ghost.Graphics.csproj" />
     <ProjectReference Include="..\..\Editor\Ghost.AssetForge.Core\Ghost.AssetForge.Core.csproj" />
+    <ProjectReference Include="..\..\ThirdParty\Ghost.D3D12\Ghost.D3D12.csproj" />
+    <ProjectReference Include="..\..\ThirdParty\Ghost.D3D12MA\Ghost.D3D12MA.csproj" />
     <ProjectReference Include="..\..\ThirdParty\Ghost.DXC\Ghost.DXC.csproj" />
+    <ProjectReference Include="..\..\ThirdParty\Ghost.DXGI\Ghost.DXGI.csproj" />
+    <ProjectReference Include="..\..\ThirdParty\Ghost.Win32\Ghost.Win32.csproj" />
     <ProjectReference Include="..\..\ThirdParty\Ghost.MeshOptimizer\Ghost.MeshOptimizer.csproj" />
     <ProjectReference Include="..\..\ThirdParty\Ghost.Nvtt\Ghost.Nvtt.csproj" />
     <ProjectReference Include="..\..\ThirdParty\Ghost.StbI\Ghost.StbI.csproj" />

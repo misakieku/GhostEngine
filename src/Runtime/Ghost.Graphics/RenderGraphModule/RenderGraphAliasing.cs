@@ -63,17 +63,26 @@ internal struct AliasingPlan : IDisposable
 {
     public ulong totalHeapSize;
     public UnsafeList<PlacedResource> placedResources;
-    public UnsafeHashMap<int, int> logicalToPlaced;
+    public UnsafeArray<int> logicalToPlaced;
 
-    public AliasingPlan(AllocationHandle allocationHandle)
+    public AliasingPlan(int resourceCount, AllocationHandle allocationHandle)
     {
         placedResources = new UnsafeList<PlacedResource>(32, allocationHandle);
-        logicalToPlaced = new UnsafeHashMap<int, int>(64, allocationHandle);
+        logicalToPlaced = resourceCount > 0
+            ? new UnsafeArray<int>(resourceCount, allocationHandle)
+            : default;
+
+        if (logicalToPlaced.IsCreated)
+        {
+            logicalToPlaced.AsSpan().Fill(-1);
+        }
     }
 
-    public int GetPlacedResourceIndex(int logicalIndex)
+    public readonly int GetPlacedResourceIndex(int logicalIndex)
     {
-        return logicalToPlaced.TryGetValue(logicalIndex, out var placedIndex) ? placedIndex : -1;
+        return logicalToPlaced.IsCreated && (uint)logicalIndex < (uint)logicalToPlaced.Length
+            ? logicalToPlaced[logicalIndex]
+            : -1;
     }
 
     public readonly Result<PlacedResource> GetPlacedResource(int placedIndex)
@@ -83,15 +92,11 @@ internal struct AliasingPlan : IDisposable
             : Result.Failure();
     }
 
-    public void StoreToCache(ref UnsafeHashMap<int, int> outLogicalToPlaced, ref UnsafeArray<PlacedResourceData> outPlacedData, ref UnsafeArray<int> outAliasedLogicalResources)
+    public void StoreToCache(ref UnsafeArray<int> outLogicalToPlaced, ref UnsafeArray<PlacedResourceData> outPlacedData, ref UnsafeArray<int> outAliasedLogicalResources)
     {
-        if (logicalToPlaced.Count != 0)
+        if (logicalToPlaced.IsCreated && logicalToPlaced.Length > 0 && outLogicalToPlaced.IsCreated)
         {
-            outLogicalToPlaced.Clear();
-            foreach (var kvp in logicalToPlaced)
-            {
-                outLogicalToPlaced[kvp.Key] = kvp.Value;
-            }
+            outLogicalToPlaced.CopyFrom(logicalToPlaced);
         }
 
         if (placedResources.Count != 0)
@@ -129,7 +134,10 @@ internal struct AliasingPlan : IDisposable
         }
 
         placedResources.Dispose();
-        logicalToPlaced.Dispose();
+        if (logicalToPlaced.IsCreated)
+        {
+            logicalToPlaced.Dispose();
+        }
     }
 }
 
@@ -140,18 +148,37 @@ internal static class RenderGraphAliasingBuilder
         public readonly int index;
         public readonly RenderGraphResource resource;
         public readonly ulong size;
+        public readonly bool allowAliasing;
 
-        public LogicalResourceEntry(int index, RenderGraphResource resource, ulong size)
+        public LogicalResourceEntry(int index, RenderGraphResource resource, ulong size, bool allowAliasing)
         {
             this.index = index;
             this.resource = resource;
             this.size = size;
+            this.allowAliasing = allowAliasing;
         }
     }
 
     internal struct ResourceHeap : IDisposable
     {
-        private UnsafeList<MemoryInfo> _blocks;
+        private struct HeapSlot
+        {
+            public ulong offset;
+            public ulong size;
+            public bool isFree;
+            public bool allowAliasing;
+            public int firstMember;
+            public int lastMember;
+        }
+
+        private struct SlotMember
+        {
+            public int logicalResourceIndex;
+            public int next;
+        }
+
+        private UnsafeList<HeapSlot> _slots;
+        private UnsafeList<SlotMember> _members;
         private RenderGraphResourceOrdering _ordering;
 
         public int Index
@@ -171,134 +198,156 @@ internal static class RenderGraphAliasingBuilder
             Index = index;
             Size = size;
             _ordering = ordering;
-            _blocks = new UnsafeList<MemoryInfo>(32, allocationHandle);
+            _slots = new UnsafeList<HeapSlot>(32, allocationHandle);
+            _members = new UnsafeList<SlotMember>(32, allocationHandle);
 
-            // Initially one large free block
-            _blocks.Add(new MemoryInfo(0, size));
+            _slots.Add(new HeapSlot
+            {
+                offset = 0,
+                size = size,
+                isFree = true,
+                allowAliasing = true,
+                firstMember = -1,
+                lastMember = -1
+            });
         }
 
-        public (bool success, ulong offset, MemoryInfo block) TryAllocate(
-            ulong requestedSize,
-            int firstUsePass,
-            int lastUsePass,
-            int logicalResourceIndex,
-            ulong alignment = DEFAULT_ALIGNMENT)
+        public (bool success, ulong offset, int slotIndex, MemoryInfo block) TryAllocate(ulong requestedSize, int firstUsePass, int lastUsePass, int logicalResourceIndex, ulong alignment = DEFAULT_ALIGNMENT, bool allowAliasing = true)
         {
             var alignedSize = AlignUp(requestedSize, alignment);
 
-            var fitIndex = -1;
+            var fitSlotIndex = -1;
             var fitOffset = 0UL;
 
-            for (var i = 0; i < _blocks.Count; i++)
+            for (var i = 0; i < _slots.Count; i++)
             {
-                ref var block = ref _blocks[i];
-
-                var alignedOffset = AlignUp(block.offset, alignment);
-                var endOffset = alignedOffset + alignedSize;
-
-                if (endOffset <= block.offset + block.size)
+                ref readonly var slot = ref _slots[i];
+                if (!slot.isFree && (!allowAliasing || !slot.allowAliasing))
                 {
-                    if (CanPlaceAtOffset(alignedOffset, alignedSize, logicalResourceIndex))
-                    {
-                        fitIndex = i;
-                        fitOffset = alignedOffset;
-                        break;
-                    }
+                    continue;
+                }
+
+                var alignedOffset = AlignUp(slot.offset, alignment);
+                var endOffset = alignedOffset + alignedSize;
+                if (endOffset > slot.offset + slot.size)
+                {
+                    continue;
+                }
+
+                if (slot.isFree)
+                {
+                    fitSlotIndex = i;
+                    fitOffset = alignedOffset;
+                    break;
+                }
+
+                // Alias membership and first-use barriers are represented per exact slot.
+                if (alignedOffset == slot.offset && CanAliasSlot(in slot, logicalResourceIndex))
+                {
+                    fitSlotIndex = i;
+                    fitOffset = alignedOffset;
+                    break;
                 }
             }
 
-            if (fitIndex == -1)
+            if (fitSlotIndex == -1)
             {
-                return (false, 0, default);
+                return (false, 0, -1, default);
             }
 
-            ref var targetBlock = ref _blocks[fitIndex];
-
-            if (targetBlock.isFree)
+            var memberIndex = _members.Count;
+            _members.Add(new SlotMember
             {
-                var remainingSize = (targetBlock.offset + targetBlock.size) - (fitOffset + alignedSize);
+                logicalResourceIndex = logicalResourceIndex,
+                next = -1
+            });
 
-                targetBlock.offset = fitOffset;
-                targetBlock.size = alignedSize;
-                targetBlock.isFree = false;
-                targetBlock.firstUsePass = firstUsePass;
-                targetBlock.lastUsePass = lastUsePass;
-                targetBlock.logicalResourceIndex = logicalResourceIndex;
+            ref var targetSlot = ref _slots[fitSlotIndex];
+            if (targetSlot.isFree)
+            {
+                var remainingSize = (targetSlot.offset + targetSlot.size) - (fitOffset + alignedSize);
+
+                targetSlot.offset = fitOffset;
+                targetSlot.size = alignedSize;
+                targetSlot.isFree = false;
+                targetSlot.allowAliasing = allowAliasing;
+                targetSlot.firstMember = memberIndex;
+                targetSlot.lastMember = memberIndex;
 
                 if (remainingSize > 0)
                 {
-                    var newBlock = new MemoryInfo(fitOffset + alignedSize, remainingSize);
-                    _blocks.Insert(fitIndex + 1, newBlock);
+                    var freeSlot = new HeapSlot
+                    {
+                        offset = fitOffset + alignedSize,
+                        size = remainingSize,
+                        isFree = true,
+                        allowAliasing = true,
+                        firstMember = -1,
+                        lastMember = -1
+                    };
+                    _slots.Insert(fitSlotIndex + 1, freeSlot);
                 }
             }
             else
             {
-                var aliasedBlock = new MemoryInfo(fitOffset, alignedSize)
-                {
-                    isFree = false,
-                    firstUsePass = firstUsePass,
-                    lastUsePass = lastUsePass,
-                    logicalResourceIndex = logicalResourceIndex
-                };
-
-                var insertIndex = 0;
-                for (var i = 0; i < _blocks.Count; i++)
-                {
-                    if (_blocks[i].offset > fitOffset)
-                    {
-                        break;
-                    }
-                    insertIndex = i + 1;
-                }
-
-                _blocks.Insert(insertIndex, aliasedBlock);
-                targetBlock = ref _blocks[insertIndex];
+                var prevLast = targetSlot.lastMember;
+                var prev = _members[prevLast];
+                prev.next = memberIndex;
+                _members[prevLast] = prev;
+                targetSlot.lastMember = memberIndex;
             }
 
-            return (true, fitOffset, targetBlock);
+            var block = new MemoryInfo(fitOffset, alignedSize)
+            {
+                isFree = false,
+                firstUsePass = firstUsePass,
+                lastUsePass = lastUsePass,
+                logicalResourceIndex = logicalResourceIndex
+            };
+
+            return (true, fitOffset, fitSlotIndex, block);
         }
 
-        private readonly bool CanPlaceAtOffset(ulong offset, ulong size, int logicalResourceIndex)
+        private readonly bool CanAliasSlot(scoped in HeapSlot slot, int logicalResourceIndex)
         {
-            var endOffset = offset + size;
-
-            foreach (var block in _blocks)
+            var memberIndex = slot.firstMember;
+            while (memberIndex >= 0)
             {
-                if (block.isFree)
-                {
-                    continue;
-                }
-
-                var blockEnd = block.offset + block.size;
-                var memoryOverlap = !(offset >= blockEnd || endOffset <= block.offset);
-                if (!memoryOverlap)
-                {
-                    continue;
-                }
-
-                // Alias membership and first-use barriers are represented per exact slot.
-                if (offset != block.offset || endOffset > blockEnd)
+                var member = _members[memberIndex];
+                if (!_ordering.CanAlias(logicalResourceIndex, member.logicalResourceIndex))
                 {
                     return false;
                 }
 
-                if (!_ordering.CanAlias(logicalResourceIndex, block.logicalResourceIndex))
-                {
-                    return false;
-                }
+                memberIndex = member.next;
             }
 
             return true;
         }
 
+        public readonly void CopyOtherSlotMembers(int slotIndex, int selfLogicalIndex, ref UnsafeList<int> dst)
+        {
+            var memberIndex = _slots[slotIndex].firstMember;
+            while (memberIndex >= 0)
+            {
+                var member = _members[memberIndex];
+                if (member.logicalResourceIndex != selfLogicalIndex)
+                {
+                    dst.Add(member.logicalResourceIndex);
+                }
+
+                memberIndex = member.next;
+            }
+        }
+
         public readonly ulong GetPeakUsage()
         {
             var peak = 0ul;
-            foreach (var block in _blocks)
+            foreach (var slot in _slots)
             {
-                if (!block.isFree)
+                if (!slot.isFree)
                 {
-                    peak = Math.Max(peak, block.offset + block.size);
+                    peak = Math.Max(peak, slot.offset + slot.size);
                 }
             }
 
@@ -312,7 +361,8 @@ internal static class RenderGraphAliasingBuilder
 
         public void Dispose()
         {
-            _blocks.Dispose();
+            _slots.Dispose();
+            _members.Dispose();
         }
     }
 
@@ -341,9 +391,9 @@ internal static class RenderGraphAliasingBuilder
     /// <summary>
     /// Builds a memory aliasing plan for all transient resources in the registry.
     /// </summary>
-    public static AliasingPlan Build(RenderGraphResourceRegistry registry, IResourceAllocator allocator, RenderGraphResourceOrdering ordering, bool noAliasing, AllocationHandle allocationHandle)
+    public static AliasingPlan Build(RenderGraphResourceRegistry registry, IResourceAllocator allocator, RenderGraphResourceOrdering ordering, bool noAliasing, AllocationHandle allocationHandle, ReadOnlySpan<CommandQueueType> effectiveQueues = default)
     {
-        var plan = new AliasingPlan(allocationHandle);
+        var plan = new AliasingPlan(registry.ResourceCount, allocationHandle);
 
         if (noAliasing)
         {
@@ -374,7 +424,6 @@ internal static class RenderGraphAliasingBuilder
         }
 
         using var scope = AllocationManager.CreateStackScope();
-        // Build list of all logical resources with their lifetimes
         using var logicalResources = new UnsafeList<LogicalResourceEntry>(registry.ResourceCount, scope.AllocationHandle);
 
         for (var i = 0; i < registry.ResourceCount; i++)
@@ -385,7 +434,18 @@ internal static class RenderGraphAliasingBuilder
             if (resource.CanBeAliased)
             {
                 var size = GetResourceSize(resource, allocator);
-                logicalResources.Add(new LogicalResourceEntry(resource.index, resource, size));
+                var allowAliasing = true;
+                if (resource.type == RGResourceType.Texture && !effectiveQueues.IsEmpty)
+                {
+                    var firstUse = ordering.GetFirstUseScheduleIndex(resource.index);
+                    if (firstUse >= 0 && effectiveQueues[firstUse] == CommandQueueType.Copy)
+                    {
+                        // Copy queues do not support layout transition / discard aliasing barriers.
+                        allowAliasing = false;
+                    }
+                }
+
+                logicalResources.Add(new LogicalResourceEntry(resource.index, resource, size, allowAliasing));
             }
         }
 
@@ -394,6 +454,7 @@ internal static class RenderGraphAliasingBuilder
 
         // Simulate allocation to find peak memory usage
         using var simulationHeap = new ResourceHeap(0, ulong.MaxValue, ordering, scope.AllocationHandle);
+        using var slotIndexByPlaced = new UnsafeArray<int>(logicalResources.Count, scope.AllocationHandle);
         for (var i = 0; i < logicalResources.Count; i++)
         {
             ref readonly var item = ref logicalResources[i];
@@ -403,12 +464,13 @@ internal static class RenderGraphAliasingBuilder
 
             var firstUseScheduleIndex = ordering.GetFirstUseScheduleIndex(item.index);
             var lastUseScheduleIndex = ordering.GetLastUseScheduleIndex(item.index);
-            var (success, offset, memInfo) = simulationHeap.TryAllocate(
+            var (success, offset, slotIndex, memInfo) = simulationHeap.TryAllocate(
                 item.size,
                 firstUseScheduleIndex,
                 lastUseScheduleIndex,
                 item.index,
-                alignment);
+                alignment,
+                item.allowAliasing);
 
             Logger.DebugAssert(success, "Simulation allocation failed - heap should be unlimited in size");
 
@@ -425,6 +487,7 @@ internal static class RenderGraphAliasingBuilder
 
             assignedPlaced.aliasedLogicalResources.Add(item.index);
 
+            slotIndexByPlaced[assignedPlaced.index] = slotIndex;
             plan.placedResources.Add(assignedPlaced);
             plan.logicalToPlaced[item.index] = assignedPlaced.index;
         }
@@ -432,25 +495,11 @@ internal static class RenderGraphAliasingBuilder
         var peakMemoryUsage = AlignUp(simulationHeap.GetPeakUsage(), DEFAULT_TEXTURE_ALIGNMENT);
         plan.totalHeapSize = peakMemoryUsage;
 
-        // Populate aliasedLogicalResources lists
+        // Populate aliasedLogicalResources from slot members
         for (var i = 0; i < plan.placedResources.Count; i++)
         {
             ref var placed = ref plan.placedResources[i];
-
-            for (var j = 0; j < plan.placedResources.Count; j++)
-            {
-                if (i == j) continue;
-
-                var other = plan.placedResources[j];
-                if (other.heapOffset == placed.heapOffset)
-                {
-                    var otherLogicalIndex = other.aliasedLogicalResources[0];
-                    if (!placed.aliasedLogicalResources.Contains(otherLogicalIndex))
-                    {
-                        placed.aliasedLogicalResources.Add(otherLogicalIndex);
-                    }
-                }
-            }
+            simulationHeap.CopyOtherSlotMembers(slotIndexByPlaced[i], placed.aliasedLogicalResources[0], ref placed.aliasedLogicalResources);
         }
 
         return plan;
@@ -459,9 +508,9 @@ internal static class RenderGraphAliasingBuilder
     /// <summary>
     /// Rebuilds size-dependent placement while preserving cached alias groups exactly.
     /// </summary>
-    public static AliasingPlan ResizeCachedSlots(RenderGraphResourceRegistry registry, IResourceAllocator allocator, UnsafeHashMap<int, int> logicalToPlaced, ReadOnlySpan<PlacedResourceData> placedData, ReadOnlySpan<int> aliasedLogicalResources, AllocationHandle allocationHandle)
+    public static AliasingPlan ResizeCachedSlots(RenderGraphResourceRegistry registry, IResourceAllocator allocator, ReadOnlySpan<int> logicalToPlaced, ReadOnlySpan<PlacedResourceData> placedData, ReadOnlySpan<int> aliasedLogicalResources, AllocationHandle allocationHandle)
     {
-        var plan = new AliasingPlan(allocationHandle);
+        var plan = new AliasingPlan(registry.ResourceCount, allocationHandle);
         if (placedData.IsEmpty)
         {
             return plan;
@@ -469,72 +518,76 @@ internal static class RenderGraphAliasingBuilder
 
         using var scope = AllocationManager.CreateStackScope();
         using var logicalIndexByPlacedIndex = new UnsafeArray<int>(placedData.Length, scope.AllocationHandle);
+        using var resourceSizes = new UnsafeArray<ulong>(placedData.Length, scope.AllocationHandle);
         using var resizedOffsets = new UnsafeArray<ulong>(placedData.Length, scope.AllocationHandle);
         logicalIndexByPlacedIndex.AsSpan().Fill(-1);
         resizedOffsets.AsSpan().Fill(ulong.MaxValue);
 
-        foreach (var mapping in logicalToPlaced)
+        if (!logicalToPlaced.IsEmpty && plan.logicalToPlaced.IsCreated)
         {
-            logicalIndexByPlacedIndex[mapping.Value] = mapping.Key;
-            plan.logicalToPlaced[mapping.Key] = mapping.Value;
+            plan.logicalToPlaced.CopyFrom(logicalToPlaced);
+            for (var logicalIdx = 0; logicalIdx < logicalToPlaced.Length; logicalIdx++)
+            {
+                var placedIdx = logicalToPlaced[logicalIdx];
+                if ((uint)placedIdx < (uint)placedData.Length)
+                {
+                    logicalIndexByPlacedIndex[placedIdx] = logicalIdx;
+                }
+            }
+        }
+
+        for (var placedIndex = 0; placedIndex < placedData.Length; placedIndex++)
+        {
+            var logicalResourceIndex = logicalIndexByPlacedIndex[placedIndex];
+            Logger.DebugAssert(logicalResourceIndex >= 0);
+            ref readonly var resource = ref registry.GetResourceByIndex(logicalResourceIndex);
+            resourceSizes[placedIndex] = GetResourceSize(resource, allocator);
         }
 
         var nextOffset = 0UL;
         for (var placedIndex = 0; placedIndex < placedData.Length; placedIndex++)
         {
-            ref readonly var placedDataEntry = ref placedData[placedIndex];
-            var representativeIndex = -1;
-            for (var previousIndex = 0; previousIndex < placedIndex; previousIndex++)
+            if (resizedOffsets[placedIndex] != ulong.MaxValue)
             {
-                if (placedData[previousIndex].heapOffset == placedDataEntry.heapOffset)
-                {
-                    representativeIndex = previousIndex;
-                    break;
-                }
-            }
-
-            if (representativeIndex >= 0)
-            {
-                resizedOffsets[placedIndex] = resizedOffsets[representativeIndex];
                 continue;
             }
 
+            ref readonly var placedDataEntry = ref placedData[placedIndex];
+            var aliasStart = placedDataEntry.aliasedLogicalResourceOffset;
+            var aliasEnd = aliasStart + placedDataEntry.aliasedLogicalResourceCount;
             var slotSize = 0UL;
             var slotAlignment = DEFAULT_BUFFER_ALIGNMENT;
-            for (var candidateIndex = placedIndex; candidateIndex < placedData.Length; candidateIndex++)
-            {
-                if (placedData[candidateIndex].heapOffset != placedDataEntry.heapOffset)
-                {
-                    continue;
-                }
 
-                var logicalResourceIndex = logicalIndexByPlacedIndex[candidateIndex];
-                Logger.DebugAssert(logicalResourceIndex >= 0);
-                ref readonly var resource = ref registry.GetResourceByIndex(logicalResourceIndex);
-                var alignment = resource.type == RGResourceType.Texture
+            for (var aliasIndex = aliasStart; aliasIndex < aliasEnd; aliasIndex++)
+            {
+                var memberLogicalIndex = aliasedLogicalResources[aliasIndex];
+                var memberPlacedIndex = logicalToPlaced[memberLogicalIndex];
+                ref readonly var memberResource = ref registry.GetResourceByIndex(memberLogicalIndex);
+                var alignment = memberResource.type == RGResourceType.Texture
                     ? DEFAULT_TEXTURE_ALIGNMENT
                     : DEFAULT_BUFFER_ALIGNMENT;
                 slotAlignment = Math.Max(slotAlignment, alignment);
-                slotSize = Math.Max(slotSize, AlignUp(GetResourceSize(resource, allocator), alignment));
+                slotSize = Math.Max(slotSize, AlignUp(resourceSizes[memberPlacedIndex], alignment));
             }
 
             nextOffset = AlignUp(nextOffset, slotAlignment);
-            resizedOffsets[placedIndex] = nextOffset;
+            for (var aliasIndex = aliasStart; aliasIndex < aliasEnd; aliasIndex++)
+            {
+                var memberPlacedIndex = logicalToPlaced[aliasedLogicalResources[aliasIndex]];
+                resizedOffsets[memberPlacedIndex] = nextOffset;
+            }
             nextOffset += slotSize;
         }
 
         for (var placedIndex = 0; placedIndex < placedData.Length; placedIndex++)
         {
             ref readonly var cachedPlaced = ref placedData[placedIndex];
-            var logicalResourceIndex = logicalIndexByPlacedIndex[placedIndex];
-            Logger.DebugAssert(logicalResourceIndex >= 0);
-            ref readonly var resource = ref registry.GetResourceByIndex(logicalResourceIndex);
             var placed = new PlacedResource(allocationHandle)
             {
                 index = cachedPlaced.index,
                 type = cachedPlaced.type,
                 heapOffset = resizedOffsets[placedIndex],
-                sizeInBytes = GetResourceSize(resource, allocator),
+                sizeInBytes = resourceSizes[placedIndex],
                 firstUsePass = cachedPlaced.firstUsePass,
                 lastUsePass = cachedPlaced.lastUsePass
             };
@@ -549,42 +602,6 @@ internal static class RenderGraphAliasingBuilder
         }
 
         plan.totalHeapSize = AlignUp(nextOffset, DEFAULT_TEXTURE_ALIGNMENT);
-        return plan;
-    }
-
-    public static AliasingPlan RestoreFromCache(UnsafeHashMap<int, int> logicalToPlaced, ReadOnlySpan<PlacedResourceData> placedData, ReadOnlySpan<int> aliasedLogicalResources, ulong totalHeapSize, AllocationHandle allocationHandle)
-    {
-        var plan = new AliasingPlan(allocationHandle)
-        {
-            totalHeapSize = totalHeapSize
-        };
-        foreach (var kvp in logicalToPlaced)
-        {
-            plan.logicalToPlaced[kvp.Key] = kvp.Value;
-        }
-
-        for (var i = 0; i < placedData.Length; i++)
-        {
-            var data = placedData[i];
-            var placed = new PlacedResource(allocationHandle)
-            {
-                index = data.index,
-                type = data.type,
-                heapOffset = data.heapOffset,
-                sizeInBytes = data.sizeInBytes,
-                firstUsePass = data.firstUsePass,
-                lastUsePass = data.lastUsePass
-            };
-
-            var aliasEnd = data.aliasedLogicalResourceOffset + data.aliasedLogicalResourceCount;
-            for (var aliasIndex = data.aliasedLogicalResourceOffset; aliasIndex < aliasEnd; aliasIndex++)
-            {
-                placed.aliasedLogicalResources.Add(aliasedLogicalResources[aliasIndex]);
-            }
-
-            plan.placedResources.Add(placed);
-        }
-
         return plan;
     }
 }

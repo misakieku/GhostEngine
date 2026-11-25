@@ -24,6 +24,7 @@ internal class MockingCommandBuffer : ICommandBuffer
     public int InstanceId { get; }
     public ICommandAllocator? LastBeginAllocator { get; private set; }
     public List<BarrierDesc> RecordedBarriers { get; } = new();
+    public List<int> RecordedBarrierBatchSizes { get; } = new();
 
     public CommandBufferType Type
     {
@@ -49,6 +50,7 @@ internal class MockingCommandBuffer : ICommandBuffer
         _state.CommandCount++;
         lock (this)
         {
+            RecordedBarrierBatchSizes.Add(barrierDescs.Length);
             foreach (var desc in barrierDescs)
             {
                 RecordedBarriers.Add(desc);
@@ -74,6 +76,7 @@ internal class MockingCommandBuffer : ICommandBuffer
         DispatchCallCount = 0;
         UpdateSubResourcesCount = 0;
         RecordedBarriers.Clear();
+        RecordedBarrierBatchSizes.Clear();
     }
 
     public void BeginRenderPass(ReadOnlySpan<PassRenderTargetDesc> rtDescs, ref readonly PassDepthStencilDesc depthDesc, bool allowUAVWrites = false)

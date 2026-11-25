@@ -17,8 +17,7 @@ public unsafe partial struct IDxcCompletionResult : IDxcCompletionResult.Interfa
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcCompletionResult*, Guid*, void**, int>)(lpVtbl[0]))((IDxcCompletionResult*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcCompletionResult : IDxcCompletionResult.Interfa
     /// <include file='IDxcCompletionResult.xml' path='doc/member[@name="IDxcCompletionResult.GetCursorKind"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetCursorKind(DxcCursorKind* pResult)
+        public HRESULT GetCursorKind(DxcCursorKind* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcCompletionResult*, DxcCursorKind*, int>)(lpVtbl[3]))((IDxcCompletionResult*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcCompletionResult : IDxcCompletionResult.Interfa
     /// <include file='IDxcCompletionResult.xml' path='doc/member[@name="IDxcCompletionResult.GetCompletionString"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetCompletionString(IDxcCompletionString** pResult)
+        public HRESULT GetCompletionString(IDxcCompletionString** pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcCompletionResult*, IDxcCompletionString**, int>)(lpVtbl[4]))((IDxcCompletionResult*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -62,12 +59,10 @@ public unsafe partial struct IDxcCompletionResult : IDxcCompletionResult.Interfa
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetCursorKind(DxcCursorKind* pResult);
+                HRESULT GetCursorKind(DxcCursorKind* pResult);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int GetCompletionString(IDxcCompletionString** pResult);
+                HRESULT GetCompletionString(IDxcCompletionString** pResult);
     }
 
     public partial struct Vtbl<TSelf>

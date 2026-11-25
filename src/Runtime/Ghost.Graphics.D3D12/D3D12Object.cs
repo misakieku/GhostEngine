@@ -4,7 +4,6 @@ using Ghost.Graphics.RHI;
 using Misaki.HighPerformance.LowLevel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using TerraFX.Interop.DirectX;
 
 namespace Ghost.Graphics.D3D12;
 

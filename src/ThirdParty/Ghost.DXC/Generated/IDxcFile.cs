@@ -17,8 +17,7 @@ public unsafe partial struct IDxcFile : IDxcFile.Interface, INativeGuid
     /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-    [return: NativeTypeName("HRESULT")]
-    public int QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcFile*, Guid*, void**, int>)(lpVtbl[0]))((IDxcFile*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
@@ -44,8 +43,7 @@ public unsafe partial struct IDxcFile : IDxcFile.Interface, INativeGuid
     /// <include file='IDxcFile.xml' path='doc/member[@name="IDxcFile.GetName"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-    [return: NativeTypeName("HRESULT")]
-    public int GetName([NativeTypeName("LPSTR *")] sbyte** pResult)
+        public HRESULT GetName([NativeTypeName("LPSTR *")] sbyte** pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcFile*, sbyte**, int>)(lpVtbl[3]))((IDxcFile*)Unsafe.AsPointer(ref this), pResult);
     }
@@ -53,8 +51,7 @@ public unsafe partial struct IDxcFile : IDxcFile.Interface, INativeGuid
     /// <include file='IDxcFile.xml' path='doc/member[@name="IDxcFile.IsEqualTo"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-    [return: NativeTypeName("HRESULT")]
-    public int IsEqualTo(IDxcFile* other, [NativeTypeName("BOOL *")] int* pResult)
+        public HRESULT IsEqualTo(IDxcFile* other, [NativeTypeName("BOOL *")] int* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcFile*, IDxcFile*, int*, int>)(lpVtbl[4]))((IDxcFile*)Unsafe.AsPointer(ref this), other, pResult);
     }
@@ -62,12 +59,10 @@ public unsafe partial struct IDxcFile : IDxcFile.Interface, INativeGuid
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-        [return: NativeTypeName("HRESULT")]
-        int GetName([NativeTypeName("LPSTR *")] sbyte** pResult);
+                HRESULT GetName([NativeTypeName("LPSTR *")] sbyte** pResult);
 
         [VtblIndex(4)]
-        [return: NativeTypeName("HRESULT")]
-        int IsEqualTo(IDxcFile* other, [NativeTypeName("BOOL *")] int* pResult);
+                HRESULT IsEqualTo(IDxcFile* other, [NativeTypeName("BOOL *")] int* pResult);
     }
 
     public partial struct Vtbl<TSelf>

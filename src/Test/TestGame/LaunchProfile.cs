@@ -98,7 +98,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         const float size = 5.0f;
         const float baseScale = 1.0f;
         const float lightSize = size * 1.0f;
-        const int lightCount = 0;
+        const int lightCount = 10;
 
         _world = World.Create(engine.JobScheduler, entityCapacity);
 
@@ -126,18 +126,18 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             new InputReceiver(InputProfileDatabase.FIRST_PERSON_CAMERA_PROFILE_ID, true),
             default(ActionState));
 
-        _prefab = engine.AssetManager.ResolveAsset("Meshes/NewSponza_Main_Yup_003");
+        _prefab = engine.AssetManager.ResolveAsset("Meshes/dragon");
 
-        //for (var i = 0; i < entityCapacity; i++)
-        //{
-        //    var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
-        //    var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2)));
-        //    var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
+        for (var i = 0; i < entityCapacity; i++)
+        {
+            var position = new float3(RandomFloat(-size, size), RandomFloat(-size, size), RandomFloat(-size, size));
+            var rotation = quaternion.EulerXYZ(new float3(RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2), RandomFloat(0.0f, math.PI2)));
+            var scale = new float3(RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f), RandomFloat(baseScale, baseScale * 2.0f));
 
-        //    PrefabUtility.Instantiate(_world, _dragonPrefab, position, rotation, scale);
-        //}
+            PrefabUtility.Instantiate(_world, _prefab, position, rotation, scale);
+        }
 
-        PrefabUtility.Instantiate(_world, _prefab);
+        //PrefabUtility.Instantiate(_world, _prefab);
 
         _world.EntityManager.CreateEntity(
             new DirectionalLight
@@ -153,7 +153,7 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                 specularDimmer = 1.0f,
                 normalBias = 0.75f,
                 depthBias = 0.5f,
-                shadowLodErrorScale = 3.0f,
+                shadowLodErrorScale = 1.0f,
                 contactShadow = true,
             },
             new LocalToWorld
@@ -174,14 +174,14 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
                     unit = PunctualLightUnit.Lumen,
                     color = color,
                     shadowResolution = 256,
-                    intensity = 1500.0f,
+                    intensity = 55000.0f,
                     range = 15.0f,
                     innerSpotAngle = math.radians(15.0f),
                     outerSpotAngle = math.radians(40.0f),
                     nearPlane = 0.1f,
                     normalBias = 0.75f,
                     depthBias = 0.5f,
-                    shadowLodErrorScale = 5.0f,
+                    shadowLodErrorScale = 1.0f,
                     fadeDistance = 1000.0f,
                     shadowFadeDistance = 1000.0f,
                     sourceRadius = 0.025f,
@@ -207,11 +207,15 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
         });
         volumeData.Set(new HDRISettings
         {
-            intensity = 2_500.0f,
+            intensity = 500.0f,
             tint = new float3(1.0f, 1.0f, 1.0f),
             texture = skyboxHandle,
         });
-        volumeData.Set(ExposureSettings.Default);
+        volumeData.Set(new ExposureSettings
+        {
+            mode = ExposureMode.Fixed,
+            fixedExposure = 12.0f,
+        });
         volumeData.Set(new ShadowSettings
         {
             shadowMode = ShadowMode.ShadowMap,

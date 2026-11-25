@@ -803,6 +803,215 @@ dist + childNode.bounds.Radius, $"Parent bounding sphere does not enclose child 
         Assert.IsFalse(File.Exists(Path.Combine(modelsDir, "Crate_Extracted", "Materials", "CrateMat.gmat")));
         Assert.IsTrue(ctx.SubAssets.Any(s => s.SubPath == "Materials/CrateMat" && s.Type == AssetType.Material && s.Dependencies.Contains(expectedTexGuid)));
     }
+
+    [TestMethod]
+    public async Task BakeAssetAsync_ZstdPageCompression_ReducesSizeAndRoundTripsLosslessly()
+    {
+        const int gridSize = 64;
+        var sb = new System.Text.StringBuilder();
+        for (var y = 0; y <= gridSize; y++)
+        {
+            for (var x = 0; x <= gridSize; x++)
+            {
+                var z = MathF.Sin(x * 0.25f) * MathF.Cos(y * 0.25f) * 0.5f;
+                sb.AppendLine($"v {x * 0.1f:F4} {y * 0.1f:F4} {z:F4}");
+                sb.AppendLine($"vt {x / (float)gridSize:F4} {y / (float)gridSize:F4}");
+            }
+        }
+        sb.AppendLine("vn 0.0 0.0 1.0");
+
+        var stride = gridSize + 1;
+        for (var y = 0; y < gridSize; y++)
+        {
+            for (var x = 0; x < gridSize; x++)
+            {
+                var i0 = y * stride + x + 1;
+                var i1 = i0 + 1;
+                var i2 = i0 + stride;
+                var i3 = i2 + 1;
+                sb.AppendLine($"f {i0}/{i0}/1 {i1}/{i1}/1 {i3}/{i3}/1");
+                sb.AppendLine($"f {i0}/{i0}/1 {i3}/{i3}/1 {i2}/{i2}/1");
+            }
+        }
+
+        var objPath = Path.Combine(_tempDir, "dense_grid.obj");
+        await File.WriteAllTextAsync(objPath, sb.ToString());
+
+        var baker = new MeshBaker();
+
+        async Task<byte[]> BakeWithCompression(PageCompressionMethod method)
+        {
+            var subStreams = new Dictionary<string, MemoryStream>();
+            var ctx = new AssetBakerContext
+            {
+                AssetDirectories = [_tempDir],
+                BakeConfig = new BakeConfig(),
+                SubAssetStreamFactory = subPath =>
+                {
+                    var ms = new MemoryStream();
+                    subStreams[subPath] = ms;
+                    return ms;
+                }
+            };
+            using var prefabOut = new MemoryStream();
+            var settings = new MeshBakeSettings { PageCompression = method };
+            await baker.BakeAssetAsync(objPath, prefabOut, settings, ctx, CancellationToken.None);
+            return subStreams.Values.First().ToArray();
+        }
+
+        var rawBytes = await BakeWithCompression(PageCompressionMethod.None);
+        var zstdBytes = await BakeWithCompression(PageCompressionMethod.Zstd);
+
+        Assert.IsLessThan(rawBytes.Length, zstdBytes.Length, $"Expected Zstd baked mesh ({zstdBytes.Length} B) to be smaller than uncompressed ({rawBytes.Length} B).");
+
+        var rawHeader = MemoryMarshal.Read<MeshContentHeader>(rawBytes);
+        var zstdHeader = MemoryMarshal.Read<MeshContentHeader>(zstdBytes);
+        Assert.AreEqual(MeshContentHeader.VERSION, zstdHeader.version);
+        Assert.AreEqual(rawHeader.pageCount, zstdHeader.pageCount);
+        Assert.AreEqual(rawHeader.meshletCount, zstdHeader.meshletCount);
+
+        var rawPageDir = MemoryMarshal.Cast<byte, PageDirectoryEntry>(rawBytes.AsSpan((int)rawHeader.pageDirectoryOffset, (int)rawHeader.pageDirectorySize));
+        var zstdPageDir = MemoryMarshal.Cast<byte, PageDirectoryEntry>(zstdBytes.AsSpan((int)zstdHeader.pageDirectoryOffset, (int)zstdHeader.pageDirectorySize));
+
+        for (var p = 0; p < zstdHeader.pageCount; p++)
+        {
+            Assert.AreEqual(rawPageDir[p].uncompressedSize, zstdPageDir[p].uncompressedSize);
+            var expectedPage = rawBytes.AsSpan((int)rawPageDir[p].fileOffset, (int)rawPageDir[p].uncompressedSize);
+            var compressedPage = zstdBytes.AsSpan((int)zstdPageDir[p].fileOffset, (int)zstdPageDir[p].compressedSize);
+
+            var decoded = new byte[zstdPageDir[p].uncompressedSize];
+            if (zstdPageDir[p].compressionMethod == PageCompressionMethod.Zstd)
+            {
+                Assert.IsTrue(System.IO.Compression.ZstandardDecoder.TryDecompress(compressedPage, decoded, out var written));
+                Assert.AreEqual((int)zstdPageDir[p].uncompressedSize, written);
+            }
+            else
+            {
+                compressedPage.CopyTo(decoded);
+            }
+
+            Assert.IsTrue(expectedPage.SequenceEqual(decoded), $"Decoded page {p} mismatch.");
+
+            var pageHeader = MemoryMarshal.Read<PageHeader>(decoded);
+            Assert.AreEqual(PageHeader.MAGIC, pageHeader.magic);
+            Assert.AreEqual(0u, pageHeader.meshletOffset);
+        }
+    }
+
+    [TestMethod]
+    public unsafe void PackPages_QuantizedBitstreamAnd18BitIndices_DecodeAccuratelyAndCrackFree()
+    {
+        // Build a synthetic mesh with 2 meshlets sharing boundary vertices on an uneven extent
+        var bounds = new Misaki.HighPerformance.Mathematics.Geometry.AABB(
+            new Misaki.HighPerformance.Mathematics.float3(-10.0f, -5.0f, 0.0f),
+            new Misaki.HighPerformance.Mathematics.float3(40.0f, 25.0f, 15.0f));
+
+        var pShared0 = new Misaki.HighPerformance.Mathematics.float3(12.3456f, 7.8901f, 3.4567f);
+        var pShared1 = new Misaki.HighPerformance.Mathematics.float3(14.5678f, 9.0123f, 5.6789f);
+        var pLeft = new Misaki.HighPerformance.Mathematics.float3(-8.25f, 1.5f, 2.25f);
+        var pRight = new Misaki.HighPerformance.Mathematics.float3(38.75f, 22.0f, 14.5f);
+
+        var meshletData = (MeshletMeshData*)NativeMemory.AllocZeroed((nuint)sizeof(MeshletMeshData));
+        try
+        {
+            meshletData->meshlets = new Misaki.HighPerformance.LowLevel.Collections.UnsafeList<Meshlet>(2, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
+            meshletData->groups = new Misaki.HighPerformance.LowLevel.Collections.UnsafeList<MeshletGroup>(1, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
+            meshletData->meshletVertices = new Misaki.HighPerformance.LowLevel.Collections.UnsafeList<PackedVertex>(6, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
+            meshletData->meshletTriangles = new Misaki.HighPerformance.LowLevel.Collections.UnsafeList<uint>(2, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
+            meshletData->lodLevelCount = 1;
+
+            // Meshlet 0 (white color -> Color32 omitted)
+            meshletData->meshletVertices.Add(PackedVertex.Pack(new Vertex { position = pShared0, normal = new(0, 1, 0), uv = new(0.1f, 0.2f), color = new Color128(1, 1, 1, 1) }));
+            meshletData->meshletVertices.Add(PackedVertex.Pack(new Vertex { position = pShared1, normal = new(0, 1, 0), uv = new(0.3f, 0.4f), color = new Color128(1, 1, 1, 1) }));
+            meshletData->meshletVertices.Add(PackedVertex.Pack(new Vertex { position = pLeft, normal = new(0, 1, 0), uv = new(0.5f, 0.6f), color = new Color128(1, 1, 1, 1) }));
+            meshletData->meshletTriangles.Add(0u | (1u << 8) | (2u << 16));
+            meshletData->meshlets.Add(new Meshlet { vertexOffset = 0, triangleOffset = 0, vertexCount = 3, triangleCount = 1, lodLevel = 0 });
+
+            // Meshlet 1 (non-white color -> Color32 preserved, shares pShared0 & pShared1)
+            meshletData->meshletVertices.Add(PackedVertex.Pack(new Vertex { position = pShared1, normal = new(0, 0, 1), uv = new(0.7f, 0.8f), color = new Color128(0.25f, 0.5f, 0.75f, 1.0f) }));
+            meshletData->meshletVertices.Add(PackedVertex.Pack(new Vertex { position = pShared0, normal = new(0, 0, 1), uv = new(0.9f, 0.1f), color = new Color128(1, 1, 1, 1) }));
+            meshletData->meshletVertices.Add(PackedVertex.Pack(new Vertex { position = pRight, normal = new(0, 0, 1), uv = new(0.2f, 0.9f), color = new Color128(1, 1, 1, 1) }));
+            meshletData->meshletTriangles.Add(2u | (0u << 8) | (1u << 16));
+            meshletData->meshlets.Add(new Meshlet { vertexOffset = 3, triangleOffset = 1, vertexCount = 3, triangleCount = 1, lodLevel = 0 });
+
+            meshletData->groups.Add(new MeshletGroup { meshletStartIndex = 0, meshletCount = 2, lodLevel = 0 });
+            meshletData->meshletCount = 2;
+            meshletData->meshletGroupCount = 1;
+
+            using var packed = PagePacker.PackPages(meshletData, bounds, 21, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
+            Assert.AreEqual(1, packed.pageBuffers.Length);
+
+            var page = packed.pageBuffers[0];
+            Assert.AreEqual(packed.pageDirectory[0].uncompressedSize, (uint)page.Length);
+
+            static uint ExtractBits(byte[] buf, uint byteBase, int bitOffset, int bitCount)
+            {
+                if (bitCount == 0) return 0u;
+                var wordIndex = bitOffset >> 5;
+                var bitInWord = bitOffset & 31;
+                var wordAddr = (int)byteBase + wordIndex * 4;
+                var val = MemoryMarshal.Read<uint>(buf.AsSpan(wordAddr, 4)) >> bitInWord;
+                if (bitInWord + bitCount > 32)
+                {
+                    val |= MemoryMarshal.Read<uint>(buf.AsSpan(wordAddr + 4, 4)) << (32 - bitInWord);
+                }
+                return val & ((1u << bitCount) - 1u);
+            }
+
+            static Misaki.HighPerformance.Mathematics.float3 DecodeVertexPos(byte[] buf, Meshlet ml, int vIdx, Misaki.HighPerformance.Mathematics.float3 minBounds, float step)
+            {
+                var bitsX = (int)(ml.packedFormat & 0x1Fu);
+                var bitsY = (int)((ml.packedFormat >> 5) & 0x1Fu);
+                var bitsZ = (int)((ml.packedFormat >> 10) & 0x1Fu);
+                var totalBits = bitsX + bitsY + bitsZ;
+
+                var minX = ml.packedQuantOrigin0 & 0x1FFFFFu;
+                var minY = (ml.packedQuantOrigin0 >> 21) | ((ml.packedQuantOrigin1 & 0x3FFu) << 11);
+                var minZ = (ml.packedQuantOrigin1 >> 10) & 0x1FFFFFu;
+
+                var bitOff = vIdx * totalBits;
+                var qx = minX + ExtractBits(buf, ml.vertexOffset, bitOff, bitsX);
+                var qy = minY + ExtractBits(buf, ml.vertexOffset, bitOff + bitsX, bitsY);
+                var qz = minZ + ExtractBits(buf, ml.vertexOffset, bitOff + bitsX + bitsY, bitsZ);
+                return PackedVertex.DequantizePosition(qx, qy, qz, minBounds, step);
+            }
+
+            var ml0 = packed.reorderedMeshlets[0];
+            var ml1 = packed.reorderedMeshlets[1];
+
+            Assert.AreEqual(0u, (ml0.packedFormat >> 15) & 1u, "White-only meshlet should omit Color32.");
+            Assert.AreEqual(1u, (ml1.packedFormat >> 15) & 1u, "Colored meshlet should preserve Color32.");
+
+            var ml0Shared0 = DecodeVertexPos(page, ml0, 0, bounds.Min, packed.positionQuantStep);
+            var ml0Shared1 = DecodeVertexPos(page, ml0, 1, bounds.Min, packed.positionQuantStep);
+            var ml1Shared1 = DecodeVertexPos(page, ml1, 0, bounds.Min, packed.positionQuantStep);
+            var ml1Shared0 = DecodeVertexPos(page, ml1, 1, bounds.Min, packed.positionQuantStep);
+
+            // Crack-free invariance: bit-identical reconstructed positions across meshlet boundaries
+            Assert.AreEqual(ml0Shared0, ml1Shared0);
+            Assert.AreEqual(ml0Shared1, ml1Shared1);
+
+            // Precision within 1 quantization step
+            Assert.IsLessThanOrEqualTo(packed.positionQuantStep, Misaki.HighPerformance.Mathematics.math.length(ml0Shared0 - pShared0));
+            Assert.IsLessThanOrEqualTo(packed.positionQuantStep, Misaki.HighPerformance.Mathematics.math.length(ml0Shared1 - pShared1));
+
+            // 18-bit triangle decode check
+            var tri0 = ExtractBits(page, ml0.triangleOffset, 0, 18);
+            Assert.AreEqual(0u, tri0 & 0x3Fu);
+            Assert.AreEqual(1u, (tri0 >> 6) & 0x3Fu);
+            Assert.AreEqual(2u, (tri0 >> 12) & 0x3Fu);
+
+            var tri1 = ExtractBits(page, ml1.triangleOffset, 0, 18);
+            Assert.AreEqual(2u, tri1 & 0x3Fu);
+            Assert.AreEqual(0u, (tri1 >> 6) & 0x3Fu);
+            Assert.AreEqual(1u, (tri1 >> 12) & 0x3Fu);
+        }
+        finally
+        {
+            meshletData->Dispose();
+            NativeMemory.Free(meshletData);
+        }
+    }
 }
 
 

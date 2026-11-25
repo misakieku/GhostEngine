@@ -314,7 +314,7 @@ internal sealed class RenderGraphExecutor : IDisposable
             return Error.None;
         }
 
-        Logger.Warning("Failed to end a render-graph command buffer: " + result.Message);
+        Logger.Error("Failed to end a render-graph command buffer: " + result.Message);
         return Error.InternalError;
     }
 
@@ -504,7 +504,8 @@ internal sealed class RenderGraphExecutor : IDisposable
 
         var forceGraphics = flags.HasFlag(RGFlags.ForceGraphics);
         using var scope = AllocationManager.CreateStackScope();
-        using var barriers = new UnsafeList<BarrierDesc>(16, scope.AllocationHandle);
+        using var barriers = new UnsafeArray<BarrierDesc>(barrierCount, scope.AllocationHandle);
+        var batchCount = 0;
 
         for (var i = 0; i < barrierCount; i++)
         {
@@ -541,7 +542,7 @@ internal sealed class RenderGraphExecutor : IDisposable
                         force: force);
                 }
 
-                barriers.Add(releaseDesc);
+                barriers[batchCount++] = releaseDesc;
                 continue;
             }
 
@@ -573,7 +574,7 @@ internal sealed class RenderGraphExecutor : IDisposable
                         force: force);
                 }
 
-                barriers.Add(acquireDesc);
+                barriers[batchCount++] = acquireDesc;
                 continue;
             }
 
@@ -600,12 +601,19 @@ internal sealed class RenderGraphExecutor : IDisposable
                     force: frc);
             }
 
-            barriers.Add(desc);
+            barriers[batchCount++] = desc;
+
+            if (compiledBarrier.flags.HasFlag(BarrierFlags.AliasingFlush))
+            {
+                // Flush predecessor writes in an earlier Barrier() call before successor DISCARD.
+                cmd.Barrier(barriers.AsSpan().Slice(0, batchCount));
+                batchCount = 0;
+            }
         }
 
-        if (barriers.Count > 0)
+        if (batchCount > 0)
         {
-            cmd.Barrier(barriers);
+            cmd.Barrier(barriers.AsSpan().Slice(0, batchCount));
         }
     }
 

@@ -1,3 +1,5 @@
+using Ghost.Core.Graphics;
+
 namespace Ghost.AssetForge.Core.Bakers;
 
 public enum CoordinateAxis
@@ -19,7 +21,7 @@ public enum VertexDataSource
 
 public class MeshBakeSettings : IBakeSettings
 {
-    public const int VERSION = 1;
+    public const int VERSION = 3;
 
     public int Version { get; set; } = VERSION;
 
@@ -62,6 +64,12 @@ public class MeshBakeSettings : IBakeSettings
     public bool ExtractMaterials { get; set; } = false;
 
     public bool ExtractEmbeddedTextures { get; set; } = false;
+
+    public PageCompressionMethod PageCompression { get; set; } = PageCompressionMethod.Zstd;
+
+    public int PageCompressionQuality { get; set; } = 3;
+
+    public int PositionQuantizationBits { get; set; } = 21;
 
     public Dictionary<string, Guid> MaterialSlotRemap { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }

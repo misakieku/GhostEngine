@@ -1,0 +1,6 @@
+namespace Ghost.D3D12;
+
+public enum D3D12_SET_MLIR_PROGRAM_FLAGS
+{
+    D3D12_SET_MLIR_PROGRAM_FLAG_NONE = 0,
+}

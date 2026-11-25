@@ -11,19 +11,22 @@ internal unsafe partial class RenderGraphCompiler
     private struct CompiledResourceState
     {
         public ResourceBarrierData state;
+        public int commandBufferId;
         public bool isValid;
         public bool writes;
 
-        public CompiledResourceState(ResourceBarrierData state, bool writes)
+        public CompiledResourceState(ResourceBarrierData state, bool writes, int commandBufferId = -1)
         {
             this.state = state;
             this.writes = writes;
+            this.commandBufferId = commandBufferId;
             isValid = true;
         }
 
         public static CompiledResourceState Undefined => new(
             new ResourceBarrierData(BarrierLayout.Undefined, BarrierAccess.NoAccess, BarrierSync.None),
-            writes: false)
+            writes: false,
+            commandBufferId: -1)
         {
             isValid = false
         };
@@ -61,6 +64,8 @@ internal unsafe partial class RenderGraphCompiler
         public CommandQueueType destinationQueue;
         public int releaseBoundaryIndex;
         public int acquireScheduleIndex;
+        public int nextReleaseIndex;
+        public int nextAcquireIndex;
     }
 
     private UnsafeList<ResolvedPassResourceUsage> BuildPassResourceUsagePlan(List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, Span<PassResourceUsageRange> usageRanges, AllocationHandle allocationHandle)
@@ -89,23 +94,40 @@ internal unsafe partial class RenderGraphCompiler
             resourceCount,
             allocationHandle,
             AllocationOption.Clear);
-
-        for (var scheduleIndex = 0; scheduleIndex < compiledPasses.Length; scheduleIndex++)
+        var touchedIndices = new UnsafeList<int>(Math.Min(resourceCount, 32), allocationHandle);
+        try
         {
-            var pass = passes[compiledPasses[scheduleIndex]];
-            ResolvePassResourceUsages(pass, resolvedUsages.AsSpan());
-
-            ref var range = ref usageRanges[scheduleIndex];
-            range.start = usageRecords.Count;
-            for (var resourceIndex = 0; resourceIndex < resourceCount; resourceIndex++)
+            for (var scheduleIndex = 0; scheduleIndex < compiledPasses.Length; scheduleIndex++)
             {
-                ref readonly var usage = ref resolvedUsages[resourceIndex];
-                if (usage.usageClass != PassResourceUsageClass.None)
+                var pass = passes[compiledPasses[scheduleIndex]];
+                ResolvePassResourceUsages(pass, resolvedUsages.AsSpan(), ref touchedIndices);
+
+                if (touchedIndices.Count > 1)
                 {
-                    usageRecords.Add(usage);
-                    range.count++;
+                    touchedIndices.AsSpan().Sort();
                 }
+
+                ref var range = ref usageRanges[scheduleIndex];
+                range.start = usageRecords.Count;
+                for (var i = 0; i < touchedIndices.Count; i++)
+                {
+                    var resourceIndex = touchedIndices[i];
+                    ref var usage = ref resolvedUsages[resourceIndex];
+                    if (usage.usageClass != PassResourceUsageClass.None)
+                    {
+                        usageRecords.Add(usage);
+                        range.count++;
+                    }
+
+                    usage = default;
+                }
+
+                touchedIndices.Clear();
             }
+        }
+        finally
+        {
+            touchedIndices.Dispose();
         }
 
         return usageRecords;
@@ -116,11 +138,16 @@ internal unsafe partial class RenderGraphCompiler
         ReadOnlySpan<PassResourceUsageRange> usageRanges,
         ReadOnlySpan<CommandQueueType> effectiveQueues,
         ReadOnlySpan<int> commandBufferIds,
-        ReadOnlySpan<byte> reachability,
+        in RenderGraphBitMatrix reachability,
         ref AliasingPlan aliasingPlan,
         RenderGraphResourceOrdering resourceOrdering,
+        Span<int> releaseHeads,
+        Span<int> acquireHeads,
         AllocationHandle allocationHandle)
     {
+        releaseHeads.Fill(-1);
+        acquireHeads.Fill(-1);
+
         var handoffs = new UnsafeList<QueueHandoff>(
             Math.Max(1, _resourceRegistry.ResourceCount),
             allocationHandle);
@@ -164,7 +191,7 @@ internal unsafe partial class RenderGraphCompiler
                     if (!sourceUse.isValid
                         || sourceUse.commandBufferId == commandBufferIds[scheduleIndex]
                         || (!sourceUse.writes && !usage.writes)
-                        || reachability[(sourceUse.scheduleIndex * passCount) + scheduleIndex] == 0)
+                        || !reachability.Get(sourceUse.scheduleIndex, scheduleIndex))
                     {
                         continue;
                     }
@@ -244,6 +271,17 @@ internal unsafe partial class RenderGraphCompiler
             }
         }
 
+        // Link in reverse order so head-traversal preserves original handoff emission order.
+        for (var i = handoffs.Count - 1; i >= 0; i--)
+        {
+            ref var handoff = ref handoffs[i];
+            handoff.nextReleaseIndex = releaseHeads[handoff.releaseBoundaryIndex];
+            releaseHeads[handoff.releaseBoundaryIndex] = i;
+
+            handoff.nextAcquireIndex = acquireHeads[handoff.acquireScheduleIndex];
+            acquireHeads[handoff.acquireScheduleIndex] = i;
+        }
+
         return handoffs;
     }
 
@@ -312,33 +350,40 @@ internal unsafe partial class RenderGraphCompiler
         return -1;
     }
 
-    private static bool HasQueueAcquire(ReadOnlySpan<QueueHandoff> handoffs, int scheduleIndex, Identifier<RGResource> resource)
+    private static bool HasQueueAcquire(ReadOnlySpan<QueueHandoff> handoffs, ReadOnlySpan<int> acquireHeads, int scheduleIndex, Identifier<RGResource> resource)
     {
-        for (var handoffIndex = 0; handoffIndex < handoffs.Length; handoffIndex++)
+        if ((uint)scheduleIndex >= (uint)acquireHeads.Length)
+        {
+            return false;
+        }
+
+        var handoffIndex = acquireHeads[scheduleIndex];
+        while (handoffIndex >= 0)
         {
             ref readonly var handoff = ref handoffs[handoffIndex];
-            if (handoff.acquireScheduleIndex == scheduleIndex && handoff.destinationResource == resource)
+            if (handoff.destinationResource == resource)
             {
                 return true;
             }
+
+            handoffIndex = handoff.nextAcquireIndex;
         }
 
         return false;
     }
 
-    private static int WriteQueueHandoffBarriers(ref BufferWriter writer, ReadOnlySpan<QueueHandoff> handoffs, int scheduleIndex, bool release)
+    private static int WriteQueueHandoffBarriers(ref BufferWriter writer, ReadOnlySpan<QueueHandoff> handoffs, ReadOnlySpan<int> heads, int scheduleIndex, bool release)
     {
+        if ((uint)scheduleIndex >= (uint)heads.Length)
+        {
+            return 0;
+        }
+
         var count = 0;
-        for (var handoffIndex = 0; handoffIndex < handoffs.Length; handoffIndex++)
+        var handoffIndex = heads[scheduleIndex];
+        while (handoffIndex >= 0)
         {
             ref readonly var handoff = ref handoffs[handoffIndex];
-            if (release
-                    ? handoff.releaseBoundaryIndex != scheduleIndex
-                    : handoff.acquireScheduleIndex != scheduleIndex)
-            {
-                continue;
-            }
-
             var flags = BarrierFlags.ExplicitSource
                 | (release ? BarrierFlags.QueueRelease : BarrierFlags.QueueAcquire);
             if (!release && handoff.aliasingPredecessor.IsValid)
@@ -361,18 +406,19 @@ internal unsafe partial class RenderGraphCompiler
                 destinationQueue = handoff.destinationQueue
             });
             count++;
+            handoffIndex = release ? handoff.nextReleaseIndex : handoff.nextAcquireIndex;
         }
 
         return count;
     }
 
-    private static int EmitQueueReleaseBarriers(ref BufferWriter writer, ReadOnlySpan<QueueHandoff> handoffs, int scheduleIndex)
+    private static int EmitQueueReleaseBarriers(ref BufferWriter writer, ReadOnlySpan<QueueHandoff> handoffs, ReadOnlySpan<int> releaseHeads, int scheduleIndex)
     {
         var startPosition = writer.Position;
         writer.Write(RGExecutionOpType.IssueBarriers);
         writer.Write(0);
 
-        var count = WriteQueueHandoffBarriers(ref writer, handoffs, scheduleIndex, release: true);
+        var count = WriteQueueHandoffBarriers(ref writer, handoffs, releaseHeads, scheduleIndex, release: true);
 
         if (count == 0)
         {
