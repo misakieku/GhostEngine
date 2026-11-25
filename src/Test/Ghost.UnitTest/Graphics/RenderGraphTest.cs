@@ -1394,7 +1394,7 @@ public partial class RenderGraphTest
     }
 
     [TestMethod]
-    public void TestAsyncPlanner_ConflictingCandidatesUseOriginalIndexTieBreaker()
+    public void TestAsyncPlanner_OverlappingCandidatesSplitComputeCommandBuffers()
     {
         var producerOutput = AddPlannerGraphicsProducer("ConflictProducer");
         var firstOutput = AddPlannerAsyncCompute("ConflictComputeA", producerOutput);
@@ -1406,10 +1406,21 @@ public partial class RenderGraphTest
         var dump = CompilePlannerDump();
         var first = dump.Passes.Single(pass => pass.Name == "ConflictComputeA");
         var second = dump.Passes.Single(pass => pass.Name == "ConflictComputeB");
+        var consumerA = dump.Passes.Single(pass => pass.Name == "ConflictConsumerA");
+        var consumerB = dump.Passes.Single(pass => pass.Name == "ConflictConsumerB");
+
         Assert.AreEqual(CommandQueueType.Compute, first.EffectiveQueue);
         Assert.AreEqual(RGQueueDecision.AsyncComputeSelected, first.QueueDecision);
-        Assert.AreEqual(CommandQueueType.Graphics, second.EffectiveQueue);
-        Assert.AreEqual(RGQueueDecision.NoLegalOverlapWindow, second.QueueDecision);
+        Assert.AreEqual(CommandQueueType.Compute, second.EffectiveQueue);
+        Assert.AreEqual(RGQueueDecision.AsyncComputeSelected, second.QueueDecision);
+
+        Assert.IsTrue(first.SyncBoundaryBefore.HasValue);
+        Assert.IsTrue(second.SyncBoundaryBefore.HasValue);
+        Assert.IsTrue(consumerA.SyncBoundaryBefore.HasValue);
+        Assert.IsTrue(consumerB.SyncBoundaryBefore.HasValue);
+        Assert.AreEqual(CommandQueueType.Compute, second.SyncBoundaryBefore.Value.DestinationType);
+        CollectionAssert.AreEqual(new[] { 1 }, consumerA.SyncBoundaryBefore.Value.ProducerCommandBufferIds);
+        CollectionAssert.AreEqual(new[] { 2 }, consumerB.SyncBoundaryBefore.Value.ProducerCommandBufferIds);
     }
 
     [TestMethod]

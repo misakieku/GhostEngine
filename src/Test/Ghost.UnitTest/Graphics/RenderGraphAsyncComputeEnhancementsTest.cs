@@ -55,6 +55,106 @@ public partial class RenderGraphTest
     }
 
     [TestMethod]
+    public void TestAsyncPlanner_StaggeredOverlappedComputeRegionsBothRunAsync()
+    {
+        var producer1 = AddPlannerGraphicsProducer("StaggerProducer");
+        var compute1 = AddPlannerAsyncCompute("StaggerCompute1", producer1);
+        var independent1 = AddPlannerGraphicsProducer("StaggerIndependent1");
+        var compute2 = AddPlannerAsyncCompute("StaggerCompute2", independent1);
+        AddPlannerRasterPass("StaggerJoin1", compute1);
+        AddPlannerRasterPass("StaggerJoin2", compute2);
+
+        var dump = CompilePlannerDump();
+        var c1 = dump.Passes.Single(pass => pass.Name == "StaggerCompute1");
+        var c2 = dump.Passes.Single(pass => pass.Name == "StaggerCompute2");
+        var j1 = dump.Passes.Single(pass => pass.Name == "StaggerJoin1");
+        var j2 = dump.Passes.Single(pass => pass.Name == "StaggerJoin2");
+
+        Assert.AreEqual(CommandQueueType.Compute, c1.EffectiveQueue);
+        Assert.AreEqual(RGQueueDecision.AsyncComputeSelected, c1.QueueDecision);
+        Assert.AreEqual(CommandQueueType.Compute, c2.EffectiveQueue);
+        Assert.AreEqual(RGQueueDecision.AsyncComputeSelected, c2.QueueDecision);
+
+        Assert.IsTrue(c1.SyncBoundaryBefore.HasValue);
+        Assert.IsTrue(c2.SyncBoundaryBefore.HasValue);
+        Assert.IsTrue(j1.SyncBoundaryBefore.HasValue);
+        Assert.IsTrue(j2.SyncBoundaryBefore.HasValue);
+        CollectionAssert.AreEqual(new[] { 0 }, c1.SyncBoundaryBefore.Value.ProducerCommandBufferIds);
+        CollectionAssert.AreEqual(new[] { 2 }, c2.SyncBoundaryBefore.Value.ProducerCommandBufferIds);
+        CollectionAssert.AreEqual(new[] { 1 }, j1.SyncBoundaryBefore.Value.ProducerCommandBufferIds);
+        CollectionAssert.AreEqual(new[] { 3 }, j2.SyncBoundaryBefore.Value.ProducerCommandBufferIds);
+
+        var releases = dump.CommandStream.Where(line => line.Contains("QueueRelease", StringComparison.Ordinal)).ToList();
+        var acquires = dump.CommandStream.Where(line => line.Contains("QueueAcquire", StringComparison.Ordinal)).ToList();
+        Assert.HasCount(4, releases);
+        Assert.HasCount(4, acquires);
+        Assert.AreEqual(2, GetDispatchCallCount());
+    }
+
+    [TestMethod]
+    public void TestAsyncPlanner_NestedOverlappedComputeRegionsBothRunAsync()
+    {
+        var producer = AddPlannerGraphicsProducer("NestedProducer");
+        var outerCompute = AddPlannerAsyncCompute("OuterCompute", producer);
+        var innerProducer = AddPlannerGraphicsProducer("InnerProducer");
+        var innerCompute = AddPlannerAsyncCompute("InnerCompute", innerProducer);
+        AddPlannerRasterPass("InnerIndependent");
+        AddPlannerRasterPass("InnerJoin", innerCompute);
+        AddPlannerRasterPass("OuterJoin", outerCompute);
+
+        var dump = CompilePlannerDump();
+        var outer = dump.Passes.Single(pass => pass.Name == "OuterCompute");
+        var inner = dump.Passes.Single(pass => pass.Name == "InnerCompute");
+
+        Assert.AreEqual(CommandQueueType.Compute, outer.EffectiveQueue);
+        Assert.AreEqual(RGQueueDecision.AsyncComputeSelected, outer.QueueDecision);
+        Assert.AreEqual(CommandQueueType.Compute, inner.EffectiveQueue);
+        Assert.AreEqual(RGQueueDecision.AsyncComputeSelected, inner.QueueDecision);
+        Assert.AreEqual(2, GetDispatchCallCount());
+    }
+
+    [TestMethod]
+    public void TestAsyncPlanner_ChainedComputePassesKeepGraphicsJoinSkip()
+    {
+        var producer = AddPlannerGraphicsProducer("ChainProducer");
+        var compute1 = AddPlannerAsyncCompute("ChainCompute1", producer);
+        AddPlannerRasterPass("ChainIndependent1");
+        var compute2 = AddPlannerAsyncCompute("ChainCompute2", compute1);
+        AddPlannerRasterPass("ChainIndependent2");
+        AddPlannerRasterPass("ChainJoin", compute2);
+
+        var dump = CompilePlannerDump();
+        var c1 = dump.Passes.Single(pass => pass.Name == "ChainCompute1");
+        var c2 = dump.Passes.Single(pass => pass.Name == "ChainCompute2");
+
+        Assert.AreEqual(CommandQueueType.Compute, c1.EffectiveQueue);
+        Assert.AreEqual(RGQueueDecision.AsyncComputeSelected, c1.QueueDecision);
+        Assert.AreEqual(CommandQueueType.Compute, c2.EffectiveQueue);
+        Assert.AreEqual(RGQueueDecision.AsyncComputeSelected, c2.QueueDecision);
+        Assert.AreEqual(2, GetDispatchCallCount());
+    }
+
+    [TestMethod]
+    public void TestAsyncPlanner_ReorderingDefersConsumerToUnlockOverlap()
+    {
+        var producer = AddPlannerGraphicsProducer("DeferProducer");
+        var compute = AddPlannerAsyncCompute("DeferCompute", producer);
+        AddPlannerRasterPass("DeferConsumer", compute);
+        AddPlannerRasterPass("DeferIndependent");
+
+        var dump = CompilePlannerDump();
+        var computePass = dump.Passes.Single(pass => pass.Name == "DeferCompute");
+        Assert.AreEqual(CommandQueueType.Compute, computePass.EffectiveQueue);
+        Assert.AreEqual(RGQueueDecision.AsyncComputeSelected, computePass.QueueDecision);
+
+        var executeLines = dump.CommandStream.Where(line => line.Contains("ExecutePass", StringComparison.Ordinal)).ToList();
+        var idxIndependent = executeLines.FindIndex(line => line.Contains("DeferIndependent", StringComparison.Ordinal));
+        var idxConsumer = executeLines.FindIndex(line => line.Contains("DeferConsumer", StringComparison.Ordinal));
+        Assert.IsGreaterThanOrEqualTo(0, idxIndependent);
+        Assert.IsGreaterThan(idxIndependent, idxConsumer, "Independent raster work must be reordered before the async compute consumer.");
+    }
+
+    [TestMethod]
     public void TestAsyncPlanner_PassZeroComputeWithFewerThanFourPassesSucceeds()
     {
         // 3-pass graph: Pass 0 is Compute, Pass 1 is Overlap Raster, Pass 2 is Join Raster.

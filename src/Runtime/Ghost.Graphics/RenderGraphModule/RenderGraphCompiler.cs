@@ -559,14 +559,20 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         return nodes;
     }
 
-    private static int SelectBestCandidatePass(ReadOnlySpan<int> readyPassIndices, RenderGraphPass? lastScheduledPass, int lastScheduledDagIndex, List<RenderGraphPass> passes, ReadOnlySpan<int> compiledPasses, in RenderGraphBitMatrix passResourceMasks)
+    private static int SelectBestCandidatePass(ReadOnlySpan<int> readyPassIndices, RenderGraphPass? lastScheduledPass, int lastScheduledDagIndex, List<RenderGraphPass> passes,
+        ReadOnlySpan<int> compiledPasses, in RenderGraphBitMatrix passResourceMasks, ReadOnlySpan<int> asyncIndexByDagIndex,
+        in RenderGraphBitMatrix asyncAncestors, ReadOnlySpan<ulong> unjoinedNeedsOverlapMask)
     {
         var bestIndex = 0;
         var maxScore = float.MinValue;
+        var lastScheduledIsAsync = lastScheduledPass != null && IsAsyncComputeCandidate(lastScheduledPass);
+        var trackAsyncOverlap = asyncIndexByDagIndex.Length > 0;
         for (var i = 0; i < readyPassIndices.Length; i++)
         {
             var candidateDagIndex = readyPassIndices[i];
             var candidate = passes[compiledPasses[candidateDagIndex]];
+            var isCandidateAsync = trackAsyncOverlap && asyncIndexByDagIndex[candidateDagIndex] >= 0;
+            var defersForOverlap = trackAsyncOverlap && !isCandidateAsync && asyncAncestors.IntersectsWords(candidateDagIndex, unjoinedNeedsOverlapMask);
             var score = 0.0f;
             if (lastScheduledPass != null)
             {
@@ -586,10 +592,18 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 }
             }
 
-            // Grouping Rule 3: Async Compute Scheduling
-            if (candidate.asyncCompute)
+            // Grouping Rule 3: Batch ready async compute passes early and defer unjoined consumers until overlap work runs
+            if (isCandidateAsync)
             {
-                score += 50.0f;
+                score += 150.0f;
+                if (lastScheduledIsAsync)
+                {
+                    score += 200.0f;
+                }
+            }
+            else if (defersForOverlap)
+            {
+                score -= 250.0f;
             }
 
             // Grouping Rule 4: Tie-breaker - preserve original submission order
@@ -655,6 +669,39 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         var passResourceMasks = new RenderGraphBitMatrix(passCount, _resourceRegistry.ResourceCount, scope.AllocationHandle);
         BuildPassResourceMasks(passes, pCompiledPasses->AsSpan(), _resourceRegistry.ResourceCount, ref passResourceMasks);
 
+        var asyncCandidateCount = 0;
+        for (var i = 0; i < passCount; i++)
+        {
+            if (IsAsyncComputeCandidate(passes[(*pCompiledPasses)[i]]))
+            {
+                asyncCandidateCount++;
+            }
+        }
+
+        using var asyncIndexByDagIndex = asyncCandidateCount > 0
+            ? new UnsafeArray<int>(passCount, scope.AllocationHandle)
+            : default;
+        var asyncAncestors = asyncCandidateCount > 0
+            ? new RenderGraphBitMatrix(passCount, asyncCandidateCount, scope.AllocationHandle)
+            : default;
+        using var unjoinedMask = asyncCandidateCount > 0
+            ? new UnsafeArray<ulong>(asyncAncestors.WordCount, scope.AllocationHandle, AllocationOption.Clear)
+            : default;
+        using var unjoinedNeedsOverlapMask = asyncCandidateCount > 0
+            ? new UnsafeArray<ulong>(asyncAncestors.WordCount, scope.AllocationHandle, AllocationOption.Clear)
+            : default;
+
+        if (asyncCandidateCount > 0)
+        {
+            var nextAsyncIndex = 0;
+            for (var i = 0; i < passCount; i++)
+            {
+                asyncIndexByDagIndex[i] = IsAsyncComputeCandidate(passes[(*pCompiledPasses)[i]])
+                    ? nextAsyncIndex++
+                    : -1;
+            }
+        }
+
         // Initialize Ready List (Passes with 0 incoming dependencies)
         using var readyList = new UnsafeList<int>(passCount, scope.AllocationHandle);
         for (var i = 0; i < passCount; i++)
@@ -669,24 +716,67 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
         using var reorderedIndices = new UnsafeList<int>(passCount, scope.AllocationHandle);
         RenderGraphPass? lastScheduledPass = null;
         var lastScheduledDagIndex = -1;
+        var asyncIndexSpan = asyncCandidateCount > 0 ? asyncIndexByDagIndex.AsSpan() : ReadOnlySpan<int>.Empty;
+        var unjoinedNeedsOverlapSpan = asyncCandidateCount > 0 ? unjoinedNeedsOverlapMask.AsSpan() : ReadOnlySpan<ulong>.Empty;
 
         // Kahn's Topological Sort with Grouping Heuristics
         while (readyList.Count > 0)
         {
-            var bestReadyIdx = SelectBestCandidatePass(readyList.AsSpan(), lastScheduledPass, lastScheduledDagIndex, passes, pCompiledPasses->AsSpan(), in passResourceMasks);
+            var bestReadyIdx = SelectBestCandidatePass(readyList.AsSpan(), lastScheduledPass, lastScheduledDagIndex, passes,
+                pCompiledPasses->AsSpan(), in passResourceMasks, asyncIndexSpan, in asyncAncestors, unjoinedNeedsOverlapSpan);
             var chosenPassIndex = readyList[bestReadyIdx];
             readyList.RemoveAtSwapBack(bestReadyIdx);
 
             var chosenPass = (*pCompiledPasses)[chosenPassIndex];
+            var chosenPassObj = passes[chosenPass];
             reorderedIndices.Add(chosenPass);
-            lastScheduledPass = passes[chosenPass];
+            lastScheduledPass = chosenPassObj;
             lastScheduledDagIndex = chosenPassIndex;
+
+            if (asyncCandidateCount > 0)
+            {
+                var chosenAsyncIndex = asyncIndexByDagIndex[chosenPassIndex];
+                if (chosenAsyncIndex >= 0)
+                {
+                    var wordIndex = chosenAsyncIndex >> 6;
+                    var bit = 1UL << (chosenAsyncIndex & 63);
+                    unjoinedMask[wordIndex] |= bit;
+                    unjoinedNeedsOverlapMask[wordIndex] |= bit;
+                    asyncAncestors.Set(chosenPassIndex, chosenAsyncIndex);
+                }
+                else
+                {
+                    var chosenRow = asyncAncestors.GetReadOnlyRow(chosenPassIndex);
+                    for (var w = 0; w < asyncAncestors.WordCount; w++)
+                    {
+                        var joinedBits = chosenRow[w] & unjoinedMask[w];
+                        unjoinedMask[w] &= ~joinedBits;
+                        unjoinedNeedsOverlapMask[w] &= ~joinedBits;
+                    }
+
+                    if (chosenPassObj.type == RenderPassType.Raster
+                        || (chosenPassObj.type == RenderPassType.Unsafe && chosenPassObj.allowAsyncComputeOverlap))
+                    {
+                        unjoinedNeedsOverlapMask.Clear();
+                    }
+                }
+            }
 
             // Decrement the scratch in-degree for all downstream dependent passes.
             ref readonly var chosenNode = ref dependencyNodes[chosenPassIndex];
+            var chosenAncestorRow = asyncCandidateCount > 0 ? asyncAncestors.GetReadOnlyRow(chosenPassIndex) : ReadOnlySpan<ulong>.Empty;
             for (var i = 0; i < chosenNode.dependents.Count; i++)
             {
                 var dstIdx = chosenNode.dependents[i];
+                if (asyncCandidateCount > 0)
+                {
+                    var dstRow = asyncAncestors.GetRow(dstIdx);
+                    for (var w = 0; w < asyncAncestors.WordCount; w++)
+                    {
+                        dstRow[w] |= chosenAncestorRow[w] & unjoinedMask[w];
+                    }
+                }
+
                 remainingInDegrees[dstIdx]--;
                 if (remainingInDegrees[dstIdx] == 0)
                 {
@@ -697,6 +787,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 
         Logger.DebugAssert(reorderedIndices.Count == pCompiledPasses->Count);
 
+        asyncAncestors.Dispose();
         passResourceMasks.Dispose();
         pCompiledPasses->Clear();
         pCompiledPasses->AddRange(reorderedIndices);
@@ -754,46 +845,34 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             return;
         }
 
-        var currentGfxCbId = 0;
-        var nextCbId = 1;
+        using var scope = AllocationManager.CreateStackScope();
+        using var firstGraphicsJoin = new UnsafeArray<int>(passCount, scope.AllocationHandle);
+        firstGraphicsJoin.AsSpan().Fill(-1);
 
-        for (var candidateIndex = 0; candidateIndex < passCount; candidateIndex++)
+        // Decide effective queues backward so each candidate sees the final queue of all downstream dependents.
+        for (var candidateIndex = passCount - 1; candidateIndex >= 0; candidateIndex--)
         {
-            if (syncBoundaries[candidateIndex].isValid)
-            {
-                continue;
-            }
-
             var candidate = passes[compiledPasses[candidateIndex]];
             if (!IsAsyncComputeCandidate(candidate))
             {
                 continue;
             }
 
-            var joinIndex = FindFirstDependent(candidateIndex, in reachability);
+            var joinIndex = FindFirstDependentOnQueue(candidateIndex, CommandQueueType.Graphics, effectiveQueues, in reachability);
             if (joinIndex < 0)
             {
                 continue;
             }
 
-            var groupEndIndex = candidateIndex;
-            while (groupEndIndex + 1 < joinIndex)
-            {
-                var nextIndex = groupEndIndex + 1;
-                var nextCandidate = passes[compiledPasses[nextIndex]];
-                if (!IsAsyncComputeCandidate(nextCandidate)
-                    || FindFirstDependent(nextIndex, in reachability) != joinIndex)
-                {
-                    break;
-                }
-
-                groupEndIndex = nextIndex;
-            }
-
             var hasIndependentGraphicsWork = false;
             var legalWindow = true;
-            for (var overlapIndex = groupEndIndex + 1; overlapIndex < joinIndex; overlapIndex++)
+            for (var overlapIndex = candidateIndex + 1; overlapIndex < joinIndex; overlapIndex++)
             {
+                if (effectiveQueues[overlapIndex] != CommandQueueType.Graphics)
+                {
+                    continue;
+                }
+
                 var overlapPass = passes[compiledPasses[overlapIndex]];
                 if (overlapPass.type == RenderPassType.Unsafe)
                 {
@@ -805,8 +884,7 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
 
                     hasIndependentGraphicsWork = true;
                 }
-
-                if (overlapPass.type == RenderPassType.Raster)
+                else if (overlapPass.type == RenderPassType.Raster)
                 {
                     hasIndependentGraphicsWork = true;
                 }
@@ -817,54 +895,74 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
                 continue;
             }
 
-            var hasGraphicsProducer = false;
-            for (var producerIndex = 0; producerIndex < candidateIndex; producerIndex++)
-            {
-                if (effectiveQueues[producerIndex] == CommandQueueType.Compute)
-                {
-                    continue;
-                }
+            effectiveQueues[candidateIndex] = CommandQueueType.Compute;
+            firstGraphicsJoin[candidateIndex] = joinIndex;
+        }
 
-                if (reachability.IntersectsRange(producerIndex, candidateIndex, groupEndIndex))
+        using var cbIdByScheduleIndex = new UnsafeArray<int>(passCount, scope.AllocationHandle);
+        var currentQueue = CommandQueueType.Graphics;
+        var currentCbId = 0;
+        var nextCbId = 1;
+        var lastWaitedGraphicsJoinComputeCb = -1;
+        var lastWaitedComputeJoinGraphicsCb = -1;
+        var currentComputeCbMinJoin = int.MaxValue;
+
+        // Partition finalized queues into contiguous command buffers and emit monotonic sync boundaries.
+        for (var scheduleIndex = 0; scheduleIndex < passCount; scheduleIndex++)
+        {
+            var queue = effectiveQueues[scheduleIndex];
+            var lastWaitedOtherQueueCb = queue == CommandQueueType.Graphics
+                ? lastWaitedGraphicsJoinComputeCb
+                : lastWaitedComputeJoinGraphicsCb;
+
+            var requiredProducerCb = -1;
+            for (var producerIndex = 0; producerIndex < scheduleIndex; producerIndex++)
+            {
+                if (effectiveQueues[producerIndex] != queue && reachability.Get(producerIndex, scheduleIndex))
                 {
-                    hasGraphicsProducer = true;
-                    break;
+                    requiredProducerCb = Math.Max(requiredProducerCb, cbIdByScheduleIndex[producerIndex]);
                 }
             }
 
-            for (var computeIndex = candidateIndex; computeIndex <= groupEndIndex; computeIndex++)
+            var needsCrossQueueWait = requiredProducerCb > lastWaitedOtherQueueCb;
+            var needsComputeReleaseSplit = queue == CommandQueueType.Compute
+                && currentQueue == CommandQueueType.Compute
+                && firstGraphicsJoin[scheduleIndex] > currentComputeCbMinJoin;
+
+            if (queue != currentQueue || needsCrossQueueWait || needsComputeReleaseSplit)
             {
-                effectiveQueues[computeIndex] = CommandQueueType.Compute;
+                var producerCbId = needsCrossQueueWait ? requiredProducerCb : -1;
+                if (producerCbId >= 0)
+                {
+                    if (queue == CommandQueueType.Graphics)
+                    {
+                        lastWaitedGraphicsJoinComputeCb = producerCbId;
+                    }
+                    else
+                    {
+                        lastWaitedComputeJoinGraphicsCb = producerCbId;
+                    }
+                }
+
+                currentCbId = nextCbId++;
+                currentQueue = queue;
+                syncBoundaries[scheduleIndex] = new SyncBoundary
+                {
+                    isValid = true,
+                    nextCommandBufferType = queue,
+                    nextCommandBufferId = currentCbId,
+                    producerCommandBufferId = producerCbId
+                };
+                currentComputeCbMinJoin = queue == CommandQueueType.Compute
+                    ? firstGraphicsJoin[scheduleIndex]
+                    : int.MaxValue;
+            }
+            else if (queue == CommandQueueType.Compute)
+            {
+                currentComputeCbMinJoin = Math.Min(currentComputeCbMinJoin, firstGraphicsJoin[scheduleIndex]);
             }
 
-            var computeCbId = nextCbId++;
-            var overlapGfxCbId = nextCbId++;
-            var joinGfxCbId = nextCbId++;
-
-            syncBoundaries[candidateIndex] = new SyncBoundary
-            {
-                isValid = true,
-                nextCommandBufferType = CommandQueueType.Compute,
-                nextCommandBufferId = computeCbId,
-                producerCommandBufferId = hasGraphicsProducer ? currentGfxCbId : -1
-            };
-            syncBoundaries[groupEndIndex + 1] = new SyncBoundary
-            {
-                isValid = true,
-                nextCommandBufferType = CommandQueueType.Graphics,
-                nextCommandBufferId = overlapGfxCbId,
-                producerCommandBufferId = -1
-            };
-            syncBoundaries[joinIndex] = new SyncBoundary
-            {
-                isValid = true,
-                nextCommandBufferType = CommandQueueType.Graphics,
-                nextCommandBufferId = joinGfxCbId,
-                producerCommandBufferId = computeCbId
-            };
-
-            currentGfxCbId = joinGfxCbId;
-            candidateIndex = joinIndex;
+            cbIdByScheduleIndex[scheduleIndex] = currentCbId;
         }
     }
 
@@ -967,9 +1065,20 @@ internal unsafe partial class RenderGraphCompiler : IDisposable
             && pass.depthTargetReads.Count == 0;
     }
 
-    private static int FindFirstDependent(int sourceIndex, in RenderGraphBitMatrix reachability)
+    private static int FindFirstDependentOnQueue(int sourceIndex, CommandQueueType targetQueue, ReadOnlySpan<CommandQueueType> effectiveQueues, in RenderGraphBitMatrix reachability)
     {
-        return reachability.FindFirstSetBitAfter(sourceIndex, sourceIndex);
+        var candidate = reachability.FindFirstSetBitAfter(sourceIndex, sourceIndex);
+        while (candidate >= 0)
+        {
+            if (effectiveQueues[candidate] == targetQueue)
+            {
+                return candidate;
+            }
+
+            candidate = reachability.FindFirstSetBitAfter(sourceIndex, candidate);
+        }
+
+        return -1;
     }
 
     private static void RestorePassCulledFlags(CachedCompilation cached, List<RenderGraphPass> passes)

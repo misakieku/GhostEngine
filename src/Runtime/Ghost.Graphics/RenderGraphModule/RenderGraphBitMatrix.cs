@@ -175,6 +175,21 @@ internal struct RenderGraphBitMatrix : IDisposable
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool IntersectsWords(int row, ReadOnlySpan<ulong> mask)
+    {
+        var offset = row * WordCount;
+        for (var w = 0; w < WordCount; w++)
+        {
+            if ((_words[offset + w] & mask[w]) != 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public void Dispose()
     {
         if (_words.IsCreated)
