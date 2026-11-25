@@ -99,7 +99,6 @@ internal sealed unsafe class StudioDockspace
         ImGuiP.DockBuilderDockWindow("Hierarchy", leftId);
         ImGuiP.DockBuilderDockWindow("Inspector", rightId);
         ImGuiP.DockBuilderDockWindow("Scene", mainId);
-        ImGuiP.DockBuilderDockWindow("Node Graph", mainId);
         ImGuiP.DockBuilderDockWindow("Project", bottomId);
         ImGuiP.DockBuilderDockWindow("Console", bottomId);
         ImGuiP.DockBuilderDockWindow("Profiler", bottomId);

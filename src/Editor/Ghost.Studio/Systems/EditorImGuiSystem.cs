@@ -48,7 +48,6 @@ internal sealed class EditorImGuiSystem : SystemBase
     private readonly AssetImportSettingsWindow _importSettingsWindow;
     private readonly ConsolePanel _consolePanel = new();
     private readonly ProfilerPanel _profilerPanel = new();
-    private readonly NodeGraphPanel _nodeGraphPanel = new();
     private int _lastObservedImportRevision;
 
     public EditorImGuiSystem(ImGuiContextManager contextManager, ImGuiSdlInputBridge inputBridge, ImGuiPostRenderCommand postRenderCommand, SceneViewportTarget viewportTarget, EditorViewportInputState viewportInputState, ProjectService projectService, EditorContentProvider? contentProvider = null, EditorAssetCatalog? sharedCatalog = null, EditorSceneSession? sharedSceneSession = null, Action? requestExit = null, Action<string?>? updateWindowTitle = null, Func<nint>? getWindowHandle = null)
@@ -93,7 +92,6 @@ internal sealed class EditorImGuiSystem : SystemBase
         _windowManager.RegisterWindow(_projectPanel);
         _windowManager.RegisterWindow(_consolePanel);
         _windowManager.RegisterWindow(_profilerPanel);
-        _windowManager.RegisterWindow(_nodeGraphPanel);
         _windowManager.RegisterWindow(_importSettingsWindow);
         _windowManager.RegisterAssetEditor(".gmat", path => new MaterialEditorWindow(path, _projectService, _assetImportService, _assetCatalog, _projectPanel.SelectAndRevealAsset));
 
