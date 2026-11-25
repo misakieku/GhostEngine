@@ -69,7 +69,7 @@ public class NativeWrapperGenTests
             ],
         };
 
-        var files = new WrapperGeneratorEmitter().Emit(library, config).ToList();
+        var files = WrapperGeneratorEmitter.Emit(library, config).ToList();
         Assert.HasCount(1, files);
         var content = files[0].Content;
         Assert.Contains("OtherVoid(", content);
@@ -111,7 +111,7 @@ public class NativeWrapperGenTests
             ],
         };
 
-        var files = new WrapperGeneratorEmitter().Emit(library, config).ToList();
+        var files = WrapperGeneratorEmitter.Emit(library, config).ToList();
         Assert.HasCount(0, files);
     }
 
@@ -258,7 +258,7 @@ public class NativeWrapperGenTests
             ],
         };
 
-        var files = new WrapperGeneratorEmitter().Emit(library, config).ToDictionary(static f => f.FileName, static f => f.Content);
+        var files = WrapperGeneratorEmitter.Emit(library, config).ToDictionary(static f => f.FileName, static f => f.Content);
         var meshCode = files["MyMesh.nativegen.cs"];
         Assert.Contains("public void MeshSet(nuint num_mesh, ReadOnlySpan<int> items)", meshCode);
         Assert.Contains("System.Runtime.CompilerServices.Unsafe.AsPointer(ref this)", meshCode);
@@ -389,7 +389,7 @@ public class NativeWrapperGenTests
             ],
         };
 
-        var files = new WrapperGeneratorEmitter().Emit(library, config).ToDictionary(static f => f.FileName, static f => f.Content);
+        var files = WrapperGeneratorEmitter.Emit(library, config).ToDictionary(static f => f.FileName, static f => f.Content);
         Assert.IsTrue(files.ContainsKey("EmptyInherited.nativegen.cs"));
         Assert.Contains(": System.IDisposable", files["EmptyInherited.nativegen.cs"]);
 

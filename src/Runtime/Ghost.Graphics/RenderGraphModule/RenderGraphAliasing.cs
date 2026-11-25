@@ -212,7 +212,8 @@ internal static class RenderGraphAliasingBuilder
             });
         }
 
-        public (bool success, ulong offset, int slotIndex, MemoryInfo block) TryAllocate(ulong requestedSize, int firstUsePass, int lastUsePass, int logicalResourceIndex, ulong alignment = DEFAULT_ALIGNMENT, bool allowAliasing = true)
+        public (bool success, ulong offset, int slotIndex, MemoryInfo block) TryAllocate(ulong requestedSize, int firstUsePass, int lastUsePass, int logicalResourceIndex,
+            ulong alignment = DEFAULT_ALIGNMENT, bool allowAliasing = true)
         {
             var alignedSize = AlignUp(requestedSize, alignment);
 
@@ -508,7 +509,8 @@ internal static class RenderGraphAliasingBuilder
     /// <summary>
     /// Rebuilds size-dependent placement while preserving cached alias groups exactly.
     /// </summary>
-    public static AliasingPlan ResizeCachedSlots(RenderGraphResourceRegistry registry, IResourceAllocator allocator, ReadOnlySpan<int> logicalToPlaced, ReadOnlySpan<PlacedResourceData> placedData, ReadOnlySpan<int> aliasedLogicalResources, AllocationHandle allocationHandle)
+    public static AliasingPlan ResizeCachedSlots(RenderGraphResourceRegistry registry, IResourceAllocator allocator, ReadOnlySpan<int> logicalToPlaced, ReadOnlySpan<PlacedResourceData> placedData,
+        ReadOnlySpan<int> aliasedLogicalResources, AllocationHandle allocationHandle)
     {
         var plan = new AliasingPlan(registry.ResourceCount, allocationHandle);
         if (placedData.IsEmpty)

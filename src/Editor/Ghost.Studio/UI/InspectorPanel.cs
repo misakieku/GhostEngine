@@ -720,7 +720,7 @@ internal sealed partial class InspectorPanel : EditorWindow
         }
     }
 
-    private void DrawEntityRefProperty(EntityRefPropertyNode entityProp, in EditorColorTokens tokens)
+    private static void DrawEntityRefProperty(EntityRefPropertyNode entityProp, in EditorColorTokens tokens)
     {
         var snapshot = EditorSyncBridge.Instance.LatestSnapshot;
         if (EditorObjectPickers.DrawEntityField(entityProp.Name, entityProp.TargetNodeId, snapshot, in tokens, out var nextNodeId, node => EditorSelection.Instance.Select(node)))

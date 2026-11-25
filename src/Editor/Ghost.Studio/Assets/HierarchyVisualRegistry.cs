@@ -29,7 +29,7 @@ internal sealed class HierarchyVisualRegistry
 {
     public static HierarchyVisualRegistry Default { get; } = new();
 
-    public HierarchyVisualDescriptor Resolve(HierarchyNode node, in EditorColorTokens tokens)
+    public static HierarchyVisualDescriptor Resolve(HierarchyNode node, in EditorColorTokens tokens)
     {
         if (node is SceneNode)
         {

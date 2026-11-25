@@ -44,7 +44,6 @@ public sealed class RenderGraph : IDisposable
     private readonly ResourceManager _resourceManager;
 
     private MemoryPool<TLSF, TLSF.CreationOptions> _memoryPool;
-    private readonly RenderGraphObjectPool _objectPool;
     private readonly RenderGraphResourceRegistry _resourceRegistry;
 
     private readonly List<RenderGraphPass> _passes;
@@ -65,8 +64,6 @@ public sealed class RenderGraph : IDisposable
         _resourceManager = resourceManager;
 
         _memoryPool = new MemoryPool<TLSF, TLSF.CreationOptions>(new TLSF.CreationOptions { alignment = 16, initialChunkSize = 1024 * 1024 * 16 });
-
-        _objectPool = new RenderGraphObjectPool();
         _resourceRegistry = new RenderGraphResourceRegistry(resourceDatabase, resourceAllocator, resourceManager);
 
         _passes = new List<RenderGraphPass>(32);
@@ -94,7 +91,7 @@ public sealed class RenderGraph : IDisposable
         for (var i = 0; i < _passes.Count; i++)
         {
             var pass = _passes[i];
-            pass.Reset(_objectPool);
+            pass.Reset();
         }
 
         _passes.Clear();
@@ -257,7 +254,7 @@ public sealed class RenderGraph : IDisposable
     public IRasterRenderGraphBuilder AddRasterRenderPass<TPassData>(string name)
         where TPassData : struct
     {
-        var renderPass = _objectPool.Rent<RasterRenderGraphPass<TPassData>>();
+        var renderPass = RenderGraphObjectPool.Rent<RasterRenderGraphPass<TPassData>>();
         renderPass.Init(_passes.Count, name, RenderPassType.Raster);
 
         _passes.Add(renderPass);
@@ -275,7 +272,7 @@ public sealed class RenderGraph : IDisposable
     public IComputeRenderGraphBuilder AddComputeRenderPass<TPassData>(string name)
         where TPassData : struct
     {
-        var renderPass = _objectPool.Rent<ComputeRenderGraphPass<TPassData>>();
+        var renderPass = RenderGraphObjectPool.Rent<ComputeRenderGraphPass<TPassData>>();
         renderPass.Init(_passes.Count, name, RenderPassType.Compute);
 
         _passes.Add(renderPass);
@@ -293,7 +290,7 @@ public sealed class RenderGraph : IDisposable
     public IUnsafeRenderGraphBuilder AddUnsafeRenderPass<TPassData>(string name)
         where TPassData : struct
     {
-        var renderPass = _objectPool.Rent<UnsafeRenderGraphPass<TPassData>>();
+        var renderPass = RenderGraphObjectPool.Rent<UnsafeRenderGraphPass<TPassData>>();
         renderPass.Init(_passes.Count, name, RenderPassType.Unsafe);
 
         _passes.Add(renderPass);
@@ -388,7 +385,7 @@ public sealed class RenderGraph : IDisposable
         for (var i = 0; i < _passes.Count; i++)
         {
             var pass = _passes[i];
-            pass.Reset(_objectPool);
+            pass.Reset();
         }
 
         _memoryPool.Dispose();

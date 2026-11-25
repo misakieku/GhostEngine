@@ -15,14 +15,14 @@ internal static class Program
             var config = LoadConfig(options.ConfigPath);
 
             var parser = new BindingParser();
-            var library = parser.Parse(options.InputPath, config);
+            var library = BindingParser.Parse(options.InputPath, config);
 
             var outputDirectory = options.OutputPath;
             Directory.CreateDirectory(outputDirectory);
             CleanupGeneratedFiles(outputDirectory);
 
             var emitter = new WrapperGeneratorEmitter();
-            foreach (var file in emitter.Emit(library, config))
+            foreach (var file in WrapperGeneratorEmitter.Emit(library, config))
             {
                 var destination = Path.Combine(outputDirectory, file.FileName);
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!);

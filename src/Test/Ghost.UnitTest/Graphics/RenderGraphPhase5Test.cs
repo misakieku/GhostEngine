@@ -6,7 +6,7 @@ using Ghost.UnitTest.MockingEnvironment;
 
 namespace Ghost.UnitTest.Graphics;
 
-#if true
+#if GHOST_UNITTEST
 public partial class RenderGraphTest
 {
     private static readonly ViewportState s_phase5ViewState = new(2560, 1440, 2560, 1440);

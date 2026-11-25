@@ -218,7 +218,7 @@ internal sealed class HierarchyPanel : EditorWindow
         else
         {
             var isSelected = EditorSelection.Instance.SelectedObjects.Contains(node) || ReferenceEquals(EditorSelection.Instance.ActiveObject, node);
-            var visual = HierarchyVisualRegistry.Default.Resolve(node, in tokens);
+            var visual = HierarchyVisualRegistry.Resolve(node, in tokens);
             var displayLabel = node is SceneNode sceneNode
                 ? $"{sceneNode.Name}{(sceneNode.IsDirty ? "*" : string.Empty)}{(_sceneCount > 1 && sceneNode.SceneId == EditorSyncBridge.Instance.ActiveSceneId ? " (Active)" : string.Empty)}"
                 : node.Name;

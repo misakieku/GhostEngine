@@ -490,7 +490,7 @@ public sealed unsafe class VolumeOverridesPropertyNode : PropertyNode
             var clonedEntry = clone.CreateEntry(src.Accessor, src.BoxedValue, src.IsExpanded);
             if (guids != null)
             {
-                clone.ApplyAssetGuids(clonedEntry, guids);
+                ApplyAssetGuids(clonedEntry, guids);
             }
 
             clone._overrides.Add(clonedEntry);
@@ -582,7 +582,7 @@ public sealed unsafe class VolumeOverridesPropertyNode : PropertyNode
         }
     }
 
-    private void ApplyAssetGuids(VolumeOverrideEntry entry, IReadOnlyDictionary<string, Guid> assetGuids)
+    private static void ApplyAssetGuids(VolumeOverrideEntry entry, IReadOnlyDictionary<string, Guid> assetGuids)
     {
         foreach (var pair in assetGuids)
         {

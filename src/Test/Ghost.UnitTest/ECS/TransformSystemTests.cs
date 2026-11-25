@@ -135,6 +135,6 @@ public class TransformSystemTests
         Assert.AreEqual(scale.z, outScale.z, 1e-4f);
 
         var dot = math.abs(math.dot(rot, outRot));
-        Assert.IsTrue(dot > 0.9999f, $"Rotation mismatch: expected {rot}, got {outRot} (|dot|={dot})");
+        Assert.IsGreaterThan(0.9999f, dot, $"Rotation mismatch: expected {rot}, got {outRot} (|dot|={dot})");
     }
 }

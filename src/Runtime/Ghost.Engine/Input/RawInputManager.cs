@@ -42,7 +42,7 @@ public sealed unsafe class RawInputManager : IInputHandler, IDisposable
         }
     }
 
-    public bool CursorVisible
+    public static bool CursorVisible
     {
         get => SDL3.SDL_CursorVisible();
         set

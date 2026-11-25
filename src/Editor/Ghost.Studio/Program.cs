@@ -130,7 +130,7 @@ internal sealed class StudioLaunchProfile : IEngineLaunchProfile, IInputHandler
     public void OnEngineInitialized(EngineCore engine)
     {
         engine.InputManager.RelativeMouseMode = false;
-        engine.InputManager.CursorVisible = true;
+        RawInputManager.CursorVisible = true;
 
         if (_postRenderCommand != null && engine.AssetManager.TryResolveAsset("Shaders/ImGui", out var shaderEntry))
         {

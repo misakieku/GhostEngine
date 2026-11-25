@@ -305,7 +305,7 @@ internal sealed unsafe class ImGuiPostRenderCommand : IRenderLoopCommand, IDispo
         }
     }
 
-    private void ClearAndPresentEmptySwapChain(scoped in RenderContext context, ICommandBuffer commandBuffer)
+    private static void ClearAndPresentEmptySwapChain(scoped in RenderContext context, ICommandBuffer commandBuffer)
     {
         if (!context.SwapChainManager.TryGetSwapChain(0, out var swapChain))
         {

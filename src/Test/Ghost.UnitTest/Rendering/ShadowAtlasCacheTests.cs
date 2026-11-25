@@ -82,7 +82,7 @@ public class ShadowAtlasCacheTests
         // Eviction must pick the block containing keepOld (frame 1 < frame 2)
         var leaves = new List<uint>();
         Assert.IsTrue(allocator.TryFindEvictionBlock(512, 3, out _, leaves));
-        Assert.AreEqual(1, leaves.Count);
+        Assert.HasCount(1, leaves);
         Assert.AreEqual(keepOld, leaves[0]);
 
         allocator.Free(leaves[0]);

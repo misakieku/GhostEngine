@@ -34,11 +34,11 @@ internal class MockingGraphicsEngine : IGraphicsEngine
         public ulong BackingMemoryAddress => 0;
         public ulong BackingMemorySize => 0;
         public bool IsInitialized => true;
-        public IntPtr NativePointer => IntPtr.Zero;
+        public static IntPtr NativePointer => IntPtr.Zero;
 
         public uint GetEntrypointIndex(string nodeName) => 0;
 
-        public void MarkInitialized()
+        public static void MarkInitialized()
         {
         }
 

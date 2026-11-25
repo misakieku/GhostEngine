@@ -939,10 +939,12 @@ dist + childNode.bounds.Radius, $"Parent bounding sphere does not enclose child 
             meshletData->meshletGroupCount = 1;
 
             using var packed = PagePacker.PackPages(meshletData, bounds, 21, Misaki.HighPerformance.LowLevel.Buffer.AllocationHandle.Persistent);
-            Assert.AreEqual(1, packed.pageBuffers.Length);
+            Assert.HasCount(1, packed.pageBuffers);
 
             var page = packed.pageBuffers[0];
+#pragma warning disable MSTEST0037 // Use proper 'Assert' methods
             Assert.AreEqual(packed.pageDirectory[0].uncompressedSize, (uint)page.Length);
+#pragma warning restore MSTEST0037 // Use proper 'Assert' methods
 
             static uint ExtractBits(byte[] buf, uint byteBase, int bitOffset, int bitCount)
             {

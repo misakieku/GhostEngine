@@ -53,7 +53,7 @@ public sealed record ProjectContext(Project Project, IReadOnlyList<string> Asset
     /// Loads an <see cref="AssetMetadata"/> from the given <c>.meta</c> file,
     /// or <c>null</c> when the file does not exist.
     /// </summary>
-    public AssetMetadata? LoadMetadata(string metaFilePath)
+    public static AssetMetadata? LoadMetadata(string metaFilePath)
     {
         if (!File.Exists(metaFilePath))
         {
@@ -67,7 +67,7 @@ public sealed record ProjectContext(Project Project, IReadOnlyList<string> Asset
     /// <summary>
     /// Serializes <paramref name="metadata"/> to the given <c>.meta</c> file.
     /// </summary>
-    public void SaveMetadata(string metaFilePath, AssetMetadata metadata)
+    public static void SaveMetadata(string metaFilePath, AssetMetadata metadata)
     {
         File.WriteAllText(metaFilePath, JsonSerializer.Serialize(metadata, JsonOptions));
     }

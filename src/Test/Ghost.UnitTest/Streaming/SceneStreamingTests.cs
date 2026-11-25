@@ -114,7 +114,7 @@ public unsafe class SceneStreamingTests
             };
         }
 
-        public SceneFieldRecord DoubleField(string name, double value)
+        public static SceneFieldRecord DoubleField(string name, double value)
         {
             return new SceneFieldRecord
             {
@@ -126,7 +126,7 @@ public unsafe class SceneStreamingTests
             };
         }
 
-        public SceneFieldRecord BoolField(string name, bool value)
+        public static SceneFieldRecord BoolField(string name, bool value)
         {
             return new SceneFieldRecord
             {
@@ -153,7 +153,7 @@ public unsafe class SceneStreamingTests
             };
         }
 
-        public SceneFieldRecord AssetField(string name, int depIndex)
+        public static SceneFieldRecord AssetField(string name, int depIndex)
         {
             return new SceneFieldRecord
             {
@@ -164,7 +164,7 @@ public unsafe class SceneStreamingTests
             };
         }
 
-        public SceneFieldRecord EntityRefField(string name, SceneEntityTarget target)
+        public static SceneFieldRecord EntityRefField(string name, SceneEntityTarget target)
         {
             return new SceneFieldRecord
             {
@@ -493,14 +493,14 @@ public unsafe class SceneStreamingTests
         // Standalone 0: RenderVolume with Bloom threshold = 0.65
         var rvComp = sb.AddComponent(typeof(RenderVolume).FullName!, new[]
         {
-            sb.BoolField("isGlobal", true),
-            sb.DoubleField("priority", 1.0),
-            sb.DoubleField("weight", 1.0)
+            ScenePayloadBuilder.BoolField("isGlobal", true),
+            ScenePayloadBuilder.DoubleField("priority", 1.0),
+            ScenePayloadBuilder.DoubleField("weight", 1.0)
         });
         var volDataComp = sb.AddComponent(
             typeof(RenderVolumeDataContainer).FullName!,
             ReadOnlySpan<SceneFieldRecord>.Empty,
-            new[] { (typeof(BloomSettings).FullName!, new[] { sb.DoubleField("threshold", 0.65) }) });
+            new[] { (typeof(BloomSettings).FullName!, new[] { ScenePayloadBuilder.DoubleField("threshold", 0.65) }) });
         sb.AddEntity(SceneEntityTarget.Invalid, rvComp, volDataComp);
 
         // Standalone 1: Child of Prefab node 1 (templateEntityIndex=1)
@@ -517,7 +517,7 @@ public unsafe class SceneStreamingTests
         var lightAdded = sb.AddComponent(typeof(PunctualLight).FullName!, new[]
         {
             sb.StringField("type", "Spot"),
-            sb.DoubleField("intensity", 600.0)
+            ScenePayloadBuilder.DoubleField("intensity", 600.0)
         });
         var ovrField = sb.FloatArrayField("position", 10.0f, 20.0f, 30.0f);
         sb.AddPrefabInstance(
@@ -789,11 +789,11 @@ public unsafe class SceneStreamingTests
             ReadOnlySpan<SceneFieldRecord>.Empty,
             new[]
             {
-                (typeof(ExposureSettings).FullName!, new[] { sb.DoubleField("fixedExposure", 11.5) }),
-                (typeof(HDRISettings).FullName!, new[] { sb.DoubleField("exposure", 2.0) })
+                (typeof(ExposureSettings).FullName!, new[] { ScenePayloadBuilder.DoubleField("fixedExposure", 11.5) }),
+                (typeof(HDRISettings).FullName!, new[] { ScenePayloadBuilder.DoubleField("exposure", 2.0) })
             });
 
-        var volOvrBloom = sb.BuildPrefabVolumeOverride(0, typeof(BloomSettings).FullName!, removed: false, sb.DoubleField("threshold", 0.85));
+        var volOvrBloom = sb.BuildPrefabVolumeOverride(0, typeof(BloomSettings).FullName!, removed: false, ScenePayloadBuilder.DoubleField("threshold", 0.85));
         var volOvrClearExp = sb.BuildPrefabVolumeOverride(0, typeof(ExposureSettings).FullName!, removed: false, new SceneFieldRecord
         {
             fieldNameHash = CacheFileHeader.Fnv1a("fixedExposure"),

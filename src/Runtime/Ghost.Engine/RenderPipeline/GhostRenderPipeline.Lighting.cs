@@ -62,7 +62,7 @@ internal unsafe partial class GhostRenderPipeline
         return default;
     }
 
-    private void UploadDirectionalLights(ResourceContext ctx, GhostRenderPayload payload, out uint directionalLightSrv, out uint directionalLightCount, out int primaryDirectionalLightIndex)
+    private static void UploadDirectionalLights(ResourceContext ctx, GhostRenderPayload payload, out uint directionalLightSrv, out uint directionalLightCount, out int primaryDirectionalLightIndex)
     {
         directionalLightSrv = RHIUtility.INVALID_BINDLESS_INDEX;
         directionalLightCount = payload.DirectionalLightCount;

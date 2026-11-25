@@ -92,7 +92,7 @@ internal sealed class FaultInjectingFrameScheduler
         _inner.WaitIdle();
     }
 
-    public void Dispose()
+    public static void Dispose()
     {
     }
 }

@@ -290,7 +290,7 @@ public class BakeService
             return (BakeOutcome.Skipped, Array.Empty<EmittedAssetEntry>());
         }
 
-        var metadata = _context.LoadMetadata(metaFile);
+        var metadata = ProjectContext.LoadMetadata(metaFile);
 
         Logger.Info($"Baking {relativePath}...");
 
@@ -304,7 +304,7 @@ public class BakeService
                 Settings = _bakerRegistry.CreateDefaultSettings(ext)
             };
 
-            _context.SaveMetadata(metaFile, metadata);
+            ProjectContext.SaveMetadata(metaFile, metadata);
             Logger.Info($"Created default metadata for {relativePath}.");
         }
         else if (metadata.Type != detectedAssetType)
@@ -315,7 +315,7 @@ public class BakeService
                 Type = detectedAssetType,
                 Settings = metadata.Settings,
             };
-            _context.SaveMetadata(metaFile, metadata);
+            ProjectContext.SaveMetadata(metaFile, metadata);
             Logger.Info($"Updated asset type metadata for {relativePath} to {detectedAssetType}.");
         }
 
@@ -469,7 +469,7 @@ public class BakeService
         }
     }
 
-    private List<KeyValuePair<string, List<string>>> FindDuplicateBaseNames(Dictionary<string, string> virtualPathToFile)
+    private static List<KeyValuePair<string, List<string>>> FindDuplicateBaseNames(Dictionary<string, string> virtualPathToFile)
     {
         var baseNames = new Dictionary<string, List<string>>();
         foreach (var virtualPath in virtualPathToFile.Keys)

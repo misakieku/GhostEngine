@@ -504,7 +504,7 @@ public class PackService
                 }
 
                 var metaFile = assetFile + ".meta";
-                var metadata = _context.LoadMetadata(metaFile);
+                var metadata = ProjectContext.LoadMetadata(metaFile);
                 if (metadata == null)
                 {
                     Logger.Error($"Missing metadata for {assetFile}");

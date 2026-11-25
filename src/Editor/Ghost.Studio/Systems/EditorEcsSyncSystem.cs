@@ -172,7 +172,7 @@ internal sealed unsafe class EditorEcsSyncSystem : SystemBase
         }
     }
 
-    private int ComputeStructuralDigest(World world, EntityManager em, ref EntityQuery query)
+    private static int ComputeStructuralDigest(World world, EntityManager em, ref EntityQuery query)
     {
         var hash = new HashCode();
         var count = 0;

@@ -4133,7 +4133,7 @@ namespace Ghost.FMOD.Core
                 inUse = true;
             }
 
-            private int roundUpPowerTwo(int number)
+            private static int roundUpPowerTwo(int number)
             {
                 var newNumber = 1;
                 while (newNumber <= number)

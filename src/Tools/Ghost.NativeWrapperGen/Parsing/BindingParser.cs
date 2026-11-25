@@ -8,7 +8,7 @@ namespace Ghost.NativeWrapperGen.Parsing;
 
 public sealed class BindingParser
 {
-    public NativeLibrary Parse(string inputDirectory, WrapperConfig config)
+    public static NativeLibrary Parse(string inputDirectory, WrapperConfig config)
     {
         var members = new List<NativeMember>();
         var structs = new List<NativeStruct>();

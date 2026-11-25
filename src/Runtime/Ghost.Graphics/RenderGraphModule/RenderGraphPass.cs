@@ -57,7 +57,7 @@ internal abstract class RenderGraphPass
     public abstract bool HasRenderFunc();
     public abstract int GetRenderFuncHashCode();
 
-    public virtual void Reset(RenderGraphObjectPool pool)
+    public virtual void Reset()
     {
         name = string.Empty;
         index = -1;
@@ -132,9 +132,9 @@ internal abstract class RenderGraphPass<TPassData, TRenderContext> : RenderGraph
             : methodHashCode ^ System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(renderFunc.Target);
     }
 
-    public override void Reset(RenderGraphObjectPool pool)
+    public override void Reset()
     {
-        base.Reset(pool);
+        base.Reset();
         renderFunc = null;
     }
 }
@@ -147,10 +147,10 @@ internal sealed class RasterRenderGraphPass<TPassData> : RenderGraphPass<TPassDa
         renderFunc!(in PassData, context);
     }
 
-    public override void Reset(RenderGraphObjectPool pool)
+    public override void Reset()
     {
-        base.Reset(pool);
-        pool.Return(this);
+        base.Reset();
+        RenderGraphObjectPool.Return(this);
     }
 }
 
@@ -162,10 +162,10 @@ internal sealed class ComputeRenderGraphPass<TPassData> : RenderGraphPass<TPassD
         renderFunc!(in PassData, context);
     }
 
-    public override void Reset(RenderGraphObjectPool pool)
+    public override void Reset()
     {
-        base.Reset(pool);
-        pool.Return(this);
+        base.Reset();
+        RenderGraphObjectPool.Return(this);
     }
 }
 
@@ -177,9 +177,9 @@ internal sealed class UnsafeRenderGraphPass<TPassData> : RenderGraphPass<TPassDa
         renderFunc!(in PassData, context);
     }
 
-    public override void Reset(RenderGraphObjectPool pool)
+    public override void Reset()
     {
-        base.Reset(pool);
-        pool.Return(this);
+        base.Reset();
+        RenderGraphObjectPool.Return(this);
     }
 }

@@ -134,10 +134,7 @@ public class RenderGraphBenchmark
         AllocationManager.Dispose();
     }
 
-    /// <summary>
-    /// Builds a complex ~35-pass AAA rendering pipeline matching Frostbite / UE5 engine architectures.
-    /// </summary>
-    private void BuildAAAPipeline(RenderGraph rg, Handle<GPUTexture> backBufferHandle, Handle<GPUBuffer> sceneBufferHandle)
+    private static void BuildAAAPipeline(RenderGraph rg, Handle<GPUTexture> backBufferHandle, Handle<GPUBuffer> sceneBufferHandle)
     {
         var backBuffer = rg.ImportTexture(backBufferHandle);
         var sceneBuffer = rg.ImportBuffer(sceneBufferHandle);

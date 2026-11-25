@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.RenderGraphModule;
 
-internal sealed class RenderGraphObjectPool
+internal static class RenderGraphObjectPool
 {
     private static readonly List<SharedObjectPoolBase> s_allocatedPools = new();
 
@@ -48,19 +48,19 @@ internal sealed class RenderGraphObjectPool
         }
     }
 
-    public T Rent<T>()
+    public static T Rent<T>()
         where T : class, new()
     {
         return SharedObjectPool<T>.Rent();
     }
 
-    public void Return<T>(T obj)
+    public static void Return<T>(T obj)
         where T : class, new()
     {
         SharedObjectPool<T>.Return(obj);
     }
 
-    public void Clear()
+    public static void Clear()
     {
         for (var i = 0; i < s_allocatedPools.Count; i++)
         {

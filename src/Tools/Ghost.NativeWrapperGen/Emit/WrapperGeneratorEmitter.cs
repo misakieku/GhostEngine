@@ -11,7 +11,7 @@ namespace Ghost.NativeWrapperGen.Emit;
 /// </summary>
 public sealed class WrapperGeneratorEmitter
 {
-    public IEnumerable<GeneratedFile> Emit(NativeLibrary library, WrapperConfig config)
+    public static IEnumerable<GeneratedFile> Emit(NativeLibrary library, WrapperConfig config)
     {
         var naming = new NamingConventions(config);
         var resolver = new BindingTypeResolver(library);

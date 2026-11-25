@@ -135,7 +135,7 @@ internal sealed class EditorImGuiSystem : SystemBase
 
         HandleGlobalShortcuts();
 
-        _mainMenuBar.Draw(_contextManager, _dockspace, _windowManager, _projectService, systemAPI.Time.DeltaTime, _sceneSession, RefreshAfterSceneWrite, RequestExitWithConfirm, GetWindowHandle());
+        MainMenuBar.Draw(_contextManager, _dockspace, _windowManager, _projectService, systemAPI.Time.DeltaTime, _sceneSession, RefreshAfterSceneWrite, RequestExitWithConfirm, GetWindowHandle());
         _dockspace.BeginDockSpace();
 
         _sceneViewportPanel.ResetFrameState();

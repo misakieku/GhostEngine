@@ -16,7 +16,7 @@ namespace Ghost.Studio.UI;
 /// </summary>
 internal sealed class MainMenuBar
 {
-    public void Draw(ImGuiContextManager contextManager, StudioDockspace dockspace, EditorWindowManager windowManager, ProjectService projectService, float deltaTime, EditorSceneSession? sceneSession = null, Action? onSceneSaved = null, Action? requestExit = null, nint hwndOwner = 0)
+    public static void Draw(ImGuiContextManager contextManager, StudioDockspace dockspace, EditorWindowManager windowManager, ProjectService projectService, float deltaTime, EditorSceneSession? sceneSession = null, Action? onSceneSaved = null, Action? requestExit = null, nint hwndOwner = 0)
     {
         if (!ImGui.BeginMainMenuBar())
         {
