@@ -16,13 +16,17 @@ public readonly struct RecordedQueueOp
     public QueueOpType OpType { get; }
     public ulong Value { get; }
     public bool? CommandBufferWasRecording { get; }
+    public int BatchSize { get; }
+    public ulong[]? BatchCommandBufferIds { get; }
 
-    public RecordedQueueOp(CommandQueueType queueType, QueueOpType opType, ulong value = 0, bool? commandBufferWasRecording = null)
+    public RecordedQueueOp(CommandQueueType queueType, QueueOpType opType, ulong value = 0, bool? commandBufferWasRecording = null, int batchSize = 1, ulong[]? batchCommandBufferIds = null)
     {
         QueueType = queueType;
         OpType = opType;
         Value = value;
         CommandBufferWasRecording = commandBufferWasRecording;
+        BatchSize = batchSize;
+        BatchCommandBufferIds = batchCommandBufferIds;
     }
 
     public override string ToString()
@@ -82,7 +86,7 @@ internal class MockingCommandQueue : ICommandQueue
             : (ulong)commandBuffer.Type;
         lock (GlobalRecordedOps)
         {
-            GlobalRecordedOps.Add(new RecordedQueueOp(Type, QueueOpType.Submit, commandBufferId, wasRecording));
+            GlobalRecordedOps.Add(new RecordedQueueOp(Type, QueueOpType.Submit, commandBufferId, wasRecording, 1, [commandBufferId]));
         }
 #endif
         ValidateCommandBufferState(wasRecording);
@@ -96,17 +100,19 @@ internal class MockingCommandQueue : ICommandQueue
         }
 
         var wasRecording = false;
+        var batchIds = new ulong[commandBuffers.Length];
         for (var i = 0; i < commandBuffers.Length; i++)
         {
             wasRecording |= commandBuffers[i].State.IsRecording;
+            batchIds[i] = commandBuffers[i] is MockingCommandBuffer mc
+                ? (ulong)mc.InstanceId
+                : (ulong)commandBuffers[i].Type;
         }
 #if GHOST_UNITTEST
-        var commandBufferId = commandBuffers[0] is MockingCommandBuffer mockingCommandBuffer
-            ? (ulong)mockingCommandBuffer.InstanceId
-            : (ulong)commandBuffers[0].Type;
+        var commandBufferId = batchIds[0];
         lock (GlobalRecordedOps)
         {
-            GlobalRecordedOps.Add(new RecordedQueueOp(Type, QueueOpType.Submit, commandBufferId, wasRecording));
+            GlobalRecordedOps.Add(new RecordedQueueOp(Type, QueueOpType.Submit, commandBufferId, wasRecording, commandBuffers.Length, batchIds));
         }
 #endif
         ValidateCommandBufferState(wasRecording);

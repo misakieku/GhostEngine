@@ -542,7 +542,7 @@ internal unsafe partial class GhostRenderPipeline
             return Identifier<RGTexture>.Invalid;
         }
 
-        var shadowAtlas = rg.ImportTexture(_punctualShadowCache.AtlasTexture, ResourceBarrierData.ShaderResource, ResourceBarrierData.ShaderResource);
+        var shadowAtlas = rg.ImportTexture(_punctualShadowCache.AtlasTexture, ResourceBarrierData.Common, ResourceBarrierData.Common);
 
         if (setup.dirtyShadowViewCount == 0 || instanceCount == 0)
         {

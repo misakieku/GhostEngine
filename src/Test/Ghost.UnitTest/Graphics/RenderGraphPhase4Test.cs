@@ -35,16 +35,18 @@ public partial class RenderGraphTest
         var submitOps = MockingCommandQueue.GlobalRecordedOps
             .Where(op => op.OpType == QueueOpType.Submit)
             .ToArray();
-        Assert.HasCount(expectedSegmentCount, submitOps);
-        Assert.IsTrue(submitOps.All(op => op.QueueType == CommandQueueType.Graphics));
-        Assert.IsTrue(submitOps.All(op => op.CommandBufferWasRecording == false));
+        var signalOps = MockingCommandQueue.GlobalRecordedOps
+            .Where(op => op.OpType == QueueOpType.Signal)
+            .ToArray();
+        Assert.HasCount(1, submitOps, "Same-queue Graphics segments with no cross-queue waits should batch into a single Submit.");
+        Assert.AreEqual(CommandQueueType.Graphics, submitOps[0].QueueType);
+        Assert.IsFalse(submitOps[0].CommandBufferWasRecording);
+        Assert.AreEqual(expectedSegmentCount, submitOps[0].BatchSize);
+        Assert.IsNotNull(submitOps[0].BatchCommandBufferIds);
+        Assert.IsTrue(acquiredCommandBuffers.Select(cb => (ulong)cb.InstanceId).SequenceEqual(submitOps[0].BatchCommandBufferIds!));
+        Assert.HasCount(1, signalOps);
+        Assert.AreEqual((ulong)expectedSegmentCount, signalOps[0].Value, "The batch signal must use the final segment fence value.");
         Assert.IsFalse(MockingCommandQueue.GlobalRecordedOps.Any(op => op.OpType == QueueOpType.Wait));
-        for (var i = 0; i < submitOps.Length; i++)
-        {
-            Assert.AreEqual((ulong)acquiredCommandBuffers[i].InstanceId, submitOps[i].Value);
-        }
-
-        Assert.AreEqual((ulong)acquiredCommandBuffers[^1].InstanceId, submitOps[^1].Value, "The final relative command buffer must be submitted.");
         Assert.AreEqual(expectedSegmentCount, _graphicsEngine.ReturnedCommandBufferCount);
     }
 

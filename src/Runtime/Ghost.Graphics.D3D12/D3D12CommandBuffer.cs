@@ -201,8 +201,8 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                 && layoutAfter is not BarrierLayout.RenderTarget
                 and not BarrierLayout.DepthStencilRead
                 and not BarrierLayout.DepthStencilWrite,
-            CommandBufferType.Copy => (layoutBefore is BarrierLayout.Undefined or BarrierLayout.Common)
-                && layoutAfter is BarrierLayout.Common,
+            CommandBufferType.Copy => (layoutBefore is BarrierLayout.Undefined or BarrierLayout.Common && layoutAfter is BarrierLayout.Common)
+                || (layoutBefore == BarrierLayout.Undefined && layoutAfter == BarrierLayout.Undefined),
             _ => true
         };
     }
@@ -216,6 +216,15 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
             {
                 var filtered = sync & ~graphicsOnly;
                 return (D3D12_BARRIER_SYNC)(filtered == BarrierSync.None ? BarrierSync.AllShading : filtered);
+            }
+        }
+        else if (queueType == CommandBufferType.Copy)
+        {
+            const BarrierSync copyAllowed = BarrierSync.None | BarrierSync.All | BarrierSync.Copy | BarrierSync.Split;
+            if ((sync & ~copyAllowed) != 0)
+            {
+                var filtered = sync & copyAllowed;
+                return (D3D12_BARRIER_SYNC)(filtered == BarrierSync.None ? BarrierSync.Copy : filtered);
             }
         }
 
@@ -368,7 +377,7 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                         ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
                         : (D3D12_BARRIER_ACCESS)beforeAccess;
 
-                    var syncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter;
+                    var syncAfter = FilterSyncForQueue(_type, desc.SyncAfter);
                     var accessAfter = syncAfter == D3D12_BARRIER_SYNC.D3D12_BARRIER_SYNC_NONE
                         ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
                         : (D3D12_BARRIER_ACCESS)desc.AccessAfter;
@@ -406,7 +415,9 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                     var beforeSync = desc.SyncBefore;
 
 #if GHOST_SAFETY_CHECKS
-                    if (!IsHandoffValid(in desc) || !IsTextureBarrierLayoutCompatible(_type, beforeLayout, desc.LayoutAfter))
+                    if (!IsHandoffValid(in desc)
+                        || !IsTextureBarrierLayoutCompatible(_type, beforeLayout, desc.LayoutAfter)
+                        || (_type == CommandBufferType.Copy && desc.Discard))
                     {
                         RecordError(nameof(Barrier), Error.InvalidArgument);
                         continue;
@@ -426,12 +437,12 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                         ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
                         : (D3D12_BARRIER_ACCESS)beforeAccess;
 
-                    var syncAfter = (D3D12_BARRIER_SYNC)desc.SyncAfter;
+                    var syncAfter = FilterSyncForQueue(_type, desc.SyncAfter);
                     var accessAfter = syncAfter == D3D12_BARRIER_SYNC.D3D12_BARRIER_SYNC_NONE
                         ? D3D12_BARRIER_ACCESS.D3D12_BARRIER_ACCESS_NO_ACCESS
                         : (D3D12_BARRIER_ACCESS)desc.AccessAfter;
 
-                    var discard = desc.Discard || beforeLayout == BarrierLayout.Undefined;
+                    var discard = _type != CommandBufferType.Copy && (desc.Discard || beforeLayout == BarrierLayout.Undefined);
                     var flags = D3D12_TEXTURE_BARRIER_FLAGS.D3D12_TEXTURE_BARRIER_FLAG_NONE;
                     if (discard)
                     {

@@ -17,8 +17,8 @@ internal struct CachedCompilation : IDisposable
     // Native render passes (merged logical passes)
     public UnsafeArray<NativeRenderPass> nativePasses;
 
-    // Physical heap aliasing mappings (logical index -> physical index)
-    public UnsafeHashMap<int, int> logicalToPhysical;
+    // Physical heap aliasing mappings (logical index -> placed index)
+    public UnsafeArray<int> logicalToPlaced;
 
     // Placed heap metadata
     public UnsafeArray<PlacedResourceData> placedResources;
@@ -40,21 +40,25 @@ internal struct CachedCompilation : IDisposable
 
     public void Dispose()
     {
-        for (var i = 0; i < nativePasses.Length; i++)
+        if (nativePasses.IsCreated)
         {
-            nativePasses[i].Dispose();
+            for (var i = 0; i < nativePasses.Length; i++)
+            {
+                nativePasses[i].Dispose();
+            }
+
+            nativePasses.Dispose();
         }
 
-        compiledPassIndices.Dispose();
-        passCulledFlags.Dispose();
-        nativePasses.Dispose();
-        logicalToPhysical.Dispose();
-        placedResources.Dispose();
-        aliasedLogicalResources.Dispose();
-        resourceFirstUseScheduleIndices.Dispose();
-        resourceLastUseScheduleIndices.Dispose();
-        backingResources.Dispose();
-        commandBytes.Dispose();
+        if (compiledPassIndices.IsCreated) compiledPassIndices.Dispose();
+        if (passCulledFlags.IsCreated) passCulledFlags.Dispose();
+        if (logicalToPlaced.IsCreated) logicalToPlaced.Dispose();
+        if (placedResources.IsCreated) placedResources.Dispose();
+        if (aliasedLogicalResources.IsCreated) aliasedLogicalResources.Dispose();
+        if (resourceFirstUseScheduleIndices.IsCreated) resourceFirstUseScheduleIndices.Dispose();
+        if (resourceLastUseScheduleIndices.IsCreated) resourceLastUseScheduleIndices.Dispose();
+        if (backingResources.IsCreated) backingResources.Dispose();
+        if (commandBytes.IsCreated) commandBytes.Dispose();
     }
 }
 
@@ -121,7 +125,7 @@ internal sealed class RenderGraphCompilationCache : IDisposable
             compiledPassIndices = new UnsafeArray<int>(compiledPasses.Length, allocationHandle),
             passCulledFlags = new UnsafeArray<bool>(passes.Count, allocationHandle),
             nativePasses = new UnsafeArray<NativeRenderPass>(nativePasses.Length, allocationHandle),
-            logicalToPhysical = new UnsafeHashMap<int, int>(128, allocationHandle),
+            logicalToPlaced = new UnsafeArray<int>(registry.ResourceCount, allocationHandle),
             placedResources = new UnsafeArray<PlacedResourceData>(aliasingPlan.placedResources.Count, allocationHandle),
             aliasedLogicalResources = new UnsafeArray<int>(aliasedLogicalResourceCount, allocationHandle),
             totalHeapSize = aliasingPlan.totalHeapSize,
@@ -131,6 +135,11 @@ internal sealed class RenderGraphCompilationCache : IDisposable
             commandBytes = new UnsafeArray<byte>(commandBytes.Length, allocationHandle),
             viewport = viewport
         };
+
+        if (_cached.logicalToPlaced.Length > 0)
+        {
+            _cached.logicalToPlaced.AsSpan().Fill(-1);
+        }
 
         _cached.compiledPassIndices.CopyFrom(compiledPasses);
         _cached.nativePasses.CopyFrom(nativePasses);
@@ -156,7 +165,7 @@ internal sealed class RenderGraphCompilationCache : IDisposable
             _cached.passCulledFlags[i] = passes[i].culled;
         }
 
-        aliasingPlan.StoreToCache(ref _cached.logicalToPhysical, ref _cached.placedResources, ref _cached.aliasedLogicalResources);
+        aliasingPlan.StoreToCache(ref _cached.logicalToPlaced, ref _cached.placedResources, ref _cached.aliasedLogicalResources);
 
         for (var i = 0; i < registry.ResourceCount; i++)
         {
@@ -164,6 +173,42 @@ internal sealed class RenderGraphCompilationCache : IDisposable
             _cached.backingResources[i] = res.backingResource;
         }
 
+        return ref _cached;
+    }
+
+    public ref readonly CachedCompilation UpdateResizedAliasing(ref AliasingPlan aliasingPlan, ViewportState viewport, AllocationHandle allocationHandle)
+    {
+        var aliasedLogicalResourceCount = 0;
+        for (var i = 0; i < aliasingPlan.placedResources.Count; i++)
+        {
+            aliasedLogicalResourceCount += aliasingPlan.placedResources[i].aliasedLogicalResources.Count;
+        }
+
+        if (_cached.placedResources.Length != aliasingPlan.placedResources.Count)
+        {
+            if (_cached.placedResources.IsCreated) _cached.placedResources.Dispose();
+            _cached.placedResources = new UnsafeArray<PlacedResourceData>(aliasingPlan.placedResources.Count, allocationHandle);
+        }
+
+        if (_cached.aliasedLogicalResources.Length != aliasedLogicalResourceCount)
+        {
+            if (_cached.aliasedLogicalResources.IsCreated) _cached.aliasedLogicalResources.Dispose();
+            _cached.aliasedLogicalResources = new UnsafeArray<int>(aliasedLogicalResourceCount, allocationHandle);
+        }
+
+        if (aliasingPlan.logicalToPlaced.IsCreated && _cached.logicalToPlaced.Length != aliasingPlan.logicalToPlaced.Length)
+        {
+            if (_cached.logicalToPlaced.IsCreated) _cached.logicalToPlaced.Dispose();
+            _cached.logicalToPlaced = new UnsafeArray<int>(aliasingPlan.logicalToPlaced.Length, allocationHandle);
+            if (_cached.logicalToPlaced.Length > 0)
+            {
+                _cached.logicalToPlaced.AsSpan().Fill(-1);
+            }
+        }
+
+        _cached.totalHeapSize = aliasingPlan.totalHeapSize;
+        _cached.viewport = viewport;
+        aliasingPlan.StoreToCache(ref _cached.logicalToPlaced, ref _cached.placedResources, ref _cached.aliasedLogicalResources);
         return ref _cached;
     }
 

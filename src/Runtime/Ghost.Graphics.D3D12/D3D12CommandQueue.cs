@@ -93,6 +93,11 @@ internal unsafe class D3D12CommandQueue : D3D12Object<ID3D12CommandQueue>, IComm
             currentIndex++;
         }
 
+        if (currentIndex == 0)
+        {
+            return;
+        }
+
         pNativeObject->ExecuteCommandLists(currentIndex, ppCommandLists);
     }
 

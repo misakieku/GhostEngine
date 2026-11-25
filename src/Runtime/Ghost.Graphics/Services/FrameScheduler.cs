@@ -6,6 +6,12 @@ using System.Runtime.CompilerServices;
 
 namespace Ghost.Graphics.Services;
 
+/// <summary>
+/// Coordinates deferred GPU command-buffer submissions, cross-queue fence dependencies, and transaction rollback.
+/// </summary>
+/// <remarks>
+/// <see cref="FrameScheduler"/> is single-threaded and must only be accessed from the render thread.
+/// </remarks>
 public sealed class FrameScheduler : IDisposable
 {
     private readonly struct SubmissionRecord
@@ -20,16 +26,58 @@ public sealed class FrameScheduler : IDisposable
         }
     }
 
-    private readonly struct SubmissionDependency
+    private struct SubmissionDependency
     {
-        public readonly SubmissionHandle producer;
-        public readonly int dependentIndex;
+        public SubmissionHandle producer;
+        public int dependentIndex;
+        public int nextOut;
+        public int nextIn;
 
         public SubmissionDependency(SubmissionHandle producer, int dependentIndex)
         {
             this.producer = producer;
             this.dependentIndex = dependentIndex;
+            nextOut = -1;
+            nextIn = -1;
         }
+    }
+
+    [InlineArray(QUEUE_COUNT)]
+    private struct QueueUlongArray
+    {
+        private ulong _element0;
+    }
+
+    [InlineArray(QUEUE_COUNT)]
+    private struct QueueHandleArray
+    {
+        private SubmissionHandle _element0;
+    }
+
+    [InlineArray(QUEUE_COUNT)]
+    private struct QueueIntArray
+    {
+        private int _element0;
+    }
+
+    [InlineArray(QUEUE_COUNT)]
+    private struct QueuePendingDependencyArray
+    {
+        private UnsafeList<SubmissionHandle> _element0;
+    }
+
+    [InlineArray(QUEUE_COUNT * QUEUE_COUNT)]
+    private struct QueueWaitMatrix
+    {
+        private ulong _element0;
+    }
+
+    private struct TransactionSnapshot
+    {
+        public QueueHandleArray latestSubmissions;
+        public QueueIntArray queueTailIndices;
+        public int submissionCount;
+        public int dependencyCount;
     }
 
     private const int QUEUE_COUNT = 3;
@@ -39,17 +87,18 @@ public sealed class FrameScheduler : IDisposable
     private readonly IGraphicsEngine _graphicsEngine;
     private readonly ICommandQueue[] _queues;
     private readonly IFence[] _fences;
-    private UnsafeArray<ulong> _nextFenceValues;
-    private UnsafeArray<SubmissionHandle> _latestSubmissions;
-    private UnsafeArray<SubmissionHandle> _flushedSubmissions;
-    private UnsafeArray<int> _currentQueueTailIndices;
-    private UnsafeArray<UnsafeList<SubmissionHandle>> _pendingDependencies;
+
+    private QueueUlongArray _nextFenceValues;
+    private QueueHandleArray _latestSubmissions;
+    private QueueHandleArray _flushedSubmissions;
+    private QueueIntArray _currentQueueTailIndices;
+    private QueuePendingDependencyArray _pendingDependencies;
+    private QueuePendingDependencyArray _transactionPendingDependencies;
+    private QueueWaitMatrix _lastWaitedFenceValues;
+    private TransactionSnapshot _transactionSnapshot;
+
     private UnsafeList<SubmissionDependency> _dependencies;
-    private UnsafeArray<SubmissionHandle> _transactionLatestSubmissions;
-    private UnsafeArray<int> _transactionQueueTailIndices;
-    private UnsafeArray<UnsafeList<SubmissionHandle>> _transactionPendingDependencies;
-    private UnsafeList<SubmissionHandle> _invalidatedSubmissions;
-    private UnsafeArray<ulong> _lastWaitedFenceValues;
+    private readonly HashSet<SubmissionHandle> _invalidatedSubmissions;
 
     private readonly List<SubmissionRecord> _submissions;
     private readonly HashSet<ICommandBuffer> _unsubmittedCommandBuffers;
@@ -57,10 +106,13 @@ public sealed class FrameScheduler : IDisposable
     private UnsafeArray<int> _indegrees;
     private UnsafeArray<int> _executionOrder;
     private UnsafeArray<bool> _scheduled;
-    private readonly int _schedulerId;
+    private UnsafeArray<int> _outHeads;
+    private UnsafeArray<int> _inHeads;
+    private UnsafeArray<bool> _crossQueueSignaled;
+    private UnsafeArray<int> _readyList;
+    private ICommandBuffer[] _batchCommandBuffers;
 
-    private int _transactionSubmissionCount;
-    private int _transactionDependencyCount;
+    private readonly int _schedulerId;
     private uint _nextTransactionId;
     private SubmissionTransaction _activeTransaction;
     private uint _generation;
@@ -82,24 +134,12 @@ public sealed class FrameScheduler : IDisposable
         _graphicsEngine = graphicsEngine;
         _queues = new ICommandQueue[QUEUE_COUNT];
         _fences = new IFence[QUEUE_COUNT];
-        _nextFenceValues = new UnsafeArray<ulong>(QUEUE_COUNT, AllocationHandle.Persistent, AllocationOption.Clear);
-        _latestSubmissions = new UnsafeArray<SubmissionHandle>(QUEUE_COUNT, AllocationHandle.Persistent);
-        _flushedSubmissions = new UnsafeArray<SubmissionHandle>(QUEUE_COUNT, AllocationHandle.Persistent);
-        _currentQueueTailIndices = new UnsafeArray<int>(QUEUE_COUNT, AllocationHandle.Persistent);
-        _pendingDependencies = new UnsafeArray<UnsafeList<SubmissionHandle>>(QUEUE_COUNT, AllocationHandle.Persistent);
-        _dependencies = new UnsafeList<SubmissionDependency>(16, AllocationHandle.Persistent);
-        _transactionLatestSubmissions = new UnsafeArray<SubmissionHandle>(QUEUE_COUNT, AllocationHandle.Persistent);
-        _transactionQueueTailIndices = new UnsafeArray<int>(QUEUE_COUNT, AllocationHandle.Persistent);
-        _transactionPendingDependencies = new UnsafeArray<UnsafeList<SubmissionHandle>>(QUEUE_COUNT, AllocationHandle.Persistent);
-        _invalidatedSubmissions = new UnsafeList<SubmissionHandle>(4, AllocationHandle.Persistent);
-        _lastWaitedFenceValues = new UnsafeArray<ulong>(QUEUE_COUNT * QUEUE_COUNT, AllocationHandle.Persistent, AllocationOption.Clear);
 
+        _dependencies = new UnsafeList<SubmissionDependency>(16, AllocationHandle.Persistent);
+        _invalidatedSubmissions = new HashSet<SubmissionHandle>(4);
         _submissions = new List<SubmissionRecord>(16);
         _unsubmittedCommandBuffers = new HashSet<ICommandBuffer>(8);
-
-        _indegrees = new UnsafeArray<int>();
-        _executionOrder = new UnsafeArray<int>();
-        _scheduled = new UnsafeArray<bool>();
+        _batchCommandBuffers = Array.Empty<ICommandBuffer>();
 
         _queues[GetQueueIndex(CommandQueueType.Graphics)] = graphicsEngine.Device.GraphicsQueue;
         _queues[GetQueueIndex(CommandQueueType.Compute)] = graphicsEngine.Device.ComputeQueue;
@@ -156,11 +196,10 @@ public sealed class FrameScheduler : IDisposable
 
         EnsureSubmissionCapacity(additionalSubmissionCount, additionalDependencyCount);
 
-        _transactionSubmissionCount = _submissions.Count;
-        _transactionDependencyCount = _dependencies.Count;
-
-        _latestSubmissions.CopyTo(_transactionLatestSubmissions, 0, 0, QUEUE_COUNT);
-        _currentQueueTailIndices.CopyTo(_transactionQueueTailIndices, 0, 0, QUEUE_COUNT);
+        _transactionSnapshot.submissionCount = _submissions.Count;
+        _transactionSnapshot.dependencyCount = _dependencies.Count;
+        _transactionSnapshot.latestSubmissions = _latestSubmissions;
+        _transactionSnapshot.queueTailIndices = _currentQueueTailIndices;
 
         for (var i = 0; i < QUEUE_COUNT; i++)
         {
@@ -191,18 +230,18 @@ public sealed class FrameScheduler : IDisposable
         ThrowIfDisposed();
         ValidateTransaction(transaction);
 
-        for (var i = _transactionSubmissionCount; i < _submissions.Count; i++)
+        for (var i = _transactionSnapshot.submissionCount; i < _submissions.Count; i++)
         {
             var submission = _submissions[i];
             _invalidatedSubmissions.Add(submission.handle);
             _graphicsEngine.ReturnPooledCommandBuffer(submission.commandBuffer);
         }
 
-        _submissions.RemoveRange(_transactionSubmissionCount, _submissions.Count - _transactionSubmissionCount);
-        _dependencies.RemoveRange(_transactionDependencyCount, _dependencies.Count - _transactionDependencyCount);
+        _submissions.RemoveRange(_transactionSnapshot.submissionCount, _submissions.Count - _transactionSnapshot.submissionCount);
+        _dependencies.RemoveRange(_transactionSnapshot.dependencyCount, _dependencies.Count - _transactionSnapshot.dependencyCount);
 
-        _transactionLatestSubmissions.CopyTo(_latestSubmissions, 0, 0, QUEUE_COUNT);
-        _transactionQueueTailIndices.CopyTo(_currentQueueTailIndices, 0, 0, QUEUE_COUNT);
+        _latestSubmissions = _transactionSnapshot.latestSubmissions;
+        _currentQueueTailIndices = _transactionSnapshot.queueTailIndices;
 
         for (var i = 0; i < QUEUE_COUNT; i++)
         {
@@ -323,32 +362,13 @@ public sealed class FrameScheduler : IDisposable
             return;
         }
 
-        var submissionCount = _submissions.Count;
-        EnsureScratchCapacity(submissionCount);
-        _scheduled.Clear();
-
         try
         {
-            ValidateNoUnresolvedTransitions();
-            ExecutePendingSubmissions();
-
-            _latestSubmissions.CopyTo(_flushedSubmissions, 0, 0, QUEUE_COUNT);
-
-            // Clear only the current batch. 
-            // CRITICAL: Do NOT increment SubmittedFrame and do NOT advance _generation!
-            _submissions.Clear();
-            _dependencies.Clear();
-            for (var i = 0; i < QUEUE_COUNT; i++)
-            {
-                _currentQueueTailIndices[i] = -1;
-            }
+            FlushPendingCore();
         }
         catch
         {
-            ReturnUnsubmittedCommandBuffers();
-            InvalidatePendingSubmissions();
-            _flushedSubmissions.CopyTo(_latestSubmissions, 0, 0, QUEUE_COUNT);
-            ResetPendingState();
+            RecoverFailedPendingBatch();
             throw;
         }
     }
@@ -367,10 +387,11 @@ public sealed class FrameScheduler : IDisposable
 
         try
         {
-            // Flush any remaining submissions (from RenderGraph / Postlude)
+            ValidateNoUnresolvedTransitions();
+
             if (_submissions.Count > 0)
             {
-                FlushPending();
+                FlushPendingCore();
             }
 
             SubmittedFrame++;
@@ -381,16 +402,13 @@ public sealed class FrameScheduler : IDisposable
                 _flushedSubmissions[GetQueueIndex(CommandQueueType.Compute)],
                 _flushedSubmissions[GetQueueIndex(CommandQueueType.Copy)]);
 
-            ResetPendingState();
+            ResetFrameState();
             return completion;
         }
         catch
         {
-            ReturnUnsubmittedCommandBuffers();
-            InvalidatePendingSubmissions();
-            _flushedSubmissions.CopyTo(_latestSubmissions, 0, 0, QUEUE_COUNT);
-
-            ResetPendingState();
+            RecoverFailedPendingBatch();
+            ResetFrameState();
             throw;
         }
     }
@@ -413,7 +431,7 @@ public sealed class FrameScheduler : IDisposable
         ThrowIfDisposed();
         if (_submissions.Count > 0)
         {
-            Flush();
+            FlushPending();
         }
 
         for (var i = 0; i < QUEUE_COUNT; i++)
@@ -424,6 +442,45 @@ public sealed class FrameScheduler : IDisposable
         }
     }
 
+    private void FlushPendingCore()
+    {
+        var submissionCount = _submissions.Count;
+        EnsureScratchCapacity(submissionCount);
+        _scheduled.Clear();
+
+        ExecutePendingSubmissions();
+
+        _latestSubmissions = _flushedSubmissions;
+        ClearPendingBatchState();
+    }
+
+    private void ClearPendingBatchState()
+    {
+        // Clear only the current batch; do NOT increment SubmittedFrame and do NOT advance _generation.
+        _submissions.Clear();
+        _dependencies.Clear();
+        for (var i = 0; i < QUEUE_COUNT; i++)
+        {
+            _currentQueueTailIndices[i] = -1;
+        }
+    }
+
+    private void RecoverFailedPendingBatch()
+    {
+        ReturnAndInvalidateUnscheduledSubmissions();
+        _latestSubmissions = _flushedSubmissions;
+        ClearPendingBatchState();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool IsPendingInCurrentBatch(SubmissionHandle handle)
+    {
+        var idx = handle.SubmissionIndex;
+        return handle.Generation == _generation
+            && (uint)idx < (uint)_submissions.Count
+            && _submissions[idx].handle == handle;
+    }
+
     private void ExecutePendingSubmissions()
     {
         var submissionCount = _submissions.Count;
@@ -432,61 +489,185 @@ public sealed class FrameScheduler : IDisposable
             return;
         }
 
-        _lastWaitedFenceValues.Clear();
-        _indegrees.Clear();
-        _scheduled.Clear();
+        _indegrees.AsSpan().Slice(0, submissionCount).Clear();
+        _outHeads.AsSpan().Slice(0, submissionCount).Fill(-1);
+        _inHeads.AsSpan().Slice(0, submissionCount).Fill(-1);
+        _crossQueueSignaled.AsSpan().Slice(0, submissionCount).Clear();
 
         for (var i = 0; i < _dependencies.Count; i++)
         {
-            var dependency = _dependencies[i];
-            if (dependency.producer.Generation == _generation)
+            ref var dependency = ref _dependencies[i];
+            var dependentIndex = dependency.dependentIndex;
+            dependency.nextIn = _inHeads[dependentIndex];
+            _inHeads[dependentIndex] = i;
+
+            if (IsPendingInCurrentBatch(dependency.producer))
             {
-                _indegrees[dependency.dependentIndex]++;
+                var producerIndex = dependency.producer.SubmissionIndex;
+                _indegrees[dependentIndex]++;
+                dependency.nextOut = _outHeads[producerIndex];
+                _outHeads[producerIndex] = i;
+
+                if (dependency.producer.QueueType != _submissions[dependentIndex].handle.QueueType)
+                {
+                    _crossQueueSignaled[producerIndex] = true;
+                }
+            }
+            else
+            {
+                dependency.nextOut = -1;
+            }
+        }
+
+        var readyCount = 0;
+        for (var i = 0; i < submissionCount; i++)
+        {
+            if (_indegrees[i] == 0)
+            {
+                _readyList[readyCount++] = i;
             }
         }
 
         for (var orderIndex = 0; orderIndex < submissionCount; orderIndex++)
         {
-            var submissionIndex = FindNextReadySubmission(submissionCount);
-            if (submissionIndex < 0)
+            if (readyCount == 0)
             {
                 _scheduled.Clear();
                 throw new InvalidOperationException("The frame submission graph contains a dependency cycle.");
             }
 
-            _executionOrder[orderIndex] = submissionIndex;
-            _scheduled[submissionIndex] = true;
-
-            for (var i = 0; i < _dependencies.Count; i++)
+            // Pick lowest submission index to preserve deterministic submission order on ties.
+            var bestPos = 0;
+            var bestSubmission = _readyList[0];
+            for (var pos = 1; pos < readyCount; pos++)
             {
-                var dependency = _dependencies[i];
-                if (dependency.producer.Generation == _generation && dependency.producer.SubmissionIndex == submissionIndex)
+                var candidate = _readyList[pos];
+                if (candidate < bestSubmission)
                 {
-                    _indegrees[dependency.dependentIndex]--;
+                    bestSubmission = candidate;
+                    bestPos = pos;
                 }
+            }
+
+            _readyList[bestPos] = _readyList[--readyCount];
+            _executionOrder[orderIndex] = bestSubmission;
+
+            var edgeIndex = _outHeads[bestSubmission];
+            while (edgeIndex >= 0)
+            {
+                ref readonly var dependency = ref _dependencies[edgeIndex];
+                var dependentIndex = dependency.dependentIndex;
+                _indegrees[dependentIndex]--;
+                if (_indegrees[dependentIndex] == 0)
+                {
+                    _readyList[readyCount++] = dependentIndex;
+                }
+
+                edgeIndex = dependency.nextOut;
             }
         }
 
         _scheduled.Clear();
-        for (var orderIndex = 0; orderIndex < submissionCount; orderIndex++)
+        Span<ulong> waitValues = stackalloc ulong[QUEUE_COUNT];
+        Span<ulong> nextWaitValues = stackalloc ulong[QUEUE_COUNT];
+
+        var execIndex = 0;
+        while (execIndex < submissionCount)
         {
-            var submissionIndex = _executionOrder[orderIndex];
-            ExecuteSubmission(submissionIndex);
-            _scheduled[submissionIndex] = true;
+            var batchStartOrder = execIndex;
+            var firstIndex = _executionOrder[execIndex];
+            var firstRecord = _submissions[firstIndex];
+            var destinationQueueType = firstRecord.handle.QueueType;
+            var destinationQueueIndex = GetQueueIndex(destinationQueueType);
+
+            if (CollectRequiredWaits(firstIndex, destinationQueueType, destinationQueueIndex, waitValues))
+            {
+                for (var q = 0; q < QUEUE_COUNT; q++)
+                {
+                    var requiredFence = waitValues[q];
+                    if (requiredFence > GetLastWaitedFenceValue(destinationQueueIndex, q))
+                    {
+                        _queues[destinationQueueIndex].Wait(_fences[q], requiredFence);
+                        SetLastWaitedFenceValue(destinationQueueIndex, q, requiredFence);
+                    }
+                }
+            }
+
+            _batchCommandBuffers[0] = firstRecord.commandBuffer;
+            var batchCount = 1;
+            var lastIndex = firstIndex;
+            execIndex++;
+
+            while (execIndex < submissionCount && !_crossQueueSignaled[lastIndex])
+            {
+                var nextIndex = _executionOrder[execIndex];
+                var nextRecord = _submissions[nextIndex];
+                if (nextRecord.handle.QueueType != destinationQueueType)
+                {
+                    break;
+                }
+
+                if (CollectRequiredWaits(nextIndex, destinationQueueType, destinationQueueIndex, nextWaitValues))
+                {
+                    break;
+                }
+
+                _batchCommandBuffers[batchCount++] = nextRecord.commandBuffer;
+                lastIndex = nextIndex;
+                execIndex++;
+            }
+
+            if (batchCount == 1)
+            {
+                _queues[destinationQueueIndex].Submit(_batchCommandBuffers[0]);
+            }
+            else
+            {
+                _queues[destinationQueueIndex].Submit(new ReadOnlySpan<ICommandBuffer>(_batchCommandBuffers, 0, batchCount));
+            }
+
+            for (var k = 0; k < batchCount; k++)
+            {
+                _scheduled[_executionOrder[batchStartOrder + k]] = true;
+            }
+
+            var lastHandle = _submissions[lastIndex].handle;
+            _queues[destinationQueueIndex].Signal(_fences[destinationQueueIndex], lastHandle.FenceValue);
+            _flushedSubmissions[destinationQueueIndex] = lastHandle;
+
+            for (var k = 0; k < batchCount; k++)
+            {
+                var cb = _batchCommandBuffers[k];
+                _batchCommandBuffers[k] = null!;
+                _graphicsEngine.ReturnPooledCommandBuffer(cb);
+            }
         }
     }
 
-    private int FindNextReadySubmission(int submissionCount)
+    private bool CollectRequiredWaits(int submissionIndex, CommandQueueType destinationQueueType, int destinationQueueIndex, Span<ulong> waitValues)
     {
-        for (var i = 0; i < submissionCount; i++)
+        waitValues.Clear();
+        var hasNewWait = false;
+        var edgeIndex = _inHeads[submissionIndex];
+
+        while (edgeIndex >= 0)
         {
-            if (!_scheduled[i] && _indegrees[i] == 0)
+            ref readonly var dependency = ref _dependencies[edgeIndex];
+            if (dependency.producer.QueueType != destinationQueueType)
             {
-                return i;
+                var sourceQueueIndex = GetQueueIndex(dependency.producer.QueueType);
+                var fenceValue = Math.Max(waitValues[sourceQueueIndex], dependency.producer.FenceValue);
+                waitValues[sourceQueueIndex] = fenceValue;
+                if (fenceValue > GetLastWaitedFenceValue(destinationQueueIndex, sourceQueueIndex))
+                {
+                    hasNewWait = true;
+                }
             }
+
+            edgeIndex = dependency.nextIn;
         }
 
-        return -1;
+        return hasNewWait;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -495,38 +676,10 @@ public sealed class FrameScheduler : IDisposable
         return _lastWaitedFenceValues[destinationQueueIndex * QUEUE_COUNT + sourceQueueIndex];
     }
 
-    private void ExecuteSubmission(int submissionIndex)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void SetLastWaitedFenceValue(int destinationQueueIndex, int sourceQueueIndex, ulong value)
     {
-        var record = _submissions[submissionIndex];
-        var destinationQueueIndex = GetQueueIndex(record.handle.QueueType);
-        Span<ulong> waitValues = stackalloc ulong[QUEUE_COUNT];
-        waitValues.Clear();
-
-        for (var i = 0; i < _dependencies.Count; i++)
-        {
-            var dependency = _dependencies[i];
-            if (dependency.dependentIndex != submissionIndex || dependency.producer.QueueType == record.handle.QueueType)
-            {
-                continue;
-            }
-
-            var sourceQueueIndex = GetQueueIndex(dependency.producer.QueueType);
-            waitValues[sourceQueueIndex] = Math.Max(waitValues[sourceQueueIndex], dependency.producer.FenceValue);
-        }
-
-        for (var i = 0; i < QUEUE_COUNT; i++)
-        {
-            if (waitValues[i] != 0 && waitValues[i] > GetLastWaitedFenceValue(destinationQueueIndex, i))
-            {
-                _queues[destinationQueueIndex].Wait(_fences[i], waitValues[i]);
-                _lastWaitedFenceValues[destinationQueueIndex * QUEUE_COUNT + i] = waitValues[i];
-            }
-        }
-
-        _queues[destinationQueueIndex].Submit(record.commandBuffer);
-
-        _queues[destinationQueueIndex].Signal(_fences[destinationQueueIndex], record.handle.FenceValue);
-        _graphicsEngine.ReturnPooledCommandBuffer(record.commandBuffer);
+        _lastWaitedFenceValues[destinationQueueIndex * QUEUE_COUNT + sourceQueueIndex] = value;
     }
 
     private void AddDependencyCore(SubmissionHandle producer, int dependentIndex)
@@ -543,24 +696,18 @@ public sealed class FrameScheduler : IDisposable
         _dependencies.Add(new SubmissionDependency(producer, dependentIndex));
     }
 
-    private void ReturnUnsubmittedCommandBuffers()
+    private void ReturnAndInvalidateUnscheduledSubmissions()
     {
         for (var i = 0; i < _submissions.Count; i++)
         {
-            if (_scheduled[i])
+            if (_scheduled.IsCreated && i < _scheduled.Length && _scheduled[i])
             {
                 continue;
             }
 
-            _graphicsEngine.ReturnPooledCommandBuffer(_submissions[i].commandBuffer);
-        }
-    }
-
-    private void InvalidatePendingSubmissions()
-    {
-        for (var i = 0; i < _submissions.Count; i++)
-        {
-            _invalidatedSubmissions.Add(_submissions[i].handle);
+            var submission = _submissions[i];
+            _invalidatedSubmissions.Add(submission.handle);
+            _graphicsEngine.ReturnPooledCommandBuffer(submission.commandBuffer);
         }
     }
 
@@ -593,12 +740,9 @@ public sealed class FrameScheduler : IDisposable
             throw new ArgumentException("The submission handle does not belong to this frame scheduler.", parameterName);
         }
 
-        for (var i = 0; i < _invalidatedSubmissions.Count; i++)
+        if (_invalidatedSubmissions.Count > 0 && _invalidatedSubmissions.Contains(submission))
         {
-            if (_invalidatedSubmissions[i] == submission)
-            {
-                throw new ArgumentException("The submission handle was invalidated by transaction rollback.", parameterName);
-            }
+            throw new ArgumentException("The submission handle was invalidated by transaction rollback.", parameterName);
         }
     }
 
@@ -655,32 +799,48 @@ public sealed class FrameScheduler : IDisposable
         }
 
         _activeTransaction = default;
-        _transactionSubmissionCount = 0;
-        _transactionDependencyCount = 0;
+        _transactionSnapshot = default;
     }
 
     private void EnsureScratchCapacity(int submissionCount)
     {
-        if (_indegrees.Length >= submissionCount)
+        if (_indegrees.IsCreated && _indegrees.Length >= submissionCount)
         {
             return;
         }
 
-        var capacity = Math.Max(submissionCount, Math.Max(8, _indegrees.Length * 2));
+        var currentLength = _indegrees.IsCreated ? _indegrees.Length : 0;
+        var capacity = Math.Max(submissionCount, Math.Max(8, currentLength * 2));
 
-        _indegrees.Resize(capacity);
-        _executionOrder.Resize(capacity);
-        _scheduled.Resize(capacity);
+        EnsureArrayCapacity(ref _indegrees, capacity);
+        EnsureArrayCapacity(ref _executionOrder, capacity);
+        EnsureArrayCapacity(ref _scheduled, capacity);
+        EnsureArrayCapacity(ref _outHeads, capacity);
+        EnsureArrayCapacity(ref _inHeads, capacity);
+        EnsureArrayCapacity(ref _crossQueueSignaled, capacity);
+        EnsureArrayCapacity(ref _readyList, capacity);
+
+        if (_batchCommandBuffers.Length < capacity)
+        {
+            Array.Resize(ref _batchCommandBuffers, capacity);
+        }
     }
 
-    private void ResetPendingState()
+    private static void EnsureArrayCapacity<T>(ref UnsafeArray<T> array, int capacity)
+        where T : unmanaged
     {
-        foreach (var cmd in _unsubmittedCommandBuffers)
+        if (!array.IsCreated)
         {
-            _graphicsEngine.ReturnPooledCommandBuffer(cmd);
+            array = new UnsafeArray<T>(capacity, AllocationHandle.Persistent, AllocationOption.Clear);
         }
-        _unsubmittedCommandBuffers.Clear();
+        else if (array.Length < capacity)
+        {
+            array.Resize(capacity);
+        }
+    }
 
+    private void ResetFrameState()
+    {
         _submissions.Clear();
         _dependencies.Clear();
         for (var i = 0; i < QUEUE_COUNT; i++)
@@ -750,33 +910,18 @@ public sealed class FrameScheduler : IDisposable
             for (var i = 0; i < QUEUE_COUNT; i++)
             {
                 _fences[i].Dispose();
-            }
-
-            for (var i = 0; i < QUEUE_COUNT; i++)
-            {
                 _pendingDependencies[i].Dispose();
-            }
-
-            for (var i = 0; i < QUEUE_COUNT; i++)
-            {
                 _transactionPendingDependencies[i].Dispose();
             }
 
-            _nextFenceValues.Dispose();
-            _latestSubmissions.Dispose();
-            _flushedSubmissions.Dispose();
-            _currentQueueTailIndices.Dispose();
-            _pendingDependencies.Dispose();
             _dependencies.Dispose();
-            _transactionLatestSubmissions.Dispose();
-            _transactionQueueTailIndices.Dispose();
-            _transactionPendingDependencies.Dispose();
-            _invalidatedSubmissions.Dispose();
-            _lastWaitedFenceValues.Dispose();
-
             _indegrees.Dispose();
             _executionOrder.Dispose();
             _scheduled.Dispose();
+            _outHeads.Dispose();
+            _inHeads.Dispose();
+            _crossQueueSignaled.Dispose();
+            _readyList.Dispose();
 
             _disposed = true;
         }

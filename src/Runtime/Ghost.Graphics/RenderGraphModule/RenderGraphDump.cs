@@ -311,6 +311,12 @@ public sealed class RenderGraphDump
                                 $"       ├─ QueueAcquire: {resourceLabel}, {barrier.sourceQueue} -> {barrier.destinationQueue}, " +
                                 $"Handoff: [{handoffStateLabel}], Target: [{targetStateLabel}], Flags: {barrier.flags}");
                         }
+                        else if (barrier.flags.HasFlag(BarrierFlags.AliasingFlush))
+                        {
+                            lines.Add(
+                                $"       ├─ AliasingFlush: {resourceLabel}, Source: [{sourceStateLabel}], " +
+                                $"Target: [{targetStateLabel}], Flags: {barrier.flags}");
+                        }
                         else if (barrier.aliasingPredecessor.IsValid)
                         {
                             var predecessorId = barrier.aliasingPredecessor.Value;
@@ -446,15 +452,15 @@ public sealed class RenderGraphDump
     internal static RenderGraphDump Create(RenderGraphResourceRegistry resourceRegistry, IReadOnlyList<RenderGraphPass> passes, scoped in CompiledGraph graph, ViewportState viewport)
     {
         var sizeWithoutAliasing = 0UL;
-        for (var i = 0; i < graph.plan.placedResources.Count; i++)
+        for (var i = 0; i < graph.placedResources.Length; i++)
         {
-            sizeWithoutAliasing += graph.plan.placedResources[i].sizeInBytes;
+            sizeWithoutAliasing += graph.placedResources[i].sizeInBytes;
         }
 
         var dump = new RenderGraphDump
         {
             GraphHash = graph.graphHash,
-            TotalHeapSize = graph.plan.totalHeapSize,
+            TotalHeapSize = graph.totalHeapSize,
             SizeWithoutAliasing = sizeWithoutAliasing,
             IsCacheHit = graph.cacheHit,
             Viewport = viewport
@@ -467,7 +473,7 @@ public sealed class RenderGraphDump
         dump.CommandStream.AddRange(DisassembleCommandStream(resourceRegistry, passes, ref reader, graph.nativePasses, effectiveQueues, syncBoundariesBefore, syncBoundariesAfter));
 
         // Collect Memory Placement Blocks (Heap Blocks)
-        var uniqueBlocks = graph.plan.placedResources.AsSpan().ToArray()
+        var uniqueBlocks = graph.placedResources.AsSpan().ToArray()
             .GroupBy(p => p.heapOffset)
             .OrderBy(g => g.Key);
 
@@ -491,8 +497,10 @@ public sealed class RenderGraphDump
             foreach (var placed in group)
             {
                 maxBlockSize = Math.Max(maxBlockSize, placed.sizeInBytes);
-                foreach (var id in placed.aliasedLogicalResources)
+                var aliasEnd = placed.aliasedLogicalResourceOffset + placed.aliasedLogicalResourceCount;
+                for (var aliasIdx = placed.aliasedLogicalResourceOffset; aliasIdx < aliasEnd; aliasIdx++)
                 {
+                    var id = graph.aliasedLogicalResources[aliasIdx];
                     if (!allLogicalIds.Contains(id))
                     {
                         allLogicalIds.Add(id);
@@ -573,12 +581,38 @@ public sealed class RenderGraphDump
         }
 
         // Collect Resource & Aliasing Info
-        var plan = graph.plan;
         for (var i = 0; i < resourceRegistry.ResourceCount; i++)
         {
             ref readonly var res = ref resourceRegistry.GetResourceByIndex(i);
-            var placedIndex = plan.GetPlacedResourceIndex(i);
-            var placedResult = plan.GetPlacedResource(placedIndex);
+            var placedIndex = (uint)i < (uint)graph.logicalToPlaced.Length ? graph.logicalToPlaced[i] : -1;
+            var hasPlaced = placedIndex >= 0 && placedIndex < graph.placedResources.Length;
+            var aliasedWith = new List<int>();
+            var heapOffset = 0UL;
+            var sizeInBytes = 0UL;
+            if (hasPlaced)
+            {
+                var placed = graph.placedResources[placedIndex];
+                heapOffset = placed.heapOffset;
+                sizeInBytes = placed.sizeInBytes;
+                var aliasEnd = placed.aliasedLogicalResourceOffset + placed.aliasedLogicalResourceCount;
+                for (var aliasIdx = placed.aliasedLogicalResourceOffset; aliasIdx < aliasEnd; aliasIdx++)
+                {
+                    aliasedWith.Add(graph.aliasedLogicalResources[aliasIdx]);
+                }
+            }
+
+            var producerPasses = new List<int>();
+            foreach (var producerPass in resourceRegistry.GetProducerPasses(i))
+            {
+                producerPasses.Add(producerPass);
+            }
+
+            var consumerPasses = new List<int>();
+            foreach (var consumerPass in resourceRegistry.GetConsumerPasses(i))
+            {
+                consumerPasses.Add(consumerPass);
+            }
+
             var resInfo = new ResourceDumpInfo
             {
                 LogicalResourceId = res.index,
@@ -587,17 +621,15 @@ public sealed class RenderGraphDump
                 Type = res.type,
                 IsImported = res.isImported,
                 IsExtracted = res.isExtracted,
-                HeapOffset = placedResult.IsSuccess ? placedResult.Value.heapOffset : 0,
-                SizeInBytes = placedResult.IsSuccess ? placedResult.Value.sizeInBytes : 0,
+                HeapOffset = heapOffset,
+                SizeInBytes = sizeInBytes,
                 FirstUsePass = res.firstUsePass,
                 LastUsePass = res.lastUsePass,
                 ScheduledFirstUseIndex = graph.resourceFirstUseScheduleIndices[i],
                 ScheduledLastUseIndex = graph.resourceLastUseScheduleIndices[i],
-                ProducerPass = [.. res.producerPasses],
-                ConsumerPasses = [.. res.consumerPasses],
-                AliasedWithResources = placedResult.IsSuccess
-                    ? placedResult.Value.aliasedLogicalResources.ToList()
-                    : new List<int>()
+                ProducerPass = producerPasses.ToArray(),
+                ConsumerPasses = consumerPasses.ToArray(),
+                AliasedWithResources = aliasedWith
             };
 
             dump.Resources.Add(resInfo);
