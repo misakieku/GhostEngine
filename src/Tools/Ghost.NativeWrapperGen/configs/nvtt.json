@@ -91,6 +91,20 @@
           }
         }
       }
+    },
+    {
+      "filter": "EXTERN_API",
+      "targetType": "NvttApi",
+      "apply": {
+        "type": "STATIC_METHOD",
+        "opts": {
+          "name": {
+            "remove": [
+              "PREFIX"
+            ]
+          }
+        }
+      }
     }
   ]
 }

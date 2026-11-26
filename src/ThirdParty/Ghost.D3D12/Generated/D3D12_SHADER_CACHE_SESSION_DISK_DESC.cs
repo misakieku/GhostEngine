@@ -1,5 +1,3 @@
-using System;
-
 namespace Ghost.D3D12;
 
 public unsafe partial struct D3D12_SHADER_CACHE_SESSION_DISK_DESC

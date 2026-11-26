@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Direct3D.DXC" Version="1.9.2609.5" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Ghost.Win32\Ghost.Win32.csproj" />
   </ItemGroup>
 
@@ -9,10 +13,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="runtimes\win-x64\native\dxcompiler.dll">
+    <Content Remove="F:\packages\NuGet\cache\microsoft.direct3d.dxc\1.9.2609.5\build\native\bin\x64\dxcompiler.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\dxcompiler.dll" Link="runtimes\win-x64\native\dxcompiler.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="runtimes\win-x64\native\dxil.dll">
+    <Content Remove="F:\packages\NuGet\cache\microsoft.direct3d.dxc\1.9.2609.5\build\native\bin\x64\dxil.dll" />
+    <Content Include="$(PkgMicrosoft_Direct3D_DXC)\build\native\bin\x64\dxil.dll" Link="runtimes\win-x64\native\dxil.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

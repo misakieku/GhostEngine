@@ -199,7 +199,7 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
                 }
 
                 // Check compilation result
-                int hrStatus;
+                Ghost.Win32.HRESULT hrStatus;
                 result->GetStatus(&hrStatus);
 
                 // Get warning/error messages
@@ -231,7 +231,7 @@ internal sealed unsafe partial class DXCShaderCompiler : IShaderCompiler
                 var bytecodeSize = bytecodeBlob->GetBufferSize();
                 var bytecode = new UnsafeArray<byte>((int)bytecodeSize, allocationHandle);
 
-                NativeMemory.Copy(bytecodeBlob->GetBufferPointer(), bytecode.GetUnsafePtr(), (nuint)bytecodeSize);
+                NativeMemory.Copy(bytecodeBlob->GetBufferPointer(), bytecode.GetUnsafePtr(), bytecodeSize);
 
                 return bytecode;
             }

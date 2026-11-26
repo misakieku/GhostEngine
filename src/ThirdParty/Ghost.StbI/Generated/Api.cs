@@ -10,6 +10,16 @@ public static unsafe partial class Api
     public const int STBI_rgb = 3;
     public const int STBI_rgb_alpha = 4;
 
+    public const int STBI_type_unsupported = 0;
+    public const int STBI_type_jpeg = 1;
+    public const int STBI_type_png = 2;
+    public const int STBI_type_gif = 3;
+    public const int STBI_type_bmp = 4;
+    public const int STBI_type_psd = 5;
+    public const int STBI_type_pnm = 6;
+    public const int STBI_type_hdr = 7;
+    public const int STBI_type_tga = 8;
+
     [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     [return: NativeTypeName("stbi_uc *")]
     public static extern byte* stbi_load_from_memory([NativeTypeName("const stbi_uc *")] byte* buffer, int len, int* x, int* y, int* channels_in_file, int desired_channels);
@@ -76,6 +86,15 @@ public static unsafe partial class Api
     public static extern void stbi_image_free(void* retval_from_stbi_load);
 
     [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern stbi_info_res stbi_info2_from_memory([NativeTypeName("const stbi_uc *")] byte* buffer, int len);
+
+    [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern stbi_info_res stbi_info2_from_callbacks([NativeTypeName("const stbi_io_callbacks *")] stbi_io_callbacks* clbk, void* user);
+
+    [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern stbi_info_res stbi_info2([NativeTypeName("const char *")] sbyte* filename);
+
+    [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int stbi_info_from_memory([NativeTypeName("const stbi_uc *")] byte* buffer, int len, int* x, int* y, int* comp);
 
     [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -133,11 +152,8 @@ public static unsafe partial class Api
     [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int stbi_zlib_decode_noheader_buffer([NativeTypeName("char *")] sbyte* obuffer, int olen, [NativeTypeName("const char *")] sbyte* ibuffer, int ilen);
 
-    [NativeTypeName("#define STBI_VERSION 1")]
-    public const int STBI_VERSION = 1;
-
     [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern int stbi_write_png([NativeTypeName("const char *")] sbyte* filename, int w, int h, int comp, [NativeTypeName("const void *")] void* data, int stride_in_bytes);
+    public static extern int stbi_write_png([NativeTypeName("const char *")] sbyte* filename, int w, int h, int comp, [NativeTypeName("const void *")] void* data, [NativeTypeName("ptrdiff_t")] nint stride_in_bytes);
 
     [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int stbi_write_bmp([NativeTypeName("const char *")] sbyte* filename, int w, int h, int comp, [NativeTypeName("const void *")] void* data);
@@ -152,7 +168,19 @@ public static unsafe partial class Api
     public static extern int stbi_write_jpg([NativeTypeName("const char *")] sbyte* filename, int x, int y, int comp, [NativeTypeName("const void *")] void* data, int quality);
 
     [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    public static extern int stbi_write_png_to_func([NativeTypeName("stbi_write_func *")] delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, [NativeTypeName("const void *")] void* data, int stride_in_bytes);
+    public static extern int stbi_write_bmp_strided([NativeTypeName("const char *")] sbyte* filename, int w, int h, int comp, [NativeTypeName("const void *")] void* data, [NativeTypeName("ptrdiff_t")] nint stride_in_bytes);
+
+    [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int stbi_write_tga_strided([NativeTypeName("const char *")] sbyte* filename, int w, int h, int comp, [NativeTypeName("const void *")] void* data, [NativeTypeName("ptrdiff_t")] nint stride_in_bytes);
+
+    [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int stbi_write_hdr_strided([NativeTypeName("const char *")] sbyte* filename, int w, int h, int comp, [NativeTypeName("const float *")] float* data, [NativeTypeName("ptrdiff_t")] nint stride_in_bytes);
+
+    [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int stbi_write_jpg_strided([NativeTypeName("const char *")] sbyte* filename, int x, int y, int comp, [NativeTypeName("const void *")] void* data, [NativeTypeName("ptrdiff_t")] nint stride_in_bytes, int quality);
+
+    [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int stbi_write_png_to_func([NativeTypeName("stbi_write_func *")] delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, [NativeTypeName("const void *")] void* data, [NativeTypeName("ptrdiff_t")] nint stride_in_bytes);
 
     [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern int stbi_write_bmp_to_func([NativeTypeName("stbi_write_func *")] delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, [NativeTypeName("const void *")] void* data);
@@ -167,5 +195,20 @@ public static unsafe partial class Api
     public static extern int stbi_write_jpg_to_func([NativeTypeName("stbi_write_func *")] delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int x, int y, int comp, [NativeTypeName("const void *")] void* data, int quality);
 
     [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int stbi_write_bmp_strided_to_func([NativeTypeName("stbi_write_func *")] delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, [NativeTypeName("const void *")] void* data, [NativeTypeName("ptrdiff_t")] nint stride_in_bytes);
+
+    [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int stbi_write_tga_strided_to_func([NativeTypeName("stbi_write_func *")] delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, [NativeTypeName("const void *")] void* data, [NativeTypeName("ptrdiff_t")] nint stride_in_bytes);
+
+    [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int stbi_write_hdr_strided_to_func([NativeTypeName("stbi_write_func *")] delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, [NativeTypeName("const float *")] float* data, [NativeTypeName("ptrdiff_t")] nint stride_in_bytes);
+
+    [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern int stbi_write_jpg_strided_to_func([NativeTypeName("stbi_write_func *")] delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int x, int y, int comp, [NativeTypeName("const void *")] void* data, [NativeTypeName("ptrdiff_t")] nint stride_in_bytes, int quality);
+
+    [DllImport("stbi", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void stbi_flip_vertically_on_write(int flip_boolean);
+
+    [NativeTypeName("#define STBI_VERSION 1")]
+    public const int STBI_VERSION = 1;
 }

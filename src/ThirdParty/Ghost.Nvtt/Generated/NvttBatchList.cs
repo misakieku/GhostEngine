@@ -1,6 +1,5 @@
-namespace Ghost.Nvtt
+namespace Ghost.Nvtt;
+
+public partial struct NvttBatchList
 {
-    public partial struct NvttBatchList
-    {
-    }
 }

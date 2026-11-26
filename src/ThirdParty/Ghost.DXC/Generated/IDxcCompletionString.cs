@@ -4,7 +4,6 @@ using static Ghost.DXC.Api;
 
 namespace Ghost.DXC;
 
-/// <include file='IDxcCompletionString.xml' path='doc/member[@name="IDxcCompletionString"]/*' />
 [Guid("06B51E0F-A605-4C69-A110-CD6E14B58EEC")]
 [NativeTypeName("struct IDxcCompletionString : IUnknown")]
 [NativeInheritance("IUnknown")]
@@ -14,15 +13,13 @@ public unsafe partial struct IDxcCompletionString : IDxcCompletionString.Interfa
 
     public void** lpVtbl;
 
-    /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcCompletionString*, Guid*, void**, int>)(lpVtbl[0]))((IDxcCompletionString*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
 
-    /// <inheritdoc cref="IUnknown.AddRef" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(1)]
     [return: NativeTypeName("ULONG")]
@@ -31,7 +28,6 @@ public unsafe partial struct IDxcCompletionString : IDxcCompletionString.Interfa
         return ((delegate* unmanaged[MemberFunction]<IDxcCompletionString*, uint>)(lpVtbl[1]))((IDxcCompletionString*)Unsafe.AsPointer(ref this));
     }
 
-    /// <inheritdoc cref="IUnknown.Release" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(2)]
     [return: NativeTypeName("ULONG")]
@@ -40,26 +36,23 @@ public unsafe partial struct IDxcCompletionString : IDxcCompletionString.Interfa
         return ((delegate* unmanaged[MemberFunction]<IDxcCompletionString*, uint>)(lpVtbl[2]))((IDxcCompletionString*)Unsafe.AsPointer(ref this));
     }
 
-    /// <include file='IDxcCompletionString.xml' path='doc/member[@name="IDxcCompletionString.GetNumCompletionChunks"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-        public HRESULT GetNumCompletionChunks([NativeTypeName("unsigned int *")] uint* pResult)
+    public HRESULT GetNumCompletionChunks([NativeTypeName("unsigned int *")] uint* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcCompletionString*, uint*, int>)(lpVtbl[3]))((IDxcCompletionString*)Unsafe.AsPointer(ref this), pResult);
     }
 
-    /// <include file='IDxcCompletionString.xml' path='doc/member[@name="IDxcCompletionString.GetCompletionChunkKind"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(4)]
-        public HRESULT GetCompletionChunkKind([NativeTypeName("unsigned int")] uint chunkNumber, DxcCompletionChunkKind* pResult)
+    public HRESULT GetCompletionChunkKind([NativeTypeName("unsigned int")] uint chunkNumber, DxcCompletionChunkKind* pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcCompletionString*, uint, DxcCompletionChunkKind*, int>)(lpVtbl[4]))((IDxcCompletionString*)Unsafe.AsPointer(ref this), chunkNumber, pResult);
     }
 
-    /// <include file='IDxcCompletionString.xml' path='doc/member[@name="IDxcCompletionString.GetCompletionChunkText"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(5)]
-        public HRESULT GetCompletionChunkText([NativeTypeName("unsigned int")] uint chunkNumber, [NativeTypeName("LPSTR *")] sbyte** pResult)
+    public HRESULT GetCompletionChunkText([NativeTypeName("unsigned int")] uint chunkNumber, [NativeTypeName("LPSTR *")] sbyte** pResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcCompletionString*, uint, sbyte**, int>)(lpVtbl[5]))((IDxcCompletionString*)Unsafe.AsPointer(ref this), chunkNumber, pResult);
     }
@@ -67,34 +60,12 @@ public unsafe partial struct IDxcCompletionString : IDxcCompletionString.Interfa
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-                HRESULT GetNumCompletionChunks([NativeTypeName("unsigned int *")] uint* pResult);
+        HRESULT GetNumCompletionChunks([NativeTypeName("unsigned int *")] uint* pResult);
 
         [VtblIndex(4)]
-                HRESULT GetCompletionChunkKind([NativeTypeName("unsigned int")] uint chunkNumber, DxcCompletionChunkKind* pResult);
+        HRESULT GetCompletionChunkKind([NativeTypeName("unsigned int")] uint chunkNumber, DxcCompletionChunkKind* pResult);
 
         [VtblIndex(5)]
-                HRESULT GetCompletionChunkText([NativeTypeName("unsigned int")] uint chunkNumber, [NativeTypeName("LPSTR *")] sbyte** pResult);
-    }
-
-    public partial struct Vtbl<TSelf>
-        where TSelf : unmanaged, Interface
-    {
-        [NativeTypeName("HRESULT (const IID &, void **) __attribute__((stdcall))")]
-        public delegate* unmanaged[MemberFunction]<TSelf*, Guid*, void**, int> QueryInterface;
-
-        [NativeTypeName("ULONG () __attribute__((stdcall))")]
-        public delegate* unmanaged[MemberFunction]<TSelf*, uint> AddRef;
-
-        [NativeTypeName("ULONG () __attribute__((stdcall))")]
-        public delegate* unmanaged[MemberFunction]<TSelf*, uint> Release;
-
-        [NativeTypeName("HRESULT (unsigned int *) __attribute__((stdcall))")]
-        public delegate* unmanaged[MemberFunction]<TSelf*, uint*, int> GetNumCompletionChunks;
-
-        [NativeTypeName("HRESULT (unsigned int, DxcCompletionChunkKind *) __attribute__((stdcall))")]
-        public delegate* unmanaged[MemberFunction]<TSelf*, uint, DxcCompletionChunkKind*, int> GetCompletionChunkKind;
-
-        [NativeTypeName("HRESULT (unsigned int, LPSTR *) __attribute__((stdcall))")]
-        public delegate* unmanaged[MemberFunction]<TSelf*, uint, sbyte**, int> GetCompletionChunkText;
+        HRESULT GetCompletionChunkText([NativeTypeName("unsigned int")] uint chunkNumber, [NativeTypeName("LPSTR *")] sbyte** pResult);
     }
 }

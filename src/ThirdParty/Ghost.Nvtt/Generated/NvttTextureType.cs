@@ -1,9 +1,8 @@
-namespace Ghost.Nvtt
+namespace Ghost.Nvtt;
+
+public enum NvttTextureType
 {
-    public enum NvttTextureType
-    {
-        NVTT_TextureType_2D,
-        NVTT_TextureType_Cube,
-        NVTT_TextureType_3D,
-    }
+    NVTT_TextureType_2D,
+    NVTT_TextureType_Cube,
+    NVTT_TextureType_3D,
 }

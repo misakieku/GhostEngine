@@ -1,6 +1,5 @@
-namespace Ghost.Nvtt
+namespace Ghost.Nvtt;
+
+public partial struct NvttContext
 {
-    public partial struct NvttContext
-    {
-    }
 }

@@ -1,5 +1,3 @@
-using System;
-
 namespace Ghost.D3D12;
 
 public unsafe partial struct D3D12_FEATURE_DATA_QUERY_META_COMMAND

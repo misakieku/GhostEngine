@@ -1,5 +1,3 @@
-using System;
-
 namespace Ghost.DXGI;
 
 public unsafe partial struct DXGI_INFO_QUEUE_MESSAGE

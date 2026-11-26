@@ -1,10 +1,9 @@
-namespace Ghost.Nvtt
+namespace Ghost.Nvtt;
+
+public enum NvttNormalTransform
 {
-    public enum NvttNormalTransform
-    {
-        NVTT_NormalTransform_Orthographic,
-        NVTT_NormalTransform_Stereographic,
-        NVTT_NormalTransform_Paraboloid,
-        NVTT_NormalTransform_Quartic,
-    }
+    NVTT_NormalTransform_Orthographic,
+    NVTT_NormalTransform_Stereographic,
+    NVTT_NormalTransform_Paraboloid,
+    NVTT_NormalTransform_Quartic,
 }

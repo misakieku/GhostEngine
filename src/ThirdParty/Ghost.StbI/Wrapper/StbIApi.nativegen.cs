@@ -256,6 +256,40 @@ public unsafe partial struct StbIApi
     }
 
     /// <summary>
+    /// From: <see cref="Api.stbi_info2_from_memory(byte*, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static stbi_info_res Info2FromMemory(ReadOnlySpan<byte> buffer)
+    {
+        fixed (byte* pbuffer = buffer)
+        {
+            return Api.stbi_info2_from_memory(
+                (byte*)pbuffer,
+                buffer.Length);
+        }
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.stbi_info2_from_callbacks(stbi_io_callbacks*, void*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static stbi_info_res Info2FromCallbacks(stbi_io_callbacks* clbk, void* user)
+    {
+        return Api.stbi_info2_from_callbacks(
+            clbk,
+            user);
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.stbi_info2(sbyte*)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static stbi_info_res Info2(sbyte* filename)
+    {
+        return Api.stbi_info2(filename);
+    }
+
+    /// <summary>
     /// From: <see cref="Api.stbi_info_from_memory(byte*, int, int*, int*, int*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -489,10 +523,10 @@ public unsafe partial struct StbIApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.stbi_write_png(sbyte*, int, int, int, void*, int)" />
+    /// From: <see cref="Api.stbi_write_png(sbyte*, int, int, int, void*, nint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int WritePng(sbyte* filename, int w, int h, int comp, void* data, int stride_in_bytes)
+    public static int WritePng(sbyte* filename, int w, int h, int comp, void* data, nint stride_in_bytes)
     {
         return Api.stbi_write_png(
             filename,
@@ -561,10 +595,71 @@ public unsafe partial struct StbIApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.stbi_write_png_to_func(delegate* unmanaged[Cdecl]{void*, void*, int, void}, void*, int, int, int, void*, int)" />
+    /// From: <see cref="Api.stbi_write_bmp_strided(sbyte*, int, int, int, void*, nint)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int WritePngToFunc(delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, void* data, int stride_in_bytes)
+    public static int WriteBmpStrided(sbyte* filename, int w, int h, int comp, void* data, nint stride_in_bytes)
+    {
+        return Api.stbi_write_bmp_strided(
+            filename,
+            w,
+            h,
+            comp,
+            data,
+            stride_in_bytes);
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.stbi_write_tga_strided(sbyte*, int, int, int, void*, nint)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static int WriteTgaStrided(sbyte* filename, int w, int h, int comp, void* data, nint stride_in_bytes)
+    {
+        return Api.stbi_write_tga_strided(
+            filename,
+            w,
+            h,
+            comp,
+            data,
+            stride_in_bytes);
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.stbi_write_hdr_strided(sbyte*, int, int, int, float*, nint)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static int WriteHdrStrided(sbyte* filename, int w, int h, int comp, float* data, nint stride_in_bytes)
+    {
+        return Api.stbi_write_hdr_strided(
+            filename,
+            w,
+            h,
+            comp,
+            data,
+            stride_in_bytes);
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.stbi_write_jpg_strided(sbyte*, int, int, int, void*, nint, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static int WriteJpgStrided(sbyte* filename, int x, int y, int comp, void* data, nint stride_in_bytes, int quality)
+    {
+        return Api.stbi_write_jpg_strided(
+            filename,
+            x,
+            y,
+            comp,
+            data,
+            stride_in_bytes,
+            quality);
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.stbi_write_png_to_func(delegate* unmanaged[Cdecl]{void*, void*, int, void}, void*, int, int, int, void*, nint)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static int WritePngToFunc(delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, void* data, nint stride_in_bytes)
     {
         return Api.stbi_write_png_to_func(
             func,
@@ -592,7 +687,7 @@ public unsafe partial struct StbIApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.stbi_write_tga_to_func(delegate* unmanaged[Cdecl]<void*, void*, int, void>, void*, int, int, int, void*)" />
+    /// From: <see cref="Api.stbi_write_tga_to_func(delegate* unmanaged[Cdecl]{void*, void*, int, void}, void*, int, int, int, void*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static int WriteTgaToFunc(delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, void* data)
@@ -607,7 +702,7 @@ public unsafe partial struct StbIApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.stbi_write_hdr_to_func(delegate* unmanaged[Cdecl]<void*, void*, int, void>, void*, int, int, int, float*)" />
+    /// From: <see cref="Api.stbi_write_hdr_to_func(delegate* unmanaged[Cdecl]{void*, void*, int, void}, void*, int, int, int, float*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static int WriteHdrToFunc(delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, float* data)
@@ -622,7 +717,7 @@ public unsafe partial struct StbIApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.stbi_write_jpg_to_func(delegate* unmanaged[Cdecl]<void*, void*, int, void>, void*, int, int, int, void*, int)" />
+    /// From: <see cref="Api.stbi_write_jpg_to_func(delegate* unmanaged[Cdecl]{void*, void*, int, void}, void*, int, int, int, void*, int)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static int WriteJpgToFunc(delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int x, int y, int comp, void* data, int quality)
@@ -634,6 +729,71 @@ public unsafe partial struct StbIApi
             y,
             comp,
             data,
+            quality);
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.stbi_write_bmp_strided_to_func(delegate* unmanaged[Cdecl]{void*, void*, int, void}, void*, int, int, int, void*, nint)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static int WriteBmpStridedToFunc(delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, void* data, nint stride_in_bytes)
+    {
+        return Api.stbi_write_bmp_strided_to_func(
+            func,
+            context,
+            w,
+            h,
+            comp,
+            data,
+            stride_in_bytes);
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.stbi_write_tga_strided_to_func(delegate* unmanaged[Cdecl]{void*, void*, int, void}, void*, int, int, int, void*, nint)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static int WriteTgaStridedToFunc(delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, void* data, nint stride_in_bytes)
+    {
+        return Api.stbi_write_tga_strided_to_func(
+            func,
+            context,
+            w,
+            h,
+            comp,
+            data,
+            stride_in_bytes);
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.stbi_write_hdr_strided_to_func(delegate* unmanaged[Cdecl]{void*, void*, int, void}, void*, int, int, int, float*, nint)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static int WriteHdrStridedToFunc(delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int w, int h, int comp, float* data, nint stride_in_bytes)
+    {
+        return Api.stbi_write_hdr_strided_to_func(
+            func,
+            context,
+            w,
+            h,
+            comp,
+            data,
+            stride_in_bytes);
+    }
+
+    /// <summary>
+    /// From: <see cref="Api.stbi_write_jpg_strided_to_func(delegate* unmanaged[Cdecl]{void*, void*, int, void}, void*, int, int, int, void*, nint, int)" />
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static int WriteJpgStridedToFunc(delegate* unmanaged[Cdecl]<void*, void*, int, void> func, void* context, int x, int y, int comp, void* data, nint stride_in_bytes, int quality)
+    {
+        return Api.stbi_write_jpg_strided_to_func(
+            func,
+            context,
+            x,
+            y,
+            comp,
+            data,
+            stride_in_bytes,
             quality);
     }
 

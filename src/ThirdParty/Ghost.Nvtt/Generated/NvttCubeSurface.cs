@@ -1,6 +1,5 @@
-namespace Ghost.Nvtt
+namespace Ghost.Nvtt;
+
+public partial struct NvttCubeSurface
 {
-    public partial struct NvttCubeSurface
-    {
-    }
 }

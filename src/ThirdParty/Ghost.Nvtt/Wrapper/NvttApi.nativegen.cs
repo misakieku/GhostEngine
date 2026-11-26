@@ -43,7 +43,7 @@ public unsafe partial struct NvttApi
     }
 
     /// <summary>
-    /// From: <see cref="Api.nvttSetMessageCallback(delegate* unmanaged[Cdecl]<NvttSeverity, NvttError, sbyte*, void*, void>, void*)" />
+    /// From: <see cref="Api.nvttSetMessageCallback(delegate* unmanaged[Cdecl]{NvttSeverity, NvttError, sbyte*, void*, void}, void*)" />
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static NvttBoolean SetMessageCallback(delegate* unmanaged[Cdecl]<NvttSeverity, NvttError, sbyte*, void*, void> callback, void* userData)

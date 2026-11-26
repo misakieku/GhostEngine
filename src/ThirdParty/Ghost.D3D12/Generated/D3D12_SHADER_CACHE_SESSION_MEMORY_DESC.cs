@@ -1,5 +1,3 @@
-using System;
-
 namespace Ghost.D3D12;
 
 public partial struct D3D12_SHADER_CACHE_SESSION_MEMORY_DESC

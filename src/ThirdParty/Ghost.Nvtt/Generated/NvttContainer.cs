@@ -1,8 +1,7 @@
-namespace Ghost.Nvtt
+namespace Ghost.Nvtt;
+
+public enum NvttContainer
 {
-    public enum NvttContainer
-    {
-        NVTT_Container_DDS,
-        NVTT_Container_DDS10,
-    }
+    NVTT_Container_DDS,
+    NVTT_Container_DDS10,
 }

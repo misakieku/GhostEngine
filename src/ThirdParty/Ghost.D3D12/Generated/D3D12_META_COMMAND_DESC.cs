@@ -1,5 +1,3 @@
-using System;
-
 namespace Ghost.D3D12;
 
 public unsafe partial struct D3D12_META_COMMAND_DESC

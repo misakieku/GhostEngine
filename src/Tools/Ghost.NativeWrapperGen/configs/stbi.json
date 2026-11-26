@@ -1,7 +1,7 @@
 {
   "libraryName": "stbi",
-  "nativeNamespace": "Ghost.StbImage",
-  "outputNamespace": "Ghost.StbImage",
+  "nativeNamespace": "Ghost.StbI",
+  "outputNamespace": "Ghost.StbI",
   "nativeTypePrefix": "stbi_",
   "skipTypes": [
     "NativeAnnotationAttribute",

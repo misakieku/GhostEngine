@@ -103,7 +103,7 @@ PSInput main(VSInput input)
                 Assert.AreEqual(0, hr.Value, $"Failed to compile shader. HRESULT: 0x{hr:X8}");
 
                 // Check compilation result
-                int hrStatus;
+                Ghost.Win32.HRESULT hrStatus;
                 result->GetStatus(&hrStatus);
                 if (hrStatus < 0)
                 {

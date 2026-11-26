@@ -4,7 +4,6 @@ using static Ghost.DXC.Api;
 
 namespace Ghost.DXC;
 
-/// <include file='IDxcAssembler.xml' path='doc/member[@name="IDxcAssembler"]/*' />
 [Guid("091F7A26-1C1F-4948-904B-E6E3A8A771D5")]
 [NativeTypeName("struct IDxcAssembler : IUnknown")]
 [NativeInheritance("IUnknown")]
@@ -14,15 +13,13 @@ public unsafe partial struct IDxcAssembler : IDxcAssembler.Interface, INativeGui
 
     public void** lpVtbl;
 
-    /// <inheritdoc cref="IUnknown.QueryInterface" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(0)]
-        public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
+    public HRESULT QueryInterface([NativeTypeName("const IID &")] Guid* riid, void** ppvObject)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcAssembler*, Guid*, void**, int>)(lpVtbl[0]))((IDxcAssembler*)Unsafe.AsPointer(ref this), riid, ppvObject);
     }
 
-    /// <inheritdoc cref="IUnknown.AddRef" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(1)]
     [return: NativeTypeName("ULONG")]
@@ -31,7 +28,6 @@ public unsafe partial struct IDxcAssembler : IDxcAssembler.Interface, INativeGui
         return ((delegate* unmanaged[MemberFunction]<IDxcAssembler*, uint>)(lpVtbl[1]))((IDxcAssembler*)Unsafe.AsPointer(ref this));
     }
 
-    /// <inheritdoc cref="IUnknown.Release" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(2)]
     [return: NativeTypeName("ULONG")]
@@ -40,10 +36,9 @@ public unsafe partial struct IDxcAssembler : IDxcAssembler.Interface, INativeGui
         return ((delegate* unmanaged[MemberFunction]<IDxcAssembler*, uint>)(lpVtbl[2]))((IDxcAssembler*)Unsafe.AsPointer(ref this));
     }
 
-    /// <include file='IDxcAssembler.xml' path='doc/member[@name="IDxcAssembler.AssembleToContainer"]/*' />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(3)]
-        public HRESULT AssembleToContainer(IDxcBlob* pShader, IDxcOperationResult** ppResult)
+    public HRESULT AssembleToContainer(IDxcBlob* pShader, IDxcOperationResult** ppResult)
     {
         return ((delegate* unmanaged[MemberFunction]<IDxcAssembler*, IDxcBlob*, IDxcOperationResult**, int>)(lpVtbl[3]))((IDxcAssembler*)Unsafe.AsPointer(ref this), pShader, ppResult);
     }
@@ -51,22 +46,6 @@ public unsafe partial struct IDxcAssembler : IDxcAssembler.Interface, INativeGui
     public interface Interface : IUnknown.Interface
     {
         [VtblIndex(3)]
-                HRESULT AssembleToContainer(IDxcBlob* pShader, IDxcOperationResult** ppResult);
-    }
-
-    public partial struct Vtbl<TSelf>
-        where TSelf : unmanaged, Interface
-    {
-        [NativeTypeName("HRESULT (const IID &, void **) __attribute__((stdcall))")]
-        public delegate* unmanaged[MemberFunction]<TSelf*, Guid*, void**, int> QueryInterface;
-
-        [NativeTypeName("ULONG () __attribute__((stdcall))")]
-        public delegate* unmanaged[MemberFunction]<TSelf*, uint> AddRef;
-
-        [NativeTypeName("ULONG () __attribute__((stdcall))")]
-        public delegate* unmanaged[MemberFunction]<TSelf*, uint> Release;
-
-        [NativeTypeName("HRESULT (IDxcBlob *, IDxcOperationResult **) __attribute__((stdcall))")]
-        public delegate* unmanaged[MemberFunction]<TSelf*, IDxcBlob*, IDxcOperationResult**, int> AssembleToContainer;
+        HRESULT AssembleToContainer(IDxcBlob* pShader, IDxcOperationResult** ppResult);
     }
 }
