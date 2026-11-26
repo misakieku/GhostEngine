@@ -88,17 +88,17 @@ internal static unsafe class D3D12Utility
         return (void**)comPtr.ReleaseAndGetAddressOf();
     }
 
-    public static void SetName<T>(ref this T obj, ReadOnlySpan<char> name)
+    public static HRESULT SetName<T>(ref this T obj, ReadOnlySpan<char> name)
         where T : unmanaged, ID3D12Object.Interface
     {
         if (name.IsEmpty)
         {
-            return;
+            return 0;
         }
 
         fixed (char* pName = name)
         {
-            obj.SetName(pName);
+            return obj.SetName(pName);
         }
     }
 

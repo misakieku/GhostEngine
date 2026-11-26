@@ -71,12 +71,12 @@ PSInput main(VSInput input)
         try
         {
             var hr = _utils->CreateDefaultIncludeHandler(&includeHandler);
-            Assert.AreEqual(0, hr.Value, $"Failed to create default include handler. HRESULT: 0x{hr:X8}");
+            Assert.AreEqual(0, hr.value, $"Failed to create default include handler. HRESULT: 0x{hr:X8}");
 
             fixed (byte* pCode = ShaderCode)
             {
                 hr = _utils->CreateBlobFromPinned(pCode, (uint)ShaderCode.Length, Api.DXC_CP_UTF8, &sourceBlob);
-                Assert.AreEqual(0, hr.Value, $"Failed to create blob from shader code. HRESULT: 0x{hr:X8}");
+                Assert.AreEqual(0, hr.value, $"Failed to create blob from shader code. HRESULT: 0x{hr:X8}");
             }
 
             var argsArray = GetCompilerArguments();
@@ -100,7 +100,7 @@ PSInput main(VSInput input)
                 };
 
                 hr = _compiler->Compile(&buffer, argPtrs, (uint)argsArray.Count, includeHandler, __uuidof(result), (void**)&result);
-                Assert.AreEqual(0, hr.Value, $"Failed to compile shader. HRESULT: 0x{hr:X8}");
+                Assert.AreEqual(0, hr.value, $"Failed to compile shader. HRESULT: 0x{hr:X8}");
 
                 // Check compilation result
                 Ghost.Win32.HRESULT hrStatus;
@@ -126,7 +126,7 @@ PSInput main(VSInput input)
 
                 // Get compiled bytecode
                 hr = result->GetResult(&bytecodeBlob);
-                Assert.AreEqual(0, hr.Value, $"Failed to get compiled shader bytecode. HRESULT: 0x{hr:X8}");
+                Assert.AreEqual(0, hr.value, $"Failed to get compiled shader bytecode. HRESULT: 0x{hr:X8}");
 
                 var bytecodeSize = bytecodeBlob->GetBufferSize();
                 Assert.IsTrue(bytecodeSize > 0, "Compiled shader bytecode is empty.");

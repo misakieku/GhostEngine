@@ -187,7 +187,7 @@ public partial class RenderGraphTest
     private void ResetPhase4Scenario()
     {
         _frameScheduler.Flush();
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
         _graphicsEngine.ResetCommandBufferTracking();
         MockingCommandQueue.GlobalRecordedOps.Clear();
     }

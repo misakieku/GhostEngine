@@ -251,7 +251,7 @@ public partial class RenderGraphTest
         Assert.IsNotNull(exec1.Dump);
         Assert.IsFalse(exec1.Dump.IsCacheHit);
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         SetupTwoRegions();
         var exec2 = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
@@ -291,7 +291,7 @@ public partial class RenderGraphTest
         var res1 = exec1.Dump.Resources.Single(r => r.Name == "TransientBuffer");
         Assert.AreEqual(256UL, res1.SizeInBytes);
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         // Frame 2: same pass name, same topology, but buffer size = 4096
         SetupBufferPass(4096);
@@ -335,7 +335,7 @@ public partial class RenderGraphTest
         Assert.IsNotNull(exec1.Dump);
         Assert.IsFalse(exec1.Dump.IsCacheHit);
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         // Frame 2: same pass name and topology, but UAV format = R32G32B32A32_Float
         SetupUavTexturePass(TextureFormat.R32G32B32A32_Float);
@@ -385,7 +385,7 @@ public partial class RenderGraphTest
         Assert.IsNotNull(exec1.Dump);
         Assert.IsFalse(exec1.Dump.IsCacheHit);
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         SetupPass();
         var exec2 = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
@@ -415,7 +415,7 @@ public partial class RenderGraphTest
         var res4K = exec4K.Dump.Resources.Single(r => r.Name == "RelativeTarget");
         var backing4K = res4K.BackingResource;
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         // Frame 2: Resize down to 2K (1920x1080)
         SetupPipeline();

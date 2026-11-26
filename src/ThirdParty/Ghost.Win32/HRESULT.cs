@@ -2,22 +2,22 @@ namespace Ghost.Win32;
 
 public readonly partial struct HRESULT : IComparable, IComparable<HRESULT>, IEquatable<HRESULT>, IFormattable
 {
-    public readonly int Value;
+    public readonly int value;
 
     public HRESULT(int value)
     {
-        Value = value;
+        this.value = value;
     }
 
-    public bool SUCCEEDED => Value >= 0;
+    public bool SUCCEEDED => value >= 0;
 
-    public bool FAILED => Value < 0;
+    public bool FAILED => value < 0;
 
-    public static bool operator ==(HRESULT left, HRESULT right) => left.Value == right.Value;
+    public static bool operator ==(HRESULT left, HRESULT right) => left.value == right.value;
 
-    public static bool operator !=(HRESULT left, HRESULT right) => left.Value != right.Value;
+    public static bool operator !=(HRESULT left, HRESULT right) => left.value != right.value;
 
-    public static implicit operator int(HRESULT value) => value.Value;
+    public static implicit operator int(HRESULT value) => value.value;
 
     public static implicit operator HRESULT(int value) => new HRESULT(value);
 
@@ -31,15 +31,15 @@ public readonly partial struct HRESULT : IComparable, IComparable<HRESULT>, IEqu
         return obj is null ? 1 : throw new ArgumentException("obj is not an instance of HRESULT.");
     }
 
-    public int CompareTo(HRESULT other) => Value.CompareTo(other.Value);
+    public int CompareTo(HRESULT other) => value.CompareTo(other.value);
 
-    public bool Equals(HRESULT other) => Value == other.Value;
+    public bool Equals(HRESULT other) => value == other.value;
 
     public override bool Equals(object? obj) => obj is HRESULT other && Equals(other);
 
-    public override int GetHashCode() => Value.GetHashCode();
+    public override int GetHashCode() => value.GetHashCode();
 
-    public override string ToString() => $"0x{Value:X8}";
+    public override string ToString() => $"0x{value:X8}";
 
-    public string ToString(string? format, IFormatProvider? formatProvider) => Value.ToString(format, formatProvider);
+    public string ToString(string? format, IFormatProvider? formatProvider) => value.ToString(format, formatProvider);
 }

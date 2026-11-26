@@ -84,7 +84,7 @@ public class RenderGraphValidationTest
         AssertDetailedConflict(colorFirstError, "ColorThenUav", resourceName, colorFirstTexture.Value, "ColorAttachment", "UnorderedAccess");
         colorFirst.Dispose();
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         var uavFirst = _renderGraph.AddRasterRenderPass<PassData>("UavThenColor");
         var uavFirstTexture = uavFirst.CreateTexture(CreateColorTextureDesc(), resourceName);
@@ -106,7 +106,7 @@ public class RenderGraphValidationTest
         AssertDetailedConflict(depthFirstError, "DepthThenUav", resourceName, depthFirstTexture.Value, "DepthWrite", "UnorderedAccess");
         depthFirst.Dispose();
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         var uavFirst = _renderGraph.AddRasterRenderPass<PassData>("UavThenDepth");
         var uavFirstTexture = uavFirst.CreateTexture(RGTextureDesc.RelativeDepth(1.0f), resourceName);
@@ -128,7 +128,7 @@ public class RenderGraphValidationTest
         AssertDetailedConflict(colorFirstError, "ColorThenDepth", resourceName, colorFirstTexture.Value, "ColorAttachment", "DepthWrite");
         colorFirst.Dispose();
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         var depthFirst = _renderGraph.AddRasterRenderPass<PassData>("DepthThenColor");
         var depthFirstTexture = depthFirst.CreateTexture(CreateColorTextureDesc(), resourceName);

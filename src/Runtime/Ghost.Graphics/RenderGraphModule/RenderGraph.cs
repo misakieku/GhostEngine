@@ -98,15 +98,6 @@ public sealed class RenderGraph : IDisposable
     }
 
     /// <summary>
-    /// Resets the render graph for a new frame.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Reset(KeywordMask128 activeKeywords = default)
-    {
-        BeginRecord(activeKeywords);
-    }
-
-    /// <summary>
     /// Forces the compilation cache to be invalidated.
     /// </summary>
     public void InvalidateCache()

@@ -399,7 +399,7 @@ public partial class RenderGraphTest
         Assert.IsNotNull(execFrame1.Dump);
         Assert.IsFalse(execFrame1.Dump.IsCacheHit, "Frame 1 should be a cache miss.");
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         // Frame 2: Same pipeline setup (Cache Hit)
         SetupTestRenderPipeline();
@@ -468,7 +468,7 @@ public partial class RenderGraphTest
         Assert.AreEqual(freshPasses[0].NativePassIndex, freshPasses[1].NativePassIndex, "Compatible raster passes must merge into one native pass.");
         Assert.HasCount(1, freshExecution.Dump.CommandStream.Where(line => line.Contains("BeginNativePass", StringComparison.Ordinal)));
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         SetupMergedPasses();
         var cachedExecution = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
@@ -648,7 +648,7 @@ public partial class RenderGraphTest
         var execution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         AssertAliasingTransition(execution, before, after);
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         var (cachedBefore, cachedAfter) = AddAliasingBufferPasses();
         var cachedExecution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
@@ -1089,7 +1089,7 @@ public partial class RenderGraphTest
         Assert.HasCount(1, repeatedResource.ConsumerPasses, "Repeated reads must register the pass as one consumer.");
         Assert.IsTrue(repeatedResource.ConsumerPasses.Contains(repeatedPass.Index));
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         SetupReadPass(repeatDeclaration: false);
         var singleExecution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
@@ -1213,7 +1213,7 @@ public partial class RenderGraphTest
         Assert.IsNotNull(firstExecution.Dump);
         Assert.IsFalse(firstExecution.Dump.IsCacheHit);
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         SetupPipeline(true);
         var secondExecution = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
@@ -1306,7 +1306,7 @@ public partial class RenderGraphTest
         var asyncExecution = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(asyncExecution.Dump);
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         SetupComputePass(asyncRequested: false);
         var graphicsExecution = CompileAndExecute(viewState, RGFlags.GenerateDump).GetValueOrThrow();
@@ -1437,7 +1437,7 @@ public partial class RenderGraphTest
         Assert.AreEqual(CommandQueueType.Graphics, unsafeDump.Passes.Single(pass => pass.Name == "UnsafeOverlap").EffectiveQueue);
         Assert.IsFalse(unsafeDump.CommandStream.Any(line => line.Contains("CommandBufferSyncPoint")));
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
         var importedOutput = _renderGraph.ImportBuffer(_resourceAllocator.CreateBuffer(new BufferDesc { Size = 1024 }));
         producerOutput = AddPlannerGraphicsProducer("SideEffectProducer");
         using (var builder = _renderGraph.AddComputeRenderPass<AsyncPlannerPassData>("SideEffectCompute"))
@@ -1477,7 +1477,7 @@ public partial class RenderGraphTest
         var freshDump = CompilePlannerDump();
         Assert.IsFalse(freshDump.IsCacheHit);
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
         SetupPipeline(reverseDeclarations: true);
         var cachedDump = CompilePlannerDump();
         Assert.IsTrue(cachedDump.IsCacheHit);
@@ -1596,7 +1596,7 @@ public partial class RenderGraphTest
 
         // Frame 1: allocated import, transient extracted to persistentSlot -> IN-PLACE REUSE
         {
-            _renderGraph.Reset();
+            _renderGraph.BeginRecord();
             var historyTex = _renderGraph.ImportTexture(persistentSlot, ResourceBarrierData.Common, ResourceBarrierData.Common);
             BuildFramePasses(historyTex);
 
@@ -1627,7 +1627,7 @@ public partial class RenderGraphTest
 
         // Frame 2: Cache hit test
         {
-            _renderGraph.Reset();
+            _renderGraph.BeginRecord();
             var historyTex = _renderGraph.ImportTexture(persistentSlot, ResourceBarrierData.Common, ResourceBarrierData.Common);
             BuildFramePasses(historyTex);
 

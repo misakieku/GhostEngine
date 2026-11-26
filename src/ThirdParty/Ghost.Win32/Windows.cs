@@ -42,7 +42,7 @@ public static unsafe partial class Windows
     {
         if (value.FAILED)
         {
-            Marshal.ThrowExceptionForHR(value.Value);
+            Marshal.ThrowExceptionForHR(value.value);
         }
     }
 

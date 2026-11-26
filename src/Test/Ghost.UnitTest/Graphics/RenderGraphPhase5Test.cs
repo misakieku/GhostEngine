@@ -128,7 +128,7 @@ public partial class RenderGraphTest
     //    _frameScheduler.Flush();
     //    Assert.IsEmpty(MockingCommandQueue.GlobalRecordedOps, "Rollback must leave no pending scheduler submissions.");
 
-    //    _renderGraph.Reset();
+    //    _renderGraph.BeginRecord();
     //    _graphicsEngine.ResetCommandBufferTracking();
     //    SetupPhase4SplitPipeline();
     //    var recoveredExecution = CompileAndExecutePhase5().GetValueOrThrow();
@@ -157,7 +157,7 @@ public partial class RenderGraphTest
     private void ResetPhase5Scenario()
     {
         _frameScheduler.Flush();
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
         _graphicsEngine.ResetCommandBufferTracking();
         MockingCommandQueue.GlobalRecordedOps.Clear();
     }

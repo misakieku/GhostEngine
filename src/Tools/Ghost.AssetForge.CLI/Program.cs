@@ -64,13 +64,11 @@ public class Program
                 CommandBuilder.Create("generate")
                 .AddSubCommand(
                     CommandBuilder.Create("pbr-lut")
-                    .AddOption("size", (builder) => builder
+                    .AddOption<int>("size", (builder) => builder
                         .WithDescription("The size of the PBR LUT.")
-                        .WithValueType(typeof(int))
                         .WithRequired())
-                    .AddOption("output", (builder) => builder
+                    .AddOption<string>("output", (builder) => builder
                         .WithDescription("The output path of the generated PBR LUT.")
-                        .WithValueType(typeof(string))
                         .WithRequired())
                     .SetAsyncCommandAction(static (ctx, ct) =>
                     {
@@ -89,17 +87,14 @@ public class Program
                     .Build())
                 .AddSubCommand(
                     CommandBuilder.Create("stbn")
-                    .AddOption("size", (builder) => builder
+                    .AddOption<int>("size", (builder) => builder
                         .WithDescription("The spatial width/height of each STBN slice.")
-                        .WithValueType(typeof(int))
                         .WithRequired())
-                    .AddOption("depth", (builder) => builder
+                    .AddOption<int>("depth", (builder) => builder
                         .WithDescription("The temporal depth (number of slices) of the STBN texture.")
-                        .WithValueType(typeof(int))
                         .WithRequired())
-                    .AddOption("output", (builder) => builder
+                    .AddOption<string>("output", (builder) => builder
                         .WithDescription("The output path of the generated STBN texture.")
-                        .WithValueType(typeof(string))
                         .WithRequired())
                     .SetAsyncCommandAction(static (ctx, ct) =>
                     {

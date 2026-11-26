@@ -258,7 +258,7 @@ public partial class RenderGraphTest
         Assert.IsNotNull(freshExec.Dump);
         Assert.IsFalse(freshExec.Dump.IsCacheHit);
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         SetupTestRenderPipeline();
         var cachedExec = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();

@@ -379,7 +379,7 @@ public class RenderGraphBenchmark
     [Benchmark]
     public void Declare_PipelineOnly()
     {
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
         BuildAAAPipeline(_renderGraph, _importedBackBufferHandle, _importedSceneBufferHandle);
         AllocationManager.ResetTempAllocator();
     }
@@ -391,7 +391,7 @@ public class RenderGraphBenchmark
     [Benchmark]
     public void Compile_Cold_CacheMiss()
     {
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
         _renderGraph.InvalidateCache();
 
         BuildAAAPipeline(_renderGraph, _importedBackBufferHandle, _importedSceneBufferHandle);
@@ -415,7 +415,7 @@ public class RenderGraphBenchmark
     [Benchmark]
     public void Compile_Warm_CacheHit()
     {
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
 
         BuildAAAPipeline(_renderGraph, _importedBackBufferHandle, _importedSceneBufferHandle);
         var result = _renderGraph.CompileAndExecute(

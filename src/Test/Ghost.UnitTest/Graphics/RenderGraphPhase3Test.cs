@@ -274,14 +274,14 @@ public partial class RenderGraphTest
         Assert.IsNotNull(firstExecution.Dump);
         Assert.IsFalse(firstExecution.Dump.IsCacheHit);
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
         SetupTestRenderPipeline();
         var grownExecution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(grownExecution.Dump);
         Assert.IsFalse(grownExecution.Dump.IsCacheHit, "Growing beyond cached viewport must recompile to recompute 2D aliasing intervals.");
         Assert.IsGreaterThan(firstExecution.Dump.TotalHeapSize, grownExecution.Dump.TotalHeapSize);
 
-        _renderGraph.Reset();
+        _renderGraph.BeginRecord();
         SetupTestRenderPipeline();
         var secondAtNewResolution = CompileAndExecute(new ViewportState(1920, 1080, 1920, 1080), RGFlags.GenerateDump).GetValueOrThrow();
         Assert.IsNotNull(secondAtNewResolution.Dump);
