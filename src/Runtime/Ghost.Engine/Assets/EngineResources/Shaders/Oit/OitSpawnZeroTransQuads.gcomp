@@ -1,0 +1,90 @@
+compute "Oit/SpawnZeroTransQuads"
+{
+    properties
+    {
+        uint zeroTransDepthSrv;
+        uint quadBufferUav;
+        uint indirectArgsBufferUav;
+        uint renderWidth;
+        uint renderHeight;
+        uint oitWidth;
+        uint oitHeight;
+        uint tilesX;
+        uint tilesY;
+        uint maxQuadCount;
+        uint _pad0;
+        uint _pad1;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Common.hlsl";
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Oit/OitCommon.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(8, 8, 1)]
+        void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+        {
+            uint2 tileCoord = dispatchThreadID.xy;
+            bool emitQuad = false;
+            float minZ = 1.0f;
+
+            if (tileCoord.x < g_Properties.tilesX && tileCoord.y < g_Properties.tilesY)
+            {
+                Texture2D<float> zeroTransDepth = GET_TEXTURE2D(g_Properties.zeroTransDepthSrv);
+
+                float2 renderSizeF = float2((float)g_Properties.renderWidth, (float)g_Properties.renderHeight);
+                float2 oitSizeF = float2((float)g_Properties.oitWidth, (float)g_Properties.oitHeight);
+
+                float2 minUV = float2(tileCoord * OIT_ZERO_TRANS_QUAD_SIZE) / renderSizeF;
+                float2 maxUV = saturate(float2((tileCoord + 1u) * OIT_ZERO_TRANS_QUAD_SIZE) / renderSizeF);
+
+                int2 oitMaxIdx = int2((int)g_Properties.oitWidth - 1, (int)g_Properties.oitHeight - 1);
+                int2 minOit = clamp((int2)floor(minUV * oitSizeF - 0.5f), int2(0, 0), oitMaxIdx);
+                int2 maxOit = clamp((int2)ceil(maxUV * oitSizeF + 0.5f), int2(0, 0), oitMaxIdx);
+
+                for (int y = minOit.y; y <= maxOit.y; y++)
+                {
+                    for (int x = minOit.x; x <= maxOit.x; x++)
+                    {
+                        minZ = min(minZ, zeroTransDepth[uint2(x, y)]);
+                    }
+                }
+
+                emitQuad = (minZ > 0.0f);
+            }
+
+            RWByteAddressBuffer quadBuf = GET_BUFFER(g_Properties.quadBufferUav);
+            RWByteAddressBuffer indirectArgs = GET_BUFFER(g_Properties.indirectArgsBufferUav);
+
+            uint waveCount = WaveActiveCountBits(emitQuad);
+            uint waveBase = 0u;
+            if (WaveIsFirstLane() && waveCount > 0u)
+            {
+                quadBuf.InterlockedAdd(0u, waveCount, waveBase);
+            }
+
+            waveBase = WaveReadLaneFirst(waveBase);
+            uint laneRank = WavePrefixCountBits(emitQuad);
+            uint quadIdx = waveBase + laneRank;
+
+            if (emitQuad && quadIdx < g_Properties.maxQuadCount)
+            {
+                uint packedTile = (tileCoord.x & 0xFFFFu) | ((tileCoord.y & 0xFFFFu) << 16u);
+                quadBuf.Store2((4u + quadIdx * 2u) * 4u, uint2(packedTile, asuint(minZ)));
+            }
+
+            if (WaveIsFirstLane() && waveCount > 0u)
+            {
+                uint endQuads = min(waveBase + waveCount, g_Properties.maxQuadCount);
+                uint groupsNeeded = (endQuads + 15u) >> 4u;
+                indirectArgs.InterlockedMax(OIT_INDIRECT_EARLY_DEPTH_PRIME, groupsNeeded);
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

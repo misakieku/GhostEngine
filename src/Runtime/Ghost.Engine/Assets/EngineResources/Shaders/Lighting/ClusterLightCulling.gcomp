@@ -1,0 +1,263 @@
+compute "Internal/ClusterLightCulling"
+{
+    properties
+    {
+        uint clusterLightGridUav;
+        uint clusterLightIndexListUav;
+        uint clusterLightCounterUav;
+        uint tilesX;
+        uint tilesY;
+        uint sliceCount;
+        uint maxClusterLightIndices;
+        uint _pad0;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl";
+        "EngineResources/Shaders/Lighting/LightGridCommon.hlsl";
+        "EngineResources/Shaders/Generated/GhostRenderPipeline.hlsl";
+        "EngineResources/Shaders/Generated/GPULightData.hlsl";
+    }
+
+    hlsl
+    {
+        #define CLUSTER_CULL_THREADS 32u
+        #define MAX_TILE_COARSE_LIGHTS 128u
+        #define MAX_LIGHTS_PER_CLUSTER 128u
+
+        groupshared uint s_CoarseLightIndices[MAX_TILE_COARSE_LIGHTS];
+        groupshared float4 s_CoarseSpheresVS[MAX_TILE_COARSE_LIGHTS];
+
+        bool SphereIntersectsAABB(float3 center, float radius, float3 boxMin, float3 boxMax)
+        {
+            float3 closest = clamp(center, boxMin, boxMax);
+            float3 delta = center - closest;
+            return dot(delta, delta) <= (radius * radius);
+        }
+
+        void ComputePunctualBoundingSphereVS(uint lightIndex, out bool activeLight, out float4 sphereVS)
+        {
+            ByteAddressBuffer buf = GET_BUFFER(g_FrameData.punctualLightsBuffer);
+            uint byteBase = lightIndex * 112u;
+
+            float4 posAndRange = asfloat(buf.Load4(byteBase));
+            float lightDimmer = asfloat(buf.Load(byteBase + 80u));
+            float fadeDistance = asfloat(buf.Load(byteBase + 92u));
+
+            float3 lightPosRWS = TransformAbsoluteWorldToCameraRelative(posAndRange.xyz);
+            float range = posAndRange.w;
+            if (lightDimmer <= 0.0f || range <= 0.0f || dot(lightPosRWS, lightPosRWS) >= fadeDistance * fadeDistance)
+            {
+                activeLight = false;
+                sphereVS = float4(0.0f, 0.0f, 0.0f, 0.0f);
+                return;
+            }
+
+            float3 centerVS = TransformWorldToView(lightPosRWS);
+            float radius = range;
+
+            uint lightType = buf.Load(byteBase + 28u) & 0xFu;
+            if (lightType == GPULIGHT_TYPE_SPOT)
+            {
+                float4 dirAndScale = asfloat(buf.Load4(byteBase + 32u));
+                float spotOffset = asfloat(buf.Load(byteBase + 72u));
+                float cosOuter = -spotOffset / max(dirAndScale.w, 1e-5f);
+                if (cosOuter > 0.0f)
+                {
+                    float3 dirVS = TransformWorldToView(dirAndScale.xyz);
+                    float c = 0.0f;
+                    float r = range;
+                    if (cosOuter > 0.70710678f)
+                    {
+                        c = (0.5f * range) / cosOuter;
+                        r = c;
+                    }
+                    else
+                    {
+                        c = range * cosOuter;
+                        r = range * sqrt(max(0.0f, 1.0f - cosOuter * cosOuter));
+                    }
+                    centerVS += dirVS * c;
+                    radius = r;
+                }
+            }
+
+            activeLight = true;
+            sphereVS = float4(centerVS, radius);
+        }
+
+        [numthreads(CLUSTER_CULL_THREADS, 1, 1)]
+        void CSMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
+        {
+            RWByteAddressBuffer clusterGrid = GET_BUFFER(g_Properties.clusterLightGridUav);
+            uint sliceCount = min(g_Properties.sliceCount, 32u);
+
+            if (g_FrameData.punctualLightCount == 0u || !IS_VALID_BUFFER(g_FrameData.punctualLightsBuffer))
+            {
+                if (groupIndex < sliceCount)
+                {
+                    uint clusterIndex = GetClusterIndex(groupID.xy, groupIndex, g_Properties.tilesX, g_Properties.sliceCount);
+                    clusterGrid.Store2(clusterIndex * 8u, uint2(0u, 0u));
+                }
+                return;
+            }
+
+            uint coarseCount = 0u;
+
+            float2 tileMinPx = float2(groupID.xy * CLUSTER_TILE_SIZE);
+            float2 tileMaxPx = tileMinPx + float2(CLUSTER_TILE_SIZE, CLUSTER_TILE_SIZE);
+
+            float2 ndcMin = float2(
+                (tileMinPx.x * g_ViewData.screenSize.z) * 2.0f - 1.0f,
+                1.0f - (tileMaxPx.y * g_ViewData.screenSize.w) * 2.0f);
+            float2 ndcMax = float2(
+                (tileMaxPx.x * g_ViewData.screenSize.z) * 2.0f - 1.0f,
+                1.0f - (tileMinPx.y * g_ViewData.screenSize.w) * 2.0f);
+
+            float m00 = g_ViewData.projectionMatrix[0][0];
+            float m11 = g_ViewData.projectionMatrix[1][1];
+            float2 slopeMin = float2(ndcMin.x / m00, ndcMin.y / m11);
+            float2 slopeMax = float2(ndcMax.x / m00, ndcMax.y / m11);
+
+            float n = max(g_ViewData.nearClip, 1e-4f);
+            float f = max(g_ViewData.farClip, n + 1e-3f);
+
+            float3 planeL = normalize(float3(1.0f, 0.0f, -slopeMin.x));
+            float3 planeR = normalize(float3(-1.0f, 0.0f, slopeMax.x));
+            float3 planeB = normalize(float3(0.0f, 1.0f, -slopeMin.y));
+            float3 planeT = normalize(float3(0.0f, -1.0f, slopeMax.y));
+
+            uint totalLights = g_FrameData.punctualLightCount;
+            for (uint base = 0u; base < totalLights; base += CLUSTER_CULL_THREADS)
+            {
+                uint lightIndex = base + groupIndex;
+                bool passed = false;
+                float4 sphereVS = float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+                if (lightIndex < totalLights)
+                {
+                    bool activeLight = false;
+                    ComputePunctualBoundingSphereVS(lightIndex, activeLight, sphereVS);
+                    if (activeLight)
+                    {
+                        float3 c = sphereVS.xyz;
+                        float r = sphereVS.w;
+                        if (c.z + r >= n && c.z - r <= f
+                            && dot(c, planeL) >= -r && dot(c, planeR) >= -r
+                            && dot(c, planeB) >= -r && dot(c, planeT) >= -r)
+                        {
+                            passed = true;
+                        }
+                    }
+                }
+
+                uint hitCount = WaveActiveCountBits(passed);
+                if (hitCount > 0u)
+                {
+                    uint localRank = WavePrefixCountBits(passed);
+                    uint slot = coarseCount + localRank;
+                    if (passed && slot < MAX_TILE_COARSE_LIGHTS)
+                    {
+                        s_CoarseLightIndices[slot] = lightIndex;
+                        s_CoarseSpheresVS[slot] = sphereVS;
+                    }
+                    coarseCount = min(coarseCount + hitCount, MAX_TILE_COARSE_LIGHTS);
+                }
+            }
+
+            GroupMemoryBarrierWithGroupSync();
+
+            if (coarseCount == 0u)
+            {
+                if (groupIndex < sliceCount)
+                {
+                    uint clusterIndex = GetClusterIndex(groupID.xy, groupIndex, g_Properties.tilesX, g_Properties.sliceCount);
+                    clusterGrid.Store2(clusterIndex * 8u, uint2(0u, 0u));
+                }
+                return;
+            }
+
+            // Lanes 0..(sliceCount - 1) run inside one wave to evaluate every Z slice in this XY tile.
+            uint4 matchMask = uint4(0u, 0u, 0u, 0u);
+            uint myCount = 0u;
+            bool isSliceLane = (groupIndex < sliceCount);
+            if (isSliceLane)
+            {
+                float logRatio = log2(f / n) / float(g_Properties.sliceCount);
+                float zNear = n * exp2(float(groupIndex) * logRatio);
+                float zFar = n * exp2(float(groupIndex + 1u) * logRatio);
+
+                float2 minAtNear = slopeMin * zNear;
+                float2 minAtFar = slopeMin * zFar;
+                float2 maxAtNear = slopeMax * zNear;
+                float2 maxAtFar = slopeMax * zFar;
+                float3 boxMin = float3(min(minAtNear, minAtFar), zNear);
+                float3 boxMax = float3(max(maxAtNear, maxAtFar), zFar);
+
+                for (uint cIdx = 0u; cIdx < coarseCount; cIdx++)
+                {
+                    float4 s = s_CoarseSpheresVS[cIdx];
+                    if (SphereIntersectsAABB(s.xyz, s.w, boxMin, boxMax))
+                    {
+                        uint wordIdx = cIdx >> 5u;
+                        uint bitMask = 1u << (cIdx & 31u);
+                        if (wordIdx == 0u) matchMask.x |= bitMask;
+                        else if (wordIdx == 1u) matchMask.y |= bitMask;
+                        else if (wordIdx == 2u) matchMask.z |= bitMask;
+                        else matchMask.w |= bitMask;
+                        myCount++;
+                    }
+                }
+            }
+
+            uint tileOffset = WavePrefixSum(myCount);
+            uint tileTotal = WaveActiveSum(myCount);
+            uint tileGlobalBase = 0u;
+            if (tileTotal > 0u)
+            {
+                if (WaveIsFirstLane())
+                {
+                    RWByteAddressBuffer counterBuf = GET_BUFFER(g_Properties.clusterLightCounterUav);
+                    counterBuf.InterlockedAdd(0u, tileTotal, tileGlobalBase);
+                }
+                tileGlobalBase = WaveReadLaneFirst(tileGlobalBase);
+            }
+
+            if (isSliceLane)
+            {
+                uint clusterIndex = GetClusterIndex(groupID.xy, groupIndex, g_Properties.tilesX, g_Properties.sliceCount);
+                uint sliceBase = tileGlobalBase + tileOffset;
+                uint actualCount = 0u;
+                if (myCount > 0u && sliceBase < g_Properties.maxClusterLightIndices)
+                {
+                    actualCount = min(myCount, g_Properties.maxClusterLightIndices - sliceBase);
+                }
+
+                clusterGrid.Store2(clusterIndex * 8u, uint2(sliceBase, actualCount));
+
+                if (actualCount > 0u)
+                {
+                    RWByteAddressBuffer indexList = GET_BUFFER(g_Properties.clusterLightIndexListUav);
+                    uint writeIdx = 0u;
+                    [unroll]
+                    for (uint w = 0u; w < 4u; w++)
+                    {
+                        uint m = (w == 0u) ? matchMask.x : ((w == 1u) ? matchMask.y : ((w == 2u) ? matchMask.z : matchMask.w));
+                        while (m != 0u && writeIdx < actualCount)
+                        {
+                            uint b = firstbitlow(m);
+                            m &= m - 1u;
+                            uint coarseIdx = (w << 5u) + b;
+                            indexList.Store((sliceBase + writeIdx) * 4u, s_CoarseLightIndices[coarseIdx]);
+                            writeIdx++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

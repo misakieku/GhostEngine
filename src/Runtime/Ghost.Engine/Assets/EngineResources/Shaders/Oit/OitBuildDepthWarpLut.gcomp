@@ -1,0 +1,247 @@
+compute "Oit/BuildDepthWarpLut"
+{
+    properties
+    {
+        uint scalarOccupancySrv;
+        uint rgbOccupancySrv;
+        uint depthWarpLutUav;
+        uint indirectArgsBufferUav;
+        uint quadBufferUav;
+        uint occTilesX;
+        uint occTilesY;
+        uint maxVirtualSliceCount;
+        uint targetPhysicalSliceCount;
+        float linearizationFactor;
+        float farPlane;
+        uint renderWidth;
+        uint renderHeight;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Common.hlsl";
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Oit/OitCommon.hlsl";
+    }
+
+    hlsl
+    {
+        groupshared uint s_Occupancy[256];
+        groupshared uint s_ScanA[256];
+        groupshared uint s_ScanB[256];
+        groupshared uint2 s_SlabA[256];
+        groupshared uint2 s_SlabB[256];
+
+        uint MergeBitPairs16(uint x)
+        {
+            x = (x | (x >> 1u)) & 0x55555555u;
+            x = (x | (x >> 1u)) & 0x33333333u;
+            x = (x | (x >> 2u)) & 0x0F0F0F0Fu;
+            x = (x | (x >> 4u)) & 0x00FF00FFu;
+            x = (x | (x >> 8u)) & 0x0000FFFFu;
+            return x;
+        }
+
+        [numthreads(256, 1, 1)]
+        void CSMain(uint groupThreadID : SV_GroupThreadID)
+        {
+            uint tid = groupThreadID;
+            uint maxVirt = min(g_Properties.maxVirtualSliceCount, 8192u);
+            uint wordsPerTile = (maxVirt + 31u) >> 5u;
+            uint totalTiles = g_Properties.occTilesX * g_Properties.occTilesY;
+
+            ByteAddressBuffer scalarOcc = GET_BUFFER(g_Properties.scalarOccupancySrv);
+            ByteAddressBuffer rgbOcc = GET_BUFFER(g_Properties.rgbOccupancySrv);
+            RWByteAddressBuffer depthWarpLut = GET_BUFFER(g_Properties.depthWarpLutUav);
+
+            uint combinedWord = 0u;
+            if (tid < wordsPerTile)
+            {
+                for (uint t = 0u; t < totalTiles; t++)
+                {
+                    uint byteOff = (t * wordsPerTile + tid) * 4u;
+                    combinedWord |= scalarOcc.Load(byteOff) | rgbOcc.Load(byteOff);
+                }
+            }
+
+            s_Occupancy[tid] = combinedWord;
+            GroupMemoryBarrierWithGroupSync();
+
+            uint curSlices = maxVirt;
+            uint curWords = wordsPerTile;
+            uint targetPhys = max(g_Properties.targetPhysicalSliceCount, 1u);
+            uint totalOccupied = 0u;
+            uint wordBase = 0u;
+            uint halvingShift = 0u;
+
+            for (uint iter = 0u; iter < 8u; iter++)
+            {
+                uint w = (tid < curWords) ? s_Occupancy[tid] : 0u;
+                uint pop = countbits(w);
+                s_ScanA[tid] = pop;
+                GroupMemoryBarrierWithGroupSync();
+
+                for (uint offset = 1u; offset < 256u; offset <<= 1u)
+                {
+                    uint val = s_ScanA[tid];
+                    if (tid >= offset)
+                    {
+                        val += s_ScanA[tid - offset];
+                    }
+                    s_ScanB[tid] = val;
+                    GroupMemoryBarrierWithGroupSync();
+
+                    s_ScanA[tid] = s_ScanB[tid];
+                    GroupMemoryBarrierWithGroupSync();
+                }
+
+                totalOccupied = s_ScanA[255];
+                wordBase = s_ScanA[tid] - pop;
+
+                if (totalOccupied <= targetPhys || curSlices <= targetPhys)
+                {
+                    break;
+                }
+
+                uint halfWords = max(1u, (curWords + 1u) >> 1u);
+                uint merged = 0u;
+                if (tid < halfWords)
+                {
+                    uint w0 = (tid * 2u < curWords) ? s_Occupancy[tid * 2u] : 0u;
+                    uint w1 = (tid * 2u + 1u < curWords) ? s_Occupancy[tid * 2u + 1u] : 0u;
+                    merged = MergeBitPairs16(w0) | (MergeBitPairs16(w1) << 16u);
+                }
+
+                GroupMemoryBarrierWithGroupSync();
+                s_Occupancy[tid] = (tid < halfWords) ? merged : 0u;
+                GroupMemoryBarrierWithGroupSync();
+
+                curSlices = max(1u, curSlices >> 1u);
+                curWords = halfWords;
+                halvingShift++;
+            }
+
+            uint physCount = min(totalOccupied, targetPhys);
+
+            uint wordData = (tid < curWords && physCount > 0u) ? s_Occupancy[tid] : 0u;
+            uint localAllOnes = (tid < curWords && curSlices >= (tid + 1u) * 32u && wordData == 0xFFFFFFFFu) ? 1u : 0u;
+            uint localStartPhys = wordBase;
+            if (tid < curWords && physCount > 0u)
+            {
+                uint runCount = 0u;
+                bool inRun = true;
+                for (uint b = 0u; b < 32u; b++)
+                {
+                    uint v = tid * 32u + b;
+                    if (v >= curSlices)
+                    {
+                        inRun = false;
+                        localStartPhys = wordBase + runCount;
+                        break;
+                    }
+
+                    if (((wordData >> b) & 1u) != 0u)
+                    {
+                        if (!inRun)
+                        {
+                            localStartPhys = wordBase + runCount;
+                            inRun = true;
+                        }
+                        runCount++;
+                    }
+                    else
+                    {
+                        inRun = false;
+                        localStartPhys = wordBase + runCount;
+                    }
+                }
+            }
+
+            s_SlabA[tid] = uint2(localAllOnes, localStartPhys);
+            GroupMemoryBarrierWithGroupSync();
+
+            for (uint slabOffset = 1u; slabOffset < 256u; slabOffset <<= 1u)
+            {
+                uint2 val = s_SlabA[tid];
+                if (tid >= slabOffset && val.x != 0u)
+                {
+                    uint2 prev = s_SlabA[tid - slabOffset];
+                    val = prev;
+                }
+                s_SlabB[tid] = val;
+                GroupMemoryBarrierWithGroupSync();
+
+                s_SlabA[tid] = s_SlabB[tid];
+                GroupMemoryBarrierWithGroupSync();
+            }
+
+            if (tid < curWords && physCount > 0u)
+            {
+                uint w = wordData;
+                uint prevW = (tid > 0u) ? s_Occupancy[tid - 1u] : 0u;
+                uint nextW = (tid + 1u < curWords) ? s_Occupancy[tid + 1u] : 0u;
+                uint running = 0u;
+                uint slabStart = (tid > 0u) ? s_SlabA[tid - 1u].y : 0u;
+
+                for (uint b = 0u; b < 32u; b++)
+                {
+                    uint v = tid * 32u + b;
+                    if (v >= curSlices)
+                    {
+                        break;
+                    }
+
+                    bool occ = ((w >> b) & 1u) != 0u;
+                    uint entryVal = 0u;
+
+                    if (occ)
+                    {
+                        uint phys = min(wordBase + running, targetPhys - 1u);
+                        running++;
+
+                        bool prevOcc = (b > 0u) ? (((w >> (b - 1u)) & 1u) != 0u) : ((prevW & 0x80000000u) != 0u);
+                        bool nextOcc = (v + 1u < curSlices) && ((b < 31u) ? (((w >> (b + 1u)) & 1u) != 0u) : ((nextW & 1u) != 0u));
+
+                        if (!prevOcc)
+                        {
+                            slabStart = phys;
+                        }
+
+                        uint flags = OIT_WARP_FLAG_OCCUPIED;
+                        if (!prevOcc) flags |= OIT_WARP_FLAG_RANGE_START;
+                        if (!nextOcc) flags |= OIT_WARP_FLAG_RANGE_END;
+
+                        entryVal = (phys & 0xFFFFu) | ((flags & 0xFFu) << 16u) | ((slabStart & 0xFFu) << 24u);
+                        depthWarpLut.Store((4u + maxVirt + phys) * 4u, v);
+                    }
+
+                    depthWarpLut.Store((4u + v) * 4u, entryVal);
+                }
+            }
+
+            if (tid == 0u)
+            {
+                uint activeVirtSlices = (physCount > 0u) ? curSlices : 0u;
+                uint headerX = (activeVirtSlices & 0xFFFFu) | ((halvingShift & 0xFFFFu) << 16u);
+                depthWarpLut.Store4(0u, uint4(headerX, physCount, asuint(g_Properties.linearizationFactor), asuint(g_Properties.farPlane)));
+
+                RWByteAddressBuffer indirectArgs = GET_BUFFER(g_Properties.indirectArgsBufferUav);
+                RWByteAddressBuffer quadBuf = GET_BUFFER(g_Properties.quadBufferUav);
+
+                bool anyActive = (physCount > 0u);
+                uint tiles16X = (g_Properties.renderWidth + OIT_ZERO_TRANS_QUAD_SIZE - 1u) / OIT_ZERO_TRANS_QUAD_SIZE;
+                uint tiles16Y = (g_Properties.renderHeight + OIT_ZERO_TRANS_QUAD_SIZE - 1u) / OIT_ZERO_TRANS_QUAD_SIZE;
+
+                indirectArgs.Store3(OIT_INDIRECT_CLEAR_EXTINCTION, uint3(anyActive ? g_Properties.occTilesX : 0u, g_Properties.occTilesY, 1u));
+                indirectArgs.Store3(OIT_INDIRECT_INTEGRATE_EXTINCTION, uint3(anyActive ? g_Properties.occTilesX : 0u, g_Properties.occTilesY, 1u));
+                indirectArgs.Store3(OIT_INDIRECT_SPAWN_QUADS, uint3(anyActive ? ((tiles16X + 7u) >> 3u) : 0u, (tiles16Y + 7u) >> 3u, 1u));
+                indirectArgs.Store3(OIT_INDIRECT_EARLY_DEPTH_PRIME, uint3(0u, 1u, 1u));
+                indirectArgs.Store3(OIT_INDIRECT_RESOLVE, uint3(anyActive ? ((g_Properties.renderWidth + 7u) >> 3u) : 0u, (g_Properties.renderHeight + 7u) >> 3u, 1u));
+
+                quadBuf.Store4(0u, uint4(0u, 0u, 0u, 0u));
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

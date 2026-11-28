@@ -44,10 +44,10 @@ void SampleShadow_GetTexelWeights_Tent_5x5(float offset, out float3 texelsWeight
     texelsWeightsB.z = 0.16f * computedArea_From3texelTriangle.w;
 }
 
-void SampleShadow_ComputeSamples_Tent_5x5(float4 shadowMapTexelSize, float2 coord, out float fetchesWeights[9], out float2 fetchesUV[9])
+float SampleShadow_PCF5x5(Texture2D<float> shadowAtlas, SamplerComparisonState samp, float4 tileOffsetScale, float2 atlasUV, float receiverDepth, float atlasSize, float texelSize)
 {
-    // shadowMapTexelSize: xy = (1/atlasWidth, 1/atlasHeight), zw = (atlasWidth, atlasHeight)
-    float2 tentCenterInTexelSpace = coord * shadowMapTexelSize.zw;
+    float4 shadowMapTexelSize = float4(texelSize, texelSize, atlasSize, atlasSize);
+    float2 tentCenterInTexelSpace = atlasUV * shadowMapTexelSize.zw;
     float2 centerOfFetchesInTexelSpace = floor(tentCenterInTexelSpace + 0.5f);
     float2 offsetFromTentCenterToCenterOfFetches = tentCenterInTexelSpace - centerOfFetchesInTexelSpace;
 
@@ -59,52 +59,25 @@ void SampleShadow_ComputeSamples_Tent_5x5(float4 shadowMapTexelSize, float2 coor
     float3 fetchesWeightsU = float3(texelsWeightsU_A.xz, texelsWeightsU_B.y) + float3(texelsWeightsU_A.y, texelsWeightsU_B.xz);
     float3 fetchesWeightsV = float3(texelsWeightsV_A.xz, texelsWeightsV_B.y) + float3(texelsWeightsV_A.y, texelsWeightsV_B.xz);
 
-    float3 fetchesOffsetsU = float3(texelsWeightsU_A.y, texelsWeightsU_B.xz) / fetchesWeightsU.xyz + float3(-2.5f, -0.5f, 1.5f);
-    float3 fetchesOffsetsV = float3(texelsWeightsV_A.y, texelsWeightsV_B.xz) / fetchesWeightsV.xyz + float3(-2.5f, -0.5f, 1.5f);
-    fetchesOffsetsU *= shadowMapTexelSize.xxx;
-    fetchesOffsetsV *= shadowMapTexelSize.yyy;
+    float3 fetchesOffsetsU = (float3(texelsWeightsU_A.y, texelsWeightsU_B.xz) / fetchesWeightsU + float3(-2.5f, -0.5f, 1.5f)) * shadowMapTexelSize.xxx;
+    float3 fetchesOffsetsV = (float3(texelsWeightsV_A.y, texelsWeightsV_B.xz) / fetchesWeightsV + float3(-2.5f, -0.5f, 1.5f)) * shadowMapTexelSize.yyy;
 
     float2 bilinearFetchOrigin = centerOfFetchesInTexelSpace * shadowMapTexelSize.xy;
-
-    fetchesUV[0] = bilinearFetchOrigin + float2(fetchesOffsetsU.x, fetchesOffsetsV.x);
-    fetchesUV[1] = bilinearFetchOrigin + float2(fetchesOffsetsU.y, fetchesOffsetsV.x);
-    fetchesUV[2] = bilinearFetchOrigin + float2(fetchesOffsetsU.z, fetchesOffsetsV.x);
-    fetchesUV[3] = bilinearFetchOrigin + float2(fetchesOffsetsU.x, fetchesOffsetsV.y);
-    fetchesUV[4] = bilinearFetchOrigin + float2(fetchesOffsetsU.y, fetchesOffsetsV.y);
-    fetchesUV[5] = bilinearFetchOrigin + float2(fetchesOffsetsU.z, fetchesOffsetsV.y);
-    fetchesUV[6] = bilinearFetchOrigin + float2(fetchesOffsetsU.x, fetchesOffsetsV.z);
-    fetchesUV[7] = bilinearFetchOrigin + float2(fetchesOffsetsU.y, fetchesOffsetsV.z);
-    fetchesUV[8] = bilinearFetchOrigin + float2(fetchesOffsetsU.z, fetchesOffsetsV.z);
-
-    fetchesWeights[0] = fetchesWeightsU.x * fetchesWeightsV.x;
-    fetchesWeights[1] = fetchesWeightsU.y * fetchesWeightsV.x;
-    fetchesWeights[2] = fetchesWeightsU.z * fetchesWeightsV.x;
-    fetchesWeights[3] = fetchesWeightsU.x * fetchesWeightsV.y;
-    fetchesWeights[4] = fetchesWeightsU.y * fetchesWeightsV.y;
-    fetchesWeights[5] = fetchesWeightsU.z * fetchesWeightsV.y;
-    fetchesWeights[6] = fetchesWeightsU.x * fetchesWeightsV.z;
-    fetchesWeights[7] = fetchesWeightsU.y * fetchesWeightsV.z;
-    fetchesWeights[8] = fetchesWeightsU.z * fetchesWeightsV.z;
-}
-
-float SampleShadow_PCF5x5(Texture2D<float> shadowAtlas, SamplerComparisonState samp, float4 tileOffsetScale, float2 atlasUV, float receiverDepth, float atlasSize, float texelSize)
-{
-    float4 shadowMapTexelSize = float4(texelSize, texelSize, atlasSize, atlasSize);
-
-    float fetchesWeights[9];
-    float2 fetchesUV[9];
-    SampleShadow_ComputeSamples_Tent_5x5(shadowMapTexelSize, atlasUV, fetchesWeights, fetchesUV);
-
-    // Keep bilinear taps (2x2 footprint) safely inside the atlas tile
     float2 minFetchUV = tileOffsetScale.xy + 0.5f * texelSize;
     float2 maxFetchUV = tileOffsetScale.xy + tileOffsetScale.zw - 0.5f * texelSize;
 
     float shadow = 0.0f;
     [unroll]
-    for (int i = 0; i < 9; ++i)
+    for (uint y = 0u; y < 3u; ++y)
     {
-        float2 sampleUV = clamp(fetchesUV[i], minFetchUV, maxFetchUV);
-        shadow += shadowAtlas.SampleCmpLevelZero(samp, sampleUV, receiverDepth) * fetchesWeights[i];
+        float vCoord = bilinearFetchOrigin.y + fetchesOffsetsV[y];
+        float wV = fetchesWeightsV[y];
+        [unroll]
+        for (uint x = 0u; x < 3u; ++x)
+        {
+            float2 sampleUV = clamp(float2(bilinearFetchOrigin.x + fetchesOffsetsU[x], vCoord), minFetchUV, maxFetchUV);
+            shadow += shadowAtlas.SampleCmpLevelZero(samp, sampleUV, receiverDepth) * (fetchesWeightsU[x] * wV);
+        }
     }
 
     return shadow;
@@ -146,53 +119,148 @@ uint GetCubeFaceID(float3 L)
     return faceIdx;
 }
 
-ShadowType GetPunctualShadowAttenuation(float3 positionRWS, float3 N, float3 L, float4 distance, GPUPunctualLight light,
+#if defined(_SHADOW_SHADOWMAP_LOW)
+struct GPUShadowMatrix
+{
+    float4x4 shadowViewProj;
+};
+
+ShadowType SamplePunctualShadowView(float3 positionRWS, float3 N, float4 distance, float clampedSlope, uint shadowIndex,
+    ByteAddressBuffer shadowViewsBuf, Texture2D<float> shadowAtlasTex)
+{
+    uint sampOffset = sizeof(GPUShadowViewData) * shadowIndex + sizeof(GPUShadowCullingData);
+    float4x4 shadowViewProj = shadowViewsBuf.Load<GPUShadowMatrix>(sampOffset).shadowViewProj;
+    float4 tailScalars = asfloat(shadowViewsBuf.Load4(sampOffset + 112u)); // x: worldTexelSize, y: normalBias, z: slopeBias, w: shadowFade
+
+    float3 biasedPosRWS = positionRWS + N * (tailScalars.y * distance.x);
+    float4 clipPos = mul(shadowViewProj, float4(biasedPosRWS, 1.0f));
+    if (clipPos.w <= 0.0001f)
+    {
+        return (ShadowType)1.0f;
+    }
+
+    float3 ndc = clipPos.xyz / clipPos.w;
+    float2 uv = ndc.xy * float2(0.5f, -0.5f) + 0.5f;
+    if (any(uv < 0.0f) || any(uv > 1.0f))
+    {
+        return (ShadowType)1.0f;
+    }
+
+    float projW = asfloat(shadowViewsBuf.Load(sampOffset + 92u)); // shadowProjection.w
+    float4 tileOffsetScale = asfloat(shadowViewsBuf.Load4(sampOffset + 64u));
+    float2 atlasSize = asfloat(shadowViewsBuf.Load2(sampOffset + 96u)); // size.xy
+
+    float ndcDepthScale = abs(projW) * distance.z * distance.z;
+    float receiverDepth = ndc.z + (1.0f / 65536.0f) + (tailScalars.z * clampedSlope * ndcDepthScale);
+
+    uv = saturate(uv);
+    float2 atlasUV = tileOffsetScale.xy + uv * tileOffsetScale.zw;
+    ShadowType shadow = SampleShadow_PCF5x5(shadowAtlasTex, GET_SAMPLER(LINEAR_CLAMP_GE_SAMPLER), tileOffsetScale, atlasUV, receiverDepth, atlasSize.x, atlasSize.y);
+    return lerp(1.0f, shadow, tailScalars.w);
+}
+
+ShadowType SampleDirectionalCascade(float3 positionRWS, float3 N, float clampedSlope, uint cascadeIdx,
+    ByteAddressBuffer directionalShadowViewsBuf, Texture2D<float> shadowAtlasTex, SamplerComparisonState samp)
+{
+    uint sampOffset = sizeof(GPUShadowViewData) * cascadeIdx + sizeof(GPUShadowCullingData);
+    float4x4 shadowViewProj = directionalShadowViewsBuf.Load<GPUShadowMatrix>(sampOffset).shadowViewProj;
+    float2 biasPair = asfloat(directionalShadowViewsBuf.Load2(sampOffset + 116u)); // x: normalBias, y: slopeBias
+
+    float3 biasedPosRWS = positionRWS + N * biasPair.x;
+    float4 clipPos = mul(shadowViewProj, float4(biasedPosRWS, 1.0f));
+    float2 uv = clipPos.xy * float2(0.5f, -0.5f) + 0.5f;
+    if (any(uv < 0.0f) || any(uv > 1.0f))
+    {
+        return (ShadowType)1.0f;
+    }
+
+    float4 tileOffsetScale = asfloat(directionalShadowViewsBuf.Load4(sampOffset + 64u));
+    float2 atlasSize = asfloat(directionalShadowViewsBuf.Load2(sampOffset + 96u));
+    float receiverDepth = clipPos.z + (1.0f / 65536.0f) + (biasPair.y * clampedSlope);
+
+    float2 atlasUV = tileOffsetScale.xy + uv * tileOffsetScale.zw;
+    return SampleShadow_PCF5x5(shadowAtlasTex, samp, tileOffsetScale, atlasUV, receiverDepth, atlasSize.x, atlasSize.y);
+}
+
+ShadowType SampleDirectionalCascadeScalarized(float3 positionRWS, float3 N, float clampedSlope, uint cascadeIdx,
+    ByteAddressBuffer dirViewsBuf, Texture2D<float> shadowAtlasTex, SamplerComparisonState samp)
+{
+    if (WaveActiveAllEqual(cascadeIdx))
+    {
+        return SampleDirectionalCascade(positionRWS, N, clampedSlope, WaveReadLaneFirst(cascadeIdx), dirViewsBuf, shadowAtlasTex, samp);
+    }
+
+    ShadowType result = (ShadowType)1.0f;
+    bool done = false;
+    [loop]
+    for (uint iter = 0u; iter < 64u; ++iter)
+    {
+        uint4 ballot = WaveActiveBallot(!done);
+        if (ballot.x == 0u && ballot.y == 0u)
+        {
+            break;
+        }
+        uint firstLane = (ballot.x != 0u) ? firstbitlow(ballot.x) : (32u + firstbitlow(ballot.y));
+        uint uniformCascade = WaveReadLaneAt(cascadeIdx, firstLane);
+        if (!done && cascadeIdx == uniformCascade)
+        {
+            done = true;
+            result = SampleDirectionalCascade(positionRWS, N, clampedSlope, uniformCascade, dirViewsBuf, shadowAtlasTex, samp);
+        }
+    }
+    return result;
+}
+#endif
+
+ShadowType GetPunctualShadowAttenuation(float3 positionRWS, float3 N, float3 L, float4 distance, uint lightType,
     uint lightIndex, BYTE_ADDRESS_BUFFER shadowIndicesBuffer, BYTE_ADDRESS_BUFFER shadowViewsBuffer, TEXTURE2D shadowAtlas)
 {
     ShadowType shadow = (ShadowType)1.0f;
-#if defined(_SHADOW_SHADOWMAP_LOW)    
+#if defined(_SHADOW_SHADOWMAP_LOW)
     int shadowIndex = -1;
 
     if (IS_VALID_BUFFER(shadowIndicesBuffer))
     {
         shadowIndex = LoadData<int>(shadowIndicesBuffer, lightIndex);
     }
-    
+
     if (shadowIndex >= 0 && IS_VALID_TEXTURE(shadowAtlas) && IS_VALID_BUFFER(shadowViewsBuffer))
     {
-        uint lightType = light.lightTypeAndShadowSize & 0xFu;
-        if (lightType == GPULIGHT_TYPE_POINT) // Point Light cubemap face selection
+        if (lightType == GPULIGHT_TYPE_POINT)
         {
             shadowIndex += GetCubeFaceID(-L);
         }
 
-        GPUShadowSamplingData shadowCull = LoadDataAtOffset<GPUShadowSamplingData>(shadowViewsBuffer, sizeof(GPUShadowViewData) * shadowIndex + sizeof(GPUShadowCullingData));
+        float NdotL = saturate(dot(N, L));
+        float slope = sqrt(saturate(1.0f - NdotL * NdotL)) / max(NdotL, 0.1f);
+        float clampedSlope = min(slope, 2.0f);
 
-        float3 biasedPosRWS = positionRWS + N * (shadowCull.normalBias * distance.x);
-        float4 clipPos = mul(shadowCull.shadowViewProj, float4(biasedPosRWS, 1.0f));
+        ByteAddressBuffer shadowViewsBuf = GET_BUFFER(shadowViewsBuffer);
+        Texture2D<float> shadowAtlasTex = GET_TEXTURE2D(shadowAtlas);
 
-        if (clipPos.w > 0.0001f)
+        uint targetIdx = (uint)shadowIndex;
+        if (WaveActiveAllEqual(targetIdx))
         {
-            float3 ndc = clipPos.xyz / clipPos.w;
-            float2 uv = ndc.xy * float2(0.5f, -0.5f) + 0.5f;
-
-            float NdotL = saturate(dot(N, L));
-            float slope = sqrt(saturate(1.0f - NdotL * NdotL)) / max(NdotL, 0.1f);
-            float clampedSlope = min(slope, 2.0f);
-
-            // In Reversed-Z perspective, a depth delta in NDC scales as 1 / (distance^2):
-            float ndcDepthScale = abs(shadowCull.shadowProjection.w) * distance.z * distance.z;
-            float receiverDepth = ndc.z + (1.0f / 65536.0f) + (shadowCull.slopeBias * clampedSlope * ndcDepthScale);
-
-            // Spot lights check cone bounds; Point lights cover all 360 deg, so clamp instead of discarding
-            if (all(uv >= 0.0f) && all(uv <= 1.0f))
+            shadow = SamplePunctualShadowView(positionRWS, N, distance, clampedSlope, WaveReadLaneFirst(targetIdx), shadowViewsBuf, shadowAtlasTex);
+        }
+        else
+        {
+            bool scalarDone = false;
+            [loop]
+            for (uint scalarIter = 0u; scalarIter < 64u; ++scalarIter)
             {
-                uv = saturate(uv);
-                float2 atlasUV = shadowCull.tileOffsetScale.xy + uv * shadowCull.tileOffsetScale.zw;
-                Texture2D<float> shadowAtlasTex = GET_TEXTURE2D(shadowAtlas);
-
-                shadow = SampleShadow_PCF5x5(shadowAtlasTex, GET_SAMPLER(LINEAR_CLAMP_GE_SAMPLER), shadowCull.tileOffsetScale, atlasUV, receiverDepth, shadowCull.size.x, shadowCull.size.y);
-                shadow = lerp(1.0f, shadow, shadowCull.shadowFade);
+                uint4 ballot = WaveActiveBallot(!scalarDone);
+                if (ballot.x == 0u && ballot.y == 0u)
+                {
+                    break;
+                }
+                uint firstLane = (ballot.x != 0u) ? firstbitlow(ballot.x) : (32u + firstbitlow(ballot.y));
+                uint uniformIdx = WaveReadLaneAt(targetIdx, firstLane);
+                if (!scalarDone && targetIdx == uniformIdx)
+                {
+                    scalarDone = true;
+                    shadow = SamplePunctualShadowView(positionRWS, N, distance, clampedSlope, uniformIdx, shadowViewsBuf, shadowAtlasTex);
+                }
             }
         }
     }
@@ -202,7 +270,13 @@ ShadowType GetPunctualShadowAttenuation(float3 positionRWS, float3 N, float3 L, 
     return shadow;
 }
 
-ShadowType GetDirectionalShadowAttenuation(float3 positionRWS, float3 N,  float3 L,
+ShadowType GetPunctualShadowAttenuation(float3 positionRWS, float3 N, float3 L, float4 distance, GPUPunctualLight light,
+    uint lightIndex, BYTE_ADDRESS_BUFFER shadowIndicesBuffer, BYTE_ADDRESS_BUFFER shadowViewsBuffer, TEXTURE2D shadowAtlas)
+{
+    return GetPunctualShadowAttenuation(positionRWS, N, L, distance, light.lightTypeAndShadowSize & 0xFu, lightIndex, shadowIndicesBuffer, shadowViewsBuffer, shadowAtlas);
+}
+
+ShadowType GetDirectionalShadowAttenuation(float3 positionRWS, float3 N, float3 L,
     BYTE_ADDRESS_BUFFER directionalShadowViewsBuffer, TEXTURE2D directionalShadowAtlas,
     uint cascadeCount, float4 cascadeSplits, float4 cascadeBlends, float maxShadowDistance, float shadowFadeRange)
 {
@@ -212,7 +286,7 @@ ShadowType GetDirectionalShadowAttenuation(float3 positionRWS, float3 N,  float3
     {
         return shadow;
     }
-    
+
     float zView = dot(positionRWS, g_ViewData.cameraDirection);
     if (zView > maxShadowDistance || zView < 0.0f)
     {
@@ -234,6 +308,7 @@ ShadowType GetDirectionalShadowAttenuation(float3 positionRWS, float3 N,  float3
         return shadow;
     }
 
+    ByteAddressBuffer dirViewsBuf = GET_BUFFER(directionalShadowViewsBuffer);
     Texture2D<float> shadowAtlasTex = GET_TEXTURE2D(directionalShadowAtlas);
     SamplerComparisonState samp = GET_SAMPLER(LINEAR_CLAMP_GE_SAMPLER);
 
@@ -241,20 +316,7 @@ ShadowType GetDirectionalShadowAttenuation(float3 positionRWS, float3 N,  float3
     float slope = sqrt(saturate(1.0f - NdotL * NdotL)) / max(NdotL, 0.1f);
     float clampedSlope = min(slope, 2.0f);
 
-    GPUShadowSamplingData shadowCull = LoadDataAtOffset<GPUShadowSamplingData>(
-        directionalShadowViewsBuffer, sizeof(GPUShadowViewData) * cascadeIdx + sizeof(GPUShadowCullingData));
-
-    float3 biasedPosRWS = positionRWS + N * shadowCull.normalBias;
-    float4 clipPos = mul(shadowCull.shadowViewProj, float4(biasedPosRWS, 1.0f));
-    float2 uv = clipPos.xy * float2(0.5f, -0.5f) + 0.5f;
-
-    float receiverDepth = clipPos.z + (1.0f / 65536.0f) + (shadowCull.slopeBias * clampedSlope);
-
-    if (all(uv >= 0.0f) && all(uv <= 1.0f))
-    {
-        float2 atlasUV = shadowCull.tileOffsetScale.xy + uv * shadowCull.tileOffsetScale.zw;
-        shadow = SampleShadow_PCF5x5(shadowAtlasTex, samp, shadowCull.tileOffsetScale, atlasUV, receiverDepth, shadowCull.size.x, shadowCull.size.y);
-    }
+    shadow = SampleDirectionalCascadeScalarized(positionRWS, N, clampedSlope, cascadeIdx, dirViewsBuf, shadowAtlasTex, samp);
 
     if (cascadeIdx + 1u < cascadeCount)
     {
@@ -267,21 +329,8 @@ ShadowType GetDirectionalShadowAttenuation(float3 positionRWS, float3 N,  float3
         {
             float alpha = saturate((zView - blendStart) / blendRange);
             uint nextCascade = cascadeIdx + 1u;
-
-            GPUShadowSamplingData nextShadowCull = LoadDataAtOffset<GPUShadowSamplingData>(
-                directionalShadowViewsBuffer, sizeof(GPUShadowViewData) * nextCascade + sizeof(GPUShadowCullingData));
-
-            float3 nextBiasedPos = positionRWS + N * nextShadowCull.normalBias;
-            float4 nextClipPos = mul(nextShadowCull.shadowViewProj, float4(nextBiasedPos, 1.0f));
-            float2 nextUV = nextClipPos.xy * float2(0.5f, -0.5f) + 0.5f;
-            float nextReceiverDepth = nextClipPos.z + (1.0f / 65536.0f) + (nextShadowCull.slopeBias * clampedSlope);
-
-            if (all(nextUV >= 0.0f) && all(nextUV <= 1.0f))
-            {
-                float2 nextAtlasUV = nextShadowCull.tileOffsetScale.xy + nextUV * nextShadowCull.tileOffsetScale.zw;
-                float nextShadow = SampleShadow_PCF5x5(shadowAtlasTex, samp, nextShadowCull.tileOffsetScale, nextAtlasUV, nextReceiverDepth, nextShadowCull.size.x, nextShadowCull.size.y);
-                shadow = lerp(shadow, nextShadow, alpha);
-            }
+            ShadowType nextShadow = SampleDirectionalCascadeScalarized(positionRWS, N, clampedSlope, nextCascade, dirViewsBuf, shadowAtlasTex, samp);
+            shadow = lerp(shadow, nextShadow, alpha);
         }
     }
 

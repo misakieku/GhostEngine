@@ -3,6 +3,8 @@
 #define ENGINERESOURCES_SHADERS_GENERATED_GHOSTRENDERPIPELINE_HLSL
 #define DWORDS_PER_TILE 32u
 #define MAX_LIGHTS_PER_TILE 63u
+#define CLUSTER_SLICE_COUNT 24u
+#define MAX_CLUSTER_LIGHT_INDICES 4u * 1024u * 1024u
 
 struct DeferredTexturingShaderProperties
 {
@@ -92,6 +94,69 @@ struct RisResolveShadingShaderProperties
     float2 skyboxRotationSinCos;
     uint _pad1;
     uint _pad2;
+};
+
+
+struct TransparentPrepassShaderProperties
+{
+    uint visibleMeshletsBufferIndex;
+    uint binOffsetsBufferIndex;
+    uint binIndex;
+    uint scalarExtinctionUav;
+    uint rgbExtinctionUav;
+    uint scalarOverflowMinUav;
+    uint rgbOverflowMinUav;
+    uint depthWarpLutSrv;
+    uint oitWidth;
+    uint oitHeight;
+    uint oitPhysicalSliceCount;
+    uint oitVirtualSliceCount;
+    float oitLinearizationFactor;
+    float oitFarPlane;
+    uint _pad0;
+    uint _pad1;
+};
+
+struct TransparentForwardShaderProperties
+{
+    uint visibleMeshletsBufferIndex;
+    uint binOffsetsBufferIndex;
+    uint binIndex;
+    uint depthTextureIndex;
+    uint clusterLightGridBufferIndex;
+    uint clusterLightIndexBufferIndex;
+    uint clusterTilesX;
+    uint clusterSliceCount;
+    uint oitIntegralLutSrv;
+    uint oitDepthWarpLutSrv;
+    uint oitWidth;
+    uint oitHeight;
+    uint oitPhysicalSliceCount;
+    uint oitVirtualSliceCount;
+    float oitLinearizationFactor;
+    float oitFarPlane;
+    float oitSampleBias;
+    uint shadowAtlasSrv;
+    uint shadowViewsBufferSrv;
+    uint shadowIndicesBufferSrv;
+    uint skyboxTextureSrv;
+    uint iblLutTextureSrv;
+    uint persistentViewStateBufferSrv;
+    uint viewId;
+    uint skyboxMipCount;
+    float4 skyboxTintAndIntensity;
+    float2 skyboxRotationSinCos;
+    uint directionalShadowAtlasSrv;
+    uint directionalShadowViewsBufferSrv;
+    uint cascadeCount;
+    float maxShadowDistance;
+    float shadowFadeRange;
+    float4 cascadeSplits;
+    float4 cascadeBlends;
+    uint enableContactShadows;
+    float contactShadowDistance;
+    float contactShadowTolerance;
+    uint _pad0;
 };
 
 

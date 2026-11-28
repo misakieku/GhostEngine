@@ -120,7 +120,7 @@ compute "Internal/MeshletCullGraph"
                             bool isOccluded = false;
                             if (g_Properties.hzbMipCount > 0)
                             {
-                                if (g_Properties.cullPassIndex == 0)
+                                if (g_Properties.cullPassIndex == 0 && g_Properties.cullPassSemantic == 1u)
                                 {
                                     BBoxFrustumResult prevCull = BBoxIntersectFrustumFromWorld<true, true>(worldBox);
                                     if (prevCull.isVisible && prevCull.clipValid)
@@ -429,25 +429,42 @@ compute "Internal/MeshletCullGraph"
                     uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
                     uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, materialPaletteIndex, localMaterialIndex);
                     variantIndex = UnpackMaterialVariantIndex(packedMaterial);
-                    uint hasAlpha = UnpackMaterialHasAlpha(packedMaterial);
-                    if (hasAlpha == 0u)
+                    uint surfaceType = UnpackMaterialSurfaceType(packedMaterial);
+                    bool isTransparentCull = (g_Properties.cullPassSemantic != 1u);
+
+                    if (isTransparentCull)
                     {
-                        float dist = max(length(meshletWorldCenter), 0.001f);
-                        bool isSoftware = IsSoftwareMeshlet(
-                            meshletWorldCenter,
-                            meshletWorldRadius,
-                            meshlet.maxEdgeLength * maxScale,
-                            g_ViewData.cameraDirection,
-                            g_ViewData.nearClip,
-                            g_ViewData.projectionMatrix[1][1],
-                            g_ViewData.screenSize.y,
-                            SW_MAX_EDGE_PIXELS);
-                        uint depthBucket = DepthToBucket(dist, 0.1f, 1000.0f);
-                        cullBin = isSoftware ? (NUM_DEPTH_BUCKETS + depthBucket) : depthBucket;
+                        if (surfaceType != MATERIAL_SURFACE_TRANSPARENT)
+                        {
+                            isValid = false;
+                        }
+                        cullBin = variantIndex;
                     }
                     else
                     {
-                        cullBin = (NUM_DEPTH_BUCKETS * 2u) + variantIndex;
+                        if (surfaceType == MATERIAL_SURFACE_TRANSPARENT)
+                        {
+                            isValid = false;
+                        }
+                        else if (surfaceType == MATERIAL_SURFACE_OPAQUE)
+                        {
+                            float dist = max(length(meshletWorldCenter), 0.001f);
+                            bool isSoftware = IsSoftwareMeshlet(
+                                meshletWorldCenter,
+                                meshletWorldRadius,
+                                meshlet.maxEdgeLength * maxScale,
+                                g_ViewData.cameraDirection,
+                                g_ViewData.nearClip,
+                                g_ViewData.projectionMatrix[1][1],
+                                g_ViewData.screenSize.y,
+                                SW_MAX_EDGE_PIXELS);
+                            uint depthBucket = DepthToBucket(dist, 0.1f, 1000.0f);
+                            cullBin = isSoftware ? (NUM_DEPTH_BUCKETS + depthBucket) : depthBucket;
+                        }
+                        else
+                        {
+                            cullBin = (NUM_DEPTH_BUCKETS * 2u) + variantIndex;
+                        }
                     }
 
                     uint wordIdx = variantIndex >> 5u;
@@ -468,7 +485,7 @@ compute "Internal/MeshletCullGraph"
                         {
                             if (inFrustum && g_Properties.hzbMipCount > 0)
                             {
-                                if (g_Properties.cullPassIndex == 0)
+                                if (g_Properties.cullPassIndex == 0 && !isTransparentCull)
                                 {
                                     BBoxFrustumResult prevCullResult = BBoxIntersectFrustumFromWorld<true, true>(worldBox);
                                     if (prevCullResult.isVisible && prevCullResult.clipValid)
@@ -496,8 +513,8 @@ compute "Internal/MeshletCullGraph"
             uint waveVisibleCount = WaveActiveCountBits(isVisible);
             uint localVisibleOffset = WavePrefixCountBits(isVisible);
 
-            // In Pass 1: queue occluded meshlets to be re-evaluated in Pass 2 against current HZB
-            bool isOccludedCandidate = (g_Properties.cullPassIndex == 0) && isValid && inFrustum && isOccluded;
+            // In Pass 1: queue occluded opaque/alpha-clip meshlets to be re-evaluated in Pass 2 against current HZB
+            bool isOccludedCandidate = (g_Properties.cullPassSemantic == 1u) && (g_Properties.cullPassIndex == 0) && isValid && inFrustum && isOccluded;
             uint waveOccCount = WaveActiveCountBits(isOccludedCandidate);
             uint localOccOffset = WavePrefixCountBits(isOccludedCandidate);
 

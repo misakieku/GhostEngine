@@ -162,4 +162,73 @@ public class PipelineKeywordTests
             library.Dispose();
         }
     }
+
+    [TestMethod]
+    public unsafe void TestShaderLibrary_ToggleKeywordResolution()
+    {
+        var library = new ShaderLibrary(null, null, null);
+        try
+        {
+            var kwShadowLow = PipelineKeywordRegistry.GetOrRegister("_SHADOW_LOW_TOGGLE");
+            var kwShadowHigh = PipelineKeywordRegistry.GetOrRegister("_SHADOW_HIGH_TOGGLE");
+            var kwColored = PipelineKeywordRegistry.GetOrRegister("_COLORED_SHADOW_TOGGLE");
+            var kwUnrelated = PipelineKeywordRegistry.GetOrRegister("_UNRELATED_TOGGLE");
+
+            var supportedToggleOnly = kwColored.Mask;
+            var supportedMixed = kwShadowLow.Mask | kwShadowHigh.Mask | kwColored.Mask;
+
+            var codeOff = new byte[] { 1, 1, 1, 1 };
+            var codeOn = new byte[] { 2, 2, 2, 2 };
+            var codeLowOff = new byte[] { 3, 3, 3, 3 };
+            var codeLowOn = new byte[] { 4, 4, 4, 4 };
+            var codeHighOff = new byte[] { 5, 5, 5, 5 };
+            var codeHighOn = new byte[] { 6, 6, 6, 6 };
+
+            fixed (byte* pOff = codeOff, pOn = codeOn, pLowOff = codeLowOff, pLowOn = codeLowOn, pHighOff = codeHighOff, pHighOn = codeHighOn)
+            {
+                var passToggleOnly = new CompiledPassData(supportedToggleOnly, new[]
+                {
+                    new CompiledVariantData(KeywordMask128.Empty, new[] { new ShaderByteCode { pCode = pOff, size = (ulong)codeOff.Length } }),
+                    new CompiledVariantData(kwColored.Mask, new[] { new ShaderByteCode { pCode = pOn, size = (ulong)codeOn.Length } }),
+                });
+
+                const ulong toggleShaderId = 0x223344556677ul;
+                Assert.IsTrue(library.PublishCompiledGeneration(toggleShaderId, new ReadOnlySpan<CompiledPassData>(ref passToggleOnly)).IsSuccess);
+
+                var hashOff = library.GetCompiledHash(toggleShaderId, 0, KeywordMask128.Empty).GetValueOrThrow();
+                var hashOn = library.GetCompiledHash(toggleShaderId, 0, kwColored.Mask).GetValueOrThrow();
+                var hashUnrelated = library.GetCompiledHash(toggleShaderId, 0, kwUnrelated.Mask).GetValueOrThrow();
+                var hashBoth = library.GetCompiledHash(toggleShaderId, 0, kwColored.Mask | kwUnrelated.Mask).GetValueOrThrow();
+
+                Assert.AreNotEqual(hashOff, hashOn);
+                Assert.AreEqual(hashOff, hashUnrelated);
+                Assert.AreEqual(hashOn, hashBoth);
+
+                var passMixed = new CompiledPassData(supportedMixed, new[]
+                {
+                    new CompiledVariantData(kwShadowLow.Mask, new[] { new ShaderByteCode { pCode = pLowOff, size = (ulong)codeLowOff.Length } }),
+                    new CompiledVariantData(kwShadowLow.Mask | kwColored.Mask, new[] { new ShaderByteCode { pCode = pLowOn, size = (ulong)codeLowOn.Length } }),
+                    new CompiledVariantData(kwShadowHigh.Mask, new[] { new ShaderByteCode { pCode = pHighOff, size = (ulong)codeHighOff.Length } }),
+                    new CompiledVariantData(kwShadowHigh.Mask | kwColored.Mask, new[] { new ShaderByteCode { pCode = pHighOn, size = (ulong)codeHighOn.Length } }),
+                });
+
+                const ulong mixedShaderId = 0x334455667788ul;
+                Assert.IsTrue(library.PublishCompiledGeneration(mixedShaderId, new ReadOnlySpan<CompiledPassData>(ref passMixed)).IsSuccess);
+
+                var hLowOff = library.GetCompiledHash(mixedShaderId, 0, kwShadowLow.Mask).GetValueOrThrow();
+                var hLowOn = library.GetCompiledHash(mixedShaderId, 0, kwShadowLow.Mask | kwColored.Mask).GetValueOrThrow();
+                var hHighOff = library.GetCompiledHash(mixedShaderId, 0, kwShadowHigh.Mask).GetValueOrThrow();
+                var hHighOn = library.GetCompiledHash(mixedShaderId, 0, kwShadowHigh.Mask | kwColored.Mask).GetValueOrThrow();
+
+                Assert.AreNotEqual(hLowOff, hLowOn);
+                Assert.AreNotEqual(hLowOff, hHighOff);
+                Assert.AreNotEqual(hHighOff, hHighOn);
+                Assert.AreNotEqual(hLowOn, hHighOn);
+            }
+        }
+        finally
+        {
+            library.Dispose();
+        }
+    }
 }

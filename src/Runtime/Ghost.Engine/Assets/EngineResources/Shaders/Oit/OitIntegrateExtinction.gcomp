@@ -1,0 +1,225 @@
+compute "Oit/IntegrateExtinction"
+{
+    properties
+    {
+        uint depthWarpLutSrv;
+        uint tileFlagsSrv;
+        uint scalarExtinctionSrv;
+        uint rgbExtinctionSrv;
+        uint scalarOverflowMinSrv;
+        uint rgbOverflowMinSrv;
+        uint integralLutUav;
+        uint zeroTransDepthUav;
+        uint oitWidth;
+        uint oitHeight;
+        uint occTilesX;
+        uint maxVirtualSliceCount;
+        float zeroTransThreshold;
+        float sampleBias;
+        uint _pad0;
+        uint _pad1;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Common.hlsl";
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Oit/OitCommon.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(OIT_OCC_TILE_SIZE, OIT_OCC_TILE_SIZE, 1)]
+        void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupID : SV_GroupID)
+        {
+            uint2 oitCoord = dispatchThreadID.xy;
+            if (oitCoord.x >= g_Properties.oitWidth || oitCoord.y >= g_Properties.oitHeight)
+            {
+                return;
+            }
+
+            ByteAddressBuffer warpLut = GET_BUFFER(g_Properties.depthWarpLutSrv);
+            OitWarpLutHeader header = LoadOitWarpLutHeader(warpLut);
+            if (header.physicalSliceCount == 0u || header.virtualSliceCount == 0u)
+            {
+                return;
+            }
+
+            RWTexture3D<float4> integralLut = GET_TEXTURE3D(g_Properties.integralLutUav);
+            RWTexture2D<float> zeroTransDepth = GET_TEXTURE2D(g_Properties.zeroTransDepthUav);
+            uint lutW = 1u;
+            uint lutH = 1u;
+            uint lutD = 1u;
+            integralLut.GetDimensions(lutW, lutH, lutD);
+
+            ByteAddressBuffer tileFlagsBuf = GET_BUFFER(g_Properties.tileFlagsSrv);
+            uint tileIndex = groupID.y * g_Properties.occTilesX + groupID.x;
+            uint flags = tileFlagsBuf.Load(tileIndex * (OIT_TILE_DWORD_STRIDE * 4u));
+
+            if (flags == 0u)
+            {
+                zeroTransDepth[oitCoord] = 0.0f;
+                return;
+            }
+
+            uint scalarStart = 0u;
+            uint scalarEnd = 0u;
+            bool hasScalar = ((flags & 1u) != 0u) && OitTryGetTilePhysicalSliceRange(tileFlagsBuf, warpLut, header, tileIndex, OIT_TILE_DWORD_SCALAR_MAX, OIT_TILE_DWORD_SCALAR_INV_MIN, scalarStart, scalarEnd);
+
+            uint rgbStart = 0u;
+            uint rgbEnd = 0u;
+            bool hasRgb = ((flags & 2u) != 0u) && OitTryGetTilePhysicalSliceRange(tileFlagsBuf, warpLut, header, tileIndex, OIT_TILE_DWORD_RGB_MAX, OIT_TILE_DWORD_RGB_INV_MIN, rgbStart, rgbEnd);
+
+            if (!hasScalar && !hasRgb)
+            {
+                zeroTransDepth[oitCoord] = 0.0f;
+                for (uint sEmpty = 0u; sEmpty < header.physicalSliceCount; sEmpty++)
+                {
+                    integralLut[uint3(oitCoord, sEmpty)] = float4(1.0f, 1.0f, 1.0f, 1.0f);
+                }
+                if (header.physicalSliceCount < lutD)
+                {
+                    integralLut[uint3(oitCoord, header.physicalSliceCount)] = float4(1.0f, 1.0f, 1.0f, 1.0f);
+                }
+                return;
+            }
+
+            uint activeStart = hasScalar && hasRgb ? min(scalarStart, rgbStart) : (hasScalar ? scalarStart : rgbStart);
+            uint activeEnd = hasScalar && hasRgb ? max(scalarEnd, rgbEnd) : (hasScalar ? scalarEnd : rgbEnd);
+
+            Texture2D<uint> scalarOverflowTex = GET_TEXTURE2D(g_Properties.scalarOverflowMinSrv);
+            Texture3D<uint> rgbOverflowTex = GET_TEXTURE3D(g_Properties.rgbOverflowMinSrv);
+            Texture3D<uint> scalarExtTex = GET_TEXTURE3D(g_Properties.scalarExtinctionSrv);
+            Texture3D<uint> rgbExtTex = GET_TEXTURE3D(g_Properties.rgbExtinctionSrv);
+
+            uint scalarOverflow = hasScalar ? scalarOverflowTex[oitCoord] : 0xFFFFFFFFu;
+            uint3 rgbOverflow = hasRgb
+                ? uint3(rgbOverflowTex[uint3(oitCoord, 0u)], rgbOverflowTex[uint3(oitCoord, 1u)], rgbOverflowTex[uint3(oitCoord, 2u)])
+                : uint3(0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu);
+
+            float scalarAccum = 0.0f;
+            float3 rgbAccum = float3(0.0f, 0.0f, 0.0f);
+            bool scalarSaturated = false;
+            bool3 rgbSaturated = bool3(false, false, false);
+            int zeroPhysicalSlice = -1;
+            uint cachedScalarDwordIdx = 0xFFFFFFFFu;
+            uint cachedScalarDword = 0u;
+            float3 lastTransmittance = float3(1.0f, 1.0f, 1.0f);
+
+            for (uint s = 0u; s < header.physicalSliceCount; s++)
+            {
+                if (s < activeStart || s > activeEnd || zeroPhysicalSlice >= 0)
+                {
+                    integralLut[uint3(oitCoord, s)] = float4(lastTransmittance, 1.0f);
+                    continue;
+                }
+
+                bool updated = false;
+                if (hasScalar && !scalarSaturated && s >= scalarStart && s <= scalarEnd)
+                {
+                    uint dwordIdx = s >> 2u;
+                    if (dwordIdx != cachedScalarDwordIdx)
+                    {
+                        cachedScalarDword = scalarExtTex[uint3(oitCoord, dwordIdx)];
+                        cachedScalarDwordIdx = dwordIdx;
+                    }
+
+                    if (s >= scalarOverflow)
+                    {
+                        scalarAccum = max(scalarAccum, 1.0f);
+                        scalarSaturated = true;
+                    }
+                    else
+                    {
+                        uint u = (cachedScalarDword >> ((s & 3u) * 8u)) & 0xFFu;
+                        scalarAccum += float(u) / 255.0f;
+                    }
+                    updated = true;
+                }
+
+                if (hasRgb && any(!rgbSaturated) && s >= rgbStart && s <= rgbEnd)
+                {
+                    uint packedRgb = rgbExtTex[uint3(oitCoord, s)];
+
+                    if (!rgbSaturated.r)
+                    {
+                        if (s >= rgbOverflow.r)
+                        {
+                            rgbAccum.r = max(rgbAccum.r, 1.0f);
+                            rgbSaturated.r = true;
+                        }
+                        else
+                        {
+                            rgbAccum.r += float(packedRgb & 0x3FFu) / 255.0f;
+                        }
+                    }
+
+                    if (!rgbSaturated.g)
+                    {
+                        if (s >= rgbOverflow.g)
+                        {
+                            rgbAccum.g = max(rgbAccum.g, 1.0f);
+                            rgbSaturated.g = true;
+                        }
+                        else
+                        {
+                            rgbAccum.g += float((packedRgb >> 10u) & 0x3FFu) / 255.0f;
+                        }
+                    }
+
+                    if (!rgbSaturated.b)
+                    {
+                        if (s >= rgbOverflow.b)
+                        {
+                            rgbAccum.b = max(rgbAccum.b, 1.0f);
+                            rgbSaturated.b = true;
+                        }
+                        else
+                        {
+                            rgbAccum.b += float((packedRgb >> 20u) & 0x3FFu) / 255.0f;
+                        }
+                    }
+                    updated = true;
+                }
+
+                float3 transmittance = lastTransmittance;
+                if (updated)
+                {
+                    float3 totalNormExt = scalarAccum + rgbAccum;
+                    transmittance = exp(-totalNormExt * OIT_EXTINCTION_MAX);
+
+                    if (all(transmittance <= g_Properties.zeroTransThreshold))
+                    {
+                        zeroPhysicalSlice = (int)s;
+                    }
+                }
+
+                integralLut[uint3(oitCoord, s)] = float4(transmittance, 1.0f);
+                lastTransmittance = transmittance;
+            }
+
+            if (header.physicalSliceCount < lutD)
+            {
+                integralLut[uint3(oitCoord, header.physicalSliceCount)] = float4(lastTransmittance, 1.0f);
+            }
+
+            float zeroDevZ = 0.0f;
+            if (zeroPhysicalSlice >= 0)
+            {
+                // Offset forward past the linear sampling bias so fragments at zeroDevZ strictly sample <= threshold.
+                uint biasMargin = (uint)ceil(max(-g_Properties.sampleBias, 0.0f)) + 1u;
+                uint safePhysSlice = (uint)zeroPhysicalSlice + biasMargin;
+                if (safePhysSlice < header.physicalSliceCount)
+                {
+                    uint virtSlice = warpLut.Load((4u + g_Properties.maxVirtualSliceCount + safePhysSlice) * 4u);
+                    float viewZ = OitVirtualSliceToDepth((float)(virtSlice + 1u), header.linearizationFactor, header.farPlane, header.virtualSliceCount);
+                    zeroDevZ = OitViewDepthToDeviceDepth(viewZ, g_ViewData.nearClip, g_ViewData.farClip);
+                }
+            }
+
+            zeroTransDepth[oitCoord] = zeroDevZ;
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

@@ -261,6 +261,7 @@ internal unsafe class D3D12PipelineLibrary : D3D12Object<ID3D12PipelineLibrary1>
                         Blend.Additive => D3D12Utility.D3D12_BLEND_DESC_ADDITIVE,
                         Blend.Multiply => D3D12Utility.D3D12_BLEND_DESC_MULTIPLY,
                         Blend.PremultipliedAlpha => D3D12Utility.D3D12_BLEND_DESC_PREMULTIPLIED,
+                        Blend.PureAdditive => D3D12Utility.D3D12_BLEND_DESC_PURE_ADDITIVE,
                         _ => D3D12Utility.D3D12_BLEND_DESC_OPAQUE
                     },
                     RasterizerState = desc.PipelineOption.Cull switch

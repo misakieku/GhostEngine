@@ -57,21 +57,24 @@ compute "Internal/OccludedMeshletCull"
                 uint localMaterialIndex = (meshlet.packedCounts >> 16u) & 0xFFu;
                 uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instance.materialPaletteIndex, localMaterialIndex);
                 variantIndex = UnpackMaterialVariantIndex(packedMaterial);
-                uint hasAlpha = UnpackMaterialHasAlpha(packedMaterial);
-                cullBin = (hasAlpha != 0u) ? (variantIndex + 1u) : 0u;
+                uint surfaceType = UnpackMaterialSurfaceType(packedMaterial);
+                cullBin = (surfaceType == MATERIAL_SURFACE_ALPHA_CLIP) ? (variantIndex + 1u) : 0u;
 
-                float4x4 localToRWS = ApplyCameraTranslationToMatrix(instance.localToWorld);
-                BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, localToRWS);
-                if (cullResult.isVisible)
+                if (surfaceType != MATERIAL_SURFACE_TRANSPARENT)
                 {
-                    if (cullResult.clipValid && g_Properties.hzbMipCount > 0)
+                    float4x4 localToRWS = ApplyCameraTranslationToMatrix(instance.localToWorld);
+                    BBoxFrustumResult cullResult = BBoxIntersectFrustum<false>(meshlet.boundingBoxMin, meshlet.boundingBoxMax, localToRWS);
+                    if (cullResult.isVisible)
                     {
-                        isVisible = TestHZB(cullResult.clipMin, cullResult.clipMax);
-                        // isVisible = true;
-                    }
-                    else
-                    {
-                        isVisible = true;
+                        if (cullResult.clipValid && g_Properties.hzbMipCount > 0)
+                        {
+                            isVisible = TestHZB(cullResult.clipMin, cullResult.clipMax);
+                            // isVisible = true;
+                        }
+                        else
+                        {
+                            isVisible = true;
+                        }
                     }
                 }
             }

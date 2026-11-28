@@ -121,6 +121,9 @@ internal partial class LightingPipelineResource : IPipelineResource
     [ResolveAsset("EngineResources/Shaders/Lighting/TileLightCulling")]
     public Handle<ComputeShader> tileLightCullingShader;
 
+    [ResolveAsset("EngineResources/Shaders/Lighting/ClusterLightCulling")]
+    public Handle<ComputeShader> clusterLightCullingShader;
+
     [ResolveAsset("EngineResources/Shaders/Lighting/ClearShadowAtlas")]
     public Handle<ComputeShader> clearShadowAtlasShader;
 
@@ -190,4 +193,34 @@ internal partial class PostProcessPipelineResource : IPipelineResource
 
     [ResolveAsset("EngineResources/Shaders/PostProcess/UberPost")]
     public Handle<ComputeShader> uberPostShader;
+}
+
+internal partial class OitPipelineResource : IPipelineResource
+{
+    [ResolveAsset("EngineResources/Shaders/Oit/OitCopySceneDepth")]
+    public Handle<Shader> copySceneDepthShader;
+
+    [ResolveAsset("EngineResources/Shaders/Oit/OitPrepareOccupancyArgs")]
+    public Handle<ComputeShader> prepareOccupancyArgsShader;
+
+    [ResolveAsset("EngineResources/Shaders/Oit/OitOccupancyPrepass")]
+    public Handle<ComputeShader> occupancyPrepassShader;
+
+    [ResolveAsset("EngineResources/Shaders/Oit/OitBuildDepthWarpLut")]
+    public Handle<ComputeShader> buildDepthWarpLutShader;
+
+    [ResolveAsset("EngineResources/Shaders/Oit/OitClearExtinction")]
+    public Handle<ComputeShader> clearExtinctionShader;
+
+    [ResolveAsset("EngineResources/Shaders/Oit/OitIntegrateExtinction")]
+    public Handle<ComputeShader> integrateExtinctionShader;
+
+    [ResolveAsset("EngineResources/Shaders/Oit/OitSpawnZeroTransQuads")]
+    public Handle<ComputeShader> spawnZeroTransQuadsShader;
+
+    [ResolveAsset("EngineResources/Shaders/Oit/OitEarlyDepthPrime")]
+    public Handle<Shader> earlyDepthPrimeShader;
+
+    [ResolveAsset("EngineResources/Shaders/Oit/OitResolve")]
+    public Handle<ComputeShader> resolveShader;
 }

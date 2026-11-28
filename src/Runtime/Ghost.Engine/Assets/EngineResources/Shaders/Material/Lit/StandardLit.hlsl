@@ -26,6 +26,7 @@ struct PreLightData
     float clampedNdotV;
     float partLambdaV;
     float energyCompensation;
+    float2 envBRDF;
 };
 
 struct StandardLitDeferredLighting
@@ -72,6 +73,7 @@ struct StandardLitDeferredLighting
             envBRDF = SampleTexture2DLevel<float4>(g_Properties.iblLutTextureSrv, LINEAR_CLAMP_SAMPLER, float2(data.clampedNdotV, bsdf.perceptualRoughness), 0.0f).rg;
         }
 
+        data.envBRDF = envBRDF;
         float reflectivity = envBRDF.x + envBRDF.y;
         data.energyCompensation = (1.0f / max(reflectivity, 0.001f)) - 1.0f;
 
@@ -142,13 +144,7 @@ struct StandardLitDeferredLighting
             float3 prefilteredSpec = SampleTextureCubeLevel<float4>(g_Properties.skyboxTextureSrv, TRILINEAR_CLAMP_SAMPLER, rotatedR, mip).rgb;
             prefilteredSpec *= g_Properties.skyboxTintAndIntensity.rgb * g_Properties.skyboxTintAndIntensity.w;
 
-            float2 envBRDF = float2(0.0f, 0.0f);
-            if (IS_VALID_TEXTURE(g_Properties.iblLutTextureSrv))
-            {
-                // PBR.dds contains BRDF LUT in RG channels: x = scale, y = bias
-                envBRDF = SampleTexture2DLevel<float4>(g_Properties.iblLutTextureSrv, LINEAR_CLAMP_SAMPLER, float2(preLightData.clampedNdotV, bsdf.perceptualRoughness), 0.0f).rg;
-            }
-
+            float2 envBRDF = preLightData.envBRDF;
             float3 specularColor = prefilteredSpec * (bsdf.fresnel0 * envBRDF.x + envBRDF.y) * bsdf.specularOcclusion;
             indirect.specularReflected = specularColor;
         }

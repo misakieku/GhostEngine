@@ -76,6 +76,40 @@ shader ""Custom/CarPaint"" : ""Lit""
         var dlPass = descriptorResult.Value.Passes.First(p => p.semantic == Ghost.Core.Graphics.PassSemantic.DeferredLighting);
         StringAssert.Contains(dlPass.computeShaderCode.code, "#define SHADING_MODEL_ID 1u");
         StringAssert.Contains(dlPass.computeShaderCode.code, "SimpleLit.hlsl");
+
+        var tpPass = descriptorResult.Value.Passes.First(p => p.semantic == Ghost.Core.Graphics.PassSemantic.TransparentPrepass);
+        Assert.IsTrue(tpPass.meshShaderCode.IsCreated);
+        Assert.IsTrue(tpPass.pixelShaderCode.IsCreated);
+        StringAssert.Contains(tpPass.pixelShaderCode.code, "DefaultTransparencyStrategy");
+
+        var tfPass = descriptorResult.Value.Passes.First(p => p.semantic == Ghost.Core.Graphics.PassSemantic.TransparentForward);
+        Assert.IsTrue(tfPass.meshShaderCode.IsCreated);
+        Assert.IsTrue(tfPass.pixelShaderCode.IsCreated);
+        Assert.AreEqual(Ghost.Core.Graphics.Blend.PureAdditive, tfPass.localPipeline.Blend);
+        StringAssert.Contains(tfPass.pixelShaderCode.code, "SimpleLitDeferredTexturing");
+        StringAssert.Contains(tfPass.pixelShaderCode.code, "SimpleLit.hlsl");
+    }
+
+    [TestMethod]
+    public void TestResolveStandardLit_StitchesTransparentStrategies()
+    {
+        var shaderSource = File.ReadAllText(@"F:\csharp\GhostEngine\src\Runtime\Ghost.Engine\Assets\EngineResources\Shaders\Material\Lit\StandardLit.gshdr");
+        var syntaxResult = DSLShaderCompiler.ParseGraphicsShaderSyntax(shaderSource);
+        Assert.IsTrue(syntaxResult.IsSuccess, syntaxResult.Message);
+        var semanticsResult = DSLShaderCompiler.GetShaderSemantics(syntaxResult.Value);
+        Assert.IsTrue(semanticsResult.IsSuccess, semanticsResult.Message);
+
+        var descriptorResult = DSLShaderCompiler.ResolveShader(semanticsResult.Value);
+        Assert.IsTrue(descriptorResult.IsSuccess, descriptorResult.Message);
+
+        var tpPass = descriptorResult.Value.Passes.First(p => p.semantic == Ghost.Core.Graphics.PassSemantic.TransparentPrepass);
+        StringAssert.Contains(tpPass.pixelShaderCode.code, "StandardLitTransparency");
+
+        var tfPass = descriptorResult.Value.Passes.First(p => p.semantic == Ghost.Core.Graphics.PassSemantic.TransparentForward);
+        Assert.AreEqual(Ghost.Core.Graphics.Blend.PureAdditive, tfPass.localPipeline.Blend);
+        StringAssert.Contains(tfPass.pixelShaderCode.code, "StandardLitTransparency");
+        StringAssert.Contains(tfPass.pixelShaderCode.code, "StandardLitDeferredTexturing");
+        StringAssert.Contains(tfPass.pixelShaderCode.code, "StandardLit.hlsl");
     }
 
     [TestMethod]

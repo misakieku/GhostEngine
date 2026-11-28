@@ -170,16 +170,20 @@ public static class TemplateStitcher
 
         var commonFileName = Path.GetFileName(template.CommonTemplateFile);
 
-        var userHlsl = string.Empty;
+        var sbUser = new StringBuilder();
         var hasStrategy = false;
 
-        if (!string.IsNullOrEmpty(passDef.strategy) && semantics.strategies.TryGetValue(passDef.strategy, out var strategyDef))
+        foreach (var strategySlot in passDef.GetStrategies())
         {
-            hasStrategy = true;
-            var sbUser = new StringBuilder();
-            if (!string.IsNullOrEmpty(strategyDef.typeName) && !string.Equals(strategyDef.typeName, passDef.strategy, StringComparison.OrdinalIgnoreCase))
+            if (!semantics.strategies.TryGetValue(strategySlot, out var strategyDef))
             {
-                sbUser.AppendLine($"#define {passDef.strategy} {strategyDef.typeName}");
+                continue;
+            }
+
+            hasStrategy = true;
+            if (!string.IsNullOrEmpty(strategyDef.typeName) && !string.Equals(strategyDef.typeName, strategySlot, StringComparison.OrdinalIgnoreCase))
+            {
+                sbUser.AppendLine($"#define {strategySlot} {strategyDef.typeName}");
             }
 
             if (!string.IsNullOrEmpty(strategyDef.filePath))
@@ -206,13 +210,16 @@ public static class TemplateStitcher
             {
                 sbUser.AppendLine(strategyDef.hlsl);
             }
-
-            userHlsl = sbUser.ToString();
         }
+
+        var userHlsl = sbUser.ToString();
 
         var needsProperties = passDef.semantic != PassSemantic.DeferredLighting &&
             passDef.semantic != PassSemantic.RisResolveShading &&
-            (passDef.semantic == PassSemantic.DeferredTexturing || hasStrategy);
+            (passDef.semantic == PassSemantic.DeferredTexturing ||
+             passDef.semantic == PassSemantic.TransparentPrepass ||
+             passDef.semantic == PassSemantic.TransparentForward ||
+             hasStrategy);
         var propertiesStruct = needsProperties
             ? BuildPropertiesStruct(template, semantics)
             : string.Empty;
@@ -272,9 +279,9 @@ public static class TemplateStitcher
         for (var i = 0; i < template.Passes.Count; i++)
         {
             var pDef = template.Passes[i];
-            if (!string.IsNullOrEmpty(pDef.strategy))
+            foreach (var slot in pDef.GetStrategies())
             {
-                validStrategies.Add(pDef.strategy);
+                validStrategies.Add(slot);
             }
         }
 
@@ -333,7 +340,7 @@ public static class TemplateStitcher
                 localPipeline = DSLShaderCompiler.MergePipeline(semantics.pipeline, passDef.pipeline.ToPipelineState()),
                 defines = defines.ToArray(),
                 shadingModelId = shadingModelId,
-                keywordGroups = passDef.keywordGroups?.ToArray() ?? Array.Empty<KeywordGroupDef>(),
+                keywordGroups = passDef.keywordGroups?.ToArray() ?? Array.Empty<IKeywordDef>(),
             };
 
             foreach (var stageDef in passDef.stages)

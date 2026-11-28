@@ -183,7 +183,9 @@ internal static class RenderGraphNativePassBuilder
             return false;
         }
 
-        if (nativePass.hasDepthAttachment && nativePass.depthAttachment.texture != pass.depthAccess.id)
+        if (nativePass.hasDepthAttachment &&
+            (nativePass.depthAttachment.texture != pass.depthAccess.id ||
+             (nativePass.depthAttachment.access & AccessFlags.Write) != (pass.depthAccess.accessFlags & AccessFlags.Write)))
         {
             return false;
         }
@@ -355,8 +357,12 @@ internal static class RenderGraphNativePassBuilder
 
             // ===== STORE OP INFERENCE =====
 
-            // Depth is commonly discarded (depth-only passes, intermediate depth)
-            if (resourceOrdering.GetLastUseScheduleIndex(resource.index) == lastScheduleIndex)
+            // Depth cannot be discarded cleanly in read-only depth layout; preserve when read-only.
+            if ((flags & AccessFlags.Write) == 0)
+            {
+                attachment.storeOp = AttachmentStoreOp.Store;
+            }
+            else if (resourceOrdering.GetLastUseScheduleIndex(resource.index) == lastScheduleIndex)
             {
                 if (resource.isImported || resource.isExtracted || !resource.rgTextureDesc.discardAtLastUse)
                 {

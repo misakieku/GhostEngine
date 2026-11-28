@@ -138,6 +138,11 @@ internal sealed class RenderGraphExecutor : IDisposable
                             };
                         }
 
+                        var depthFormat = nativePass.hasDepthAttachment
+                            ? _resources.GetResource(nativePass.depthAttachment.texture).rgTextureDesc.format
+                            : TextureFormat.Unknown;
+                        var isReadOnlyDepth = nativePass.hasDepthAttachment && (nativePass.depthAttachment.access & AccessFlags.Write) == 0;
+
                         var depthDesc = new PassDepthStencilDesc
                         {
                             Texture = nativePass.hasDepthAttachment
@@ -157,6 +162,9 @@ internal sealed class RenderGraphExecutor : IDisposable
                             StencilStoreOp = nativePass.hasDepthAttachment
                                 ? nativePass.depthAttachment.stencilStoreOp
                                 : AttachmentStoreOp.NoAccess,
+                            HasStencil = depthFormat.IsStencilFormat(),
+                            IsReadOnlyDepth = isReadOnlyDepth,
+                            IsReadOnlyStencil = isReadOnlyDepth && depthFormat.IsStencilFormat(),
                         };
 
                         activeCommandBuffer.BeginRenderPass(new Span<PassRenderTargetDesc>(pPassRTDescs, nativePass.colorAttachmentCount), in depthDesc, nativePass.allowUAVWrites);
@@ -169,9 +177,6 @@ internal sealed class RenderGraphExecutor : IDisposable
                             pRtFormats[i] = resource.rgTextureDesc.format;
                         }
 
-                        var depthFormat = nativePass.hasDepthAttachment
-                            ? _resources.GetResource(nativePass.depthAttachment.texture).rgTextureDesc.format
-                            : TextureFormat.Unknown;
                         context.SetRenderTargetFormats(new ReadOnlySpan<TextureFormat>(pRtFormats, nativePass.colorAttachmentCount), depthFormat);
                         break;
                     }

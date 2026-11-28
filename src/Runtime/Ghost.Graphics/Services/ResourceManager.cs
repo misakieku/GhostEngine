@@ -274,14 +274,15 @@ public sealed partial class ResourceManager : IDisposable
             }
 
             ref var material = ref r.Value;
-            var oldHasAlpha = material.HasAlphaClip;
+            var oldSurfaceType = material.SurfaceType;
+            var oldChromatic = material.ChromaticTransmittance;
             var err = material.SetRawPropertyCache(data);
             if (err != Error.None)
             {
                 return err;
             }
 
-            if (material.HasAlphaClip != oldHasAlpha)
+            if (material.SurfaceType != oldSurfaceType || material.ChromaticTransmittance != oldChromatic)
             {
                 _materialPalettes.MarkGpuDirty();
             }
@@ -289,6 +290,58 @@ public sealed partial class ResourceManager : IDisposable
             if (_dirtyMaterialSet.Add(handle.ID))
             {
                 _dirtyMaterials.Add(handle);
+            }
+
+            return Error.None;
+        }
+    }
+
+    /// <summary>
+    /// Overrides the rendering surface classification for a material and marks material palettes dirty if changed.
+    /// </summary>
+    public Error SetMaterialSurfaceType(Handle<Material> handle, MaterialSurfaceType surfaceType)
+    {
+        Logger.DebugAssert(!_disposed);
+
+        lock (_materialWriteLock)
+        {
+            var r = GetMaterialReference(handle);
+            if (r.IsFailure)
+            {
+                return r.Error;
+            }
+
+            ref var material = ref r.Value;
+            if (material.SurfaceType != surfaceType)
+            {
+                material.SetSurfaceType(surfaceType);
+                _materialPalettes.MarkGpuDirty();
+            }
+
+            return Error.None;
+        }
+    }
+
+    /// <summary>
+    /// Overrides whether a transparent material uses chromatic (RGB) transmittance in AVBOIT.
+    /// </summary>
+    public Error SetMaterialChromaticTransmittance(Handle<Material> handle, bool chromaticTransmittance)
+    {
+        Logger.DebugAssert(!_disposed);
+
+        lock (_materialWriteLock)
+        {
+            var r = GetMaterialReference(handle);
+            if (r.IsFailure)
+            {
+                return r.Error;
+            }
+
+            ref var material = ref r.Value;
+            if (material.ChromaticTransmittance != chromaticTransmittance)
+            {
+                material.SetChromaticTransmittance(chromaticTransmittance);
+                _materialPalettes.MarkGpuDirty();
             }
 
             return Error.None;
@@ -555,7 +608,7 @@ public sealed partial class ResourceManager : IDisposable
                 return 0u;
             }
 
-            return MaterialEncoding.Encode(r.Value.PoolOffset, r.Value.VariantIndex, r.Value.HasAlphaClip);
+            return MaterialEncoding.Encode(r.Value.PoolOffset, r.Value.VariantIndex, r.Value.SurfaceType, r.Value.ChromaticTransmittance);
         }, this);
 
         var offsets = _materialPalettes.PaletteOffsets;

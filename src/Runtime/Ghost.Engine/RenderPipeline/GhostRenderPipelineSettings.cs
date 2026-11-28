@@ -127,6 +127,41 @@ public class GhostRenderPipelineSettings : IRenderPipelineSettings
         return MeshletStreamingPoolSizeMB * 1024u * 1024u / 131072u;
     }
 
+    /// <summary>
+    /// Enable Adaptive Volumetric Blended Order-Independent Transparency (AVBOIT).
+    /// </summary>
+    public bool EnableOit { get; set; } = true;
+
+    /// <summary>
+    /// Physical depth slice count for the OIT 3D extinction and transmittance LUT volumes (typically 128).
+    /// </summary>
+    public uint OitPhysicalSliceCount { get; set; } = 128u;
+
+    /// <summary>
+    /// Maximum virtual depth slices used before adaptive compaction (up to 8192).
+    /// </summary>
+    public uint OitMaxVirtualSliceCount { get; set; } = 8192u;
+
+    /// <summary>
+    /// Exponential-to-linear curve factor for OIT depth warp mapping in meters.
+    /// </summary>
+    public float OitLinearizationFactor { get; set; } = 4.0f;
+
+    /// <summary>
+    /// Maximum view-space distance (in meters) mapped into the OIT depth warp volume.
+    /// </summary>
+    public float OitFarPlane { get; set; } = 500.0f;
+
+    /// <summary>
+    /// Normalized transmittance threshold below which transparent slabs trigger full-res early-Z depth priming.
+    /// </summary>
+    public float OitZeroTransmittanceThreshold { get; set; } = 0.005f;
+
+    /// <summary>
+    /// Sample bias (in physical slices) applied when evaluating transmittance along the depth volume.
+    /// </summary>
+    public float OitSampleBias { get; set; } = -2.0f;
+
     public IRenderPipeline CreatePipeline(RenderEngine renderEngine, AssetManager assetManager, JobScheduler jobScheduler)
     {
         return new GhostRenderPipeline(renderEngine, assetManager, jobScheduler, this);

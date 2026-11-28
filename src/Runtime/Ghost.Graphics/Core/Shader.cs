@@ -31,12 +31,14 @@ public partial struct Shader
 /// </summary>
 public unsafe partial struct Shader : IResourceReleasable
 {
+    private const int MAX_PASS_SEMANTICS = 16;
+
     private readonly ulong _nameHash;
     private readonly uint _propertyBufferSize;
     private readonly uint _variantIndex;
     private UnsafeArray<ShaderPass> _shaderPasses;
     private UnsafeHashMap<int, int> _passIDToLocal;
-    private fixed sbyte _semanticPassMap[8];
+    private fixed sbyte _semanticPassMap[MAX_PASS_SEMANTICS];
 
     public readonly ulong UniqueID => _nameHash;
     public readonly int PassCount => _shaderPasses.Count;
@@ -45,13 +47,15 @@ public unsafe partial struct Shader : IResourceReleasable
 
     internal Shader(GraphicsShaderDescriptor descriptor)
     {
+        Logger.DebugAssert((int)PassSemantic.Count <= MAX_PASS_SEMANTICS, "PassSemantic.Count exceeds _semanticPassMap capacity.");
+
         _nameHash = RHIUtility.GetShaderID(descriptor.Name);
         _propertyBufferSize = descriptor.PropertyBufferSize;
         _variantIndex = descriptor.VariantIndex;
         _shaderPasses = new UnsafeArray<ShaderPass>(descriptor.Passes.Length, AllocationHandle.Persistent);
         _passIDToLocal = new UnsafeHashMap<int, int>(descriptor.Passes.Length, AllocationHandle.Persistent);
 
-        for (var s = 0; s < 8; s++)
+        for (var s = 0; s < MAX_PASS_SEMANTICS; s++)
         {
             _semanticPassMap[s] = -1;
         }

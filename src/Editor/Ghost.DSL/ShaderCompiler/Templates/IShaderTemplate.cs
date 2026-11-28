@@ -34,7 +34,24 @@ public class TemplatePassDef
     public PipelineSemantic pipeline = new();
     public List<TemplateStage> stages = new List<TemplateStage>();
     public string? strategy;
-    public List<KeywordGroupDef> keywordGroups = new();
+    public List<string> strategies = new();
+    public List<IKeywordDef> keywordGroups = new();
+
+    public IEnumerable<string> GetStrategies()
+    {
+        if (!string.IsNullOrEmpty(strategy))
+        {
+            yield return strategy!;
+        }
+
+        for (var i = 0; i < strategies.Count; i++)
+        {
+            if (!string.IsNullOrEmpty(strategies[i]))
+            {
+                yield return strategies[i];
+            }
+        }
+    }
 }
 
 

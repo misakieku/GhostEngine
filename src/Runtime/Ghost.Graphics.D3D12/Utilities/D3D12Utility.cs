@@ -505,6 +505,7 @@ internal static unsafe class D3D12Utility
                                 desc.Width,
                                 desc.Height,
                                 (ushort)desc.Slice,
+                                mipLevels: mipLevels,
                                 flags: resourceFlags),
             TextureDimension.TextureCube => D3D12_RESOURCE_DESC.Tex2D(
                                 dxgiFormat,
@@ -553,6 +554,7 @@ internal static unsafe class D3D12Utility
                                 desc.Width,
                                 desc.Height,
                                 (ushort)desc.Slice,
+                                mipLevels: mipLevels,
                                 flags: resourceFlags),
             TextureDimension.TextureCube => D3D12_RESOURCE_DESC1.Tex2D(
                                 dxgiFormat,
@@ -718,6 +720,7 @@ internal static unsafe class D3D12Utility
     public static D3D12_BLEND_DESC D3D12_BLEND_DESC_OPAQUE => D3D12_BLEND_DESC_CREATE(D3D12_BLEND_ONE, D3D12_BLEND_ZERO);
     public static D3D12_BLEND_DESC D3D12_BLEND_DESC_ALPHA_BLEND => D3D12_BLEND_DESC_CREATE(D3D12_BLEND_SRC_ALPHA, D3D12_BLEND_INV_SRC_ALPHA);
     public static D3D12_BLEND_DESC D3D12_BLEND_DESC_ADDITIVE => D3D12_BLEND_DESC_CREATE(D3D12_BLEND_SRC_ALPHA, D3D12_BLEND_ONE);
+    public static D3D12_BLEND_DESC D3D12_BLEND_DESC_PURE_ADDITIVE => D3D12_BLEND_DESC_CREATE(D3D12_BLEND_ONE, D3D12_BLEND_ONE);
     public static D3D12_BLEND_DESC D3D12_BLEND_DESC_MULTIPLY => D3D12_BLEND_DESC_CREATE(D3D12_BLEND_DEST_COLOR, D3D12_BLEND_ZERO);
     public static D3D12_BLEND_DESC D3D12_BLEND_DESC_PREMULTIPLIED => D3D12_BLEND_DESC_CREATE(D3D12_BLEND_ONE, D3D12_BLEND_INV_SRC_ALPHA);
     public static D3D12_BLEND_DESC D3D12_BLEND_DESC_NON_PREMULTIPLIED => D3D12_BLEND_DESC_CREATE(D3D12_BLEND_SRC_ALPHA, D3D12_BLEND_INV_SRC_ALPHA);
@@ -872,6 +875,7 @@ internal static unsafe class D3D12Utility
                 break;
 
             case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
                 srvDesc.Texture3D = new D3D12_TEX3D_SRV
                 {
                     MostDetailedMip = mostDetailedMip,
@@ -1144,7 +1148,7 @@ internal static unsafe class D3D12Utility
                 {
                     MipSlice = mipSlice,
                     FirstWSlice = firstArraySlice,
-                    WSize = arraySize > 0 ? arraySize : resourceDesc.Depth() - firstArraySlice
+                    WSize = arraySize > 0 ? arraySize : Math.Max(1u, (uint)resourceDesc.Depth() >> (int)mipSlice) - firstArraySlice
                 };
                 break;
 
@@ -1298,6 +1302,12 @@ internal static unsafe class D3D12Utility
                 var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.dsv);
                 var dsvDesc = CreateDsvDesc(pResource, D3D12_DSV_FLAG_NONE, viewFormat, 0, 0);
                 device.NativeObject.Get()->CreateDepthStencilView(pResource, &dsvDesc, cpuHandle);
+
+                resourceDescriptor.dsvReadOnly = originalGroup.dsvReadOnly.IsValid ? originalGroup.dsvReadOnly : descriptorAllocator.AllocateDSV();
+                var readOnlyCpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.dsvReadOnly);
+                var readOnlyFlags = D3D12_DSV_FLAG_READ_ONLY_DEPTH | (viewFormat.IsStencilFormat() ? D3D12_DSV_FLAG_READ_ONLY_STENCIL : 0);
+                var readOnlyDsvDesc = CreateDsvDesc(pResource, readOnlyFlags, viewFormat, 0, 0);
+                device.NativeObject.Get()->CreateDepthStencilView(pResource, &readOnlyDsvDesc, readOnlyCpuHandle);
             }
 
             if (textureDesc.Usage.HasFlag(TextureUsage.UnorderedAccess))
@@ -1314,7 +1324,7 @@ internal static unsafe class D3D12Utility
                     {
                         var subIndex = (int)(mip + slice * mipLevels);
                         var cpuHandle = descriptorAllocator.GetCpuHandle(resourceDescriptor.uav, subIndex);
-                        var uavDesc = CreateTextureUavDesc(pResource, viewFormat, mipSlice: mip, firstArraySlice: slice, planeSlice: 0, arraySize: 1);
+                        var uavDesc = CreateTextureUavDesc(pResource, viewFormat, mipSlice: mip, firstArraySlice: slice, planeSlice: 0, arraySize: textureDesc.Dimension == TextureDimension.Texture3D ? 0u : 1u);
                         device.NativeObject.Get()->CreateUnorderedAccessView(pResource, null, &uavDesc, cpuHandle);
                     }
                 }

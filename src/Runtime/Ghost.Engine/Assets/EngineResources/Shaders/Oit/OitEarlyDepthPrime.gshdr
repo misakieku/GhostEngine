@@ -1,0 +1,80 @@
+shader "Oit/EarlyDepthPrime"
+{
+    properties
+    {
+        uint quadBufferSrv;
+        uint renderWidth;
+        uint renderHeight;
+        uint maxQuadCount;
+    }
+
+    pass "DepthPrime"
+    {
+        pipeline
+        {
+            ztest = greater_equal;
+            zwrite = on;
+            cull = off;
+            color_mask = none;
+        }
+
+        includes
+        {
+            "EngineResources/Shaders/Common.hlsl";
+            "EngineResources/Shaders/Properties.hlsl";
+            "EngineResources/Shaders/Oit/OitCommon.hlsl";
+        }
+
+        hlsl
+        {
+            struct EarlyDepthVertexOut
+            {
+                float4 position : SV_POSITION;
+            };
+
+            [numthreads(16, 1, 1)]
+            [outputtopology("triangle")]
+            void MSMain(
+                uint gtid : SV_GroupThreadID,
+                uint3 groupID : SV_GroupID,
+                out vertices EarlyDepthVertexOut outVerts[64],
+                out indices uint3 outTris[32])
+            {
+                ByteAddressBuffer quadBuf = GET_BUFFER(g_Properties.quadBufferSrv);
+                uint totalQuads = min(quadBuf.Load(0u), g_Properties.maxQuadCount);
+                uint baseQuad = groupID.x * 16u;
+                uint quadsInGroup = (baseQuad < totalQuads) ? min(16u, totalQuads - baseQuad) : 0u;
+
+                SetMeshOutputCounts(quadsInGroup * 4u, quadsInGroup * 2u);
+
+                if (gtid < quadsInGroup)
+                {
+                    uint2 raw = quadBuf.Load2((4u + (baseQuad + gtid) * 2u) * 4u);
+                    uint2 tileCoord = uint2(raw.x & 0xFFFFu, raw.x >> 16u);
+                    float depthZ = asfloat(raw.y);
+
+                    float2 screenSize = float2((float)g_Properties.renderWidth, (float)g_Properties.renderHeight);
+                    float2 minPx = float2(tileCoord * OIT_ZERO_TRANS_QUAD_SIZE);
+                    float2 maxPx = min(minPx + float2((float)OIT_ZERO_TRANS_QUAD_SIZE, (float)OIT_ZERO_TRANS_QUAD_SIZE), screenSize);
+
+                    float2 ndcMin = (minPx / screenSize) * 2.0f - 1.0f;
+                    float2 ndcMax = (maxPx / screenSize) * 2.0f - 1.0f;
+                    float ndcYTop = 1.0f - (minPx.y / screenSize.y) * 2.0f;
+                    float ndcYBot = 1.0f - (maxPx.y / screenSize.y) * 2.0f;
+
+                    uint vBase = gtid * 4u;
+                    outVerts[vBase + 0u].position = float4(ndcMin.x, ndcYTop, depthZ, 1.0f);
+                    outVerts[vBase + 1u].position = float4(ndcMax.x, ndcYTop, depthZ, 1.0f);
+                    outVerts[vBase + 2u].position = float4(ndcMin.x, ndcYBot, depthZ, 1.0f);
+                    outVerts[vBase + 3u].position = float4(ndcMax.x, ndcYBot, depthZ, 1.0f);
+
+                    uint tBase = gtid * 2u;
+                    outTris[tBase + 0u] = uint3(vBase + 0u, vBase + 1u, vBase + 2u);
+                    outTris[tBase + 1u] = uint3(vBase + 1u, vBase + 3u, vBase + 2u);
+                }
+            }
+        }
+
+        ms "hlsl_block" : "MSMain";
+    }
+}

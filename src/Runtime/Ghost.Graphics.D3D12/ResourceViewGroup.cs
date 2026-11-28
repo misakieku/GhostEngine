@@ -12,6 +12,7 @@ internal struct ResourceViewGroup
 {
     public Identifier<RTVDescriptor> rtv;
     public Identifier<DSVDescriptor> dsv;
+    public Identifier<DSVDescriptor> dsvReadOnly;
     public Identifier<CbvSrvUavDescriptor> srv;
     public Identifier<CbvSrvUavDescriptor> cbv;
     public Identifier<CbvSrvUavDescriptor> uav;
@@ -25,6 +26,7 @@ internal struct ResourceViewGroup
     {
         rtv = Identifier<RTVDescriptor>.Invalid,
         dsv = Identifier<DSVDescriptor>.Invalid,
+        dsvReadOnly = Identifier<DSVDescriptor>.Invalid,
         srv = Identifier<CbvSrvUavDescriptor>.Invalid,
         cbv = Identifier<CbvSrvUavDescriptor>.Invalid,
         uav = Identifier<CbvSrvUavDescriptor>.Invalid,
@@ -42,7 +44,7 @@ internal struct ResourceViewGroup
             usage |= TextureUsage.RenderTarget;
         }
 
-        if (dsv.IsValid)
+        if (dsv.IsValid || dsvReadOnly.IsValid)
         {
             usage |= TextureUsage.DepthStencil;
         }

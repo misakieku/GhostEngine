@@ -616,7 +616,7 @@ internal unsafe class D3D12ResourceDatabase : IResourceDatabase
         recordDst = recordSrc;
         recordSrc = temp;
 
-        if (dstView.srv.IsValid || dstView.uav.IsValid || dstView.cbv.IsValid || dstView.rtv.IsValid || dstView.dsv.IsValid)
+        if (dstView.srv.IsValid || dstView.uav.IsValid || dstView.cbv.IsValid || dstView.rtv.IsValid || dstView.dsv.IsValid || dstView.dsvReadOnly.IsValid)
         {
             recordDst.viewGroup = D3D12Utility.CreateResourceDescriptor(_device, _descriptorAllocator, recordDst.desc, recordDst.ResourcePtr, dstView);
             recordSrc.viewGroup = srcView;

@@ -30,6 +30,8 @@ shader "Ghost/StandardLit" : "Lit"
         float3 emissionColor;
         Texture2D emissionMap;
         Sampler emissionMap_sampler;
+        float opacity = 1.0;
+        float3 transmittanceColor = float3(1.0, 1.0, 1.0);
     }
 }
 """;

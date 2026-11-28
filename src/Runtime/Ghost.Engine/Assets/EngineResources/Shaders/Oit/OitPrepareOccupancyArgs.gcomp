@@ -1,0 +1,40 @@
+compute "Oit/PrepareOccupancyArgs"
+{
+    properties
+    {
+        uint counterBufferSrv;
+        uint indirectArgsBufferUav;
+        uint maxVisibleMeshlets;
+        uint _pad0;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Common.hlsl";
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Utilities/CullCommon.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(1, 1, 1)]
+        void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+        {
+            ByteAddressBuffer counterBuf = GET_BUFFER(g_Properties.counterBufferSrv);
+            RWByteAddressBuffer indirectArgs = GET_BUFFER(g_Properties.indirectArgsBufferUav);
+
+            uint totalVisible = min(counterBuf.Load(OFFSET_PASS1_VISIBLE_COUNT), g_Properties.maxVisibleMeshlets);
+            if (totalVisible == 0u)
+            {
+                indirectArgs.Store3(0u, uint3(0u, 1u, 1u));
+                return;
+            }
+
+            uint gx = min(totalVisible, 65535u);
+            uint gy = (totalVisible + 65534u) / 65535u;
+            indirectArgs.Store3(0u, uint3(gx, gy, 1u));
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

@@ -447,8 +447,12 @@ compute "Internal/ShadowCullGraph"
                         uint localMaterialIndex = (meshlet.packedCounts >> 16) & 0xFFu;
                         uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, materialPaletteIndex, localMaterialIndex);
                         uint variantIndex = UnpackMaterialVariantIndex(packedMaterial);
-                        uint hasAlpha = UnpackMaterialHasAlpha(packedMaterial);
-                        if (hasAlpha == 0u)
+                        uint surfaceType = UnpackMaterialSurfaceType(packedMaterial);
+                        if (surfaceType == MATERIAL_SURFACE_TRANSPARENT)
+                        {
+                            isVisible = false;
+                        }
+                        else if (surfaceType == MATERIAL_SURFACE_OPAQUE)
                         {
                             float worldMaxEdge = meshlet.maxEdgeLength * maxScale;
 #if defined(SHADOWCULL_DIRECTIONAL)

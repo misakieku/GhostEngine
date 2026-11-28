@@ -71,6 +71,44 @@ internal sealed class UnlitTemplate : IShaderTemplate
             {
                 new() { templateFile = "Common/DeferTexturing.template.hlsl", entryPoint = "CSMain", stage = ShaderStage.ComputeShader },
             }
+        },
+        new TemplatePassDef
+        {
+            name = "TransparentPrepass",
+            semantic = PassSemantic.TransparentPrepass,
+            strategy = "TRANSPARENCY_STRATEGY",
+            pipeline = new PipelineSemantic
+            {
+                zTest = ZTest.GreaterEqual,
+                zWrite = ZWrite.Off,
+                cull = Cull.Back,
+                blend = Blend.Opaque,
+                colorMask = ColorWriteMask.None
+            },
+            stages = new List<TemplateStage>
+            {
+                new() { templateFile = "Common/TransparentPrepass.template.hlsl", entryPoint = "MSMain", stage = ShaderStage.MeshShader },
+                new() { templateFile = "Common/TransparentPrepass.template.hlsl", entryPoint = "PSMain", stage = ShaderStage.PixelShader },
+            }
+        },
+        new TemplatePassDef
+        {
+            name = "TransparentForward",
+            semantic = PassSemantic.TransparentForward,
+            strategies = new List<string> { "TRANSPARENCY_STRATEGY", "DEFERREDTEXTURING_STRATEGY" },
+            pipeline = new PipelineSemantic
+            {
+                zTest = ZTest.GreaterEqual,
+                zWrite = ZWrite.Off,
+                cull = Cull.Back,
+                blend = Blend.PureAdditive,
+                colorMask = ColorWriteMask.All
+            },
+            stages = new List<TemplateStage>
+            {
+                new() { templateFile = "Unlit/Unlit_TransparentForward.template.hlsl", entryPoint = "MSMain", stage = ShaderStage.MeshShader },
+                new() { templateFile = "Unlit/Unlit_TransparentForward.template.hlsl", entryPoint = "PSMain", stage = ShaderStage.PixelShader },
+            }
         }
     };
 

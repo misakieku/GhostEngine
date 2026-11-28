@@ -1,0 +1,194 @@
+compute "Oit/OccupancyPrepass"
+{
+    properties
+    {
+        uint visibleMeshletsBufferSrv;
+        uint counterBufferSrv;
+        uint scalarOccupancyUav;
+        uint rgbOccupancyUav;
+        uint tileFlagsUav;
+        uint oitWidth;
+        uint oitHeight;
+        uint occTilesX;
+        uint occTilesY;
+        uint virtualSliceCount;
+        uint maxVisibleMeshlets;
+        float linearizationFactor;
+        float farPlane;
+        uint _pad0;
+        uint _pad1;
+        uint _pad2;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Common.hlsl";
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Mesh.hlsl";
+        "EngineResources/Shaders/Utilities/SpaceTransforms.hlsl";
+        "EngineResources/Shaders/Utilities/CullCommon.hlsl";
+        "EngineResources/Shaders/MaterialPipeline/MaterialEncoding.hlsl";
+        "EngineResources/Shaders/Oit/OitCommon.hlsl";
+    }
+
+    hlsl
+    {
+        groupshared uint s_Active;
+        groupshared uint2 s_MinTile;
+        groupshared uint2 s_MaxTile;
+        groupshared uint s_MinWord;
+        groupshared uint s_MaxWord;
+        groupshared uint s_MinSlice;
+        groupshared uint s_MaxSlice;
+        groupshared uint s_IsChromatic;
+
+        [numthreads(64, 1, 1)]
+        void CSMain(uint3 groupID : SV_GroupID, uint groupThreadID : SV_GroupThreadID)
+        {
+            if (groupThreadID == 0u)
+            {
+                s_Active = 0u;
+
+                ByteAddressBuffer counterBuf = GET_BUFFER(g_Properties.counterBufferSrv);
+                uint totalVisible = min(counterBuf.Load(OFFSET_PASS1_VISIBLE_COUNT), g_Properties.maxVisibleMeshlets);
+                uint meshletSlot = groupID.y * 65535u + groupID.x;
+
+                if (meshletSlot < totalVisible)
+                {
+                    StructuredBuffer<VisibleMeshletEntry> visibleMeshlets = GET_BUFFER(g_Properties.visibleMeshletsBufferSrv);
+                    VisibleMeshletEntry entry = visibleMeshlets[meshletSlot];
+
+                    InstanceData instanceData = LoadData<InstanceData>(g_FrameData.sceneBuffer, entry.instanceIndex);
+                    MeshData meshData = LoadData<MeshData>(instanceData.meshBuffer, 0u);
+                    Meshlet meshlet = LoadMeshlet(entry.meshletIndex, meshData);
+
+                    uint localMaterialIndex = (meshlet.packedCounts >> 16u) & 0xFFu;
+                    uint packedMaterial = LoadMaterialBindlessIndex(g_FrameData.paletteOffsetBuffer, g_FrameData.materialIndexBuffer, instanceData.materialPaletteIndex, localMaterialIndex);
+                    s_IsChromatic = UnpackMaterialChromaticTransmittance(packedMaterial) != 0u ? 1u : 0u;
+
+                    float4x4 localToRWS = ApplyCameraTranslationToMatrix(instanceData.localToWorld);
+                    float4x4 localToClip = mul(g_ViewData.viewProjectionMatrix, localToRWS);
+
+                    float minViewZ = 1e30f;
+                    float maxViewZ = -1e30f;
+                    float2 minNDC = float2(1e30f, 1e30f);
+                    float2 maxNDC = float2(-1e30f, -1e30f);
+                    bool anyBehindNear = false;
+
+                    for (uint c = 0u; c < 8u; c++)
+                    {
+                        float4 corner = BuildAabbCorner(meshlet.boundingBoxMin, meshlet.boundingBoxMax, c);
+                        float3 cornerRWS = mul(localToRWS, corner).xyz;
+                        float viewZ = dot(cornerRWS, g_ViewData.cameraDirection);
+                        float4 clipPos = mul(localToClip, corner);
+
+                        minViewZ = min(minViewZ, viewZ);
+                        maxViewZ = max(maxViewZ, viewZ);
+
+                        if (clipPos.w <= CULL_EPSILON)
+                        {
+                            anyBehindNear = true;
+                        }
+                        else
+                        {
+                            float2 ndc = clipPos.xy * rcp(clipPos.w);
+                            minNDC = min(minNDC, ndc);
+                            maxNDC = max(maxNDC, ndc);
+                        }
+                    }
+
+                    float nearZ = max(g_ViewData.nearClip, 1e-4f);
+                    float farLimit = min(g_Properties.farPlane, g_ViewData.farClip);
+
+                    if (maxViewZ >= nearZ && minViewZ <= farLimit)
+                    {
+                        minViewZ = max(minViewZ, nearZ);
+                        maxViewZ = min(maxViewZ, farLimit);
+
+                        float2 uvMin = anyBehindNear ? float2(0.0f, 0.0f) : float2(minNDC.x * 0.5f + 0.5f, 0.5f - maxNDC.y * 0.5f);
+                        float2 uvMax = anyBehindNear ? float2(1.0f, 1.0f) : float2(maxNDC.x * 0.5f + 0.5f, 0.5f - minNDC.y * 0.5f);
+
+                        if (all(uvMax >= 0.0f) && all(uvMin <= 1.0f) && minViewZ <= maxViewZ)
+                        {
+                            uvMin = saturate(uvMin);
+                            uvMax = saturate(uvMax);
+
+                            int2 oitMaxIdx = int2((int)g_Properties.oitWidth - 1, (int)g_Properties.oitHeight - 1);
+                            float2 oitSizeF = float2((float)g_Properties.oitWidth, (float)g_Properties.oitHeight);
+
+                            // Pad by 1 OIT texel so boundary rasterization matches conservative tile occupancy.
+                            int2 minOitPx = clamp((int2)floor(uvMin * oitSizeF) - 1, int2(0, 0), oitMaxIdx);
+                            int2 maxOitPx = clamp((int2)ceil(uvMax * oitSizeF) + 1, int2(0, 0), oitMaxIdx);
+
+                            s_MinTile = (uint2)minOitPx / OIT_OCC_TILE_SIZE;
+                            s_MaxTile = min((uint2)maxOitPx / OIT_OCC_TILE_SIZE, uint2(g_Properties.occTilesX - 1u, g_Properties.occTilesY - 1u));
+
+                            uint maxSlice = g_Properties.virtualSliceCount - 1u;
+                            uint s0 = min((uint)floor(OitDepthToVirtualSlice(minViewZ, g_Properties.linearizationFactor, g_Properties.farPlane, g_Properties.virtualSliceCount)), maxSlice);
+                            uint s1 = min((uint)floor(OitDepthToVirtualSlice(maxViewZ, g_Properties.linearizationFactor, g_Properties.farPlane, g_Properties.virtualSliceCount)) + 1u, maxSlice);
+
+                            s_MinSlice = min(s0, s1);
+                            s_MaxSlice = max(s0, s1);
+                            s_MinWord = s_MinSlice >> 5u;
+                            s_MaxWord = s_MaxSlice >> 5u;
+                            s_Active = 1u;
+                        }
+                    }
+                }
+            }
+
+            GroupMemoryBarrierWithGroupSync();
+
+            if (s_Active == 0u)
+            {
+                return;
+            }
+
+            uint2 tileSpan = (s_MaxTile - s_MinTile) + 1u;
+            uint tileCount = tileSpan.x * tileSpan.y;
+            uint wordsRange = (s_MaxWord - s_MinWord) + 1u;
+            uint totalWork = tileCount * wordsRange;
+            uint wordsPerTile = (g_Properties.virtualSliceCount + 31u) >> 5u;
+
+            RWByteAddressBuffer occBuf = (s_IsChromatic != 0u) ? GET_BUFFER(g_Properties.rgbOccupancyUav) : GET_BUFFER(g_Properties.scalarOccupancyUav);
+            RWByteAddressBuffer tileFlagsBuf = GET_BUFFER(g_Properties.tileFlagsUav);
+            uint flagBit = (s_IsChromatic != 0u) ? 2u : 1u;
+
+            for (uint tIdx = groupThreadID; tIdx < tileCount; tIdx += 64u)
+            {
+                uint localTy = tIdx / tileSpan.x;
+                uint localTx = tIdx - localTy * tileSpan.x;
+                uint tileIndex = (s_MinTile.y + localTy) * g_Properties.occTilesX + (s_MinTile.x + localTx);
+                uint baseByte = tileIndex * (OIT_TILE_DWORD_STRIDE * 4u);
+                tileFlagsBuf.InterlockedOr(baseByte + OIT_TILE_DWORD_FLAGS * 4u, flagBit);
+
+                uint maxOffset = (s_IsChromatic != 0u) ? (OIT_TILE_DWORD_RGB_MAX * 4u) : (OIT_TILE_DWORD_SCALAR_MAX * 4u);
+                uint minOffset = (s_IsChromatic != 0u) ? (OIT_TILE_DWORD_RGB_INV_MIN * 4u) : (OIT_TILE_DWORD_SCALAR_INV_MIN * 4u);
+                tileFlagsBuf.InterlockedMax(baseByte + maxOffset, s_MaxSlice + 1u);
+                // Invert min slice so a zero-cleared buffer remains valid under InterlockedMax.
+                tileFlagsBuf.InterlockedMax(baseByte + minOffset, 0xFFFFFFFFu - s_MinSlice);
+            }
+
+            for (uint wi = groupThreadID; wi < totalWork; wi += 64u)
+            {
+                uint tIdx = wi / wordsRange;
+                uint localW = wi - tIdx * wordsRange;
+                uint w = s_MinWord + localW;
+
+                uint localTy = tIdx / tileSpan.x;
+                uint localTx = tIdx - localTy * tileSpan.x;
+                uint tileIndex = (s_MinTile.y + localTy) * g_Properties.occTilesX + (s_MinTile.x + localTx);
+
+                uint lowBit = (w == s_MinWord) ? (s_MinSlice & 31u) : 0u;
+                uint highBit = (w == s_MaxWord) ? (s_MaxSlice & 31u) : 31u;
+                uint bitCount = highBit - lowBit + 1u;
+                uint mask = (bitCount >= 32u) ? 0xFFFFFFFFu : (((1u << bitCount) - 1u) << lowBit);
+
+                uint wordAddress = (tileIndex * wordsPerTile + w) * 4u;
+                occBuf.InterlockedOr(wordAddress, mask);
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

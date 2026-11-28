@@ -89,6 +89,109 @@ internal unsafe partial class GhostRenderPipeline
         }
     }
 
+    private struct ClusterLightCullingPassData
+    {
+        public Identifier<RGBuffer> clusterLightGrid;
+        public Identifier<RGBuffer> clusterLightIndexList;
+        public Identifier<RGBuffer> clusterLightCounter;
+        public Handle<ComputeShader> shader;
+        public uint tilesX;
+        public uint tilesY;
+        public uint sliceCount;
+        public uint maxClusterLightIndices;
+    }
+
+    private ClusterLightData AddClusterLightCullingPass(RenderGraph rg, uint2 renderSize)
+    {
+        var tilesX = (renderSize.x + 15u) / 16u;
+        var tilesY = (renderSize.y + 15u) / 16u;
+        var sliceCount = PipelineConstants.CLUSTER_SLICE_COUNT;
+        var clusterCount = tilesX * tilesY * sliceCount;
+        var maxIndices = Math.Min(clusterCount * 32u, PipelineConstants.MAX_CLUSTER_LIGHT_INDICES);
+
+        var gridBufferDesc = new BufferDesc
+        {
+            Size = (nuint)clusterCount * 8u,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource | BufferUsage.UnorderedAccess,
+            HeapType = HeapType.Default
+        };
+
+        var indexBufferDesc = new BufferDesc
+        {
+            Size = (nuint)maxIndices * 4u,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.ShaderResource | BufferUsage.UnorderedAccess,
+            HeapType = HeapType.Default
+        };
+
+        var counterBufferDesc = new BufferDesc
+        {
+            Size = 4u,
+            Stride = 4,
+            Usage = BufferUsage.Raw | BufferUsage.UnorderedAccess | BufferUsage.ShaderResource,
+            HeapType = HeapType.Default
+        };
+
+        var clusterLightGrid = rg.CreateBuffer(in gridBufferDesc, "ClusterLightGrid");
+        var clusterLightIndexList = rg.CreateBuffer(in indexBufferDesc, "ClusterLightIndexList");
+        var clusterLightCounter = rg.CreateBuffer(in counterBufferDesc, "ClusterLightCounter");
+
+        rg.AddClearBufferPass(clusterLightCounter, _meshPipelineResource.clearBufferShader, 4u, passName: "ClearClusterLightCounter");
+
+        using var builder = rg.AddComputeRenderPass<ClusterLightCullingPassData>("ClusterLightCulling");
+        builder.EnableAsyncCompute(true);
+        builder.UseBuffer(clusterLightGrid, AccessFlags.Write);
+        builder.UseBuffer(clusterLightIndexList, AccessFlags.Write);
+        builder.UseBuffer(clusterLightCounter, AccessFlags.ReadWrite);
+
+        builder.SetPassData(new ClusterLightCullingPassData
+        {
+            clusterLightGrid = clusterLightGrid,
+            clusterLightIndexList = clusterLightIndexList,
+            clusterLightCounter = clusterLightCounter,
+            shader = _lightingPipelineResource.clusterLightCullingShader,
+            tilesX = tilesX,
+            tilesY = tilesY,
+            sliceCount = sliceCount,
+            maxClusterLightIndices = maxIndices
+        });
+
+        builder.SetRenderFunc<ClusterLightCullingPassData>(static (ref readonly passData, computeCtx) =>
+        {
+            var gridUav = computeCtx.GetActualBindlessIndex(passData.clusterLightGrid, BindlessAccess.UnorderedAccess);
+            var indexListUav = computeCtx.GetActualBindlessIndex(passData.clusterLightIndexList, BindlessAccess.UnorderedAccess);
+            var counterUav = computeCtx.GetActualBindlessIndex(passData.clusterLightCounter, BindlessAccess.UnorderedAccess);
+
+            var props = new InternalClusterLightCullingShaderProperties
+            {
+                clusterLightGridUav = gridUav,
+                clusterLightIndexListUav = indexListUav,
+                clusterLightCounterUav = counterUav,
+                tilesX = passData.tilesX,
+                tilesY = passData.tilesY,
+                sliceCount = passData.sliceCount,
+                maxClusterLightIndices = passData.maxClusterLightIndices,
+                _pad0 = 0u
+            };
+
+            computeCtx.SetActiveCompute(passData.shader, 0);
+            computeCtx.SetUserDataWithProperties(in props);
+            computeCtx.DispatchCompute(passData.tilesX, passData.tilesY, 1u);
+        });
+
+        var clusterData = new ClusterLightData
+        {
+            clusterLightGrid = clusterLightGrid,
+            clusterLightIndexList = clusterLightIndexList,
+            tilesX = tilesX,
+            tilesY = tilesY,
+            sliceCount = sliceCount
+        };
+        rg.Blackboard.Add(ref clusterData);
+        return clusterData;
+    }
+
     private struct TileLightCullingPassData
     {
         public Identifier<RGTexture> depthTexture;

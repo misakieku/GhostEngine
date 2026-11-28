@@ -353,6 +353,7 @@ public interface IAssetEntry
     int RefCount { get; }
     int ContentVersion { get; }
     AssetState State { get; set; }
+    bool IsLoadingComplete => State is AssetState.Ready or AssetState.Failed;
 
     void AddRef();
     int Release();

@@ -22,14 +22,18 @@ public struct Material : IResourceReleasable
     private UnsafeArray<byte> _cpuData;
     private uint _poolOffset;
     private uint _propertySize;
-    private bool _hasAlphaClip;
+    private MaterialSurfaceType _surfaceType;
+    private bool _chromaticTransmittance;
     private bool _isDirty;
 
     public readonly Handle<Shader> Shader => _shader;
     public readonly bool IsDirty => _isDirty;
     public readonly uint PoolOffset => _poolOffset;
     public readonly uint PropertySize => _propertySize;
-    public readonly bool HasAlphaClip => _hasAlphaClip;
+    public readonly MaterialSurfaceType SurfaceType => _surfaceType;
+    public readonly bool HasAlphaClip => _surfaceType == MaterialSurfaceType.AlphaClip;
+    public readonly bool IsTransparent => _surfaceType == MaterialSurfaceType.Transparent;
+    public readonly bool ChromaticTransmittance => _chromaticTransmittance;
     public readonly bool IsCreated => _propertySize != 0 && _cpuData.IsCreated;
 
     /// <summary>
@@ -43,7 +47,9 @@ public struct Material : IResourceReleasable
     public uint VariantIndex { get; set; }
 
     internal void ClearDirty() => _isDirty = false;
-    internal void SetHasAlphaClip(bool hasAlpha) => _hasAlphaClip = hasAlpha;
+    internal void SetHasAlphaClip(bool hasAlpha) => _surfaceType = hasAlpha ? MaterialSurfaceType.AlphaClip : MaterialSurfaceType.Opaque;
+    internal void SetSurfaceType(MaterialSurfaceType surfaceType) => _surfaceType = surfaceType;
+    internal void SetChromaticTransmittance(bool chromatic) => _chromaticTransmittance = chromatic;
 
     /// <summary>
     /// Sets the shader for the material, records its pool offset, and initializes the CPU property buffer and pipeline overrides.
@@ -72,7 +78,8 @@ public struct Material : IResourceReleasable
         ref var shader = ref r.Value;
         VariantIndex = shader.VariantIndex;
         _propertySize = shader.PropertyBufferSize;
-        _hasAlphaClip = false;
+        _surfaceType = MaterialSurfaceType.Opaque;
+        _chromaticTransmittance = false;
         _isDirty = true;
 
         if (_passPipelineOverride.Count < shader.PassCount)
@@ -166,8 +173,24 @@ public struct Material : IResourceReleasable
         data.CopyTo(cacheSpan);
         _isDirty = true;
 
-        var hasAlpha = data.Length > 16 && data[16] != 0;
-        _hasAlphaClip = hasAlpha;
+        var alphaClip = data.Length >= 20 ? MemoryMarshal.Read<uint>(data.Slice(16, 4)) != 0u : (data.Length > 16 && data[16] != 0);
+        var rawSurfaceType = data.Length >= 32 ? MemoryMarshal.Read<uint>(data.Slice(28, 4)) : 0u;
+        var chromatic = data.Length >= 36 && MemoryMarshal.Read<uint>(data.Slice(32, 4)) == 1u;
+
+        if (rawSurfaceType == (uint)MaterialSurfaceType.Transparent)
+        {
+            _surfaceType = MaterialSurfaceType.Transparent;
+        }
+        else if (alphaClip || rawSurfaceType == (uint)MaterialSurfaceType.AlphaClip)
+        {
+            _surfaceType = MaterialSurfaceType.AlphaClip;
+        }
+        else
+        {
+            _surfaceType = MaterialSurfaceType.Opaque;
+        }
+
+        _chromaticTransmittance = chromatic;
 
         return Error.None;
     }

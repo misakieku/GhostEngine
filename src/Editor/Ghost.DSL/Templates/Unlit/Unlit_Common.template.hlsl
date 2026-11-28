@@ -14,6 +14,14 @@ struct SurfaceData
     float3 emissive;
 };
 
+#if defined(GHOST_PASS_TRANSPARENTPREPASS) || defined(GHOST_PASS_TRANSPARENTFORWARD)
+struct TransparencyData
+{
+    float opacity;
+    float3 transmittanceColor;
+};
+#endif
+
 $GHOST_PROPERTIES_STRUCT$
 
 $GHOST_USER_HLSL$
@@ -40,7 +48,28 @@ struct DefaultAlphaStrategy
 #endif
 #endif
 
-#if defined(GHOST_PASS_DEFERREDTEXTURING)
+#if defined(GHOST_PASS_TRANSPARENTPREPASS) || defined(GHOST_PASS_TRANSPARENTFORWARD)
+#ifndef TRANSPARENCY_STRATEGY
+#define TRANSPARENCY_STRATEGY DefaultTransparencyStrategy
+struct DefaultTransparencyStrategy
+{
+    static DefaultTransparencyStrategy Create()
+    {
+        return (DefaultTransparencyStrategy)0;
+    }
+
+    TransparencyData GetTransparencyData(MaterialContext ctx, MaterialProperties props)
+    {
+        TransparencyData data;
+        data.opacity = 1.0f;
+        data.transmittanceColor = float3(1.0f, 1.0f, 1.0f);
+        return data;
+    }
+};
+#endif
+#endif
+
+#if defined(GHOST_PASS_DEFERREDTEXTURING) || defined(GHOST_PASS_TRANSPARENTFORWARD)
 #ifndef DEFERREDTEXTURING_STRATEGY
 #define DEFERREDTEXTURING_STRATEGY DefaultDeferredTexturingStrategy
 struct DefaultDeferredTexturingStrategy

@@ -107,6 +107,7 @@ internal sealed class LitTemplate : IShaderTemplate
             {
                 new() { templateFile = "Lit/Lit_DeferredLighting.template.hlsl", entryPoint = "CSMain", stage = ShaderStage.ComputeShader },
             },
+            // TODO: Implement transparent colored shadows (directional transmittance map + COLORED_SHADOW KeywordDef toggle on DeferredLighting and TransparentForward).
             keywordGroups = new()
             {
                 new KeywordGroupDef
@@ -114,6 +115,53 @@ internal sealed class LitTemplate : IShaderTemplate
                     Name = "DIRECTLIGHTING_MODE",
                     Keywords = new[] { "_DIRECTLIGHTING_STANDARD", "_DIRECTLIGHTING_STOCHASTIC" }
                 },
+                new KeywordGroupDef
+                {
+                    Name = "SHADOW_MODE",
+                    Keywords = new[] { "_SHADOW_SHADOWMAP_LOW", "_SHADOW_RAYTRACED" }
+                }
+            }
+        },
+        new TemplatePassDef
+        {
+            name = "TransparentPrepass",
+            semantic = PassSemantic.TransparentPrepass,
+            strategy = "TRANSPARENCY_STRATEGY",
+            pipeline = new PipelineSemantic
+            {
+                zTest = ZTest.GreaterEqual,
+                zWrite = ZWrite.Off,
+                cull = Cull.Back,
+                blend = Blend.Opaque,
+                colorMask = ColorWriteMask.None
+            },
+            stages = new List<TemplateStage>
+            {
+                new() { templateFile = "Common/TransparentPrepass.template.hlsl", entryPoint = "MSMain", stage = ShaderStage.MeshShader },
+                new() { templateFile = "Common/TransparentPrepass.template.hlsl", entryPoint = "PSMain", stage = ShaderStage.PixelShader },
+            }
+        },
+        new TemplatePassDef
+        {
+            name = "TransparentForward",
+            semantic = PassSemantic.TransparentForward,
+            strategies = new List<string> { "TRANSPARENCY_STRATEGY", "DEFERREDTEXTURING_STRATEGY", "DEFERREDLIGHTING_STRATEGY" },
+            pipeline = new PipelineSemantic
+            {
+                zTest = ZTest.GreaterEqual,
+                zWrite = ZWrite.Off,
+                cull = Cull.Back,
+                blend = Blend.PureAdditive,
+                colorMask = ColorWriteMask.All
+            },
+            stages = new List<TemplateStage>
+            {
+                new() { templateFile = "Lit/Lit_TransparentForward.template.hlsl", entryPoint = "MSMain", stage = ShaderStage.MeshShader },
+                new() { templateFile = "Lit/Lit_TransparentForward.template.hlsl", entryPoint = "PSMain", stage = ShaderStage.PixelShader },
+            },
+            // TODO: Implement transparent colored shadows (directional transmittance map + COLORED_SHADOW KeywordDef toggle on DeferredLighting and TransparentForward).
+            keywordGroups = new()
+            {
                 new KeywordGroupDef
                 {
                     Name = "SHADOW_MODE",

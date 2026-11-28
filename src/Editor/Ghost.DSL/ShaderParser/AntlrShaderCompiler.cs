@@ -227,6 +227,7 @@ public class AntlrShaderCompiler
                         "additive" => Blend.Additive,
                         "multiply" => Blend.Multiply,
                         "premultiplied_alpha" => Blend.PremultipliedAlpha,
+                        "pure_additive" => Blend.PureAdditive,
                         _ => Blend.Opaque
                     };
                     break;
@@ -420,7 +421,7 @@ public class AntlrShaderCompiler
         return semantics;
     }
 
-    private static void ConvertKeywords(KeywordsBlockSyntax? keywords, List<KeywordGroupDef> dst)
+    private static void ConvertKeywords(KeywordsBlockSyntax? keywords, List<IKeywordDef> dst)
     {
         if (keywords == null)
         {

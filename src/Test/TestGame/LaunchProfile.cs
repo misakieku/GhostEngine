@@ -1,8 +1,10 @@
 using Ghost.Core;
+using Ghost.Core.Graphics;
 using Ghost.Engine;
 using Ghost.Engine.Components;
 using Ghost.Engine.Input;
 using Ghost.Engine.RenderPipeline;
+using Ghost.Engine.ShaderProperties;
 using Ghost.Engine.Streaming;
 using Ghost.Engine.Systems;
 using Ghost.Engine.Utilities;
@@ -94,8 +96,8 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
 
     public void OnEngineInitialized(EngineCore engine)
     {
-        const int entityCapacity = 100_0;
-        const float size = 5.0f;
+        const int entityCapacity = 10;
+        const float size = 1.0f;
         const float baseScale = 1.0f;
         const float lightSize = size * 1.0f;
         const int lightCount = 10;
@@ -127,6 +129,37 @@ internal class LaunchProfile : IEngineLaunchProfile, IInputHandler
             default(ActionState));
 
         _prefab = engine.AssetManager.ResolveAsset("Meshes/dragon");
+
+        var mat = engine.AssetManager.ResolveAsset("Meshes/dragon#Materials/Material_0");
+
+        Task.Run(async () =>
+        {
+            while (!mat.IsLoadingComplete)
+            {
+                await Task.Delay(10);
+            }
+
+            if (mat.State != AssetState.Ready)
+            {
+                return;
+            }
+
+            var matHandle = default(Handle<Material>);
+            mat.ReadAssetData(ref matHandle);
+
+            engine.RenderEngine.ResourceManager.SetMaterialProperty(matHandle, new GhostStandardLitShaderProperties
+            {
+                baseColor = new float3(0.95f, 0.2f, 0.2f),
+                roughness = 0.08f,
+                metallic = 0.0f,
+                opacity = 0.75f,
+                surfaceType = (uint)MaterialSurfaceType.Transparent,
+                chromaticTransmittance = 1u,
+                transmittanceColor = new float3(0.92f, 0.12f, 0.12f),
+            });
+
+            mat.Release();
+        });
 
         for (var i = 0; i < entityCapacity; i++)
         {

@@ -13,6 +13,24 @@ internal partial class GhostRenderPipeline
         public Identifier<RGBuffer> visibleMeshlets1;
     }
 
+    private struct TransparentVisibilityData
+    {
+        public Identifier<RGBuffer> visibleMeshlets;
+        public Identifier<RGBuffer> binOffsetsBuffer;
+        public Identifier<RGBuffer> indirectArgsBuffer;
+        public Identifier<RGBuffer> counterBuffer;
+        public bool isValid;
+    }
+
+    private struct ClusterLightData
+    {
+        public Identifier<RGBuffer> clusterLightGrid;
+        public Identifier<RGBuffer> clusterLightIndexList;
+        public uint tilesX;
+        public uint tilesY;
+        public uint sliceCount;
+    }
+
     private struct TileClassificationData
     {
         public Identifier<RGBuffer> tileListBuffer;

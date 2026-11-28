@@ -1,0 +1,70 @@
+compute "Oit/Resolve"
+{
+    properties
+    {
+        Texture2D mrt0Srv;
+        Texture2D mrt1Srv;
+        Texture2D mrt2Srv;
+        Texture2D litColorUav;
+        uint tileFlagsSrv;
+        uint renderWidth;
+        uint renderHeight;
+        uint occTilesX;
+        uint occTilesY;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Common.hlsl";
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Oit/OitCommon.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(8, 8, 1)]
+        void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupID : SV_GroupID)
+        {
+            uint2 px = dispatchThreadID.xy;
+            if (px.x >= g_Properties.renderWidth || px.y >= g_Properties.renderHeight)
+            {
+                return;
+            }
+
+            uint2 occTile = groupID.xy >> 3u;
+            if (occTile.x < g_Properties.occTilesX && occTile.y < g_Properties.occTilesY)
+            {
+                ByteAddressBuffer tileFlagsBuf = GET_BUFFER(g_Properties.tileFlagsSrv);
+                uint tileIndex = occTile.y * g_Properties.occTilesX + occTile.x;
+                if (tileFlagsBuf.Load(tileIndex * (OIT_TILE_DWORD_STRIDE * 4u)) == 0u)
+                {
+                    return;
+                }
+            }
+
+            Texture2D<float4> mrt0Tex = GET_TEXTURE2D(g_Properties.mrt0Srv);
+            Texture2D<float4> mrt1Tex = GET_TEXTURE2D(g_Properties.mrt1Srv);
+            Texture2D<float4> mrt2Tex = GET_TEXTURE2D(g_Properties.mrt2Srv);
+
+            float3 mrt0 = mrt0Tex[px].rgb;
+            float3 mrt1 = mrt1Tex[px].rgb;
+            float3 mrt2 = mrt2Tex[px].rgb;
+
+            if (all(mrt2 <= 1e-5f) && all(mrt1 <= 1e-5f))
+            {
+                return;
+            }
+
+            RWTexture2D<float4> litColor = GET_TEXTURE2D(g_Properties.litColorUav);
+            float4 bg = litColor[px];
+
+            float3 totalTransmittance = exp(-max(mrt2, float3(0.0f, 0.0f, 0.0f)));
+            float3 normFactor = select(mrt1 > 1e-5f, (1.0f - totalTransmittance) / max(mrt1, 1e-5f), float3(0.0f, 0.0f, 0.0f));
+            float3 resolvedColor = mrt0 * normFactor + bg.rgb * totalTransmittance;
+
+            litColor[px] = float4(resolvedColor, bg.a);
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

@@ -22,6 +22,8 @@ namespace Ghost.Generator.Templates
             new TemplatePropertyDef("bool", "alphaClip", "false"),
             new TemplatePropertyDef("float", "alphaClipThreshold", "0.5"),
             new TemplatePropertyDef("uint", "materialFeatureMask", "0"),
+            new TemplatePropertyDef("uint", "surfaceType", "0"),
+            new TemplatePropertyDef("bool", "chromaticTransmittance", "false"),
         };
 
         public static readonly TemplatePropertyDef[] Unlit = new[]
@@ -29,6 +31,9 @@ namespace Ghost.Generator.Templates
             new TemplatePropertyDef("float4", "doubleSidedConstants", "float4(1.0, 1.0, 1.0, 0.0)"),
             new TemplatePropertyDef("bool", "alphaClip", "false"),
             new TemplatePropertyDef("float", "alphaClipThreshold", "0.5"),
+            new TemplatePropertyDef("uint", "materialFeatureMask", "0"),
+            new TemplatePropertyDef("uint", "surfaceType", "0"),
+            new TemplatePropertyDef("bool", "chromaticTransmittance", "false"),
         };
 
         public static readonly TemplatePropertyDef[] Sky = new[]

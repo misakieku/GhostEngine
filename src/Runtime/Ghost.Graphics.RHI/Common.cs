@@ -359,6 +359,16 @@ public struct PassDepthStencilDesc
     {
         get; set;
     }
+
+    public bool IsReadOnlyDepth
+    {
+        get; set;
+    }
+
+    public bool IsReadOnlyStencil
+    {
+        get; set;
+    }
 }
 
 public struct TextureSubresource

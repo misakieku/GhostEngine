@@ -1,0 +1,91 @@
+compute "Oit/ClearExtinction"
+{
+    properties
+    {
+        uint depthWarpLutSrv;
+        uint tileFlagsSrv;
+        uint scalarExtinctionUav;
+        uint rgbExtinctionUav;
+        uint scalarOverflowMinUav;
+        uint rgbOverflowMinUav;
+        uint oitWidth;
+        uint oitHeight;
+        uint occTilesX;
+        uint _pad0;
+    }
+
+    includes
+    {
+        "EngineResources/Shaders/Common.hlsl";
+        "EngineResources/Shaders/Properties.hlsl";
+        "EngineResources/Shaders/Oit/OitCommon.hlsl";
+    }
+
+    hlsl
+    {
+        [numthreads(OIT_OCC_TILE_SIZE, OIT_OCC_TILE_SIZE, 1)]
+        void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID, uint3 groupID : SV_GroupID)
+        {
+            uint2 oitCoord = dispatchThreadID.xy;
+            if (oitCoord.x >= g_Properties.oitWidth || oitCoord.y >= g_Properties.oitHeight)
+            {
+                return;
+            }
+
+            ByteAddressBuffer tileFlagsBuf = GET_BUFFER(g_Properties.tileFlagsSrv);
+            uint tileIndex = groupID.y * g_Properties.occTilesX + groupID.x;
+            uint flags = tileFlagsBuf.Load(tileIndex * (OIT_TILE_DWORD_STRIDE * 4u));
+            if (flags == 0u)
+            {
+                return;
+            }
+
+            ByteAddressBuffer warpLut = GET_BUFFER(g_Properties.depthWarpLutSrv);
+            OitWarpLutHeader header = LoadOitWarpLutHeader(warpLut);
+            if (header.physicalSliceCount == 0u || header.virtualSliceCount == 0u)
+            {
+                return;
+            }
+
+            if ((flags & 1u) != 0u)
+            {
+                uint scalarStart = 0u;
+                uint scalarEnd = 0u;
+                if (OitTryGetTilePhysicalSliceRange(tileFlagsBuf, warpLut, header, tileIndex, OIT_TILE_DWORD_SCALAR_MAX, OIT_TILE_DWORD_SCALAR_INV_MIN, scalarStart, scalarEnd))
+                {
+                    RWTexture2D<uint> scalarOverflow = GET_TEXTURE2D(g_Properties.scalarOverflowMinUav);
+                    RWTexture3D<uint> scalarExt = GET_TEXTURE3D(g_Properties.scalarExtinctionUav);
+                    scalarOverflow[oitCoord] = 0xFFFFFFFFu;
+
+                    uint startDword = scalarStart >> 2u;
+                    uint endDword = scalarEnd >> 2u;
+                    for (uint d = startDword; d <= endDword; d++)
+                    {
+                        scalarExt[uint3(oitCoord, d)] = 0u;
+                    }
+                }
+            }
+
+            if ((flags & 2u) != 0u)
+            {
+                uint rgbStart = 0u;
+                uint rgbEnd = 0u;
+                if (OitTryGetTilePhysicalSliceRange(tileFlagsBuf, warpLut, header, tileIndex, OIT_TILE_DWORD_RGB_MAX, OIT_TILE_DWORD_RGB_INV_MIN, rgbStart, rgbEnd))
+                {
+                    RWTexture3D<uint> rgbOverflow = GET_TEXTURE3D(g_Properties.rgbOverflowMinUav);
+                    RWTexture3D<uint> rgbExt = GET_TEXTURE3D(g_Properties.rgbExtinctionUav);
+                    rgbOverflow[uint3(oitCoord, 0u)] = 0xFFFFFFFFu;
+                    rgbOverflow[uint3(oitCoord, 1u)] = 0xFFFFFFFFu;
+                    rgbOverflow[uint3(oitCoord, 2u)] = 0xFFFFFFFFu;
+
+                    for (uint s = rgbStart; s <= rgbEnd; s++)
+                    {
+                        rgbExt[uint3(oitCoord, s)] = 0u;
+                    }
+                }
+            }
+        }
+    }
+
+    cs "hlsl_block" : "CSMain";
+}

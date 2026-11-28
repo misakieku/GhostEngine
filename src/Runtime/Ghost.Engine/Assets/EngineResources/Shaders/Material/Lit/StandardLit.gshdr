@@ -14,9 +14,35 @@ shader "Ghost/StandardLit" : "Lit"
         float3 emissionColor;
         Texture2D emissionMap;
         Sampler emissionMap_sampler;
+        float opacity = 1.0;
+        float3 transmittanceColor = float3(1.0, 1.0, 1.0);
     }
 
     strategy "DEFERREDLIGHTING_STRATEGY" "StandardLitDeferredLighting" ("EngineResources/Shaders/Material/Lit/StandardLit.hlsl");
+
+    strategy "TRANSPARENCY_STRATEGY" "StandardLitTransparency"
+    {
+        struct StandardLitTransparency
+        {
+            static StandardLitTransparency Create()
+            {
+                return (StandardLitTransparency)0;
+            }
+
+            TransparencyData GetTransparencyData(MaterialContext ctx, MaterialProperties props)
+            {
+                TransparencyData data;
+                float alpha = props.opacity;
+                if (IS_VALID_TEXTURE(props.baseColorMap))
+                {
+                    alpha *= SampleTexture2DGrad<float4>(props.baseColorMap, props.baseColorMap_sampler, ctx.uv, ctx.ddx_uv, ctx.ddy_uv).a;
+                }
+                data.opacity = saturate(alpha);
+                data.transmittanceColor = props.transmittanceColor;
+                return data;
+            }
+        };
+    }
 
     strategy "DEFERREDTEXTURING_STRATEGY" "StandardLitDeferredTexturing"
     {

@@ -21,6 +21,8 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
     {
         public const uint DWORDS_PER_TILE = 32u;
         public const uint MAX_LIGHTS_PER_TILE = 63u;
+        public const uint CLUSTER_SLICE_COUNT = 24u;
+        public const uint MAX_CLUSTER_LIGHT_INDICES = 4u * 1024u * 1024u;
     }
 
     private struct HardwareFeatureSettings
@@ -43,6 +45,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
     private readonly MaterialPipelineResource _materialPipelineResource;
     private readonly LightingPipelineResource _lightingPipelineResource;
     private readonly PostProcessPipelineResource _postProcessPipelineResource;
+    private readonly OitPipelineResource _oitPipelineResource;
 
     private readonly GPUScene _gpuScene;
     private readonly GPUViewManager _gpuViewManager;
@@ -73,6 +76,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         _materialPipelineResource = new MaterialPipelineResource(assetManager);
         _lightingPipelineResource = new LightingPipelineResource(assetManager);
         _postProcessPipelineResource = new PostProcessPipelineResource(assetManager);
+        _oitPipelineResource = new OitPipelineResource(assetManager);
 
         _gpuScene = new GPUScene(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, settings.MaxVisibleMeshletsOnScreen / 64);
         _gpuViewManager = new GPUViewManager(renderEngine.GraphicsEngine.ResourceAllocator, renderEngine.GraphicsEngine.ResourceDatabase, renderEngine.GraphicsEngine.PipelineLibrary, renderEngine.ResourceManager, renderEngine.ShaderLibrary);
@@ -84,11 +88,13 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         _materialPipelineResource.Resolve();
         _lightingPipelineResource.Resolve();
         _postProcessPipelineResource.Resolve();
+        _oitPipelineResource.Resolve();
 
         InitializeCulling(renderEngine, assetManager);
         InitializeVisibility(renderEngine, assetManager);
         InitializeClassification(renderEngine, assetManager);
         InitializeDeferredTexturing(renderEngine);
+        InitializeOit();
     }
 
     private HardwareFeatureSettings ValidateRequiredGPUFeatures(IRenderDevice renderDevice)
@@ -410,11 +416,13 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
 
             // Geometry & Visibility passes
             var depthTexture = AddCullingAndVbufferPasses(renderGraph, hzbHistory, viewPort.Size, ghostPayload.InstanceCount, historyHzb, _gpuScene.SceneBufferSrvIndex);
+            AddTransparentCullingPasses(renderGraph, hzbHistory, viewPort.Size, ghostPayload.InstanceCount, historyHzb);
 
             // Tile Classification & Deferred Texturing
             AddTileClassificationPass(renderGraph, viewPort.Size);
             var gbuffer = AddDeferredTexturingPass(renderGraph, viewPort.Size);
             var tileLightList = AddTileLightCullingPass(renderGraph, depthTexture, viewPort.Size);
+            AddClusterLightCullingPass(renderGraph, viewPort.Size);
             var gbufferData = new GBufferPassData
             {
                 gbuffer = gbuffer,
@@ -451,6 +459,7 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
                     depthTexture, tlasBuffer, request.viewId, viewPort.Size);
 
             AddSkyPass(renderGraph, in skyContext, litColor, depthTexture, request.viewId);
+            AddOitPasses(renderGraph, request.viewId, ghostPayload, in skyContext, persistentViewStateBuffer, litColor, depthTexture, viewPort.Size);
 
             // Auto Exposure & Post-Processing
             if (exposureMode == ExposureMode.AutomaticHistogram)
@@ -491,12 +500,14 @@ internal unsafe partial class GhostRenderPipeline : IRenderPipeline
         DisposeVisibility();
         DisposeClassification();
         DisposeDeferredTexturing();
+        DisposeOit();
 
         _gpuSceneResource.Dispose();
         _meshPipelineResource.Dispose();
         _materialPipelineResource.Dispose();
         _lightingPipelineResource.Dispose();
         _postProcessPipelineResource.Dispose();
+        _oitPipelineResource.Dispose();
 
         _gpuScene.Dispose();
         _gpuViewManager.Dispose();

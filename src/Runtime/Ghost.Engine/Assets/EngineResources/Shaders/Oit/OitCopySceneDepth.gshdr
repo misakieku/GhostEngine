@@ -1,0 +1,128 @@
+shader "Oit/CopySceneDepth"
+{
+    properties
+    {
+        Texture2D sceneDepthSrv;
+        uint fullWidth;
+        uint fullHeight;
+        uint oitWidth;
+        uint oitHeight;
+    }
+
+    pass "FullResCopy"
+    {
+        pipeline
+        {
+            ztest = always;
+            zwrite = on;
+            cull = off;
+            color_mask = none;
+        }
+
+        includes
+        {
+            "EngineResources/Shaders/Common.hlsl";
+            "EngineResources/Shaders/Properties.hlsl";
+        }
+
+        hlsl
+        {
+            struct DepthCopyVSOut
+            {
+                float4 position : SV_POSITION;
+            };
+
+            [numthreads(3, 1, 1)]
+            [outputtopology("triangle")]
+            void MSMain(uint gtid : SV_GroupThreadID, out vertices DepthCopyVSOut outVerts[3], out indices uint3 outTris[1])
+            {
+                SetMeshOutputCounts(3u, 1u);
+
+                float2 uv = float2((gtid << 1) & 2, gtid & 2);
+                outVerts[gtid].position = float4(uv * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f), 0.0f, 1.0f);
+
+                if (gtid == 0u)
+                {
+                    outTris[0] = uint3(0u, 1u, 2u);
+                }
+            }
+
+            float PSFullResCopy(DepthCopyVSOut input) : SV_Depth
+            {
+                uint2 px = min((uint2)input.position.xy, uint2(g_Properties.fullWidth - 1u, g_Properties.fullHeight - 1u));
+                Texture2D<float> sceneDepthTex = GET_TEXTURE2D(g_Properties.sceneDepthSrv);
+                return sceneDepthTex[px];
+            }
+        }
+
+        ms "hlsl_block" : "MSMain";
+        ps "hlsl_block" : "PSFullResCopy";
+    }
+
+    pass "OitMinDownsample"
+    {
+        pipeline
+        {
+            ztest = always;
+            zwrite = on;
+            cull = off;
+            color_mask = none;
+        }
+
+        includes
+        {
+            "EngineResources/Shaders/Common.hlsl";
+            "EngineResources/Shaders/Properties.hlsl";
+        }
+
+        hlsl
+        {
+            struct DepthCopyVSOut
+            {
+                float4 position : SV_POSITION;
+            };
+
+            [numthreads(3, 1, 1)]
+            [outputtopology("triangle")]
+            void MSMain(uint gtid : SV_GroupThreadID, out vertices DepthCopyVSOut outVerts[3], out indices uint3 outTris[1])
+            {
+                SetMeshOutputCounts(3u, 1u);
+
+                float2 uv = float2((gtid << 1) & 2, gtid & 2);
+                outVerts[gtid].position = float4(uv * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f), 0.0f, 1.0f);
+
+                if (gtid == 0u)
+                {
+                    outTris[0] = uint3(0u, 1u, 2u);
+                }
+            }
+
+            float PSOitMinDownsample(DepthCopyVSOut input) : SV_Depth
+            {
+                uint2 oitCoord = min((uint2)input.position.xy, uint2(g_Properties.oitWidth - 1u, g_Properties.oitHeight - 1u));
+                uint2 fullSize = uint2(g_Properties.fullWidth, g_Properties.fullHeight);
+                uint2 oitSize = uint2(g_Properties.oitWidth, g_Properties.oitHeight);
+
+                uint2 startPx = (oitCoord * fullSize) / oitSize;
+                uint2 endPx = min(((oitCoord + 1u) * fullSize + oitSize - 1u) / oitSize, fullSize);
+                endPx = max(endPx, startPx + 1u);
+
+                Texture2D<float> sceneDepthTex = GET_TEXTURE2D(g_Properties.sceneDepthSrv);
+                float minDepth = 1.0f;
+
+                for (uint y = startPx.y; y < endPx.y; y++)
+                {
+                    for (uint x = startPx.x; x < endPx.x; x++)
+                    {
+                        minDepth = min(minDepth, sceneDepthTex[uint2(x, y)]);
+                    }
+                }
+
+                return minDepth;
+            }
+        }
+
+        ms "hlsl_block" : "MSMain";
+        ps "hlsl_block" : "PSOitMinDownsample";
+    }
+}

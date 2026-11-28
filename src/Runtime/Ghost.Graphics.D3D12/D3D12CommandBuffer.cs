@@ -785,7 +785,9 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
                 return;
             }
 
-            var cpuHandle = _descriptorAllocator.GetCpuHandle(record.viewGroup.dsv);
+            var useReadOnlyDepth = depthDesc.IsReadOnlyDepth || depthDesc.DepthStoreOp == AttachmentStoreOp.NoAccess;
+            var dsvHandle = (useReadOnlyDepth && record.viewGroup.dsvReadOnly.IsValid) ? record.viewGroup.dsvReadOnly : record.viewGroup.dsv;
+            var cpuHandle = _descriptorAllocator.GetCpuHandle(dsvHandle);
             var format = record.desc.TextureDescriptor.Format.ToDXGIFormat();
             hasStencil = format is DXGI_FORMAT_D24_UNORM_S8_UINT or DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
@@ -870,11 +872,11 @@ internal unsafe class D3D12CommandBuffer : D3D12Object<ID3D12GraphicsCommandList
         var passFlags = allowUAVWrites ? D3D12_RENDER_PASS_FLAG_ALLOW_UAV_WRITES : D3D12_RENDER_PASS_FLAG_NONE;
         if (depthDesc.Texture.IsValid)
         {
-            if (depthDesc.DepthStoreOp == AttachmentStoreOp.NoAccess)
+            if (depthDesc.IsReadOnlyDepth || depthDesc.DepthStoreOp == AttachmentStoreOp.NoAccess)
             {
                 passFlags |= D3D12_RENDER_PASS_FLAG_BIND_READ_ONLY_DEPTH;
             }
-            if (hasStencil && depthDesc.StencilStoreOp == AttachmentStoreOp.NoAccess)
+            if (hasStencil && (depthDesc.IsReadOnlyStencil || depthDesc.StencilStoreOp == AttachmentStoreOp.NoAccess))
             {
                 passFlags |= D3D12_RENDER_PASS_FLAG_BIND_READ_ONLY_STENCIL;
             }

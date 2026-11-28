@@ -352,6 +352,11 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
             Release(descriptor.dsv);
         }
 
+        if (descriptor.dsvReadOnly.IsValid)
+        {
+            Release(descriptor.dsvReadOnly);
+        }
+
         if (descriptor.srv.IsValid)
         {
             Release(descriptor.srv, Math.Max(1, (int)descriptor.srvCount));

@@ -31,7 +31,8 @@ public enum Blend : byte
     Alpha,
     Additive,
     Multiply,
-    PremultipliedAlpha
+    PremultipliedAlpha,
+    PureAdditive
 }
 
 [Flags]

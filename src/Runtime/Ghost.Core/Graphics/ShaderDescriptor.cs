@@ -40,7 +40,9 @@ public enum PassSemantic : byte
     DeferredLighting = 4,
     RisResolveShading = 5,
     Custom = 6,
-    Count = 7
+    TransparentPrepass = 7,
+    TransparentForward = 8,
+    Count = 9
 }
 
 public static class PassSemanticExtensions
@@ -55,6 +57,8 @@ public static class PassSemanticExtensions
             "DeferredTexturing" => PassSemantic.DeferredTexturing,
             "DeferredLighting" => PassSemantic.DeferredLighting,
             "RisResolveShading" => PassSemantic.RisResolveShading,
+            "TransparentPrepass" => PassSemantic.TransparentPrepass,
+            "TransparentForward" => PassSemantic.TransparentForward,
             _ => PassSemantic.Custom,
         };
     }
@@ -90,7 +94,7 @@ public struct ShaderCode()
     }
 }
 
-public sealed class KeywordGroupDef
+public sealed class KeywordGroupDef : IKeywordDef
 {
     public string Name { get; init; } = string.Empty;
     public string[] Keywords { get; init; } = Array.Empty<string>();
@@ -111,7 +115,7 @@ public struct PassDescriptor
     public string[] defines;
     public PipelineState localPipeline;
     public uint shadingModelId;
-    public KeywordGroupDef[] keywordGroups;
+    public IKeywordDef[] keywordGroups;
 }
 
 public class GraphicsShaderDescriptor
@@ -159,5 +163,5 @@ public class ComputeShaderDescriptor
         get; init;
     }
 
-    public KeywordGroupDef[] KeywordGroups { get; init; } = Array.Empty<KeywordGroupDef>();
+    public IKeywordDef[] KeywordGroups { get; init; } = Array.Empty<IKeywordDef>();
 }

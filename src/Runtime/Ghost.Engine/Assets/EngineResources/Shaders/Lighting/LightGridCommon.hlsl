@@ -4,12 +4,47 @@
 #include "EngineResources/Shaders/Common.hlsl"
 
 #define FPTL_TILE_SIZE 16
+#define CLUSTER_TILE_SIZE 16u
 
 struct TileLightFetchResult
 {
     uint lightIndex;
     bool valid;
 };
+
+struct ClusterLightGridEntry
+{
+    uint offset;
+    uint count;
+};
+
+uint DepthToClusterSlice(float viewZ, float nearClip, float farClip, uint sliceCount)
+{
+    float safeNear = max(nearClip, 1e-4f);
+    float safeFar = max(farClip, safeNear + 1e-3f);
+    float clampedZ = clamp(viewZ, safeNear, safeFar);
+    float t = log2(clampedZ / safeNear) / max(log2(safeFar / safeNear), 1e-5f);
+    return min((uint)floor(t * float(sliceCount)), sliceCount - 1u);
+}
+
+uint GetClusterIndex(uint2 tileCoord, uint sliceZ, uint tilesX, uint sliceCount)
+{
+    return (tileCoord.y * tilesX + tileCoord.x) * sliceCount + sliceZ;
+}
+
+ClusterLightGridEntry GetClusterLightGridEntry(ByteAddressBuffer clusterLightGrid, uint clusterIndex)
+{
+    uint2 raw = clusterLightGrid.Load2(clusterIndex * 8u);
+    ClusterLightGridEntry entry;
+    entry.offset = raw.x;
+    entry.count = raw.y;
+    return entry;
+}
+
+uint FetchClusterLightIndex(ByteAddressBuffer clusterLightIndexList, uint offset, uint lightOffset)
+{
+    return clusterLightIndexList.Load((offset + lightOffset) * 4u);
+}
 
 /// <summary>
 /// Returns the number of punctual lights affecting the given 16x16 tile.

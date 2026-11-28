@@ -100,7 +100,7 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
         stream.Write(nameBytes);
     }
 
-    private static List<string[]> GenerateKeywordPermutations(IReadOnlyList<KeywordGroupDef>? groups)
+    internal static List<string[]> GenerateKeywordPermutations(IReadOnlyList<IKeywordDef>? groups)
     {
         var result = new List<string[]>();
         if (groups == null || groups.Count == 0)
@@ -126,7 +126,14 @@ internal partial class ShaderBaker : IAssetBaker, IAssetDependencyScanner
 
             for (var i = 0; i < group.Keywords.Length; i++)
             {
-                current.Add(group.Keywords[i]);
+                var keyword = group.Keywords[i];
+                if (string.IsNullOrEmpty(keyword))
+                {
+                    Recurse(groupIndex + 1, current);
+                    continue;
+                }
+
+                current.Add(keyword);
                 Recurse(groupIndex + 1, current);
                 current.RemoveAt(current.Count - 1);
             }
